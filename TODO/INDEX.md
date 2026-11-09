@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**686 entries: 104 open, 17 partial, 10 blocked, 555 done.**
+**686 entries: 104 open, 16 partial, 10 blocked, 556 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 29 | 7 | 1 | 257 | 294 |
-| P3 | 71 | 8 | 6 | 228 | 313 |
-| **All** | 104 | 17 | 10 | 555 | 686 |
+| P3 | 71 | 7 | 6 | 229 | 313 |
+| **All** | 104 | 16 | 10 | 556 | 686 |
 
 ## Entries
 
@@ -723,7 +723,7 @@ repository and CI).
 | [T-690](repo.md) | P1 | S | M10 | defect | done | Two regressions of the adoption of `pod-proxy`: an upload through a relay that cuts lost each answer, and `podssh ts` got `socks5://` for its SOCKS5 proxy |
 | [T-691](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-06: taiki-e/install-action 2.90.0 and aes 0.9.4 |
 | [T-692](robustness.md) | P1 | S | none | defect | done | Two background probes of the relay rank met the relay 439 ms apart on Windows, under a gap of 1.2 s |
-| [T-693](mesh.md) | P3 | S | M10 | feature | partial | `--trojan` against trojan-gfw's and trojan-go's own servers |
+| [T-693](mesh.md) | P3 | S | M10 | feature | done | `--trojan` against trojan-gfw's and trojan-go's own servers |
 | [T-694](mesh.md) | P3 | M | M10 | feature | open | croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair |
 | [T-695](mesh.md) | P3 | M | M10 | feature | open | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
 | [T-696](robustness.md) | P1 | S | none | defect | done | A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows |

@@ -10456,7 +10456,7 @@ alone, and the test of a grant at the gate fails.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -10500,7 +10500,7 @@ read from the project's own page. The Approach takes these pins.
 
 ## Done
 
-Partial, 2026-11-06.
+2026-11-09: done; partial on 2026-11-06.
 
 - `scripts/interop-trojan.sh`: trojan-gfw 1.16.0 (TLS) and trojan-go 0.10.6 (a WebSocket at `/tr`),
   each fetched by the pin of the Correction, run on the host's loopback beside the containers
@@ -10536,6 +10536,8 @@ a fallback's answer too ("an HTML page with no status line"), never showing the 
 the request. The test `a_fallback_s_page_with_no_status_line_is_named_and_not_shown`: planted, the
 page not checked, it fails; `cargo test -p podssh-ws --lib`: 185 passed. The next run of
 `trojan-interop.yml` reads it again.
+The second run of `trojan-interop.yml` (run 42633389509, `2e418a66`) passed each check: trojan-gfw's
+and trojan-go's own servers carried a session, and another password named each fallback (exit 255).
 
 # T-694: croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair
 
