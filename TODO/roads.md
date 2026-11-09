@@ -4521,7 +4521,7 @@ podssh's own, which makes it M.
   (`crates/podssh-iroh/src/endpoint.rs:4-7`, `:338-339`), as the design chose for a host with no
   DNS (`docs/design.md:1186`, `:1196`).
 - Read: the node's key is Ed25519 and stays across its pairs, and the operator pins it by label
-  (`docs/reverse.md:564-568`).
+  (`docs/reverse.md:567-571`).
 - Read in the study (https://docs.iroh.computer/connecting/dns-address-lookup): an endpoint
   publishes a signed packet to a DNS/Pkarr server over HTTP; n0's servers are free, rate-limited,
   with no guaranteed uptime, and "You're more than welcome to run production systems" on them,

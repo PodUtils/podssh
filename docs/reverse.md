@@ -56,6 +56,9 @@ podssh's node (`podssh_relay::reverse`, feature `pair`, T-079) keeps these
 rules. One task writes to the socket and holds the state of each session, so
 no frame goes out without its id, before its `ready` or after its `close`; a
 late byte of a closed session is dropped, and the other sessions go on. A
+`close {id, reason}` of the relay (the session byte cap, a halt) is named in
+the node's journal, one line a minute at most, with the first 8 characters of
+the id; a `close` with no reason says nothing (T-701). A
 session whose local side reads no more ends alone, with `close {id}` and the
 reason, so that the socket's reader never waits for it: 1 MiB may wait for a
 local side, and with the resumable layer twice its window, which its client

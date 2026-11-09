@@ -8,6 +8,7 @@
 //! (T-648), which both ends of a reverse socket use; and a node's ask for
 //! sessions readied ahead, where the role offers them (T-650).
 
+pub mod close_say;
 pub mod closes;
 pub mod control;
 pub mod e2e;

@@ -191,7 +191,7 @@ verified here).
    send an empty binary frame: under 32 bytes is `1009 bad multiplex frame` (`:182` of the contract).
    Pitfall: no idle read limit while no probe exists; the forward opener sets 90 s
    (`crates/podssh-relay/src/open.rs:382`), and a quiet socket would reconnect.
-6. Close actions, by code and reason (`docs/reverse.md:589-591`): `409`, exit, no retry;
+6. Close actions, by code and reason (`docs/reverse.md:592-594`): `409`, exit, no retry;
    `1001 operator stopped reverse relay`, exit and delete the pair; `1001 pair expired`, or a `403` after the
    stored expiry, a re-pair hook that is off by default; `1003` and `1009`, exit with the reason, never a loop;
    any other close, connect again with `open::backoff`.
@@ -271,7 +271,7 @@ sessions at once with T-080, compare the digests of 1 MiB each way, and stop the
 
 # T-080: The operator runner
 
-**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-158`); `docs/design.md` lines 94-97 at `0d92eef`; `docs/reverse.md:121-591`.
+**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-158`); `docs/design.md` lines 94-97 at `0d92eef`; `docs/reverse.md:124-594`.
 Read here on `3ee70dc`.
 **Category:** feature
 **Milestone:** M4
@@ -318,7 +318,7 @@ fails on each close but `1000` (`Azathothas/podbox:crates/podbox-ssh/src/mux.rs`
    a text `close` keeps its reason. Never send a text frame.
 5. Outcome: `NeverReady { code, reason }`, `Ended { code, reason }` or `LocalEnd`. Never ready is a
    failure; `1000` after `ready` is success; each other code after `ready` is a failure that names
-   the code and the reason (`docs/reverse.md:586-591`).
+   the code and the reason (`docs/reverse.md:589-594`).
 6. End of input: send a Close `1000`, and wait up to 10 s for the relay's answer, so the last bytes
    arrive.
 7. Liveness as in T-079: `watch_liveness` only if the relay answers a Ping on this leg; no idle read
@@ -1507,7 +1507,7 @@ Read: the library crates must build with no C compiler (`AGENTS.md:368-370`, `sc
    the gate before it is chosen; else RustCrypto parts with the IK handshake written here, and the
    test vectors of the Noise specification.
 3. Messages: each Noise message at most 65535 bytes, with a length prefix, inside the session's
-   bytes. The relay's frames on the operator leg stay bare (`docs/reverse.md:123`).
+   bytes. The relay's frames on the operator leg stay bare (`docs/reverse.md:126`).
 4. Layers with M6 (T-151, T-153): either Noise for each connection under the resumable layer (a
    resume makes a new handshake and proves the resume secret inside it), or above it. Decide in
    T-151, and record the choice in `docs/design.md` (section 5).
@@ -1638,7 +1638,7 @@ only `share PORT` opens a port.
 Read: one name holds one node socket
 (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:152-154`); tokens are scoped to a name
 and a role (`:128-129`). The operator leg has no framing, so a route cannot travel in the relay's
-frames (`docs/reverse.md:123`). Data needs `ready` first (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:180`), and `ready` comes
+frames (`docs/reverse.md:126`). Data needs `ready` first (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:180`), and `ready` comes
 after the local side accepts (`docs/reverse.md:16`). So a route that the operator names reaches the
 node only after `ready`.
 
@@ -1873,7 +1873,7 @@ upgrade, 72 h at most (`docs/relay.md:451-455`); `POST /v1/pair` gives the three
 (`docs/relay.md:627-630`). The contract scopes reverse tokens to a name and a role, and states no single use and
 no binding to a peer (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:128-129`). A new mint secret
 ends each token at once (`docs/relay.md:615-617`). A text frame from the operator closes its socket with
-`1003`, and the operator leg carries no framing (`docs/relay.md:644-647`, `docs/reverse.md:123`).
+`1003`, and the operator leg carries no framing (`docs/relay.md:644-647`, `docs/reverse.md:126`).
 
 Measured: `grep -rni sshsig crates scripts docs Cargo.toml` finds nothing (exit 1). The wider `sign(` hits are
 tests of primitives (`PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs:125-159`,
@@ -3903,10 +3903,10 @@ Read at `2042200`:
 
 - `crates/podssh-relay/src/reverse/control.rs` at `78b5fc8`, line 70, holds the version, and
   `crates/podssh-relay/src/reverse/control.rs:104-108` reads the two limits alone;
-  `crates/podssh-relay/src/reverse/serve.rs:198` is its one call. The role sends `"version": 1`
+  `crates/podssh-relay/src/reverse/serve.rs:199` is its one call. The role sends `"version": 1`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:351-360`), as the default relay does
   (`crates/podssh-relay/src/reverse/control.rs:64-65`). The issue's line numbers are of an older tree.
-- `crates/podssh-relay/src/reverse/serve.rs:239` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
+- `crates/podssh-relay/src/reverse/serve.rs:240` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
 - `crates/podssh-relay/src/reverse/node.rs:306` says "Next::Exit(_) => Next::Reconnect,", and
   `crates/podssh-relay/src/reverse/node.rs:118` says "A reconnection would" of `Exit::Unusable`.
 - The channel: an operator offers only with a document (`crates/podssh-relay/src/e2e/handshake.rs:113`),
@@ -4086,7 +4086,7 @@ Read at `2042200`:
 - A refusal with a cause before the upgrade exists for a planned stop alone: `503` with `Retry-After: 1`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:171-174`). Since T-255 a planned stop sends `1012`,
   and the node joins the role that comes back, so a restart costs no 409's wait; the issue's waits
-  (`crates/podssh-relay/src/reverse/serve.rs:80` and `crates/podssh-relay/src/session/resume.rs:44`)
+  (`crates/podssh-relay/src/reverse/serve.rs:81` and `crates/podssh-relay/src/session/resume.rs:44`)
   are for a node whose old socket the role still holds.
 - A pair's state (`crates/podssh-relay/src/serve/reverse/pairs.rs:124-137`) has no halt, and the file is
   486 lines, so the state goes in a module beside it.
@@ -4223,16 +4223,16 @@ behind the copy's queue, not the network.
 
 Read at `2042200`:
 
-- `crates/podssh-relay/src/reverse/serve.rs:115-121` keeps control apart from data, and a session's
+- `crates/podssh-relay/src/reverse/serve.rs:116-122` keeps control apart from data, and a session's
   bytes in order with its close; `crates/podssh-relay/src/reverse/serve.rs` said
   "mpsc::channel(1024), mpsc::channel(256)" at line 145 at `2042200`: one queue of data for all the
   sessions of the socket.
-- Each item is one read of up to `CHUNK_BYTES` (`crates/podssh-relay/src/reverse/serve.rs:373`), which
+- Each item is one read of up to `CHUNK_BYTES` (`crates/podssh-relay/src/reverse/serve.rs:374`), which
   `crates/podssh-relay/src/reverse/framing/legs.rs:51` says is 65504: up to 16 MiB of one session ahead
   of another's (arithmetic on the two constants, not a measurement).
-- The writer is `biased`, control first (`crates/podssh-relay/src/reverse/serve.rs:412`), then the data
+- The writer is `biased`, control first (`crates/podssh-relay/src/reverse/serve.rs:414`), then the data
   queue in order, each item's frames awaited before the next
-  (`crates/podssh-relay/src/reverse/serve.rs:435-442`); it chooses among no sessions.
+  (`crates/podssh-relay/src/reverse/serve.rs:437-444`); it chooses among no sessions.
 - The relay role's own socket has one bound for each socket too
   (`crates/podssh-relay/src/serve/reverse/outbox.rs:27`), a change of its own (the issue says so).
 
@@ -4799,7 +4799,7 @@ import of `Resolved` in `ssh/node.rs`). The Premise holds at the cited places.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4839,6 +4839,28 @@ cargo test -p podssh-relay --lib reverse::
 ```
 
 Plant a defect (the reason dropped again). The test must fail on it.
+
+## Done
+
+Partial, 2026-11-09: drafted (DRAFT T-701, `c7d32e83`) and merged by the main session, with no
+repair. The Premise holds at the cited lines (serve.rs bound only the id; `Out::Closed(id)` had no
+reason). `reverse/serve.rs` binds `reason` and carries it in `Out::Closed(id, reason)`; the writer
+asks `CloseSay` (`reverse/close_say.rs`) for a line and says it through `session::budget::say`,
+which a node's command sends to its stderr. The line is `the relay closed session 01234567...:
+session byte cap`: the first 8 characters of the id, the reason with no control character and at
+most 80 characters, one line each `SAY_EVERY` (60 s). A close with no reason prints nothing and
+takes no turn. `docs/reverse.md` says it.
+
+- `cargo test -p podssh-relay --features pair,serve --lib reverse::`: 64 passed, with
+  `close_say::tests::{a_burst_of_cuts_says_the_reason_once,
+  a_normal_close_says_nothing_and_takes_no_turn, the_reason_is_clean_and_short}`. Planted, no
+  reason taken, the three fail. `--test reverse_closes`, `reverse_framing`, `reverse_fair`,
+  `reverse_layered`: passed; `podssh-cli`'s `node`, `node_cut`, `node_moves`, `node_expiry`: passed.
+- Waits: the wiring in `serve.rs` against `podssh relay serve` with a small cap, which the unit
+  tests do not reach. The cap is the constant `SESSION_BYTES` (64 MiB, `serve/reverse/mod.rs`), and
+  no test sets a smaller one: the run needs a hook for the cap in the role, or 64 MiB through one
+  session.
+- No file of podcrates' `SOURCES` is frozen now (each podssh block has a `taken` line).
 
 # T-710: A node stays reachable for months: pair renewal and legs by key, proven over 90 days and in a beta
 
@@ -4911,7 +4933,7 @@ relay needs to say that it wants a slower, protocol-level ping.
 ## Premise
 
 - Read: the client pings each 10 s and allows 3 silent checks (`crates/podssh-ws/src/client.rs:39-40`); the
-  reverse node and operator legs read their own limits (`crates/podssh-relay/src/reverse/serve.rs:62-87`,
+  reverse node and operator legs read their own limits (`crates/podssh-relay/src/reverse/serve.rs:63-88`,
   `crates/podssh-relay/src/reverse/operator.rs:40-62`).
 - Read: `Hello` keeps each field that podssh does not model (`crates/podssh-relay/src/reverse/control.rs:65-79`),
   and one field is already an offer of the relay: `stopRotation` (`crates/podssh-relay/src/reverse/legs.rs:29`).

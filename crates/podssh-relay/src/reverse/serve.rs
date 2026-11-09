@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use podssh_ws::frame;
 use podssh_ws::session::{close_code_and_reason, RelaySession};
@@ -25,6 +25,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::mpsc;
 use tokio::sync::oneshot;
 
+use super::close_say::CloseSay;
 use super::closes::RelayClose;
 use super::control::{self, NodeInbound, NodeLimits};
 use super::fair::Fair;
@@ -98,8 +99,8 @@ enum Out {
     Ready(SessionId),
     Reject(SessionId, String),
     Data(SessionId, Vec<u8>),
-    /// The relay closed the session.
-    Closed(SessionId),
+    /// The relay closed the session, with its reason when it gave one (T-701).
+    Closed(SessionId, Option<String>),
     /// The local side ended: the relay is told with `close {id}`.
     LocalEnd(SessionId),
     /// The local side reads no more: `close {id}`, with the reason.
@@ -226,12 +227,12 @@ where
                         opening.clone(),
                     ));
                 }
-                Ok(NodeInbound::Close { id, .. }) => {
+                Ok(NodeInbound::Close { id, reason }) => {
                     let Ok(id) = SessionId::parse(id.as_bytes()) else { continue };
                     // Dropping the route ends the local writer, which shuts the
                     // local side; its late bytes find no session and are dropped.
                     routes.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
-                    let _ = tx.send(Out::Closed(id)).await;
+                    let _ = tx.send(Out::Closed(id, reason)).await;
                 }
                 // The role took a token of one leg for an operator (T-615).
                 Ok(NodeInbound::Spent { digest }) => handler.spent(&digest),
@@ -405,6 +406,7 @@ where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {
     let mut sessions = Sessions::new();
+    let mut said = CloseSay::default();
     loop {
         // Control first (`Outbox`), then one session's turn; the loop ends
         // once both queues closed. A read keeps its room until it went out.
@@ -441,7 +443,10 @@ where
                     session.send_binary(&frame).await?;
                 }
             }
-            Out::Closed(id) => {
+            Out::Closed(id, reason) => {
+                if let Some(line) = said.line(Instant::now(), id.as_str(), reason.as_deref()) {
+                    crate::session::budget::say(&line);
+                }
                 sessions.closed(&id);
                 // Its queued bytes are for an id that the relay forgot.
                 data.drop_line(&id);
