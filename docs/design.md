@@ -167,12 +167,32 @@ iroh-test --test road_race -- --ignored`).
 server gets the resumable layer and, with `--iroh`, the iroh road. It is a
 flag of `node`, not a command of its own (pigeons' `roost`): a roost is a
 node, with the same pair, keys, roads and exit codes. Before it registers,
-the roost dials each TARGET and peeks at its first line, which must be
+the roost dials each TARGET and peeks at its first lines, which must hold
 SSH's version line within 10 s, as iroh-ssh checks its sshd; each
 session's own connection, made after the layer's handshake, is checked
 again. The client keeps sshd's host key under `node://NAME`. MEASURED:
 `cargo test -p podssh-cli --test roost` (8 passed, 2026-10-12); the gate's
 `scripts/interop-roost.sh` waits for a run (T-251).
+
+**One rule for "this peer is an SSH server" (T-702, GitHub #170,
+2026-11-09).** RFC 4253, section 4.2, read leniently: a server may send
+other lines before its version line, and none of them starts with `SSH-`.
+The verdict comes from the first line that does, within 4 KiB: `SSH-2.0-`
+or `SSH-1.99-` passes, another version is refused, and a part of a line
+waits for the rest. A byte that no line of text holds (a record of TLS)
+and 4 KiB with no version line are refused at once; lines of text and
+then a close, or the limit, are another service, named by the first line.
+One function holds the rule (`podssh_relay::reverse::sshd::judge`), and
+each reader asks it: the roost (10 s), the direct road after the relay
+hosts (10 s), `doctor`'s probe of port 22 and of `--hop` (5 s), and
+`doctor`'s line `sshd` (2 s). The roost peeks, as its stream is the
+`TcpStream` that each session takes over; the others read in a loop and
+give the bytes back to the SSH client first, as a proxy's stream and a
+stream inside TLS offer no peek. The strict rule, a first line that must
+be the version line, lost: it would refuse a host that greets first, which
+the direct road reached. The relay role's shared port (T-644) keeps its
+sniff of four bytes `SSH-`: it chooses a road for a client, which sends
+no line first, and judges no server. MEASURED: UNVERIFIED (T-702).
 
 ### A quick tunnel that podssh makes itself (T-170, research of 2026-10-12)
 

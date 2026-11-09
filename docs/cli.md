@@ -416,7 +416,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   the user named no relay (`--relay-host`, `PODSSH_RELAY` or the settings
   file's `RelayHost`), podssh tries the direct road once: the dial of
   `--direct`, through `HTTPS_PROXY` when one is set, then the server's
-  version line within 10 s, whose bytes go to the SSH client first, of the
+  version line within 10 s, after any lines before it, by the roost's rule
+  (T-702), whose bytes go to the SSH client first, of the
   family of `-4` or `-6` when one is given (below). One line says that the
   relay hosts failed, after how long, and that
   podssh tries HOST:PORT directly, and through which proxy, whose CONNECT
@@ -2818,7 +2819,7 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   tried, and the line says so. Proxy credentials and tokens are never shown.
 - `sshd` (T-590, GitHub #116), in the section `this host`: where this host
   has the sshd of a roost, looked for as the roost looks (above), and one
-  dial of `127.0.0.1:22`, the roost's default TARGET, with its first line
+  dial of `127.0.0.1:22`, the roost's default TARGET, with its version line
   within 2 s, judged by the roost's own rule: `present at /usr/sbin/sshd;
   127.0.0.1:22 answers SSH-2.0-...`; `nothing listens at 127.0.0.1:22`,
   with what a roost needs; another first line; or `absent (...)`, with the
@@ -3941,9 +3942,11 @@ commands. The rules behind them:
 - **A roost is `node --sshd`** (T-166): a node in front of a standard
   sshd, TARGET, or `127.0.0.1:22` when none is given, so that a normal
   server gets the resumable layer and, with `--iroh`, the iroh road. Before
-  it goes online, it dials each TARGET and reads the first line, which must
-  be SSH's version line (`SSH-2.0-`, or `SSH-1.99-`; RFC 4253, section 4.2)
-  within 10 s; else it exits, and names TARGET and what came back: 78 for
+  it goes online, it dials each TARGET and reads its first lines, which must
+  hold SSH's version line (`SSH-2.0-`, or `SSH-1.99-`) within 10 s and 4 KiB;
+  the lines before it, which RFC 4253 (section 4.2) lets a server send, are
+  skipped, as on the direct road (T-702). Else it exits, and names TARGET
+  and what came back: 78 for
   another service, 69 for no line or a close. The node's first line gives
   each version line. Each session's connection to sshd, made after the
   layer's handshake, is checked the same way: a session whose TARGET no

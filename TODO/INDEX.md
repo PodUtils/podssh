@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 98 open, 19 partial, 10 blocked, 560 done.**
+**687 entries: 97 open, 19 partial, 10 blocked, 561 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 28 | 7 | 1 | 259 | 295 |
-| P3 | 66 | 10 | 6 | 231 | 313 |
-| **All** | 98 | 19 | 10 | 560 | 687 |
+| P3 | 65 | 10 | 6 | 232 | 313 |
+| **All** | 97 | 19 | 10 | 561 | 687 |
 
 ## Entries
 
@@ -732,7 +732,7 @@ repository and CI).
 | [T-699](roads.md) | P2 | M | backlog | chore | done | One end-of-input helper for the forwarder roads, with an invariant test for each |
 | [T-700](copy.md) | P3 | S | none | defect | partial | `podssh sftp` prints a line before the relay's byte cap stops a transfer |
 | [T-701](reverse.md) | P3 | S | M10 | defect | partial | The reverse node's journal names the cause when the relay closes a session |
-| [T-702](roads.md) | P3 | M | backlog | defect | open | One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port |
+| [T-702](roads.md) | P3 | M | backlog | defect | done | One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port |
 | [T-703](resume.md) | P3 | S | none | defect | partial | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
 | [T-704](relay.md) | P3 | S | M10 | feature | done | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
 | [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |

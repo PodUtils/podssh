@@ -21,7 +21,7 @@ and in the pinned contract (`crates/podssh-probe/tests/spec/relay-spec-2026-10-0
 
 A node needs a pair name and a `node_token`; its operator needs the `connect_token`. podssh cannot get
 them: no code calls `POST /v1/pair`, `POST /v1/stop/<name>` or `GET /v1/status/<name>`. podbox pairs
-through `curl` (`docs/design.md:608-609`), which a sandbox may not have.
+through `curl` (`docs/design.md:628-629`), which a sandbox may not have.
 
 ## Premise
 
@@ -165,9 +165,9 @@ Read: `RelaySession` has text, binary, Ping and Close writes and a liveness watc
 (`crates/podssh-ws/src/session.rs:223-334`); `podssh_relay::open::backoff` has a jitter
 (`crates/podssh-relay/src/open.rs:421-435`). Not measured: whether the relay answers a Ping on a reverse socket
 (`docs/relay.md:386-388` is the forward path), and its idle cut there (`docs/relay.md` lines 191-192 at `cd75137`, T-061). A node
-that connects again ends each operator session on it (`docs/design.md:675-678`).
+that connects again ends each operator session on it (`docs/design.md:695-698`).
 
-Read in a local copy of podbox at `5bd8cb0` (`docs/design.md:550` names `452d792`): `run_node` owns the socket in
+Read in a local copy of podbox at `5bd8cb0` (`docs/design.md:570` names `452d792`): `run_node` owns the socket in
 one thread, drops late bytes of a closed id, and dials again with a backoff
 (`Azathothas/podbox:crates/podbox-ssh/src/mux.rs`). It also needs `hello`, accepts upper-case ids, and has no
 `409` rule; do not port these (`docs/reverse.md` lines 17-21 at `9811e0d`,
@@ -401,7 +401,7 @@ operator's outcome holds all 200 bytes.
 
 # T-081: A blocking facade of `podssh-relay`, for podbox
 
-**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-152`, `:180-181`); `docs/design.md:596-609`. Read here
+**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-152`, `:180-181`); `docs/design.md:616-629`. Read here
 on `3ee70dc`.
 **Category:** feature
 **Milestone:** M4
@@ -418,17 +418,17 @@ no HTTPS proxy support, so its node cannot leave a sandbox whose only egress is 
 ## Premise
 
 Read: podbox's reverse legs work live; it has no HTTPS proxy support; it is synchronous; it builds
-`ring`; its MSRV is 1.85; it is made for TLS-intercepting proxies (`docs/design.md:554-564`). The plan
-is a synchronous facade that owns a current-thread runtime (`docs/design.md:596-597`); then podbox
+`ring`; its MSRV is 1.85; it is made for TLS-intercepting proxies (`docs/design.md:574-584`). The plan
+is a synchronous facade that owns a current-thread runtime (`docs/design.md:616-617`); then podbox
 pins `podssh-relay` by git revision and removes its own `ws.rs`, `tls.rs`, direct dial and pairing
-through `curl` (`docs/design.md:608-609`).
+through `curl` (`docs/design.md:628-629`).
 
 Read: `podssh-relay` declares the workspace minimum, Rust 1.88 (`crates/podssh-relay/Cargo.toml:5-6`,
 `Cargo.toml` lines 45-48 at `0d92eef`), above podbox's 1.85. `podssh proxy` already runs async code from sync code with
 a current-thread runtime and `shutdown_background` (`crates/podssh-cli/src/proxy.rs:264-277`).
 
 Read: podbox keeps `ring` and TLS 1.2 through a `rustls::ClientConfig` that it supplies
-(`docs/design.md:601-605`); that is T-066, not this entry.
+(`docs/design.md:621-625`); that is T-066, not this entry.
 
 ## Approach
 
@@ -750,7 +750,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:5506`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:5509`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -888,7 +888,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:650-653`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:247-257`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:412`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:5502-5506`).
+`podssh proxy` sysexits (`docs/cli.md:5505-5509`).
 
 ## Approach
 
@@ -910,7 +910,7 @@ host, never the relay's name (`SECURITY.md:247-257`); `HostKeyAlias` exists
 
 Recommendation: `node://[user@]NAME`, read as `ssh://` is (`crates/podssh-cli/src/ssh/hop.rs:35`),
 because it changes no destination that works today (measured above). The alternative `node:NAME`, the
-address form of `podssh pipe` (`docs/design.md:1129`), lost: `podssh ssh node:22` already means host
+address form of `podssh pipe` (`docs/design.md:1149`), lost: `podssh ssh node:22` already means host
 `node`, port 22. A flag such as `--node NAME` lost: `podssh ssh` takes its destination as a word, as
 OpenSSH does.
 
@@ -1009,7 +1009,7 @@ there has no local TCP service to offer before `podssh serve` (M5). Its TARGET m
 its proxy allows (`docs/target-environment.md:21`).
 
 Read: podbox's reverse legs carried two sessions at once over the live relay on 2026-09-28
-(`docs/design.md:556-557`). Its own test with two clients is in its repository (`Azathothas/podbox`),
+(`docs/design.md:576-577`). Its own test with two clients is in its repository (`Azathothas/podbox`),
 not here.
 
 ## Approach
@@ -1340,7 +1340,7 @@ Read in the reports (not verified here): iroh-ssh warns about an ephemeral node 
 default-deny allowlist (`arjun988/GPU-Share:crates/gpumesh-core/src/node.rs`); warren pins a key on
 first sight, has `trust NAME --expect FINGERPRINT` and revocation, and exits 7 on a mismatch
 (`willykeenan/warren:src/cli.rs`); zuko stores device authorization for each peer
-(`adonm/zuko:src/store.rs`). iroh identifies endpoints by Ed25519 keys (`docs/design.md:1182-1184`).
+(`adonm/zuko:src/store.rs`). iroh identifies endpoints by Ed25519 keys (`docs/design.md:1202-1204`).
 
 ## Approach
 
@@ -1470,7 +1470,7 @@ podbox has the same, on by default (`NodeChannel`, `OperatorChannel`). The manua
 # T-088: End-to-end encryption between two podssh ends
 
 **Source:** GitHub #18 (report on warren; read in the report, not verified here);
-`docs/design.md:1440-1446`, `:1569-1573`.
+`docs/design.md:1460-1466`, `:1589-1593`.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P2
@@ -1489,9 +1489,9 @@ Read: the relay sees the target, the time and volume of the traffic, and the sta
 connection; after the key exchange it sees only ciphertext (`SECURITY.md:21-31`). It can drop, delay
 or add frames (`SECURITY.md:33-36`).
 
-Read: the road between two podssh ends carries SSH, `cp`, `pipe` and chat (`docs/design.md:1440-1446`);
-for chat, the operator chose the roads, end to end encrypted, after M6 (`docs/design.md:1572-1574`).
-The resumable layer of M6 runs under SSH (`docs/design.md:690-702`).
+Read: the road between two podssh ends carries SSH, `cp`, `pipe` and chat (`docs/design.md:1460-1466`);
+for chat, the operator chose the roads, end to end encrypted, after M6 (`docs/design.md:1592-1594`).
+The resumable layer of M6 runs under SSH (`docs/design.md:710-722`).
 
 Read in the report (GitHub #18, not verified here): warren uses `Noise_IK_25519_ChaChaPoly_BLAKE2s`
 so that the relay cannot read a stream (`willykeenan/warren:src/noise.rs`).
@@ -1879,7 +1879,7 @@ Measured: `grep -rni sshsig crates scripts docs Cargo.toml` finds nothing (exit 
 tests of primitives (`PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs:125-159`,
 `PodUtils/podssh:crates/podssh-ws/tests/signatures.rs:29-172`); the comment's `crypto_vectors.rs:192` is not one. Read: the
 issue's "rule 8" is rule 6 (`docs/architecture.md:326-331`), and its "section 2" sentence about an allowlist of
-keys is in section 7 (`docs/design.md:1403-1404`). Read in the report (not verified here): syq signs a grant in a
+keys is in section 7 (`docs/design.md:1423-1424`). Read in the report (not verified here): syq signs a grant in a
 fixed namespace and redeems it at most once with `flock`, `O_EXCL`, `linkat` and `fsync` (lines 55 at `22c3b88` and
 1416-1492 of `greaber/syq:src/delegation.rs`). The reporter's correction: a signed grant leaks as a token does
 (lines 11-12 at `22c3b88`); signing buys scope, single use and non-repudiation, not safety after a leak.
@@ -2616,7 +2616,7 @@ documents works; the form that a user expects is missing.
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
   which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:150`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
-  (`crates/podssh-cli/src/man/notes_pair.rs:319-321`), and `pipe` takes `node:NAME`
+  (`crates/podssh-cli/src/man/notes_pair.rs:320-322`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
   byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:392`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of

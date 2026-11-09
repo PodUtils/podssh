@@ -118,7 +118,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              speaks a dialect of the reverse road that this podssh does not read, or does not read its own \
              (its hello, or 426), and the line names the side to update. podssh edit: VISUAL, EDITOR and PATH \
              give no editor, the editor does not start, or PODSSH_CACHE_DIR is none. podssh node --sshd: a \
-             TARGET whose first line is not an SSH version line, which is another service. podssh node: this host \
+             TARGET that sends lines and no version line of SSH 2, which is another service. podssh node: this host \
              refuses UDP for a udp: TARGET. podssh each --interactive: the emergency stop cannot be armed. \
              podssh session start and serve: PODSSH_LISTEN is no, or no directory takes the session's \
              socket.",

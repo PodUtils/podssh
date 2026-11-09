@@ -46,7 +46,9 @@ const DRAIN_MOST: usize = 64 * 1024;
 
 /// Whether the first bytes of a connection open SSH: `Some(true)` once four
 /// are `SSH-`, `Some(false)` once one differs, `None` for a part of `SSH-`
-/// that waits for more.
+/// that waits for more. A client sends no line before its version line, and
+/// this chooses a road for a client: it is no judge of a server, which may
+/// greet first (`crate::reverse::sshd::judge`, T-702).
 pub fn judge(bytes: &[u8]) -> Option<bool> {
     let seen = &bytes[..bytes.len().min(START.len())];
     if !START.starts_with(seen) {
@@ -151,5 +153,19 @@ mod tests {
         for part in [&b""[..], b"S", b"SS", b"SSH"] {
             assert_eq!(judge(part), None, "{part:?}");
         }
+    }
+
+    /// The sniff answers which road takes a client's connection, and the
+    /// judge of a server whether a server is one: the same bytes get other
+    /// verdicts (T-702).
+    #[test]
+    fn the_sniff_of_the_shared_port_is_no_judge_of_a_server() {
+        use crate::reverse::sshd::{judge as server, NotSshd};
+        assert_eq!(judge(b"SSH-1.5-old\r\n"), Some(true));
+        assert_eq!(server(b"SSH-1.5-old\r\n"), Some(Err(NotSshd::Version("SSH-1.5-old".into()))));
+        assert_eq!(judge(b"Welcome\r\n"), Some(false));
+        assert_eq!(server(b"Welcome\r\n"), None, "a server's greeting waits for its version line");
+        assert_eq!(judge(b"SSH-"), Some(true));
+        assert_eq!(server(b"SSH-"), None, "a server's version line is judged whole");
     }
 }

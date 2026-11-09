@@ -8,17 +8,13 @@ use std::net::{SocketAddr, TcpStream};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use podssh_relay::reverse::sshd::{judge, NotSshd};
+use podssh_relay::reverse::sshd::{judge, unjudged, End, NotSshd, READ_MAX};
 
 use super::Report;
 use crate::local_sshd::{self, Found};
 
 /// The bound on the dial and the first line together.
 const LIMIT: Duration = Duration::from_secs(2);
-/// RFC 4253 gives the version line 255 bytes, its CR LF included.
-const LINE_MAX: usize = 255;
-/// The most of a line that the report shows.
-const SHOWN: usize = 80;
 
 /// What one dial of the roost's TARGET gave.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,21 +59,24 @@ fn dial(addr: SocketAddr) -> Port {
     }
 }
 
-/// The first line that `read` gives before `deadline`, judged by the
-/// roost's own rule. `read` takes the time left, which is never zero.
+/// The version line that `read` gives before `deadline`, judged by the
+/// roost's own rule, which skips the lines before it (T-702). `read` takes
+/// the time left, which is never zero, and no more than the rule reads.
 fn first_line(
     mut read: impl FnMut(&mut [u8], Duration) -> std::io::Result<usize>,
     deadline: Instant,
 ) -> Result<String, NotSshd> {
     let mut bytes = Vec::new();
-    let mut buf = [0u8; LINE_MAX];
+    let mut buf = vec![0u8; READ_MAX];
     loop {
         let left = deadline.saturating_duration_since(Instant::now());
-        if left.is_zero() || bytes.len() >= LINE_MAX {
-            return Err(NotSshd::Silent { after: LIMIT, seen: shown(&bytes) });
+        if left.is_zero() {
+            return Err(unjudged(&bytes, End::Limit(LIMIT)));
         }
-        match read(&mut buf, left) {
-            Ok(0) => return Err(NotSshd::Closed),
+        // `judge` decides by READ_MAX bytes, so the room is never zero here.
+        let room = READ_MAX.saturating_sub(bytes.len()).max(1);
+        match read(&mut buf[..room], left) {
+            Ok(0) => return Err(unjudged(&bytes, End::Closed)),
             Ok(n) => {
                 bytes.extend_from_slice(&buf[..n]);
                 if let Some(verdict) = judge(&bytes) {
@@ -86,17 +85,11 @@ fn first_line(
             }
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
             Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {
-                return Err(NotSshd::Silent { after: LIMIT, seen: shown(&bytes) });
+                return Err(unjudged(&bytes, End::Limit(LIMIT)));
             }
             Err(e) => return Err(NotSshd::Failed(e.to_string())),
         }
     }
-}
-
-/// The first line of `bytes`, safe to print, and short.
-fn shown(bytes: &[u8]) -> String {
-    let line = bytes.split(|b| *b == b'\n').next().unwrap_or(bytes);
-    podssh_ws::text::one_line(&String::from_utf8_lossy(line)).trim_end().chars().take(SHOWN).collect()
 }
 
 /// The line: where sshd is, what `target` answered, and what a roost needs
@@ -153,6 +146,20 @@ mod tests {
         assert_eq!(read(vec![]), Err(NotSshd::Silent { after: LIMIT, seen: String::new() }));
         assert_eq!(read(vec![&b"SSH-2.0"[..]]), Err(NotSshd::Silent { after: LIMIT, seen: "SSH-2.0".into() }));
         assert_eq!(read(vec![&b""[..]]), Err(NotSshd::Closed));
+    }
+
+    /// The inputs of T-702 for the doctor's line: the lines before the
+    /// version line, and a first piece shorter than `SSH-`, pass here as on
+    /// the direct road; an HTTP answer whose server closes is named.
+    #[test]
+    fn a_greeting_or_a_short_first_piece_passes_as_on_the_direct_road() {
+        assert_eq!(read(vec![&b"SS"[..], &b"H-2.0-OpenSSH_9.6\r\n"[..]]), Ok("SSH-2.0-OpenSSH_9.6".into()));
+        let greeting = vec![&b"Welcome to the lab\r\nSSH-2.0-OpenSSH_9.6\r\n"[..]];
+        assert_eq!(read(greeting), Ok("SSH-2.0-OpenSSH_9.6".into()));
+        let alone = vec![&b"Welcome to the lab\r\n"[..], &b"SSH-2.0-OpenSSH_9.6\r\n"[..]];
+        assert_eq!(read(alone), Ok("SSH-2.0-OpenSSH_9.6".into()));
+        let closed = read(vec![&b"HTTP/1.1 400 Bad Request\r\n"[..], &b""[..]]);
+        assert_eq!(closed, Err(NotSshd::Other("HTTP/1.1 400 Bad Request".into())));
     }
 
     #[test]

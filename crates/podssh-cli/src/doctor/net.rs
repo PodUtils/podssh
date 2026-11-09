@@ -380,4 +380,23 @@ mod banner_tests {
         assert_eq!(no_ssh_banner(near).await, Some(format!("nothing came in {} s", BANNER_WAIT.as_secs())));
         assert_eq!(started.elapsed(), BANNER_WAIT);
     }
+
+    /// A greeting alone, or a first piece shorter than `SSH-`, then the rest
+    /// a moment later: a banner, and no fault of a proxy (T-702). An HTTP
+    /// answer alone is still none, at the bound.
+    #[tokio::test(start_paused = true)]
+    async fn a_banner_in_pieces_is_a_banner() {
+        let pieces: [(&[u8], &[u8]); 2] = [(b"Welcome\r\n", b"SSH-2.0-stand-in\r\n"), (b"SS", b"H-2.0-stand-in\r\n")];
+        for (first, rest) in pieces {
+            let (near, mut far) = sent(first).await;
+            let probe = tokio::spawn(no_ssh_banner(near));
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            far.write_all(rest).await.unwrap();
+            assert_eq!(probe.await.unwrap(), None, "{first:?}");
+        }
+        let (near, _far) = sent(b"HTTP/1.1 400 Bad Request\r\n").await;
+        let started = tokio::time::Instant::now();
+        assert!(no_ssh_banner(near).await.unwrap().contains("not an SSH banner"));
+        assert_eq!(started.elapsed(), BANNER_WAIT);
+    }
 }

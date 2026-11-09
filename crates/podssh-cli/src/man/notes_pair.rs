@@ -34,7 +34,8 @@ pub(super) const NODE: &[&str] = &[
     "A roost: with --sshd, the node serves a standard sshd, TARGET, or 127.0.0.1:22 when no TARGET is \
      given. A normal server gets the resumable layer, and with --iroh the iroh road, this way: the roost \
      owns the TCP connection to sshd. Before the node goes online, it dials each TARGET and reads its \
-     first line, which must be SSH's version line (SSH-2.0-...) within 10 s; else it exits, and names \
+     first lines, which must hold SSH's version line (SSH-2.0-...) within 10 s and 4 KiB; lines before it, \
+     which RFC 4253 lets a server send, are skipped, as podssh ssh skips them. Else it exits, and names \
      TARGET and what came back: 78 for another service, 69 for no line or a close. The node's first \
      line gives the version line. Each session's connection to sshd, made after the layer's handshake, \
      is checked the same way, and a session whose TARGET does not answer as sshd ends at once with the \

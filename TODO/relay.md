@@ -779,7 +779,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    a slow target also starts the next host. Measure the open times through a proxy in the box,
    and record D in `docs/STATUS.md`.
 3. Send a Close to each attempt that is not kept, at once. The relay then frees the target
-   socket within 15 s (`docs/design.md:675-677`, `docs/relay.md:545`); the target still sees one
+   socket within 15 s (`docs/design.md:695-697`, `docs/relay.md:545`); the target still sees one
    short connection, because the relay dials it before the upgrade.
 4. One mint at a time for each relay deployment (single flight, keyed as T-057 keys the cache),
    against the brake of `docs/relay.md:476`. When the minting attempt is the silent one, the next
@@ -3831,7 +3831,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3415-3421`.
+  `docs/cli.md:3416-3422`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:167-172`),
@@ -3895,7 +3895,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3457`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3458`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -4638,7 +4638,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/mod.rs:70`): the client waits for a banner that never comes, then is
   cut (Inferred from the code; not measured). With `--cleartext no` it meets TLS, which fails at once.
 - The node's check of a standard sshd peeks for the version line in the same way
-  (`crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:19`); the word is the node's
+  (`crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:28`); the word is the node's
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
@@ -4665,7 +4665,7 @@ for one idea. Off unless named: a port of the relay that answers SSH is a door t
 
 2026-11-05 (the drafting agent of T-644), each call for the operator to confirm under Q86:
 
-- **The dial goes by the role's way out** (`crates/podssh-relay/src/serve/sshd.rs:94`, through
+- **The dial goes by the role's way out** (`crates/podssh-relay/src/serve/sshd.rs:96`, through
   the dial of the forward road), with no policy of targets: the loopback, the issue's "local
   sshd", and what `NO_PROXY` names go directly, and another address through the host's proxy
   where one is set. Lost: the Approach's dial that is always direct, as rule 2 of `AGENTS.md`
@@ -4740,12 +4740,12 @@ holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
 2026-11-05, merged from its draft (`edd405d`).
 
 - The decision (`crates/podssh-relay/src/serve/listener.rs:54`): with `--sshd`, after the first byte
-  that begins no TLS, `crates/podssh-relay/src/serve/sshd.rs:62` peeks up to four bytes within the
-  same 30 s; `SSH-` goes to `crates/podssh-relay/src/serve/sshd.rs:88`, which dials the sshd by the
+  that begins no TLS, `crates/podssh-relay/src/serve/sshd.rs:64` peeks up to four bytes within the
+  same 30 s; `SSH-` goes to `crates/podssh-relay/src/serve/sshd.rs:90`, which dials the sshd by the
   role's way out, says `sshd from PEER, at the sshd as ADDR:PORT`, copies both ways with
   `TCP_NODELAY` and says its end; another start goes to the cleartext road, or to TLS with
   `--cleartext no`. An sshd that does not answer gets the client one line
-  (`crates/podssh-relay/src/serve/sshd.rs:117`). The binary: `--sshd ADDR:PORT`
+  (`crates/podssh-relay/src/serve/sshd.rs:119`). The binary: `--sshd ADDR:PORT`
   (`crates/podssh-cli/src/flags/relay.rs:98`), read at `crates/podssh-cli/src/relay_serve.rs:210`
   (an address, else 64) and named in the first line; with another subcommand, 64. The manual (the
   row and a note of `relay serve`), `docs/relay.md` ("SSH on the relay role's port"),
@@ -5495,7 +5495,7 @@ Podcrates T-120 takes the document at its import; podssh writes it first.
 - `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
   gives it.
 - `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
-- `docs/design.md:1282`: a test vector exists for iroh's tickets only.
+- `docs/design.md:1302`: a test vector exists for iroh's tickets only.
 
 ## Approach
 

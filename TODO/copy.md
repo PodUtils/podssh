@@ -6,7 +6,7 @@ step and each open of a session has a time limit.
 
 # T-133: An SFTP client in the process, the base of `cp`
 
-**Source:** ROADMAP M5 ("SFTP in the process"), `docs/design.md:645-649`;
+**Source:** ROADMAP M5 ("SFTP in the process"), `docs/design.md:665-669`;
 GitHub #20 (Nemo-010, 2026-10-08: "Bound every SFTP/PTY wait", after tty7's
 issue 1126).
 **Category:** feature
@@ -57,7 +57,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
    for SFTP.
 4. Invariant: no request and no step of the open waits without a limit.
    Three named constants, shown by the manual: 30 s for a metadata reply (as
-   `REPLY_WAIT`), 60 s with no data acknowledged (`docs/design.md:669`),
+   `REPLY_WAIT`), 60 s with no data acknowledged (`docs/design.md:689`),
    and the `--timeout` deadline over all, authentication included. Wrap a
    call in `tokio::time::timeout` where the crate has no limit.
 5. Size the requests from `limits@openssh.com`, else 32 KiB. Keep the
@@ -150,7 +150,7 @@ each step".
 
 # T-134: `podssh cp` over SFTP: a temporary name, the digest, then a rename
 
-**Source:** ROADMAP M5 (`podssh cp` and `podssh mv`), `docs/design.md:645-649`;
+**Source:** ROADMAP M5 (`podssh cp` and `podssh mv`), `docs/design.md:665-669`;
 GitHub #21 (Nemo-010, 2026-10-08: agent-ssh-cli verifies, then renames;
 syq's integrity checks and atomic replacement; read in the issue).
 **Category:** feature
@@ -314,7 +314,7 @@ SHA-256 before they take the destination's name".
 
 **Source:** ROADMAP M5 ("an exec transfer as the fallback for minimal
 servers"; "Do not assume POSIX tools or an interactive shell"),
-`docs/design.md:645-649`; GitHub #18 (zuko's file server, read in the issue).
+`docs/design.md:665-669`; GitHub #18 (zuko's file server, read in the issue).
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -372,7 +372,7 @@ never reaches this road. A far `cat` can still run after a drop (T-136).
 ## Decision
 
 Recommendation: raw `cat` over a channel with no pty, and `base64` only
-when step 5 fails. `docs/design.md:646` names both tools; raw bytes are
+when step 5 fails. `docs/design.md:666` names both tools; raw bytes are
 measured clean, and `base64` adds a third to the bytes that count against
 the relay's 64 MiB and needs a tool that not each host has. `base64` for
 each copy lost on both counts.
@@ -466,7 +466,7 @@ SFTP, raw through cat or through base64".
 # T-136: `podssh cp` continues from an offset after a drop
 
 **Source:** ROADMAP M5 ("Continue from an offset after a drop"),
-`docs/design.md:647-648`; GitHub #21 (agent-ssh-cli's `.part` and
+`docs/design.md:667-668`; GitHub #21 (agent-ssh-cli's `.part` and
 `.part.meta`, parsync's resume, syq's partial file; read in the issue);
 GitHub #17 (talaria0101, 2026-10-08: drops that repeat on one target).
 **Category:** feature
@@ -485,7 +485,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
 ## Premise
 
 - Read: today a drop ends the session with the relay's reason, and nothing
-  continues (`docs/design.md:665-673`).
+  continues (`docs/design.md:685-693`).
 - Read: SFTP reads and writes name their offset, so a copy can continue at
   any offset. The far file's size is no proof: with requests in flight
   (T-140), a later write can land while an earlier one fails.
@@ -493,7 +493,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
   (`crates/podssh-relay/src/cache.rs`, lines 62-76 at `4dd52f8`,
   `crates/podssh-relay/src/cache.rs:144-188`).
 - Read: after a drop, the relay closes the target's TCP connection within
-  15 s (`docs/design.md:675-678`), so a far `cat` can write for a while.
+  15 s (`docs/design.md:695-698`), so a far `cat` can write for a while.
 
 ## Approach
 
@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:355-376` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:5496-5499`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:5499-5502`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -1177,7 +1177,7 @@ stream.
 - Read: `AGENTS.md` rule 2 allows one outbound connection. Several channels
   in one SSH connection keep the rule; several relay sessions at once do
   not. The operator accepted more than one outbound connection for the iroh
-  road (`docs/design.md:1435-1438`), and on 2026-10-08 for one copy when the
+  road (`docs/design.md:1455-1458`), and on 2026-10-08 for one copy when the
   user asks (`docs/decisions.md`).
 - Read: the cap of 64 MiB is for each session (`docs/relay.md:475`).
 - Not measured: whether one relay session, or the path itself, limits the
@@ -2102,7 +2102,7 @@ defect wait for T-251.
 **Source:** GitHub #18 (zuko's `files` server, `adonm/zuko:src/files.rs`)
 and GitHub #21 (parsync's internal helper,
 `AlpinDale/parsync:src/remote_helper.rs`), read in the issues;
-`docs/design.md:1440-1446`.
+`docs/design.md:1460-1466`.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P3
@@ -2123,7 +2123,7 @@ can do better.
   request; it names its own requests `NAME@openssh.com`.
 - Read: `podssh serve` will have an SFTP server in the process (T-112).
 - Read: both roads between podssh ends carry the same `cp`
-  (`docs/design.md:1440-1446`).
+  (`docs/design.md:1460-1466`).
 
 ## Approach
 
@@ -2780,7 +2780,7 @@ full copy, and said nothing. After the run, the user cannot tell whether the del
 3. With `--jsonl`, the `done` object of each copy with `--delta` gains `"delta"`:
    `{"blocks": N, "sent": K, "bytes": B}` after a delta, or `{"full": "REASON"}` after a full copy.
 4. The row of `--delta` (`crates/podssh-cli/src/flags/copy.rs:44-45`), the manual,
-   `docs/cli.md:2248-2259` and `docs/STATUS.md`.
+   `docs/cli.md:2249-2260` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -2950,7 +2950,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2548-2554` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2549-2555` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3119,7 +3119,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2366-2406`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2367-2407`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3455,7 +3455,7 @@ waits minutes: 100 files of 2 bytes took 210 s with the default.
 4. T-417's line about `--parallel` is not said when the default applies, nor after
    `--parallel 1`, which the user chose.
 5. The row of `--parallel` names the default; the manual, README.md (its copies, with the
-   measured numbers), `docs/cli.md:2213-2247` and `docs/STATUS.md`.
+   measured numbers), `docs/cli.md:2214-2248` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3622,7 +3622,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2269-2285`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2270-2286`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).
