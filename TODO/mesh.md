@@ -5849,7 +5849,7 @@ read as a delivery (`delivered_whole`). `cargo test -p podssh-cli` (2,015 passed
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -6033,6 +6033,14 @@ sshd; a visitor that logs in, for an frps that names the users allowed to visit 
   frp's own frps and frpc is the next step, and the entry stays partial for it.
 - Still left after that run: the planted defect of the Prove against frp's own frps (a sign key of
   another second, refused), which waits for the checks of the release (T-251).
+
+2026-11-09, done. `frp-interop.yml` against frp's own frps and frpc of v0.71.1 on GitHub Actions:
+the first run (42700280605 at `81cf42b0`) passed 12 of 13; `frp.door` read 255 where the script
+wanted 77. The script was wrong, not podssh: `podssh ssh` ends 255 on each failure as OpenSSH does,
+the node's refusal of a key on each road too (`tests/derp_road.rs` pins it), and the line names the
+refused key. The script now wants 255 (`02babba4`); the run of `workflow_dispatch` at that commit,
+42707641399: `interop-frp: 13 passed, 0 failed, 0 without what they need`. What waits for the checks
+of the release (T-251): the planted defect of the Prove against frp's own frps.
 
 # T-499: IETF's connect-tcp, once it is an RFC
 
@@ -8318,9 +8326,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1285-1286` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:1287` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:1281` says "UDP alone, which the
+- `docs/carriers.md:1286-1287` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:1288` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:1282` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -8386,9 +8394,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1292-1293` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:1295-1296` says "as the server never answers a command";
-  `docs/carriers.md:1298` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:1293-1294` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:1296-1297` says "as the server never answers a command";
+  `docs/carriers.md:1299` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 

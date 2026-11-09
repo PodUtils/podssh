@@ -1239,7 +1239,8 @@ with TCP and TLS alone.
      timestamp)); frp's TCP with TLS starts with the byte 0x17. frps reads
      the WebSocket's request in clear: `wss://` needs the user's TLS front
      end before frps. Read from memory of Go's `golang.org/x/net/websocket`
-     for T-498's harness, not yet measured: frps serves its WebSocket with
+     for T-498's harness, and measured by its run against frps v0.71.1
+     (2026-11-09, 13 passed): frps serves its WebSocket with
      that library's `Handler`, which refuses an upgrade with no `Origin`
      (frpc sends `http://HOST`), and which sends text frames unless told
      otherwise, whatever the bytes; podssh sends frpc's `Origin` and takes
