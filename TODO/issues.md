@@ -142,7 +142,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
 | #54 | `doctor` measures what the proxy does to a stream | closed | T-324 (the three failures of the upgrade, and samples with their loss; the commit "doctor samples each probe of TCP, and names three failures of the upgrade"); T-325 (buffering, a cap on bodies, an idle limit) is M10's, served by podssh's own relay role (Q63) |
 | #55 | The split road's wire protocol | open | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
-| #56 | A cleartext road on port 443, probed | open | T-326 (the operator allowed it with a token for one session, Q45, and it is M10's since Q63, served by podssh's own relay role) |
+| #56 | A cleartext road on port 443, probed | closed 2026-11-09, T-326 done (`fddabaa3`) | T-326 (the operator allowed it with a token for one session, Q45, and it is M10's since Q63, served by podssh's own relay role) |
 | #59 | The forward road without the operator's relay: ways with no account to reach a `host:port` (research) | open | Each road of its ranking, in the paragraph below |
 | #60 | A relay template: a WebSocket forwarder that takes the destination from the URL | closed 2026-11-01, each entry done | T-369 (a forwarder that the user names); T-370 (the public forwarders in the binary, and a fallback to them, by the operator's ruling Q56) |
 | #61 | SSH on port 443 as a hop | closed 2026-11-01, each entry done | T-371 (the hop measured, and a `doctor` line for a hop, b666713), T-372 (a hop or a destination whose SSH is wrapped in TLS, `ssh+tls://`, 60c2414) |
@@ -221,16 +221,16 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #151 | COORD-001: a test of the fallback channel | closed 2026-11-05, its entry partial | T-684 (the first message of the protocol of PodUtils' sessions, a test that the watcher sees it) |
 | #152 | `[gh action] requested`: the gate on `main` | closed 2026-11-06, the gate passed (run 42179347665, `78e78e4`) | T-684 (Actions start no workflow for this account on 2026-11-06; the owner's agent ran it; T-465's probe, T-451's test and T-691's pins in the gate) |
 | #153 | `[gh action] requested`: the gate on `main` after T-434, T-456 and T-180 | closed 2026-11-06, its run red (42203919941, `0fc03e7`) and repaired (`b20fd8fe`, T-692) | T-684 (Actions start no workflow for this account on 2026-11-06; the owner's agent ran it) |
-| #154 | COORD-002: podssh took pod-dns and pod-services of v0.4.0 (to podcrates) | open | T-684 (the take at `72fb94d1`, written to the podcrates session as the protocol asks) |
+| #154 | COORD-002: podssh took pod-dns and pod-services of v0.4.0 (to podcrates) | closed 2026-11-09, the take is in podcrates' `SOURCES` (`taken 72fb94d1`) | T-684 (the take at `72fb94d1`, written to the podcrates session as the protocol asks) |
 | #155 | `[gh action] requested`: the gate on `main` after the take of v0.4.0 | closed 2026-11-06: its run red (42214300946, `ea5d4117`) and repaired (`5c91c0b1`); its second run asked in #157 | T-684 (the static binary of the take, which the gate's step `release` built and checked) |
-| #156 | COORD-003: podssh moved each podcrates tag to v0.5.0 (to podcrates) | open | T-684 (the move at `486c001b`, written to the podcrates session) |
+| #156 | COORD-003: podssh moved each podcrates tag to v0.5.0 (to podcrates) | closed 2026-11-09, superseded by the move to v0.6.0 (#161) | T-684 (the move at `486c001b`, written to the podcrates session) |
 | #157 | `[gh action] requested`: the gate on `main` after v0.5.0 and T-491 to T-498 | closed 2026-11-06: run 42248490766 at `8f21bf9a`, each step but `libs` passed; repaired at `db1e6307` | T-684 (the gate of the takes and of the drafts merged since `ea5d4117`) |
 | #158 | COORD-004: a second public Piping Server in pod-services, piping.onrender.com (to podcrates) | closed 2026-11-06, delivered in podcrates v0.6.0 | T-497 (done 2026-11-06) |
 | #159 | COORD-005: Tailscale's main DERP fleet in pod-services, after tailcat's (to podcrates) | closed 2026-11-06, delivered in podcrates v0.6.0 | T-534 (done 2026-11-06) |
 | #160 | `[gh action] requested`: the gate on `main` after `db1e6307` | closed 2026-11-06: the gate passed each job (run 42254589426, `285b0562`) | T-684 (the gate after the takes of v0.4.0 and v0.5.0, and the drafts of the day) |
-| #161 | COORD-006: podssh moved each podcrates tag to v0.6.0 (to podcrates) | open | T-684 (the move at `28fa1170`, written to the podcrates session) |
+| #161 | COORD-006: podssh moved each podcrates tag to v0.6.0 (to podcrates) | closed 2026-11-09, `main` pins v0.6.0 since `28fa1170` | T-684 (the move at `28fa1170`, written to the podcrates session) |
 | #162 | `[gh action] requested`: the gate on `main` at `8c7519c0` | open | T-684 (the gate after the take of v0.6.0, T-497 and T-534) |
-| #163 | `[gh action] requested`: `derp-main-live.yml`, the main DERP fleet from GitHub Actions | open | T-534 (step 1's run from Actions) |
+| #163 | `[gh action] requested`: `derp-main-live.yml`, the main DERP fleet from GitHub Actions | closed 2026-11-09, the run passed (42290196915, `8c7519c0`) | T-534 (step 1's run from Actions) |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

@@ -61,7 +61,7 @@
 53 pull closed
 54 issue closed
 55 issue open
-56 issue open
+56 issue closed
 57 pull closed
 58 pull closed
 59 issue open
@@ -159,13 +159,13 @@
 151 issue closed
 152 issue closed
 153 issue closed
-154 issue open
+154 issue closed
 155 issue closed
-156 issue open
+156 issue closed
 157 issue closed
 158 issue closed
 159 issue closed
 160 issue closed
-161 issue open
+161 issue closed
 162 issue open
-163 issue open
+163 issue closed
