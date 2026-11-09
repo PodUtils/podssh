@@ -167,7 +167,7 @@ umask 077
 printf '%s\n' "$token" "$secret" "$secret_sshd" >"$W/secret.words"
 umask 022
 printf '%s\n' 'bindAddr = "0.0.0.0"' 'bindPort = 7000' 'auth.method = "token"' "auth.token = \"$token\"" \
-    'transport.tls.certFile = "/etc/frp/tls/leaf.pem"' 'transport.tls.keyFile = "/etc/frp/tls/leaf.key"' \
+    'transport.tls.certFile = "/etc/frp-tls/leaf.pem"' 'transport.tls.keyFile = "/etc/frp-tls/leaf.key"' \
     >"$W/frps/frps.toml"
 printf '%s\n' 'serverAddr = "frps.test"' 'serverPort = 7000' 'user = "lab"' 'loginFailExit = false' \
     'auth.method = "token"' "auth.token = \"$token\"" '' '[[proxies]]' 'name = "sshd"' 'type = "stcp"' \
@@ -213,7 +213,7 @@ timeout 300 "$ENGINE" run -d --name podssh-frp-sshd --network "$NET" --network-a
     chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys && sed -i "s/^root:[^:]*:/root:*:/" /etc/shadow &&
     exec /usr/sbin/sshd -D -e' >/dev/null || die "sshd did not start"
 timeout 300 "$ENGINE" run -d --name podssh-frp-frps --network "$NET" --network-alias frps.test \
-    -p "127.0.0.1:$FRPS_PORT:7000" -v "$W/frp:/f:ro" -v "$W/frps:/etc/frp:ro" -v "$W/tls:/etc/frp/tls:ro" \
+    -p "127.0.0.1:$FRPS_PORT:7000" -v "$W/frp:/f:ro" -v "$W/frps:/etc/frp:ro" -v "$W/tls:/etc/frp-tls:ro" \
     "$ALPINE" /f/frps -c /etc/frp/frps.toml >/dev/null || die "frps did not start"
 # The user's TLS front end: TLS on 8443, frps's port in the clear behind it.
 timeout 300 "$ENGINE" run -d --name podssh-frp-front --network "$NET" --network-alias front.test \
