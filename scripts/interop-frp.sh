@@ -322,8 +322,9 @@ node_up lab "$W/node1" "$W/files/tls" &&
 client door "$W/files/tls" node://root@lab 'echo through-frp'
 rc=$?
 print=$(sed -n "s|.*refused this client's key \(SHA256:[A-Za-z0-9+/=]*\).*|\1|p" "$W/door.err" | head -1)
-[ "$rc" = 77 ] && [ -n "$print" ] &&
-    ok frp.door "a client key that --allow does not hold: the node refuses it through frps (exit 77)" ||
+# podssh ssh ends 255 on each failure, as OpenSSH does (tests/derp_road.rs).
+[ "$rc" = 255 ] && [ -n "$print" ] &&
+    ok frp.door "a client key that --allow does not hold: the node refuses it through frps (exit 255)" ||
     bad frp.door "the first visit, with no key let in: exit $rc" "$W/door.err"
 [ -n "$print" ] && printf '%s the run of T-498\n' "$print" >>"$W/allow"
 
