@@ -5569,6 +5569,13 @@ Each crate of `v0.1.0` is taken.
   --workspace --no-fail-fast` with Rust 1.99: 4,113 passed, 0 failed, 85 ignored. The features `ts`
   and `tor` are read again by the gate.
 
+- podcrates `v0.8.0` (`f680113`), on 2026-11-09 (COORD-017, PodUtils/podcrates#41): each podcrates
+  dependency moved from `v0.7.0` to `v0.8.0`; no patch for podssh. `pod_dns::Way` gained `kept`: podssh
+  builds its `Way` with `kept: None` (`crates/podssh-ws/src/resolve.rs`), a connection for each
+  question, so that no DoH connection waits beside a session (rule 2). `pod-core`'s new classes meet
+  matches that keep a `_` arm. `pod-gsr` is new in it: T-707's Blocker is met. `cargo test --workspace
+  --no-fail-fast` with Rust 1.99: 4,190 passed, 0 failed.
+
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

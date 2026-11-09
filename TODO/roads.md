@@ -9866,7 +9866,7 @@ line on the direct road, and the pin of the four-byte sniff.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -9923,10 +9923,14 @@ sh scripts/check-static.sh target/release/podssh
 
 The test must fail on a planted defect: a wrong secret must give no connection.
 
-## Blocker
+## Correction
 
-The owner. The owner deferred `pod-gsr` on 2026-11-09. The entry starts when podcrates ships
-`pod-gsr` and its data file. Until then no code starts.
+2026-11-09: the condition of the Blocker is met. podcrates v0.8.0 (`f680113`, COORD-017,
+PodUtils/podcrates#41) ships `pod-gsr`: `Identity`, `Settings` from `pod-services`'
+`hackerschoice-gsr`, `open` and `blocking::open`, TLS-SRP on OpenSSL 3.6.3 built from source and
+linked static. The road is a thin module of podssh on that crate: no SRP and no host of the network in
+podssh. A known defect of the crate on Windows ARM64 (podcrates T-131) leaves that target out of the
+road until podcrates repairs it. The entry is open, by its priority (P3), behind podssh's own work.
 
 # T-718: Access service-token headers from files on each WebSocket road
 

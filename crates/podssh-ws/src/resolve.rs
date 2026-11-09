@@ -163,5 +163,7 @@ pub async fn doh_https(
 /// The way to the resolvers of `resolver` through `dial`, with the TLS of the
 /// process.
 fn way<'a>(resolver: &'a pod_dns::Resolver, dial: &'a pod_proxy::Dialer) -> Way<'a> {
-    Way { settings: resolver.settings(), context: crate::tls::context(), dial }
+    // No kept connection to a DoH server: one connection for each question, so
+    // that none waits beside a session (rule 2 of AGENTS.md).
+    Way { settings: resolver.settings(), context: crate::tls::context(), dial, kept: None }
 }
