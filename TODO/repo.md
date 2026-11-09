@@ -5560,6 +5560,15 @@ Each crate of `v0.1.0` is taken.
   after the repair, `cargo test -p podssh-cli` (2,015 passed) and `cargo test -p podssh-relay`
   (466 passed), `node_cut` 6 runs alone and 3 under four busy cores, each passed.
 
+- podcrates `v0.7.0` (`a13014d`), on 2026-11-09 (the owner: this session takes it; COORD-013,
+  PodUtils/podcrates#37): each podcrates dependency moved from `v0.6.0` to `v0.7.0`, with no patch
+  (no `adoption/podssh/` at the tag). Its `pod-proxy` client keeps idle connections (T-077 of
+  podcrates): podssh makes one client for each request (`crates/podssh-ws/src/client/get.rs`,
+  `getter`) and drops it after, so no idle connection waits beside a session (rule 2). Its
+  `pod-core` has `Class::NotFound` (T-081): podssh's matches on `Class` keep a `_` arm. `cargo test
+  --workspace --no-fail-fast` with Rust 1.99: 4,113 passed, 0 failed, 85 ignored. The features `ts`
+  and `tor` are read again by the gate.
+
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
