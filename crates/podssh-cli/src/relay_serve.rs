@@ -20,6 +20,7 @@
 
 mod certs;
 pub(crate) mod keys_url;
+mod limits;
 mod list;
 mod publish;
 mod quic;
@@ -37,7 +38,7 @@ use podssh_relay::serve::egress::Egress;
 use podssh_relay::serve::keys::List;
 use podssh_relay::serve::listener::Door;
 use podssh_relay::serve::ranges::Range;
-use podssh_relay::serve::{self, Config, Limits, Mint};
+use podssh_relay::serve::{self, Config, Mint};
 
 use crate::exitmap::sysexits::{EX_CONFIG, EX_UNAVAILABLE};
 use crate::relay_cmd::RelayArgs;
@@ -57,7 +58,12 @@ pub struct ServeArgs {
     pub allow_private: bool,
     /// The private ranges that it dials too, unparsed (T-635).
     pub routes: Option<String>,
+    /// The limits that it moves, unparsed (T-704; `limits.rs`).
     pub keepalive: Option<String>,
+    pub idle: Option<String>,
+    pub session_hours: Option<String>,
+    pub max_session_mib: Option<String>,
+    pub connect: Option<String>,
     /// The file that keeps the pairs of the reverse road across a restart.
     pub pairs: Option<String>,
     /// The name of a certificate from ACME, in place of `cert` and `key`.
@@ -105,6 +111,10 @@ impl ServeArgs {
             allow_private: matches.try_get_one::<bool>("allow-private").ok().flatten().copied().unwrap_or(false),
             routes: get("routes"),
             keepalive: get("keepalive"),
+            idle: get("idle"),
+            session_hours: get("session-hours"),
+            max_session_mib: get("max-session-mib"),
+            connect: get("connect"),
             pairs: get("pairs"),
             acme: get("acme"),
             acme_directory: get("acme-directory"),
@@ -200,13 +210,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let owner_sshd = sshd::of(s.sshd.as_deref())?;
     // The names published to nodes, never the one of --acme (T-649).
     let published = publish::of(&s.publish, &source)?;
-    let keepalive = match s.keepalive.as_deref() {
-        None => Limits::default().keepalive,
-        Some(text) => match text.parse::<u64>() {
-            Ok(secs @ 1..=3600) => Duration::from_secs(secs),
-            _ => return Err(Refusal::usage(format!("--keepalive {text:?}: seconds, from 1 to 3600"))),
-        },
-    };
+    let limits = limits::of(s)?;
     // The resumable sessions of the forward road (T-173).
     let (sessions, resumable) = resumes::of(s)?;
     if podssh_relay::open::offline() {
@@ -255,7 +259,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
             ..Default::default()
         },
         egress,
-        limits: Limits { keepalive, ..Limits::default() },
+        limits,
         pairs,
         resumes: sessions,
         answered: Default::default(),

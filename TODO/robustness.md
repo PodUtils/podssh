@@ -34,7 +34,7 @@ Read, the parsers that take input from a peer or a file: WebSocket frames
 SOCKS5 proxy's answers (`PodUtils/podssh:crates/podssh-ws/src/socks5.rs:156`); close
 reasons (`crates/podssh-ws/src/close.rs:20`); PEM bundles
 (`PodUtils/podssh:crates/podssh-ws/src/bundle.rs:72`); relay lists and the pool document
-(`crates/podssh-relay/src/relay.rs:167`, `crates/podssh-relay/src/pool.rs:153`);
+(`crates/podssh-relay/src/relay.rs:173`, `crates/podssh-relay/src/pool.rs:153`);
 `known_hosts` lines, in a private function
 (`crates/podssh-ssh/src/known_hosts.rs:250`); the escape filter
 (`crates/podssh-ssh/src/escape.rs:94`); IRC lines and frames
@@ -544,7 +544,7 @@ Read, the bounds today:
   backpressure`): the row of the reverse path in the relay's document
   (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`). It
   now gives the forward path's rule (`crates/podssh-ssh/src/run.rs:26-29`):
-  `docs/relay.md:554-566` says that backpressure closes with `1013` at
+  `docs/relay.md:560-572` says that backpressure closes with `1013` at
   2 MiB and drops no frame. T-062 measures whether that check operates.
 
 ## Approach
@@ -680,7 +680,7 @@ Read: the candidates, each a pure function or a state machine with no I/O.
 - The joining of fragments (`crates/podssh-ws/src/session.rs:470-494`). It is
   private, but `RelaySession::new` (`crates/podssh-ws/src/session.rs:114`) takes
   any stream, so a test can drive it.
-- Relay lists and paths (`crates/podssh-relay/src/relay.rs:167-260`, `crates/podssh-ws/src/names.rs:8-85`).
+- Relay lists and paths (`crates/podssh-relay/src/relay.rs:173-266`, `crates/podssh-ws/src/names.rs:8-85`).
 - `known_hosts` patterns (`crates/podssh-ssh/src/known_hosts.rs:277-333`).
 - The escape filter, which keeps its state from one read to the next
   (`crates/podssh-ssh/src/escape.rs:94-138`).

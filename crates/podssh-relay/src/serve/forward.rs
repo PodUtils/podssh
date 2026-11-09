@@ -255,6 +255,7 @@ pub(super) async fn pump<S, R, W>(
     // pings do not count, as on the default relay.
     let heard = Arc::new(AtomicU64::new(0));
     let limits = cfg.limits.clone();
+    let cap = limits.bytes;
     let stamp = |heard: &AtomicU64| heard.store(started.elapsed().as_millis() as u64, Ordering::SeqCst);
 
     let up = {
@@ -270,12 +271,15 @@ pub(super) async fn pump<S, R, W>(
                         if f.payload.is_empty() {
                             continue;
                         }
-                        if let Err(e) = to_target.write_all(&f.payload).await {
+                        let take = charge(&moved, f.payload.len(), cap);
+                        if let Err(e) = to_target.write_all(&f.payload[..take]).await {
                             return End::Close(1011, format!("write failed: {e}"));
                         }
-                        moved.fetch_add(f.payload.len() as u64, Ordering::SeqCst);
-                        meter.up(f.payload.len());
+                        meter.up(take);
                         stamp(&heard);
+                        if take < f.payload.len() {
+                            return End::Close(1009, "session byte cap".into());
+                        }
                     }
                     frame::OPCODE_CLOSE => {
                         cfg.event(&format!("close {}", close_code(&f.payload)));
@@ -291,12 +295,15 @@ pub(super) async fn pump<S, R, W>(
         let (session, moved, heard, meter) = (session.clone(), moved.clone(), heard.clone(), meter.clone());
         async move {
             if !early.is_empty() {
-                if session.send_binary(&early).await.is_err() {
+                let take = charge(&moved, early.len(), cap);
+                if session.send_binary(&early[..take]).await.is_err() {
                     return End::Gone;
                 }
-                moved.fetch_add(early.len() as u64, Ordering::SeqCst);
-                meter.down(early.len());
+                meter.down(take);
                 stamp(&heard);
+                if take < early.len() {
+                    return End::Close(1009, "session byte cap".into());
+                }
             }
             let mut buf = vec![0u8; 64 * 1024];
             loop {
@@ -305,12 +312,15 @@ pub(super) async fn pump<S, R, W>(
                     Ok(n) => n,
                     Err(e) => return End::Close(1011, format!("target read failed: {e}")),
                 };
-                if session.send_binary(&buf[..n]).await.is_err() {
+                let take = charge(&moved, n, cap);
+                if session.send_binary(&buf[..take]).await.is_err() {
                     return End::Gone;
                 }
-                moved.fetch_add(n as u64, Ordering::SeqCst);
-                meter.down(n);
+                meter.down(take);
                 stamp(&heard);
+                if take < n {
+                    return End::Close(1009, "session byte cap".into());
+                }
             }
         }
     };
@@ -363,6 +373,20 @@ pub(super) async fn pump<S, R, W>(
     // The session's one charge, at its end; a drop of this task charges it
     // too, as the meter's last holder goes.
     meter.settle();
+}
+
+/// The bytes of `n` that the session's cap still takes, charged at once:
+/// each pump stops at the cap itself, as the limits' tick of 500 ms would
+/// let a fast target carry any amount past it (T-732).
+fn charge(moved: &AtomicU64, n: usize, cap: u64) -> usize {
+    let mut now = moved.load(Ordering::SeqCst);
+    loop {
+        let take = (n as u64).min(cap.saturating_sub(now));
+        match moved.compare_exchange(now, now + take, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(_) => return take as usize,
+            Err(seen) => now = seen,
+        }
+    }
 }
 
 /// Until the target was silent for `idle` since its last byte, or since the

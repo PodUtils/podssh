@@ -199,3 +199,31 @@ async fn the_proxy_s_refusal_of_the_upgrade_is_the_way_s() {
     );
     assert!(podssh_relay::piping::probe::upgrade_refused(&refused));
 }
+
+/// The byte cap on the HTTP road (T-732), as on the forward road: a target
+/// that sends 8 MiB through a role capped at 1 MiB reaches the client with
+/// exactly the cap's bytes, then the session ends with `1009 session byte
+/// cap`. The cap is the pumps' own, not the watch's of each 500 ms.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_byte_cap_stops_the_target_s_bytes_at_the_cap() {
+    let limits = podssh_relay::serve::Limits { bytes: MIB as u64, ..Default::default() };
+    let role = Role::limited(Policy { private: true, ..Policy::default() }, limits).await;
+    let (token, _) = role.cfg.tokens.mint(tokens::now_ms(), tokens::LIFETIME_MS);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let target = listener.local_addr().unwrap().port();
+    tokio::spawn(async move {
+        use tokio::io::AsyncWriteExt;
+        let Ok((mut tcp, _)) = listener.accept().await else { return };
+        let _ = tcp.write_all(&vec![7u8; 8 * MIB]).await;
+        let mut sink = [0u8; 4096];
+        while matches!(tcp.read(&mut sink).await, Ok(n) if n > 0) {}
+    });
+    let opened = open(&road(role.relay.port, "127.0.0.1"), target, &token, Some(Form::Split)).await;
+    let ended = opened.ended.clone();
+    let mut stream = opened.stream;
+    let mut got = Vec::new();
+    let read = tokio::time::timeout(std::time::Duration::from_secs(30), stream.read_to_end(&mut got)).await;
+    assert!(read.is_ok(), "the session ended within 30 s");
+    assert_eq!(got.len(), MIB, "the cap's bytes and not one more, of 8 MiB that the target sent");
+    assert_eq!(ended.get(), Some(End::Closed { code: 1009, reason: "session byte cap".into() }));
+}

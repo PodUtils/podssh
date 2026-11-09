@@ -329,7 +329,7 @@ the node then exits (docs/reverse.md, line 19 at `fb228e9`).
 
 1. The client drives the resume. On a loss with no `CLOSE` record, it tries
    the roads of T-164 and each host of the `RelayList`
-   (`crates/podssh-relay/src/relay.rs:109-123`), each within `HOST_DEADLINE`
+   (`crates/podssh-relay/src/relay.rs:115-129`), each within `HOST_DEADLINE`
    (`crates/podssh-relay/src/open.rs:35-37`), with `open::backoff` between
    rounds (`crates/podssh-relay/src/open.rs:421-435`). Do not fork it (T-077).
 2. A `CLOSE` record never reconnects; each other loss reconnects first
@@ -1210,7 +1210,7 @@ together (`docs/relay.md:475`).
    cells; 20 MiB up and 20 MiB down in separate sessions; 300 s at most each.
 4. The targets: a far podssh node that sends and drains bytes. For the
    forward road, two public targets, each checked first with `/trace`, which
-   needs a token (`docs/relay.md:530-531`; `docs/relay.md`, lines 296-302 at `24f3e2a`). Skip a
+   needs a token (`docs/relay.md:536-537`; `docs/relay.md`, lines 296-302 at `24f3e2a`). Skip a
    target that fails the check, with its reason; never count it as 0.
 5. A control: the same runs through the stand-in relay on loopback
    (`scripts/fake-relay.py`), which shows podssh's own limit.
@@ -3887,7 +3887,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/layer.rs:1-8`), which `proxy` and `ssh` take unasked for a relay
   host that the user named and that offers it (Q96, `docs/decisions.md:20`); and a node's sessions with
   `--no-e2e` (`crates/podssh-cli/src/flags/node.rs:139`).
-- The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:280-283` shuts
+- The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:284-287` shuts
   the target's writing side at the client's Close and goes on, as the default relay does
   (`docs/relay.md:367-370`). So `podssh proxy` to a target that reads until its end loses the answer on
   the layer road where it gets it on `/connect/` (Inferred from the code; not measured).
@@ -3996,8 +3996,8 @@ fails; no `END` again after a resume, and the test of a lost `END` fails; `podss
 
 - The Premise's role "goes on" after the client's Close, as the default relay does: it does not. At
   the client's Close the role's `/connect/` shuts the target's writing side and its `up` returns
-  `End::Client` (`crates/podssh-relay/src/serve/forward.rs:283` says "return End::Client;"), which
-  ends the `select!` of the session (`crates/podssh-relay/src/serve/forward.rs:343-344`): the target's
+  `End::Client` (`crates/podssh-relay/src/serve/forward.rs:287` says "return End::Client;"), which
+  ends the `select!` of the session (`crates/podssh-relay/src/serve/forward.rs:353-354`): the target's
   later bytes are not carried, where the contract says that they come until the target closes or is
   idle for 15 s (`docs/relay.md:367-370`). That is a difference of the role from the contract, outside
   this entry; the main session files it at the merge. And `podssh proxy` sends no Close at the end of

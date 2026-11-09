@@ -145,7 +145,7 @@ Read: `podssh proxy` keeps receiving after the end of stdin (`crates/podssh-cli/
 and a closed stdout is a clean end there (`crates/podssh-cli/src/pipe/relay.rs:245-249`) and in the rules
 (`docs/cli.md`, line 610 at `8cf2587`). `podssh ts -W` exits 70 on each copy error (`crates/podssh-cli/src/ts.rs`, lines 404-407 at `1ee321d`).
 The relay closes a half-closed forward session after 15 s with no bytes from the target
-(`docs/relay.md:539`). An earlier version of the pipe waited with no limit, and hung
+(`docs/relay.md:545`). An earlier version of the pipe waited with no limit, and hung
 (`crates/podssh-ts/src/pipe.rs`, lines 77-81 at `1ee321d`).
 
 ## Approach

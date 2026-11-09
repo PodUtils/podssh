@@ -501,7 +501,7 @@ in iroh's source at the pinned version.
    of one line, with its measurement (T-157).
 2. `--iroh-relay URL[,URL...]` and `PODSSH_IROH_RELAY` replace the table, as
    `--relay-host` and `PODSSH_RELAY` replace the relay list
-   (`crates/podssh-relay/src/relay.rs:125-146`). The flag wins.
+   (`crates/podssh-relay/src/relay.rs:131-152`). The flag wins.
 3. Accept `https://` URLs only, with a host that passes `check_host`
    (`crates/podssh-ws/src/names.rs:8-32`), and with no user information
    and no query.
@@ -1156,7 +1156,7 @@ the part of podssh:
    server of their own, on port 443.
 2. The forward path: `/connect/<host>/<port>`, the token header, `/v1/mint`,
    an empty frame each 25 s, the limits (180 s idle, 12 h, 64 MiB, frames of
-   262144 bytes), the close codes of `docs/relay.md:532-553`, and `/health`
+   262144 bytes), the close codes of `docs/relay.md:538-559`, and `/health`
    with the service name that `doctor` checks
    (`crates/podssh-relay/src/health.rs:13-15`).
 3. The reverse path: `/v1/pair`, `/v1/node/<name>`, `/v1/connect/<name>`,
@@ -5907,8 +5907,8 @@ relay's path and token.
 - Read: the study of carriers found no documented service, with no account, that carries any TCP
   target over a WebSocket (`docs/carriers.md:22-23`); the three above publish no limit, and say
   nothing of other clients.
-- Read: a relay is a host and a port (`crates/podssh-relay/src/relay.rs:77-83`), and its forward
-  path is `/connect/<host>/<port>` (`:175-188`); a run has one road, of five kinds
+- Read: a relay is a host and a port (`crates/podssh-relay/src/relay.rs:83-89`), and its forward
+  path is `/connect/<host>/<port>` (`:181-194`); a run has one road, of five kinds
   (`crates/podssh-cli/src/ssh/resolve.rs:23-80`).
 - Read: `validate` refuses a query other than the relay's knobs, and `connect` always sends a token
   (`crates/podssh-ws/src/client.rs:74-113`, `:181-205`); a token goes only to the deployment that
@@ -5999,8 +5999,8 @@ are). Planted: the host put in with no check; the test of `&` fails.
 ## Correction
 
 2026-10-31 (the drafting agent): four citations of the Premise name other lines, read at
-`a3f948d`. A relay is a host and a port at `crates/podssh-relay/src/relay.rs:101-107`, and its
-forward path is built at `crates/podssh-relay/src/relay.rs:199-212`; `:77-83` and `:175-188` hold
+`a3f948d`. A relay is a host and a port at `crates/podssh-relay/src/relay.rs:107-113`, and its
+forward path is built at `crates/podssh-relay/src/relay.rs:205-218`; `:83-89` and `:181-194` hold
 the byte budget and the parser of a relay list. A token goes only to the deployment that minted it
 at `docs/decisions.md:99` (T-057), and at Q49's row, `docs/decisions.md:53`; `docs/decisions.md:94`
 holds the exit codes. `Transport` in `crates/podssh-cli/src/ssh/resolve.rs` had six kinds, not five

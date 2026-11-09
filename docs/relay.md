@@ -505,6 +505,12 @@ What podssh does about it (T-253):
 | Attempts with no token | 120 per minute per address (mint, pair, upgrades with no token) |
 | Targets | Public TCP only. The relay refuses RFC 1918, CGNAT, link-local, unique-local, multicast and documentation ranges, internal suffixes, and names that resolve to private addresses. It refuses Cloudflare ranges on the direct road, and port 25 (the contract says "on the direct road"; `/relays.json` says "on every road", 2026-10-08). podssh's relay role dials the private ranges of its `--routes` too, or each address with `--allow-private` (T-635). |
 
+podssh's own role (`podssh relay serve`) moves each of these with `--idle`,
+`--session-hours`, `--max-session-mib` and `--connect` (T-704) and publishes
+the values in force in `/relays.json`. A value above the default moves the
+server's cut only: a client keeps its own lower budgets and its own
+warning, as it only lowers them to a published value.
+
 Because of the idle cut, an idle SSH session must send traffic at least
 every 180 s: `ServerAliveInterval=60` with `podssh proxy`, and the client's
 keepalives (on by default) with `podssh ssh`. To a node, the resumable

@@ -139,7 +139,7 @@ Read:
   (`crates/podssh-ssh/src/handler.rs` lines 31-59 at `80f20bf`), and the
   default of russh 0.64.1 drops the reason.
 - The relay's contract gives no close codes for the forward path;
-  `docs/relay.md:532-544` lists them, read from the relay's source.
+  `docs/relay.md:538-550` lists them, read from the relay's source.
   `1011 write failed: ...` means that the relay could not write to the
   target. The KTM report saw it with 0 bytes, on a target that the relay
   could dial but not use (read in the report, not verified here).
@@ -147,8 +147,8 @@ Read:
   MiB queued". That row is in the contract's table of reverse close codes
   (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:160-166`, row
   `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`). On the
-  forward path, backpressure closes with `1013` at 2 MiB (`docs/relay.md:543`,
-  `docs/relay.md:554-566`). The comment on the SSH window
+  forward path, backpressure closes with `1013` at 2 MiB (`docs/relay.md:549`,
+  `docs/relay.md:560-572`). The comment on the SSH window
   (`crates/podssh-ssh/src/run.rs` lines 25-29 at `80f20bf`) also cites the
   reverse row.
 
@@ -157,7 +157,7 @@ Read:
 1. Classify a forward-path close in one place, next to
    `close_code_and_reason` (`crates/podssh-ws/src/close.rs:19-27`), which
    `podssh ssh` and `podssh proxy` both use. Map the code and the reason of
-   `docs/relay.md:537-544` to a hop. Relay to target: `1011` with
+   `docs/relay.md:543-550` to a hop. Relay to target: `1011` with
    `connect failed`, `write failed`, `target closed before sending anything`
    or `wrong target banner`, and `1013 target write backlog`. Client to
    relay: `1011` with `client send failed` or `client error`,
@@ -194,7 +194,7 @@ cargo test -p podssh-ssh -- first_line
 sh scripts/dev.sh check
 ```
 
-The first test has one case for each row of `docs/relay.md:537-544`, and one
+The first test has one case for each row of `docs/relay.md:543-550`, and one
 for an unknown code. The second builds the first line from each kind of
 `RelayEnd`, from a server disconnect, and from a bare russh error. In the
 gate, a new stand-in relay in `scripts/interop-faults.sh` (mode
@@ -3154,7 +3154,7 @@ and a cut file. The relay's close is in `--result-file` alone.
 - Read: the relay stream counts the payload both ways, as the relay counts its cap
   (`crates/podssh-ssh/src/relay_stream.rs:133-137`), and `podssh cp` opens a new relay session
   before the cap with that count (T-137; the cap and the budget,
-  `crates/podssh-relay/src/relay.rs:25` and `crates/podssh-relay/src/relay.rs:55`). A session of
+  `crates/podssh-relay/src/relay.rs:25` and `crates/podssh-relay/src/relay.rs:61`). A session of
   `podssh ssh` cannot go on in a new relay session: its SSH connection is one, and a plain sshd
   keeps nothing to resume; a node's layer moves its session before the cap (T-155).
 - Read, through fetch.web.pkgforge.dev on 2026-11-02: OpenSSH's client ends its loop on a closed
@@ -3420,7 +3420,7 @@ first word is the cut's. A warning 30 s before would let the user press a key, o
 - Read: the warning at the connect, on the relay's road when ServerAliveInterval is off or at least
   the cut (`crates/podssh-cli/src/ssh/resolve.rs:392-395`); after the cut, the relay's close with
   its remedy (`crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
-  (`crates/podssh-relay/src/relay.rs:91-94`), counted on payload alone (`docs/relay.md:473`).
+  (`crates/podssh-relay/src/relay.rs:97-100`), counted on payload alone (`docs/relay.md:473`).
 - Read: the relay stream counts the payload both ways
   (`crates/podssh-ssh/src/relay_stream.rs:133-137`), and keeps the time of the relay's last frame
   of any kind, keepalives among them (`crates/podssh-ws/src/session.rs:291-294`,

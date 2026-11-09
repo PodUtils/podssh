@@ -154,7 +154,12 @@ pub const RELAY: &[&str] = &[
      the network that it names), refuses port 25 in each case, answers a \
      name that does not resolve, or not to a public address, with one 403 that names no address (the \
      cause is a line on stdout), and keeps \
-     the default relay's limits: 180 s with no payload, 12 hours and 64 MiB a session. --mint anyone \
+     the default relay's limits unless told: 180 s with no payload (--idle SECONDS, 1 to 86400), 12 \
+     hours (--session-hours H, 1 to 168) and 64 MiB a session (--max-session-mib M, 1 to 4096), 10 s \
+     to dial a target (--connect SECONDS, 1 to 120), and an empty frame each 25 s (--keepalive \
+     SECONDS, 1 to 3600). /relays.json publishes the first four as they are, never the keepalive. A \
+     value above the default moves this role's cut only: a client keeps its own lower budgets and \
+     its own warning, as it only lowers them to what /relays.json says. --mint anyone \
      mints a token for each client; by default it mints for no one (503), as its tokens are given \
      another way. A token lives until the relay stops. Each mint, upgrade and client's Close is a line \
      on stdout. It listens because you ask it to, and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM \

@@ -34,6 +34,7 @@ enum Step {
 }
 
 async fn write_up(session: Arc<Session>, mut to: OwnedWriteHalf) {
+    let cap = session.cfg.limits.bytes;
     loop {
         let notified = session.changed.notified();
         let step = session.with(|st| {
@@ -55,24 +56,33 @@ async fn write_up(session: Arc<Session>, mut to: OwnedWriteHalf) {
                 return;
             }
             Step::Write(batch) => {
-                if let Err(e) = to.write_all(&batch).await {
+                // The cap is the pump's own, as on the forward road (T-732).
+                let take = session.with(|st| {
+                    let take = (batch.len() as u64).min(cap.saturating_sub(st.moved)) as usize;
+                    st.moved += take as u64;
+                    take
+                });
+                if let Err(e) = to.write_all(&batch[..take]).await {
                     return session.end(1011, format!("write failed: {e}"));
                 }
-                session.meter.up(batch.len());
+                session.meter.up(take);
                 session.with(|st| {
                     st.written += 1;
-                    st.moved += batch.len() as u64;
                     if !batch.is_empty() {
                         st.heard = Instant::now();
                     }
                 });
                 session.changed.notify_waiters();
+                if take < batch.len() {
+                    return session.end(1009, "session byte cap");
+                }
             }
         }
     }
 }
 
 async fn read_down(session: Arc<Session>, mut from: OwnedReadHalf) {
+    let cap = session.cfg.limits.bytes;
     let mut buf = vec![0u8; READ];
     loop {
         // Room first: the target waits while its bytes wait for the client.
@@ -92,14 +102,20 @@ async fn read_down(session: Arc<Session>, mut from: OwnedReadHalf) {
                 return;
             }
             Ok(n) => {
-                // The client's due, whether or not it fetches them.
-                session.meter.down(n);
-                session.with(|st| {
-                    st.down.extend(&buf[..n]);
-                    st.moved += n as u64;
+                // The client's due, whether or not it fetches them, up to
+                // the cap, which ends the session (T-732).
+                let take = session.with(|st| {
+                    let take = (n as u64).min(cap.saturating_sub(st.moved)) as usize;
+                    st.down.extend(&buf[..take]);
+                    st.moved += take as u64;
                     st.heard = Instant::now();
+                    take
                 });
+                session.meter.down(take);
                 session.changed.notify_waiters();
+                if take < n {
+                    return session.end(1009, "session byte cap");
+                }
             }
             Err(e) => return session.end(1011, format!("target read failed: {e}")),
         }

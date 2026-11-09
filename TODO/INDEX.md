@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**686 entries: 99 open, 19 partial, 10 blocked, 558 done.**
+**687 entries: 98 open, 19 partial, 10 blocked, 560 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 28 | 7 | 1 | 258 | 294 |
-| P3 | 67 | 10 | 6 | 230 | 313 |
-| **All** | 99 | 19 | 10 | 558 | 686 |
+| P2 | 28 | 7 | 1 | 259 | 295 |
+| P3 | 66 | 10 | 6 | 231 | 313 |
+| **All** | 98 | 19 | 10 | 560 | 687 |
 
 ## Entries
 
@@ -734,7 +734,7 @@ repository and CI).
 | [T-701](reverse.md) | P3 | S | M10 | defect | partial | The reverse node's journal names the cause when the relay closes a session |
 | [T-702](roads.md) | P3 | M | backlog | defect | open | One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port |
 | [T-703](resume.md) | P3 | S | none | defect | partial | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
-| [T-704](relay.md) | P3 | S | M10 | feature | open | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
+| [T-704](relay.md) | P3 | S | M10 | feature | done | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
 | [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
 | [T-706](cli.md) | P3 | M | M5 | feature | open | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
 | [T-707](roads.md) | P3 | L | backlog | feature | blocked | A road of the GSRN relay network, by a shared secret |
@@ -762,3 +762,4 @@ repository and CI).
 | [T-729](roads.md) | P1 | M | M10 | feature | blocked | The Access TCP client on `cf://`: the login of a user, on Windows, macOS and Linux |
 | [T-730](machine.md) | P3 | S | none | feature | open | `llms.txt`, `llms-full.txt` and `--help --json` |
 | [T-731](machine.md) | P3 | M | none | feature | open | `podssh mcp` for fleet work: a read-only mode and a command allowlist |
+| [T-732](relay.md) | P2 | S | M10 | defect | done | The relay role's byte cap let a fast target carry any amount past it, until the next tick |

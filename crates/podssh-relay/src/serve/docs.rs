@@ -279,6 +279,30 @@ mod tests {
         assert_eq!(relays(&none, &head("/relays.json"))["egress"]["ipv6"], false);
     }
 
+    // T-704: the document publishes the limits in force, not the compiled
+    // ones, and never the keepalive (the contract is pinned).
+    #[test]
+    fn relays_json_publishes_the_limits_in_force() {
+        use super::super::Limits;
+        use std::time::Duration;
+        let mut set = cfg();
+        set.limits = Limits {
+            connect: Duration::from_secs(3),
+            idle: Duration::from_secs(5),
+            session: Duration::from_secs(2 * 3600),
+            bytes: 8 << 20,
+            keepalive: Duration::from_secs(2),
+            ..Limits::default()
+        };
+        let doc = relays(&set, &head("/relays.json"));
+        let l = &doc["limits"];
+        assert_eq!(
+            (&l["connect_timeout_ms"], &l["idle_timeout_ms"], &l["max_session_ms"], &l["max_session_bytes"]),
+            (&json!(3000), &json!(5000), &json!(7_200_000), &json!(8 << 20))
+        );
+        assert!(l.get("keepalive_ms").is_none() && !doc.to_string().contains("keepalive"), "{doc}");
+    }
+
     #[test]
     fn an_http_date_is_the_rfcs_form() {
         assert_eq!(http_date(784_111_777), "Sun, 06 Nov 1994 08:49:37 GMT");

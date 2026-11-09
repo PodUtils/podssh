@@ -537,3 +537,11 @@ each push and each day (T-342). A binary narrows its budgets to smaller
 limits, and takes larger frames up to 16 MiB, from the document at run
 time, but a changed value fails podssh's checks until its operator moves
 the copy and the compiled constants. So say first when a limit changes.
+
+podssh's own relay role (`podssh relay serve`) takes these limits as flags
+(T-704): `--idle`, `--session-hours`, `--max-session-mib` and `--connect`
+move the first four, and `--keepalive` moves the empty frame. Its
+`/relays.json` publishes the four values in force, never the keepalive,
+which the pinned contract `2026-10-03-r2` does not name. A value above the
+default moves the role's own cut only: a client keeps its own lower budgets
+and its own warning, as it only lowers them to a published value.

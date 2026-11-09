@@ -37,6 +37,12 @@ pub fn relay_idle_secs() -> u64 {
     limit("idle-timeout-ms") / 1000
 }
 
+/// The relay's dial of a target, before the upgrade (the fact
+/// `connect-timeout-ms`).
+pub fn connect_timeout() -> std::time::Duration {
+    std::time::Duration::from_millis(limit("connect-timeout-ms"))
+}
+
 /// The relay ends a session after this many payload bytes, both ways
 /// together, with `1009 session byte cap` (the fact `max-session-bytes`).
 pub fn session_byte_cap() -> u64 {

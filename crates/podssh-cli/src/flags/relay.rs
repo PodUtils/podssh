@@ -69,7 +69,16 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
     row(None, "routes", Some("RANGES"), FlagKind::Supported,
         "serve: dial the private ranges RANGES too, ADDR/BITS or one address, separated by commas, as podssh node --exit --routes reads them: a target whose each address is public or inside one; another is refused in the words of a target that is not public; not with --allow-private", None),
     row(None, "keepalive", Some("SECONDS"), FlagKind::Supported,
-        "serve: send each client an empty frame every SECONDS (default 25)", None),
+        "serve: send each client an empty frame every SECONDS, 1 to 3600 (default 25)", None),
+    // The contract's limits, which the operator may move (T-704).
+    row(None, "idle", Some("SECONDS"), FlagKind::Supported,
+        "serve: end a session after SECONDS with no payload either way, 1 to 86400 (default 180, the default relay's); published in /relays.json as idle_timeout_ms. A value above the default moves this role's cut only: a client keeps its own lower budget", None),
+    row(None, "session-hours", Some("HOURS"), FlagKind::Supported,
+        "serve: end a session after HOURS, 1 to 168 (default 12); published as max_session_ms. Above the default, a client still stops at its own budget", None),
+    row(None, "max-session-mib", Some("MIB"), FlagKind::Supported,
+        "serve: end a session after MIB of payload, both ways together, 1 to 4096 (default 64); published as max_session_bytes. Above the default, a client still opens a new session at its own budget", None),
+    row(None, "connect", Some("SECONDS"), FlagKind::Supported,
+        "serve: wait SECONDS for the dial of a target before the upgrade, 1 to 120 (default 10); published as connect_timeout_ms", None),
     row(None, "pairs", Some("FILE"), FlagKind::Supported,
         "serve: keep the pairs of the reverse road in FILE, of mode 0600, so that they outlive a restart (the digests of their tokens, never a token)", None),
     // What each key carried, and its budget for a day (T-636).

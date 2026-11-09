@@ -92,12 +92,15 @@ pub struct Limits {
 }
 
 impl Default for Limits {
+    /// The compiled caps of the default relay: the `pod-services` facts that
+    /// `relay.rs` reads, so that the role and its clients have one source
+    /// (T-704).
     fn default() -> Self {
         Limits {
-            connect: Duration::from_secs(10),
-            idle: Duration::from_secs(180),
-            session: Duration::from_secs(12 * 3600),
-            bytes: 64 << 20,
+            connect: crate::relay::connect_timeout(),
+            idle: Duration::from_secs(crate::relay::relay_idle_secs()),
+            session: crate::relay::session_time_cap(),
+            bytes: crate::relay::session_byte_cap(),
             keepalive: Duration::from_secs(25),
             half_closed: Duration::from_secs(15),
         }

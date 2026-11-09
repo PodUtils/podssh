@@ -671,7 +671,7 @@ command, or edits a shell profile. No file states them once.
 ## Premise
 
 Read: each command resolves the same settings in its own copy. Relay hosts (`--relay-host`,
-then `PODSSH_RELAY`, then the default and the pool: `crates/podssh-relay/src/relay.rs:128-146`)
+then `PODSSH_RELAY`, then the default and the pool: `crates/podssh-relay/src/relay.rs:134-152`)
 go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-92`), called in
 `crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:138-141` and
 `crates/podssh-cli/src/proxy.rs:241-244`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in

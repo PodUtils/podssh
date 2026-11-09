@@ -174,7 +174,7 @@
 166 issue open
 167 issue open
 168 issue open
-169 issue open
+169 issue closed
 170 issue open
 171 issue closed
 172 issue open

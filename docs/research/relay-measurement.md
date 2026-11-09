@@ -228,7 +228,7 @@ Read in the tools. Each stage is one pass: each cell is measured once.
   eight at a time, to one target in one region, through one proxy whose
   delay fell on 8 of 37 runs, cannot rank 37 hosts. It does say that every
   host works, so the choice of three alternates out of 37
-  (`crates/podssh-relay/src/relay.rs:96-99`) is a choice among working hosts,
+  (`crates/podssh-relay/src/relay.rs:102-105`) is a choice among working hosts,
   and worth making by measurement (sections 7 and 8).
 
 ### The three forwarders of Q56
@@ -327,7 +327,7 @@ hold podssh's own reading of each class.
 | The relay's side | `podssh relay trace` (the relay's dial and first byte), `relay status` (each host's `/health` and edge), `relay info` (the pool and the limits) | `crates/podssh-cli/src/relay_diag.rs:1-7` |
 | Throughput | `podssh ping DEST`: the login, the echo through `cat`, `--size` down and up; T-157's method: 5 runs a cell, the setup not counted | `crates/podssh-cli/src/ping/mod.rs:222-302`; `docs/STATUS.md`, "Throughput, measured" |
 | Concurrency | `cp --parallel K`, several relay sessions for one copy when the user asks (Q23, T-141) | |
-| The pool | `/relays.json`'s hosts, cached 7 days, six seeds before a cache; the default host and the first three of the pool | `crates/podssh-relay/src/pool.rs:25-37`, `crates/podssh-relay/src/pool.rs:107-122`, `crates/podssh-relay/src/relay.rs:125-146` |
+| The pool | `/relays.json`'s hosts, cached 7 days, six seeds before a cache; the default host and the first three of the pool | `crates/podssh-relay/src/pool.rs:25-37`, `crates/podssh-relay/src/pool.rs:107-122`, `crates/podssh-relay/src/relay.rs:131-152` |
 | The choice of a host | the race of the hosts (`staggered`, `parallel`, `serial`), and the record of failures and opens, which puts a host that failed last and one that opened first | `crates/podssh-relay/src/failover.rs:133-256`, `crates/podssh-relay/src/failures.rs:231-255` |
 | Forwarders, Wisp, WARP | `--forwarder` and its words, `doctor --forwarder`; the Wisp client; `warp://` | `crates/podssh-ws/src/forwarder/builtin.rs`, `crates/podssh-ws/src/wisp/handshake.rs:1-5`, `crates/podssh-warp/src/lib.rs` |
 

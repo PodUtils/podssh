@@ -586,7 +586,7 @@ running on the server (`docs/design.md:711-715`).
   (`crates/podssh-ssh/src/session.rs:39-41`). Raw mode is entered once for
   each session (`crates/podssh-ssh/src/session.rs:164-223`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
-  (`docs/relay.md:537-543`). Sandbox A measured the cap at 67,107,943 bytes,
+  (`docs/relay.md:543-549`). Sandbox A measured the cap at 67,107,943 bytes,
   and one close `1011` in 180 short sessions (`docs/STATUS.md:441-442`).
 - Read: tmux is never assumed (`docs/target-environment.md:116-118`).
 
@@ -728,7 +728,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
   `connect()` itself needs a listener (`docs/design.md:1168-1171`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
-  (`docs/relay.md:475`), then Close 1009 (`docs/relay.md:541`); public
+  (`docs/relay.md:475`), then Close 1009 (`docs/relay.md:547`); public
   targets only (`docs/relay.md:477`). Through the proxy of sandbox A: 0.5 to
   0.7 MB/s (`docs/STATUS.md:440`).
 - Not measured: no RDP, VNC or Telnet client ran through podssh. Each claim
@@ -899,14 +899,14 @@ and sandhole. Read in the reports, not verified here.
 
 A developer in a sandbox runs a web application and wants a URL for it. The
 relay carries TCP to public targets and reverse sessions to named nodes
-(`docs/relay.md:619-661`). It has no endpoint that takes public HTTPS for a
+(`docs/relay.md:625-667`). It has no endpoint that takes public HTTPS for a
 name, and podssh alone cannot add one.
 
 ## Premise
 
 - Read: the relay is the operator's Cloudflare Worker, another project, and
   its document is the contract (`docs/relay.md:3-16`). It has no publish
-  endpoint (`docs/relay.md:351-388`, `docs/relay.md:619-684`).
+  endpoint (`docs/relay.md:351-388`, `docs/relay.md:625-690`).
 - Read: on the measured sandbox, `connect()` to loopback fails with EACCES
   (`docs/target-environment.md:22`). A node there cannot reach a server on
   127.0.0.1; it can reach a Unix socket (T-176) or a program (`exec:`,
@@ -922,7 +922,7 @@ When the relay's operator adds the endpoint:
 
 1. The relay's operator publishes it in the contract first: a name, a public
    host name, and each incoming connection as a reverse session
-   (`open {id}`, `ready {id}`; `docs/relay.md:627-647`).
+   (`open {id}`, `ready {id}`; `docs/relay.md:633-653`).
 2. podssh uses the node runner (T-079) and `podssh node` (T-083):
    `podssh node NAME TARGET --publish`, TARGET each address of T-174 to
    T-176. podssh parses no HTTP: the bytes pass, WebSocket upgrades too.
@@ -957,7 +957,7 @@ read, moved here as `cargo todo check` refuses a Blocker on an open entry:
 
 Lifted on 2026-11-02 by Q63: see below.
 
-The Premise holds for the default deployment (`docs/relay.md:619-684`), and for the measured
+The Premise holds for the default deployment (`docs/relay.md:625-690`), and for the measured
 sandbox (`docs/target-environment.md:22`). By Q63 (2026-11-02, `docs/decisions.md`;
 docs/mesh.md, section 5) this entry is podssh's work, and becomes `podssh funnel TARGET`,
 Tailscale's funnel in podssh: a local HTTP service at a public `https://` name, through the quick
@@ -1918,7 +1918,7 @@ Read at `2042200`:
   or 429, so each reads "Error"; the relay role sends four of them through it (`404` in
   `crates/podssh-relay/src/serve/reverse/mod.rs:104`, `409` and `429` in
   `crates/podssh-relay/src/serve/reverse/mod.rs:207-211`, `413` in
-  `crates/podssh-relay/src/serve/mod.rs:404`). A small defect, found here (rule 8 of `AGENTS.md`).
+  `crates/podssh-relay/src/serve/mod.rs:407`). A small defect, found here (rule 8 of `AGENTS.md`).
 - The check reads no path (`crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
 - The flag's neighbours: `crates/podssh-cli/src/flags/pipe.rs:40` (`keep-listening`), refused with no
