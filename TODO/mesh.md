@@ -10526,6 +10526,16 @@ the fallback named, and after the repair no output held either password or its h
 package mirror (T-490 found the same). It waits for a runner (`trojan-interop.yml`), which
 the next gate request asks.
 
+2026-11-09: the first run of `trojan-interop.yml` (run 42627973277, `47e1eba3`): 9 passed, 2 failed,
+`trojan.gfw.wrong-password` and `trojan.go.wrong-password` (exit 255, but no line named the fallback).
+The runner's Python is 3.12, whose `http.server` reads a line that it cannot parse as HTTP/0.9 and
+answers with its page alone, with no status line (measured here: Python 3.12 answers
+`<!DOCTYPE HTML>`, 3.13 `HTTP/1.0 400`); podssh took the page for the target's bytes. A defect of
+podssh, repaired: `crates/podssh-ws/src/trojan/answer.rs` names an HTML page with no status line as
+a fallback's answer too ("an HTML page with no status line"), never showing the page, which quotes
+the request. The test `a_fallback_s_page_with_no_status_line_is_named_and_not_shown`: planted, the
+page not checked, it fails; `cargo test -p podssh-ws --lib`: 185 passed. The next run of
+`trojan-interop.yml` reads it again.
 
 # T-694: croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair
 

@@ -2,18 +2,26 @@
 //! server that took the request relays the target's bytes at once, and one
 //! that did not (a wrong password, a request that it cannot read) hands the
 //! connection to its fallback, an HTTP server by default, which answers the
-//! request's bytes with an `HTTP/` line, or the server closes. So the first
-//! bytes tell them apart for a target that speaks first (SSH), and a target
-//! that waits for its client gives silence, which a pipe takes as a stream.
-//! No target speaks `HTTP/` first: a server of HTTP waits for its request.
+//! request's bytes with an `HTTP/` line, or the server closes. A fallback
+//! that reads the request as HTTP/0.9 (Python 3.12's `http.server`, for a
+//! line it cannot parse) answers with its page alone, with no status line:
+//! an HTML page is a fallback's too (T-693). So the first bytes tell them
+//! apart for a target that speaks first (SSH), and a target that waits for
+//! its client gives silence, which a pipe takes as a stream. No target
+//! speaks `HTTP/` or HTML first: a server of HTTP waits for its request.
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 
-/// The start of a fallback's answer.
+/// The start of a fallback's answer: a status line.
 const HTTP: &[u8] = b"HTTP/";
+/// The starts of a fallback's page with no status line (HTTP/0.9).
+const PAGES: [&[u8]; 2] = [b"<!DOCTYPE", b"<html"];
+/// What a line says of a page with no status line; the page is never shown,
+/// as it may quote the request, whose first bytes are the password's hash.
+const PAGE: &str = "an HTML page with no status line";
 
 /// Why the first bytes are not the target's.
 #[derive(Debug)]
@@ -52,16 +60,25 @@ impl<S: AsyncRead + Unpin> Answered<S> {
                 };
             }
             self.first.extend_from_slice(&buf[..n]);
-            let seen = &self.first[..self.first.len().min(HTTP.len())];
-            if self.first.len() >= HTTP.len() && seen.eq_ignore_ascii_case(HTTP) {
+            if starts(&self.first, HTTP) {
                 let line = self.first.split(|b| *b == b'\n').next().unwrap_or_default();
                 return Err(FirstError::Fallback(status_of(&String::from_utf8_lossy(line))));
             }
-            if !HTTP[..seen.len()].eq_ignore_ascii_case(seen) || self.first.len() >= HTTP.len() {
+            if PAGES.iter().any(|page| starts(&self.first, page)) {
+                return Err(FirstError::Fallback(PAGE.to_string()));
+            }
+            // Read on only while the bytes may still become one of them.
+            let may = |start: &[u8]| self.first.len() < start.len() && starts(start, &self.first);
+            if !may(HTTP) && !PAGES.iter().any(|page| may(page)) {
                 return Ok(());
             }
         }
     }
+}
+
+/// Whether `bytes` begin with `start`, in any case.
+fn starts(bytes: &[u8], start: &[u8]) -> bool {
+    bytes.len() >= start.len() && bytes[..start.len()].eq_ignore_ascii_case(start)
 }
 
 /// A fallback's status line as a line may show it: a fallback can quote
@@ -142,6 +159,24 @@ mod tests {
             other => panic!("{other:?}"),
         }
         assert!(matches!(first_of(&[]).await.0, Err(FirstError::Ended)));
+    }
+
+    /// Python 3.12's `http.server`, the fallback of the interop run on a
+    /// runner, reads a line that it cannot parse as HTTP/0.9 and answers with
+    /// its page alone: the fallback is named, and the page, which quotes the
+    /// request and so the password's hash, is not shown (T-693).
+    #[tokio::test]
+    async fn a_fallback_s_page_with_no_status_line_is_named_and_not_shown() {
+        let page: &[u8] =
+            b"<!DOCTYPE HTML>\n<html lang=\"en\">\n<p>Message: Bad request syntax ('eee932074e9cd0e99fecc001').</p>";
+        for pieces in [vec![page], vec![&page[..3], &page[3..]], vec![b"<HTML><body>400</body></html>".as_slice()]] {
+            match first_of(&pieces).await.0 {
+                Err(FirstError::Fallback(line)) => assert_eq!(line, PAGE),
+                other => panic!("{other:?}"),
+            }
+        }
+        let (ok, rest) = first_of(&[b"<", b"?xml version"]).await;
+        assert!(ok.is_ok() && rest == b"<?xml version", "a start that parts from a page is the target's");
     }
 
     /// trojan-gfw's and trojan-go's fallback, Python's `http.server` here,
