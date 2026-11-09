@@ -13,8 +13,9 @@
 //! 502, or its refusal of the target by policy), which no forwarder mends:
 //! the fallback follows only a failure where no relay host answered about
 //! the target (Q69, T-509). Each forwarder has [`EACH_WAIT`]. No relay
-//! token goes to a forwarder. Last, the `ws://` form of each one whose host
-//! passed a probe with no TLS (T-326, [`super::cleartext`]).
+//! token goes to a forwarder. Then the `ws://` form of each one whose host
+//! passed a probe with no TLS (T-326, [`super::cleartext`]), and last of all
+//! the public proxy nodes of the lists ([`super::nodes`], T-574, Q78).
 
 use std::io::Write;
 use std::sync::Arc;
@@ -190,12 +191,17 @@ pub async fn after_relay_in(
     }
     // Their ws:// form, last, where a probe with no TLS passed (T-326).
     let forms = super::cleartext::passed(&mut |line: &str| log.verbose(line)).await;
-    if forms.is_empty() {
-        return Err(NotReached { lines: Vec::new(), code });
+    if !forms.is_empty() {
+        log.info(&super::cleartext::announce(&target, &forms));
+        if let Ok(reached) = super::reach::carry(&forms, trust, host, port, log, true).await {
+            return Ok(reached);
+        }
     }
-    log.info(&super::cleartext::announce(&target, &forms));
-    let carried = super::reach::carry(&forms, trust, host, port, log, true).await;
-    carried.map_err(|_| NotReached { lines: Vec::new(), code })
+    // The public proxy nodes of the lists, last of all (T-574, Q78).
+    match super::nodes::after_stream(&target, trust, (host, port), log).await {
+        Some(reached) => Ok(reached),
+        None => Err(NotReached { lines: Vec::new(), code }),
+    }
 }
 
 /// `podssh proxy`'s fallback: the pipe through the forwarders that the
@@ -245,6 +251,9 @@ pub async fn after_relay_pipe_in(
             let _ = writeln!(err, "podssh: the forwarder {name} carries the pipe to {target}, in place of the relay");
             super::pipe::carry(end, err).await
         }
+        // No round of the public proxy nodes for a pipe (T-574's Decision): a pipe
+        // carries any stream, and a node is a third party that would read one
+        // that is not SSH; `podssh ssh` alone takes them, its stream is SSH's.
         Err(_) => code,
     }
 }

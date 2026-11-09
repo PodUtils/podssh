@@ -14,6 +14,8 @@
 // The ws:// form of the forwarders that the binary names, last (T-326).
 pub mod cleartext;
 pub mod fallback;
+// The public proxy nodes of aggregator lists, after all of these (T-574).
+pub mod nodes;
 pub mod pipe;
 pub mod public;
 pub mod reach;

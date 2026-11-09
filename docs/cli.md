@@ -660,6 +660,19 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   Actions each day, as Q56 and Q65 allow: GitHub's version line through it;
   it runs the Wisp client against wisp-server-python on the runner's
   loopback first.
+  Last of all, after the `ws://` forms (T-574, the operator's rulings Q78, Q79 and Q90), the public proxy
+  nodes of aggregator lists, VLESS and Trojan: the lists are the services of the kind `proxy-list` of
+  `pod-services` (and the short list that the binary falls back to where no list can be fetched, the kind
+  `proxy-node`), so that podssh holds no host and no node of another party; a catalog with none leaves the
+  fallback as it was. Each list is fetched over HTTPS through `HTTPS_PROXY`, its lines of `vless://` and
+  `trojan://` read (VMess waits for T-573), and a node is kept only on 443 with TLS, at a public address, as
+  one name for its host, its SNI and its `Host` (a node that fronts another name is skipped), and under no
+  suffix of a school, a church or a government. At most 8 nodes of a list and 16 in all are tried, 12 s
+  each; the kept lines of a list are cached, and read again where the list's host fails. One line says that `HOST:PORT`
+  goes to a third party that nobody vouches for, which sees its name and the session's bytes (SSH and its
+  host key keep them private), and the line of the node that carries names its host. `PODSSH_PROXY_LISTS=no`
+  or `PODSSH_LAST_RESORT=no` (the one switch of the last fallbacks of Q78) turns it off. The round is
+  `podssh ssh`'s alone: a pipe of `podssh proxy` carries any stream, which a node could read.
 - **`PODSSH_MPTCP=yes` asks for Multipath TCP on the direct road** (T-172),
   on Linux, and only on request. With `--direct` and no proxy, each attempt
   asks the kernel for a socket of `IPPROTO_MPTCP`: where the server speaks

@@ -7896,7 +7896,7 @@ takes by the next tag; a test of the moved code then runs there.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -7966,6 +7966,66 @@ the module map is `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+2026-11-09 (a draft). The Premise holds, with three changes. `docs/carriers.md` says it at lines
+374-377 now, not 376-377. T-491 (Trojan) is done (`crates/podssh-ws/src/trojan/`), so Approach step 2
+takes Trojan; VMess waits for T-573. And Q90 ruled on step 3 and the Decision: the binary ships a
+short list of nodes as the fallback where no list can be fetched. Q79 (no host of another party in
+the repository) and rule 5 of the migration (`AGENTS.md`: no hardcoded host of another party; those
+lists go to `pod-services`) meet in one design: the lists' URLs (kind `proxy-list`) and the short
+list of nodes (kind `proxy-node`, one `link` fact each, each with its check before the release as its
+source) are services of `pod-services`, which podssh reads like its `wisp-public` kind
+(`crates/podssh-cli/src/forwarder/public.rs`); the binary's own code names no list and no node. The
+ask to podcrates is a COORD issue `(to podcrates)` written from this entry's draft. `pod-egress` does
+not exist in PodUtils/podcrates yet and no SOURCES block lists the VLESS or Trojan files, so the
+code of this entry is in `podssh-ws` (`proxy_nodes/`) and `podssh-cli` (`forwarder/nodes.rs`), and
+goes to `pod-egress` with the roads it uses (Q101, wave 4). The Prove's test file `proxy_lists` is
+two: `cargo test -p podssh-ws --test proxy_nodes`, whose stand-ins are `podssh-ws`'s (`vless_support/`),
+and the unit tests of `proxy_nodes` and `forwarder::nodes`.
+
+## Done
+
+Partial, 2026-11-09: drafted (DRAFT T-574, `5a384508`) and merged by the main session, with four
+repairs: a test's borrows (`forwarder::nodes`), a test's dial that outlived its statement
+(`tests/proxy_nodes.rs`), the derived `Debug` of a list, which printed each kept line and so each
+node's ID (its own test caught it; the print now counts the lines), and the pipe's round, taken out
+(the Decision below).
+
+- `crates/podssh-ws/src/proxy_nodes/`: `mod.rs` (`Node`, `carry`: the nodes in turn, at most `most`,
+  each within a bound, each failure's line with no ID or password), `filter.rs` (Q79 at run time:
+  443 and TLS, a public IP literal or one name for host, SNI and `Host`, no suffix of a school, a
+  church or a government, no private address), `list.rs` (lines or base64 of `vless://` and
+  `trojan://`, the filters, one count of what was left out, at most 32 kept).
+- `crates/podssh-cli/src/forwarder/nodes.rs`: the plan from the catalog (kinds `proxy-list`,
+  `proxy-node`), the fetch through `HTTPS_PROXY` (4 MiB, 15 s) with the kept lines cached, the round
+  (8 nodes of a list, 16 in all, 12 s each, the binary's nodes only where no list could be read),
+  the line before it (the third party, the lists' hosts, the bounds, both switches) and the line of
+  the node that carries (its host); `PODSSH_PROXY_LISTS=no` and `PODSSH_LAST_RESORT=no` (T-548's
+  one switch, first built here). Wired last of all in `fallback.rs`, for the stream of `ssh` alone,
+  after the `ws://` forms. Decision (2026-11-09, at the merge): no round for `proxy`'s pipe. A pipe
+  carries any stream, and a node, a third party, would read one that is not SSH; the entry's rule
+  is that the node never holds the plaintext. The loser, the pipe's round with the third party's
+  line: it hands the bytes of a stream that is not SSH to an unknown operator. An empty catalog gives an empty plan: no line, no fetch,
+  no change of behaviour until `pod-services` names a list.
+- The manual (`man/facts/roads.rs`: the two variables) and `docs/cli.md`.
+- Tests: `cargo test -p podssh-ws --lib proxy_nodes`: 8 passed; `--test proxy_nodes`: 3 passed;
+  `cargo test -p podssh-cli --lib`: 1,050 passed; planted, the filter's skip of a node that fronts
+  another name removed, three tests fail. The tests: (filter: `a_node_of_one_name_on_443_with_tls_is_kept`,
+  `a_node_that_fronts_another_name_is_skipped`, `a_node_under_an_institution_s_suffix_is_skipped`,
+  `a_port_other_than_443_no_tls_and_a_private_address_are_skipped`; list:
+  `a_list_of_links_gives_the_kept_nodes_once_each_and_counts_the_rest`, `a_base64_list_reads_as_its_lines`,
+  `a_body_that_is_no_list_is_an_error_and_a_long_list_is_cut`); `cargo test -p podssh-ws --test proxy_nodes`
+  (`the_round_goes_on_past_a_refusal_and_a_dead_node_to_the_node_that_carries`,
+  `no_more_than_the_asked_number_of_nodes_is_tried`, `a_node_that_says_nothing_gives_way_at_the_bound_of_each`);
+  `cargo test -p podssh-cli --lib forwarder::nodes` (the empty plan, the switches, the announcement,
+  a round with nothing to try).
+- Waits: the lists and the nodes in `pod-services` (asked in COORD-010, GitHub #177; no list or
+  node is named in this repository); the Prove's run against Xray-core in a container, serving VLESS over a
+  WebSocket and named in a list that a stand-in HTTPS server serves (UNVERIFIED; a stand-in list
+  server over TLS is not written); the research of Approach step 1 (the lists, their changes, the
+  share on 443), which the filter's suffix list (`INSTITUTIONAL`) and Q90's live check before each
+  release take from; a Trojan stand-in in the round's test (the Trojan stand-in is in `tests/trojan.rs`),
+  and `scripts/release-short.sh`'s check of the built-in nodes. This entry stays open.
 
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
 
@@ -10756,7 +10816,7 @@ output that lists what is on.
 
 ## Premise
 
-- Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:35`),
+- Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:36`),
   `PODSSH_DERP`, `PODSSH_DERP_MAIN`, `PODSSH_PIPING`, `PODSSH_IROH_PKARR`, `PODSSH_IROH_RELAY`,
   `PODSSH_TRANSIT`, `PODSSH_OPENTUNNEL`, `PODSSH_OFFLINE` (all of `crates/*/src`); there is no common one.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no

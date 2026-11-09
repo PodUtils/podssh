@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:164-170`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:5638-5698`
+   so that only the notes change. No document changes: `docs/cli.md:5651-5711`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:5512-5612`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:5525-5625`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:5522-5525`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:5535-5538`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:5512-5612`, and the measurement in
+5. Write the measured rule in `docs/cli.md:5525-5625`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:5638-5698` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:5651-5711` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1022,7 +1022,7 @@ and no other.
    `known_hosts` cannot be read (`unverifiable` in
    `crates/podssh-ssh/src/hostkey.rs`, T-028), next to
    `-o UserKnownHostsFile=FILE`.
-6. The flag's row gives the help and the manual. Update `docs/cli.md:48-936`,
+6. The flag's row gives the help and the manual. Update `docs/cli.md:48-949`,
    and add an example to `crates/podssh-cli/src/man/examples.rs`.
 
 ## Decision
@@ -1193,7 +1193,7 @@ asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:178-192`
   OpenSSH's sshd and Alpine's sudo in the box: `sudo.password`, `sudo.wrong`
   and `sudo.nopass`. The gate runs them at this push; their plant in the box
   waits for T-251.
-- `docs/cli.md:805-828` and a note of the manual say what the flags do.
+- `docs/cli.md:818-841` and a note of the manual say what the flags do.
 - `cargo test -p podssh-ssh`: 147 passed; `cargo test -p podssh-cli`:
   570 passed, 0 failed, 31 ignored; clippy; rustfmt.
 
@@ -1240,7 +1240,7 @@ and no player.
    hold a secret.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
-   suggestion step would mix them (`docs/cli.md:2139-2148`). Add it to `VERBS`
+   suggestion step would mix them (`docs/cli.md:2152-2161`). Add it to `VERBS`
    (`crates/podssh-cli/src/flags.rs:378-446`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-145`).
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:829-840` and `docs/cli.md:4970-4982`, the manual's notes and an
+- `docs/cli.md:842-853` and `docs/cli.md:4983-4995`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:473`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:5661-5666`). A person who types slowly must not meet a limit
+  `docs/cli.md:5674-5679`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:173-174`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:5696-5698` asks for a limit on the whole operation.
+   `docs/cli.md:5709-5711` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2272,7 +2272,7 @@ files, the `known_hosts` files, `IdentityAgent` and `-E` (lines 118-130,
    it.
 5. Do not expand `-E`, as OpenSSH does not.
 6. T-043 uses the same function for `ssh_config`. Name the tokens in the
-   manual's notes and in `docs/cli.md:48-936`.
+   manual's notes and in `docs/cli.md:48-949`.
 
 ## Prove
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:173-176`), and is never
-called. `docs/cli.md:4868-4869` says that the key "is never used".
+called. `docs/cli.md:4881-4882` says that the key "is never used".
 
 ## Approach
 
@@ -4170,7 +4170,7 @@ would still say why the pause comes.
   and returns from `persist::run` before the watch of the relay's road starts.
 - `crates/podssh-cli/src/ssh/mod.rs:360-361` says "if let Some(upgrade) = resolved.upgrade.clone() {",
   and so does `upgrade::run`.
-- `docs/cli.md:829` says "`--direct`; with `--persist`, which attaches again after the cut, and",
+- `docs/cli.md:842` says "`--direct`; with `--persist`, which attaches again after the cut, and",
   and the next line "`--upgrade`, not before T-583."
 
 ## Approach

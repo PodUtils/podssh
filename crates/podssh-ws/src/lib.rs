@@ -78,6 +78,9 @@ pub use pod_proxy::proxy;
 // What meek_lite and WebTunnel share: a bridge's arguments, its URL, the
 // connection (T-385).
 pub mod pt;
+// The public proxy nodes of aggregator lists, VLESS and Trojan: the last
+// fallback of the forward road (T-574).
+pub mod proxy_nodes;
 pub mod resolve;
 pub mod server;
 pub mod session;

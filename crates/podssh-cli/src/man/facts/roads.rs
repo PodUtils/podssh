@@ -190,6 +190,25 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
       configuration error (78).",
     ),
     (
+        &["PODSSH_PROXY_LISTS"],
+        "no: when each relay host, each forwarder and each ws:// form failed, podssh does not ask the public lists \
+      of proxy nodes (VLESS and Trojan, which anonymous operators run; the lists are the services of the kind \
+      proxy-list of pod-services) for a node to carry the session of podssh ssh (never a pipe of podssh proxy, \
+      whose stream a node could read). yes, the default, tries at most 16 nodes, \
+      12 s each, as the last fallback, where the same conditions as the forwarders' hold; one line names the \
+      lists' hosts and says that the target goes to a third party that nobody vouches for, and the line of the \
+      node that carries names its host. SSH and its host key keep the session's bytes private. A node that is \
+      not on 443 with TLS, that fronts another name than its host, that sits under a school's, a church's or a \
+      government's suffix, or that is at a private address is never tried. PODSSH_LAST_RESORT=no turns this \
+      off with the other last fallbacks. Another word is no.",
+    ),
+    (
+        &["PODSSH_LAST_RESORT"],
+        "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
+      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS, and the roads that join them); yes, the default, \
+      leaves each to its own variable. Another word is no.",
+    ),
+    (
         &["PODSSH_VIA"],
         "The forward proxy over TLS of podssh ssh, of each command that reaches its server as podssh ssh does, \
       and of podssh proxy and podssh doctor, as --via: https://[USER@]HOST[:PORT], in place of the relay. The \
