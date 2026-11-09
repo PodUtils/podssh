@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**686 entries: 106 open, 16 partial, 10 blocked, 554 done.**
+**686 entries: 105 open, 16 partial, 10 blocked, 555 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 31 | 6 | 1 | 256 | 294 |
+| P2 | 30 | 6 | 1 | 257 | 294 |
 | P3 | 71 | 8 | 6 | 228 | 313 |
-| **All** | 106 | 16 | 10 | 554 | 686 |
+| **All** | 105 | 16 | 10 | 555 | 686 |
 
 ## Entries
 
@@ -727,7 +727,7 @@ repository and CI).
 | [T-694](mesh.md) | P3 | M | M10 | feature | open | croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair |
 | [T-695](mesh.md) | P3 | M | M10 | feature | open | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
 | [T-696](robustness.md) | P1 | S | none | defect | done | A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows |
-| [T-697](reverse.md) | P2 | S | M10 | defect | open | `podssh ssh node://NAME` and `--exit NAME` refuse `--relay-host`, `--relay-failover` and `PODSSH_RELAY`, as `podssh proxy node://NAME` does |
+| [T-697](reverse.md) | P2 | S | M10 | defect | done | `podssh ssh node://NAME` and `--exit NAME` refuse `--relay-host`, `--relay-failover` and `PODSSH_RELAY`, as `podssh proxy node://NAME` does |
 | [T-698](serve.md) | P2 | S | M5 | feature | open | `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share |
 | [T-699](roads.md) | P2 | M | backlog | chore | open | One end-of-input helper for the forwarder roads, with an invariant test for each |
 | [T-700](copy.md) | P3 | S | none | defect | open | `podssh sftp` prints a line before the relay's byte cap stops a transfer |

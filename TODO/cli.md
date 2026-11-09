@@ -37,7 +37,7 @@ OpenSSH 10.3p1 (`ssh -G -F none`, offline) gives `hostname 2001:db8::1` for
 Read: `parse_hop` already removes the brackets
 (`crates/podssh-cli/src/ssh/hop.rs:30-78`). The refusal is `check_host`
 (`crates/podssh-ws/src/names.rs:8-32`, re-exported by `podssh_relay::relay`), called at
-`crates/podssh-cli/src/ssh/resolve.rs:351`, `crates/podssh-cli/src/proxy.rs:394`
+`crates/podssh-cli/src/ssh/resolve.rs:352`, `crates/podssh-cli/src/proxy.rs:394`
 and in `forward_path` (`crates/podssh-relay/src/relay.rs:199-212`); since this
 entry, each calls `check_target` there. Tests assert the refusal:
 `crates/podssh-relay/src/relay.rs:345`, and `crates/podssh-cli/tests/proxy.rs`
@@ -62,7 +62,7 @@ GitHub #2, not verified here: the relay's `/trace` dials `[V6]:8079`.
    relay hosts, which are TLS names (`crates/podssh-relay/src/relay.rs:184-197`,
    `crates/podssh-relay/src/pool.rs:148`).
 3. `forward_path` writes the literal in the measured form. `podssh ssh` uses
-   the new check at `crates/podssh-cli/src/ssh/resolve.rs:351`, and refuses
+   the new check at `crates/podssh-cli/src/ssh/resolve.rs:352`, and refuses
    `-4` with an IPv6 literal (64).
 4. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:386-396`): `HOST PORT` takes
    a bare literal (the `%h %p` form) or `[V6]`. One word takes `[V6]:PORT` and

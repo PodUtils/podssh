@@ -241,6 +241,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | open | T-697 |
 | #172 | `ssh`: a `cf://` destination with the resumable layer keeps the user's SSH keepalives, with no warning | open | T-703 |
 | #173 | `doctor`: `--full`'s QUIC handshake and stream probes do not run with `--quick` | open | T-705 |
+| #174 | COORD-007: podssh took podcrates v0.7.0; the entries of cfb's asks of COORD-014 (to podcrates) | open | T-684 (the take at `1fd68cc4`), T-708 to T-731 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

@@ -340,6 +340,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         super::dialed::direct(family, &jump, &host)?;
         Transport::Direct
     } else {
+        super::exit_road::refuse_relay(args, env)?; // before a relay list is parsed
         let relays = crate::relay_settings::relays_from(args.relay_host.as_deref(), env.relay.clone(), &env.settings)?;
         let failover = crate::relay_settings::failover_from(
             args.relay_failover.as_deref(),
@@ -476,6 +477,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         alive_default: settings.alive_interval.is_none(),
         detach: args.detach || settings.fork_after_authentication.unwrap_or(false),
     };
+    super::node::note_relay(env, &mut resolved);
     super::persist::check(args, &mut resolved)?;
     super::servers::check(args, &mut resolved)?;
     super::upgrade::check(args, env, &mut resolved)?;

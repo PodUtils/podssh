@@ -882,12 +882,12 @@ Measured on `3ee70dc`, offline: `podssh operator mynode` gives exit 70;
 `PODSSH_OFFLINE`); `podssh ssh -T node://lab true` gives `"//lab" is not a port` and exit 64.
 
 Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/ssh/hop.rs:30-78`).
-`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/resolve.rs:23-80`, chosen at `:308-370`).
+`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/resolve.rs:23-80`, chosen at `:308-371`).
 `connect_and_run` gives `relay_stream::spawn` to russh (`crates/podssh-cli/src/ssh/mod.rs` lines 73-116 at `6483366`), and
 `relay_stream` closes with 1002 on a text frame (`crates/podssh-ssh/src/relay_stream.rs:274-280`); the
 operator leg receives text frames (`docs/relay.md:644-647`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:247-257`); `HostKeyAlias` exists
-(`crates/podssh-cli/src/ssh/resolve.rs:415`). `podssh ssh` uses the exit codes of OpenSSH, and
+(`crates/podssh-cli/src/ssh/resolve.rs:416`). `podssh ssh` uses the exit codes of OpenSSH, and
 `podssh proxy` sysexits (`docs/cli.md:5502-5506`).
 
 ## Approach
@@ -4698,7 +4698,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4711,26 +4711,26 @@ dropped in the same way.
 ## Premise
 
 - Read, at `47e1eba`: `crates/podssh-cli/src/proxy_node.rs:31` holds the reason "the pair names its
-  relay". `crates/podssh-cli/src/proxy_node.rs:178-190` lists the flags (`--relay-host` at line 180,
-  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:246-267` pins
+  relay". `crates/podssh-cli/src/proxy_node.rs:176-190` lists the flags (`--relay-host` at line 180,
+  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:255-279` pins
   `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
-- `crates/podssh-cli/src/ssh/node.rs:109-125` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
+- `crates/podssh-cli/src/ssh/node.rs:129-145` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
   and the family for a node. It has no clause for the relay flags.
   `crates/podssh-cli/src/ssh/carried.rs:38-63` refuses them only for `--carrier`.
 - `crates/podssh-cli/src/ssh/resolve.rs:319-320` takes a node destination first. The only read of
-  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:343`,
+  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:344`,
   on the branch of a plain host.
-- `crates/podssh-cli/src/ssh/exit_road.rs:29-34` builds `Transport::Node` for `--exit NAME` and
+- `crates/podssh-cli/src/ssh/exit_road.rs:39-44` builds `Transport::Node` for `--exit NAME` and
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
-- `crates/podssh-cli/src/ssh/node.rs:127-129` reads `--ca-file` for the pair road's TLS.
+- `crates/podssh-cli/src/ssh/node.rs:147-149` reads `--ca-file` for the pair road's TLS.
   `crates/podssh-cli/src/ssh/mod.rs:164` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2683`; Q90 confirmed it).
 
 ## Approach
 
-1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:178-190`) and their
+1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:176-190`) and their
    reasons to one shared helper. `proxy` and `ssh` call it, so the words cannot drift.
 2. Call it in `crates/podssh-cli/src/ssh/node.rs`, `transport`, for `node://NAME`, and in
    `or_exit` of `crates/podssh-cli/src/ssh/exit_road.rs` for `--exit NAME`. Refuse `--relay-host`
@@ -4763,6 +4763,34 @@ named; the same with `--exit gw`; `PODSSH_RELAY=x` with `node://box` exits 78 wi
 named; a `RelayHost` in the settings file gives no error and one `-v` line; `ssh` and `proxy` give
 the same words for the same flag; `--relay-addr` and `--ca-file` are still taken; a plain host still
 fails over across its `--relay-host` list. Each new test fails on the code before the change.
+
+## Done
+
+2026-11-09, drafted (DRAFT T-697, `e10faad7`) and merged by the main session, with one repair (the
+import of `Resolved` in `ssh/node.rs`). The Premise holds at the cited places.
+
+- `crates/podssh-cli/src/node_relay.rs` (new): the one list. `flag` (`--relay-host`,
+  `--relay-failover`), `words`, `check` (64 for a flag, 78 for `PODSSH_RELAY`, an empty variable is
+  none), `ignored` (the -v line for a `RelayHost` of the settings file). `proxy_node.rs` `beside`
+  takes its relay clauses from `flag` (the constant `RELAY` is gone).
+- `ssh/node.rs`: `refuse_relay` (skipped with `--carrier`, whose words `carried::flags` keeps),
+  called first in `resolved` for `node://NAME`; `note_relay` adds the -v line for a `Transport::Node`.
+  `ssh/exit_road.rs`: `refuse_relay` for `--exit NAME`, called in `resolve.rs` before the relay list
+  is parsed, so that a malformed list does not hide it. `--relay-addr` and `--ca-file` are untouched.
+- Manual: `man/notes_roads.rs`, one note after `--exit`.
+- Tests: `node_relay::tests::{a_flag_is_64_the_variable_78_and_each_names_itself,
+  nothing_given_or_an_empty_variable_is_no_refusal,
+  the_settings_file_is_a_note_and_never_a_refusal,
+  ssh_node_refuses_the_relay_s_flags_and_variable_as_proxy_does,
+  ssh_node_still_takes_ca_file_and_a_settings_file_s_relay_host_is_a_note,
+  a_plain_host_still_takes_its_relay_list}`,
+  `exit_road::tests::the_exit_refuses_the_relay_s_flags_and_variable`,
+  `proxy_node::tests::{proxy_and_ssh_give_the_same_words_for_a_relay_flag,
+  a_port_a_user_and_each_road_of_the_relay_are_refused}` (a case for `--relay-failover`).
+  `cargo test -p podssh-cli --no-fail-fast`: 2,024 passed, 0 failed, 52 ignored. Planted, each
+  `refuse_relay` giving no refusal (the code before the change), `ssh_node_refuses_the_relay_s_flags_and_variable_as_proxy_does`
+  and `the_exit_refuses_the_relay_s_flags_and_variable` fail. `python scripts/check-repo.py`, `cargo
+  todo check`: ok; clippy: no lint in the changed files.
 
 # T-701: The reverse node's journal names the cause when the relay closes a session
 

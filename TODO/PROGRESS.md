@@ -347,7 +347,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 686 entries: 106 open, 16 partial, 10 blocked, 554 done.
+`TODO/INDEX.md` holds 686 entries: 105 open, 16 partial, 10 blocked, 555 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -370,7 +370,7 @@ and carried by the import. T-085 keeps its two boxes only (Q103: the facade goes
 T-446 waits: no beta and no release until the migration is done (Q104).
 
 **First (2026-11-09):** the share lock's flake is repaired; then the defects and P1/P2 entries of the triage of #164 to
-#173 and of cfb's asks, by priority beside M10's order below: T-697, T-698, T-708, T-709, T-710,
+#173 and of cfb's asks, by priority beside M10's order below: T-698, T-708, T-709, T-710,
 T-728 (P1 of cfb), T-699, then the P2 ones (T-712 to T-718), then the P3 ones. T-711, T-719, T-722,
 T-727 and T-729 wait for podcrates crates or test accounts; T-707 waits for `pod-gsr`; T-715's read
 each TTL waits for Q105. A beta may go out when a batch fits (the owner, 2026-11-09; T-446).

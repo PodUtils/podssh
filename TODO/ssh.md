@@ -289,7 +289,7 @@ Read:
    `1001`, `1009` or `1013`.
 4. Wait with the jittered backoff that exists
    (`crates/podssh-relay/src/open.rs:421-435`). Bound the whole by the rounds
-   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:464`) and
+   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:465`) and
    the deadline of each host.
 5. Never prompt again without a person: under `BatchMode`, or with no
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
@@ -2946,7 +2946,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
 - Read: keepalives are on by default, each 60 s (`crates/podssh-ssh/src/options.rs:388`), as
   russh's own (`crates/podssh-ssh/src/run_config.rs:71-72`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
-  (`crates/podssh-cli/src/ssh/resolve.rs:395-398`) that #83's comment reads. T-332's question on
+  (`crates/podssh-cli/src/ssh/resolve.rs:396-399`) that #83's comment reads. T-332's question on
   `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:239`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:208`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
@@ -3418,7 +3418,7 @@ first word is the cut's. A warning 30 s before would let the user press a key, o
 ## Premise
 
 - Read: the warning at the connect, on the relay's road when ServerAliveInterval is off or at least
-  the cut (`crates/podssh-cli/src/ssh/resolve.rs:395-398`); after the cut, the relay's close with
+  the cut (`crates/podssh-cli/src/ssh/resolve.rs:396-399`); after the cut, the relay's close with
   its remedy (`crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
   (`crates/podssh-relay/src/relay.rs:91-94`), counted on payload alone (`docs/relay.md:473`).
 - Read: the relay stream counts the payload both ways
@@ -4035,7 +4035,7 @@ road gives 64 before anything connects.
 ## Premise
 
 - Read, against the report: the check of the relay road is podssh's own, before anything connects
-  (`crates/podssh-cli/src/ssh/resolve.rs:349`, with `crates/podssh-ws/src/names.rs:10-32` and
+  (`crates/podssh-cli/src/ssh/resolve.rs:350`, with `crates/podssh-ws/src/names.rs:10-32` and
   `crates/podssh-ws/src/names.rs:37-45`: letters, digits, `.`, `-` and `_`, or an IPv6 literal),
   not the relay's.
 - Read: on the direct road, the destination is checked for an empty name and a first `-` alone
@@ -4050,7 +4050,7 @@ road gives 64 before anything connects.
   (`openssh/openssh-portable:ssh.c`, at its tag `V_10_0_P2`); it takes `!`, `/` and each byte above
   127.
 - Read: the relay road's check reads the host that is dialed, after `HostName`
-  (`crates/podssh-cli/src/ssh/resolve.rs:349`).
+  (`crates/podssh-cli/src/ssh/resolve.rs:350`).
 
 ## Approach
 
@@ -4224,7 +4224,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
 - Read: `ssh node://` carries SSH with `carry_keeping`: the layer's settings of `ssh`, which name
   `keep.v1` (`crates/podssh-cli/src/layered.rs:222`), the far end's shells learned and its
   silence watched (`:256-262`), and the SSH client and the carriage joined in one task
-  (`crates/podssh-cli/src/ssh/node.rs:293-296`); `operator` carries with `carry_through`, with
+  (`crates/podssh-cli/src/ssh/node.rs:313-316`); `operator` carries with `carry_through`, with
   none of these (`crates/podssh-cli/src/operator.rs:164-165`). These are the client's differences
   between the run that stopped and the one that worked; which one stopped it is not known.
 - Read: the tester's lines show the layer's session open and its features (`replay.v1`,

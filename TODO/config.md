@@ -447,7 +447,7 @@ refused. ... podssh reads no ssh_config, so it has no configuration to print."
 lines of `keyword value`, the keyword in lower case: `port 2222`, `user alice`,
 `pubkeyauthentication true`, `batchmode no`, `connecttimeout none`, `serveraliveinterval 30`,
 `identityfile ~/.ssh/id_rsa` (with `~`), and others. Read: `resolve::resolve`
-(`crates/podssh-cli/src/ssh/resolve.rs:125-495`) decides each setting before any connection; its
+(`crates/podssh-cli/src/ssh/resolve.rs:125-497`) decides each setting before any connection; its
 result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the defaults included.
 
 ## Approach
@@ -1470,7 +1470,7 @@ other block of the file too.
 - Read (L-07): T-043 decided to accept `ProxyCommand podssh proxy %h %p` with no effect, and to
   run no `ProxyCommand` (rule 3 of `AGENTS.md`), as `podssh ssh` is the program that it names; so
   `/nonexistent/podssh proxy %h %p`, accepted and never run, is that decision. Its note says "-o
-  ProxyCommand has no effect in podssh", at `-v` alone (`crates/podssh-cli/src/ssh/resolve.rs:386`).
+  ProxyCommand has no effect in podssh", at `-v` alone (`crates/podssh-cli/src/ssh/resolve.rs:387`).
 - Read: 78 is the exit of a configuration error (`docs/decisions.md`, 2026-10-05); the report asks
   for 255, or 64.
 
@@ -1596,7 +1596,7 @@ user asked for is gone with no sign, and an audit finds it.
   (`crates/podssh-cli/src/ssh/keywords.rs:119-132`), and the manual says "Accepted and ignored,
   because they change nothing that podssh does" (`crates/podssh-cli/src/man/model.rs:268-272`).
 - Read: each one is a note (`crates/podssh-cli/src/ssh/options.rs:272`), "-o NAME has no effect in
-  podssh" (`crates/podssh-cli/src/ssh/resolve.rs:386`), said at `-v` alone
+  podssh" (`crates/podssh-cli/src/ssh/resolve.rs:387`), said at `-v` alone
   (`crates/podssh-cli/src/ssh/mod.rs:260-262`): "-o" also for the line of a file, with no file and
   no line.
 - Read, against L-39: the two notes of each run come from Debian 13's `/etc/ssh/ssh_config`, whose

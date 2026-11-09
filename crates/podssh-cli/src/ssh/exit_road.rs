@@ -23,6 +23,16 @@ const ITS_OWN: &str = "--exit NAME starts the road to a host at the node NAME, i
                        with no node://, iroh:, derp:, cf://, iap:// or eice:// destination, no cf:// hop of -J, \
                        no --direct and no road of another server";
 
+/// `--exit NAME` beside the relay's flags or `PODSSH_RELAY` (T-697): the
+/// exit's pair names the relay. Read before the relay list is parsed, so
+/// that a malformed list does not hide the refusal.
+pub(super) fn refuse_relay(args: &SshArgs, env: &Env) -> Result<(), Refusal> {
+    match args.exit.as_deref() {
+        Some(name) => super::node::refuse_relay(args, env, &format!("--exit {name}")),
+        None => Ok(()),
+    }
+}
+
 /// The road of a run that resolved to the relay: the exit's, when
 /// `--exit` names one. Its word comes once the first hop is known
 /// ([`fill`]).
@@ -241,6 +251,41 @@ mod tests {
             other => panic!("{other:?}"),
         }
         assert_eq!(r.options.destination.host, "h.example", "the host key is looked up under the host");
+    }
+
+    /// T-697: the pair names the exit's relay, so a flag or the variable of
+    /// the relay is refused, as for `node://NAME`; the settings file's
+    /// `RelayHost` is not.
+    #[test]
+    fn the_exit_refuses_the_relay_s_flags_and_variable() {
+        let ask = |host: Option<&str>, failover: Option<&str>, env_relay: Option<&str>| {
+            let mut args = SshArgs { destination: Some("git@github.com".into()), ..SshArgs::default() };
+            args.exit = Some("lab".into());
+            args.relay_host = host.map(String::from);
+            args.relay_failover = failover.map(String::from);
+            let env = Env { user: Some("me".into()), relay: env_relay.map(String::from), ..Env::default() };
+            super::super::resolve::resolve_or_refuse(&args, &env)
+        };
+        // A malformed list is refused as the relay's flag, not as a bad list.
+        for (host, failover, env_relay, code, says) in [
+            (Some("relay.example"), None, None, 64, "--relay-host does not apply to --exit lab: the pair names"),
+            (Some("not a host"), None, None, 64, "--relay-host does not apply to --exit lab"),
+            (None, Some("parallel"), None, 64, "--relay-failover does not apply to --exit lab"),
+            (None, None, Some("relay.example"), 78, "PODSSH_RELAY does not apply to --exit lab"),
+        ] {
+            let refusal = ask(host, failover, env_relay).unwrap_err();
+            assert!(refusal.code == code && refusal.message.contains(says), "{host:?}: {refusal:?}");
+        }
+        assert!(ask(None, None, Some("")).is_ok(), "an empty variable is no variable");
+        let relay_host = Some(crate::settings::Value { text: "relay.example".into(), at: "settings:1".into() });
+        let settings = crate::settings::Defaults { relay_host, ..Default::default() };
+        let mut args = SshArgs { destination: Some("git@github.com".into()), ..SshArgs::default() };
+        args.exit = Some("lab".into());
+        let env = Env { user: Some("me".into()), settings, ..Env::default() };
+        let r = super::super::resolve::resolve_or_refuse(&args, &env).unwrap();
+        assert!(is_exit(&r.transport), "the settings file's RelayHost does not refuse");
+        let notes = r.notes.iter().filter(|n| n.contains("RelayHost")).count();
+        assert_eq!(notes, 1, "one -v line: {:?}", r.notes);
     }
 
     #[test]

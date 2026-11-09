@@ -23,6 +23,9 @@ const ROADS: &[&str] = &[
      or -6, no --no-e2e and no road of another server (64). With --carrier ADDR, the exit is the node at the \
      other end of that stream, its one road, with no relay and no pair (see --carrier). podssh cp, scp and \
      sftp take it too.",
+    "node://NAME and --exit NAME refuse --relay-host and --relay-failover (64), and PODSSH_RELAY (78), as \
+     podssh proxy node://NAME does: the pair names its relay. A RelayHost of the settings file is ignored \
+     there, with a line at -v. --relay-addr and --ca-file reach the pair's relay.",
     CLEARTEXT,
     H2,
     CHISEL,

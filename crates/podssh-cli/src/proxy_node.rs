@@ -27,8 +27,6 @@ const SCHEME: &str = crate::ssh::node::SCHEME;
 const FORMS: &str =
     "a node's ProxyCommand is podssh proxy node://NAME, podssh operator NAME, or podssh pipe - node:NAME";
 
-/// Why a flag of the relay goes with no node: the pair names its relay.
-const RELAY: &str = "the pair names its relay";
 /// Why a road in the relay's place goes with no node.
 const ROAD: &str = "it takes the relay's place, and a node is reached through the relay of its pair";
 /// Why `--idle-warn` goes with no node.
@@ -176,9 +174,11 @@ fn to_operator(text: &str, args: &ProxyArgs) -> Result<OperatorArgs, Refusal> {
 /// The first flag of the relay, or of a road in the relay's place, that a
 /// node does not take, with why.
 fn beside(args: &ProxyArgs) -> Option<(&'static str, &'static str)> {
+    // One list for `proxy` and `ssh` (T-697), so that the words cannot drift.
+    if let Some(flag) = crate::node_relay::flag(args.relay_host.is_some(), args.relay_failover.is_some()) {
+        return Some((flag, crate::node_relay::WHY));
+    }
     [
-        (args.relay_host.is_some(), "--relay-host", RELAY),
-        (args.relay_failover.is_some(), "--relay-failover", RELAY),
         (args.forwarder.is_some(), "--forwarder", ROAD),
         (args.shadowsocks.is_some(), "--shadowsocks", ROAD),
         (args.via != crate::via::Flags::default(), "--via", ROAD),
@@ -242,12 +242,23 @@ mod tests {
         assert_eq!(Flags::default().refused_beside(true), None);
     }
 
+    /// `ssh` and `proxy` give the same words for the same flag (T-697).
+    #[test]
+    fn proxy_and_ssh_give_the_same_words_for_a_relay_flag() {
+        let mut args = node("node://lab");
+        args.relay_failover = Some("parallel".into());
+        let proxied = to_operator("node://lab", &args).unwrap_err();
+        assert_eq!(proxied.message, crate::node_relay::words("--relay-failover", "node://lab"));
+    }
+
     #[test]
     fn a_port_a_user_and_each_road_of_the_relay_are_refused() {
         let mut port = node("node://lab");
         port.port = Some("22".into());
         let mut relay = node("node://lab");
         relay.relay_host = Some("relay.example".into());
+        let mut failover = node("node://lab");
+        failover.relay_failover = Some("parallel".into());
         let mut exit = node("node://lab");
         exit.exit.name = Some("gw".into());
         let cases = [
@@ -257,6 +268,7 @@ mod tests {
             (node("node://"), "node://", "no NAME"),
             (node("node:lab"), "node:lab", "is not the form of a node"),
             (relay, "node://lab", "--relay-host does not apply"),
+            (failover, "node://lab", "--relay-failover does not apply"),
             (exit, "node://lab", "--exit does not apply"),
         ];
         for (args, text, says) in cases {

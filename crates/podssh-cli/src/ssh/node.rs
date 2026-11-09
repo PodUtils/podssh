@@ -22,7 +22,7 @@ use crate::layered::{carry_keeping, carry_through, Line, Shell};
 use crate::relay_settings::Refusal;
 
 use super::args::SshArgs;
-use super::resolve::{Env, Transport};
+use super::resolve::{Env, Resolved, Transport};
 use super::transport::{NotReached, Reached};
 
 /// The form of a node's destination.
@@ -85,6 +85,7 @@ pub(super) struct Ask<'a> {
 /// variable and OpenTunnel's name (T-531); then its transport. Apart from
 /// `resolve.rs`, for the length of that file.
 pub(super) fn resolved(r: &Ask<'_>, env: &Env) -> Result<Transport, Refusal> {
+    refuse_relay(r.args, env, &format!("{SCHEME}{}", r.label))?;
     let race = super::iroh::race(r.args, r.label)?;
     // The DERP road of the node (T-379): one node, one key for each road.
     let derp = super::derp::race(r.args)?;
@@ -94,6 +95,25 @@ pub(super) fn resolved(r: &Ask<'_>, env: &Env) -> Result<Transport, Refusal> {
         super::iroh::same_node(&iroh.ticket, ticket)?;
     }
     transport(r, env, race, derp, opentunnel).map_err(Refusal::from)
+}
+
+/// The relay's flags and `PODSSH_RELAY` beside a node or an exit (T-697):
+/// the pair names the relay. With `--carrier`, [`super::carried::flags`]
+/// refuses the flags in the stream's words, and no relay is used.
+pub(super) fn refuse_relay(args: &SshArgs, env: &Env, target: &str) -> Result<(), Refusal> {
+    if args.carrier.is_some() {
+        return Ok(());
+    }
+    let (host, failover) = (args.relay_host.is_some(), args.relay_failover.is_some());
+    crate::node_relay::check(host, failover, env.relay.as_deref(), target)
+}
+
+/// A `RelayHost` of the settings file does not refuse a node: it is ignored,
+/// with a note at -v.
+pub(super) fn note_relay(env: &Env, resolved: &mut Resolved) {
+    if matches!(resolved.transport, Transport::Node { .. }) {
+        resolved.notes.extend(crate::node_relay::ignored(&env.settings));
+    }
 }
 
 pub(super) fn transport(
