@@ -7,7 +7,10 @@
 /// The public services that podssh tries last, and the ones it never names.
 pub const PUBLIC: &str =
     "The public services that podssh tries when you named no server of their kind, each after podssh's \
-     own roads and by the operator's rulings: on the forward road, the four forwarders above, wisp last; \
+     own roads and by the operator's rulings: on the forward road, the four forwarders above, wisp last, \
+     then the public Wisp servers that their operators run for the use of others, each named in the line \
+     that says what goes to whom, before the ws:// forms (none is named in this release: PODSSH_FORWARDER_FALLBACK=no \
+     turns them off with the rest); \
      on the reverse road, Tailscale's DERP servers for tailcat, then Tailscale's main DERP fleet, which \
      serves Tailscale's own clients and let podssh in when it was tried (PODSSH_DERP_MAIN=no keeps to \
      tailcat's), Least Authority's transit relay, ppng.io then piping.onrender.com, and n0's server of \
@@ -36,6 +39,7 @@ mod tests {
             "Each is a third party that nobody vouches for",
             "then Tailscale's main DERP fleet, which serves Tailscale's own clients",
             "podssh never uses, and never names, a domain that looks taken over",
+            "then the public Wisp servers that their operators run for the use of others",
         ] {
             assert!(super::PUBLIC.contains(text), "{text}");
         }

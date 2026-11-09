@@ -8211,10 +8211,10 @@ puts the fallback in its `ok` column without a probe.
 ## Premise
 
 - Read: the fallback follows each failure of the relay whose exit is 69 or 77
-  (`crates/podssh-cli/src/forwarder/fallback.rs:91-111`), on by default
-  (`crates/podssh-cli/src/forwarder/fallback.rs:55-67`), after the direct road
+  (`crates/podssh-cli/src/forwarder/fallback.rs:92-112`), on by default
+  (`crates/podssh-cli/src/forwarder/fallback.rs:56-68`), after the direct road
   (`crates/podssh-cli/src/ssh/transport.rs:231-262`); the module's own words are that "a target
-  that cannot go" ends the run as before (`crates/podssh-cli/src/forwarder/fallback.rs:9-11`).
+  that cannot go" ends the run as before (`crates/podssh-cli/src/forwarder/fallback.rs:10-12`).
 - Read: the relay's refusal of a target by its policy (400, a blocked address range) is 77
   (`crates/podssh-cli/src/proxy.rs:423-424`), and each other answer, the 502 of a target that the
   relay could not reach or whose name does not resolve among them, is 69

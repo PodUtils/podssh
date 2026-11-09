@@ -6415,7 +6415,7 @@ of the owner's agent"). `cargo test -p podssh-cli` (2,015 passed), `cargo test -
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -6484,6 +6484,38 @@ server put before the demo server, and the test of the order fails.
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
+
+2026-11-09. The list of public Wisp servers belongs to `pod-services` of PodUtils/podcrates, not to
+`crates/podssh-ws/src/forwarder/builtin.rs`: step 2's "a word of `builtin.rs` after `wisp`" is
+wrong since T-684 (podssh holds no host of another party; `BUILTIN` is read from the kind
+`forwarder`, which `v0.7.0` fills with four services, the last `wisp-forwarder`). The servers are a
+new kind, `wisp-public`, with the facts `word`, `template` and `note` and a `[rank]`, one service
+each; the research of step 1, which servers qualify under Q75 (the operator's own page offers the
+server to others, no account, the operator's own domain) and Q79 (never a domain that looks taken
+over, never a web proxy's list), is part of the ask to podcrates, with its sources in each service's
+`source` fields. Podssh reads the kind (`crates/podssh-cli/src/forwarder/public.rs`), tries those
+servers in `fallback.rs` after the built-ins and before the `ws://` forms, under the same opt-out
+(`PODSSH_FORWARDER_FALLBACK`), in `podssh ssh` and in `podssh proxy`.
+
+## Done
+
+Partial, 2026-11-09: drafted (DRAFT T-535, `3e435e1e`) and merged by the main session, with no
+repair. The podssh side:
+`forwarder/public.rs` reads the services of kind `wisp-public` (an empty list in `v0.7.0`) and
+chains them after `super::builtins()`; `fallback::after_relay_in` and `after_relay_pipe_in` take the
+list (the seam for stand-ins), and `after_relay` and `after_relay_pipe` pass the catalog's; the
+announcement names the words after the built-in ones; the note of the public services in the manual
+says it. Tests: `forwarder::public::tests::an_empty_list_leaves_the_chain_as_it_was`,
+`the_public_servers_come_after_the_built_in_forwarders_in_order`, `a_bad_row_is_left_out`,
+`forwarder::fallback::tests::the_announcement_names_the_public_wisp_servers_after_the_built_in_words`,
+`man::notes_public` (one more claim). `cargo test -p podssh-cli --lib -- forwarder man::`: 60 passed;
+planted, the public servers before the built-ins, the order test fails. `--test forwarder_cli` 16,
+`man_page` 4: passed; clippy and rustfmt clean. Not done: the research and the list, asked of
+podcrates in COORD-008 (GitHub #175), the live runs of
+step 2, `docs/carriers.md`, and a test through the Wisp stand-in
+(`tests/forwarder_support/wisp.rs`) of `after_relay_in` with a stand-in list, which needs a build
+to write against the real `Trust` and `RelayList` types. The entry stays `partial` until the list
+comes by a tag.
 
 # T-536: NetBird: whether its relays or its signal server carry a podssh session with no account
 
@@ -10650,7 +10682,7 @@ output that lists what is on.
 
 ## Premise
 
-- Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:34`),
+- Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:35`),
   `PODSSH_DERP`, `PODSSH_DERP_MAIN`, `PODSSH_PIPING`, `PODSSH_IROH_PKARR`, `PODSSH_IROH_RELAY`,
   `PODSSH_TRANSIT`, `PODSSH_OPENTUNNEL`, `PODSSH_OFFLINE` (all of `crates/*/src`); there is no common one.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no

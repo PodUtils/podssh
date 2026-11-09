@@ -15,6 +15,7 @@
 pub mod cleartext;
 pub mod fallback;
 pub mod pipe;
+pub mod public;
 pub mod reach;
 
 use podssh_ws::forwarder::builtin::{self, Builtin};

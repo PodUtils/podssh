@@ -2,7 +2,8 @@
 //! operator's ruling Q56: when each relay host failed, podssh tries them in
 //! order, after the relay hosts and before the run ends, and says so on
 //! stderr with each one's name; the Wisp demo server last, never first, by
-//! the ruling Q65 (T-438). Only where the relay was podssh's own
+//! the ruling Q65 (T-438), then the public Wisp servers of `pod-services`
+//! ([`super::public`], T-535, Q75). Only where the relay was podssh's own
 //! choice: not for relay hosts that the user names (`--relay-host`,
 //! `PODSSH_RELAY`, `RelayHost`), whose road stays theirs alone, nor with
 //! `-4` or `-6`, nor when `PODSSH_FORWARDER_FALLBACK`, or
@@ -113,10 +114,17 @@ pub fn not_after(relays: &RelayList, family: Option<u8>, code: i32, answered: bo
 /// The line that says the fallback, before its first dial: what goes to
 /// whom, and the bound of the wait.
 pub fn announce(target: &str) -> String {
+    announce_with(target, &super::public::forwarders())
+}
+
+/// [`announce`] with the public Wisp servers `public`, which follow the
+/// forwarders that the binary names.
+pub fn announce_with(target: &str, public: &[super::Forwarder]) -> String {
     format!(
-        "each relay host failed: podssh sends {target} to the public forwarders of other products, in order: {}, \
+        "each relay host failed: podssh sends {target} to the public forwarders of other products, in order: {}{}, \
          {} s at most each; {FALLBACK_ENV}=no turns this off",
         builtin::words(),
+        super::public::words_of(public),
         EACH_WAIT.as_secs()
     )
 }
@@ -147,8 +155,24 @@ pub async fn after_relay(
     relays: &RelayList,
     family: Option<u8>,
     trust: &Trust,
+    to: (&str, u16),
+    log: &Arc<Log>,
+) -> Result<Reached, NotReached> {
+    after_relay_in(failed, answered, relays, family, trust, to, log, &super::public::forwarders()).await
+}
+
+/// [`after_relay`] with the public Wisp servers `public` named, so that a
+/// test passes stand-ins.
+#[allow(clippy::too_many_arguments)]
+pub async fn after_relay_in(
+    failed: NotReached,
+    answered: bool,
+    relays: &RelayList,
+    family: Option<u8>,
+    trust: &Trust,
     (host, port): (&str, u16),
     log: &Arc<Log>,
+    public: &[super::Forwarder],
 ) -> Result<Reached, NotReached> {
     if let Some(why) = not_after(relays, family, failed.code, answered) {
         log.verbose(&format!("the public forwarders are not tried: {why}"));
@@ -158,9 +182,10 @@ pub async fn after_relay(
         log.error(line);
     }
     let target = podssh_ws::dial::authority(host, port);
-    log.info(&announce(&target));
+    log.info(&announce_with(&target, public));
     let code = failed.code;
-    if let Ok(reached) = super::reach::carry(&super::builtins(), trust, host, port, log, true).await {
+    let wss = super::public::chain(super::builtins(), public);
+    if let Ok(reached) = super::reach::carry(&wss, trust, host, port, log, true).await {
         return Ok(reached);
     }
     // Their ws:// form, last, where a probe with no TLS passed (T-326).
@@ -184,15 +209,29 @@ pub async fn after_relay_pipe(
     trust: &Trust,
     err: &mut dyn Write,
 ) -> i32 {
+    after_relay_pipe_in(code, answered, relays, (host, port), trust, err, &super::public::forwarders()).await
+}
+
+/// [`after_relay_pipe`] with the public Wisp servers `public` named.
+pub async fn after_relay_pipe_in(
+    code: i32,
+    answered: bool,
+    relays: &RelayList,
+    (host, port): (&str, u16),
+    trust: &Trust,
+    err: &mut dyn Write,
+    public: &[super::Forwarder],
+) -> i32 {
     if not_after(relays, None, code, answered).is_some() {
         return code;
     }
     let target = podssh_ws::dial::authority(host, port);
-    let _ = writeln!(err, "podssh: {}", announce(&target));
+    let _ = writeln!(err, "podssh: {}", announce_with(&target, public));
     let mut say = |line: &str| {
         let _ = writeln!(err, "podssh: {line}");
     };
-    let mut opened = super::pipe::open(&super::builtins(), host, port, trust, true, &mut say).await;
+    let mut opened =
+        super::pipe::open(&super::public::chain(super::builtins(), public), host, port, trust, true, &mut say).await;
     if opened.is_err() {
         // Their ws:// form, last, where a probe with no TLS passed (T-326).
         let forms = super::cleartext::passed(&mut |_: &str| {}).await;
@@ -248,6 +287,20 @@ mod tests {
         assert!(line.starts_with(said), "{line}");
         assert!(line.contains("in order: mudlet, ssheasy, mudix, wisp, 10 s at most each;"), "{line}");
         assert!(line.ends_with("PODSSH_FORWARDER_FALLBACK=no turns this off"), "{line}");
+    }
+
+    /// The public Wisp servers are named after the built-in words, in
+    /// their order; an empty list adds nothing (T-535).
+    #[test]
+    fn the_announcement_names_the_public_wisp_servers_after_the_built_in_words() {
+        let t = |w: &str, h: &str| {
+            let template = podssh_ws::forwarder::Template::parse(&format!("wisp+wss://{h}/")).unwrap();
+            super::super::Forwarder { template, name: format!("{w} (wisp+wss://{h}/)") }
+        };
+        let line = announce_with("192.0.2.1:22", &[t("one", "w1.example"), t("two", "w2.example")]);
+        assert!(line.contains("in order: mudlet, ssheasy, mudix, wisp, one, two, 10 s at most each;"), "{line}");
+        let bare = announce_with("192.0.2.1:22", &[]);
+        assert!(bare.contains("in order: mudlet, ssheasy, mudix, wisp, 10 s at most each;"), "{bare}");
     }
 
     fn failure(attempts: Vec<OpenError>) -> Failure {
