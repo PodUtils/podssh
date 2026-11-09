@@ -273,6 +273,13 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   and T-492 (`draft-t492`, `9c2bf1d5`) and T-491 (`draft-t491`, `e95dd58f`), merged and closed the same day;
   T-495 (`draft-t495`, `f58eb5b5`), merged and closed the same day; T-498 (`draft-t498`, `6b6654ff`), merged as partial the same day.
 
+  On 2026-11-09 drafts of this cloud session, each unbuilt: T-498's second part (`4316ddfc`), merged and
+  closed by its run against frp's own frps (13 passed); T-548, Pinggy (`draft-t548`, `910a53ac`,
+  worktree `agent-aacedb4783ec9331d`), merged and tested on the local branch `merge-t548`, which waits:
+  its verifier that took any certificate broke SECURITY.md's rule, and the branch's worktree
+  `.claude/worktrees/t548-pin` holds its repair (the client's TLS pinned to the node's certificate,
+  the node's leg raw SSH first). Pushed as `draft/merge-t548` before a session ends.
+
   On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
   as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
   merged and closed, `00ba332`); T-618 and T-619 (`worktree-agent-a813dd96e40d4756b`, `9d04d4d` and
