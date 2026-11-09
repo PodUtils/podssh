@@ -24,6 +24,10 @@ pub struct Seen {
     pub read: AtomicUsize,
     ended: AtomicBool,
     answered: AtomicBool,
+    /// The server's reads that timed out after its last byte: an end found by
+    /// a read after one of them was queued while the blocked read slept, a
+    /// lost wakeup of the platform's socket and not podssh's (T-465).
+    waits: AtomicUsize,
     given: AtomicUsize,
     closed: AtomicBool,
     /// Milliseconds since `start`, plus one, of each step; 0 for none.
@@ -47,6 +51,7 @@ impl Default for Seen {
             read: AtomicUsize::new(0),
             ended: AtomicBool::new(false),
             answered: AtomicBool::new(false),
+            waits: AtomicUsize::new(0),
             given: AtomicUsize::new(0),
             closed: AtomicBool::new(false),
             closed_ms: zero(),
@@ -96,12 +101,14 @@ impl Seen {
         };
         format!(
             "the test gave stdin {} bytes (closed: {}); the server read {} bytes (its input ended: {}, it answered: \
-             {}); at: stdin closed {}, last read {}, ended {}, answered {}, podssh killed {}",
+             {}, its reads timed out {} times); at: stdin closed {}, last read {}, ended {}, answered {}, podssh \
+             killed {}",
             self.given.load(Ordering::SeqCst),
             yes(&self.closed),
             self.read.load(Ordering::SeqCst),
             yes(&self.ended),
             yes(&self.answered),
+            self.waits.load(Ordering::SeqCst),
             at(&self.closed_ms),
             at(&self.last_read_ms),
             at(&self.ended_ms),
@@ -165,9 +172,34 @@ pub fn through_seen(address: &str, input: Vec<u8>, seen: &Arc<Seen>) -> (i32, St
     (out.status.code().unwrap_or(-1), text(&out.stdout), text(&out.stderr))
 }
 
+/// A stream whose reads can wait a bounded time, so that the server reads
+/// again: a platform that queues the end and does not wake a blocked read
+/// (T-465) still gives the end to the next read, and the test counts it.
+pub trait Timed {
+    fn wait_at_most(&self, limit: Duration) -> std::io::Result<()>;
+}
+
+impl Timed for std::net::TcpStream {
+    fn wait_at_most(&self, limit: Duration) -> std::io::Result<()> {
+        self.set_read_timeout(Some(limit))
+    }
+}
+
+#[cfg(unix)]
+impl Timed for std::os::unix::net::UnixStream {
+    fn wait_at_most(&self, limit: Duration) -> std::io::Result<()> {
+        self.set_read_timeout(Some(limit))
+    }
+}
+
+/// How long one read of a server waits before it reads again.
+const READ_WAIT: Duration = Duration::from_millis(250);
+
 /// The servers' answer: read to the end of the input, then send its digest;
-/// `seen` counts each step.
-pub fn answer(mut stream: impl Read + Write, seen: &Seen) {
+/// `seen` counts each step. Each read waits [`READ_WAIT`] at most, then reads
+/// again; an end that never comes still holds the test to its 10 s.
+pub fn answer(mut stream: impl Read + Write + Timed, seen: &Seen) {
+    stream.wait_at_most(READ_WAIT).expect("a read timeout on the server's socket");
     let (mut got, mut buf) = (Vec::new(), vec![0u8; 64 * 1024]);
     loop {
         match stream.read(&mut buf) {
@@ -178,11 +210,21 @@ pub fn answer(mut stream: impl Read + Write, seen: &Seen) {
                 seen.mark(&seen.last_read_ms);
             }
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {
+                if seen.read.load(Ordering::SeqCst) > 0 {
+                    seen.waits.fetch_add(1, Ordering::SeqCst);
+                }
+                // podssh's kill at the limit ends the input in any case.
+                if seen.killed_ms.load(Ordering::SeqCst) != 0 {
+                    break;
+                }
+            }
             Err(e) => panic!("the server's read: {e}"),
         }
     }
     seen.ended.store(true, Ordering::SeqCst);
     seen.mark(&seen.ended_ms);
+    // The answer goes with no timeout of its own: a write is not limited.
     let _ = stream.write_all(digest(&got).as_bytes());
     seen.answered.store(true, Ordering::SeqCst);
     seen.mark(&seen.answered_ms);
