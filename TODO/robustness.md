@@ -1474,6 +1474,18 @@ the end never came", the same times as macOS's; put back, `cargo test -p podssh-
 10 passed. GitHub Actions start no workflow for this account on 2026-11-06, so the repeats on
 `macos-15` and `windows-2025` wait for a run; it stays partial for a failure that says which.
 
+2026-11-09: it failed again on Windows, in the gate of `91977803` (run 42707316166, the job
+`windows`), and passed at the next commit, which changed a shell script alone: stdin closed at 88
+ms, the server's last read at 89 ms with each of the 1,000,000 bytes, podssh said "A's input ended
+after 1000000 bytes; the other side's write half shut down", and the server's input never ended
+before the kill at 10,072 ms. Windows has no read of the clone (it says "not read on this system"),
+so the two causes still looked alike there. The test's server now reads with a timeout of 250 ms
+and reads again after each one (`crates/podssh-cli/tests/pipe_seen/mod.rs`, `Timed`, `answer`),
+and says how many of its reads timed out: an end that the platform queued without waking the
+blocked read is found by the next read (the test passes, and the count says it waited), and an end
+that never came still fails at 10 s, now with a count of reads that found nothing, on each system.
+UNVERIFIED until it is built.
+
 # T-564: podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE`
 
 **Source:** GitHub #111 (a tester, 2026-11-02).
