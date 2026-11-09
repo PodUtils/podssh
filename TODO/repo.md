@@ -5974,3 +5974,53 @@ not on this host: deny's job runs it in CI on the push.
 Later the same day: Dependabot moved #149 to v2.90.0 (`b80e2bb`) and closed #150 once `main` held
 aes 0.9.4. The gate (run 42174686787) and deny (run 42174686830) passed on #149's branch, whose base
 is `75a0596` (this entry's aes 0.9.4 and its pins) with v2.90.0; the three pins move to it.
+
+# T-728: Windows (x86_64, aarch64) and macOS smoke tests of each operator command, and `ProxyCommand` with Windows OpenSSH
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-X-12 (COORD-014, PodUtils/podcrates#38; the owner, 2026-11-09: podssh serves each operator command on Windows and macOS)
+**Category:** measurement
+**Milestone:** M10
+**Priority:** P1
+**Effort:** L
+**Status:** open
+
+## Problem
+
+Podssh builds for Windows and macOS (T-218), and the jobs `windows` and `macos` run the default tests. No
+test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `containers`, `proxy`,
+`pipe`, `cp`, `mv`, `scp`, `sftp`, `edit`, `doctor`, `keygen`, `status`, `ping`, `health`, `node`, `operator`,
+`mcp`, `net`, `update`) against a server, and none runs on Windows aarch64. OpenSSH for Windows with
+`ProxyCommand podssh proxy %h %p` is not tested.
+
+## Premise
+
+- `.github/workflows/build.yml:252` (`windows`, `windows-2025`) and `:313` (`macos`, `macos-15`): tests, the
+  system stores, repository checks, the console checks against MSYS2's sshd. No step per command.
+- `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
+- T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
+  at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
+- `docs/STATUS.md:182`: only the console and the MSYS2 sshd are measured on Windows.
+
+## Approach
+
+1. Write the new file scripts/smoke-operator.py: one table of commands, each with a short run against a local OpenSSH
+   (Windows: MSYS2's sshd as `interop-conpty-msys2.py` has it; macOS: the system's), with a limit on each
+   wait and the exit code read directly. The commands that need a relay run against `podssh relay serve`
+   on the same host (a stand-in; no live service).
+2. Add the step to `windows` and `macos`. Add a job on `windows-11-arm` for aarch64; if the runner is not
+   available to this repository, build with the cross target and say so in STATUS.
+3. A step with Windows' own OpenSSH client (`C:\Windows\System32\OpenSSH\ssh.exe`) and
+   `-o ProxyCommand="podssh.exe proxy %h %p"` to the local sshd.
+4. Each failure found is a defect entry (rule 8 of AGENTS.md section 5), or a repair in this session.
+5. The Access TCP client waits for podcrates T-117: see T-729.
+
+## Prove
+
+```sh
+python scripts/smoke-operator.py --list
+python scripts/smoke-operator.py target/debug/podssh
+python scripts/check-repo.py
+```
+
+Plant: make `podssh proxy` write one extra byte at its start on Windows; the OpenSSH client's banner check
+fails and the table names the command.

@@ -2856,6 +2856,12 @@ that closes it.
 
 The version is `1.1.0`: the expansion adds commands and roads and breaks none of `1.0.0`.
 
+Betas are allowed again (the owner, 2026-11-09, COORD-014): this supersedes "no beta until the migration
+is done" for betas only, and `v1.1.0` still waits for the migration. No crate goes to crates.io (T-687).
+The next beta, `v1.1.0-beta.4`, carries T-710 (cfb's ask A-S-03) and the entries of cfb's asks that
+are done by then. The rules of a beta stay: the gate green at its commit, the release workflow by
+hand, and `scripts/release-short.sh BINARY --net`.
+
 ## Prove
 
 ```sh
@@ -10610,3 +10616,310 @@ cargo test -p podssh-relay tracker
 
 Against `webtorrent/bittorrent-tracker`'s own server (a pinned release) in a harness; then one
 short live pairing through a public tracker from GitHub Actions.
+
+# T-711: One switch `PODSSH_PUBLIC` over each third-party service, and `status --json` gives the set
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-04 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+podssh tries public services of other parties as fallbacks (Q56, Q58, Q65, Q75, Q78): forwarders, DERP
+fleets, Piping Servers, n0's relays and pkarr, the wormhole transit, OpenTunnel, WARP. Each has its own
+switch, or none. A fleet host that must send nothing to another party has no one word to say so, and no
+output that lists what is on.
+
+## Premise
+
+- Read: the switches now are `PODSSH_FORWARDER_FALLBACK` (`crates/podssh-cli/src/forwarder/fallback.rs:34`),
+  `PODSSH_DERP`, `PODSSH_DERP_MAIN`, `PODSSH_PIPING`, `PODSSH_IROH_PKARR`, `PODSSH_IROH_RELAY`,
+  `PODSSH_TRANSIT`, `PODSSH_OPENTUNNEL`, `PODSSH_OFFLINE` (all of `crates/*/src`); there is no common one.
+- Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
+  public set.
+- Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
+  `crates/podssh-cli/Cargo.toml:60`); no host is named in this entry or in the new code.
+- Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
+  effective set as JSON.
+
+## Approach
+
+1. `PODSSH_PUBLIC=off|fallback|default` and the settings keyword `Public`. `off`: no connection to a service
+   whose party is not the user's own or the relay's operator's. `fallback`: those services after podssh's own
+   roads, as now (Q78). `default`: as `fallback`, and the ones that Q65 names as unasked stay unasked. The
+   default is today's behaviour. A word that is none of them: 78.
+2. The words of each older switch win over `Public` only toward `off` (a switch cannot turn on what
+   `PODSSH_PUBLIC=off` turned off). `PODSSH_OFFLINE` is stronger than all.
+3. One check at the place where each road asks `pod-services` for its hosts: the road asks the filter, not
+   the variable. No road is left with its own gate.
+4. `podssh status` gives `public`: the mode, and each service with its id, party, state (`on`, `off`, `fallback`)
+   and the word that set it. `doctor` prints the same table and tries none that is off.
+5. `docs/cli.md` and the manual.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib status:: settings::
+cargo test -p podssh-cli --test public_off
+```
+
+New test `public_off`: with `PODSSH_PUBLIC=off`, a run whose relay hosts all fail dials nothing but the
+named hosts (a stand-in that counts the connections), and `status` lists each public service as `off`.
+Planted: one road that reads its old switch only fails it.
+
+## Blocker
+
+PodUtils/podcrates T-112 (`pod-services`: the party of each service as a filter, and the effective set as
+JSON) must be released and taken. podssh may not keep a list of other parties' services (Q79; the
+`pod-services` rule). Unblocked when a tag of podcrates has the filter.
+
+# T-715: A node's door from a signed net document at an HTTPS URL, with a TTL and a stale limit
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-08 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+cfb publishes its fleet's net document at an HTTPS name. A node should take its door (who may reach it) from
+that document, so a change of the fleet needs no copy of a file to each node. The net document is a file
+that a person copies (`net join`, `net invite`).
+
+## Premise
+
+- Read: the node takes its door from `--allow FILE` or from the net held on its host
+  (`crates/podssh-cli/src/flags/node.rs:137`, `crates/podssh-cli/src/node_members.rs:1-10`,
+  `crates/podssh-cli/src/net/store.rs:62`).
+- Read: `store::take(signed, owner, now)` verifies a document against its owner's key and its end
+  (`crates/podssh-cli/src/net/store.rs:174`); the document is signed (`crates/podssh-cli/src/net/sign.rs`).
+- Read: the relay role reads a list from a file or an `https://` URL with `--list-ttl` and `--list-stale`
+  (T-646, `TODO/relay.md`): a copy older than TTL plus stale limit lets no one in. The source is a trait with
+  a file and a URL behind it. Reuse it.
+- Read: an HTTPS GET with a cap and redirects exists (`crates/podssh-cli/src/shadowsocks/subscription.rs:24-65`
+  through `podssh_ws::client::https_get`).
+
+## Approach
+
+1. `podssh node --net-url URL --net-owner KEY [--net-ttl SECS] [--net-stale SECS]` (and the settings
+   keyword). The owner's key is required: TLS alone is not the trust (T-646's words). A document whose
+   signature or owner differs, or that is older than the held serial, is refused (serial only grows).
+2. Fetch once before the node goes online (a failure: 78 when no copy is held, else the copy ages). Fetch
+   again each TTL (default 300 s). Past TTL plus stale (default 3600 s) the node takes the door as closed
+   for new sessions and says so; sessions that live go on.
+3. The fetch goes through the host's proxy with the trust of `--ca-file`, never with a credential in the URL.
+   A periodic read beside a session is outside the exceptions of rule 2 (Q96 and Q97 allow a read before a
+   session, at most once a day). Write a question with this recommendation in `TODO/PROGRESS.md` and keep the
+   entry `open` for the parts that need no ruling: the one fetch before the node goes online, and the
+   `--net-ttl` fetch only while the user's node runs a command that the user started (the user named the URL).
+4. The copy goes to the cache with its fetch time (`crates/podssh-relay/src/cache.rs`).
+5. `status --net` shows the URL, the serial, the age and whether it is stale.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib net:: node_members::
+cargo test -p podssh-cli --test node_net_url
+```
+
+New test: a stand-in HTTPS server serves a document; a node admits its member; the server serves a new
+document that drops the member and the door follows within the TTL (paused clock); the server stops, and past
+TTL plus stale the door is closed; a document signed by another key is refused. Planted: a fetch that skips
+the owner's check fails the last test.
+
+# T-717: Probe each road to a list of nodes as JSON: `podssh ping --nodes`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-10 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+cfb's monitor asks, for each node of a fleet, which roads reach it and how fast. `podssh ping node://NAME
+--json` does it for one node, one process each; `status --net` lists the members with the road that last
+reached each and measures nothing.
+
+## Premise
+
+- Read: `ping NAME` races the roads of a member and gives each its time and the winner
+  (T-435; `crates/podssh-cli/src/ping/node.rs:79-163`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:50`).
+- Read: `ping` takes one destination (`crates/podssh-cli/src/flags/ping.rs`, the positional).
+- Read: `status --net` measures no road (`crates/podssh-cli/src/status.rs:26`).
+- Read: each probe drops its link before `OPEN` (`TODO/mesh.md`, T-435 Decision), so no session starts.
+
+## Approach
+
+1. `podssh ping --nodes NAME,NAME,... | --net [--parallel N] [--timeout SECS] --json`. `--net` takes each member
+   with the role `node`. One JSON object: `{schema, nodes:[{name, won, won_ms, roads:[{road, started, ms,
+   error}], code}]}`. Each node's object is the one of `ping node://NAME --json`, so a reader has one shape.
+2. At most `--parallel` nodes at once (default 8, at most 64); each road has its limit; the run has a limit.
+3. Exit 0 when each node answered on some road, 1 when some did not, 69 when none did. A node that fails
+   has `code` and `error`; the others still print.
+4. A probe opens one connection for each road for a short time (the allowed race, rule 2); it reads no more
+   than the relay's and the pair's own status.
+5. No credential in the output.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib ping::
+cargo test -p podssh-cli --test ping_nodes
+```
+
+New test: three stand-in nodes (one stopped, one with the pair's road alone, one with two roads): the object
+has three entries with the right winners and `code`, the exit is 1, and the stopped node does not delay the
+others past `--timeout`.
+
+# T-720: `podssh relay serve` serves the iroh relay protocol and DERP on its one 443 listener
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-12 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+A host that runs the relay role serves the forward road, the reverse road, the pairs and the layer. Its
+members still use n0's iroh relays and Tailscale's DERP fleet to meet. A host that lets only port 443 in
+cannot be the meeting point of its own net. The ask: the same listener also speaks the iroh relay protocol
+(HTTP upgrade to `websocket` on `/relay`, `/ping`, `/generate_204`) and DERP (`/derp`, `/derp/probe`).
+
+## Premise
+
+- `crates/podssh-relay/src/serve/mod.rs:193`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
+  `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
+- `crates/podssh-relay/src/derp/conn.rs:9`: podssh's DERP code is a client and the node's end of a link.
+  It never forwards a frame between two other keys.
+- `Cargo.toml:41`, `vendor/iroh-relay`: iroh's relay is a client only here.
+
+## Approach
+
+1. Read the DERP server of Tailscale and the relay server of iroh-relay (use the services of
+   <https://web.pkgforge.dev/llms.txt>). Write each fact in this entry.
+2. Add `serve/derp_server.rs`: the upgrade on `/derp`, the key exchange, frames between keys, mesh of one
+   host only. Add `/derp/probe` and `/generate_204`.
+3. Add the iroh relay route with iroh-relay's own server code if its feature builds statically; else write
+   the protocol from its source. The route is off until `--relay-roads iroh,derp` (a flag of `relay serve`).
+4. The role advertises both in `/relays.json` and in the net document, so a member lists the host first.
+   No host name is written into the code (pod-services owns the lists).
+5. Rule 2: no new listener. The two roads share the listener of `relay serve`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve --lib serve::derp_server
+cargo test -p podssh-cli --features iroh --test relay_serve -- derp iroh_relay
+```
+
+Tests: two podssh DERP clients meet through `relay serve` and move 1 MiB each way; Tailscale's own
+`derper` client, if the build image has it, does the same; an iroh endpoint of the vendored crate uses the
+role as its relay. Plant: forward a frame to the wrong key; the test fails.
+
+# T-724: `-J node://NAME` and `mcp` destinations that name a node
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-16 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podssh ssh -J node://box host` is refused. A host behind a node can be reached by a destination, but not as
+a hop of a chain, so a person cannot chain a node and a second jump host. `podssh mcp` takes
+`[user@]host`; an agent cannot name a node.
+
+## Premise
+
+- `crates/podssh-ssh`'s hop code: `crates/podssh-cli/src/ssh/hop.rs:70`-`72` refuses: "a node cannot be a -J
+  hop yet".
+- `crates/podssh-cli/src/ssh/jump.rs:96`-`148`: the first hop can be `cf://`, `iap://`, `eice://`,
+  `upterm://` as a `Tunnel`; a node is not a variant.
+- `crates/podssh-cli/src/ssh/node.rs:1`-`40`: `node://[user@]NAME[/ROUTE]` already makes a stream through
+  the operator's leg (`reach`, T-084), and `docs/relay.md:454` names `-J node://NAME` for IPv6 egress.
+- `crates/podssh-cli/src/mcp/allow.rs:1`-`40`: `--allow-host` patterns match `[USER@]HOST`; no rule
+  names the `node://` form.
+
+## Approach
+
+1. Add `Tunnel::Node(Named)` as the first hop only, as `cf://` is (T-347): the road of the run reaches the
+   node; each later hop is inside the channel. A node as a later hop gives the refusal of `cf://`.
+2. The hop's host key is the node's own name in known_hosts, as `node.rs:5` says.
+3. `mcp`: accept `node://NAME` in a destination; `--allow-host 'node://*'` and `--allow-host '!node://x'` match
+   it. The child gets the destination unchanged.
+4. Update `man`, `docs/cli.md` and remove the words "yet".
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_jump
+cargo test -p podssh-cli --lib mcp::allow -- node
+```
+
+Test: OpenSSH's sshd behind a node, reached with `-J node://box user@inner`; the exit status and the host key
+check pass. Plant: skip the node's pin; a wrong key is accepted and the test fails.
+
+# T-725: A one-way carrier through an object store (an S3-compatible bucket)
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-17 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+Some hosts reach only a bucket (an S3 endpoint is allowed, nothing else). A one-way carrier lets a writer
+put objects that a reader gets, so two such carriers (one for each direction) carry a session of a node.
+"One-way" means that a side holds a write right or a read right, not both.
+
+## Premise
+
+- `crates/podssh-cli/src/carrier.rs`, `node_carrier.rs`: a carrier is a stream that exists already
+  (`stdio`, `fd:N`, `exec:CMD`); T-595 runs a node and an operator on one.
+- `docs/carriers.md`: the carriers of the reverse road, with no bucket in them.
+- No S3 code exists (grep `s3` and `bucket` in `crates`, 2026-11-09: no match outside the DERP key code).
+
+## Approach
+
+1. Add the address `s3://ENDPOINT/BUCKET/PREFIX` for `--carrier`, `--carrier-up`, `--carrier-down`. Sign
+   with SigV4 from a credentials file named by flag (never argv, never env echoed); or use presigned URLs
+   from a file, so that no signing key is on the host that only reads.
+2. Frame: one object for each chunk, named by a sequence number and a random run id; the reader lists,
+   gets, then deletes (a delete is optional when the reader has no right). A chunk is sealed by the node's
+   end-to-end channel (`e2e`), so the bucket holds ciphertext.
+3. Rule 2: one outbound HTTPS connection through `HTTPS_PROXY`; no listener. No host is hardcoded.
+4. Honest limits in `docs/carriers.md`: the latency of a list, the cost of each request.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test carrier_s3 -- --test-threads=1
+```
+
+Test against a stand-in S3 that the build image supplies (MinIO or `s3s`; software that podssh did not
+write): a node and an operator over two prefixes move 1 MiB each way with equal digests; a reader with no
+write right works. Plant: reuse a sequence number; the test fails on a repeated chunk.
+
+## Start condition
+
+Offline work now, against a stand-in S3 server. A live step against AWS or another provider waits: the
+owner ruled on 2026-11-09 that there are no test accounts as CI secrets.

@@ -9769,3 +9769,152 @@ The test must fail on a planted defect: a wrong secret must give no connection.
 
 The owner. The owner deferred `pod-gsr` on 2026-11-09. The entry starts when podcrates ships
 `pod-gsr` and its data file. Until then no code starts.
+
+# T-718: Access service-token headers from files on each WebSocket road
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-C-04 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A relay, a node's pair road or a forwarder of the user's own may sit behind Cloudflare Access. podssh sends
+the service token on `cf://` only, and reads it from variables (the secret in the environment, where
+`/proc` and a child can read it). The other WebSocket roads send `X-Relay-Token` alone.
+
+## Premise
+
+- Read: `cf://` reads `PODSSH_CF_ACCESS_CLIENT_ID` and `PODSSH_CF_ACCESS_CLIENT_SECRET` from variables, and a
+  user's token from `PODSSH_CF_ACCESS_TOKEN` or a file (`crates/podssh-cli/src/ssh/cloudflare.rs:35-40`,
+  `:110-120`); the headers are `access.headers()` (`crates/podssh-ws/src/cloudflare.rs:74-85`).
+- Read: the relay client sends `X-Relay-Token` and no other credential header
+  (`crates/podssh-ws/src/client.rs:183-205`, `crates/podssh-ws/src/handshake.rs:3`); `https_request` takes
+  headers (`client.rs:343`).
+- Read: `--install` never carries a secret variable (`crates/podssh-cli/src/node_install/env.rs:36`); a
+  service needs the file form.
+- Read: a refusal by Access is exit 77 on `cf://` (`cloudflare.rs`, `refusal`).
+
+## Approach
+
+1. `PODSSH_CF_ACCESS_CLIENT_ID_FILE` and `PODSSH_CF_ACCESS_CLIENT_SECRET_FILE` (and the settings keywords),
+   read as `token_file` reads (a cap, a trim, no value in a message). The variables stay. Both or none.
+2. Send the pair of headers on each WebSocket road, only to a host that the user named for it:
+   `--access-host HOST` (repeatable; also from the settings), or the one host of `--relay-host`, `cf://` or a
+   forwarder's own URL. Never to a host of the pool or of a public fallback (the secret must not leak to
+   another party).
+3. A refusal by Access on any road is exit 77 with the name of the variable that is missing or wrong, never
+   its value; and a node's service does not restart on it (T-393's `RestartPreventExitStatus` gets 77 for
+   this case only; the node's own 77 for an expired pair stays restarted, so the node says which).
+4. `--install` carries the two `_FILE` names (paths, no secret).
+5. Tell the podcrates session: T-111 of podcrates ports the headers to `pod-relay`. `pod-egress` (T-117)
+   takes the TCP client later.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib cloudflare:: client::
+cargo test -p podssh-cli --test access_headers
+```
+
+New test, with a stand-in edge that demands the two headers (no account): the relay road, the pair's road
+and `operator` reach it with the files, and a host that was not named gets no header. A missing file gives
+77 and its variable's name. Planted: headers sent to every host fail the "not named" check. The live step
+with a Cloudflare account waits (the owner, 2026-11-09).
+
+# T-727: SSH login with a short-lived Access certificate over `cf://`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-C-09 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+`podssh ssh cf://HOST` uses a user's Access token for the WebSocket. For SSH, Cloudflare Access can also
+sign a short-lived user certificate for the user's key, and sshd trusts the Access CA. With
+`cloudflared access ssh-gen`, a user gets the certificate. Podssh has no step that asks for it.
+
+## Premise
+
+- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:39`-`:40`: `cf://` reads a token from
+  `PODSSH_CF_ACCESS_TOKEN` or its file; it makes no certificate.
+- `crates/podssh-cli/src/ssh/keywords.rs`: `CertificateFile` is read for authentication (T-021, T-027, T-289).
+- The endpoint, the request and the answer of Access's certificate service are not in this repository. Read
+  them from Cloudflare's documents and from `cloudflared`'s source (use the services of
+  <https://web.pkgforge.dev/llms.txt>) and write them here before the code. Do not guess.
+
+## Approach
+
+1. Read the protocol; write it in `## Premise` with sources.
+2. `--cf-access-cert` (and `PODSSH_CF_ACCESS_CERT=auto`): before the SSH handshake, post the user's public
+   key to the Access service with the token, keep the certificate in the cache with mode 0600 for its
+   lifetime, and offer it as a certificate of the key. The token and the certificate are never printed.
+3. A refusal of the service gives exit 77 with its words; an expired certificate is asked for again once.
+4. The tests use a stand-in Access service (an HTTP server that signs with a test CA) and OpenSSH's sshd
+   that trusts that CA (`TrustedUserCAKeys`).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test cf_access_cert
+```
+
+Plant: offer the certificate of another key; the sshd refuses and the test must name the key mismatch.
+
+## Blocker
+
+The live step needs a Cloudflare Zero Trust account with Access for SSH. The owner ruled on 2026-11-09:
+no test accounts as CI secrets now. The entry builds against a stand-in and stops short of a live run;
+the first step (read the protocol) can start now.
+
+# T-729: The Access TCP client on `cf://`: the login of a user, on Windows, macOS and Linux
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-X-12, the Access TCP client (COORD-014, PodUtils/podcrates#38; A-N-07)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+`cf://` needs a token that a person gets from `cloudflared access token`, on a host where a browser login
+can run. The owner wants the Access TCP client in podssh on each system it serves, so a person needs no
+`cloudflared`.
+
+## Premise
+
+- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:39`-`:40`: a token only, from a variable or file.
+- `crates/podssh-ws/src/cloudflare.rs:2`: the WebSocket client of an Access TCP rule.
+- `crates/podssh-cli/src/man/facts.rs:125`: the manual says that `cloudflared` prints the token.
+
+## Approach
+
+1. After the take of T-117: `podssh ssh cf://HOST` with no token starts the login of the library (a URL
+   that the user opens; a device-style wait where the host has no browser), keeps the token in the cache
+   (mode 0600; on Windows, the ACL check of T-274), and uses it.
+2. `podssh proxy cf://HOST:22` works as `ProxyCommand` on Windows OpenSSH.
+3. A token from a file stays first (A-C-04's headers, a separate entry).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test cf_access_login
+```
+
+Tests against a stand-in Access: login, cache, refresh, refusal (exit 77). Plant: print the token to the
+log; the secret-grep step fails.
+
+## Blocker
+
+The library is podcrates T-117 (the Access client of `cloudflared access tcp`, the login and the token
+cache). Podssh takes it at its release tag. A live run needs a Cloudflare account (no test accounts as CI
+secrets; owner, 2026-11-09), so the tests use a stand-in Access.

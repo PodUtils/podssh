@@ -3274,3 +3274,51 @@ The test target `ech_handshake` of `podssh-ws` moved to `pod-tls` of PodUtils/po
   as `ech::open` held the sealed road's future (the read of a record, the sealed hello and its
   fallbacks) on the stack of each dial, ECH asked or not. The sealed road is boxed; podssh-iroh with
   `test-relay`: 63 passed, the CLI's `iroh_road` passed.
+
+# T-719: `podssh link`: the held link of the node agent
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-C-08 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+cfb's node agent keeps one WebSocket to a cfb server that is not a podssh relay: pings, reconnect with
+jitter, resume by sequence with a replay window, a CONNECT proxy, a private CA, upgrade headers from files,
+and a local Unix socket of frames. podssh has the roads and the layer, and no command that holds such a link.
+
+## Premise
+
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:161-211` lists them, and
+  AGENTS.md section 1 names none).
+- Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
+  contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.
+- Read: the headers from files are T-718; the pings are T-712's offer where the server gives one.
+
+## Approach
+
+1. `podssh link URL --socket PATH [--ping SECS] [--replay-bytes N] [--header-file NAME=FILE] [--header-cmd
+   NAME=CMD] [--ca-file F]`: hold the WebSocket, reconnect with jitter, resume by sequence, serve each frame
+   on the Unix socket `PATH`. `--header-cmd` runs a program that the user names (rule 3 allows it).
+2. The socket is a listener that the user asked for, after a probe (rule 2). On a host that allows no bind,
+   `link` reads and writes frames on stdio.
+3. The library is `pod-session`; the command stays in podssh. No credential in argv or logs.
+4. Exit codes: 0 on a stop, 77 on a refusal, 78 on a bad setting, 69 when the server is gone past a deadline.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test link
+```
+
+New test: against a stand-in server that drops 3 % of the frames and cuts the socket each 2 s, 10 000 frames
+cross with none lost or repeated, in order.
+
+## Blocker
+
+PodUtils/podcrates T-110 (`pod-session`) and T-120 (the wire document) must be released and taken. Unblocked
+when a podcrates tag has `pod-session` with the held link.

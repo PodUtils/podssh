@@ -1814,3 +1814,183 @@ gives the same sections and the same `left out` line as before, and the MCP sche
 the manual each hold the clause. The MCP command line for both flags stays `doctor --json --full
 --quick`.
 
+# T-716: The public parts of each key of this host as JSON, offline: `podssh status --keys`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-09 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A fleet tool needs the public key and the fingerprint of each key that podssh keeps on a host, to fill an
+allowlist or a net document. `keygen -y` and `-l` read one file that the user names; podssh's own keys (the
+node's, the client's, the iroh key, the net owner's) sit in the cache, and the tool must find them.
+
+## Premise
+
+- Read: `keygen -y` and `-l` take one file (`crates/podssh-cli/src/flags/keygen.rs:23-28`), with no JSON.
+- Read: `status` is one line of JSON that opens no connection and writes nothing
+  (`crates/podssh-cli/src/status.rs:1-8`); `--net` is its precedent for a flag (`status.rs:26`).
+- Read: the key files and places are in `pod-identity`, taken
+  (`crates/podssh-relay/src/identity.rs:5-25`, `Place`, `existing`, which reads and never makes a key); the
+  iroh key reuses them (`crates/podssh-iroh/src/keys.rs:9-18`); the net owner's key is in the net's store
+  (`crates/podssh-cli/src/net/store.rs`).
+
+## Approach
+
+1. `podssh status --keys`: add to the line a member `keys`: a list of `{role, path, type, public, fingerprint,
+   state}`. Roles: `client`, `node` (each label), `iroh`, `net_owner`, `acme`, `warp`. `state` is `present`,
+   `absent`, `encrypted` (the public line is read from a `.pub` file, else `null`), or `unreadable`.
+2. It never makes a key (`existing`, not `load`), never reads a private part beyond what derives the public
+   key, and prints no private byte. A test greps the output for the private body of a planted key.
+3. A key under `PODSSH_CACHE_DIR=none` shows `absent`. `--keys` with a destination is refused.
+4. The schema stays 1 (a new member is not a break; `status.rs:25`).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib status::
+cargo test -p podssh-cli --test status
+```
+
+New test: in a temp cache with a node key and a client key, `status --keys` lists both with the same
+fingerprints as `keygen -l`; the run makes no file (the directory listing is equal before and after); the
+private body is not in the output. Planted: a `load` in place of `existing` fails the second check.
+
+# T-726: A local forward as a service, and the measured rate of the relay role
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-18 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+1. A user who keeps `-L`, `pipe LISTEN TARGET` or `proxy` alive as a system service has no unit. The node has
+   one (`--install`); a forward has none.
+2. Nobody knows how many MiB/s and connects/s one `podssh relay serve` holds on a small host.
+
+## Premise
+
+- `crates/podssh-cli/src/node_install/mod.rs`, `unix.rs`, `launchd.rs`, `windows.rs`: a node installs as a
+  service on each system. There is no `--print-unit` for another command (grep, 2026-11-09).
+- `.github/workflows/relay-measure.yml`, `scripts/relay-measure.py` (T-605): the harness measures relay
+  hosts through the binary. No row names the role's own rate.
+- Rule 2: a local forward is a listener that the user asks for; the unit changes nothing of that.
+
+## Approach
+
+1. `podssh pipe --install` / `podssh ssh -N -L ... --install` write a unit (systemd user unit, launchd plist,
+   Windows service) with `--print-unit` to show it first. The unit holds no token and no key: only paths.
+2. Run `relay-measure.py` against `podssh relay serve` on loopback and on a runner: MiB/s for one and for 16
+   streams, connects/s, memory. Record the rows in `docs/STATUS.md` with the command and the host.
+3. Write the rate and its limits in `docs/relay-operator.md`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib node_install:: forward_unit
+python scripts/relay-measure.py --role --json .work/role-rate.json target/debug/podssh
+```
+
+Plant: a unit that holds a token on its `ExecStart`; the test that greps the unit for credentials fails.
+
+## Start condition
+
+Part 1 (the rate) starts now. Part 2 (the unit) uses `pod-unit` of podcrates T-102 when podssh takes it;
+until then, write it on the unit code of `node_install/`, and move it at the take.
+
+# T-730: `llms.txt`, `llms-full.txt` and `--help --json`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-X-19 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+An agent that meets podssh finds no `llms.txt`. `podssh man --json` gives the tables as data, but
+`podssh CMD --help --json` does not exist.
+
+## Premise
+
+- No `llms.txt` or `llms-full.txt` in the repository root or `docs/` (checked, 2026-11-09). The relay role
+  serves `/llms-full.txt` (`crates/podssh-relay/src/serve/docs.rs:4`) for its own contract only.
+- `crates/podssh-cli/src/man/mod.rs:13`, `man/json.rs`: `podssh man --json` writes the commands, flags,
+  keywords, variables and exit codes (T-050).
+- `crates/podssh-cli/src/help.rs`: the help text is made from the same tables; no `--json` flag.
+
+## Approach
+
+1. `podssh CMD --help --json` (and `podssh --help --json`): the command's flags, usage and exit codes from
+   the tables of `man/`, in the shape of `man --json` for that command.
+2. `llms.txt` (an index of short lines with links to `docs/`) and `llms-full.txt` (the manual as text) at the
+   repository root, made by `podssh man` (`podssh man --llms` writes both) so that no text is kept twice.
+3. `scripts/check-repo.py` fails when the files differ from the manual.
+4. Shared tools use the same shape; tell podnet and podvm in a COORD issue `(to all)`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib help:: man::json
+python scripts/check-repo.py
+```
+
+Plant: edit a flag's text in `llms-full.txt` by hand; the repository check fails.
+
+# T-731: `podssh mcp` for fleet work: a read-only mode and a command allowlist
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-X-20 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+An agent that watches a fleet must not change it. `podssh mcp` limits hosts (`--allow-host`) and
+directories (`--allow-dir`), but `ssh_exec` runs any command on an allowed host, and `job_start`, `cp_put`
+and the `session_` tools change state. There is no read-only mode and no list of allowed commands.
+
+## Premise
+
+- `crates/podssh-cli/src/flags/mcp.rs:9`-`15`: the flags are `allow-host`, `allow-dir`, `allow-session` and
+  the session settings. No `--read-only`, no `--allow-command`.
+- `crates/podssh-cli/src/mcp/tools.rs:96`-`110`: `ssh_exec` takes `command`, "the command line that the
+  remote user's shell runs".
+- `crates/podssh-cli/src/mcp/verbs.rs:44`-`81`: `readOnlyHint` is set for some job tools; `job_start` and
+  `job_stop` change state. `crates/podssh-cli/src/mcp/copy.rs:41`: `cp_put` writes to a host.
+- `crates/podssh-cli/src/mcp/allow.rs:1`-`10`: the hosts' patterns are the user's, never the agent's.
+
+## Approach
+
+1. `--read-only`: do not list `job_start`, `job_stop`, `cp_put`, `session_*`; refuse them if called by name
+   (`protocol.rs:174` already refuses an unlisted tool). Keep `status`, `doctor`, `man`, `health`,
+   `job_list`, `job_log`, `job_wait`, `cp_get`.
+2. `--allow-command PATTERN` (repeat): a pattern of words, `*` for one word, exact match of the program. It
+   gates `ssh_exec`. Refuse any command with a shell metacharacter (`;`, `|`, `&`, `$`, backtick, `<`, `>`,
+   `(`, `)`, newline, `\`), since the remote shell would run more than the pattern says. With
+   `--read-only` and no `--allow-command`, `ssh_exec` is not listed.
+3. List the patterns in the tool's description, as the hosts are. Write the rules in `man mcp`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib mcp::allow mcp::tools -- read_only allow_command
+cargo test -p podssh-cli --test mcp -- read_only
+```
+
+Plants: let `uptime; id` pass with the pattern `uptime`; a `cp_put` call by name in read-only mode succeeds.
+Each fails its test.

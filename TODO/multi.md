@@ -3601,3 +3601,57 @@ Before it, the same day (steps 1 and 2):
   `status` when it fails.
 - `cargo test -p podssh-cli --lib job::follow`: 4 passed; `--test job_far log_follow`: 4 passed.
   Planted, the failed write taken for a reader that went (`&& false`): the new unit test failed.
+
+# T-708: `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-01 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+cfb runs one command on each node of its fleet. `podssh each`, `podssh run` and `podssh job` refuse
+every destination that is not a relay or a `--direct` host, so each node needs a loop of `podssh ssh`
+with no result file, no `--json`, no `--parallel` and no job record.
+
+## Premise
+
+- Read: each of the three resolves its host as `podssh ssh` does, so a net name already becomes
+  `Transport::Node` (`crates/podssh-cli/src/net/lookup.rs:2`, `crates/podssh-cli/src/ssh/resolve.rs:37`),
+  and then refuses it (`crates/podssh-cli/src/each/host.rs:62`, `crates/podssh-cli/src/job/mod.rs:60`,
+  `crates/podssh-cli/src/run_cmd/mod.rs:223`).
+- Read: `transport::reach` cannot reach a node, an `iroh:` or a `derp:` destination
+  (`crates/podssh-cli/src/ssh/transport.rs:265-275`). `ssh/node.rs:160` runs the whole session of a node
+  and gives no stream, so the sink of `each` (`each/host.rs:140`) has nothing to take.
+- Read: `--persist` refuses the same three (`crates/podssh-cli/src/ssh/persist.rs:60`); it stays as it is.
+- Not measured: a node whose TARGET is not an sshd. `job` needs the host's own `sh`; a node whose TARGET is a
+  `podssh serve` or an sshd has it.
+
+## Approach
+
+1. Give the node runner a function that returns the stream and its layer (`Reached`) for `Node`, `Iroh`
+   and `Derp`, from the code of `ssh/node_roads.rs`, `ssh/iroh.rs` and `ssh/derp.rs`. `transport::reach`
+   calls it in place of the three refusals. `podssh ssh` keeps its runners.
+2. Remove the three refusals. Keep the others of `each` (no forward, no X11, no control socket).
+3. `each` opens one connection for each node (rule 2 of AGENTS.md section 5; the race of the roads of a node
+   is the allowed one). One resolve of the net for all nodes, and the door of each node as `ssh node://`
+   checks it. A node that is not online is `Failed` with the class of `ssh node://` (69).
+4. `job` on a node: the job record names the node label; `job log --follow` and `job list` work as on a
+   host. A node with no `sh` fails with the words of `job`, not of the road.
+5. The manual, `docs/cli.md`, the words of the three refusals in the tests.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test each --test run --test job
+cargo test -p podssh-cli --lib each:: run_cmd:: job::
+```
+
+New tests, against a stand-in node with a real OpenSSH `sshd` as TARGET: `each --json node://a node://b
+-- true` gives two results; a net name in `run` and `job start`; a stopped node fails one host and not the
+others. The test of the old refusal turns into the test of a node that works. Planted: a `reach` that
+returns `Direct` for a node fails the first test.

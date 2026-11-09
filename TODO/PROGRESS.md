@@ -5,6 +5,23 @@ entry keeps its proof in the entry; this page keeps no history (git does).
 
 ## State
 
+- **Checkpoint, 2026-11-09: a new lead session after a stop with no handoff (the account ran out of
+  credits).** The podcrates session started it; its phase of orientation was read-only, then "go".
+  1. **Found lost:** the last session's test of the share lock and its entry were never pushed; the
+     defect was real (the gate of `8c7519c0`, run 42290205000, red on Windows). T-696 repairs it.
+  2. **Mapped:** GitHub #164 to #173 are T-697 to T-707 (T-707 blocked: `pod-gsr` deferred); cfb's
+     asks of COORD-014 (PodUtils/podcrates#38) are T-708 to T-731, five blocked on podcrates crates or
+     on test accounts. Closed with evidence: #56, #154, #156, #161, #163.
+  3. **The owner's rulings of 2026-11-09** (`docs/decisions.md`): betas whenever they fit; no
+     crates.io; podnet Linux only, so podssh serves the operator commands on Windows and macOS; no
+     test accounts as CI secrets; `podkey` its own project. The product calls of the triage are
+     recorded beside them.
+  4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
+     PodUtils/podcrates#37): a move of each tag, no patch. No podssh module is frozen now: each
+     `repo PodUtils/podssh` block of podcrates' `SOURCES` has a `taken` line.
+  5. **Branches:** this session's git proxy refuses deletes (HTTP 403); the owner deletes the 139
+     `draft/*` branches (each checked as in `main`) and six stale Dependabot branches by hand.
+
 - **Checkpoint, 2026-11-06, about 03:00 UTC: the migration session is paused (the owner).** The
   next session starts fresh, with no memory and no messages to the sibling sessions.
   1. **Done in the migration (2026-11-05 to 06):** T-683 (`67c0768`, the name PodUtils/podssh);
@@ -330,7 +347,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 662 entries: 87 open, 16 partial, 5 blocked, 554 done.
+`TODO/INDEX.md` holds 686 entries: 106 open, 16 partial, 10 blocked, 554 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -351,6 +368,12 @@ in PodUtils/podcrates, or asked there as an issue; the part of the entry that us
 podssh's (T-111's serve, for one). A crate that podssh has not taken yet is changed here, as before,
 and carried by the import. T-085 keeps its two boxes only (Q103: the facade goes with `pod-relay`).
 T-446 waits: no beta and no release until the migration is done (Q104).
+
+**First (2026-11-09):** the share lock's flake is repaired; then the defects and P1/P2 entries of the triage of #164 to
+#173 and of cfb's asks, by priority beside M10's order below: T-697, T-698, T-708, T-709, T-710,
+T-728 (P1 of cfb), T-699, then the P2 ones (T-712 to T-718), then the P3 ones. T-711, T-719, T-722,
+T-727 and T-729 wait for podcrates crates or test accounts; T-707 waits for `pod-gsr`; T-715's read
+each TTL waits for Q105. A beta may go out when a batch fits (the owner, 2026-11-09; T-446).
 
 **After M3 and before M4 (the operator's ruling of 2026-10-08):**
 the surface for agents: done.
@@ -494,6 +517,14 @@ ranks relay hosts unasked only with `RelayRank auto` (Q89); the calls of Q86 sta
 (Q90: T-574's built-in nodes, T-612, T-613 and T-614); four more live test targets (Q91: T-463,
 T-548, T-578, T-531's weekly run); and the holds end (Q92), T-328 and T-376 waiting for their
 inputs alone.
+
+**Q105 (2026-11-09): a node's door from a net document at a URL, read again each TTL (T-715).** cfb's
+ask A-S-08 wants a node to read its signed net document again each TTL (300 s by default) while it
+runs. Rule 2 of `AGENTS.md` allows a read beside a session only once a day and before it (Q96, Q97).
+Recommendation: allow it as a ninth exception: only with `--net-url`, which the user names; one GET
+through `HTTPS_PROXY` each TTL at most (never under 60 s), never while a read is open; the reply
+bounded (64 KiB) and its signature checked against `--net-owner`. Until then T-715 does the one read
+before the node goes online, and the rest waits.
 
 **Q102, Q103, Q104 (2026-11-05): settled by the owner on 2026-11-06** (`docs/decisions.md`): no
 release and no beta until the migration is done, podssh stays beta until the owner calls it stable,

@@ -4811,3 +4811,154 @@ cargo test -p podssh-relay --lib reverse::
 ```
 
 Plant a defect (the reason dropped again). The test must fail on it.
+
+# T-710: A node stays reachable for months: pair renewal and legs by key, proven over 90 days and in a beta
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-03 (COORD-014, PodUtils/podcrates#38); T-446
+**Category:** measurement
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A node of cfb must stay reachable for months with no person. A pair lives 72 h. The pieces exist, and
+each was tested once; no test goes through many renewals, a move to the next pair, a stop-token rotation and
+the net's key legs in one run. The beta that has the code (`v1.1.0-beta.2`) has no proof of the long run.
+
+## Premise
+
+- Read: the role renews a pair by its stop token (T-592, `v1.1.0-beta.2`, `docs/releases/v1.1.0-beta.2.md:31`);
+  the node renews in its last 24 h (`crates/podssh-cli/src/node_expiry.rs`); a node moves to its next pair
+  at the expiry (T-395); the renewal and the rotation follow the next pair (T-620).
+- Read: a node makes a pair by its own key at each relay member of its net
+  (`crates/podssh-cli/src/node_members.rs:30`, T-434), and the role mints by key (T-448, T-455), so a leg
+  needs no token that a person brought.
+- Read: the default relay renews no pair (`docs/relay.md:532`); a node on it needs the next pair each 72 h.
+  That is the contract, and this entry changes nothing there.
+- Read: T-668 and T-679 keep a node's sessions across its own upgrade; T-678 (Windows) is open.
+- Not measured: 90 days with a paused clock; a role that restarts in the middle (T-677 repaired its file).
+
+## Approach
+
+1. A test with a paused clock and the in-process role: a node renews 40 times (120 days), moves to a next
+   pair once, restarts the role once from its file of pairs, rotates the stop token each day; an operator
+   with the first operator file reaches it at each step; a member of the net reaches it by its key with no
+   file at all.
+2. Repair each defect that the test finds (rule 8). Say in `docs/mesh.md` what lasts: the renewal, the
+   key legs, and what ends a node (a revoked key, a pair that the relay refuses).
+3. `status` shows the end of the pair and whether a renewal is on (`pairs` of `status --json`,
+   `crates/podssh-cli/src/status.rs:97`); add `renews` there if it does not show.
+4. The beta: betas are allowed again (the owner, 2026-11-09). Cut `v1.1.0-beta.4` when the test passes and
+   the gate is green at its commit (AGENTS.md section 2, "Releases"). Its notes (`docs/releases/`) name this
+   test and the ask. T-446 carries the clause.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_months
+cargo test -p podssh-cli --test node_expiry --test relay_serve_node
+```
+
+Planted: a renewal that does not follow the next pair (the defect of T-620) fails `node_months` on day 6.
+The live part (one node for 5 days on the live relay) waits for the release check of the beta.
+
+# T-712: Liveness that lets a Durable Object relay hibernate: the `hello` offer, a ping each 60 s
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-05 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A relay that runs as a Durable Object with WebSocket hibernation sleeps while its sockets are quiet. podssh
+pings each 10 s on each road, so an idle node wakes the object six times a minute and the relay bills it. The
+relay needs to say that it wants a slower, protocol-level ping.
+
+## Premise
+
+- Read: the client pings each 10 s and allows 3 silent checks (`crates/podssh-ws/src/client.rs:39-40`); the
+  reverse node and operator legs read their own limits (`crates/podssh-relay/src/reverse/serve.rs:62-87`,
+  `crates/podssh-relay/src/reverse/operator.rs:40-62`).
+- Read: `Hello` keeps each field that podssh does not model (`crates/podssh-relay/src/reverse/control.rs:65-79`),
+  and one field is already an offer of the relay: `stopRotation` (`crates/podssh-relay/src/reverse/legs.rs:29`).
+  The same shape carries this offer.
+- Read: podssh's role pings each reverse socket each 20 s (`crates/podssh-relay/src/serve/reverse/mod.rs:58`);
+  that is the role's own choice and stays.
+- Not measured: what an idle session sends above the ping (the layer's frames, T-663).
+
+## Approach
+
+1. A `hello` field `liveness`: `{"pingMs":60000,"frame":"ws-ping"}`. A node and an operator leg that read it
+   send WebSocket Ping frames (no text, no data frame) at that interval, never below 30 s, and allow 3 silent
+   checks. With no field, 10 s as now. A field of a wrong type or a value out of range is ignored and said
+   once (T-633's rule for an absent member).
+2. The forward road reads the same offer where it reads the offer of the resumable layer (T-173); a relay
+   that sends none keeps 10 s.
+3. The layer sends no frame of its own on an idle session while the offer holds (the check of the Premise).
+4. The wire words go to `docs/relay.md` as podssh's extension, with its test vector (T-120 of podcrates takes
+   the vectors).
+5. Tell the podcrates session: T-111 of podcrates ports it to `pod-relay`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib reverse::control reverse::legs
+cargo test -p podssh-relay --test e2e
+```
+
+New test on a paused clock: a stand-in relay with the offer sees one Ping frame in 60 s from an idle node and
+from an idle operator leg, and no frame else; a relay with no offer sees 6. Planted: a node that ignores the
+offer fails the first count.
+
+# T-714: A node route to a Unix socket, with a first line that names the caller's key and route
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-07 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A service on a node (a control API, a container runtime, an agent) listens on a Unix socket. A node route is
+a TCP `HOST:PORT` only, so the service needs a TCP bridge, and the bridge cannot know who called.
+
+## Premise
+
+- Read: a route is `{name, host, port}` (`crates/podssh-relay/src/reverse/routes.rs:35-39`); the dial is
+  `dial_target(host, port, ...)` (`crates/podssh-relay/src/reverse/tcp.rs:38`).
+- Read: the grant gets the caller's key and the route's name (`routes.rs:43`), so the node has both.
+- Read: `podssh pipe` has `unix-connect:PATH`, with abstract names on Linux and AF_UNIX on Windows
+  (`crates/podssh-cli/src/pipe/unix.rs:1-12`); a connect is no listener (rule 2).
+- Read: the TARGET words of the node are `HOST:PORT` and `ROUTE=TARGET` (`crates/podssh-cli/src/node_args.rs:11`).
+
+## Approach
+
+1. A TARGET `ROUTE=unix-connect:PATH` (and `@NAME` on Linux). The node connects to it for each session of
+   the route. A failure names the path and the cause, as T-590 does for an sshd.
+2. `--caller-line` of a route: before the first byte of the session the node writes one line to the socket:
+   `podssh-caller v1 KEY_FINGERPRINT ROUTE\n` (the key as `SHA256:...`, the route's name). The service reads
+   it and the rest is the stream. Off, no line (a plain bridge). A key never writes more than that.
+3. The door of the node (allowlist, net policy) runs before the dial; a caller that the door refuses never
+   reaches the socket. The line is a fact of the door, not a claim of the caller.
+4. A Unix route is refused with `--roost` (a roost is an sshd on TCP) and with `--exit` routes.
+5. `docs/reverse.md`, the manual, the role's contract text for the line.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib reverse::routes
+cargo test -p podssh-cli --test node_unix_route
+```
+
+New test: a stand-in listener on a socket in a temp directory reads the line and echoes; two keys give two
+lines; a key the door refuses gives no connection. The Windows job of the gate runs it on AF_UNIX.

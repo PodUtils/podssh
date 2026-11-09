@@ -3856,4 +3856,3 @@ sh scripts/test_in_box.sh   # a read-only /etc/ssl and a noexec directory show t
 ```
 
 Plant a defect (a probe that returns ok on error). The test of the table must fail on it.
-

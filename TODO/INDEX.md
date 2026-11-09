@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**662 entries: 87 open, 16 partial, 5 blocked, 554 done.**
+**686 entries: 106 open, 16 partial, 10 blocked, 554 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 2 | 0 | 69 | 71 |
-| P2 | 24 | 6 | 1 | 256 | 287 |
-| P3 | 63 | 8 | 4 | 228 | 303 |
-| **All** | 87 | 16 | 5 | 554 | 662 |
+| P1 | 4 | 2 | 3 | 69 | 78 |
+| P2 | 31 | 6 | 1 | 256 | 294 |
+| P3 | 71 | 8 | 6 | 228 | 313 |
+| **All** | 106 | 16 | 10 | 554 | 686 |
 
 ## Entries
 
@@ -738,3 +738,27 @@ repository and CI).
 | [T-705](machine.md) | P3 | S | none | defect | open | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
 | [T-706](cli.md) | P3 | M | M5 | feature | open | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
 | [T-707](roads.md) | P3 | L | backlog | feature | blocked | A road of the GSRN relay network, by a shared secret |
+| [T-708](multi.md) | P1 | M | M10 | feature | open | `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination |
+| [T-709](serve.md) | P1 | M | M10 | feature | open | A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as` |
+| [T-710](reverse.md) | P1 | M | M10 | measurement | open | A node stays reachable for months: pair renewal and legs by key, proven over 90 days and in a beta |
+| [T-711](mesh.md) | P1 | M | M10 | feature | blocked | One switch `PODSSH_PUBLIC` over each third-party service, and `status --json` gives the set |
+| [T-712](reverse.md) | P2 | M | M10 | feature | open | Liveness that lets a Durable Object relay hibernate: the `hello` offer, a ping each 60 s |
+| [T-713](relay.md) | P2 | M | M10 | feature | open | `podssh relay conform --relay-host HOST [--reverse] --json` |
+| [T-714](reverse.md) | P2 | M | M10 | feature | open | A node route to a Unix socket, with a first line that names the caller's key and route |
+| [T-715](mesh.md) | P2 | M | M10 | feature | open | A node's door from a signed net document at an HTTPS URL, with a TTL and a stale limit |
+| [T-716](machine.md) | P2 | S | M10 | feature | open | The public parts of each key of this host as JSON, offline: `podssh status --keys` |
+| [T-717](mesh.md) | P2 | M | M10 | feature | open | Probe each road to a list of nodes as JSON: `podssh ping --nodes` |
+| [T-718](roads.md) | P2 | M | M10 | feature | open | Access service-token headers from files on each WebSocket road |
+| [T-719](ws.md) | P1 | M | M10 | feature | blocked | `podssh link`: the held link of the node agent |
+| [T-720](mesh.md) | P3 | L | M10 | feature | open | `podssh relay serve` serves the iroh relay protocol and DERP on its one 443 listener |
+| [T-721](relay.md) | P3 | M | M10 | feature | open | An exit on the reverse road that a Worker calls, with fixed denies and counters |
+| [T-722](relay.md) | P3 | M | M10 | feature | blocked | A lease header `X-Relay-Lease` on the forward and reverse roads |
+| [T-723](relay.md) | P3 | M | M10 | docs | open | The versioned wire document of the relay and the reverse road, with test vectors |
+| [T-724](mesh.md) | P3 | M | M10 | feature | open | `-J node://NAME` and `mcp` destinations that name a node |
+| [T-725](mesh.md) | P3 | L | M10 | feature | open | A one-way carrier through an object store (an S3-compatible bucket) |
+| [T-726](machine.md) | P3 | M | M10 | feature | open | A local forward as a service, and the measured rate of the relay role |
+| [T-727](roads.md) | P3 | M | backlog | feature | blocked | SSH login with a short-lived Access certificate over `cf://` |
+| [T-728](repo.md) | P1 | L | M10 | measurement | open | Windows (x86_64, aarch64) and macOS smoke tests of each operator command, and `ProxyCommand` with Windows OpenSSH |
+| [T-729](roads.md) | P1 | M | M10 | feature | blocked | The Access TCP client on `cf://`: the login of a user, on Windows, macOS and Linux |
+| [T-730](machine.md) | P3 | S | none | feature | open | `llms.txt`, `llms-full.txt` and `--help --json` |
+| [T-731](machine.md) | P3 | M | none | feature | open | `podssh mcp` for fleet work: a read-only mode and a command allowlist |

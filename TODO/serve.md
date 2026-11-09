@@ -1875,3 +1875,65 @@ cargo test -p podssh-cli --lib harden
 The relay role's tests pass after the move, unchanged. The check of `serve` (T-107's `serve_auth`
 and scripts/interop-serve.sh (T-107 writes it)) runs as root and reads every thread in `/proc/self/task`.
 
+# T-709: A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-02 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A server of cfb runs its node as one user, under systemd as root's unit, with no way to read the unit before
+it is installed. `podssh node --install` writes a user unit only. It needs `systemctl --user`, and a host
+without a user manager gets a cron line. The unit has no hardening.
+
+## Premise
+
+- Read: the ways are a user unit, a LaunchAgent, cron and a Windows task
+  (`crates/podssh-cli/src/node_install/mod.rs:116-125`); the probe is `systemctl --user show-environment`
+  (`crates/podssh-cli/src/node_install/unix.rs:19-27`); the units go to `~/.config/systemd/user`
+  (`unix.rs:29-36`).
+- Read: the unit has `Restart=always` and no `User=`, `NoNewPrivileges` or `ProtectSystem`
+  (`crates/podssh-cli/src/node_install/text.rs:122-150`).
+- Read: no token is in a unit now. The variables go to a private file beside the pair, and a secret is
+  never carried (`crates/podssh-cli/src/node_install/env.rs:36`, `:7-9`). Keep that.
+- Read: T-593 made the cache follow `HOME` into another user's home; a system unit of a named user must name
+  that user's `HOME` and `XDG_CACHE_HOME`.
+- Not measured: the hardening set on a systemd of 2026's hosts.
+
+## Approach
+
+1. `podssh node --print-unit NAME ...`: print the unit to stdout and write nothing, for any OS. Same words
+   as `--install` would write. Add `podssh serve --print-unit`.
+2. `--install --system --run-as USER`: write `/etc/systemd/system/podssh-node-NAME.service`, with `User=`,
+   `Environment=HOME=`, `StateDirectory=` and the private env file of the user, then `systemctl daemon-reload`
+   and `enable --now`. Probe first: root, `/run/systemd/system`, a passwd entry of USER (rule 1). Else a
+   refusal with 77 or 69 and the words of the missing part. `--uninstall --system` removes it.
+3. Hardening in the unit: `NoNewPrivileges`, `CapabilityBoundingSet=` (empty), `ProtectSystem=strict`,
+   `ProtectHome=tmpfs` with `BindPaths` of the cache directory, `PrivateTmp`, `PrivateDevices`,
+   `ProtectKernel*`, `RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX`, `SystemCallFilter=@system-service`,
+   `LockPersonality`, `MemoryDenyWriteExecute`, and the `Restart` words of T-393. A node with `--exit` or
+   `--routes` or a roost needs fewer limits: name each relaxed line in the unit's comment.
+4. No token in the unit. A test reads the unit text for the names in `env::SECRET`.
+5. Later, on `pod-unit` (PodUtils/podcrates T-102): when it is released and taken, the text of the unit moves
+   there and this entry's command stays. Until then podssh writes the text itself.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib node_install::
+cargo test -p podssh-cli --test node_install
+```
+
+New tests on the text: the unit holds `User=`, the hardening lines and no secret; `--print-unit` writes no
+file. A run in the build image (`scripts/test_in_box.sh`, systemd as PID 1 where it exists) lists
+`systemd-analyze security` for the unit with a score under 3.0. The run waits for T-251's image checks
+where the box has no systemd.
+
+## Start condition
+
+Items 1 to 4 start now. Item 5 waits for podcrates T-102 (`pod-unit`) and its release.

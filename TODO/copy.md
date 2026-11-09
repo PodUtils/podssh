@@ -4007,4 +4007,3 @@ cargo test -p podssh-cli --lib sftp::
 ```
 
 Plant a defect (the reader never starts). The test must fail on it.
-

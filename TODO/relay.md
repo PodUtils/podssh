@@ -5302,3 +5302,190 @@ A unit test for each parser (the bounds and the refusal). A test of the role wit
 `/relays.json` says `idle_timeout_ms` 2000, and a quiet session ends with 1001. A test with
 `--max-session-mib 1` ends a session with 1009. With no flag, the document holds the facts' values.
 
+# T-713: `podssh relay conform --relay-host HOST [--reverse] --json`
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-06 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+cfb builds a relay as a Worker. It needs one command that says whether a relay host keeps the contract that
+`docs/relay.md` writes, so that its CI and a deployment can gate on it. `relay spec` reads the published
+document and compares facts; it does not use the relay.
+
+## Premise
+
+- Read: `relay` has `status`, `info`, `trace`, `rank`, `spec`, `pair`, `serve` and the pair verbs; `--json`
+  goes with `status`, `info`, `trace` and `rank` only (`crates/podssh-cli/src/relay_cmd.rs:124`). There is no
+  `conform`.
+- Read: `relay spec` checks a document against facts (`crates/podssh-cli/src/relay_spec.rs:1-12`).
+- Read: the checks exist as tests against podssh's role: `crates/podssh-relay/tests/` (`e2e.rs`, `limits.rs`,
+  `pair.rs`, `failover.rs`). They run in-process; none runs against a host.
+- Read: a probe with `?dial=lazy` dials no target (Q89, AGENTS.md section 5 rule 2).
+
+## Approach
+
+1. `podssh relay conform --relay-host HOST[:PORT] [--reverse] [--target HOST:PORT] [--json]`. Each check is
+   one object: `id`, `clause` (the section of `docs/relay.md`), `verdict` (`pass`, `fail`, `skip`),
+   `detail`, `ms`. The exit is 0 for no fail, 1 for a fail, 69 for a host that did not answer.
+2. Forward checks with no target: token mint and its form, an upgrade with no token (the refusal), the
+   `?dial=lazy` path, WebSocket ping and pong, the keepalive frame, the close codes, the idle cut. With
+   `--target`, one echo through the relay, and the refusal of a private target.
+3. `--reverse`: make a pair, the node's `hello`, an `open` of an operator leg, a byte each way, `close`, the
+   refusal of a bad stop token, the status, then end the pair. The pair is the checker's; it is revoked at the
+   end, also on an error.
+4. A relay that offers an extension (`liveness` of T-712, the layer, the renewal) gets its checks from its own
+   offer; no offer means `skip`.
+5. No credential in the output or in argv. The token is minted and discarded in the process.
+6. Refuse `HOST` that is the default relay unless `--relay-host` names it (a person's choice).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_conform
+```
+
+New test: the command against podssh's own role (in-process) passes each check; against a stand-in relay
+with a planted fault (a wrong close code, a token that works in a query string) it fails that check and
+exits 1.
+
+# T-721: An exit on the reverse road that a Worker calls, with fixed denies and counters
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-13 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A Cloudflare Worker has no SSH key of a member. It needs egress from a node: a connect to a target, with a
+signed allowlist of targets, fixed denies (private ranges, port 25, metadata addresses) and a counter of
+bytes and connects for each caller. Today the exit serves the owner's own forward road only.
+
+## Premise
+
+- `crates/podssh-cli/src/node_exit.rs`, `node_exit_own.rs`: the exit of T-431 serves the owner's key.
+- `crates/podssh-relay/src/serve/policy.rs:1`-`15`: the fixed denies for the relay role (private ranges,
+  port 25, `--routes`). A node's exit has its own check; the two must share one.
+- `crates/podssh-relay/src/serve/usage.rs`, `usage_keyed.rs`: counters for each key exist in the role.
+- `crates/podssh-relay/src/grant/mod.rs:1`: a grant is a certificate for one session; the model fits a
+  Worker's call.
+- Fixed denies later use the policy of podcrates T-099 (`pod-broker`); this entry keeps `policy.rs` as the
+  source until then.
+
+## Approach
+
+1. A node route `exit` that accepts a caller whose key is in a signed allowlist (the net's, T-430) or who
+   holds a grant (T-226), and takes the target in the first frame.
+2. Apply the denies of `serve::policy` at the node, before the dial; refuse with the words of the role.
+3. Count bytes, connects and refusals for each caller; show them in `podssh status --json` of the node.
+4. A stand-in Worker in the tests: an HTTP client that opens the reverse road with a grant. No Cloudflare
+   account (owner, 2026-11-09): offline only.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_exit -- caller_allowlist denies counters
+cargo test -p podssh-relay --features pair,serve --test reverse_exit_caller
+```
+
+Plants: skip the deny check (the private target is dialed; the test fails); count a refused connect as a
+success (the counter test fails).
+
+# T-722: A lease header `X-Relay-Lease` on the forward and reverse roads
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-14 (COORD-014, PodUtils/podcrates#38)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** blocked
+
+## Problem
+
+A caller that holds a lease (a short token of one use, bound to a target and a window) sends it in
+`X-Relay-Lease` in place of a relay token. The relay role and the reverse road must accept it, and the
+client must send it, with no token in a URL.
+
+## Premise
+
+- `crates/podssh-relay/src/serve/tokens.rs`, `crates/podssh-relay/src/token.rs`: the role reads a token
+  from the request; `/v1/mint` (`serve/mod.rs:245`) issues one.
+- `crates/podssh-relay/src/grant/mod.rs:1`: a grant (T-226) is the same idea, inside the channel. A lease
+  is outside it: it lets the upgrade pass.
+- No `lease` header exists in `crates/podssh-relay` (grep, 2026-11-09): the hits are mailbox leases.
+
+## Approach
+
+1. Write the lease's wire form in `docs/relay.md` (fields: audience, target, window, nonce, signature).
+2. The role checks it before the upgrade on `/connect/`, `/v1/layer/` and the reverse road's open; a lease
+   spent is refused (the table of `grant/spent.rs`).
+3. `--lease-file PATH` on `ssh`, `proxy`, `operator`; the file's mode is checked as a key's.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve --lib serve::lease
+cargo test -p podssh-cli --test relay_serve -- lease
+```
+
+Plants: accept a lease twice; accept an expired lease. Each fails its test.
+
+## Blocker
+
+The header's parse and check live in `pod-relay`, which podcrates T-111 gives. Podssh takes the crate in
+its release, then does the work here. (T-111 also holds the Access service-token headers of A-C-04; take
+both at one tag.) Until then, write the Approach step 1 only.
+
+# T-723: The versioned wire document of the relay and the reverse road, with test vectors
+
+**Source:** PodUtils/podcrates#35, cfb's ask A-S-15 (COORD-014, PodUtils/podcrates#38)
+**Category:** docs
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The contract of the relay is in `docs/relay.md` and in a pinned copy. The reverse road's frames, the
+layer's frames and the codecs are written in code and in `docs/reverse.md` and `docs/design.md`. Another
+implementation (podnet, a Worker) has no one document with a version and no vectors to test against.
+Podcrates T-120 takes the document at its import; podssh writes it first.
+
+## Premise
+
+- `crates/podssh-relay/src/serve/docs.rs:4`: `/llms-full.txt` serves a pinned copy of the forward contract.
+- `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
+  gives it.
+- `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
+- `docs/design.md:1266`: a test vector exists for iroh's tickets only.
+
+## Approach
+
+1. Write the new file docs/wire.md: a version number, the forward road, the reverse road (pair, `open`, frames, close
+   codes), the layer (`HELLO`, `CLOSE`, resume), `/v1/mint`, grants. Each rule is one short sentence.
+2. Write `crates/podssh-relay/tests/vectors/*.json`: bytes in hex for each frame and each error, made by the
+   codecs and checked by a second reader that shares no code with them (a small Python script in `scripts/`).
+3. A test of each codec reads the vectors. A change of a vector needs a change of the version.
+4. Tell podcrates T-120 (COORD issue `(to podcrates)`) which commit holds the document.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features pair,serve --test wire_vectors
+python scripts/check-wire-vectors.py
+python scripts/check-repo.py
+```
+
+Plant: change one byte of a codec; the vector test fails.
