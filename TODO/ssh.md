@@ -4224,7 +4224,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
 - Read: `ssh node://` carries SSH with `carry_keeping`: the layer's settings of `ssh`, which name
   `keep.v1` (`crates/podssh-cli/src/layered.rs:222`), the far end's shells learned and its
   silence watched (`:256-262`), and the SSH client and the carriage joined in one task
-  (`crates/podssh-cli/src/ssh/node.rs:318-321`); `operator` carries with `carry_through`, with
+  (`crates/podssh-cli/src/ssh/node.rs:322-325`); `operator` carries with `carry_through`, with
   none of these (`crates/podssh-cli/src/operator.rs:164-165`). These are the client's differences
   between the run that stopped and the one that worked; which one stopped it is not known.
 - Read: the tester's lines show the layer's session open and its features (`replay.v1`,

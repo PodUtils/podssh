@@ -5,8 +5,9 @@
 //!   its default since 0.50: TCP through the host's proxy, frp's first byte
 //!   `0x17`, then TLS, which frps tells from its other protocols by that byte;
 //! - `wss://HOST[:PORT][/PATH]`, frpc's `wss`: TLS, then a WebSocket at
-//!   `/~!frp` in binary messages, as a TLS front end on port 443 carries it to
-//!   frps's port, which reads a WebSocket by its first line.
+//!   `/~!frp` with frpc's `Origin`, as a TLS front end on port 443 carries it
+//!   to frps's port, which reads a WebSocket by its first line; podssh sends
+//!   binary messages, and takes each of frps's, text or binary, as bytes.
 //!
 //! TLS is checked with podssh's trust, never skipped as frpc does with no CA
 //! of its own: frps's own certificate, which it makes itself when none is
@@ -16,8 +17,11 @@ use std::time::Duration;
 
 use tokio::io::AsyncWriteExt;
 
+use crate::client::{self, ConnectError};
 use crate::dial::{self, ProxyChoice};
-use crate::forwarder::{carry, Form, Note};
+use crate::forwarder::carry;
+use crate::handshake;
+use crate::session::RelaySession;
 use crate::tls::Trust;
 use crate::url::WsUrl;
 use crate::via::Duplex;
@@ -96,14 +100,32 @@ pub async fn connect(
             Ok(Box::new(tls))
         }
         Server::WebSocket(url) => {
-            let session =
-                crate::url::dial(url, trust, proxy, timeout, None).await.map_err(|e| format!("{shown}: {e}"))?;
-            let session = session.naming(PEER);
+            let failed = |e: ConnectError| format!("{shown}: {}", crate::url::failure(url, &e));
+            let key = handshake::generate_key().map_err(|e| format!("{shown}: {e}"))?;
+            let request = upgrade_request(url, &key).map_err(failed)?;
+            let tls = client::open_tls(&url.host, url.port, &url.host, trust, proxy, timeout).await.map_err(failed)?;
+            let stream = crate::url::Stream::Tls(Box::new(tls));
+            let upgraded = tokio::time::timeout(timeout, client::upgrade_with(stream, &request, &key))
+                .await
+                .map_err(|_| format!("{shown}: no answer to the WebSocket upgrade within {} s", timeout.as_secs()))?;
+            let (stream, pending) = upgraded.map_err(failed)?;
+            let session = RelaySession::new(stream, pending, None, client::WRITE_TIMEOUT).naming(PEER);
             session.set_receive_cap(RECEIVE_CAP);
-            // frps sends no text message; one would be no part of yamux.
-            let note: Note = std::sync::Arc::new(|_: &str| {});
-            let (carried, _first) = carry::spawn(session, Form::Query, crate::forwarder::AtEnd::AfterPeer, note, PEER);
+            // Each data frame of frps is yamux's bytes: Go's x/net/websocket
+            // sends text frames unless told otherwise.
+            let carried = carry::spawn_bytes(session, crate::forwarder::AtEnd::AfterPeer, PEER);
             Ok(Box::new(carried.stream))
         }
     }
+}
+
+/// The upgrade to frps's WebSocket, with an `Origin` as frpc's: frps serves
+/// it with Go's `x/net/websocket` `Handler`, which refuses an upgrade with
+/// none (403); frpc says `http://` and the URL's host.
+pub fn upgrade_request(url: &WsUrl, key: &str) -> Result<Vec<u8>, ConnectError> {
+    let mut request = crate::url::offering(url, key, None)?;
+    // The request ends with its empty line: the header goes before it.
+    request.truncate(request.len().saturating_sub(2));
+    request.extend_from_slice(format!("Origin: http://{}\r\n\r\n", url.host_header()).as_bytes());
+    Ok(request)
 }

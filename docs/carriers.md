@@ -1238,13 +1238,26 @@ with TCP and TLS alone.
      side's random IV first; each auth key hex(MD5(secret + the decimal
      timestamp)); frp's TCP with TLS starts with the byte 0x17. frps reads
      the WebSocket's request in clear: `wss://` needs the user's TLS front
-     end before frps.
+     end before frps. Read from memory of Go's `golang.org/x/net/websocket`
+     for T-498's harness, not yet measured: frps serves its WebSocket with
+     that library's `Handler`, which refuses an upgrade with no `Origin`
+     (frpc sends `http://HOST`), and which sends text frames unless told
+     otherwise, whatever the bytes; podssh sends frpc's `Origin` and takes
+     each of frps's data frames as bytes. A visitor of frpc names its run id
+     after a login as its `user`, which frps checks against the service's
+     `allowUsers` (by default the service's own user); a service of a frpc
+     with a user is `USER.NAME` on frps.
    - Passes: over `wss://` on 443, with the upgrade, or frp's TCP with TLS
      on frps's port through CONNECT. Done by T-498: `podssh node NAME
      TARGET --frp FILE` logs in as a frpc with an STCP service of its name,
      and `podssh ssh node://NAME` with `PODSSH_FRP=FILE` visits it, one road
      of the race once each road before it failed; the end-to-end channel and
-     the resumable layer run above, and frp's own encryption stays off.
+     the resumable layer run above, and frp's own encryption stays off. The
+     file's `user` logs the road in as frpc's user; a visitor's file may
+     also name the service's `owner` (frpc's `serverUser`) and `plain`, a
+     real frpc's STCP service of an sshd, which `podssh ssh`, `cp`, `scp`
+     and `sftp` reach with SSH on the visit itself.
+     `scripts/interop-frp.sh` runs frps and frpc of v0.71.1.
    - Rust and C: podssh-ws's WebSocket and JSON, its own client of yamux
      and its own CFB (`crates/podssh-ws/src/frp/`). Effort: L.
 7. **connect-tcp, the IETF's template-driven CONNECT** (waits for its RFC:

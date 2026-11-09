@@ -189,6 +189,10 @@ pub(super) async fn run(transport: &Transport, opts: &Options, log: Arc<Log>) ->
     if let Some(text) = carrier {
         return Some(Box::pin(super::carried::connect(label, text, channel, opts, log)).await);
     }
+    // A plain service of a real frpc is the node's one road (T-498).
+    if let Some(code) = Box::pin(super::roads::frp::ssh(transport, opts, log.clone())).await {
+        return Some(code);
+    }
     let dest = super::node_roads::Dest::of(transport)?;
     Some(Box::pin(super::node_roads::run(dest, opts, log)).await)
 }

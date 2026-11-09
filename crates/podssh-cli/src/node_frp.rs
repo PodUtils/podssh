@@ -60,6 +60,21 @@ fn check(args: &NodeArgs) -> Result<(), Refusal> {
     Ok(())
 }
 
+/// The lines of a visitor's file that a node takes not (78): `plain`
+/// names another frpc's service, which a visitor reaches with no channel,
+/// where a podssh node always serves the channel; `owner` names the frpc
+/// of a service that a visitor reaches, where a node's service is its own.
+fn node_file(frp: &Frp, path: &str) -> Result<(), Refusal> {
+    let why = if frp.plain {
+        "plain is a visitor's line, for a service of another frpc: a podssh node serves the end-to-end channel"
+    } else if !frp.road.owner.is_empty() {
+        "owner is a visitor's line, for a service of another frpc: a node's service is its own, under its user"
+    } else {
+        return Ok(());
+    };
+    Err(Refusal::config(format!("--frp {path}: {why}")))
+}
+
 /// Each check of the node that needs no network, done.
 struct Ready {
     label: String,
@@ -76,6 +91,7 @@ fn prepare(args: &NodeArgs, path: &str) -> Result<Ready, Refusal> {
     check(args)?;
     let trust = crate::pairs::trust(args.ca_file.as_deref());
     let frp = frp_file::read(path, trust, &format!("--frp {path}"))?;
+    node_file(&frp, path)?;
     let targets = crate::node::targets_of(&crate::node::words_of(args), args.no_e2e)?;
     let flags = crate::node::key_flags(args)?;
     let place = crate::channel::node_place(&label, flags.key.as_deref(), flags.ephemeral)?;
@@ -145,8 +161,9 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let _ = writeln!(err, "podssh node: {label}: key {public}");
     let _ = writeln!(
         err,
-        "podssh node: {label}: frps sees the STCP service {service}, the times and the sizes; the end-to-end channel \
-         keeps the bytes"
+        "podssh node: {label}: frps sees the STCP service {}, the times and the sizes; the end-to-end channel keeps \
+         the bytes",
+        frp.road.registered(&service)
     );
     let allow = match door {
         Door::Allow(path) => Some(path),
@@ -221,5 +238,17 @@ mod tests {
             assert_eq!(refusal.code, 64, "{flag}: {}", refusal.message);
         }
         assert!(check(&base()).is_ok());
+    }
+
+    #[test]
+    fn a_node_takes_not_the_lines_of_a_visitor_s_file() {
+        let base = "server frp://f.example\ntoken t\nsecret s\n";
+        let read = |extra: &str| frp_file::parse(&format!("{base}{extra}"), podssh_ws::Trust::Default).unwrap();
+        for (extra, why) in [("plain\n", "plain is a visitor's line"), ("owner lab\n", "owner is a visitor's line")] {
+            let refusal = node_file(&read(extra), "/a/file").unwrap_err();
+            assert_eq!(refusal.code, 78, "{extra:?}: {}", refusal.message);
+            assert!(refusal.message.contains(why), "{}", refusal.message);
+        }
+        assert!(node_file(&read("user alice\n"), "/a/file").is_ok(), "a node logs in as its user");
     }
 }

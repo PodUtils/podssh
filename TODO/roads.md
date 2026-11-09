@@ -9580,7 +9580,7 @@ new road from getting the rule wrong, and no test per road keeps it.
   `Default`; each road writes it. Pipe roads write `false` (`crates/podssh-cli/src/forwarder/pipe.rs:111`,
   `crates/podssh-cli/src/trojan/pipe.rs:105`), reach roads write `true`
   (`crates/podssh-cli/src/forwarder/reach.rs:57`).
-- Read: `crates/podssh-ws/src/forwarder/carry.rs:150-153`: with `close_at_end` false, the read task
+- Read: `crates/podssh-ws/src/forwarder/carry.rs:185-188`: with `close_at_end` false, the read task
   waits for `down_ended_rx` before it sends Close.
 - Read: `crates/podssh-ws/src/wisp/mux.rs:253-258` and `crates/podssh-ws/src/vless/ws.rs:114`
   derive the same branch again. Wisp has no half-close: a pipe waits for the server's end.

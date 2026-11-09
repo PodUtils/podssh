@@ -102,7 +102,7 @@ fn servers_are_frp_with_tls_or_a_websocket_over_tls_and_nothing_in_the_clear() {
 
 /// A stand-in of frps's side of yamux, written here from hashicorp's
 /// specification: it reads the client's frames and answers.
-async fn read_frame(io: &mut tokio::io::DuplexStream) -> (Header, Vec<u8>) {
+pub(super) async fn read_frame(io: &mut tokio::io::DuplexStream) -> (Header, Vec<u8>) {
     let mut head = [0u8; frame::HEADER];
     io.read_exact(&mut head).await.unwrap();
     let h = Header::decode(&head).unwrap();

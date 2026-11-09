@@ -183,6 +183,10 @@ pub(crate) async fn reach(transport: &Transport, log: &Arc<Log>) -> Result<Reach
         return Err(NotReached { lines: vec![why], code: sysexits::EX_SOFTWARE });
     };
     let refused = |refusal: Refusal| NotReached { lines: vec![refusal.message], code: refusal.code };
+    // A plain service of a real frpc is the node's one road (T-498).
+    if let Some(reached) = super::roads::frp::reach(dest.label, dest.trust, dest.channel, log).await {
+        return reached;
+    }
     let mut chosen = chosen(&dest).map_err(refused)?;
     let Dest { label, pair_file, trust, race, channel, .. } = dest;
     if !chosen.races(&dest) {

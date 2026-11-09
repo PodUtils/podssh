@@ -19,6 +19,8 @@ pub mod node;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_visit;
 
 pub use control::{visit, Session};
 pub use dial::Server;

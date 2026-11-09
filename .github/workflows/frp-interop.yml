@@ -1,0 +1,46 @@
+name: frp interop
+
+# The frp road (T-498, the operator's ruling Q66): a podssh node behind
+# frp's own frps of a pinned release (its archive checked against the
+# release's frp_sha256_checksums.txt at each run), its visitor over frp's
+# TCP with TLS and over wss:// behind a TLS front end, and podssh's visitor
+# to frp's own frpc's STCP service of OpenSSH's sshd, in containers of the
+# runner's Docker, with a plain squid as the host's proxy:
+# scripts/interop-frp.sh. frps's token and the STCP secrets are made for the
+# run and never printed. Started by hand, and on a push that changes the
+# road; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-ws/src/frp/**"
+      - "crates/podssh-cli/src/frp_file.rs"
+      - "crates/podssh-cli/src/node_frp.rs"
+      - "crates/podssh-cli/src/ssh/road_frp.rs"
+      - "scripts/interop-frp.sh"
+      - ".github/workflows/frp-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the build
+        run: cargo build --locked -p podssh-cli
+      - name: frp's own frps and frpc
+        run: |
+          set -u
+          # Each exit code is read directly; the shell's -e would stop at it.
+          rc=0
+          PODSSH_ENGINE=docker timeout 1500 sh scripts/interop-frp.sh "$GITHUB_WORKSPACE/target/debug/podssh" \
+            > frp.log 2>&1 || rc=$?
+          cat frp.log
+          [ "$rc" = 0 ] || { echo "interop-frp exited $rc"; exit 1; }

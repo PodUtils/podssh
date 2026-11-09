@@ -126,6 +126,41 @@ pub(crate) fn spawn<S>(
 where
     S: AsyncRead + AsyncWrite + Send + 'static,
 {
+    spawn_as(session, form, at, note, peer, Texts::Notes)
+}
+
+/// What a text frame of the peer is.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Texts {
+    /// The forwarder's own word, for its note.
+    Notes,
+    /// Bytes of the stream, as a binary frame's: Go's `x/net/websocket`,
+    /// which frps serves its WebSocket with, sends text frames by default
+    /// whatever the bytes (T-498).
+    Bytes,
+}
+
+/// [`spawn`] of a peer whose every data frame is the stream's bytes, text
+/// or binary, and which has no answer to wait for: frps's WebSocket.
+pub(crate) fn spawn_bytes<S>(session: RelaySession<S>, at: AtEnd, peer: &'static str) -> Carried
+where
+    S: AsyncRead + AsyncWrite + Send + 'static,
+{
+    let note: Note = Arc::new(|_: &str| {});
+    spawn_as(session, Form::Query, at, note, peer, Texts::Bytes).0
+}
+
+fn spawn_as<S>(
+    session: RelaySession<S>,
+    form: Form,
+    at: AtEnd,
+    note: Note,
+    peer: &'static str,
+    texts: Texts,
+) -> (Carried, oneshot::Receiver<First>)
+where
+    S: AsyncRead + AsyncWrite + Send + 'static,
+{
     let (ours, theirs) = tokio::io::duplex(PIPE);
     let status = Status::default();
     let session = Arc::new(session);
@@ -215,11 +250,11 @@ where
                         break;
                     }
                 },
-                frame::OPCODE_TEXT => {
+                frame::OPCODE_TEXT if texts == Texts::Notes => {
                     say(&mut first, First::Ready);
                     (*note)(&note_text(&f.payload));
                 }
-                frame::OPCODE_BINARY => {
+                frame::OPCODE_BINARY | frame::OPCODE_TEXT => {
                     say(&mut first, First::Ready);
                     if !f.payload.is_empty() {
                         let wrote = tokio::select! {
@@ -258,6 +293,38 @@ mod tests {
         assert_eq!(note_text(b"a\x1b[2J\r\nb"), "a[2J b");
         let long = note_text("x".repeat(500).as_bytes());
         assert_eq!(long.len(), NOTE_CHARS + 3, "{long}");
+    }
+
+    /// A server's data frames, as frps's Go library and a forwarder send them.
+    fn server_frames(frames: &[(u8, &[u8])]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for (opcode, payload) in frames {
+            let f = frame::Frame { fin: true, opcode: *opcode, payload: payload.to_vec() };
+            out.extend_from_slice(&frame::encode(&f, frame::Role::Server, [0; 4]));
+        }
+        out
+    }
+
+    #[tokio::test]
+    async fn a_text_frame_is_bytes_of_the_stream_for_frps_and_a_note_for_a_forwarder() {
+        let sent = server_frames(&[(frame::OPCODE_TEXT, &[0xff, 0x00, 0x01]), (frame::OPCODE_BINARY, &[2, 3])]);
+        let limit = std::time::Duration::from_secs(5);
+        for bytes_of_text in [true, false] {
+            let (ours, mut theirs) = tokio::io::duplex(1 << 16);
+            let session = RelaySession::new(ours, Vec::new(), None, crate::client::WRITE_TIMEOUT);
+            let mut carried = if bytes_of_text {
+                spawn_bytes(session, AtEnd::AfterPeer, "frps")
+            } else {
+                let note: Note = Arc::new(|_: &str| {});
+                spawn(session, Form::Query, AtEnd::AfterPeer, note, "the forwarder").0
+            };
+            theirs.write_all(&sent).await.unwrap();
+            let want: &[u8] = if bytes_of_text { &[0xff, 0x00, 0x01, 2, 3] } else { &[2, 3] };
+            let mut got = vec![0u8; want.len()];
+            tokio::time::timeout(limit, carried.stream.read_exact(&mut got)).await.unwrap().unwrap();
+            assert_eq!(got, want, "text frames as bytes: {bytes_of_text}");
+            carried.abort();
+        }
     }
 
     #[test]

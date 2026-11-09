@@ -3,7 +3,9 @@
 //! and a work connection each time frps asks for one, handed to the caller
 //! once a visitor took it. A lost connection is made again, after 1 s and up
 //! to 30 s between tries, from 1 s again after a connection that lasted a
-//! minute; a refused token ends the road, as no try again would pass.
+//! minute; a refused token ends the road, as no try again would pass. And
+//! the visitor's side: a visit on a connection of its own, logged in as its
+//! user when the road names one, as frps checks a service's `allowUsers`.
 
 use std::future::Future;
 use std::sync::Arc;
@@ -38,6 +40,40 @@ pub struct Road {
     pub token: Arc<Zeroizing<String>>,
     pub secret: Arc<Zeroizing<String>>,
     pub trust: Trust,
+    /// frpc's `user`: the user that the road logs in as, which frps checks
+    /// against a service's `allowUsers` and which frpc puts before the
+    /// names of its services; empty for none, as frpc's default.
+    pub user: String,
+    /// frpc's visitor's `serverUser`: the user of the frpc whose service a
+    /// visitor reaches, where it is not the road's own; empty for none.
+    pub owner: String,
+}
+
+impl Road {
+    /// The name of a node's service on frps, as frpc names its proxies:
+    /// `USER.NAME` with a user, else NAME.
+    pub fn registered(&self, name: &str) -> String {
+        prefixed(&self.user, name)
+    }
+
+    /// The name that a visitor asks frps for, as frpc's visitor names it:
+    /// `OWNER.NAME` with an owner, else [`Road::registered`]'s, so that a
+    /// node and a visitor of one file meet.
+    pub fn visited(&self, name: &str) -> String {
+        if self.owner.is_empty() {
+            self.registered(name)
+        } else {
+            prefixed(&self.owner, name)
+        }
+    }
+}
+
+fn prefixed(user: &str, name: &str) -> String {
+    if user.is_empty() {
+        name.to_string()
+    } else {
+        format!("{user}.{name}")
+    }
 }
 
 /// A line of the road, as the caller says it.
@@ -75,8 +111,9 @@ where
     let proxy = ProxyChoice::FromEnvironment;
     let conn = dial::connect(&road.server, &road.trust, &proxy, DIAL_LIMIT).await.map_err(FrpError::Ended)?;
     let mux = Mux::client(conn);
-    let mut session = Session::login(mux.clone(), &road.token).await?;
-    session.write.lock().await.send(msg::NEW_PROXY, &msg::new_stcp(name, &road.secret)).await?;
+    let mut session = Session::login(mux.clone(), &road.token, &road.user).await?;
+    let service = road.registered(name);
+    session.write.lock().await.send(msg::NEW_PROXY, &msg::new_stcp(&service, &road.secret)).await?;
     let heartbeat = {
         let (write, token) = (session.write.clone(), road.token.clone());
         tokio::spawn(async move {
@@ -88,7 +125,7 @@ where
             }
         })
     };
-    let result = control_loop(&mut session, road, name, say, work).await;
+    let result = control_loop(&mut session, road, &service, say, work).await;
     heartbeat.abort();
     mux.close();
     result
@@ -148,10 +185,30 @@ where
 pub async fn visit(road: &Road, name: &str) -> Result<DuplexStream, FrpError> {
     let proxy = ProxyChoice::FromEnvironment;
     let conn = dial::connect(&road.server, &road.trust, &proxy, DIAL_LIMIT).await.map_err(FrpError::Ended)?;
-    let mux = Mux::client(conn);
-    // No login: frps admits a visitor with no run id, its user empty, as a
-    // service of an empty user allows.
-    let mut stream = match super::control::visit(&mux, name, &road.secret, "").await {
+    visit_on(Mux::client(conn), road, name).await
+}
+
+/// [`visit`] on the connection of `mux`, which ends with the visit. With a
+/// user, the visitor logs in first and names its run id, as frpc's visitor
+/// does, so that frps checks that user against the service's `allowUsers`;
+/// the login is held while the visit lasts. With none, no login: frps
+/// admits a visitor with no run id as the user "", whom a service of an
+/// empty user allows.
+pub async fn visit_on(mux: Mux, road: &Road, name: &str) -> Result<DuplexStream, FrpError> {
+    let service = road.visited(name);
+    let login = if road.user.is_empty() {
+        None
+    } else {
+        match Session::login_visitor(mux.clone(), &road.token, &road.user).await {
+            Ok(session) => Some(session),
+            Err(e) => {
+                mux.close();
+                return Err(e);
+            }
+        }
+    };
+    let run_id = login.as_ref().map(|session| session.run_id.clone()).unwrap_or_default();
+    let mut stream = match super::control::visit(&mux, &service, &road.secret, &run_id).await {
         Ok(stream) => stream,
         Err(e) => {
             mux.close();
@@ -160,7 +217,21 @@ pub async fn visit(road: &Road, name: &str) -> Result<DuplexStream, FrpError> {
     };
     let (user, mut ours) = tokio::io::duplex(VISIT_PIPE);
     tokio::spawn(async move {
-        let _ = tokio::io::copy_bidirectional(&mut ours, &mut stream).await;
+        let copy = tokio::io::copy_bidirectional(&mut ours, &mut stream);
+        tokio::pin!(copy);
+        match login {
+            None => {
+                let _ = copy.await;
+            }
+            // A login that frps ended ends no visit: the visit's stream is
+            // its own.
+            Some(session) => tokio::select! {
+                _ = &mut copy => {}
+                () = session.keep(HEARTBEAT) => {
+                    let _ = copy.await;
+                }
+            },
+        }
         mux.close();
     });
     Ok(user)

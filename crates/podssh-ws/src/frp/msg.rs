@@ -153,6 +153,14 @@ pub fn login(token: &str, user: &str, run_id: &str, timestamp: i64) -> Value {
     })
 }
 
+/// A visitor's login, as `user`: no pool of work connections, which frps
+/// would ask a login of 1 for, and a visitor serves none.
+pub fn visitor_login(token: &str, user: &str, timestamp: i64) -> Value {
+    let mut body = login(token, user, "", timestamp);
+    body["pool_count"] = json!(0);
+    body
+}
+
 /// An STCP service of `name` with `secret`, as frpc registers one: no
 /// public port, a visitor with the same secret reaches it.
 pub fn new_stcp(name: &str, secret: &str) -> Value {

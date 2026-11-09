@@ -8,8 +8,10 @@
 //! client with another secret is refused in frps's words; a node with
 //! another token ends with frps's words (69); a node of the road that would
 //! open its door, or whose file does not read, is refused before it
-//! connects, and no line says a secret. frps and frpc of frp's own release
-//! run in `scripts/interop-frp.sh`.
+//! connects, and no line says a secret. A visitor of a plain service (the
+//! file's `plain`) logs in as its `user` and asks for `OWNER.NAME`, and a
+//! route or `--node-key` beside it is refused (64). frps and frpc of frp's
+//! own release run in `scripts/interop-frp.sh`.
 
 mod cleanup;
 mod frp_support;
@@ -329,5 +331,33 @@ fn a_node_of_the_road_that_would_open_its_door_or_whose_file_does_not_read_is_re
     assert!(err.contains("line 2"), "{err}");
     assert!(!err.contains(SECRET), "the line's text is never said: {err}");
     assert_eq!(lab.frps.logins.load(Ordering::SeqCst), 0, "nothing logged in");
+    drop(lab.runtime);
+}
+
+#[test]
+fn a_plain_service_s_visitor_logs_in_as_its_user_says_frps_s_words_and_takes_no_route_or_node_key() {
+    let lab = Lab::new("plain");
+    let road = lab.client_home.join("frp-plain");
+    let text = format!("server frp://{FRPS}\ntoken {TOKEN}\nsecret {SECRET}\nuser guest\nowner lab\nplain\n");
+    private(&road, &text);
+    let road = road.to_string_lossy().into_owned();
+    // No frpc serves lab.sshd here: the stand-in refuses the visit, after
+    // the visitor's login, in frps's words.
+    let (rc, out, err) = run(&mut lab.ssh(&road, &["-v", "node://tester@sshd", "greet"]));
+    assert_eq!(rc, 255, "stdout {out:?}, stderr {err}");
+    assert!(err.contains("the plain STCP service lab.sshd through frp://frps.test:7000"), "{err}");
+    assert!(err.contains("frps refused the visit: \"custom listener for [lab.sshd] doesn't exist\""), "{err}");
+    assert_eq!(lab.frps.logins.load(Ordering::SeqCst), 1, "the visitor logged in as its user");
+    assert!(!err.contains(TOKEN) && !err.contains(SECRET), "{err}");
+    let print = "SHA256:zbnY6ML2GQd70sbSPxZeNAEroWGl/t+oaOhgQqrc/no";
+    for (words, why) in [
+        (vec!["node://tester@sshd/web", "greet"], "has no routes"),
+        (vec!["--node-key", print, "node://tester@sshd", "greet"], "--node-key does not go with the plain service"),
+    ] {
+        let (rc, _, err) = run(&mut lab.ssh(&road, &words));
+        assert_eq!(rc, 64, "{words:?}: {err}");
+        assert!(err.contains(why), "{words:?}: {err}");
+    }
+    assert_eq!(lab.frps.logins.load(Ordering::SeqCst), 1, "a refused ask connects nowhere");
     drop(lab.runtime);
 }

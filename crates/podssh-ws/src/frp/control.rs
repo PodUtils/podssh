@@ -87,12 +87,21 @@ pub struct Session {
 }
 
 impl Session {
-    /// Log in on `mux` with `token`: frps's run id, or its refusal in its
-    /// words (a wrong token is "token in login doesn't match token from
-    /// configuration").
-    pub async fn login(mux: Mux, token: &str) -> Result<Session, FrpError> {
+    /// Log in on `mux` with `token` as `user` (empty for none): frps's run
+    /// id, or its refusal in its words (a wrong token is "token in login
+    /// doesn't match token from configuration").
+    pub async fn login(mux: Mux, token: &str, user: &str) -> Result<Session, FrpError> {
+        Session::login_with(mux, token, msg::login(token, user, "", msg::now())).await
+    }
+
+    /// A visitor's login as `user`, whom frps then checks against the
+    /// service's `allowUsers`: no pool of work connections.
+    pub async fn login_visitor(mux: Mux, token: &str, user: &str) -> Result<Session, FrpError> {
+        Session::login_with(mux, token, msg::visitor_login(token, user, msg::now())).await
+    }
+
+    async fn login_with(mux: Mux, token: &str, login: Value) -> Result<Session, FrpError> {
         let mut stream = mux.open().map_err(FrpError::Ended)?;
-        let login = msg::login(token, "", "", msg::now());
         msg::write(&mut stream, msg::LOGIN, &login).await.map_err(FrpError::io)?;
         let answer = tokio::time::timeout(ANSWER_LIMIT, msg::read(&mut stream))
             .await
@@ -145,6 +154,28 @@ impl Session {
     /// The token of the login, for the work connections.
     pub fn token(&self) -> &str {
         &self.token
+    }
+
+    /// Hold a visitor's login while its visit lasts: a heartbeat each
+    /// `every`, as frpc's, since frps ends a control that sent none for
+    /// 90 s; frps's answers are read and let go, so that its pongs never
+    /// fill the stream's window. It ends when either side fails. Each loop
+    /// is one future for the whole time, so no read is cut in its middle.
+    pub async fn keep(self, every: Duration) {
+        let Session { mut read, write, token, .. } = self;
+        let reader = async move { while read.recv().await.is_ok() {} };
+        let beat = async move {
+            loop {
+                tokio::time::sleep(every).await;
+                if write.lock().await.send(msg::PING, &msg::ping(&token, msg::now())).await.is_err() {
+                    return;
+                }
+            }
+        };
+        tokio::select! {
+            () = reader => {}
+            () = beat => {}
+        }
     }
 }
 

@@ -5897,6 +5897,20 @@ such a user runs podssh's relay role beside it.
 - The test's frps is a stand-in written in the test (`crates/podssh-cli/tests/frp_support/`),
   its yamux and framing written there by hand; frps and frpc of frp's release run in an interop
   script.
+- (2026-11-09) `user USER` and `owner USER` in the road's file, frpc's `user` and its visitor's
+  `serverUser`, and the names on frps as frpc makes them (`Road::registered`, `Road::visited`).
+  Lost: one `name` that holds `USER.NAME` (a dot in a label of podssh, and a node of a user would
+  have to repeat its user in each client's file).
+- (2026-11-09) `plain`, a line of a visitor's file: SSH on the visit, no race, no channel, no
+  layer; a route and `--node-key` are refused beside it (64), and a node's file with `plain` or
+  `owner` is refused (78). Lost: a URL form of its own (`frp://` is the server's form already), and
+  a flag of `ssh` (no flag of `ssh` is added beside the other carriers').
+- (2026-11-09) The visitor with no `user` still logs in to nothing, as above: it reaches a service
+  of no user, and a node of the same file. Lost: a login for each visit (a second stream and a
+  heartbeat, for a user "" that frps admits with no login).
+- (2026-11-09) The TLS front end of the harness is socat's `openssl-listen` in Alpine, not a
+  terminator in Python: one line, from Alpine's packages, as the harness's sshd and squid. Lost: a
+  terminator of the script's own, which nothing else checks.
 
 ## Prove
 
@@ -5931,6 +5945,28 @@ Read on 2026-11-06 in frp's source at v0.71.1 (`pkg/msg`, `pkg/util/net`, `pkg/a
   URL too (`--frp FILE`), so that the client names the same file in `PODSSH_FRP`, and no flag of
   `ssh` is added beside the other carriers' (T-495 drafts `-J` at the same time).
 
+Read on 2026-11-09 for the harness, from memory of frp's source at v0.71.1 and of Go's
+`golang.org/x/net/websocket` (no source read in that session, so each point waits for the run of
+`scripts/interop-frp.sh`):
+
+- frps serves its WebSocket (`pkg/util/net/websocket.go`) with `x/net/websocket`'s `Handler`,
+  which refuses an upgrade with no `Origin` (`checkOrigin`, HTTP 403), and whose connections send
+  text frames (`PayloadType` is `TextFrame` by default) whatever the bytes. The Premise's "binary
+  frames" holds for frpc's sending only. podssh's `wss://` road sent no `Origin` and took a text
+  frame as a note: it now sends frpc's `Origin: http://HOST[:PORT]` and takes each data frame of
+  frps as yamux's bytes (`forwarder::carry::spawn_bytes`).
+- A visitor of frpc (`client/visitor/stcp.go`) names the run id of its own login, and frps
+  (`server/service.go` `RegisterVisitorConn`, `server/visitor/visitor.go`) checks that login's user
+  against the service's `allowUsers`, which is the service's own user when none is given
+  (`server/proxy/stcp.go`); a run id that names no login is refused. frpc names a proxy
+  `USER.NAME` when it has a user, and a visitor's `serverName` `SERVERUSER.NAME`, else
+  `USER.NAME`. So the Decision's "the visitor logs in to nothing" reaches a service of no user
+  alone: the road now logs in as the file's `user` where one is given, with `pool_count` 0, and
+  holds that login with frp's heartbeat while the visit lasts.
+- podssh's visitor took only a podssh node's service (`Road::Pair` under the channel and the
+  layer). A real frpc's service of an sshd needs SSH on the visit itself: the file's `plain` line.
+  The calls of this correction are the last items of the Decision (2026-11-09).
+
 ## Done
 
 Partial, 2026-11-06. Drafted by a drafting agent, unbuilt (`draft-t498`, base `d55ef03c`,
@@ -5959,6 +5995,44 @@ Left, so partial: an interop script against frp's own frps and frpc of v0.71.1 (
 SHA-256 of each binary from `frp_sha256_checksums.txt`, its ids in `scripts/interop-baseline.txt`),
 the `wss://` road behind a TLS front end, and podssh's visitor to a real frpc's STCP service of an
 sshd; a visitor that logs in, for an frps that names the users allowed to visit (`allowUsers`).
+
+2026-11-09: drafted (DRAFT T-498, `4316ddfc`) and merged by the main session, with no repair.
+
+- `crates/podssh-ws/src/frp/`: `Road` gains `user` and `owner`, with frpc's names on frps
+  (`registered`, `visited`); `Session::login` takes the user and `Session::login_visitor` sends
+  `pool_count` 0 (`msg::visitor_login`); `Session::keep` holds a visitor's login with frp's
+  heartbeat each 30 s and reads frps's answers; `node::visit_on` logs a visitor with a user in and
+  names its run id; `dial::upgrade_request` adds frpc's `Origin`, and the `wss://` road takes each
+  data frame of frps as bytes (`forwarder::carry::spawn_bytes`). New tests
+  (`frp/tests_visit.rs`): `the_names_on_frps_are_frpc_s_user_dot_name`,
+  `a_visitor_s_login_names_its_user_and_asks_for_no_work_connection`,
+  `a_visitor_with_a_user_logs_in_then_visits_with_its_run_id_and_carries_bytes`,
+  `a_visitor_with_no_user_visits_with_no_login_and_says_frps_s_refusal`,
+  `a_visitor_s_login_that_frps_refuses_ends_the_visit_in_its_words`,
+  `a_held_login_sends_frp_s_heartbeat_in_the_control_stream_s_cipher`,
+  `the_upgrade_to_frps_s_websocket_names_an_origin_as_frpc_does`; in `forwarder/carry.rs`,
+  `a_text_frame_is_bytes_of_the_stream_for_frps_and_a_note_for_a_forwarder`:
+  `cargo test -p podssh-ws --lib -- frp carry`: 25 passed; planted, no `Origin` on frps's upgrade,
+  its test fails. `cargo test -p podssh-ws --lib`: 194 passed.
+- `crates/podssh-cli`: the file's `user`, `owner` and `plain` (`frp_file.rs`, test
+  `a_visitor_s_file_names_its_user_the_service_s_owner_and_a_plain_service`); a node refuses
+  `plain` and `owner` (78, `node_frp.rs`, test `a_node_takes_not_the_lines_of_a_visitor_s_file`);
+  the plain visit for `ssh` and the copies (`ssh/road_frp.rs` `ssh` and `reach`, called from
+  `ssh/node.rs` `run` and `ssh/node_roads.rs` `reach`); the manual (`man/notes_frp.rs`,
+  `PODSSH_FRP` in `man/facts/roads.rs`); `docs/carriers.md`. `cargo test -p podssh-cli --lib`:
+  1,046 passed; `--test frp_road`: 4 passed, with the new
+  `a_plain_service_s_visitor_logs_in_as_its_user_says_frps_s_words_and_takes_no_route_or_node_key`;
+  clippy (the gate's lints) and rustfmt clean.
+- `scripts/interop-frp.sh` and `.github/workflows/frp-interop.yml` (workflow_dispatch, and a push
+  to `main` that changes the road): frps and frpc of v0.71.1, the archive's SHA-256 compared at
+  run time with the line of the release's `frp_sha256_checksums.txt`; 13 ids in
+  `scripts/interop-baseline.txt` (`frp.version`, `frp.frpc`, `frp.node`, `frp.door`,
+  `frp.session`, `frp.bulk`, `frp.wss`, `frp.plain`, `frp.not-allowed`, `frp.wrong-secret`,
+  `frp.wrong-token`, `frp.hop`, `frp.secret`): `cargo todo interop`, 788 ids of 61 harnesses meet the
+  baseline; `python scripts/check-scripts.py` and `dash -n`: ok. The run of `frp-interop.yml` against
+  frp's own frps and frpc is the next step, and the entry stays partial for it.
+- Still left after that run: the planted defect of the Prove against frp's own frps (a sign key of
+  another second, refused), which waits for the checks of the release (T-251).
 
 # T-499: IETF's connect-tcp, once it is an RFC
 
@@ -8184,9 +8258,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1272-1273` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:1274` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:1268` says "UDP alone, which the
+- `docs/carriers.md:1285-1286` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:1287` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:1281` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -8252,9 +8326,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1279-1280` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:1282-1283` says "as the server never answers a command";
-  `docs/carriers.md:1285` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:1292-1293` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:1295-1296` says "as the server never answers a command";
+  `docs/carriers.md:1298` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
