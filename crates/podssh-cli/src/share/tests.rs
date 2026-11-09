@@ -1,6 +1,7 @@
 //! The share file (T-433) with no node: its lines, a change that keeps what
 //! it does not touch, two changes at once that both count under the lock,
-//! and a lock held too long that fails the change with 75.
+//! a change that waits behind many short ones and still counts, and a lock
+//! held too long that fails the change with 75.
 
 use std::path::PathBuf;
 
@@ -113,6 +114,47 @@ fn two_changes_at_once_both_count_under_the_lock() {
     b.join().unwrap();
     let (_, text) = file::read(&place).unwrap().expect("the file");
     assert_eq!(Shares::parse(&text).list.len(), 80, "each change counts:\n{text}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A change that waits behind other changes, each of which ends, for longer
+/// than the wait in all is not refused (T-696): the wait is of one holder,
+/// never of all of them. Each of the others keeps the lock for a short time
+/// and takes it again at once, so this one can find it free only at the end.
+#[test]
+fn a_change_that_waits_behind_others_that_end_is_not_refused() {
+    let dir = scratch("behind");
+    let place = Place::File(dir.join("lab.shares"));
+    let (started, first) = std::sync::mpsc::channel();
+    let others = {
+        let place = place.clone();
+        std::thread::spawn(move || {
+            let end = std::time::Instant::now() + file::WAIT + std::time::Duration::from_secs(2);
+            let mut n = 0u16;
+            while std::time::Instant::now() < end {
+                let s = share(&format!("o{n}"), 2000 + n % 1000);
+                let started = started.clone();
+                file::edit(&place, move |text| {
+                    let _ = started.send(());
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                    Ok((Some(file::with_share(text, &s).0), ()))
+                })
+                .expect("another change");
+                n += 1;
+            }
+            n
+        })
+    };
+    first.recv().expect("the others took the lock");
+    let mine = share("mine", 9000);
+    let waited = std::time::Instant::now();
+    let result = file::edit(&place, move |text| Ok((Some(file::with_share(text, &mine).0), ())));
+    let n = others.join().unwrap();
+    if let Err(refusal) = &result {
+        panic!("refused after {:?} behind {n} changes that each ended: {}", waited.elapsed(), refusal.message);
+    }
+    let (_, text) = file::read(&place).unwrap().expect("the file");
+    assert!(Shares::parse(&text).list.iter().any(|s| s.name == "mine"), "this change counts:\n{text}");
     let _ = std::fs::remove_dir_all(&dir);
 }
 

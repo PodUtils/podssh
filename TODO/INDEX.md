@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**650 entries: 77 open, 16 partial, 4 blocked, 553 done.**
+**651 entries: 77 open, 16 partial, 4 blocked, 554 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 2 | 0 | 68 | 70 |
+| P1 | 0 | 2 | 0 | 69 | 71 |
 | P2 | 21 | 6 | 1 | 256 | 284 |
 | P3 | 56 | 8 | 3 | 228 | 295 |
-| **All** | 77 | 16 | 4 | 553 | 650 |
+| **All** | 77 | 16 | 4 | 554 | 651 |
 
 ## Entries
 
@@ -726,3 +726,4 @@ repository and CI).
 | [T-693](mesh.md) | P3 | S | M10 | feature | partial | `--trojan` against trojan-gfw's and trojan-go's own servers |
 | [T-694](mesh.md) | P3 | M | M10 | feature | open | croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair |
 | [T-695](mesh.md) | P3 | M | M10 | feature | open | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
+| [T-696](robustness.md) | P1 | S | none | defect | done | A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows |

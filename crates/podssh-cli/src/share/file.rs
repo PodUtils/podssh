@@ -234,8 +234,11 @@ fn write_path(place: &Place) -> Result<PathBuf, Refusal> {
 
 /// The lock of `FILE.lock` beside `path`, held until it is dropped: none
 /// where the file system takes no lock, and the change goes on without one,
-/// as a `known_hosts` file is written there. Another change that keeps it
-/// for [`WAIT`] fails this one (75): never a wait with no end.
+/// as a `known_hosts` file is written there. One other change that keeps it
+/// for [`WAIT`] fails this one (75): never a wait with no end. A wait behind
+/// many changes, each of which ends, is no such hold (T-696): each holder
+/// moves the lock file's length when it takes the lock, and the wait starts
+/// again when the length moves.
 fn hold(path: &Path) -> Result<Option<File>, Refusal> {
     let mut name = path.as_os_str().to_owned();
     name.push(".lock");
@@ -248,24 +251,53 @@ fn hold(path: &Path) -> Result<Option<File>, Refusal> {
         options.mode(0o600);
     }
     let Ok(file) = options.open(&lock) else { return Ok(None) };
-    let deadline = Instant::now() + WAIT;
+    let mut seen = mark(&file);
+    let mut deadline = Instant::now() + WAIT;
     loop {
         match file.try_lock() {
-            Ok(()) => return Ok(Some(file)),
-            Err(std::fs::TryLockError::WouldBlock) if Instant::now() < deadline => {
-                std::thread::sleep(Duration::from_millis(20))
+            Ok(()) => {
+                taken(&file);
+                return Ok(Some(file));
             }
             Err(std::fs::TryLockError::WouldBlock) => {
-                let message = format!(
-                    "{}: another change of these shares held its lock for {} s; run the command again",
-                    lock.display(),
-                    WAIT.as_secs()
-                );
-                return Err(Refusal { message, code: sysexits::EX_TEMPFAIL });
+                // Another holder took it since the last look: a new hold.
+                let now = mark(&file);
+                if now != seen {
+                    seen = now;
+                    deadline = Instant::now() + WAIT;
+                }
+                if Instant::now() >= deadline {
+                    return Err(held_too_long(&lock));
+                }
+                std::thread::sleep(Duration::from_millis(20))
             }
             Err(std::fs::TryLockError::Error(_)) => return Ok(None),
         }
     }
+}
+
+/// The lock file's length, which each holder moves ([`taken`]); none where
+/// it cannot be read, and the wait is then of all holders, as before.
+fn mark(file: &File) -> Option<u64> {
+    file.metadata().ok().map(|m| m.len())
+}
+
+/// The mark of a new holder: the lock file one byte longer, back to empty
+/// past 64, so that it never grows. A file system that refuses it leaves the
+/// mark still, and a waiter then counts the whole wait.
+fn taken(file: &File) {
+    let len = mark(file).unwrap_or(0);
+    let _ = file.set_len(if len >= 64 { 0 } else { len + 1 });
+}
+
+/// The refusal of a change whose lock one other change kept for [`WAIT`].
+fn held_too_long(lock: &Path) -> Refusal {
+    let message = format!(
+        "{}: another change of these shares held its lock for {} s; run the command again",
+        lock.display(),
+        WAIT.as_secs()
+    );
+    Refusal { message, code: sysexits::EX_TEMPFAIL }
 }
 
 /// `path` replaced whole by `body`: a private file beside it, then a rename,

@@ -1897,3 +1897,54 @@ It passes here; the job `windows` of the gate passes it.
 2026-11-06: `crates/podssh-cli/src/relay_rank_auto.rs` keeps the time when a probe ended (or was
 dropped for a race), and the next probe waits the gap from it. `cargo test -p podssh-cli --test
 relay_rank`: 6 passed. The job `windows` of the next gate reads it again.
+
+# T-696: A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows
+
+**Source:** the gate of `8c7519c0` (run 42290205000, the job `windows`, GitHub #162), 2026-11-06.
+**Category:** defect
+**Milestone:** none
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`share::tests::two_changes_at_once_both_count_under_the_lock` of `podssh-cli`'s library failed on
+Windows: one of its two threads of 40 changes each was refused with "lab.shares.lock: another change
+of these shares held its lock for 5 s" (75). No change held the lock for 5 s: each one ended in
+milliseconds, and the other thread took the lock again at once each time.
+
+## Premise
+
+- Read: `crates/podssh-cli/src/share/file.rs`, `hold`: the deadline of `WAIT` (5 s) started at the
+  first try and never started again. A change that polls each 20 ms, behind another that keeps
+  taking the lock again at once, finds it free only by chance; its wait is then of all the other
+  changes, and the refusal's words are false.
+- Measured here (Linux): a test with one thread of changes of 50 ms each, for 7 s, and one change
+  that waits behind them was refused after 7 s, behind 135 changes that each ended.
+
+## Approach
+
+Fail a change only when one holder keeps the lock for `WAIT`: each holder moves the lock file's
+length when it takes the lock (one byte longer, back to empty past 64), and a waiter starts its
+wait again when the length moves. The test of a lock held past the wait stays as it is.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib share::
+```
+
+The new test fails on the code before the change; with it, the tests pass 20 runs in a row here,
+and the job `windows` of the gate passes them.
+
+## Done
+
+2026-11-09: `crates/podssh-cli/src/share/file.rs`, `hold`, with `mark`, `taken` and
+`held_too_long`: the wait starts again each time that another holder takes the lock, so only one
+holder that keeps it for 5 s fails a change (75). The test
+`a_change_that_waits_behind_others_that_end_is_not_refused` (`crates/podssh-cli/src/share/tests.rs`):
+planted, the code before the change, it fails ("refused after 7.05 s behind 135 changes that each
+ended"); with the change, `cargo test -p podssh-cli --lib share::` 7 passed, 20 runs in a row. The job
+`windows` of the next gate reads it again.
