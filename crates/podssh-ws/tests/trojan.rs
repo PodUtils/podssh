@@ -6,8 +6,11 @@
 //! alone, and in a WebSocket over TLS at `/tr`, as trojan-go and Xray-core
 //! serve it. A session carries the target's version line and an echo; a
 //! wrong password is said as the fallback's answer; a wrong path is a 404; a
-//! pipe takes a stream whose target waits for its client. The runs against
-//! trojan-gfw, trojan-go and Xray-core are `scripts/interop-trojan.sh`.
+//! pipe takes a stream whose target waits for its client. A pipe's end of
+//! input loses no byte of 1 MiB still on its way: TLS alone carries it as a
+//! half-close, and the WebSocket sends no Close until the server's end
+//! (T-699). The runs against trojan-gfw, trojan-go and Xray-core are
+//! `scripts/interop-trojan.sh`.
 
 mod vless_support;
 
@@ -15,12 +18,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use podssh_ws::session::RelaySession;
-use podssh_ws::trojan::{self, Dial, Opened, Server, TrojanError};
+use podssh_ws::trojan::{self, AtEnd, Dial, Opened, Server, TrojanError};
 use podssh_ws::{ProxyChoice, Trust};
 use sha2::{Digest, Sha224};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use vless_support::{cert, pins, root_file, target, BANNER, NAME};
+use vless_support::{cert, pins, root_file, talker, target, BANNER, NAME};
 
 const LIMIT: Duration = Duration::from_secs(20);
 /// The stand-ins' password.
@@ -199,8 +202,8 @@ async fn open(server: &Server, port: u16, root: &std::path::Path, pipe: bool) ->
     let trust = Trust::File(root.to_path_buf());
     let answer = if pipe { trojan::EARLY_WAIT } else { trojan::ANSWER_WAIT };
     let proxy = ProxyChoice::Direct;
-    let dial =
-        Dial { trust: &trust, proxy: &proxy, timeout: LIMIT, answer, silence_is_ready: pipe, close_at_end: !pipe };
+    let at_end = if pipe { AtEnd::AfterPeer } else { AtEnd::Now };
+    let dial = Dial { trust: &trust, proxy: &proxy, timeout: LIMIT, answer, silence_is_ready: pipe, at_end };
     tokio::time::timeout(LIMIT * 2, trojan::open(server, "127.0.0.1", port, &dial)).await.expect("within the limit")
 }
 
@@ -272,6 +275,28 @@ async fn a_wrong_password_is_the_fallback_s_answer_and_a_wrong_path_a_404() {
         Err(TrojanError::Refused { status: 404, why }) => assert!(why.contains("/other"), "{why}"),
         Ok(_) => panic!("another path carried a session"),
         Err(e) => panic!("{}", e.line("ws", "t")),
+    }
+}
+
+/// A pipe's end of input (T-699): this side's input ends at once, while the
+/// target's 1 MiB is still on its way. In TLS alone the end is TCP's
+/// half-close, which the stand-in passes to the target; over a WebSocket,
+/// which has none, the stand-in answers a Close at once and sends nothing
+/// after it, so the pipe sends its Close only after the server's. Each byte
+/// comes on each. Planted, a Close at the first end, the WebSocket's rest is
+/// lost.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pipe_s_end_of_input_loses_no_byte_in_tls_alone_or_in_a_websocket() {
+    pins();
+    let (root, aim) = (root_file("trojan-end"), talker::talker().await);
+    let (tls_port, _) = listen(serve_tls).await;
+    let (ws_port, _) = listen(serve_ws).await;
+    for link in [server(tls_port, "type=tcp", PASSWORD), server(ws_port, "type=ws&path=%2Ftr", PASSWORD)] {
+        let mut opened = open(&link, aim, &root, true).await.unwrap_or_else(|e| panic!("{}", e.line("end", "t")));
+        assert!(opened.answered, "{}: the target's first piece came", opened.how);
+        opened.stream.shutdown().await.unwrap();
+        let got = talker::to_end(&mut opened.stream).await;
+        talker::assert_whole(&got, opened.how);
     }
 }
 

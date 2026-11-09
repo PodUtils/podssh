@@ -54,7 +54,7 @@ pub async fn open(url: &WsUrl, trust: &Trust, proxy: &ProxyChoice, timeout: Dura
     session.set_receive_cap(RECEIVE_CAP);
     // A text message is no part of the stream: Outline's server sends none.
     let note: Note = std::sync::Arc::new(|_: &str| {});
-    let (carried, _first) = carry::spawn(session, Form::Query, false, note, PEER);
+    let (carried, _first) = carry::spawn(session, Form::Query, crate::forwarder::AtEnd::AfterPeer, note, PEER);
     // The copying tasks run on when the handle goes; the stream's end is
     // theirs, and the Shadowsocks stream above it reads it.
     Ok(carried.stream)

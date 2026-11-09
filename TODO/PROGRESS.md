@@ -347,7 +347,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 686 entries: 100 open, 19 partial, 10 blocked, 557 done.
+`TODO/INDEX.md` holds 686 entries: 99 open, 19 partial, 10 blocked, 558 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -371,7 +371,7 @@ T-446 waits: no beta and no release until the migration is done (Q104).
 
 **First (2026-11-09):** the share lock's flake is repaired, v0.7.0 is taken, ssh node://'s refusals and the Trojan servers are done,
 T-698 is partial (its serve part waits for T-107). Then podssh's own order, by priority beside M10's
-order below: T-699 (P2), then the P3 entries of the testers' issues (T-700 to T-706); T-707 waits for
+order below: the P3 entries of the testers' issues (T-700 to T-706); T-707 waits for
 `pod-gsr`. **cfb's asks wait** (the owner's ruling "Priority", 2026-11-09): T-708 to T-731 stay filed
 behind podssh's own work order, M10 included, and Q105 waits with them. A beta may go out when a batch
 fits (T-446).

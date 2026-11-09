@@ -8,7 +8,7 @@ use std::future::Future;
 use std::io::Write;
 use std::pin::Pin;
 
-use podssh_ws::wstunnel::{Carried, Dial, Status};
+use podssh_ws::wstunnel::{AtEnd, Carried, Dial, Status};
 use podssh_ws::ProxyChoice;
 
 use super::Road;
@@ -109,7 +109,7 @@ pub async fn open(road: &Road, host: &str, port: u16, say: &mut dyn FnMut(&str))
         trust: &road.trust,
         proxy: &ProxyChoice::FromEnvironment,
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
-        close_at_end: false,
+        at_end: AtEnd::AfterPeer,
     };
     let target = podssh_ws::dial::authority(host, port);
     match podssh_ws::wstunnel::open(&road.server, &road.secret, host, port, &dial).await {

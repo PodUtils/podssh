@@ -8,7 +8,7 @@
 //! (Q67).
 
 use podssh_ws::dial::{self, ProxyChoice};
-use podssh_ws::vless::{self, Dial};
+use podssh_ws::vless::{self, AtEnd, Dial};
 use podssh_ws::Trust;
 
 use super::relay_checks::{forward_host, github_keys, judge_unlisted, published_keys, TIMEOUT};
@@ -24,7 +24,7 @@ pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Tr
         timeout: TIMEOUT,
         answer: vless::ANSWER_WAIT,
         silence_is_ready: false,
-        close_at_end: true,
+        at_end: AtEnd::Now,
     };
     for server in &servers.servers {
         let shown = server.shown();

@@ -10,7 +10,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use podssh_ws::forwarder::{self, builtin, Dial, Template};
+use podssh_ws::forwarder::{self, builtin, AtEnd, Dial, Template};
 use podssh_ws::{ProxyChoice, Trust};
 use tokio::io::AsyncReadExt;
 
@@ -39,7 +39,7 @@ async fn banner(word: &str) {
         trust: &Trust::Default,
         proxy: &ProxyChoice::FromEnvironment,
         timeout: LIMIT,
-        close_at_end: true,
+        at_end: AtEnd::Now,
         note: Arc::new(move |text: &str| eprintln!("{said} says: {text}")),
     };
     let carried = match forwarder::open(&template, "github.com", 22, &road).await {

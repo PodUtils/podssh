@@ -9,7 +9,7 @@ use std::io::Write;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use podssh_ws::forwarder::{Carried, Dial, Status};
+use podssh_ws::forwarder::{AtEnd, Carried, Dial, Status};
 use podssh_ws::{ProxyChoice, Trust};
 
 use super::Forwarder;
@@ -108,7 +108,7 @@ pub async fn open(
             trust,
             proxy: &ProxyChoice::FromEnvironment,
             timeout,
-            close_at_end: false,
+            at_end: AtEnd::AfterPeer,
             // A pipe has no -v; a forwarder's notes are not the target's.
             note: Arc::new(|_: &str| {}),
         };

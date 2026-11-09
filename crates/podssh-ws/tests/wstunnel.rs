@@ -12,17 +12,23 @@
 //! takes a frame's payload without its mask, as fastwebsockets 0.10 does
 //! under wstunnel's default, unless it is told to apply it
 //! (`--websocket-mask-frame`). The target sends a version line and echoes.
-//! The run against wstunnel's own server is `scripts/interop-wstunnel.sh`.
+//! A pipe's end of input sends no Close until the server's end, so that 1 MiB
+//! still on its way comes whole (T-699). The run against wstunnel's own
+//! server is `scripts/interop-wstunnel.sh`.
+
+#[path = "common/talker.rs"]
+mod talker;
 
 use std::net::IpAddr;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base64::Engine as _;
 use hmac::{Hmac, KeyInit, Mac};
 use podssh_ws::frame::{self, Frame, Role};
-use podssh_ws::wstunnel::{self, Dial, Secret, Server, WstunnelError};
+use podssh_ws::wstunnel::{self, AtEnd, Dial, Ended, Secret, Server, WstunnelError};
 use podssh_ws::{ProxyChoice, Trust};
 use sha2::Sha256;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
@@ -61,11 +67,20 @@ struct Wst {
     /// Each frame's mask applied, as `--websocket-mask-frame`.
     unmask: bool,
     answer: Answer,
+    /// A client's Close answered at once, and nothing sent after it, as RFC
+    /// 6455 allows a server (T-699); else the target's bytes go on.
+    answers_close: bool,
 }
 
 /// A server of 11 with its defaults.
-const V11: Wst =
-    Wst { restrict: None, authorization: None, checks_signature: false, unmask: false, answer: Answer::Tunnel };
+const V11: Wst = Wst {
+    restrict: None,
+    authorization: None,
+    checks_signature: false,
+    unmask: false,
+    answer: Answer::Tunnel,
+    answers_close: false,
+};
 
 /// What a stand-in saw: each request's target, subprotocols and
 /// `Authorization`, each target it dialed, and each frame's masking key.
@@ -184,7 +199,7 @@ where
          sec-websocket-accept: {accept}\r\n{sub}\r\n"
     );
     if stream.write_all(head.as_bytes()).await.is_ok() {
-        pump(stream, pending, conn, wst.unmask, seen).await;
+        pump(stream, pending, conn, &wst, seen).await;
     }
 }
 
@@ -218,20 +233,31 @@ async fn send(w: &tokio::sync::Mutex<impl tokio::io::AsyncWrite + Unpin>, opcode
 
 /// The copy both ways, as `propagate_local_to_remote` and its reverse: each
 /// data frame's payload to the target, a Pong for a Ping, and the target's
-/// bytes in binary frames, then a Close at its end.
-async fn pump<S>(stream: S, pending: Vec<u8>, target: TcpStream, unmask: bool, seen: Arc<Mutex<Seen>>)
+/// bytes in binary frames, then a Close at its end. With `answers_close`, a
+/// client's Close is answered and ends the target's bytes.
+async fn pump<S>(stream: S, pending: Vec<u8>, target: TcpStream, wst: &Wst, seen: Arc<Mutex<Seen>>)
 where
     S: AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
 {
+    let (unmask, answers_close) = (wst.unmask, wst.answers_close);
     let (rd, wr) = tokio::io::split(stream);
     let mut rd = std::io::Cursor::new(pending).chain(rd);
     let wr = Arc::new(tokio::sync::Mutex::new(wr));
     let (mut trd, mut twr) = target.into_split();
     let w = wr.clone();
+    // This side's Close went: one at most, and no data after it.
+    let closed = Arc::new(AtomicBool::new(false));
+    let closed_up = closed.clone();
     let up = tokio::spawn(async move {
         while let Some((opcode, key, payload)) = read_raw(&mut rd, unmask).await {
             seen.lock().unwrap().keys.push(key);
             match opcode {
+                frame::OPCODE_CLOSE if answers_close => {
+                    if !closed_up.swap(true, Ordering::SeqCst) {
+                        send(&*w, frame::OPCODE_CLOSE, &1000u16.to_be_bytes()).await;
+                    }
+                    break;
+                }
                 frame::OPCODE_CLOSE => break,
                 frame::OPCODE_PING => {
                     send(&*w, frame::OPCODE_PONG, &payload).await;
@@ -249,18 +275,20 @@ where
     });
     let mut buf = vec![0u8; 32 * 1024];
     while let Ok(n) = trd.read(&mut buf).await {
-        if n == 0 || !send(&*wr, frame::OPCODE_BINARY, &buf[..n]).await {
+        if n == 0 || closed.load(Ordering::SeqCst) || !send(&*wr, frame::OPCODE_BINARY, &buf[..n]).await {
             break;
         }
     }
-    send(&*wr, frame::OPCODE_CLOSE, &1000u16.to_be_bytes()).await;
+    if !closed.swap(true, Ordering::SeqCst) {
+        send(&*wr, frame::OPCODE_CLOSE, &1000u16.to_be_bytes()).await;
+    }
     let _ = up.await;
 }
 
 fn dial() -> Dial<'static> {
     static TRUST: Trust = Trust::Default;
     static PROXY: ProxyChoice = ProxyChoice::Direct;
-    Dial { trust: &TRUST, proxy: &PROXY, timeout: LIMIT, close_at_end: true }
+    Dial { trust: &TRUST, proxy: &PROXY, timeout: LIMIT, at_end: AtEnd::Now }
 }
 
 async fn open(server: &Server, secret: &Secret, aim: u16) -> Result<wstunnel::Carried, WstunnelError> {
@@ -345,6 +373,26 @@ async fn another_version_and_another_server_are_said_in_their_words() {
     let why = open(&plain(port), &Secret::default(), aim).await.expect_err("a refusal");
     let line = why.line(&plain(port).shown());
     assert!(line.contains("is no wstunnel server that podssh speaks to") && line.contains("9.1 to 11"), "{line}");
+}
+
+/// A pipe's end of input (T-699): this side's input ends at once, while the
+/// target's 1 MiB is still on its way. A Close is no half-close, and this
+/// stand-in answers one at once and sends nothing after it; so the pipe
+/// sends its Close only after the server's, and each byte comes. Planted, a
+/// Close at the first end, the rest is lost.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pipe_s_end_of_input_waits_for_the_server_s_end_and_loses_no_byte() {
+    let aim = talker::talker().await;
+    let (port, _) = stand_in(Wst { answers_close: true, ..V11 }, false).await;
+    let pipe = Dial { at_end: AtEnd::AfterPeer, ..dial() };
+    let (server, secret) = (plain(port), Secret::default());
+    let opened = wstunnel::open(&server, &secret, "127.0.0.1", aim, &pipe);
+    let carried = tokio::time::timeout(LIMIT * 2, opened).await.expect("an answer within the limit").unwrap();
+    let mut stream = carried.stream;
+    stream.shutdown().await.unwrap();
+    let got = talker::to_end(&mut stream).await;
+    talker::assert_whole(&got, "wstunnel");
+    assert_eq!(carried.status.get(), Some(Ended::Closed { code: Some(1000), reason: String::new() }));
 }
 
 fn root_file(tag: &str) -> PathBuf {

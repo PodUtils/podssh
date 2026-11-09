@@ -18,6 +18,7 @@ use tokio::time::Instant;
 use super::handshake::Opened;
 use super::packet::{self, Packet, Reason};
 use super::{End, OnEnd, WispError};
+use crate::forwarder::end::{end_of_input, AtEnd};
 use crate::forwarder::Note;
 use crate::frame;
 use crate::session::{close_code_and_reason, RelaySession};
@@ -190,7 +191,7 @@ impl Shared {
         self: &Arc<Self>,
         host: &str,
         port: u16,
-        close_at_end: bool,
+        at: AtEnd,
         on_end: Option<OnEnd>,
     ) -> Result<Opening, WispError> {
         crate::names::check_target(host)
@@ -218,7 +219,7 @@ impl Shared {
             self.finish(id, End::Failed(why.clone()));
             return Err(WispError::Failed(why));
         }
-        let up = tokio::spawn(up(self.clone(), id, from_local, credit_rx, word_rx.clone(), close_at_end));
+        let up = tokio::spawn(up(self.clone(), id, from_local, credit_rx, word_rx.clone(), at));
         let down = tokio::spawn(down_task(self.clone(), id, down_rx, to_local));
         Ok(Opening { id, pipe: ours, word: word_rx, tasks: vec![up, down] })
     }
@@ -239,7 +240,7 @@ async fn up(
     mut from_local: ReadHalf<DuplexStream>,
     mut credit: watch::Receiver<u32>,
     mut word: watch::Receiver<Word>,
-    close_at_end: bool,
+    at: AtEnd,
 ) {
     let mut left = *credit.borrow_and_update();
     let mut buf = vec![0u8; super::CHUNK];
@@ -250,12 +251,11 @@ async fn up(
         };
         let n = match read {
             Ok(n) if n > 0 => n,
-            // Wisp has no half-close: a pipe waits for the server's end.
+            // Wisp has no half-close: a pipe waits for the server's end. A
+            // stream that ended is gone from the table, so the CLOSE after
+            // that end sends nothing.
             _ => {
-                match close_at_end {
-                    true => shared.close_here(id, Reason::VOLUNTARY).await,
-                    false => ended(&mut word).await,
-                }
+                end_of_input(at, ended(&mut word), shared.close_here(id, Reason::VOLUNTARY)).await;
                 return;
             }
         };

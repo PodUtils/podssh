@@ -24,7 +24,7 @@ pub(crate) async fn open(
     let status = Status::default();
     let kept = status.clone();
     let on_end: OnEnd = Box::new(move |end: &End| kept.set_once(ended(end)));
-    let mut stream = wisp.open_noting(host, port, dial.close_at_end, Some(on_end)).await.map_err(refused)?;
+    let mut stream = wisp.open_noting(host, port, dial.at_end, Some(on_end)).await.map_err(refused)?;
     let wait = if wisp.confirms() { dial.timeout } else { EARLY_WAIT };
     if let Err(e) = stream.opened(wait).await {
         stream.close().await;

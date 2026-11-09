@@ -25,6 +25,8 @@ use std::time::Duration;
 pub use handshake::{answer, Opened};
 pub use packet::Reason;
 pub use stream::WispStream;
+// What the end of a stream's input does, as on each forwarder's road.
+pub use crate::forwarder::AtEnd;
 
 use crate::client::ConnectError;
 use crate::dial::ProxyChoice;
@@ -188,12 +190,13 @@ impl Wisp {
     }
 
     /// A stream to `host:port`: its CONNECT is sent, and its bytes may go at
-    /// once, within the buffer of the opening. With `close_at_end`, the end
-    /// of the caller's bytes sends a CLOSE (Wisp has no half-close); else
-    /// the stream waits for the server's CLOSE, as the target may still
-    /// answer. The host is checked as each target of the relay is.
-    pub async fn open(&self, host: &str, port: u16, close_at_end: bool) -> Result<WispStream, WispError> {
-        self.open_noting(host, port, close_at_end, None).await
+    /// once, within the buffer of the opening. With [`AtEnd::Now`], the end
+    /// of the caller's bytes sends a CLOSE (Wisp has no half-close); with
+    /// [`AtEnd::AfterPeer`], the stream waits for the server's CLOSE, as the
+    /// target may still answer. The host is checked as each target of the
+    /// relay is.
+    pub async fn open(&self, host: &str, port: u16, at: AtEnd) -> Result<WispStream, WispError> {
+        self.open_noting(host, port, at, None).await
     }
 
     /// [`Wisp::open`], with `on_end` called at the stream's end.
@@ -201,10 +204,10 @@ impl Wisp {
         &self,
         host: &str,
         port: u16,
-        close_at_end: bool,
+        at: AtEnd,
         on_end: Option<OnEnd>,
     ) -> Result<WispStream, WispError> {
-        let opening = self.shared.open(host, port, close_at_end, on_end).await?;
+        let opening = self.shared.open(host, port, at, on_end).await?;
         Ok(WispStream::new(opening, self.shared.clone()))
     }
 }

@@ -8,7 +8,7 @@
 use std::sync::Arc;
 
 use podssh_ssh::Log;
-use podssh_ws::vless::{self, Dial, VlessError};
+use podssh_ws::vless::{self, AtEnd, Dial, VlessError};
 use podssh_ws::{DialError, ProxyChoice, Trust};
 
 use super::Servers;
@@ -34,7 +34,7 @@ pub async fn reach(
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
         answer: vless::ANSWER_WAIT,
         silence_is_ready: false,
-        close_at_end: true,
+        at_end: AtEnd::Now,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {

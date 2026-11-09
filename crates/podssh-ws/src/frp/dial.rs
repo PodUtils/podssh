@@ -102,7 +102,7 @@ pub async fn connect(
             session.set_receive_cap(RECEIVE_CAP);
             // frps sends no text message; one would be no part of yamux.
             let note: Note = std::sync::Arc::new(|_: &str| {});
-            let (carried, _first) = carry::spawn(session, Form::Query, false, note, PEER);
+            let (carried, _first) = carry::spawn(session, Form::Query, crate::forwarder::AtEnd::AfterPeer, note, PEER);
             Ok(Box::new(carried.stream))
         }
     }

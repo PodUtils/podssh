@@ -43,7 +43,7 @@ use crate::session::RelaySession;
 use crate::tls::Trust;
 use crate::url::{Stream, WsUrl};
 
-pub use crate::forwarder::{Carried, Ended, Status};
+pub use crate::forwarder::{AtEnd, Carried, Ended, Status};
 pub use token::{claims, host_claim, sign, uuid_text, KEY, PREFIX};
 
 /// The path prefix of a client that names none, wstunnel's
@@ -244,9 +244,9 @@ pub struct Dial<'a> {
     pub proxy: &'a ProxyChoice,
     /// Bound on the dial, TLS and the upgrade.
     pub timeout: Duration,
-    /// Whether the end of this side's bytes sends a Close at once (an SSH
-    /// session's end), or waits for the server's, as a pipe does.
-    pub close_at_end: bool,
+    /// What the end of this side's bytes does: a Close at once (an SSH
+    /// session's end), or after the server's end, as a pipe waits.
+    pub at_end: AtEnd,
 }
 
 /// Why a server carried no tunnel.
@@ -308,7 +308,7 @@ pub async fn open(
     // The server dialed the target before its 101: there is no answer to
     // wait for, and a text frame, which it never sends, would be a note.
     let note: crate::forwarder::Note = std::sync::Arc::new(|_: &str| {});
-    let (carried, _first) = carry::spawn(session, Form::Query, dial.close_at_end, note, PEER);
+    let (carried, _first) = carry::spawn(session, Form::Query, dial.at_end, note, PEER);
     Ok(carried)
 }
 

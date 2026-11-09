@@ -23,7 +23,7 @@ use std::time::Duration;
 use crate::dial::DialError;
 use crate::via::Duplex;
 
-pub use crate::vless::Dial;
+pub use crate::vless::{AtEnd, Dial};
 pub use link::{Password, Server, Transport};
 
 /// How long a session whose server speaks first waits for its first bytes.

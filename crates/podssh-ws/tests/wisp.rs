@@ -7,8 +7,12 @@
 //! fails); a stream that the server closes gives its reason; version 2
 //! opens with both INFOs, and a server that requires a credential is
 //! refused; the forwarder's road `wisp+ws://` carries a session with no
-//! token.
+//! token. Wisp has no half-close: a pipe's end of input sends no CLOSE, and
+//! 1 MiB still on its way comes whole once the server's CLOSE ends it
+//! (T-699).
 
+#[path = "common/talker.rs"]
+mod talker;
 mod wisp_support;
 
 use std::sync::{Arc, Mutex};
@@ -16,7 +20,7 @@ use std::time::{Duration, Instant};
 
 use podssh_ws::forwarder::{self, Dial, Ended, Template};
 use podssh_ws::url::WsUrl;
-use podssh_ws::wisp::{Connect, End, Reason, Wisp, WispError, WispStream};
+use podssh_ws::wisp::{AtEnd, Connect, End, Reason, Wisp, WispError, WispStream};
 use podssh_ws::{ProxyChoice, Trust};
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -77,8 +81,8 @@ async fn two_streams_at_once_on_one_websocket_each_carry_their_bytes() {
     let wisp = connect(stand.port, &notes).await.unwrap();
     assert_eq!((wisp.opened().version, wisp.opened().buffer, wisp.confirms()), ((1, 0), 4, false));
     let (a, b) = (echo().await, echo().await);
-    let first = wisp.open("127.0.0.1", a, true).await.unwrap();
-    let second = wisp.open("127.0.0.1", b, true).await.unwrap();
+    let first = wisp.open("127.0.0.1", a, AtEnd::Now).await.unwrap();
+    let second = wisp.open("127.0.0.1", b, AtEnd::Now).await.unwrap();
     assert_eq!((first.id(), second.id()), (1, 2));
     let (one, two) = tokio::join!(round_trip(first, MIB, 1), round_trip(second, MIB, 2));
     assert_eq!(one.0, one.1, "the first stream's digests");
@@ -99,7 +103,7 @@ async fn the_client_sends_no_data_past_the_server_s_credit() {
     let stand = StandIn::start(Speaks::V1, 4).await;
     let notes = Notes::default();
     let wisp = connect(stand.port, &notes).await.unwrap();
-    let mut held = wisp.open("hold.test", 9, true).await.unwrap();
+    let mut held = wisp.open("hold.test", 9, AtEnd::Now).await.unwrap();
     assert_eq!(held.id(), 1);
     let filler = tokio::spawn(async move {
         // 2 MiB, past the credit and past the pipe in memory: it blocks.
@@ -107,7 +111,7 @@ async fn the_client_sends_no_data_past_the_server_s_credit() {
         held
     });
     until("the credit's 4 packets", || stand.data_of(1) >= 4).await;
-    let other = wisp.open("127.0.0.1", echo().await, true).await.unwrap();
+    let other = wisp.open("127.0.0.1", echo().await, AtEnd::Now).await.unwrap();
     let (sent, back) = round_trip(other, 256 * 1024, 3).await;
     assert_eq!(sent, back, "the other stream is not held up");
     tokio::time::sleep(Duration::from_millis(300)).await;
@@ -124,18 +128,18 @@ async fn a_stream_that_the_server_closes_gives_its_reason() {
     let stand = StandIn::start(Speaks::V1, 16).await;
     let notes = Notes::default();
     let wisp = connect(stand.port, &notes).await.unwrap();
-    let mut blocked = wisp.open("close-48.test", 22, true).await.unwrap();
+    let mut blocked = wisp.open("close-48.test", 22, AtEnd::Now).await.unwrap();
     let refused = blocked.opened(LIMIT).await.unwrap_err();
     assert_eq!(refused, WispError::Closed(Reason::BLOCKED));
     assert_eq!(refused.to_string(), "the Wisp server closed the stream: 0x48, the server blocks this destination");
     assert_eq!(blocked.end(), Some(End::Closed(Reason(0x48))));
     // The connection lives on: another stream opens and carries.
-    let fine = wisp.open("127.0.0.1", echo().await, true).await.unwrap();
+    let fine = wisp.open("127.0.0.1", echo().await, AtEnd::Now).await.unwrap();
     let (sent, back) = round_trip(fine, 64 * 1024, 5).await;
     assert_eq!(sent, back);
     // Through the forwarder's road, the reason is in the forwarder's line.
     let template = Template::parse(&format!("wisp+ws://127.0.0.1:{}/", stand.port)).unwrap();
-    let road = dial(&notes, true);
+    let road = dial(&notes, AtEnd::Now);
     let e = forwarder::open(&template, "close-42.test", 22, &road).await.unwrap_err();
     let line = e.line(template.shown());
     let want = format!("the forwarder wisp+ws://127.0.0.1:{}/: the Wisp server closed the stream: 0x42", stand.port);
@@ -155,11 +159,11 @@ async fn version_2_opens_with_both_infos_and_confirms_each_stream() {
     // each with no payload; no UDP.
     let info = stand.seen.lock().unwrap().client_infos.clone();
     assert_eq!(info, [vec![2, 1, 0x04, 0, 0, 0, 0, 0x05, 0, 0, 0, 0]]);
-    let mut stream = wisp.open("127.0.0.1", echo().await, true).await.unwrap();
+    let mut stream = wisp.open("127.0.0.1", echo().await, AtEnd::Now).await.unwrap();
     stream.opened(LIMIT).await.unwrap();
     let (sent, back) = round_trip(stream, 256 * 1024, 9).await;
     assert_eq!(sent, back);
-    let mut refused = wisp.open("close-44.test", 22, true).await.unwrap();
+    let mut refused = wisp.open("close-44.test", 22, AtEnd::Now).await.unwrap();
     assert_eq!(refused.opened(LIMIT).await.unwrap_err(), WispError::Closed(Reason::REFUSED));
 }
 
@@ -178,10 +182,10 @@ async fn version_2_refusals_say_why() {
     assert_eq!(e, WispError::Refused(Reason::THROTTLED));
 }
 
-fn dial(notes: &Notes, close_at_end: bool) -> Dial<'static> {
+fn dial(notes: &Notes, at_end: AtEnd) -> Dial<'static> {
     let kept = notes.clone();
     let note = Arc::new(move |text: &str| kept.lock().unwrap().push(text.to_string()));
-    Dial { trust: &TRUST, proxy: &PROXY, timeout: LIMIT, close_at_end, note }
+    Dial { trust: &TRUST, proxy: &PROXY, timeout: LIMIT, at_end, note }
 }
 
 /// The forwarder's road: a session of 1 MiB each way, no token, and this
@@ -192,7 +196,7 @@ async fn the_forwarder_s_road_carries_a_session_and_closes_its_stream_at_the_end
     let notes = Notes::default();
     let template = Template::parse(&format!("wisp+ws://127.0.0.1:{}/", stand.port)).unwrap();
     let target = echo().await;
-    let carried = forwarder::open(&template, "127.0.0.1", target, &dial(&notes, true)).await.unwrap();
+    let carried = forwarder::open(&template, "127.0.0.1", target, &dial(&notes, AtEnd::Now)).await.unwrap();
     let data = pattern(MIB, 11);
     let (mut rd, mut wr) = tokio::io::split(carried.stream);
     let sent = data.clone();
@@ -214,6 +218,28 @@ async fn the_forwarder_s_road_carries_a_session_and_closes_its_stream_at_the_end
     assert!(seen.headers[0].iter().all(|h| h != "x-relay-token" && h != "authorization"), "{:?}", seen.headers);
 }
 
+/// A pipe's end of input on the forwarder's road (T-699): this side's input
+/// ends at once, while the target's 1 MiB is still on its way. Wisp has no
+/// half-close: a stream that this side closed takes no more DATA. So the
+/// pipe sends no CLOSE, the server's CLOSE ends the stream, and each byte
+/// comes. Planted, a CLOSE at the first end, the rest is lost.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pipe_s_end_of_input_sends_no_close_and_loses_no_byte() {
+    let stand = StandIn::start(Speaks::V1, 8).await;
+    let notes = Notes::default();
+    let template = Template::parse(&format!("wisp+ws://127.0.0.1:{}/", stand.port)).unwrap();
+    let target = talker::talker().await;
+    let carried = forwarder::open(&template, "127.0.0.1", target, &dial(&notes, AtEnd::AfterPeer)).await.unwrap();
+    let mut stream = carried.stream;
+    stream.shutdown().await.unwrap();
+    let got = talker::to_end(&mut stream).await;
+    talker::assert_whole(&got, "wisp+ws://");
+    let end = carried.status.get();
+    assert_eq!(end, Some(Ended::Closed { code: Some(1000), reason: "the target closed".into() }));
+    let closes = stand.seen.lock().unwrap().closes.clone();
+    assert!(closes.is_empty(), "no CLOSE of the client's: {closes:?}");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn reference_two_streams_at_once_each_carry_their_bytes() {
     let Some(server) = reference::start() else { return };
@@ -222,8 +248,8 @@ async fn reference_two_streams_at_once_each_carry_their_bytes() {
     // Version 1 with 128 packets of credit, as its source says.
     assert_eq!((wisp.opened().version, wisp.opened().buffer), ((1, 0), 128));
     let (a, b) = (echo().await, echo().await);
-    let first = wisp.open("127.0.0.1", a, true).await.unwrap();
-    let second = wisp.open("127.0.0.1", b, true).await.unwrap();
+    let first = wisp.open("127.0.0.1", a, AtEnd::Now).await.unwrap();
+    let second = wisp.open("127.0.0.1", b, AtEnd::Now).await.unwrap();
     // 5 MiB each: past 128 packets of 32 KiB, so each goes on only by the
     // server's CONTINUE.
     let (one, two) = tokio::join!(round_trip(first, 5 * MIB, 21), round_trip(second, 5 * MIB, 22));
@@ -236,17 +262,17 @@ async fn reference_a_stream_that_the_server_closes_gives_its_reason() {
     let Some(server) = reference::start() else { return };
     let notes = Notes::default();
     let wisp = connect(server.port, &notes).await.unwrap();
-    let mut nowhere = wisp.open("127.0.0.1", closed_port(), true).await.unwrap();
+    let mut nowhere = wisp.open("127.0.0.1", closed_port(), AtEnd::Now).await.unwrap();
     let refused = nowhere.opened(LIMIT).await.unwrap_err();
     assert_eq!(refused, WispError::Closed(Reason::UNREACHABLE), "its one reason for a stream it cannot open");
     // A target that says its words and closes: its bytes, then 0x02.
-    let mut said = wisp.open("127.0.0.1", greeter(b"hello from the target\n").await, false).await.unwrap();
+    let mut said = wisp.open("127.0.0.1", greeter(b"hello from the target\n").await, AtEnd::AfterPeer).await.unwrap();
     let mut all = Vec::new();
     tokio::time::timeout(LIMIT, said.read_to_end(&mut all)).await.expect("within the limit").unwrap();
     assert_eq!(all, b"hello from the target\n");
     assert_eq!(said.end(), Some(End::Closed(Reason::VOLUNTARY)));
     // And through the forwarder's road.
     let template = Template::parse(&format!("wisp+ws://127.0.0.1:{}/", server.port)).unwrap();
-    let e = forwarder::open(&template, "127.0.0.1", closed_port(), &dial(&notes, true)).await.unwrap_err();
+    let e = forwarder::open(&template, "127.0.0.1", closed_port(), &dial(&notes, AtEnd::Now)).await.unwrap_err();
     assert!(e.line(template.shown()).contains("closed the stream: 0x42"), "{}", e.line(template.shown()));
 }

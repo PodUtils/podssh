@@ -15,6 +15,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream
 use tokio::sync::{oneshot, Notify};
 use tokio::task::JoinHandle;
 
+use super::end::{end_of_input, AtEnd};
 use super::template::Form;
 use super::Note;
 use crate::frame;
@@ -110,14 +111,15 @@ fn note_text(payload: &[u8]) -> String {
 }
 
 /// Start copying; the receiver gets the forwarder's first word. With
-/// `close_at_end`, the end of this side's bytes sends a Close at once (an
-/// SSH session that is done); else the session waits for the forwarder's
-/// end, as the target may still answer (a pipe). `peer` names the other end
-/// in a failure's words: `the forwarder`, `the wstunnel server`.
+/// [`AtEnd::Now`], the end of this side's bytes sends a Close at once (an
+/// SSH session that is done); with [`AtEnd::AfterPeer`], the session waits
+/// for the forwarder's end, as the target may still answer (a pipe). `peer`
+/// names the other end in a failure's words: `the forwarder`, `the wstunnel
+/// server`.
 pub(crate) fn spawn<S>(
     session: RelaySession<S>,
     form: Form,
-    close_at_end: bool,
+    at: AtEnd,
     note: Note,
     peer: &'static str,
 ) -> (Carried, oneshot::Receiver<First>)
@@ -148,10 +150,10 @@ where
             };
             match read {
                 Ok(0) | Err(_) => {
-                    if !close_at_end {
-                        down_ended_rx.notified().await;
-                    }
-                    let _ = up_session.send_close(1000, "").await;
+                    let close = async {
+                        let _ = up_session.send_close(1000, "").await;
+                    };
+                    end_of_input(at, down_ended_rx.notified(), close).await;
                     return;
                 }
                 Ok(n) => {

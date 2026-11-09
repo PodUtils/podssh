@@ -45,17 +45,33 @@ Each fact has a label:
 podssh tries the roads in this order. When two roads are possible, podssh
 races them. [carriers.md](carriers.md) studies the carriers that need no relay of the operator's.
 
-| Far end | First | Then | Last |
-| --- | --- | --- | --- |
-| A podssh node or peer (a name or a ticket) | The iroh road (direct when UDP works, else through a relay) | The reverse road with the resumable layer | The DERP road through tailcat's fleet (T-379): 250 ms after the reverse road with `--derp-ticket`, or a ticket kept under the name once the roads before it failed |
-| A standard sshd, public | The forward road, with failover across relay hosts; or the forwarders of `--forwarder` (T-369) | The direct road (`--direct`, or once when each relay host failed and the user named no relay, with the server's version line as its probe, T-363; `PODSSH_DIRECT=no` turns it off) | The public forwarders that the binary names, after each relay host of podssh's choice failed with no word about the target and after the direct road (T-370, Q56; never after the relay's 502 about the target or its refusal by policy, T-509, Q69; `PODSSH_FORWARDER_FALLBACK=no` turns them off), the Wisp demo server last (T-438, Q65) |
-| A standard sshd behind a podssh `roost` (`podssh node NAME --sshd`) | The iroh or reverse road to the roost | The forward road | None |
-| A tailnet node | The tailscale road (feature `ts`) | None | None |
-| A service that `cloudflared` publishes (`cf://HOST`) | The WebSocket of the tunnel, as `cloudflared access tcp` opens it, through `HTTPS_PROXY` | None | None |
-| A VM of the user's on GCP (`iap://PROJECT/ZONE/INSTANCE`) | IAP's WebSocket for TCP, as `gcloud compute start-iap-tunnel` opens it, through `HTTPS_PROXY` | None | None |
-| An EC2 instance of the user's (`eice://ENDPOINT/ADDRESS`) | The WebSocket of an EC2 Instance Connect Endpoint, its URL presigned as aws-cli presigns it, through `HTTPS_PROXY` | None | None |
-| A port of any host, through WARP's network (`warp://HOST`, feature `warp`) | WARP's MASQUE over HTTP/2 to Cloudflare's endpoint by its address, through `HTTPS_PROXY`, with TCP inside in this process (T-352) | None | None |
-| A port of any host, through the Tor network (`tor://HOST`, feature `tor`) | Arti in this process, each first hop through `HTTPS_PROXY` on the ports that it allows (T-353), or the user's bridges, through meek_lite or WebTunnel in this process (T-385) | None | None |
+| Far end | First | Then | Last | A pipe's end of input (T-699) |
+| --- | --- | --- | --- | --- |
+| A podssh node or peer (a name or a ticket) | The iroh road (direct when UDP works, else through a relay) | The reverse road with the resumable layer | The DERP road through tailcat's fleet (T-379): 250 ms after the reverse road with `--derp-ticket`, or a ticket kept under the name once the roads before it failed | Ends the session, after the bytes on their way (`podssh operator`, `node://`) |
+| A standard sshd, public | The forward road, with failover across relay hosts; or the forwarders of `--forwarder` (T-369) | The direct road (`--direct`, or once when each relay host failed and the user named no relay, with the server's version line as its probe, T-363; `PODSSH_DIRECT=no` turns it off) | The public forwarders that the binary names, after each relay host of podssh's choice failed with no word about the target and after the direct road (T-370, Q56; never after the relay's 502 about the target or its refusal by policy, T-509, Q69; `PODSSH_FORWARDER_FALLBACK=no` turns them off), the Wisp demo server last (T-438, Q65) | The forward road sends nothing, and the target's bytes come until it closes, or until the relay's 15 s of its silence ([relay.md](relay.md)); in the resumable layer, the layer's `END`, a half-close of the relay's connection to the target (T-632). The direct road: TCP's half-close (`podssh pipe tcp:`; `podssh proxy` has no direct road). A forwarder sends no Close, nor a Wisp server's CLOSE, until its own end (`AtEnd::AfterPeer`) |
+| A standard sshd behind a podssh `roost` (`podssh node NAME --sshd`) | The iroh or reverse road to the roost | The forward road | None | As the node's road, and as the forward road |
+| A tailnet node | The tailscale road (feature `ts`) | None | None | TCP's half-close, then the stream is read until it ends, or for 15 s of its silence |
+| A service that `cloudflared` publishes (`cf://HOST`) | The WebSocket of the tunnel, as `cloudflared access tcp` opens it, through `HTTPS_PROXY` | None | None | Sends nothing: the service's bytes come until it ends |
+| A VM of the user's on GCP (`iap://PROJECT/ZONE/INSTANCE`) | IAP's WebSocket for TCP, as `gcloud compute start-iap-tunnel` opens it, through `HTTPS_PROXY` | None | None | Ends the session once its bytes went: IAP has no half-close |
+| An EC2 instance of the user's (`eice://ENDPOINT/ADDRESS`) | The WebSocket of an EC2 Instance Connect Endpoint, its URL presigned as aws-cli presigns it, through `HTTPS_PROXY` | None | None | Sends nothing: receiving goes on, as on the relay |
+| A port of any host, through WARP's network (`warp://HOST`, feature `warp`) | WARP's MASQUE over HTTP/2 to Cloudflare's endpoint by its address, through `HTTPS_PROXY`, with TCP inside in this process (T-352) | None | None | TCP's half-close, a FIN of the stack in this process |
+| A port of any host, through the Tor network (`tor://HOST`, feature `tor`) | Arti in this process, each first hop through `HTTPS_PROXY` on the ports that it allows (T-353), or the user's bridges, through meek_lite or WebTunnel in this process (T-385) | None | None | The shutdown of Arti's stream; how the exit passes it on was not read for this table (2026-11-09) |
+
+**The end of a pipe's input (T-699).** An SSH session's end closes its
+road at once (`AtEnd::Now`): the session is done. On the roads of a server
+that the user names, a pipe's end of input: `--vless` over a WebSocket and
+on packet-up sends nothing until the server's end, and stream-up and
+stream-one end their upload; `--trojan` in TLS alone is TCP's half-close,
+and over a WebSocket sends nothing until the server's end; `--wstunnel`
+sends nothing until the server's end; `--shadowsocks` is TCP's half-close,
+which the server passes on; `--via` is the tunnel's half-close. Each
+carrier of a WebSocket or a Wisp stream of these roads asks one helper
+(`crates/podssh-ws/src/forwarder/end.rs`), and each road names its
+`AtEnd`, which has no default, so that a new road cannot take another's
+choice by a copied bool. MEASURED UNVERIFIED: for each road, this side's
+input ends while 1 MiB is on its way to it, and each byte comes, or, where
+the road half-closes, the echo of 1 MiB comes whole:
+`cargo test -p podssh-ws --test forwarder --test wisp --test vless --test trojan --test wstunnel --test shadowsocks`.
 
 Each road has the same rules:
 

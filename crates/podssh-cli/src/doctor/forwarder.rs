@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use podssh_relay::relay::RelayList;
 use podssh_ws::dial::{self, ProxyChoice};
-use podssh_ws::forwarder::Dial;
+use podssh_ws::forwarder::{AtEnd, Dial};
 use podssh_ws::{Trust, Verdict};
 
 use super::relay_checks::{forward_host, github_keys, judge_unlisted, published_keys, TIMEOUT};
@@ -63,7 +63,7 @@ pub(super) async fn check(report: &mut Report<'_>, forwarders: &[Forwarder], tru
             trust,
             proxy: &ProxyChoice::FromEnvironment,
             timeout: TIMEOUT,
-            close_at_end: true,
+            at_end: AtEnd::Now,
             note: Arc::new(|_: &str| {}),
         };
         let carried = match podssh_ws::forwarder::open(&forwarder.template, forward_host(), 22, &road).await {

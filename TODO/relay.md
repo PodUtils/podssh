@@ -779,7 +779,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    a slow target also starts the next host. Measure the open times through a proxy in the box,
    and record D in `docs/STATUS.md`.
 3. Send a Close to each attempt that is not kept, at once. The relay then frees the target
-   socket within 15 s (`docs/design.md:659-661`, `docs/relay.md:539`); the target still sees one
+   socket within 15 s (`docs/design.md:675-677`, `docs/relay.md:539`); the target still sees one
    short connection, because the relay dials it before the upgrade.
 4. One mint at a time for each relay deployment (single flight, keyed as T-057 keys the cache),
    against the brake of `docs/relay.md:476`. When the minting attempt is the silent one, the next
@@ -5468,7 +5468,7 @@ Podcrates T-120 takes the document at its import; podssh writes it first.
 - `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
   gives it.
 - `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
-- `docs/design.md:1266`: a test vector exists for iroh's tickets only.
+- `docs/design.md:1282`: a test vector exists for iroh's tickets only.
 
 ## Approach
 

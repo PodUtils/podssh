@@ -30,6 +30,7 @@ use crate::dial::{DialError, ProxyChoice};
 use crate::tls::Trust;
 use crate::via::Duplex;
 
+pub use crate::forwarder::AtEnd;
 pub use extra::Extra;
 pub use header::{not_vless, ENDED};
 pub use link::{Id, Mode, Server, Transport};
@@ -51,9 +52,10 @@ pub struct Dial<'a> {
     pub answer: Duration,
     /// Whether no answer within that wait is a stream to take (a pipe).
     pub silence_is_ready: bool,
-    /// Whether the end of this side's bytes ends a WebSocket at once (an SSH
-    /// session), or the session waits for the server's end (a pipe).
-    pub close_at_end: bool,
+    /// What the end of this side's bytes does to a WebSocket: its end at
+    /// once (an SSH session), or after the server's end (a pipe). XHTTP's
+    /// modes do not read it: that end ends their upload alone.
+    pub at_end: AtEnd,
 }
 
 /// Why a VLESS server carried no session.

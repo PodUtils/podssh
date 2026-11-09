@@ -6,13 +6,18 @@
 //! never bytes of the stream; a Close before the target's bytes and a
 //! failed answer name the forwarder and say why; no request carries a
 //! token; a template with one placeholder, or one twice, and a target with
-//! `&`, are refused before anything is dialed.
+//! `&`, are refused before anything is dialed. A pipe's end of input sends no
+//! Close until the forwarder's end, so that 1 MiB still on its way comes
+//! whole (T-699).
+
+#[path = "common/talker.rs"]
+mod talker;
 
 use std::net::Ipv4Addr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use podssh_ws::forwarder::{self, Dial, Ended, Form, ForwarderError, Template};
+use podssh_ws::forwarder::{self, AtEnd, Dial, Ended, Form, ForwarderError, Template};
 use podssh_ws::{frame, ProxyChoice, RelaySession, Trust};
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -180,8 +185,12 @@ async fn echo() -> u16 {
     port
 }
 
-/// The road's settings for a test, its notes kept.
+/// The road's settings for a test, its notes kept: an SSH session's end.
 fn dial(notes: &Arc<Mutex<Vec<String>>>) -> Dial<'static> {
+    dial_ending(notes, AtEnd::Now)
+}
+
+fn dial_ending(notes: &Arc<Mutex<Vec<String>>>, at_end: AtEnd) -> Dial<'static> {
     static TRUST: Trust = Trust::Default;
     static PROXY: ProxyChoice = ProxyChoice::Direct;
     let kept = notes.clone();
@@ -189,7 +198,7 @@ fn dial(notes: &Arc<Mutex<Vec<String>>>) -> Dial<'static> {
         trust: &TRUST,
         proxy: &PROXY,
         timeout: LIMIT,
-        close_at_end: true,
+        at_end,
         note: Arc::new(move |text: &str| kept.lock().unwrap().push(text.to_string())),
     }
 }
@@ -291,6 +300,30 @@ async fn a_failed_answer_says_why_and_the_session_does_not_start() {
     let line = refused.line(template.shown());
     assert!(line.contains("could not reach the target (failed): dial tcp 192.0.2.1:22: i/o timeout"), "{line}");
     assert!(line.starts_with(&format!("the forwarder ws://127.0.0.1:{port}/p")), "{line}");
+}
+
+/// A pipe's end of input (T-699): this side's input ends at once, while the
+/// target's 1 MiB is still on its way. A Close is no half-close, and the
+/// stand-in answers one at once and sends nothing after it, as RFC 6455
+/// allows; so the pipe sends its Close only after the forwarder's, and each
+/// byte comes, in the query form and the frame form. Planted, a Close at the
+/// first end, the rest is lost.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pipe_s_end_of_input_waits_for_the_forwarder_s_end_and_loses_no_byte() {
+    for (form, path) in [(Form::Query, "/?host={host}&port={port}"), (Form::Frame, "/p")] {
+        let target = talker::talker().await;
+        let (port, _) = stand_in(form, Act::Carry(Vec::new())).await;
+        let template = Template::parse(&format!("ws://127.0.0.1:{port}{path}")).unwrap();
+        let notes = Arc::default();
+        let road = dial_ending(&notes, AtEnd::AfterPeer);
+        let carried = forwarder::open(&template, "127.0.0.1", target, &road).await.unwrap();
+        let mut stream = carried.stream;
+        stream.shutdown().await.unwrap();
+        let got = talker::to_end(&mut stream).await;
+        talker::assert_whole(&got, &format!("{form:?}"));
+        let end = carried.status.get();
+        assert_eq!(end, Some(Ended::Closed { code: Some(1000), reason: "TCP connection closed".into() }), "{form:?}");
+    }
 }
 
 /// A template that is not one, and a target that would change its URL, are

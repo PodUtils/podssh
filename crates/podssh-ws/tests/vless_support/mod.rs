@@ -24,6 +24,9 @@ pub mod cert {
     include!("../common/cert_for_test.rs");
 }
 
+// The target of the tests of a pipe's end of input (T-699).
+#[path = "../common/talker.rs"]
+pub mod talker;
 // The XHTTP stand-in's handler of each request.
 mod xhttp;
 // The XHTTP stand-in of HTTP/1.1, on the same table of sessions (T-456).

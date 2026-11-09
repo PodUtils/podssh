@@ -37,7 +37,7 @@ pub(super) async fn open(server: &Server, first: Vec<u8>, dial: &Dial<'_>) -> Re
         .send_binary(&first)
         .await
         .map_err(|e| TrojanError::Carry(format!("sending Trojan's request failed: {e}")))?;
-    Ok(crate::vless::ws::spawn(session, dial.close_at_end))
+    Ok(crate::vless::ws::spawn(session, dial.at_end))
 }
 
 /// The upgrade request: the link's path and `Host`, no subprotocol and no

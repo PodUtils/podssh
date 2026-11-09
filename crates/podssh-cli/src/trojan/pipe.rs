@@ -9,7 +9,7 @@
 
 use std::io::Write;
 
-use podssh_ws::trojan::{self, Dial};
+use podssh_ws::trojan::{self, AtEnd, Dial};
 use podssh_ws::{ProxyChoice, Trust};
 
 use super::Servers;
@@ -102,7 +102,7 @@ pub async fn open(
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
         answer: trojan::EARLY_WAIT,
         silence_is_ready: true,
-        close_at_end: false,
+        at_end: AtEnd::AfterPeer,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {

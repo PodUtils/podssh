@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use podssh_ssh::Log;
-use podssh_ws::forwarder::{Dial, Ended, ForwarderError, Note};
+use podssh_ws::forwarder::{AtEnd, Dial, Ended, ForwarderError, Note};
 use podssh_ws::{ConnectError, DialError, ProxyChoice, Trust};
 
 use super::Forwarder;
@@ -54,7 +54,7 @@ pub async fn carry(
             trust,
             proxy: &ProxyChoice::FromEnvironment,
             timeout,
-            close_at_end: true,
+            at_end: AtEnd::Now,
             note: noted(log, &forwarder.name),
         };
         let opened = match fallback {

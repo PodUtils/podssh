@@ -16,6 +16,7 @@ use tokio::sync::Notify;
 use super::link::Server;
 use super::{Dial, VlessError};
 use crate::client::{self, ConnectError};
+use crate::forwarder::end::{end_of_input, AtEnd};
 use crate::session::RelaySession;
 use crate::{frame, handshake, url};
 
@@ -49,7 +50,7 @@ pub(super) async fn open(server: &Server, first: Vec<u8>, dial: &Dial<'_>) -> Re
     let session = RelaySession::new(stream, pending, idle, client::WRITE_TIMEOUT).naming("the VLESS server");
     session.set_receive_cap(RECEIVE_CAP);
     session.send_binary(&first).await.map_err(|e| VlessError::Carry(format!("sending VLESS's request failed: {e}")))?;
-    Ok(spawn(session, dial.close_at_end))
+    Ok(spawn(session, dial.at_end))
 }
 
 /// The upgrade request: the link's path and `Host`, no subprotocol, no
@@ -88,7 +89,7 @@ fn failed(e: ConnectError, path: &str) -> VlessError {
 /// binary messages, the binary messages in as bytes. A text message is no
 /// part of VLESS's stream and is passed over. The server's Close, or a
 /// failure, ends the pipe's reading side, which the answer's reader sees.
-pub(crate) fn spawn<S>(session: RelaySession<S>, close_at_end: bool) -> DuplexStream
+pub(crate) fn spawn<S>(session: RelaySession<S>, at: AtEnd) -> DuplexStream
 where
     S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Send + 'static,
 {
@@ -111,10 +112,10 @@ where
                 Ok(0) | Err(_) => {
                     // A WebSocket has no half-close: a pipe waits for the
                     // server's end, as the target may still answer.
-                    if !close_at_end {
-                        down_ended_rx.notified().await;
-                    }
-                    let _ = up_session.send_close(1000, "").await;
+                    let close = async {
+                        let _ = up_session.send_close(1000, "").await;
+                    };
+                    end_of_input(at, down_ended_rx.notified(), close).await;
                     return;
                 }
                 Ok(n) => {

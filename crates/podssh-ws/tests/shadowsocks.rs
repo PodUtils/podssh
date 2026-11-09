@@ -338,6 +338,35 @@ async fn open_names_the_target_reads_the_answer_and_carries_bytes_each_way() {
     }
 }
 
+/// The end of this side's input is TCP's half-close (T-699): 1 MiB goes and
+/// this side's input ends at once, while the echo is still on its way; the
+/// server reads to the end of its input and the echo comes whole.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_end_of_input_is_a_half_close_and_the_echo_of_a_mebibyte_comes_whole() {
+    let method = Method::Chacha20IetfPoly1305;
+    let (port, server) = stand_in(method, b"stand-in", b"SSH-2.0-stand-in\r\n").await;
+    let node = Node::new(method, "stand-in", "127.0.0.1", port).unwrap();
+    let opened = shadowsocks::open(&node, "target.test", 2222, &dial(Duration::from_secs(5))).await.unwrap();
+    let (mut read, mut write) = tokio::io::split(opened.carried.stream);
+    let sent = data(1 << 20);
+    let kept = sent.clone();
+    let writer = tokio::spawn(async move {
+        write.write_all(&kept).await.unwrap();
+        write.shutdown().await.unwrap();
+    });
+    let mut all = Vec::new();
+    let read_all = tokio::time::timeout(Duration::from_secs(30), read.read_to_end(&mut all));
+    read_all.await.expect("the end within the limit").unwrap();
+    writer.await.unwrap();
+    let banner: &[u8] = b"SSH-2.0-stand-in\r\n";
+    assert!(all.starts_with(banner), "the answer first");
+    let echo = &all[banner.len()..];
+    assert_eq!(echo.len(), sent.len(), "the echo after the end of this side's input");
+    assert!(echo == sent.as_slice(), "the echo came changed");
+    assert_eq!(server.await.unwrap().as_deref(), Some("target.test:2222"));
+    assert_eq!(opened.carried.status.get(), None, "an ordinary end");
+}
+
 #[tokio::test]
 async fn a_wrong_password_ends_in_silence_that_names_the_server_and_not_the_password() {
     let method = Method::Chacha20IetfPoly1305;

@@ -133,7 +133,7 @@ pub async fn open(server: &Server, dial: &Dial<'_>) -> Result<Carried, UptermErr
     let session = RelaySession::new(stream, pending, None, WRITE_TIMEOUT).naming(PEER);
     session.set_receive_cap(RECEIVE_CAP);
     let note: crate::forwarder::Note = std::sync::Arc::new(|_: &str| {});
-    let (carried, first) = carry::spawn(session, Form::Query, true, note, PEER);
+    let (carried, first) = carry::spawn(session, Form::Query, crate::forwarder::AtEnd::Now, note, PEER);
     // uptermd speaks first (its SSH version line), so a Close before it is
     // its word on the session; silence is left to SSH's own limit.
     match tokio::time::timeout(EARLY_WAIT, first).await {

@@ -15,6 +15,8 @@
 pub mod builtin;
 // A wstunnel server's session is carried the same way (T-441).
 pub(crate) mod carry;
+// The end of this side's input, for each carrier of these roads (T-699).
+pub(crate) mod end;
 mod template;
 
 use std::sync::Arc;
@@ -27,6 +29,7 @@ use crate::dial::ProxyChoice;
 use crate::tls::Trust;
 
 pub use carry::{Carried, Ended, Status};
+pub use end::AtEnd;
 pub use template::{Form, Template, HOST, PORT, WISP};
 
 /// Where each text frame of a forwarder goes, one safe line each.
@@ -51,10 +54,10 @@ pub struct Dial<'a> {
     /// Bound on the dial, on the upgrade, and on the answer of the frame
     /// form.
     pub timeout: Duration,
-    /// Whether the end of this side's bytes sends a Close at once (an SSH
-    /// session's end), or the session waits for the forwarder's end, as the
-    /// target may still answer (a pipe).
-    pub close_at_end: bool,
+    /// What the end of this side's bytes does: a Close at once (an SSH
+    /// session's end), or after the forwarder's end, as the target may still
+    /// answer (a pipe).
+    pub at_end: AtEnd,
     pub note: Note,
 }
 
@@ -141,7 +144,7 @@ pub async fn open(template: &Template, host: &str, port: u16, dial: &Dial<'_>) -
             .map_err(|e| ForwarderError::Answer(format!("sending the target failed: {e}")))?;
     }
     let form = template.form();
-    let (carried, first) = carry::spawn(session, form, dial.close_at_end, dial.note.clone(), "the forwarder");
+    let (carried, first) = carry::spawn(session, form, dial.at_end, dial.note.clone(), "the forwarder");
     let wait = if form == Form::Query { EARLY_WAIT } else { dial.timeout };
     let word = match tokio::time::timeout(wait, first).await {
         Ok(Ok(word)) => word,

@@ -5,18 +5,21 @@
 //! a server of HTTP/1.1 alone carries packet-up and stream-up on two
 //! connections and refuses stream-one (T-456, Q67); a pipe takes a stream
 //! whose target waits for its client; and the host's own proxy carries the
-//! TCP. The runs against Xray-core and shoes are `scripts/interop-vless.sh`.
+//! TCP. A pipe's end of input over a WebSocket sends no Close until the
+//! server's end, so that 1 MiB still on its way comes whole (T-699). The runs
+//! against Xray-core and shoes are `scripts/interop-vless.sh`.
 
 mod vless_support;
 
 use std::path::Path;
 use std::time::Duration;
 
-use podssh_ws::vless::{self, Dial, Mode, Opened, Server, Transport, VlessError};
+use podssh_ws::vless::{self, AtEnd, Dial, Mode, Opened, Server, Transport, VlessError};
 use podssh_ws::{Proxy, ProxyChoice, Trust};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use vless_support::{pins, root_file, target, ws_server, xhttp1_server, xhttp_server, BANNER, CLOSE_AFTER, ID, NAME};
+use vless_support::{pins, root_file, talker, target, ws_server, xhttp1_server, xhttp_server};
+use vless_support::{BANNER, CLOSE_AFTER, ID, NAME};
 
 const LIMIT: Duration = Duration::from_secs(20);
 
@@ -26,7 +29,8 @@ fn server(port: u16, query: &str, id: &str) -> Server {
 
 fn dial<'a>(trust: &'a Trust, proxy: &'a ProxyChoice, pipe: bool) -> Dial<'a> {
     let answer = if pipe { vless::EARLY_WAIT } else { vless::ANSWER_WAIT };
-    Dial { trust, proxy, timeout: LIMIT, answer, silence_is_ready: pipe, close_at_end: !pipe }
+    let at_end = if pipe { AtEnd::AfterPeer } else { AtEnd::Now };
+    Dial { trust, proxy, timeout: LIMIT, answer, silence_is_ready: pipe, at_end }
 }
 
 async fn open(server: &Server, port: u16, root: &Path, proxy: ProxyChoice, pipe: bool) -> Result<Opened, VlessError> {
@@ -195,6 +199,27 @@ async fn a_pipe_takes_the_stream_of_a_target_that_waits_for_its_client() {
     assert_eq!(&back, b"ping");
     let ssh = open(&link, aim, &root, ProxyChoice::Direct, false).await.err().unwrap();
     assert!(matches!(ssh, VlessError::Silent(_)), "{}", ssh.line("x", "y"));
+    let _ = std::fs::remove_dir_all(root.parent().unwrap());
+}
+
+/// A pipe's end of input over a WebSocket (T-699): this side's input ends at
+/// once, while the target's 1 MiB is still on its way. A WebSocket has no
+/// half-close, and the stand-in answers a Close at once and sends nothing
+/// after it, as RFC 6455 allows; so the pipe sends its Close
+/// only after the server's, and each byte comes. Planted, a Close at the
+/// first end, the rest is lost.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_pipe_s_end_of_input_over_a_websocket_waits_for_the_server_and_loses_no_byte() {
+    pins();
+    let (root, aim) = (root_file("end"), talker::talker().await);
+    let (ws, _) = ws_server().await;
+    let mut opened = open(&server(ws, "type=ws&path=%2Fws", ID), aim, &root, ProxyChoice::Direct, true)
+        .await
+        .unwrap_or_else(|e| panic!("{}", e.line("ws", "target")));
+    assert!(opened.answered, "the target's first piece is VLESS's answer");
+    opened.stream.shutdown().await.unwrap();
+    let got = talker::to_end(&mut opened.stream).await;
+    talker::assert_whole(&got, "VLESS over a WebSocket");
     let _ = std::fs::remove_dir_all(root.parent().unwrap());
 }
 

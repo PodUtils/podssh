@@ -1500,7 +1500,7 @@ warning, and the gate checks the format and the lints".
 # T-216: Advisories and licenses of the dependencies, checked in CI
 
 **Source:** the triage of GitHub #27 (2026-10-08); the advisories of iroh
-(`docs/design.md:1171-1173`) show that a dependency can get one.
+(`docs/design.md:1187-1189`) show that a dependency can get one.
 **Category:** chore
 **Milestone:** none
 **Priority:** P2
@@ -4133,7 +4133,7 @@ as `PodUtils/podssh:crates/podssh-ws/src/crypto/aead.rs` calls both through one 
   the last of each line on Rust 1.85; ctutils before 0.4.7 has
   RUSTSEC-2026-0385 (T-312), so no lock of podssh takes an older one.
 - Read: the library crates declare Rust 1.85, podbox's minimum
-  (`docs/design.md:566-569`).
+  (`docs/design.md:582-585`).
 
 ## Approach
 
