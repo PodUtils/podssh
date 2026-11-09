@@ -369,11 +369,12 @@ podssh's (T-111's serve, for one). A crate that podssh has not taken yet is chan
 and carried by the import. T-085 keeps its two boxes only (Q103: the facade goes with `pod-relay`).
 T-446 waits: no beta and no release until the migration is done (Q104).
 
-**First (2026-11-09):** the share lock's flake is repaired; then the defects and P1/P2 entries of the triage of #164 to
-#173 and of cfb's asks, by priority beside M10's order below: T-698, T-708, T-709, T-710,
-T-728 (P1 of cfb), T-699, then the P2 ones (T-712 to T-718), then the P3 ones. T-711, T-719, T-722,
-T-727 and T-729 wait for podcrates crates or test accounts; T-707 waits for `pod-gsr`; T-715's read
-each TTL waits for Q105. A beta may go out when a batch fits (the owner, 2026-11-09; T-446).
+**First (2026-11-09):** the share lock's flake is repaired, v0.7.0 is taken, ssh node://'s refusals and the Trojan servers are done,
+T-698 is partial (its serve part waits for T-107). Then podssh's own order, by priority beside M10's
+order below: T-699 (P2), then the P3 entries of the testers' issues (T-700 to T-706); T-707 waits for
+`pod-gsr`. **cfb's asks wait** (the owner's ruling "Priority", 2026-11-09): T-708 to T-731 stay filed
+behind podssh's own work order, M10 included, and Q105 waits with them. A beta may go out when a batch
+fits (T-446).
 
 **After M3 and before M4 (the operator's ruling of 2026-10-08):**
 the surface for agents: done.
@@ -518,7 +519,7 @@ ranks relay hosts unasked only with `RelayRank auto` (Q89); the calls of Q86 sta
 T-548, T-578, T-531's weekly run); and the holds end (Q92), T-328 and T-376 waiting for their
 inputs alone.
 
-**Q105 (2026-11-09): a node's door from a net document at a URL, read again each TTL (T-715).** cfb's
+**Q105 (2026-11-09; not asked now: it waits with cfb's asks, the owner's ruling "Priority"): a node's door from a net document at a URL, read again each TTL (T-715).** cfb's
 ask A-S-08 wants a node to read its signed net document again each TTL (300 s by default) while it
 runs. Rule 2 of `AGENTS.md` allows a read beside a session only once a day and before it (Q96, Q97).
 Recommendation: allow it as a ninth exception: only with `--net-url`, which the user names; one GET
