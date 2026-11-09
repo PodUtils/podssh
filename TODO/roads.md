@@ -5743,7 +5743,7 @@ does not depend on them.
   "`--direct`, or when a probe shows it works"; the triage of GitHub #69 to #72 named this entry
   there.
 - Read: rule 2 of `AGENTS.md` allows a second connection at once for a race between relay hosts,
-  and for the split HTTP road (`AGENTS.md:339-349`); a race of the forward and the direct road is
+  and for the split HTTP road (`AGENTS.md:340-350`); a race of the forward and the direct road is
   neither.
 - Read: the direct dial goes through `HTTPS_PROXY` when it is set, with the relay's step limit of
   20 s (`crates/podssh-cli/src/ssh/transport.rs:371-385`, `crates/podssh-relay/src/open.rs:33`),
@@ -6085,7 +6085,7 @@ and no notice.
 - Read: whether Cloudflare's terms, which forbid using its services "to provide a virtual private
   network or other similar proxy services", hold for the relay is a question for the relay's
   operator (`docs/relay-operator.md:97-101`).
-- Read: the test targets of a session are the operator's list (`AGENTS.md:302-331`), which names
+- Read: the test targets of a session are the operator's list (`AGENTS.md:303-332`), which names
   none of the three.
 
 ## Approach
@@ -6164,7 +6164,7 @@ relay host failed. Live, as Q56 allows: GitHub's banner through each, in GitHub 
 2026-10-31 (the drafting agent): two citations of the Premise, read at `a3f948d`. The question of
 Cloudflare's terms is item 15 of the relay operator's list, `docs/relay-operator.md`, lines 315-322 at `80a6407`;
 `docs/relay-operator.md:97-101` is item 1's word on the drops of reverse sockets. The test targets
-of `AGENTS.md:301-318` name the three forwarders now, from GitHub Actions only, with short runs
+of `AGENTS.md:302-319` name the three forwarders now, from GitHub Actions only, with short runs
 (Q56, the same day); the Premise read them before that ruling.
 
 ## Done
@@ -6241,7 +6241,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
   measured here): SSH banners on port 443 at `bg2.vpnjantit.com` (Dropbear 2017.75, an account with
   a password that a form makes), `ssh.tilde.club` and `ssh.blinkenshell.org` (OpenSSH); whether
   they allow `direct-tcpip` was not measured.
-- Read: GitHub's SSH endpoint is a test target, and those three are not (`AGENTS.md:302-331`). The
+- Read: GitHub's SSH endpoint is a test target, and those three are not (`AGENTS.md:303-332`). The
   box's proxy allows ports 443, 80 and 8443, and lets one test target through by its name
   (`scripts/box/proxy.py:6-16`).
 
@@ -6493,7 +6493,7 @@ cannot make it a road.
   `--via ss://...`, which puts the password in argv.
 - The user names each server and each list, as a proxy of `ALL_PROXY` (T-070); podssh names none.
   Its tests use servers that podssh did not write, never a public one: no public server is a test
-  target of the operator's (`AGENTS.md:302-331`).
+  target of the operator's (`AGENTS.md:303-332`).
 - Shadowsocks 2022 (SIP022) is refused by name in this entry; a later entry can take it.
 
 The draft's calls, 2026-11-01:
@@ -9538,3 +9538,234 @@ cargo test -p podssh-warp --features stand-in
 2026-11-05. `refusing()` calls `crate::road::forget` on its port. `cargo test -p podssh-warp
 --features stand-in`: 71, 5 and 3 passed. No plant: the failure needs the kernel to give the same
 port twice, which a test cannot ask for.
+
+# T-699: One end-of-input helper for the forwarder roads, with an invariant test for each
+
+**Source:** GitHub #165
+**Category:** chore
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A relay has no TCP half-close. A road must not send Close at the end of its own input while the peer's
+bytes are still on the way, unless the road is a session that ends at once (an SSH session). Each
+carrier re-derives this rule with `close_at_end: bool`, and each road sets the bool by hand. A new
+road copies one value and inherits that road's choice. The reporter measured truncated transfers in
+a different client. This tree has no proven defect of this kind. The gap is that nothing prevents a
+new road from getting the rule wrong, and no test per road keeps it.
+
+## Premise
+
+- Read: `crates/podssh-ws/src/forwarder/mod.rs:48-57`: `Dial` has `close_at_end: bool` and derives no
+  `Default`; each road writes it. Pipe roads write `false` (`crates/podssh-cli/src/forwarder/pipe.rs:111`,
+  `crates/podssh-cli/src/trojan/pipe.rs:105`), reach roads write `true`
+  (`crates/podssh-cli/src/forwarder/reach.rs:57`).
+- Read: `crates/podssh-ws/src/forwarder/carry.rs:150-153`: with `close_at_end` false, the read task
+  waits for `down_ended_rx` before it sends Close.
+- Read: `crates/podssh-ws/src/wisp/mux.rs:253-258` and `crates/podssh-ws/src/vless/ws.rs:114`
+  derive the same branch again. Wisp has no half-close: a pipe waits for the server's end.
+- Read: a road to podssh's own relay already drains after the client's Close (T-671, done;
+  `docs/relay.md`, the paragraph of the half-close), and the layer road has `END` (T-632, done). A
+  wait on those roads would be wrong.
+- Not measured here: whether any road of this tree truncates. The test of the Approach measures it.
+
+## Approach
+
+1. Replace `close_at_end: bool` of `Dial` with a named type (`End::Now`, `End::AfterPeer`). Give it no
+   default, so that each road must choose.
+2. Add one helper beside `carry::spawn` that each carrier calls at the end of its input: the forwarder
+   carry, `wisp/mux.rs` `up`, and `vless/ws.rs` `spawn`. Add no timer: the wait stays "until the peer
+   ends", as `carry.rs` does now. A timer waits for a measurement of the public relay with
+   `scripts/capture-close.py --client-close`.
+3. Add one test for each road: the sender's input ends at t=0 while 1 MiB is in flight to the sender,
+   and the receiver's copy is byte-complete. Use the stand-in relay role (`podssh relay serve`)
+   and `crates/podssh-ws/tests/forwarder.rs`.
+4. Last step: add a column to the table of `docs/design.md`, "Select a road", that says for each road
+   whether it half-closes or ends the session on the first end. Run `cargo todo remap
+   docs/design.md` in the same change.
+
+## Decision
+
+T-706 of the triage (the table of `docs/design.md`) is the last Approach step, not a second entry: it
+is a few lines and depends on the facts that steps 1 to 3 settle. Alternative that lost: a separate
+docs entry. It loses because it would wait on this one. Alternative that lost: the issue's bounded
+wait (`DRAIN_WINDOW`) in the helper. It loses because the relay role already drains (T-671), the
+issue itself says the helper must not wait on such a road, and no measurement gives the window.
+Check the `SOURCES` blocks in PodUtils/podcrates for each file before the work starts: a file that
+podcrates imported takes fixes only, as a COORD issue `(to podcrates)`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --test forwarder
+cargo test -p podssh-cli --lib forwarder
+python scripts/check-repo.py
+cargo todo check
+```
+
+Plant a defect (a road that sends Close on the first end of input). Each new test must fail on it
+and pass on the correct code.
+
+# T-702: One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port
+
+**Source:** GitHub #170 (2026-11-07).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The binary has several readers that answer whether the far end is an SSH server, and they follow
+different rules. The direct road accepts a peer that sends another line before its version line.
+The roost refuses it. A roost refuses a TARGET that the direct road reaches, so the same host is
+reachable one way and not the other. No record says which rule the shared reader follows.
+
+## Premise
+
+- `crates/podssh-cli/src/ssh/banner.rs:23` makes one `stream.read` of up to 4096 bytes in a
+  timeout. `crates/podssh-cli/src/ssh/banner.rs:26` accepts when any line starts with `SSH-`.
+  `crates/podssh-cli/src/ssh/banner.rs:30` gives "what came was not an SSH banner" and drops the
+  bytes.
+- `crates/podssh-relay/src/reverse/sshd.rs:100` (`judge`) refuses a whole first line that is not
+  a version line (`crates/podssh-relay/src/reverse/sshd.rs:107`, `NotSshd::Other`). It peeks and
+  waits for a partial line. `crates/podssh-cli/src/doctor/sshd.rs:11` reuses this `judge`.
+- A third reader: `crates/podssh-relay/src/serve/sshd.rs:50` (`judge`) tests the four bytes `SSH-`
+  for the sshd that shares the relay role's port (T-644).
+- Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
+  `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
+- `docs/design.md:154` documents the roost's rule, and no document says what the direct road
+  follows. T-363's Decision item 7 (`TODO/roads.md:5810`) chose one read and rejected a peek,
+  because a proxy's stream offers none.
+- Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
+  `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The
+  split fails only when the first read holds no line that starts with `SSH-` (a greeting alone,
+  or a fragment shorter than `SSH-`).
+- No file here is in a module that PodUtils/podcrates took.
+
+## Approach
+
+1. One rule, RFC 4253 section 4.2: a peer may send other lines before its version line, and the
+   verdict comes from the first line that starts with `SSH-`, within 4 KiB. Put the function in
+   `podssh-relay`, which `podssh-cli` already uses: `reverse::sshd::judge` takes the rule, and
+   `banner.rs` calls it. Do not move it to `podssh-ws`.
+2. `banner::read` reads in a loop, with no peek, until it can judge or the deadline ends: a
+   partial line waits for the rest. It keeps the 4 KiB cap and the same deadlines (10 s and 5 s),
+   and it still gives the bytes read to `Prefixed`.
+3. The roost's peek loop uses the same function, so that a greeting line before the version line
+   passes there too.
+4. `crates/podssh-relay/src/serve/sshd.rs:50` keeps its four-byte sniff: it chooses a road on a
+   shared port and does not judge a server. A test in each crate pins the difference, and a
+   comment says why.
+5. The messages stay: "nothing came in N s", and the refusal that names no first line on the
+   shared reader. `doctor --hop` says a split greeting is no proxy fault.
+6. Write the rule in `docs/design.md` beside the roost's paragraph, and add a `## Correction` to
+   T-363 (Decision item 7: a read loop replaces one read, with no peek) and to T-166. Run
+   `cargo todo remap` on each edited file.
+
+## Decision
+
+2026-11-09 (Q-170), the call of the triage:
+
+- The lenient rule of RFC 4253 section 4.2 for each reader: other lines before the version line,
+  capped at 4 KiB. Lost: the strict rule that the roost and `docs/design.md` state. It would
+  tighten the direct road and break a host that greets first, which the direct road reaches today.
+- A read loop replaces T-363's "one read". There is still no peek on the shared reader, so the
+  reason of T-363 (a proxy's stream offers none) still holds. Lost: a peek on the doctor and
+  direct paths, which a TLS stream cannot do; and two readers that keep their own loops, which
+  would drift again.
+- The four-byte sniff of `crates/podssh-relay/src/serve/sshd.rs:50` stays, pinned by a test. Lost:
+  one function for all three readers; the sniff answers a different question (which road for a
+  shared port), so it is no judge of a server.
+- The function lives in `podssh-relay`. Lost: `podssh-ws`, which has no other SSH code.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib ssh::banner
+cargo test -p podssh-cli --lib doctor::
+cargo test -p podssh-relay reverse::sshd
+cargo test -p podssh-cli --test roost
+```
+
+For each reader, five inputs: a version line whole; a version line in two pieces with a pause; a
+greeting line and then a version line in one write; `HTTP/1.1 400 Bad Request` alone (it fails
+on both, as today); silence (it fails with "nothing came in 10 s" on the direct road and "nothing
+came in 5 s" on the doctor probes, at the same instants as today). The three tests that fail
+before the change are the greeting-first case on the roost, the greeting alone then the version
+line on the direct road, and the pin of the four-byte sniff.
+
+# T-707: A road of the GSRN relay network, by a shared secret
+
+**Source:** GitHub #164 (the owner, 2026-11-09: pod-gsr deferred)
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** L
+**Status:** blocked
+
+## Problem
+
+No road carries a stream with no account, no token and no operator relay, where both ends know only
+a shared secret. The Global Socket Relay Network (the relay network of the gsocket project; its
+client is `gs-netcat`) is such a network. It needs one outbound TCP connection to port 443, through
+`HTTPS_PROXY` when it is set. The reporter measured a round trip of about 306 ms, a throughput that
+varies by ten times between runs, and a protocol with no published specification. It is a road of
+last resort. All numbers are the reporter's, from one host on one day.
+
+## Premise
+
+- Read: `crates/podssh-ws/src/forwarder/mod.rs:48-58`: `Dial` has `trust`, `proxy`, `timeout`,
+  `close_at_end` and `note`, and no field for a secret as an address. A road by a secret is a
+  sibling of the forwarder, not a template entry.
+- Read: `TODO/issues.md` row of #59 (open research): its survey of accountless roads does not name
+  this network, and no entry carries it.
+- Rule 2 of `AGENTS.md` holds with no exception: one outbound connection to one host.
+- `docs/decisions.md` (2026-11-05, 2026-11-06): a host of another party is data of `pod-services`,
+  never a constant here; the owner deferred `pod-gsr` on 2026-11-09.
+- Not measured here: the reporter's protocol facts and numbers. The protocol crate does not exist
+  in PodUtils/podcrates yet.
+
+## Approach
+
+1. When podcrates ships `pod-gsr`, take it at a pinned tag with its `pod-services` data file (T-684
+   procedure). Write no second implementation of the protocol.
+2. Add a road module beside `crates/podssh-ws/src/forwarder/` that dials through `pod-gsr`. Read the
+   secret from a file or the environment, never from argv, a log or a URL.
+3. Add `--gsr`, opt-in, with the road last in the order, after the operator's relay and the
+   accountless forwarders.
+4. Add a `doctor` line: the derived relay host (from the data file) and one control round trip. Make
+   it report whether a CONNECT tunnel without traffic survived the keepalive.
+5. Keep the keepalive well below 15 s: the reporter measured one proxy that cut an idle tunnel at 15 s.
+6. Ask the owner for the C dependency (SRP in OpenSSL) only if `pod-gsr` brings it. The binary stays
+   static (`scripts/check-static.sh`).
+
+## Decision
+
+The owner deferred `pod-gsr` on 2026-11-09 (PodUtils/podcrates `docs/decisions.md`). The entry waits
+for it. Alternative that lost: write the protocol in this tree now. It loses because podcrates owns
+shared protocol crates (Rule Q3) and the relay host is `pod-services` data (2026-11-05), so a second
+implementation would drift. Alternative that lost: put the relay domain in a constant here. It loses
+for the same ruling.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws gsr
+sh scripts/check-static.sh target/release/podssh
+# A short live test against gs-netcat, both ways, with a throwaway secret in .work/
+```
+
+The test must fail on a planted defect: a wrong secret must give no connection.
+
+## Blocker
+
+The owner. The owner deferred `pod-gsr` on 2026-11-09. The entry starts when podcrates ships
+`pod-gsr` and its data file. Until then no code starts.

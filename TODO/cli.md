@@ -3790,3 +3790,70 @@ the test of an unknown name fails.
   by its path); `--test retired_env --test man_page --test man_flag_parity`: 2, 11 and 6; the CLI
   crate whole: 1,903 passed, 0 failed. Plant `t634-unknown-name-refused` caught. Clippy and rustfmt
   clean.
+
+# T-706: `podssh doctor --tier`: one verdict of the host's capabilities and what each closes
+
+**Source:** GitHub #166
+**Category:** feature
+**Milestone:** M5
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`doctor` has one line for each probe of the host: where a host key goes, whether a program runs from
+a writable directory, whether a pty can be allocated, how names resolve. No line says what a
+restriction closes. A user on a restricted host wants one answer: which capabilities does this host
+allow, and which features does that close, before the user tries a session.
+
+## Premise
+
+- Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:222-236` (exec,
+  with `ok` and `unknown`, never `FAIL` for a refusal), `crates/podssh-cli/src/doctor/unix.rs:84-97`
+  (`pty`), `crates/podssh-cli/src/relay_serve/harden.rs:234` (`status_sets`, reads `CapEff`,
+  `CapPrm`, `CapInh`), `crates/podssh-ws/src/resolve.rs:1-18` (the order of the resolver).
+- Read: no `--tier` and no composed verdict exist; a search for `tier` in `crates/podssh-cli/src/doctor/`
+  and in `crates/podssh-cli/src/flags.rs` finds nothing.
+- Read: `????` never counts as `ok` and never fails the run (`docs/cli.md`, the list of verdicts).
+- T-248 (open, M5, research, `TODO/serve.md`) owns the serve-side tty routes. This entry composes its
+  lines and does not reopen its question.
+- Not measured here: how `doctor`'s sections are assembled in `crates/podssh-cli/src/doctor/sections.rs`;
+  read it first.
+
+## Approach
+
+1. Add `--tier` to `doctor`. All existing lines stay. Reuse each probe; copy none.
+2. Report five categories, each with a result of ok, closed or `????`, and the probe that decided it:
+   - identity: a named user or a numeric one, and the capability sets read with `status_sets` (read
+     only; never run the drop of `relay serve`);
+   - exec floor: the path probe only (see Decision);
+   - terminal: the result of the existing `pty` probe only;
+   - state: the first writable directory of the cache chain;
+   - resolver: one class over the sources of `names.rs`: proxy, pins, system, DoH or none.
+3. Print "unavailable because of this: FEATURES" from a static table, category to features, in code.
+4. Add a test that fails when a feature that needs a category has no row in the table.
+5. Exit as the existing rule says: 1 only when a check failed. A probe that could not run prints `????`.
+
+## Decision
+
+The calls were made by the coordinator on 2026-11-09. No `memfd_create` plus `execveat` probe now:
+the exec rung reports the path probe only. Alternative that lost: the memfd probe from the issue. It
+loses because it needs a trampoline binary to embed and a forked child, its result depends on a
+kernel setting, and no feature reads the rung yet (`node upgrade` execs from a path:
+`crates/podssh-cli/src/node_upgrade/pass.rs:139` stages bytes in memory and then execs a path). Add the rung
+when a feature needs it. Alternative that lost: re-answer the serve-side tty routes here. It loses
+because T-248 owns them. Start the `terminal` category with the `pty` line only, and compose
+T-248's lines when they exist.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib doctor::
+cargo run -q -p podssh-cli -- doctor --tier
+sh scripts/test_in_box.sh   # a read-only /etc/ssl and a noexec directory show their closed features
+```
+
+Plant a defect (a probe that returns ok on error). The test of the table must fail on it.
+

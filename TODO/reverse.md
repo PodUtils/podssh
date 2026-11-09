@@ -581,7 +581,7 @@ and crates/podssh-transport/examples/live_forward.rs lines 23-25 at `e8bbd4d`; `
 (`crates/podssh-cli/Cargo.toml` line 34 at `e8bbd4d`). The plan: "`podssh-transport` moves into `podssh-relay`. Its
 unused backpressure module goes." (`docs/design.md` lines 122-123 at `e8bbd4d`).
 
-Read: the comments of the crate break rule 6 of `AGENTS.md:373-374`: they carry the stop-sign marker,
+Read: the comments of the crate break rule 6 of `AGENTS.md:374-375`: they carry the stop-sign marker,
 session history and line numbers of documents, for example crates/podssh-transport/src/socket.rs lines 1-11 at `e8bbd4d`
 and crates/podssh-transport/src/control.rs lines 3-14 at `e8bbd4d`. The close rows cite lines of the pinned contract,
 and a test reads that copy to check them (crates/podssh-transport/src/closes.rs lines 45-59 at `e8bbd4d`).
@@ -592,11 +592,11 @@ and a test reads that copy to check them (crates/podssh-transport/src/closes.rs 
    and T-080 use the repaired codecs as a dependency until then.
 2. Move into crates/podssh-relay/src/reverse/: `framing.rs` and `framing/legs.rs`, `control.rs`,
    `closes.rs`, the retry parts of `error.rs`, and the name check of T-076, with their tests. Keep
-   each file at 500 lines or fewer (`AGENTS.md:371-372`).
+   each file at 500 lines or fewer (`AGENTS.md:372-373`).
 3. Delete, do not move: the backpressure module (T-074), the `Transport` trait and `backoff.rs`
    (T-077), and `RelayConfig` (`podssh-relay` has `Relay` and `RelayList`,
    `crates/podssh-relay/src/relay.rs:101-123`).
-4. Rewrite the comments of the moved code to `AGENTS.md:373-374`: why, in few words; no markers, no
+4. Rewrite the comments of the moved code to `AGENTS.md:374-375`: why, in few words; no markers, no
    history, no line numbers. Keep the check of the close rows against the pinned copy as a test
    (T-060 decides where the copy lives).
 5. Move the examples to `podssh_relay::open`, the forward path that the commands use. Then remove
@@ -1100,7 +1100,7 @@ short code safe.
 3. A meeting point that both reach with no pair: see the Decision.
 4. The code: three words from a fixed list and a number, used once, valid for 10 min. The node shows
    it only on its terminal, never in stdout, a log or argv; the operator types it at a prompt.
-5. A pure-Rust SPAKE2 crate, built under `CC=/nonexistent` before it is chosen (`AGENTS.md:367-369`).
+5. A pure-Rust SPAKE2 crate, built under `CC=/nonexistent` before it is chosen (`AGENTS.md:368-370`).
 6. Pitfalls: limit the attempts at the meeting point; one failed exchange ends the code; check the
    received part as T-076 and T-078 check a pair.
 
@@ -1496,7 +1496,7 @@ The resumable layer of M6 runs under SSH (`docs/design.md:674-686`).
 Read in the report (GitHub #18, not verified here): warren uses `Noise_IK_25519_ChaChaPoly_BLAKE2s`
 so that the relay cannot read a stream (`willykeenan/warren:src/noise.rs`).
 
-Read: the library crates must build with no C compiler (`AGENTS.md:367-369`, `scripts/gate.sh:130`).
+Read: the library crates must build with no C compiler (`AGENTS.md:368-370`, `scripts/gate.sh:130`).
 
 ## Approach
 
@@ -1784,7 +1784,7 @@ workloads (`arjun988/GPU-Share`); iroh-ssh has an open request for local discove
 56 of `rustonbsd/iroh-ssh`); cubic names and lists remote state (`cubic-vm/cubic:docs/howto/snapshots.rst`).
 
 Read: the measured sandbox refuses UDP (`docs/target-environment.md:23`), so mDNS cannot work there,
-and podssh must probe before it uses UDP (`AGENTS.md:337-338`).
+and podssh must probe before it uses UDP (`AGENTS.md:338-339`).
 
 ## Approach
 
@@ -1905,7 +1905,7 @@ T-107), and the relay stays a separate project (`docs/decisions.md`). The two sh
    the seam of T-088 and T-089. Spent nonces are create-new private files
    (`crates/podssh-relay/src/cache.rs:364-382`).
 3. Both shapes: an SSHSIG signature in a fixed podssh namespace, which `ssh-keygen -Y verify` can check
-   (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:367-369`).
+   (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:368-370`).
 4. Relations: T-078 makes the pair that a grant protects; T-086 can deliver a grant in place of the
    `connect_token`; T-087 gives the keys that a grant names.
 
@@ -4690,3 +4690,124 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   test's CA, at the command line) and through a quick tunnel (a live run: whether the edge takes again a
   quick tunnel whose connections all unregistered for the seconds of the exec); the relay role behind a
   quick tunnel (Decision, item 5); Windows (T-678).
+
+# T-697: `podssh ssh node://NAME` and `--exit NAME` refuse `--relay-host`, `--relay-failover` and `PODSSH_RELAY`, as `podssh proxy node://NAME` does
+
+**Source:** GitHub #171
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh ssh node://box --relay-host relay.example` and `podssh ssh --exit gw --relay-host relay.example`
+parse, connect, and use the relay that the pair names. Nothing on stderr says that the flag was not
+used. The run then fails at a host that the user never named. `podssh proxy node://box --relay-host
+relay.example` exits 64, so the two commands of one road answer differently. `PODSSH_RELAY` is
+dropped in the same way.
+
+## Premise
+
+- Read, at `47e1eba`: `crates/podssh-cli/src/proxy_node.rs:31` holds the reason "the pair names its
+  relay". `crates/podssh-cli/src/proxy_node.rs:178-190` lists the flags (`--relay-host` at line 180,
+  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:246-267` pins
+  `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
+- `crates/podssh-cli/src/ssh/node.rs:109-125` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
+  and the family for a node. It has no clause for the relay flags.
+  `crates/podssh-cli/src/ssh/carried.rs:38-63` refuses them only for `--carrier`.
+- `crates/podssh-cli/src/ssh/resolve.rs:319-320` takes a node destination first. The only read of
+  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:343`,
+  on the branch of a plain host.
+- `crates/podssh-cli/src/ssh/exit_road.rs:29-34` builds `Transport::Node` for `--exit NAME` and
+  refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
+  fails there before the exit replaces the transport.
+- `crates/podssh-cli/src/ssh/node.rs:127-129` reads `--ca-file` for the pair road's TLS.
+  `crates/podssh-cli/src/ssh/mod.rs:164` applies `--relay-addr` before the destination resolves.
+  Both apply to a node and stay.
+- `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2683`; Q90 confirmed it).
+
+## Approach
+
+1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:178-190`) and their
+   reasons to one shared helper. `proxy` and `ssh` call it, so the words cannot drift.
+2. Call it in `crates/podssh-cli/src/ssh/node.rs`, `transport`, for `node://NAME`, and in
+   `or_exit` of `crates/podssh-cli/src/ssh/exit_road.rs` for `--exit NAME`. Refuse `--relay-host`
+   and `--relay-failover` with 64 in the words "does not apply to ...: the pair names its relay".
+3. Refuse `PODSSH_RELAY` for a node with 78, with the variable named, as a setting of the
+   environment.
+4. A `RelayHost` of the settings file does not refuse. A node ignores it, with one `-v` line. It is a
+   global default that the user did not type for this run.
+5. Leave `--relay-addr` and `--ca-file` as they are: both apply to a node.
+6. Add a case for `--relay-failover` to the test of `proxy_node.rs`.
+
+## Decision
+
+Q-171 (the call of the triage, 2026-11-09): refuse an explicit `--relay-host` and `--relay-failover`
+with 64, and `PODSSH_RELAY` with 78, for `node://NAME` and `--exit NAME`. A `RelayHost` of the
+settings file is ignored for a node, with one `-v` line and no error.
+Lost: letting the flag override the pair's relay. It is a design change, and three paths and the
+sibling command already refuse (T-587, T-595, T-614). Lost: refusing the settings file's `RelayHost`
+too. It is a global default, and a refusal would break each `ssh node://` run of a user who set it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli
+```
+
+New tests: `ssh node://box --relay-host x` and `--relay-failover parallel` exit 64 with the flag
+named; the same with `--exit gw`; `PODSSH_RELAY=x` with `node://box` exits 78 with the variable
+named; a `RelayHost` in the settings file gives no error and one `-v` line; `ssh` and `proxy` give
+the same words for the same flag; `--relay-addr` and `--ca-file` are still taken; a plain host still
+fails over across its `--relay-host` list. Each new test fails on the code before the change.
+
+# T-701: The reverse node's journal names the cause when the relay closes a session
+
+**Source:** GitHub #167
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The relay ends a session at its byte cap with `close {id, reason: "session byte cap"}`. The node
+reads that frame and drops the reason. The node's journal then says nothing of why the session ended.
+An operator must reproduce the cut on the relay to learn that it was the cap.
+
+## Premise
+
+- Read: `crates/podssh-relay/src/serve/reverse/node.rs:353` sends the `close` with the reason
+  "session byte cap" (the limit is `SESSION_BYTES`, 64 MiB, `crates/podssh-relay/src/serve/reverse/mod.rs:72`).
+- Read: the wire form carries the reason: `crates/podssh-relay/src/reverse/control.rs:31-35`
+  (`reason: Option<String>`).
+- Read: the node's reader binds only the id: `crates/podssh-relay/src/reverse/serve.rs:229`
+  (`NodeInbound::Close { id, .. }`), and `Out::Closed(id)` at `crates/podssh-relay/src/reverse/serve.rs:444`
+  has no reason.
+- Read: the model to follow is the node's budget refusal line, rate-limited by `SAY_EVERY`
+  (`crates/podssh-relay/src/session/budget.rs:25`). `docs/reverse.md` documents only the socket-level
+  `1009` ("a line and a new socket"), which is another case.
+
+## Approach
+
+1. Bind `reason` at `serve.rs:229` and pass it through `Out::Closed`.
+2. Print one line on the node's stderr when the reason names a cap, with the session id's first
+   characters only. Rate-limit it as `SAY_EVERY` does. Print no line for a normal close.
+3. Update the paragraph of `docs/reverse.md` that names the node's close handling, and run
+   `cargo todo remap` on each edited cited file.
+4. Check the `SOURCES` blocks in PodUtils/podcrates: a file that podcrates imported takes fixes only,
+   and this is one.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --lib reverse::
+# A node against `podssh relay serve` with a small session cap: the node's stderr holds the line once.
+```
+
+Plant a defect (the reason dropped again). The test must fail on it.

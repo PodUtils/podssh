@@ -203,9 +203,10 @@ sessions; GitHub issues are then the channel, and each session watches them.
 
 ### Releases
 
-- **No release and no beta until the migration to PodUtils/podcrates is done (the owner,
-  2026-11-06; T-684).** podssh stays a beta until the owner calls it stable; crates.io is asked
-  again only after that (T-687). The rules below hold again when the migration is done.
+- **Betas whenever they fit; no release until the migration to PodUtils/podcrates is done (the
+  owner, 2026-11-06 and 2026-11-09; T-684).** A beta follows the rules below. `v1.1.0` waits for
+  the migration. podssh stays a beta until the owner calls it stable; crates.io is asked again
+  only after that (T-687).
 - **Move fast until podssh is stable (Q88, 2026-11-03).** A release or a
   beta goes out when the gate is green at its commit, the release workflow
   passed by hand on it, and `scripts/release-short.sh BINARY --net` passed

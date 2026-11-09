@@ -3604,7 +3604,7 @@ to hosts that the session does not use.
 
 ## Premise
 
-- Read: `AGENTS.md:335-345`, rule 2: one outbound connection, and its four exceptions (a listener
+- Read: `AGENTS.md:336-346`, rule 2: one outbound connection, and its four exceptions (a listener
   that the user asks for, the race between relay hosts, the split HTTP road of Q44, the quick
   tunnel's second connection of Q62); `docs/decisions.md:41` adds XHTTP's second connection (Q67).
   None covers a probe of a host that the session does not use.
@@ -3721,7 +3721,7 @@ once; the test of the overlap fails.
   unasked only with `RelayRank auto`, at most once a day for each egress, 8 hosts, one probe each
   10 s at most, each with `?dial=lazy`. Item 1 no longer waits on a default.
 - 2026-11-03, the draft: the Premise's lines moved before it was read. Rule 2 begins at
-  `AGENTS.md:339`, and the rows of Q89 and Q90 came above the others: Q67 is at
+  `AGENTS.md:340`, and the rows of Q89 and Q90 came above the others: Q67 is at
   `docs/decisions.md:43`, Q83 at `docs/decisions.md:27` and Q73 at `docs/decisions.md:37`. Rule 2
   had four exceptions, and Q67's XHTTP is not among them; the draft adds Q89's as the fifth.
 - The settings file's `RelayRank` took yes or no alone (`crates/podssh-cli/src/settings.rs`, its
@@ -5221,3 +5221,84 @@ their file is over 64 KiB, and finds the first and the last after a restart: pas
 (`t677-pairs-at-the-cache-s-cap`), it fails: caught. `cargo test -p podssh-relay --features
 serve,plain-ws,quick,pair,grant,piping,code,quic --lib -- pairs:: usage cache`: 35 passed. Clippy and
 rustfmt clean.
+
+# T-704: `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time
+
+**Source:** GitHub #169 (2026-11-07).
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The relay role publishes six limits and enforces them. An operator can change one of them,
+`--keepalive`. The idle cut, the session time, the byte cap and the connect time are compiled-in
+constants, so an operator whose path has a shorter flow timeout, or who moves large files, must
+patch and rebuild the binary.
+
+## Premise
+
+- `crates/podssh-relay/src/serve/mod.rs:94` (`impl Default for Limits`) holds the six values: 10 s,
+  180 s, 12 h, 64 MiB, 25 s and 15 s.
+- The CLI plumbs one of them: `crates/podssh-cli/src/relay_serve.rs:63` (the settings row),
+  `crates/podssh-cli/src/relay_serve.rs:110` (`get("keepalive")`),
+  `crates/podssh-cli/src/relay_serve.rs:206` (the parser, 1 to 3600 s) and
+  `crates/podssh-cli/src/relay_serve.rs:261` (`Limits { keepalive, ..Limits::default() }`).
+- `/relays.json` is written from `cfg.limits`: `crates/podssh-relay/src/serve/docs.rs:77` writes
+  `connect_timeout_ms`, `idle_timeout_ms`, `max_session_ms` and `max_session_bytes`. It does not
+  write the keepalive.
+- `half_closed` is read at `crates/podssh-relay/src/serve/forward.rs:156`. It bounds the drain
+  after a client's Close and has no field in the contract.
+- A client only lowers its budgets to the published values. `crates/podssh-relay/src/relay.rs:75`
+  takes the margin from the compiled cap, and `crates/podssh-relay/src/relay.rs:76` uses
+  `checked_sub` and a floor of 1 MiB. A published cap never makes a client underflow, and a larger
+  published value never raises a client budget.
+- The compiled caps come from the `pod-services` facts through `limit()` in
+  `crates/podssh-relay/src/relay.rs`. `Limits::default()` still holds literals.
+
+## Approach
+
+1. Add `--idle SECONDS` (1 to 86400), `--session-hours H` (1 to 168), `--max-session-mib M`
+   (1 to 4096) and `--connect SECONDS` (1 to 120). Each has a settings row, a parser beside the
+   `--keepalive` one, and a place in the `Limits` literal at
+   `crates/podssh-cli/src/relay_serve.rs:261`. A bad value is a usage refusal (exit 64), as
+   `--keepalive`'s is.
+2. The defaults are the `pod-services` facts that `crates/podssh-relay/src/relay.rs` reads, not
+   the literals of `Limits::default()`, so that the role and the clients have one source. Move
+   `Limits::default()` to the same facts, or add a test that ties them. Add no host or list of
+   another party.
+3. Leave `half_closed` as it is.
+4. Write in `podssh man` and `docs/relay.md`: a value above the compiled default moves the
+   server's cut only; a client keeps its own lower budgets and its own warning.
+5. Run `cargo todo remap` on each edited file.
+
+## Decision
+
+2026-11-09 (Q-169a, Q-169b), the calls of the triage:
+
+- A limit above the compiled default is allowed. The manual says that clients keep their own
+  lower budgets. Lost: a refusal of values above the default. A server that cuts later is a valid
+  choice for an operator, and a client stays safe, as it only lowers.
+- The keepalive is not added to `/relays.json`. It would change the pinned contract
+  `2026-10-03-r2`. A later ask goes to the `pod-relay` crate of PodUtils/podcrates (T-047), which
+  will own the contract's copy. Lost: a new field now. A client that reads an unknown field is
+  not a reason to change a pinned contract.
+- The floors of the issue (4 MiB, 30 min) are not used. A client never underflows on a published
+  cap (`checked_sub` and a floor of 1 MiB), so the bounds above are for the operator's sense, not
+  for a client's safety.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve
+cargo test -p podssh-relay serve::
+python scripts/check-relay-limits.py
+```
+
+A unit test for each parser (the bounds and the refusal). A test of the role with `--idle 2`: its
+`/relays.json` says `idle_timeout_ms` 2000, and a quiet session ends with 1001. A test with
+`--max-session-mib 1` ends a session with 1009. With no flag, the document holds the facts' values.
+

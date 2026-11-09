@@ -1745,3 +1745,72 @@ gh workflow run feel-netem.yml -f tag=TAG
 ```
 
 The echo beside a download on each of the three links nearer the idle echo than this run's.
+
+# T-705: `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema
+
+**Source:** GitHub #173
+**Category:** defect
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`--full` is described as a run of the QUIC handshake with the quick tunnel's edge and of the stream
+probes. `podssh doctor --quick --full` runs neither. It runs the GitHub login only. The report is
+right: its `left out` line names the edge. The three descriptions of `--full` are wrong for this
+case, and neither flag's help names the other. The MCP tool takes both flags, so an agent can set
+both from the schema alone.
+
+## Premise
+
+- Read, at `47e1eba`: `crates/podssh-cli/src/flags/relay.rs:165-167` is the `--full` row, with the QUIC
+  handshake. `crates/podssh-cli/src/flags/relay.rs:172-174` is the `--quick` row, which names no
+  probe of `--full`.
+- `crates/podssh-cli/src/doctor/mod.rs:222-224` guards the whole section of the quick tunnel with
+  `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
+  `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
+- `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.
+- `crates/podssh-cli/src/man/notes_doctor.rs:96-116` (`DOCTOR_STREAM`) says that `--full` runs the
+  stream section. `crates/podssh-cli/src/man/notes_doctor.rs:17-22` (`DOCTOR_QUICK`) lists what
+  `--quick` leaves out and names no probe of `--full`.
+- `crates/podssh-cli/src/mcp/tools.rs:78` repeats the QUIC handshake. Line 79 offers `quick`.
+  `crates/podssh-cli/src/mcp/tools.rs:208-217` builds `--full --quick` when both are true.
+- `crates/podssh-cli/src/doctor/sections.rs:242-247` already names the quick tunnel's edge among the
+  sections that `--quick` leaves out.
+- T-511's Decision (`TODO/machine.md:1368-1373`) records that `--quick` leaves the edge out.
+
+## Approach
+
+1. Add one clause to the `--full` row of `crates/podssh-cli/src/flags/relay.rs`: the QUIC handshake
+   and the stream probes do not run with `--quick`. Name `--full` in the `--quick` row.
+2. Make the same change in the `full` description at `crates/podssh-cli/src/mcp/tools.rs:78`.
+3. Make the same change in `DOCTOR_QUICK` and `DOCTOR_STREAM` of
+   `crates/podssh-cli/src/man/notes_doctor.rs`.
+4. Do not change the behaviour, and add no line on stderr. Run `cargo todo remap` for each file
+   that changed.
+
+## Decision
+
+Q-173 (the call of the triage, 2026-11-09): `--quick` wins over `--full` for the edge and the stream
+probes. Change the words only, and add no line on stderr: the `left out` line of the report already
+says what was skipped.
+Lost: `--full` beats `--quick` for the two probes (a change of the guard at `doctor/mod.rs:222-224`).
+It makes `--quick` slow, and T-511 made `--quick` to be short. Lost: one extra stderr line when both
+flags are set. The report names the edge already.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli
+python scripts/check-repo.py
+cargo todo check
+```
+
+The parity tests of the help, the manual and the flag table pass. A new test: `doctor --quick --full`
+gives the same sections and the same `left out` line as before, and the MCP schema, the help and
+the manual each hold the clause. The MCP command line for both flags stays `doctor --json --full
+--quick`.
+

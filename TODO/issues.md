@@ -231,6 +231,16 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #161 | COORD-006: podssh moved each podcrates tag to v0.6.0 (to podcrates) | closed 2026-11-09, `main` pins v0.6.0 since `28fa1170` | T-684 (the move at `28fa1170`, written to the podcrates session) |
 | #162 | `[gh action] requested`: the gate on `main` at `8c7519c0` | open: its run red (42290205000, the job `windows`), repaired by T-696; closed with the next gate | T-684 (the gate after the take of v0.6.0, T-497 and T-534), T-696 |
 | #163 | `[gh action] requested`: `derp-main-live.yml`, the main DERP fleet from GitHub Actions | closed 2026-11-09, the run passed (42290196915, `8c7519c0`) | T-534 (step 1's run from Actions) |
+| #164 | The GSRN road: accountless SRP authentication on one TCP connection to port 443 | open | T-707 (blocked: the owner deferred `pod-gsr` on 2026-11-09) |
+| #165 | Forwarder roads re-derive the half-close discipline per road | open | T-699 |
+| #166 | `doctor`: one verdict of the host's capabilities that names what each restriction closes | open | T-706 (M5, beside T-248) |
+| #167 | `sftp` prints no near-cap line before a budget stop, and the reverse node discards the close reason | open | T-700 (sftp), T-701 (the node) |
+| #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | open | T-698 (the drop; T-107 depends on it); the bound of the accept path is T-631 (#129) |
+| #169 | `relay serve`: the contract's limits are fixed constants; only `--keepalive` is configurable | open | T-704 |
+| #170 | `ssh`: the direct road's banner check and the roost's sshd check give opposite verdicts on the same bytes | open | T-702 |
+| #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | open | T-697 |
+| #172 | `ssh`: a `cf://` destination with the resumable layer keeps the user's SSH keepalives, with no warning | open | T-703 |
+| #173 | `doctor`: `--full`'s QUIC handshake and stream probes do not run with `--quick` | open | T-705 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

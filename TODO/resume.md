@@ -4068,3 +4068,70 @@ cargo test -p podssh-cli --features iroh-test --test m6_exit -- --ignored --test
 ```
 
 20 runs in a row on a runner, each within its bound.
+
+# T-703: A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set
+
+**Source:** GitHub #172
+**Category:** defect
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With `ServerAliveInterval` set, a `cf://HOST` run whose far end greets with the layer keeps SSH's
+keepalives and prints no line. The keepalives end a session after `ServerAliveCountMax` probes with
+no answer, also while the layer would carry it onto a new link. `node://NAME` prints a warning for the
+same setting.
+
+## Premise
+
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:375` decides `resumable` from
+  `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
+  list.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:387-392` sits inside `if resumable`.
+- `crates/podssh-cli/src/ssh/cloudflare.rs:197` branches on `greeted.layer()`;
+  `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
+  only after the connection, so the list at `resolve.rs:375` cannot decide it.
+- The guard at `crates/podssh-cli/src/ssh/mod.rs:434` removes the keepalives only when
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:476` sets when the user
+  named no interval.
+- T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
+  (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:869-873`) says that the resumable
+  road is `node://` alone; T-300 made that sentence false.
+
+## Approach
+
+1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:434`, add the case `reached.layer.is_some()` with
+   `!resolved.alive_default` and a keepalive interval that is set. Print the warning of
+   `resolve.rs:389-391` there, once, from one shared constant.
+2. Keep the user's interval. Do not add `Transport::Cloudflare` to `resolve.rs:375`: a far end that
+   greets with no layer would then lose its keepalives and get a false warning.
+3. Check the other roads that can greet with the layer (the carrier road, `--exit` over a carrier,
+   `Transport::Cloud`, the jump tunnels). Give each the same warning, or write in this entry's
+   `## Done` why it needs none.
+4. Add a `## Correction` to T-154 that names `cf://` and T-300, as the sentence at
+   `TODO/resume.md:869-873` stays as it was written.
+
+## Decision
+
+Q-172 (the call of the triage, 2026-11-09): warn only, and keep the user's explicit interval, as
+T-154 ruled for `node://`. `AliveInterval 0` stays the way to switch the keepalives off.
+Lost: taking the explicit interval away on a road with the layer. It overrides what the user asked
+for, and it differs from `node://`. Lost: adding `Transport::Cloudflare` to the road list. The list
+is read before the greeting, so it warns falsely for a far end with no layer.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test cloudflare_layer_alive
+```
+
+New tests in `crates/podssh-cli/tests/`, with a stand-in far end on the loopback: a layer and
+`AliveInterval 30` gives one warning and the interval stays; a layer and no interval gives no
+keepalives and no warning; a far end with no layer gives no warning and the user's keepalives;
+`node://NAME` with `AliveInterval 30` prints its warning as before. The test target name is a
+proposal; the entry's `## Done` names the real one.
+

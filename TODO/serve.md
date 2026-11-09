@@ -1054,8 +1054,8 @@ with no privileges needs a way that the host allows, found by a probe.
 ## Premise
 
 - Read: podssh never assumes a tool or a privilege; it starts a program only
-  when a probe found it (`AGENTS.md:337-366`).
-- Read: a credential never goes on argv or into output (`AGENTS.md:289-294`).
+  when a probe found it (`AGENTS.md:338-367`).
+- Read: a credential never goes on argv or into output (`AGENTS.md:290-295`).
   The command line of a unit file is argv, so it must hold no token.
 - Read in the reports of GitHub #20 and #18, not verified here: tty7, zuko
   and iroh-ssh install services, and iroh-ssh adds a firewall rule (which
@@ -1190,7 +1190,7 @@ own scope; serve does nothing like it.
 ## Premise
 
 - Read: podssh must not assume systemd, and starts a program only when a probe
-  found it (`AGENTS.md:337-366`, `docs/target-environment.md:116-118`).
+  found it (`AGENTS.md:338-367`, `docs/target-environment.md:116-118`).
 - Read: T-110 and T-111 start each child with `setsid`, in serve's cgroup.
 - Read in the report of GitHub #19, not verified here: ssh-obi moves its pty
   children into a transient scope when systemd is there, and works without
@@ -1330,7 +1330,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
   when the user asks for it and a probe at run time allows the bind. The
   default is loopback and AF_UNIX; the user can set the address and can turn
   listening off. The rules still say that podssh never listens
-  (`AGENTS.md:339-345`, `docs/architecture.md:284-301`).
+  (`AGENTS.md:340-346`, `docs/architecture.md:284-301`).
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
@@ -1356,7 +1356,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 5. Later step: SSH and TLS on one port. Read the first bytes: `SSH-2.0-` goes
    to SSH; a TLS ClientHello (0x16) is refused.
 6. Same commit: the flags, the manual, `docs/cli.md`, and the rules in
-   `AGENTS.md:339-345` and `docs/architecture.md:284-301`, which then name this
+   `AGENTS.md:340-346` and `docs/architecture.md:284-301`, which then name this
    exception and the ruling.
 
 ## Prove
@@ -1799,3 +1799,79 @@ as a timer of inactivity, and the test of the byte each second fails.
 
 T-124 is done: `podssh serve --listen` exists, with the server of T-107 whose session the deadline
 follows and the test of the listener that this Prove extends. T-124 waits for T-107 to T-112.
+
+# T-698: `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share
+
+**Source:** GitHub #168 (2026-11-07).
+**Category:** feature
+**Milestone:** M5
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh relay serve` gives up each capability of its start after its bind (T-629, GitHub #127).
+`podssh serve` (T-107) plans no such drop. It runs a command for each authenticated client, so it
+holds more authority than a relay that pumps bytes. A start of `serve --stdio` by a supervisor
+that runs as root (inetd, a systemd unit) would keep every capability for the life of the
+connection.
+
+## Premise
+
+- `crates/podssh-cli/src/relay_serve.rs:22` says "mod harden;": the drop is private to
+  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:239`
+  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:123` only reads
+  `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
+  `harden_tests.rs` (228).
+- `crates/podssh-cli/src/first_thread.rs` and `crates/podssh-cli/src/main.rs:29` hold the hand-off
+  of the first thread. A drop on the calling thread alone is not enough (T-629's Correction); a
+  drop of `serve` inherits this.
+- T-107's Approach (`TODO/serve.md:36`, steps 1 to 5) does not mention capabilities. No entry
+  plans a drop for `serve`.
+- T-631 covers the deadline and the cap of pending connections for `--listen` only. The drop asks
+  for no listener, so it needs no parking.
+- No file here is in a module that PodUtils/podcrates took. The work stays in podssh.
+
+## Approach
+
+1. Move `harden.rs`, `harden_sys.rs` and `harden_tests.rs` to a shared module of `podssh-cli`
+   beside `first_thread.rs`. Keep each file at 500 lines or fewer. Keep `status_sets` nameable,
+   so that a later report of `doctor` can read the same sets.
+2. Add one parameter: what the caller keeps. It is empty for the relay role. It is empty for
+   `serve` until a measurement says that a pty or a child needs one (T-110, T-248).
+3. The relay role calls the drop after its bind, as today. `serve --stdio` calls it at start,
+   before the runtime starts its threads. `serve --listen` calls it after its bind.
+4. Keep the convention of `harden.rs`: probe first; where a capability was held, a failed step
+   refuses the start (exit 78); `EPERM` and `EINVAL` of the bounding-set drop are taken as done;
+   each thread of `/proc/self/task` is read again. A start as root keeps uid 0, and the first
+   line of the start says so.
+5. Do the extraction now. The call from `serve` goes into T-107's Approach, and T-107's Prove
+   gets one check: after the start, under both entry points and as root, the process reports no
+   capability. T-107 gets a Start condition: this entry is done.
+6. Run `cargo todo remap` on each moved file, and correct the citations of T-629 in the same
+   change.
+
+## Decision
+
+2026-11-09 (Q-168), the call of the triage:
+
+- This is its own entry, and T-107 waits for it. Lost: a step inside T-107's Approach. T-107 is
+  large and open; the extraction touches only the relay role and needs no listener, so it can be
+  done now and T-107 meets a finished module.
+- The keep-list is a parameter that is empty today. Lost: a keep-list with a guess of what a pty
+  needs. It is not known; a measurement fills it, not a default.
+- A start as root keeps uid 0, as T-629 decided for the relay role. Lost: a change of uid, which
+  is a different feature.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve
+cargo test -p podssh-cli --lib harden
+```
+
+The relay role's tests pass after the move, unchanged. The check of `serve` (T-107's `serve_auth`
+and scripts/interop-serve.sh (T-107 writes it)) runs as root and reads every thread in `/proc/self/task`.
+

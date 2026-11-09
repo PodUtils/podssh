@@ -3953,3 +3953,58 @@ with 64.
   patch: passed. Its run (`sh scripts/plant-each.sh --here`): caught.
 - The merge: rustfmt and clippy (all targets, `-D warnings`) clean; the lib 748, `man_page` 10,
   `flag_table` 9, `man_flag_parity` 6, `man_json` 4.
+
+# T-700: `podssh sftp` prints a line before the relay's byte cap stops a transfer
+
+**Source:** GitHub #167
+**Category:** defect
+**Milestone:** none
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh ssh` prints one line on stderr when its relay session nears the relay's byte cap
+(`crates/podssh-cli/src/ssh/near_cap.rs`, T-461). `podssh sftp` prints none. The meter already stops a
+transfer before the cap with "the relay session is near its limits", so no byte is lost, but a user
+who starts a large `put` has no earlier notice that the budget is nearly gone.
+
+## Premise
+
+- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:437`. It takes a
+  `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:52`), not a `Meter`. No file under
+  `crates/podssh-cli/src/sftp/` calls it.
+- Read: `crates/podssh-cli/src/sftp/run.rs:130` hands `self.link.meter` to `bysftp::down` and `up`;
+  `crates/podssh-cli/src/cp/link.rs:80-88` stops the transfer with the failure
+  "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:67`.
+- The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.
+
+## Approach
+
+1. Change `near_cap` so that its reader takes a source of the left bytes (a closure or a trait) in the
+   place of a `RelayStatus`; keep `ssh` working with its own source.
+2. Spawn the reader beside the sftp session, from `self.link.meter`.
+3. Print the line at 80 % and at 95 % of the budget, once each, with the text of
+   `near_cap.rs` `line`. Print nothing with `-q`. Add no flag; `PODSSH_SESSION_BUDGET` already
+   lowers the budget.
+4. Leave `cp` and `scp` as they are (see Decision).
+
+## Decision
+
+The coordinator ruled on 2026-11-09: the 80 % and 95 % line is for `sftp` only. Alternative that lost:
+the line for `cp` and `scp` too. It loses because they rotate sessions before the cap (T-137, done)
+and a warning there would tell nothing the user can act on.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib near_cap
+cargo test -p podssh-cli --lib sftp::
+# PODSSH_SESSION_BUDGET=1048576 podssh sftp against a stand-in relay (scripts/fake-relay.py) and a
+# put larger than the budget: the line comes first, then the stop.
+```
+
+Plant a defect (the reader never starts). The test must fail on it.
+
