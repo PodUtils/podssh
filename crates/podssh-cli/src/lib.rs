@@ -67,6 +67,11 @@ pub mod flags;
 pub mod forwarder;
 // Grants used once (T-226): a client's --grant, a node's door and its mint.
 pub mod grants;
+// The drop of the capabilities of a start, shared by `relay serve` (T-629)
+// and `serve` (T-698).
+pub(crate) mod harden;
+#[cfg(target_os = "linux")]
+mod harden_sys;
 // The signals that end a client of a node's layer with a `CLOSE` (T-586).
 pub mod hangup;
 pub mod help;

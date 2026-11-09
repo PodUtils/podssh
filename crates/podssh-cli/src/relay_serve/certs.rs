@@ -120,7 +120,7 @@ impl Files {
 /// capabilities of its start after the bind (T-629), and a root with no
 /// `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode says.
 fn after_drop(e: &std::io::Error) -> &'static str {
-    if e.kind() == std::io::ErrorKind::PermissionDenied && super::harden::dropped() {
+    if e.kind() == std::io::ErrorKind::PermissionDenied && crate::harden::dropped() {
         AFTER_DROP
     } else {
         ""

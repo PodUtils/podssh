@@ -1,4 +1,4 @@
-//! The drop after the bind (T-629), its system calls replaced: what each
+//! The drop of a start (T-629, T-698), its system calls replaced: what each
 //! start plans, which errors a step takes as done, and which refuse the
 //! start; and on Linux, the real calls on a thread of the test, read back
 //! from the kernel's own status of that thread.
@@ -65,7 +65,7 @@ impl Calls for Fake {
         self.step(Step::Bound(cap))
     }
 
-    fn clear(&mut self) -> Result<(), i32> {
+    fn clear(&mut self, _keep: u64) -> Result<(), i32> {
         self.step(Step::Clear)
     }
 }
@@ -77,20 +77,20 @@ fn each_bound() -> impl Iterator<Item = Step> {
 #[test]
 fn a_thread_with_no_capability_asks_for_no_new_privileges_alone_and_says_nothing() {
     let mut fake = Fake::with(Some(Sets::default()));
-    let outcome = drop_with(&mut fake).unwrap();
+    let outcome = drop_with(&mut fake, 0).unwrap();
     assert_eq!(outcome.steps, [Step::NoNewPrivs]);
     assert_eq!(fake.made, [Step::NoNewPrivs], "no capset and no drop from the bounding set");
     assert_eq!(words(&outcome, None, &Ok(3), 1000), None, "the usual start says nothing");
     // Its failure refuses nothing either.
     let mut fake = Fake::with(Some(Sets::default()));
     fake.fail.push((Step::NoNewPrivs, 1));
-    assert!(drop_with(&mut fake).is_ok());
+    assert!(drop_with(&mut fake, 0).is_ok());
 }
 
 #[test]
 fn a_start_as_root_drops_the_bounding_set_then_empties_each_set() {
     let mut fake = Fake::root();
-    let outcome = drop_with(&mut fake).unwrap();
+    let outcome = drop_with(&mut fake, 0).unwrap();
     let want: Vec<Step> = std::iter::once(Step::NoNewPrivs).chain(each_bound()).chain([Step::Clear]).collect();
     assert_eq!(outcome.steps, want);
     assert_eq!(fake.made, want, "the sets emptied last, once the bounding set went");
@@ -103,7 +103,7 @@ fn a_start_as_root_drops_the_bounding_set_then_empties_each_set() {
 #[test]
 fn a_file_capability_without_cap_setpcap_keeps_the_bounding_set_and_says_so() {
     let mut fake = Fake::with(Some(Sets { effective: BIND, permitted: BIND, inheritable: 0 }));
-    let outcome = drop_with(&mut fake).unwrap();
+    let outcome = drop_with(&mut fake, 0).unwrap();
     assert_eq!(outcome.steps, [Step::NoNewPrivs, Step::Clear]);
     let line = words(&outcome, None, &Ok(2), 1000).expect("a line");
     assert!(line.contains("its bounding set stays, as no CAP_SETPCAP") && !line.contains("uid 0"), "{line}");
@@ -113,7 +113,7 @@ fn a_file_capability_without_cap_setpcap_keeps_the_bounding_set_and_says_so() {
 fn a_capability_past_the_kernel_table_is_tolerated() {
     let mut fake = Fake::root();
     fake.fail.push((Step::Bound(LAST), EINVAL));
-    assert_eq!(apply(&[Step::Bound(LAST), Step::Clear], true, &mut fake).unwrap(), Vec::<String>::new());
+    assert_eq!(apply(&[Step::Bound(LAST), Step::Clear], true, 0, &mut fake).unwrap(), Vec::<String>::new());
     assert_eq!(fake.made, [Step::Bound(LAST), Step::Clear]);
 }
 
@@ -121,7 +121,7 @@ fn a_capability_past_the_kernel_table_is_tolerated() {
 fn a_drop_without_cap_setpcap_is_tolerated() {
     let mut fake = Fake::root();
     fake.bound_errno = Some(EPERM);
-    let outcome = drop_with(&mut fake).expect("EPERM of the bounding set is taken as done");
+    let outcome = drop_with(&mut fake, 0).expect("EPERM of the bounding set is taken as done");
     assert_eq!(fake.made.last(), Some(&Step::Clear), "the sets are still emptied");
     assert!(outcome.notes.is_empty(), "{:?}", outcome.notes);
 }
@@ -130,7 +130,7 @@ fn a_drop_without_cap_setpcap_is_tolerated() {
 fn any_other_drop_failure_is_a_config_fault_78() {
     let mut fake = Fake::root();
     fake.fail.push((Step::Bound(3), 5));
-    let refused = drop_with(&mut fake).unwrap_err();
+    let refused = drop_with(&mut fake, 0).unwrap_err();
     assert_eq!(refused.code, crate::exitmap::sysexits::EX_CONFIG, "{refused:?}");
     assert!(refused.message.contains("prctl(PR_CAPBSET_DROP, 3) after the bind"), "{}", refused.message);
     assert!(!fake.made.contains(&Step::Clear), "no step after the one that failed");
@@ -140,7 +140,7 @@ fn any_other_drop_failure_is_a_config_fault_78() {
 fn a_failed_capset_is_fatal_even_when_the_set_went_quietly() {
     let mut fake = Fake::root();
     fake.fail.push((Step::Clear, EPERM));
-    let refused = drop_with(&mut fake).unwrap_err();
+    let refused = drop_with(&mut fake, 0).unwrap_err();
     assert_eq!(refused.code, crate::exitmap::sysexits::EX_CONFIG);
     assert!(refused.message.starts_with("capset after the bind: "), "{}", refused.message);
     assert!(fake.made.contains(&Step::Bound(LAST)), "the bounding set went first: {:?}", fake.made);
@@ -150,7 +150,7 @@ fn a_failed_capset_is_fatal_even_when_the_set_went_quietly() {
 fn an_old_kernel_with_no_flag_of_no_new_privileges_is_said_and_the_drop_goes_on() {
     let mut fake = Fake::root();
     fake.fail.push((Step::NoNewPrivs, EINVAL));
-    let outcome = drop_with(&mut fake).unwrap();
+    let outcome = drop_with(&mut fake, 0).unwrap();
     assert_eq!(outcome.notes, ["this kernel has no PR_SET_NO_NEW_PRIVS"]);
     let line = words(&outcome, None, &Ok(2), 1000).unwrap();
     assert!(line.ends_with("(this kernel has no PR_SET_NO_NEW_PRIVS)"), "{line}");
@@ -160,7 +160,7 @@ fn an_old_kernel_with_no_flag_of_no_new_privileges_is_said_and_the_drop_goes_on(
 fn sets_that_cannot_be_read_get_each_step_and_a_failure_is_a_note() {
     let mut fake = Fake::with(None);
     fake.fail.push((Step::Clear, EPERM));
-    let outcome = drop_with(&mut fake).expect("no capability known: no refusal");
+    let outcome = drop_with(&mut fake, 0).expect("no capability known: no refusal");
     assert!(outcome.steps.contains(&Step::Bound(0)) && outcome.steps.last() == Some(&Step::Clear));
     assert_eq!(outcome.notes.len(), 1, "{:?}", outcome.notes);
     assert!(outcome.notes[0].starts_with("capset: "), "{:?}", outcome.notes);
@@ -172,11 +172,21 @@ fn sets_that_cannot_be_read_get_each_step_and_a_failure_is_a_note() {
 #[test]
 fn the_first_thread_that_held_a_capability_is_said_too() {
     let mut none = Fake::with(Some(Sets::default()));
-    let here = drop_with(&mut none).unwrap();
+    let here = drop_with(&mut none, 0).unwrap();
     let mut root = Fake::root();
-    let first = drop_with(&mut root).unwrap();
+    let first = drop_with(&mut root, 0).unwrap();
     let line = words(&here, Some(&first), &Err("no /proc".into()), 0).unwrap();
     assert!(line.contains("dropped after the bind, on this thread and the first"), "{line}");
+}
+
+#[test]
+fn a_kept_capability_stays_in_the_bounding_set_and_reaches_the_clearing() {
+    assert_eq!(mask(&[10, 12, 99]), (1 << 10) | (1 << 12), "a number past 63 is no capability");
+    let mut fake = Fake::root();
+    let outcome = drop_with(&mut fake, BIND).unwrap();
+    assert!(!outcome.steps.contains(&Step::Bound(10)), "{:?}", outcome.steps);
+    assert!(outcome.steps.contains(&Step::Bound(9)) && outcome.steps.last() == Some(&Step::Clear));
+    assert_eq!(drop_with(&mut Fake::root(), 0).unwrap().steps.len(), outcome.steps.len() + 1, "none kept: all");
 }
 
 #[test]
@@ -196,11 +206,11 @@ fn the_status_of_a_thread_gives_each_set_and_its_flags() {
 #[cfg(target_os = "linux")]
 #[test]
 fn a_thread_drops_what_it_held_and_the_kernel_reads_none_left() {
-    use super::super::harden_sys::Sys;
+    use crate::harden_sys::Sys;
     let read = || std::fs::read_to_string("/proc/thread-self/status").ok();
     let checked = std::thread::spawn(move || {
         let before = read()?;
-        let outcome = drop_with(&mut Sys).expect("the drop on this thread");
+        let outcome = drop_with(&mut Sys, 0).expect("the drop on this thread");
         Some((before, outcome, read().expect("the status after the drop")))
     });
     let Some((before, outcome, after)) = checked.join().unwrap() else {
@@ -223,6 +233,6 @@ fn a_thread_drops_what_it_held_and_the_kernel_reads_none_left() {
 #[cfg(not(target_os = "linux"))]
 #[test]
 fn a_start_elsewhere_drops_nothing_and_says_nothing() {
-    assert_eq!(give_up(), Ok(None));
+    assert_eq!(give_up(&[]), Ok(None));
     assert!(!dropped());
 }

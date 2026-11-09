@@ -1,8 +1,8 @@
-//! The system calls of the drop after the bind (T-629), Linux alone:
+//! The system calls of the drop of a start (T-629, T-698), Linux alone:
 //! `capget` and `capset` by `syscall(2)`, as the C library of a static build
 //! need not wrap them, and `prctl(2)`. Each acts on the calling thread.
 
-use super::harden::{status_sets, Calls, Sets};
+use crate::harden::{status_sets, Calls, Sets};
 
 /// `_LINUX_CAPABILITY_VERSION_3`: two records of 32 bits for 64 capabilities.
 const VERSION_3: u32 = 0x2008_0522;
@@ -81,9 +81,17 @@ impl Calls for Sys {
         }
     }
 
-    fn clear(&mut self) -> Result<(), i32> {
+    fn clear(&mut self, keep: u64) -> Result<(), i32> {
         let mut header = Header { version: VERSION_3, pid: 0 };
-        let data = [Data::default(); 2];
+        // What the caller keeps, and only what this thread holds: capset
+        // refuses a raise (EPERM).
+        let held = self.sets().map(|s| s.permitted).unwrap_or(0);
+        let kept = keep & held;
+        let (low, high) = (kept as u32, (kept >> 32) as u32);
+        let data = [
+            Data { effective: low, permitted: low, inheritable: 0 },
+            Data { effective: high, permitted: high, inheritable: 0 },
+        ];
         // SAFETY: as in `sets`; the records are only read.
         let rc = unsafe { libc::syscall(libc::SYS_capset, &mut header as *mut Header, data.as_ptr()) };
         match rc {
@@ -100,9 +108,9 @@ pub fn euid() -> u32 {
 }
 
 /// How many threads this process has, and the ids of those whose
-/// effective or permitted set is not empty, by `/proc/self/task`. A thread
-/// whose status cannot be read as sets counts as one that holds some.
-pub fn threads_holding() -> Result<(usize, Vec<String>), String> {
+/// effective or permitted set holds more than `keep`, by `/proc/self/task`. A
+/// thread whose status cannot be read as sets counts as one that holds some.
+pub fn threads_holding(keep: u64) -> Result<(usize, Vec<String>), String> {
     let dir = std::fs::read_dir("/proc/self/task").map_err(|e| format!("/proc/self/task: {e}"))?;
     let (mut count, mut holding) = (0, Vec::new());
     for entry in dir.flatten() {
@@ -110,7 +118,7 @@ pub fn threads_holding() -> Result<(usize, Vec<String>), String> {
         let Ok(text) = std::fs::read_to_string(entry.path().join("status")) else { continue };
         count += 1;
         match status_sets(&text) {
-            Some(sets) if (sets.effective | sets.permitted) == 0 => {}
+            Some(sets) if (sets.effective | sets.permitted) & !keep == 0 => {}
             _ => holding.push(entry.file_name().to_string_lossy().into_owned()),
         }
     }

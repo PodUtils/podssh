@@ -10,7 +10,7 @@
 //! road in the resumable layer take their budget, their deadline and this
 //! process's name from flags of their own (T-173, `relay_serve/resumes.rs`).
 //! Once its listener is bound, before the runtime starts a thread, it gives
-//! up the capabilities of its start (T-629, `relay_serve/harden.rs`). With
+//! up the capabilities of its start (T-629, `harden.rs`). With
 //! `--quic yes` it serves QUIC on the listener's port of UDP too (T-667,
 //! `relay_serve/quic.rs`). What each key carried, its budget for a day and
 //! the file that keeps the counts are `relay_serve/quota.rs`'s (T-636); a
@@ -19,9 +19,6 @@
 //! a name published to a pair's node by its ClientHello, `relay_serve/publish.rs`'s (T-649).
 
 mod certs;
-mod harden;
-#[cfg(target_os = "linux")]
-mod harden_sys;
 pub(crate) mod keys_url;
 mod list;
 mod publish;
@@ -236,7 +233,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let mut udp = None;
     let (listener, dropped) = bind_then_drop(listen, |tcp| {
         udp = quic::bind(asked_quic, tcp)?;
-        harden::give_up()
+        crate::harden::give_up(&[])
     })?;
     let sessions = quic::offered(sessions, &udp);
     let bound = listener.local_addr().map_err(|e| Refusal::config(e.to_string()))?;

@@ -87,6 +87,13 @@ accepts each key fails. With no key, the static binary (`$BIN`) exits 78.
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
 
+2026-11-09. Step 6 of the Approach: at its start `podssh serve` calls the shared drop of T-698
+(`crate::harden::give_up(&[])`, `crates/podssh-cli/src/harden.rs`), the keep-list empty: `--stdio`
+before the runtime starts its threads, `--listen` after its bind. It refuses the start with exit 78
+where a capability was held and a step failed. The Prove gains one check: after the start, under
+both entry points and as root, each thread of `/proc/self/task` reports no capability. The entry
+waits for T-698's serve part, which waits for this one's command.
+
 # T-108: `podssh serve`: exec, a shell and the environment, as the sandbox's user
 
 **Source:** `docs/ROADMAP.md:180-185` ("It supplies exec"),
@@ -1747,7 +1754,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1354-1355` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1361-1362` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
@@ -1807,7 +1814,7 @@ follows and the test of the listener that this Prove extends. T-124 waits for T-
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1819,7 +1826,7 @@ connection.
 
 ## Premise
 
-- `crates/podssh-cli/src/relay_serve.rs:22` says "mod harden;": the drop is private to
+- `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
   `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:239`
   (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:123` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
@@ -1874,6 +1881,37 @@ cargo test -p podssh-cli --lib harden
 
 The relay role's tests pass after the move, unchanged. The check of `serve` (T-107's `serve_auth`
 and scripts/interop-serve.sh (T-107 writes it)) runs as root and reads every thread in `/proc/self/task`.
+
+## Correction
+
+2026-11-09 (the drafting agent of T-698). The Premise holds at `739d851d`: `mod harden;` is at
+`relay_serve.rs:22`, the call at `:239`, the read of `dropped()` at `certs.rs:123`, and the three
+files have 284, 118 and 228 lines. Step 2 is made as `give_up(keep: &[u32])`: the numbers become a
+mask, which `plan` leaves in the bounding set and `Calls::clear(keep)` leaves in the effective and
+permitted sets (only what the thread holds, as `capset` refuses a raise), and `threads_holding(keep)`
+does not count. The module is `crate::harden` (`crates/podssh-cli/src/harden.rs`, `harden_sys.rs`,
+`harden_tests.rs`); the words of the first line and of the refusals still say "after the bind", which
+is `serve`'s to make general (T-107). The plant `scripts/plants/t629-capset-failure-taken.plant` follows the
+new path; `t629-drop-after-runtime.patch` was already stale. T-107's Approach got its call as a
+`## Correction` of 2026-11-09.
+
+## Done
+
+Partial, 2026-11-09. The extraction (steps 1, 2, 4, 6 of the Approach) is drafted (DRAFT T-698,
+`450f0021`) and merged by the main session, with no repair; the
+call of `serve` (steps 3 and 5) waits for T-107.
+
+- Moved: `crates/podssh-cli/src/relay_serve/harden{,_sys,_tests}.rs` to
+  `crates/podssh-cli/src/`, declared in `lib.rs` beside `first_thread`; `relay_serve.rs` calls
+  `crate::harden::give_up(&[])`, `certs.rs` reads `crate::harden::dropped()`. No change of behaviour.
+- `cargo test -p podssh-cli --lib harden`: 13 passed. New test:
+  `a_kept_capability_stays_in_the_bounding_set_and_reaches_the_clearing`.
+- `cargo test -p podssh-cli --test relay_serve`: 27 passed. The plant of T-629 at its new path
+  (`sh scripts/plant-each.sh --here t629-capset-failure-taken`): caught.
+- clippy (the gate's lints): no warning; rustfmt: no change. The build image's run waits for the gate.
+- `cargo todo remap` for the files that cite `harden.rs`: done (`TODO/cli.md` cited
+  `relay_serve/harden.rs:234`, moved by hand to `harden.rs:245`).
+- Left: the call from `serve` (T-107) and its check as root on each thread of `/proc/self/task`.
 
 # T-709: A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as`
 

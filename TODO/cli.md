@@ -3811,7 +3811,7 @@ allow, and which features does that close, before the user tries a session.
 
 - Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:222-236` (exec,
   with `ok` and `unknown`, never `FAIL` for a refusal), `crates/podssh-cli/src/doctor/unix.rs:84-97`
-  (`pty`), `crates/podssh-cli/src/relay_serve/harden.rs:234` (`status_sets`, reads `CapEff`,
+  (`pty`), `crates/podssh-cli/src/harden.rs:245` (`status_sets`, reads `CapEff`,
   `CapPrm`, `CapInh`), `crates/podssh-ws/src/resolve.rs:1-18` (the order of the resolver).
 - Read: no `--tier` and no composed verdict exist; a search for `tier` in `crates/podssh-cli/src/doctor/`
   and in `crates/podssh-cli/src/flags.rs` finds nothing.

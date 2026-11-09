@@ -1,5 +1,7 @@
-//! What `podssh relay serve` gives up once its listener is bound (T-629,
-//! GitHub #127). A port below 1024 needs a privilege for its bind alone: a
+//! What a role gives up once its start is done: `podssh relay serve` after its
+//! listener is bound (T-629, GitHub #127), and `podssh serve` at its start
+//! (T-698, GitHub #168; T-107 makes the call).
+//! The caller names what it keeps, empty for the relay role. A port below 1024 needs a privilege for its bind alone: a
 //! start as root, or a file capability on the binary. Nothing after the
 //! bind needs one, so on Linux, after it and before the runtime starts its
 //! threads, which take the sets of the thread that makes them: no new
@@ -21,6 +23,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use crate::relay_settings::Refusal;
+
+/// The mask of capability numbers that a caller keeps.
+pub fn mask(keep: &[u32]) -> u64 {
+    keep.iter().filter(|cap| **cap <= CAP_MOST).fold(0, |m, cap| m | (1u64 << cap))
+}
 
 /// `CAP_SETPCAP`, which a drop from the bounding set needs.
 pub const CAP_SETPCAP: u32 = 8;
@@ -90,8 +97,9 @@ pub trait Calls {
     fn bounded(&mut self, cap: u32) -> Result<bool, i32>;
     fn no_new_privs(&mut self) -> Result<(), i32>;
     fn bound_drop(&mut self, cap: u32) -> Result<(), i32>;
-    /// `capset` with the three sets empty.
-    fn clear(&mut self) -> Result<(), i32>;
+    /// `capset` with the three sets empty, but for `keep` (a mask) of what
+    /// the thread holds in the effective and permitted sets.
+    fn clear(&mut self, keep: u64) -> Result<(), i32>;
 }
 
 /// The words of `errno`, as the system gives them.
@@ -117,10 +125,12 @@ pub fn probe(calls: &mut dyn Calls) -> Found {
 /// The steps for what `found` holds: no new privileges always, as it costs
 /// nothing; with a capability, the bounding set where `CAP_SETPCAP` is
 /// effective, then the sets emptied; with sets that could not be read, each
-/// step, as a capability may be held.
-pub fn plan(found: &Found) -> Vec<Step> {
+/// step, as a capability may be held. The `keep` mask stays in the bounding
+/// set, so that the sets can keep it.
+pub fn plan(found: &Found, keep: u64) -> Vec<Step> {
     let mut steps = vec![Step::NoNewPrivs];
-    let bounding = (0..=CAP_MOST).filter(|cap| (found.bounding >> cap) & 1 == 1).map(Step::Bound);
+    let bounding =
+        (0..=CAP_MOST).filter(|cap| (found.bounding >> cap) & 1 == 1 && (keep >> cap) & 1 == 0).map(Step::Bound);
     match &found.sets {
         Ok(sets) if sets.none() => {}
         Ok(sets) => {
@@ -143,13 +153,13 @@ pub fn plan(found: &Found) -> Vec<Step> {
 /// `EPERM` (no `CAP_SETPCAP`) of the bounding set are taken as done, and
 /// `EINVAL` of `PR_SET_NO_NEW_PRIVS` (a kernel before 3.5) is a note. With
 /// no capability for sure, each failure is a note. The notes, in order.
-pub fn apply(steps: &[Step], strict: bool, calls: &mut dyn Calls) -> Result<Vec<String>, Refusal> {
+pub fn apply(steps: &[Step], strict: bool, keep: u64, calls: &mut dyn Calls) -> Result<Vec<String>, Refusal> {
     let mut notes = Vec::new();
     for step in steps {
         let (result, call) = match *step {
             Step::NoNewPrivs => (calls.no_new_privs(), "prctl(PR_SET_NO_NEW_PRIVS)".to_string()),
             Step::Bound(cap) => (calls.bound_drop(cap), format!("prctl(PR_CAPBSET_DROP, {cap})")),
-            Step::Clear => (calls.clear(), "capset".to_string()),
+            Step::Clear => (calls.clear(keep), "capset".to_string()),
         };
         let Err(errno) = result else { continue };
         match (*step, errno) {
@@ -175,11 +185,11 @@ pub struct Outcome {
     pub notes: Vec<String>,
 }
 
-/// The drop on the calling thread, by `calls`.
-pub fn drop_with(calls: &mut dyn Calls) -> Result<Outcome, Refusal> {
+/// The drop on the calling thread, by `calls`, keeping the mask `keep`.
+pub fn drop_with(calls: &mut dyn Calls, keep: u64) -> Result<Outcome, Refusal> {
     let found = probe(calls);
-    let steps = plan(&found);
-    let notes = apply(&steps, found.holds(), calls)?;
+    let steps = plan(&found, keep);
+    let notes = apply(&steps, found.holds(), keep, calls)?;
     Ok(Outcome { found, steps, notes })
 }
 
@@ -242,12 +252,14 @@ pub fn status_sets(text: &str) -> Option<Sets> {
 /// The drop once the listener is bound (Linux): on this thread, then on the
 /// first thread, then each thread read again; the first line's words, or
 /// none where nothing was held. A thread that keeps a capability that was
-/// held refuses the start (78).
+/// held refuses the start (78). `keep` lists the capabilities that the
+/// caller keeps, empty for the relay role.
 #[cfg(target_os = "linux")]
-pub fn give_up() -> Result<Option<String>, Refusal> {
-    use super::harden_sys::{self, Sys};
-    let here = drop_with(&mut Sys)?;
-    let first = match crate::first_thread::on_first(|| drop_with(&mut Sys), FIRST_WAIT) {
+pub fn give_up(keep: &[u32]) -> Result<Option<String>, Refusal> {
+    use crate::harden_sys::{self, Sys};
+    let keep = mask(keep);
+    let here = drop_with(&mut Sys, keep)?;
+    let first = match crate::first_thread::on_first(move || drop_with(&mut Sys, keep), FIRST_WAIT) {
         Some(outcome) => Some(outcome?),
         None if crate::first_thread::waits() && here.found.holds() => {
             return Err(Refusal::config(
@@ -258,7 +270,7 @@ pub fn give_up() -> Result<Option<String>, Refusal> {
         None => None,
     };
     let held = here.found.holds() || first.as_ref().is_some_and(|o| o.found.holds());
-    let threads = harden_sys::threads_holding();
+    let threads = harden_sys::threads_holding(keep);
     if let (true, Ok((_, holding))) = (held, &threads) {
         if !holding.is_empty() {
             return Err(Refusal::config(format!(
@@ -274,8 +286,8 @@ pub fn give_up() -> Result<Option<String>, Refusal> {
 
 /// No capability sets here: nothing to drop, and nothing said.
 #[cfg(not(target_os = "linux"))]
-pub fn give_up() -> Result<Option<String>, Refusal> {
-    let _ = FIRST_WAIT;
+pub fn give_up(keep: &[u32]) -> Result<Option<String>, Refusal> {
+    let _ = (FIRST_WAIT, keep);
     Ok(None)
 }
 
