@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 96 open, 19 partial, 10 blocked, 562 done.**
+**687 entries: 96 open, 18 partial, 10 blocked, 563 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 28 | 7 | 1 | 259 | 295 |
+| P2 | 28 | 6 | 1 | 260 | 295 |
 | P3 | 64 | 10 | 6 | 233 | 313 |
-| **All** | 96 | 19 | 10 | 562 | 687 |
+| **All** | 96 | 18 | 10 | 563 | 687 |
 
 ## Entries
 
@@ -554,7 +554,7 @@ repository and CI).
 | [T-487](ws.md) | P3 | S | none | feature | done | `doctor` says once that each TLS handshake was reset, and tells a reset from a timeout |
 | [T-488](machine.md) | P3 | L | none | feature | done | `podssh mcp` offers `cp`, `job`, `health` and `session` as tools, behind the gate of `ssh_exec` |
 | [T-489](irc.md) | P3 | S | none | feature | done | `chat --listen --linger`: a listener that stays for each peer after its input ended |
-| [T-490](mesh.md) | P2 | M | M10 | feature | partial | chisel's protocol: a chisel server as the road |
+| [T-490](mesh.md) | P2 | M | M10 | feature | done | chisel's protocol: a chisel server as the road |
 | [T-491](mesh.md) | P3 | M | M10 | feature | done | Trojan over TLS and over a WebSocket |
 | [T-492](mesh.md) | P3 | M | M10 | feature | done | Shadowsocks 2022 (SIP022) for `--shadowsocks` |
 | [T-493](mesh.md) | P2 | M | M10 | feature | done | Shadowsocks in a WebSocket, as Outline's servers serve it, and `ssconf://` keys |

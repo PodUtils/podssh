@@ -4902,7 +4902,7 @@ needs").
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -5037,6 +5037,9 @@ failed or not.
   stand-in's, refuses a channel `chisel`: the entry stays partial for that run.
 - Not done: `doctor --chisel` (the other roads of Q66 have a line of `doctor`; this entry asks for
   none); `docs/STATUS.md`'s row, which the merge writes.
+- 2026-11-09: `chisel-interop.yml` passed at `cdb46f81` (run 42644853447, on its push) and at
+  `57d86479` (run 42679998713, by hand): chisel v1.13.0's own server carried the session and each
+  check of `scripts/interop-chisel.sh`. Done; `doctor --chisel` is not asked of this entry.
 
 # T-491: Trojan over TLS and over a WebSocket
 
