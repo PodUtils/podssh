@@ -165,3 +165,14 @@ fn podssh_own_json_is_the_result_of_the_other_tools() {
     assert!(failed);
     assert_eq!(value["stderr"], "err!\n");
 }
+
+/// T-705: the schema says that `quick` wins over `full` for the QUIC handshake and the stream probes.
+#[test]
+fn doctor_schema_says_quick_wins_over_full() {
+    let tools = list(&settings(&[]));
+    let doctor = tools.iter().find(|t| t["name"] == "doctor").unwrap();
+    for key in ["full", "quick"] {
+        let text = doctor["inputSchema"]["properties"][key]["description"].as_str().unwrap();
+        assert!(text.contains("QUIC handshake") && text.contains("stream probes"), "{key}: {text}");
+    }
+}

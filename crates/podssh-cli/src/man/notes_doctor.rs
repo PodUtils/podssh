@@ -17,7 +17,7 @@ pub(super) const DOCTOR_AT_ONCE: &str = "The sections that connect run at once b
 pub(super) const DOCTOR_QUICK: &str = "--quick checks this host, the egress and the relay alone, what each run of \
      podssh ssh and podssh proxy needs, with the section of each road that the run names (--forwarder, \
      --shadowsocks, --via, --vless). It leaves out the quick tunnel's edge (the lines quick tunnel roots, UDP out \
-     and edge road), the line nat, iroh and tor in a build with them, OpenTunnel, DERP, the public carriers, the \
+     and edge road, so that --quick --full makes no QUIC handshake), the line nat, iroh and tor in a build with them, OpenTunnel, DERP, the public carriers, the \
      pairs and the net held; its last line, sections \
      in the section left out, names them, as ????: checks that did not run.";
 
@@ -109,7 +109,7 @@ pub(super) const DOCTOR_STREAM: &str = "--stream URL checks this host, then what
      client_max_body_size of 1 MiB and proxy_read_timeout of 60 s, an AWS Application Load Balancer's 60 s, \
      Cloudflare's 125 s, a Google Cloud load balancer's 30 s, Heroku's 30 s), never that it is. A path that \
      holds a stream is ok: podssh works with it; a server that cannot be reached is FAIL, and a probe that it \
-     does not serve ????. With --full, the same section runs among the others at the relay that you named \
+     does not serve ????. With --full, the same section runs among the others (not with --quick, which wins: --quick --full runs the login to github.com and no stream probe) at the relay that you named \
      (--relay-host, PODSSH_RELAY or RelayHost), and at the default relay, which serves no probe, a socket of its \
      reverse road alone, for a pair made for the check and stopped after it, held quiet after the relay's \
      hello; an end before the hold is the path's, or the relay's own drop of a node's socket. With --json, \
@@ -122,3 +122,13 @@ pub(super) const RELAY_PROBES: &str = "The relay also serves the probes of podss
      none), drops it, and answers its length and the time, from the head, that each part of it came. At most 16 \
      run together (503 past them). /relays.json names their limits in limits.probe, and behind a node's quick \
      tunnel the node's own.";
+
+#[cfg(test)]
+mod tests {
+    /// T-705: both notes say that --quick wins over --full for the handshake and the stream probes.
+    #[test]
+    fn quick_and_stream_notes_name_the_other_flag() {
+        assert!(super::DOCTOR_QUICK.contains("--quick --full makes no QUIC handshake"));
+        assert!(super::DOCTOR_STREAM.contains("--quick, which wins"));
+    }
+}

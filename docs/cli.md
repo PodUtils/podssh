@@ -2950,8 +2950,8 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   with a proxy set, nothing is sent, as the node then takes HTTP/2; with
   none, `--full` sends the node's probe of UDP (T-400), then, answered,
   a QUIC handshake with the quick tunnel's edge (Cloudflare's), each region
-  at once, closed with nothing registered. A run without `--full` reaches no
-  server of Cloudflare's, and says so. In a build with the feature `iroh`,
+  at once, closed with nothing registered. A run without `--full`, or with `--quick`
+  (which wins over `--full`), reaches no server of Cloudflare's, and says so. In a build with the feature `iroh`,
   `iroh UDP out` gives the iroh road's own answer: whether a QUIC address
   discovery to its home relay came back.
 - `edge road` (T-374) says, with `--full`, which road over TCP reaches the

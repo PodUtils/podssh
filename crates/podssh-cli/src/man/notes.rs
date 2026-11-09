@@ -303,7 +303,7 @@ const DOCTOR: &[&str] = &[
     "With --full, the relay section adds login: podssh logs in to github.com through the relay as git, \
      with an Ed25519 key made for the check and never written, and GitHub refuses it. That shows that the \
      handshake, the host key (the one that forward identified) and the authentication path work. No pty \
-     is asked for: GitHub refuses the key before a channel opens. With no proxy set, --full also sends \
+     is asked for: GitHub refuses the key before a channel opens. With no proxy set, --full (not with --quick, which wins) also sends \
      the node's probe of UDP to the quick tunnel's edge, Cloudflare's, one QUIC packet that the edge \
      answers with a Version Negotiation, waited for 300 ms; when it is answered, a QUIC handshake with the \
      edge, as the node's QUIC makes one, closed at once with nothing registered: UDP out then says what \

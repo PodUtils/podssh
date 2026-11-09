@@ -42,7 +42,7 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    and `detail`) and `counts` (`ok`, `fail`, `unknown`). `status` is "ok", "FAIL" or "unknown",
    the shape of GitHub #9. The exit code does not change.
 3. One model and two renderers, as `podssh man` has (`crates/podssh-cli/src/man/model.rs`).
-4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:151-197`), read it into
+4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:151-199`), read it into
    `Parsed::Doctor` (`crates/podssh-cli/src/tree.rs` lines 172-181 and 384-392 at `c6f09a8`), and pass it on in
    `crates/podssh-cli/src/dispatch.rs:226-269`. `tree.rs` has 454 lines and `dispatch.rs` 448:
    keep the additions small, or split first.
@@ -227,7 +227,7 @@ opens no connection: the relay list (`crates/podssh-relay/src/relay.rs:128-146`,
 ## Approach
 
 1. The syntax: `podssh status [OPTIONS] [[user@]host[:port]]`, with the relay flags of `doctor`
-   (`crates/podssh-cli/src/flags/relay.rs:151-197`). Remove the owner row, and add "status" to
+   (`crates/podssh-cli/src/flags/relay.rs:151-199`). Remove the owner row, and add "status" to
    `DISPATCHED` (`crates/podssh-cli/tests/flag_table.rs:110-145`).
 2. Write one line of JSON to stdout and exit 0 (64 for a usage error). No text form: `doctor`
    is the report for people.
@@ -334,7 +334,7 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
    be tested; the notes say so. No OpenSSH step (Decision).
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
-6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:151-197`), the `doctor` notes
+6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:151-199`), the `doctor` notes
    (`crates/podssh-cli/src/man/notes.rs:255-339`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -1753,7 +1753,7 @@ The echo beside a download on each of the three links nearer the idle echo than 
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1813,6 +1813,23 @@ The parity tests of the help, the manual and the flag table pass. A new test: `d
 gives the same sections and the same `left out` line as before, and the MCP schema, the help and
 the manual each hold the clause. The MCP command line for both flags stays `doctor --json --full
 --quick`.
+
+## Done
+
+2026-11-09: drafted (DRAFT T-705, `8bf4013a`) and merged by the main session, with no repair. The
+Premise held; words only: the guard at `doctor/mod.rs`, `doctor/stream/mod.rs` and the report are
+unchanged, and no line goes to stderr.
+- `flags/relay.rs`: the `--full` row says that with `--quick`, which wins, the handshake and the stream
+  probes do not run; the `--quick` row names what `--full` adds and `--quick` leaves out.
+- `mcp/tools.rs`: the `full` and `quick` descriptions say the same; the argv `--full --quick` is unchanged.
+- `man/notes_doctor.rs` (`DOCTOR_QUICK`, `DOCTOR_STREAM`), `man/notes.rs` and `docs/cli.md`: the same clause.
+- Tests: `doctor_schema_says_quick_wins_over_full` (`mcp/tools_tests.rs`) and
+  `quick_and_stream_notes_name_the_other_flag` (`man/notes_doctor.rs`); planted, the old words, both fail.
+  `cargo test -p podssh-cli --lib`: 1,008 passed; `--test man_page`, `man_flag_parity`, `mcp`, `doctor`,
+  `doctor_stream`: passed. `cargo todo check` and `python scripts/check-repo.py`: ok.
+- Not changed, as they are true: `NOT_PROBED` and `EDGE_NOT_PROBED` of `doctor/quick.rs` ("a run without
+  `--full`") appear only where the section runs, and `--quick` does not run it; its `left out` line names
+  the edge.
 
 # T-716: The public parts of each key of this host as JSON, offline: `podssh status --keys`
 

@@ -164,14 +164,16 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
         "write the report as one JSON object on stdout, when every check has run", None),
     row(None, "full", None, FlagKind::Supported,
         "also log in to github.com through the relay with a key made for the check, which GitHub refuses, and, with no \
-         proxy set, make a QUIC handshake with the quick tunnel's edge", None),
+         proxy set, make a QUIC handshake with the quick tunnel's edge; with --quick, which wins, the handshake and the stream \
+         probes do not run", None),
     row(None, "hop", Some("[USER@]HOST[:PORT]"), FlagKind::Supported,
         "check only this host and a first hop of -J as --direct reaches it: the connection through HTTPS_PROXY with the \
          server's banner, its host key, and the methods that it offers to a key made for the check", None),
     // The time of a run (T-511): fewer sections, or fewer at once.
     row(None, "quick", None, FlagKind::Supported,
         "check this host, the egress and the relay alone, with the roads that the run names (--forwarder, \
-         --shadowsocks, --via, --vless); a line names the sections that it left out", None),
+         --shadowsocks, --via, --vless); a line names the sections that it left out; it leaves out what --full adds besides the login to \
+         github.com: the QUIC handshake and the stream probes", None),
     row(None, "jobs", Some("N"), FlagKind::Supported,
         "run at most N sections at once, 1 to 64, in the order of the report (default: each at once; also DoctorJobs \
          of the settings file); --jobs 1 runs one after another", None),

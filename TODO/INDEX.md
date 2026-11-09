@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**686 entries: 103 open, 17 partial, 10 blocked, 556 done.**
+**686 entries: 102 open, 17 partial, 10 blocked, 557 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 29 | 7 | 1 | 257 | 294 |
-| P3 | 70 | 8 | 6 | 229 | 313 |
-| **All** | 103 | 17 | 10 | 556 | 686 |
+| P3 | 69 | 8 | 6 | 230 | 313 |
+| **All** | 102 | 17 | 10 | 557 | 686 |
 
 ## Entries
 
@@ -735,7 +735,7 @@ repository and CI).
 | [T-702](roads.md) | P3 | M | backlog | defect | open | One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port |
 | [T-703](resume.md) | P3 | S | none | defect | open | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
 | [T-704](relay.md) | P3 | S | M10 | feature | open | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
-| [T-705](machine.md) | P3 | S | none | defect | open | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
+| [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
 | [T-706](cli.md) | P3 | M | M5 | feature | open | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
 | [T-707](roads.md) | P3 | L | backlog | feature | blocked | A road of the GSRN relay network, by a shared secret |
 | [T-708](multi.md) | P1 | M | M10 | feature | open | `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination |
