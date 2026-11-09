@@ -317,7 +317,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         forward: matches!(request, Request::StdioForward(_)),
     };
     let transport = if let Some((_, label, route)) = &node {
-        super::node::resolved(&ask(label, route.as_deref()), env)?
+        super::node::resolved(&ask(label, route.as_deref()), env, destination.starts_with(super::node::SCHEME))?
     } else if let Some(dest) = &iroh {
         let trust = ca_file(args, env).map_or(Trust::Default, |file| Trust::File(file.into()));
         super::iroh::transport(dest, &ask(&dest.shown, None), trust)?

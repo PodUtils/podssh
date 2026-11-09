@@ -4714,7 +4714,7 @@ dropped in the same way.
   relay". `crates/podssh-cli/src/proxy_node.rs:176-190` lists the flags (`--relay-host` at line 180,
   `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:255-279` pins
   `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
-- `crates/podssh-cli/src/ssh/node.rs:129-145` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
+- `crates/podssh-cli/src/ssh/node.rs:134-150` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
   and the family for a node. It has no clause for the relay flags.
   `crates/podssh-cli/src/ssh/carried.rs:38-63` refuses them only for `--carrier`.
 - `crates/podssh-cli/src/ssh/resolve.rs:319-320` takes a node destination first. The only read of
@@ -4723,7 +4723,7 @@ dropped in the same way.
 - `crates/podssh-cli/src/ssh/exit_road.rs:39-44` builds `Transport::Node` for `--exit NAME` and
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
-- `crates/podssh-cli/src/ssh/node.rs:147-149` reads `--ca-file` for the pair road's TLS.
+- `crates/podssh-cli/src/ssh/node.rs:152-154` reads `--ca-file` for the pair road's TLS.
   `crates/podssh-cli/src/ssh/mod.rs:165` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2683`; Q90 confirmed it).
@@ -4763,6 +4763,19 @@ named; the same with `--exit gw`; `PODSSH_RELAY=x` with `node://box` exits 78 wi
 named; a `RelayHost` in the settings file gives no error and one `-v` line; `ssh` and `proxy` give
 the same words for the same flag; `--relay-addr` and `--ca-file` are still taken; a plain host still
 fails over across its `--relay-host` list. Each new test fails on the code before the change.
+
+## Correction
+
+2026-11-09, after the gate of `f65fe732` (run 42647650660; the jobs `windows` and `macos`, and the
+same at `e9639df5`): `net_copy::copies_reach_a_member_by_its_name_alone` failed, as `podssh cp` to a
+member of the net named alone (`tester@lab:...`) was refused with "--relay-host does not apply to
+node://lab" (64). The refusal held for each node, but a member named alone takes the relay's flags:
+they are the road of a name that is no member (T-429). The refusal now holds only for a destination
+written as `node://NAME` (`ssh/node.rs`, `resolved`, from `resolve.rs`). The test's own `mv` of a
+`node://` operand passed `--relay-host` too, which the Decision refuses as `proxy` does; the test
+passes the flag only where no operand is written as `node://`. The test needs an `sftp-server`, which
+this host lacked when T-697 was merged, so it did not run here; with one installed, it fails on the
+code of the merge and passes on the repair.
 
 ## Done
 

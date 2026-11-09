@@ -84,8 +84,13 @@ pub(super) struct Ask<'a> {
 /// connects: the iroh road's ticket, the DERP road's, the transit relay's
 /// variable and OpenTunnel's name (T-531); then its transport. Apart from
 /// `resolve.rs`, for the length of that file.
-pub(super) fn resolved(r: &Ask<'_>, env: &Env) -> Result<Transport, Refusal> {
-    refuse_relay(r.args, env, &format!("{SCHEME}{}", r.label))?;
+pub(super) fn resolved(r: &Ask<'_>, env: &Env, typed: bool) -> Result<Transport, Refusal> {
+    // A node that the user wrote as `node://NAME` refuses the relay's flags;
+    // a net member named alone takes them, as they are the road of a name
+    // that is no member (T-429).
+    if typed {
+        refuse_relay(r.args, env, &format!("{SCHEME}{}", r.label))?;
+    }
     let race = super::iroh::race(r.args, r.label)?;
     // The DERP road of the node (T-379): one node, one key for each road.
     let derp = super::derp::race(r.args)?;

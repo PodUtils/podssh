@@ -122,7 +122,12 @@ fn copies_reach_a_member_by_its_name_alone() {
             args.extend(words(&["--timeout", "120s"]));
         }
         args.extend(session.common());
-        args.extend(words(&["--client-key", &a_key, "--relay-host", &relay]));
+        args.extend(words(&["--client-key", &a_key]));
+        // A node written as `node://` refuses the relay's flags, as its pair
+        // names the relay (T-697); a member named alone takes them.
+        if !rest.iter().any(|r| r.starts_with("node://")) {
+            args.extend(words(&["--relay-host", &relay]));
+        }
         args.extend(words(rest));
         bounded(&mut end(&a_doc, &args))
     };
