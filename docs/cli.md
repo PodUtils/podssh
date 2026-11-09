@@ -5639,7 +5639,9 @@ nothing did), and why.
   a session through a control master, which then tells no status. Through
   the relay, once a session has carried 60 MiB (the relay's budget, or
   `PODSSH_SESSION_BUDGET`), podssh says once that the relay ends it at
-  64 MiB and that `podssh cp` copies more on new sessions (not with `-q`).
+  64 MiB and that `podssh cp` copies more on new sessions (not with `-q`). `podssh sftp` says
+  the same at 80 % and at 95 % of that budget, once each, before its meter stops a transfer
+  (T-700, GitHub #167); `cp` and `scp` rotate sessions before the cap and say nothing.
 - A session that does not open after the login says why (T-464, GitHub
   #104), and its open has `ConnectTimeout`: a refusal of the server in
   OpenSSH's words of its reason ("the server refused to open a session:

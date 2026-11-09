@@ -35,14 +35,46 @@ pub fn limits() -> (u64, u64) {
 /// Until the payload that `bytes` counts reaches `budget`, then `say` the
 /// line once; `bytes` gives `None` once the session ended, which ends this.
 pub async fn watch(bytes: impl Fn() -> Option<u64>, budget: u64, cap: u64, say: impl FnOnce(&str)) {
+    let mut say = Some(say);
+    let lines = vec![(budget, line(budget, cap))];
+    watch_lines(bytes, lines, |text| {
+        if let Some(say) = say.take() {
+            say(text)
+        }
+    })
+    .await;
+}
+
+/// The lines of `podssh sftp` (T-700): at 80 % and at 95 % of the budget,
+/// as `(bytes, line)` in the order they come. Its meter stops a transfer
+/// at the budget, so the user hears the nearing, not the cap.
+pub fn sftp_marks(budget: u64, cap: u64) -> Vec<(u64, String)> {
+    [80u64, 95]
+        .into_iter()
+        .map(|pct| {
+            let line = format!(
+                "this relay session has carried {pct} % of the {} MiB that podssh sftp sends on one, and the relay ends it at {} MiB; a transfer that needs more stops, and podssh cp copies more on new sessions",
+                budget >> 20,
+                cap >> 20
+            );
+            (budget / 100 * pct + budget % 100 * pct / 100, line)
+        })
+        .collect()
+}
+
+/// Each of `lines` (bytes, text) once, in order, when the payload that
+/// `bytes` counts reaches its bytes; two passed in one look come both. Ends
+/// after the last line, or when `bytes` gives `None`.
+pub async fn watch_lines(bytes: impl Fn() -> Option<u64>, lines: Vec<(u64, String)>, mut say: impl FnMut(&str)) {
+    let mut lines = std::collections::VecDeque::from(lines);
     let mut tick = tokio::time::interval(EVERY);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    loop {
+    while !lines.is_empty() {
         tick.tick().await;
-        match bytes() {
-            Some(carried) if carried >= budget => return say(&line(budget, cap)),
-            Some(_) => {}
-            None => return,
+        let Some(carried) = bytes() else { return };
+        while lines.front().is_some_and(|(at, _)| carried >= *at) {
+            let (_, text) = lines.pop_front().expect("a line");
+            say(&text);
         }
     }
 }
@@ -56,6 +88,19 @@ pub fn spawn(status: RelayStatus, log: Arc<Log>) -> tokio::task::JoinHandle<()> 
         let bytes = move || counted.get().is_none().then(|| counted.bytes());
         watch(bytes, budget, cap, |line| log.info(line)).await;
     })
+}
+
+/// [`watch_lines`] of an SFTP session's meter, at 80 % and 95 % of its
+/// budget, on a task of its own; `None` where no relay carries the session
+/// or `-q` hides the lines. The caller aborts it when the session closes.
+pub fn spawn_sftp(meter: crate::cp::link::Meter, log: Arc<Log>) -> Option<tokio::task::JoinHandle<()>> {
+    if !meter.through_relay() || log.level() < podssh_ssh::LogLevel::Info {
+        return None;
+    }
+    let marks = sftp_marks(meter.budget(), limits().1);
+    Some(tokio::spawn(async move {
+        watch_lines(|| meter.carried(), marks, |line| log.info(line)).await;
+    }))
 }
 
 #[cfg(test)]
@@ -109,5 +154,63 @@ mod tests {
         tokio::time::sleep(Duration::from_secs(1)).await;
         assert!(watching.is_finished());
         assert!(said.lock().unwrap().is_empty());
+    }
+
+    /// The lines of sftp: 80 % then 95 %, each once and in order, whatever
+    /// the steps of the count; the watch ends after the second.
+    #[tokio::test(start_paused = true)]
+    async fn sftp_says_80_then_95_once_each() {
+        let carried = Arc::new(AtomicU64::new(0));
+        let said = Arc::new(Mutex::new(Vec::new()));
+        let (count, into) = (carried.clone(), said.clone());
+        let watching = tokio::spawn(async move {
+            let bytes = move || Some(count.load(Ordering::SeqCst));
+            watch_lines(bytes, sftp_marks(100 * MIB, 128 * MIB), |l| into.lock().unwrap().push(l.to_string())).await;
+        });
+        let seen = || said.lock().unwrap().len();
+        carried.store(79 * MIB, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        assert_eq!(seen(), 0);
+        carried.store(80 * MIB, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        assert_eq!(seen(), 1, "80 % once, however long the count stays");
+        carried.store(94 * MIB, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        assert_eq!(seen(), 1);
+        carried.store(95 * MIB, Ordering::SeqCst);
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        assert!(watching.is_finished());
+        let said = said.lock().unwrap();
+        assert!(said[0].contains("80 %") && said[1].contains("95 %"), "{said:?}");
+    }
+
+    /// A jump past both marks in one look says both, in order.
+    #[tokio::test(start_paused = true)]
+    async fn sftp_says_both_when_the_count_jumps() {
+        let said = Arc::new(Mutex::new(Vec::new()));
+        let into = said.clone();
+        watch_lines(|| Some(100 * MIB), sftp_marks(100 * MIB, 128 * MIB), |l| into.lock().unwrap().push(l.to_string()))
+            .await;
+        let said = said.lock().unwrap();
+        assert_eq!(said.len(), 2);
+        assert!(said[0].contains("80 %") && said[1].contains("95 %"));
+    }
+
+    /// An ended session says nothing more, and the marks are of the budget.
+    #[tokio::test(start_paused = true)]
+    async fn sftp_says_nothing_after_the_end() {
+        let said = Arc::new(Mutex::new(Vec::new()));
+        let into = said.clone();
+        watch_lines(|| None, sftp_marks(MIB, 64 * MIB), |l| into.lock().unwrap().push(l.to_string())).await;
+        assert!(said.lock().unwrap().is_empty());
+        let at: Vec<u64> = sftp_marks(1 << 20, 64 << 20).iter().map(|m| m.0).collect();
+        assert_eq!(at, [838_860, 996_147]);
+    }
+
+    /// With no relay there is no watch.
+    #[tokio::test]
+    async fn sftp_spawns_no_watch_without_a_relay() {
+        let log = Arc::new(Log::new(podssh_ssh::LogLevel::Info));
+        assert!(spawn_sftp(crate::cp::link::Meter::new(None), log).is_none());
     }
 }

@@ -289,6 +289,8 @@ async fn session(
             return f.fault.code();
         }
     };
+    // The line before the budget's end (T-700); not with -q.
+    let near = crate::ssh::near_cap::spawn_sftp(link.meter.clone(), log.clone());
     let code: Result<i32, crate::cp::transfer::Failed> = async {
         let mut state = State::new(&link, log, shape, recursive).await?;
         // A path that names a file is fetched at once; a directory is where
@@ -317,6 +319,9 @@ async fn session(
         })
     }
     .await;
+    if let Some(near) = near {
+        near.abort();
+    }
     link.close().await;
     match code {
         Ok(code) => code,

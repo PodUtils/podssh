@@ -63,6 +63,18 @@ impl Meter {
         self.relay.is_some()
     }
 
+    /// The bytes that podssh lets one session carry through the relay.
+    pub fn budget(&self) -> u64 {
+        self.budget
+    }
+
+    /// The payload that the relay session has carried; `None` with no relay,
+    /// and once the session ended (the watch of `podssh sftp` ends then).
+    pub fn carried(&self) -> Option<u64> {
+        let status = self.relay.as_ref()?;
+        status.get().is_none().then(|| status.bytes())
+    }
+
     /// The bytes that the session may still carry; no end without a relay.
     pub fn left(&self) -> u64 {
         if self.until.is_some_and(|until| std::time::Instant::now() >= until) {

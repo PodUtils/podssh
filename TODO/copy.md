@@ -670,7 +670,7 @@ old writer can race the new one.
 5. Only the relay transport counts: `--direct` has no cap. With `-J`, the
    one relay session carries the whole chain.
 6. A "Session limits" item in the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:321-474`), from the constants;
+   (`crates/podssh-cli/src/man/facts.rs:321-475`), from the constants;
    `docs/relay.md` and `docs/cli.md`. T-155 does the same for the
    resumable layer of M6; this entry needs no M6 work.
 
@@ -3790,7 +3790,7 @@ Planted: the new field read as required: the test of `scp` with no terminal fail
 (EXIT STATUS), and a handshake that ConnectTimeout ends is a hop that could not be reached
 (`crates/podssh-ssh/src/run.rs:409` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
 which a copy takes as a server that cannot be reached, 69
-(`crates/podssh-cli/src/cp/link.rs:233`). Read, not measured; the test asks for 69 within 10 s.
+(`crates/podssh-cli/src/cp/link.rs:245`). Read, not measured; the test asks for 69 within 10 s.
 The field of the row is `FlagRow::optional` (`crates/podssh-cli/src/flags.rs`), set by
 `optional(row(...))` on the row of `--timeout` of `scp` and `sftp`, and false on each other row.
 
@@ -3961,7 +3961,7 @@ with 64.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3973,11 +3973,11 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 ## Premise
 
 - Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:437`. It takes a
-  `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:52`), not a `Meter`. No file under
+  `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
 - Read: `crates/podssh-cli/src/sftp/run.rs:130` hands `self.link.meter` to `bysftp::down` and `up`;
-  `crates/podssh-cli/src/cp/link.rs:80-88` stops the transfer with the failure
-  "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:67`.
+  `crates/podssh-cli/src/cp/link.rs:92-100` stops the transfer with the failure
+  "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:79`.
 - The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.
 
 ## Approach
@@ -4007,3 +4007,30 @@ cargo test -p podssh-cli --lib sftp::
 ```
 
 Plant a defect (the reader never starts). The test must fail on it.
+
+## Done
+
+Partial, 2026-11-09: drafted (DRAFT T-700, `3f00b2ec`) and merged by the main session, with no
+repair.
+
+- Premise checked at the cited lines: right. `near_cap::spawn` had one call site (`ssh/mod.rs`), and
+  `sftp/` did not call it. `near_cap::watch` already took a closure for the count, not a
+  `RelayStatus`, so only the lines needed a generalisation.
+- `ssh/near_cap.rs`: `watch_lines` (each `(bytes, line)` once, in order; a jump past two marks says
+  both; `None` from the count ends it), `sftp_marks` (80 % and 95 % of the budget) and `spawn_sftp`
+  (none without a relay, none under `-q`, since `log.info` is hidden there). `watch` is now a one-mark
+  case of `watch_lines`: `ssh` keeps its line and its behaviour. The module is `pub(crate)`.
+- `cp/link.rs`: `Meter::budget` and `Meter::carried` (the payload so far; `None` with no relay or once
+  the session ended). `sftp/mod.rs` spawns the watch after `open_sftp` and aborts it before the close.
+- Decision: the line of sftp is its own text (percent, budget, cap, "a transfer that needs more
+  stops"), not `line`'s: at 80 % `line`'s "has carried N MiB" would name the budget, not the count.
+  Alternative that lost: `line` as it is. `cp` and `scp` get none (the coordinator, 2026-11-09).
+- Manual: `man/facts.rs` ("Session limits") and `docs/cli.md` (the near-cap paragraph) say it.
+- Tests: `near_cap::tests::sftp_says_80_then_95_once_each`,
+  `sftp_says_both_when_the_count_jumps`, `sftp_says_nothing_after_the_end`,
+  `sftp_spawns_no_watch_without_a_relay`, and the two old ones: `cargo test -p podssh-cli --lib
+  near_cap`, 7 passed; planted, one mark in place of two, three fail. `cargo test -p podssh-cli --lib`:
+  1,018 passed; `--test man_page`, `man_flag_parity`: passed; rustfmt: no change.
+- Waiting: the run against the stand-in relay (`PODSSH_SESSION_BUDGET=1048576`, a `put` larger than
+  the budget: the line, then the stop). No test of `sftp` drives `scripts/fake-relay.py`, and the
+  unit tests do not reach the spawn in `sftp/mod.rs`; that run is its check.

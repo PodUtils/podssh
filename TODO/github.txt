@@ -167,7 +167,7 @@
 159 issue closed
 160 issue closed
 161 issue closed
-162 issue open
+162 issue closed
 163 issue closed
 164 issue open
 165 issue open
