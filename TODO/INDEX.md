@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**686 entries: 102 open, 17 partial, 10 blocked, 557 done.**
+**686 entries: 101 open, 18 partial, 10 blocked, 557 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 29 | 7 | 1 | 257 | 294 |
-| P3 | 69 | 8 | 6 | 230 | 313 |
-| **All** | 102 | 17 | 10 | 557 | 686 |
+| P3 | 68 | 9 | 6 | 230 | 313 |
+| **All** | 101 | 18 | 10 | 557 | 686 |
 
 ## Entries
 
@@ -733,7 +733,7 @@ repository and CI).
 | [T-700](copy.md) | P3 | S | none | defect | open | `podssh sftp` prints a line before the relay's byte cap stops a transfer |
 | [T-701](reverse.md) | P3 | S | M10 | defect | partial | The reverse node's journal names the cause when the relay closes a session |
 | [T-702](roads.md) | P3 | M | backlog | defect | open | One rule for "this peer is an SSH server", read by the direct road, the doctor probes, the roost and the shared port |
-| [T-703](resume.md) | P3 | S | none | defect | open | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
+| [T-703](resume.md) | P3 | S | none | defect | partial | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
 | [T-704](relay.md) | P3 | S | M10 | feature | open | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
 | [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
 | [T-706](cli.md) | P3 | M | M5 | feature | open | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |

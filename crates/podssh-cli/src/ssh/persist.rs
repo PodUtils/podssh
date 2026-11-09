@@ -260,6 +260,10 @@ async fn one(
         }
     };
     let relay = reached.relay.clone();
+    // The layer's guard of SSH's keepalives, as each try of `podssh ssh` has it (T-703).
+    let mut opts = opts.clone();
+    super::layer_alive::apply(reached.layer.is_some(), resolved, &mut opts.keepalive_interval, first, log);
+    let opts = &opts;
     let attempt = match kept {
         Kept::Tmux(name) => persist::attempt(reached.stream, opts, relay.as_ref(), name, first, input, log).await,
         Kept::Forwards => persist::carry(reached.stream, opts, relay.as_ref(), first, log).await,

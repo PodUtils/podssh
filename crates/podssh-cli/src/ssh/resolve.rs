@@ -373,7 +373,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     // A node runs the resumable layer, whose heartbeat finds a dead link and
     // keeps the relay's idle cut away; SSH's own keepalives would end a
     // session that the layer carries onto a new link (T-154).
-    let resumable = matches!(transport, Transport::Node { .. } | Transport::Iroh { .. } | Transport::Derp { .. });
+    let resumable = super::layer_alive::known_before_connect(&transport);
     let keepalive_interval = match settings.alive_interval {
         Some(0) => None,
         Some(s) => Some(Duration::from_secs(s)),
@@ -387,11 +387,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     let idle = relay::idle_secs(&podssh_relay::pool::in_use());
     if resumable {
         if keepalive_interval.is_some() {
-            warnings.push(
-                "ServerAliveInterval ends the session after ServerAliveCountMax keepalives with no answer, also \
-                 while the resumable layer would carry it onto a new link"
-                    .to_string(),
-            );
+            warnings.push(super::layer_alive::WARNING.to_string());
         }
     } else if matches!(transport, Transport::Relay { .. }) && keepalive_interval.is_none_or(|d| d.as_secs() >= idle) {
         warnings.push(format!(

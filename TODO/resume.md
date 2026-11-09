@@ -820,7 +820,7 @@ sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
 the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:349-389`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:386-400` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:386-396` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -834,7 +834,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:386-400` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:386-396` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:400-415`,
    `crates/podssh-cli/src/man/facts.rs:435-444`), the note at
@@ -876,6 +876,12 @@ are in podssh-cli: it is `cargo test -p podssh-cli --test node_live --
 server on the loopback as the node's TARGET, since an SSH server ends a login
 that waits 10 minutes. The paused clock needs tokio's `test-util` in the
 dev-dependencies of `podssh-relay`.
+
+2026-11-09 (T-703, GitHub #172): the sentence above, that the resumable road is `node://`, is true of
+the road list that `resolve` reads before the connection. T-300 made a `cf://HOST` whose far end
+greets with the layer a layered road too; the greeting is known only after the connection. There the
+keepalives follow the greeting: no `ServerAliveInterval` named, no SSH keepalives; a named one stays,
+with the same warning as on `node://` (printed once, after the connection); `0` has no warning.
 
 ## Done
 
@@ -4076,7 +4082,7 @@ cargo test -p podssh-cli --features iroh-test --test m6_exit -- --ignored --test
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4095,7 +4101,7 @@ same setting.
   `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/mod.rs:434` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:477` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:473` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:869-873`) says that the resumable
@@ -4134,3 +4140,23 @@ New tests in `crates/podssh-cli/tests/`, with a stand-in far end on the loopback
 keepalives and no warning; a far end with no layer gives no warning and the user's keepalives;
 `node://NAME` with `AliveInterval 30` prints its warning as before. The test target name is a
 proposal; the entry's `## Done` names the real one.
+
+## Done
+
+Partial, 2026-11-09: drafted (DRAFT T-703, `87fb686f`) and merged by the main session, with one
+repair: the guard moved from `tries` into `layer_alive::apply`, as rustfmt took `ssh/mod.rs` past
+500 lines.
+
+- The warning text is one constant, `layer_alive::WARNING` (`crates/podssh-cli/src/ssh/layer_alive.rs`);
+  `resolve.rs` uses it for `node://`, iroh and DERP, and the guard of each try that reached its far end
+  (`layer_alive::apply`, from `tries` in `crates/podssh-cli/src/ssh/mod.rs`) warns once, on the first
+  try, when the far end greeted with the layer, the user named an interval and `resolve` did not
+  already warn. A run with no interval named drops SSH's keepalives, as before. Each road reaches
+  `apply` through `tries`. A defect found on the way, repaired: `--persist` reached its far end in a
+  loop of its own (`ssh/persist.rs`, `one`) that never dropped SSH's keepalives for the layer, nor
+  warned; it calls `apply` too. `--test persist`: 7 passed.
+- `cargo test -p podssh-cli --lib`: 1,014 passed, with `layer_alive::tests` (6). Planted, no `Warn`,
+  `a_layer_and_an_explicit_interval_warn_once` fails. `--test cloudflare_cli` and `--test node`: passed.
+  The Correction of T-154 is added.
+- Waits: the loopback test of the Prove (a `cf://` far end that greets with the layer, run through the
+  stand-in edge), which this change did not write; the decision and its words are tested offline.

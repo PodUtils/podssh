@@ -40,6 +40,7 @@ pub mod idle_warn;
 pub mod iroh;
 mod jump;
 pub mod keywords;
+mod layer_alive;
 mod local_bind;
 // `LocalCommand` and `PermitLocalCommand` (T-191).
 pub mod local_command;
@@ -430,10 +431,9 @@ async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<podssh_ssh::
         let relay = reached.relay.clone();
         let direct_proxy = reached.direct_proxy.clone();
         // A podssh node behind a cf:// name (T-300): the layer's heartbeat
-        // finds a dead link, as on node:// (T-154).
-        if reached.layer.is_some() && resolved.alive_default && opts.keepalive_interval.take().is_some() {
-            log.verbose("the far end runs the resumable layer, whose heartbeat finds a dead link: no SSH keepalives");
-        }
+        // finds a dead link, as on node:// (T-154). An interval that the user
+        // set stays, with one warning where resolve could not know (T-703).
+        layer_alive::apply(reached.layer.is_some(), resolved, &mut opts.keepalive_interval, tried == 1, log);
         let near = reached.relay.clone().map(|status| near_cap::spawn(status, log.clone()));
         // The relay's idle cut alone: a road of the resumable layer has none.
         let idle = reached
