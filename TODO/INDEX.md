@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 97 open, 19 partial, 10 blocked, 561 done.**
+**687 entries: 96 open, 19 partial, 10 blocked, 562 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 28 | 7 | 1 | 259 | 295 |
-| P3 | 65 | 10 | 6 | 232 | 313 |
-| **All** | 97 | 19 | 10 | 561 | 687 |
+| P3 | 64 | 10 | 6 | 233 | 313 |
+| **All** | 96 | 19 | 10 | 562 | 687 |
 
 ## Entries
 
@@ -736,7 +736,7 @@ repository and CI).
 | [T-703](resume.md) | P3 | S | none | defect | partial | A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set |
 | [T-704](relay.md) | P3 | S | M10 | feature | done | `podssh relay serve` has flags for the idle cut, the session time, the byte cap and the connect time |
 | [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
-| [T-706](cli.md) | P3 | M | M5 | feature | open | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
+| [T-706](cli.md) | P3 | M | M5 | feature | done | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
 | [T-707](roads.md) | P3 | L | backlog | feature | blocked | A road of the GSRN relay network, by a shared secret |
 | [T-708](multi.md) | P1 | M | M10 | feature | open | `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination |
 | [T-709](serve.md) | P1 | M | M10 | feature | open | A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as` |

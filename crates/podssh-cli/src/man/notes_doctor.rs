@@ -21,6 +21,24 @@ pub(super) const DOCTOR_QUICK: &str = "--quick checks this host, the egress and 
      pairs and the net held; its last line, sections \
      in the section left out, names them, as ????: checks that did not run.";
 
+pub(super) const DOCTOR_TIER: &str =
+    "--tier (T-706) checks this host alone, with the lines of its section, and ends with one \
+     verdict of its capabilities in the section tier: identity (a user name, from the database or a variable, and the \
+     capability to bind a port below 1024, read from the sets of /proc/self/status, which podssh reads and never \
+     changes), exec (the probe of the line exec: a copy of podssh ran from a directory, or none did), terminal (the \
+     line pty), state (the line token cache: a directory of the cache that can be written) and resolver (one class of \
+     the order of the dialer: a proxy that is given the names, a pin, the system resolver, a fresh cached address, DNS \
+     over HTTPS, or none; one lookup of the first relay host's name, with no proxy set, and one request at each DNS \
+     over HTTPS resolver at most). Each is ok, closed or ????: a capability that could not be read is ????, \
+     never ok. A closed capability is a fact and never fails the run (the exit stays 1 only for FAIL); it counts as \
+     nothing, and its line ends with unavailable because of this and the commands and flags that it closes, from \
+     one table in the code: identity (podssh ssh with no user@host, a listener of podssh relay serve or of \
+     podssh exit on a port below 1024), exec (the detached runs of session, node and pipe, update), terminal \
+     (session, podssh node --sshd), state (session, detached) and \
+     resolver (ssh, proxy and pipe, which need the relay's name). The line verdict counts them. The memfd and execveat \
+     route is not probed: the rung of exec is the path probe alone. --tier ends the run before the egress, with \
+     --hop and --stream. The MCP tool doctor takes it as tier.";
+
 pub(super) const DOCTOR_DIAGNOSIS: &str = "The line TLS reference makes TLS with github.com on port 443 by its \
      name, its certificate checked, straight out with no proxy, else over the CONNECT that the proxy took for it, \
      and says what it met: a handshake, a reset or a timeout. After the counts, a line diagnosis names a case that \

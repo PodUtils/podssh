@@ -183,6 +183,9 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
         "check this host, the egress and the relay alone, with the roads that the run names (--forwarder, \
          --shadowsocks, --via, --vless); a line names the sections that it left out; it leaves out what --full adds besides the login to \
          github.com: the QUIC handshake and the stream probes", None),
+    // What this host allows, as one verdict (T-706).
+    row(None, "tier", None, FlagKind::Supported,
+        "check this host alone and give one verdict of its capabilities: identity (a user name, the capability to bind a low port), exec (a directory that runs a program), terminal (a pty), state (a directory that keeps files) and resolver (how names resolve), each ok, closed or ????, and for each closed one the features that it closes; reads the capability sets and drops nothing; connects nowhere but for one lookup of the relay's name", None),
     row(None, "jobs", Some("N"), FlagKind::Supported,
         "run at most N sections at once, 1 to 64, in the order of the report (default: each at once; also DoctorJobs \
          of the settings file); --jobs 1 runs one after another", None),

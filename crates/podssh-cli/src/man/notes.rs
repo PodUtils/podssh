@@ -270,6 +270,7 @@ const DOCTOR: &[&str] = &[
     super::notes_pair::DOCTOR_SSHD,
     super::notes_doctor::DOCTOR_AT_ONCE,
     super::notes_doctor::DOCTOR_QUICK,
+    super::notes_doctor::DOCTOR_TIER,
     super::notes_doctor::DOCTOR_DIAGNOSIS,
     super::notes_doctor::DOCTOR_NAT,
     super::notes_doctor::DOCTOR_IPV6,

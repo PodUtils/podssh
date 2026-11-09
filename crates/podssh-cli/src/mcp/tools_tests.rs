@@ -118,6 +118,9 @@ fn a_wrong_argument_is_the_calls_error() {
     let both = other("doctor", json!({ "full": true, "quick": true })).unwrap();
     assert_eq!(argv(&both), ["doctor", "--json", "--full", "--quick"]);
     assert!(other("doctor", json!({ "quick": 1 })).unwrap_err().starts_with("quick: expected true or false"));
+    // --tier (T-706).
+    assert_eq!(argv(&other("doctor", json!({ "tier": true })).unwrap()), ["doctor", "--json", "--tier"]);
+    assert!(other("doctor", json!({ "tier": "yes" })).unwrap_err().starts_with("tier: expected true or false"));
     assert_eq!(argv(&other("man", json!({ "section": "exit-status" })).unwrap()), ["man", "--json", "exit-status"]);
     assert!(other("man", json!({ "section": "--roff" })).is_err());
 }

@@ -6,25 +6,50 @@
 use std::io::IsTerminal;
 use std::path::Path;
 
+#[cfg(unix)]
+use super::tier::Floor;
+use super::tier::{Facts, State};
 use super::Report;
 
-pub(super) fn check(report: &mut Report<'_>) {
+/// The lines of this host, and the facts that they found, which `--tier`
+/// composes into its verdict: the probes run once, whichever the flag.
+pub(super) fn check(report: &mut Report<'_>) -> Facts {
+    let mut facts = Facts::default();
     #[cfg(unix)]
-    report.line("user", super::unix::user());
+    {
+        let (line, name) = super::unix::user();
+        report.line("user", line);
+        facts.name = name;
+    }
+    facts.bind = bind_capability();
     known_hosts(report);
-    token_cache(report);
+    facts.state = token_cache(report);
     #[cfg(target_os = "linux")]
     proc_fs(report);
     #[cfg(unix)]
     {
-        report.line("pty", super::unix::pty());
+        let (line, pty) = super::unix::pty();
+        report.line("pty", line);
+        facts.pty = pty;
         report.line("listen AF_INET", super::unix::bind_inet());
         report.line("listen AF_UNIX", super::unix::bind_unix());
-        exec::check(report);
+        exec::check(report, &mut facts.floor);
     }
     terminal(report);
     // A dial of the loopback, which no proxy and no offline setting touch.
     super::sshd::check(report);
+    facts
+}
+
+/// Whether this thread holds the capability that binds a port below 1024,
+/// from the sets of `/proc/self/status`, read and never changed. None where
+/// the sets cannot be read (not Linux, or no `/proc`).
+fn bind_capability() -> Option<bool> {
+    // CAP_NET_BIND_SERVICE, a number of linux/capability.h.
+    const NET_BIND_SERVICE: u32 = 10;
+    let text = std::fs::read_to_string("/proc/self/status").ok()?;
+    let sets = crate::harden::status_sets(&text)?;
+    Some(sets.effective & (1u64 << NET_BIND_SERVICE) != 0)
 }
 
 /// Where `podssh ssh` records host keys by default, and whether it can. A key
@@ -99,13 +124,13 @@ fn probe_dir(dir: &Path) -> std::io::Result<()> {
 /// it passed over as another user's (T-593). With none, a token is minted on
 /// every run: podssh still works, but the relay limits how fast tokens are
 /// minted.
-fn token_cache(report: &mut Report<'_>) {
+fn token_cache(report: &mut Report<'_>) -> State {
     use podssh_relay::cache::{Chosen, DIR_ENV};
     let chosen = podssh_relay::cache::chosen();
     match &chosen {
         Chosen::Nothing => {
             report.ok("token cache", format!("{DIR_ENV} is none: podssh keeps no file, and mints a token on each run"));
-            return;
+            return State::Closed(format!("{DIR_ENV} is none"));
         }
         Chosen::Relative(value) => {
             report.ok("token cache", format!("{DIR_ENV}={value} is not an absolute path, so podssh does not use it"))
@@ -139,7 +164,7 @@ fn token_cache(report: &mut Report<'_>) {
                     _ => String::new(),
                 };
                 report.ok("token cache", format!("{} can be written{from}{skipped}{passed}", dir.display()));
-                return;
+                return State::Writes(dir.display().to_string());
             }
             Err(e) => refused.push(format!("{}: {e}", dir.display())),
         }
@@ -148,6 +173,7 @@ fn token_cache(report: &mut Report<'_>) {
         "token cache",
         format!("no directory can be written ({}), so a token is minted on every run{passed}", refused.join("; ")),
     );
+    State::Closed(format!("no directory of the cache chain can be written ({})", refused.join("; ")))
 }
 
 /// Without `/proc`, podssh cannot find its own file, and so does not read a
@@ -195,7 +221,7 @@ mod exec {
     use std::process::{Command, Stdio};
     use std::time::{Duration, Instant};
 
-    use super::Report;
+    use super::{Floor, Report};
 
     /// The longest a copy of podssh may take to answer `--version`.
     const WAIT: Duration = Duration::from_secs(5);
@@ -207,7 +233,7 @@ mod exec {
         Other(String),
     }
 
-    pub(in crate::doctor) fn check(report: &mut Report<'_>) {
+    pub(in crate::doctor) fn check(report: &mut Report<'_>, floor: &mut Floor) {
         let own = own_file();
         let mut seen: Vec<PathBuf> = Vec::new();
         for dir in candidates() {
@@ -223,17 +249,26 @@ mod exec {
             let shown = dir.display();
             let Some(own) = &own else {
                 report.unknown("exec", format!("{shown}: not tried: podssh cannot find its own file to copy{noexec}"));
+                floor.unknown();
                 continue;
             };
             match try_exec(&dir, own) {
-                Tried::Ran => report.ok("exec", format!("{shown}: a copy of podssh ran from here")),
+                Tried::Ran => {
+                    floor.ran(shown.to_string());
+                    report.ok("exec", format!("{shown}: a copy of podssh ran from here"))
+                }
                 Tried::NotWritable(e) => {
+                    floor.closed();
                     report.ok("exec", format!("{shown}: cannot be written ({e}), so nothing can be installed there"))
                 }
                 Tried::Refused(e) => {
+                    floor.closed();
                     report.ok("exec", format!("{shown}: can be written, but programs cannot run from it ({e}){noexec}"))
                 }
-                Tried::Other(e) => report.unknown("exec", format!("{shown}: {e}{noexec}")),
+                Tried::Other(e) => {
+                    floor.unknown();
+                    report.unknown("exec", format!("{shown}: {e}{noexec}"))
+                }
             }
         }
     }

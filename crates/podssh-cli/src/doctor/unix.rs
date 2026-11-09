@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use podssh_ws::Verdict;
 
 use super::listeners::{verdict, words, Family, Probe};
+use super::tier::{Name, Pty};
 
 fn ok(detail: impl Into<String>) -> Verdict {
     Verdict::Ok { detail: detail.into() }
@@ -21,30 +22,41 @@ fn ok(detail: impl Into<String>) -> Verdict {
 
 /// The current uid's entry in the user database, which OpenSSH's own tools
 /// need and podssh does not.
-pub(super) fn user() -> Verdict {
+pub(super) fn user() -> (Verdict, Name) {
     // SAFETY: getuid has no preconditions and cannot fail.
     let uid = unsafe { libc::getuid() };
     let named = crate::ssh::resolve::USER_VARIABLES
         .iter()
         .find_map(|n| std::env::var(n).ok().filter(|v| !v.trim().is_empty()).map(|v| format!("{n}={v}")));
     match passwd_entry(uid) {
-        Ok(Some((name, home))) => ok(format!("uid {uid} is '{name}' in the user database (home {home})")),
+        Ok(Some((name, home))) => {
+            (ok(format!("uid {uid} is '{name}' in the user database (home {home})")), Name::Entry(name))
+        }
         Ok(None) => {
             let missing = if Path::new("/etc/passwd").exists() {
                 "is not in /etc/passwd"
             } else {
                 "has no user database entry (there is no /etc/passwd)"
             };
-            let podssh = match (named, uid) {
+            let podssh = match (&named, uid) {
                 (Some(var), _) => format!("podssh takes the user name from {var}"),
                 (None, 0) => "podssh takes uid 0 to be root".to_string(),
                 (None, _) => "podssh ssh needs user@host, -l USER, PODSSH_USER or USER here".to_string(),
             };
-            ok(format!(
+            let name = match (named, uid) {
+                (Some(var), _) => Name::Variable(var),
+                (None, 0) => Name::Root,
+                (None, _) => Name::Missing(uid),
+            };
+            let said = format!(
                 "uid {uid} {missing}: OpenSSH's ssh, scp and ssh-keygen refuse to run without an entry; {podssh}"
-            ))
+            );
+            (ok(said), name)
         }
-        Err(e) => Verdict::Unknown { why: format!("the user database could not be read: {e}") },
+        Err(e) => {
+            let why = format!("the user database could not be read: {e}");
+            (Verdict::Unknown { why: why.clone() }, Name::Unread(why))
+        }
     }
 }
 
@@ -81,19 +93,22 @@ fn passwd_entry(uid: libc::uid_t) -> io::Result<Option<(String, String)>> {
 }
 
 /// Whether a pty can be had: the master from `/dev/ptmx`, then its slave.
-pub(super) fn pty() -> Verdict {
+/// The line, and the fact that `--tier` reads (never a failure: a remote
+/// pty needs nothing here).
+pub(super) fn pty() -> (Verdict, Pty) {
     let remote = "a remote pty (podssh ssh -t) needs nothing here";
     // SAFETY: posix_openpt takes flags only.
     let master = unsafe { libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY) };
     if master < 0 {
-        return ok(format!("none: /dev/ptmx: {}; {remote}", io::Error::last_os_error()));
+        let why = format!("/dev/ptmx: {}", io::Error::last_os_error());
+        return (ok(format!("none: {why}; {remote}")), Pty::Closed(why));
     }
     let slave = open_slave(master);
     // SAFETY: `master` was opened above and is closed once.
     unsafe { libc::close(master) };
     match slave {
-        Ok(name) => ok(format!("a pty can be allocated here ({name})")),
-        Err(e) => ok(format!("/dev/ptmx opens, but no pty comes of it: {e}; {remote}")),
+        Ok(name) => (ok(format!("a pty can be allocated here ({name})")), Pty::Allocates(name)),
+        Err(e) => (ok(format!("/dev/ptmx opens, but no pty comes of it: {e}; {remote}")), Pty::Closed(e)),
     }
 }
 
@@ -290,7 +305,7 @@ mod tests {
 
     #[test]
     fn the_probes_report_facts_and_never_fail() {
-        for (name, v) in [("user", user()), ("pty", pty()), ("inet", bind_inet()), ("unix", bind_unix())] {
+        for (name, v) in [("user", user().0), ("pty", pty().0), ("inet", bind_inet()), ("unix", bind_unix())] {
             assert!(!matches!(v, Verdict::Failed { .. }), "{name}: {v:?}");
             assert!(!detail(&v).is_empty(), "{name}");
         }

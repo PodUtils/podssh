@@ -150,7 +150,7 @@ async fn doh(report: &mut Report<'_>, host: &str, another_way: bool) -> bool {
     false
 }
 
-async fn system_lookup(host: &str) -> Result<String, String> {
+pub(super) async fn system_lookup(host: &str) -> Result<String, String> {
     match tokio::time::timeout(PROBE, tokio::net::lookup_host((host, 443))).await {
         Ok(Ok(addrs)) => {
             let mut ips: Vec<String> = Vec::new();

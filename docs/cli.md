@@ -2798,6 +2798,23 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   road`), the line `nat`, iroh and tor in a build with them, OpenTunnel, DERP, the public carriers, the pairs and the net, and says
   so in its last line, `sections` in the section `left out`, as `????`: a
   check that did not run. The MCP tool `doctor` takes it as `quick`.
+- **`--tier`** (T-706, GitHub #166) checks this host alone, with the lines of its
+  section, and ends with one verdict of its capabilities in the section `tier`:
+  `identity` (a user name, from the database or a variable, and the capability that
+  binds a port below 1024, read from the sets of `/proc/self/status` and never
+  changed), `exec` (the probe of the line `exec`: a copy of podssh ran from a
+  directory, or none did), `terminal` (the line `pty`), `state` (the line `token
+  cache`) and `resolver` (one class of the dialer's order: proxy, pins, system,
+  cache, DNS over HTTPS, or none). Each is `ok`, `closed` or `????`; a
+  capability that could not be read is `????`, never `ok`. A closed one is a fact:
+  it never fails the run and counts as no check, and its line ends with
+  "unavailable because of this" and the commands and flags that it closes, from one
+  table in the code (`crates/podssh-cli/src/doctor/tier.rs`), whose test checks each
+  verb and flag in it against the flag table. The `exec` rung is the path probe
+  alone: no `memfd_create` and `execveat` probe, as no feature reads that rung yet.
+  The serve side's tty routes (T-248) join the `terminal` rung when they exist. It
+  ends the run before the egress, as `--hop` and `--stream` do. The MCP tool
+  `doctor` takes it as `tier`.
 - `ok`: the check ran and podssh can work with the result. A condition that
   podssh is made for (no listener, no pty, no user database entry, no DNS)
   is a fact and gives `ok`.

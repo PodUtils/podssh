@@ -77,6 +77,7 @@ pub fn list(settings: &Settings) -> Vec<Value> {
         "inputSchema": object(json!({
             "full": { "type": "boolean", "description": "also log in to github.com through the relay, with a key made for the check, and, with no proxy set, make a QUIC handshake with the quick tunnel's edge; with quick, which wins, the handshake and the stream probes do not run" },
             "quick": { "type": "boolean", "description": "this host, the egress and the relay alone, what each ssh and proxy needs; a line names the sections left out; with full, only the login to github.com is added: no QUIC handshake, no stream probes" },
+            "tier": { "type": "boolean", "description": "this host alone, then one verdict of its capabilities: identity, exec, terminal, state and resolver, each ok, closed or ????, and the features that each closed one closes; the other flags do not widen it" },
         })),
         "annotations": { "readOnlyHint": true, "openWorldHint": true },
     }));
@@ -206,9 +207,9 @@ pub fn plan(settings: &Settings, name: &str, arguments: &Map<String, Value>, fil
             Ok(Plan { argv, stdin: Vec::new(), limit: Duration::from_secs(60), cap: OWN_CAP })
         }
         "doctor" => {
-            known(arguments, &["full", "quick"])?;
+            known(arguments, &["full", "quick", "tier"])?;
             let mut argv = words(&["doctor", "--json"]);
-            for name in ["full", "quick"] {
+            for name in ["full", "quick", "tier"] {
                 match arguments.get(name) {
                     None | Some(Value::Bool(false)) => {}
                     Some(Value::Bool(true)) => argv.push(format!("--{name}").into()),

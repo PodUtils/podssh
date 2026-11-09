@@ -180,6 +180,8 @@ pub enum Parsed {
         vless: Option<String>,
         /// `--quick` and `--jobs N` (T-511).
         quick: bool,
+        /// `--tier`: this host's verdict alone (T-706).
+        tier: bool,
         jobs: Option<String>,
         /// `--stream URL` and `--stream-idle SECONDS` (T-325).
         stream: Option<String>,

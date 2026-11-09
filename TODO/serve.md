@@ -52,7 +52,7 @@ core: the handshake, a host key that does not change, and key authentication.
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:374-446` and
    `crates/podssh-cli/src/positionals.rs:8-275`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:332-406`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/dispatch.rs:334-408`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -269,14 +269,14 @@ it there.
   (`crates/podssh-ssh/src/terminal/unix.rs:86-163`). That table is the one to
   read in reverse on the server; a second table would drift.
 - Read: doctor already opens a pty to test the host
-  (`crates/podssh-cli/src/doctor/unix.rs:83-139`). The client continues
+  (`crates/podssh-cli/src/doctor/unix.rs:95-154`). The client continues
   without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:88-103`).
 - Read: the measured sandbox has no `/dev/ptmx` and no `/dev/pts`
   (`docs/target-environment.md:26`); there, T-111 applies.
 
 ## Approach
 
-1. Move the pty code of `crates/podssh-cli/src/doctor/unix.rs:83-139` into
+1. Move the pty code of `crates/podssh-cli/src/doctor/unix.rs:95-154` into
    the server module, with `O_CLOEXEC`, and let doctor call it. Try
    `/dev/ptmx`, then `/dev/pts/ptmx`, at each `pty-req`; never keep the
    result for the next session. Failure: T-111, or failure until T-111 exists.
@@ -1341,7 +1341,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:142-265`).
+  (`crates/podssh-cli/src/doctor/unix.rs:157-280`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -1419,7 +1419,7 @@ no reason (`docs/target-environment.md:88-89`).
 - Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:433`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:188-190`).
+  (`crates/podssh-cli/src/doctor/host.rs:214-216`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -1498,7 +1498,7 @@ criterion of M5 (T-113) needs them.
 ## Premise
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
-  (`crates/podssh-cli/src/doctor/unix.rs:83-98`). Both real sandboxes have no
+  (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
   `/dev/ptmx` (`docs/STATUS.md:433`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp

@@ -68,6 +68,8 @@ mod sections;
 mod shadowsocks;
 // The sshd of a roost, on this host (T-590).
 mod sshd;
+// The verdict of --tier: what this host allows, and what each closed capability closes (T-706).
+mod tier;
 // What the path does to a stream: buffering, a cap on bodies, a quiet end (T-325).
 mod stream;
 #[cfg(feature = "tor")]
@@ -115,6 +117,8 @@ pub struct DoctorArgs {
     /// `--quick`: this host, the egress and the relay, with the roads that
     /// the run names, and none of the others (T-511).
     pub quick: bool,
+    /// `--tier`: this host's lines and one verdict of its capabilities, alone (T-706).
+    pub tier: bool,
     /// `--jobs N`: at most N sections at once, as typed (T-511).
     pub jobs: Option<String>,
     /// `--stream URL` and `--stream-idle SECONDS`, as typed (T-325).
@@ -195,7 +199,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
     }
 
     report.section("this host");
-    host::check(&mut report);
+    let facts = host::check(&mut report);
+    if args.tier {
+        return tier::only(report, &facts, &relays.primary().host);
+    }
     if let Some(text) = &args.hop {
         return hop::only(report, text, &trust);
     }

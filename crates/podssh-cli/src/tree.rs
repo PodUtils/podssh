@@ -439,6 +439,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             via: crate::via::Flags { url: get("via"), auth_file: get("via-auth-file") },
             vless: get("vless"),
             quick: matches.get_flag("quick"),
+            tier: matches.get_flag("tier"),
             jobs: get("jobs"),
             stream: get("stream"),
             stream_idle: get("stream-idle"),
