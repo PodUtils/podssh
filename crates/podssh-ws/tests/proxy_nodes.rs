@@ -8,6 +8,7 @@
 //! password. The filters and the reading of a list are unit tests of
 //! `podssh_ws::proxy_nodes`.
 
+mod trojan_support;
 mod vless_support;
 
 use std::time::Duration;
@@ -16,6 +17,7 @@ use podssh_ws::proxy_nodes::{carry, Dial, Node};
 use podssh_ws::vless::{self, AtEnd, Server};
 use podssh_ws::{trojan, ProxyChoice, Trust};
 use tokio::io::AsyncReadExt;
+use trojan_support::{listen, serve_tls};
 use vless_support::{pins, root_file, target, ws_server, BANNER, ID, NAME};
 
 const LIMIT: Duration = Duration::from_secs(20);
@@ -69,6 +71,55 @@ async fn the_round_goes_on_past_a_refusal_and_a_dead_node_to_the_node_that_carri
     assert!(said[1].contains("the Trojan server trojan://"), "{}", said[1]);
     for line in &said {
         assert!(!line.contains(OTHER) && !line.contains(ID) && !line.contains("a-pw"), "a credential in {line}");
+    }
+    let _ = std::fs::remove_dir_all(root.parent().unwrap());
+}
+
+fn trojan_node(port: u16, password: &str) -> Node {
+    let link = format!("trojan://{password}@{NAME}:{port}?security=tls&type=tcp");
+    Node::Trojan(trojan::Server::parse(&link).unwrap())
+}
+
+/// Both schemes in one round: a VLESS node that refuses the ID, a Trojan node
+/// with the wrong password (the stand-in's fallback answers) and a dead VLESS
+/// node give way to the Trojan node that carries. Trojan's stand-in is the
+/// one of `tests/trojan.rs`, so a node that skips Trojan fails here.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_trojan_node_carries_the_round_past_vless_failures_and_a_wrong_password() {
+    pins();
+    let (root, aim) = (root_file("mixed"), target(true).await);
+    let (vless_port, vless_seen) = ws_server().await;
+    let (trojan_port, trojan_seen) = listen(serve_tls).await;
+    let wrong = "not-the-password-of-the-stand-in";
+    let nodes = vec![
+        vless_node(vless_port, OTHER),
+        trojan_node(trojan_port, wrong),
+        vless_node(closed_port(), ID),
+        trojan_node(trojan_port, trojan_support::PASSWORD),
+    ];
+    let (trust, proxy) = (Trust::File(root.to_path_buf()), ProxyChoice::Direct);
+    let dialed = dial(&trust, &proxy);
+    let mut said: Vec<String> = Vec::new();
+    let mut say = |line: &str| said.push(line.to_string());
+    let round = carry(&nodes, "127.0.0.1", aim, &dialed, (LIMIT, 8), &mut say);
+    let carried = tokio::time::timeout(LIMIT * 4, round)
+        .await
+        .expect("within the limit")
+        .unwrap_or_else(|lines| panic!("no node carried: {lines:?}"));
+    assert_eq!(carried.node, nodes[3]);
+    assert_eq!(carried.node.road(), "Trojan");
+    let mut stream = carried.stream;
+    let mut banner = vec![0u8; BANNER.len()];
+    tokio::time::timeout(LIMIT, stream.read_exact(&mut banner)).await.expect("the banner in time").unwrap();
+    assert_eq!(banner, BANNER);
+    assert_eq!(*trojan_seen.targets.lock().unwrap(), vec![format!("127.0.0.1:{aim}")]);
+    assert!(vless_seen.targets.lock().unwrap().is_empty(), "a refused ID reaches no target");
+    assert_eq!(said.len(), 3, "one line for each node that failed: {said:?}");
+    assert!(said[0].contains("refused the ID"), "{}", said[0]);
+    assert!(said[1].contains("the Trojan server trojan://"), "{}", said[1]);
+    for line in &said {
+        let secrets = [OTHER, ID, wrong, trojan_support::PASSWORD];
+        assert!(secrets.iter().all(|s| !line.contains(s)), "a credential in {line}");
     }
     let _ = std::fs::remove_dir_all(root.parent().unwrap());
 }

@@ -8523,8 +8523,8 @@ node's ID (its own test caught it; the print now counts the lines), and the pipe
   WebSocket and named in a list that a stand-in HTTPS server serves (UNVERIFIED; a stand-in list
   server over TLS is not written); the research of Approach step 1 (the lists, their changes, the
   share on 443), which the filter's suffix list (`INSTITUTIONAL`) and Q90's live check before each
-  release take from; a Trojan stand-in in the round's test (the Trojan stand-in is in `tests/trojan.rs`),
-  and `scripts/release-short.sh`'s check of the built-in nodes. This entry stays open.
+  release take from; and `scripts/release-short.sh`'s check of the built-in nodes (the
+  Trojan stand-in in the round's test came on 2026-11-10, below). This entry stays open.
 
 2026-11-10: the lists and the nodes came in `pod-services` of podcrates `v0.10.0` (COORD-020, its
 T-133; taken at `49cb5c8c`): `proxy-list` 3 (`barry-far-list`, `mahdibland-list`, `v2go-list`, each
@@ -8537,8 +8537,19 @@ node that the binary ships passes podssh's own filters (Q79, Q90). `cargo test -
 forwarder::nodes`: 4 passed. Planted, `net` among the refused suffixes: the test fails ("left out:
 1 with a name under a school's, a church's or a government's suffix"); put back, it passes. Still
 waiting: Q90's live check of each node before a release (a session to `github.com:22` through it,
-as the kind `proxy-banner` of pod-services watches), the run against Xray-core in a container, the
-Trojan stand-in in the round's test, and `release-short.sh`'s check.
+as the kind `proxy-banner` of pod-services watches), the run against Xray-core in a container, and
+`release-short.sh`'s check.
+
+2026-11-10 (the Trojan node in the round): the Trojan stand-in of `tests/trojan.rs` moved to
+`crates/podssh-ws/tests/trojan_support/mod.rs` (the hash, the TLS and WebSocket servers, the
+fallback), which `tests/trojan.rs` and `tests/proxy_nodes.rs` both take; `tests/trojan.rs` is
+unchanged in what it tests. New test `a_trojan_node_carries_the_round_past_vless_failures_and_a_wrong_password`:
+a round of a VLESS node that refuses the ID, a Trojan node with the wrong password (the stand-in's
+fallback answers), a dead VLESS node and a Trojan node that carries; the last gives the version line,
+the stand-in saw the one target, the VLESS stand-in saw none, three lines said what failed, and none
+holds an ID or a password. `cargo test -p podssh-ws --test proxy_nodes`: 4 passed; `--test trojan`: 4
+passed; `--lib proxy_nodes`: 8 passed; clippy (`-D warnings`) clean. Planted, the Trojan arm of `one` in
+`proxy_nodes/mod.rs` made to fail: the new test and the older round test fail; put back, they pass.
 
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
 
