@@ -354,7 +354,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 692 entries: 93 open, 16 partial, 9 blocked, 574 done.
+`TODO/INDEX.md` holds 695 entries: 93 open, 16 partial, 9 blocked, 577 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -442,7 +442,9 @@ this order:
    then what they filed: croc's relay as a road and a meeting point (T-694), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's peers (T-735),
    HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-549, T-565 to
-   T-573 and T-575 to T-578; T-566, T-567 and T-575 parked); and the roads over UDP (T-580, T-581,
+   T-571, T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
+   carrier (T-738), VMess's AEAD form (T-739) and Bare servers as a hop (T-740); T-566, T-567 and
+   T-575 parked); and the roads over UDP (T-580, T-581,
    T-582). These are features of a tester's report and of the sweep, done after the defects (Q85).
    Then what the archive of forward carriers (2026-11-04, `docs/research/forward-carriers.md`)
    filed: the rates of `ppng.io`'s road and of the Wisp demo server through podssh (T-625), TURN
@@ -460,7 +462,7 @@ and relay sweep of 2026-11-02 come first among the `none` entries, the P1 ones b
 merged; `v1.0.1` went out with them on 2026-11-03. The defects of GitHub #112 to #124 (triaged
 on 2026-11-03) are done and go into `v1.1.0-beta.1`. Until podssh is stable the expensive checks wait (Q88). Their
 features and documents (T-532,
-and T-545, T-548, T-549 and T-565 to T-582, which Q74, Q75, Q77, Q78
+and T-545, T-548, T-549, T-565 to T-571, T-574 to T-576, T-578 and T-580 to T-582, which Q74, Q75, Q77, Q78
 and Q82 filed; the features of #112 to #124 are done) follow, by priority, beside M10 (Q85); Dependabot's #119,
 #120 and #122 are in `main` (2026-11-03), and #123 waits for an iroh-dns that takes simple-dns 0.13. Overnight a fork of
 policy is decided and listed below for the operator to confirm (Q86). The drafts of 2026-11-03, both rounds, are merged. GitHub #125 (2026-11-03, `relay info`'s rank changes with the edge that answered) is done: the line says whose order it is; the research of the operator's relay archive is merged (2026-11-03). The operator's export of #125 (2026-11-04; GitHub has since deleted it) left two parts, both done: `relay info` names `relay rank` and the order that a run takes, and the remedy on the relay's side is an item of `docs/relay-operator.md`.

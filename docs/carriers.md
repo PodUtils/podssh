@@ -408,6 +408,139 @@ egress, and the dependence on Cloudflare and on one domain stands. podssh
 tries the default host and three hosts of the pool when the user names no
 list ([relay.md](relay.md), "How podssh selects relay hosts").
 
+### The verdicts of T-572, T-573 and T-577 (read on 2026-11-10)
+
+Each source below was read on 2026-11-10 through the services of web.pkgforge.dev, and none of
+them by a live connection of podssh. The sources are in "Sources", under "T-572, T-573 and T-577".
+Q78 (`docs/decisions.md`) makes each a last fallback whatever its terms; Q79 keeps the repository
+to the hosts that podssh uses, so a host that a verdict names as a candidate is named here only
+because its entry has to measure it.
+
+**T-572: file hosts and paste sites. Passes, as the last of the last fallbacks; T-738 is filed.**
+
+| Host | Upload (no account, 443) | Size and life | The uploader names the path | Delete | Rules, as read |
+| --- | --- | --- | --- | --- | --- |
+| 0x0.st | `POST` multipart `file`, with `expires` (hours) and `secret` [R572-1] | up to 512 MiB; 30 days to 1 year by size (a small file keeps the longest), and `expires` shortens it [R572-1] | no: only a file name appended after the id [R572-1] | `POST` with the `X-Token` of the upload, `delete` [R572-1] | "NOT a platform for: ... backups, CI build artifacts, other automated mass uploads"; the operator moderates and blocks the IP of a violation, and asks for a unique User-Agent, the user's consent, and a word to the user that the host is public and run by one person in Germany [R572-1] |
+| tmpfiles.org | `POST /api/v1/upload`, `file`, `expire` 60 to 172,800 s [R572-2] | 100 MiB; 1 to 48 hours; 200 uploads an hour for each user [R572-3] | no: the answer gives `https://tmpfiles.org/{id}/{name}` [R572-2] | none in its API page [R572-2] | Terms of 2025-12-01: legal sharing, no account; the operator is not named [R572-3] |
+| litterbox.catbox.moe | `POST` multipart `reqtype=fileupload`, `time` 1h, 12h, 24h or 72h, `fileToUpload` [R572-4] | 1 GB; 1 to 72 hours [R572-4][R572-5] | no | none in its tools page [R572-4] | Catbox's terms bar damage "or an unreasonable burden", a commercial use needs written permission, and the FAQ blacklists the IP of a violation [R572-5][R572-6] |
+| temp.sh | `curl -F file=@x https://temp.sh/upload` [R572-7] | the page says 3 days and 4 GB [R572-7] | no | none read | no terms page found (`/faq` is 404); the operator is not named [R572-7] |
+
+- **Left out, each with its reason.** Pastebin: its API wants a developer key of an account
+  [R572-8]. `bashupload.com`: its name had no address record on 2026-11-10 (Cloudflare error 1016
+  through the fetch service), so it is gone, and a name that stops resolving is how a domain gets
+  taken over (Q79). `paste.rs`: `POST`, `GET` and `DELETE` need no account, but the page says
+  "heavily rate limited", gives no size or life, and names no operator [R572-9]. `uguu.se`: kept
+  for 3 hours by a company in Sweden whose rules allow only what is legal in Germany, Sweden and
+  France [R572-10]; its upload API and size were not on the FAQ page, so it waits for a second
+  reading. Where a host's operator could not be read, T-738's first step reads it, as Q79 asks.
+- **The design.** No host lets the uploader name the path: each one's answer holds the URL. So the
+  other end learns each URL from a meeting point, not by derivation: a topic of T-496 (ntfy.sh takes
+  4,096 bytes a message) or of T-545 (Nostr), or a paste that lists them. One piece of the resumable
+  layer's link is one upload, sealed and numbered by the end-to-end channel, so that the host holds
+  ciphertext; a URL names no key. 0x0.st's `secret` makes the URL long and hard to guess, and its
+  `expires` and token let the reader delete after a read; for the others the life is the cheapest
+  short one (60 s on tmpfiles.org, 1 hour on litterbox) and the piece waits there.
+- **The latency and the cost.** A piece takes an upload, a post at the meeting point, a poll and
+  a download: some seconds at best, each way, and a keystroke waits for the next piece. The one
+  published rate, tmpfiles.org's 200 uploads an hour for each user, is one piece for each 18 s
+  over both ways. So the carrier moves a command's output or a file in large pieces, and an
+  interactive session over it is unusable. The cost to the host is real: each piece sits on the
+  host's disk for its life, and 0x0.st says in its terms that automated uploads are what it blocks
+  its users for. That is Q78's point (a last resort whatever the terms) and the note of its
+  ruling: a service of one volunteer can close for each user. T-738 makes the road bound its rate
+  and its pieces, and say so to the user before the first upload.
+
+**T-573: VMess. Passes; T-739 is filed.**
+
+- **The protocol** (v2fly's page "VMess" [R573-1]; Xray's outbound page [R573-2]). VMess is a
+  stateless protocol over a TCP stream, with no handshake before data. The request is, in the
+  AEAD form, 16 bytes `EAuID` (an AES block of an 8-byte time, 4 random bytes and a CRC32), an
+  encrypted 2-byte length with its 16-byte GCM tag, an 8-byte nonce, the AEAD-sealed header
+  (version 1, the IV and key of the body, option bits, padding, the cipher, the command, port and
+  address, an FNV-1a checksum), then the data. `CmdKey` is `MD5(UUID + "c48619fe-8f02-49e0-b9e9-edf763e17e21")`;
+  every other key is HMAC-SHA-256 nested over a path of labels, from the root "VMess AEAD KDF"
+  [R573-1][R573-3]. The data is chunks of a 2-byte length and a sealed payload, with a zero length
+  as the end. The cipher byte is `0x03` AES-128-GCM, `0x04` ChaCha20-Poly1305, `0x05` none, `0x06`
+  zero, `0x01` the legacy AES-128-CFB [R573-1].
+- **The form that servers refuse.** The MD5 form, with an `alterId` above 0, is marked deprecated
+  on v2fly's protocol page ("MD5 authentication is deprecated, use AEAD") and the config page
+  says a client whose `alterId` is 0 uses AEAD, that servers adapt to both, and that "from
+  2022-01-01 the server disables the MD5 form by default" (the switch `v2ray.vmess.aead.forced`
+  turns it back) [R573-1][R573-4]. Xray's outbound page has no `alterId` at all, so a modern
+  client sends the AEAD form with `alterId` 0 only [R573-2]. Whether Xray's server still takes
+  the MD5 form was not found in the documents read, and the entry's test against Xray-core
+  settles it. A client of AEAD alone is the whole of podssh's part; the MD5 form stays out.
+- **Over a WebSocket and TLS.** The stream rides binary messages after the upgrade, with a path,
+  a `Host`, and an optional early first packet in the path (`?ed=2560`) or in the
+  `Sec-WebSocket-Protocol` header; TLS is `http/1.1` by ALPN [R573-5][R573-6]. The VLESS road of
+  `crates/podssh-ws/src/vless/ws.rs` carries the same shape, so the WebSocket and the TLS are
+  podssh's already; the early data stays off, as in VLESS.
+- **The ciphers against podssh-ws's.** All of them are in the workspace in pure Rust: `aes-gcm`
+  0.11 and `chacha20poly1305` 0.11 (`Cargo.toml`), `sha2` and `hmac` for the KDF, `md5` 0.8 for
+  `CmdKey` (`crates/podssh-ws/Cargo.toml`), `aes` for the block of `EAuID`, and `base64`. Two
+  small things are written, CRC32 and FNV-1a, each some lines. The one new crate would be SHAKE-128
+  (`sha3`), for the option bits M (masked lengths) and P (padding): the client sets the options
+  in its own header [R573-7], so it sends neither, and the entry's test against Xray-core finds
+  whether a server refuses a header with neither. The legacy AES-128-CFB is not needed. Rule 4 of
+  `AGENTS.md` (changed by T-685) leaves nothing to fear in any cipher; none needs C.
+- **The share, counted on 2026-11-10 at about 04:30 UTC**, on two of the lists that T-574 reads
+  (the files `All_Configs_Sub.txt` of `barry-far/V2ray-Config` and `sub/sub_merge.txt` of
+  `mahdibland/V2RayAggregator`, fetched whole through fetch.web.pkgforge.dev [R573-8]; they are
+  the lists' repositories as T-574 names them, not necessarily the very files that `pod-services`
+  holds; the third list, `v2go`, was not read):
+
+  | List | Lines | VMess | VLESS | Trojan | VMess on 443 with a WebSocket and TLS (of them `alterId` 0) | VLESS or Trojan on 443 with a WebSocket or XHTTP and TLS |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | `barry-far` | 8,803 | 389 | 6,370 | 750 | 45 (45) | 2,026 |
+  | `mahdibland` | 4,585 | 1,803 | 0 | 766 | 890 (708) | 183 |
+
+  So the nodes of a list that speak VMess alone are not rare: `mahdibland`'s list holds no VLESS
+  line at all, and 890 of its 1,073 nodes on 443 over a WebSocket and TLS are VMess (83 %); in
+  `barry-far`'s list VMess is 2 % of those. Of the VMess nodes on 443 over a WebSocket, 182 of
+  890 in `mahdibland` have an `alterId` above 0 and so may be old servers, which AEAD may not
+  reach. These counts are of lines, with no filter of Q79, and no node was tried.
+- **The verdict.** VMess joins T-574's fallback as one more line form (`vmess://`, a base64 JSON
+  with `add`, `port`, `id`, `net`, `tls`, `host`, `path`, `sni`, `aid`), kept when it is on 443,
+  `net` is `ws` and `tls` is on, and `aid` is 0; the filters of Q79 at run time stay the same. T-739.
+
+**T-577: Bare servers as a hop to a WebSocket road. Passes in design, with a short list of
+nodes; T-740 is filed.**
+
+- **The WebSocket form** (TompHTTP's `BareServerV3.md` [R577-1]; V2 in [R577-2]). The client opens
+  a WebSocket to `/v3/` of the server and sends a first text frame (a binary frame ends the
+  connection) of JSON: `{"type":"connect","remote":"wss://HOST/PATH","protocols":[],"headers":{...},"forwardHeaders":[]}`;
+  `remote` takes `ws:` or `wss:` alone; `headers` holds the request headers that the server sends
+  to the far end, `Origin` and `Host` among them. The server dials, and answers a text frame
+  `{"type":"open","protocol":"","setCookies":[]}`. Then it pipes: "Message types must be
+  preserved. If text is sent to the server, text will be sent to the client. If binary data is
+  sent to the server, binary data will be sent to the client. Vice versa", and a close at one
+  side closes the other. So binary messages pass both ways, and the far URL and its headers are
+  the client's. V2 named the far host by `X-Bare-*` headers, with `/ws-new-meta`; V3 dropped
+  those endpoints [R577-1][R577-2].
+- **A refusal by a list.** The specification has none. The server of `tomphttp/bare-server-node`
+  takes an operator's `filterRemote(url)` and a `lookup` function "to block IPs" [R577-3], so a
+  node's operator can refuse a far host by name or address, and a node's rules are the operator's.
+- **The public servers.** `nirholas/openbare` is the one network that the sweep named: its README
+  calls itself "a decentralized, censorship-resistant web proxy network", tells the user to deploy a
+  node on Cloudflare Workers, Render, Fly.io or Docker, and lists one "Live Example", `openbare.xyz`
+  [R577-4]. It says that no public registry is hosted (`registry.openbare.dev` does not resolve),
+  so there is no list of nodes to read, and the one named node's operator, terms and registration
+  were not found: the README gives no terms, and the registry of `.xyz` answered the RDAP query
+  403 [R577-5]. Whether the node is run for the use of others, and whether it passes Q79, stays
+  unread; the domain category services read it as clear of every filter class [R577-5].
+- **The use, and its limit.** A WebSocket road of podssh (a forwarder's, Wisp's, a relay host's)
+  reached through a Bare node shows the proxy `openbare.xyz` as its name, and the node dials the
+  relay host: for a proxy that refuses the relay's name and lets a web proxy's, it is a hop. The
+  node's own TLS ends the connection to the far host, so the SSH and the end-to-end channel keep
+  the bytes private, as Q78 says, and the node sees the far host's name. A node that runs on
+  Cloudflare Workers may refuse a WebSocket to another host that Cloudflare serves; that was not
+  read, and the entry's short live test finds it.
+- **The verdict.** It passes Q78's test (no account, carries bytes). T-740 builds it as a hop,
+  the last of the WebSocket roads (Q78), with its nodes a service kind of `pod-services` and not
+  a host in this repository (rule 5 of the migration, Q79); with one node and no registry, its
+  first step is to read that node's operator and terms, and its Decision says what follows if
+  none is found: nothing is built for a node that fails Q79.
+
 ## The reverse road
 
 podssh already protects a session on a carrier that it does not trust
@@ -2109,3 +2242,36 @@ a service's answer about a name.
 - [P17] https://nownodes.io/blog/what-is-farcaster/, a secondary source,
   read in a search result
 - [P18] https://snapchain.farcaster.xyz/reference/httpapi/message
+
+T-572, T-573 and T-577 (read on 2026-11-10 through the services of web.pkgforge.dev):
+
+- [R572-1] https://0x0.st/, its capture of 2025-12-02 (`20251202063424`) in the Wayback Machine,
+  through archive.web.pkgforge.dev, whole: the fields, the retention formula, the tokens, the
+  notes for authors and the "Terms of Service"; `git.0x0.st/mia/0x0`, `instance/config.example.py`
+  (the software's defaults, 256 MiB and 30 to 365 days; the live site's own are 512 MiB, in the capture)
+- [R572-2] http://tmpfiles.org/api
+- [R572-3] http://tmpfiles.org/tos (effective 2025-12-01) and http://tmpfiles.org/about
+- [R572-4] https://litterbox.catbox.moe/tools.php
+- [R572-5] https://litterbox.catbox.moe/ and https://litterbox.catbox.moe/faq.php
+- [R572-6] https://catbox.moe/legal.php
+- [R572-7] https://temp.sh/ (and `/faq`, 404)
+- [R572-8] https://pastebin.com/doc_api
+- [R572-9] https://paste.rs/
+- [R572-10] https://uguu.se/faq; `bashupload.com`: Cloudflare error 1016 through fetch.web.pkgforge.dev
+- [R573-1] https://www.v2fly.org/developer/protocols/vmess.html
+- [R573-2] https://xtls.github.io/en/config/outbounds/vmess.html
+- [R573-3] `v2fly/v2ray-core:proxy/vmess/aead/kdf.go`
+- [R573-4] https://www.v2fly.org/config/protocols/vmess.html (the Chinese page; the English page
+  at `/en_US/` says its documentation is missing)
+- [R573-5] https://xtls.github.io/en/config/transports/websocket.html
+- [R573-6] `v2fly/v2ray-core:transport/internet/websocket/dialer.go`
+- [R573-7] `v2fly/v2ray-core:proxy/vmess/encoding/client.go`
+- [R573-8] https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt and
+  https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt, through
+  fetch.web.pkgforge.dev, counted by a script on 2026-11-10 (no node was tried)
+- [R577-1] https://github.com/tomphttp/specifications/blob/master/BareServerV3.md
+- [R577-2] https://github.com/tomphttp/specifications/blob/master/BareServerV2.md
+- [R577-3] `tomphttp/bare-server-node:src/BareServer.ts` (the options `filterRemote` and `lookup`)
+  and its README (GPL-3.0)
+- [R577-4] https://github.com/nirholas/openbare (its README)
+- [R577-5] https://domain.web.pkgforge.dev/openbare.xyz (its category, and the RDAP answer 403)

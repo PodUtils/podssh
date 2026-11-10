@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**692 entries: 93 open, 16 partial, 9 blocked, 574 done.**
+**695 entries: 93 open, 16 partial, 9 blocked, 577 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 8 | 1 | 261 | 295 |
-| P3 | 64 | 6 | 5 | 243 | 318 |
-| **All** | 93 | 16 | 9 | 574 | 692 |
+| P3 | 64 | 6 | 5 | 246 | 321 |
+| **All** | 93 | 16 | 9 | 577 | 695 |
 
 ## Entries
 
@@ -611,12 +611,12 @@ repository and CI).
 | [T-569](mesh.md) | P3 | M | M10 | feature | open | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
 | [T-570](mesh.md) | P3 | S | M10 | feature | open | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
 | [T-571](mesh.md) | P3 | M | M10 | feature | open | Syncthing's relays on 443 as a last fallback of the reverse road |
-| [T-572](mesh.md) | P3 | M | M10 | research | open | File hosts and paste sites as a carrier that stores and forwards: the research |
-| [T-573](mesh.md) | P3 | S | M10 | research | open | VMess's protocol: the research, for the public proxy nodes that speak it alone |
+| [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |
+| [T-573](mesh.md) | P3 | S | M10 | research | done | VMess's protocol: the research, for the public proxy nodes that speak it alone |
 | [T-574](mesh.md) | P2 | M | M10 | feature | partial | The public proxy nodes of aggregator lists (VLESS, Trojan) as a last fallback of the forward road |
 | [T-575](mesh.md) | P3 | S | M10 | feature | open | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | open | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
-| [T-577](mesh.md) | P3 | S | M10 | research | open | Bare servers as a hop to a WebSocket road: the research |
+| [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |
 | [T-578](mesh.md) | P3 | L | M10 | feature | open | Tor's onion services: a node reached by its onion address, through the Tor road |
 | [T-579](mesh.md) | P3 | S | M10 | research | done | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
 | [T-580](mesh.md) | P3 | L | M10 | feature | open | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
@@ -768,3 +768,6 @@ repository and CI).
 | [T-735](mesh.md) | P3 | L | M10 | feature | open | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
 | [T-736](mesh.md) | P3 | L | M10 | feature | open | HyperDHT as a road by key where UDP passes, after podssh's own |
 | [T-737](mesh.md) | P3 | M | M10 | feature | open | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
+| [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
+| [T-739](mesh.md) | P3 | M | M10 | feature | open | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
+| [T-740](mesh.md) | P3 | S | M10 | feature | open | Bare servers as a hop of the WebSocket roads, tried last |
