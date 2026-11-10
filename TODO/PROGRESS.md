@@ -282,9 +282,10 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   are gone. The research of M10's item 4 (T-538 to T-540, T-542, T-547, T-579, T-572, T-573, T-577,
   T-623, T-624, T-626) was drafted on 2026-11-10 by four agents (`draft-r1` to `draft-r4`), the new
   entries renumbered T-733 to T-743 at the merge, and merged (`9a49ac7f`, `b5e8ad24`, `628b7131`,
-  `72f4d1d9`); their worktrees and branches are gone. Drafting on 2026-11-10: T-694 (`draft-f1`),
-  T-549 (`draft-f2`) and T-570 (`draft-f3`), each in `.claude/worktrees/`, pushed as `draft/` before a
-  session ends.
+  `72f4d1d9`); their worktrees and branches are gone. Drafted on 2026-11-10 and merged the same day,
+  one at a time: T-549 (`draft-f2`, `961acb1f`), T-570 (`draft-f3`, `32517128`, onto T-549's lists)
+  and T-694 (`draft-f1`, `d254f2a2`); their worktrees and local branches are gone, and
+  `draft/draft-f1` and `draft/draft-f3` on GitHub can go.
 
   On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
   as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
