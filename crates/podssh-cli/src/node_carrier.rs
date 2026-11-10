@@ -53,6 +53,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.ssh_j, "--ssh-j"),
         (args.localhost_run, "--localhost-run"),
         (args.localtunnel, "--localtunnel"),
+        (args.bore, "--bore"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.warp, "--warp"),
         (args.relay, "--relay"),

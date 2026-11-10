@@ -92,6 +92,7 @@ fn refused(args: &NodeArgs) -> Result<(), Refusal> {
         (args.ssh_j, "--ssh-j"),
         (args.localhost_run, "--localhost-run"),
         (args.localtunnel, "--localtunnel"),
+        (args.bore, "--bore"),
         (args.quick_tunnel || args.warp || args.relay, "--quick-tunnel"),
         (args.exit || args.routes.is_some(), "--exit"),
         (args.sshd, "--sshd"),

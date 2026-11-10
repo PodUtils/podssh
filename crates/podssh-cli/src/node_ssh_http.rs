@@ -118,6 +118,7 @@ pub(crate) fn check(args: &NodeArgs, word: Word) -> Result<(), Refusal> {
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
         (args.localtunnel, "--localtunnel"),
+        (args.bore, "--bore"),
         (args.iroh, "--iroh"),
         (args.derp, "--derp"),
         (args.quick_tunnel, "--quick-tunnel"),
@@ -244,6 +245,7 @@ mod tests {
             ("--serveo", NodeArgs { serveo: true, ..base() }),
             ("--ssh-j", NodeArgs { ssh_j: true, ..base() }),
             ("--localtunnel", NodeArgs { localtunnel: true, ..base() }),
+            ("--bore", NodeArgs { bore: true, ..base() }),
             ("--quick-tunnel", NodeArgs { quick_tunnel: true, ..base() }),
             ("--frp", NodeArgs { frp: Some("frp.toml".into()), ..base() }),
         ] {

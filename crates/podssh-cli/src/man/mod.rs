@@ -66,6 +66,8 @@ mod notes_sshj;
 mod notes_ssh_http;
 // The localtunnel road, the last fallback of Q78, after ssh-j's (T-568).
 mod notes_localtunnel;
+// The bore road, the last fallback of Q78, after ssh-j's (T-569).
+mod notes_bore;
 // ssh's notes on the roads to a server of the user's (T-441).
 mod notes_roads;
 mod notes_run;

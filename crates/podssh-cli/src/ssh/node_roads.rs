@@ -78,6 +78,8 @@ struct Chosen {
     sshj: bool,
     /// Whether the node's name at localtunnel's server can be derived (T-568).
     localtunnel: bool,
+    /// Whether the node's ports at bore.pub can be derived (T-569).
+    bore: bool,
     /// Whether croc's relay road is on, with a good pair here (T-694).
     croc: bool,
     /// Whether a name of the node's tunnel of `ssh -R` is given or kept (T-565).
@@ -91,7 +93,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        let last = self.pinggy || self.serveo || self.sshj || self.croc || self.tunnel || self.localtunnel;
+        let last = self.pinggy || self.serveo || self.sshj || self.croc || self.tunnel || self.localtunnel || self.bore;
         dest.race.is_some() || others || piping_asked || self.members || self.frp || last
     }
 }
@@ -130,8 +132,10 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let serveo = super::serveo::named(label, channel);
     // The ssh-j road (T-570): a key to derive the name from, never with --no-e2e.
     let sshj = super::sshj::named(label, channel);
-    // The localtunnel road (T-568): the same, and the last of all.
+    // The localtunnel road (T-568): the same.
     let localtunnel = super::roads::last::localtunnel::named(label, channel);
+    // The bore road (T-569): the same key gives its ports, never with --no-e2e; the last of all.
+    let bore = super::roads::last::bore::named(label, channel);
     // croc's relay road (T-694, Q78), as the transit relay's: never with --no-e2e, with a good pair.
     let croc = crate::node_croc::bridge().is_some() && !channel.off && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
@@ -150,6 +154,7 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         croc,
         tunnel,
         localtunnel,
+        bore,
     })
 }
 

@@ -72,6 +72,9 @@
 //!   last fallback through localtunnel's public server: the node's TCP
 //!   connections served by the relay role and the node's layer, the
 //!   client's WebSocket by name;
+//! - `bore` (feature `bore`): the bore road (T-569), a last fallback
+//!   through bore.pub: a public TCP port of the node's key, whose client
+//!   reaches it through the caller's roads;
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -86,6 +89,8 @@ pub mod addresses;
 pub mod answer;
 #[cfg(feature = "blocking")]
 pub mod blocking;
+#[cfg(feature = "bore")]
+pub mod bore;
 pub mod cache;
 pub mod cleartext;
 #[cfg(feature = "code")]

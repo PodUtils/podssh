@@ -19,8 +19,9 @@
 //! A node's Pinggy tunnel (T-548, `super::pinggy`) comes last of all, the
 //! last fallback of Q78, or 250 ms after the road before it when named;
 //! then a node's alias at Serveo (T-549), its name at ssh-j.com (T-570),
-//! its tunnel of HTTP made by `ssh -R` (T-565, `ssh_http`) and its name at
-//! localtunnel's server (T-568), the last of all (`last`).
+//! its tunnel of HTTP made by `ssh -R` (T-565, `ssh_http`), its name at
+//! localtunnel's server (T-568) and its port at bore.pub (T-569), the last
+//! of all (`last`).
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -58,7 +59,7 @@ use super::road_link::{lost_words, order, winner, Handed, Rider};
 mod pair_links;
 use pair_links::pair_link;
 
-// The last fallbacks of Q78, in their order (T-549, T-570, T-565, T-568).
+// The last fallbacks of Q78, in their order (T-549, T-570, T-565, T-568, T-569).
 #[path = "road_last.rs"]
 pub(crate) mod last;
 
@@ -253,8 +254,8 @@ where
     let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, raced.record.is_some(), &log, &shown);
     let others = raced.opentunnel.is_some() || raced.record.is_some() || member.is_some() || frp.is_some();
     // A node's alias at Serveo (T-549), of the node's key; then its name at
-    // ssh-j.com (T-570), its tunnel of `ssh -R` (T-565) and its name at
-    // localtunnel's server (T-568): the last of all.
+    // ssh-j.com (T-570), its tunnel of `ssh -R` (T-565), its name at
+    // localtunnel's server (T-568) and its port at bore.pub (T-569): the last.
     let last = last::LastRoads::new(label, ask, raced.record.is_some(), trust, &log, &shown);
     let others = others || pinggy.is_some() || last.any();
     let part = match crate::pairs::operator_part(label, pair_file) {

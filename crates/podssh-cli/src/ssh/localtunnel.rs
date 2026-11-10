@@ -6,7 +6,7 @@
 //! (`podssh_relay::localtunnel::name_of`): `--node-key`, else the key that
 //! the net names for NAME, else the key that the pins of NAME hold, as the
 //! ssh-j road takes it (`crate::ssh::sshj::node_key`); with none, the road does
-//! not race. It races last of all, once each road before it failed, and
+//! not race. It races last, before the bore road, once each road before it failed, and
 //! never with `--no-e2e`, as the server ends the visitors' TLS and would see
 //! each byte. Before its first link, a line names the server as a third
 //! party that nobody vouches for.

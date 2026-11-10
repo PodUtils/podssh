@@ -144,6 +144,8 @@ mod node_serveo_serve;
 pub(crate) mod serveo_leg;
 // `podssh node --ssh-j`: the ssh-j road, a last fallback of Q78 (T-570): a
 // name derived from the node's key at ssh-j.com, a public SSH jump server.
+pub mod node_bore;
+mod node_bore_serve;
 pub mod node_sshj;
 mod node_sshj_serve;
 pub(crate) mod sshj;

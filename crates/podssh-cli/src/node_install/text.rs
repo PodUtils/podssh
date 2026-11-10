@@ -74,6 +74,7 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
         ("--ssh-j", args.ssh_j),
         ("--localhost-run", args.localhost_run),
         ("--localtunnel", args.localtunnel),
+        ("--bore", args.bore),
         ("--no-e2e", args.no_e2e),
         ("--sshd", args.sshd),
         ("--exit", args.exit),

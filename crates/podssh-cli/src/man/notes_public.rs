@@ -16,7 +16,7 @@ pub const PUBLIC: &str =
      tailcat's), Least Authority's transit relay, ppng.io then piping.onrender.com, and n0's server of \
      pkarr (see podssh node); last, by the operator's ruling Q78, croc's public relays behind croc-web's \
      bridge, Pinggy's free TLS tunnels, then Serveo's private aliases, then ssh-j.com's names, then \
-     localtunnel's names, each where \
+     localhost.run's tunnels, then localtunnel's names, then bore.pub's TCP ports, each where \
      podssh's list of services names its server, whose lines say so \
      (PODSSH_LAST_RESORT=no turns each such last fallback off). Each is a third party that nobody vouches \
      for: its operator sees the \

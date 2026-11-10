@@ -1364,6 +1364,26 @@ Ruled out:
   `Connection` with a UUID comes for each visitor, and the client takes it
   on a new connection with `Accept`; a server with a secret sends a
   `Challenge` first.
+  Read again on 2026-11-10, for T-569 [X569-1] [X569-2]: the frames are
+  serde's JSON, at most 256 bytes; the server sends a `Heartbeat` each
+  500 ms on the control connection and reads nothing more there after
+  `Hello`; it keeps a visitor 10 s for its `Accept`; a port that a node
+  names is given only inside the server's range (1024 to 65535 by
+  default) and when nothing holds it, else `Error`; a secret's answer is
+  the hex of HMAC-SHA256, keyed by SHA-256 of the secret, over the UUID's
+  bytes. Its terms: bore.pub has no page of terms (its site on port 80
+  only sends a visitor to GitHub, and timed out on 2026-11-10); the
+  README calls it "a public instance" and says nothing of limits or
+  automation, and its author wrote that it is "intended as a public
+  service for developers", that it has "a 24 hour timeout" against abuse
+  and restarts on purpose, and was browned out for a week in January 2025
+  over phishing (issue 150) [X569-2]. Both of its ports are raw TCP: a
+  host whose proxy allows 443 alone reaches neither, so a node needs 7835
+  directly or by a CONNECT that its proxy allows, and a client reaches the
+  node's port through its other roads, the forwarders of Q56, whose URL
+  names the target. Q78 makes it a last fallback whatever its terms: the
+  road of T-569 (2026-11-10, merged), a port of the node's key, after the
+  localtunnel road.
 - **zrok**: accounts at both ends, 5 GB a day on the free plan [R44], and
   no SDK in Rust (Inferred).
 - **OpenRelay, Metered's TURN**: now a Metered account, with 500 MB free
@@ -2445,6 +2465,14 @@ from a project's own repository or document.
   sends to https://theboroer.github.io/localtunnel-www/), and the two
   `/terms` above, read on 2026-11-10 through read.web.pkgforge.dev and
   fetch.web.pkgforge.dev
+- [X569-1] `ekzhang/bore` at commit `00a735a89917` (2026-02-04; release
+  `v0.6.0` of 2025-06-09 before it): `src/shared.rs`, `src/client.rs`,
+  `src/server.rs`, `src/auth.rs`, `src/main.rs` and `README.md`, read on
+  2026-11-10 through the forge and fetch services of web.pkgforge.dev
+- [X569-2] `ekzhang/bore`'s issues 150 (2024-12-29, its author's comments
+  of 2025-01-09), 170 (2025-06-24) and 202 (2026-09-08, its author's
+  comment of 2026-09-19), read on 2026-11-10 through the forge service of
+  web.pkgforge.dev; `http://bore.pub/` through its fetch service timed out
 
 Read on 2026-11-06 through the services of web.pkgforge.dev (forge, fetch,
 read and domain), for T-541 and T-546. No croc relay and no tracker was

@@ -1600,10 +1600,10 @@ logon after a reboot; and a reverse tunnel of `podssh ssh -N -R --persist` canno
 ## Premise
 
 - Read: `Restart=on-failure`, `RestartSec=10`, no `StartLimitIntervalSec`
-  (`crates/podssh-cli/src/node_install/text.rs:146`).
+  (`crates/podssh-cli/src/node_install/text.rs:147`).
 - Read: the cron line is `@reboot` alone (`crates/podssh-cli/src/node_install/unix.rs:137`).
 - Read: the Windows task restarts each minute, 999 times, at a logon
-  (`crates/podssh-cli/src/node_install/text.rs:291`).
+  (`crates/podssh-cli/src/node_install/text.rs:292`).
 
 ## Approach
 
@@ -1935,7 +1935,7 @@ without a user manager gets a cron line. The unit has no hardening.
   (`crates/podssh-cli/src/node_install/unix.rs:19-27`); the units go to `~/.config/systemd/user`
   (`unix.rs:29-36`).
 - Read: the unit has `Restart=always` and no `User=`, `NoNewPrivileges` or `ProtectSystem`
-  (`crates/podssh-cli/src/node_install/text.rs:127-155`).
+  (`crates/podssh-cli/src/node_install/text.rs:128-156`).
 - Read: no token is in a unit now. The variables go to a private file beside the pair, and a secret is
   never carried (`crates/podssh-cli/src/node_install/env.rs:36`, `:7-9`). Keep that.
 - Read: T-593 made the cache follow `HOME` into another user's home; a system unit of a named user must name

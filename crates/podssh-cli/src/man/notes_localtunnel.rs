@@ -1,5 +1,6 @@
-//! The notes of the localtunnel road (T-568), the last fallback of the
-//! operator's ruling Q78, after the localhost.run road's (T-565): a node behind localtunnel's
+//! The notes of the localtunnel road (T-568), a last fallback of the
+//! operator's ruling Q78, after the localhost.run road's (T-565) and before
+//! bore's (T-569): a node behind localtunnel's
 //! public server under a name that its key gives, and a client that derives
 //! the name and opens a WebSocket to it.
 
@@ -24,13 +25,13 @@ pub(super) const NODE: &str = "With --localtunnel, the node serves TARGET over t
      channel and a door: --allow, or the members of the net held here when the node's key is one; never \
      --plain, --no-e2e, --exit, a udp: TARGET, or another road's flag (64). The road is served alone: a pair of \
      NAME is not served beside it, and a line says so. A node that would serve the OpenTunnel road, the Pinggy \
-     road, the Serveo road, the ssh-j road or the localhost.run road unasked serves this one, the last of all, \
+     road, the Serveo road, the ssh-j road or the localhost.run road unasked serves this one, before the bore road, \
      when none of them reached a service, or when each is off or has no server, by the operator's ruling Q78, and its lines say so and \
      name the third party, which nobody vouches for. PODSSH_LOCALTUNNEL=no turns the road off, and so does \
      PODSSH_LAST_RESORT=no, the switch of each last fallback.";
 
 /// The note of `podssh ssh node://NAME` on the localtunnel road.
-pub(super) const SSH: &str = "node://NAME races the localtunnel road too, last of all, once each road before \
+pub(super) const SSH: &str = "node://NAME races the localtunnel road too, last, before the bore road, once each road before \
      it failed, the ssh-j road's and the localhost.run road's too, where the road has a server (localtunnel's where podssh's list of services \
      names it, or PODSSH_LOCALTUNNEL) and podssh holds the node's key: --node-key, else the key that the net \
      names for NAME, else the key that the pins of NAME hold from an earlier session. The node's name there \
@@ -59,7 +60,7 @@ mod tests {
         for text in ["nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no", "port 443 alone", "its key gives", "(78)"] {
             assert!(super::NODE.contains(text), "{text}");
         }
-        for text in ["--node-key", "pins of NAME", "last of all", "Bypass-Tunnel-Reminder", "--no-e2e"] {
+        for text in ["--node-key", "pins of NAME", "before the bore road", "Bypass-Tunnel-Reminder", "--no-e2e"] {
             assert!(super::SSH.contains(text), "{text}");
         }
     }

@@ -226,6 +226,7 @@ pub(super) const NODE: &[&str] = &[
     super::notes_sshj::NODE,
     super::notes_ssh_http::NODE,
     super::notes_localtunnel::NODE,
+    super::notes_bore::NODE,
     super::notes_frp::NODE,
     // Grants used once (T-226).
     super::notes_grant::NODE,

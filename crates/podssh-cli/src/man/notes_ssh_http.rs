@@ -19,10 +19,10 @@ pub(super) const NODE: &str = "With --localhost-run, the node serves TARGET over
      one; else any key passes, and the line says so. Anyone may visit the name, so the road needs the \
      end-to-end channel and a door: --allow, or the members of the net held here when the node's key is one; \
      never --plain, --no-e2e, --exit, a udp: TARGET, or --opentunnel, --pinggy, --serveo, --ssh-j, \
-     --localtunnel, --iroh, --derp, --quick-tunnel or --frp (64). A tunnel that ends is opened again, with a wait that doubles from 1 \
+     --localtunnel, --bore, --iroh, --derp, --quick-tunnel or --frp (64). A tunnel that ends is opened again, with a wait that doubles from 1 \
      s to 60 s, and the sessions that the layer keeps go on over the next. The road is served alone: a pair of \
      NAME is not served beside it, and a line says so. A node that would serve the ssh-j road unasked serves \
-     this one, before the localtunnel road, when it reached no service, or when it is turned off, by the operator's ruling \
+     this one, before the localtunnel and bore roads, when it reached no service, or when it is turned off, by the operator's ruling \
      Q78, and its lines say so and name the third party, which nobody vouches for. PODSSH_LOCALHOST_RUN=no \
      turns the road off, and so does PODSSH_LAST_RESORT=no, the switch of each last fallback.";
 
@@ -33,7 +33,7 @@ pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races t
      channel, which checks the node's key, so --no-e2e leaves the road out (64 with --tunnel-url). The name is \
      kept under NAME in the cache; a later run that gives none dials it, or the name of the node's record for a \
      member that the net names by its key, last, once each road before it failed, the ssh-j road's too, and \
-     before the localtunnel road. \
+     before the localtunnel and bore roads. \
      Before its first link, a line says that localhost.run, a third party that nobody vouches for, carries the \
      session over HTTPS that it ends, and that the end-to-end channel keeps its bytes. A free name changes \
      after a few hours. podssh ping measures it only with --tunnel-url. PODSSH_LOCALHOST_RUN=no or \

@@ -4,9 +4,10 @@
 //! record), a node's alias at Serveo (T-549, `crate::ssh::serveo`), then its
 //! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
 //! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
-//! localtunnel's server (T-568, [`localtunnel`]), the last of all. The road
-//! that a host with 443 alone can serve comes before the roads of raw TCP to
-//! another port. Each starts as its own `push` says. The order is the node's
+//! localtunnel's server (T-568, [`localtunnel`]), then its port at bore.pub
+//! (T-569, [`bore`]), the last of all. The road that a host with 443 alone
+//! can serve comes before the roads of raw TCP to another port, and bore's
+//! raw port, which more cages refuse, comes last. Each starts as its own `push` says. The order is the node's
 //! too: a node that would serve none of the roads before them unasked serves
 //! them in this order.
 
@@ -23,12 +24,17 @@ use crate::ssh::road_link::Kind;
 #[path = "localtunnel.rs"]
 pub(crate) mod localtunnel;
 
+// A port of the node's key at bore.pub (T-569).
+#[path = "bore.rs"]
+pub(crate) mod bore;
+
 /// The last fallbacks of one run, each where it races.
 pub(crate) struct LastRoads {
     serveo: Option<crate::ssh::serveo::ServeoRoads>,
     sshj: Option<crate::ssh::sshj::SshJRoads>,
     tunnel: Option<super::ssh_http::SshHttpRoads>,
     localtunnel: Option<localtunnel::LocalTunnelRoads>,
+    bore: Option<bore::BoreRoads>,
 }
 
 impl LastRoads {
@@ -49,6 +55,7 @@ impl LastRoads {
             sshj: crate::ssh::sshj::SshJRoads::new(label, ask, trust, log, shown),
             tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
             localtunnel: localtunnel::LocalTunnelRoads::new(label, ask, trust, log, shown),
+            bore: bore::BoreRoads::new(label, ask, trust, log, shown),
         }
     }
 
@@ -58,12 +65,14 @@ impl LastRoads {
     /// which are never asked.
     pub(crate) fn asked(label: &str, trust: &Trust, log: &Arc<Log>, shown: &str) -> Self {
         let tunnel = super::ssh_http::SshHttpRoads::new(label, false, false, trust, log, shown);
-        LastRoads { serveo: None, sshj: None, tunnel: tunnel.filter(|tunnel| tunnel.asked()), localtunnel: None }
+        let tunnel = tunnel.filter(|tunnel| tunnel.asked());
+        LastRoads { serveo: None, sshj: None, tunnel, localtunnel: None, bore: None }
     }
 
     /// Whether one of them races.
     pub(crate) fn any(&self) -> bool {
-        self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some() || self.localtunnel.is_some()
+        let named = self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some();
+        named || self.localtunnel.is_some() || self.bore.is_some()
     }
 
     /// Their places in the race, in their order; the tunnel of `ssh -R`
@@ -85,6 +94,9 @@ impl LastRoads {
         }
         if let Some(localtunnel) = &self.localtunnel {
             localtunnel.push(list, kinds);
+        }
+        if let Some(bore) = &self.bore {
+            bore.push(list, kinds);
         }
     }
 }

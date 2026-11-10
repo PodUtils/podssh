@@ -41,6 +41,9 @@ pub struct NodeArgs {
     /// Serve the localtunnel road (T-568), a last fallback of Q78: a name
     /// derived from the node's key at localtunnel's public server.
     pub localtunnel: bool,
+    /// Serve the bore road (T-569), a last fallback of Q78: a public port of
+    /// the node's key at bore.pub.
+    pub bore: bool,
     /// The file of the frp road (T-498): frps, its token and the STCP secret.
     pub frp: Option<String>,
     /// Serve a quick tunnel of Cloudflare's, with no pair (T-300).
@@ -126,6 +129,15 @@ pub struct NodeArgs {
 }
 
 impl NodeArgs {
+    /// Whether a road of a tunnel with no account was asked: OpenTunnel's
+    /// (T-531) and the last fallbacks of Q78, Pinggy's, Serveo's, ssh-j's,
+    /// localhost.run's, localtunnel's and bore's (T-548, T-549, T-570,
+    /// T-565, T-568, T-569). One list, so that each check names each road.
+    pub fn tunnel_asked(&self) -> bool {
+        let first = self.opentunnel || self.pinggy || self.serveo || self.ssh_j;
+        first || self.localhost_run || self.localtunnel || self.bore
+    }
+
     /// The arguments of `node` in `matches`.
     pub fn from_matches(matches: &ArgMatches, refused: Vec<(String, &'static str, &'static str)>) -> NodeArgs {
         let get = |id: &str| matches.get_one::<String>(id).cloned();
@@ -145,6 +157,7 @@ impl NodeArgs {
             ssh_j: matches.get_flag("ssh-j"),
             localhost_run: matches.get_flag("localhost-run"),
             localtunnel: matches.get_flag("localtunnel"),
+            bore: matches.get_flag("bore"),
             frp: get("frp"),
             quick_tunnel: matches.get_flag("quick-tunnel"),
             warp: matches.get_flag("warp"),

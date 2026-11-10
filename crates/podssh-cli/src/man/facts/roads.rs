@@ -120,8 +120,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_LOCALTUNNEL"],
-        "The localtunnel road (T-568), a last fallback of the operator's ruling Q78: localtunnel's public \
-          server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
+        "The localtunnel road (T-568), a last fallback of the operator's ruling Q78, before the bore road: \
+          localtunnel's public server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
           the client derive the node's name there from its key; the node needs an egress that reaches the port \
           that the server names, its client port 443 alone; a node with no other road serves it unasked after \
           the localhost.run road. no: no such road, and --localtunnel is refused (64); an https:// URL, or http:// on \
@@ -129,6 +129,18 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           unset, empty or yes: localtunnel's where podssh's list of services names it, else no server, and \
           --localtunnel is a configuration error (78). Another word is a configuration error (78), which does \
           not echo the value.",
+    ),
+    (
+        &["PODSSH_BORE"],
+        "The bore road (T-569), the last fallback of the operator's ruling Q78: bore.pub, a public server of \
+          bore's protocol that gives a TCP port with no account, of podssh node --bore and podssh ssh node://NAME, \
+          where the node and the client derive the node's public ports there from its key; raw TCP to the control \
+          port 7835 and to the port, so a proxy that allows 443 alone leaves the node out, and the client then \
+          reaches the port through the forwarders that the binary names; a node with no other road serves it \
+          unasked after the localtunnel road. no: no such road, and --bore is refused (64); HOST[:PORT]: that server of \
+          bore's protocol, at its control port (7835 where none is named); unset, empty or yes: bore.pub where \
+          podssh's list of services names it, else no server, and --bore is a configuration error (78). Another \
+          word is a configuration error (78), which does not echo the value.",
     ),
     (
         &["PODSSH_PINGGY_TRACE"],
@@ -277,8 +289,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
-      PODSSH_LOCALHOST_RUN, T-565; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; croc's relay road, \
-      PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
+      PODSSH_LOCALHOST_RUN, T-565; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
+      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),
     (

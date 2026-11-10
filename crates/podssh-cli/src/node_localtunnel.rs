@@ -13,8 +13,8 @@
 //! `node_quick_relay`), and TARGET may be left out. The tunnel's URL is the
 //! one line on stdout, the relay host of `--relay-host`.
 //!
-//! A last fallback (the operator's ruling Q78), the last of all, after the
-//! ssh-j road and localhost.run's (T-565): a node that would serve the
+//! A last fallback (the operator's ruling Q78), after the ssh-j road and
+//! localhost.run's (T-565), before bore's (T-569, `crate::node_bore`): a node that would serve the
 //! OpenTunnel road, the Pinggy road, Serveo's, ssh-j's or localhost.run's
 //! unasked serves this one when none of them reached a service, or when
 //! each is off or has no server, and says that a third
@@ -58,14 +58,14 @@ pub(crate) fn or_quick(args: &NodeArgs, err: &mut dyn Write) -> i32 {
 
 /// Whether a road of a tunnel, or the frp road, was asked of the node.
 fn asked_any(args: &NodeArgs) -> bool {
-    let ssh_r = args.localhost_run;
-    args.opentunnel || args.pinggy || args.serveo || args.ssh_j || ssh_r || args.localtunnel || args.frp.is_some()
+    args.tunnel_asked() || args.frp.is_some()
 }
 
 /// The OpenTunnel road, then the Pinggy road, Serveo's, ssh-j's and
-/// localhost.run's (`node_sshj::tunnels`), each asked, or unasked as the last of a node with
-/// no other road; then this one, unasked, the last of all: the exit code of
-/// the run; none when the node takes another road.
+/// localhost.run's (`node_sshj::tunnels`), each asked, or unasked as the
+/// last of a node with no other road; then this one, unasked, before bore's
+/// (`node_bore::tunnels` wraps this): the exit code of the run; none when
+/// the node takes another road.
 pub(crate) fn tunnels(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
     match crate::node_sshj::tunnels(args, err) {
         Some(code) => Some(after(args, code, err).unwrap_or(code)),
@@ -130,6 +130,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
         (args.localhost_run, "--localhost-run"),
+        (args.bore, "--bore"),
         (args.iroh, "--iroh"),
         (args.derp, "--derp"),
         (args.quick_tunnel, "--quick-tunnel"),
@@ -264,6 +265,7 @@ mod tests {
             ("--pinggy", NodeArgs { pinggy: true, ..base() }),
             ("--ssh-j", NodeArgs { ssh_j: true, ..base() }),
             ("--localhost-run", NodeArgs { localhost_run: true, ..base() }),
+            ("--bore", NodeArgs { bore: true, ..base() }),
             ("--quick-tunnel", NodeArgs { quick_tunnel: true, ..base() }),
             ("--frp", NodeArgs { frp: Some("frp.toml".into()), ..base() }),
         ] {

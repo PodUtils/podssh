@@ -9,8 +9,9 @@
 //! door: `--allow`, or the net's members where the node's key is one.
 //!
 //! A last fallback (the operator's ruling Q78), after the Pinggy road and
-//! Serveo's, before the last roads of `node_ssh_http` and `node_localtunnel`: a node that would serve the OpenTunnel road,
-//! the Pinggy road or Serveo's unasked serves this one when none of them
+//! Serveo's, before the last roads of `node_ssh_http`, `node_localtunnel`
+//! and `node_bore`: a node that would serve the OpenTunnel road, the Pinggy
+//! road or Serveo's unasked serves this one when none of them
 //! reached a service, or when each is off, and says that a third party that
 //! nobody vouches for carries its sessions. `PODSSH_SSH_J=no` turns the road off, and so does
 //! `PODSSH_LAST_RESORT=no`. The road is served alone: a pair is not served
@@ -41,8 +42,8 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 
 /// Why a node that no road was asked of would serve a last fallback
 /// unasked: the node of the OpenTunnel road's unasked serving, else of the
-/// Pinggy road's (`crate::node_pinggy::last_node`); the localhost.run and
-/// localtunnel roads' too (T-565, T-568).
+/// Pinggy road's (`crate::node_pinggy::last_node`); the localhost.run,
+/// localtunnel and bore roads' too (T-565, T-568, T-569).
 pub(crate) fn last_of_all(args: &NodeArgs) -> Option<String> {
     let opentunnel = crate::node_opentunnel::unasked(args).ok().flatten();
     opentunnel.or_else(|| crate::node_pinggy::last_node(args).ok().flatten())

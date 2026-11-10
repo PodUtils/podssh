@@ -4407,7 +4407,7 @@ commands. The rules behind them:
   `podssh ping node://NAME` never measures it.
 - **`node --ssh-j` serves the ssh-j road** (T-570, 2026-11-10), a last
   fallback of Q78, after the Pinggy road and Serveo's, before the
-  localhost.run and localtunnel roads: `ssh-j.com`, a
+  localhost.run, localtunnel and bore roads: `ssh-j.com`, a
   public SSH jump and forwarding server with no account on port 22, where
   `pod-services` names it (the service `ssh-j`, endpoint `ssh`, asked of
   podcrates), or the server of `PODSSH_SSH_J` (`HOST[:PORT]`); with neither,
@@ -4428,7 +4428,7 @@ commands. The rules behind them:
   none of them reached a service, or when each is off. `PODSSH_SSH_J=no` or `PODSSH_LAST_RESORT=no` turns
   it off.
 - **`ssh node://NAME` races the ssh-j road** last, after the Serveo road
-  and before the localhost.run and localtunnel roads, once each road before it failed, where the road has a server and podssh holds the node's
+  and before the localhost.run, localtunnel and bore roads, once each road before it failed, where the road has a server and podssh holds the node's
   key (`--node-key`, else the net's key of NAME, else the pins of NAME), from
   which it derives the node's name. Each link is SSH to the server on port
   22, directly or through `HTTPS_PROXY`'s CONNECT, else through the
@@ -4470,7 +4470,7 @@ commands. The rules behind them:
   vouches for, carries the session. Never with `--no-e2e` (64 with the
   URL); `podssh ping` measures it only with the URL.
 - **`node --localtunnel` serves the localtunnel road** (T-568, partial;
-  merged 2026-11-10), the last fallback of Q78, after the localhost.run road:
+  merged 2026-11-10), a last fallback of Q78, after the localhost.run road:
   localtunnel's public server, with no account, where `pod-services` names
   it (the service `localtunnel`, endpoint `api` and fact `tunnel-zone`,
   asked of podcrates), or the server of `PODSSH_LOCALTUNNEL` (an `https://`
@@ -4493,8 +4493,8 @@ commands. The rules behind them:
   a tunnel before it unasked serves this one when none reached a service,
   or when each is off or has no server. `PODSSH_LOCALTUNNEL=no` or
   `PODSSH_LAST_RESORT=no` turns it off.
-- **`ssh node://NAME` races the localtunnel road** last of all, after the
-  localhost.run road, once each road before it failed, where the road has a server
+- **`ssh node://NAME` races the localtunnel road** last, after the
+  localhost.run road and before the bore road, once each road before it failed, where the road has a server
   and podssh holds the node's key (as the ssh-j road takes it), from which
   it derives the node's name. Each link is TLS to `NAME.ZONE` on port 443
   through `HTTPS_PROXY`, then a WebSocket to `/` with the header
@@ -4503,6 +4503,38 @@ commands. The rules behind them:
   channel. A line says before the first link that the server, a third party
   that nobody vouches for, carries the session. Never with `--no-e2e`, and
   never in `podssh ping`.
+- **`node --bore` serves the bore road** (T-569, partial; merged
+  2026-11-10), the last fallback of Q78, after the localtunnel road: bore.pub, a public server of
+  bore's protocol that gives a TCP port with no account, where
+  `pod-services` names it (the service `bore`, endpoint `control`, asked
+  of podcrates), or the server of `PODSSH_BORE` (`HOST[:PORT]`, its control
+  port, 7835 where none is named); with neither, `--bore` is 78. The
+  node's control connection is raw TCP to port 7835, directly or through
+  `HTTPS_PROXY`'s CONNECT; on it, `Hello` asks a port that the node's key
+  gives (four in a series, each of SHA-256 over a label of the road, the
+  key's fingerprint and a step, in bore's default range 1024 to 65535,
+  `crates/podssh-relay/src/bore/ports.rs`), the next where the server
+  refuses one; its line `bore port HOST:PORT` gives a client's command
+  (`--node-key`). Each `Connection` is taken on a new connection with
+  `Accept`, then a hello of 16 bytes of the key, and the stream runs the
+  resumable layer and the end-to-end channel. A registration that ends is
+  made again, at once after one that lived a minute. The road is served
+  alone. The door and the refused flags are the ssh-j road's, and
+  each other road's flag beside it is 64. A node that would serve the
+  OpenTunnel, Pinggy, Serveo, ssh-j, localhost.run or localtunnel road
+  unasked serves this one when none of them reached a service, or when
+  each is off. `PODSSH_BORE=no` or `PODSSH_LAST_RESORT=no` turns it off.
+- **`ssh node://NAME` races the bore road** last of all, after the
+  localtunnel road, once each road before it failed, where the road has a server and
+  podssh holds the node's key (as the ssh-j road's), from which it derives
+  the ports. Each link is raw TCP to a port, the one that answered last
+  first, directly or through `HTTPS_PROXY`'s CONNECT, else through the
+  forwarders that the binary names (Q56; `PODSSH_FORWARDER_FALLBACK=no`
+  keeps them out), as a proxy that allows 443 alone refuses the port; a
+  port whose first bytes are not the node's hello sends the link to the
+  next. A line says before the first link that the server, a third party
+  that nobody vouches for, carries the session over raw TCP. Never with
+  `--no-e2e`, and never in `podssh ping`.
 - **croc's relay road of a pair** (T-694, 2026-11-10), a last fallback of
   Q78: a node of the pair's road with the layer and the channel waits in a
   room of the pair at croc's public relay, through croc-web's WebSocket

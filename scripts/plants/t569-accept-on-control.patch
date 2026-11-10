@@ -1,0 +1,14 @@
+diff --git a/crates/podssh-relay/src/bore/control.rs b/crates/podssh-relay/src/bore/control.rs
+index 6e316c01..620ec37b 100644
+--- a/crates/podssh-relay/src/bore/control.rs
++++ b/crates/podssh-relay/src/bore/control.rs
+@@ -143,6 +143,9 @@ pub async fn hold(
+             say(format!("{service} named a visitor by no UUID; it is passed over"));
+             continue;
+         }
++        // PLANTED (T-569): the Accept on the control connection.
++        let _ = wire::send(control.get_mut(), &ClientMessage::Accept(uuid.clone())).await;
++        continue;
+         let (dial, service, hello) = (dial.clone(), service.clone(), hello.clone());
+         let (queue, say) = (queue.clone(), say.clone());
+         tokio::spawn(async move {

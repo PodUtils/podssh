@@ -70,8 +70,8 @@ fn command(home: &Path, proxy: u16, ca: &Path, args: &[&str]) -> Command {
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");
     cmd.env("PODSSH_FORWARDER_FALLBACK", "no");
-    // Nor the last roads after this one (Q78): localtunnel (T-568).
-    cmd.env("PODSSH_LOCALTUNNEL", "no");
+    // Nor the last roads after this one (Q78): localtunnel (T-568), bore (T-569).
+    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

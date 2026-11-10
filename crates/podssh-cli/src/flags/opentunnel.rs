@@ -6,7 +6,8 @@
 //! last fallback too), whose name a client derives from the node's key too;
 //! and localhost.run's (T-565), a tunnel of HTTP made by `ssh -R`, whose
 //! name `ssh` takes as a URL; and localtunnel's (T-568, after it), whose
-//! name a client derives from the node's key. Each road is pure Rust, in
+//! name a client derives from the node's key; and bore.pub's (T-569, the
+//! last), whose ports a client derives so too. Each road is pure Rust, in
 //! each build.
 
 use super::{row, FlagKind, FlagRow};
@@ -53,3 +54,7 @@ pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKin
 #[rustfmt::skip]
 pub const NODE_LOCALTUNNEL: FlagRow = row(None, "localtunnel", None, FlagKind::Supported,
     "serve TARGET over the localtunnel road, an HTTPS name at localtunnel's public server with no account (where podssh's list of services names it, or the server of env PODSSH_LOCALTUNNEL): the node asks the server over HTTPS for a name that its key gives, then keeps TCP connections to a port that the server names, directly or through the proxy's CONNECT, so its egress must reach that port; a client that holds the key (--node-key, the net, or the pins of NAME) derives the name and races the road last, by TLS and a WebSocket on port 443; with --relay, the relay role answers its paths there too, and TARGET may be left out; the URL is the line on stdout; a third party that nobody vouches for, which ends the visitors' TLS, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
+/// `node --bore`.
+#[rustfmt::skip]
+pub const NODE_BORE: FlagRow = row(None, "bore", None, FlagKind::Supported,
+    "serve TARGET over the bore road, a public TCP port with no account (bore.pub where podssh's list of services names it, or the server of env PODSSH_BORE): raw TCP to the server's control port 7835, directly or through the proxy's CONNECT, which asks a port that the node's key gives, the next of a series of four where another holds it; a client that holds the key (--node-key, the net, or the pins of NAME) derives the ports and races the road last of all, reaching the port directly, by CONNECT, or through the forwarders that the binary names; a third party that nobody vouches for, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
