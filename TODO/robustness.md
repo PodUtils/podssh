@@ -2031,3 +2031,17 @@ test keeps Python's stderr (`crates/podssh-relay/tests/quick_publish.rs`), fails
 and Python's status when the server ends before it is ready, and waits 60 s; `--test quick_publish`
 passed 10 runs in 10 here (Linux). It stays partial for the macOS runner: the next failure there,
 if one comes, says why Python did not start.
+
+2026-11-10, the gate at `a083593e` (run 42813698627): two more. `gate (libs)` ran
+`cargo test -p podssh-ws --features plain-ws --test plain_loopback`, a target that went to `pod-ws`
+with the take of T-684; the step of `scripts/gate.sh` now runs the tests of podssh-ws's glue with
+the feature (`cargo test -p podssh-ws --features plain-ws`: 261 passed here). On Windows,
+`another_password_is_refused_with_croc_s_words` (`-p podssh-relay --features croc --test croc`, T-694)
+read "An existing connection was forcibly closed by the remote host. (os error 10054)" in place of
+croc's words: the stand-in relay dropped its stream at once after "bad password", with the client's
+next frame unread, and a drop with unread input is a reset on Windows, which discards the bytes
+that the bridge had not read yet, the refusal among them. The stand-in now ends each refusal
+gracefully, its write half shut and the peer's bytes read to their end within 2 s
+(`crates/podssh-relay/tests/croc_stand_in/mod.rs`, `refused`, for "bad password" and "room full");
+`--test croc` passed 10 runs in 10 here (Linux). The next gate's job `windows` is its check.
+

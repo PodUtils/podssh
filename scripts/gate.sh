@@ -187,10 +187,11 @@ step_libs() {
         cargo test --locked --no-fail-fast $LIBS -p podssh-warp \
             --features podssh-relay/blocking,podssh-relay/quick,podssh-relay/quic,podssh-relay/derp,podssh-relay/piping,podssh-relay/opentunnel,podssh-relay/code,podssh-relay/warp-stand-in
 
-    # The plain ws:// to the loopback (T-068) is behind the feature `plain-ws`:
-    # its tests run with the feature, and the binary must never enable it.
-    tests "plain ws:// to the loopback: test (feature plain-ws)" \
-        cargo test --locked --no-fail-fast -p podssh-ws --features plain-ws --test plain_loopback
+    # The plain ws:// to the loopback (T-068) is behind the feature `plain-ws`,
+    # which the binary must never enable; its own test went to pod-ws with the
+    # code (T-684), and the tests of podssh-ws's glue run with the feature.
+    tests "podssh-ws with plain ws:// to the loopback: tests (feature plain-ws)" \
+        cargo test --locked --no-fail-fast -p podssh-ws --features plain-ws
     tests "the road of a Cloudflare tunnel against a stand-in (T-264, feature plain-ws)" \
         cargo test --locked --no-fail-fast -p podssh-ws --features plain-ws --test cloudflare_access
     tests "the blocking facade against a stand-in relay (features blocking, plain-ws)" \

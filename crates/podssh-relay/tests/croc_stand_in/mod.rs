@@ -103,6 +103,19 @@ async fn sealed(tcp: &mut TcpStream, key: &[u8; 32], text: &str) -> Option<()> {
     send(tcp, &crypt::seal(key, text.as_bytes(), &mut OsEntropy).ok()?).await
 }
 
+/// A refusal, then a graceful end: the write half shut, and the peer's bytes
+/// read to their end, within 2 s. A drop with unread input is a reset on
+/// Windows, and a reset there discards the refusal that the bridge had not
+/// read yet, so the client saw "forcibly closed" in place of croc's words.
+async fn refused(tcp: &mut TcpStream, key: &[u8; 32], text: &str) -> Option<()> {
+    sealed(tcp, key, text).await?;
+    let _ = tcp.shutdown().await;
+    let mut sink = [0u8; 4096];
+    let drain = async { while matches!(tcp.read(&mut sink).await, Ok(n) if n > 0) {} };
+    let _ = tokio::time::timeout(Duration::from_secs(2), drain).await;
+    None
+}
+
 /// One member, as tcp.go serves a connection.
 async fn member(mut tcp: TcpStream, peer: SocketAddr, rooms: Rooms, password: String, tick: Duration) -> Option<()> {
     let first = read_frame(&mut tcp, 64 * 1024).await?;
@@ -116,7 +129,7 @@ async fn member(mut tcp: TcpStream, peer: SocketAddr, rooms: Rooms, password: St
     let key = crypt::key(&b.session_key()?[..], &salt);
     let given = crypt::open(&key, &read_frame(&mut tcp, 4096).await?)?;
     if String::from_utf8_lossy(&given).trim() != password.trim() {
-        return sealed(&mut tcp, &key, "bad password").await;
+        return refused(&mut tcp, &key, "bad password").await;
     }
     sealed(&mut tcp, &key, &format!("ok|||{peer}")).await?;
     let room = String::from_utf8(crypt::open(&key, &read_frame(&mut tcp, 1024).await?)?).ok()?;
@@ -137,7 +150,7 @@ async fn member(mut tcp: TcpStream, peer: SocketAddr, rooms: Rooms, password: St
         }
     };
     match joined {
-        Joined::Full => sealed(&mut tcp, &key, "room full").await,
+        Joined::Full => refused(&mut tcp, &key, "room full").await,
         Joined::Made(second) => {
             if sealed(&mut tcp, &key, "ok").await.is_none() {
                 rooms.lock().unwrap().remove(&room);
