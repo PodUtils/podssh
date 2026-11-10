@@ -4436,6 +4436,40 @@ commands. The rules behind them:
   takes it, under the layer and the end-to-end channel. A line says before
   the first link that the server, a third party that nobody vouches for,
   carries the session. Never with `--no-e2e`, and never in `podssh ping`.
+- **`node --localtunnel` serves the localtunnel road** (T-568, drafted
+  2026-11-10), the last fallback of Q78, after the ssh-j road:
+  localtunnel's public server, with no account, where `pod-services` names
+  it (the service `localtunnel`, endpoint `api` and fact `tunnel-zone`,
+  asked of podcrates), or the server of `PODSSH_LOCALTUNNEL` (an `https://`
+  URL, or `http://` on the loopback); with neither, `--localtunnel` is 78.
+  The node asks the API over HTTPS, through `HTTPS_PROXY`, for the name
+  `podssh-` and 16 hex digits of SHA-256 over a label of the road and its
+  key's fingerprint (`GET /NAME`), then keeps up to 10 TCP connections to
+  the port that the server names, directly or through the proxy's CONNECT:
+  the server's system chose that port, so a proxy that lets CONNECT reach
+  443 alone refuses it; the node needs an egress that reaches it, its
+  clients 443 alone. A connection that ends is opened again at once; three
+  refused dials in a row mean the server forgot the tunnel (it does 1 s
+  after its last connection), and the node asks again, the wait doubling
+  from 1 s to 60 s. Each visitor's WebSocket is a link of the layer, with
+  the end-to-end channel above it; with `--relay`, the relay role answers
+  its own paths on the same connections, as behind `--quick-tunnel`, and
+  TARGET may be left out. The URL is the one line on stdout. The road is
+  served alone. Its door and refused flags are the ssh-j road's, and each
+  other road's flag beside it is 64. A node that would serve the roads of
+  a tunnel before it unasked serves this one when none reached a service,
+  or when each is off or has no server. `PODSSH_LOCALTUNNEL=no` or
+  `PODSSH_LAST_RESORT=no` turns it off.
+- **`ssh node://NAME` races the localtunnel road** last of all, after the
+  ssh-j road, once each road before it failed, where the road has a server
+  and podssh holds the node's key (as the ssh-j road takes it), from which
+  it derives the node's name. Each link is TLS to `NAME.ZONE` on port 443
+  through `HTTPS_PROXY`, then a WebSocket to `/` with the header
+  `Bypass-Tunnel-Reminder`, which passes the hosted server's page for
+  browsers (511, which the line names), under the layer and the end-to-end
+  channel. A line says before the first link that the server, a third party
+  that nobody vouches for, carries the session. Never with `--no-e2e`, and
+  never in `podssh ping`.
 - **croc's relay road of a pair** (T-694, 2026-11-10), a last fallback of
   Q78: a node of the pair's road with the layer and the channel waits in a
   room of the pair at croc's public relay, through croc-web's WebSocket

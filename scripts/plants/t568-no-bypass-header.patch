@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-relay/src/localtunnel/link.rs b/crates/podssh-relay/src/localtunnel/link.rs
+index c82617f..504417a 100644
+--- a/crates/podssh-relay/src/localtunnel/link.rs
++++ b/crates/podssh-relay/src/localtunnel/link.rs
+@@ -30,7 +30,7 @@ pub fn request(host: &str, key: &str) -> Result<Vec<u8>, String> {
+     }
+     let mut text = format!("GET {PATH} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: {USER_AGENT}\r\n");
+     // Any value that is not false passes the page for browsers.
+-    text.push_str(&format!("{HEADER}: podssh\r\n"));
++    let _ = HEADER;
+     text.push_str("Connection: Upgrade\r\nUpgrade: websocket\r\n");
+     text.push_str(&format!("Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"));
+     Ok(text.into_bytes())

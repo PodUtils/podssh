@@ -138,10 +138,9 @@ pub(crate) async fn measure(
         pinggy,
         // croc's relay is a last fallback of Q78 too: a measure leaves it out.
         croc: None,
-        // Serveo's alias is never named, so a measure never tries it (Q78).
-        serveo: None,
-        // Nor ssh-j.com's name: the road is never asked, and Q78 sends no byte unasked.
-        sshj: None,
+        // Serveo's alias, ssh-j.com's and localtunnel's names are never named, so a measure never tries
+        // them: Q78 sends no byte unasked.
+        last: super::last::LastRoads::none(),
         refused,
         label,
         legs,

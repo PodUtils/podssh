@@ -76,6 +76,8 @@ struct Chosen {
     serveo: bool,
     /// Whether the node's name at ssh-j.com can be derived (T-570).
     sshj: bool,
+    /// Whether the node's name at localtunnel's server can be derived (T-568).
+    localtunnel: bool,
     /// Whether croc's relay road is on, with a good pair here (T-694).
     croc: bool,
 }
@@ -87,7 +89,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        let last = self.pinggy || self.serveo || self.sshj || self.croc;
+        let last = self.pinggy || self.serveo || self.sshj || self.localtunnel || self.croc;
         dest.race.is_some() || others || piping_asked || self.members || self.frp || last
     }
 }
@@ -126,9 +128,11 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let serveo = super::serveo::named(label, channel);
     // The ssh-j road (T-570): a key to derive the name from, never with --no-e2e.
     let sshj = super::sshj::named(label, channel);
+    // The localtunnel road (T-568): the same, and the last of all.
+    let localtunnel = super::roads::last::localtunnel::named(label, channel);
     // croc's relay road (T-694, Q78), as the transit relay's: never with --no-e2e, with a good pair.
     let croc = crate::node_croc::bridge().is_some() && !channel.off && good_pair();
-    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, serveo, sshj, croc })
+    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, serveo, sshj, localtunnel, croc })
 }
 
 /// SSH to the node of `dest`: over the race of its roads beside the pair's,

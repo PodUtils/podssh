@@ -60,7 +60,9 @@ where
         Err(_) => Err(format!("{host}: no answer to the WebSocket upgrade within {} s", timeout.as_secs())),
         Ok(Err(ConnectError::Refused { status, body })) => Err(refusal(host, status, &body)),
         Ok(Err(e)) => Err(format!("{host}: {e}")),
-        Ok(Ok((stream, pending))) => Ok(RelaySession::new(stream, pending, Some(client::DEFAULT_IDLE_TIMEOUT), WRITE_TIMEOUT)),
+        Ok(Ok((stream, pending))) => {
+            Ok(RelaySession::new(stream, pending, Some(client::DEFAULT_IDLE_TIMEOUT), WRITE_TIMEOUT))
+        }
     }
 }
 

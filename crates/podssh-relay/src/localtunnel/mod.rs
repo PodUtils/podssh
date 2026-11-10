@@ -259,7 +259,8 @@ mod tests {
     #[test]
     fn the_line_of_the_third_party_names_it_and_both_switches() {
         let line = third_party_line(&stand_in());
-        for word in ["lt.stand-in.test", "nobody vouches for", "Q78", "PODSSH_LOCALTUNNEL=no", "PODSSH_LAST_RESORT=no"] {
+        let words = ["lt.stand-in.test", "nobody vouches for", "Q78", "PODSSH_LOCALTUNNEL=no", "PODSSH_LAST_RESORT=no"];
+        for word in words {
             assert!(line.contains(word), "{word}: {line}");
         }
         assert!(unnamed_words().contains("PODSSH_LOCALTUNNEL=https://HOST"));

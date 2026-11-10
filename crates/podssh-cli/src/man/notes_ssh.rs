@@ -327,6 +327,7 @@ const FIRST: &[&str] = &[
     super::notes_pinggy::SSH,
     super::notes_serveo::SSH,
     super::notes_sshj::SSH,
+    super::notes_localtunnel::SSH,
     super::notes_frp::SSH,
     super::notes_pair::SSH_CARRIER,
     super::notes_grant::SSH,

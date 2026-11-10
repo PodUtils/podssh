@@ -39,7 +39,8 @@ const DIAL_LIMIT: Duration = Duration::from_secs(8);
 /// node's last run not yet forgotten, holds the key's.
 pub(crate) fn name_line(tunnel: &Tunnel, name: &str, label: &str, fingerprint: &str) -> String {
     if tunnel.id == name {
-        return format!("localtunnel name {name}, of the node's key (podssh ssh node://{label} --node-key {fingerprint})");
+        let client = format!("podssh ssh node://{label} --node-key {fingerprint}");
+        return format!("localtunnel name {name}, of the node's key ({client})");
     }
     format!(
         "the name {name} of the node's key is another's at the server, which gave {}: a client that derives the \

@@ -15,7 +15,8 @@ pub const PUBLIC: &str =
      serves Tailscale's own clients and let podssh in when it was tried (PODSSH_DERP_MAIN=no keeps to \
      tailcat's), Least Authority's transit relay, ppng.io then piping.onrender.com, and n0's server of \
      pkarr (see podssh node); last, by the operator's ruling Q78, croc's public relays behind croc-web's \
-     bridge, Pinggy's free TLS tunnels, then Serveo's private aliases, then ssh-j.com's names, each where \
+     bridge, Pinggy's free TLS tunnels, then Serveo's private aliases, then ssh-j.com's names, then \
+     localtunnel's names, each where \
      podssh's list of services names its server, whose lines say so \
      (PODSSH_LAST_RESORT=no turns each such last fallback off). Each is a third party that nobody vouches \
      for: its operator sees the \

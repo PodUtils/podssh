@@ -109,6 +109,18 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_LOCALTUNNEL"],
+        "The localtunnel road (T-568), the last fallback of the operator's ruling Q78: localtunnel's public \
+          server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
+          the client derive the node's name there from its key; the node needs an egress that reaches the port \
+          that the server names, its client port 443 alone; a node with no other road serves it unasked after \
+          the ssh-j road. no: no such road, and --localtunnel is refused (64); an https:// URL, or http:// on \
+          this host's loopback: that server of localtunnel's protocol, whose tunnels are names under its own; \
+          unset, empty or yes: localtunnel's where podssh's list of services names it, else no server, and \
+          --localtunnel is a configuration error (78). Another word is a configuration error (78), which does \
+          not echo the value.",
+    ),
+    (
         &["PODSSH_PINGGY_TRACE"],
         "1: the Pinggy road says each visitor's bytes each way every 5 s while it lives, on the node's stderr, \
           and each link's on the client's with -v, with a write that waits and since when, so that a run that \
@@ -254,7 +266,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
-      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; croc's relay road, PODSSH_CROC, \
+      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localtunnel road, \
+      PODSSH_LOCALTUNNEL, T-568; croc's relay road, PODSSH_CROC, \
       T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
     ),
     (

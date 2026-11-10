@@ -5,7 +5,7 @@
 //! The name comes from the node's key, as the node derives it
 //! (`podssh_relay::localtunnel::name_of`): `--node-key`, else the key that
 //! the net names for NAME, else the key that the pins of NAME hold, as the
-//! ssh-j road takes it (`super::sshj::node_key`); with none, the road does
+//! ssh-j road takes it (`crate::ssh::sshj::node_key`); with none, the road does
 //! not race. It races last of all, once each road before it failed, and
 //! never with `--no-e2e`, as the server ends the visitors' TLS and would see
 //! each byte. Before its first link, a line names the server as a third
@@ -25,7 +25,8 @@ use crate::ssh::roads::Going;
 /// Whether the road to `label` would race: on with a server, a key to
 /// derive the name from, and an end-to-end channel (`ask.off` is --no-e2e).
 pub(crate) fn named(label: &str, ask: &crate::channel::Ask) -> bool {
-    !ask.off && matches!(localtunnel::from_env(), Ok(Setting::On(_))) && crate::ssh::sshj::node_key(label, ask).is_some()
+    let on = matches!(localtunnel::from_env(), Ok(Setting::On(_)));
+    !ask.off && on && crate::ssh::sshj::node_key(label, ask).is_some()
 }
 
 /// The road to the node of one run.

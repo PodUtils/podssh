@@ -178,7 +178,8 @@ mod tests {
     #[tokio::test]
     async fn a_head_that_comes_whole_or_in_pieces_is_read_and_its_bytes_kept() {
         let (mut ours, mut theirs) = tokio::io::duplex(64 * 1024);
-        let reading = tokio::spawn(async move { read_head(&mut theirs).await.map(|(h, raw, end)| (h.target, raw, end)) });
+        let reading =
+            tokio::spawn(async move { read_head(&mut theirs).await.map(|(head, raw, end)| (head.target, raw, end)) });
         ours.write_all(b"GET /health HTTP/1.1\r\nHo").await.unwrap();
         tokio::time::sleep(Duration::from_millis(20)).await;
         ours.write_all(b"st: n.lt.test\r\n\r\nNEXT").await.unwrap();
