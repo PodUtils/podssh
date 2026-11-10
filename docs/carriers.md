@@ -877,10 +877,103 @@ Ruled out:
   [S11], so it needs a mail account there. Out.
 - **libp2p's circuit relay v2**: Kubo's defaults are 2 minutes and 128 KiB
   in each direction [R33], enough for hole punching only.
+  Read again on 2026-11-10 (T-579) [L1] to [L5]:
+  - The protocol: a peer A reserves a slot on a relay R (`hop` `RESERVE`,
+    answered with a voucher) and keeps that connection open; a peer B
+    opens a `hop` stream to R and sends `CONNECT`; R opens a `stop` stream
+    to A; the relayed connection is then upgraded with a security protocol
+    and a multiplexer as a TCP one would be [L1]. A `Limit` of `duration`
+    (seconds) and `data` (bytes, each direction) tells the limits of the
+    circuit; absent or 0 means none, and a relay that passes a limit
+    resets the stream [L1]. The spec says why the limit exists: "running a
+    relay proved to be an expensive proposition requiring dedicated hosts
+    with significant hardware and bandwidth costs", so v2 gives limited
+    relays "to seamlessly support pervasive hole punching" [L1].
+  - The defaults: go-libp2p gives 2 minutes and 1 << 17 bytes, a
+    reservation of 1 hour, 128 reservations, 16 open circuits for each
+    peer, 8 reservations for each IP and 32 for each ASN, and no rate
+    limit on new circuits [L2]. Kubo turns its relay service on by default
+    with the same numbers [L3]. rust-libp2p's relay has the same
+    duration, bytes and caps, and adds a rate limit on circuits: for each
+    source peer one in 2 minutes, 30 an hour at most; for each source IP
+    one in a minute, 60 an hour at most [L4].
+  - The cost under the resumable layer (Inferred from those numbers): a
+    circuit carries the handshakes of the security protocol, of the
+    multiplexer and of the layer's resume inside its 128 KiB, and it dies
+    at 2 minutes, so a session of an hour needs 30 circuits, which is
+    rust-libp2p's whole allowance for one peer; a transfer of 100 MiB each
+    way needs 800 circuits at least, and at rust-libp2p's allowance of one
+    IP (60 circuits an hour) that is 7.5 MiB an hour each way. Behind
+    go-libp2p's relay there is no rate limit, but each circuit still ends
+    at 128 KiB, and each is an extra round trip or more for the setup.
+    A volunteer's node pays the same for each circuit, so the layer would
+    set one node to work in proportion to the session's age.
+  - Where the relays are: a Kubo node with a public address serves relay
+    v2 [L3], but its transports are TCP and QUIC on port 4001, and its
+    WebSocket is AutoTLS's `/tls/sni/*.libp2p.direct/ws` listener on the
+    same TCP port, with a certificate of Let's Encrypt for
+    `*.PEERID.libp2p.direct` [L3]: not 443. The public bootstrap nodes
+    refuse reservations (the archive `ff-relay` of 2026-11-04, in
+    T-579's Correction). A search of 2026-11-10 for a list of relay v2
+    nodes that answer a WebSocket on 443 by name found none [L6].
+  - Verdict: libp2p's public relays do not pass for a host with 443
+    alone, as no relay is known on 443 by a name that a client could be
+    given; where port 4001 passes, a client finds relays by a lookup of
+    the DHT (TCP on 4001 again), and the cost above lands on volunteers'
+    nodes for a result that is a sequence of 2-minute links. It would be a
+    last fallback (Q78) with a Rust stack of `libp2p-relay` 0.23.0 and
+    `libp2p-websocket` 0.46.0 (MIT) [L4] [L5], or podssh's own codec of
+    the two protobuf messages. No feature entry is filed; the entry is
+    written when a relay v2 node on 443, with an address that its operator
+    publishes, is read.
 - **Public MQTT brokers**: none is reachable on 443 in practice. HiveMQ's
   broker "must not be used in Production", and its WSS port is 8884 [R34];
   EMQX uses 8084 [R35]; Mosquitto 8081 and 8091 [R36]; Eclipse's sandbox
   lists 443 [R45], and its page answered 522 on 2026-10-31.
+  Read again on 2026-11-10 (T-547) [M1] to [M9], and the first sentence
+  above is wrong for two of them: the Eclipse sandbox and shiftr.io's
+  public instance. None was connected to.
+  - HiveMQ (`broker.hivemq.com`): "The broker is public and shared, so it
+    is not intended for private or production data" [M1]; its browser
+    client page names port 8000 [M1]; no page names 443. Cloudflare's
+    family resolver blocks the name as "Security threats", and the other
+    family resolvers clear it (Verified [M8], 2026-11-10).
+  - EMQX (`broker.emqx.io`): WS 8083 and WSS 8084 on the path `/mqtt`, MQTT
+    over QUIC 14567; "All messages are visible to other users" [M2].
+  - Mosquitto (`test.mosquitto.org`): WSS on 8081 (unauthenticated) and
+    8091 (authenticated), WS on 8080 and 8090; "Unauthenticated clients
+    have access to publish all topics" [M3].
+  - The Eclipse sandbox (`mqtt.eclipseprojects.io`), its operator's own
+    page in the Wayback Machine's capture of 2025-03-15: "a public test
+    MQTT broker service", with "443 : MQTT over encrypted WebSockets (note:
+    URL must be /mqtt)" and "80" for the unencrypted ones [M4]. The page
+    holds no terms. It answered 522 on 2026-10-31 and 504 through
+    read.web.pkgforge.dev on 2026-11-10: down at both readings (the cause
+    was not read).
+  - shiftr.io's public instance (`public.cloud.shiftr.io`): its "Try" page
+    gives `mqtt://public:public@public.cloud.shiftr.io`, with no account
+    [M5]; its MQTT page says that cloud instances take "secure WebSocket
+    port `443` (WSS/HTTPS)", payloads of 64 KB at most, 100 subscriptions
+    for each connection, topics of 128 characters of letters, digits and
+    `.,:;-_$/+#`, a keep alive of 1 second to 5 minutes, and retained
+    messages kept in memory [M6]. The operator is sternenbauer GmbH. The
+    terms read are the Cloud's (a legal name, an e-mail, a card, "You must
+    be a human") and the site's (viewing); neither names the public
+    instance, and the Cloud's terms say that the company "reserves the
+    right to refuse service to anyone for any reason at any time" [M7]
+    (Q78 holds whatever the terms say). The name resolves to one A record;
+    certificates for `*.cloud.shiftr.io` were issued by Let's Encrypt
+    until 2027-01-27, and the family resolvers clear the name (Verified
+    [M8], 2026-11-10); the instance's listener was not connected to.
+  - Verdict: MQTT over a WebSocket on 443 passes as a meeting point of the
+    pairing, not as a carrier of bytes (64 KB at most, public topics), on
+    these two, tried after Nostr's and the trackers' (Q77, Q78). A topic
+    derived from the code's nameplate carries T-086's messages, the first
+    end subscribes and the second publishes; a subscriber of the topic
+    gets each message, so the pairing must hold against a stranger, as on
+    Nostr's relays. `rumqttc` 0.25.1 has `websocket` and `proxy` features
+    [M9]; a codec of three MQTT 3.1.1 packets on podssh's own WebSocket is
+    the other way (Inferred). Its feature entry: T-737.
 - **Matrix.org**: a verified e-mail and an age of 18, and the server keeps
   the history [R37]; an event is 65,536 bytes at most [R38].
 - **Tor's onion services**: the purpose fits, but Tor's TLS fails through a
@@ -989,6 +1082,41 @@ Ruled out:
   own has nothing to speak to, and an end with UDP still needs a node: out,
   as a carrier and as a meeting point. A request crosses many peers'
   stores, so its latency is far over the pairing's (Inferred).
+  HyperDHT, read on 2026-11-10 (T-542) [H1] to [H6]: a peer listens on an
+  Ed25519 key pair (`DHT.keyPair(seed)`), and a client connects by that
+  public key; the server may refuse a client by its key and handshake
+  payload in a `firewall` function [H1]. The DHT is dht-rpc, over a UDP
+  socket [H4]. A client finds the server by `FIND_PEER`, then the two
+  exchange a Noise handshake through two relay nodes of the DHT, one that
+  each side picks, "the client and server don't interact directly"
+  [H2]; then they punch a UDP hole and run UDX streams on it, under the
+  Noise secret stream [H2]. A hole needs a firewall that is open or keeps
+  one port for each host: the code sorts a NAT as `OPEN`,
+  `CONSISTENT` or `RANDOM`, tries random probes against one `RANDOM` side,
+  and aborts with `HOLEPUNCH_DOUBLE_RANDOMIZED_NATS` when both are
+  `RANDOM` [H2]. For that pair there is a blind relay, a peer that
+  pairs two UDX streams by a token (the same job as TURN) [H3]; Pear's
+  page says that a randomizing NAT is "common on corporate and
+  carrier-grade networks", that the relay is a "third machine that both
+  peers can reach", and that the user runs it, so no public one is read
+  [H3]. The default bootstrap nodes are three, on `hyperdht.org`, UDP
+  port 49737, "publicly served on behalf of the commons" with no terms
+  beside that README line [H1]. No part answers on TCP or on 443: the
+  only WebSocket is `dht-relay`, a server that a user runs, marked "still
+  experimental. Do not use it in production" [H5], and a user of it
+  writes that none runs by default [H5]. So a host with 443 alone
+  has no way in. Where UDP passes and the NAT can be punched, two ends
+  meet by a key with no account, and the node's key is the Ed25519 key
+  that podssh's node already has (Inferred; [reverse.md](reverse.md)).
+  The size of podssh's side: `peeroxide-dht` 1.7.4 and `libudx` 1.7.4,
+  released 2026-11-03, a Rust port that says it is wire-compatible and
+  tested against Node.js peers, in RustCrypto with no C dependency, on
+  tokio, MIT OR Apache-2.0 [H6]; one author's repository of 20 stars and
+  a README whose status line still reads "Version 1.0.0" (Read [H6]; its
+  maturity is Inferred). Verdict: HyperDHT passes only where UDP passes,
+  as a road after podssh's own (Q77, Q82), and gives nothing to a host
+  with 443 alone, where iroh's relays and the carriers above already
+  are. Its feature entry: T-736.
 - **Pub/sub networks** (the sweep [W1]; read on 2026-11-02). Bluesky's
   relays send each record to each consumer, and a record is written to a
   PDS by an account [W18]. ActivityPub's relays take a server's posts and
@@ -1000,6 +1128,50 @@ Ruled out:
   XMTP sends to
   an inbox that a wallet's signature registered [W20]. The Farcaster hubs
   of the sweep were gone [W1]. Nostr: the meeting points above.
+  Read again on 2026-11-10 (T-547) [P1] to [P18]; none was connected to.
+  A network passes if one end can send a message to the other with no
+  account of the user's, on 443 by name; none does.
+  - Bluesky: the firehose is `com.atproto.sync.subscribeRepos` over a
+    WebSocket, "No authentication is required" [P1]; but "all data
+    creation ... involves repository API calls to the PDS", which "require
+    authentication", on the user's PDS [P2]; the terms ask an age of 13 or
+    more and an account (last updated 2025-08-14) [P3]. A PDS of the
+    user's own needs a name and an inbound HTTPS port (Inferred). Out.
+  - ActivityPub: a Mastodon-style relay takes a signed `Follow` to its
+    inbox from a server, then "will fetch the relay client actor document
+    to obtain the actor's public key" [P4]; "Only instance admins can
+    subscribe to a relay" [P5]. An end would be a server with a name and
+    an inbox that the relay reaches, and each post goes to each
+    subscriber. Out.
+  - Waku: the relay protocol needs an RLN membership on a smart contract,
+    with "100 messages every 10 minutes for each member" and messages of
+    150 kB at most [P6]; the light protocols let an edge node publish
+    through a service node, and "RLN-as-a-Service" lets that node hold the
+    membership and attach the proof "available on the Waku Network"
+    [P7]; the light push spec has `TOO_MANY_REQUESTS` (429) for rate
+    limits [P8]. The Status app's fleet lists WebSocket nodes on 443
+    (nine of `status.prod`: the `boot-` and `store-` nodes of three
+    sites) and on 8000 (the sandbox's), in a file that says it "Should
+    only be used at build time" [P9]. Whether any of them takes a light
+    push from a stranger was not read, and no page that offers them to
+    others was found. Out until such a page is read.
+  - XMTP: an identity is registered by a wallet's signature, and the FAQ
+    says that XMTP "can work with signatures from any private public key
+    pair" [P10]; the production network is paid by "payers" through
+    a gateway ("$5 per 100,000 chat messages" estimated), and "apps pay,
+    not users" [P11]; the dev network is reached "directly (no gateway)"
+    [P12] and is the test network [P13]; envelopes are 1 MiB at most and
+    writes 3,000 messages in 5 minutes [P14]; the backend serves gRPC and
+    gRPC-Web on one port behind a load balancer that terminates HTTPS
+    [P14]. The dev network's host and port were not read. The client is
+    libxmtp, Rust with MLS, which links C libraries (OpenSSL) [P15]: far
+    over a pairing of a few messages. Out as a carrier; as a meeting
+    point it adds nothing to Nostr's and MQTT's.
+  - Farcaster: to write, an account needs an FID on Optimism, a rented
+    storage unit and a signer key, "about ~10$ USD of ETH bridged to
+    Optimism", and write access to a hub [P16]; the hubs were replaced by
+    Snapchain in April 2025 [P17], whose `submitMessage` takes the signed
+    message [P18]. Out.
 - **Trackers** (41 on 443 in the sweep, 2 of them WebTorrent's with a
   WebSocket [W1]): a tracker gives a peer list, or passes WebRTC's offers
   between the peers of one torrent [W21], and the bytes then need a path
@@ -1854,3 +2026,86 @@ public list, or from a page that the services returned.
   `link_wss.go`, `version.go`, `link.go`, `LICENSE`
 - [Z13] `Arceliar/ironwood` (MPL-2.0): `README.md`, `network/`, `encrypted/`,
   `types/packetconn.go`; crates.io's search for `yggdrasil`
+
+Read on 2026-11-10 through the services of web.pkgforge.dev (fetch, read,
+search, forge, domain and archive), for T-542, T-547 and T-579. No
+broker, relay, bootstrap node or network named above was connected to:
+each fact is from a project's own repository, document or terms, or from
+a service's answer about a name.
+
+- [H1] `holepunchto/hyperdht:README.md`, `package.json` (6.36.0, MIT) and
+  `lib/constants.js` (`BOOTSTRAP_NODES`), on its default branch
+- [H2] `holepunchto/hyperdht:docs/handshake.md`, `lib/connect.js`,
+  `lib/holepuncher.js` and `lib/nat.js`
+- [H3] `holepunchto/blind-relay:README.md` (Apache-2.0), and
+  https://docs.pears.com/p2p/how-to/connect-to-peers/relay-connections-through-a-blind-relay/
+- [H4] `holepunchto/dht-rpc:README.md` and `package.json`
+- [H5] `holepunchto/hyperswarm-dht-relay:README.md` and `package.json`
+  (0.4.3, ISC); `MiguelMedeiros/ghostly:docs/wisps/103-hyperdht.md`
+  (its browser profile: "none runs by default")
+- [H6] `Rightbracket/peeroxide:README.md`, `Cargo.toml`,
+  `peeroxide-dht/Cargo.toml` and `libudx/Cargo.toml` (1.7.4); the licence
+  of `peeroxide-dht` 1.3.1 in docs.rs's page of its source; the
+  repository's record in forge.web.pkgforge.dev (20 stars, last push
+  2026-11-03)
+- [L1] `libp2p/specs:relay/circuit-v2.md`
+- [L2] `libp2p/go-libp2p:p2p/protocol/circuitv2/relay/resources.go` and
+  `relay.go`
+- [L3] `ipfs/kubo:docs/config.md`: `Swarm.RelayService` and its limits;
+  `AutoTLS` (the `*.libp2p.direct` certificate); `Addresses.Swarm`
+- [L4] `libp2p/rust-libp2p:protocols/relay/src/behaviour.rs` and
+  `Cargo.toml` (`libp2p-relay` 0.23.0, MIT)
+- [L5] `libp2p/rust-libp2p:transports/websocket/Cargo.toml`
+  (`libp2p-websocket` 0.46.0); its licence in forge.web.pkgforge.dev
+- [L6] The search of 2026-11-10 through search.web.pkgforge.dev for a
+  list of relay v2 nodes on `/tcp/443/wss`: only the protocol's pages and
+  the code of the relays came back
+- [M1] https://www.hivemq.com/mqtt/public-mqtt-broker/,
+  https://www.mqtt-dashboard.com/ and
+  https://www.hivemq.com/demos/websocket-client/
+- [M2] https://www.emqx.com/en/mqtt/public-mqtt5-broker
+- [M3] https://test.mosquitto.org/
+- [M4] https://mqtt.eclipseprojects.io/, the Wayback Machine's capture
+  20250315152050 through archive.web.pkgforge.dev; the live page answered
+  504 through read.web.pkgforge.dev on 2026-11-10
+- [M5] https://www.shiftr.io/try
+- [M6] https://www.shiftr.io/docs/broker/mqtt-interface
+- [M7] https://www.shiftr.io/legal/cloud-tos and
+  https://www.shiftr.io/legal/terms-of-service
+- [M8] domain.web.pkgforge.dev: `/category` for `public.cloud.shiftr.io`,
+  `broker.hivemq.com`, `broker.emqx.io`, `test.mosquitto.org` and
+  `mqtt.eclipseprojects.io`; `/dns` and `/certs` for shiftr.io's names
+- [M9] `bytebeamio/rumqtt:rumqttc/Cargo.toml` (0.25.1)
+- [P1] https://docs.bsky.app/docs/advanced-guides/firehose
+- [P2] https://docs.bsky.app/docs/advanced-guides/api-directory
+- [P3] https://bsky.social/about/support/tos (last updated 14 August 2025)
+- [P4] http://fep.swf.pub/fep/ae0c/fep-ae0c.html (FEP-ae0c, an
+  informational description of the Mastodon and LitePub relays)
+- [P5] https://joinfediverse.wiki/Fediverse_relays
+- [P6] https://blog.waku.org/2024-07-10-rln-v2-stateless-light-clients and
+  https://blog.waku.org/2024-03-26-waku-network-tech-overview, read in
+  search results (the blog answers a challenge to a reader)
+- [P7] https://blog.waku.org/explanation-series-rln-relay, read in a
+  search result
+- [P8] `logos-messaging/specs:standards/core/lightpush.md`
+- [P9] https://fleets.status.im/ (its JSON, `fleets` and `meta`)
+- [P10] https://docs.xmtp.org/chat-apps/core-messaging/create-a-client and
+  https://docs.xmtp.org/intro/faq, read in search results
+- [P11] https://docs.xmtp.org/fund-agents-apps/calculate-fees and
+  https://docs.xmtp.org/fund-agents-apps/run-gateway, read in search
+  results; `xmtp/smart-contracts:doc/architecture.md` (payers)
+- [P12] `xmtp/gateway-console:.env.example` ("'dev' = direct connection to
+  dev network (no gateway)")
+- [P13] https://docs.xmtp.org/llms/llms-agents.txt ("dev for using the
+  XMTP test network")
+- [P14] https://xmtp.org/reference/limits,
+  https://docs.xmtp.org/agents/deploy/rate-limits and
+  https://xmtp.org/get-started/run-the-backend/
+- [P15] https://pub.dev/packages/xmtp_plugin (libxmtp "links against
+  platform-specific C libraries (OpenSSL, etc.)") and
+  `xmtp/xmtp-qa-tools:README.md` (libxmtp on openmls), read in search
+  results
+- [P16] https://docs.farcaster.xyz/developers/guides/basics/hello-world
+- [P17] https://nownodes.io/blog/what-is-farcaster/, a secondary source,
+  read in a search result
+- [P18] https://snapchain.farcaster.xyz/reference/httpapi/message

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**690 entries: 94 open, 16 partial, 9 blocked, 571 done.**
+**692 entries: 93 open, 16 partial, 9 blocked, 574 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 8 | 1 | 261 | 295 |
-| P3 | 65 | 6 | 5 | 240 | 316 |
-| **All** | 94 | 16 | 9 | 571 | 690 |
+| P3 | 64 | 6 | 5 | 243 | 318 |
+| **All** | 93 | 16 | 9 | 574 | 692 |
 
 ## Entries
 
@@ -589,12 +589,12 @@ repository and CI).
 | [T-539](mesh.md) | P3 | M | M10 | research | done | Tox: whether its TCP relays on 443 carry a podssh session between two keys |
 | [T-540](mesh.md) | P3 | M | M10 | research | done | Yggdrasil again, under Q77: a port of its links and routing, over its peers on 443 |
 | [T-541](mesh.md) | P3 | S | M10 | research | done | croc: whether a public croc relay carries a podssh session from a host with 443 alone |
-| [T-542](mesh.md) | P3 | M | M10 | research | open | HyperDHT: whether Holepunch's DHT and its relays reach a podssh end by its key |
+| [T-542](mesh.md) | P3 | M | M10 | research | done | HyperDHT: whether Holepunch's DHT and its relays reach a podssh end by its key |
 | [T-543](mesh.md) | P3 | S | M10 | research | done | Cabal: whether it adds a carrier or a meeting point beyond HyperDHT |
 | [T-544](mesh.md) | P3 | S | M10 | research | done | Hyphanet: whether a podssh end can use it with no node of its own |
 | [T-545](mesh.md) | P3 | M | M10 | feature | open | Nostr's ephemeral events as a meeting point of the pairing by a short code |
 | [T-546](mesh.md) | P3 | S | M10 | research | done | Trackers as meeting points: whether a BitTorrent or WebTorrent tracker passes the pairing's messages |
-| [T-547](mesh.md) | P3 | M | M10 | research | open | The pub/sub networks and the public MQTT brokers, as carriers or meeting points |
+| [T-547](mesh.md) | P3 | M | M10 | research | done | The pub/sub networks and the public MQTT brokers, as carriers or meeting points |
 | [T-548](mesh.md) | P2 | L | M10 | feature | partial | Pinggy as a last fallback of the reverse road: SSH inside TLS on 443, and a TLS tunnel that ends at the node |
 | [T-549](mesh.md) | P3 | M | M10 | feature | open | Serveo as a last fallback: a node's alias by SSH, and a client's hop through it |
 | [T-550](mesh.md) | P3 | S | M10 | feature | done | The quick tunnel's node takes its net's members as its door, with no `--allow` |
@@ -618,7 +618,7 @@ repository and CI).
 | [T-576](mesh.md) | P3 | S | M10 | feature | open | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | open | Bare servers as a hop to a WebSocket road: the research |
 | [T-578](mesh.md) | P3 | L | M10 | feature | open | Tor's onion services: a node reached by its onion address, through the Tor road |
-| [T-579](mesh.md) | P3 | S | M10 | research | open | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
+| [T-579](mesh.md) | P3 | S | M10 | research | done | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
 | [T-580](mesh.md) | P3 | L | M10 | feature | open | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
 | [T-581](mesh.md) | P3 | M | M10 | feature | open | TUIC version 5 as a client road over QUIC, where a probe found that UDP passes |
 | [T-582](mesh.md) | P3 | L | M10 | feature | open | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
@@ -766,3 +766,5 @@ repository and CI).
 | [T-733](mesh.md) | P3 | L | M10 | feature | open | ZeroTier's TCP relay and an ad-hoc network as a last road of a podssh pair |
 | [T-734](mesh.md) | P3 | M | M10 | feature | open | Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair |
 | [T-735](mesh.md) | P3 | L | M10 | feature | open | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
+| [T-736](mesh.md) | P3 | L | M10 | feature | open | HyperDHT as a road by key where UDP passes, after podssh's own |
+| [T-737](mesh.md) | P3 | M | M10 | feature | open | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
