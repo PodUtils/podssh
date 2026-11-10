@@ -45,6 +45,17 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           is a configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_CROC"],
+        "croc's relay road of a pair (T-694), the last fallback of the operator's ruling Q78: croc's public \
+          relays behind croc-web's WebSocket bridge, the one that podssh's list of services names, where a node \
+          of the resumable layer and the end-to-end channel waits in a room of the pair beside the pair's road, \
+          and where podssh ssh node://NAME meets it when each other road failed. Its rooms and the proof of the \
+          pair come from the pair's connect token; the relay sees ciphertext. no: no road; a ws:// or wss:// \
+          URL: that bridge (croc-web of your own, its query relay=N&port=P when it names one, else relay 0 and \
+          port 9009), which PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the listed bridge, none \
+          while the list names none; another word is a configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_PIPING"],
         "The Piping Server road of a pair (podssh node NAME, podssh ssh node://NAME), for a proxy that refuses \
           the WebSocket upgrade: a POST and a GET of plain HTTPS for each way of a link, on paths that the pair's \
@@ -222,8 +233,9 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
-      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; and the \
-      roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
+      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; croc's \
+      relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own \
+      variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

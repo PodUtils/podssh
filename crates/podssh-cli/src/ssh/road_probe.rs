@@ -136,6 +136,8 @@ pub(crate) async fn measure(
         member,
         frp,
         pinggy,
+        // croc's relay is a last fallback of Q78 too: a measure leaves it out.
+        croc: None,
         refused,
         label,
         legs,

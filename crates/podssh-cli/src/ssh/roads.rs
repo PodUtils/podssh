@@ -105,6 +105,8 @@ struct Roads<'a> {
     frp: Option<frp::FrpRoads>,
     /// A node's Pinggy tunnel, the last fallback of Q78 (T-548).
     pinggy: Option<super::pinggy::PinggyRoads>,
+    /// croc's relay, a last fallback of Q78 too (T-694).
+    croc: Option<super::croc::CrocRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -164,6 +166,9 @@ impl<'a> Roads<'a> {
             list.push((Start::WhenAllFailed, Box::pin(async move { dialer.link().await.map(Road::Transit) })));
             kinds.push(Kind::Transit);
         }
+        if let Some(croc) = &self.croc {
+            croc.push(&mut list, &mut kinds);
+        }
         if !piping_asked {
             self.push_piping(&mut list, &mut kinds);
         }
@@ -179,7 +184,7 @@ impl<'a> Roads<'a> {
     /// may come back.
     async fn ended_for_good(&self) -> bool {
         let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
-        if self.derp.is_some() || others || self.pinggy.is_some() || self.piping_on() {
+        if self.derp.is_some() || others || self.pinggy.is_some() || self.piping_on() || self.croc.is_some() {
             return false;
         }
         let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);
@@ -304,6 +309,9 @@ where
         _ => None,
     };
     let refused = AtomicBool::new(raced.piping.as_ref().is_some_and(|race| race.refused));
+    // croc's relay (T-694): never with --no-e2e, nor once the upgrade was refused, as its bridge is a WebSocket.
+    let croc =
+        super::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
     let proxy = ProxyChoice::FromEnvironment;
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,
@@ -334,6 +342,7 @@ where
         member,
         frp,
         pinggy,
+        croc,
         refused,
         label,
         legs,

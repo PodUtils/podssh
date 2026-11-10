@@ -1,0 +1,8 @@
+# T-694: a member that waits in a room of croc's relay takes the relay's
+# frame of the one byte 1 for its peer's hello, so a node that waited before
+# its client came refuses it; the test of a node that waited through the
+# relay's frames against the stand-in of croc's relay must fail.
+ENTRY=T-694
+GROUP=resume
+EXPECT='test a_node_that_waited_through_the_relay_s_frames_still_meets \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-relay --features croc --test croc -- a_node_that_waited_through_the_relay_s_frames_still_meets'

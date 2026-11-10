@@ -3460,7 +3460,7 @@ Read while drafting, 2026-11-03:
   Close included; a session cut then is a clean end of a session that the node took, exit 0. A
   signal before the node took the session ends the wait at once, with the session's fault (70).
 - `ssh node://` takes SIGHUP and SIGTERM alone: its Ctrl-C is the remote command's. The same on
-  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:159`, moved from
+  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:163`, moved from
   `crates/podssh-cli/src/ssh/roads.rs` by T-551).
 - The plant of the signals is two plants, one for each test, as a plant runs one check:
   `t586-hangup-not-taken` (the operator's test) and `t586-hangup-not-taken-openssh` (the
@@ -4100,7 +4100,7 @@ same setting.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:197` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
-- The guard at `crates/podssh-cli/src/ssh/mod.rs:436` removes the keepalives only when
+- The guard at `crates/podssh-cli/src/ssh/mod.rs:438` removes the keepalives only when
   `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:476` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
@@ -4109,7 +4109,7 @@ same setting.
 
 ## Approach
 
-1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:436`, add the case `reached.layer.is_some()` with
+1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:438`, add the case `reached.layer.is_some()` with
    `!resolved.alive_default` and a keepalive interval that is set. Print the warning of
    `resolve.rs:389-391` there, once, from one shared constant.
 2. Keep the user's interval. Do not add `Transport::Cloudflare` to `resolve.rs:375`: a far end that

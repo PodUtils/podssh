@@ -24,6 +24,8 @@ mod notes_ask;
 mod notes_chat;
 mod notes_config;
 mod notes_containers;
+// croc's relay road, a last fallback of Q78 (T-694).
+mod notes_croc;
 // relay's notes on the signed list of deployments (T-346).
 mod notes_deployments;
 mod notes_detached;

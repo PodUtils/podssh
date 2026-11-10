@@ -1528,6 +1528,41 @@ Ruled out:
   and as a meeting point; the cost is croc's frame and relay handshake in
   Rust, with schollz/pake's SIEC curve, which no Rust crate implements
   (Inferred: none was found in the read). Its feature entry: T-694.
+  - Read again on 2026-11-10 for T-694 [Y9]: the bridge's `relay` is an
+    index of its list of relay hosts, `1.getcroc.com` to `4.getcroc.com`,
+    and `port` one of 9009 to 9017 (else 403); a relay that does not answer
+    is 502 [Y3]. A croc client names a code's relay by its `RelayIndex`, the
+    SHA-256 of the code as a big-endian number modulo the pool [Y9]. Each
+    port of a relay is a relay of its own, with its own rooms [Y2]. The
+    relay sees the bridge's address as each web user's source, so all who
+    come through `getcroc.com/ws` share one allowance of 32 pending
+    handshakes and of joins a minute (croc's README: "Users behind the same
+    NAT or proxy share a source allowance, including browser users
+    connecting through the same croc-web bridge") [Y1]. croc's client now
+    takes an HTTP proxy too (`comm.HttpProxy`) [Y2]. Terms: `getcroc.com`
+    has no page of terms (`/terms`, `/privacy` and `/tos` answer the site's
+    own page), and croc's repository holds none; its README asks for
+    sponsors, and its relays are under croc's own domain (Read [Y9]; that
+    croc's author runs them is Inferred). No term
+    allows or forbids a client of the bridge that is not croc's web page; its
+    `Origin` check refuses only an `Origin` of another site, which a program
+    does not send [Y3].
+  - Built (T-694, drafted 2026-11-10; UNVERIFIED until the merge's runs):
+    `podssh-relay`'s `croc` module (feature `croc`), pure Rust: croc's
+    frames, the PAKE of schollz/pake v3 on SIEC (the curve written on
+    num-bigint, checked against vectors of a Python transcription of
+    siec.go and pake.go), PBKDF2 and AES-GCM of croc's crypt, the relay's
+    handshake of croc's client, and podssh's hello and proof of the pair
+    after it, as on the transit road. A pair has 4 rooms; its node waits in
+    the first that no link of its own holds, and a client tries them in
+    order. The bridge is the service `croc` of `pod-services`, which the
+    list does not hold at `v0.11.0` (a COORD issue to podcrates asks for
+    it), so the road is off unless `PODSSH_CROC` names a bridge; a last
+    fallback of Q78 (T-694's Decision): raced after the transit relay,
+    `PODSSH_LAST_RESORT=no` turns it off, and a line names the third party.
+    Its tests run a stand-in of croc's relay and bridge written from croc's
+    source, in the test's process; the run against `croc relay` and
+    `croc-web` themselves waits for T-694's harness.
 - **ZeroTier** (T-538; read on 2026-11-10 in ZeroTierOne's source at `dev`,
   in pylon's and in ZeroTier's documents, through forge.web.pkgforge.dev and
   fetch.web.pkgforge.dev; no ZeroTier server was contacted). The planet's
@@ -2312,6 +2347,15 @@ contacted: each fact is from a project's own repository or specification.
 - [Y6] https://www.bittorrent.org/beps/bep_0015.html (the UDP tracker)
 - [Y7] `webtorrent/bittorrent-tracker:README.md` at 11.2.3, as [W21]
 - [Y8] `webtorrent/create-torrent:index.js` (its default `announceList`)
+- [Y9] Read on 2026-11-10 through fetch.web.pkgforge.dev,
+  forge.web.pkgforge.dev and read.web.pkgforge.dev, for T-694; no croc
+  relay or bridge was contacted: `schollz/croc:src/codephrase/codephrase.go`,
+  `src/cli/cli.go`, `src/models/constants.go` and `web/src/protocol/pake.ts`,
+  `relay.ts`, `transport.ts` and `key.ts` at v11.6.4;
+  `schollz/pake:pake.go` at v3.2.0 (croc's `go.mod`); `tscholl2/siec:siec.go`
+  at `c2c6f6198406`; and the pages `https://getcroc.com/`, `/terms`,
+  `/privacy` and `/tos` through read.web.pkgforge.dev (each the site's own
+  page, with no terms)
 
 Read on 2026-11-10 through the services of web.pkgforge.dev (forge, fetch and
 search), for T-538, T-539 and T-540. No ZeroTier, Tox or Yggdrasil node or peer

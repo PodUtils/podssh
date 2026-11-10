@@ -72,6 +72,8 @@ struct Chosen {
     frp: bool,
     /// Whether a Pinggy name of the node is given or kept (T-548).
     pinggy: bool,
+    /// Whether croc's relay road is on, with a good pair here (T-694).
+    croc: bool,
 }
 
 impl Chosen {
@@ -81,7 +83,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy
+        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy || self.croc
     }
 }
 
@@ -115,7 +117,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let frp = super::roads::frp::FrpRoads::new(label, trust)?.is_some() && !channel.off;
     // The Pinggy road (T-548): a name given or kept, never with --no-e2e.
     let pinggy = super::pinggy::named(label, channel.off);
-    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy })
+    // croc's relay road (T-694, Q78), as the transit relay's: never with --no-e2e, with a good pair.
+    let croc = crate::node_croc::bridge().is_some() && !channel.off && good_pair();
+    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, croc })
 }
 
 /// SSH to the node of `dest`: over the race of its roads beside the pair's,

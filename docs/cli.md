@@ -4371,6 +4371,17 @@ commands. The rules behind them:
   link that Pinggy, a third party that nobody vouches for, carries the
   session. `--no-e2e` with the flag is 64, and the flag with another
   destination too. `podssh ping node://NAME` measures it only when named.
+- **croc's relay road of a pair** (T-694, drafted 2026-11-10, UNVERIFIED
+  until it is merged), the last fallback of Q78: a node of the pair's road
+  with the layer and the channel waits in a room of the pair at croc's
+  public relay, through croc-web's WebSocket bridge (the service `croc` of
+  `pod-services`, or `PODSSH_CROC=wss://HOST/ws`), and `ssh node://NAME`
+  meets it there after the transit relay, once each road before it failed.
+  croc's own handshake (its PAKE on SIEC, `pass123` and the room in
+  AES-GCM) opens a room; podssh's hello and proof of the pair follow, as on
+  the transit road. A line names croc's relays as a third party that nobody
+  vouches for. `PODSSH_CROC=no` or `PODSSH_LAST_RESORT=no` turns it off; a
+  bad value is 78, not echoed. `podssh ping node://NAME` does not measure it.
 - **A carrier: the node's road on a stream that exists already (T-595).**
   For a host whose every road out is closed but that grants one channel,
   as the exec channel of a platform's own SSH: `node NAME TARGET --carrier

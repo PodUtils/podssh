@@ -49,6 +49,9 @@
 //!   under the resumable layer that sends again what a server drops;
 //! - [`transit`]: the transit road (T-436), a pair's carrier through a
 //!   magic-wormhole transit relay, Least Authority's by default;
+//! - `croc` (feature `croc`): croc's relay road (T-694), a pair's carrier
+//!   through croc's public relays behind the WebSocket bridge of croc-web,
+//!   a last fallback of Q78;
 //! - `piping` (feature `piping`): the Piping Server road (T-437), a POST
 //!   and a GET for each way of a link, for a proxy that refuses the
 //!   WebSocket upgrade;
@@ -76,6 +79,8 @@ pub mod cache;
 pub mod cleartext;
 #[cfg(feature = "code")]
 pub mod code;
+#[cfg(feature = "croc")]
+pub mod croc;
 #[cfg(feature = "derp")]
 pub mod derp;
 pub mod e2e;
