@@ -65,7 +65,7 @@ pub(crate) fn service() -> Result<Result<Service, &'static str>, Refusal> {
 /// with that road off too. Pinggy's road, then Serveo's (T-549), then the
 /// ssh-j road (T-570, `node_sshj`), take it.
 pub(crate) fn last_node(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    let asked = args.pinggy || args.serveo || args.ssh_j || args.opentunnel || args.frp.is_some();
+    let asked = args.pinggy || args.serveo || args.ssh_j || args.localtunnel || args.opentunnel || args.frp.is_some();
     if asked || crate::node_opentunnel::service()?.is_some() {
         return Ok(None);
     }

@@ -54,7 +54,8 @@ fn check(args: &NodeArgs) -> Result<(), Refusal> {
     if args.exit {
         return Err(Refusal::usage("--exit goes on the pair's road and the DERP road: --frp does not carry it"));
     }
-    if args.iroh || args.derp || args.opentunnel || args.pinggy || args.serveo || args.ssh_j || args.quick_tunnel {
+    let tunnel = args.opentunnel || args.pinggy || args.serveo || args.ssh_j || args.localtunnel;
+    if args.iroh || args.derp || tunnel || args.quick_tunnel {
         return Err(Refusal::usage("--frp is the node's one road: it goes with no other road's flag"));
     }
     Ok(())

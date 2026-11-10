@@ -163,6 +163,14 @@ pub struct Rewound<L> {
     link: L,
 }
 
+impl<L> Rewound<L> {
+    /// `link` with `first` read again before its own bytes: a request's
+    /// head that a router read to choose who serves it (T-568).
+    pub fn new(first: Vec<u8>, link: L) -> Rewound<L> {
+        Rewound { first, at: 0, link }
+    }
+}
+
 impl<L: AsyncRead + Unpin> AsyncRead for Rewound<L> {
     fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {
         if self.at < self.first.len() {

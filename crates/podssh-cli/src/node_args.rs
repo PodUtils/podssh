@@ -35,6 +35,9 @@ pub struct NodeArgs {
     /// Serve the ssh-j road (T-570), a last fallback of Q78: a name derived
     /// from the node's key at ssh-j.com.
     pub ssh_j: bool,
+    /// Serve the localtunnel road (T-568), a last fallback of Q78: a name
+    /// derived from the node's key at localtunnel's public server.
+    pub localtunnel: bool,
     /// The file of the frp road (T-498): frps, its token and the STCP secret.
     pub frp: Option<String>,
     /// Serve a quick tunnel of Cloudflare's, with no pair (T-300).
@@ -137,6 +140,7 @@ impl NodeArgs {
             pinggy: matches.get_flag("pinggy"),
             serveo: matches.get_flag("serveo"),
             ssh_j: matches.get_flag("ssh-j"),
+            localtunnel: matches.get_flag("localtunnel"),
             frp: get("frp"),
             quick_tunnel: matches.get_flag("quick-tunnel"),
             warp: matches.get_flag("warp"),

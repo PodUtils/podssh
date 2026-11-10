@@ -39,8 +39,9 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 
 /// Why a node that no road was asked of would serve a last fallback
 /// unasked: the node of the OpenTunnel road's unasked serving, else of the
-/// Pinggy road's (`crate::node_pinggy::last_node`).
-fn last_of_all(args: &NodeArgs) -> Option<String> {
+/// Pinggy road's (`crate::node_pinggy::last_node`); the localtunnel road's
+/// too (T-568, `crate::node_localtunnel`).
+pub(crate) fn last_of_all(args: &NodeArgs) -> Option<String> {
     let opentunnel = crate::node_opentunnel::unasked(args).ok().flatten();
     opentunnel.or_else(|| crate::node_pinggy::last_node(args).ok().flatten())
 }

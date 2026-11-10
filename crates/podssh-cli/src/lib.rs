@@ -147,6 +147,10 @@ pub(crate) mod serveo_leg;
 pub mod node_sshj;
 mod node_sshj_serve;
 pub(crate) mod sshj;
+// `podssh node --localtunnel`: the localtunnel road, the last fallback of Q78
+// (T-568): the node's links and the relay role behind localtunnel's server.
+pub mod node_localtunnel;
+mod node_localtunnel_serve;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;
