@@ -6497,7 +6497,7 @@ of the owner's agent"). `cargo test -p podssh-cli` (2,015 passed), `cargo test -
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -6598,6 +6598,21 @@ step 2, `docs/carriers.md`, and a test through the Wisp stand-in
 (`tests/forwarder_support/wisp.rs`) of `after_relay_in` with a stand-in list, which needs a build
 to write against the real `Trust` and `RelayList` types. The entry stays `partial` until the list
 comes by a tag.
+
+2026-11-10, done. The research came from podcrates (COORD-020, PodUtils/podcrates#44, its T-130): no
+public Wisp server meets Q75 and Q79, so the kind `wisp-public` stays empty and the fallback is as
+before. Left out there: `wisp.mercurywork.shop` (the service `wisp-forwarder` already), `anura.pro`
+(Mercury Workshop's demo, not offered to others), `relay.widgetry.org` (v86's wsproxy, not Wisp),
+the 76 servers of the sweep (refused by Q79), and the server projects with no running server
+offered. GitHub #175 is answered. With no server, step 2's live runs have nothing to run. The test
+through the Wisp stand-in: `crates/podssh-cli/tests/forwarder_public.rs` calls `after_relay_in` in
+the process, through the stand-in proxy, with two stand-in public servers (`wisp-public-1.test`,
+`wisp-public-2.test`, served by `forwarder_support/wisp.rs`) and each built-in closing: the stream
+gives `SSH-2.0-`, and the stand-ins saw the four built-ins in their order, then the first public
+server alone; with no public server, the call fails and no public host is seen.
+`cargo test -p podssh-cli --test forwarder_public`: 1 passed; `--test forwarder_cli`: 16 passed;
+clippy clean. Planted, the public servers before the built-ins in `public::chain`: the test fails
+(`forwarder_public.rs:104`); put back, it passes.
 
 # T-536: NetBird: whether its relays or its signal server carry a podssh session with no account
 

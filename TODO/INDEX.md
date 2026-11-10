@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 94 open, 20 partial, 9 blocked, 564 done.**
+**687 entries: 94 open, 19 partial, 9 blocked, 565 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 25 | 9 | 1 | 260 | 295 |
+| P2 | 25 | 8 | 1 | 261 | 295 |
 | P3 | 65 | 9 | 5 | 234 | 313 |
-| **All** | 94 | 20 | 9 | 564 | 687 |
+| **All** | 94 | 19 | 9 | 565 | 687 |
 
 ## Entries
 
@@ -582,7 +582,7 @@ repository and CI).
 | [T-532](mesh.md) | P3 | M | M10 | feature | open | `podssh funnel` through OpenTunnel, with TLS that ends at the node |
 | [T-533](mesh.md) | P3 | S | M10 | docs | done | The manual says which public services podssh tries last, and which it never names |
 | [T-534](mesh.md) | P2 | M | M10 | feature | done | Tailscale's main DERP fleet after tailcat's: a short test that it lets podssh in, then the fallback |
-| [T-535](mesh.md) | P2 | M | M10 | feature | partial | The public Wisp servers that their operators run for that use, as forwarders after the demo server |
+| [T-535](mesh.md) | P2 | M | M10 | feature | done | The public Wisp servers that their operators run for that use, as forwarders after the demo server |
 | [T-536](mesh.md) | P3 | S | M10 | research | done | NetBird: whether its relays or its signal server carry a podssh session with no account |
 | [T-537](mesh.md) | P3 | S | M10 | research | done | Firezone: whether its relays or its portal carry a podssh session with no account |
 | [T-538](mesh.md) | P3 | M | M10 | research | open | ZeroTier: whether its roots and its TCP relay on 443 carry a podssh session |

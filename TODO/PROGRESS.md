@@ -354,7 +354,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 687 entries: 94 open, 20 partial, 9 blocked, 564 done.
+`TODO/INDEX.md` holds 687 entries: 94 open, 19 partial, 9 blocked, 565 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -438,7 +438,7 @@ this order:
    and the manual's word on the public services that podssh uses and the ones it never names
    (done 2026-11-03); T-532 is parked; then what the rulings Q74, Q75, Q77, Q78 and Q82 filed (2026-11-02),
    the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public Wisp servers
-   made for it (T-535), Pinggy (T-548) and the public proxy nodes (T-574); then the research of the
+   made for it (done: none qualifies), Pinggy (T-548) and the public proxy nodes (T-574); then the research of the
    overlay networks (NetBird, Firezone, Cabal, Hyphanet and croc are done; T-538 to T-542), of the trackers (done) and of the pub/sub networks (T-547),
    then what they filed: croc's relay as a road and a meeting point (T-694) and WebTorrent's trackers (T-695),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-549, T-565 to
@@ -460,7 +460,7 @@ and relay sweep of 2026-11-02 come first among the `none` entries, the P1 ones b
 merged; `v1.0.1` went out with them on 2026-11-03. The defects of GitHub #112 to #124 (triaged
 on 2026-11-03) are done and go into `v1.1.0-beta.1`. Until podssh is stable the expensive checks wait (Q88). Their
 features and documents (T-532,
-and T-535 to T-549 and T-565 to T-582, which Q74, Q75, Q77, Q78
+and T-538 to T-549 and T-565 to T-582, which Q74, Q75, Q77, Q78
 and Q82 filed; the features of #112 to #124 are done) follow, by priority, beside M10 (Q85); Dependabot's #119,
 #120 and #122 are in `main` (2026-11-03), and #123 waits for an iroh-dns that takes simple-dns 0.13. Overnight a fork of
 policy is decided and listed below for the operator to confirm (Q86). The drafts of 2026-11-03, both rounds, are merged. GitHub #125 (2026-11-03, `relay info`'s rank changes with the edge that answered) is done: the line says whose order it is; the research of the operator's relay archive is merged (2026-11-03). The operator's export of #125 (2026-11-04; GitHub has since deleted it) left two parts, both done: `relay info` names `relay rank` and the order that a run takes, and the remedy on the relay's side is an item of `docs/relay-operator.md`.

@@ -29,6 +29,10 @@ pub const FRAME_HOSTS: &[&str] = &["fwd-frame.test", "ssheasy.com"];
 /// reach the target.
 pub const CLOSE_HOST: &str = "fwd-close.test";
 
+/// The names of stand-in public Wisp servers (T-535), served by the Wisp
+/// stand-in as the demo server is; no real host of another party is named.
+pub const WISP_PUBLIC_HOSTS: &[&str] = &["wisp-public-1.test", "wisp-public-2.test"];
+
 /// One upgrade that a stand-in took.
 #[derive(Debug, Clone)]
 pub struct Seen {
@@ -80,7 +84,7 @@ impl Stands {
         // a reset of unread bytes.
         let Ok((head, pending)) = podssh_ws::http::read_request(&mut tls, Vec::new()).await else { return };
         let query = QUERY_HOSTS.contains(&host.as_str()) || host == CLOSE_HOST;
-        let speaks_wisp = host == wisp::HOST;
+        let speaks_wisp = host == wisp::HOST || WISP_PUBLIC_HOSTS.contains(&host.as_str());
         if !query && !speaks_wisp && !FRAME_HOSTS.contains(&host.as_str()) {
             // The guard ends with the statement: none is held across an await.
             let answer = self.relay.lock().unwrap().clone();
