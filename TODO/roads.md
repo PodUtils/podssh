@@ -5570,7 +5570,7 @@ code that no command of the default build uses is P2 at most".
   (`TODO/roads.md:2157`); its Decision took QUIC only where no proxy is set, on the connection's
   own socket (`TODO/roads.md:2189-2196`), and the QUIC handshake, bounded at 5 s, is its probe:
   QUIC that fails gave way to HTTP/2 for the run (`crates/podssh-cli/src/node_quick.rs`, its `link`,
-  read at `a09f40e`, which T-400 replaced by a race; `crates/podssh-relay/src/quick/quic.rs:44`). Its cost on a host that drops UDP is
+  read at `a09f40e`, which T-400 replaced by a race; `PodUtils/podssh:crates/podssh-relay/src/quick/quic.rs:44`). Its cost on a host that drops UDP is
   one handshake a run, as its Decision item 5 chose (`TODO/roads.md:2197-2201`). doctor says
   nothing of it in the default build, where the quick tunnel is.
 - Read: the measured cage refuses UDP (`docs/target-environment.md:23`), and the box does too
@@ -5597,7 +5597,7 @@ code that no command of the default build uses is P2 at most".
 4. doctor: `bind UDP` says only what a bind shows. A new line, `UDP out`, gives the answer and
    its time: with the feature, the QAD round trip to the home relay; in each build where no proxy
    is set, a QUIC handshake to the quick tunnel's edge as `podssh node --quick-tunnel` makes it
-   (`crates/podssh-relay/src/quick/quic.rs:137-157`), and with a proxy set, that the quick tunnel
+   (`crates/podssh-relay/src/quick/quic.rs:60-68`), and with a proxy set, that the quick tunnel
    takes HTTP/2. Each answer is `ok`, as a road with no UDP works; a home relay that does not
    answer is already `FAIL` (`crates/podssh-cli/src/doctor/iroh.rs:89-95`).
 5. `-v` says which answer the road took. The manual's `PODSSH_IROH_UDP`, `docs/design.md`
@@ -7290,7 +7290,7 @@ start and at each reconnect, and a client meets that wait as a refusal.
 ## Premise
 
 - Read: the order in `link` (`crates/podssh-cli/src/node_quick.rs`, line 316 at `a09f40e`);
-  QUIC's limit (`crates/podssh-relay/src/quick/quic.rs:44`) and the edge's dial limit
+  QUIC's limit (`PodUtils/podssh:crates/podssh-relay/src/quick/quic.rs:44`) and the edge's dial limit
   (`crates/podssh-relay/src/quick/edge.rs:54`).
 - Read: podssh already races relay hosts with a stagger (`PodUtils/podssh:crates/podssh-ws/src/race.rs`).
 - Read in cfrs's issues: the edge answers a QUIC packet of a reserved version with a Version
@@ -7375,6 +7375,10 @@ one (the Decision, item 1).
 The Prove's first line named no feature, and `quick_resilience` is behind the feature `quick`:
 it ran no test. It names the feature now.
 
+The test target `quick_probe` of `podssh-relay` moved to `pod-quic` of PodUtils/podcrates (as its
+test target `probe`) when podssh took the crate: `cargo test -p pod-quic` there runs its tests,
+with their names.
+
 ## Done
 
 2026-11-01: drafted by a drafting agent (`worktree-agent-a43f1f66f785b3295`), merged, built and run
@@ -7390,7 +7394,7 @@ the same day.
   stand-in edge's road: dialed 2 s after the start, kept, the silent one dropped, a visitor's
   message back) and `quic_whose_probe_gets_no_answer_gives_way_at_once` (QUIC's road to a
   loopback port that answers nothing: HTTP/2 dialed after 300 ms and before 1.5 s, the probe's
-  1200 bytes at the port); `crates/podssh-relay/tests/quick_probe.rs`: a stand-in that answers
+  1200 bytes at the port); `PodUtils/podssh:crates/podssh-relay/tests/quick_probe.rs`: a stand-in that answers
   with a Version Negotiation of 27 bytes is taken, one of another id is not, and a closed port is
   said at once on Linux. `cargo test -p podssh-relay --features quick --test quick_resilience
   --test quick_probe`: 9 and 2 passed. The harness's `register` now reads the edge's side through

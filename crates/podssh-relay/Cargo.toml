@@ -10,12 +10,12 @@ publish.workspace = true
 # A library other projects (podvm) use; its crates move to PodUtils/podcrates
 # (T-684).
 [dependencies]
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.13.0" }
-pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.13.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
+pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
 # The services of other parties: the relay's host, limits and seed, the
 # DERP servers, Piping, the mailboxes and transit, OpenTunnel, the edge of
 # the quick tunnel and its roots.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.13.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
 podssh-ws = { path = "../podssh-ws" }
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -48,6 +48,10 @@ bytes = { version = "1.12", optional = true }
 # podssh-ws's provider; rustls for the TLS 1.3 configuration of QUIC.
 noq = { version = "1.4", default-features = false, features = ["runtime-tokio", "rustls"], optional = true }
 rustls = { workspace = true, optional = true }
+# The QUIC endpoint, its keys, the connection within its wait, the race of
+# handshakes and the probe of UDP (PodUtils/podcrates, T-019): pod-quic, on
+# the same noq.
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0", optional = true }
 # DERP's handshake (src/derp/, T-349): the client's info sealed to the
 # server's key with NaCl's crypto_box (X25519, XSalsa20, Poly1305). Pure
 # Rust, RustCrypto's, in the lock already through the vendored tailscale-rs;
@@ -88,7 +92,7 @@ pair = []
 blocking = ["pair"]
 # A quick tunnel that podssh serves itself (T-300): HTTP/2 to the edge, and
 # QUIC where UDP reaches it (T-301). No C either; the gate builds it.
-quick = ["dep:h2", "dep:http", "dep:bytes", "dep:noq", "dep:rustls"]
+quick = ["dep:h2", "dep:http", "dep:bytes", "dep:noq", "dep:rustls", "dep:pod-quic"]
 # QUIC on UDP to podssh's relay role (T-667): the client's race of QUIC and
 # its TCP roads after the quick tunnel's probe of UDP, and with `serve` the
 # role's QUIC endpoint. noq and the probe are the quick tunnel's, so no crate

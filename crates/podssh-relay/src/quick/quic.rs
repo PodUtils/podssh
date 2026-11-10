@@ -8,21 +8,19 @@
 //! node takes it only with no proxy set; its socket is the connection's own,
 //! on a port that the system picks, and nothing listens on it.
 
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hmac::{Hmac, KeyInit, Mac};
-use noq::crypto::rustls::QuicClientConfig;
-use noq::crypto::{CryptoError, HmacKey};
-use noq::{
-    ClientConfig, Connection, ConnectionError, Endpoint, EndpointConfig, IdleTimeout, TokioRuntime, TransportConfig,
-    VarInt,
-};
+use noq::{Connection, Endpoint, EndpointConfig, VarInt};
+use pod_quic::Settings;
 use podssh_ws::tls::TlsRoots;
-use sha2::Sha256;
 
 use super::edge;
+
+/// cloudflared's settings of the transport, which pod-quic holds as its
+/// default.
+pub use pod_quic::{FIRST_PACKET_V4, FIRST_PACKET_V6, HANDSHAKE_WAIT, KEEPALIVE, MAX_STREAMS, SILENCE};
 
 /// The edge over QUIC: the first endpoint of the role `quic` of
 /// `cloudflare-tunnel-edge` (`pod-services`).
@@ -39,99 +37,24 @@ pub fn server_name() -> &'static str {
 pub fn alpn() -> &'static [u8] {
     quic_edge().alpn().first().map_or(b"argotunnel".as_slice(), |a| a.as_bytes())
 }
-/// cloudflared's `HandshakeIdleTimeout`, `MaxIdleTimeout` and
-/// `MaxIdlePingPeriod`.
-pub const HANDSHAKE_WAIT: Duration = Duration::from_secs(5);
-pub const SILENCE: Duration = Duration::from_secs(5);
-pub const KEEPALIVE: Duration = Duration::from_secs(1);
-/// cloudflared's first packets, for paths whose MTU is 1280.
-pub const FIRST_PACKET_V4: u16 = 1232;
-pub const FIRST_PACKET_V6: u16 = 1252;
-/// The streams that the edge may open at once: as HTTP/2's, as a quick
-/// tunnel takes 200 requests in flight.
-pub const MAX_STREAMS: u32 = 256;
-/// The datagrams that may wait: podssh routes no private network and reads
-/// none, but takes them as cloudflared does.
-const DATAGRAMS: usize = 64 * 1024;
 
-/// TLS 1.3 alone, as QUIC needs, with `roots` and the ALPN.
+/// TLS 1.3 alone, as QUIC needs, on podssh's provider, with `roots` and the
+/// ALPN.
 pub fn tls(roots: &TlsRoots) -> Result<Arc<rustls::ClientConfig>, String> {
     let provider = Arc::new(podssh_ws::crypto::provider());
-    let verifier =
-        rustls::client::WebPkiServerVerifier::builder_with_provider(Arc::new(roots.roots.clone()), provider.clone())
-            .build()
-            .map_err(|e| format!("the edge's certificate verifier: {e}"))?;
-    let mut config = rustls::ClientConfig::builder_with_provider(provider)
-        .with_protocol_versions(&[&rustls::version::TLS13])
-        .map_err(|e| e.to_string())?
-        .dangerous()
-        .with_custom_certificate_verifier(verifier)
-        .with_no_client_auth();
-    config.alpn_protocols = vec![alpn().to_vec()];
-    Ok(Arc::new(config))
-}
-
-/// The settings of the transport toward an address of the family `v6`.
-fn transport(v6: bool) -> TransportConfig {
-    let mut transport = TransportConfig::default();
-    transport
-        .max_idle_timeout(IdleTimeout::try_from(SILENCE).ok())
-        .keep_alive_interval(Some(KEEPALIVE))
-        .initial_mtu(if v6 { FIRST_PACKET_V6 } else { FIRST_PACKET_V4 })
-        .max_concurrent_bidi_streams(VarInt::from_u32(MAX_STREAMS))
-        .datagram_receive_buffer_size(Some(DATAGRAMS));
-    transport
-}
-
-/// The key of the stateless resets that the endpoint could send: random for
-/// each endpoint, as noq's default is, and HMAC-SHA-256 in pure Rust.
-struct ResetKey(Hmac<Sha256>);
-
-impl ResetKey {
-    fn random() -> Result<ResetKey, String> {
-        use rand::TryRng;
-        let mut key = [0u8; 32];
-        rand::rngs::SysRng.try_fill_bytes(&mut key).map_err(|e| format!("no randomness for QUIC: {e}"))?;
-        Hmac::new_from_slice(&key).map(ResetKey).map_err(|e| e.to_string())
-    }
-}
-
-impl HmacKey for ResetKey {
-    fn sign(&self, data: &[u8], signature_out: &mut [u8]) {
-        let mut mac = self.0.clone();
-        mac.update(data);
-        let tag = mac.finalize().into_bytes();
-        let n = signature_out.len().min(tag.len());
-        signature_out[..n].copy_from_slice(&tag[..n]);
-    }
-
-    fn signature_len(&self) -> usize {
-        32
-    }
-
-    fn verify(&self, data: &[u8], signature: &[u8]) -> Result<(), CryptoError> {
-        let mut mac = self.0.clone();
-        mac.update(data);
-        mac.verify_slice(signature).map_err(|_| CryptoError)
-    }
+    pod_quic::connect::tls(provider, Arc::new(roots.roots.clone()), &[alpn()]).map_err(|e| e.to_string())
 }
 
 /// The configuration of an endpoint, with a reset key of its own.
 pub fn endpoint_config() -> Result<EndpointConfig, String> {
-    Ok(EndpointConfig::new(Arc::new(ResetKey::random()?)))
+    pod_quic::endpoint::config().map_err(|e| e.to_string())
 }
 
 /// An endpoint for one connection: a UDP socket of the family `v6`, on a
 /// port that the system picks. A socket that does not bind is the probe's
 /// answer: no QUIC here.
 pub fn endpoint(v6: bool) -> Result<Endpoint, String> {
-    let socket = match v6 {
-        true => UdpSocket::bind((Ipv6Addr::UNSPECIFIED, 0)),
-        false => UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)),
-    }
-    .map_err(|e| format!("no UDP socket for QUIC: {e}"))?;
-    Endpoint::new(endpoint_config()?, None, socket, Arc::new(TokioRuntime))
-        .map_err(|e| format!("no QUIC endpoint: {e}"))
+    pod_quic::endpoint::system(v6).map_err(|e| e.to_string())
 }
 
 /// A QUIC connection to `addr` as `server_name`, within the handshake's wait.
@@ -141,19 +64,7 @@ pub async fn connect(
     server_name: &str,
     tls: Arc<rustls::ClientConfig>,
 ) -> Result<Connection, String> {
-    let crypto = QuicClientConfig::try_from(tls).map_err(|e| format!("QUIC's TLS: {e}"))?;
-    let mut config = ClientConfig::new(Arc::new(crypto));
-    config.transport_config(Arc::new(transport(addr.is_ipv6())));
-    let connecting = endpoint.connect_with(config, addr, server_name).map_err(|e| format!("{addr}: {e}"))?;
-    match tokio::time::timeout(HANDSHAKE_WAIT, connecting).await {
-        Ok(Ok(connection)) => Ok(connection),
-        // QUIC's own limit of a silence is the handshake's wait too, and
-        // either can end it first: one fact, in one set of words.
-        Ok(Err(ConnectionError::TimedOut)) | Err(_) => {
-            Err(format!("{addr}: no answer over QUIC within {} s", HANDSHAKE_WAIT.as_secs()))
-        }
-        Ok(Err(e)) => Err(format!("{addr}: QUIC: {e}")),
-    }
+    pod_quic::connect::connect(endpoint, addr, server_name, tls, &Settings::default()).await.map_err(|e| e.to_string())
 }
 
 /// A connection to the edge over QUIC, with the endpoint that carries it.
@@ -209,48 +120,27 @@ pub async fn connect_edge(found: &edge::Edge) -> Result<EdgeConnection, String> 
     Err(format!("no region of the edge answered over QUIC: {}", failed.join("; ")))
 }
 
-/// How long a handshake's close may take to leave, before its endpoint goes.
-const CLOSE_WAIT: Duration = Duration::from_millis(500);
-
 /// A QUIC handshake with the edge, as `podssh doctor` asks it (T-359): the
 /// first address of each family of each region of `found`, all at once, where
 /// [`connect_edge`] tries them in turn, each within the handshake's wait. The
 /// address that answered first and the time that its handshake took, the
 /// connection closed at once with nothing registered; else why none answered.
 pub async fn handshake(found: &edge::Edge, tls: Arc<rustls::ClientConfig>) -> Result<(SocketAddr, Duration), String> {
-    let mut tries = tokio::task::JoinSet::new();
+    let mut addrs = Vec::new();
     let mut failed = Vec::new();
     for region in &found.regions {
         let deadline = tokio::time::Instant::now() + edge::DIAL_LIMIT;
-        let addrs = match podssh_ws::resolve::resolve(region, found.port, deadline).await {
-            Ok(addrs) => addrs,
-            Err(e) => {
-                failed.push(format!("{region}: {e}"));
-                continue;
+        match podssh_ws::resolve::resolve(region, found.port, deadline).await {
+            Ok(resolved) => {
+                let firsts = [resolved.iter().find(|a| a.is_ipv4()), resolved.iter().find(|a| a.is_ipv6())];
+                addrs.extend(firsts.into_iter().flatten().copied());
             }
-        };
-        let firsts = [addrs.iter().find(|a| a.is_ipv4()), addrs.iter().find(|a| a.is_ipv6())];
-        for addr in firsts.into_iter().flatten().copied() {
-            let (region, tls) = (region.clone(), tls.clone());
-            tries.spawn(async move {
-                let socket = endpoint(addr.is_ipv6())?;
-                let began = tokio::time::Instant::now();
-                let connection =
-                    connect(&socket, addr, server_name(), tls).await.map_err(|e| format!("{region} {e}"))?;
-                let took = began.elapsed();
-                connection.close(VarInt::from_u32(0), b"");
-                let _ = tokio::time::timeout(CLOSE_WAIT, socket.wait_idle()).await;
-                Ok::<_, String>((addr, took))
-            });
+            Err(e) => failed.push(format!("{region}: {e}")),
         }
     }
-    while let Some(joined) = tries.join_next().await {
-        match joined {
-            Ok(Ok(answered)) => {
-                tries.abort_all();
-                return Ok(answered);
-            }
-            Ok(Err(why)) => failed.push(why),
+    if !addrs.is_empty() {
+        match pod_quic::connect::handshake(&addrs, server_name(), tls, &Settings::default()).await {
+            Ok(answered) => return Ok(answered),
             Err(e) => failed.push(e.to_string()),
         }
     }

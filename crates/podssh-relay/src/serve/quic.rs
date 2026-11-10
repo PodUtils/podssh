@@ -13,12 +13,10 @@ use std::net::{IpAddr, UdpSocket};
 use std::sync::Arc;
 use std::time::Duration;
 
-use hmac::{Hmac, KeyInit, Mac};
 use noq::crypto::rustls::{HandshakeData, QuicServerConfig};
-use noq::crypto::{CryptoError, HandshakeTokenKey};
-use noq::{Endpoint, IdleTimeout, Incoming, ServerConfig, TokioRuntime, TransportConfig, VarInt};
+use noq::{Endpoint, IdleTimeout, Incoming, ServerConfig, TransportConfig, VarInt};
+use pod_quic::keys::TokenKey;
 use podssh_ws::tls_server::Served;
-use sha2::Sha256;
 
 use super::Config;
 use crate::quic_road::stream::QuicStream;
@@ -30,48 +28,6 @@ pub const STREAMS: u32 = 64;
 pub const HANDSHAKE_WAIT: Duration = Duration::from_secs(10);
 /// A silence that ends a connection: the client's keepalive is 10 s.
 pub const SILENCE: Duration = Duration::from_secs(30);
-/// The length of a handshake token's tag.
-const TAG: usize = 32;
-
-/// The key that tags the tokens of address validation (a Retry's, and those
-/// that a connection gives for the next): HMAC-SHA-256 in pure Rust, of a
-/// random key of the process, as noq's own needs a provider of AEAD that
-/// podssh's provider does not lend. A token holds the client's own address
-/// and a time, nothing secret from it: the tag keeps it from being forged,
-/// which is all that a validation needs.
-pub struct TokenKey(Hmac<Sha256>);
-
-impl TokenKey {
-    pub fn random() -> Result<TokenKey, String> {
-        use rand::TryRng;
-        let mut key = [0u8; 32];
-        rand::rngs::SysRng.try_fill_bytes(&mut key).map_err(|e| format!("no randomness for QUIC: {e}"))?;
-        Hmac::new_from_slice(&key).map(TokenKey).map_err(|e| e.to_string())
-    }
-
-    fn mac(&self, nonce: u128, data: &[u8]) -> Hmac<Sha256> {
-        let mut mac = self.0.clone();
-        mac.update(&nonce.to_be_bytes());
-        mac.update(data);
-        mac
-    }
-}
-
-impl HandshakeTokenKey for TokenKey {
-    fn seal(&self, nonce: u128, data: &mut Vec<u8>) -> Result<(), CryptoError> {
-        let tag = self.mac(nonce, data).finalize().into_bytes();
-        data.extend_from_slice(&tag[..TAG]);
-        Ok(())
-    }
-
-    fn open<'a>(&self, nonce: u128, data: &'a mut [u8]) -> Result<&'a [u8], CryptoError> {
-        let data: &'a [u8] = data;
-        let len = data.len().checked_sub(TAG).ok_or(CryptoError)?;
-        let (body, tag) = data.split_at(len);
-        self.mac(nonce, body).verify_slice(tag).map_err(|_| CryptoError)?;
-        Ok(body)
-    }
-}
 
 /// The settings of a connection at the role.
 fn transport() -> TransportConfig {
@@ -94,7 +50,11 @@ pub fn server_config(served: Arc<Served>) -> Result<ServerConfig, String> {
         .with_cert_resolver(served);
     tls.alpn_protocols = vec![ALPN.to_vec()];
     let crypto = QuicServerConfig::try_from(tls).map_err(|e| format!("QUIC's TLS: {e}"))?;
-    let mut server = ServerConfig::new(Arc::new(crypto), Arc::new(TokenKey::random()?));
+    // The tokens of address validation: HMAC-SHA-256 in pure Rust, of a
+    // random key of the process (pod-quic), as noq's own needs a provider of
+    // AEAD that podssh's provider does not lend.
+    let tokens = TokenKey::random().map_err(|e| e.to_string())?;
+    let mut server = ServerConfig::new(Arc::new(crypto), Arc::new(tokens));
     server.transport_config(Arc::new(transport()));
     Ok(server)
 }
@@ -103,8 +63,7 @@ pub fn server_config(served: Arc<Served>) -> Result<ServerConfig, String> {
 /// must be made in a runtime, which drives it.
 pub fn endpoint(socket: UdpSocket, served: Arc<Served>) -> Result<Endpoint, String> {
     let server = server_config(served)?;
-    let config = crate::quick::quic::endpoint_config()?;
-    Endpoint::new(config, Some(server), socket, Arc::new(TokioRuntime)).map_err(|e| format!("no QUIC endpoint: {e}"))
+    pod_quic::endpoint::on_socket(socket, Some(server)).map_err(|e| e.to_string())
 }
 
 /// Serve each connection that `endpoint` takes, until it is closed.
@@ -139,23 +98,6 @@ async fn connection(incoming: Incoming, cfg: Arc<Config>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// A token opens with its own nonce and its bytes, and with nothing
-    /// else: a changed byte, another nonce, a cut tag or another key's.
-    #[test]
-    fn a_token_opens_only_as_it_was_sealed() {
-        let (key, other) = (TokenKey::random().unwrap(), TokenKey::random().unwrap());
-        let mut token = b"192.0.2.7:51000 at 1793577600".to_vec();
-        key.seal(7, &mut token).unwrap();
-        assert_eq!(token.len(), 29 + TAG);
-        assert_eq!(key.open(7, &mut token.clone()).unwrap(), b"192.0.2.7:51000 at 1793577600");
-        assert!(key.open(8, &mut token.clone()).is_err(), "another nonce");
-        assert!(other.open(7, &mut token.clone()).is_err(), "another key");
-        let mut changed = token.clone();
-        changed[3] ^= 1;
-        assert!(key.open(7, &mut changed).is_err(), "a changed byte");
-        assert!(key.open(7, &mut token[..TAG - 1].to_vec()).is_err(), "shorter than a tag");
-    }
 
     /// The role's TLS takes QUIC's configuration, with no certificate yet as
     /// an ACME role's before its first.

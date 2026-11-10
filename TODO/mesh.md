@@ -11296,7 +11296,7 @@ A session through the role over QUIC on the loopback; with UDP refused, the race
 2026-11-05, with the draft.
 
 - The probe that says whether UDP passes to the relay host is T-400's
-  (`crates/podssh-relay/src/quick/probe.rs:97` says "pub async fn probe(addrs: &[SocketAddr], wait: Duration)"),
+  (`crates/podssh-relay/src/quick/probe.rs:24` says "pub async fn probe(addrs: &[SocketAddr], wait: Duration)"),
   one packet of a reserved version to the host's own port, which a server of QUIC answers with a
   Version Negotiation, noq's too. T-359's, which Approach 2 names, is QUIC address discovery to
   iroh's own relays (`crates/podssh-iroh/src/probe.rs:6` says "takes UDP after a datagram came back: the round trip of QUIC address"),
