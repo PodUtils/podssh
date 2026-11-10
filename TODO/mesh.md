@@ -7518,7 +7518,7 @@ row of the manual names both of its roads. A constant that nothing used went.
 - Live, short (Q91; T-548's Decision): `.github/workflows/pinggy-live.yml`, by hand, runs
   `cargo test -p podssh-cli --test pinggy_live -- --ignored` (one node with a throwaway key, one
   client, `greet` and 1 MiB down, the node stopped at the end) and its planted run (another node's
-  key must fail). UNVERIFIED: not dispatched.
+  key must fail). Dispatched 2026-11-10; it passed on the fourth run (below).
 - Waits: the endpoint `ssh-tls` and the fact `host-key-sha256` of `pod-services`
   (COORD-011, GitHub #178); the name in the node's record of pkarr and the net's list (step 3);
   the containers of the Prove (T-251); the measure of a proxy that ends TLS on the client's side.
@@ -7577,7 +7577,7 @@ gone; no verifier of the road accepts each certificate (the Decision).
   TLS fallback goes to the endpoint `ssh`'s host and port, as Pinggy's documents give both on 443);
   the fact `host-key-sha256` still waits (COORD-011, GitHub #178).
 - The live run (`pinggy-live.yml`) takes the node's `--pinggy-name` value from its line, the pin
-  with it. UNVERIFIED: not dispatched; whether Pinggy's own server answers raw SSH through the
+  with it. Measured on the runs of 2026-11-10 (below); whether Pinggy's own server answers raw SSH through the
   runner's network as its documents say is what it measures.
 - The main session's own check, 2026-11-10, rebased on `main` at `27078626`: the scan 2 passed, the
   relay's 11, `--test pinggy_road` 6; the plant `t548-any-pin` made the stranger's test and the scan
@@ -7648,7 +7648,19 @@ stopped.
   and rustfmt clean.
 - The next live run should pass both commands: `greet`, then 1 MiB whole, with the node's line
   `a visitor from ... ended (...): N bytes in, M out` for each, M over 1 MiB for the second.
-  UNVERIFIED: not dispatched. A stall now would name its side in the lines of each 5 s.
+  Dispatched: the fourth run passed (below). A stall now would name its side in the lines of each 5 s.
+
+- The fourth live run, 2026-11-10 (`pinggy-live.yml`, run 42743438927 at `69979ec2`), passed, both
+  steps. Through Pinggy itself, from GitHub's runner: the node's leg was raw SSH to `free.pinggy.io`,
+  its host key `SHA256:nFd5rfJMGuZXvfeRzJ/BtT3TfksAxTWMajcrHRcI7AM` "pinned by pod-services" (v0.9.0's
+  fact), the name under `run.pinggy-free.link` with its pin; the client's road answered first in
+  705 ms, `greet` came back, then 1 MiB down whole (`test result: ok. 1 passed`, 7.75 s). The node
+  said the first visitor's end: "ended (the layer ended its link): 4072 bytes in, 4716 out over
+  2.5 s (0 writes waited)". The planted step, another node's key named with `--node-key`: the client
+  refused it ("refused the node: the node has the key ..., not ..., which --node-key names"), and that
+  step's test failed as it must, so the job is green. Still waiting, so the entry stays partial: the
+  name in the node's record of pkarr and the net's list (step 3), the containers of the Prove
+  (T-251), and the measure of a proxy that ends TLS on the client's side.
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 
