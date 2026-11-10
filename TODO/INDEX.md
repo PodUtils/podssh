@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 94 open, 16 partial, 9 blocked, 568 done.**
+**690 entries: 94 open, 16 partial, 9 blocked, 571 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 8 | 1 | 261 | 295 |
-| P3 | 65 | 6 | 5 | 237 | 313 |
-| **All** | 94 | 16 | 9 | 568 | 687 |
+| P3 | 65 | 6 | 5 | 240 | 316 |
+| **All** | 94 | 16 | 9 | 571 | 690 |
 
 ## Entries
 
@@ -585,9 +585,9 @@ repository and CI).
 | [T-535](mesh.md) | P2 | M | M10 | feature | done | The public Wisp servers that their operators run for that use, as forwarders after the demo server |
 | [T-536](mesh.md) | P3 | S | M10 | research | done | NetBird: whether its relays or its signal server carry a podssh session with no account |
 | [T-537](mesh.md) | P3 | S | M10 | research | done | Firezone: whether its relays or its portal carry a podssh session with no account |
-| [T-538](mesh.md) | P3 | M | M10 | research | open | ZeroTier: whether its roots and its TCP relay on 443 carry a podssh session |
-| [T-539](mesh.md) | P3 | M | M10 | research | open | Tox: whether its TCP relays on 443 carry a podssh session between two keys |
-| [T-540](mesh.md) | P3 | M | M10 | research | open | Yggdrasil again, under Q77: a port of its links and routing, over its peers on 443 |
+| [T-538](mesh.md) | P3 | M | M10 | research | done | ZeroTier: whether its roots and its TCP relay on 443 carry a podssh session |
+| [T-539](mesh.md) | P3 | M | M10 | research | done | Tox: whether its TCP relays on 443 carry a podssh session between two keys |
+| [T-540](mesh.md) | P3 | M | M10 | research | done | Yggdrasil again, under Q77: a port of its links and routing, over its peers on 443 |
 | [T-541](mesh.md) | P3 | S | M10 | research | done | croc: whether a public croc relay carries a podssh session from a host with 443 alone |
 | [T-542](mesh.md) | P3 | M | M10 | research | open | HyperDHT: whether Holepunch's DHT and its relays reach a podssh end by its key |
 | [T-543](mesh.md) | P3 | S | M10 | research | done | Cabal: whether it adds a carrier or a meeting point beyond HyperDHT |
@@ -763,3 +763,6 @@ repository and CI).
 | [T-730](machine.md) | P3 | S | none | feature | open | `llms.txt`, `llms-full.txt` and `--help --json` |
 | [T-731](machine.md) | P3 | M | none | feature | open | `podssh mcp` for fleet work: a read-only mode and a command allowlist |
 | [T-732](relay.md) | P2 | S | M10 | defect | done | The relay role's byte cap let a fast target carry any amount past it, until the next tick |
+| [T-733](mesh.md) | P3 | L | M10 | feature | open | ZeroTier's TCP relay and an ad-hoc network as a last road of a podssh pair |
+| [T-734](mesh.md) | P3 | M | M10 | feature | open | Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair |
+| [T-735](mesh.md) | P3 | L | M10 | feature | open | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |

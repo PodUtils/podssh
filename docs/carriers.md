@@ -862,7 +862,8 @@ Ruled out:
   (crates.io, 2026-11-02 [S8]): podssh would port its Go source, the links,
   the routing and the sessions, and run a stream over its datagrams, as the
   DERP road's adapter does; effort L and more. Out, as the roads of podssh's
-  own nodes on 443 carry the same pairs.
+  own nodes on 443 carry the same pairs. Read again on 2026-11-10 under Q77
+  (T-540, below): it passes at a high cost, as a last road (T-735).
 - **HTTP Relay, `demo.httprelay.io`** (read on 2026-11-02 for T-442): the
   shape of Piping Server, a POST to `/link/CHANNEL` met by a GET there, but
   its own page says "Streaming ✖": each request is a whole message [S10]. Its
@@ -936,8 +937,8 @@ Ruled out:
   try port 443 first [W17], and 4 of the 28 nodes of its list listen there
   [W1], but they speak Tox's own handshake, not TLS, so a proxy that waits
   for TLS refuses them, and a proxy of names alone each IP literal
-  (Inferred, as for Syncthing's above). Yggdrasil's peers: T-442.
-  ZeroTier, read on 2026-11-02 [X6]: ZeroTier Inc. runs a TCP relay that
+  (Inferred, as for Syncthing's above; read again on 2026-11-10 for T-539, below: 5 of the 28 nodes are on 443). Yggdrasil's peers: T-442 and T-540 (below).
+  ZeroTier, read on 2026-11-02 [X6] (and on 2026-11-10, T-538, below): ZeroTier Inc. runs a TCP relay that
   ZeroTier One falls back to where it cannot use UDP, `204.80.128.1/443`
   in its source, which its document calls slow; a user may run one
   (pylon's `reflect` mode).
@@ -1031,6 +1032,151 @@ Ruled out:
   and as a meeting point; the cost is croc's frame and relay handshake in
   Rust, with schollz/pake's SIEC curve, which no Rust crate implements
   (Inferred: none was found in the read). Its feature entry: T-694.
+- **ZeroTier** (T-538; read on 2026-11-10 in ZeroTierOne's source at `dev`,
+  in pylon's and in ZeroTier's documents, through forge.web.pkgforge.dev and
+  fetch.web.pkgforge.dev; no ZeroTier server was contacted). The planet's
+  roots take UDP port 9993 alone: "For minimal operation, outbound UDP on
+  port 9993 ... to ZeroTier's root servers" [Z4]. The fallback [Z1] [Z2]: an
+  agent that got nothing from a global address for 60 s opens a TCP
+  connection to `204.80.128.1/443` (an anycast IPv4 literal; the source
+  comments "this will eventually go away"), and sends there each datagram it
+  would send by UDP, in a record of `0x17 0x03 0x03` (the header of a TLS
+  1.2 "application data" record, with no TLS under it), a 2-byte length,
+  then `4`, the IPv4 address, the port and the datagram; the first record is
+  a `HELLO` of 4 bytes (the agent's version). The relay `tcp-proxy` sends
+  the datagram by UDP from a port of its own to that address, only for ports
+  above 1024 and datagrams of 16 bytes or more, and wraps each reply the
+  same way [Z2]. It is IPv4 alone, and an agent that is `TUNNELED` still
+  sends by UDP as well. The relay is "slow for various reasons" and a user
+  "can host your own TCP relay": `pylon reflect` is the same program, and a
+  `local.conf` of `tcpFallbackRelay` and `forceTcpRelay` points an agent at it
+  [Z3] [Z4]. Through a proxy: the relay's address is an IP literal and its
+  bytes are no TLS, so a proxy that waits for TLS, or allows listed names,
+  refuses it, and a plain CONNECT to `204.80.128.1:443` passes
+  (Inferred, as for Syncthing's relays above). Admission: a network ID is
+  the 10 hex digits of its controller and 6 of its own; the controller
+  "authorizes members" and signs each member's configuration, and Central is
+  an account of ZeroTier's [Z4]. The controller's code is in `nonfree/`,
+  under a source-available license for non-commercial use, which counts any
+  "non-profit organization" and any "paid or unpaid" service as commercial
+  [Z5]. But an ad-hoc network, a "public network ... that has no network
+  controller", is joined by an ID of `ffSSSSEEEE000000` (the start and end
+  of a port range), its configuration made locally, only IPv6 unicast of UDP
+  and TCP inside the range, "anyone in the entire world can join" [Z4]: no
+  account and no controller of the user's. Its protocol: HELLO, OK, WHOIS,
+  RENDEZVOUS, FRAME and the network verbs [Z6]; an identity is a 40-bit
+  address of a Curve25519 and Ed25519 key pair, with a hashcash of a 2 MiB
+  memory-hard hash [Z6]; `node/` is 1.35 MB of C++ source, 0.43 MB of it
+  Salsa20, Poly1305, AES, SHA-512 and the curve (a count of the repository's
+  tree [Z6]). The license of `node/`, `service/` and everything else but
+  `ext/` and `nonfree/` is MPL-2.0 [Z5], so a static link of it is open to
+  podssh under rule 4 of [AGENTS.md](../AGENTS.md), section 5. The terms of
+  service forbid to "reverse engineer, decode or decompile any part of our
+  Service" and to use it "in competition with us"; its protocol page asks
+  for an "enterprise engagement" for a self-hosted infrastructure "for
+  commercial purposes", and says that Earth's roots are "a free service"
+  [Z4] [Z5]. No Rust crate implements the protocol: crates.io holds
+  bindings of Central's and the service's JSON APIs (`zerotier-one-api`
+  1.2.1, `zerotier-central-api` 1.2.1), `libzt` 0.1.2 (2021) and no more
+  (2026-11-10 [Z6]). Verdict: a podssh pair passes through ZeroTier's TCP
+  relay and an ad-hoc network, with no account: both ends reach the roots
+  by UDP through the relay, and the roots relay the packets between them
+  ("communication can continue through (slower) relaying" [Z4]);
+  it passes only a proxy that tunnels an IP literal on 443 raw, so it is the
+  last of the roads that need no TLS; the cost is a ZeroTier node (the MPL
+  `node/` linked, or a port) with a user-space TCP over its IPv6 frames, and
+  the terms above, which Q78 sets aside as a last fallback with a word to the
+  user. Whether the anycast relay still answers was not tested (no connection
+  was made), and its own source says it will go away. Its feature entry:
+  T-733.
+- **Tox's TCP relays** (T-539; read on 2026-11-10 in the specification and the
+  source of TokTok/c-toxcore, the list `nodes.tox.chat/json` and `tox-rs/tox`,
+  through the services of web.pkgforge.dev; no Tox node was contacted). Its
+  relay protocol [Z7]: a client sends its key, a nonce and a box of its key
+  and a base nonce, the server answers the same way; then each packet is a
+  2-byte length and a box with an incrementing nonce; ids 0 to 15 are
+  special (a routing request, its response, connect and disconnect
+  notifications, ping and pong, `OOB send` and `OOB recv` of at most 1024
+  bytes, the onion packets), ids 16 to 255 route a data packet to the peer
+  of that connection. "If the person who the client wants to connect to is
+  also online and wants to connect to the client a connect notification is
+  sent to both": two clients on one relay, each asking for the other's key,
+  are joined, and a client asks for any key with a fresh keypair of its own,
+  so no account is needed (nothing in the parts of the server that were read
+  asks for one; it refuses a routing request to the client's own key) [Z7]. A packet is 2048 bytes at
+  most with its MAC, a relay serves 240 routed connections for a client and
+  256 incoming handshakes in its queue, and pings each 30 s [Z7]. The
+  relay decrypts and encrypts each packet with the keys of its own handshake
+  with each client, so the box protects each hop only (Inferred); between two
+  friends Tox adds its own layer above, which a pair of podssh ends does not
+  need, as podssh's own channel carries it.
+  The list `nodes.tox.chat/json` (scanned 2026-11-10 04:30 UTC [Z8]) holds
+  28 nodes, 19 with TCP, all 19 online; ports of TCP: 33445 (18 nodes), 3389
+  (15), 443 (5), 53 (1) and one other; the 5 nodes on 443 are IP literals
+  with no name (US, CA, US, DE, TH), all answering TCP at the scan [Z8].
+  Through a proxy: a CONNECT to a literal on 443 passes only a proxy that
+  tunnels raw, as for ZeroTier above (Inferred); the DHT's UDP (33445) is
+  not needed for a pair that agreed on a relay. The implementations are
+  GPL-3.0: c-toxcore, `tox-rs/tox` (a pure Rust toxcore, `tox` 0.1.1 of
+  2020-12-27 on crates.io, last pushed 2024-01-16, with the relay client in
+  `tox_core/src/relay/`) and the specification repository [Z7] [Z9], so
+  podssh (0BSD) writes its own client from the specification: the handshake,
+  the framing and 10 packet kinds, about the size of the relay client of
+  `tox-rs` without its friend layer (Inferred). Verdict: Tox's TCP relays
+  carry a podssh pair, with no account, as a last road and a meeting point
+  (an `OOB send` reaches a peer on the same relay); the cost is the
+  client of the relay in Rust, and the pairing must name the relay and the
+  keys. Its feature entry: T-734.
+- **Yggdrasil again** (T-540; read on 2026-11-10 in the public-peers
+  repository, its status page, yggdrasil-go v0.5.15 and Ironwood, through
+  the services of web.pkgforge.dev; no peer was contacted). The repository
+  lists 434 peers [Z10]: 141 `tls://`, 125 `tcp://`, 104 `quic://`, 31
+  `ws://`, 25 `socks://`, 7 `wss://` and 1 `sockstls://`. On port 443: 21
+  `tls://` (10 IP literals), 6 `wss://` (7 in all, one on 9005; each a name)
+  and 6 `quic://`. The status page, updated hourly (10 Nov 2026 04:02 UTC),
+  lists 386 of them with 256 online; of those on 443, 7 of 20 `tls://` and
+  2 of 6 `wss://` are online (`ygg-evn-1.wgos.org`, and
+  `donotclickthis.link` with the path `/api/v2/socket`, 95%), 6 of 6
+  `quic://`, and the four `wss://` that were not online had been down 4 to 5
+  weeks or more [Z11]. The reference node's `wss://` link [Z12]:
+  `websocket.Dial` with the subprotocol `ygg-ws` through
+  `http.ProxyFromEnvironment`, so the client honors `HTTPS_PROXY`, and binary
+  messages as a plain byte stream; a server answers `/health` with `OK` and
+  refuses any other subprotocol. Over the stream: the handshake `meta` (a
+  2-byte length; TLVs of the major and minor version, an Ed25519 key and a
+  priority; an Ed25519 signature of a BLAKE2b-512 keyed by the link's
+  password, over the key), with 6 s to finish; then Ironwood's peer stream,
+  a uvarint length and a message of 1 MiB at most [Z12] [Z13]. A name on 443
+  by `wss://` passes a proxy that re-terminates TLS (Inferred); the 10
+  literals of `tls://` do not pass a proxy that allows listed names. Two ends
+  with the same peer reach each other by the Ed25519 key: Ironwood is "a
+  routing library with a `net.PacketConn`-compatible interface using
+  `ed25519.PublicKey`s as addresses", with greedy routing over a spanning
+  tree, lookups, path-broken notices and `encrypted` sessions of X25519 and
+  XSalsa20-Poly1305 with a ratchet [Z13]. But its README says that "The
+  routing logic in `network` is still undocumented", that it is "pre-alpha
+  work-in-progress. There's no stable API, versioning, or expectation that
+  any two commits will be compatible", and that "it hasn't been audited"
+  [Z13]; the sources are 131 KB of Go without tests, and `src/core/` of
+  yggdrasil-go another 100 KB (`link.go`, `proto.go`, the links by scheme)
+  [Z12] [Z13]. So a port tracks the commit that v0.5.15 (released 2026-10-24)
+  pins, and a node on a public peer is a router for the rest of the network,
+  not a leaf. The licenses: yggdrasil-go is LGPL-3.0 with an exception for a
+  Combined Work that links the library, Ironwood is MPL-2.0 [Z12] [Z13]; a
+  Rust port of the Go source is a derivative of the LGPL code, against
+  podssh's 0BSD. No Rust crate implements it: crates.io has `yggdrasilctl`
+  1.2.3 (the admin API) and compilers named Yggdrasil that are unrelated
+  (2026-11-10 [Z13]). The peers' etiquette [Z11]: "Select a small number of
+  NEARBY peers with good uptime", "AVOID selecting peers that are high
+  latency", "Do not add large numbers of peers"; one peer for each end, for
+  the time of a session, is within the first two, and joining and leaving is
+  seen across the tree (Inferred from Ironwood's design). Verdict: a pair
+  passes technically through one `wss://` peer on 443, with no account;
+  the cost is L: a port of the links and Ironwood's router, with a licence
+  question and a protocol that no document holds; and only 2 `wss://` peers
+  are online. It is the last of the roads (after ZeroTier's and Tox's above)
+  and its feature entry, T-735, starts with the Decision on the license and
+  on the cost.
 - **The trackers' protocols** (T-546; read on 2026-11-06 [Y4] [Y5] [Y6]
   [Y7]). An HTTP tracker (BEP 3) and a UDP tracker (BEP 15) take an
   `info_hash`, a `peer_id` and a port, and answer a list of peers (address
@@ -1670,3 +1816,41 @@ contacted: each fact is from a project's own repository or specification.
 - [Y6] https://www.bittorrent.org/beps/bep_0015.html (the UDP tracker)
 - [Y7] `webtorrent/bittorrent-tracker:README.md` at 11.2.3, as [W21]
 - [Y8] `webtorrent/create-torrent:index.js` (its default `announceList`)
+
+Read on 2026-11-10 through the services of web.pkgforge.dev (forge, fetch and
+search), for T-538, T-539 and T-540. No ZeroTier, Tox or Yggdrasil node or peer
+was contacted: each fact is from a project's own repository, documents or
+public list, or from a page that the services returned.
+
+- [Z1] `zerotier/ZeroTierOne:service/OneService.cpp` at `dev`
+  (`ZT_TCP_FALLBACK_RELAY`, `ZT_TCP_FALLBACK_AFTER`, `ZT_TCP_TUNNEL_HELLO`,
+  the record written by `nodeWirePacketSendFunction`, `forceTcpRelay`,
+  `tcpFallbackRelay`)
+- [Z2] `zerotier/ZeroTierOne:tcp-proxy/tcp-proxy.cpp` and
+  `tcp-proxy/README.md` (the frame, the ports above 1024, the datagrams of 16
+  bytes or more)
+- [Z3] `zerotier/pylon:README.md` and `pylon.cpp` (`reflect`, "a `reflect`
+  instance is just a tcp-proxy"); MPL-2.0, last pushed 2025-07-25
+- [Z4] https://docs.zerotier.com/relay/, https://docs.zerotier.com/whitelist/,
+  https://docs.zerotier.com/protocol/ (ad-hoc networks, controllers),
+  https://docs.zerotier.com/roots (Earth's roots)
+- [Z5] `zerotier/ZeroTierOne:LICENSE.txt`, `LICENSE-MPL.txt`,
+  `nonfree/LICENSE.md`; https://www.zerotier.com/tos
+- [Z6] `zerotier/ZeroTierOne:node/Packet.hpp` (the verbs), `node/Identity.cpp`
+  (the hashcash), the repository's tree (sizes of `node/`), crates.io's search
+  for `zerotier`
+- [Z7] `TokTok/c-toxcore:docs/TCP_Network.txt`, `toxcore/TCP_common.h`,
+  `toxcore/TCP_server.c`, `toxcore/TCP_server.h`; GPL-3.0
+- [Z8] https://nodes.tox.chat/json (`last_scan` 1794285053, 2026-11-10
+  04:30:53 UTC)
+- [Z9] `tox-rs/tox` (GPL-3.0, `tox_core/src/relay/`, `tox_packet/src/relay/`),
+  crates.io's `tox` 0.1.1 and `tox-node` 0.1.1 (both 2020-12-27),
+  `TokTok/spec` (GPL-3.0)
+- [Z10] `yggdrasil-network/public-peers` (the files of each country and its
+  `README.md`, counted by scheme and port)
+- [Z11] https://publicpeers.neilalexander.dev/ (status of 2026-11-10 04:02
+  UTC, and its advice on peers)
+- [Z12] `yggdrasil-network/yggdrasil-go` at v0.5.15: `src/core/link_ws.go`,
+  `link_wss.go`, `version.go`, `link.go`, `LICENSE`
+- [Z13] `Arceliar/ironwood` (MPL-2.0): `README.md`, `network/`, `encrypted/`,
+  `types/packetconn.go`; crates.io's search for `yggdrasil`
