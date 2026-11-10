@@ -4082,7 +4082,7 @@ cargo test -p podssh-cli --features iroh-test --test m6_exit -- --ignored --test
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4158,5 +4158,23 @@ repair: the guard moved from `tries` into `layer_alive::apply`, as rustfmt took 
 - `cargo test -p podssh-cli --lib`: 1,014 passed, with `layer_alive::tests` (6). Planted, no `Warn`,
   `a_layer_and_an_explicit_interval_warn_once` fails. `--test cloudflare_cli` and `--test node`: passed.
   The Correction of T-154 is added.
-- Waits: the loopback test of the Prove (a `cf://` far end that greets with the layer, run through the
-  stand-in edge), which this change did not write; the decision and its words are tested offline.
+2026-11-10: the loopback test of the Prove.
+
+- `crates/podssh-cli/tests/cloudflare_layer_alive.rs` (the proposed name `cloudflare_layer_alive` held),
+  five tests, each a `podssh ssh cf://tester@lab.example.test greet` as a process, through a stand-in
+  edge in the test: a proxy that takes `CONNECT lab.example.test:443` (`HTTPS_PROXY`, as the road reads
+  it) and joins it to a TLS server of the test's own CA (`--ca-file`; the acceptor of
+  `tests/update_support`), which takes the WebSocket upgrade at `/` and hands its frames as bytes
+  (`podssh_relay::quick::visitor::websocket`, as the quick tunnel's origin does) to a far end. The far
+  end is a node's: `Layered<E2e<TcpHandler>>`, the resumable layer with the end-to-end channel above it,
+  in front of the tests' SSH server, as `node_quick.rs` serves each visitor; or, for the case with no
+  layer, the SSH server's bytes as they are, as `cloudflared`'s service gives them.
+- They assert: a layer with `-o ServerAliveInterval=30`: exit 0, the greeting on stdout, the line "the
+  far end greets with the resumable layer", the warning once, and no "no SSH keepalives" line (the
+  interval stays); a layer with no interval: no warning, and the verbose line that the keepalives are
+  dropped; a layer with `ServerAliveInterval=0`: no warning; a far end with no layer and the interval
+  30: no warning, no dropped line, the session works; `node://lab` with the interval 30, offline: the
+  same warning once, from the one constant.
+- Measured: `cargo +1.99 test -q -p podssh-cli --test cloudflare_layer_alive`: `test result: ok. 5
+  passed`, 0.5 s, three runs in a row. Planted (`decide` answers `Keep` where it answered `Warn`): the
+  first test fails, the other four pass; reverted.

@@ -4812,7 +4812,7 @@ import of `Resolved` in `ssh/node.rs`). The Premise holds at the cited places.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4874,6 +4874,28 @@ takes no turn. `docs/reverse.md` says it.
   no test sets a smaller one: the run needs a hook for the cap in the role, or 64 MiB through one
   session.
 - No file of podcrates' `SOURCES` is frozen now (each podssh block has a `taken` line).
+
+2026-11-10: the wiring, against the role.
+
+- `crates/podssh-relay/tests/relay_serve_reverse_cap.rs`,
+  `a_session_that_the_role_closes_at_its_byte_cap_is_named_in_the_nodes_journal`: podssh's own node
+  (`reverse::run`) behind a pair of the role (`serve::serve_from`, the code that `podssh relay serve`
+  runs), on the plain loopback wire, and an operator (`reverse::operator::run`). The node's lines go to a
+  collector through `session::budget::tell`, where the node's command sends them to stderr. A first
+  session of 64 KiB ends by its operator's end of input: the collector holds nothing. A second
+  session echoes 34 MiB, 68 MiB both ways together, so that the role closes it at its 64 MiB
+  (`serve/reverse/node.rs`, `1009 session byte cap`): the operator's outcome is `Ended { code: 1009,
+  reason: "session byte cap" }`, the node exits `Stopped`, and the collector holds one line,
+  `the relay closed session XXXXXXXX...: session byte cap`, with 8 characters of the id.
+- No hook for the cap was needed: 64 MiB through one echoed session takes 1.2 s on the loopback.
+- Measured: `cargo +1.99 test -q -p podssh-relay --features pair,serve,plain-ws --test
+  relay_serve_reverse_cap`: `test result: ok. 1 passed`, 1.2 s, four runs in a row; `--test
+  relay_serve_reverse`: 6 passed; `--test reverse_closes`: 11 passed. Planted (`Out::Closed(id,
+  None)` in `reverse/serve.rs`: the reason dropped again): the test fails with `the node's lines: []`
+  after its 20 s wait; reverted. The role is in the test's process, as in the other tests of
+  `relay_serve_*`; a node of the binary (`podssh node`) against `podssh relay serve` runs the same
+  code, and `session::budget::tell` is set by its command (`podssh-cli`), which its own tests
+  (`node`, `node_cut`) cover without a cap.
 
 # T-710: A node stays reachable for months: pair renewal and legs by key, proven over 90 days and in a beta
 

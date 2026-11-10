@@ -3961,7 +3961,7 @@ with 64.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4034,3 +4034,30 @@ repair.
 - Waiting: the run against the stand-in relay (`PODSSH_SESSION_BUDGET=1048576`, a `put` larger than
   the budget: the line, then the stop). No test of `sftp` drives `scripts/fake-relay.py`, and the
   unit tests do not reach the spawn in `sftp/mod.rs`; that run is its check.
+
+2026-11-10: the run against the stand-in relay, as a test.
+
+- `crates/podssh-cli/tests/sftp_near_cap.rs`: `a_put_larger_than_the_budget_says_80_percent_then_stops`
+  and `with_dash_q_the_lines_are_not_said_but_the_stop_is`. Each starts `scripts/fake-relay.py` in its
+  `rate:1500000` mode (the harness cell `Cell::fake_relay_mode`) and the tests' SSH server with its
+  `sftp-server`, and runs `podssh sftp -b` with a `put` of 14 MiB and `PODSSH_SESSION_BUDGET` at 12 MiB.
+  The first asserts that stderr holds the 80 % line once, and the meter's "the relay session is near its
+  limits" after it, that 95 % came at most once, and that the exit code is not 0; the second, the same
+  with `-q`: no line, and still the stop. It skips with a word where Python, openssl or an
+  `sftp-server` is not found.
+- Measured: `cargo +1.99 test -q -p podssh-cli --test sftp_near_cap`: `test result: ok. 3 passed` (the
+  third is the harness's own), 11.7 s, three runs in a row. Planted (`spawn_sftp` returns `None` at
+  once): `a_put_larger_than_the_budget_says_80_percent_then_stops` fails with `no "has carried 80 % of the
+  12 MiB ..."`; the `-q` test passes, as it should. Reverted.
+- The Prove's 1 MiB budget cannot show the line, which the run found: the meter stops a put when
+  `Meter::left` is under the request, the 64 KiB of `OVERHEAD` and `RELAY_ROOM`
+  (`3 * run::WINDOW` = 1.5 MiB, `cp/chunks.rs`), so under 1.6 MiB before the budget. A budget of 1 MiB
+  stops at about 0 %; one under 8 MiB stops before its 80 % mark; one under 32 MiB, before its 95 %.
+  At the relay's own 60 MiB, 80 % (48 MiB) has 10 MiB to spare, and 95 % (57 MiB) comes 1.4 MiB before
+  the stop at 58.4 MiB, which a link above about 5 MB/s crosses in less than one look of 250 ms
+  (`near_cap::EVERY`). So on the real budget the 80 % line comes, and the 95 % one can be missed on a
+  fast link; on a small budget (a relay whose `max_session_bytes` is under 10 MiB, T-342) neither
+  comes. The test therefore uses 12 MiB and a slow link, and asserts 80 % only. Nothing is changed in
+  the code: the choice of marks against the room (marks of the usable budget, `budget - room`, or one
+  last line at the stop) is the coordinator's, as the Decision of 2026-11-09 fixed 80 % and 95 % of
+  the budget.
