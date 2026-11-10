@@ -150,6 +150,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
     super::derp::NODE_DERP, super::opentunnel::NODE_OPENTUNNEL, super::opentunnel::NODE_PINGGY, super::frp::NODE_FRP,
     super::opentunnel::NODE_SERVEO,
     super::opentunnel::NODE_SSH_J,
+    super::opentunnel::NODE_BORE,
     row(None, "quick-tunnel", None, FlagKind::Supported,
         "serve TARGET at https://NAME.trycloudflare.com, a quick tunnel of Cloudflare's that podssh makes itself, with no pair and no account; the name, new each run, is the line on stdout; needs --allow, or a key that the net held here names, and TCP port 7844 of Cloudflare's edge, directly or through a proxy that allows it", None),
     row(None, "warp", None, FlagKind::Supported,

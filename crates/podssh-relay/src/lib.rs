@@ -64,6 +64,9 @@
 //! - `serveo` (feature `serveo`): the Serveo road (T-549), a last fallback
 //!   through Serveo's private aliases: an alias of the node's key, which a
 //!   client computes (both legs' SSH clients are the caller's);
+//! - `bore` (feature `bore`): the bore road (T-569), a last fallback
+//!   through bore.pub: a public TCP port of the node's key, whose client
+//!   reaches it through the caller's roads;
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -78,6 +81,8 @@ pub mod addresses;
 pub mod answer;
 #[cfg(feature = "blocking")]
 pub mod blocking;
+#[cfg(feature = "bore")]
+pub mod bore;
 pub mod cache;
 pub mod cleartext;
 #[cfg(feature = "code")]

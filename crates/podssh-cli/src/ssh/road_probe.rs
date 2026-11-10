@@ -140,8 +140,8 @@ pub(crate) async fn measure(
         croc: None,
         // Serveo's alias is never named, so a measure never tries it (Q78).
         serveo: None,
-        // Nor ssh-j.com's name: the road is never asked, and Q78 sends no byte unasked.
-        sshj: None,
+        // Nor ssh-j.com's name, nor bore.pub's port: neither road is asked, and Q78 sends no byte unasked.
+        last: Default::default(),
         refused,
         label,
         legs,

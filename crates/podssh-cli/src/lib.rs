@@ -146,6 +146,8 @@ pub(crate) mod serveo_leg;
 // name derived from the node's key at ssh-j.com, a public SSH jump server.
 pub mod node_sshj;
 mod node_sshj_serve;
+pub mod node_bore;
+mod node_bore_serve;
 pub(crate) mod sshj;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;

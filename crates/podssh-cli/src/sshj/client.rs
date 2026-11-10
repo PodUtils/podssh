@@ -40,10 +40,23 @@ impl std::fmt::Debug for Link {
 /// The stream to the server: directly or by the proxy's CONNECT, else
 /// through the forwarders of Q56; else why neither carried it.
 async fn first_hop(service: &Service, trust: &Trust, log: &Arc<Log>) -> Result<BoxIo, String> {
+    first_hop_to(&service.host, service.port, &service.to_string(), trust, log).await
+}
+
+/// A stream to `host`:`port`, which the words name `shown`, as [`first_hop`]
+/// reaches the server: directly or by the proxy's CONNECT, else through the
+/// forwarders of Q56; the bore road (T-569) reaches a node's public port so.
+pub(crate) async fn first_hop_to(
+    host: &str,
+    port: u16,
+    shown: &str,
+    trust: &Trust,
+    log: &Arc<Log>,
+) -> Result<BoxIo, String> {
     let proxy = ProxyChoice::FromEnvironment;
-    let direct = match podssh_ws::dial::dial(&service.host, service.port, &proxy, CONNECT_LIMIT).await {
+    let direct = match podssh_ws::dial::dial(host, port, &proxy, CONNECT_LIMIT).await {
         Ok(tcp) => return Ok(Box::new(tcp)),
-        Err(e) => format!("{service}: {e}"),
+        Err(e) => format!("{shown}: {e}"),
     };
     let fallback = forwarder::fallback::FALLBACK_ENV;
     match forwarder::fallback::on_from(forwarder::fallback::env_value(), crate::settings::here()) {
@@ -53,7 +66,7 @@ async fn first_hop(service: &Service, trust: &Trust, log: &Arc<Log>) -> Result<B
     }
     log.verbose(&format!("{direct}; the forwarders that the binary names now (Q56)"));
     let forwarders = forwarder::public::chain(forwarder::builtins(), &forwarder::public::forwarders());
-    match forwarder::reach::carry(&forwarders, trust, &service.host, service.port, log, true).await {
+    match forwarder::reach::carry(&forwarders, trust, host, port, log, true).await {
         Ok(reached) => Ok(Box::new(reached.stream)),
         Err(not) if not.lines.is_empty() => Err(format!("{direct}; no forwarder carried it")),
         Err(not) => Err(format!("{direct}; {}", not.lines.join("; "))),

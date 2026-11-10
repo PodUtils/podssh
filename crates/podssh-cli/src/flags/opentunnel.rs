@@ -2,8 +2,9 @@
 //! OpenTunnel's (T-531) and Pinggy's (T-548, a last fallback of Q78), TLS
 //! tunnels by name, `node`'s road and `ssh`'s name of a node's race; and
 //! Serveo's (T-549, a last fallback too), whose alias a client computes from
-//! the node's key, so `ssh` takes no flag of it; and ssh-j.com's (T-570, a
-//! last fallback too), whose name a client derives from the node's key too.
+//! the node's key, so `ssh` takes no flag of it; ssh-j.com's (T-570, a
+//! last fallback too), whose name a client derives from the node's key too;
+//! and bore.pub's (T-569, the last), whose ports a client derives so too.
 //! Each road is pure Rust, in each build.
 
 use super::{row, FlagKind, FlagRow};
@@ -36,3 +37,7 @@ pub const NODE_SERVEO: FlagRow = row(None, "serveo", None, FlagKind::Supported,
 #[rustfmt::skip]
 pub const NODE_SSH_J: FlagRow = row(None, "ssh-j", None, FlagKind::Supported,
     "serve TARGET over the ssh-j road, a public SSH jump and forwarding server with no account (ssh-j.com where podssh's list of services names it, or the server of env PODSSH_SSH_J): SSH on port 22, directly or through the proxy's CONNECT, as a user and with a remote forward of a name that the node's key gives; a client that holds the key (--node-key, the net, or the pins of NAME) derives the name and races the road last; a third party that nobody vouches for, which ends that SSH, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
+/// `node --bore`.
+#[rustfmt::skip]
+pub const NODE_BORE: FlagRow = row(None, "bore", None, FlagKind::Supported,
+    "serve TARGET over the bore road, a public TCP port with no account (bore.pub where podssh's list of services names it, or the server of env PODSSH_BORE): raw TCP to the server's control port 7835, directly or through the proxy's CONNECT, which asks a port that the node's key gives, the next of a series of four where another holds it; a client that holds the key (--node-key, the net, or the pins of NAME) derives the ports and races the road last of all, reaching the port directly, by CONNECT, or through the forwarders that the binary names; a third party that nobody vouches for, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);

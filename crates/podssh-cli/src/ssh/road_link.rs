@@ -31,6 +31,8 @@ pub enum Road {
     Serveo(podssh_relay::opentunnel::dial::BoxIo),
     /// A link through ssh-j.com, to a node's name there (T-570).
     SshJ(crate::sshj::client::Link),
+    /// A connection to a port of a node's key at bore.pub (T-569).
+    Bore(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -50,6 +52,7 @@ impl AsyncRead for Road {
             Road::Pinggy(link) => Pin::new(link).poll_read(cx, buf),
             Road::Serveo(link) => Pin::new(link).poll_read(cx, buf),
             Road::SshJ(link) => Pin::new(link).poll_read(cx, buf),
+            Road::Bore(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -69,6 +72,7 @@ impl AsyncWrite for Road {
             Road::Pinggy(link) => Pin::new(link).poll_write(cx, buf),
             Road::Serveo(link) => Pin::new(link).poll_write(cx, buf),
             Road::SshJ(link) => Pin::new(link).poll_write(cx, buf),
+            Road::Bore(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -86,6 +90,7 @@ impl AsyncWrite for Road {
             Road::Pinggy(link) => Pin::new(link).poll_flush(cx),
             Road::Serveo(link) => Pin::new(link).poll_flush(cx),
             Road::SshJ(link) => Pin::new(link).poll_flush(cx),
+            Road::Bore(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -103,6 +108,7 @@ impl AsyncWrite for Road {
             Road::Pinggy(link) => Pin::new(link).poll_shutdown(cx),
             Road::Serveo(link) => Pin::new(link).poll_shutdown(cx),
             Road::SshJ(link) => Pin::new(link).poll_shutdown(cx),
+            Road::Bore(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -124,8 +130,10 @@ pub(crate) enum Kind {
     Croc,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,
-    /// A node's name at ssh-j.com, the last of the fallbacks of Q78 (T-570).
+    /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
     SshJ,
+    /// A port of a node's key at bore.pub, the last of the fallbacks of Q78 (T-569).
+    Bore,
     /// A road of the node's record, by its name.
     Record(&'static str),
     /// A leg at a member of the net with the relay role (T-434).
@@ -148,6 +156,7 @@ impl Kind {
             Kind::Croc => "croc's relay road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
+            Kind::Bore => "the bore road",
             Kind::Member => "a member's relay role",
             Kind::Frp => "the frp road",
         }
@@ -193,7 +202,9 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             (_, Kind::Serveo) => {
                 "when each road before it failed (the alias of the node's key, the last fallback of Q78)".to_string()
             }
-            (_, Kind::SshJ) => "when each road before it failed (the node's key, the last fallback of Q78)".to_string(),
+            (_, Kind::SshJ | Kind::Bore) => {
+                "when each road before it failed (the node's key, the last fallback of Q78)".to_string()
+            }
             (_, Kind::Piping) if unasked.piping => {
                 "when each road before it failed and one found the WebSocket upgrade refused (Q65)".to_string()
             }

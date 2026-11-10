@@ -91,6 +91,7 @@ fn prepare(args: &NodeArgs, key: &str) -> Result<Ready, Refusal> {
         ("--pinggy", args.pinggy),
         ("--serveo", args.serveo),
         ("--ssh-j", args.ssh_j),
+        ("--bore", args.bore),
     ];
     if let Some((flag, _)) = refused.iter().find(|(_, given)| *given) {
         return Err(Refusal::usage(format!(

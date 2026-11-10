@@ -60,8 +60,10 @@ mod notes_public;
 // relay's and node's notes on a name published by its ClientHello (T-649).
 mod notes_publish;
 mod notes_relay;
-// The ssh-j road, the last fallback of Q78, after Serveo's (T-570).
+// The ssh-j road, a last fallback of Q78, after Serveo's (T-570).
 mod notes_sshj;
+// The bore road, the last fallback of Q78, after ssh-j's (T-569).
+mod notes_bore;
 // ssh's notes on the roads to a server of the user's (T-441).
 mod notes_roads;
 mod notes_run;

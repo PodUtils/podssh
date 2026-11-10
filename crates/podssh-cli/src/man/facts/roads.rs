@@ -109,6 +109,18 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_BORE"],
+        "The bore road (T-569), the last fallback of the operator's ruling Q78: bore.pub, a public server of \
+          bore's protocol that gives a TCP port with no account, of podssh node --bore and podssh ssh node://NAME, \
+          where the node and the client derive the node's public ports there from its key; raw TCP to the control \
+          port 7835 and to the port, so a proxy that allows 443 alone leaves the node out, and the client then \
+          reaches the port through the forwarders that the binary names; a node with no other road serves it \
+          unasked after the ssh-j road. no: no such road, and --bore is refused (64); HOST[:PORT]: that server of \
+          bore's protocol, at its control port (7835 where none is named); unset, empty or yes: bore.pub where \
+          podssh's list of services names it, else no server, and --bore is a configuration error (78). Another \
+          word is a configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_PINGGY_TRACE"],
         "1: the Pinggy road says each visitor's bytes each way every 5 s while it lives, on the node's stderr, \
           and each link's on the client's with -v, with a write that waits and since when, so that a run that \
@@ -254,8 +266,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
-      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; croc's relay road, PODSSH_CROC, \
-      T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
+      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the bore road, PODSSH_BORE, \
+      T-569; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

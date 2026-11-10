@@ -127,9 +127,9 @@ pub fn run_node(args: &NodeArgs, err: &mut dyn Write) -> i32 {
     if let Some(code) = crate::node_frp::dispatch(args, err) {
         return code;
     }
-    // The OpenTunnel road (T-531, Q76), then the Pinggy road (T-548), Serveo's (T-549) and the ssh-j road
-    // (T-570), the last (Q78): each asked, or unasked.
-    if let Some(code) = crate::node_sshj::tunnels(args, err) {
+    // The OpenTunnel road (T-531, Q76), then the Pinggy road (T-548), Serveo's (T-549), the ssh-j road
+    // (T-570) and the bore road (T-569, `node_bore`), the last (Q78): each asked, or unasked.
+    if let Some(code) = crate::node_bore::tunnels(args, err) {
         return code;
     }
     // The Piping Server road (T-437) that PODSSH_PIPING asks for; the

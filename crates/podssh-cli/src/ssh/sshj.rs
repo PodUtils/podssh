@@ -21,8 +21,9 @@ use super::road_link::{Kind, Road};
 use super::roads::Going;
 use crate::sshj::{self, JumpName, Service, Setting};
 
-/// The key of the node `label`: `--node-key`, the net's, or the pins'.
-fn node_key(label: &str, ask: &crate::channel::Ask) -> Option<KeyName> {
+/// The key of the node `label`: `--node-key`, the net's, or the pins'. The
+/// bore road (T-569) derives its ports from the same key.
+pub(crate) fn node_key(label: &str, ask: &crate::channel::Ask) -> Option<KeyName> {
     if let Some(named) = &ask.node_key {
         return Some(named.clone());
     }
