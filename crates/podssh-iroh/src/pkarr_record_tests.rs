@@ -40,6 +40,7 @@ fn each_road(secret: &SecretKey) -> Roads {
         derp: Some(ticket(secret, "tc301a.ipn.dev")),
         quick: Some(QUICK.into()),
         pinggy: Some(pinggy(PINGGY_NAME)),
+        tunnel: None,
     }
 }
 
@@ -224,6 +225,7 @@ fn a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes() {
         derp: Some(ticket(&node, &derp)),
         quick: Some(quick.clone()),
         pinggy: Some(pinggy(&name)),
+        tunnel: None,
     };
     let packet = packet(&node, &roads, TTL).expect("each road at its longest fits");
     let record = read_back(&node, &packet).unwrap();
@@ -234,4 +236,28 @@ fn a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes() {
     let over = Roads { pinggy: Some(pinggy(&longer)), ..Roads::default() };
     let why = super::packet(&node, &over, TTL).unwrap_err();
     assert!(why.contains("Pinggy") && why.contains(&MAX_PINGGY.to_string()), "{why}");
+}
+
+/// The tunnel of HTTP made by `ssh -R` (T-565): its name comes back as the
+/// node put it, in lower case; a value that is no DNS name, or too long, is
+/// set aside unsaid, a second one too, and a node never puts one.
+#[test]
+fn a_record_of_a_tunnel_of_ssh_r_names_it_and_sets_a_bad_name_aside() {
+    let node = SecretKey::from_bytes(&[0x47; 32]);
+    let roads = Roads { tunnel: Some("a1b2c3d4e5f6.lhr.life".into()), ..Roads::default() };
+    assert!(!roads.is_empty() && roads.said().contains("the tunnel a1b2c3d4e5f6.lhr.life"), "{}", roads.said());
+    let record = read_back(&node, &packet(&node, &roads, TTL).unwrap()).expect("a record of one road");
+    assert_eq!((record.tunnel.as_deref(), record.quick, record.pinggy), (Some("a1b2c3d4e5f6.lhr.life"), None, None));
+    let quick = format!("quick={QUICK}");
+    let long = format!("tunnel={}.lhr.life", "a".repeat(MAX_TUNNEL));
+    for bad in ["tunnel=192.0.2.1", "tunnel=SECRET/path", long.as_str()] {
+        let record = read_back(&node, &planted(&node, &[bad, quick.as_str()])).unwrap();
+        assert_eq!((record.tunnel, record.quick.as_deref()), (None, Some(QUICK)), "{bad}");
+        assert!(record.set_aside.iter().all(|why| !why.contains("SECRET")), "{:?}", record.set_aside);
+    }
+    let two = read_back(&node, &planted(&node, &["tunnel=One.lhr.life.", "tunnel=two.lhr.life"])).unwrap();
+    assert_eq!(two.tunnel.as_deref(), Some("one.lhr.life"));
+    assert!(two.set_aside.iter().any(|why| why.contains("a second tunnel=")), "{:?}", two.set_aside);
+    let bad = Roads { tunnel: Some("not a name".into()), ..Roads::default() };
+    assert!(packet(&node, &bad, TTL).is_err(), "a node never puts what a client would set aside");
 }

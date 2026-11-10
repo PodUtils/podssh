@@ -105,6 +105,7 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
         derp: Some(ticket.clone()),
         quick: Some(QUICK.into()),
         pinggy: Some(pinggy.clone()),
+        tunnel: None,
     };
     // The stand-in reads the PUT with iroh-dns's own check of the signature.
     pkarr::publish(&server, &node, &roads, &trust, &ProxyChoice::Direct, LIMIT).await.expect("the record is put");

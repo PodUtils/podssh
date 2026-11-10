@@ -64,6 +64,10 @@
 //! - `serveo` (feature `serveo`): the Serveo road (T-549), a last fallback
 //!   through Serveo's private aliases: an alias of the node's key, which a
 //!   client computes (both legs' SSH clients are the caller's);
+//! - `ssh_http` (feature `ssh-http`): a tunnel of HTTP made by `ssh -R`
+//!   (T-565), a last fallback through localhost.run: each visitor's plain
+//!   HTTP down the forward, a WebSocket of the layer or the relay role's
+//!   request (the node's SSH client is the caller's);
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -126,6 +130,8 @@ pub mod reverse;
 #[cfg(feature = "serve")]
 pub mod serve;
 pub mod session;
+#[cfg(feature = "ssh-http")]
+pub mod ssh_http;
 // The file of the TLS groups that servers took (T-664).
 pub mod tls_groups;
 pub mod token;
