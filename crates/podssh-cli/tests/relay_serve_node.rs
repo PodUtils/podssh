@@ -420,6 +420,7 @@ fn openssh_through_podssh_operator_and_a_node_of_the_role_reaches_openssh_with_e
             .env("PODSSH_TRANSIT", "no")
             .env("PODSSH_CROC", "no")
             .env("PODSSH_LOCALHOST_RUN", "no")
+            .env("PODSSH_LOCALTUNNEL", "no")
             .envs(role_env(&ca));
         without_proxy(cmd)
     };

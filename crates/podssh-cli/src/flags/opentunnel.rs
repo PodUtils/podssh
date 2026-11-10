@@ -4,8 +4,10 @@
 //! Serveo's (T-549, a last fallback too), whose alias a client computes from
 //! the node's key, so `ssh` takes no flag of it; and ssh-j.com's (T-570, a
 //! last fallback too), whose name a client derives from the node's key too;
-//! and localhost.run's (T-565, the last), a tunnel of HTTP made by `ssh -R`,
-//! whose name `ssh` takes as a URL. Each road is pure Rust, in each build.
+//! and localhost.run's (T-565), a tunnel of HTTP made by `ssh -R`, whose
+//! name `ssh` takes as a URL; and localtunnel's (T-568, after it), whose
+//! name a client derives from the node's key. Each road is pure Rust, in
+//! each build.
 
 use super::{row, FlagKind, FlagRow};
 
@@ -47,3 +49,7 @@ pub const NODE_LOCALHOST_RUN: FlagRow = row(None, "localhost-run", None, FlagKin
 #[rustfmt::skip]
 pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKind::Supported,
     "node://NAME: race the road of a tunnel of HTTP made by ssh -R (localhost.run's) to https://HOST, the name that the node prints, 250 ms after the road before it: a WebSocket at / of HOST, whose TLS this host's roots verify; the name is kept under NAME, and a later run that gives none dials it, or the one of the node's record, last, when each road before it failed; a free name changes after a few hours", None);
+/// `node --localtunnel`.
+#[rustfmt::skip]
+pub const NODE_LOCALTUNNEL: FlagRow = row(None, "localtunnel", None, FlagKind::Supported,
+    "serve TARGET over the localtunnel road, an HTTPS name at localtunnel's public server with no account (where podssh's list of services names it, or the server of env PODSSH_LOCALTUNNEL): the node asks the server over HTTPS for a name that its key gives, then keeps TCP connections to a port that the server names, directly or through the proxy's CONNECT, so its egress must reach that port; a client that holds the key (--node-key, the net, or the pins of NAME) derives the name and races the road last, by TLS and a WebSocket on port 443; with --relay, the relay role answers its paths there too, and TARGET may be left out; the URL is the line on stdout; a third party that nobody vouches for, which ends the visitors' TLS, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);

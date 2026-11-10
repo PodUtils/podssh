@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**699 entries: 89 open, 21 partial, 9 blocked, 580 done.**
+**699 entries: 88 open, 22 partial, 9 blocked, 580 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 9 | 1 | 261 | 296 |
-| P3 | 60 | 10 | 5 | 249 | 324 |
-| **All** | 89 | 21 | 9 | 580 | 699 |
+| P3 | 59 | 11 | 5 | 249 | 324 |
+| **All** | 88 | 22 | 9 | 580 | 699 |
 
 ## Entries
 
@@ -607,7 +607,7 @@ repository and CI).
 | [T-565](mesh.md) | P3 | M | M10 | feature | partial | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
 | [T-566](mesh.md) | P3 | S | M10 | feature | open | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
 | [T-567](mesh.md) | P3 | S | M10 | feature | open | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
-| [T-568](mesh.md) | P3 | M | M10 | feature | open | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
+| [T-568](mesh.md) | P3 | M | M10 | feature | partial | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
 | [T-569](mesh.md) | P3 | M | M10 | feature | open | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
 | [T-570](mesh.md) | P3 | S | M10 | feature | partial | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
 | [T-571](mesh.md) | P3 | M | M10 | feature | open | Syncthing's relays on 443 as a last fallback of the reverse road |

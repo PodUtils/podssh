@@ -1,0 +1,9 @@
+# T-568: the client's upgrade of the localtunnel road leaves out the header
+# Bypass-Tunnel-Reminder, so the hosted server's page for browsers (511)
+# stands between the client and the node wherever it keys on more than the
+# User-Agent; the test of the client's link through the stand-in's public
+# side, which answers 511 to a request with no header, must fail.
+ENTRY=T-568
+GROUP=cli-tests
+EXPECT='test the_client_s_upgrade_carries_the_bypass_header_past_the_reminder_page \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test localtunnel_road -- the_client_s_upgrade_carries_the_bypass_header_past_the_reminder_page'

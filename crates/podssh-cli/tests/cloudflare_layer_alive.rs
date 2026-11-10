@@ -182,8 +182,8 @@ impl Stand {
         cmd.arg(format!("cf://tester@{HOST}")).arg("greet");
         cmd.env("PODSSH_SSH_CONFIG", "none").env("HOME", &self.home).env("USERPROFILE", &self.home);
         cmd.env("XDG_CACHE_HOME", self.home.join("cache")).env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no");
-        // Nor the last roads of all (Q78): localhost.run (T-565).
-        cmd.env("PODSSH_LOCALHOST_RUN", "no");
+        // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568).
+        cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_LOCALTUNNEL", "no");
         for name in ["PODSSH_OFFLINE", "SSH_AUTH_SOCK", "NO_PROXY", "no_proxy", "ALL_PROXY", "all_proxy", "https_proxy"]
         {
             cmd.env_remove(name);

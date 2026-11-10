@@ -41,8 +41,8 @@ impl Roads<'_> {
     /// may come back.
     pub(super) async fn ended_for_good(&self) -> bool {
         let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
-        let last = self.pinggy.is_some() || self.serveo.is_some() || self.sshj.is_some() || self.croc.is_some();
-        if self.derp.is_some() || others || last || self.tunnel.is_some() || self.piping_on() {
+        let last = self.pinggy.is_some() || self.last.any() || self.croc.is_some();
+        if self.derp.is_some() || others || last || self.piping_on() {
             return false;
         }
         let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);

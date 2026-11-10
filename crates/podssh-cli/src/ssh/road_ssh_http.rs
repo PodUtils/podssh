@@ -5,8 +5,8 @@
 //! (T-445), for a member that the net names by its key; else the one kept
 //! under NAME in the cache, from a run that gave it, or by a node of this
 //! host. A name given races 250 ms after the road before it; one of the
-//! record or kept only once each road before it failed, last of all, after
-//! the ssh-j road. Before its first link, a line names the service as a
+//! record or kept only once each road before it failed, last, after the
+//! ssh-j road and before the localtunnel road (`road_last.rs`). Before its first link, a line names the service as a
 //! third party that nobody vouches for. Each link is a WebSocket at `/` of
 //! the name, on port 443 through `HTTPS_PROXY`, as the quick tunnel of a
 //! record is taken (`podssh_ws::cloudflare::connect`): the service's edge ends TLS

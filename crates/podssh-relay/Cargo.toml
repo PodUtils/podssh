@@ -128,6 +128,12 @@ serveo = ["pinggy"]
 # of the relay role; the Pinggy road's switches and its reading of names.
 # No C either.
 ssh-http = ["quick", "pinggy"]
+# The localtunnel road (T-568): a last fallback of Q78 through localtunnel's
+# public server, whose node asks for a tunnel over HTTPS and serves each of
+# its TCP connections with the relay role (`serve`) and the quick tunnel's
+# reader of a visitor's WebSocket (`quick`), with the Pinggy road's switches
+# and the OpenTunnel road's dials (`pinggy`). No C either; the gate builds it.
+localtunnel = ["serve", "quick", "pinggy"]
 # The quick tunnel's edge inside WARP's tunnel (T-374), for a node whose cage
 # reaches TCP port 7844 only through it. No C either; Rust 1.91.
 warp = ["quick", "dep:podssh-warp"]

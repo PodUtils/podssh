@@ -68,6 +68,10 @@
 //!   (T-565), a last fallback through localhost.run: each visitor's plain
 //!   HTTP down the forward, a WebSocket of the layer or the relay role's
 //!   request (the node's SSH client is the caller's);
+//! - `localtunnel` (feature `localtunnel`): the localtunnel road (T-568), a
+//!   last fallback through localtunnel's public server: the node's TCP
+//!   connections served by the relay role and the node's layer, the
+//!   client's WebSocket by name;
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -103,6 +107,8 @@ pub mod health;
 pub mod http_road;
 pub mod identity;
 pub mod keyed;
+#[cfg(feature = "localtunnel")]
+pub mod localtunnel;
 pub mod open;
 #[cfg(feature = "opentunnel")]
 pub mod opentunnel;

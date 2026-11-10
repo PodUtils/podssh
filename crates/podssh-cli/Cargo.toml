@@ -84,8 +84,10 @@ rustls = { workspace = true }
 # relay road of a pair (T-694), its PAKE on SIEC in pure Rust, a last
 # fallback of Q78, in each build. `ssh-http`: the road of a tunnel of HTTP
 # made by `ssh -R` (T-565), localhost.run's, a last fallback of Q78 too,
-# whose SSH leg is podssh-ssh's russh, here, in each build.
-podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http"] }
+# whose SSH leg is podssh-ssh's russh, here, in each build. `localtunnel`:
+# the localtunnel road of `podssh node --localtunnel` and `podssh ssh
+# node://` (T-568), a last fallback of Q78, pure Rust, in each build.
+podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel"] }
 # The native SSH client. It needs a C compiler (russh with aws-lc-rs); the
 # operator accepted that for the binary on 2026-10-08.
 podssh-ssh = { path = "../podssh-ssh" }

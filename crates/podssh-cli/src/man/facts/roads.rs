@@ -110,13 +110,25 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_LOCALHOST_RUN"],
-        "The localhost.run road (T-565), the last fallback of the operator's ruling Q78: a tunnel of HTTP made by \
+        "The localhost.run road (T-565), a last fallback of the operator's ruling Q78: a tunnel of HTTP made by \
           ssh -R with no account, SSH on port 22 as nokey with the forward of port 80, of podssh node --localhost-run \
           and podssh ssh node://NAME --tunnel-url https://HOST, which a node with no other road serves unasked after \
-          the ssh-j road. no: no such road, and the flags are refused (64); HOST[:PORT]: that server of the same \
-          shape, whose host key nobody names; unset, empty or yes: localhost.run where podssh's list of services \
+          the ssh-j road, before the localtunnel road. no: no such road, and the flags are refused (64); \
+          HOST[:PORT]: that server of the same shape, whose host key nobody names; unset, empty or yes: localhost.run where podssh's list of services \
           names it, else no server, and --localhost-run is a configuration error (78). Another word is a \
           configuration error (78), which does not echo the value.",
+    ),
+    (
+        &["PODSSH_LOCALTUNNEL"],
+        "The localtunnel road (T-568), a last fallback of the operator's ruling Q78: localtunnel's public \
+          server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
+          the client derive the node's name there from its key; the node needs an egress that reaches the port \
+          that the server names, its client port 443 alone; a node with no other road serves it unasked after \
+          the localhost.run road. no: no such road, and --localtunnel is refused (64); an https:// URL, or http:// on \
+          this host's loopback: that server of localtunnel's protocol, whose tunnels are names under its own; \
+          unset, empty or yes: localtunnel's where podssh's list of services names it, else no server, and \
+          --localtunnel is a configuration error (78). Another word is a configuration error (78), which does \
+          not echo the value.",
     ),
     (
         &["PODSSH_PINGGY_TRACE"],
@@ -265,7 +277,9 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
-      PODSSH_LOCALHOST_RUN, T-565; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
+      PODSSH_LOCALHOST_RUN, T-565; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; croc's relay road, \
+      PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
+      Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

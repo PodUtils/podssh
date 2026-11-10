@@ -81,7 +81,7 @@ pub(crate) fn service() -> Result<Option<Service>, Refusal> {
 /// needs another road, and the DERP road, which would serve it unasked first,
 /// is off: a node with no other road (Q76).
 pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    let tunnel = args.opentunnel || args.pinggy || args.serveo || args.ssh_j || args.localhost_run;
+    let tunnel = args.opentunnel || args.pinggy || args.serveo || args.ssh_j || args.localhost_run || args.localtunnel;
     let other = args.derp || args.iroh || args.plain || args.no_e2e || tunnel || args.exit;
     if other || args.pair_file.is_some() || crate::node_derp::has_udp(args) || crate::node_derp::fallback_on()? {
         return Ok(None);

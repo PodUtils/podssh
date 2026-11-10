@@ -1,19 +1,79 @@
-//! The last fallbacks of the race of `podssh ssh node://NAME` (Q78), apart
-//! from `roads.rs` for the length of that file: a node's Pinggy tunnel
-//! (T-548), its alias at Serveo (T-549), its name at ssh-j.com (T-570),
-//! then its tunnel of HTTP made by `ssh -R` (T-565), the last of all; each
-//! starts as its own `push` says.
+//! The last fallbacks of the operator's ruling Q78 in the race of `podssh
+//! ssh node://NAME` (`super`), apart from `roads.rs` for its length: after a
+//! node's Pinggy tunnel (T-548, which `roads.rs` races itself, by its
+//! record), a node's alias at Serveo (T-549, `crate::ssh::serveo`), then its
+//! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
+//! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
+//! localtunnel's server (T-568, [`localtunnel`]), the last of all. The road
+//! that a host with 443 alone can serve comes before the roads of raw TCP to
+//! another port. Each starts as its own `push` says. The order is the node's
+//! too: a node that would serve none of the roads before them unasked serves
+//! them in this order.
+
+use std::sync::Arc;
 
 use podssh_relay::session::race::Start;
+use podssh_ssh::Log;
+use podssh_ws::Trust;
 
-use super::{Going, Kind, Roads};
+use super::Going;
+use crate::ssh::road_link::Kind;
 
-impl<'a> Roads<'a> {
-    /// The attempts of the last fallbacks, in their order, after the others.
-    pub(super) fn push_last<'s>(&'s self, list: &mut Vec<(Start, Going<'s>)>, kinds: &mut Vec<Kind>) {
-        if let Some(pinggy) = &self.pinggy {
-            pinggy.push(list, kinds, self.record.as_ref());
+// The localtunnel road of node://NAME (T-568).
+#[path = "localtunnel.rs"]
+pub(crate) mod localtunnel;
+
+/// The last fallbacks of one run, each where it races.
+pub(crate) struct LastRoads {
+    serveo: Option<crate::ssh::serveo::ServeoRoads>,
+    sshj: Option<crate::ssh::sshj::SshJRoads>,
+    tunnel: Option<super::ssh_http::SshHttpRoads>,
+    localtunnel: Option<localtunnel::LocalTunnelRoads>,
+}
+
+impl LastRoads {
+    /// The roads to the node `label`, each where its server is on and a key
+    /// of the node, or a name of its tunnel, is known (`record`: whether the
+    /// node's record is asked, which can name the tunnel); never with
+    /// --no-e2e.
+    pub(crate) fn new(
+        label: &str,
+        ask: &crate::channel::Ask,
+        record: bool,
+        trust: &Trust,
+        log: &Arc<Log>,
+        shown: &str,
+    ) -> Self {
+        LastRoads {
+            serveo: crate::ssh::serveo::ServeoRoads::new(label, ask, log, shown),
+            sshj: crate::ssh::sshj::SshJRoads::new(label, ask, trust, log, shown),
+            tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
+            localtunnel: localtunnel::LocalTunnelRoads::new(label, ask, trust, log, shown),
         }
+    }
+
+    /// The roads of a measure of `podssh ping`, which never sends a byte to
+    /// a third party of Q78 unasked: a node's tunnel of `ssh -R` only when
+    /// its name was given in this run, as Pinggy's; none of the others,
+    /// which are never asked.
+    pub(crate) fn asked(label: &str, trust: &Trust, log: &Arc<Log>, shown: &str) -> Self {
+        let tunnel = super::ssh_http::SshHttpRoads::new(label, false, false, trust, log, shown);
+        LastRoads { serveo: None, sshj: None, tunnel: tunnel.filter(|tunnel| tunnel.asked()), localtunnel: None }
+    }
+
+    /// Whether one of them races.
+    pub(crate) fn any(&self) -> bool {
+        self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some() || self.localtunnel.is_some()
+    }
+
+    /// Their places in the race, in their order; the tunnel of `ssh -R`
+    /// reads its name of the node's `record` at each link.
+    pub(crate) fn push<'r>(
+        &'r self,
+        list: &mut Vec<(Start, Going<'r>)>,
+        kinds: &mut Vec<Kind>,
+        record: Option<&'r crate::ssh::iroh::RecordRoads<'_>>,
+    ) {
         if let Some(serveo) = &self.serveo {
             serveo.push(list, kinds);
         }
@@ -21,7 +81,10 @@ impl<'a> Roads<'a> {
             sshj.push(list, kinds);
         }
         if let Some(tunnel) = &self.tunnel {
-            tunnel.push(list, kinds, self.record.as_ref());
+            tunnel.push(list, kinds, record);
+        }
+        if let Some(localtunnel) = &self.localtunnel {
+            localtunnel.push(list, kinds);
         }
     }
 }

@@ -20,13 +20,13 @@ pub(super) const NODE: &str = "With --ssh-j, the node serves TARGET over the ssh
      keeps go on over the next; a name that a stranger holds first is refused to the node, which tries again, \
      and a client that reaches the stranger is refused by the end-to-end channel. The road is served alone: a \
      pair of NAME is not served beside it, and a line says so. A node that would serve the OpenTunnel road, \
-     the Pinggy road or the Serveo road unasked serves this one, the last of all, when none of them reached a \
+     the Pinggy road or the Serveo road unasked serves this one, before the last roads that follow it, when none of them reached a \
      service, or when each is turned off, by the operator's ruling Q78, and its lines say so and name the \
      third party, which nobody vouches for. PODSSH_SSH_J=no turns the road off, and so does \
      PODSSH_LAST_RESORT=no, the switch of each last fallback.";
 
 /// The note of `podssh ssh node://NAME` on the ssh-j road.
-pub(super) const SSH: &str = "node://NAME races the ssh-j road too, last of all, once each road before it \
+pub(super) const SSH: &str = "node://NAME races the ssh-j road too, last, before the roads that follow it, once each road before it \
      failed, the Serveo road's too, where the road has a server (ssh-j.com where podssh's list of services names it, or PODSSH_SSH_J) \
      and podssh holds the node's key: --node-key, else the key that the net names for NAME, else the key that \
      the pins of NAME hold from an earlier session. The node's name there comes from that key, as the node \
@@ -55,7 +55,8 @@ mod tests {
         for text in ["nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no", "port 22", "its key gives", "(78)"] {
             assert!(super::NODE.contains(text), "{text}");
         }
-        for text in ["--node-key", "pins of NAME", "last of all", "PODSSH_FORWARDER_FALLBACK=no", "--no-e2e"] {
+        for text in ["--node-key", "pins of NAME", "last, before the roads", "PODSSH_FORWARDER_FALLBACK=no", "--no-e2e"]
+        {
             assert!(super::SSH.contains(text), "{text}");
         }
     }

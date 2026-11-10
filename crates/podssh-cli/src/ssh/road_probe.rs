@@ -125,8 +125,6 @@ pub(crate) async fn measure(
     // sends a byte to the last fallback's third party unasked (Q78).
     let pinggy =
         crate::ssh::pinggy::PinggyRoads::new(label, false, false, &log, &shown).filter(|pinggy| pinggy.asked());
-    let tunnel = crate::ssh::roads::ssh_http::SshHttpRoads::new(label, false, false, trust, &log, &shown);
-    let tunnel = tunnel.filter(|tunnel| tunnel.asked());
     let roads = Roads {
         iroh,
         pair,
@@ -140,12 +138,9 @@ pub(crate) async fn measure(
         pinggy,
         // croc's relay is a last fallback of Q78 too: a measure leaves it out.
         croc: None,
-        // Serveo's alias is never named, so a measure never tries it (Q78).
-        serveo: None,
-        // Nor ssh-j.com's name: the road is never asked, and Q78 sends no byte unasked.
-        sshj: None,
-        // A node's tunnel of ssh -R only when its name was given, as Pinggy's (T-565).
-        tunnel,
+        // Serveo's alias, ssh-j.com's and localtunnel's names are never named, so a measure never tries
+        // them: Q78 sends no byte unasked; a node's tunnel of ssh -R only when its name was given (T-565).
+        last: super::last::LastRoads::asked(label, trust, &log, &shown),
         refused,
         label,
         legs,

@@ -67,8 +67,8 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     // The roads of the test alone: no transit relay, no Piping Server, no
     // record at n0's server of pkarr.
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");
-    // Nor the last roads of all (Q78): localhost.run (T-565).
-    cmd.env("PODSSH_LOCALHOST_RUN", "no");
+    // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568).
+    cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_LOCALTUNNEL", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

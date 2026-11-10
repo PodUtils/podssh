@@ -1792,6 +1792,48 @@ Ruled out:
   as a destination you'll preserve end-to-end encryption" [W22]. The ssh-j
   road (T-570) derives the user and the name from the node's key and runs
   the end-to-end channel above them, so the server carries ciphertext.
+  Read on 2026-11-10 for T-568, through the fetch, read, search and forge
+  services of web.pkgforge.dev, with no tunnel asked: localtunnel's client
+  asks `GET /?new`, or `GET /NAME` for a name of its own, and takes `id`,
+  `ip`, `port`, `url` and `max_conn_count` (one where none is named), then
+  opens that many TCP connections to `ip`, else the API's host, on `port`,
+  each opened again when it dies [X10]; the server answers `{id, port,
+  max_conn_count, url}` with `url` = `https://ID.` and its own host, checks
+  a name as 4 to 63 of `[a-z0-9-]`, gives a random one where the name is
+  held, listens for each tunnel on a port that its OS chooses ("any
+  non-root TCP port (i.e. ports over 1000)", its README), takes 10
+  connections at most, forgets a tunnel 1 s after its last connection
+  closed, proves nothing of who connects to the port, sends each request
+  down a kept connection through Node's HTTP agent and each upgrade as its
+  head, then each byte both ways, so a WebSocket passes [X11]. The users'
+  reports name hosted ports 14889, 38913 and 44972, refused by their
+  firewalls (localtunnel/localtunnel#715, #156, #258) [X12]. So the node's
+  connections need an egress that reaches a high port of the server's,
+  directly or by a proxy whose CONNECT allows it: a host whose proxy lets
+  CONNECT reach 443 alone cannot be the node (Inferred), and the road is
+  for a node with a looser egress and a client that has 443 alone. The
+  hosted server is run by one volunteer, TheBoroer, and its code is
+  localtunnel/server "slightly more modified with the consent page
+  middleware and not publically available" (2023-05-16, #598) [X12]. Since
+  2023-05-15 its page for browsers asks for the tunnel's password, the
+  public IP address of its maker, to fight phishing, about which abuse
+  notices reached him (#598); the page "only shows up to standard browser
+  User-Agent header values", `Bypass-Tunnel-Reminder` with any value that
+  is not false passes it, and the page answers 511 (2024-07-30, #663)
+  [X12]. Of limits, the project's author: "There are no limitations -
+  abuse happens, server goes down, comes back up sometime later"
+  (2019-09-16, #288) [X12]. No terms were found: the landing pages of
+  `localtunnel.me` and `loca.lt` name none, and `https://loca.lt/terms`
+  and `https://localtunnel.me/terms` answer `503 - Tunnel Unavailable`
+  [X13]; nothing read speaks of relaying or of automation, but the
+  operator's fight against bots that make phishing portals (#702,
+  2025-03-01) may close the service to automated clients at any time.
+  `localtunnel.app`, whose search result shows terms, is another party's
+  site of the same name, not the hosted server's (Inferred), and is never
+  used. The localtunnel road (T-568) asks a name that the node's key
+  gives and runs the end-to-end channel above it: the server ends the
+  visitors' TLS and sees the layer's bytes, and the channel refuses a
+  stranger at the name or at the port.
 - **Other public Piping Servers**: of the servers that Piping Server's wiki
   names, the sweep found `ppng.io` alone alive, and by a search
   `piping.onrender.com` (T-442's research) and `p.kokoro.serv00.net` [W1].
@@ -2388,6 +2430,21 @@ from a project's own repository or document.
   `srv-tcpfwd-pseudodns.c`, `svr-tcpfwd.c`, `svr-auth.c`,
   `default_options.h`, `sysoptions.h`), read on 2026-11-10 through
   Bitbucket's API by the fetch service of web.pkgforge.dev
+- [X10] `localtunnel/localtunnel:lib/Tunnel.js` and
+  `localtunnel/localtunnel:lib/TunnelCluster.js` (version 2.0.2, MIT), on
+  its branch `master`, read on 2026-11-10 through fetch.web.pkgforge.dev
+- [X11] `localtunnel/server:server.js`, `localtunnel/server:lib/ClientManager.js`,
+  `localtunnel/server:lib/Client.js`, `localtunnel/server:lib/TunnelAgent.js`
+  and its README (version 0.0.8, MIT), on its branch `master`, read on
+  2026-11-10 through fetch.web.pkgforge.dev
+- [X12] localtunnel/localtunnel's issues 598, 663, 288, 702 and 715, their
+  bodies and their maintainers' comments, read on 2026-11-10 through
+  forge.web.pkgforge.dev; 156 and 258 in search results of
+  search.web.pkgforge.dev
+- [X13] https://localtunnel.github.io/www/ and https://loca.lt/ (which
+  sends to https://theboroer.github.io/localtunnel-www/), and the two
+  `/terms` above, read on 2026-11-10 through read.web.pkgforge.dev and
+  fetch.web.pkgforge.dev
 
 Read on 2026-11-06 through the services of web.pkgforge.dev (forge, fetch,
 read and domain), for T-541 and T-546. No croc relay and no tracker was

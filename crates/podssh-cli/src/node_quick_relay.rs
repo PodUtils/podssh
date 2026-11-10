@@ -37,16 +37,16 @@ pub(crate) struct Role {
 }
 
 /// The role's flags need `--relay`, and `--relay` needs `--quick-tunnel`,
-/// or `--localhost-run`, whose tunnel of `ssh -R` the role serves behind as
-/// well (T-565): a listener's relay is `podssh relay serve`.
+/// `--localhost-run` or `--localtunnel`, whose tunnels the role serves
+/// behind as well (T-565, T-568): a listener's relay is `podssh relay serve`.
 pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
     let given =
         [(args.mint.is_some(), "--mint"), (args.pairs.is_some(), "--pairs"), (args.allow_private, "--allow-private")];
     if let Some((_, flag)) = given.iter().find(|(given, _)| *given).filter(|_| !args.relay) {
         return Err(Refusal::usage(format!("{flag} is a setting of the relay role of a quick tunnel: add --relay")));
     }
-    if args.relay && !args.quick_tunnel && !args.localhost_run {
-        let why = "--relay is for --quick-tunnel or --localhost-run, whose node then serves the relay with no \
+    if args.relay && !args.quick_tunnel && !args.localhost_run && !args.localtunnel {
+        let why = "--relay is for --quick-tunnel, --localhost-run or --localtunnel, whose node then serves the relay with no \
                    listener; a relay that listens is podssh relay serve --listen";
         return Err(Refusal::usage(why));
     }

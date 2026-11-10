@@ -22,14 +22,14 @@ pub(super) const NODE: &str = "With --serveo, the node serves TARGET over the Se
      --opentunnel, --pinggy, --ssh-j, --iroh or --derp (64). With the pair NAME, or --pair-file, the node serves the \
      pair's road beside it, with one keeper of sessions. A node that would serve the Pinggy road unasked \
      serves this one unasked after the Pinggy road reached no server, or in its place where PODSSH_PINGGY=no, \
-     by the operator's ruling Q78, before the ssh-j road, the last of all, and its lines say so and name the \
+     by the operator's ruling Q78, before the ssh-j road and the roads after it, and its lines say so and name the \
      third party. \
      PODSSH_SERVEO=no turns the road off, and so does PODSSH_LAST_RESORT=no, the switch of each last \
      fallback.";
 
 /// The note of the Serveo road of `podssh ssh node://NAME`.
 pub(super) const SSH: &str = "node://NAME races the Serveo road too, once each road before it failed and \
-     before the ssh-j road, the last of all, a last fallback of the operator's ruling Q78, where the road has a server (podssh's list of \
+     before the ssh-j road and the roads after it, a last fallback of the operator's ruling Q78, where the road has a server (podssh's list of \
      services, or PODSSH_SERVEO) and a key of the node is known: --node-key, else the key that the net names for \
      NAME, else the pins of NAME, which a first session over another road writes. Each link is raw SSH to the \
      server on port 443, then 22, through HTTPS_PROXY, then a direct-tcpip channel to the node's alias, as ssh \

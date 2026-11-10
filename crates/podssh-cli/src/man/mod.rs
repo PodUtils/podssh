@@ -64,6 +64,8 @@ mod notes_relay;
 mod notes_sshj;
 // The localhost.run road, the last fallback of Q78, after the ssh-j road's (T-565).
 mod notes_ssh_http;
+// The localtunnel road, the last fallback of Q78, after ssh-j's (T-568).
+mod notes_localtunnel;
 // ssh's notes on the roads to a server of the user's (T-441).
 mod notes_roads;
 mod notes_run;

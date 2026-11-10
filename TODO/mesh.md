@@ -6113,7 +6113,7 @@ the net that already names them.
 
 ## Premise
 
-- `crates/podssh-cli/src/node_quick.rs:155`, where the node with no `--allow` was refused: its
+- `crates/podssh-cli/src/node_quick.rs:156`, where the node with no `--allow` was refused: its
   name is public, so only the operator keys of the file came in.
 - `crates/podssh-cli/src/node_derp.rs:117` says "pub(crate) fn door(allow: Option<&Path>, place: &Place) -> Result<Door, Refusal>",
   the door of T-452 that the quick tunnel's node can take too.
@@ -8314,7 +8314,7 @@ it.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -8342,6 +8342,79 @@ visitor's HTTP. A client in a cage reaches the name on 443. podssh does not use 
    pinned key; the URL in the node's record (T-445).
 4. A last fallback (Q78), with the line of T-548's step 5; `PODSSH_LOCALTUNNEL=no`.
 
+## Decision
+
+The draft's calls, 2026-11-10, each with what lost:
+
+1. **What the node serves on each connection.** The node reads the head of a visitor's request and
+   gives the connection to the relay role (`podssh_relay::serve::serve_from`, the head read again
+   first) for the role's paths, or for each path with no TARGET, and a WebSocket to any other path to
+   the node's own link of the layer, with the end-to-end channel above it, through the quick tunnel's
+   reader of a visitor's frames (`crates/podssh-relay/src/localtunnel/route.rs`). So `--relay` makes
+   the node its owner's relay as behind the quick tunnel (T-428), and `node://NAME` reaches TARGET as
+   on each other road. Lost: the role alone, which would give a client of `node://NAME` no road and
+   keep the end-to-end channel off the road; and a second parser of HTTP, which the role's own reader
+   makes needless.
+2. **The name comes from the node's key, as on the ssh-j road (T-570).** The node asks `GET /NAME`
+   with `podssh-` and 16 hex digits of SHA-256 over a label of the road and its key's fingerprint
+   (`podssh_relay::localtunnel::name_of`), which localtunnel/server's check of a name takes, and a
+   client that holds the key (`--node-key`, the net, the pins) derives the same name, so it needs no
+   record and no flag. This replaces Approach step 3's "the URL in the node's record (T-445)": the
+   record lives in the build with the iroh road alone, and the derived name reaches each build. Lost:
+   the record's field, and a flag `--localtunnel-name` of `ssh`, each another place for a word that
+   the key already gives; where a stranger holds the name first, the node says so and the name that
+   the server gave, which only `--relay-host` then reaches, and the end-to-end channel refuses the
+   stranger to each client.
+3. **The last of all, after the ssh-j road, in the node's chain and the client's race.** The node
+   tries it unasked only when the OpenTunnel road, Pinggy's, Serveo's and ssh-j's each reached no
+   service or are off (`node_localtunnel::tunnels` wraps `node_sshj::tunnels`), and the client races
+   it after ssh-j's name, once each road before it failed
+   (`crates/podssh-cli/src/ssh/road_last.rs`). Why last: its node needs an egress that reaches a high
+   port of the server's (the port is the server's OS's choice), which the hosts that most need a last
+   fallback lack, where ssh-j's port 22 is at least one fixed port; its server ends the visitors' TLS
+   and lets anyone connect to a tunnel's port, so it sees each byte of the layer and a stranger may
+   serve its visitors, which the end-to-end channel refuses; and its one volunteer fights bots
+   (localtunnel/localtunnel#702), so it may close to podssh at any time. Lost: before ssh-j's, which
+   would send a node with port 22 open to the weaker road first.
+4. **The road is served alone**, as the ssh-j road's (T-570's Decision): a pair is not served beside
+   it, and a line says so. Lost: the pair's road beside it, as OpenTunnel's node does, which doubles
+   the serve loop for a road of the last resort.
+5. **The service entry asked of podcrates (`pod-services`).** podssh names no host of the service
+   (`AGENTS.md`); until podcrates holds the entry, the road is on only where `PODSSH_LOCALTUNNEL`
+   names a server. The file to ask, `services/localtunnel.toml`:
+
+   ```toml
+   id = "localtunnel"
+   kind = "localtunnel"
+   party = "TheBoroer, a volunteer (localtunnel/localtunnel#598)"
+   about = "localtunnel's public server, which needs no account: an HTTPS name and a TCP port for its connections"
+
+   [[endpoint]]
+   name = "api"
+   scheme = "https"
+   host = "localtunnel.me"
+   port = 443
+   source = { url = "https://github.com/localtunnel/localtunnel/blob/master/lib/Tunnel.js", read = 2026-11-10, note = "the client's default host" }
+
+   [[fact]]
+   name = "tunnel-zone"
+   value = "loca.lt"
+   source = { url = "https://github.com/localtunnel/localtunnel/issues/663", read = 2026-11-10, note = "the hosted tunnels are ID.loca.lt" }
+
+   [[watch]]
+   kind = "rdap"
+   domain = "localtunnel.me"
+   ```
+
+   No `http-status` watch of the API's `/`: it sends to the landing page, and a watch of `/?new`
+   would make a tunnel each time. Lost: a fact of the tunnels' ports, which the server's OS chooses.
+6. **`PODSSH_LOCALTUNNEL` takes `http://` on the loopback alone**, for a stand-in of the tests and a
+   server of the user's own on this host; each other server is `https://`. Lost: `http://` anywhere,
+   which would send the request of a tunnel in the clear across a network.
+7. **The brake of the role counts each request of the tunnel as one caller's**: localtunnel's server
+   passes the visitor's own headers and no address that podssh can trust. Lost: `X-Forwarded-For`,
+   which any visitor writes.
+
 ## Prove
 
 ```sh
@@ -8355,6 +8428,12 @@ down. Live, short, through `localtunnel.me` (T-548's Decision). Planted: the hea
 client meets the reminder page (the test names it).
 
 ## Correction
+
+2026-11-10 (the merge). The Decision's item 3, "the last of all, after the ssh-j road", is now after
+the localhost.run road (T-565), which merged first: the last roads after the ssh-j road are one
+module (`crates/podssh-cli/src/ssh/road_last.rs`), localhost.run, then localtunnel, then bore
+(T-569), in the client's race and in the node's unasked chain. The road that a host with 443 alone
+can serve comes first; this road's node needs a high port of the server's, so it comes after it.
 
 2026-11-04 (the drafting agent). `docs/carriers.md:1774` says "request meets a reminder page unless
 it carries the header", which the operator's archive `ff-relay` of 2026-11-04 contradicts for one
@@ -8375,6 +8454,78 @@ module map is `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+2026-11-10 (the drafting agent). Each line of the Premise holds at the cited lines. Read in
+localtunnel's own source (Approach step 1; `docs/carriers.md`, the reading of 2026-11-10, sources
+X10 to X13): the answer of `?new` is `{id, port, max_conn_count, url}`, with `ip` where the hosted
+server names it; the server joins a visitor to a kept connection through Node's HTTP agent, and
+passes a WebSocket's upgrade with its head as it came; the tunnel password of the hosted server is
+its maker's public IP address, asked by a page for browsers alone, which `Bypass-Tunnel-Reminder`
+passes and which answers 511. The tunnel's port is one that the server's OS chose, so step 2's "by
+a CONNECT that the proxy allows" holds only for a proxy that allows a high port: the road does not
+help a node whose proxy lets CONNECT reach 443 alone; it is for a node with a looser egress and a
+client in a cage of 443. Step 3's record is replaced by a name of the key (the Decision, item 2).
+
+## Done
+
+2026-11-10, drafted by an agent (`draft-g2`, `b4ceb5e8`), merged and measured the same day.
+
+- `crates/podssh-relay/src/localtunnel/mod.rs` and its modules (feature `localtunnel`): the setting
+  of `PODSSH_LOCALTUNNEL` and `PODSSH_LAST_RESORT`, the server of `pod-services` (`localtunnel`,
+  none in v0.14.0), the name of a key, the request of a tunnel and its checks (`api.rs`), the
+  keeper of its connections (`keep.rs`), the router of each connection with its own replay of the
+  head (`route.rs`), the client's link with the header (`link.rs`).
+- `podssh node --localtunnel` (`crates/podssh-cli/src/node_localtunnel.rs`,
+  `crates/podssh-cli/src/node_localtunnel_serve.rs`), with `--relay`, and unasked after the
+  localhost.run road; the client's road (`crates/podssh-cli/src/ssh/localtunnel.rs`), raced last
+  of all in `crates/podssh-cli/src/ssh/road_last.rs`.
+- The manual (`crates/podssh-cli/src/man/notes_localtunnel.rs`, the row of `PODSSH_LOCALTUNNEL`,
+  the flag's row), `docs/cli.md`, `docs/carriers.md`.
+
+Measured on 2026-11-10 (`cargo +1.99`, `CARGO_BUILD_JOBS=4`):
+
+- `cargo check --workspace --all-targets`: clean.
+- `cargo test -p podssh-cli --test localtunnel_road`: 5 passed (a stand-in of localtunnel/server's
+  protocol in the test's process: the role's `/health` over a connection, the client's link past
+  the page of 511, the binary's URL and refusals).
+- `cargo test -p podssh-relay --features localtunnel --lib localtunnel`: 12 passed.
+- `cargo test -p podssh-cli --lib`: 1,079 passed. The other roads: `--test ssh_tunnel_http` 6,
+  `pinggy_road` 7, `serveo_road` 7, `ssh_j_road` 6, `derp_road` 8, `opentunnel_road` 4, `frp_road`
+  4, passed; `-p podssh-relay --features croc --test croc` 8 passed; the manual's
+  `man_flag_parity` 6, `man_json` 4, `man_page` 11, passed.
+- The three crates in a network namespace with the loopback alone (`unshare -n`,
+  the loopback up): 3,418 passed, 83 ignored, and `doctor_upgrade`'s
+  `the_three_failures_of_the_upgrade_are_named_apart` failed, which probes the host's network by
+  design and passes with it: no test reaches a third party.
+- Clippy of the three crates with `serveo`, `croc`, `ssh-http` and `localtunnel`, `-D warnings`:
+  clean; `cargo fmt --all`.
+- Planted `t568-no-bypass-header` (the header left out): the test
+  `the_client_s_upgrade_carries_the_bypass_header_past_the_reminder_page` FAILED; reverted, it
+  passes.
+
+Repairs at the merge:
+
+- `crates/podssh-relay/src/session/` is frozen for fixes while podcrates imports it as
+  `pod-session`, so the draft's `Rewound::new` there is not taken: the router has a private type of
+  its own (`Replay` in `localtunnel/route.rs`) that reads the head again before the connection's
+  bytes, and `session/client.rs` is as on `main`. `Rewound::new` (a link with given first bytes read
+  again first) is to be asked of podcrates' `pod-session`, after which `Replay` can go.
+- One module of the last roads (`ssh/road_last.rs`, `LastRoads`): Serveo, ssh-j, localhost.run
+  (T-565), then localtunnel; the node's chain the same (`node_localtunnel::tunnels` wraps
+  `node_sshj::tunnels`, which hands on to localhost.run's). Each list of roads that refuses another
+  names `--localhost-run` and `--localtunnel` both; the texts of ssh-j's and localhost.run's place
+  no longer call either the last of all.
+- Two errors of the build: a borrow of a temporary in `api.rs`, and a test of `link.rs` whose local
+  shadowed the function `request`.
+- The manual: ssh's note named `--relay`, a flag of `node`, not `ssh`; the test of the note of
+  `-R` took the word `Bypass-Tunnel-Reminder` for the flag, and now matches `-R` as a word.
+- Each harness that turns the other roads off turns this one off too (`PODSSH_LOCALTUNNEL=no`),
+  and the tests of the localhost.run and localtunnel roads each turn the other off.
+
+Left (so `partial`): the run against localtunnel's own server (localtunnel/server) in a container
+with a plain squid (T-251), the short live run through `localtunnel.me` (T-548's Decision), and the
+entry of `pod-services` asked of podcrates (the Decision, item 5) as a COORD issue `(to
+podcrates)`.
 
 # T-569: bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads
 
@@ -8947,7 +9098,7 @@ last fallback whatever its terms, after `ppng.io` and T-497's `piping.onrender.c
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1798` says "The last runs on serv00, whose terms forbid to", of
+- `docs/carriers.md:1840` says "The last runs on serv00, whose terms forbid to", of
   `p.kokoro.serv00.net`.
 - `PodUtils/podssh:crates/podssh-relay/src/piping/server.rs:10` says "pub const DEFAULT_HOST: &str =".
 
@@ -8979,7 +9130,7 @@ T-497 is done: the road has public servers in order.
 
 2026-11-04 (the drafting agent), from the operator's archive `ff-relay` of 2026-11-04
 (`docs/research/forward-carriers.md`, section 3.3). The archive reached serv00's Piping Server at
-the name with `www.` before the Premise's (`docs/carriers.md:1798` says "The last runs on serv00,
+the name with `www.` before the Premise's (`docs/carriers.md:1840` says "The last runs on serv00,
 whose terms forbid to"), and read that it completes transfers and holds a streamed body until its
 end (Read in its docs/carriers.md, "Pairing carriers", and its results/http-relay-hunt.json). So
 step 1's "whether it streams" has the archive's answer, no: the road there runs in numbered pieces,
@@ -9254,9 +9405,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:2014-2015` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:2016` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:2010` says "UDP alone, which the
+- `docs/carriers.md:2056-2057` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:2058` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:2052` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -9322,9 +9473,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:2021-2022` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:2024-2025` says "as the server never answers a command";
-  `docs/carriers.md:2027` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:2063-2064` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:2066-2067` says "as the server never answers a command";
+  `docs/carriers.md:2069` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -9652,7 +9803,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:287-297`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:288-298`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10006,8 +10157,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:296-297`), and needs the net's role exit, signed by
-  its owner (`:294-295`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:297-298`), and needs the net's role exit, signed by
+  its owner (`:295-296`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:111`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node

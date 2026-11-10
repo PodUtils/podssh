@@ -117,8 +117,15 @@ fn the_terminal_note_names_each_escape() {
 /// borrows the cause of -L and -D nor offers -W.
 #[test]
 fn the_note_about_r_says_that_the_server_listens() {
-    let sentences: Vec<&str> =
-        for_verb("ssh").iter().flat_map(|n| n.split(". ")).filter(|s| s.contains("-R")).collect();
+    // The flag -R, not a word that holds it (Bypass-Tunnel-Reminder).
+    let names_r = |s: &str| {
+        s.match_indices("-R").any(|(at, _)| {
+            let before = s[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric());
+            let after = s[at + 2..].chars().next().is_some_and(|c| c.is_alphanumeric());
+            !before && !after
+        })
+    };
+    let sentences: Vec<&str> = for_verb("ssh").iter().flat_map(|n| n.split(". ")).filter(|s| names_r(s)).collect();
     assert!(!sentences.is_empty(), "{sentences:#?}");
     assert!(sentences[0].contains("asks the server to listen"), "{}", sentences[0]);
     for sentence in sentences {

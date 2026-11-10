@@ -221,8 +221,8 @@ pub fn command_in(home: &Path, args: &[String]) -> Command {
     // of the test, never at Least Authority's relay; a test of the road
     // names its own relay.
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no");
-    // Nor the last roads of all (Q78): localhost.run (T-565).
-    cmd.env("PODSSH_LOCALHOST_RUN", "no");
+    // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568).
+    cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_LOCALTUNNEL", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

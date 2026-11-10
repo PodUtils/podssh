@@ -14,8 +14,8 @@
 //! no listener, as behind a quick tunnel (T-428, `crate::node_quick_relay`),
 //! and TARGET may be left out.
 //!
-//! A last fallback (the operator's ruling Q78), the last of all, after the
-//! ssh-j road: a node that would serve the OpenTunnel road, the Pinggy road,
+//! A last fallback (the operator's ruling Q78), after the ssh-j road and
+//! before localtunnel's (T-568, `crate::node_localtunnel`): a node that would serve the OpenTunnel road, the Pinggy road,
 //! Serveo's or the ssh-j road unasked serves this one when none of them
 //! reached a service, or when each is off, and says that a third party that
 //! nobody vouches for carries its sessions. `PODSSH_LOCALHOST_RUN=no` turns
@@ -117,6 +117,7 @@ pub(crate) fn check(args: &NodeArgs, word: Word) -> Result<(), Refusal> {
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
+        (args.localtunnel, "--localtunnel"),
         (args.iroh, "--iroh"),
         (args.derp, "--derp"),
         (args.quick_tunnel, "--quick-tunnel"),
@@ -242,6 +243,7 @@ mod tests {
             ("--pinggy", NodeArgs { pinggy: true, ..base() }),
             ("--serveo", NodeArgs { serveo: true, ..base() }),
             ("--ssh-j", NodeArgs { ssh_j: true, ..base() }),
+            ("--localtunnel", NodeArgs { localtunnel: true, ..base() }),
             ("--quick-tunnel", NodeArgs { quick_tunnel: true, ..base() }),
             ("--frp", NodeArgs { frp: Some("frp.toml".into()), ..base() }),
         ] {
