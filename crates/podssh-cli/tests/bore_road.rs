@@ -194,7 +194,19 @@ impl Lab {
         let client_key = client_home.join("client.key").to_string_lossy().into_owned();
         let known = client_home.join("known_hosts").to_string_lossy().into_owned();
         let target = format!("127.0.0.1:{port}");
-        Lab { runtime, _stand_in: stand_in, proxy: proxy_port, server, refuse, target, node_home, client_home, allow, client_key, known }
+        Lab {
+            runtime,
+            _stand_in: stand_in,
+            proxy: proxy_port,
+            server,
+            refuse,
+            target,
+            node_home,
+            client_home,
+            allow,
+            client_key,
+            known,
+        }
     }
 
     fn command(&self, home: &Path, args: &[&str]) -> Command {

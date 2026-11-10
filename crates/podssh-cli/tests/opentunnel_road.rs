@@ -64,6 +64,8 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     cmd.env("PODSSH_OPENTUNNEL", format!("https://{DOMAIN}"));
     // Not Pinggy's service, which a node takes after OpenTunnel (Q78, T-548).
     cmd.env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");
+    // Nor the bore road, the last of all (T-569).
+    cmd.env("PODSSH_BORE", "no");
     // The roads of the test alone: no transit relay, no Piping Server, no
     // record at n0's server of pkarr.
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");

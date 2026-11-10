@@ -4436,6 +4436,38 @@ commands. The rules behind them:
   takes it, under the layer and the end-to-end channel. A line says before
   the first link that the server, a third party that nobody vouches for,
   carries the session. Never with `--no-e2e`, and never in `podssh ping`.
+- **`node --bore` serves the bore road** (T-569, 2026-11-10, a draft), the
+  last fallback of Q78, after the ssh-j road: bore.pub, a public server of
+  bore's protocol that gives a TCP port with no account, where
+  `pod-services` names it (the service `bore`, endpoint `control`, asked
+  of podcrates), or the server of `PODSSH_BORE` (`HOST[:PORT]`, its control
+  port, 7835 where none is named); with neither, `--bore` is 78. The
+  node's control connection is raw TCP to port 7835, directly or through
+  `HTTPS_PROXY`'s CONNECT; on it, `Hello` asks a port that the node's key
+  gives (four in a series, each of SHA-256 over a label of the road, the
+  key's fingerprint and a step, in bore's default range 1024 to 65535,
+  `crates/podssh-relay/src/bore/ports.rs`), the next where the server
+  refuses one; its line `bore port HOST:PORT` gives a client's command
+  (`--node-key`). Each `Connection` is taken on a new connection with
+  `Accept`, then a hello of 16 bytes of the key, and the stream runs the
+  resumable layer and the end-to-end channel. A registration that ends is
+  made again, at once after one that lived a minute. The road is served
+  alone. The door and the refused flags are the ssh-j road's, and
+  `--opentunnel`, `--pinggy`, `--serveo` or `--ssh-j` beside it is 64. A
+  node that would serve the OpenTunnel, Pinggy, Serveo or ssh-j road
+  unasked serves this one when none of them reached a service, or when
+  each is off. `PODSSH_BORE=no` or `PODSSH_LAST_RESORT=no` turns it off.
+- **`ssh node://NAME` races the bore road** last of all, after the ssh-j
+  road, once each road before it failed, where the road has a server and
+  podssh holds the node's key (as the ssh-j road's), from which it derives
+  the ports. Each link is raw TCP to a port, the one that answered last
+  first, directly or through `HTTPS_PROXY`'s CONNECT, else through the
+  forwarders that the binary names (Q56; `PODSSH_FORWARDER_FALLBACK=no`
+  keeps them out), as a proxy that allows 443 alone refuses the port; a
+  port whose first bytes are not the node's hello sends the link to the
+  next. A line says before the first link that the server, a third party
+  that nobody vouches for, carries the session over raw TCP. Never with
+  `--no-e2e`, and never in `podssh ping`.
 - **croc's relay road of a pair** (T-694, 2026-11-10), a last fallback of
   Q78: a node of the pair's road with the layer and the channel waits in a
   room of the pair at croc's public relay, through croc-web's WebSocket

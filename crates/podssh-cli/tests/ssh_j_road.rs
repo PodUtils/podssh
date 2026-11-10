@@ -61,6 +61,8 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     let proxy = format!("http://127.0.0.1:{proxy}");
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
     cmd.env("PODSSH_SSH_J", SERVER);
+    // The bore road, which a node that ssh-j's road reached nothing for would serve next (T-569).
+    cmd.env("PODSSH_BORE", "no");
     // No other road, no public forwarder and no record at n0's server.
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no");
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");

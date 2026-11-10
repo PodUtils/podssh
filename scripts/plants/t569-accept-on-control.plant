@@ -1,0 +1,8 @@
+# T-569: the node of the bore road sends each Accept on its control
+# connection, where bore's server reads nothing after Hello, in place of a
+# new connection to the control port; the test of two visitors one after the
+# other, against the stand-in of bore's server, must fail.
+ENTRY=T-569
+GROUP=resume
+EXPECT='test two_visitors_one_after_the_other_each_come_on_a_new_connection_with_accept \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-relay --features bore --test bore_link -- two_visitors_one_after_the_other_each_come_on_a_new_connection_with_accept'
