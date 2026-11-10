@@ -7590,6 +7590,14 @@ gone; no verifier of the road accepts each certificate (the Decision).
   and a visitor came down the tunnel, as the node logged the client's key coming in by its door. The
   client then waited past the test's 120 s with no end, and the test dropped its words. The test now
   says the client's stderr at its limit, so the next run names where it waited.
+- The second live run (run 42736974415 at `66b48e5a`) went further. Through Pinggy itself, the
+  client's TLS took the node's pinned certificate, the end-to-end channel and the layer's resumable
+  session opened ("the Pinggy road answered first, in 372 ms"), SSH checked the host key and logged
+  in as `tester`. Then the command's output never came, and podssh waited past 120 s. The node said
+  nothing more than the key's entry. The stand-in passes the same steps, and its server is russh.
+  The node takes each visitor from an SSH channel of Pinggy's own server, whose flow control (the
+  window and its adjusts) the stand-in does not copy, so that is the first suspect. The client now
+  runs with `-vvv`, so the next run shows the channel's messages.
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 

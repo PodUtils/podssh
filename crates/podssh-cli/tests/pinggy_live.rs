@@ -125,7 +125,9 @@ fn a_node_behind_pinggy_serves_a_client_by_its_tunnel_s_name() {
     let ssh = |words: &[&str]| {
         let known = format!("UserKnownHostsFile={}", client_home.join("known_hosts").display());
         let client_key = client_key.to_string_lossy().into_owned();
-        let mut args = vec!["ssh", "-v", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
+        // -vvv: the channel's messages, for a run that stalls after its login.
+        let mut args =
+            vec!["ssh", "-vvv", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
         args.extend_from_slice(&["--client-key", &client_key, "--node-key", &expected, "--pinggy-name", &name]);
         args.extend_from_slice(words);
         run(&mut command(&client_home, &args))
