@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**695 entries: 93 open, 16 partial, 9 blocked, 577 done.**
+**698 entries: 93 open, 16 partial, 9 blocked, 580 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 8 | 1 | 261 | 295 |
-| P3 | 64 | 6 | 5 | 246 | 321 |
-| **All** | 93 | 16 | 9 | 577 | 695 |
+| P3 | 64 | 6 | 5 | 249 | 324 |
+| **All** | 93 | 16 | 9 | 580 | 698 |
 
 ## Entries
 
@@ -662,10 +662,10 @@ repository and CI).
 | [T-620](reverse.md) | P3 | S | M10 | defect | done | The stop token's rotation and the renewal follow the node's next pair at expiry |
 | [T-621](mesh.md) | P3 | M | M10 | feature | open | TURN with RFC 6062: a TURN server that the user runs, as a road with no relay |
 | [T-622](roads.md) | P3 | M | M10 | feature | open | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
-| [T-623](mesh.md) | P3 | S | M10 | research | open | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
-| [T-624](mesh.md) | P3 | S | M10 | research | open | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
+| [T-623](mesh.md) | P3 | S | M10 | research | done | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
+| [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
 | [T-625](mesh.md) | P3 | S | M10 | measurement | open | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |
-| [T-626](mesh.md) | P3 | S | M10 | research | open | I2P, Nym and cjdns: whether an overlay of peer addresses carries a podssh pair: the research |
+| [T-626](mesh.md) | P3 | S | M10 | research | done | I2P, Nym and cjdns: whether an overlay of peer addresses carries a podssh pair: the research |
 | [T-627](robustness.md) | P1 | S | M10 | defect | partial | The relay role's test of a resume by the next token of one leg timed out once in the relay crate's suite |
 | [T-628](mesh.md) | P1 | S | M10 | defect | done | The relay role's refusal of a target names the address that its name resolved to, so a holder of a token maps the role's network |
 | [T-629](relay.md) | P2 | S | M10 | feature | done | `podssh relay serve` keeps each capability of its start after the bind, while it serves each client |
@@ -771,3 +771,6 @@ repository and CI).
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | open | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | open | Bare servers as a hop of the WebSocket roads, tried last |
+| [T-741](mesh.md) | P3 | M | M10 | feature | open | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
+| [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
+| [T-743](mesh.md) | P3 | S | M10 | feature | open | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |

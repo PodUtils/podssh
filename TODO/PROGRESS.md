@@ -354,7 +354,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 695 entries: 93 open, 16 partial, 9 blocked, 577 done.
+`TODO/INDEX.md` holds 698 entries: 93 open, 16 partial, 9 blocked, 580 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -448,9 +448,10 @@ this order:
    T-582). These are features of a tester's report and of the sweep, done after the defects (Q85).
    Then what the archive of forward carriers (2026-11-04, `docs/research/forward-carriers.md`)
    filed: the rates of `ppng.io`'s road and of the Wisp demo server through podssh (T-625), TURN
-   with RFC 6062 for a server that the user runs (T-621), the research of smee.io (T-623), of three
-   hosted tunnels (T-624) and of I2P, Nym and cjdns (T-626), and the HTTP road's one-POST form
-   (T-622, parked).
+   with RFC 6062 for a server that the user runs (T-621), the research of smee.io, of three
+   hosted tunnels and of I2P, Nym and cjdns (done 2026-11-10; it filed smee.io as a last fallback,
+   T-741, hostc's, T-742, and Sandhole's public server as a host of T-565's module, T-743), and the
+   HTTP road's one-POST form (T-622, parked).
 5. T-446: betas `v1.1.0-beta.N` after batches, and `v1.1.0` at the end.
 
 Between entries: the `none` entries, the highest priority first, but for the testers' entries.

@@ -969,6 +969,197 @@ Server, serv00's (T-575); and the trackers, a research entry (T-546). The others
 needs an account of the user's: chatmail's iroh relays (a mail account, to learn the relay's
 URL), Matrix.org, zrok, and Metered's TURN.
 
+Read on 2026-11-10, through the services of web.pkgforge.dev (read, fetch, domain, ip and
+search), for T-623, T-624 and T-626. No service was connected to: each fact is from a
+project's repository or document, or from an index. Q94 (2026-11-04, [decisions.md](decisions.md))
+allows short live tests of smee.io, hostc, Tunnelmole and Sandhole's public server once the terms
+are read; none was run for this reading, and the feature entries below carry the runs.
+
+- **smee.io** (T-623; a last fallback, T-741).
+  - Who, and the terms: Probot's project; its README says "Smee.io is intended for use in
+    development, not for production" [SM1]. No terms were found: `https://smee.io/terms` and
+    `https://smee.io/privacy` answer with the page of a channel that has that name, not with a
+    document [SM4]. The server's code is `probot/smee.io`, MIT in its `LICENSE` and ISC in its
+    `package.json`; the site is at an address of Microsoft's network, AS8075 [SM2] [SM3].
+  - The protocol (Verified in the server's `lib/server.js` [SM2]): `GET /:channel` with the
+    header `Accept: text/event-stream`, and nothing else in it, is a stream of events (a `ready`
+    event at once, a `ping` each 30 s); `POST /:channel` takes a JSON object (its schema says
+    `type: object`), answers `200` and sends each reader of the channel an event whose data is
+    the JSON of the request's headers, its `body`, its `query` and a `timestamp`. A channel is
+    any name of 1 to 128 characters of `[a-zA-Z0-9-_]` that nobody makes: its first use makes
+    it, and `/new` only redirects to 12 random bytes in base64url. So the name can come from
+    the pair's secret, and anyone who knows it reads and writes it.
+  - What it keeps: nothing. The README says that payloads "are never stored on the server",
+    and a reader gets only the events that come after its stream opens (no replay) [SM1]
+    [SM2]. A POST's answer carries no copy, so one channel serves one way, as the poster would
+    read its own events. A binary payload goes as base64 inside a JSON field, a third more
+    bytes; the code sets no limit of a body, so the framework's own applies (Fastify's, 1 MiB
+    by its documents, not read here; Inferred). The operator can close a channel: its code
+    answers `403` "Channel has been disabled due to too many connections." to the names of its
+    `BLOCKED_CHANNELS` [SM2].
+  - Through a proxy: plain HTTPS by name on 443, no upgrade. TLS 1.2, ALPN `h2`, a certificate of
+    GeoTrust's CA valid to 2027-04-02; the name's address is not Cloudflare's (its name servers
+    are); no category, and the family resolvers clear it (Verified [SM3]). The server sends
+    `Cache-Control: no-cache` and `x-no-compression` on the stream [SM2], and the archive's
+    run passed an HTTP CONNECT proxy at 441 ms and 143.9 KiB/s (the Premise).
+  - Limits: no rate limit in the code, none published; not determined. Its client reads the
+    standard proxy variables [SM5], which podssh needs no part of.
+  - How podssh would use it (Inferred): two channels named from the pair's secret as the Piping
+    Server road names its paths; each end reads the other's channel with one stream and POSTs
+    its own way a frame at a time, awaiting the `200` before the next as two POSTs in flight
+    may arrive in either order; a frame is a JSON object of a number and a base64 chunk. What
+    a late reader misses, the layer's numbers and its 4 MiB of bytes to send again repair;
+    the end-to-end channel and the allowlist keep a reader that knows the name out of the
+    bytes. Each event repeats the poster's request headers, and the rate is a frame over a
+    round trip.
+  - Verdict: it passes. No account, bytes in both ways, 443 by name and no upgrade, which
+    makes it a second provider, after Piping Server and OpenTunnel, for a proxy that refuses
+    the upgrade. A last fallback (Q78) after those two; T-741 is its entry. Its costs are
+    no stop: base64, no replay, and the word "not for production".
+- **hostc** (T-624; a last fallback, T-742).
+  - Who, and the terms: `akazwz/hostc` on GitHub, Apache-2.0, created 2026-04-16, last push
+    2026-11-06, 632 stars; the server is a Cloudflare Worker with one Durable Object for each
+    tunnel [HC1] [HC2]. No terms were found: `https://hostc.dev/terms` answers `404` and
+    the sitemap lists no terms or privacy page [HC3]; the README says "Anyone who has [the
+    URL] reaches your server". The names are `ID.hostc.app` and the API's is `hostc.dev`,
+    both behind Cloudflare, with no category (Verified [HC3]).
+  - The protocol (Verified in `docs/protocol.md` and the code [HC2]): `POST /api/tunnels` with
+    the header `hostc-protocol: 5` gives `{ id, url, connectUrl, token }`; the client opens one
+    WebSocket to `connectUrl` with `Authorization: Bearer TOKEN` (an HMAC of the id). Each
+    visitor's request or WebSocket is a stream of binary frames (`u8` type, `u32` stream id)
+    of `OPEN`, `HEAD`, `DATA` (64 KiB at most), `TEXT`, `END`, `RESET` and `WINDOW`; HTTP bodies
+    have windows of 256 KiB that grow to 4 MiB (16 MiB for a tunnel); a visitor's WebSocket
+    message passes whole up to 1 MiB less 64 bytes, with no window. The client sends the text
+    `hostc:ping` each 15 s.
+  - Through a proxy: the node's leg is HTTPS by name on 443 and a WebSocket upgrade, so it
+    passes where a WebSocket does and stops where a proxy refuses the upgrade. The reference
+    client opens its socket with the `ws` package and no proxy agent (`new WebSocket(url,
+    { headers, ... })`), so it never reads `HTTPS_PROXY`; podssh would speak the protocol
+    itself on podssh-ws, as it would OpenTunnel's. The visitor's leg is HTTPS on 443, and the
+    README says that WebSockets, server-sent events, streaming responses and uploads pass
+    [HC1]: the relay role's contract (a WebSocket, or the split road of T-319) fits.
+  - Limits (Verified [HC2]): 256 requests and WebSockets at once for a tunnel, 1024 waiting,
+    then `503`; 20 tunnels a minute from one address (`CREATE_LIMIT`); a new tunnel must
+    connect within 2 minutes, and a dropped one keeps its name for 10; a local server has 2
+    minutes to begin an answer; a stream with over 4 MiB waiting on the local side closes. No
+    monthly quota is stated [HC1]; Cloudflare's own limits for a Worker apply [F9].
+  - Risks: "server updates can break older CLIs" [HC1]: the version of the protocol must match
+    exactly, with a `426` and no fallback to an older one [HC2], so podssh's own client breaks
+    on the next change and needs a release to follow it; one author's project of 2026; no
+    terms. The tunnel's name is public: the end-to-end channel's allowlist is the node's door,
+    as on OpenTunnel and the quick tunnel.
+  - Verdict: it passes. A last fallback of the reverse road (Q78): the node makes a tunnel and
+    serves the relay role behind it, as behind the quick tunnel, over a protocol that podssh
+    speaks itself; T-742 is its entry.
+- **Tunnelmole** (T-624; out).
+  - Who, and the terms: Tunnelmole Pty Ltd, "only one maintainer"; the client is MIT, the
+    service AGPL-3.0 with a commercial licence on offer [TM1] [TM2]. Its terms are a PDF of
+    seven pages [TM2]: it bars phishing, scams, malware and hate speech; says that the
+    service "DOES NOT make you anonymous", and sends the client's address in
+    `X-Forwarded-For` (a random URL carries the address too); keeps logs, and may give them
+    and the address to a third party "even if no warrant" is served; and in section 1a,
+    "Hack back", reserves the right, where the service is used for phishing or the like, to
+    "Port scan your IP" and to "Access any services running on the machine you ran the
+    Tunnelmole client on including protected services such as SSH". Its text has no word of
+    relaying, automation or bandwidth (searched on 2026-11-10 for the words "bandwidth",
+    "automat", "rate limit", "fair use", "proxy", "relay" and "excessive").
+  - The protocol (Verified in the client's source [TM1]): one WebSocket from the `ws` package
+    to `config.hostip.endpoint`; the example instance's file names
+    `wss://service.tunnelmole.com:8083`, and the built-in default `service.tunnelmole.com` with
+    the port `80`; the hosted service's own setting is not in the repository. JSON messages:
+    `initialise`, `hostnameAssigned`, `forwardedRequest` (id, url, method, headers, body) and
+    `forwardedResponse` (the body in base64, in one message). The client has no handler for a
+    WebSocket upgrade or a streamed body, so a visitor's leg carries whole requests and whole
+    answers, which only the exchange form of T-319 could use.
+  - Through a proxy: the example's port is 8083, which a proxy that allows 443 alone refuses
+    (Inferred from that file, not from a run); it fits the archive, where the measuring host's
+    proxy refused the tunnels' ports and Tunnelmole gave "no public URL". `tunnelmole.com` is
+    "Anonymizer" in one list (hagezi's, one source), and so a filter list's security flag is
+    set (Verified [TM3]).
+  - Verdict: out. No port that a host with 443 alone reaches (Inferred), no stream and no
+    upgrade, a term that claims the right to enter the client's machine, and a category. It
+    reopens if a run finds the hosted service on 443 by name; it would then join the HTTP
+    road's exchange form, at base64's cost.
+- **Sandhole's public server** (T-624; a host of T-565's module, T-743).
+  - Who, and the terms: `EpicEric/sandhole` (a mirror of `codeberg.org/sandhole/sandhole`),
+    AGPL-3.0-or-later, version 0.10.5, Rust on russh 0.65.1; "mostly feature-complete", and "try
+    it in production at your own risk". Its README says `ssh -R 80:localhost:4321
+    demo.sandhole.com.br` [SH1]. The book is the software's, for a server that its reader
+    runs; no terms of the demo server were found. The read service, asked for
+    `https://demo.sandhole.com.br/`, answered with a page of Codeberg's repository whose links
+    pointed at that name: something answers there; what it is was not determined.
+  - The account: a key that the server does not know may only local-forward; a remote forward
+    needs a key in the server's `user_keys` directory, a password checked by a login URL, or
+    the server's option `--authenticate-any-key-as-user`, which "effectively turns Sandhole into
+    a public reverse proxy" [SH1]. Whether the demo server sets it is written nowhere that was
+    read; the README's command suggests it, and the archive's run, with "no public URL", did
+    not settle it.
+  - Through a proxy: the README's command names no port, so SSH on 22. A server may take SSH on
+    its HTTPS port with `--connect-ssh-on-https-port`: its code peeks eight bytes for
+    `SSH-2.0-` before it reads a TLS hello (`src/entrypoint.rs`), so that is raw SSH on 443,
+    not SSH inside TLS, and a proxy that waits for TLS refuses it
+    ([target-environment.md](target-environment.md)). The node's leg passes only where SSH
+    does, the limit of localhost.run (T-565). The visitor's leg is HTTPS by name, and "Websockets
+    are always enabled for HTTP services" [SH1]. The quota and the rate limit of a server are
+    its own options, and the demo's are not known. `sandhole.com.br` has no category (Verified
+    [SH2]).
+  - Verdict: no module of its own. It is one more host for T-565's module, a tunnel of HTTP made
+    by `ssh -R`, which a stock OpenSSH client already reaches; whether it takes an unknown key
+    for a remote forward decides it, and T-743 begins with that short run (Q94). If the demo
+    asks for an account, the entry ends with a correction and the verdict is out for the account.
+- **I2P** (T-626; out).
+  - How a peer joins, and the transports: with no account; a router of the peer's own. emissary
+    is a router in Rust, MIT and Apache-2.0, with an embeddable `emissary-core` that takes
+    RustCrypto, dalek and `ml-kem`, 5.4 MB of Rust by GitHub's count, v0.4.0 of 2026-04-12 and
+    a push of 2026-11-06; its clients speak SAMv3 and I2CP, which give streams between
+    destinations, each a key; its transports are NTCP2 over TCP and SSU2 over UDP [IP1]. The
+    first boot "reseeds over HTTPS" from a list of 15 names in its code, one of them on 8443:
+    those pass a proxy [IP1].
+  - Through a proxy: after the reseed, a peer reaches routers by NTCP2, "a point-to-point
+    (router-to-router) transport of I2NP messages", which "is not a general-purpose data pipe"
+    [IP2]. Its bytes are made to look random (obfuscated keys, lengths hidden with SipHash,
+    padding) and are no TLS, and a router listens on a port that its operator or its software
+    picks: emissary's default is random between 9151 and 30777 [IP1]. i2pd can reach a router
+    through an HTTP or SOCKS proxy (`ntcp2.proxy`) [IP2], but the port is the router's, an
+    address from its record. So a proxy that allows 443 or listed names refuses it, and one
+    that waits for TLS refuses the bytes (Inferred, as for Tox). SSU2 is UDP (Q82).
+  - Verdict: out. Only the reseed passes a host with 443 alone, and a host where UDP passes has
+    podssh's own UDP roads, which a router that also relays for others adds nothing to.
+- **Nym** (T-626; out).
+  - How a peer joins: `connect_new()` makes an ephemeral key, takes a gateway from the
+    network's topology and keeps one WebSocket to it. The network's own pages say it "must be
+    accessed using zk-nyms", credentials bought with $NYM [NY1]; the SDK's credentials mode is
+    opt-in ("Enable paid coconut bandwidth credentials mode"), and its tutorial connects with
+    none [NY1]. The two disagree, and a run would settle it; none was made.
+  - The transports: the validator API's list of nym nodes, read on 2026-11-10, holds 893 nodes
+    and 652 that declare the entry role; 585 of those announce a secure WebSocket on port 9001
+    and 67 announce none; none announces 443; 651 announce a plain WebSocket on 9000 [NY2].
+    The operators' guide uses 9001 as its example for the port, behind nginx [NY1]. A proxy that
+    allows 443 alone refuses each gateway.
+  - Peers and the library: the SDK's Stream module is a byte stream between two clients, opened
+    by a recipient's address, with `AsyncRead` and `AsyncWrite` [NY1]; `nym-sdk` is Apache-2.0
+    on crates.io (1.21.6 of 2026-09-04; its pages say 2.0.0). The mix adds delays, reordering
+    and a constant stream of cover traffic over 5 hops, "unsuitable for real-time"
+    applications, and its measurements "will be published after the Lewes Protocol release"
+    [NY1]. That would run under the resumable layer.
+  - Verdict: out, for no gateway on 443 and an access model that asks for payment by the
+    network's own account. It reopens when a gateway announces 443 and a run connects with no
+    payment: the Stream module is then a stream between two keys.
+- **cjdns** (T-626; out).
+  - How a peer joins: a node with credentials of a peer, "ip/port, password, publicKey" and a
+    contact, from a friend or from the public list of Hyperboria, whose credentials "must use
+    IP:port strings" and whose files with hostnames are not accepted; or a DNS seeder that
+    finds peers by itself [CJ1]. Its interfaces are UDP (`UDPInterface`, `connectTo`) and
+    Ethernet or WiFi; its whitepaper says that an interface "may be emulated by Ethernet
+    frames, UDP packets or other means", and no TCP or TLS transport was found [CJ1].
+  - The node: `cjdroute`, in C with Rust parts (it builds with Rust, NodeJS and a C compiler),
+    GPL-3.0 and no library; it needs a TUN device and starts as root, or on a TUN made ahead
+    of time for another user [CJ1]. Two ends meet at addresses of `fc00::/8` that their keys
+    make, over an IPv6 interface of the host.
+  - Verdict: out. UDP alone, so no port that a host with 443 alone reaches; where UDP passes,
+    a TUN, the privileges for it and another program, which rules 1 and 3 of
+    [AGENTS.md](../AGENTS.md), section 5, forbid.
+
 Ruled out:
 
 - **Syncthing's relays**: volunteers, any client, and a specification that
@@ -2275,3 +2466,53 @@ T-572, T-573 and T-577 (read on 2026-11-10 through the services of web.pkgforge.
   and its README (GPL-3.0)
 - [R577-4] https://github.com/nirholas/openbare (its README)
 - [R577-5] https://domain.web.pkgforge.dev/openbare.xyz (its category, and the RDAP answer 403)
+
+Read on 2026-11-10 through the services of web.pkgforge.dev (read, fetch, domain, ip and search),
+for T-623, T-624 and T-626. No host of these services was connected to; each fact is from a
+project's own repository or document, or from an index, and a path with a name before its colon
+is a file of that repository.
+
+- [SM1] https://smee.io/ and https://github.com/probot/smee.io (its README: "How it works",
+  "Deploying your own Smee.io", the FAQ)
+- [SM2] `probot/smee.io:lib/server.js`, `lib/keep-alive.js`, `lib/event-bus.js`, `LICENSE` (MIT)
+  and `package.json` (`"license": "ISC"`), at the default branch
+- [SM3] https://domain.web.pkgforge.dev/category/smee.io, `/dns/smee.io` and `/tls/smee.io`;
+  https://ip.web.pkgforge.dev/20.119.128.0 (AS8075)
+- [SM4] https://smee.io/terms and https://smee.io/privacy, read through the read service
+- [SM5] https://github.com/probot/smee-client (ISC; "the standard proxy server environment
+  variables")
+- [HC1] https://github.com/akazwz/hostc (its README, Apache-2.0), https://hostc.dev/ and
+  https://hostc.dev/llms.txt, https://www.npmjs.com/package/hostc, and GitHub's record of the
+  repository (created 2026-04-16, last push 2026-11-06)
+- [HC2] `akazwz/hostc:docs/protocol.md` (version 5), `packages/protocol/src/constants.ts`,
+  `packages/client/src/connection.ts` and `api.ts`, `apps/server/src/index.ts`,
+  `apps/server/cloudflare.config.ts`, `apps/cli/tsdown.config.ts` and
+  `docs/self-hosting.md`
+- [HC3] https://hostc.dev/sitemap.xml, https://hostc.dev/terms (`404`); domain.web.pkgforge.dev
+  `/category/hostc.app`, `/category/hostc.dev`, `/dns/hostc.dev` and `/tls/hostc.app`
+- [TM1] `robbie-cahill/tunnelmole-client:README.md`, `LICENSE.md`, `config.ts`,
+  `config-instance.example.ts`, `message-handlers.ts`, `src/websocket/connect.ts` and
+  `src/message-handlers/forwarded-request.ts`, `src/messages/*`
+- [TM2] https://tunnelmole.com/docs/Tunnelmole_Terms_Of_Service.pdf, https://tunnelmole.com/docs/
+  and https://github.com/robbie-cahill/tunnelmole-service (AGPL-3.0)
+- [TM3] https://domain.web.pkgforge.dev/category/tunnelmole.com
+- [SH1] https://github.com/EpicEric/sandhole and https://codeberg.org/sandhole/sandhole (README);
+  https://sandhole.com.br/ (the book: `configuration.html`, `cli.html`, `faq.html`,
+  `exposing_your_first_service.html`); `EpicEric/sandhole:src/entrypoint.rs`, `src/ssh/auth.rs`
+  and `Cargo.toml`
+- [SH2] https://domain.web.pkgforge.dev/category/sandhole.com.br
+- [IP1] https://github.com/eepnet/emissary (README; `docs/router-configuration.md`,
+  `docs/embedding-overview.md`, `emissary-core/Cargo.toml`, `emissary-util/src/reseeder.rs`),
+  GitHub's record of it (MIT and Apache-2.0, v0.4.0, languages)
+- [IP2] https://geti2p.net/spec/ntcp2 and
+  https://i2pd.readthedocs.io/en/latest/user-guide/configuration/
+- [NY1] https://github.com/nymtech/nym (README); https://nym.com/docs/developers/rust and its
+  pages `stream`, `importing` and `mixnet/tutorial`;
+  https://docs.rs/nym-sdk/latest/nym_sdk/mixnet/struct.MixnetClientBuilder.html;
+  https://nym.com/blog/nym-pay-as-you-go; https://nym.com/docs/network/mixnet-mode;
+  https://nym.com/docs/operators/nodes/nym-node/configuration/proxy-configuration;
+  https://crates.io/api/v1/crates/nym-sdk
+- [NY2] https://validator.nymtech.net/api/v1/nym-nodes/described, read through the fetch
+  service on 2026-11-10 (the fields `declared_role` and `mixnet_websockets`)
+- [CJ1] https://github.com/cjdelisle/cjdns (README; `doc/peering.md`, `doc/non-root-user.md`,
+  `doc/Whitepaper.md`) and https://github.com/hyperboria/peers (README)
