@@ -5264,7 +5264,7 @@ builds with, so that its DNS packets and iroh's are of one type.
   `0cce0a5...`, the gate's image.
 - Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:141`), and the lock holds 0.11.0; 0.11.1
   needs Rust 1.88, under the workspace's 1.89 (`Cargo.toml:56`, Q48).
-- Read: `crates/podssh-iroh/Cargo.toml:56-59` takes `simple-dns` 0.12, "the simple-dns that
+- Read: `crates/podssh-iroh/Cargo.toml:59-62` takes `simple-dns` 0.12, "the simple-dns that
   iroh-dns builds and reads with, so no crate is added"; iroh-dns 1.4.1, which the lock holds,
   takes simple-dns 0.12.0, the lock's only version.
 - Inferred: Dependabot closes each pull request once `main` holds its version, as T-386's were.

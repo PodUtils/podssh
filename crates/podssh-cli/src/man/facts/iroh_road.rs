@@ -86,17 +86,19 @@ fn record() -> Block {
             "A node of the iroh road keeps a record of its roads, signed with its key, at a server of pkarr: \
              {n0} when its relays are n0's, else the one of {env}, and none with {env}=off. The record names \
              its home relay in iroh's own _iroh names, which iroh's tools read, and, in podssh's _podssh names, \
-             which they pass by, its DERP home (its ticket, with --derp) and its quick tunnel; no address of the \
-             host. The node puts it through the proxy at its start, again when a road comes or moves, and each \
-             {minutes} minutes. A node of --quick-tunnel, or of the DERP road alone, keeps the record of its \
+             which they pass by, its DERP home (its ticket, with --derp), its quick tunnel and its Pinggy tunnel \
+             (NAME#PIN, with --pinggy); no address of the host. The node puts it through the proxy at its start, \
+             again when a road comes or moves (a Pinggy tunnel's name changes each hour), and each {minutes} \
+             minutes. A node of --quick-tunnel, of the DERP road alone, or of --pinggy, keeps the record of its \
              road at {n0} too, unless {env} names another server or off. A client whose ticket's relay does not reach the node within \
              {after} s (at once, when that relay does not answer /ping) asks for the record, {limit} s at most, \
              and dials the relay that it names too; podssh ssh then says the node's ticket at that relay. \
              podssh ssh node://NAME of a member of the net, whose key the net names, asks it once each road with \
              a ticket failed, and races each road that it names and no ticket gave: the iroh road, the DERP road \
-             and the quick tunnel. A record that the node's key did not sign is refused; of a record, a DERP \
-             ticket of another key, or a quick tunnel that is not one name under trycloudflare.com, is set \
-             aside; and the end-to-end channel checks the node's key on each road either way.",
+             and the quick tunnel; and the Pinggy road, last, with the record's address where --pinggy-name gave \
+             none, as the record's signature makes its pin the node's word. A record that the node's key did not \
+             sign is refused; of a record, a DERP ticket of another key, a quick tunnel that is not one name under \
+             trycloudflare.com, or a Pinggy address that is not NAME#PIN, is set aside; and the end-to-end channel checks the node's key on each road either way.",
             n0 = pkarr::n0_url(),
             env = pkarr::ENV,
             minutes = pkarr::REPUBLISH.as_secs() / 60,

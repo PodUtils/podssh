@@ -168,7 +168,7 @@ impl<'a> Roads<'a> {
             self.push_piping(&mut list, &mut kinds);
         }
         if let Some(pinggy) = &self.pinggy {
-            pinggy.push(&mut list, &mut kinds);
+            pinggy.push(&mut list, &mut kinds, self.record.as_ref());
         }
         (list, kinds)
     }
@@ -245,7 +245,9 @@ where
     // The pair's road, when this host has the pair; a node that the DERP
     // road, its record, a relay member or frps reaches may have none here.
     // A node's Pinggy tunnel (T-548), which needs no pair either: the last.
-    let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, &log, &shown);
+    // Its address may come from the node's record (T-445), with none given
+    // or kept.
+    let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, raced.record.is_some(), &log, &shown);
     let others = raced.opentunnel.is_some() || raced.record.is_some() || member.is_some() || frp.is_some();
     let others = others || pinggy.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {

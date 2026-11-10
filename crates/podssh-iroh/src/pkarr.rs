@@ -6,8 +6,8 @@
 //! The record is iroh's own, with podssh's beside it ([`record`]): a signed
 //! packet of pkarr whose `_iroh` TXT names `relay=URL` (iroh-dns writes and
 //! reads it), so iroh's tools and n0's DNS read it too, and whose `_podssh`
-//! TXT names the DERP home and the quick tunnel, which iroh passes by. It
-//! names no address of the host.
+//! TXT names the DERP home, the quick tunnel and the Pinggy tunnel, which
+//! iroh passes by. It names no address of the host.
 //! podssh puts it and asks for it over podssh-ws, through podssh's proxy and
 //! trust store, as it asks a relay's `/ping`: iroh's own publisher and
 //! resolver would take the one proxy that the endpoint has, ask at each
@@ -268,10 +268,10 @@ enum Said {
 }
 
 /// Keep the record of `endpoint`'s roads at `server` until the endpoint
-/// closes: its home relay, which the endpoint gives, and the DERP home and
-/// quick tunnel of `others`, which the node's other roads give as they come
-/// online and move (T-445); `None` names the home relay alone. Put as
-/// [`keep_roads`] puts it.
+/// closes: its home relay, which the endpoint gives, and the DERP home,
+/// quick tunnel and Pinggy tunnel of `others`, which the node's other roads
+/// give as they come online and move (T-445, T-548); `None` names the home
+/// relay alone. Put as [`keep_roads`] puts it.
 pub async fn keep(
     endpoint: Endpoint,
     server: Server,
@@ -305,9 +305,9 @@ pub async fn keep(
                 },
                 other = next_other(&mut others) => {
                     told.send_if_modified(|roads| {
-                        let new = roads.derp != other.derp || roads.quick != other.quick;
+                        let new = roads.derp != other.derp || roads.quick != other.quick || roads.pinggy != other.pinggy;
                         if new {
-                            (roads.derp, roads.quick) = (other.derp, other.quick);
+                            (roads.derp, roads.quick, roads.pinggy) = (other.derp, other.quick, other.pinggy);
                         }
                         new
                     });

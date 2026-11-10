@@ -18,7 +18,10 @@ pub(super) const NODE: &str = "With --pinggy, the node serves TARGET over the Pi
      for the run, and the line says so. The host key of Pinggy's server is checked against the one that \
      podssh's list of services names, where it names one; else any key passes, and the line says so. A free \
      tunnel ends at 60 minutes: the node opens the next, which has a new name, and says it; the sessions that \
-     the layer keeps go on when their client dials the new name. Each visitor's end has a line, with why it \
+     the layer keeps go on when their client dials the new name. In a build with the iroh road, the node puts \
+     each tunnel's address (NAME#PIN) in its record of pkarr, signed by its key, at the server of pkarr that \
+     the iroh road names, in the place of the last, and its line says so; a client whose net names \
+     the node by its key finds the new name there with no --pinggy-name. Each visitor's end has a line, with why it \
      ended and its bytes each way; PODSSH_PINGGY_TRACE=1 adds one each 5 s while it lives. Anyone may connect to a tunnel's name, and \
      Pinggy is a third party that nobody vouches for, so the road needs the end-to-end channel and a door: \
      --allow, or the members of the net held here when the node's key is one; never --plain, --no-e2e, --exit, \
@@ -38,10 +41,13 @@ pub(super) const SSH: &str = "node://NAME with --pinggy-name HOST#PIN races the 
      pinned key, and refuses another with the key it showed: a stranger at the name, or a proxy that ends TLS. \
      The end-to-end channel then checks the node's own key by the pins of NAME, or --node-key, so --no-e2e \
      leaves the road out (64 with --pinggy-name). The address is kept under NAME in the cache \
-     (pinggy-NAME.name), and a later run that gives none dials it last, once each road before it failed, the \
-     last fallback of the operator's ruling Q78; before it, a line says that Pinggy, a third party that nobody \
+     (pinggy-NAME.name). A run that gives none dials the address of the node's record of pkarr, where the net \
+     names NAME by its key and the record is asked (the node puts each tunnel's there), else the one kept, last, \
+     once each road before it failed, the last fallback of the operator's ruling Q78; the record is signed by \
+     the node's key, so its pin is the node's word, and -v says where the address came from. Before it, a line says that Pinggy, a third party that nobody \
      vouches for, carries the session, and that SSH and the end-to-end channel keep its bytes. A free tunnel's \
-     name changes each hour, and its pin does not: give the new name that the node says, with the same pin. \
+     name changes each hour, and its pin does not: the record names the new one, else give the new name that \
+     the node says, with the same pin. \
      PODSSH_PINGGY=no or PODSSH_LAST_RESORT=no turns the road off.";
 
 #[cfg(test)]
@@ -60,7 +66,8 @@ mod tests {
         for text in ["nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no", "60 minutes", "raw SSH", "pin"] {
             assert!(super::NODE.contains(text), "{text}");
         }
-        for text in ["HOST#PIN", "only a certificate of the pinned key", "refused (64)"] {
+        assert!(super::NODE.contains("record of pkarr"), "the node's record names its address");
+        for text in ["HOST#PIN", "only a certificate of the pinned key", "refused (64)", "record of pkarr"] {
             assert!(super::SSH.contains(text), "{text}");
         }
     }

@@ -143,8 +143,9 @@ pub(super) struct Unasked {
     pub opentunnel: bool,
     /// The Piping Server road that `PODSSH_PIPING` did not ask for (Q65).
     pub piping: bool,
-    /// A Pinggy name kept, the last fallback (Q78).
-    pub pinggy: bool,
+    /// Where a Pinggy address that nobody gave comes from, the last
+    /// fallback (Q78): the node's record, a kept name, or both.
+    pub pinggy: Option<&'static str>,
 }
 
 /// The order of the roads, for `-v`.
@@ -163,8 +164,9 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             }
             (_, Kind::Member) => "when each road before it failed (a member of the net that relays, T-434)".to_string(),
             (_, Kind::Frp) => "when each road before it failed (the user's frps, T-498)".to_string(),
-            (_, Kind::Pinggy) if unasked.pinggy => {
-                "when each road before it failed (a kept name, the last fallback of Q78)".to_string()
+            (_, Kind::Pinggy) if unasked.pinggy.is_some() => {
+                let from = unasked.pinggy.unwrap_or_default();
+                format!("when each road before it failed ({from}, the last fallback of Q78)")
             }
             (_, Kind::Piping) if unasked.piping => {
                 "when each road before it failed and one found the WebSocket upgrade refused (Q65)".to_string()

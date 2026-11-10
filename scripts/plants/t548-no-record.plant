@@ -1,0 +1,9 @@
+# T-548: the client's Pinggy road ignores the address of the node's record of
+# pkarr, so a member with no --pinggy-name and no name kept has no Pinggy
+# road; the test of the record against the stand-in of Pinggy's server and a
+# server of pkarr on the loopback must fail.
+ENTRY=T-548
+GROUP=cli-tests
+EXPECT='test pinggy_record::a_member_with_no_address_given_or_kept_reaches_the_node_by_the_pinggy_address_of_its_record \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --features iroh-test --test pinggy_road -- pinggy_record::a_member_with_no_address_given_or_kept_reaches_the_node_by_the_pinggy_address_of_its_record'
+LIMIT=2400

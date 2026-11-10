@@ -4653,7 +4653,7 @@ Read again on 2026-11-03 at the cited lines and in the code:
 
 - Approach, item 1: "its record names the road once T-445 is done". T-445 is done, but its record
   names three roads, the iroh home relay, the DERP home and the quick tunnel
-  (`crates/podssh-iroh/src/pkarr_record.rs:54` says "pub struct Roads"), and a member's client
+  (`crates/podssh-iroh/src/pkarr_record.rs:69` says "pub struct Roads"), and a member's client
   races those three alone. Naming the OpenTunnel name there is a new kind of road in that record,
   in its reader and in the client's race: T-611.
 - Approach, item 3: the operator's ruling Q76 answered question 3: the unasked fallback, for a node
@@ -7550,6 +7550,17 @@ containers wait with the release's checks (T-251). Step 3's record: the node kee
 cache and says it; the record of pkarr (T-445, `podssh-iroh`'s keys) and the net's list do not
 hold it in this draft, so a client learns a new hour's name from the user.
 
+2026-11-10, step 3. The record of pkarr (T-445) is the place of a tunnel's address, and the net's
+list is not. The net's list (`crates/podssh-cli/src/net/doc.rs`, `TICKETS`) names roads of a member,
+its `iroh` and `derp` tickets, but they are the owner's word: the owner writes each one with `podssh
+net add NAME KEY --derp-ticket ...` and signs the document; a node cannot change it. A free tunnel's
+name changes each hour, so a name that the owner wrote there would be stale within the hour, and the
+quick tunnel's name, which changes too, is in the record alone for the same reason. The net's part
+in step 3 is the key: it names the member by its key, by which a client asks the record, whose
+signature by that key makes the pin in it the node's word. Step 3 is so: the node puts its
+address, `NAME#PIN`, in its record at each new tunnel, and a client whose net names the node by its
+key reads it there; no ticket of the net carries it.
+
 ## Done
 
 Partial, 2026-11-09: drafted by an agent in a worktree (`draft-t548`, `910a53ac`), then merged,
@@ -7752,6 +7763,77 @@ stopped.
   step's test failed as it must, so the job is green. Still waiting, so the entry stays partial: the
   name in the node's record of pkarr and the net's list (step 3), the containers of the Prove
   (T-251), and the measure of a proxy that ends TLS on the client's side.
+
+2026-11-10, step 3: the address in the node's record of pkarr (the Correction of 2026-11-10 says
+why the net's list does not hold it).
+
+- The record (`podssh-iroh/src/pkarr_record.rs`): `Roads` and `Record` hold `pinggy`, a
+  `podssh_relay::pinggy::Address`, under `_podssh` as `pinggy=NAME#PIN`, the text of the node's line
+  and of `--pinggy-name`; podssh-iroh builds podssh-relay's `pinggy` (pure Rust, in each build of
+  the binary already), so the road's own parser reads it. An address of more than `MAX_PINGGY`
+  (200) bytes, one that is not `NAME#PIN`, or a second one, is set aside and never said back; the
+  others stay. A record of the Pinggy road alone is a record. Any DNS name, not Pinggy's zone alone:
+  the free names came under `run.pinggy-free.link`, not the documents' `a.pinggy.link`, and
+  `PODSSH_PINGGY` may name another server; the pin is the check, and the record's signature by the
+  node's key vouches for it (a comment says so). With each road at its longest (a DERP home of 253
+  characters, a quick label of 63, a Pinggy address of 200), the record stays within pkarr's 1,000
+  bytes. The keeper (`pkarr.rs` `keep`) follows a change of the address too.
+- The node (`node_pinggy.rs`, `node_pinggy_serve.rs`, `node_record.rs`): in a build with the iroh
+  road, the server of its record is read before anything connects (n0's, or `PODSSH_IROH_PKARR`'s,
+  `off` none; Q81), the record is kept as a node with no iroh endpoint keeps it (`alone`), and each
+  new tunnel's address replaces the last (`Tell::pinggy`); an address that a client would set
+  aside is not put, and a line says why. A tunnel that ended stays named until the next, as a client
+  that dials it finds no node, or a stranger whom the pin refuses. Its lines: `the record of its
+  roads goes to ...`, then `its record at HOST names the Pinggy tunnel NAME`.
+- The client (`ssh/pinggy.rs`, `ssh/iroh/record.rs`, `ssh/roads.rs`, `ssh/road_link.rs`,
+  `ssh/road_pair.rs`): the Pinggy road's address is the one of `--pinggy-name`; else, where the
+  record is asked (a member that the net names by its key), the record's, read again at each link
+  through the run's one `RecordRoads` (kept 30 s), so a resume after the hour takes the new name;
+  else the kept one, also when the record does not answer or names none. The road races where a
+  record is asked even with no address given or kept, last (`Start::WhenAllFailed`) unless given,
+  and `-v` says the order (`the Pinggy road when each road before it failed (the node's record, the
+  last fallback of Q78)`, or `(the node's record, else a kept name, ...)`) and, once for each
+  address, `the Pinggy road dials NAME#PIN, the address of its record of pkarr, signed by the node's
+  key`. A record's address is not kept in the cache. `podssh ping` measures the road only when
+  named, as before. Lost: a road of the record's own in `RecordRoads::race` (beside the quick
+  tunnel), which would race it before the net's relay members, frps and the transit relay, not
+  last as Q78 asks, and beside a kept address as a second Pinggy road; and a dialer made once, which
+  would keep an hour's old name for the whole run.
+- The manual (`man/notes_pinggy.rs`, the record's fact in `man/facts/iroh_road.rs`), `docs/cli.md`
+  and `docs/mesh.md` say it.
+- Tests (stand-ins, loopback only): `cargo test -p podssh-iroh --lib pkarr`, 14 passed (new:
+  `a_record_of_the_pinggy_road_alone_names_the_tunnel_and_its_pin`,
+  `a_bad_pinggy_address_is_set_aside_unsaid_and_the_others_stay`,
+  `a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes`; the record of each road now holds
+  Pinggy's); `cargo test -p podssh-iroh --test record_roads`, 2 passed (the stand-in server of
+  pkarr, which reads each PUT with iroh-dns's check, keeps and gives back the address);
+  `--test pkarr_lookup`, 4 passed; `cargo test -p podssh-cli --features iroh-test --test
+  pinggy_road`, 8 passed (new, `pinggy_record::a_member_with_no_address_given_or_kept_reaches_the_node_by_the_pinggy_address_of_its_record`:
+  the stand-in of Pinggy, `podssh_iroh::test_pkarr` on the loopback, a net whose owner names `lab`
+  by its key; `podssh node lab TARGET --pinggy` puts its address, and `podssh ssh -v
+  node://tester@lab greet` with no `--pinggy-name`, no name kept and the pair's road down reaches
+  the node over the Pinggy road, `-v` saying that the address came from the record; nothing is
+  kept); `cargo test -p podssh-cli --test pinggy_road` (no iroh), 7 passed; `cargo test -p
+  podssh-cli --lib`, 1,056 passed, and with `--features iroh-test`, 1,059 passed; `--test
+  derp_road` 8 passed, with and without `iroh-test`; `cargo test -p podssh-ws --test
+  no_permissive_verifier`, 2 passed; `man_flag_parity` 6, `man_json` 4, `man_page` 11 passed;
+  `cargo clippy --no-deps -p podssh-cli -p podssh-relay -p podssh-iroh --all-targets -- -D warnings
+  -A clippy::collapsible_if` clean, and with `--features podssh-cli/iroh-test`; rustfmt clean. Rust 1.99, natively.
+- Planted (`scripts/plants/t548-no-record.patch`): the client ignores the record's address; the new
+  test fails (`pinggy_record/mod.rs:74`: no road reached the node, "the Pinggy road: no Pinggy
+  address: none given, kept or of a record", while the client's `-v` said the record names the
+  tunnel); put back, it passes.
+- Still waiting, so the entry stays partial: the containers of the Prove (T-251), and the measure
+  of a proxy that ends TLS on the client's side. A build with no iroh road keeps no record, so its
+  node's new name still goes by its line alone.
+- The main session's own check of step 3, 2026-11-10: `--features iroh-test --test pinggy_road`, 8
+  passed; `podssh-iroh --lib pkarr`, 14 passed; the plant `t548-no-record` made the record's test
+  fail, put back. One repair: in a build without the iroh road, `man::notes` failed
+  (`each_name_in_a_note_exists`: "node: the variable PODSSH_IROH_PKARR is not in ENVIRONMENT"),
+  since the node's note named a variable of the iroh road, which that build does not list. The
+  note now names "the server of pkarr that the iroh road names"; `cargo test -p podssh-cli --lib`,
+  1,056 passed, and with `--features iroh-test`, `man::` 45 passed.
+
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 
@@ -9910,7 +9992,7 @@ way to it: the node's record of pkarr names its other roads alone.
 
 ## Premise
 
-- `crates/podssh-iroh/src/pkarr_record.rs:54` says "pub struct Roads": the iroh home relay, the
+- `crates/podssh-iroh/src/pkarr_record.rs:69` says "pub struct Roads": the iroh home relay, the
   DERP home and the quick tunnel's name, which `crates/podssh-cli/src/node_record.rs` keeps up to
   date (`Tell`, its `derp` and `quick`).
 - `crates/podssh-cli/src/node_opentunnel.rs` knows the node's name once its tunnel is ready.

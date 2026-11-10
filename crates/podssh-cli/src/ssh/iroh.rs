@@ -287,6 +287,12 @@ impl<'a> RecordRoads<'a> {
         }
     }
 
+    pub(crate) async fn pinggy(&self) -> Result<podssh_relay::pinggy::Address, String> {
+        match self {
+            RecordRoads::Never(never, _) => match *never {},
+        }
+    }
+
     pub(crate) async fn close(&self) {
         match self {
             RecordRoads::Never(never, _) => match *never {},

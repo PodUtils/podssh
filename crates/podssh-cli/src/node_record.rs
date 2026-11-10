@@ -1,16 +1,18 @@
 //! A node's record of pkarr with each of its roads (T-445). The iroh road's
 //! node keeps its home relay there (T-350), and its DERP home once its DERP
 //! road is online, again each time that home moves ([`keep`]). A node with
-//! no iroh endpoint, the quick tunnel's or the DERP road's alone, keeps its
-//! roads there too ([`alone`]): at n0's server unless PODSSH_IROH_PKARR names
-//! another or `off`, as the operator's ruling Q81 widens Q57 to such a node,
-//! whose record names only public names. A build with no iroh road keeps no
+//! no iroh endpoint, the quick tunnel's, the DERP road's or the Pinggy
+//! road's alone, keeps its roads there too ([`alone`]): at n0's server
+//! unless PODSSH_IROH_PKARR names another or `off`, as the operator's ruling
+//! Q81 widens Q57 to such a node, whose record names only public names (a
+//! Pinggy tunnel's name and its pin are public: the node says them). A build with no iroh road keeps no
 //! record, and reads no variable of it.
 
 use std::sync::Arc;
 
 use podssh_relay::derp::Ticket;
 use podssh_relay::identity::Identity;
+use podssh_relay::pinggy::Address;
 use podssh_ws::Trust;
 
 use crate::relay_settings::Refusal;
@@ -46,6 +48,19 @@ impl Tell {
             told.send_modify(|roads| roads.quick = Some(name.to_string()));
         }
     }
+
+    /// The node's Pinggy tunnel is now `address` (T-548): a free tunnel's
+    /// name changes each hour, so each new one replaces the last. One that a
+    /// client would set aside is not put, and why comes back.
+    pub(crate) fn pinggy(&self, address: &Address) -> Result<(), String> {
+        let address = pkarr::record::pinggy_address(&address.to_string()).map_err(|_| {
+            format!("its Pinggy address is longer than the record's {} bytes", pkarr::record::MAX_PINGGY)
+        })?;
+        if let Some(told) = &self.told {
+            told.send_modify(|roads| roads.pinggy = Some(address));
+        }
+        Ok(())
+    }
 }
 
 #[cfg(not(feature = "iroh"))]
@@ -53,6 +68,10 @@ impl Tell {
     pub(crate) fn derp(&self, _: &Ticket) {}
 
     pub(crate) fn quick(&self, _: &str) {}
+
+    pub(crate) fn pinggy(&self, _: &Address) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 /// The keeper's task, stopped when this is dropped, as the node ends.
@@ -166,6 +185,9 @@ mod tests {
         // Nothing listens, and nothing fails.
         tell.derp(&ticket);
         tell.quick("four-words-of-a.trycloudflare.com");
+        let pin = podssh_relay::pinggy::Pin::of_spki(b"a TLS key");
+        let address = Address::parse(&format!("rnwxy-12.run.pinggy-free.link#{pin}")).unwrap();
+        assert_eq!(tell.pinggy(&address), Ok(()));
     }
 
     /// Q81: n0's server when nothing names another, none when off.

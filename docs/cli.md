@@ -4344,7 +4344,10 @@ commands. The rules behind them:
   used, the key is for the run, and the line says so. Pinggy's host key is
   pinned where `pod-services` names it (the fact `host-key-sha256`), else
   taken and said. A free tunnel ends at 60 minutes: the node opens the next,
-  under a new name, and says it. Each visitor's end has a line, with why it
+  under a new name, and says it. In a build with the iroh road, the node
+  puts each tunnel's address (`NAME#PIN`) in its record of pkarr (T-445),
+  at n0's server or the one of `PODSSH_IROH_PKARR`, in the place of the last
+  (T-548's step 3, 2026-11-10). Each visitor's end has a line, with why it
   ended and its bytes each way; `PODSSH_PINGGY_TRACE=1` adds one each 5 s
   while it lives, and one for each link of a client with `-v`. The door and the refused flags are the
   OpenTunnel road's, and `--opentunnel` beside it is 64. A node with no
@@ -4353,8 +4356,11 @@ commands. The rules behind them:
   `PODSSH_PINGGY=no` turns the road off, and so does `PODSSH_LAST_RESORT=no`,
   the one switch of each last fallback of Q78.
 - **`ssh node://NAME --pinggy-name HOST#PIN`** races the Pinggy road 250 ms
-  after the road before it; an address kept under NAME is dialled last,
-  once each road before it failed. HOST is the tunnel's name and PIN the
+  after the road before it. With none given, the address of the node's
+  record of pkarr, where the net names NAME by its key and the record is
+  asked, else the one kept under NAME, is dialled last, once each road
+  before it failed; the record is signed by the node's key, so its pin is
+  the node's word, and `-v` says where the address came from (2026-11-10). HOST is the tunnel's name and PIN the
   SHA-256 of the node's TLS key (`SHA256:` and base64, the node's line
   says both); a name with no pin is 64, and a kept name with none is not
   raced. Each link is TCP to HOST on port 443 through `HTTPS_PROXY`, then

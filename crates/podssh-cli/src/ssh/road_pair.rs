@@ -30,7 +30,7 @@ impl Roads<'_> {
             derp: unasked(self.derp.as_ref().map(|(_, asked)| asked)),
             opentunnel: unasked(self.opentunnel.as_ref().map(|(_, asked)| asked)),
             piping: unasked(self.piping.as_ref().map(|(_, asked)| asked)),
-            pinggy: self.pinggy.as_ref().is_some_and(|pinggy| !pinggy.asked()),
+            pinggy: self.pinggy.as_ref().and_then(|pinggy| pinggy.unasked()),
         }
     }
 

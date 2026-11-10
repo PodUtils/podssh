@@ -1,19 +1,24 @@
 //! What a node's record of pkarr names (T-350, T-445): its iroh home relay,
 //! in iroh's own `_iroh` TXT, and its other roads, in podssh's `_podssh` TXT
-//! of the same signed packet: its DERP home, as the node's DERP ticket, and
-//! its quick tunnel's name. iroh reads `_iroh` alone (iroh-dns 1.4.1's
+//! of the same signed packet: its DERP home, as the node's DERP ticket, its
+//! quick tunnel's name, and its Pinggy address, the tunnel's name and the pin
+//! of the node's TLS key (T-548). iroh reads `_iroh` alone (iroh-dns 1.4.1's
 //! `EndpointInfo::from_pkarr_signed_packet` asks for `txt_records("_iroh")`),
 //! so its tools and n0's DNS pass podssh's names by; a key that iroh does not
 //! know under `_iroh` would make iroh refuse the whole record, which is why
 //! podssh's roads have a name of their own.
 //!
 //! A client takes of a record only what it takes of a command line: a relay
-//! `https://HOST[:PORT]`, a DERP ticket that names the record's own key, and
-//! one label under `trycloudflare.com`. Each other value is set aside, and
-//! the record keeps its other roads. The record is signed by the node's key,
-//! which the client already holds, and each road checks that key again (the
-//! QUIC handshake, the end-to-end channel), so a road that a record names
-//! reaches the node or nothing.
+//! `https://HOST[:PORT]`, a DERP ticket that names the record's own key, one
+//! label under `trycloudflare.com`, and a Pinggy address as `--pinggy-name`
+//! takes it. Each other value is set aside, and the record keeps its other
+//! roads. The record is signed by the node's key, which the client already
+//! holds, and each road checks that key again (the QUIC handshake, the
+//! end-to-end channel), so a road that a record names reaches the node or
+//! nothing. The Pinggy address's pin is trusted for that signature: only the
+//! holder of the node's key can say which TLS key ends the tunnel, so a
+//! stranger who takes a free tunnel's old name shows another key and is
+//! refused at TLS, before the end-to-end channel refuses it too.
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -22,6 +27,7 @@ use iroh::{PublicKey, RelayUrl, SecretKey};
 use iroh_dns::pkarr::{SignedPacket, Timestamp};
 use iroh_dns::IROH_TXT_NAME;
 use podssh_relay::derp::Ticket;
+use podssh_relay::pinggy::Address;
 use simple_dns::rdata::{RData, TXT};
 use simple_dns::{Name, Packet, ResourceRecord, CLASS};
 
@@ -42,6 +48,15 @@ pub fn quick_zone() -> &'static str {
     service.text("tunnel-zone").expect("trycloudflare of pod-services holds the fact tunnel-zone")
 }
 
+/// The key of the Pinggy road: the node's address there, `NAME#PIN`, as
+/// the node's line says it and `--pinggy-name` takes it (T-548).
+pub const PINGGY_KEY: &str = "pinggy";
+
+/// The longest Pinggy address that a record holds: a free tunnel's name is
+/// some 40 characters and the pin 50, so this leaves room, and a record with
+/// each road at its longest stays within [`MAX_DNS_PACKET`].
+pub const MAX_PINGGY: usize = 200;
+
 /// pkarr's cap on the DNS packet of a record (iroh-dns's
 /// `MAX_DNS_PACKET_SIZE`), checked here to say so in words.
 const MAX_DNS_PACKET: usize = 1000;
@@ -58,16 +73,19 @@ pub struct Roads {
     pub derp: Option<Ticket>,
     /// The quick tunnel's name.
     pub quick: Option<String>,
+    /// The Pinggy address of the node's tunnel now: a free tunnel's name
+    /// changes each hour, and the node puts each new one (T-548).
+    pub pinggy: Option<Address>,
 }
 
 impl Roads {
     /// Whether the record would name no road, and so is not put.
     pub fn is_empty(&self) -> bool {
-        self.relay.is_none() && self.derp.is_none() && self.quick.is_none()
+        self.relay.is_none() && self.derp.is_none() && self.quick.is_none() && self.pinggy.is_none()
     }
 
     /// The roads in words, for the node's line: "the home relay URL, the
-    /// DERP home HOST and the quick tunnel NAME".
+    /// DERP home HOST, the quick tunnel NAME and the Pinggy tunnel NAME".
     pub fn said(&self) -> String {
         let mut each = Vec::new();
         if let Some(relay) = &self.relay {
@@ -78,6 +96,9 @@ impl Roads {
         }
         if let Some(name) = &self.quick {
             each.push(format!("the quick tunnel {name}"));
+        }
+        if let Some(address) = &self.pinggy {
+            each.push(format!("the Pinggy tunnel {}", address.name));
         }
         match each.split_last() {
             None => "no road".to_string(),
@@ -97,6 +118,8 @@ pub struct Record {
     pub derp: Option<Ticket>,
     /// The node's quick tunnel, `NAME.trycloudflare.com` in lower case.
     pub quick: Option<String>,
+    /// The node's Pinggy address, its tunnel's name and its TLS key's pin.
+    pub pinggy: Option<Address>,
     /// When the node signed it, in microseconds since the epoch (pkarr's
     /// sequence number).
     pub signed_at: u64,
@@ -118,7 +141,7 @@ impl Record {
             }
         };
         let node = packet.public_key();
-        let (mut derp, mut quick) = (None, None);
+        let (mut derp, mut quick, mut pinggy) = (None, None, None);
         for value in packet.txt_records(PODSSH_TXT_NAME) {
             let Some((key, value)) = value.split_once('=') else {
                 set_aside.push(format!("a {PODSSH_TXT_NAME} value that is not KEY=VALUE"));
@@ -133,16 +156,23 @@ impl Record {
                     Ok(name) => quick = Some(name),
                     Err(why) => set_aside.push(why),
                 },
-                DERP_KEY | QUICK_KEY => set_aside.push(format!("a second {key}= of {PODSSH_TXT_NAME}")),
+                PINGGY_KEY if pinggy.is_none() => match pinggy_address(value) {
+                    Ok(address) => pinggy = Some(address),
+                    Err(why) => set_aside.push(why),
+                },
+                DERP_KEY | QUICK_KEY | PINGGY_KEY => set_aside.push(format!("a second {key}= of {PODSSH_TXT_NAME}")),
                 // A road of a later podssh: passed by, as iroh passes ours.
                 _ => {}
             }
         }
-        if relays.is_empty() && derp.is_none() && quick.is_none() {
+        if relays.is_empty() && derp.is_none() && quick.is_none() && pinggy.is_none() {
             let why = if set_aside.is_empty() { String::new() } else { format!(" ({})", set_aside.join("; ")) };
-            return Err(format!("the record names no road: no https:// relay, no DERP home and no quick tunnel{why}"));
+            return Err(format!(
+                "the record names no road: no https:// relay, no DERP home, no quick tunnel and no Pinggy \
+                 tunnel{why}"
+            ));
         }
-        Ok(Record { relays, derp, quick, signed_at: packet.timestamp().as_micros(), set_aside })
+        Ok(Record { relays, derp, quick, pinggy, signed_at: packet.timestamp().as_micros(), set_aside })
     }
 
     /// How long ago the node signed it; none for a time after this host's.
@@ -182,6 +212,20 @@ pub fn quick_name(value: &str) -> Result<String, String> {
     }
 }
 
+/// A Pinggy address of a record: `NAME#PIN` as `--pinggy-name` takes it,
+/// of [`MAX_PINGGY`] bytes at most. Any DNS name, not Pinggy's zone alone:
+/// the zone of its free names moved once already (`run.pinggy-free.link`,
+/// where its documents say `a.pinggy.link`), and `PODSSH_PINGGY` may name
+/// another server; the pin, which the node's signature vouches for, is the
+/// check. Not echoed: a stranger's record may hold anything.
+pub fn pinggy_address(value: &str) -> Result<Address, String> {
+    let bad = || format!("its Pinggy tunnel is not NAME#PIN of {MAX_PINGGY} bytes at most, and is set aside");
+    if value.trim().len() > MAX_PINGGY {
+        return Err(bad());
+    }
+    Address::parse(value).map_err(|_| bad())
+}
+
 /// The signed packet of `roads`, under `secret`'s key: iroh's `_iroh`
 /// values for the relay, as iroh-dns writes them, and podssh's `_podssh`
 /// values for the rest, each name in the node's zone, as iroh-dns builds a
@@ -206,6 +250,14 @@ pub fn packet(secret: &SecretKey, roads: &Roads, ttl: u32) -> Result<SignedPacke
     }
     if let Some(name) = &roads.quick {
         values.push((ours.clone(), format!("{QUICK_KEY}={name}")));
+    }
+    if let Some(address) = &roads.pinggy {
+        // A node never puts what a client would set aside.
+        let text = address.to_string();
+        if text.len() > MAX_PINGGY {
+            return Err(format!("the record's Pinggy tunnel is {} bytes, more than {MAX_PINGGY}", text.len()));
+        }
+        values.push((ours.clone(), format!("{PINGGY_KEY}={text}")));
     }
     let mut dns = Packet::new_reply(0);
     for (name, value) in &values {

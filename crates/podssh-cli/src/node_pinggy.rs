@@ -6,7 +6,10 @@
 //! key (`pinggy_cert`) on stderr, which a client gives as `--pinggy-name
 //! NAME#PIN`, and keeps them in the cache. A free tunnel ends at 60 minutes:
 //! the node opens the next, under a new name, and says it; a session that the
-//! layer keeps moves to it when its client dials the new name. With the pair
+//! layer keeps moves to it when its client dials the new name. In a build
+//! with the iroh road, it puts each tunnel's address in its record of pkarr
+//! (T-445), where a client with the node's key from the net finds it with no
+//! `--pinggy-name`. With the pair
 //! NAME, or the one of `--pair-file`, it serves the pair's road too, with one
 //! keeper for both, as the OpenTunnel road's node does. Anyone may open a
 //! connection to a tunnel's name, so the road needs the end-to-end channel
@@ -136,6 +139,9 @@ pub(crate) struct Ready {
     pub trust: Trust,
     pub pair: Result<(Pair, bool), String>,
     pub unasked: Option<String>,
+    /// The server of its record: n0's, or the one of PODSSH_IROH_PKARR
+    /// (T-445, Q81), which names each tunnel's address.
+    pub record: Option<crate::node_record::Named>,
 }
 
 fn prepare(args: &NodeArgs, unasked: Option<String>) -> Result<Ready, Refusal> {
@@ -159,10 +165,11 @@ fn prepare(args: &NodeArgs, unasked: Option<String>) -> Result<Ready, Refusal> {
     crate::pairs::online()?;
     crate::node_transit::check()?; // PODSSH_TRANSIT (T-436), before anything connects
     let trust = crate::pairs::trust(args.ca_file.as_deref());
+    let record = crate::node_record::named()?;
     // The key is made only once each check passed; one for this run only
     // stays across an upgrade in place (T-679).
     let key = crate::node_upgrade::parts::node_key(&place)?;
-    Ok(Ready { label, targets, roost: args.sshd, key, door, service, trust, pair, unasked })
+    Ok(Ready { label, targets, roost: args.sshd, key, door, service, trust, pair, unasked, record })
 }
 
 /// Run the node of the Pinggy road; `unasked` is why it serves the road

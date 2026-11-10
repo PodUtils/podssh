@@ -94,7 +94,18 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
         derp: Key([9; 32]),
         server: derp_road::Server::new("tc301a.ipn.dev", 443).unwrap(),
     };
-    let roads = Roads { relay: Some(relay.clone()), derp: Some(ticket.clone()), quick: Some(QUICK.into()) };
+    // A Pinggy address as the node says it (T-548): the name and the pin.
+    let pinggy = podssh_relay::pinggy::Address::parse(&format!(
+        "rnwxy-12-34.run.pinggy-free.link#{}",
+        podssh_relay::pinggy::Pin::of_spki(b"the node's TLS key")
+    ))
+    .unwrap();
+    let roads = Roads {
+        relay: Some(relay.clone()),
+        derp: Some(ticket.clone()),
+        quick: Some(QUICK.into()),
+        pinggy: Some(pinggy.clone()),
+    };
     // The stand-in reads the PUT with iroh-dns's own check of the signature.
     pkarr::publish(&server, &node, &roads, &trust, &ProxyChoice::Direct, LIMIT).await.expect("the record is put");
     let found = pkarr::lookup(&server, &node.public(), &trust, &ProxyChoice::Direct, LIMIT).await;
@@ -102,6 +113,7 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
     assert_eq!(record.relays, vec![relay.clone()]);
     assert_eq!(record.derp, Some(ticket));
     assert_eq!(record.quick.as_deref(), Some(QUICK));
+    assert_eq!(record.pinggy, Some(pinggy));
     // iroh's own client of pkarr reads the same bytes as a record of a node:
     // its relay, with podssh's names passed by.
     let resolver = iroh::dns::DnsResolver::custom(podssh_iroh::resolve::Podssh);
@@ -109,7 +121,8 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
     let packet = theirs.resolve(node.public()).await.expect("iroh's client reads podssh's record");
     let info = EndpointInfo::from_pkarr_signed_packet(&packet).expect("iroh's record of a node");
     assert_eq!(info.relay_urls().cloned().collect::<Vec<_>>(), vec![relay]);
-    assert_eq!(packet.txt_records(record::PODSSH_TXT_NAME).len(), 2, "the DERP home and the quick tunnel");
+    let ours = packet.txt_records(record::PODSSH_TXT_NAME).len();
+    assert_eq!(ours, 3, "the DERP home, the quick tunnel and the Pinggy tunnel");
 }
 
 /// A link of the client's race, on either road.

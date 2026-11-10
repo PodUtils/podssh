@@ -123,7 +123,8 @@ pub(crate) async fn measure(
     let frp = crate::ssh::roads::frp::FrpRoads::new(label, trust).ok().flatten();
     // A node's Pinggy tunnel only when its name was given: a measure never
     // sends a byte to the last fallback's third party unasked (Q78).
-    let pinggy = crate::ssh::pinggy::PinggyRoads::new(label, false, &log, &shown).filter(|pinggy| pinggy.asked());
+    let pinggy =
+        crate::ssh::pinggy::PinggyRoads::new(label, false, false, &log, &shown).filter(|pinggy| pinggy.asked());
     let roads = Roads {
         iroh,
         pair,

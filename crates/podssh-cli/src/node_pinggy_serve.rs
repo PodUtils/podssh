@@ -2,7 +2,8 @@
 //! for the length of that file: TARGET probed first, then a tunnel of
 //! Pinggy's at a time, each opened again after its end (a free tunnel's hour,
 //! a lost connection) with a wait that doubles from 1 s to 60 s, each
-//! visitor's TLS ended here and served under the node's keeper; and the
+//! visitor's TLS ended here and served under the node's keeper; each
+//! tunnel's address put in the node's record of pkarr (T-445); and the
 //! pair's road beside it when the node has a pair, as the OpenTunnel road's
 //! node runs it.
 
@@ -38,7 +39,7 @@ fn again_wait(attempt: u32) -> Duration {
 }
 
 pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
-    let Ready { label, targets, roost, key, door, service, trust, pair, unasked } = ready;
+    let Ready { label, targets, roost, key, door, service, trust, pair, unasked, record } = ready;
     // TARGET first: a node that cannot reach it would serve no session.
     let target = match crate::node::probe(&targets, roost).await {
         Ok(versions) => crate::node::serving(&targets, &versions),
@@ -114,6 +115,13 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     if let Some(line) = crate::net::admit::line(&public) {
         let _ = writeln!(err, "podssh node: {label}: {line}");
     }
+    // Its record names each tunnel's address, for as long as the node runs
+    // (T-445): signed by the node's key, so a client that holds that key
+    // trusts the pin in it as it would the node's own line.
+    let line = |words: String| {
+        let _ = writeln!(err, "podssh node: {label}: {words}");
+    };
+    let (_record, tell) = crate::node_record::alone(record, &identity, &trust, say.clone(), line);
     // The channel of T-088 on both roads, with this node's key and its door.
     let allow = match door {
         Door::Allow(path) => Some(path),
@@ -170,6 +178,14 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
                 match podssh_relay::cache::store_file(&file, format!("{name}#{pin}\n").as_bytes()) {
                     Ok(path) => say(format!("the name is kept in {}", path.display())),
                     Err(why) => say(format!("the name could not be kept: {why}")),
+                }
+                // The record names the new tunnel in the place of the last; a
+                // tunnel that ended stays named until the next, as a client
+                // that dials it only finds no node there, or a stranger whose
+                // key the pin refuses.
+                let told = pinggy::Name::parse(&name).and_then(|name| tell.pinggy(&pinggy::Address { name, pin }));
+                if let Err(why) = told {
+                    say(format!("its record does not name this tunnel: {why}"));
                 }
                 let (acceptor, open, keeper, say_far) = (acceptor.clone(), open.clone(), keeper.clone(), say.clone());
                 let serving = far::serve(rx, acceptor, settings(), budget, open, keeper, say_far);

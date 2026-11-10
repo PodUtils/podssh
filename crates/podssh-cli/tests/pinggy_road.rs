@@ -16,12 +16,16 @@
 //! the host's trust verifies. The name comes from the session's text when
 //! port 4300 does not answer. A node with no pair and each other road off
 //! serves the road unasked (Q78). 1 MiB comes down whole, and the node says
-//! the visitor's bytes each way. Planted: the client's check of the node's
+//! the visitor's bytes each way. With the iroh road's test servers, a member
+//! of the net with no address given or kept finds it in the node's record
+//! of pkarr (`pinggy_record`). Planted: the client's check of the node's
 //! key skipped (`scripts/plants/t548-any-node.patch`), or the pin's
 //! comparison skipped (`scripts/plants/t548-any-pin.patch`), and the test of
 //! the stranger fails.
 
 mod cleanup;
+#[cfg(feature = "iroh-test")]
+mod pinggy_record;
 mod pinggy_stand_in;
 mod ssh_harness;
 

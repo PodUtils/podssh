@@ -15,6 +15,15 @@ use crate::pkarr::TTL;
 
 const QUICK: &str = "four-words-of-a.trycloudflare.com";
 
+/// A free tunnel's name, as Pinggy gave one to the live run (T-548).
+const PINGGY_NAME: &str = "rnwxy-12-34-56-78.run.pinggy-free.link";
+
+/// A Pinggy address of `name`: the name and the pin of a TLS key.
+fn pinggy(name: &str) -> Address {
+    let pin = podssh_relay::pinggy::Pin::of_spki(b"the node's TLS key");
+    Address::parse(&format!("{name}#{pin}")).expect("an address")
+}
+
 fn relay() -> RelayUrl {
     "https://usw1-1.relay.n0.iroh.link.".parse().expect("a relay URL")
 }
@@ -26,7 +35,12 @@ fn ticket(secret: &SecretKey, host: &str) -> Ticket {
 }
 
 fn each_road(secret: &SecretKey) -> Roads {
-    Roads { relay: Some(relay()), derp: Some(ticket(secret, "tc301a.ipn.dev")), quick: Some(QUICK.into()) }
+    Roads {
+        relay: Some(relay()),
+        derp: Some(ticket(secret, "tc301a.ipn.dev")),
+        quick: Some(QUICK.into()),
+        pinggy: Some(pinggy(PINGGY_NAME)),
+    }
 }
 
 /// The record that `packet` is, as a client reads it from a server.
@@ -55,6 +69,7 @@ fn a_record_with_each_road_reads_back_whole_and_iroh_reads_its_relay_alone() {
     assert_eq!(record.relays, vec![relay()]);
     assert_eq!(record.derp, roads.derp);
     assert_eq!(record.quick.as_deref(), Some(QUICK));
+    assert_eq!(record.pinggy, roads.pinggy, "the Pinggy address, its pin with it");
     assert!(record.set_aside.is_empty(), "{:?}", record.set_aside);
     // iroh's own reading: the relay, and nothing of podssh's names.
     let info = EndpointInfo::from_pkarr_signed_packet(&packet).expect("iroh reads the record as its own");
@@ -62,7 +77,7 @@ fn a_record_with_each_road_reads_back_whole_and_iroh_reads_its_relay_alone() {
     // In iroh's own words: what iroh-dns writes for the relay alone.
     let theirs = EndpointInfo::new(node.public()).with_relay_url(relay()).to_pkarr_signed_packet(&node, TTL).unwrap();
     assert_eq!(packet.txt_records(IROH_TXT_NAME), theirs.txt_records(IROH_TXT_NAME));
-    assert_eq!(packet.txt_records(PODSSH_TXT_NAME).len(), 2, "the DERP home and the quick tunnel");
+    assert_eq!(packet.txt_records(PODSSH_TXT_NAME).len(), 3, "the DERP home, the quick tunnel and Pinggy's");
 }
 
 #[test]
@@ -70,7 +85,7 @@ fn a_record_of_the_derp_road_alone_reads_with_no_relay() {
     let node = SecretKey::from_bytes(&[0x42; 32]);
     let roads = Roads { derp: Some(ticket(&node, "tc302a.ipn.dev")), ..Roads::default() };
     let record = read_back(&node, &packet(&node, &roads, TTL).unwrap()).expect("a record of one road");
-    assert_eq!((record.relays.len(), record.derp, record.quick), (0, roads.derp.clone(), None));
+    assert_eq!((record.relays.len(), record.derp, record.quick, record.pinggy), (0, roads.derp.clone(), None, None));
     // iroh reads it as a node with no relay, and refuses nothing of it.
     let info = EndpointInfo::from_pkarr_signed_packet(&packet(&node, &roads, TTL).unwrap()).unwrap();
     assert_eq!(info.relay_urls().count(), 0);
@@ -146,7 +161,77 @@ fn the_node_says_its_roads_in_words() {
     let node = SecretKey::from_bytes(&[0x46; 32]);
     let said = each_road(&node).said();
     assert!(said.starts_with(&format!("the home relay {}", relay())), "{said}");
-    assert!(said.ends_with(&format!(", the DERP home tc301a.ipn.dev and the quick tunnel {QUICK}")), "{said}");
+    let end = format!(", the DERP home tc301a.ipn.dev, the quick tunnel {QUICK} and the Pinggy tunnel {PINGGY_NAME}");
+    assert!(said.ends_with(&end), "{said}");
     let alone = Roads { quick: Some(QUICK.into()), ..Roads::default() };
     assert_eq!(alone.said(), format!("the quick tunnel {QUICK}"));
+}
+
+#[test]
+fn a_record_of_the_pinggy_road_alone_names_the_tunnel_and_its_pin() {
+    let node = SecretKey::from_bytes(&[0x47; 32]);
+    let roads = Roads { pinggy: Some(pinggy(PINGGY_NAME)), ..Roads::default() };
+    assert!(!roads.is_empty(), "a record of Pinggy alone is put");
+    let record = read_back(&node, &packet(&node, &roads, TTL).unwrap()).expect("a record of one road");
+    assert_eq!(record.pinggy, roads.pinggy);
+    assert_eq!((record.relays.len(), record.derp, record.quick), (0, None, None));
+    // As the node's line says it and --pinggy-name takes it.
+    let text = record.pinggy.unwrap().to_string();
+    assert!(text.starts_with(&format!("{PINGGY_NAME}#SHA256:")), "{text}");
+}
+
+#[test]
+fn a_bad_pinggy_address_is_set_aside_unsaid_and_the_others_stay() {
+    let node = SecretKey::from_bytes(&[0x48; 32]);
+    let mine = format!("derp={}", ticket(&node, "tc304a.ipn.dev"));
+    let pin = pinggy(PINGGY_NAME).pin.to_string();
+    // A name of more than MAX_PINGGY bytes with its pin, each label good.
+    let long = format!("{}.{}.{}.evil.example", "a".repeat(63), "b".repeat(63), "c".repeat(30));
+    let bad = [
+        "pinggy=evil.example".to_string(),
+        format!("pinggy=evil_name.example#{pin}"),
+        "pinggy=evil.example#SHA256:short".to_string(),
+        format!("pinggy={long}#{pin}"),
+    ];
+    for bad in &bad {
+        let record = read_back(&node, &planted(&node, &[bad.as_str(), mine.as_str()])).unwrap();
+        assert_eq!(record.pinggy, None, "{bad}");
+        assert!(record.derp.is_some(), "{bad}");
+        assert!(record.set_aside.iter().any(|why| why.contains("Pinggy")), "{:?}", record.set_aside);
+        assert!(!format!("{:?}", record.set_aside).contains("evil"), "{:?}", record.set_aside);
+    }
+    // A second address is set aside; the first stays.
+    let first = format!("pinggy={}", pinggy(PINGGY_NAME));
+    let second = format!("pinggy={}", pinggy("other.run.pinggy-free.link"));
+    let record = read_back(&node, &planted(&node, &[first.as_str(), second.as_str()])).unwrap();
+    assert_eq!(record.pinggy, Some(pinggy(PINGGY_NAME)));
+    assert!(record.set_aside.iter().any(|why| why.contains("a second pinggy=")), "{:?}", record.set_aside);
+    assert!(pinggy_address(&format!("{long}#{pin}")).is_err() && Address::parse(&format!("{long}#{pin}")).is_ok());
+}
+
+#[test]
+fn a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes() {
+    let node = SecretKey::from_bytes(&[0x49; 32]);
+    let derp = format!("{}.{}.{}.{}", "a".repeat(63), "b".repeat(63), "c".repeat(63), "d".repeat(61));
+    let quick = format!("{}.{}", "q".repeat(63), quick_zone());
+    // A name whose address is MAX_PINGGY bytes exactly.
+    let pin_len = pinggy(PINGGY_NAME).pin.to_string().len();
+    let rest = MAX_PINGGY - pin_len - 1 - 2 * 64;
+    let name = format!("{}.{}.{}", "e".repeat(63), "f".repeat(63), "g".repeat(rest));
+    assert_eq!(pinggy(&name).to_string().len(), MAX_PINGGY);
+    let roads = Roads {
+        relay: Some(relay()),
+        derp: Some(ticket(&node, &derp)),
+        quick: Some(quick.clone()),
+        pinggy: Some(pinggy(&name)),
+    };
+    let packet = packet(&node, &roads, TTL).expect("each road at its longest fits");
+    let record = read_back(&node, &packet).unwrap();
+    assert_eq!((record.quick, record.pinggy), (Some(quick), roads.pinggy.clone()));
+    assert!(packet.encoded_packet().len() <= MAX_DNS_PACKET, "{}", packet.encoded_packet().len());
+    // One byte more is never put: a client would set it aside.
+    let longer = format!("{}.{}.{}", "e".repeat(63), "f".repeat(63), "g".repeat(rest + 1));
+    let over = Roads { pinggy: Some(pinggy(&longer)), ..Roads::default() };
+    let why = super::packet(&node, &over, TTL).unwrap_err();
+    assert!(why.contains("Pinggy") && why.contains(&MAX_PINGGY.to_string()), "{why}");
 }

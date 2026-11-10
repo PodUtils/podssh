@@ -23,8 +23,11 @@ publish.workspace = true
 # comes as an update to read, not as a build that breaks.
 iroh = { version = ">=1.4.1, <1.5", default-features = false, features = ["tls-aws-lc-rs", "unstable-net-report"] }
 # With the DERP road's types (feature `derp`, pure Rust): a node's record
-# names its DERP home as its ticket, which a client reads back (T-445).
-podssh-relay = { path = "../podssh-relay", features = ["derp"] }
+# names its DERP home as its ticket, which a client reads back (T-445). With
+# the Pinggy road's (feature `pinggy`, pure Rust, which podssh-cli builds in
+# each build): the record names the node's Pinggy address, `NAME#PIN`, which
+# the road's own parser reads back (T-548).
+podssh-relay = { path = "../podssh-relay", features = ["derp", "pinggy"] }
 podssh-ws = { path = "../podssh-ws" }
 # The services of other parties: n0's relays and pkarr, the zone of the
 # quick tunnel.

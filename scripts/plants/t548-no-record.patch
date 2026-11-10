@@ -1,0 +1,12 @@
+diff --git a/crates/podssh-cli/src/ssh/pinggy.rs b/crates/podssh-cli/src/ssh/pinggy.rs
+--- a/crates/podssh-cli/src/ssh/pinggy.rs
++++ b/crates/podssh-cli/src/ssh/pinggy.rs
+@@ -164,7 +164,7 @@
+             return Ok((given.clone(), Source::Given));
+         }
+         let mut why = None;
+-        if let Some(record) = record.filter(|_| self.record) {
++        if let Some(record) = record.filter(|_| false) {
+             match record.pinggy().await {
+                 Ok(address) => return Ok((address, Source::Record)),
+                 Err(not) => why = Some(not),

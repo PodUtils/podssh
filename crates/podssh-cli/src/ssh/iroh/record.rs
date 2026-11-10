@@ -2,7 +2,9 @@
 //! member of the net, whose key the net names, asks the member's record of
 //! pkarr and races each road that it names and that no ticket gave: the
 //! iroh road at its home relay, the DERP road at its DERP home, and its
-//! quick tunnel. The record is asked only once each road before it failed,
+//! quick tunnel; and its Pinggy address, which the Pinggy road takes in its
+//! own place, last (`ssh::pinggy`, T-548). The record is asked only once
+//! each road before it failed,
 //! as T-350 asks it only when the ticket's relay fails; it is kept for its
 //! names' life, then asked again at the next race. The record is the
 //! node's word, signed by the key that the net names; the end-to-end channel
@@ -125,7 +127,7 @@ impl<'a> RecordRoads<'a> {
         match finder.find(&self.ask.key).await {
             Ok(Some(record)) => {
                 let (relay, derp, quick) = (record.relays.first().cloned(), record.derp.clone(), record.quick.clone());
-                let roads = Roads { relay, derp, quick };
+                let roads = Roads { relay, derp, quick, pinggy: record.pinggy.clone() };
                 self.log.verbose(&format!("{shown}: its record at {host} names {}", roads.said()));
                 for why in &record.set_aside {
                     self.log.verbose(&format!("{shown}: of its record, {why}"));
@@ -185,6 +187,14 @@ impl<'a> RecordRoads<'a> {
         let Some(name) = record.quick else { return Err("its record names no quick tunnel".into()) };
         let opened = crate::ssh::cloudflare::open(&name, &Access::default(), self.trust).await;
         opened.map(Road::Tunnel).map_err(|(line, _)| line)
+    }
+
+    /// The record's Pinggy address, for the Pinggy road (T-548): its pin is
+    /// the node's word, as the record is signed by the node's key, which the
+    /// net names; so a stranger at an old name is refused at TLS.
+    pub(crate) async fn pinggy(&self) -> Result<podssh_relay::pinggy::Address, String> {
+        let record = self.record().await?;
+        record.pinggy.ok_or_else(|| "its record names no Pinggy tunnel".into())
     }
 
     /// Which road of the record carried the session, for `-v`.
