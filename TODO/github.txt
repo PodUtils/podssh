@@ -180,7 +180,7 @@
 172 issue open
 173 issue closed
 174 issue open
-175 issue open
+175 issue closed
 176 issue open
 177 issue open
 178 issue closed
