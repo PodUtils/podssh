@@ -7568,6 +7568,13 @@ gone; no verifier of the road accepts each certificate (the Decision).
   relay's 11, `--test pinggy_road` 6; the plant `t548-any-pin` made the stranger's test and the scan
   fail, put back; `cargo test -p podssh-cli -p podssh-relay -p podssh-ws`, 3,425 passed, 0 failed;
   clippy (the gate's lints) clean. Merged on `main` as one commit with the draft.
+- The first live run, 2026-11-10 (`pinggy-live.yml`, run 42729592121 at `a5b2eeb1`), failed. The
+  node's half worked against Pinggy itself: the leg was raw SSH to `free.pinggy.io` on 443, whose
+  host key was `SHA256:nFd5rfJMGuZXvfeRzJ/BtT3TfksAxTWMajcrHRcI7AM`, the key of Pinggy's page; the
+  tunnel's name came under `run.pinggy-free.link`, not the `a.pinggy.link` of Pinggy's documents;
+  and a visitor came down the tunnel, as the node logged the client's key coming in by its door. The
+  client then waited past the test's 120 s with no end, and the test dropped its words. The test now
+  says the client's stderr at its limit, so the next run names where it waited.
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 

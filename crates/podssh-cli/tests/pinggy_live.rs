@@ -47,7 +47,9 @@ fn run(cmd: &mut Command) -> (i32, Vec<u8>, String) {
     while child.try_wait().expect("wait").is_none() {
         if Instant::now() > deadline {
             let _ = child.kill();
-            panic!("podssh did not end within {} s", LIMIT.as_secs());
+            // Its words name where it waited.
+            let said = child.wait_with_output().map(|o| String::from_utf8_lossy(&o.stderr).into_owned());
+            panic!("podssh did not end within {} s; it said: {said:?}", LIMIT.as_secs());
         }
         std::thread::sleep(Duration::from_millis(100));
     }
