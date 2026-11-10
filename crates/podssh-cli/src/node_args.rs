@@ -29,6 +29,9 @@ pub struct NodeArgs {
     /// Serve the Pinggy road (T-548), a last fallback of Q78, beside the
     /// pair's road when there is one.
     pub pinggy: bool,
+    /// Serve the Serveo road (T-549), a last fallback of Q78, beside the
+    /// pair's road when there is one.
+    pub serveo: bool,
     /// The file of the frp road (T-498): frps, its token and the STCP secret.
     pub frp: Option<String>,
     /// Serve a quick tunnel of Cloudflare's, with no pair (T-300).
@@ -129,6 +132,7 @@ impl NodeArgs {
             derp_server: get("derp-server"),
             opentunnel: matches.get_flag("opentunnel"),
             pinggy: matches.get_flag("pinggy"),
+            serveo: matches.get_flag("serveo"),
             frp: get("frp"),
             quick_tunnel: matches.get_flag("quick-tunnel"),
             warp: matches.get_flag("warp"),

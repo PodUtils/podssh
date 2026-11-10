@@ -4371,6 +4371,39 @@ commands. The rules behind them:
   link that Pinggy, a third party that nobody vouches for, carries the
   session. `--no-e2e` with the flag is 64, and the flag with another
   destination too. `podssh ping node://NAME` measures it only when named.
+- **`node --serveo` serves the Serveo road** (T-549, 2026-11-10), in each
+  build, the last fallback of the operator's ruling Q78: a private alias at
+  Serveo with no account, at the server of `pod-services`' `serveo`, or of
+  `PODSSH_SERVEO` (`HOST[:PORT]`); where `pod-services` names none, only the
+  variable gives the road a server, and `--serveo` without it is 64. The
+  node's leg is raw SSH on port 443, then 22, through `HTTPS_PROXY`, as user
+  `anonymous`, with one remote forward of its alias on port 22, as `ssh -R
+  ALIAS:22:localhost:22 serveo.net` asks it (Serveo documents no SSH inside
+  TLS). The alias is `p` and the hex of the first 20 bytes of SHA-256 over
+  `podssh serveo alias v1`, a NUL, the node key's fingerprint and the place
+  in a series of four (`crates/podssh-relay/src/serveo/alias.rs`), so a
+  client that holds the key computes it; where another tunnel holds it, as
+  Serveo holds a lost tunnel's a while, the node takes the next, and its line
+  `alias ALIAS of its key ...` says the one it holds. Each client's channel
+  carries the resumable layer with no TLS of the node's: SSH keeps the
+  bytes from the network, the end-to-end channel from Serveo. The host key
+  is pinned where `pod-services` names it (the fact `host-key-sha256`),
+  else taken and said. The tunnel is opened again after each end, with the
+  first alias first. The door and the refused flags are the Pinggy road's,
+  and `--pinggy` beside it is 64. A node that would serve the Pinggy road
+  unasked serves this one unasked after it reached no server, or in its
+  place where `PODSSH_PINGGY=no`, the last of all. `PODSSH_SERVEO=no` turns
+  the road off, and so does `PODSSH_LAST_RESORT=no`.
+- **`ssh node://NAME` races the Serveo road** last of all, once each road
+  before it failed, where the road has a server and a key of the node is
+  known: `--node-key`, else the key that the net names for NAME, else the
+  pins of NAME. Each link is raw SSH to the server, then a `direct-tcpip`
+  channel to the alias, as `ssh -J` jumps, the aliases of the series in
+  their order; nothing is given or kept. The end-to-end channel checks the
+  node's key, so a stranger at the alias is refused; `--no-e2e` leaves the
+  road out. A line says before the first link that Serveo, a third party
+  that nobody vouches for, carries the session; `-v` says which alias.
+  `podssh ping node://NAME` never measures it.
 - **A carrier: the node's road on a stream that exists already (T-595).**
   For a host whose every road out is closed but that grants one channel,
   as the exec channel of a platform's own SSH: `node NAME TARGET --carrier

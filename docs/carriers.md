@@ -1328,6 +1328,15 @@ Ruled out:
   node's leg is SSH on 443 as user `tls`, raw first and inside TLS that the
   host's trust verifies where a proxy passes TLS alone; a client's TLS to
   the node pins the key that the node says beside its tunnel's name.
+  Serveo, read again on 2026-11-10 [N21]: a private alias is `ssh -R
+  ALIAS:22:localhost:22 serveo.net`, a client jumps with `ssh -J serveo.net
+  user@ALIAS`, an anonymous tunnel needs no key, port 443 serves a cage
+  that keeps 22 shut, an alias is "a routing name rather than an
+  authentication secret", and one that a lost tunnel held may stay taken a
+  while; the 10 minutes are of a public port of anonymous TCP, not of an
+  alias. Its terms forbid unlawful and abusive use and name no clause on a
+  relay's or on automation. The alias of a node's key is the road of T-549
+  (2026-11-10), raw SSH at both ends, under the end-to-end channel.
 - **bore.pub**: one person runs it, on the control port 7835 and random
   ports [R43]. Read on 2026-11-02: it restarts on purpose and "isn't meant
   for long-lived connections" (its issue 170, 2025-06-24), it was down on
@@ -2091,7 +2100,9 @@ public data file), not a run of podssh.
 - [N19] https://relays.syncthing.net/endpoint (counted)
 - [N20] https://pinggy.io/docs/client_behind_proxy/;
   https://pinggy.io/docs/tls_tunnels/; https://pinggy.io/docs/tlstcp_tunnels/
-- [N21] https://serveo.net/docs/
+- [N21] https://serveo.net/docs/; read again on 2026-11-10 with
+  https://serveo.net/articles/remote-access-to-ssh-servers-using-serveo/ and
+  https://serveo.net/terms/
 - [N22] https://localhost.run/
 - [N23] https://github.com/ekzhang/bore/issues/170; the issues of
   https://github.com/ekzhang/bore (202); https://www.saashub.com/bore-pub-status

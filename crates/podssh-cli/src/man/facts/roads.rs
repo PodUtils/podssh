@@ -78,6 +78,16 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_SERVEO"],
+        "The Serveo road (T-549), the last fallback of the operator's ruling Q78: a private alias at Serveo with \
+          no account, derived from the node's key, whose node's leg and client's hop are raw SSH on port 443, \
+          then 22, of podssh node --serveo, which a node with no other road serves unasked after the Pinggy road, \
+          and of podssh ssh node://NAME, which a client with a key of the node races last. no: no such road, and \
+          the flag is refused (64); HOST[:PORT]: that server of Serveo's protocol, whose host key nobody names; \
+          unset, empty or yes: the server that podssh's list of services names, and none where it names none. \
+          Another word is a configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_PINGGY_TRACE"],
         "1: the Pinggy road says each visitor's bytes each way every 5 s while it lives, on the node's stderr, \
           and each link's on the client's with -v, with a write that waits and since when, so that a run that \
@@ -222,8 +232,9 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
-      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; and the \
-      roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
+      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
+      Serveo road, PODSSH_SERVEO, T-549; and the roads that join them); yes, the default, leaves each to its own \
+      variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

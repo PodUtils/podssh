@@ -70,7 +70,7 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     cmd.env_remove("PODSSH_LAST_RESORT");
     let proxy = format!("http://127.0.0.1:{proxy}");
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
-    cmd.env("PODSSH_PINGGY", SERVER);
+    cmd.env("PODSSH_PINGGY", SERVER).env("PODSSH_SERVEO", "no");
     // The roads of the test alone: no OpenTunnel, no transit relay, no
     // Piping Server, no record at n0's server of pkarr.
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no");

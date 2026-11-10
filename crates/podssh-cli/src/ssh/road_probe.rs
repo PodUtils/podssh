@@ -136,6 +136,8 @@ pub(crate) async fn measure(
         member,
         frp,
         pinggy,
+        // Serveo's alias is never named, so a measure never tries it (Q78).
+        serveo: None,
         refused,
         label,
         legs,

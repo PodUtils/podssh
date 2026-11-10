@@ -6113,7 +6113,7 @@ the net that already names them.
 
 ## Premise
 
-- `crates/podssh-cli/src/node_quick.rs:152`, where the node with no `--allow` was refused: its
+- `crates/podssh-cli/src/node_quick.rs:153`, where the node with no `--allow` was refused: its
   name is public, so only the operator keys of the file came in.
 - `crates/podssh-cli/src/node_derp.rs:117` says "pub(crate) fn door(allow: Option<&Path>, place: &Place) -> Result<Door, Refusal>",
   the door of T-452 that the quick tunnel's node can take too.
@@ -6633,8 +6633,8 @@ port 443 over a WebSocket.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1346` says "NetBird's relays, 67 over a WebSocket on TCP 443," and
-  `docs/carriers.md:1349` says "so each peer needs an account": a relay admits a peer with a token
+- `docs/carriers.md:1355` says "NetBird's relays, 67 over a WebSocket on TCP 443," and
+  `docs/carriers.md:1358` says "so each peer needs an account": a relay admits a peer with a token
   of NetBird's management server alone.
 - `crates/podssh-iroh/src/probe.rs:1` says "Whether this host's UDP goes out and comes back
   (T-359). A sandbox can": podssh probes UDP before it takes it.
@@ -6698,7 +6698,7 @@ it a research entry, for a host with TCP to 443 alone or where UDP passes.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1350` says "Firezone's relays are TURN on UDP, behind an account".
+- `docs/carriers.md:1359` says "Firezone's relays are TURN on UDP, behind an account".
 
 ## Approach
 
@@ -6754,8 +6754,8 @@ account, and carry a session, was not read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1350-1351` says "ZeroTier's roots use UDP 9993", and
-  `docs/carriers.md:1358-1359` says "ZeroTier Inc. runs a TCP relay that ZeroTier One falls back
+- `docs/carriers.md:1359-1360` says "ZeroTier's roots use UDP 9993", and
+  `docs/carriers.md:1367-1368` says "ZeroTier Inc. runs a TCP relay that ZeroTier One falls back
   to where it cannot use UDP": an IP literal on port 443, which its document calls slow.
 
 ## Approach
@@ -6818,8 +6818,8 @@ read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1353-1354` says "Tox's TCP relays try port 443 first", and
-  `docs/carriers.md:1355` says "but they speak Tox's own handshake, not TLS".
+- `docs/carriers.md:1362-1363` says "Tox's TCP relays try port 443 first", and
+  `docs/carriers.md:1364` says "but they speak Tox's own handshake, not TLS".
 
 ## Approach
 
@@ -6942,7 +6942,7 @@ whether its rooms carry a podssh session, was not read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1351` says "croc's relay uses TCP 9009".
+- `docs/carriers.md:1360` says "croc's relay uses TCP 9009".
 
 ## Approach
 
@@ -7012,7 +7012,7 @@ any part of it answers over TCP on 443, was not read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1352-1353` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
+- `docs/carriers.md:1361-1362` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
   or other ports".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved": podssh probes UDP before a road over it.
@@ -7084,7 +7084,7 @@ a host with 443 alone, or only what HyperDHT gives (T-542), was not read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1352-1353` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
+- `docs/carriers.md:1361-1362` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
   or other ports".
 
 ## Approach
@@ -7134,7 +7134,7 @@ from a host with 443 alone, or where UDP passes, was not read.
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1352-1353` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
+- `docs/carriers.md:1361-1362` says "the bootstrap nodes of HyperDHT, Cabal and Hyphanet use UDP
   or other ports".
 
 ## Approach
@@ -7263,7 +7263,7 @@ node's roads, from a host with 443 alone, was not read.
 
 - `docs/decisions.md:33` says "Nostr's ephemeral events and the trackers become meeting points of
   the pairing, in the same order".
-- `docs/carriers.md:1500-1501` says "a tracker gives a peer list, or passes WebRTC's offers between
+- `docs/carriers.md:1509-1510` says "a tracker gives a peer list, or passes WebRTC's offers between
   the peers of one torrent".
 
 ## Approach
@@ -7338,11 +7338,11 @@ read in part; which of them carries a message from one podssh end to another wit
 ## Premise
 
 - `docs/decisions.md:33` says "Q77: use the fallbacks that exist".
-- `docs/carriers.md:1445-1446` says "relays send each record to each consumer, and a record is
-  written to a PDS by an account"; `docs/carriers.md:1446` says "ActivityPub's relays take a
-  server's posts"; `docs/carriers.md:1449` says "takes a message from a member alone" (the Waku
-  Network); `docs/carriers.md:1453` says "an inbox that a wallet's signature registered" (XMTP);
-  `docs/carriers.md:1453-1454` says "The Farcaster hubs of the sweep were gone".
+- `docs/carriers.md:1454-1455` says "relays send each record to each consumer, and a record is
+  written to a PDS by an account"; `docs/carriers.md:1455` says "ActivityPub's relays take a
+  server's posts"; `docs/carriers.md:1458` says "takes a message from a member alone" (the Waku
+  Network); `docs/carriers.md:1462` says "an inbox that a wallet's signature registered" (XMTP);
+  `docs/carriers.md:1462-1463` says "The Farcaster hubs of the sweep were gone".
 - `docs/carriers.md:1253` says "none is reachable on 443 in practice" (the public MQTT brokers).
 
 ## Approach
@@ -7842,7 +7842,7 @@ why the net's list does not hold it).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -7874,6 +7874,58 @@ not wait for TLS. podssh does not use it; Q78 makes it a last fallback, whatever
 5. A last fallback (Q78), with the line of T-548's step 5; `PODSSH_SERVEO=no`, and the switch of
    T-548's Decision.
 
+## Decision
+
+- **The alias is of the node key's fingerprint** (a draft's call, 2026-11-10): `p`, then the hex of
+  the first 20 bytes of SHA-256 over `podssh serveo alias v1`, a NUL, the fingerprint (`SHA256:` and
+  base64, as podssh shows a key) and the alias's place in the series
+  (`crates/podssh-relay/src/serveo/alias.rs`): 41 characters of `[a-z0-9]`, one label of a host
+  name that begins with a letter. A client computes it from `--node-key`, from the key that the net
+  names, or from the pins of NAME, each of which may hold a fingerprint alone. Lost: the key's own
+  bytes, which a fingerprint of `--node-key` or of the pins cannot give; and a random alias that
+  the node says and a client is given and keeps, as Pinggy's name, which adds a word to give for
+  what the key already says.
+- **A series of four aliases, each tried in its order, by the node and by the client**: Serveo
+  refuses an alias that another tunnel holds, and holds a lost tunnel's a while (its article on
+  remote SSH), so the node takes the next and says so, and starts at the first again at each new
+  tunnel; a client opens a `direct-tcpip` channel to each in turn and takes the first that opens.
+  A stranger who holds an earlier alias of the series wins that place and is refused by the
+  end-to-end channel: a denial, which Serveo itself can make too, never a session to a stranger.
+  Lost: the alias's place in the node's record of pkarr (T-445), which a build with no iroh road
+  keeps none of, and which a name of the key does not need; and a client that opens each alias at
+  once, which reaches each stranger of the series beside the node.
+- **No TLS on a client's channel**: the node's far end is the Pinggy road's
+  (`crates/podssh-relay/src/pinggy/far.rs`) with no acceptor, the layer's link as it comes. SSH
+  keeps the bytes from the network, and the end-to-end channel, which checks the node's key, from
+  Serveo. Lost: TLS with a key of the node's own and a pin, as on Pinggy's road, where TLS is the
+  link itself; here it would check nothing that the channel does not.
+- **Serveo's server comes from `pod-services` or `PODSSH_SERVEO`, never from podssh's code**
+  (`AGENTS.md`: no hardcoded host of another party). `pod-services` (`v0.11.0`, read in the lock)
+  holds no `serveo`, so the road is off by default (`Setting::Unnamed`): `--serveo` is 64 with no
+  `PODSSH_SERVEO`, and no client races it. The code reads the endpoints `ssh-443` and `ssh` and
+  the fact `host-key-sha256` when the catalog has them; the ask to podcrates is in the draft's
+  worktree (.work/coord-serveo.md), for a COORD issue `(to podcrates)`. Lost: a constant
+  `serveo.net`, which the rule forbids.
+- **No renewal before 10 minutes** (the Correction): the node keeps a tunnel until it ends, and
+  opens the next after a wait of 1 s to 60 s, as the Pinggy road's node does. Lost: a new tunnel
+  each 9 minutes, which would cut each link on a schedule that no document asks for.
+- **The client races the road last of all, with nothing given or kept**: after the Pinggy road,
+  `Start::WhenAllFailed`, whenever the road has a server and a key of the node is known; `podssh
+  ping` never measures it, as nobody names it. Lost: a flag of `ssh` to ask for it, a word for a
+  name that the key gives; and the key of an iroh or DERP ticket, which the road does not read (a
+  run with a ticket has that road, and the pins hold the key after a session).
+- **A node serves it unasked after the Pinggy road, the last of all**: the node of
+  `node_pinggy::last_node` (no pair, a door, no other road asked, DERP and OpenTunnel off or
+  reaching nothing) takes Pinggy's road, and Serveo's when that one reached no server, or in its
+  place where `PODSSH_PINGGY=no`. Lost: Serveo before Pinggy, whose raw SSH fails where a proxy
+  waits for TLS, which Pinggy's leg passes.
+- **The login's user is `anonymous`**, with no account and no key, as Serveo's anonymous tunnel
+  takes. Lost: the local user's name, as OpenSSH sends it, which would tell a third party who runs
+  podssh.
+- **A new SSH session at Serveo for each link of a client**, which ends with the link (`Hop`, in
+  `crates/podssh-cli/src/serveo_leg.rs`). Lost: one session for the run's links, whose loss would
+  take each link with it; Pinggy's client makes a new TLS for each link too.
+
 ## Prove
 
 ```sh
@@ -7886,6 +7938,106 @@ plain squid as the proxy: a node's alias, a client's hop, 1 MiB each way under t
 stranger at the alias refused. Live, short, through Serveo (T-548's Decision), the test that software that
 podssh did not write needs. Planted: the alias not derived from the key, and the test of the
 client's alias fails.
+
+## Correction
+
+2026-11-10 (a draft). The Premise holds at its lines; three readings change the Approach:
+
+- `docs/carriers.md:1319`'s 10 minutes are of Serveo's public TCP, a random port of an anonymous
+  session, not of an alias: its documents name no bound of a private alias. Step 4 is so: no
+  renewal before a bound; the node opens a new tunnel after each end, and the layer moves its
+  sessions.
+- `crates/podssh-cli/src/ssh/jump.rs:100` is the first hop of `-J` for `cf://`, `iap://` and
+  `eice://`, which holds the client's SSH to the target. The Serveo road's hop is a link of the
+  resumable layer, so it is an SSH session of its own (`crates/podssh-cli/src/serveo_leg.rs`),
+  whose handshake, check of the host key and login with no account are the Pinggy road's
+  (`crates/podssh-cli/src/pinggy_leg.rs`, now shared).
+- Serveo documents no SSH inside TLS: the road needs a proxy that passes raw SSH on 443 or 22.
+
+Approach step 1, read on 2026-11-10 through `read.web.pkgforge.dev` (the operator's rule of
+2026-10-31):
+
+- <https://serveo.net/docs/> ("Private TCP and SSH forwarding"): `ssh -R myalias:5901:localhost:5900
+  serveo.net`, a client `ssh -L 5902:myalias:5901 serveo.net`; for SSH, `ssh -R
+  myalias:22:localhost:22 serveo.net` and `ssh -J serveo.net user@myalias`; "Private aliases do not
+  open a public Internet port, but they are shared routing names rather than an authentication
+  boundary. Choose an unguessable alias". "Public TCP forwarding": port 0 gives anonymous sessions
+  "one random port for 10 minutes, with up to two simultaneous connections, a two-minute
+  traffic-idle timeout, and a 256 KiB/s cap"; "a hostname or alias before the port creates a
+  private TCP forward"; port 80 makes an HTTP tunnel. "Connect on port 443": `ssh -p 443`. "You can
+  try an anonymous tunnel without creating an account or key"; a key in the console gives the
+  connection a Serveo identity. The Ed25519 host key's fingerprint, in its PuTTY steps:
+  `SHA256:GnmVK+70U6GqbupoV+gg7LnHHUsW1IjrK0cLqvDJxIk`. The subdomain of an HTTP tunnel is chosen by
+  the IP address and the SSH user. Automation: autossh with `-M 0` is its own advice.
+- <https://serveo.net/articles/remote-access-to-ssh-servers-using-serveo/>: `ssh -NT -o
+  ExitOnForwardFailure=yes -R my-long-private-alias:22:localhost:22 serveo.net`, and a systemd
+  service that restarts it; "An abrupt network failure can leave an alias occupied briefly";
+  "Alias already taken: another live or recently disconnected tunnel owns that alias and port";
+  "Serveo transports the connection; it does not replace SSH authentication on your target".
+- <https://serveo.net/terms/>: a service of reverse proxies and tunnels "intended for development,
+  testing, receiving webhooks, and sharing demonstrations"; forbidden: unlawful content, malware,
+  phishing, spam, attacks and port scanning, and high-risk uses; no clause on a relay's use, on
+  aliases or on automation; access may end "for any reason". Its privacy policy: HTTP URLs are
+  logged, "encrypted raw TCP traffic" is not decrypted, and an anonymous user's address is shown in
+  its subdomain. Q78 makes the road a last fallback whatever its terms.
+
+`pod-services` (`v0.11.0`) holds no service `serveo`: the Decision says what the road reads, and
+the ask to podcrates is the service `serveo`, kind `ssh-tunnel`, its endpoints `ssh`
+(`serveo.net:22`) and `ssh-443` (`serveo.net:443`), and the fact `host-key-sha256` above, each with
+its source.
+
+## Done
+
+Partial, 2026-11-10: drafted by an agent in a worktree (`draft-f2`, `e98187f8`), then merged, built
+and tested by the main session, with one repair: a test's second fingerprint, `SHA256:` and 43 of
+`B`, is no fingerprint (its last character's 2 bits of padding are not zero), so the pins' strict
+reader rightly refused it and `the_pins_of_a_label_name_its_keys_in_their_order` failed; it now ends
+in `A`.
+
+- `crates/podssh-relay/src/serveo/` (feature `serveo`, on `pinggy`'s): `mod.rs` (the server of
+  `pod-services` or of `PODSSH_SERVEO`, ports 443 then 22, `PODSSH_LAST_RESORT`, the line of the
+  third party), `alias.rs` (the alias of a fingerprint, the keys of a label's pins). The Pinggy
+  road's `far::serve` takes an optional acceptor, and `pinggy::host_port` reads both roads'
+  variables.
+- `crates/podssh-cli/src/serveo_leg.rs` (the node's tunnel under the first alias granted, and a
+  client's hop: SSH, then a `direct-tcpip` channel to the series in order), `node_serveo.rs` and
+  `node_serveo_serve.rs` (`podssh node --serveo`, unasked after Pinggy's road or in its place, a
+  tunnel at a time, the pair's road beside it), `ssh/serveo.rs` (the race's last place, the keys
+  of `--node-key`, the net or the pins); `pinggy_leg.rs` shares its handshake and login; the
+  race's wiring (`ssh/roads.rs`, `ssh/road_link.rs`, `ssh/node_roads.rs`, `ssh/road_probe.rs`), the
+  flag (`flags/opentunnel.rs`), and `--serveo` in each list of roads that refuses another.
+- The manual: `man/notes_serveo.rs` (node's and ssh's notes), `PODSSH_SERVEO` and Serveo in
+  `PODSSH_LAST_RESORT` (`man/facts/roads.rs`), Serveo in the note of the public services; and
+  `docs/cli.md`, `docs/carriers.md`. The harnesses of the other roads turn the road off
+  (`PODSSH_SERVEO=no`: `derp_road`, `opentunnel_road`, `frp_road`, `pinggy_road`,
+  `scripts/interop-frp.sh`), so that none reaches Serveo once `pod-services` names it.
+- Tests: `cargo test -p podssh-relay --features serveo --lib serveo`
+  (`the_variables_turn_the_road_off_name_a_server_or_are_refused_without_their_text`,
+  `the_line_of_the_third_party_names_it_and_both_switches`,
+  `the_alias_is_of_the_key_s_fingerprint_and_its_place_in_the_series`, a known answer computed
+  with Python's hashlib, `the_pins_of_a_label_name_its_keys_in_their_order`); `cargo test -p
+  podssh-cli --lib -- node_serveo serveo_leg man::notes_serveo`; `cargo test -p podssh-cli --test
+  serveo_road` against `tests/serveo_stand_in/` (russh's server, aliases routed by name, written
+  from Serveo's documents) and a stand-in proxy:
+  `the_node_s_alias_is_its_key_s_and_a_client_with_the_key_jumps_to_it_last`,
+  `a_mebibyte_goes_each_way_under_the_channel`,
+  `a_stranger_at_the_alias_is_refused_by_the_end_to_end_channel`,
+  `an_alias_that_serveo_holds_sends_the_node_to_the_next_of_its_series`,
+  `where_the_proxy_refuses_443_the_leg_is_ssh_on_port_22`,
+  `a_node_with_no_other_road_serves_serveo_unasked_after_pinggy_and_names_the_third_party`,
+  `the_switches_turn_the_road_off_and_a_node_with_no_door_or_no_server_is_refused_before_it_connects`;
+  and the Pinggy road's again (`--test pinggy_road`, `-p podssh-relay --features pinggy --lib
+  pinggy`), whose far end and leg changed. Measured 2026-11-10: the relay's `serveo` and `pinggy`,
+  16 passed; `--test serveo_road`, 7 passed; `--test pinggy_road`, 7 passed; `cargo test -p
+  podssh-cli -p podssh-relay -p podssh-ws`, 3,452 passed, 0 failed; clippy (the gate's lints,
+  with `podssh-relay/serveo`) clean.
+- Planted (`scripts/plants/t549-alias-not-of-key.patch`): the alias not of the key; the test of the
+  node's alias must fail, and the relay's known answer too: both fail
+  (`the_node_s_alias_is_its_key_s_and_a_client_with_the_key_jumps_to_it_last`,
+  `an_alias_that_serveo_holds_sends_the_node_to_the_next_of_its_series`, and the known answer);
+  put back, each passes.
+- Waits: `pod-services`' `serveo` (the ask); the live run, short,
+  through Serveo (T-548's Decision, Q91), which needs it; the Prove's squid in a container (T-251).
 
 # T-565: localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R`
 
@@ -7967,8 +8119,8 @@ a client that knows the node's key could know its name. podssh does not use it.
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1709` says "derived from your SSH key", with no account and with a key
-  required; `docs/carriers.md:1703` says "on port 22 in their own commands" of the SSH tunnel
+- `docs/carriers.md:1718` says "derived from your SSH key", with no account and with a key
+  required; `docs/carriers.md:1712` says "on port 22 in their own commands" of the SSH tunnel
   providers of the sweep.
 
 ## Approach
@@ -8013,8 +8165,8 @@ shape of localhost.run's tunnel; podssh does not use it.
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1703` says "on port 22 in their own commands", and
-  `docs/carriers.md:1705` says "gives HTTPS URLs alone".
+- `docs/carriers.md:1712` says "on port 22 in their own commands", and
+  `docs/carriers.md:1714` says "gives HTTPS URLs alone".
 
 ## Approach
 
@@ -8067,8 +8219,8 @@ visitor's HTTP. A client in a cage reaches the name on 443. podssh does not use 
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1711` says "a port and a URL, then opens raw TCP to that port", and
-  `docs/carriers.md:1712` says "request meets a reminder page unless it carries the header".
+- `docs/carriers.md:1720` says "a port and a URL, then opens raw TCP to that port", and
+  `docs/carriers.md:1721` says "request meets a reminder page unless it carries the header".
 - `crates/podssh-relay/src/serve/behind.rs:1` says "The relay role behind a node's quick tunnel
   (T-428): the role's routes as".
 
@@ -8098,7 +8250,7 @@ client meets the reminder page (the test names it).
 
 ## Correction
 
-2026-11-04 (the drafting agent). `docs/carriers.md:1712` says "request meets a reminder page unless
+2026-11-04 (the drafting agent). `docs/carriers.md:1721` says "request meets a reminder page unless
 it carries the header", which the operator's archive `ff-relay` of 2026-11-04 contradicts for one
 client (`docs/research/forward-carriers.md`, section 3.6): through `loca.lt`, curl fetched a file of
 16 MiB of random bytes with no `Bypass-Tunnel-Reminder` and got `200` and exactly 16,777,216
@@ -8137,8 +8289,8 @@ forwarders (Q56) where a proxy allows 443 alone. podssh does not use it.
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1335-1336` says "JSON messages ended by a zero byte on the control port 7835",
-  and `docs/carriers.md:1332-1333` says "isn't meant for long-lived connections".
+- `docs/carriers.md:1344-1345` says "JSON messages ended by a zero byte on the control port 7835",
+  and `docs/carriers.md:1341-1342` says "isn't meant for long-lived connections".
 
 ## Approach
 
@@ -8180,8 +8332,8 @@ that restarts makes the node register again. Live, short, through bore.pub (T-54
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1701-1702` says "a public SSH jump and forwarding server with no account", and
-  `docs/carriers.md:1703` says "on port 22 in their own commands".
+- `docs/carriers.md:1710-1711` says "a public SSH jump and forwarding server with no account", and
+  `docs/carriers.md:1712` says "on port 22 in their own commands".
 - `crates/podssh-cli/src/ssh/jump.rs:100` says "The first hop's tunnel".
 
 ## Approach
@@ -8568,7 +8720,7 @@ last fallback whatever its terms, after `ppng.io` and T-497's `piping.onrender.c
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1717` says "The last runs on serv00, whose terms forbid to", of
+- `docs/carriers.md:1726` says "The last runs on serv00, whose terms forbid to", of
   `p.kokoro.serv00.net`.
 - `PodUtils/podssh:crates/podssh-relay/src/piping/server.rs:10` says "pub const DEFAULT_HOST: &str =".
 
@@ -8600,7 +8752,7 @@ T-497 is done: the road has public servers in order.
 
 2026-11-04 (the drafting agent), from the operator's archive `ff-relay` of 2026-11-04
 (`docs/research/forward-carriers.md`, section 3.3). The archive reached serv00's Piping Server at
-the name with `www.` before the Premise's (`docs/carriers.md:1717` says "The last runs on serv00,
+the name with `www.` before the Premise's (`docs/carriers.md:1726` says "The last runs on serv00,
 whose terms forbid to"), and read that it completes transfers and holds a streamed body until its
 end (Read in its docs/carriers.md, "Pairing carriers", and its results/http-relay-hunt.json). So
 step 1's "whether it streams" has the archive's answer, no: the road there runs in numbered pieces,
@@ -8875,9 +9027,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1933-1934` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:1935` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:1929` says "UDP alone, which the
+- `docs/carriers.md:1942-1943` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:1944` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:1938` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -8943,9 +9095,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1940-1941` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:1943-1944` says "as the server never answers a command";
-  `docs/carriers.md:1946` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:1949-1950` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:1952-1953` says "as the server never answers a command";
+  `docs/carriers.md:1955` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -9273,7 +9425,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:283-293`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:284-294`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -9627,8 +9779,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:292-293`), and needs the net's role exit, signed by
-  its owner (`:290-291`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:293-294`), and needs the net's role exit, signed by
+  its owner (`:291-292`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:111`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -10412,7 +10564,7 @@ through an HTTP CONNECT proxy.
 - `docs/decisions.md:47` says "Q66: standard protocols, so that a server that a user runs is a
   road".
 - `docs/carriers.md:364` says "no TCP relaying, no RFC 6062", of Cloudflare's TURN, and
-  `docs/carriers.md:1343` says "OpenRelay, Metered's TURN", which needs an account: no public TURN
+  `docs/carriers.md:1352` says "OpenRelay, Metered's TURN", which needs an account: no public TURN
   server with no account offers TCP allocations, so this road is for a server that the user runs.
   The archive's patch says the same of Cloudflare's Realtime TURN and LiveKit's public TURN: each
   answers a TCP allocation with `508` (Read in its comment; not measured here).
@@ -11383,9 +11535,9 @@ a pair of ends whose only way out is 443 cannot use croc's public relays.
 
 ## Premise
 
-- `docs/carriers.md:1512-1513` says "has a path `/ws?relay=N&port=P` that upgrades to a WebSocket and
+- `docs/carriers.md:1521-1522` says "has a path `/ws?relay=N&port=P` that upgrades to a WebSocket and
   pipes its binary messages to relay N's port P".
-- `docs/carriers.md:1526-1527` says "croc's relay carries a podssh pair from a host with 443 alone, as
+- `docs/carriers.md:1535-1536` says "croc's relay carries a podssh pair from a host with 443 alone, as
   a road of bytes".
 
 ## Approach
@@ -11430,9 +11582,9 @@ Nostr's (Q77). The pairing has no such meeting point yet.
 
 ## Premise
 
-- `docs/carriers.md:1698-1699` says "Verdict: WebTorrent's trackers can be meeting points of the
+- `docs/carriers.md:1707-1708` says "Verdict: WebTorrent's trackers can be meeting points of the
   pairing, after Nostr's (Q77)".
-- `docs/carriers.md:1686` says "any JSON passes".
+- `docs/carriers.md:1695` says "any JSON passes".
 
 ## Approach
 
@@ -11781,9 +11933,9 @@ network through the planet's roots. podssh speaks no ZeroTier.
 
 ## Premise
 
-- `docs/carriers.md:1577` says "Verdict: a podssh pair passes through ZeroTier's TCP", with no
+- `docs/carriers.md:1586` says "Verdict: a podssh pair passes through ZeroTier's TCP", with no
   account, on an ad-hoc network.
-- `docs/carriers.md:1551` says "refuses it, and a plain CONNECT to": the relay's records are a fake
+- `docs/carriers.md:1560` says "refuses it, and a plain CONNECT to": the relay's records are a fake
   TLS header on a raw TCP stream, to an IP literal (Inferred).
 
 ## Approach
@@ -11842,8 +11994,8 @@ Tox's public list listen on 443, all online. podssh speaks none of Tox's relay p
 
 ## Premise
 
-- `docs/carriers.md:1621` says "Verdict: Tox's TCP relays" carry a podssh pair, with no account.
-- `docs/carriers.md:1614` says "tunnels raw, as for ZeroTier above (Inferred)": the relay's
+- `docs/carriers.md:1630` says "Verdict: Tox's TCP relays" carry a podssh pair, with no account.
+- `docs/carriers.md:1623` says "tunnels raw, as for ZeroTier above (Inferred)": the relay's
   handshake is not TLS.
 
 ## Approach
@@ -11900,8 +12052,8 @@ online on 2026-11-10. podssh speaks none of Yggdrasil's links or routing.
 
 - `docs/carriers.md:1188` says "Out, as the roads of podssh's", and Q77 (`docs/decisions.md:33`)
   reads that verdict again.
-- `docs/carriers.md:1653` says "routing logic in `network` is still undocumented", and
-  `docs/carriers.md:1666` says "NEARBY peers with good uptime".
+- `docs/carriers.md:1662` says "routing logic in `network` is still undocumented", and
+  `docs/carriers.md:1675` says "NEARBY peers with good uptime".
 
 ## Approach
 
@@ -11958,7 +12110,7 @@ tried after podssh's own (Q77, Q82). podssh has no road by HyperDHT.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1440` says "Verdict: HyperDHT passes only where UDP passes,".
+- `docs/carriers.md:1449` says "Verdict: HyperDHT passes only where UDP passes,".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved": podssh probes UDP before a road over it.
 - Read: `peeroxide-dht` 1.7.4 and `libudx` 1.7.4 are a Rust port in RustCrypto with no C dependency,

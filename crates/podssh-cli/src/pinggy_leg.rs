@@ -47,8 +47,9 @@ const VERSION_LIMIT: Duration = Duration::from_secs(10);
 /// The bytes of the server's first read that may hold the version line.
 const VERSION_BYTES: usize = 255;
 
-/// What the leg's SSH client does with what the server sends.
-struct Leg {
+/// What the leg's SSH client does with what the server sends; Serveo's
+/// road takes it too (T-549, `serveo_leg`).
+pub(crate) struct Leg {
     /// The fingerprint that the host key must have, when one is pinned.
     host_key: Option<String>,
     /// The fingerprint of the key that the server presented.
@@ -97,7 +98,7 @@ pub(crate) struct Tunnel {
     pub host_key: (String, bool),
     /// Raw SSH, or SSH inside TLS.
     pub way: &'static str,
-    handle: client::Handle<Leg>,
+    pub(crate) handle: client::Handle<Leg>,
 }
 
 impl Tunnel {
@@ -116,15 +117,15 @@ impl Tunnel {
 }
 
 /// Why SSH failed, and whether the server's SSH version line came first.
-struct Failed {
-    why: String,
-    version: bool,
+pub(crate) struct Failed {
+    pub why: String,
+    pub version: bool,
 }
 
 /// SSH's handshake with `service` over `stream`; `heard` says whether the
 /// server's version line came, where a raw SSH is bounded to hear it within
 /// [`VERSION_LIMIT`]. The handle, and the host key's fingerprint.
-async fn handshake<S>(
+pub(crate) async fn handshake<S>(
     stream: S,
     service: &Service,
     visitors: mpsc::Sender<Visitor>,
@@ -161,7 +162,7 @@ where
         Ok(Some(Ok(handle))) => Ok((handle, seen_key().unwrap_or_default())),
         Ok(Some(Err(e))) => Err(failed(match (&service.host_key, seen_key()) {
             (Some(pinned), Some(key)) if *pinned != key => format!(
-                "{service} presented the host key {key}, not Pinggy's {pinned} (pod-services): a proxy or another \
+                "{service} presented the host key {key}, not the pinned {pinned} (pod-services): a proxy or another \
                  server answered"
             ),
             _ => format!("{service}: SSH: {e}"),
@@ -207,7 +208,7 @@ pub(crate) async fn open(
     if service.host_key.is_none() {
         say(format!("{service}'s host key {key} is taken unpinned: the end-to-end channel keeps the bytes"));
     }
-    login(&mut handle).await.map_err(|why| format!("{service}: {why}"))?;
+    login(&mut handle, pinggy::TLS_USER).await.map_err(|why| format!("{service}: {why}"))?;
     handle
         .tcpip_forward(pinggy::FORWARD_ADDRESS, 0)
         .await
@@ -233,9 +234,9 @@ pub(crate) async fn open(
     Ok(Tunnel { name, host_key: (key, service.host_key.is_some()), way, handle })
 }
 
-/// The login of a tunnel with no account; else why none passed.
-async fn login(handle: &mut client::Handle<Leg>) -> Result<(), String> {
-    let user = pinggy::TLS_USER;
+/// The login of a tunnel with no account, as `user`; else why none passed.
+/// Serveo's road logs in so too (T-549).
+pub(crate) async fn login(handle: &mut client::Handle<Leg>, user: &str) -> Result<(), String> {
     let word = |e: russh::Error| format!("the login: {e}");
     if handle.authenticate_none(user).await.map_err(word)?.success() {
         return Ok(());

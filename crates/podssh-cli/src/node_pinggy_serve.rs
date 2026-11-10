@@ -31,8 +31,9 @@ const AGAIN_MOST: Duration = Duration::from_secs(60);
 /// The visitors that wait for the node's TLS, for each tunnel.
 const WAITING: usize = 64;
 
-/// The wait before tunnel `attempt`, from 0, with jitter.
-fn again_wait(attempt: u32) -> Duration {
+/// The wait before tunnel `attempt`, from 0, with jitter; Serveo's road
+/// waits so too (T-549).
+pub(crate) fn again_wait(attempt: u32) -> Duration {
     let base = AGAIN_FIRST.saturating_mul(1u32 << attempt.min(16)).min(AGAIN_MOST);
     let ms = base.as_millis() as u64;
     Duration::from_millis(rand::rng().random_range(ms / 2..=ms))
@@ -188,7 +189,7 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
                     say(format!("its record does not name this tunnel: {why}"));
                 }
                 let (acceptor, open, keeper, say_far) = (acceptor.clone(), open.clone(), keeper.clone(), say.clone());
-                let serving = far::serve(rx, acceptor, settings(), budget, open, keeper, say_far);
+                let serving = far::serve(rx, Some(acceptor), settings(), budget, open, keeper, say_far);
                 tokio::select! {
                     () = serving => {}
                     () = open_tunnel.ended() => {}

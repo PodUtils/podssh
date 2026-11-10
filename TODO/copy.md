@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:357-378` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:5576-5579`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:5609-5612`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -3972,7 +3972,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 
 ## Premise
 
-- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:439`. It takes a
+- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:441`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
 - Read: `crates/podssh-cli/src/sftp/run.rs:130` hands `self.link.meter` to `bysftp::down` and `up`;

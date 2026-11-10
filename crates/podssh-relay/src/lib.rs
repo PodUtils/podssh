@@ -58,6 +58,9 @@
 //! - `pinggy` (feature `pinggy`): the Pinggy road (T-548), a last fallback
 //!   through Pinggy's free TLS tunnels: the node's leg is SSH inside TLS
 //!   (its SSH client is the caller's), the client's TLS by name;
+//! - `serveo` (feature `serveo`): the Serveo road (T-549), a last fallback
+//!   through Serveo's private aliases: an alias of the node's key, which a
+//!   client computes (both legs' SSH clients are the caller's);
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -98,6 +101,8 @@ pub mod opentunnel;
 pub mod pair;
 #[cfg(feature = "pinggy")]
 pub mod pinggy;
+#[cfg(feature = "serveo")]
+pub mod serveo;
 #[cfg(feature = "piping")]
 pub mod piping;
 pub mod pool;

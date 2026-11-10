@@ -31,7 +31,7 @@ the rest is read. `bound` wraps only `TsNode::start` and `tcp_connect`
 (`crates/podssh-cli/src/ts.rs`, lines 207-221 at `4c3b456`, `crates/podssh-cli/src/ts.rs`, lines 353-363 at `4c3b456`), not `node.status()`
 or `node.peer_ip()` (`crates/podssh-cli/src/ts.rs`, line 289 at `4c3b456`, `crates/podssh-cli/src/ts.rs`, line 344 at `4c3b456`). The
 module comment says that the bound caps the whole operation (`crates/podssh-cli/src/ts.rs`, lines 9-14 at `4c3b456`),
-and `docs/cli.md:5756-5758` makes that a rule.
+and `docs/cli.md:5789-5791` makes that a rule.
 
 Read: `status()` calls `Device::self_node()` (`crates/podssh-ts/src/node.rs`, lines 76-79 at `4c3b456`), whose reply
 waits in a queue until a map with the self node arrives
@@ -921,7 +921,7 @@ Read: the row is at `crates/podssh-cli/src/flags.rs`, lines 293-294 at `efee2fc`
 (`crates/podssh-cli/src/ts.rs`, lines 314-316 at `efee2fc`, `crates/podssh-ts/src/status.rs:17-21`), and `-W` writes the
 stream (`crates/podssh-cli/src/ts.rs`, lines 391-393 at `efee2fc`). `proxy --jsonl` is refused at parse, with the reason
 (`crates/podssh-cli/src/tree.rs`, lines 179-187 at `efee2fc`, `crates/podssh-cli/src/non_interactive.rs`, lines 309-320 at `efee2fc`).
-`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:98`).
+`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:101`).
 
 ## Approach
 

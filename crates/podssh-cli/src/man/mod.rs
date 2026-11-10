@@ -50,6 +50,8 @@ mod notes_pinggy;
 mod notes_pipe;
 mod notes_play;
 mod notes_proxy;
+// The Serveo road, the last fallback of Q78 (T-549).
+mod notes_serveo;
 // ssh's note on the public services that podssh tries last (T-533).
 mod notes_outline;
 mod notes_public;

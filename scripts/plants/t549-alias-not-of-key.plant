@@ -1,0 +1,8 @@
+# T-549: the Serveo road's alias not derived from the node's key, so each
+# node asks one alias and a client cannot tell its node's from a stranger's;
+# the test of the node's alias, which computes it from the key apart from
+# podssh's code, against the stand-in of Serveo's server must fail.
+ENTRY=T-549
+GROUP=cli-tests
+EXPECT='test serveo_cases::the_node_s_alias_is_its_key_s_and_a_client_with_the_key_jumps_to_it_last \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test serveo_road -- serveo_cases::the_node_s_alias_is_its_key_s_and_a_client_with_the_key_jumps_to_it_last'

@@ -74,11 +74,14 @@ rustls = { workspace = true }
 # fallback of a node with no other road. `pinggy`: the Pinggy road of
 # `podssh node --pinggy` and `podssh ssh node://` (T-548), pure Rust in
 # podssh-relay (its SSH leg is podssh-ssh's russh, here), in each build, as
-# the operator's ruling Q78 makes it a last fallback. `grant`: grants used once (T-226),
+# the operator's ruling Q78 makes it a last fallback. `serveo`: the Serveo
+# road of `podssh node --serveo` and `podssh ssh node://` (T-549), the last
+# fallback of Q78, whose SSH legs are podssh-ssh's russh, here, in each build.
+# `grant`: grants used once (T-226),
 # which each node checks, pure Rust, in each build. `code`: pairing by a
 # short code (T-086), `podssh relay pair --code` and `podssh relay join`,
 # SPAKE2 and NaCl's SecretBox in pure Rust, in each build.
-podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "grant", "code"] }
+podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code"] }
 # The native SSH client. It needs a C compiler (russh with aws-lc-rs); the
 # operator accepted that for the binary on 2026-10-08.
 podssh-ssh = { path = "../podssh-ssh" }

@@ -108,6 +108,10 @@ opentunnel = []
 # as no CA signs it. The node's SSH client is the binary's.
 # No C either; the gate builds it.
 pinggy = ["opentunnel", "dep:rustls"]
+# The Serveo road (T-549): a last fallback of Q78 through Serveo's private
+# aliases, whose node's and client's legs are both SSH, the binary's; the
+# Pinggy road's far end and switches, with no TLS. No C either.
+serveo = ["pinggy"]
 # The quick tunnel's edge inside WARP's tunnel (T-374), for a node whose cage
 # reaches TCP port 7844 only through it. No C either; Rust 1.91.
 warp = ["quick", "dep:podssh-warp"]

@@ -1,4 +1,5 @@
-//! The node's end of the Pinggy road: each visitor that Pinggy sends down
+//! The node's end of the Pinggy road, and of Serveo's (T-549), whose
+//! visitor holds no TLS: each visitor that Pinggy sends down
 //! the node's SSH session (a `forwarded-tcpip` channel, as the caller's SSH
 //! client takes it) still holds the visitor's TLS, from its ClientHello on;
 //! the node ends it with its own certificate ([`super::tls`] says why one of
@@ -75,10 +76,13 @@ where
 
 /// Serve each visitor of `visitors` until its sender ends (the tunnel's SSH
 /// session ended): its TLS with `acceptor`, then the layer's far end with
-/// `keeper`, whose sessions outlive this tunnel for the next one.
+/// `keeper`, whose sessions outlive this tunnel for the next one. With no
+/// acceptor, the visitor's stream is the layer's link as it comes: Serveo's
+/// road (T-549), whose visitor is a channel of the client's own SSH session
+/// to Serveo, and whose bytes the end-to-end channel keeps.
 pub async fn serve<A, O, F>(
     mut visitors: mpsc::Receiver<Visitor>,
-    acceptor: TlsAcceptor,
+    acceptor: Option<TlsAcceptor>,
     settings: Settings,
     budget: usize,
     open: O,
@@ -98,18 +102,21 @@ pub async fn serve<A, O, F>(
             let counts = Counts::new();
             let ticker = trace::on().then(|| tokio::spawn(tick(counts.clone(), peer.clone(), say.clone())));
             let stream = Traced::new(stream, counts.clone());
-            let tls = match tokio::time::timeout(TLS_LIMIT, acceptor.accept(stream)).await {
-                Ok(Ok(tls)) => Ok(tls),
-                Ok(Err(e)) => Err(format!("TLS failed: {e}")),
-                Err(_) => Err(format!("no TLS within {} s", TLS_LIMIT.as_secs())),
-            };
-            let why = match tls {
-                Ok(tls) => {
-                    far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
-                    counts.end().unwrap_or_else(|| "the layer ended its link".into())
+            let failed = match acceptor {
+                Some(acceptor) => match tokio::time::timeout(TLS_LIMIT, acceptor.accept(stream)).await {
+                    Ok(Ok(tls)) => {
+                        far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
+                        None
+                    }
+                    Ok(Err(e)) => Some(format!("TLS failed: {e}")),
+                    Err(_) => Some(format!("no TLS within {} s", TLS_LIMIT.as_secs())),
+                },
+                None => {
+                    far::serve(stream, Role::NODE, settings, &keeper, budget, open).await;
+                    None
                 }
-                Err(why) => why,
             };
+            let why = failed.unwrap_or_else(|| counts.end().unwrap_or_else(|| "the layer ended its link".into()));
             if let Some(ticker) = ticker {
                 ticker.abort();
             }

@@ -22,7 +22,8 @@
 //! and says that a third party that nobody vouches for carries its
 //! sessions. `PODSSH_PINGGY=no` turns the road off, and so does
 //! `PODSSH_LAST_RESORT=no`, the switch of each last fallback (T-548's
-//! Decision). stdout stays empty.
+//! Decision); Serveo's road (T-549, `node_serveo`) comes after it, or in its
+//! place when it is off. stdout stays empty.
 
 use std::io::Write;
 use std::time::Duration;
@@ -58,11 +59,13 @@ pub(crate) fn service() -> Result<Result<Service, &'static str>, Refusal> {
     })
 }
 
-/// Why a node with no `--pinggy` serves the road, when it does: the node
-/// that the OpenTunnel road would serve unasked (no pair, a door, no other
-/// road asked, the DERP road off), with that road off too (Q78: last).
-pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    if args.pinggy || args.opentunnel || args.frp.is_some() || crate::node_opentunnel::service()?.is_some() {
+/// Why a node with no road asked of it serves a last fallback of Q78, before
+/// the fallback's own switch is read: the node that the OpenTunnel road would
+/// serve unasked (no pair, a door, no other road asked, the DERP road off),
+/// with that road off too. Pinggy's road, then Serveo's (T-549), take it.
+pub(crate) fn last_node(args: &NodeArgs) -> Result<Option<String>, Refusal> {
+    let asked = args.pinggy || args.serveo || args.opentunnel || args.frp.is_some();
+    if asked || crate::node_opentunnel::service()?.is_some() {
         return Ok(None);
     }
     let other = args.derp || args.iroh || args.plain || args.no_e2e || args.exit;
@@ -73,33 +76,56 @@ pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
         return Ok(None);
     };
     let door = args.allow.is_some() || args.iroh_allow.is_some() || crate::node_derp::net_door(args, label);
-    if !door || service()?.is_err() {
+    if !door {
         return Ok(None);
     }
     let why = crate::pairs::stored(label).err().map(|refusal| refusal.message);
     Ok(why.map(|why| format!("{why}, and {}=no turns the OpenTunnel road off", podssh_relay::opentunnel::ENV)))
 }
 
+/// Why a node with no `--pinggy` serves the road, when it does: the last
+/// node of [`last_node`], with this road on (Q78: last).
+pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
+    let Some(why) = last_node(args)? else { return Ok(None) };
+    Ok(service()?.is_ok().then_some(why))
+}
+
 /// The road of `args`, asked or unasked: the exit code of its run; none when
-/// the node takes another road.
+/// the node takes another road. `--serveo` goes to Serveo's road; a node that
+/// served this one unasked and reached no server, or that has it off, takes
+/// Serveo's unasked, the last of all (T-549).
 pub(crate) fn dispatch(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
+    if args.serveo {
+        return crate::node_serveo::dispatch(args, None, err);
+    }
     let unasked = match unasked(args) {
         Ok(unasked) => unasked,
         Err(refusal) => return Some(refusal.report("node", err)),
     };
-    (args.pinggy || unasked.is_some()).then(|| run(args, unasked, err))
+    match unasked {
+        Some(why) => {
+            let code = run(args, Some(why.clone()), err);
+            Some(crate::node_serveo::after(args, code, &why, err).unwrap_or(code))
+        }
+        None if args.pinggy => Some(run(args, None, err)),
+        None => crate::node_serveo::dispatch(args, None, err),
+    }
 }
 
 /// After the OpenTunnel road that a node served unasked ended with `code`:
-/// when it reached no service, the Pinggy road, the last, unasked too (Q78).
+/// when it reached no service, the Pinggy road, the last, unasked too (Q78),
+/// and after it, or in its place when it is off, Serveo's (T-549).
 pub(crate) fn after_opentunnel(args: &NodeArgs, code: i32, err: &mut dyn Write) -> Option<i32> {
-    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy {
+    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy || args.serveo {
         return None;
     }
     let why = crate::node_opentunnel::unasked(args).ok().flatten()?;
-    service().ok()?.ok()?;
     let why = format!("{why}, and the OpenTunnel road reached no service");
-    Some(run(args, Some(why), err))
+    if !matches!(service(), Ok(Ok(_))) {
+        return crate::node_serveo::dispatch(args, Some(why), err);
+    }
+    let code = run(args, Some(why.clone()), err);
+    Some(crate::node_serveo::after(args, code, &why, err).unwrap_or(code))
 }
 
 /// The flags of the road, checked before anything is read.

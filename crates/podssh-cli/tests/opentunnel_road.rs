@@ -63,7 +63,7 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
     cmd.env("PODSSH_OPENTUNNEL", format!("https://{DOMAIN}"));
     // Not Pinggy's service, which a node takes after OpenTunnel (Q78, T-548).
-    cmd.env("PODSSH_PINGGY", "no");
+    cmd.env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no");
     // The roads of the test alone: no transit relay, no Piping Server, no
     // record at n0's server of pkarr.
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");

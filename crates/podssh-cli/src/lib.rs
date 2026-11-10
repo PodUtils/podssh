@@ -137,6 +137,11 @@ pub mod node_pinggy;
 mod node_pinggy_serve;
 pub(crate) mod pinggy_cert;
 pub(crate) mod pinggy_leg;
+// `podssh node --serveo`: the Serveo road, the last fallback of Q78 (T-549):
+// its node, its serving, and the SSH legs of its node and its client.
+pub mod node_serveo;
+mod node_serveo_serve;
+pub(crate) mod serveo_leg;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;

@@ -1,0 +1,12 @@
+diff --git a/crates/podssh-relay/src/serveo/alias.rs b/crates/podssh-relay/src/serveo/alias.rs
+--- a/crates/podssh-relay/src/serveo/alias.rs
++++ b/crates/podssh-relay/src/serveo/alias.rs
+@@ -28,7 +28,7 @@
+ pub fn alias(fingerprint: &str, k: u8) -> String {
+     let mut bytes = Vec::with_capacity(CONTEXT.len() + fingerprint.len() + 1);
+     bytes.extend_from_slice(CONTEXT);
+-    bytes.extend_from_slice(fingerprint.as_bytes());
++    let _ = fingerprint;
+     bytes.push(k);
+     let digest = Sha256::digest(&bytes);
+     let hex: String = digest[..KEPT].iter().map(|byte| format!("{byte:02x}")).collect();

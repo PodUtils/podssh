@@ -324,6 +324,7 @@ const FIRST: &[&str] = &[
      so a session whose relay of the pair went away goes on through the transit relay.",
     super::notes_pair::SSH_OPENTUNNEL,
     super::notes_pinggy::SSH,
+    super::notes_serveo::SSH,
     super::notes_frp::SSH,
     super::notes_pair::SSH_CARRIER,
     super::notes_grant::SSH,

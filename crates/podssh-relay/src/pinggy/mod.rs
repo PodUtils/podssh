@@ -92,33 +92,8 @@ impl Service {
     /// server, whose host key nobody named. A value that holds more is
     /// refused, and the refusal does not echo it.
     pub fn parse(text: &str) -> Result<Service, String> {
-        let text = text.trim();
-        let bad = |c: char| matches!(c, '/' | '?' | '#' | '@') || c.is_whitespace();
-        if text.is_empty() || text.contains(bad) {
-            return Err("a server of the Pinggy road is HOST[:PORT], with no scheme, path or user".into());
-        }
-        let port_of = |text: &str| -> Result<u16, String> {
-            let port = text.parse::<u16>().ok().filter(|p| *p != 0);
-            port.ok_or_else(|| "the server's port is not a number from 1 to 65535".to_string())
-        };
-        // An IPv6 address in brackets, whose colons are not the port's.
-        let (host, port) = if let Some(inner) = text.strip_prefix('[') {
-            let (host, after) = inner.split_once(']').ok_or("an IPv6 address of the server has no closing ]")?;
-            match after.strip_prefix(':') {
-                Some(port) => (host, port_of(port)?),
-                None if after.is_empty() => (host, PORT),
-                None => return Err("the server's address is not [IPv6]:PORT".into()),
-            }
-        } else {
-            match text.rsplit_once(':') {
-                Some((host, port)) => (host, port_of(port)?),
-                None => (text, PORT),
-            }
-        };
-        if host.is_empty() {
-            return Err("a server of the Pinggy road names no host".into());
-        }
-        Ok(Service { host: host.to_ascii_lowercase(), port, host_key: None })
+        let (host, port) = host_port(text, "the Pinggy road")?;
+        Ok(Service { host, port: port.unwrap_or(PORT), host_key: None })
     }
 
     /// The server as a line names it.
@@ -129,6 +104,40 @@ impl Service {
             podssh_ws::dial::authority(&self.host, self.port)
         }
     }
+}
+
+/// `HOST[:PORT]` or `[IPV6]:PORT` of a server of `road`'s protocol, with no
+/// scheme, path or user: the host in lower case, and the port when the text
+/// names one. Each road of an SSH service reads its variable so (T-548,
+/// T-549); a refusal does not echo the text.
+pub fn host_port(text: &str, road: &str) -> Result<(String, Option<u16>), String> {
+    let text = text.trim();
+    let bad = |c: char| matches!(c, '/' | '?' | '#' | '@') || c.is_whitespace();
+    if text.is_empty() || text.contains(bad) {
+        return Err(format!("a server of {road} is HOST[:PORT], with no scheme, path or user"));
+    }
+    let port_of = |text: &str| -> Result<u16, String> {
+        let port = text.parse::<u16>().ok().filter(|p| *p != 0);
+        port.ok_or_else(|| "the server's port is not a number from 1 to 65535".to_string())
+    };
+    // An IPv6 address in brackets, whose colons are not the port's.
+    let (host, port) = if let Some(inner) = text.strip_prefix('[') {
+        let (host, after) = inner.split_once(']').ok_or("an IPv6 address of the server has no closing ]")?;
+        match after.strip_prefix(':') {
+            Some(port) => (host, Some(port_of(port)?)),
+            None if after.is_empty() => (host, None),
+            None => return Err("the server's address is not [IPv6]:PORT".into()),
+        }
+    } else {
+        match text.rsplit_once(':') {
+            Some((host, port)) => (host, Some(port_of(port)?)),
+            None => (text, None),
+        }
+    };
+    if host.is_empty() {
+        return Err(format!("a server of {road} names no host"));
+    }
+    Ok((host.to_ascii_lowercase(), port))
 }
 
 impl std::fmt::Display for Service {
