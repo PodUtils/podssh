@@ -136,6 +136,8 @@ pub(crate) async fn measure(
         member,
         frp,
         pinggy,
+        // Never in a measure: the road is never asked, and Q78 sends no byte unasked.
+        sshj: None,
         refused,
         label,
         legs,

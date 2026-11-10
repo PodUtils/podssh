@@ -89,6 +89,7 @@ fn prepare(args: &NodeArgs, key: &str) -> Result<Ready, Refusal> {
         ("--derp-server", args.derp_server.is_some()),
         ("--opentunnel", args.opentunnel),
         ("--pinggy", args.pinggy),
+        ("--ssh-j", args.ssh_j),
     ];
     if let Some((flag, _)) = refused.iter().find(|(_, given)| *given) {
         return Err(Refusal::usage(format!(

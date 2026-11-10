@@ -1,0 +1,14 @@
+diff --git a/crates/podssh-cli/src/sshj/name.rs b/crates/podssh-cli/src/sshj/name.rs
+index 0493331..972c8d8 100644
+--- a/crates/podssh-cli/src/sshj/name.rs
++++ b/crates/podssh-cli/src/sshj/name.rs
+@@ -31,7 +31,8 @@ impl JumpName {
+     /// (`SHA256:` and its base64, as `PublicKey::fingerprint` and
+     /// `KeyName::fingerprint` write it).
+     pub fn of_fingerprint(fingerprint: &str) -> JumpName {
+-        let digest: [u8; 32] = Sha256::new().chain_update(LABEL).chain_update(fingerprint.as_bytes()).finalize().into();
++        let _ = fingerprint;
++        let digest: [u8; 32] = Sha256::new().chain_update(LABEL).finalize().into();
+         let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+         let address = format!("{ADDRESS_PREFIX}{}", hex(&digest[8..16]));
+         // The server keeps no longer address (its `MAX_HOST_LEN`).

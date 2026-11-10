@@ -207,7 +207,7 @@ pub(crate) async fn open(
     if service.host_key.is_none() {
         say(format!("{service}'s host key {key} is taken unpinned: the end-to-end channel keeps the bytes"));
     }
-    login(&mut handle).await.map_err(|why| format!("{service}: {why}"))?;
+    login(&mut handle, pinggy::TLS_USER).await.map_err(|why| format!("{service}: {why}"))?;
     handle
         .tcpip_forward(pinggy::FORWARD_ADDRESS, 0)
         .await
@@ -233,9 +233,9 @@ pub(crate) async fn open(
     Ok(Tunnel { name, host_key: (key, service.host_key.is_some()), way, handle })
 }
 
-/// The login of a tunnel with no account; else why none passed.
-async fn login(handle: &mut client::Handle<Leg>) -> Result<(), String> {
-    let user = pinggy::TLS_USER;
+/// The login of `user` with no account; else why none passed. The ssh-j
+/// road's leg logs in so too (T-570, `crate::sshj::leg`).
+pub(crate) async fn login<H: client::Handler>(handle: &mut client::Handle<H>, user: &str) -> Result<(), String> {
     let word = |e: russh::Error| format!("the login: {e}");
     if handle.authenticate_none(user).await.map_err(word)?.success() {
         return Ok(());

@@ -750,7 +750,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:5586`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:5617`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -888,7 +888,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:650-653`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:252-262`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:415`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:5582-5586`).
+`podssh proxy` sysexits (`docs/cli.md:5613-5617`).
 
 ## Approach
 
@@ -1718,10 +1718,10 @@ operator's at `crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`, lines 194-202.
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:33-64` and
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:114-122`. The routes of a node,
 their check and their dial in `crates/podssh-relay/src/reverse/routes.rs:1-178`.
-The command line: the targets at `crates/podssh-cli/src/node.rs:238-274`,
-`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:276-291`, the dial of each
+The command line: the targets at `crates/podssh-cli/src/node.rs:237-273`,
+`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:275-290`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
-`crates/podssh-cli/src/node.rs:291-299`; the channel's glue at
+`crates/podssh-cli/src/node.rs:290-298`; the channel's glue at
 `crates/podssh-cli/src/channel.rs:354-363` and
 `crates/podssh-cli/src/channel.rs:408-427`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
@@ -2180,7 +2180,7 @@ session through a node loses a link that it need not lose.
 - Measured: CI's step `m6` at `a220c13` failed in that test with `relay close 1011: node
   unavailable`; the step had passed at each push since T-156.
 - Read: `podssh node` prints its `serving` line after its probe of TARGET, before its socket to
-  the relay opens (`crates/podssh-cli/src/node.rs:332-337`), and the tests waited for that line
+  the relay opens (`crates/podssh-cli/src/node.rs:331-336`), and the tests waited for that line
   (`crates/podssh-cli/tests/m6_exit.rs:99`, `crates/podssh-cli/tests/node_plain.rs:41`,
   `crates/podssh-cli/tests/pipe_remote.rs:194`).
 - Measured, native, 2026-10-10: on a host at 42 % of its CPU, the control lost a link in each of
@@ -2257,8 +2257,8 @@ podssh knew in advance, and said nowhere.
 
 ## Premise
 
-- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:113`).
-- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:363`, `repair:
+- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:114`).
+- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:362`, `repair:
   None`).
 
 ## Approach
@@ -2616,7 +2616,7 @@ documents works; the form that a user expects is missing.
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
   which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:150`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
-  (`crates/podssh-cli/src/man/notes_pair.rs:321-323`), and `pipe` takes `node:NAME`
+  (`crates/podssh-cli/src/man/notes_pair.rs:322-324`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
   byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:392`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
@@ -4638,7 +4638,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   key at its server (`crates/podssh-cli/src/node_derp.rs:185` says "let (secret, dial) =
   (Arc::new(Secret::of_node(identity)), dial::tls(trust.clone(), proxy.clone()));"): a new key is a new ticket. A quick tunnel's name is new at each
   request (`crates/podssh-cli/src/node_quick.rs:4` says "The name is new each run"), which the node made
-  at each start before (`crates/podssh-cli/src/node_quick.rs:249` says "asked = api::request(&trust,
+  at each start before (`crates/podssh-cli/src/node_quick.rs:250` says "asked = api::request(&trust,
   &proxy, &*say) => asked,"). Both pass as parts of the run (Decision, items 2 and 3).
 - The Approach's "the road's own connection is made again" needs nothing more on two roads: the Piping
   Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:233` says "let secret
@@ -4724,7 +4724,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:154-156` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:167` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:168` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2683`; Q90 confirmed it).
 

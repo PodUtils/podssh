@@ -230,9 +230,9 @@ fn prepare(args: &NodeArgs) -> Result<(Spec, Vec<String>), Refusal> {
     let mut notes = Vec::new();
     // A pair that is missing or has expired makes a service that fails at
     // each start: it is read now.
-    // The iroh road, the DERP road, OpenTunnel's and Pinggy's serve with no
-    // pair (T-379, T-531, T-548).
-    let pair = match (&args.pair_file, args.iroh || args.derp || args.opentunnel || args.pinggy) {
+    // The iroh road, the DERP road, OpenTunnel's, Pinggy's and ssh-j's serve
+    // with no pair (T-379, T-531, T-548, T-570).
+    let pair = match (&args.pair_file, args.iroh || args.derp || args.opentunnel || args.pinggy || args.ssh_j) {
         (_, true) => None,
         (Some(file), false) => Some(crate::pairs::from_file(file)?),
         (None, false) => Some(crate::pairs::stored(&name)?),

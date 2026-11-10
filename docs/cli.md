@@ -4371,6 +4371,37 @@ commands. The rules behind them:
   link that Pinggy, a third party that nobody vouches for, carries the
   session. `--no-e2e` with the flag is 64, and the flag with another
   destination too. `podssh ping node://NAME` measures it only when named.
+- **`node --ssh-j` serves the ssh-j road** (T-570, drafted 2026-11-10,
+  UNVERIFIED), a last fallback of Q78 after the Pinggy road: `ssh-j.com`, a
+  public SSH jump and forwarding server with no account on port 22, where
+  `pod-services` names it (the service `ssh-j`, endpoint `ssh`, asked of
+  podcrates), or the server of `PODSSH_SSH_J` (`HOST[:PORT]`); with neither,
+  `--ssh-j` is 78. The node's leg is SSH to the server, directly or through
+  `HTTPS_PROXY`'s CONNECT, as a user that its key gives (`podssh-` and 16
+  hex digits of SHA-256 over a label of the road and the key's
+  fingerprint), with one remote forward of a name that the key gives too
+  (`n` and 16 more), on port 22, as `ssh -R NAME:22:...` asks it there; its
+  line `ssh-j name USER@NAME` gives a client's command (`--node-key`). The
+  server ends that SSH and sees the layer's bytes, which the end-to-end
+  channel keeps; its host key is pinned where `pod-services` names it
+  (`host-key-sha256`), else taken and said. A leg that ends is opened again
+  with a wait that doubles from 1 s to 60 s, under the same name. The road
+  is served alone: a pair is not served beside it, and a line says so. The
+  door and the refused flags are the Pinggy road's, and `--opentunnel` or
+  `--pinggy` beside it is 64. A node that would serve the OpenTunnel road or
+  the Pinggy road unasked serves this one when neither reached a service,
+  or when both are off. `PODSSH_SSH_J=no` or `PODSSH_LAST_RESORT=no` turns
+  it off.
+- **`ssh node://NAME` races the ssh-j road** last of all, once each road
+  before it failed, where the road has a server and podssh holds the node's
+  key (`--node-key`, else the net's key of NAME, else the pins of NAME), from
+  which it derives the node's name. Each link is SSH to the server on port
+  22, directly or through `HTTPS_PROXY`'s CONNECT, else through the
+  forwarders that the binary names (Q56; `PODSSH_FORWARDER_FALLBACK=no`
+  keeps them out), then a `direct-tcpip` channel to the name, as `ssh -J`
+  takes it, under the layer and the end-to-end channel. A line says before
+  the first link that the server, a third party that nobody vouches for,
+  carries the session. Never with `--no-e2e`, and never in `podssh ping`.
 - **A carrier: the node's road on a stream that exists already (T-595).**
   For a host whose every road out is closed but that grants one channel,
   as the exec channel of a platform's own SSH: `node NAME TARGET --carrier

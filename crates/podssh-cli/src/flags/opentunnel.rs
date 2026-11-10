@@ -1,6 +1,8 @@
 //! The flag rows of the roads of a TLS tunnel by name, OpenTunnel's (T-531)
 //! and Pinggy's (T-548, a last fallback of Q78): `node`'s road, and `ssh`'s
-//! name of a node's race. Each road is pure Rust, in each build.
+//! name of a node's race; and `node`'s road of ssh-j.com (T-570), whose
+//! name a client derives from the node's key. Each road is pure Rust, in
+//! each build.
 
 use super::{row, FlagKind, FlagRow};
 
@@ -23,3 +25,8 @@ pub const NODE_PINGGY: FlagRow = row(None, "pinggy", None, FlagKind::Supported,
 #[rustfmt::skip]
 pub const SSH_PINGGY_NAME: FlagRow = row(None, "pinggy-name", Some("HOST#PIN"), FlagKind::Supported,
     "node://NAME: race the Pinggy road to HOST, the tunnel's name that the node prints, 250 ms after the road before it; its TLS takes only a certificate of the key of PIN (SHA256:..., which the node prints with the name), and a name with no pin is refused (64); the address is kept under NAME, and a later run that gives none dials it last, when each road before it failed; a free tunnel's name changes each hour, its pin does not", None);
+
+/// `node --ssh-j`.
+#[rustfmt::skip]
+pub const NODE_SSH_J: FlagRow = row(None, "ssh-j", None, FlagKind::Supported,
+    "serve TARGET over the ssh-j road, a public SSH jump and forwarding server with no account (ssh-j.com where podssh's list of services names it, or the server of env PODSSH_SSH_J): SSH on port 22, directly or through the proxy's CONNECT, as a user and with a remote forward of a name that the node's key gives; a client that holds the key (--node-key, the net, or the pins of NAME) derives the name and races the road last; a third party that nobody vouches for, which ends that SSH, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);

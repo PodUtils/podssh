@@ -49,6 +49,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.derp_server.is_some(), "--derp-server"),
         (args.opentunnel, "--opentunnel"),
         (args.pinggy, "--pinggy"),
+        (args.ssh_j, "--ssh-j"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.warp, "--warp"),
         (args.relay, "--relay"),

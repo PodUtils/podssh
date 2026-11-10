@@ -17,7 +17,8 @@
 //! OpenTunnel road of `--opentunnel-name` (T-531) comes 250 ms after the DERP
 //! road; a name kept under NAME, only when each road before it failed (Q76).
 //! A node's Pinggy tunnel (T-548, `super::pinggy`) comes last of all, the
-//! last fallback of Q78, or 250 ms after the road before it when named.
+//! last fallback of Q78, or 250 ms after the road before it when named; then
+//! the node's name at ssh-j.com (T-570, `super::sshj`), by its key.
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -105,6 +106,8 @@ struct Roads<'a> {
     frp: Option<frp::FrpRoads>,
     /// A node's Pinggy tunnel, the last fallback of Q78 (T-548).
     pinggy: Option<super::pinggy::PinggyRoads>,
+    /// A node's name at ssh-j.com, by its key, the last of all (T-570).
+    sshj: Option<super::sshj::SshJRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -170,6 +173,9 @@ impl<'a> Roads<'a> {
         if let Some(pinggy) = &self.pinggy {
             pinggy.push(&mut list, &mut kinds, self.record.as_ref());
         }
+        if let Some(sshj) = &self.sshj {
+            sshj.push(&mut list, &mut kinds);
+        }
         (list, kinds)
     }
 
@@ -179,7 +185,7 @@ impl<'a> Roads<'a> {
     /// may come back.
     async fn ended_for_good(&self) -> bool {
         let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
-        if self.derp.is_some() || others || self.pinggy.is_some() || self.piping_on() {
+        if self.derp.is_some() || others || self.pinggy.is_some() || self.sshj.is_some() || self.piping_on() {
             return false;
         }
         let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);
@@ -249,7 +255,9 @@ where
     // or kept.
     let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, raced.record.is_some(), &log, &shown);
     let others = raced.opentunnel.is_some() || raced.record.is_some() || member.is_some() || frp.is_some();
-    let others = others || pinggy.is_some();
+    // A node's name at ssh-j.com, by its key (T-570): the last of all.
+    let sshj = super::sshj::SshJRoads::new(label, ask, trust, &log, &shown);
+    let others = others || pinggy.is_some() || sshj.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {
         Ok(part) => Some(part),
         Err(refusal) if (raced.derp.is_some() || others) && pair_file.is_none() => {
@@ -334,6 +342,7 @@ where
         member,
         frp,
         pinggy,
+        sshj,
         refused,
         label,
         legs,

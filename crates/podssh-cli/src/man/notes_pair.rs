@@ -221,6 +221,7 @@ pub(super) const NODE: &[&str] = &[
      the bytes from it.",
     super::notes_pair::NODE_OPENTUNNEL,
     super::notes_pinggy::NODE,
+    super::notes_sshj::NODE,
     super::notes_frp::NODE,
     // Grants used once (T-226).
     super::notes_grant::NODE,

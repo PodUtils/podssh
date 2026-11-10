@@ -56,6 +56,8 @@ mod notes_public;
 // relay's and node's notes on a name published by its ClientHello (T-649).
 mod notes_publish;
 mod notes_relay;
+// The ssh-j road, a last fallback of Q78 after Pinggy's (T-570).
+mod notes_sshj;
 // ssh's notes on the roads to a server of the user's (T-441).
 mod notes_roads;
 mod notes_run;

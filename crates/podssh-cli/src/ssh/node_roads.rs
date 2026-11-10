@@ -72,6 +72,8 @@ struct Chosen {
     frp: bool,
     /// Whether a Pinggy name of the node is given or kept (T-548).
     pinggy: bool,
+    /// Whether the node's name at ssh-j.com can be derived (T-570).
+    sshj: bool,
 }
 
 impl Chosen {
@@ -81,7 +83,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy
+        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy || self.sshj
     }
 }
 
@@ -115,7 +117,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let frp = super::roads::frp::FrpRoads::new(label, trust)?.is_some() && !channel.off;
     // The Pinggy road (T-548): a name given or kept, never with --no-e2e.
     let pinggy = super::pinggy::named(label, channel.off);
-    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy })
+    // The ssh-j road (T-570): a key to derive the name from, never with --no-e2e.
+    let sshj = super::sshj::named(label, channel);
+    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, sshj })
 }
 
 /// SSH to the node of `dest`: over the race of its roads beside the pair's,

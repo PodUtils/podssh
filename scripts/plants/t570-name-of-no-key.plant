@@ -1,0 +1,8 @@
+# T-570: the ssh-j road's name not derived from the node's key, so each
+# node and each client meet at one name whatever key they hold; the test of
+# the client's name, where another key must find another name and no node,
+# against the stand-in of ssh-j.com, must fail.
+ENTRY=T-570
+GROUP=cli-tests
+EXPECT='test a_client_derives_the_name_from_the_key_it_holds_and_another_key_finds_no_node \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test ssh_j_road -- a_client_derives_the_name_from_the_key_it_holds_and_another_key_finds_no_node'

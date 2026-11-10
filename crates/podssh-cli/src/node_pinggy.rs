@@ -58,11 +58,22 @@ pub(crate) fn service() -> Result<Result<Service, &'static str>, Refusal> {
     })
 }
 
-/// Why a node with no `--pinggy` serves the road, when it does: the node
-/// that the OpenTunnel road would serve unasked (no pair, a door, no other
-/// road asked, the DERP road off), with that road off too (Q78: last).
+/// Why a node with no `--pinggy` serves the road, when it does: the node of
+/// [`last_node`], with the road on.
 pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    if args.pinggy || args.opentunnel || args.frp.is_some() || crate::node_opentunnel::service()?.is_some() {
+    // The variable is read last, as before: a node of another road never
+    // meets a refusal of it.
+    let Some(why) = last_node(args)? else { return Ok(None) };
+    Ok(service()?.is_ok().then_some(why))
+}
+
+/// Why a node serves a last fallback of Q78 unasked, when it does: the node
+/// that the OpenTunnel road would serve unasked (no pair, a door, no other
+/// road asked, the DERP road off), with that road off too (Q78: last). The
+/// ssh-j road's node reads it too (T-570), after this road.
+pub(crate) fn last_node(args: &NodeArgs) -> Result<Option<String>, Refusal> {
+    let asked = args.pinggy || args.ssh_j || args.opentunnel || args.frp.is_some();
+    if asked || crate::node_opentunnel::service()?.is_some() {
         return Ok(None);
     }
     let other = args.derp || args.iroh || args.plain || args.no_e2e || args.exit;
@@ -73,7 +84,7 @@ pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
         return Ok(None);
     };
     let door = args.allow.is_some() || args.iroh_allow.is_some() || crate::node_derp::net_door(args, label);
-    if !door || service()?.is_err() {
+    if !door {
         return Ok(None);
     }
     let why = crate::pairs::stored(label).err().map(|refusal| refusal.message);
@@ -93,7 +104,7 @@ pub(crate) fn dispatch(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
 /// After the OpenTunnel road that a node served unasked ended with `code`:
 /// when it reached no service, the Pinggy road, the last, unasked too (Q78).
 pub(crate) fn after_opentunnel(args: &NodeArgs, code: i32, err: &mut dyn Write) -> Option<i32> {
-    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy {
+    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy || args.ssh_j {
         return None;
     }
     let why = crate::node_opentunnel::unasked(args).ok().flatten()?;
