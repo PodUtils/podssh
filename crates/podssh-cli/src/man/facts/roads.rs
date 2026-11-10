@@ -109,6 +109,16 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_LOCALHOST_RUN"],
+        "The localhost.run road (T-565), the last fallback of the operator's ruling Q78: a tunnel of HTTP made by \
+          ssh -R with no account, SSH on port 22 as nokey with the forward of port 80, of podssh node --localhost-run \
+          and podssh ssh node://NAME --tunnel-url https://HOST, which a node with no other road serves unasked after \
+          the ssh-j road. no: no such road, and the flags are refused (64); HOST[:PORT]: that server of the same \
+          shape, whose host key nobody names; unset, empty or yes: localhost.run where podssh's list of services \
+          names it, else no server, and --localhost-run is a configuration error (78). Another word is a \
+          configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_PINGGY_TRACE"],
         "1: the Pinggy road says each visitor's bytes each way every 5 s while it lives, on the node's stderr, \
           and each link's on the client's with -v, with a write that waits and since when, so that a run that \
@@ -254,8 +264,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
-      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; croc's relay road, PODSSH_CROC, \
-      T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
+      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
+      PODSSH_LOCALHOST_RUN, T-565; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

@@ -293,6 +293,12 @@ impl<'a> RecordRoads<'a> {
         }
     }
 
+    pub(crate) async fn tunnel(&self) -> Result<String, String> {
+        match self {
+            RecordRoads::Never(never, _) => match *never {},
+        }
+    }
+
     pub(crate) async fn close(&self) {
         match self {
             RecordRoads::Never(never, _) => match *never {},

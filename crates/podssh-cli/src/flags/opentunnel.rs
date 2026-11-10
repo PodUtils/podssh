@@ -3,8 +3,9 @@
 //! tunnels by name, `node`'s road and `ssh`'s name of a node's race; and
 //! Serveo's (T-549, a last fallback too), whose alias a client computes from
 //! the node's key, so `ssh` takes no flag of it; and ssh-j.com's (T-570, a
-//! last fallback too), whose name a client derives from the node's key too.
-//! Each road is pure Rust, in each build.
+//! last fallback too), whose name a client derives from the node's key too;
+//! and localhost.run's (T-565, the last), a tunnel of HTTP made by `ssh -R`,
+//! whose name `ssh` takes as a URL. Each road is pure Rust, in each build.
 
 use super::{row, FlagKind, FlagRow};
 
@@ -36,3 +37,13 @@ pub const NODE_SERVEO: FlagRow = row(None, "serveo", None, FlagKind::Supported,
 #[rustfmt::skip]
 pub const NODE_SSH_J: FlagRow = row(None, "ssh-j", None, FlagKind::Supported,
     "serve TARGET over the ssh-j road, a public SSH jump and forwarding server with no account (ssh-j.com where podssh's list of services names it, or the server of env PODSSH_SSH_J): SSH on port 22, directly or through the proxy's CONNECT, as a user and with a remote forward of a name that the node's key gives; a client that holds the key (--node-key, the net, or the pins of NAME) derives the name and races the road last; a third party that nobody vouches for, which ends that SSH, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
+
+/// `node --localhost-run`.
+#[rustfmt::skip]
+pub const NODE_LOCALHOST_RUN: FlagRow = row(None, "localhost-run", None, FlagKind::Supported,
+    "serve TARGET over the localhost.run road, a tunnel of HTTP made by ssh -R with no account (localhost.run where podssh's list of services names it, or the server of env PODSSH_LOCALHOST_RUN): SSH on port 22, directly or through the proxy's CONNECT, as the user nokey, with the remote forward of port 80; the service ends each visitor's TLS at an HTTPS name, new after a few hours, which the node prints, keeps under NAME in the cache and puts in its record; a client takes a WebSocket at / of that name; with --relay, the relay role behind it too, and TARGET may be left out; a third party that nobody vouches for, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
+
+/// `ssh node://NAME --tunnel-url https://HOST`.
+#[rustfmt::skip]
+pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKind::Supported,
+    "node://NAME: race the road of a tunnel of HTTP made by ssh -R (localhost.run's) to https://HOST, the name that the node prints, 250 ms after the road before it: a WebSocket at / of HOST, whose TLS this host's roots verify; the name is kept under NAME, and a later run that gives none dials it, or the one of the node's record, last, when each road before it failed; a free name changes after a few hours", None);

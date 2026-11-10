@@ -122,6 +122,12 @@ pinggy = ["opentunnel", "dep:rustls"]
 # aliases, whose node's and client's legs are both SSH, the binary's; the
 # Pinggy road's far end and switches, with no TLS. No C either.
 serveo = ["pinggy"]
+# A tunnel of HTTP made by `ssh -R` (T-565): a last fallback of Q78 through
+# localhost.run, whose node's leg is SSH (the binary's) and whose visitors'
+# plain HTTP is a WebSocket of the layer, as a quick tunnel's, or a request
+# of the relay role; the Pinggy road's switches and its reading of names.
+# No C either.
+ssh-http = ["quick", "pinggy"]
 # The quick tunnel's edge inside WARP's tunnel (T-374), for a node whose cage
 # reaches TCP port 7844 only through it. No C either; Rust 1.91.
 warp = ["quick", "dep:podssh-warp"]

@@ -98,6 +98,8 @@ pub(super) fn resolved(r: &Ask<'_>, env: &Env, typed: bool) -> Result<Transport,
     let opentunnel = super::opentunnel::race(r.args)?;
     // The Pinggy road's name (T-548), kept for the race of this run.
     super::pinggy::race(r.args)?;
+    // The name of localhost.run's tunnel (T-565), kept for the race too.
+    super::roads::ssh_http::race(r.args)?;
     if let (Some(iroh), Some(ticket)) = (&race, &derp.ticket) {
         super::iroh::same_node(&iroh.ticket, ticket)?;
     }

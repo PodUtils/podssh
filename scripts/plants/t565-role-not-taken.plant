@@ -1,0 +1,8 @@
+# T-565: the visitor's request of a path of the relay role never given to
+# the role behind the tunnel of ssh -R, so the role's /health through the
+# stand-in of localhost.run gets the node's 404; the test of the role's
+# contract must fail.
+ENTRY=T-565
+GROUP=cli-tests
+EXPECT='test with_relay_the_role_answers_its_paths_through_the_tunnel_and_another_path_is_404 \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test ssh_tunnel_http -- with_relay_the_role_answers_its_paths_through_the_tunnel_and_another_path_is_404'

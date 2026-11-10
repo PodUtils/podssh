@@ -19,7 +19,8 @@
 //! A node's Pinggy tunnel (T-548, `super::pinggy`) comes last of all, the
 //! last fallback of Q78, or 250 ms after the road before it when named;
 //! then a node's alias at Serveo (T-549, `super::serveo`); then the node's
-//! name at ssh-j.com (T-570, `super::sshj`), by its key, the last of all.
+//! name at ssh-j.com (T-570, `super::sshj`), by its key; then its tunnel of
+//! HTTP made by `ssh -R` (T-565, `ssh_http`), the last of all.
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -64,6 +65,14 @@ pub(crate) mod member;
 // A visit to the node's STCP service at the user's frps (T-498).
 #[path = "road_frp.rs"]
 pub(crate) mod frp;
+
+// A node's tunnel of HTTP made by `ssh -R`, the last fallback of Q78 (T-565).
+#[path = "road_ssh_http.rs"]
+pub(crate) mod ssh_http;
+
+// The last fallbacks of Q78, in their order (T-548, T-549, T-570, T-565).
+#[path = "road_last.rs"]
+mod last;
 
 // Each road of the race timed for `podssh ping node://NAME` (T-435).
 #[path = "road_probe.rs"]
@@ -111,8 +120,10 @@ struct Roads<'a> {
     croc: Option<super::croc::CrocRoads>,
     /// A node's alias at Serveo, the last of all (T-549).
     serveo: Option<super::serveo::ServeoRoads>,
-    /// A node's name at ssh-j.com, by its key, the last of all (T-570).
+    /// A node's name at ssh-j.com, by its key (T-570).
     sshj: Option<super::sshj::SshJRoads>,
+    /// A node's tunnel of HTTP made by `ssh -R`, the last of all (T-565).
+    tunnel: Option<ssh_http::SshHttpRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -178,15 +189,7 @@ impl<'a> Roads<'a> {
         if !piping_asked {
             self.push_piping(&mut list, &mut kinds);
         }
-        if let Some(pinggy) = &self.pinggy {
-            pinggy.push(&mut list, &mut kinds, self.record.as_ref());
-        }
-        if let Some(serveo) = &self.serveo {
-            serveo.push(&mut list, &mut kinds);
-        }
-        if let Some(sshj) = &self.sshj {
-            sshj.push(&mut list, &mut kinds);
-        }
+        self.push_last(&mut list, &mut kinds);
         (list, kinds)
     }
 
@@ -253,7 +256,8 @@ where
     // ssh-j.com, by its key too (T-570): the last of all.
     let serveo = super::serveo::ServeoRoads::new(label, ask, &log, &shown);
     let sshj = super::sshj::SshJRoads::new(label, ask, trust, &log, &shown);
-    let others = others || pinggy.is_some() || serveo.is_some() || sshj.is_some();
+    let tunnel = ssh_http::SshHttpRoads::new(label, ask.off, raced.record.is_some(), trust, &log, &shown);
+    let others = others || pinggy.is_some() || serveo.is_some() || sshj.is_some() || tunnel.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {
         Ok(part) => Some(part),
         Err(refusal) if (raced.derp.is_some() || others) && pair_file.is_none() => {
@@ -344,6 +348,7 @@ where
         croc,
         serveo,
         sshj,
+        tunnel,
         refused,
         label,
         legs,

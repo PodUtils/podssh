@@ -165,6 +165,9 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     if args.pinggy_name.is_some() && node.is_none() {
         return Err("--pinggy-name is for a node://NAME destination, whose pair it races with".into());
     }
+    if args.tunnel_url.is_some() && node.is_none() {
+        return Err("--tunnel-url is for a node://NAME destination, whose pair it races with".into());
+    }
     if args.derp_server.is_some() && node.is_none() && derp.is_none() {
         return Err("--derp-server is for a derp:TICKET or node://NAME destination".into());
     }

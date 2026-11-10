@@ -127,6 +127,7 @@ fn prepare(args: &NodeArgs) -> Result<Ready, Refusal> {
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
+        (args.localhost_run, "--localhost-run"),
     ];
     if let Some((_, flag)) = alone.iter().find(|(given, _)| *given) {
         return Err(Refusal::usage(format!(

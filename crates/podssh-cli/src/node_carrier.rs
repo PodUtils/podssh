@@ -51,6 +51,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
+        (args.localhost_run, "--localhost-run"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.warp, "--warp"),
         (args.relay, "--relay"),

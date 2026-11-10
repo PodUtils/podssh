@@ -86,7 +86,7 @@ if [ "$MODE" = reverse ]; then
         # this binary made, its node in front of GitHub's SSH port, and the
         # old `podssh operator`, which must read the server's banner.
         (
-            export HOME="$FK/old-home" XDG_CACHE_HOME="$FK/old-home/cache" PODSSH_RELAY_ADDR="relay-a.test=127.0.0.1" PODSSH_TRANSIT=no PODSSH_CROC=no
+            export HOME="$FK/old-home" XDG_CACHE_HOME="$FK/old-home/cache" PODSSH_RELAY_ADDR="relay-a.test=127.0.0.1" PODSSH_TRANSIT=no PODSSH_CROC=no PODSSH_LOCALHOST_RUN=no
             mkdir -p "$HOME"
             "$PODSSH" relay pair old --relay-host "relay-a.test:$PORT" >/dev/null
             "$PODSSH" node old github.com:22 2>"$FK/node.log" &

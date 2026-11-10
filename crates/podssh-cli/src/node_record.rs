@@ -1,9 +1,9 @@
 //! A node's record of pkarr with each of its roads (T-445). The iroh road's
 //! node keeps its home relay there (T-350), and its DERP home once its DERP
 //! road is online, again each time that home moves ([`keep`]). A node with
-//! no iroh endpoint, the quick tunnel's, the DERP road's or the Pinggy
-//! road's alone, keeps its roads there too ([`alone`]): at n0's server
-//! unless PODSSH_IROH_PKARR names another or `off`, as the operator's ruling
+//! no iroh endpoint, the quick tunnel's, the DERP road's, the Pinggy road's
+//! or the tunnel of `ssh -R`'s (T-565) alone, keeps its roads there too
+//! ([`alone`]): at n0's server unless PODSSH_IROH_PKARR names another or `off`, as the operator's ruling
 //! Q81 widens Q57 to such a node, whose record names only public names (a
 //! Pinggy tunnel's name and its pin are public: the node says them). A build with no iroh road keeps no
 //! record, and reads no variable of it.
@@ -61,6 +61,16 @@ impl Tell {
         }
         Ok(())
     }
+
+    /// The node's tunnel of HTTP made by `ssh -R` is now `name` (T-565): a
+    /// free name changes after a few hours, so each new one replaces the
+    /// last. One that a client would set aside is not put.
+    pub(crate) fn tunnel(&self, name: &str) {
+        let Ok(name) = pkarr::record::tunnel_name(name) else { return };
+        if let Some(told) = &self.told {
+            told.send_modify(|roads| roads.tunnel = Some(name));
+        }
+    }
 }
 
 #[cfg(not(feature = "iroh"))]
@@ -72,6 +82,8 @@ impl Tell {
     pub(crate) fn pinggy(&self, _: &Address) -> Result<(), String> {
         Ok(())
     }
+
+    pub(crate) fn tunnel(&self, _: &str) {}
 }
 
 /// The keeper's task, stopped when this is dropped, as the node ends.
@@ -188,6 +200,7 @@ mod tests {
         let pin = podssh_relay::pinggy::Pin::of_spki(b"a TLS key");
         let address = Address::parse(&format!("rnwxy-12.run.pinggy-free.link#{pin}")).unwrap();
         assert_eq!(tell.pinggy(&address), Ok(()));
+        tell.tunnel("a1b2c3d4e5f6.lhr.life");
     }
 
     /// Q81: n0's server when nothing names another, none when off.

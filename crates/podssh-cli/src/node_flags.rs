@@ -60,6 +60,7 @@ pub(crate) fn spares(args: &NodeArgs) -> Result<u8, Refusal> {
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
+        (args.localhost_run, "--localhost-run"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.carrier.is_some(), "--carrier"),
         (args.temporary.is_some(), "--temporary"),

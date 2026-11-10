@@ -305,9 +305,11 @@ pub async fn keep(
                 },
                 other = next_other(&mut others) => {
                     told.send_if_modified(|roads| {
-                        let new = roads.derp != other.derp || roads.quick != other.quick || roads.pinggy != other.pinggy;
+                        let tunnels = roads.pinggy != other.pinggy || roads.tunnel != other.tunnel;
+                        let new = roads.derp != other.derp || roads.quick != other.quick || tunnels;
                         if new {
                             (roads.derp, roads.quick, roads.pinggy) = (other.derp, other.quick, other.pinggy);
+                            roads.tunnel = other.tunnel;
                         }
                         new
                     });

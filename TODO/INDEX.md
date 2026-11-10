@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**699 entries: 90 open, 20 partial, 9 blocked, 580 done.**
+**699 entries: 89 open, 21 partial, 9 blocked, 580 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
 | P2 | 25 | 9 | 1 | 261 | 296 |
-| P3 | 61 | 9 | 5 | 249 | 324 |
-| **All** | 90 | 20 | 9 | 580 | 699 |
+| P3 | 60 | 10 | 5 | 249 | 324 |
+| **All** | 89 | 21 | 9 | 580 | 699 |
 
 ## Entries
 
@@ -604,7 +604,7 @@ repository and CI).
 | [T-562](roads.md) | P3 | S | none | feature | done | WARP's registration dials one name of the API, with no second route |
 | [T-563](relay.md) | P2 | S | none | defect | done | The relay's record forgets a host that opens, and one road's failure moves the host on each road |
 | [T-564](robustness.md) | P3 | S | none | feature | done | podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE` |
-| [T-565](mesh.md) | P3 | M | M10 | feature | open | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
+| [T-565](mesh.md) | P3 | M | M10 | feature | partial | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
 | [T-566](mesh.md) | P3 | S | M10 | feature | open | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
 | [T-567](mesh.md) | P3 | S | M10 | feature | open | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
 | [T-568](mesh.md) | P3 | M | M10 | feature | open | localtunnel as a last fallback: the relay role behind `localtunnel.me` |

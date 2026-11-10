@@ -292,7 +292,8 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   and T-694 (`draft-f1`, `d254f2a2`); their worktrees and local branches are gone, and
   `draft/draft-f1` and `draft/draft-f3` on GitHub can go. Drafting on 2026-11-10: T-565 (`draft-g1`), T-568
   (`draft-g2`) and T-569 (`draft-g3`); each agent stopped at a limit of use, its work committed as
-  WIP and pushed as `draft/`, then resumed.
+  WIP and pushed as `draft/`, then resumed. Merged on 2026-11-10, one at a time, each `partial`
+  (each waits for `pod-services` to name its server, a short live run and T-251): T-565.
 
   On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
   as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
@@ -368,7 +369,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 699 entries: 90 open, 20 partial, 9 blocked, 580 done.
+`TODO/INDEX.md` holds 699 entries: 89 open, 21 partial, 9 blocked, 580 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

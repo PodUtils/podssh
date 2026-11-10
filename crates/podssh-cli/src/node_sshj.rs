@@ -14,7 +14,9 @@
 //! reached a service, or when each is off, and says that a third party that
 //! nobody vouches for carries its sessions. `PODSSH_SSH_J=no` turns the road off, and so does
 //! `PODSSH_LAST_RESORT=no`. The road is served alone: a pair is not served
-//! beside it (T-570's Decision). stdout stays empty.
+//! beside it (T-570's Decision). After it, or in its place where it is off,
+//! comes the road of a tunnel of HTTP made by `ssh -R`, localhost.run's
+//! (T-565, `crate::node_ssh_http`), the last. stdout stays empty.
 
 use std::io::Write;
 use std::time::Duration;
@@ -40,16 +42,20 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 /// Why a node that no road was asked of would serve a last fallback
 /// unasked: the node of the OpenTunnel road's unasked serving, else of the
 /// Pinggy road's (`crate::node_pinggy::last_node`).
-fn last_of_all(args: &NodeArgs) -> Option<String> {
+pub(crate) fn last_of_all(args: &NodeArgs) -> Option<String> {
     let opentunnel = crate::node_opentunnel::unasked(args).ok().flatten();
     opentunnel.or_else(|| crate::node_pinggy::last_node(args).ok().flatten())
 }
 
 /// The OpenTunnel road, then the Pinggy road, then Serveo's (T-549, which
-/// `node_pinggy` hands on to), then this one, each asked, or unasked as the
-/// last of a node with no other road: the exit code of the run; none when
-/// the node takes another road.
+/// `node_pinggy` hands on to), then this one, then localhost.run's (T-565),
+/// each asked, or unasked as the last of a node with no other road: the exit
+/// code of the run; none when the node takes another road.
 pub(crate) fn tunnels(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
+    // Its own check refuses another road's flag beside it.
+    if let Some(word) = crate::node_ssh_http::asked(args) {
+        return Some(crate::node_ssh_http::run(args, word, None, err));
+    }
     if args.ssh_j && (args.opentunnel || args.pinggy || args.serveo) {
         let why = "--ssh-j is one road and --opentunnel, --pinggy and --serveo are others: give one; run a second \
                    node for another";
@@ -72,11 +78,13 @@ fn after_pinggy(args: &NodeArgs, code: i32, err: &mut dyn Write) -> Option<i32> 
         return None;
     }
     let why = last_of_all(args)?;
-    if !matches!(setting(), Ok(Setting::On(_))) {
-        return None;
-    }
     let why = format!("{why}, and no road of a tunnel before this one reached its service");
-    Some(run(args, Some(why), err))
+    // Off: localhost.run's road in its place (T-565).
+    if !matches!(setting(), Ok(Setting::On(_))) {
+        return crate::node_ssh_http::unasked(args, why, err);
+    }
+    let code = run(args, Some(why.clone()), err);
+    Some(crate::node_ssh_http::after(args, code, &why, err).unwrap_or(code))
 }
 
 /// The road asked with `--ssh-j`; or unasked, by a node that none of the
@@ -86,11 +94,10 @@ fn dispatch(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
         return Some(run(args, None, err));
     }
     let why = last_of_all(args)?;
-    match setting() {
-        Ok(Setting::On(_)) => {}
-        Ok(_) => return None,
+    let on = match setting() {
+        Ok(setting) => matches!(setting, Setting::On(_)),
         Err(refusal) => return Some(refusal.report("node", err)),
-    }
+    };
     // Each road before it is off: Pinggy's by its switch, Serveo's by its
     // own or for want of a server (`node_serveo::service`).
     let pinggy = match crate::node_pinggy::service() {
@@ -102,7 +109,12 @@ fn dispatch(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
         _ => String::new(),
     };
     let why = format!("{why}, and {pinggy}{serveo}");
-    Some(run(args, Some(why), err))
+    // Off too: localhost.run's road in its place, the last (T-565).
+    if !on {
+        return crate::node_ssh_http::dispatch(args, why, err);
+    }
+    let code = run(args, Some(why.clone()), err);
+    Some(crate::node_ssh_http::after(args, code, &why, err).unwrap_or(code))
 }
 
 /// The flags of the road, checked before anything is read.
