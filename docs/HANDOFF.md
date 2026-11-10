@@ -35,7 +35,8 @@ podssh pins every podcrates crate at `tag = "v0.14.0"`.
     `pod-dns` and `pod-services`.
   - `pod-ws` (`a083593e`, COORD-017).
   - `pod-quic` (`525f8907`, COORD-018).
-- **Pending, in podcrates v0.15.0:** `pod-wormhole` (podcrates T-022:
+- **Pending, in podcrates v0.15.0** (being tagged at the pause; its hand-off issue in
+  PodUtils/podcrates follows): `pod-wormhole` (podcrates T-022:
   `crates/podssh-relay/src/code/`, its exchange going to `pod-relay`) and `pod-session` (podcrates
   T-020: `crates/podssh-relay/src/session/`).
   - **Both directories are frozen:** they take fixes only, each told to podcrates as a COORD issue
@@ -50,7 +51,8 @@ podssh pins every podcrates crate at `tag = "v0.14.0"`.
 ## Open COORD issues
 
 - #186 (COORD-019): `pod-services` for localhost.run, localtunnel and bore, and `Rewound::new` in
-  `pod-session`. When a tag names a service, its road turns on by default: then make its short live
+  `pod-session`. podcrates holds them as its T-171 (the services, each fact read again at its source)
+  and T-172 (`Rewound::new`), both for its next session, after the pause. When a tag names a service, its road turns on by default: then make its short live
   run (Q91), and remove the private `Replay` of `crates/podssh-relay/src/localtunnel/route.rs` once
   `pod-session` has `Rewound::new`.
 - #177 (COORD-010): the public proxy lists and nodes are in `v0.10.0` and taken. It stays open for
