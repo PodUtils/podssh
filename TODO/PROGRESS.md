@@ -393,6 +393,11 @@ podssh's (T-111's serve, for one). A crate that podssh has not taken yet is chan
 and carried by the import. T-085 keeps its two boxes only (Q103: the facade goes with `pod-relay`).
 T-446 waits: no beta and no release until the migration is done (Q104).
 
+**The owner's pause (2026-11-10, PodUtils/podcrates#53):** each session paused after its last
+runs. `docs/HANDOFF.md` holds the state at the pause: `main`, each podcrates take, the open COORD
+issues, and the next step of each partial entry. A session that starts again reads it first, after
+`AGENTS.md`; the tests that fail at random (T-744, T-465, T-627) come first.
+
 **First (2026-11-09):** the share lock's flake is repaired, v0.7.0 is taken, ssh node://'s refusals and the Trojan servers are done,
 T-698 is partial (its serve part waits for T-107). Then podssh's own order, by priority beside M10's
 order below: the partial entries of the testers' issues are closed (2026-11-10: each ran against a stand-in); T-707 (the GSRN road) is open since podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). **cfb's asks wait** (the owner's ruling "Priority", 2026-11-09): T-708 to T-731 stay filed
