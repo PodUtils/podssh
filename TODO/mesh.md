@@ -7598,6 +7598,10 @@ gone; no verifier of the road accepts each certificate (the Decision).
   The node takes each visitor from an SSH channel of Pinggy's own server, whose flow control (the
   window and its adjusts) the stand-in does not copy, so that is the first suspect. The client now
   runs with `-vvv`, so the next run shows the channel's messages.
+- The third live run (run 42738676695 at `3901a233`) stalled at the same step. `-vvv` added no line:
+  podssh's SSH client does not log its channel's messages, and the node has no `-v`. The stall is
+  after SSH's login through the layer, every time. To find it, the node must say each visitor's end
+  and its bytes each way, and the stand-in must behave as Pinggy's server does.
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 
