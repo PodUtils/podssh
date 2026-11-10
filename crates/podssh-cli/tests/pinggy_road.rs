@@ -15,7 +15,8 @@
 //! a proxy that passes TLS alone, the node's leg is SSH inside TLS, which
 //! the host's trust verifies. The name comes from the session's text when
 //! port 4300 does not answer. A node with no pair and each other road off
-//! serves the road unasked (Q78). Planted: the client's check of the node's
+//! serves the road unasked (Q78). 1 MiB comes down whole, and the node says
+//! the visitor's bytes each way. Planted: the client's check of the node's
 //! key skipped (`scripts/plants/t548-any-node.patch`), or the pin's
 //! comparison skipped (`scripts/plants/t548-any-pin.patch`), and the test of
 //! the stranger fails.
@@ -76,19 +77,29 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
 }
 
 /// Run `podssh ARGS` to its end, within the limit: (code, stdout, stderr).
+/// Both pipes are read while it runs: a pipe that nobody reads holds a
+/// child that writes more than its 64 KiB (T-548's live stall).
 fn run(cmd: &mut Command) -> (i32, String, String) {
     let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().expect("it runs");
+    let drain = |mut pipe: Box<dyn std::io::Read + Send>| {
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let _ = pipe.read_to_end(&mut bytes);
+            String::from_utf8_lossy(&bytes).into_owned()
+        })
+    };
+    let (out, err) = (drain(Box::new(child.stdout.take().unwrap())), drain(Box::new(child.stderr.take().unwrap())));
     let deadline = Instant::now() + LIMIT;
     while child.try_wait().expect("wait").is_none() {
         if Instant::now() > deadline {
             let _ = child.kill();
-            panic!("podssh did not end within {} s", LIMIT.as_secs());
+            let _ = child.wait();
+            panic!("podssh did not end within {} s; it said: {}", LIMIT.as_secs(), err.join().unwrap_or_default());
         }
         std::thread::sleep(Duration::from_millis(50));
     }
-    let out = child.wait_with_output().expect("output");
-    let text = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
-    (out.status.code().unwrap_or(-1), text(&out.stdout), text(&out.stderr))
+    let code = child.wait().expect("wait").code().unwrap_or(-1);
+    (code, out.join().unwrap_or_default(), err.join().unwrap_or_default())
 }
 
 /// Kills the node when the test ends.
@@ -400,6 +411,27 @@ fn behind_a_proxy_that_passes_tls_alone_the_leg_is_ssh_inside_tls_that_the_host_
     assert!(said.iter().any(|l| l.contains("host key") && l.contains("over SSH inside TLS")), "{said:#?}");
     assert_eq!(lab.stand_in.raw.load(Ordering::SeqCst), 0, "the proxy cut each raw SSH");
     assert_eq!(lab.stand_in.tls.load(Ordering::SeqCst), 1);
+    drop(lab.runtime);
+}
+
+/// 1 MiB down the tunnel, as the live run takes it (`source`), whole; with
+/// `PODSSH_PINGGY_TRACE=1`, the node says the visitor's end and its bytes
+/// each way. Before `run` read the pipes as the child ran, the child stalled
+/// at 64 KiB of stdout, as the first three live runs did.
+#[test]
+fn a_mebibyte_comes_down_the_tunnel_whole_and_the_node_says_the_visitor_s_bytes() {
+    let lab = Lab::new("down");
+    lab.let_in();
+    lab.pair_down();
+    let trace = [("PODSSH_PINGGY_TRACE", "1")];
+    let (_node, lines, _, address) = lab.node("node.key", &["--pinggy"], &trace);
+    let mut ssh = lab.ssh(&["-v", "--pinggy-name", &address, "node://tester@lab", "source 1048576"]);
+    let (rc, out, err) = run(ssh.envs(trace));
+    assert_eq!((rc, out.len()), (0, 1 << 20), "{err}");
+    let end = wait_for(&lines, "ended (");
+    let end = end.last().unwrap();
+    let out = end.split("bytes in, ").nth(1).and_then(|rest| rest.split(' ').next()?.parse::<usize>().ok());
+    assert!(out.is_some_and(|out| out > 1 << 20), "the visitor's bytes out: {end}");
     drop(lab.runtime);
 }
 

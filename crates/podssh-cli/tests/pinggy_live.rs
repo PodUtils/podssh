@@ -11,7 +11,7 @@
 mod cleanup;
 mod ssh_harness;
 
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
@@ -35,26 +35,43 @@ fn command(home: &Path, args: &[&str]) -> Command {
     }
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no");
     cmd.env("PODSSH_DERP", "no").env("PODSSH_IROH_PKARR", "off");
+    // Each visitor's and each link's bytes each way, each few seconds: a run
+    // that stalls names the side where the bytes stop.
+    cmd.env("PODSSH_PINGGY_TRACE", "1");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd
 }
 
-/// Run to its end, within the limit: (code, stdout as bytes, stderr).
+/// Run to its end, within the limit: (code, stdout as bytes, stderr). Both
+/// pipes are read while it runs: a pipe that nobody reads holds a child that
+/// writes more than its 64 KiB, which stalled the 1 MiB of the first three
+/// live runs after SSH's login, with each road's bytes through.
 fn run(cmd: &mut Command) -> (i32, Vec<u8>, String) {
     let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().expect("it runs");
+    let drain = |mut pipe: Box<dyn Read + Send>| {
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let _ = pipe.read_to_end(&mut bytes);
+            bytes
+        })
+    };
+    let (out, err) = (drain(Box::new(child.stdout.take().unwrap())), drain(Box::new(child.stderr.take().unwrap())));
     let deadline = Instant::now() + LIMIT;
     while child.try_wait().expect("wait").is_none() {
         if Instant::now() > deadline {
             let _ = child.kill();
-            // Its words name where it waited.
-            let said = child.wait_with_output().map(|o| String::from_utf8_lossy(&o.stderr).into_owned());
-            panic!("podssh did not end within {} s; it said: {said:?}", LIMIT.as_secs());
+            let _ = child.wait();
+            // Its words name where it waited, and how much came.
+            let said = String::from_utf8_lossy(&err.join().unwrap_or_default()).into_owned();
+            let came = out.join().map(|out| out.len()).unwrap_or_default();
+            panic!("podssh did not end within {} s, with {came} bytes out; it said: {said}", LIMIT.as_secs());
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    let out = child.wait_with_output().expect("output");
-    (out.status.code().unwrap_or(-1), out.stdout, String::from_utf8_lossy(&out.stderr).into_owned())
+    let code = child.wait().expect("wait").code().unwrap_or(-1);
+    let err = String::from_utf8_lossy(&err.join().unwrap_or_default()).into_owned();
+    (code, out.join().unwrap_or_default(), err)
 }
 
 /// Stops the node when the run ends, which gives its tunnel up.
@@ -125,7 +142,7 @@ fn a_node_behind_pinggy_serves_a_client_by_its_tunnel_s_name() {
     let ssh = |words: &[&str]| {
         let known = format!("UserKnownHostsFile={}", client_home.join("known_hosts").display());
         let client_key = client_key.to_string_lossy().into_owned();
-        // -vvv: the channel's messages, for a run that stalls after its login.
+        // -vvv: each link's lines of PODSSH_PINGGY_TRACE, which are verbose.
         let mut args =
             vec!["ssh", "-vvv", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
         args.extend_from_slice(&["--client-key", &client_key, "--node-key", &expected, "--pinggy-name", &name]);
@@ -133,12 +150,13 @@ fn a_node_behind_pinggy_serves_a_client_by_its_tunnel_s_name() {
         run(&mut command(&client_home, &args))
     };
     let (rc, out, err) = ssh(&["node://tester@lab", "greet"]);
-    eprintln!("client: {err}");
+    eprintln!("client, greet: {err}");
     assert_eq!(rc, 0, "the client over Pinggy");
     assert_eq!(String::from_utf8_lossy(&out), GREETING);
     assert!(err.contains("the Pinggy road answered first") && err.contains("nobody vouches for"), "{err}");
     let source = format!("source {DOWN}");
     let (rc, out, err) = ssh(&["node://tester@lab", &source]);
+    eprintln!("client, {source}: {err}");
     assert_eq!(rc, 0, "{err}");
     assert_eq!(out.len(), DOWN, "1 MiB down, whole");
     let _ = std::io::stderr().flush();

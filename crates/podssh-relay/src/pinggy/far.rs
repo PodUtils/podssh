@@ -15,6 +15,7 @@ use podssh_ws::tls_server::{self, Served, TlsAcceptor};
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc;
 
+use super::trace::{self, Counts, Traced};
 use super::Say;
 use crate::opentunnel::dial::BoxIo;
 use crate::session::keep::Keeper;
@@ -47,6 +48,14 @@ pub fn served(cert_pem: &str, key_pem: &str) -> Result<Arc<Served>, String> {
     let pair = tls_server::certified(cert_pem.as_bytes(), key_pem.as_bytes())
         .map_err(|why| format!("the node's certificate: {why}"))?;
     Ok(Served::new(Some(pair)))
+}
+
+/// A line on the visitor of `peer` each [`trace::EVERY`] while it lives.
+async fn tick(counts: Arc<Counts>, peer: String, say: Say) {
+    loop {
+        tokio::time::sleep(trace::EVERY).await;
+        say(format!("a visitor from {peer}: {}", counts.line()));
+    }
 }
 
 /// Start the sweep of `keeper`'s lost sessions; it ends with the keeper.
@@ -84,12 +93,27 @@ pub async fn serve<A, O, F>(
         let (acceptor, keeper, open, say) = (acceptor.clone(), keeper.clone(), open.clone(), say.clone());
         tokio::spawn(async move {
             let Visitor { stream, peer } = visitor;
+            // Each visitor's bytes, for its last line: a stall in the third
+            // party's channel leaves no other trace (T-548).
+            let counts = Counts::new();
+            let ticker = trace::on().then(|| tokio::spawn(tick(counts.clone(), peer.clone(), say.clone())));
+            let stream = Traced::new(stream, counts.clone());
             let tls = match tokio::time::timeout(TLS_LIMIT, acceptor.accept(stream)).await {
-                Ok(Ok(tls)) => tls,
-                Ok(Err(e)) => return say(format!("a visitor from {peer}: TLS failed: {e}")),
-                Err(_) => return say(format!("a visitor from {peer}: no TLS within {} s", TLS_LIMIT.as_secs())),
+                Ok(Ok(tls)) => Ok(tls),
+                Ok(Err(e)) => Err(format!("TLS failed: {e}")),
+                Err(_) => Err(format!("no TLS within {} s", TLS_LIMIT.as_secs())),
             };
-            far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
+            let why = match tls {
+                Ok(tls) => {
+                    far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
+                    counts.end().unwrap_or_else(|| "the layer ended its link".into())
+                }
+                Err(why) => why,
+            };
+            if let Some(ticker) = ticker {
+                ticker.abort();
+            }
+            say(format!("a visitor from {peer} ended ({why}): {}", counts.line()));
         });
     }
 }

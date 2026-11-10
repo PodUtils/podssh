@@ -18,6 +18,7 @@ use podssh_ws::Trust;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 use super::tls;
+use super::trace::{self, Counts, Traced};
 use super::Say;
 use crate::opentunnel::dial::{BoxIo, Visit, CONNECT_LIMIT};
 use crate::session::client::{self, Outcome};
@@ -120,6 +121,12 @@ impl Dialer {
         let (trust, verifier): (Trust, _) = tls::trust(pin)?;
         let tcp = (self.visit)(&name).await?;
         match podssh_ws::tls_over(tcp, &name, &trust, CONNECT_LIMIT).await {
+            Ok(tls) if trace::on() => {
+                // Each link's bytes, said each few seconds while it lives (T-548).
+                let counts = Counts::new();
+                tokio::spawn(tick(counts.clone(), name.clone(), self.say.clone()));
+                Ok(Link(Box::new(Traced::new(tls, counts))))
+            }
             Ok(tls) => Ok(Link(Box::new(tls))),
             // Another key at the name: a stranger holds it now, or a proxy
             // ended TLS; either way, not the node.
@@ -141,6 +148,20 @@ impl Dialer {
                 ))
             }
             Err(e) => Err(format!("{name}: {e}")),
+        }
+    }
+}
+
+/// A line on the link to `name` each [`trace::EVERY`] while it lives, and
+/// one when it ended.
+async fn tick(counts: Arc<Counts>, name: String, say: Say) {
+    loop {
+        tokio::time::sleep(trace::EVERY).await;
+        let ended = Arc::strong_count(&counts) == 1;
+        let what = if ended { "ended" } else { "lives" };
+        say(format!("the link to {name} {what}: {}", counts.line()));
+        if ended {
+            return;
         }
     }
 }

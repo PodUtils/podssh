@@ -4344,7 +4344,9 @@ commands. The rules behind them:
   used, the key is for the run, and the line says so. Pinggy's host key is
   pinned where `pod-services` names it (the fact `host-key-sha256`), else
   taken and said. A free tunnel ends at 60 minutes: the node opens the next,
-  under a new name, and says it. The door and the refused flags are the
+  under a new name, and says it. Each visitor's end has a line, with why it
+  ended and its bytes each way; `PODSSH_PINGGY_TRACE=1` adds one each 5 s
+  while it lives, and one for each link of a client with `-v`. The door and the refused flags are the
   OpenTunnel road's, and `--opentunnel` beside it is 64. A node with no
   pair, a door, `PODSSH_DERP=no` and the OpenTunnel road off, or with no
   service reached, serves it unasked; its lines name the third party.

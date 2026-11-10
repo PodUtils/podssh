@@ -78,6 +78,13 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_PINGGY_TRACE"],
+        "1: the Pinggy road says each visitor's bytes each way every 5 s while it lives, on the node's stderr, \
+          and each link's on the client's with -v, with a write that waits and since when, so that a run that \
+          stalls names the side where the bytes stop (T-548). The node says each visitor's end, why and its \
+          bytes each way, with or without it. Unset or another value: no such lines.",
+    ),
+    (
         &["PODSSH_FRP"],
         "The file of the frp road (T-498), the user's own frps: a private file with a line each, server \
           (frp://HOST[:PORT] or wss://HOST[:PORT][/PATH]), token (frps's) and secret (the node's STCP service's), \

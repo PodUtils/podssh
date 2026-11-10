@@ -18,7 +18,8 @@ pub(super) const NODE: &str = "With --pinggy, the node serves TARGET over the Pi
      for the run, and the line says so. The host key of Pinggy's server is checked against the one that \
      podssh's list of services names, where it names one; else any key passes, and the line says so. A free \
      tunnel ends at 60 minutes: the node opens the next, which has a new name, and says it; the sessions that \
-     the layer keeps go on when their client dials the new name. Anyone may connect to a tunnel's name, and \
+     the layer keeps go on when their client dials the new name. Each visitor's end has a line, with why it \
+     ended and its bytes each way; PODSSH_PINGGY_TRACE=1 adds one each 5 s while it lives. Anyone may connect to a tunnel's name, and \
      Pinggy is a third party that nobody vouches for, so the road needs the end-to-end channel and a door: \
      --allow, or the members of the net held here when the node's key is one; never --plain, --no-e2e, --exit, \
      a udp: TARGET, or --opentunnel, --iroh or --derp (64). With the pair NAME, or --pair-file, the node serves \

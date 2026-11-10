@@ -7603,6 +7603,53 @@ gone; no verifier of the road accepts each certificate (the Decision).
   after SSH's login through the layer, every time. To find it, the node must say each visitor's end
   and its bytes each way, and the stand-in must behave as Pinggy's server does.
 
+2026-11-10, the stall found: it was the live test's, not the road's. Read again, each of the three
+runs' logs shows the first command, `greet`, passing: the test printed the client's stderr after
+it (`client: podssh: open file limit...`, `pinggy_live.rs`'s line after the first `ssh`), and the
+two "came in" lines are the two commands, one before and one after that print (02:07:31.3 and
+02:07:33.5 in run 42738676695), with two resumable sessions (`589071e0`, then `18586a01`), the
+second with the host key "found at known_hosts:1". The stall was the second command, `source
+1048576`. The test's `run` read the child's stdout only after the child ended, and a pipe that
+nobody reads holds 64 KiB on Linux: the client blocked on its stdout and read no more of its
+channel, while the layer's pings went on both ways, so nothing ended for 120 s. The stand-in
+reproduced it at once, with the same `run`, once a test took more than 64 KiB down: 1,000 bytes,
+32 KiB and 64 KiB came whole, 128 KiB stalled after 65,536 to 73,728 bytes of stdout. The new
+counts showed the node's visitor sending each byte (136,490 bytes out, no write waited) and the
+client's link taking each one (135,028 bytes in), with the pings counted after; only the stdout
+stopped.
+
+- The repair: `run` of `tests/pinggy_live.rs` and of `tests/pinggy_road.rs` reads both pipes on
+  threads while the child runs; at its limit the live test says the bytes that came and the
+  stderr. The other road tests' `run` takes no large output (their 16 MiB go through
+  `upgrade_support`, which reads stdout).
+- The suspects of the road, read and set aside: russh's `ChannelTx` keeps nothing after a write
+  that returns ready (the message is in the session's queue; `poll_flush` has nothing to do), and
+  tokio-rustls writes its records itself; the node's russh client adjusts the window of a
+  `forwarded-tcpip` channel at half of its 2 MiB as data comes (`client/encrypted.rs`, the
+  `CHANNEL_DATA` arm), and writes within the server's window and packet size
+  (`channels/io/tx.rs` `poll_writable`, `session.rs` `data_noqueue`); the channel's confirmation
+  goes out before any byte of the node, as TLS waits for the visitor's ClientHello; the two "came
+  in" lines are the two commands, not the race's probe (`road_probe.rs` is `podssh ping`'s) nor a
+  resume. No change of `vendor/russh`.
+- Diagnostics (`podssh-relay/src/pinggy/trace.rs`): each visitor's stream is counted, and the node
+  says its end, why (the visitor's end of input, a failed read or write, TLS, or the layer's end
+  of the link) and its bytes each way; `PODSSH_PINGGY_TRACE=1` adds a line each 5 s while it
+  lives, and each link of a client with `-v`, with a write that waits and since when. The manual
+  (`PODSSH_PINGGY_TRACE`, the node's note) and `docs/cli.md` say it. The live test sets it on both
+  ends and prints each command's stderr.
+- Measured 2026-11-10 (Rust 1.99, natively): the new
+  `a_mebibyte_comes_down_the_tunnel_whole_and_the_node_says_the_visitor_s_bytes` failed with the
+  old `run` (no end within 60 s) and passes with the new (1 MiB in about 1 s; 4 MiB in 2.0 s by
+  hand); `cargo test -p podssh-cli --test pinggy_road`, 7 passed; `cargo test -p podssh-relay
+  --features pinggy --lib pinggy`, 12 passed (new: `the_bytes_each_way_and_a_write_that_waits_are_counted`);
+  `cargo test -p podssh-cli --lib`, 1,056 passed; `--test pinggy_live` builds (1 ignored);
+  `cargo test -p podssh-ws --test no_permissive_verifier`, 2 passed; `man_flag_parity` 6,
+  `man_json` 4, `man_page` 11 passed; clippy (the gate's lints, `--features podssh-relay/pinggy`)
+  and rustfmt clean.
+- The next live run should pass both commands: `greet`, then 1 MiB whole, with the node's line
+  `a visitor from ... ended (...): N bytes in, M out` for each, M over 1 MiB for the second.
+  UNVERIFIED: not dispatched. A stall now would name its side in the lines of each 5 s.
+
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
 
 **Source:** the operator's ruling Q78 (2026-11-02).

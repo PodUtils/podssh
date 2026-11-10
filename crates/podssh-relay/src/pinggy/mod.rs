@@ -27,6 +27,7 @@
 pub mod client;
 pub mod far;
 pub mod tls;
+pub mod trace;
 pub mod urls;
 
 use std::sync::Arc;
