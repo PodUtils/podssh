@@ -1337,6 +1337,23 @@ Ruled out:
   alias. Its terms forbid unlawful and abusive use and name no clause on a
   relay's or on automation. The alias of a node's key is the road of T-549
   (2026-11-10), raw SSH at both ends, under the end-to-end channel.
+  localhost.run, read again on 2026-11-10 for T-565 [LR1]: its documents
+  moved to `lhr-landing.lovable.app` (`localhost.run/docs/` serves them);
+  `nokey@localhost.run` makes a free tunnel with no key; "The command
+  prints your public URL", as `NAME.lhr.life tunneled with tls termination,
+  https://NAME.lhr.life` in the landing page's sample, after which the
+  session logs each request; the edge "unwraps the encryption and sends
+  plain HTTP requests to your app" with `X-Forwarded-For`,
+  `X-Forwarded-Host`, `X-Forwarded-Proto` and `Forwarded`; the bind port is
+  80 or 443; free domains "change after a few hours" and have a speed
+  limit, "to prevent phishing sites"; its agent page `SKILL.md` names CI
+  pipelines among its uses. No terms were found (`localhost.run/terms` and
+  the landing host's answer 404), no page names a relay's use, a limit of
+  automation, a WebSocket, SSH on another port than 22, or a host key. The
+  road of T-565 (drafted 2026-11-10) is the node's relay role and its
+  WebSocket of the layer behind the tunnel, under the end-to-end channel;
+  whether the edge passes the upgrade and a streamed body waits for its
+  short live run (Q94).
 - **bore.pub**: one person runs it, on the control port 7835 and random
   ports [R43]. Read on 2026-11-02: it restarts on purpose and "isn't meant
   for long-lived connections" (its issue 170, 2025-06-24), it was down on
@@ -2360,6 +2377,12 @@ from a project's own repository or document.
   `localtunnel/server` (MIT) and `ekzhang/bore` (MIT)
 - [X8] https://ssh-j.com/ and https://ssh-j.com/terms (404), read on
   2026-11-10 through the read service of web.pkgforge.dev
+- [LR1] https://localhost.run/docs/ (now
+  https://lhr-landing.lovable.app/docs: "The Basics", "HTTP Tunnels", "CLI
+  Reference", "Security", "Forever Free", "FAQ"), https://localhost.run/
+  (the landing page's sample), https://lhr-landing.lovable.app/SKILL.md, and
+  https://localhost.run/terms (404), read on 2026-11-10 through
+  `read.web.pkgforge.dev`
 - [X9] https://bitbucket.org/ValdikSS/dropbear-sshj/ : its README and the
   diff of commit `d622b1e8fe35` ("SSH-J.com improvements", 2021-04-02:
   `srv-tcpfwd-pseudodns.c`, `svr-tcpfwd.c`, `svr-auth.c`,

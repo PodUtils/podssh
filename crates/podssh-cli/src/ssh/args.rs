@@ -96,6 +96,8 @@ pub struct SshArgs {
     pub opentunnel_name: Option<String>,
     /// `--pinggy-name HOST#PIN`: the Pinggy road's address of a node (T-548).
     pub pinggy_name: Option<String>,
+    /// `--tunnel-url https://HOST`: a node's tunnel of `ssh -R` (T-565).
+    pub tunnel_url: Option<String>,
     /// For `node://NAME`: `--carrier ADDR`, the node at the other end of a
     /// stream that exists already, its one road (T-595), unparsed.
     pub carrier: Option<String>,
@@ -219,6 +221,7 @@ pub const ONCE: &[(&str, &str)] = &[
     ("derp-server", "give the servers as one comma list"),
     ("opentunnel-name", "give one name"),
     ("pinggy-name", "give one name"),
+    ("tunnel-url", "give one URL"),
     ("carrier", "give one stream"),
     ("persist-name", "give one name"),
     ("attach", "give one name"),
@@ -353,6 +356,7 @@ impl SshArgs {
             derp_server: one("derp-server"),
             opentunnel_name: one("opentunnel-name"),
             pinggy_name: one("pinggy-name"),
+            tunnel_url: one("tunnel-url"),
             carrier: one("carrier"),
             detach: flag("detach"),
             restart: flag("restart"),

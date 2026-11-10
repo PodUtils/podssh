@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-relay/src/ssh_http/visit.rs b/crates/podssh-relay/src/ssh_http/visit.rs
+index e57149bd..5875955a 100644
+--- a/crates/podssh-relay/src/ssh_http/visit.rs
++++ b/crates/podssh-relay/src/ssh_http/visit.rs
+@@ -61,7 +61,7 @@ where
+         Err(_) => return Visited::Gone("no request within 30 s"),
+     };
+     let path = head.target.split(['?', '#']).next().unwrap_or_default().to_string();
+-    if let Some(role) = origin::taking(&origin, &head.target) {
++    if let Some(role) = origin::taking(&None, &head.target).filter(|_| origin.is_some()) {
+         let mut pipe = role.connect(visitor_of(&head));
+         let mut bytes = head_bytes(&head);
+         bytes.extend_from_slice(&pending);

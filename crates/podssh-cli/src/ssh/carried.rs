@@ -49,6 +49,7 @@ pub(super) fn flags(args: &SshArgs) -> Result<(), String> {
         (args.derp_server.is_some(), "--derp-server"),
         (args.opentunnel_name.is_some(), "--opentunnel-name"),
         (args.pinggy_name.is_some(), "--pinggy-name"),
+        (args.tunnel_url.is_some(), "--tunnel-url"),
         (args.forwarder.is_some(), "--forwarder"),
         (args.shadowsocks.is_some(), "--shadowsocks"),
         (args.via.is_some(), "--via"),

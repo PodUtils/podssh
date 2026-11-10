@@ -147,6 +147,11 @@ pub(crate) mod serveo_leg;
 pub mod node_sshj;
 mod node_sshj_serve;
 pub(crate) mod sshj;
+// `podssh node --localhost-run`: a tunnel of HTTP made by `ssh -R`, the last
+// fallback of Q78 (T-565): the node, its serving and its SSH leg.
+pub mod node_ssh_http;
+mod node_ssh_http_serve;
+pub(crate) mod ssh_http_leg;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;

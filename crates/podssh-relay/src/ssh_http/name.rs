@@ -34,6 +34,24 @@ pub fn of_line(line: &str, word: &Word, own: &dyn Fn(&str) -> bool) -> Option<St
     })
 }
 
+/// The tunnel's name of a URL that a user gives, or that a node of this
+/// host kept: `https://HOST`, `https://HOST/` or `HOST`, a DNS name of two
+/// labels or more, in lower case; no port (the edge's HTTPS is on 443), no
+/// user, path, query or other scheme. The refusal does not echo the text.
+pub fn of_url(text: &str) -> Result<String, String> {
+    let text = text.trim();
+    let rest = match text.split_once("://") {
+        Some((scheme, rest)) if scheme.eq_ignore_ascii_case("https") => rest,
+        Some(_) => return Err("a tunnel's URL is https://HOST".into()),
+        None => text,
+    };
+    let host = rest.strip_suffix('/').unwrap_or(rest).trim_end_matches('.').to_ascii_lowercase();
+    match urls::is_name(&host) {
+        true => Ok(host),
+        false => Err("a tunnel's URL is https://HOST, a DNS name with no port, user or path".into()),
+    }
+}
+
 /// The text of a channel, cut into its lines as it comes.
 #[derive(Debug, Default)]
 pub struct Lines {
@@ -102,6 +120,19 @@ mod tests {
         assert!(names("192.0.2.1 tunneled with tls termination, https://192.0.2.1\n", 64).is_empty());
         assert!(names("admin.localhost.run tunneled\n", 64).is_empty(), "the service's own host");
         assert!(names("https://c3.lhr.life\n", 64).is_empty(), "no marker, no name");
+    }
+
+    #[test]
+    fn a_url_of_a_tunnel_is_its_host_alone_and_anything_more_is_refused_unsaid() {
+        for good in ["https://A1.lhr.life", "https://a1.lhr.life/", "a1.lhr.life", " a1.lhr.life. "] {
+            assert_eq!(of_url(good).as_deref(), Ok("a1.lhr.life"), "{good}");
+        }
+        let port = "https://a1.lhr.life:8443";
+        for bad in ["http://a1.lhr.life", port, "https://u:SECRET@h.test", "https://h.test/SECRET"] {
+            let why = of_url(bad).unwrap_err();
+            assert!(!why.contains("SECRET"), "{why}");
+        }
+        assert!(of_url("https://192.0.2.1").is_err() && of_url("").is_err());
     }
 
     #[test]

@@ -203,6 +203,18 @@ pub fn third_party_line(service: &Service) -> String {
     )
 }
 
+/// The line that a client says before its first link to `host`, a
+/// tunnel's name of `word`'s service (Q78): the client has no server of its
+/// own to name, only the name that the node gave.
+pub fn client_line(word: Word, host: &str) -> String {
+    format!(
+        "the {} road, a last fallback: {host}, a tunnel's name at {}, a third party that nobody vouches for, \
+         carries this session over HTTPS that it ends (the operator's ruling Q78); the end-to-end channel keeps \
+         its bytes private; {}=no or {LAST_RESORT}=no turns it off",
+        word.name, word.name, word.env
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -257,5 +269,9 @@ mod tests {
         }
         assert!(line.contains("PODSSH_LAST_RESORT=no") && line.contains("end-to-end channel"), "{line}");
         assert!(unnamed_words(LOCALHOST_RUN).contains("PODSSH_LOCALHOST_RUN=HOST[:PORT]"));
+        let client = client_line(LOCALHOST_RUN, "a1.lhr.life");
+        for word in ["a1.lhr.life", "localhost.run", "nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no"] {
+            assert!(client.contains(word), "{word}: {client}");
+        }
     }
 }

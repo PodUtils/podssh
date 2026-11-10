@@ -3,7 +3,8 @@
 //! pkarr and races each road that it names and that no ticket gave: the
 //! iroh road at its home relay, the DERP road at its DERP home, and its
 //! quick tunnel; and its Pinggy address, which the Pinggy road takes in its
-//! own place, last (`ssh::pinggy`, T-548). The record is asked only once
+//! own place, last (`ssh::pinggy`, T-548), and its tunnel of `ssh -R`,
+//! which localhost.run's road takes so (T-565). The record is asked only once
 //! each road before it failed,
 //! as T-350 asks it only when the ticket's relay fails; it is kept for its
 //! names' life, then asked again at the next race. The record is the
@@ -127,7 +128,8 @@ impl<'a> RecordRoads<'a> {
         match finder.find(&self.ask.key).await {
             Ok(Some(record)) => {
                 let (relay, derp, quick) = (record.relays.first().cloned(), record.derp.clone(), record.quick.clone());
-                let roads = Roads { relay, derp, quick, pinggy: record.pinggy.clone() };
+                let (pinggy, tunnel) = (record.pinggy.clone(), record.tunnel.clone());
+                let roads = Roads { relay, derp, quick, pinggy, tunnel };
                 self.log.verbose(&format!("{shown}: its record at {host} names {}", roads.said()));
                 for why in &record.set_aside {
                     self.log.verbose(&format!("{shown}: of its record, {why}"));
@@ -195,6 +197,14 @@ impl<'a> RecordRoads<'a> {
     pub(crate) async fn pinggy(&self) -> Result<podssh_relay::pinggy::Address, String> {
         let record = self.record().await?;
         record.pinggy.ok_or_else(|| "its record names no Pinggy tunnel".into())
+    }
+
+    /// The name of the record's tunnel of HTTP made by `ssh -R`, for
+    /// localhost.run's road (T-565): the node puts each new one, and the
+    /// end-to-end channel checks its key at whatever answers there.
+    pub(crate) async fn tunnel(&self) -> Result<String, String> {
+        let record = self.record().await?;
+        record.tunnel.ok_or_else(|| "its record names no tunnel of ssh -R".into())
     }
 
     /// Which road of the record carried the session, for `-v`.

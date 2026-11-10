@@ -20,7 +20,7 @@
 //! last fallback of Q78, or 250 ms after the road before it when named;
 //! then a node's alias at Serveo (T-549, `super::serveo`); then the node's
 //! name at ssh-j.com (T-570, `super::sshj`), by its key; then its tunnel of
-//! HTTP made by `ssh -R` (T-565, `super::ssh_http`), the last of all.
+//! HTTP made by `ssh -R` (T-565, `ssh_http`), the last of all.
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -65,6 +65,10 @@ pub(crate) mod member;
 // A visit to the node's STCP service at the user's frps (T-498).
 #[path = "road_frp.rs"]
 pub(crate) mod frp;
+
+// A node's tunnel of HTTP made by `ssh -R`, the last fallback of Q78 (T-565).
+#[path = "road_ssh_http.rs"]
+pub(crate) mod ssh_http;
 
 // The last fallbacks of Q78, in their order (T-548, T-549, T-570, T-565).
 #[path = "road_last.rs"]
@@ -119,7 +123,7 @@ struct Roads<'a> {
     /// A node's name at ssh-j.com, by its key (T-570).
     sshj: Option<super::sshj::SshJRoads>,
     /// A node's tunnel of HTTP made by `ssh -R`, the last of all (T-565).
-    tunnel: Option<super::ssh_http::SshHttpRoads>,
+    tunnel: Option<ssh_http::SshHttpRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -252,7 +256,7 @@ where
     // ssh-j.com, by its key too (T-570): the last of all.
     let serveo = super::serveo::ServeoRoads::new(label, ask, &log, &shown);
     let sshj = super::sshj::SshJRoads::new(label, ask, trust, &log, &shown);
-    let tunnel = super::ssh_http::SshHttpRoads::new(label, ask.off, raced.record.is_some(), trust, &log, &shown);
+    let tunnel = ssh_http::SshHttpRoads::new(label, ask.off, raced.record.is_some(), trust, &log, &shown);
     let others = others || pinggy.is_some() || serveo.is_some() || sshj.is_some() || tunnel.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {
         Ok(part) => Some(part),

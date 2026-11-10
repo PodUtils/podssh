@@ -4436,6 +4436,38 @@ commands. The rules behind them:
   takes it, under the layer and the end-to-end channel. A line says before
   the first link that the server, a third party that nobody vouches for,
   carries the session. Never with `--no-e2e`, and never in `podssh ping`.
+- **`node --localhost-run` serves the localhost.run road** (T-565, partial;
+  drafted 2026-11-10), the last fallback of Q78, after the ssh-j road: a
+  tunnel of HTTP made by `ssh -R` with no account, at localhost.run where
+  `pod-services` names it (the service `localhost-run`, endpoint `ssh`,
+  asked of podcrates), or at the server of `PODSSH_LOCALHOST_RUN`
+  (`HOST[:PORT]`); with neither, `--localhost-run` is 78. The node's leg is
+  SSH to the server on port 22, directly or through `HTTPS_PROXY`'s CONNECT,
+  as the user `nokey`, with the remote forward `localhost:80`, as `ssh -R
+  80:localhost:PORT nokey@localhost.run` asks it; the server's line that
+  says `tunneled` names the tunnel's HTTPS name, which the node says in its
+  line `tunnel https://NAME` with a client's command, keeps under NAME in
+  the cache and puts in its record (the key `tunnel` of `_podssh`). Each
+  visitor's channel is plain HTTP that the service's edge sends down after
+  it ended TLS: a WebSocket at `/` is a link of the layer under the
+  end-to-end channel, a path of the relay role goes to the role with
+  `--relay` (as behind a quick tunnel, T-428; TARGET may then be left out),
+  and each other request gets 404. A new name of the tunnel is said and put
+  in the cache and the record; a tunnel that ends is opened again with a
+  wait that doubles from 1 s to 60 s. The road is served alone. The door is
+  the Pinggy road's; `--plain`, `--no-e2e`, `--exit`, a `udp:` TARGET and
+  each other road's flag are 64. A node that would serve the ssh-j road
+  unasked serves this one when it reached no service, or when it is off.
+  `PODSSH_LOCALHOST_RUN=no` or `PODSSH_LAST_RESORT=no` turns it off.
+- **`ssh node://NAME --tunnel-url https://HOST` races the localhost.run
+  road** 250 ms after the road before it; with no URL, the name kept under
+  NAME or the one of the node's record, last of all, after the ssh-j road.
+  Each link is a WebSocket at `/` of HOST on port 443 through
+  `HTTPS_PROXY`, whose TLS the host's trust verifies, under the layer and
+  the end-to-end channel, as the quick tunnel of a record is taken. A line
+  says before the first link that localhost.run, a third party that nobody
+  vouches for, carries the session. Never with `--no-e2e` (64 with the
+  URL); `podssh ping` measures it only with the URL.
 - **croc's relay road of a pair** (T-694, 2026-11-10), a last fallback of
   Q78: a node of the pair's road with the layer and the channel waits in a
   room of the pair at croc's public relay, through croc-web's WebSocket
