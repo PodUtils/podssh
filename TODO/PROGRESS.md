@@ -19,8 +19,11 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
      PodUtils/podcrates#37): a move of each tag, no patch. Since then each tag moved, and
      `pod-ws` is taken (`a083593e`, COORD-017; podcrates' `SOURCES` holds its `taken`
-     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). No podssh module is
-     frozen now.
+     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Frozen now, for fixes
+     only, each told to podcrates as a COORD issue, until `v0.15.0` takes them:
+     `crates/podssh-relay/src/code/` (`pod-wormhole`, podcrates T-022; its exchange goes to `pod-relay`)
+     and `crates/podssh-relay/src/session/` (`pod-session`, podcrates T-020). A draft that changes a
+     file there for a feature keeps that change out, or asks it of podcrates.
   5. **Branches:** this session's git proxy refuses deletes (HTTP 403); the owner deletes the 139
      `draft/*` branches (each checked as in `main`) and six stale Dependabot branches by hand.
 
