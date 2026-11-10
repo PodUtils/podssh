@@ -288,7 +288,9 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   `72f4d1d9`); their worktrees and branches are gone. Drafted on 2026-11-10 and merged the same day,
   one at a time: T-549 (`draft-f2`, `961acb1f`), T-570 (`draft-f3`, `32517128`, onto T-549's lists)
   and T-694 (`draft-f1`, `d254f2a2`); their worktrees and local branches are gone, and
-  `draft/draft-f1` and `draft/draft-f3` on GitHub can go.
+  `draft/draft-f1` and `draft/draft-f3` on GitHub can go. Drafting on 2026-11-10: T-565 (`draft-g1`), T-568
+  (`draft-g2`) and T-569 (`draft-g3`); each agent stopped at a limit of use, its work committed as
+  WIP and pushed as `draft/`, then resumed.
 
   On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
   as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
