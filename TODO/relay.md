@@ -5566,3 +5566,15 @@ A target that sends 8 MiB through a role capped at 1 MiB reaches the client with
 `http_road::the_byte_cap_stops_the_target_s_bytes_at_the_cap`: planted, the code before the change,
 each fails (8 MiB and more than 1 MiB came); with the change, `--test relay_serve_limits` 2,
 `http_road` 9 and `relay_serve_contract` 16 passed, and `--lib serve::` 130.
+
+2026-11-10: a defect that its own test found at random. `the_byte_cap_stops_the_target_s_bytes_at_the_cap`
+(`crates/podssh-relay/tests/http_road.rs`) failed 5 runs in 15 with `--all-features` beside the other
+tests of the target, never alone: the client got 0 bytes, then `1009 session byte cap`. The cap
+ends the session at once, and `Session::ready` (`serve/http_road/sessions.rs`) answered `Ended`
+before it looked at the bytes due, so the bytes under the cap that waited for the client's next
+fetch were never sent; it showed when the target's burst passed the cap before the first fetch.
+`ready` now gives the bytes due before the end (a newer answer still gives way first), as the
+forward road gives the cap's bytes before its 1009. Measured: 20 runs of `cargo test -p
+podssh-relay --all-features --test http_road`, 0 failed (before: 5 of 15); `--lib` and the role's
+serve targets, each passed.
+

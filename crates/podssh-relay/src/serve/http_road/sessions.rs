@@ -237,12 +237,15 @@ impl Session {
         loop {
             let notified = self.changed.notified();
             let now = self.with(|st| {
-                if st.ended.is_some() {
-                    Some(Ready::Ended)
-                } else if generation.is_some_and(|g| g != st.generation) {
+                // Bytes that the client is due go before the session's end:
+                // the byte cap ends it at once (T-732), and the bytes under
+                // the cap are still the client's, as on the forward road.
+                if generation.is_some_and(|g| g != st.generation) {
                     Some(Ready::Nothing)
                 } else if st.base + st.down.len() as u64 > from {
                     Some(Ready::Bytes)
+                } else if st.ended.is_some() {
+                    Some(Ready::Ended)
                 } else if st.target_ended {
                     Some(Ready::Done)
                 } else {
