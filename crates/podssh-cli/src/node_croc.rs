@@ -1,0 +1,148 @@
+//! croc's relay road of a pair (T-694): croc's public relays behind
+//! croc-web's WebSocket bridge, a last fallback of the operator's ruling
+//! Q78, as a carrier between a node and its operators that needs no relay
+//! of the operator's. The bridge is the service `croc` of `pod-services`;
+//! `PODSSH_CROC=no` or `PODSSH_LAST_RESORT=no` turns it off, and a URL names
+//! a bridge of the user's own (croc-web before `croc relay`). The rooms and
+//! the proof of the pair come from the pair's connect token, which both ends
+//! hold, so a node that has a pair waits in a room there too, with one
+//! keeper for each road, so that a session resumes on any; and `podssh ssh
+//! node://` races it after the transit relay, only when each road before it
+//! failed. Never with `--plain` or `--no-e2e`: the relay is a stranger's, so
+//! the layer and the end-to-end channel run above it.
+
+use std::future::Future;
+use std::sync::Arc;
+
+use podssh_relay::croc::{self, far, Bridge, Dialer, Rooms, Setting};
+use podssh_relay::pair::{self, OperatorPart, Pair};
+use podssh_relay::reverse;
+use podssh_relay::session::keep::Keeper;
+use podssh_ssh::Log;
+use podssh_ws::{ProxyChoice, Trust};
+use tokio::io::DuplexStream;
+
+use crate::node_expiry::Say;
+use crate::relay_settings::Refusal;
+
+/// `PODSSH_CROC` and `PODSSH_LAST_RESORT`, read: a value of `PODSSH_CROC`
+/// that is none of its forms is a setting that cannot be used (78).
+pub(crate) fn setting() -> Result<Setting, Refusal> {
+    let value = std::env::var(croc::ENV).ok();
+    let last = std::env::var(croc::LAST_RESORT).ok();
+    croc::setting(value.as_deref(), last.as_deref()).map_err(Refusal::config)
+}
+
+/// The variable, checked before anything connects.
+pub(crate) fn check() -> Result<(), Refusal> {
+    setting().map(|_| ())
+}
+
+/// The bridge of the road, when the road is on.
+pub(crate) fn bridge() -> Option<Bridge> {
+    match setting() {
+        Ok(Setting::On(bridge)) => Some(bridge),
+        Ok(Setting::Off(_)) | Err(_) => None,
+    }
+}
+
+/// The pair's rooms now: those of `pair` until it expires, then those of a
+/// later pair stored under `label` since, which the node goes on with at
+/// the expiry (T-395), as its operators do.
+fn rooms_now(label: &str, pair: &Pair, stored: bool) -> far::RoomsNow {
+    let (label, first, ends_ms) =
+        (label.to_string(), Rooms::of_pair(&pair.name, pair.connect_token()), pair.expires_ms);
+    Arc::new(move || {
+        let now = crate::pairs::now_ms();
+        if !stored || now < ends_ms {
+            return first.clone();
+        }
+        let later = pair::load(&label).ok().flatten();
+        match crate::node_expiry::next_pair(later, ends_ms, now) {
+            Some(next) => Rooms::of_pair(&next.name, next.connect_token()),
+            None => first.clone(),
+        }
+    })
+}
+
+/// The trust of the bridge: the public one takes the host's trust
+/// (`SSL_CERT_FILE`, `CaFile`, else the default stores), never the pair
+/// relay's `--ca-file`, which names that relay's own CA; a bridge that
+/// `PODSSH_CROC` names takes the pair's, as it may be the user's own, under
+/// the same CA.
+fn trust_for(bridge: &Bridge, pair: &Trust, host: Trust) -> Trust {
+    if bridge.public {
+        host
+    } else {
+        pair.clone()
+    }
+}
+
+/// The node of the road for the pair `pair`, through `bridge`, and the line
+/// that says so, with the third party's words when the bridge is public.
+pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge: Bridge, say: Say) -> far::Node {
+    let why =
+        if bridge.public { "the last fallback of the operator's ruling Q78" } else { "the bridge that you named" };
+    say(format!("and through croc's relay behind {}, {why} ({}=no turns it off)", bridge.url.shown(), croc::ENV));
+    if bridge.public {
+        say(croc::third_party_line(&bridge.url.shown())
+            .replace("carries this session", "carries the sessions of this road"));
+    }
+    let rooms = rooms_now(label, pair, stored);
+    let trust = trust_for(&bridge, trust, crate::pairs::trust(None));
+    far::Node { bridge, rooms, trust, proxy: ProxyChoice::FromEnvironment, say }
+}
+
+/// `pair_road` with croc's relay road `road` beside it, under `keeper`,
+/// until the pair's road ends: its end is the node's, as the road's rooms
+/// are the pair's. With no road, the pair's road alone.
+pub(crate) async fn alongside<P, O, F>(
+    mut pair_road: P,
+    road: Option<far::Node>,
+    open: O,
+    keeper: Arc<Keeper<DuplexStream>>,
+) -> P::Output
+where
+    P: Future + Unpin,
+    O: Fn() -> F + Clone + Send + Sync + 'static,
+    F: Future<Output = Result<DuplexStream, String>> + Send + 'static,
+{
+    let Some(road) = road else { return pair_road.await };
+    let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
+    let croc_road = Box::pin(far::serve_kept(road, settings, budget, open, keeper));
+    tokio::select! {
+        out = &mut pair_road => out,
+        // The road waits for ever; the pair's road ends the node.
+        () = croc_road => pair_road.await,
+    }
+}
+
+/// The client's dialer of the pair whose operator's part is `part`; its
+/// lines go to `-v` under `shown`. `None` with the road off.
+pub(crate) fn dialer(part: &OperatorPart, trust: &Trust, log: &Arc<Log>, shown: &str) -> Option<Dialer> {
+    let bridge = bridge()?;
+    let say: croc::Say = {
+        let (log, shown) = (log.clone(), shown.to_string());
+        Arc::new(move |line: String| log.verbose(&format!("{shown}: {line}")))
+    };
+    let rooms = Rooms::of_pair(&part.name, part.connect_token());
+    let trust = trust_for(&bridge, trust, crate::pairs::trust(None));
+    Some(Dialer::new(bridge, rooms, trust, ProxyChoice::FromEnvironment, say))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_public_bridge_takes_the_host_s_trust_and_a_named_one_the_pair_s() {
+        let pair = Trust::File("/the/pair/relay/ca.pem".into());
+        let url = podssh_ws::url::WsUrl::parse("wss://bridge.example.test/ws").unwrap();
+        let public = Bridge { public: true, ..Bridge::named(url.clone()) };
+        assert!(matches!(trust_for(&public, &pair, Trust::Default), Trust::Default));
+        let own = Bridge::named(url);
+        assert!(
+            matches!(trust_for(&own, &pair, Trust::Default), Trust::File(ref f) if f == std::path::Path::new("/the/pair/relay/ca.pem"))
+        );
+    }
+}

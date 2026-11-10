@@ -71,6 +71,12 @@ podssh-warp = { path = "../podssh-warp", optional = true }
 spake2 = { version = "0.4", default-features = false, optional = true }
 rand_core_06 = { package = "rand_core", version = "0.6", default-features = false, optional = true }
 crypto_secretbox = { version = "0.1", default-features = false, features = ["alloc", "salsa20"], optional = true }
+# croc's relay road (src/croc/, T-694): the curve SIEC of croc's relay
+# handshake, which no crate implements, on num-bigint's integers (0.4, in
+# the lock already), and AES-256-GCM of croc's crypt, the workspace's.
+# Pure Rust; only with the feature `croc`.
+num-bigint = { version = "0.4", optional = true }
+aes-gcm = { workspace = true, optional = true }
 
 [features]
 # Pairs of the reverse road: `POST /v1/pair`, the status of a pair and
@@ -134,6 +140,10 @@ serve = ["pair", "dep:h2", "dep:http", "dep:bytes"]
 # keyed by the code, then its phases in NaCl's SecretBox, which carry the
 # operator's part of a pair and each end's key. No C either; the gate builds it.
 code = ["pair", "dep:spake2", "dep:rand_core_06", "dep:crypto_secretbox"]
+# croc's relay road (T-694): croc's public relays through the WebSocket
+# bridge of croc-web, a last fallback of Q78, under the resumable layer;
+# its PAKE on SIEC, written here. No C either; the gate builds it.
+croc = ["dep:num-bigint", "dep:aes-gcm"]
 # Plain ws:// to a stand-in relay on the loopback, for the tests of an embedder
 # (T-068). The binary never enables it (scripts/no-plain-ws.sh).
 plain-ws = ["podssh-ws/plain-ws"]

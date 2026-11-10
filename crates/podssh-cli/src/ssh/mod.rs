@@ -55,6 +55,8 @@ pub(crate) mod node_roads;
 pub mod opentunnel;
 // The Pinggy road of node://NAME, a last fallback of Q78 (T-548).
 pub(crate) mod pinggy;
+// croc's relay road of node://NAME, a last fallback of Q78 (T-694).
+pub(crate) mod croc;
 // The Serveo road of node://NAME, a last fallback of Q78 after Pinggy's (T-549).
 pub(crate) mod serveo;
 // The ssh-j road of node://NAME, the last fallback after Serveo's (T-570).

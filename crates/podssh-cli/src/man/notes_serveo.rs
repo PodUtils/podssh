@@ -56,7 +56,8 @@ mod tests {
         for text in ["nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no", "derived from the node's key", "series"] {
             assert!(super::NODE.contains(text), "{text}");
         }
-        for text in ["--node-key", "pins of NAME", "stranger that holds the alias is refused", "before the ssh-j road"] {
+        for text in ["--node-key", "pins of NAME", "stranger that holds the alias is refused", "before the ssh-j road"]
+        {
             assert!(super::SSH.contains(text), "{text}");
         }
     }

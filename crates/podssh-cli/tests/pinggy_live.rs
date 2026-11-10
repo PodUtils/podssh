@@ -33,7 +33,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
     for name in ["PODSSH_PINGGY", "PODSSH_LAST_RESORT", "PODSSH_RELAY", "PODSSH_RELAY_ADDR", "SSH_AUTH_SOCK"] {
         cmd.env_remove(name);
     }
-    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no");
+    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no");
     cmd.env("PODSSH_DERP", "no").env("PODSSH_IROH_PKARR", "off");
     // Each visitor's and each link's bytes each way, each few seconds: a run
     // that stalls names the side where the bytes stop.

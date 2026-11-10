@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/croc/meet.rs
++++ b/crates/podssh-relay/src/croc/meet.rs
+@@ -162,7 +162,7 @@
+ {
+     loop {
+         let frame = wire.frame(FRAME_MOST).await?;
+-        if frame != WAITING {
++        if !frame.is_empty() {
+             return Ok(frame);
+         }
+     }

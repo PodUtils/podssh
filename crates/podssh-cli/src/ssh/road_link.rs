@@ -120,6 +120,8 @@ pub(crate) enum Kind {
     OpenTunnel,
     /// A node's Pinggy tunnel, a last fallback of Q78 (T-548).
     Pinggy,
+    /// croc's relay, a last fallback of Q78 (T-694).
+    Croc,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,
     /// A node's name at ssh-j.com, the last of the fallbacks of Q78 (T-570).
@@ -143,6 +145,7 @@ impl Kind {
             Kind::Piping => "the Piping Server road",
             Kind::OpenTunnel => "the OpenTunnel road",
             Kind::Pinggy => "the Pinggy road",
+            Kind::Croc => "croc's relay road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
             Kind::Member => "a member's relay role",
@@ -174,6 +177,7 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             (0, _) => "first".to_string(),
             (_, Kind::Derp) if unasked.derp => "when each road before it failed (a kept ticket)".to_string(),
             (_, Kind::Transit) => "when each road before it failed (Q65)".to_string(),
+            (_, Kind::Croc) => "when each road before it failed (the last fallback of Q78)".to_string(),
             (_, Kind::OpenTunnel) if unasked.opentunnel => {
                 "when each road before it failed (a kept name, Q76)".to_string()
             }

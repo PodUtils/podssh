@@ -27,7 +27,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use podssh_relay::derp::Dialer;
@@ -107,6 +107,8 @@ struct Roads<'a> {
     frp: Option<frp::FrpRoads>,
     /// A node's Pinggy tunnel, the last fallback of Q78 (T-548).
     pinggy: Option<super::pinggy::PinggyRoads>,
+    /// croc's relay, a last fallback of Q78 too (T-694).
+    croc: Option<super::croc::CrocRoads>,
     /// A node's alias at Serveo, the last of all (T-549).
     serveo: Option<super::serveo::ServeoRoads>,
     /// A node's name at ssh-j.com, by its key, the last of all (T-570).
@@ -169,6 +171,9 @@ impl<'a> Roads<'a> {
             // Q65's fallback: only when each road before it failed.
             list.push((Start::WhenAllFailed, Box::pin(async move { dialer.link().await.map(Road::Transit) })));
             kinds.push(Kind::Transit);
+        }
+        if let Some(croc) = &self.croc {
+            croc.push(&mut list, &mut kinds);
         }
         if !piping_asked {
             self.push_piping(&mut list, &mut kinds);
@@ -303,6 +308,9 @@ where
         _ => None,
     };
     let refused = AtomicBool::new(raced.piping.as_ref().is_some_and(|race| race.refused));
+    // croc's relay (T-694): never with --no-e2e, nor once the upgrade was refused, as its bridge is a WebSocket.
+    let croc =
+        super::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
     let proxy = ProxyChoice::FromEnvironment;
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,
@@ -333,6 +341,7 @@ where
         member,
         frp,
         pinggy,
+        croc,
         serveo,
         sshj,
         refused,

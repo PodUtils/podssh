@@ -220,7 +220,7 @@ pub fn command_in(home: &Path, args: &[String]) -> Command {
     // No transit road (T-436): a test's node and client meet on the roads
     // of the test, never at Least Authority's relay; a test of the road
     // names its own relay.
-    cmd.env("PODSSH_TRANSIT", "no");
+    cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

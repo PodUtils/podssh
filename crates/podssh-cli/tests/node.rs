@@ -384,7 +384,8 @@ fn a_transit_setting_that_is_none_of_its_forms_is_refused_without_its_text() {
     let (rc, out, err) = podssh(&home, &["ssh", "node://lab", "true"], &set);
     assert_eq!(rc, 78, "{err}");
     assert!(err.contains("PODSSH_TRANSIT") && !err.contains("SECRET") && out.is_empty(), "{err}");
-    let (rc, _, err) = podssh(&home, &["ssh", "node://lab", "true"], &[("PODSSH_TRANSIT", "no")]);
+    let (rc, _, err) =
+        podssh(&home, &["ssh", "node://lab", "true"], &[("PODSSH_TRANSIT", "no"), ("PODSSH_CROC", "no")]);
     assert_ne!(rc, 78, "{err}");
     assert!(!err.contains("PODSSH_TRANSIT"), "{err}");
 }

@@ -553,6 +553,45 @@ resume. Tests: `cargo test -p podssh-relay --test transit`, against
 magic-wormhole's own relay on the loopback (5 passed, 2026-11-02), and with
 `--ignored` through Least Authority's relay (`transit-live.yml`).
 
+## croc's relay road
+
+A pair's node and its operators also meet in a room of croc's public relays
+(T-694), reached on port 443 through the WebSocket bridge of croc-web, the
+last fallback of the operator's ruling Q78 ([carriers.md](carriers.md),
+"croc"). The bridge is the service `croc` of `pod-services`, or the one that
+`PODSSH_CROC` names; `PODSSH_CROC=no` or `PODSSH_LAST_RESORT=no` turns the
+road off.
+
+1. Each end derives the BASE of the pair's rooms (64 hex digits) and the key
+   of a proof from the pair's connect token and name, by HKDF-SHA256. The
+   rooms are `BASE-0` to `BASE-3`; the relay is croc's `RelayIndex` of
+   BASE (its SHA-256 modulo the 4 relays), and its port 9009.
+2. Each connection opens `/ws?relay=N&port=9009` at the bridge, then croc's
+   own handshake in croc's frames (`croc`, a 4-byte little-endian length):
+   the PAKE of schollz/pake v3 on SIEC with croc's weak key `[1, 2, 3]`, a
+   salt of 8 bytes, the password `pass123` and the room, each in AES-GCM
+   under PBKDF2 of the PAKE's key; the relay answers its banner, then `ok`,
+   `room full` or `rate limited` for the room. A member that made the room
+   gets a frame of the byte 1 each second until the second comes; then the
+   relay pipes the two.
+3. Each end sends at once, in one frame each, its part (`N` or `C`) and a
+   nonce, then an HMAC-SHA256 of both nonces under the proof key, as on the
+   transit road; a peer of the same part parts, and a peer whose proof fails
+   (one that knows the rooms alone, as the relay does) is refused.
+4. The bytes after the proofs are the link's: the resumable layer and, above
+   it, the end-to-end channel. A room lives 3 h at most at the relay, and
+   the layer moves the session to a new room then.
+
+A node of the layer and the channel waits in the first room that no link of
+its own holds, and opens its next wait at each meeting; a room that two
+strangers hold sends it to the next. `podssh ssh node://NAME` races the road
+after the transit relay's, only when each road before it failed: it tries
+the rooms in order, the next for a room that is taken and for one where
+nobody answered within 3 s. Tests: `cargo test -p podssh-relay --features
+croc --test croc`, against a stand-in of croc's relay and bridge written from
+croc's source (8 passed, 2026-11-10, T-694); the run against `croc relay` and
+`croc-web` themselves is T-694's harness.
+
 ## Finding a node
 
 A pair's name is random and lasts 72 hours at most, so podssh finds a node

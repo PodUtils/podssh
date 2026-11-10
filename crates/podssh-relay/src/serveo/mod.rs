@@ -24,8 +24,8 @@
 
 pub mod alias;
 
-pub use alias::{alias, pinned};
 pub use crate::pinggy::LAST_RESORT;
+pub use alias::{alias, pinned};
 
 /// `no` turns the road off; `HOST[:PORT]` names a server of the same
 /// protocol, such as a stand-in.

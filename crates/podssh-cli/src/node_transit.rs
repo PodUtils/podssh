@@ -38,9 +38,11 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
     transit::setting(std::env::var(transit::ENV).ok().as_deref()).map_err(Refusal::config)
 }
 
-/// The variable, checked before anything connects.
+/// The variable, and croc's relay road's (T-694), checked before anything
+/// connects.
 pub(crate) fn check() -> Result<(), Refusal> {
-    setting().map(|_| ())
+    setting()?;
+    crate::node_croc::check()
 }
 
 /// The relay of the road, when the road is on.
@@ -126,6 +128,13 @@ where
     }
 }
 
+/// Whether a node of the pair's road with the layer and the channel runs
+/// [`Beside`]: the transit relay on (`transit`), a relay member of the net,
+/// or croc's relay road (T-694).
+pub(crate) fn wanted(transit: bool) -> bool {
+    transit || crate::node_members::wanted() || crate::node_croc::bridge().is_some()
+}
+
 /// A node's transit road, and its pairs at the net's relay members (T-434),
 /// beside the pair's road.
 pub(crate) struct Beside<'a> {
@@ -156,6 +165,9 @@ impl Beside<'_> {
         let members = crate::node_members::pairs(&node.identity, &config.pair.relay, self.trust, &self.say).await;
         let say = self.say.clone();
         let road = self.url.and_then(|url| road(self.label, &config.pair, self.stored, self.trust, url, say));
+        let (croc_say, stored) = (self.say.clone(), self.stored);
+        let croc = crate::node_croc::bridge()
+            .map(|bridge| crate::node_croc::road(self.label, &config.pair, stored, self.trust, bridge, croc_say));
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {
@@ -182,7 +194,9 @@ impl Beside<'_> {
             let (target, channel, routes) = (target.clone(), Some(node.clone()), routes.clone());
             async move { crate::channel::piped_by(channel, routes, target).await }
         };
-        alongside(pair_road, road, open, keeper).await
+        // croc's relay road (T-694) beside the transit road, the last.
+        let with_croc = Box::pin(crate::node_croc::alongside(pair_road, croc, open.clone(), keeper.clone()));
+        alongside(with_croc, road, open, keeper).await
     }
 }
 

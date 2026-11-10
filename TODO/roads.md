@@ -373,7 +373,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-491` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-492` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148`).
 
 ## Decision
 
@@ -4531,7 +4531,7 @@ podssh's own, which makes it M.
   (`crates/podssh-iroh/src/endpoint.rs:4-7`, `:338-339`), as the design chose for a host with no
   DNS (`docs/design.md:1222`, `:1232`).
 - Read: the node's key is Ed25519 and stays across its pairs, and the operator pins it by label
-  (`docs/reverse.md:567-571`).
+  (`docs/reverse.md:606-610`).
 - Read in the study (https://docs.iroh.computer/connecting/dns-address-lookup): an endpoint
   publishes a signed packet to a DNS/Pkarr server over HTTP; n0's servers are free, rate-limited,
   with no guaranteed uptime, and "You're more than welcome to run production systems" on them,
@@ -5744,7 +5744,7 @@ does not depend on them.
 
 - Read: `Transport::Direct` comes from `--direct` alone
   (`crates/podssh-cli/src/ssh/resolve.rs`, lines 340-346 at `4e2010e`), and else the relay (lines 348-371 at `4e2010e`); its other
-  uses are a label (`crates/podssh-cli/src/ssh/mod.rs:297`), the dial
+  uses are a label (`crates/podssh-cli/src/ssh/mod.rs:299`), the dial
   (`crates/podssh-cli/src/ssh/transport.rs:311-355`) and a check of `--upgrade`
   (`crates/podssh-cli/src/ssh/upgrade.rs:59`). The issue's citation of
   the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:341-344`.

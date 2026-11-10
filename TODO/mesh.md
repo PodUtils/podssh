@@ -8119,8 +8119,8 @@ a client that knows the node's key could know its name. podssh does not use it.
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1718` says "derived from your SSH key", with no account and with a key
-  required; `docs/carriers.md:1712` says "on port 22 in their own commands" of the SSH tunnel
+- `docs/carriers.md:1754` says "derived from your SSH key", with no account and with a key
+  required; `docs/carriers.md:1748` says "on port 22 in their own commands" of the SSH tunnel
   providers of the sweep.
 
 ## Approach
@@ -8165,8 +8165,8 @@ shape of localhost.run's tunnel; podssh does not use it.
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1712` says "on port 22 in their own commands", and
-  `docs/carriers.md:1714` says "gives HTTPS URLs alone".
+- `docs/carriers.md:1748` says "on port 22 in their own commands", and
+  `docs/carriers.md:1750` says "gives HTTPS URLs alone".
 
 ## Approach
 
@@ -8219,8 +8219,8 @@ visitor's HTTP. A client in a cage reaches the name on 443. podssh does not use 
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1720` says "a port and a URL, then opens raw TCP to that port", and
-  `docs/carriers.md:1721` says "request meets a reminder page unless it carries the header".
+- `docs/carriers.md:1756` says "a port and a URL, then opens raw TCP to that port", and
+  `docs/carriers.md:1757` says "request meets a reminder page unless it carries the header".
 - `crates/podssh-relay/src/serve/behind.rs:1` says "The relay role behind a node's quick tunnel
   (T-428): the role's routes as".
 
@@ -8250,7 +8250,7 @@ client meets the reminder page (the test names it).
 
 ## Correction
 
-2026-11-04 (the drafting agent). `docs/carriers.md:1721` says "request meets a reminder page unless
+2026-11-04 (the drafting agent). `docs/carriers.md:1757` says "request meets a reminder page unless
 it carries the header", which the operator's archive `ff-relay` of 2026-11-04 contradicts for one
 client (`docs/research/forward-carriers.md`, section 3.6): through `loca.lt`, curl fetched a file of
 16 MiB of random bytes with no `Bypass-Tunnel-Reminder` and got `200` and exactly 16,777,216
@@ -8332,8 +8332,8 @@ that restarts makes the node register again. Live, short, through bore.pub (T-54
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1710-1711` says "a public SSH jump and forwarding server with no account", and
-  `docs/carriers.md:1712` says "on port 22 in their own commands".
+- `docs/carriers.md:1746-1747` says "a public SSH jump and forwarding server with no account", and
+  `docs/carriers.md:1748` says "on port 22 in their own commands".
 - `crates/podssh-cli/src/ssh/jump.rs:100` says "The first hop's tunnel".
 
 ## Approach
@@ -8841,7 +8841,7 @@ last fallback whatever its terms, after `ppng.io` and T-497's `piping.onrender.c
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1745` says "The last runs on serv00, whose terms forbid to", of
+- `docs/carriers.md:1781` says "The last runs on serv00, whose terms forbid to", of
   `p.kokoro.serv00.net`.
 - `PodUtils/podssh:crates/podssh-relay/src/piping/server.rs:10` says "pub const DEFAULT_HOST: &str =".
 
@@ -8873,7 +8873,7 @@ T-497 is done: the road has public servers in order.
 
 2026-11-04 (the drafting agent), from the operator's archive `ff-relay` of 2026-11-04
 (`docs/research/forward-carriers.md`, section 3.3). The archive reached serv00's Piping Server at
-the name with `www.` before the Premise's (`docs/carriers.md:1745` says "The last runs on serv00,
+the name with `www.` before the Premise's (`docs/carriers.md:1781` says "The last runs on serv00,
 whose terms forbid to"), and read that it completes transfers and holds a streamed body until its
 end (Read in its docs/carriers.md, "Pairing carriers", and its results/http-relay-hunt.json). So
 step 1's "whether it streams" has the archive's answer, no: the road there runs in numbered pieces,
@@ -9148,9 +9148,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1961-1962` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:1963` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:1957` says "UDP alone, which the
+- `docs/carriers.md:1997-1998` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:1999` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:1993` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -9216,9 +9216,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1968-1969` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:1971-1972` says "as the server never answers a command";
-  `docs/carriers.md:1974` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:2004-2005` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:2007-2008` says "as the server never answers a command";
+  `docs/carriers.md:2010` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -9546,7 +9546,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:285-295`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:286-296`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -9900,8 +9900,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:294-295`), and needs the net's role exit, signed by
-  its owner (`:292-293`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:295-296`), and needs the net's role exit, signed by
+  its owner (`:293-294`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:111`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -11646,7 +11646,7 @@ and trojan-go's own servers carried a session, and another password named each f
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -11676,6 +11676,47 @@ a pair of ends whose only way out is 443 cannot use croc's public relays.
 4. Decision first: whether a non-browser client of `croc-web`'s bridge is within its use; read its
    terms or ask its operator by an issue, and write the call in a `## Decision`.
 
+## Decision
+
+2026-11-10, by the drafting agent (Approach item 4 first). Read on 2026-11-10 through the services
+of web.pkgforge.dev (`docs/carriers.md`, [Y9]): `getcroc.com` has no page of terms (its `/terms`,
+`/privacy` and `/tos` answer the site's own page), croc's repository holds none, and its README
+asks for sponsors. No term allows or forbids a program as the bridge's client; the bridge refuses
+only an `Origin` of another site (coder/websocket's `Accept`), which a program does not send; and
+croc's README says that all who come through the bridge share one source allowance at the relay.
+
+1. **A last fallback of Q78**, not a road that the user asked for: croc's relays are one
+   volunteer's, with no terms for this use, so the client races the road last, after the transit
+   relay, only once each road before it failed; a line names the third party; `PODSSH_CROC=no` or
+   `PODSSH_LAST_RESORT=no` turns it off. Lost: a road beside the transit relay's on Q65's footing
+   (Q65 names Least Authority's and the Piping servers, whose operators offer them for others'
+   use; croc's does not say so); asking croc's author by an issue first (the operator's Q78 already
+   rules on a service whose terms say nothing, and an issue from podssh's session to another
+   project is not this agent's to open).
+2. **No hardcoded host** (AGENTS.md, "adds no hardcoded host of another party"): the bridge is the
+   service `croc` of `pod-services`, endpoint `bridge` (`wss://getcroc.com/ws`), with the facts
+   `relays` (4) and `password` (`pass123`). `pod-services` at `v0.11.0` holds none, so the road
+   is off by default until a tag of podcrates adds it and podssh takes that tag; a COORD issue
+   `(to podcrates)` asks for it (the main session's). Lost: the URL in podssh's code (the rule);
+   a road that waits for podcrates before any of it is written (the code and its tests do not
+   depend on the list).
+3. **The rooms from the pair's connect token**, as the transit road's token (T-436), not from a
+   pairing code (Approach item 3): a code is used once, at the pairing, and the node waits for
+   each session of the pair's life. A pair has 4 rooms (`BASE-0` to `BASE-3`), as a room of
+   croc's relay holds two members and pipes them until either ends: the node waits in the first
+   that no link of its own holds, and a client tries them in order. Lost: one room (a second
+   session would find it full until the first ends); 8 rooms (each try is a join, and the bridge
+   is one source for all its users at croc's limit of joins a minute).
+4. **The bridge alone, no direct TCP 9009** (Approach item 2's second half): the road is for a
+   host with 443 alone, where 9009 is refused; a probe of 9009 before each link is a second
+   connection (rule 2) and costs the connect timeout where the port is dropped; a relay of the
+   user's own is reached through its own croc-web (`PODSSH_CROC=wss://HOST/ws`), which croc
+   releases with each version. The harness of the Prove runs `croc relay` behind `croc-web`.
+5. **SIEC on num-bigint**, in Jacobian coordinates with one inversion, not constant time: the
+   relay's PAKE keys a public password with a public weak key, so a timing tells nothing; a C
+   library lost (none implements SIEC either), and so did crypto-bigint 0.7 (its modular API is
+   harder to get right with no build at hand).
+
 ## Prove
 
 ```sh
@@ -11685,6 +11726,68 @@ cargo test -p podssh-relay croc
 The handshake against croc's own relay (`croc relay`, a pinned release) in a harness on a runner;
 then one short live session through `wss://getcroc.com/ws` from GitHub Actions, if the Decision
 allows it.
+
+## Done
+
+2026-11-10: drafted by an agent in a worktree (`draft-f1`, `c3ddd576`), which built and ran
+nothing; merged the same day onto `main` after the Serveo road (T-549) and the ssh-j road
+(T-570), built and run with `cargo +1.99`.
+
+- `crates/podssh-relay/src/croc/` (feature `croc`): `siec.rs` (the curve), `pake.rs` and
+  `pake_tests.rs` (schollz/pake v3 on SIEC, its JSON read by a scanner of its own), `crypt.rs`
+  (PBKDF2-HMAC-SHA256 and AES-256-GCM), `wire.rs` (croc's frames over the bridge's WebSocket),
+  `relay.rs` (the client's handshake), `rooms.rs` (the rooms, the relay's index, the proof),
+  `meet.rs` (the hello and the proof after the handshake, past the relay's frames of a waiting
+  member), `client.rs` (the dialer and `carry`), `far.rs` (the node), `mod.rs` (`PODSSH_CROC`,
+  the bridge of `pod-services`, the line of Q78). Unit tests: vectors of a Python transcription
+  of siec.go and pake.go, of Python's `hashlib`, `hmac` and `cryptography`, and the GCM paper's
+  cases 13 and 14. `cargo test -p podssh-relay --features croc --lib croc`: 19 passed. The
+  constants of `siec.rs` and `pake.rs` (P, N, U, V, the weak key, the JSON's fields and their
+  order), the handshake of `relay.rs` and `crypt.rs`'s PBKDF2 of 100 rounds were read again
+  against schollz/pake v3.2.0's `pake.go` (the version that croc v11.6.4's `go.mod` names),
+  tscholl2/siec's `siec.go` and croc v11.6.4's `src/tcp/tcp.go` and `src/crypt/crypt.go`: each
+  agrees (croc's client calls `InitCurve`, so the key is the hash with no identities).
+- `crates/podssh-relay/tests/croc.rs` and `crates/podssh-relay/tests/croc_stand_in/mod.rs`: a stand-in of croc's relay
+  and of croc-web's bridge, written from croc's source, in the test's process on the loopback;
+  8 tests (1 MiB each way, a node that waited through the relay's frames, a taken room, a node
+  that is not there, a stranger who knows the rooms, two clients, another password, a session of
+  the layer through an echo). `cargo test -p podssh-relay --features croc --test croc`: 8
+  passed. Planted (`scripts/plants/t694-croc-waiting-frame.patch`, its RUN line): the EXPECTed
+  test FAILED (0 passed, 1 failed), and passed again once the patch was reverted.
+- The command line, in `crates/podssh-cli/src/`: `node_croc.rs` (the setting, the node's road,
+  the client's dialer), `node_transit.rs` (`check` reads `PODSSH_CROC`; `Beside` runs the road;
+  `wanted`), `node.rs` (the condition of `Beside`), and in `crates/podssh-cli/src/ssh/`:
+  `croc.rs` (the race's place, the line of Q78), `roads.rs`, `road_link.rs` (`Kind::Croc`),
+  `node_roads.rs`, `road_probe.rs` (left out of a measure). `cargo test -p podssh-cli --lib`:
+  1071 passed; `--test serveo_road --test ssh_j_road --test pinggy_road --test derp_road
+  --test opentunnel_road --test frp_road --test man_flag_parity --test man_json --test
+  man_page`: 7, 6, 7, 8, 4, 4, 6, 4 and 11 passed.
+- The merge (2026-11-10): the conflicts with T-549 and T-570 in `ssh/roads.rs`,
+  `ssh/node_roads.rs`, `ssh/road_link.rs`, `ssh/road_probe.rs`, `ssh/mod.rs`, the manual's
+  `facts/roads.rs` and `notes_public.rs`, `docs/cli.md` and `crates/podssh-cli/Cargo.toml` keep
+  each road: croc's races after the transit relay and before the unasked Piping Server road,
+  Pinggy's, Serveo's and ssh-j's; `ended_for_good`, which moved to `ssh/road_pair.rs`, counts
+  croc's road; the notes call it "a last fallback", not "the last". Repairs: `ssh/roads.rs`
+  imports `Ordering`, which the croc lines use and main's file no longer did. The three compile
+  risks that the draft named (the two `KeyInit` imports, the slice comparison of `wire::take`,
+  `Send` in `ssh/croc.rs`) gave no error. Each harness that sets `PODSSH_TRANSIT=no`,
+  `PODSSH_SERVEO=no` or `PODSSH_SSH_J=no` sets `PODSSH_CROC=no` too (the tests of
+  `crates/podssh-cli/tests/`, `scripts/interop-roost.sh`, `scripts/interop-frp.sh`,
+  `scripts/relay-serve-live.sh`), so that no test reaches getcroc.com once `pod-services` names it.
+  `cargo +1.99 check --workspace --all-targets`: clean; `cargo +1.99 test -q -p podssh-cli -p
+  podssh-relay -p podssh-ws`: 3496 passed, 0 failed, 83 ignored; clippy of the three crates with
+  `podssh-relay/serveo,podssh-relay/croc` and `-D warnings`: clean.
+- The manual, in `crates/podssh-cli/src/man/`: `notes_croc.rs` (node's and ssh's notes),
+  `facts/roads.rs` (`PODSSH_CROC`, `PODSSH_LAST_RESORT`), `notes_public.rs`; `docs/reverse.md`
+  ("croc's relay road"), `docs/carriers.md` (the read of 2026-11-10 and what was built),
+  `docs/cli.md`.
+- Left (the entry stays partial): a COORD issue `(to podcrates)` for the service `croc` of
+  `pod-services`, and the tag that takes it (the harnesses already set `PODSSH_CROC=no`); the harness of the Prove against `croc relay` and `croc-web` of a pinned release
+  on a runner, which also checks the vectors against croc's own Go; the short live session, which
+  the Decision allows once the list names the bridge; `podssh doctor`'s line of the carriers,
+  and the node roads of `--derp` and of the Piping Server road
+  (`crates/podssh-cli/src/node_derp.rs`, `crates/podssh-cli/src/node_piping.rs`), which take the
+  transit relay's road and not this one.
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 
@@ -11703,9 +11806,9 @@ Nostr's (Q77). The pairing has no such meeting point yet.
 
 ## Premise
 
-- `docs/carriers.md:1707-1708` says "Verdict: WebTorrent's trackers can be meeting points of the
+- `docs/carriers.md:1743-1744` says "Verdict: WebTorrent's trackers can be meeting points of the
   pairing, after Nostr's (Q77)".
-- `docs/carriers.md:1695` says "any JSON passes".
+- `docs/carriers.md:1731` says "any JSON passes".
 
 ## Approach
 
@@ -12054,9 +12157,9 @@ network through the planet's roots. podssh speaks no ZeroTier.
 
 ## Premise
 
-- `docs/carriers.md:1586` says "Verdict: a podssh pair passes through ZeroTier's TCP", with no
+- `docs/carriers.md:1622` says "Verdict: a podssh pair passes through ZeroTier's TCP", with no
   account, on an ad-hoc network.
-- `docs/carriers.md:1560` says "refuses it, and a plain CONNECT to": the relay's records are a fake
+- `docs/carriers.md:1596` says "refuses it, and a plain CONNECT to": the relay's records are a fake
   TLS header on a raw TCP stream, to an IP literal (Inferred).
 
 ## Approach
@@ -12115,8 +12218,8 @@ Tox's public list listen on 443, all online. podssh speaks none of Tox's relay p
 
 ## Premise
 
-- `docs/carriers.md:1630` says "Verdict: Tox's TCP relays" carry a podssh pair, with no account.
-- `docs/carriers.md:1623` says "tunnels raw, as for ZeroTier above (Inferred)": the relay's
+- `docs/carriers.md:1666` says "Verdict: Tox's TCP relays" carry a podssh pair, with no account.
+- `docs/carriers.md:1659` says "tunnels raw, as for ZeroTier above (Inferred)": the relay's
   handshake is not TLS.
 
 ## Approach
@@ -12173,8 +12276,8 @@ online on 2026-11-10. podssh speaks none of Yggdrasil's links or routing.
 
 - `docs/carriers.md:1188` says "Out, as the roads of podssh's", and Q77 (`docs/decisions.md:33`)
   reads that verdict again.
-- `docs/carriers.md:1662` says "routing logic in `network` is still undocumented", and
-  `docs/carriers.md:1675` says "NEARBY peers with good uptime".
+- `docs/carriers.md:1698` says "routing logic in `network` is still undocumented", and
+  `docs/carriers.md:1711` says "NEARBY peers with good uptime".
 
 ## Approach
 

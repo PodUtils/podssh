@@ -136,6 +136,8 @@ pub(crate) async fn measure(
         member,
         frp,
         pinggy,
+        // croc's relay is a last fallback of Q78 too: a measure leaves it out.
+        croc: None,
         // Serveo's alias is never named, so a measure never tries it (Q78).
         serveo: None,
         // Nor ssh-j.com's name: the road is never asked, and Q78 sends no byte unasked.

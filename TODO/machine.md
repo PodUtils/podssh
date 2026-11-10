@@ -2,7 +2,7 @@ This file holds the work that makes podssh usable by programs and agents: JSON f
 `man` and the result of `ssh`, `podssh status`, the end-to-end check in the binary, `podssh
 ping`, an MCP server, and a log of sessions. stdout carries the answer and nothing else
 (`docs/architecture.md:332-333`). `serde` and `serde_json` are already dependencies of the binary
-(`crates/podssh-cli/Cargo.toml:101`), so no entry here needs a new crate for JSON.
+(`crates/podssh-cli/Cargo.toml:103`), so no entry here needs a new crate for JSON.
 
 # T-049: `podssh doctor --json` (GitHub #9)
 
@@ -146,7 +146,7 @@ manual do not keep the kind and the `instead` of a flag.
    (`crates/podssh-cli/src/man/mod.rs` lines 73-78 at `332ee58`).
 5. The JSON is the same on each host: no path from `HOME` (`docs/cli.md:41-42`).
 6. Add the row to `MAN_FLAGS` (`crates/podssh-cli/src/flags.rs:391-398`), the field to
-   `man::Request` (`crates/podssh-cli/src/man/mod.rs:84-91`), and the parse
+   `man::Request` (`crates/podssh-cli/src/man/mod.rs:86-93`), and the parse
    (`crates/podssh-cli/src/tree.rs:243-251`). JSON for `--help` stays with T-010.
 
 ## Prove
@@ -545,7 +545,7 @@ at `crates/podssh-cli/src/ssh/transport.rs:225`, and the relay's close reason is
    (`crates/podssh-ssh/src/io.rs:171-181`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:78-95`). T-055 needs the same change.
 3. stdout and stderr stay byte for byte as now; the command's output never goes into the JSON.
 4. Write the file on each path, also after a failure before the session: at the end of
-   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:286-290`). Mode 0600. Refuse `-`: stdout is data.
+   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:288-292`). Mode 0600. Refuse `-`: stdout is data.
 5. Add the row to `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-292`; the set of short flags
    does not change), and change the `ssh` notes and `docs/cli.md` in the same commit.
 
@@ -625,9 +625,9 @@ failure at `crates/podssh-ssh/src/run.rs:136-146` and
 `crates/podssh-cli/src/ssh/result.rs:18-42`, the channel's verdict at
 `crates/podssh-cli/src/ssh/result.rs:114-124`, the file at
 `crates/podssh-cli/src/ssh/result.rs:126-140`, written at the end of
-`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:95-129`); the relay host at
+`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:97-131`); the relay host at
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
-`crates/podssh-cli/src/ssh/mod.rs:380`. The flag in `SSH_FLAGS`
+`crates/podssh-cli/src/ssh/mod.rs:382`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:210`), its note at
 `crates/podssh-cli/src/man/notes_ssh_more.rs:117-131`, and `docs/cli.md`.
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5765-5795`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5777-5807`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -901,8 +901,8 @@ at `crates/podssh-cli/src/session_log.rs:97-121`, the lines of `ssh` and
 checks and its move aside at `crates/podssh-cli/src/session_log.rs:174-243`,
 and its last line at `crates/podssh-cli/src/session_log.rs:246-263`. The
 line of `podssh ssh` at the end of `run_ssh`, from its result
-(`crates/podssh-cli/src/ssh/mod.rs:98-129`), and its destination at
-`crates/podssh-cli/src/ssh/mod.rs:256`; that of `podssh proxy` at
+(`crates/podssh-cli/src/ssh/mod.rs:100-131`), and its destination at
+`crates/podssh-cli/src/ssh/mod.rs:258`; that of `podssh proxy` at
 `crates/podssh-cli/src/proxy.rs:81-95`, its destination at
 `crates/podssh-cli/src/proxy.rs:172` and `crates/podssh-cli/src/proxy.rs:295`,
 its session at `crates/podssh-cli/src/proxy.rs:455-462`; the bytes of the

@@ -79,8 +79,8 @@ pub(crate) fn has_udp(args: &NodeArgs) -> bool {
 /// that names its key, T-452), and nothing else asked of it needs the pair's
 /// road (Q50).
 pub(crate) fn unasked(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    let other = args.derp || args.iroh || args.plain || args.no_e2e || args.opentunnel || args.pinggy || args.serveo || args.ssh_j;
-    if other || args.pair_file.is_some() || has_udp(args) {
+    let other = args.opentunnel || args.pinggy || args.serveo || args.ssh_j || args.pair_file.is_some();
+    if args.derp || args.iroh || args.plain || args.no_e2e || other || has_udp(args) {
         return Ok(None);
     }
     let Some(label) = args.name.as_deref().filter(|label| crate::pairs::check_label(label).is_ok()) else {

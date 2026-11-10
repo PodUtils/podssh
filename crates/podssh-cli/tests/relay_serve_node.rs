@@ -418,6 +418,7 @@ fn openssh_through_podssh_operator_and_a_node_of_the_role_reaches_openssh_with_e
             .env("XDG_CACHE_HOME", s.home.join("cache"))
             .env("PODSSH_SSH_CONFIG", "none")
             .env("PODSSH_TRANSIT", "no")
+            .env("PODSSH_CROC", "no")
             .envs(role_env(&ca));
         without_proxy(cmd)
     };
