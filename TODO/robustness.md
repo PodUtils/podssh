@@ -2045,3 +2045,13 @@ gracefully, its write half shut and the peer's bytes read to their end within 2 
 (`crates/podssh-relay/tests/croc_stand_in/mod.rs`, `refused`, for "bad password" and "room full");
 `--test croc` passed 10 runs in 10 here (Linux). The next gate's job `windows` is its check.
 
+2026-11-10, the gate at `525f8907` (run 42843751348): croc's test failed again on Windows with the
+reset, one hop nearer the client: the stand-in's WebSocket bridge dropped the visitor's socket at
+once when the relay closed, with the client's next frame unread. The bridge now reads the visitor's
+frames until it closes, within 2 s, before it drops the socket (`croc_stand_in/mod.rs`, `visitor`);
+`--test croc` passed 5 runs in 5 here (Linux), and the next gate's `windows` is its check. And on
+macOS, `openssh_through_podssh_proxy_and_the_role_reaches_openssh_with_equal_digests` (`-p podssh-cli
+--test relay_serve`) failed once with no words ("up: "): it had passed on macOS at each commit
+before. Its assertion now says ssh's exit status beside its words (`relay_serve.rs`), so the next
+failure names its cause; `--test relay_serve`, 28 passed here. It stays partial for those two runs.
+

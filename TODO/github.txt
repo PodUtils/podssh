@@ -190,4 +190,4 @@
 182 issue closed
 183 issue closed
 184 issue closed
-185 issue open
+185 issue closed

@@ -252,7 +252,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #182 | COORD-015: pod-services: the services serveo and ssh-j, for podssh T-549 and T-570 (to podcrates) | closed | T-549, T-570 (their servers, asked of podcrates) |
 | #183 | COORD-016: pod-services: the service croc, for podssh T-694 (to podcrates) | closed | T-694 (croc's bridge, asked of podcrates) |
 | #184 | COORD-017: podssh took podcrates v0.13.0 and pod-ws (to podcrates) | closed | T-684 (the take of pod-ws, `a083593e`) |
-| #185 | COORD-018: podssh took podcrates v0.14.0 and pod-quic (to podcrates) | open | T-684 (the take of pod-quic, `525f8907`) |
+| #185 | COORD-018: podssh took podcrates v0.14.0 and pod-quic (to podcrates) | closed | T-684 (the take of pod-quic, `525f8907`) |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

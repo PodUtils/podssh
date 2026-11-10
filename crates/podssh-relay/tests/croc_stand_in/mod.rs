@@ -301,6 +301,11 @@ async fn visitor(mut tcp: TcpStream, relays: Arc<Vec<SocketAddr>>) -> Option<()>
         () = up => {}
         () = down => {}
     }
+    // A graceful end on the visitor's side too: its frames read until it
+    // closes, within 2 s. A drop with its next frame unread is a reset on
+    // Windows, which discards the relay's refusal that the client had not
+    // read yet (T-744).
+    let _ = tokio::time::timeout(Duration::from_secs(2), async { while session.read_frame().await.is_ok() {} }).await;
     let _ = session.send_close(1000, "").await;
     Some(())
 }

@@ -344,7 +344,9 @@ fn openssh_through_podssh_proxy_and_the_role_reaches_openssh_with_equal_digests(
     up.stdin(std::fs::File::open(&data).unwrap()).stdout(Stdio::piped()).stderr(Stdio::piped());
     let out = up.output().unwrap();
     let text = said(&out);
-    assert!(out.status.success(), "up: {text}");
+    // The status too: a failure on macOS said nothing (T-744), and ssh's
+    // own words are kept by LogLevel=ERROR.
+    assert!(out.status.success(), "up: {}: {text}", out.status);
     assert_eq!(text.split_whitespace().next(), Some(want.as_str()), "up: {text}");
     // Down: the far end's copy of the same file, back through the role.
     let back = dir.join("back");
