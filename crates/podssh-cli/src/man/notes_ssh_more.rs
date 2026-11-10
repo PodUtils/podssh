@@ -2,6 +2,16 @@
 //! that file.
 
 pub(super) const MORE: &[&str] = &[
+    "--attach NAME DEST joins the shell that the far end keeps as NAME, and --attach DEST with no other \
+     word lists the shells kept there, one on each line, then exits 0. A far end that keeps shells says \
+     so in the resumable layer of node://NAME; a podssh node in front of an SSH server keeps none, and \
+     then --attach ends with 255 before a session opens. In a session with a pty there, ~d asks the far \
+     end to keep the shell, prints the name that it keeps it as, and exits 0; elsewhere ~d is sent as \
+     typed. The far end gives a shell to one client at a time: --take takes it from the client that has \
+     it, whose session ends. It refuses an attach from inside the shell itself: it puts PODSSH_SHELL_ID \
+     in each shell's environment, and podssh sends that value. A refusal of the far end comes as its \
+     words on stderr and its exit status. Another destination, a command, -N, -W, -s, -T or --persist \
+     with --attach is refused (exit 64). Against a standard sshd, --persist keeps the shell in tmux.",
     "Where a first relay host offers it in its /relays.json (podssh relay serve does), read at each run \
      with PODSSH_RELAY_LAYER=yes, kept for a day when it is unset (see ENVIRONMENT), podssh ssh \
      carries the session to a standard sshd in the resumable layer at the relay \

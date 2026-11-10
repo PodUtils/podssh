@@ -18,7 +18,8 @@
 //! road; a name kept under NAME, only when each road before it failed (Q76).
 //! A node's Pinggy tunnel (T-548, `super::pinggy`) comes last of all, the
 //! last fallback of Q78, or 250 ms after the road before it when named;
-//! then a node's alias at Serveo (T-549, `super::serveo`), the last of all.
+//! then a node's alias at Serveo (T-549, `super::serveo`); then the node's
+//! name at ssh-j.com (T-570, `super::sshj`), by its key, the last of all.
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -26,7 +27,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 use podssh_relay::derp::Dialer;
@@ -108,6 +109,8 @@ struct Roads<'a> {
     pinggy: Option<super::pinggy::PinggyRoads>,
     /// A node's alias at Serveo, the last of all (T-549).
     serveo: Option<super::serveo::ServeoRoads>,
+    /// A node's name at ssh-j.com, by its key, the last of all (T-570).
+    sshj: Option<super::sshj::SshJRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -176,24 +179,10 @@ impl<'a> Roads<'a> {
         if let Some(serveo) = &self.serveo {
             serveo.push(&mut list, &mut kinds);
         }
-        (list, kinds)
-    }
-
-    /// Whether no road can give a link again: the pair's ended for good or
-    /// is not there, the iroh road's node refused this client or it is not
-    /// there, and there is no DERP road or Piping Server road, whose node
-    /// may come back.
-    async fn ended_for_good(&self) -> bool {
-        let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
-        if self.derp.is_some() || others || self.pinggy.is_some() || self.serveo.is_some() || self.piping_on() {
-            return false;
+        if let Some(sshj) = &self.sshj {
+            sshj.push(&mut list, &mut kinds);
         }
-        let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);
-        let iroh_done = match &self.iroh {
-            Some(iroh) => iroh.refused().await,
-            None => true,
-        };
-        pair_done && iroh_done
+        (list, kinds)
     }
 
     async fn close(&self) {
@@ -255,9 +244,11 @@ where
     // or kept.
     let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, raced.record.is_some(), &log, &shown);
     let others = raced.opentunnel.is_some() || raced.record.is_some() || member.is_some() || frp.is_some();
-    // A node's alias at Serveo (T-549), of the node's key: the last of all.
+    // A node's alias at Serveo (T-549), of the node's key; then its name at
+    // ssh-j.com, by its key too (T-570): the last of all.
     let serveo = super::serveo::ServeoRoads::new(label, ask, &log, &shown);
-    let others = others || pinggy.is_some() || serveo.is_some();
+    let sshj = super::sshj::SshJRoads::new(label, ask, trust, &log, &shown);
+    let others = others || pinggy.is_some() || serveo.is_some() || sshj.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {
         Ok(part) => Some(part),
         Err(refusal) if (raced.derp.is_some() || others) && pair_file.is_none() => {
@@ -343,6 +334,7 @@ where
         frp,
         pinggy,
         serveo,
+        sshj,
         refused,
         label,
         legs,

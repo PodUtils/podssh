@@ -50,7 +50,7 @@ mod notes_pinggy;
 mod notes_pipe;
 mod notes_play;
 mod notes_proxy;
-// The Serveo road, the last fallback of Q78 (T-549).
+// The Serveo road, a last fallback of Q78, before the ssh-j road (T-549).
 mod notes_serveo;
 // ssh's note on the public services that podssh tries last (T-533).
 mod notes_outline;
@@ -58,6 +58,8 @@ mod notes_public;
 // relay's and node's notes on a name published by its ClientHello (T-649).
 mod notes_publish;
 mod notes_relay;
+// The ssh-j road, the last fallback of Q78, after Serveo's (T-570).
+mod notes_sshj;
 // ssh's notes on the roads to a server of the user's (T-441).
 mod notes_roads;
 mod notes_run;

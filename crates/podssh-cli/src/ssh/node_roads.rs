@@ -74,6 +74,8 @@ struct Chosen {
     pinggy: bool,
     /// Whether a key of the node gives its alias at Serveo (T-549).
     serveo: bool,
+    /// Whether the node's name at ssh-j.com can be derived (T-570).
+    sshj: bool,
 }
 
 impl Chosen {
@@ -83,7 +85,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy || self.serveo
+        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy || self.serveo || self.sshj
     }
 }
 
@@ -119,7 +121,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let pinggy = super::pinggy::named(label, channel.off);
     // The Serveo road (T-549): a key of the node known, never with --no-e2e.
     let serveo = super::serveo::named(label, channel);
-    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, serveo })
+    // The ssh-j road (T-570): a key to derive the name from, never with --no-e2e.
+    let sshj = super::sshj::named(label, channel);
+    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy, serveo, sshj })
 }
 
 /// SSH to the node of `dest`: over the race of its roads beside the pair's,

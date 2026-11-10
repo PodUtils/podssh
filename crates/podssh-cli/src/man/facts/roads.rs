@@ -79,13 +79,23 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_SERVEO"],
-        "The Serveo road (T-549), the last fallback of the operator's ruling Q78: a private alias at Serveo with \
+        "The Serveo road (T-549), a last fallback of the operator's ruling Q78: a private alias at Serveo with \
           no account, derived from the node's key, whose node's leg and client's hop are raw SSH on port 443, \
           then 22, of podssh node --serveo, which a node with no other road serves unasked after the Pinggy road, \
-          and of podssh ssh node://NAME, which a client with a key of the node races last. no: no such road, and \
-          the flag is refused (64); HOST[:PORT]: that server of Serveo's protocol, whose host key nobody names; \
+          and of podssh ssh node://NAME, which a client with a key of the node races last but for the ssh-j \
+          road. no: no such road, and the flag is refused (64); HOST[:PORT]: that server of Serveo's protocol, whose host key nobody names; \
           unset, empty or yes: the server that podssh's list of services names, and none where it names none. \
           Another word is a configuration error (78), which does not echo the value.",
+    ),
+    (
+        &["PODSSH_SSH_J"],
+        "The ssh-j road (T-570), the last fallback of the operator's ruling Q78: ssh-j.com, a public SSH jump and \
+          forwarding server with no account on port 22, of podssh node --ssh-j and podssh ssh node://NAME, where \
+          the node and the client derive the node's name there from its key; a node with no other road serves it \
+          unasked after the Pinggy road and the Serveo road. no: no such road, and --ssh-j is refused (64); \
+          HOST[:PORT]: that server of the same protocol, whose host key nobody names; unset, empty or yes: ssh-j.com where podssh's list \
+          of services names it, else no server, and --ssh-j is a configuration error (78). Another word is a \
+          configuration error (78), which does not echo the value.",
     ),
     (
         &["PODSSH_PINGGY_TRACE"],
@@ -233,8 +243,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
-      Serveo road, PODSSH_SERVEO, T-549; and the roads that join them); yes, the default, leaves each to its own \
-      variable. Another word is no.",
+      Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; and the roads that join them); \
+      yes, the default, leaves each to its own variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

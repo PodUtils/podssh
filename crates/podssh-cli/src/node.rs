@@ -16,7 +16,8 @@
 //! no pair and a door (`--allow`, or its net), the node serves the DERP road
 //! (T-379, T-452, `node_derp`); with `--opentunnel`, or with no other road,
 //! the OpenTunnel road (T-531, `node_opentunnel`); with `--pinggy`, or as the last, Pinggy's (T-548,
-//! `node_pinggy`). A node of the layer and the channel also waits
+//! `node_pinggy`), then Serveo's (T-549, `node_serveo`) and ssh-j.com's (T-570, `node_sshj`). A node of
+//! the layer and the channel also waits
 //! at the transit relay of Q65 for the pair's operators (T-436, `node_transit`).
 //! With `--exit`, it lends this host's egress to its net (T-431, `node_exit`).
 //! With `--carrier ADDR`, its one road is a stream that exists already (T-595).
@@ -126,10 +127,9 @@ pub fn run_node(args: &NodeArgs, err: &mut dyn Write) -> i32 {
     if let Some(code) = crate::node_frp::dispatch(args, err) {
         return code;
     }
-    // The OpenTunnel road (T-531, Q76), then the Pinggy road (T-548), the last (Q78): each asked, or unasked.
-    let tunnel = crate::node_opentunnel::dispatch(args, err);
-    let tunnel = tunnel.map(|code| crate::node_pinggy::after_opentunnel(args, code, err).unwrap_or(code));
-    if let Some(code) = tunnel.or_else(|| crate::node_pinggy::dispatch(args, err)) {
+    // The OpenTunnel road (T-531, Q76), then the Pinggy road (T-548), Serveo's (T-549) and the ssh-j road
+    // (T-570), the last (Q78): each asked, or unasked.
+    if let Some(code) = crate::node_sshj::tunnels(args, err) {
         return code;
     }
     // The Piping Server road (T-437) that PODSSH_PIPING asks for; the

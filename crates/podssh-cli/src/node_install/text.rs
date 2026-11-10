@@ -71,6 +71,7 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
         ("--opentunnel", args.opentunnel),
         ("--pinggy", args.pinggy),
         ("--serveo", args.serveo),
+        ("--ssh-j", args.ssh_j),
         ("--no-e2e", args.no_e2e),
         ("--sshd", args.sshd),
         ("--exit", args.exit),

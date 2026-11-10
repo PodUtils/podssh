@@ -89,6 +89,7 @@ fn refused(args: &NodeArgs) -> Result<(), Refusal> {
         (args.opentunnel, "--opentunnel"),
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
+        (args.ssh_j, "--ssh-j"),
         (args.quick_tunnel || args.warp || args.relay, "--quick-tunnel"),
         (args.exit || args.routes.is_some(), "--exit"),
         (args.sshd, "--sshd"),

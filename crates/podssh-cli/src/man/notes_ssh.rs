@@ -325,6 +325,7 @@ const FIRST: &[&str] = &[
     super::notes_pair::SSH_OPENTUNNEL,
     super::notes_pinggy::SSH,
     super::notes_serveo::SSH,
+    super::notes_sshj::SSH,
     super::notes_frp::SSH,
     super::notes_pair::SSH_CARRIER,
     super::notes_grant::SSH,
@@ -487,14 +488,4 @@ const FIRST: &[&str] = &[
      forwards that ~C adds last as long as the connection, and those that it stops stay stopped: a new \
      connection of --persist asks only for the forwards of the command line that ~C did not stop. A \
      session through a control master has no ~C, as with OpenSSH: the key goes to the server as typed.",
-    "--attach NAME DEST joins the shell that the far end keeps as NAME, and --attach DEST with no other \
-     word lists the shells kept there, one on each line, then exits 0. A far end that keeps shells says \
-     so in the resumable layer of node://NAME; a podssh node in front of an SSH server keeps none, and \
-     then --attach ends with 255 before a session opens. In a session with a pty there, ~d asks the far \
-     end to keep the shell, prints the name that it keeps it as, and exits 0; elsewhere ~d is sent as \
-     typed. The far end gives a shell to one client at a time: --take takes it from the client that has \
-     it, whose session ends. It refuses an attach from inside the shell itself: it puts PODSSH_SHELL_ID \
-     in each shell's environment, and podssh sends that value. A refusal of the far end comes as its \
-     words on stderr and its exit status. Another destination, a command, -N, -W, -s, -T or --persist \
-     with --attach is refused (exit 64). Against a standard sshd, --persist keeps the shell in tmux.",
 ];

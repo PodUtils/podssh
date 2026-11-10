@@ -187,7 +187,7 @@ measured: the debug binary has no `ts`).
 1. In the `Parsed::Command` arm, refuse a verb of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs`, line 453 at `7aa955a`) before the gate. Keep one usage
    error first: a `--timeout` value that was given and does not parse is 64
-   (`docs/cli.md:5609-5610`).
+   (`docs/cli.md:5641-5642`).
 2. Give `require_timeout` the verb's name. The message names that verb, gives
    one true reason, and shows an example for that verb only. Replace
    `({attachment:?})` with words: "stdin or stdout is not a terminal", or
@@ -197,7 +197,7 @@ measured: the debug binary has no `ts`).
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
    that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:220-226`).
-5. Same commit: `docs/STATUS.md`. `docs/cli.md:5684` needs no change.
+5. Same commit: `docs/STATUS.md`. `docs/cli.md:5716` needs no change.
 
 ## Decision
 
@@ -491,7 +491,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    `[OPTIONS] [--] [user@]host [COMMAND...]` for `ssh` and
    `[OPTIONS] [--] HOST PORT` for `proxy`; `--help` and the synopsis of the
    manual (`crates/podssh-cli/src/man/model.rs:186-190`) read it.
-2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-500` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-138` and `crates/podssh-cli/src/man/notes.rs:73-253`)
+2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-491` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148` and `crates/podssh-cli/src/man/notes.rs:73-253`)
    and an example (`crates/podssh-cli/src/man/examples.rs:8-316`). Pitfall: the
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
@@ -604,7 +604,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:71-84`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:175-176`); `docs/cli.md:5789-5791`;
+   it (`crates/podssh-cli/src/flags.rs:175-176`); `docs/cli.md:5821-5823`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -990,7 +990,7 @@ Read then: each value flag but `-i` and `-o` was `ArgAction::Set`.
    (`crates/podssh-cli/src/ssh/args.rs:188-249`, called at
    `crates/podssh-cli/src/tree.rs:467-471`).
 4. `docs/cli.md:939-944` and a note of the manual
-   (`crates/podssh-cli/src/man/notes_ssh_more.rs:62-64`) state the rule.
+   (`crates/podssh-cli/src/man/notes_ssh_more.rs:72-74`) state the rule.
 
 ## Prove
 
@@ -1762,7 +1762,7 @@ file); measured here on `3ee70dc`.
 A `PODSSH_RELAY` or `PODSSH_RELAY_ADDR` that cannot be used makes
 `podssh proxy`, `podssh ssh` and `podssh doctor` exit 64, the code of a usage
 error. The command line is correct; a setting of the environment is not.
-`docs/cli.md:5609-5610` and `docs/decisions.md` ("Exit codes") give 78
+`docs/cli.md:5641-5642` and `docs/decisions.md` ("Exit codes") give 78
 (`EX_CONFIG`) for a configuration error. A script that reads 64 looks for the
 fault in its arguments.
 
@@ -1877,7 +1877,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:368`,
 `crates/podssh-ssh/src/keys.rs:339` and `crates/podssh-cli/src/keygen.rs:382`.
-Its refusals name the real remedies (`docs/cli.md:5746-5748`). Commands use
+Its refusals name the real remedies (`docs/cli.md:5778-5780`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:357-378`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
@@ -3377,7 +3377,7 @@ each check of T-390 and T-392, and serves nothing.
 ## Premise
 
 - Read: neither T-380 nor a unit of T-121 has a watchdog; a unit restarts only a process that ended
-  (`crates/podssh-cli/src/node_install/text.rs:143`).
+  (`crates/podssh-cli/src/node_install/text.rs:144`).
 
 ## Approach
 
@@ -3427,7 +3427,7 @@ T-390 is done: a supervisor exists.
 
 Read on 2026-11-01: the line that the Premise cites in `crates/podssh-cli/src/node_install/text.rs`
 is the unit's `ExecStart`; its `Restart=always`, which restarts only a process that ended, is at
-`crates/podssh-cli/src/node_install/text.rs:145`, and the unit has no `WatchdogSec`. The Premise
+`crates/podssh-cli/src/node_install/text.rs:146`, and the unit has no `WatchdogSec`. The Premise
 holds.
 
 ## Done

@@ -6113,7 +6113,7 @@ the net that already names them.
 
 ## Premise
 
-- `crates/podssh-cli/src/node_quick.rs:153`, where the node with no `--allow` was refused: its
+- `crates/podssh-cli/src/node_quick.rs:154`, where the node with no `--allow` was refused: its
   name is public, so only the operator keys of the file came in.
 - `crates/podssh-cli/src/node_derp.rs:117` says "pub(crate) fn door(allow: Option<&Path>, place: &Place) -> Result<Door, Refusal>",
   the door of T-452 that the quick tunnel's node can take too.
@@ -8322,7 +8322,7 @@ that restarts makes the node register again. Live, short, through bore.pub (T-54
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -8345,6 +8345,47 @@ that restarts makes the node register again. Live, short, through bore.pub (T-54
    Q56 where the client's proxy refuses port 22, then the channel to the node's pinned key.
 4. A last fallback (Q78), with the line of T-548's step 5; `PODSSH_SSH_J=no`.
 
+## Decision
+
+- **The name is the key's** (a draft's call, 2026-11-10): the user is `podssh-` and 16 hex digits,
+  and the forward's address `n` and 16 more, of SHA-256 over a label of the road and the key's
+  fingerprint (`SHA256:...`, the form that `--node-key`, the net and the pins all give), on port 22,
+  as the page's `-R NAME:22:...` asks it. A client that holds the key needs no other word, and the
+  name stays across the node's starts. Lost: a random name that the node says and puts in its
+  record, as Pinggy's (T-548), which needs the record or the user's word where the key gives it; a
+  name of the label, which another user of the server could hold and which differs between hosts;
+  the fingerprint itself as the user, with its `+` and `/`.
+- **The client's key, and no flag**: `--node-key`, else the net's key of NAME, else the first key
+  that the pins of NAME hold; with none, the road does not race. It races last of all, once each
+  road before it failed, and never in `podssh ping`. Lost: a flag `--ssh-j-name`, as
+  `--pinggy-name`: the name follows from the key that the channel checks, so a flag could only let
+  the two drift apart.
+- **The server comes from `pod-services` alone** (the service `ssh-j`, endpoint `ssh`, fact
+  `host-key-sha256`), or from `PODSSH_SSH_J`: `AGENTS.md` (section 2, "The migration") puts each
+  host of another party there. `pod-services` v0.11.0 has no `ssh-j`, so until podcrates adds it the
+  road has no server unless `PODSSH_SSH_J` names one, and `--ssh-j` is 78. The ask, for a COORD
+  issue `(to podcrates)`: a service `ssh-j`, kind `ssh-tunnel`, party "ssh-j.com", endpoint `ssh`,
+  scheme `ssh`, host `ssh-j.com`, port 22, source <https://ssh-j.com/> read 2026-11-10 ("ssh
+  any-username@ssh-j.com -N -R laptop-behind-nat:22:localhost:22"); the host key's fact once a
+  short live run reads it. Lost: `ssh-j.com` as a constant of podssh's.
+- **After the Pinggy road**: port 22 is the port that the measured cage refuses, where Pinggy's 443
+  passes, so this road comes after it on both ends. A node that the OpenTunnel or Pinggy road would
+  serve unasked serves this one when neither reached a service, or both are off
+  (`node_pinggy::last_node`, shared). Lost: before Pinggy, which would send each such node's key's
+  name to a server on a port that most cages refuse, ahead of one they pass.
+- **The node serves the road alone**: a pair of NAME is not served beside it, and a line says so.
+  Lost: the pair's road beside it, as Pinggy's node serves it, a second copy of that serving for
+  the last road of all, whose node has its pair's road unasked first.
+- **The client's first hop falls back on Q56's forwarders**, under `PODSSH_FORWARDER_FALLBACK`, where
+  the direct dial or the proxy's CONNECT to port 22 fails; the node dials directly or by CONNECT
+  alone (Approach step 2). Lost: the node through a forwarder too, which would hold a public
+  forwarder's session for the node's whole life.
+- **The host key**: pinned where `pod-services` names it, else taken and said, as the Pinggy road's;
+  the server ends the leg's SSH and sees the layer's bytes whichever key it shows, so the end-to-end
+  channel is the check of the node, and the key guards the road's availability alone. The login is
+  the Pinggy road's (`pinggy_leg::login`, made generic: none, an empty password, then
+  keyboard-interactive).
+
 ## Prove
 
 ```sh
@@ -8356,6 +8397,86 @@ Against a stand-in in a container: OpenSSH's sshd as the jump, with a remote for
 node's; a client's hop through it; 1 MiB each way under the channel. Live, short, through
 `ssh-j.com` (T-548's Decision). Planted: the name not derived from the key, and the test of the client's name
 fails.
+
+## Correction
+
+2026-11-10 (a draft). The Premise holds at its lines. Approach step 1, read on 2026-11-10 through
+the read and fetch services of web.pkgforge.dev, with no connection to the server
+(`docs/carriers.md`, [X8] and [X9]):
+
+- <https://ssh-j.com/>: `ssh any-username@ssh-j.com -N -R laptop-behind-nat:22:localhost:22`, the
+  user "unique namespace for your hosts", the address "device name"; `ssh -J
+  any-username@ssh-j.com laptop-behind-nat`; "Published hosts are bound to the username. Other
+  usernames can't access them"; "Limits: 50 exposed services (ports) per username"; an onion
+  service too. Its terms: none found; `https://ssh-j.com/terms` answers 404, and the page links its
+  source alone. Q78 makes it a last fallback whatever its terms.
+- Bitbucket's `ValdikSS/dropbear-sshj`, commit `d622b1e8fe35` (2021-04-02), the server: a remote
+  forward's (user, address, port) in a table, the address 64 bytes at most; a second forward of a
+  name that a session holds is refused; a `direct-tcpip` channel of the same user to that address
+  and port goes down the forward, whose `forwarded-tcpip` channel names them; a name is let go when
+  its session ends; with `IMPERSONATE_FORCE_PASSWORDLESS_AUTH`, each login passes. Its README says
+  6 services a user, the page 50.
+
+The Prove's harness: OpenSSH's sshd cannot stand in for that table (its `-R` address is an address
+to bind, and a `direct-tcpip` channel to a name goes to the name's DNS, not to a forward), so the
+stand-in is the server's behaviour, written from that diff, in russh's SSH server in the test's
+process (`crates/podssh-cli/tests/ssh_j_stand_in/`), behind a stand-in proxy that passes the
+server's name on port 22 alone. dropbear-sshj built from its commit, in a container, waits with the
+checks of a release (T-251).
+
+## Done
+
+Partial, 2026-11-10: drafted by an agent in a worktree (`draft-f3`, `8026a0cc`), then merged onto
+T-549's Serveo road (`961acb1f`), which had changed the same files, built and tested. The merge kept
+both roads in each list of roads that refuses another, and one copy of each helper that both
+drafts had made: `node_pinggy::last_node` and the generic `pinggy_leg::login`. The order of the
+last fallbacks, on the node unasked and in the client's race, is Pinggy's, then Serveo's, then
+this one, the last of all (`node_sshj::after_pinggy`, `ssh/road_link.rs`); `man/notes_ssh.rs` kept
+under 500 lines by `man/notes_ssh_more.rs`.
+
+- `crates/podssh-cli/src/sshj/`: `mod.rs` (`PODSSH_SSH_J`, `PODSSH_LAST_RESORT` as the Pinggy road
+  reads it, the server of `pod-services` or of the variable, the line of the third party),
+  `name.rs` (the user and the address of the key), `leg.rs` (SSH to the server, the host key, the
+  login, a node's visitors by its name alone), `client.rs` (a link: the first hop directly, by
+  CONNECT or through Q56's forwarders, then the channel to the name).
+- `crates/podssh-cli/src/node_sshj.rs` and `node_sshj_serve.rs` (`podssh node --ssh-j`, unasked
+  after the Pinggy road, one leg at a time, again after each end with 1 s to 60 s between, each
+  visitor a link of the layer under the node's keeper); `node.rs` takes the chain of the tunnels'
+  roads from `node_sshj::tunnels`; `node_pinggy.rs` shares `last_node`; `--ssh-j` in each list of
+  roads that refuses another (`node_derp.rs`, `node_opentunnel.rs`, `node_frp.rs`,
+  `node_carrier.rs`, `node_temp.rs`, `node_quick.rs`, `node_publish.rs`, `node_flags.rs`,
+  `node_install/`), and its flag row (`flags/opentunnel.rs`).
+- `crates/podssh-cli/src/ssh/sshj.rs` (the client's road: the key, the name, the line of Q78), and
+  the race's wiring (`ssh/roads.rs`, `ssh/road_link.rs`, `ssh/node_roads.rs`, `ssh/road_probe.rs`).
+- The manual: `man/notes_sshj.rs` (node's and ssh's notes, after Pinggy's), `PODSSH_SSH_J` and
+  `PODSSH_LAST_RESORT` (`man/facts/roads.rs`); `docs/cli.md`; `docs/carriers.md` (the reading).
+- Tests: `cargo test -p podssh-cli --lib -- sshj node_sshj man::notes_sshj`
+  (`the_variables_turn_the_road_off_name_a_server_or_leave_it_with_none`,
+  `the_line_of_the_third_party_names_it_both_switches_and_what_it_sees`,
+  `the_name_is_the_key_s_whichever_form_names_it_and_another_key_has_another`,
+  `each_half_is_a_short_word_that_ssh_and_the_server_take`,
+  `the_pins_give_the_first_key_of_the_label_and_skip_comments_and_others`,
+  `a_node_of_the_road_takes_no_flag_that_would_open_its_door_or_change_its_road`,
+  `a_node_that_asked_for_a_road_never_serves_this_one_unasked`,
+  `the_waits_between_legs_double_from_1_s_to_60_s`, `the_notes_of_the_ssh_j_road_follow_pinggy_s`);
+  `cargo test -p podssh-cli --test ssh_j_road`
+  (`with_the_pair_s_road_down_the_race_gives_the_session_to_ssh_j_by_the_name_of_the_node_s_key`,
+  with 1 MiB down and the pins' key; `a_client_derives_the_name_from_the_key_it_holds_and_another_key_finds_no_node`;
+  `a_stranger_at_the_name_is_refused_by_the_end_to_end_channel`;
+  `a_node_whose_session_the_server_cut_holds_its_name_again`;
+  `a_node_with_no_pair_and_each_other_road_off_serves_ssh_j_unasked_and_names_the_third_party`;
+  `the_switches_turn_the_road_off_and_a_refused_port_22_says_why`); and the other roads' harnesses,
+  which now turn this road off too (`derp_road`, `opentunnel_road`, `frp_road`, `pinggy_road`,
+  `scripts/interop-frp.sh`). Measured 2026-11-10: `--test ssh_j_road`, 6 passed; `--test
+  serveo_road`, 7 passed; `--test pinggy_road`, 7 passed; `cargo test -p podssh-cli -p podssh-relay
+  -p podssh-ws`, 3,467 passed, 0 failed; clippy (the gate's lints, with `podssh-relay/serveo`)
+  clean.
+- Planted: `scripts/plants/t570-name-of-no-key.patch`, the name of no key, so that each node and each
+  client meet at one name: `a_client_derives_the_name_from_the_key_it_holds_and_another_key_finds_no_node`
+  fails, and `a_stranger_at_the_name_is_refused_by_the_end_to_end_channel` with it; put back, both pass.
+- Waits: the service `ssh-j` of `pod-services` (the COORD ask
+  of the Decision); a short live run through ssh-j.com (T-548's Decision), whose host key it reads;
+  the containers of the Prove (T-251).
 
 # T-571: Syncthing's relays on 443 as a last fallback of the reverse road
 
@@ -8720,7 +8841,7 @@ last fallback whatever its terms, after `ppng.io` and T-497's `piping.onrender.c
 ## Premise
 
 - `docs/decisions.md:32` says "Q78: each service is a last fallback, whatever its terms".
-- `docs/carriers.md:1726` says "The last runs on serv00, whose terms forbid to", of
+- `docs/carriers.md:1745` says "The last runs on serv00, whose terms forbid to", of
   `p.kokoro.serv00.net`.
 - `PodUtils/podssh:crates/podssh-relay/src/piping/server.rs:10` says "pub const DEFAULT_HOST: &str =".
 
@@ -8752,7 +8873,7 @@ T-497 is done: the road has public servers in order.
 
 2026-11-04 (the drafting agent), from the operator's archive `ff-relay` of 2026-11-04
 (`docs/research/forward-carriers.md`, section 3.3). The archive reached serv00's Piping Server at
-the name with `www.` before the Premise's (`docs/carriers.md:1726` says "The last runs on serv00,
+the name with `www.` before the Premise's (`docs/carriers.md:1745` says "The last runs on serv00,
 whose terms forbid to"), and read that it completes transfers and holds a streamed body until its
 end (Read in its docs/carriers.md, "Pairing carriers", and its results/http-relay-hunt.json). So
 step 1's "whether it streams" has the archive's answer, no: the road there runs in numbered pieces,
@@ -9027,9 +9148,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1942-1943` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:1944` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:1938` says "UDP alone, which the
+- `docs/carriers.md:1961-1962` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:1963` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:1957` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over
@@ -9095,9 +9216,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:28` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:1949-1950` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:1952-1953` says "as the server never answers a command";
-  `docs/carriers.md:1955` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:1968-1969` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:1971-1972` says "as the server never answers a command";
+  `docs/carriers.md:1974` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:45` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -9425,7 +9546,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:284-294`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:285-295`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -9779,8 +9900,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:293-294`), and needs the net's role exit, signed by
-  its owner (`:291-292`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:294-295`), and needs the net's role exit, signed by
+  its owner (`:292-293`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:111`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node

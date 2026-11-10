@@ -1,6 +1,7 @@
 //! The links of the pair's road and of the Piping Server road, each a place
-//! of `super`'s race, and the race's words of its fallbacks that nobody
-//! asked for. Apart from `roads.rs`, for the length of that file.
+//! of `super`'s race, the race's words of its fallbacks that nobody asked
+//! for, and whether any road can link again. Apart from `roads.rs`, for the
+//! length of that file.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -32,6 +33,24 @@ impl Roads<'_> {
             piping: unasked(self.piping.as_ref().map(|(_, asked)| asked)),
             pinggy: self.pinggy.as_ref().and_then(|pinggy| pinggy.unasked()),
         }
+    }
+
+    /// Whether no road can give a link again: the pair's ended for good or
+    /// is not there, the iroh road's node refused this client or it is not
+    /// there, and there is no DERP road or Piping Server road, whose node
+    /// may come back.
+    pub(super) async fn ended_for_good(&self) -> bool {
+        let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
+        let last = self.pinggy.is_some() || self.serveo.is_some() || self.sshj.is_some();
+        if self.derp.is_some() || others || last || self.piping_on() {
+            return false;
+        }
+        let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);
+        let iroh_done = match &self.iroh {
+            Some(iroh) => iroh.refused().await,
+            None => true,
+        };
+        pair_done && iroh_done
     }
 
     /// Whether the Piping Server road may be tried: asked, or cued.

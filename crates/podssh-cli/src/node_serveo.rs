@@ -103,10 +103,10 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
     if args.exit {
         return Err(Refusal::usage("--exit goes on the pair's road and the DERP road: --serveo does not carry it"));
     }
-    if args.opentunnel || args.pinggy || args.iroh || args.derp {
+    if args.opentunnel || args.pinggy || args.ssh_j || args.iroh || args.derp {
         return Err(Refusal::usage(
-            "--serveo is one road and --opentunnel, --pinggy, --iroh and --derp are others: give one; run a second \
-             node for another",
+            "--serveo is one road and --opentunnel, --pinggy, --ssh-j, --iroh and --derp are others: give one; run a \
+             second node for another",
         ));
     }
     Ok(())
@@ -202,6 +202,7 @@ mod tests {
             ("--exit", NodeArgs { exit: true, ..base() }),
             ("--pinggy", NodeArgs { pinggy: true, ..base() }),
             ("--opentunnel", NodeArgs { opentunnel: true, ..base() }),
+            ("--ssh-j", NodeArgs { ssh_j: true, ..base() }),
         ] {
             let refusal = check(&args).unwrap_err();
             assert_eq!(refusal.code, 64, "{flag}: {}", refusal.message);
@@ -215,6 +216,7 @@ mod tests {
         for args in [
             NodeArgs { pinggy: true, ..NodeArgs::default() },
             NodeArgs { serveo: true, ..NodeArgs::default() },
+            NodeArgs { ssh_j: true, ..NodeArgs::default() },
             NodeArgs { opentunnel: true, ..NodeArgs::default() },
             NodeArgs { frp: Some("frp.toml".into()), ..NodeArgs::default() },
         ] {

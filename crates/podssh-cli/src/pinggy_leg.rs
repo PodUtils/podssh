@@ -235,8 +235,9 @@ pub(crate) async fn open(
 }
 
 /// The login of a tunnel with no account, as `user`; else why none passed.
-/// Serveo's road logs in so too (T-549).
-pub(crate) async fn login(handle: &mut client::Handle<Leg>, user: &str) -> Result<(), String> {
+/// Serveo's road (T-549) and the ssh-j road's leg (T-570, `crate::sshj::leg`),
+/// whose handler is its own, log in so too.
+pub(crate) async fn login<H: client::Handler>(handle: &mut client::Handle<H>, user: &str) -> Result<(), String> {
     let word = |e: russh::Error| format!("the login: {e}");
     if handle.authenticate_none(user).await.map_err(word)?.success() {
         return Ok(());

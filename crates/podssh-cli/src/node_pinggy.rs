@@ -62,9 +62,10 @@ pub(crate) fn service() -> Result<Result<Service, &'static str>, Refusal> {
 /// Why a node with no road asked of it serves a last fallback of Q78, before
 /// the fallback's own switch is read: the node that the OpenTunnel road would
 /// serve unasked (no pair, a door, no other road asked, the DERP road off),
-/// with that road off too. Pinggy's road, then Serveo's (T-549), take it.
+/// with that road off too. Pinggy's road, then Serveo's (T-549), then the
+/// ssh-j road (T-570, `node_sshj`), take it.
 pub(crate) fn last_node(args: &NodeArgs) -> Result<Option<String>, Refusal> {
-    let asked = args.pinggy || args.serveo || args.opentunnel || args.frp.is_some();
+    let asked = args.pinggy || args.serveo || args.ssh_j || args.opentunnel || args.frp.is_some();
     if asked || crate::node_opentunnel::service()?.is_some() {
         return Ok(None);
     }
@@ -116,7 +117,7 @@ pub(crate) fn dispatch(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
 /// when it reached no service, the Pinggy road, the last, unasked too (Q78),
 /// and after it, or in its place when it is off, Serveo's (T-549).
 pub(crate) fn after_opentunnel(args: &NodeArgs, code: i32, err: &mut dyn Write) -> Option<i32> {
-    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy || args.serveo {
+    if code != Fault::RelayUnreachable.code() || args.opentunnel || args.pinggy || args.serveo || args.ssh_j {
         return None;
     }
     let why = crate::node_opentunnel::unasked(args).ok().flatten()?;

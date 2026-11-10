@@ -4372,7 +4372,7 @@ commands. The rules behind them:
   session. `--no-e2e` with the flag is 64, and the flag with another
   destination too. `podssh ping node://NAME` measures it only when named.
 - **`node --serveo` serves the Serveo road** (T-549, 2026-11-10), in each
-  build, the last fallback of the operator's ruling Q78: a private alias at
+  build, a last fallback of the operator's ruling Q78: a private alias at
   Serveo with no account, at the server of `pod-services`' `serveo`, or of
   `PODSSH_SERVEO` (`HOST[:PORT]`); where `pod-services` names none, only the
   variable gives the road a server, and `--serveo` without it is 64. The
@@ -4390,12 +4390,13 @@ commands. The rules behind them:
   is pinned where `pod-services` names it (the fact `host-key-sha256`),
   else taken and said. The tunnel is opened again after each end, with the
   first alias first. The door and the refused flags are the Pinggy road's,
-  and `--pinggy` beside it is 64. A node that would serve the Pinggy road
-  unasked serves this one unasked after it reached no server, or in its
-  place where `PODSSH_PINGGY=no`, the last of all. `PODSSH_SERVEO=no` turns
-  the road off, and so does `PODSSH_LAST_RESORT=no`.
-- **`ssh node://NAME` races the Serveo road** last of all, once each road
-  before it failed, where the road has a server and a key of the node is
+  and `--pinggy` or `--ssh-j` beside it is 64. A node that would serve the
+  Pinggy road unasked serves this one unasked after it reached no server, or
+  in its place where `PODSSH_PINGGY=no`, before the ssh-j road, the last of
+  all. `PODSSH_SERVEO=no` turns the road off, and so does
+  `PODSSH_LAST_RESORT=no`.
+- **`ssh node://NAME` races the Serveo road** last but the ssh-j road, once
+  each road before it failed, where the road has a server and a key of the node is
   known: `--node-key`, else the key that the net names for NAME, else the
   pins of NAME. Each link is raw SSH to the server, then a `direct-tcpip`
   channel to the alias, as `ssh -J` jumps, the aliases of the series in
@@ -4404,6 +4405,37 @@ commands. The rules behind them:
   road out. A line says before the first link that Serveo, a third party
   that nobody vouches for, carries the session; `-v` says which alias.
   `podssh ping node://NAME` never measures it.
+- **`node --ssh-j` serves the ssh-j road** (T-570, 2026-11-10), the last
+  fallback of Q78, after the Pinggy road and Serveo's: `ssh-j.com`, a
+  public SSH jump and forwarding server with no account on port 22, where
+  `pod-services` names it (the service `ssh-j`, endpoint `ssh`, asked of
+  podcrates), or the server of `PODSSH_SSH_J` (`HOST[:PORT]`); with neither,
+  `--ssh-j` is 78. The node's leg is SSH to the server, directly or through
+  `HTTPS_PROXY`'s CONNECT, as a user that its key gives (`podssh-` and 16
+  hex digits of SHA-256 over a label of the road and the key's
+  fingerprint), with one remote forward of a name that the key gives too
+  (`n` and 16 more), on port 22, as `ssh -R NAME:22:...` asks it there; its
+  line `ssh-j name USER@NAME` gives a client's command (`--node-key`). The
+  server ends that SSH and sees the layer's bytes, which the end-to-end
+  channel keeps; its host key is pinned where `pod-services` names it
+  (`host-key-sha256`), else taken and said. A leg that ends is opened again
+  with a wait that doubles from 1 s to 60 s, under the same name. The road
+  is served alone: a pair is not served beside it, and a line says so. The
+  door and the refused flags are the Pinggy road's, and `--opentunnel`,
+  `--pinggy` or `--serveo` beside it is 64. A node that would serve the
+  OpenTunnel road, the Pinggy road or Serveo's unasked serves this one when
+  none of them reached a service, or when each is off. `PODSSH_SSH_J=no` or `PODSSH_LAST_RESORT=no` turns
+  it off.
+- **`ssh node://NAME` races the ssh-j road** last of all, after the Serveo
+  road, once each road before it failed, where the road has a server and podssh holds the node's
+  key (`--node-key`, else the net's key of NAME, else the pins of NAME), from
+  which it derives the node's name. Each link is SSH to the server on port
+  22, directly or through `HTTPS_PROXY`'s CONNECT, else through the
+  forwarders that the binary names (Q56; `PODSSH_FORWARDER_FALLBACK=no`
+  keeps them out), then a `direct-tcpip` channel to the name, as `ssh -J`
+  takes it, under the layer and the end-to-end channel. A line says before
+  the first link that the server, a third party that nobody vouches for,
+  carries the session. Never with `--no-e2e`, and never in `podssh ping`.
 - **A carrier: the node's road on a stream that exists already (T-595).**
   For a host whose every road out is closed but that grants one channel,
   as the exec channel of a platform's own SSH: `node NAME TARGET --carrier

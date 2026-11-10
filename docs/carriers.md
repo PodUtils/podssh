@@ -1719,7 +1719,26 @@ Ruled out:
   [X3]; localtunnel's client asks `https://localtunnel.me/?new` for an id,
   a port and a URL, then opens raw TCP to that port, and a visitor's
   request meets a reminder page unless it carries the header
-  `Bypass-Tunnel-Reminder` [X4].
+  `Bypass-Tunnel-Reminder` [X4]. Read on 2026-11-10 for T-570, through the
+  read and fetch services of web.pkgforge.dev, with no connection to the
+  server: `ssh-j.com`'s page publishes a port with `ssh
+  any-username@ssh-j.com -N -R laptop-behind-nat:22:localhost:22` and
+  reaches it with `ssh -J any-username@ssh-j.com laptop-behind-nat`;
+  "Published hosts are bound to the username. Other usernames can't access
+  them"; "Limits: 50 exposed services (ports) per username"; it has an onion
+  service too [X8]. No terms were found: `https://ssh-j.com/terms` answers
+  404, and the page links nothing but its source [X8]. Its server is
+  Dropbear with a table of names, `ValdikSS/dropbear-sshj`, whose README
+  calls the code "provided as-is" and points to sish; its commit
+  `d622b1e8fe35` (2021-04-02) keeps each remote forward's user, address (64
+  bytes at most) and port, refuses a second forward of a name that the user
+  holds, sends a `direct-tcpip` channel of the same user down that forward
+  with its address and port in the `forwarded-tcpip` channel, and, with
+  `IMPERSONATE_FORCE_PASSWORDLESS_AUTH`, lets each login in; its README says
+  6 services a user where the page says 50 [X9]. Its author: "only with SSH
+  as a destination you'll preserve end-to-end encryption" [W22]. The ssh-j
+  road (T-570) derives the user and the name from the node's key and runs
+  the end-to-end channel above them, so the server carries ciphertext.
 - **Other public Piping Servers**: of the servers that Piping Server's wiki
   names, the sweep found `ppng.io` alone alive, and by a search
   `piping.onrender.com` (T-442's research) and `p.kokoro.serv00.net` [W1].
@@ -2303,6 +2322,13 @@ from a project's own repository or document.
   `HyNetworks/hysteria` (MIT; its old name `apernet/hysteria`),
   `Itsusinn/tuic` (GPL-3.0), `quic-go/connect-ip-go` (MIT),
   `localtunnel/server` (MIT) and `ekzhang/bore` (MIT)
+- [X8] https://ssh-j.com/ and https://ssh-j.com/terms (404), read on
+  2026-11-10 through the read service of web.pkgforge.dev
+- [X9] https://bitbucket.org/ValdikSS/dropbear-sshj/ : its README and the
+  diff of commit `d622b1e8fe35` ("SSH-J.com improvements", 2021-04-02:
+  `srv-tcpfwd-pseudodns.c`, `svr-tcpfwd.c`, `svr-auth.c`,
+  `default_options.h`, `sysoptions.h`), read on 2026-11-10 through
+  Bitbucket's API by the fetch service of web.pkgforge.dev
 
 Read on 2026-11-06 through the services of web.pkgforge.dev (forge, fetch,
 read and domain), for T-541 and T-546. No croc relay and no tracker was

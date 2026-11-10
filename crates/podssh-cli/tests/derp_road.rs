@@ -75,7 +75,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_IROH_PKARR", "off");
     // Nor OpenTunnel's service, which a node with no other road takes
     // unasked (Q76, T-531), nor Pinggy's, the last of them (Q78, T-548).
-    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no");
+    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

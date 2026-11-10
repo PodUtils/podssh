@@ -142,6 +142,11 @@ pub(crate) mod pinggy_leg;
 pub mod node_serveo;
 mod node_serveo_serve;
 pub(crate) mod serveo_leg;
+// `podssh node --ssh-j`: the ssh-j road, a last fallback of Q78 (T-570): a
+// name derived from the node's key at ssh-j.com, a public SSH jump server.
+pub mod node_sshj;
+mod node_sshj_serve;
+pub(crate) mod sshj;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;

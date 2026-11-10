@@ -1,6 +1,6 @@
-//! The notes of the Serveo road (T-549), the last fallback of the
-//! operator's ruling Q78: a node behind a private alias at Serveo, and a
-//! client that jumps to it.
+//! The notes of the Serveo road (T-549), a last fallback of the operator's
+//! ruling Q78, before the ssh-j road's: a node behind a private alias at
+//! Serveo, and a client that jumps to it.
 
 /// The note of `podssh node NAME TARGET --serveo`.
 pub(super) const NODE: &str = "With --serveo, the node serves TARGET over the Serveo road: a private alias at \
@@ -19,16 +19,17 @@ pub(super) const NODE: &str = "With --serveo, the node serves TARGET over the Se
      when their client links again. Anyone who knows the alias may connect to it, and Serveo is a third party \
      that nobody vouches for, so the road needs the end-to-end channel and a door: --allow, or the members of \
      the net held here when the node's key is one; never --plain, --no-e2e, --exit, a udp: TARGET, or \
-     --opentunnel, --pinggy, --iroh or --derp (64). With the pair NAME, or --pair-file, the node serves the \
+     --opentunnel, --pinggy, --ssh-j, --iroh or --derp (64). With the pair NAME, or --pair-file, the node serves the \
      pair's road beside it, with one keeper of sessions. A node that would serve the Pinggy road unasked \
      serves this one unasked after the Pinggy road reached no server, or in its place where PODSSH_PINGGY=no, \
-     the last of all, by the operator's ruling Q78, and its lines say so and name the third party. \
+     by the operator's ruling Q78, before the ssh-j road, the last of all, and its lines say so and name the \
+     third party. \
      PODSSH_SERVEO=no turns the road off, and so does PODSSH_LAST_RESORT=no, the switch of each last \
      fallback.";
 
 /// The note of the Serveo road of `podssh ssh node://NAME`.
-pub(super) const SSH: &str = "node://NAME races the Serveo road too, the last of all, once each road before it \
-     failed, the last fallback of the operator's ruling Q78, where the road has a server (podssh's list of \
+pub(super) const SSH: &str = "node://NAME races the Serveo road too, once each road before it failed and \
+     before the ssh-j road, the last of all, a last fallback of the operator's ruling Q78, where the road has a server (podssh's list of \
      services, or PODSSH_SERVEO) and a key of the node is known: --node-key, else the key that the net names for \
      NAME, else the pins of NAME, which a first session over another road writes. Each link is raw SSH to the \
      server on port 443, then 22, through HTTPS_PROXY, then a direct-tcpip channel to the node's alias, as ssh \
@@ -55,7 +56,7 @@ mod tests {
         for text in ["nobody vouches for", "Q78", "PODSSH_LAST_RESORT=no", "derived from the node's key", "series"] {
             assert!(super::NODE.contains(text), "{text}");
         }
-        for text in ["--node-key", "pins of NAME", "stranger that holds the alias is refused", "last of all"] {
+        for text in ["--node-key", "pins of NAME", "stranger that holds the alias is refused", "before the ssh-j road"] {
             assert!(super::SSH.contains(text), "{text}");
         }
     }
