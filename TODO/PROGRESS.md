@@ -17,8 +17,11 @@ entry keeps its proof in the entry; this page keeps no history (git does).
      test accounts as CI secrets; `podkey` its own project. The product calls of the triage are
      recorded beside them.
   4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
-     PodUtils/podcrates#37): a move of each tag, no patch. No podssh module is frozen now: each
-     `repo PodUtils/podssh` block of podcrates' `SOURCES` has a `taken` line.
+     PodUtils/podcrates#37): a move of each tag, no patch. Since then each tag moved to
+     `v0.13.0`, and `pod-ws` is taken (`a083593e`, COORD-017; podcrates' `SOURCES` holds its `taken`
+     line). Frozen now, for fixes only, each told to podcrates as a COORD issue: the files of
+     `pod-quic` (podcrates T-019, in `v0.14.0`), `crates/podssh-relay/src/quick/quic.rs` and
+     `crates/podssh-relay/src/quick/probe.rs`.
   5. **Branches:** this session's git proxy refuses deletes (HTTP 403); the owner deletes the 139
      `draft/*` branches (each checked as in `main`) and six stale Dependabot branches by hand.
 
