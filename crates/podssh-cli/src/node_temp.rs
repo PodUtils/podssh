@@ -88,6 +88,7 @@ fn prepare(args: &NodeArgs, key: &str) -> Result<Ready, Refusal> {
         ("--derp", args.derp),
         ("--derp-server", args.derp_server.is_some()),
         ("--opentunnel", args.opentunnel),
+        ("--pinggy", args.pinggy),
     ];
     if let Some((flag, _)) = refused.iter().find(|(_, given)| *given) {
         return Err(Refusal::usage(format!(

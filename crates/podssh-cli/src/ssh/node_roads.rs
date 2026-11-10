@@ -70,6 +70,8 @@ struct Chosen {
     /// Whether `PODSSH_FRP` names a visit to the node at the user's frps
     /// (T-498), which needs no pair here either.
     frp: bool,
+    /// Whether a Pinggy name of the node is given or kept (T-548).
+    pinggy: bool,
 }
 
 impl Chosen {
@@ -79,7 +81,7 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        dest.race.is_some() || others || piping_asked || self.members || self.frp
+        dest.race.is_some() || others || piping_asked || self.members || self.frp || self.pinggy
     }
 }
 
@@ -111,7 +113,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     // A bad PODSSH_FRP is refused here, before anything connects; never with
     // --no-e2e, as frps would see each byte.
     let frp = super::roads::frp::FrpRoads::new(label, trust)?.is_some() && !channel.off;
-    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp })
+    // The Pinggy road (T-548): a name given or kept, never with --no-e2e.
+    let pinggy = super::pinggy::named(label, channel.off);
+    Ok(Chosen { record, derp, opentunnel, transit, piping, members, frp, pinggy })
 }
 
 /// SSH to the node of `dest`: over the race of its roads beside the pair's,

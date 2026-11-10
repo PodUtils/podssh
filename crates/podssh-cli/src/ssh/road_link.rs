@@ -25,6 +25,8 @@ pub enum Road {
     Transit(podssh_relay::transit::Link),
     Piping(podssh_relay::piping::Link),
     OpenTunnel(podssh_relay::opentunnel::client::Link),
+    /// A link over a node's Pinggy tunnel (T-548).
+    Pinggy(podssh_relay::pinggy::Link),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -41,6 +43,7 @@ impl AsyncRead for Road {
             Road::Transit(link) => Pin::new(link).poll_read(cx, buf),
             Road::Piping(link) => Pin::new(link).poll_read(cx, buf),
             Road::OpenTunnel(link) => Pin::new(link).poll_read(cx, buf),
+            Road::Pinggy(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -57,6 +60,7 @@ impl AsyncWrite for Road {
             Road::Transit(link) => Pin::new(link).poll_write(cx, buf),
             Road::Piping(link) => Pin::new(link).poll_write(cx, buf),
             Road::OpenTunnel(link) => Pin::new(link).poll_write(cx, buf),
+            Road::Pinggy(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -71,6 +75,7 @@ impl AsyncWrite for Road {
             Road::Transit(link) => Pin::new(link).poll_flush(cx),
             Road::Piping(link) => Pin::new(link).poll_flush(cx),
             Road::OpenTunnel(link) => Pin::new(link).poll_flush(cx),
+            Road::Pinggy(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -85,6 +90,7 @@ impl AsyncWrite for Road {
             Road::Transit(link) => Pin::new(link).poll_shutdown(cx),
             Road::Piping(link) => Pin::new(link).poll_shutdown(cx),
             Road::OpenTunnel(link) => Pin::new(link).poll_shutdown(cx),
+            Road::Pinggy(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -100,6 +106,8 @@ pub(crate) enum Kind {
     Transit,
     Piping,
     OpenTunnel,
+    /// A node's Pinggy tunnel, a last fallback of Q78 (T-548).
+    Pinggy,
     /// A road of the node's record, by its name.
     Record(&'static str),
     /// A leg at a member of the net with the relay role (T-434).
@@ -118,6 +126,7 @@ impl Kind {
             Kind::Transit => "the transit road",
             Kind::Piping => "the Piping Server road",
             Kind::OpenTunnel => "the OpenTunnel road",
+            Kind::Pinggy => "the Pinggy road",
             Kind::Member => "a member's relay role",
             Kind::Frp => "the frp road",
         }
@@ -134,6 +143,8 @@ pub(super) struct Unasked {
     pub opentunnel: bool,
     /// The Piping Server road that `PODSSH_PIPING` did not ask for (Q65).
     pub piping: bool,
+    /// A Pinggy name kept, the last fallback (Q78).
+    pub pinggy: bool,
 }
 
 /// The order of the roads, for `-v`.
@@ -152,6 +163,9 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             }
             (_, Kind::Member) => "when each road before it failed (a member of the net that relays, T-434)".to_string(),
             (_, Kind::Frp) => "when each road before it failed (the user's frps, T-498)".to_string(),
+            (_, Kind::Pinggy) if unasked.pinggy => {
+                "when each road before it failed (a kept name, the last fallback of Q78)".to_string()
+            }
             (_, Kind::Piping) if unasked.piping => {
                 "when each road before it failed and one found the WebSocket upgrade refused (Q65)".to_string()
             }

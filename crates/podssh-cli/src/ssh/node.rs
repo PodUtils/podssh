@@ -96,6 +96,8 @@ pub(super) fn resolved(r: &Ask<'_>, env: &Env, typed: bool) -> Result<Transport,
     let derp = super::derp::race(r.args)?;
     crate::node_transit::check()?; // PODSSH_TRANSIT (T-436), before anything connects
     let opentunnel = super::opentunnel::race(r.args)?;
+    // The Pinggy road's name (T-548), kept for the race of this run.
+    super::pinggy::race(r.args)?;
     if let (Some(iroh), Some(ticket)) = (&race, &derp.ticket) {
         super::iroh::same_node(&iroh.ticket, ticket)?;
     }
@@ -161,6 +163,13 @@ pub(super) fn transport(
         return Err(format!(
             "{SCHEME}{}: --no-e2e cannot go with --opentunnel-name: anyone may connect to a tunnel's name, so the \
              node lets in the key that the end-to-end channel proves",
+            r.label
+        ));
+    }
+    if channel.off && r.args.pinggy_name.is_some() {
+        return Err(format!(
+            "{SCHEME}{}: --no-e2e cannot go with --pinggy-name: anyone may connect to a tunnel's name, so the node \
+             lets in the key that the end-to-end channel proves",
             r.label
         ));
     }

@@ -131,6 +131,25 @@ pub fn challenge(name: &str, key_authorization: &str, now_secs: i64) -> Result<(
     Ok((pem("CERTIFICATE", cert.der()), key.pem()))
 }
 
+/// A self-signed certificate of `name` and `key`, as PEM, for a TLS whose
+/// client pins the key (the Pinggy road, T-548): a year long, from a day
+/// before `now_secs`, so that a client's clock a day off takes it.
+pub fn own(name: &str, key: &Key, now_secs: i64) -> Result<String, String> {
+    let mut params = rcgen::CertificateParams::new(vec![name.to_string()]).map_err(|e| format!("{name}: {e}"))?;
+    params.distinguished_name = rcgen::DistinguishedName::new();
+    params.distinguished_name.push(rcgen::DnType::CommonName, name);
+    // With no crypto feature, rcgen draws no serial number of its own.
+    params.serial_number = Some(rcgen::SerialNumber::from_slice(&rand::random::<[u8; 16]>()));
+    let day = |secs: i64| {
+        let (y, m, d) = podssh_ws::clock::civil_from_days(secs.div_euclid(86_400));
+        rcgen::date_time_ymd(y as i32, m as u8, d as u8)
+    };
+    params.not_before = day(now_secs - 86_400);
+    params.not_after = day(now_secs + 365 * 86_400);
+    let cert = params.self_signed(key).map_err(|e| format!("the certificate of {name}: {e}"))?;
+    Ok(pem("CERTIFICATE", cert.der()))
+}
+
 /// What a leaf says: its DNS names, lower-cased, and its life in seconds
 /// since the epoch.
 #[derive(Debug, Clone, PartialEq, Eq)]

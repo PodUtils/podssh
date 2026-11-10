@@ -1,0 +1,8 @@
+# T-548: the client's check of the node's key skipped where it was pinned,
+# so a stranger that the Pinggy road's tunnel name leads to, a third party's
+# choice, which holds the node's TLS key, carries the session; the test of
+# the stranger against the stand-in of Pinggy's server must fail.
+ENTRY=T-548
+GROUP=cli-tests
+EXPECT='test a_stranger_at_the_tunnel_s_name_is_refused_by_the_pin_or_the_end_to_end_channel \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test pinggy_road -- a_stranger_at_the_tunnel_s_name_is_refused_by_the_pin_or_the_end_to_end_channel'

@@ -16,6 +16,8 @@
 //! after the roads of its tickets and before the transit relay's. The
 //! OpenTunnel road of `--opentunnel-name` (T-531) comes 250 ms after the DERP
 //! road; a name kept under NAME, only when each road before it failed (Q76).
+//! A node's Pinggy tunnel (T-548, `super::pinggy`) comes last of all, the
+//! last fallback of Q78, or 250 ms after the road before it when named.
 //! A copy to the node races the same roads (T-551): [`ride`] runs the race
 //! and the layer, and hands the layered stream to the SSH client of `podssh
 //! ssh`, or to a copy's task (`super::node_roads`), whose SSH runs at its end.
@@ -45,12 +47,13 @@ const PIPE: usize = 256 * 1024;
 
 use super::road_link::Kind;
 pub use super::road_link::Road;
-use super::road_link::{lost_words, order, winner, Handed, Rider, Unasked};
+use super::road_link::{lost_words, order, winner, Handed, Rider};
 
-// The links of the pair's road and of the Piping Server road.
+// The links of the pair's road and of the Piping Server road, and the
+// words of the race's fallbacks.
 #[path = "road_pair.rs"]
 mod pair_links;
-use pair_links::{pair_link, piping_link};
+use pair_links::pair_link;
 
 // A member's relay role between two members (T-434).
 #[path = "road_member.rs"]
@@ -100,6 +103,8 @@ struct Roads<'a> {
     member: Option<member::MemberRoads>,
     /// The visit at the user's frps that `PODSSH_FRP` names (T-498).
     frp: Option<frp::FrpRoads>,
+    /// A node's Pinggy tunnel, the last fallback of Q78 (T-548).
+    pinggy: Option<super::pinggy::PinggyRoads>,
     /// A road found the WebSocket upgrade refused on the way: the Piping
     /// Server road's cue, when the user did not ask for it (Q65).
     refused: AtomicBool,
@@ -162,32 +167,10 @@ impl<'a> Roads<'a> {
         if !piping_asked {
             self.push_piping(&mut list, &mut kinds);
         }
+        if let Some(pinggy) = &self.pinggy {
+            pinggy.push(&mut list, &mut kinds);
+        }
         (list, kinds)
-    }
-
-    /// The Piping Server road's place in the race, when it has a dialer.
-    fn push_piping<'r>(&'r self, list: &mut Vec<(Start, Going<'r>)>, kinds: &mut Vec<Kind>) {
-        if let Some((dialer, asked)) = &self.piping {
-            // Unasked, the fallback: only when each road before it failed.
-            let start = if *asked { Start::After(HEAD_START) } else { Start::WhenAllFailed };
-            list.push((start, Box::pin(piping_link(dialer, *asked, &self.refused))));
-            kinds.push(Kind::Piping);
-        }
-    }
-
-    /// The roads that race as fallbacks which nobody asked for, for `-v`.
-    fn unasked(&self) -> Unasked {
-        let unasked = |asked: Option<&bool>| asked == Some(&false);
-        Unasked {
-            derp: unasked(self.derp.as_ref().map(|(_, asked)| asked)),
-            opentunnel: unasked(self.opentunnel.as_ref().map(|(_, asked)| asked)),
-            piping: unasked(self.piping.as_ref().map(|(_, asked)| asked)),
-        }
-    }
-
-    /// Whether the Piping Server road may be tried: asked, or cued.
-    fn piping_on(&self) -> bool {
-        self.piping.as_ref().is_some_and(|(_, asked)| *asked || self.refused.load(Ordering::SeqCst))
     }
 
     /// Whether no road can give a link again: the pair's ended for good or
@@ -196,7 +179,7 @@ impl<'a> Roads<'a> {
     /// may come back.
     async fn ended_for_good(&self) -> bool {
         let others = self.opentunnel.is_some() || self.record.is_some() || self.member.is_some() || self.frp.is_some();
-        if self.derp.is_some() || others || self.piping_on() {
+        if self.derp.is_some() || others || self.pinggy.is_some() || self.piping_on() {
             return false;
         }
         let pair_done = self.pair.is_none() || self.pair_final.load(Ordering::SeqCst);
@@ -261,7 +244,10 @@ where
     };
     // The pair's road, when this host has the pair; a node that the DERP
     // road, its record, a relay member or frps reaches may have none here.
+    // A node's Pinggy tunnel (T-548), which needs no pair either: the last.
+    let pinggy = super::pinggy::PinggyRoads::new(label, ask.off, &log, &shown);
     let others = raced.opentunnel.is_some() || raced.record.is_some() || member.is_some() || frp.is_some();
+    let others = others || pinggy.is_some();
     let part = match crate::pairs::operator_part(label, pair_file) {
         Ok(part) => Some(part),
         Err(refusal) if (raced.derp.is_some() || others) && pair_file.is_none() => {
@@ -335,8 +321,22 @@ where
     let (legs, pair_final) = (Mutex::new(None), AtomicBool::new(false));
     let record = raced.record.map(|ask| super::iroh::RecordRoads::new(ask, trust, &log, &shown));
     let pair = config.as_ref();
-    let roads =
-        Roads { iroh, pair, derp, opentunnel, transit, piping, record, member, frp, refused, label, legs, pair_final };
+    let roads = Roads {
+        iroh,
+        pair,
+        derp,
+        opentunnel,
+        transit,
+        piping,
+        record,
+        member,
+        frp,
+        pinggy,
+        refused,
+        label,
+        legs,
+        pair_final,
+    };
     let (list, kinds) = roads.race(None);
     log.verbose(&format!("connecting to {shown}: {}", order(&kinds, roads.unasked())));
     let first = match in_turn(list).await {

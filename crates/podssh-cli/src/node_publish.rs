@@ -87,6 +87,7 @@ fn refused(args: &NodeArgs) -> Result<(), Refusal> {
         (args.iroh, "--iroh"),
         (args.derp || args.derp_server.is_some(), "--derp"),
         (args.opentunnel, "--opentunnel"),
+        (args.pinggy, "--pinggy"),
         (args.quick_tunnel || args.warp || args.relay, "--quick-tunnel"),
         (args.exit || args.routes.is_some(), "--exit"),
         (args.sshd, "--sshd"),

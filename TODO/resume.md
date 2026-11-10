@@ -779,8 +779,8 @@ no `GREETING`, and that the default node greets.
 as they are, with no resumable layer: the node's handler is then the TCP
 handler alone, which dials TARGET at `open`
 (`crates/podssh-cli/src/node.rs`, lines 152-163 at `8e31960`). The node's first line names its
-mode (`crates/podssh-cli/src/node.rs:339`). `--plain` with `--iroh` is
-refused with 64 (`crates/podssh-cli/src/node_flags.rs:106-108`, moved from `node.rs` by T-531): the iroh road
+mode (`crates/podssh-cli/src/node.rs:342`). `--plain` with `--iroh` is
+refused with 64 (`crates/podssh-cli/src/node_flags.rs:107-109`, moved from `node.rs` by T-531): the iroh road
 always runs the layer. The flag's row, the manual's note of `node`,
 `docs/reverse.md` and `docs/cli.md`.
 - Native: `cargo test -p podssh-cli -- plain`, 3 passed. The argument test:
@@ -820,7 +820,7 @@ sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
 the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:349-389`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:386-396` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:389-399` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -834,7 +834,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:386-396` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:389-399` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:400-415`,
    `crates/podssh-cli/src/man/facts.rs:435-444`), the note at
@@ -3460,7 +3460,7 @@ Read while drafting, 2026-11-03:
   Close included; a session cut then is a clean end of a session that the node took, exit 0. A
   signal before the node took the session ends the wait at once, with the session's fault (70).
 - `ssh node://` takes SIGHUP and SIGTERM alone: its Ctrl-C is the remote command's. The same on
-  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:155`, moved from
+  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:159`, moved from
   `crates/podssh-cli/src/ssh/roads.rs` by T-551).
 - The plant of the signals is two plants, one for each test, as a plant runs one check:
   `t586-hangup-not-taken` (the operator's test) and `t586-hangup-not-taken-openssh` (the
@@ -4093,15 +4093,15 @@ same setting.
 
 ## Premise
 
-- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:376` decides `resumable` from
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:379` decides `resumable` from
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
-- The warning at `crates/podssh-cli/src/ssh/resolve.rs:388-393` sits inside `if resumable`.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:391-396` sits inside `if resumable`.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:197` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
-- The guard at `crates/podssh-cli/src/ssh/mod.rs:434` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:473` sets when the user
+- The guard at `crates/podssh-cli/src/ssh/mod.rs:436` removes the keepalives only when
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:476` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:869-873`) says that the resumable
@@ -4109,7 +4109,7 @@ same setting.
 
 ## Approach
 
-1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:434`, add the case `reached.layer.is_some()` with
+1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:436`, add the case `reached.layer.is_some()` with
    `!resolved.alive_default` and a keepalive interval that is set. Print the warning of
    `resolve.rs:389-391` there, once, from one shared constant.
 2. Keep the user's interval. Do not add `Transport::Cloudflare` to `resolve.rs:375`: a far end that

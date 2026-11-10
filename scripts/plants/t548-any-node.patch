@@ -1,0 +1,18 @@
+diff --git a/crates/podssh-cli/src/channel.rs b/crates/podssh-cli/src/channel.rs
+index d1c6dd31..5e0ffbb3 100644
+--- a/crates/podssh-cli/src/channel.rs
++++ b/crates/podssh-cli/src/channel.rs
+@@ -179,12 +179,7 @@ pub fn check(
+                 say(format!("the node's key {key} could not be pinned: {why}"));
+                 Ok(())
+             }
+-            Err(pins::PinError::Changed { pinned, path, line }) => Err(format!(
+-                "the node {label} has the key {key}, but line {line} of {} pins {pinned}. If the node's key \
+-                 changed on purpose, remove that line or add one for the new key; else something on the way \
+-                 may stand in the middle",
+-                path.display()
+-            )),
++            Err(pins::PinError::Changed { .. }) => Ok(()),
+             Err(pins::PinError::Unreadable(why)) => Err(format!("the pins cannot be trusted: {why}")),
+         },
+     }

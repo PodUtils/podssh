@@ -1,0 +1,142 @@
+//! The Pinggy road through Pinggy's own free tier (T-548), by the operator's
+//! rulings Q78 and Q91: one short run, from GitHub Actions
+//! (`.github/workflows/pinggy-live.yml`), never in the gate, so it is
+//! ignored unless asked. A node with a throwaway key serves the loopback's
+//! SSH server of the tests over a TLS tunnel of Pinggy's, through
+//! `free.pinggy.io` (pod-services), and says its name and its pin; a client
+//! dials it, its TLS pinned, and runs `greet`, then takes 1 MiB down; the
+//! node is stopped at the end, which gives the tunnel up. With `PODSSH_PINGGY_TEST_PLANT=stranger`, the client
+//! names another node's key, and the run must fail: the check is not vacuous.
+
+mod cleanup;
+mod ssh_harness;
+
+use std::io::{BufRead, BufReader, Write};
+use std::path::{Path, PathBuf};
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
+use std::time::{Duration, Instant};
+
+use podssh_relay::identity::file::{self, Place};
+use podssh_relay::session::OsEntropy;
+use ssh_harness::GREETING;
+
+const LIMIT: Duration = Duration::from_secs(120);
+/// The bytes taken down: a few MiB at most (T-548's Decision).
+const DOWN: usize = 1 << 20;
+
+/// `podssh ARGS` with HOME and the cache under `home`, the runner's own
+/// egress, and none of the other roads.
+fn command(home: &Path, args: &[&str]) -> Command {
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));
+    cmd.args(args).env("PODSSH_SSH_CONFIG", "none").env("PODSSH_SETTINGS", "none");
+    for name in ["PODSSH_PINGGY", "PODSSH_LAST_RESORT", "PODSSH_RELAY", "PODSSH_RELAY_ADDR", "SSH_AUTH_SOCK"] {
+        cmd.env_remove(name);
+    }
+    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no");
+    cmd.env("PODSSH_DERP", "no").env("PODSSH_IROH_PKARR", "off");
+    cmd.env("HOME", home).env("USERPROFILE", home);
+    cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
+    cmd
+}
+
+/// Run to its end, within the limit: (code, stdout as bytes, stderr).
+fn run(cmd: &mut Command) -> (i32, Vec<u8>, String) {
+    let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().expect("it runs");
+    let deadline = Instant::now() + LIMIT;
+    while child.try_wait().expect("wait").is_none() {
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            panic!("podssh did not end within {} s", LIMIT.as_secs());
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let out = child.wait_with_output().expect("output");
+    (out.status.code().unwrap_or(-1), out.stdout, String::from_utf8_lossy(&out.stderr).into_owned())
+}
+
+/// Stops the node when the run ends, which gives its tunnel up.
+struct Node(Child);
+
+impl Drop for Node {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+#[test]
+#[ignore = "a live run through Pinggy's free tier: pinggy-live.yml"]
+fn a_node_behind_pinggy_serves_a_client_by_its_tunnel_s_name() {
+    let home = std::env::temp_dir().join(format!("podssh-pinggy-live-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&home);
+    podssh_relay::cache::private_dir(&home).unwrap();
+    cleanup::at_test_end(&home);
+    let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let host_key = home.join("host_key");
+    let host_key_text = host_key.to_string_lossy().into_owned();
+    let (rc, _, err) = run(&mut command(&home, &["keygen", "-q", "-t", "ed25519", "-N", "", "-f", &host_key_text]));
+    assert_eq!(rc, 0, "{err}");
+    let port = runtime.block_on(ssh_harness::start(&host_key));
+    let (node_home, client_home): (PathBuf, PathBuf) = (home.join("node"), home.join("client"));
+    for dir in [&node_home, &client_home] {
+        podssh_relay::cache::private_dir(dir).unwrap();
+    }
+    let client_key = client_home.join("client.key");
+    let key = file::load(&Place::File(client_key.clone()), &mut OsEntropy).expect("the client's key");
+    let allow = node_home.join("allow");
+    std::fs::write(&allow, format!("{} the live run's client\n", key.identity.public().fingerprint())).unwrap();
+
+    let target = format!("127.0.0.1:{port}");
+    let allow_text = allow.to_string_lossy().into_owned();
+    let words = ["node", "lab", &target, "--pinggy", "--allow", &allow_text, "--ephemeral-key"];
+    let mut node = command(&node_home, &words);
+    let mut child = node.stdin(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();
+    let stderr = child.stderr.take().unwrap();
+    let _node = Node(child);
+    let (tx, lines) = mpsc::channel();
+    std::thread::spawn(move || {
+        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            eprintln!("node: {line}");
+            let _ = tx.send(line);
+        }
+    });
+    let deadline = Instant::now() + LIMIT;
+    let (mut name, mut node_key) = (None, None);
+    while name.is_none() {
+        let line = lines.recv_timeout(deadline.saturating_duration_since(Instant::now())).expect("the node's name");
+        if let Some(rest) = line.split(": key ").nth(1) {
+            node_key = rest.split_whitespace().next().map(str::to_string);
+        }
+        // The address that a client gives: the name and the pin of the node's TLS key.
+        if line.contains(": name ") {
+            name = line.split("--pinggy-name ").nth(1).map(|rest| rest.trim_end_matches(')').to_string());
+        }
+    }
+    let name = name.unwrap();
+    let node_key = node_key.expect("the node's key line");
+
+    // The planted run names another node's key: the client must refuse.
+    let planted = std::env::var("PODSSH_PINGGY_TEST_PLANT").ok().as_deref() == Some("stranger");
+    let stranger = file::load(&Place::Ephemeral, &mut OsEntropy).unwrap().identity.public().fingerprint().to_string();
+    let expected = if planted { stranger } else { node_key };
+    let ssh = |words: &[&str]| {
+        let known = format!("UserKnownHostsFile={}", client_home.join("known_hosts").display());
+        let client_key = client_key.to_string_lossy().into_owned();
+        let mut args = vec!["ssh", "-v", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
+        args.extend_from_slice(&["--client-key", &client_key, "--node-key", &expected, "--pinggy-name", &name]);
+        args.extend_from_slice(words);
+        run(&mut command(&client_home, &args))
+    };
+    let (rc, out, err) = ssh(&["node://tester@lab", "greet"]);
+    eprintln!("client: {err}");
+    assert_eq!(rc, 0, "the client over Pinggy");
+    assert_eq!(String::from_utf8_lossy(&out), GREETING);
+    assert!(err.contains("the Pinggy road answered first") && err.contains("nobody vouches for"), "{err}");
+    let source = format!("source {DOWN}");
+    let (rc, out, err) = ssh(&["node://tester@lab", &source]);
+    assert_eq!(rc, 0, "{err}");
+    assert_eq!(out.len(), DOWN, "1 MiB down, whole");
+    let _ = std::io::stderr().flush();
+    drop(runtime);
+}

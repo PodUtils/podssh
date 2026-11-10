@@ -101,6 +101,13 @@ piping = ["dep:h2", "dep:http", "dep:bytes", "dep:rustls", "dep:tokio-rustls"]
 # name on port 443, under the resumable layer; the key and the CSR of its
 # name come from the binary. No C either; the gate builds it.
 opentunnel = []
+# The Pinggy road (T-548): a last fallback of Q78 through Pinggy's free TLS
+# tunnels, whose client's leg is TLS by name on port 443 and whose node ends
+# each visitor's TLS with a certificate of its own key; the dials of the
+# OpenTunnel road, and rustls for the client's verifier that pins that key,
+# as no CA signs it. The node's SSH client is the binary's.
+# No C either; the gate builds it.
+pinggy = ["opentunnel", "dep:rustls"]
 # The quick tunnel's edge inside WARP's tunnel (T-374), for a node whose cage
 # reaches TCP port 7844 only through it. No C either; Rust 1.91.
 warp = ["quick", "dep:podssh-warp"]

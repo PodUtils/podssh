@@ -68,6 +68,16 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           does not echo the value.",
     ),
     (
+        &["PODSSH_PINGGY"],
+        "The Pinggy road (T-548), a last fallback of the operator's ruling Q78: a TLS tunnel of Pinggy's free \
+          tier with no account, whose node's leg is SSH on port 443, raw, else inside TLS that the host's trust \
+          verifies, and whose client's TLS pins the node's key, of podssh node --pinggy and podssh ssh \
+          node://NAME --pinggy-name HOST#PIN, which a node with no other road serves unasked. no: no such \
+          road, and the flags are refused (64); HOST[:PORT]: that server of Pinggy's protocol in place of \
+          Pinggy's, whose host key nobody names; unset, empty or yes: Pinggy's own. Another word is a \
+          configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_FRP"],
         "The file of the frp road (T-498), the user's own frps: a private file with a line each, server \
           (frp://HOST[:PORT] or wss://HOST[:PORT][/PATH]), token (frps's) and secret (the node's STCP service's), \
@@ -205,8 +215,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_LAST_RESORT"],
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
-      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS, and the roads that join them); yes, the default, \
-      leaves each to its own variable. Another word is no.",
+      vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; and the \
+      roads that join them); yes, the default, leaves each to its own variable. Another word is no.",
     ),
     (
         &["PODSSH_VIA"],

@@ -53,6 +53,8 @@ pub mod node;
 pub(crate) mod node_roads;
 // The OpenTunnel road of node://NAME (T-531).
 pub mod opentunnel;
+// The Pinggy road of node://NAME, a last fallback of Q78 (T-548).
+pub(crate) mod pinggy;
 // The notes of what podssh accepts and does not use (T-502, T-505).
 mod noted;
 pub mod options;

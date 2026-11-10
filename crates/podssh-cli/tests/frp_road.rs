@@ -62,7 +62,7 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
     // The roads of the test alone.
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");
-    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_DERP", "no");
+    cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_DERP", "no").env("PODSSH_PINGGY", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

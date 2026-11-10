@@ -791,7 +791,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    name the host that was kept. tokio's `select!` and `JoinSet` need no new crate and no C.
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-292`, 323-343) and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:190-232`); the variable to VARIABLES and the modes to THE
+   (`crates/podssh-cli/src/ssh/args.rs:192-235`); the variable to VARIABLES and the modes to THE
    RELAY (`crates/podssh-cli/src/man/facts.rs:46-301`, 170-183); both to `docs/relay.md:107-152`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
@@ -4094,7 +4094,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:148` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:151` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
   78 is this host not set up for the mode.

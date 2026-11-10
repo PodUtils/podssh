@@ -44,7 +44,9 @@ mod notes_legs;
 mod notes_mcp;
 mod notes_net;
 mod notes_pair;
+// The Pinggy road, a last fallback of Q78 (T-548).
 mod notes_ping;
+mod notes_pinggy;
 mod notes_pipe;
 mod notes_play;
 mod notes_proxy;

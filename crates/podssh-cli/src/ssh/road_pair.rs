@@ -1,13 +1,44 @@
 //! The links of the pair's road and of the Piping Server road, each a place
-//! of `super`'s race. Apart from `roads.rs`, for the length of that file.
+//! of `super`'s race, and the race's words of its fallbacks that nobody
+//! asked for. Apart from `roads.rs`, for the length of that file.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use podssh_relay::reverse::{legs, OperatorConfig, Outcome as LegOutcome};
+use podssh_relay::session::race::{Start, HEAD_START};
 use tokio::task::JoinHandle;
 
-use super::{Road, Roads, PIPE};
+use super::{Going, Kind, Road, Roads, PIPE};
 use crate::layered;
+use crate::ssh::road_link::Unasked;
+
+impl Roads<'_> {
+    /// The Piping Server road's place in the race, when it has a dialer.
+    pub(super) fn push_piping<'r>(&'r self, list: &mut Vec<(Start, Going<'r>)>, kinds: &mut Vec<Kind>) {
+        if let Some((dialer, asked)) = &self.piping {
+            // Unasked, the fallback: only when each road before it failed.
+            let start = if *asked { Start::After(HEAD_START) } else { Start::WhenAllFailed };
+            list.push((start, Box::pin(piping_link(dialer, *asked, &self.refused))));
+            kinds.push(Kind::Piping);
+        }
+    }
+
+    /// The roads that race as fallbacks which nobody asked for, for `-v`.
+    pub(super) fn unasked(&self) -> Unasked {
+        let unasked = |asked: Option<&bool>| asked == Some(&false);
+        Unasked {
+            derp: unasked(self.derp.as_ref().map(|(_, asked)| asked)),
+            opentunnel: unasked(self.opentunnel.as_ref().map(|(_, asked)| asked)),
+            piping: unasked(self.piping.as_ref().map(|(_, asked)| asked)),
+            pinggy: self.pinggy.as_ref().is_some_and(|pinggy| !pinggy.asked()),
+        }
+    }
+
+    /// Whether the Piping Server road may be tried: asked, or cued.
+    pub(super) fn piping_on(&self) -> bool {
+        self.piping.as_ref().is_some_and(|(_, asked)| *asked || self.refused.load(Ordering::SeqCst))
+    }
+}
 
 /// A new leg of the pair's road, unless the last one ended with a close
 /// that a new leg would only get again.

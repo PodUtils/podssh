@@ -1,0 +1,8 @@
+# T-548: the client's TLS of the Pinggy road takes a certificate of any key,
+# the pin's comparison skipped, so the TLS proves nothing again; the test of
+# the stranger against the stand-in of Pinggy's server, whose certificate is
+# of another key, must fail where it expects the pin's refusal.
+ENTRY=T-548
+GROUP=cli-tests
+EXPECT='test a_stranger_at_the_tunnel_s_name_is_refused_by_the_pin_or_the_end_to_end_channel \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test pinggy_road -- a_stranger_at_the_tunnel_s_name_is_refused_by_the_pin_or_the_end_to_end_channel'

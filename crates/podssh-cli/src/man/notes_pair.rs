@@ -220,6 +220,7 @@ pub(super) const NODE: &[&str] = &[
      node on the pair's road alone. The server sees the paths, the sizes and the times; the channel keeps \
      the bytes from it.",
     super::notes_pair::NODE_OPENTUNNEL,
+    super::notes_pinggy::NODE,
     super::notes_frp::NODE,
     // Grants used once (T-226).
     super::notes_grant::NODE,

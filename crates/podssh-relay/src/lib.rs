@@ -55,6 +55,9 @@
 //! - `opentunnel` (feature `opentunnel`): the OpenTunnel road (T-530), a
 //!   blind TLS tunnel with no account, whose client's leg is TLS by name
 //!   with no upgrade;
+//! - `pinggy` (feature `pinggy`): the Pinggy road (T-548), a last fallback
+//!   through Pinggy's free TLS tunnels: the node's leg is SSH inside TLS
+//!   (its SSH client is the caller's), the client's TLS by name;
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -93,6 +96,8 @@ pub mod open;
 pub mod opentunnel;
 #[cfg(feature = "pair")]
 pub mod pair;
+#[cfg(feature = "pinggy")]
+pub mod pinggy;
 #[cfg(feature = "piping")]
 pub mod piping;
 pub mod pool;

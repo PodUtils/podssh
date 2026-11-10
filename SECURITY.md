@@ -129,8 +129,13 @@ Each rule is implemented.
   proxy that intercepts TLS (T-067); a server that speaks 1.3 cannot be
   forced down to 1.2. There is no option that skips the verification, and no
   crate carries a verifier that accepts each certificate: a test scans the
-  source of each one of podssh (T-065), and `pod-tls` scans its own. The verifier that prints a chain for a
-  diagnosis lives in an example of `podssh-ws`, outside each library. The
+  source of each one of podssh (T-065), and `pod-tls` scans its own. Two
+  verifiers pin one key each, and so accept no other certificate: WARP's
+  endpoint, whose chain no public root signs (T-352), and a node of the
+  Pinggy road, whose certificate is its own and whose key the node says
+  beside its tunnel's name (T-548); the scan allows each in its one file
+  only while that file still compares the pinned key. The verifier that
+  prints a chain for a diagnosis lives in an example of `podssh-ws`, outside each library. The
   node of `podssh ts` adds the CA file of `PODSSH_TS_TEST_CA_FILE` to its
   roots, for a test's stand-in control server (T-334): a root more, never a
   check less, and `podssh ts` says when it is set.

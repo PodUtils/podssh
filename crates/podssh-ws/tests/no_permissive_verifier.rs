@@ -4,9 +4,10 @@
 //! installs it. The one that prints a chain for a diagnosis lives in
 //! `examples/inspect_peer_chain.rs` (T-065), so no build of a library has it.
 //! The shipped configuration installs the WebPKI verifier with
-//! `with_custom_certificate_verifier`, which the scan allows. One verifier
-//! pins a single key, and so accepts no other certificate: WARP's endpoint,
-//! whose chain no public root signs (T-352). It is allowed in its one file
+//! `with_custom_certificate_verifier`, which the scan allows. Two verifiers
+//! pin a single key, and so accept no other certificate: WARP's endpoint,
+//! whose chain no public root signs (T-352), and a node of the Pinggy road,
+//! whose certificate is its own (T-548). Each is allowed in its one file
 //! while that file still compares the key, and its own tests fail when the
 //! pin is skipped.
 
@@ -16,9 +17,12 @@ use std::path::{Path, PathBuf};
 // (`impl ServerCertVerifier for`, `impl rustls::client::danger::ServerCertVerifier for`).
 const FORBIDDEN: [&str; 3] = ["ServerCertVerifier for", "set_certificate_verifier", "ServerCertVerified::assertion"];
 
-/// The pinning verifier's file, and the comparison with the pinned key that
-/// the file must hold for the allowance to stand.
-const PINNED: (&str, &str) = ("podssh-warp/src/tls.rs", "== Some(self.point.as_slice())");
+/// Each pinning verifier's file, and the comparison with the pinned key that
+/// the file must hold for its allowance to stand.
+const PINNED: [(&str, &str); 2] = [
+    ("podssh-warp/src/tls.rs", "== Some(self.point.as_slice())"),
+    ("podssh-relay/src/pinggy/tls.rs", "Some(seen) if seen == self.pin =>"),
+];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(dir).unwrap().flatten() {
@@ -42,17 +46,17 @@ fn hits() -> (usize, Vec<String>) {
         }
     }
     let mut found = Vec::new();
-    let mut pinned_seen = false;
+    let mut pinned_seen = [false; PINNED.len()];
     for file in &files {
         let text = std::fs::read_to_string(file).unwrap();
         let name = file.strip_prefix(crates).unwrap_or(file);
         let shown = name.to_string_lossy().replace('\\', "/");
-        if shown == PINNED.0 {
-            pinned_seen = true;
-            if text.contains(PINNED.1) {
-                continue;
+        if let Some(at) = PINNED.iter().position(|(allowed, _)| shown == *allowed) {
+            pinned_seen[at] = true;
+            let comparison = PINNED[at].1;
+            if !text.contains(comparison) {
+                found.push(format!("crates/{shown}: the pin's comparison {comparison:?} is gone"));
             }
-            found.push(format!("crates/{shown}: the pin's comparison {:?} is gone", PINNED.1));
             continue;
         }
         for pattern in FORBIDDEN {
@@ -62,8 +66,10 @@ fn hits() -> (usize, Vec<String>) {
         }
     }
     // An allowance for a file that is no longer there is one to remove.
-    if !pinned_seen {
-        found.push(format!("crates/{}: allowed, but not in the tree", PINNED.0));
+    for ((allowed, _), seen) in PINNED.iter().zip(pinned_seen) {
+        if !seen {
+            found.push(format!("crates/{allowed}: allowed, but not in the tree"));
+        }
     }
     (files.len(), found)
 }

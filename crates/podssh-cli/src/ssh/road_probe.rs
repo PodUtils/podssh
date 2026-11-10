@@ -121,8 +121,25 @@ pub(crate) async fn measure(
     // The visit at the user's frps, as a run races it (T-498); a file that
     // does not read leaves the road out of the measure.
     let frp = crate::ssh::roads::frp::FrpRoads::new(label, trust).ok().flatten();
-    let roads =
-        Roads { iroh, pair, derp, opentunnel, transit, piping, record, member, frp, refused, label, legs, pair_final };
+    // A node's Pinggy tunnel only when its name was given: a measure never
+    // sends a byte to the last fallback's third party unasked (Q78).
+    let pinggy = crate::ssh::pinggy::PinggyRoads::new(label, false, &log, &shown).filter(|pinggy| pinggy.asked());
+    let roads = Roads {
+        iroh,
+        pair,
+        derp,
+        opentunnel,
+        transit,
+        piping,
+        record,
+        member,
+        frp,
+        pinggy,
+        refused,
+        label,
+        legs,
+        pair_final,
+    };
     let (list, kinds) = roads.race(None);
     let order = crate::ssh::road_link::order(&kinds, roads.unasked());
     log.verbose(&format!("measuring the roads to {shown}: {order}"));

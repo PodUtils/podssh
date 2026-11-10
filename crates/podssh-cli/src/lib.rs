@@ -130,6 +130,13 @@ pub mod node_derp;
 // `podssh node --opentunnel`: the OpenTunnel road, and its fallback of a node
 // with no other road (T-531, Q76).
 pub mod node_opentunnel;
+// `podssh node --pinggy`: the Pinggy road, a last fallback of Q78 (T-548): its
+// node, its serving, its SSH leg to Pinggy's server, and its TLS key, which
+// clients pin.
+pub mod node_pinggy;
+mod node_pinggy_serve;
+pub(crate) mod pinggy_cert;
+pub(crate) mod pinggy_leg;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;

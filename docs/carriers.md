@@ -904,7 +904,12 @@ Ruled out:
   on 2026-11-02 [X2]: its client is `ssh -R 80:localhost:PORT localhost.run`,
   which names no port, so SSH on port 22 (Inferred); a free domain carries
   HTTP alone, changes after a few hours and has a speed limit; HTTPS on
-  443 ends at its edge, which sends plain HTTP down the tunnel.
+  443 ends at its edge, which sends plain HTTP down the tunnel. The
+  operator's ruling Q78 (2026-11-02) makes each a last fallback whatever its
+  terms: Pinggy's TLS tunnel is the road of T-548 (2026-11-09), whose
+  node's leg is SSH on 443 as user `tls`, raw first and inside TLS that the
+  host's trust verifies where a proxy passes TLS alone; a client's TLS to
+  the node pins the key that the node says beside its tunnel's name.
 - **bore.pub**: one person runs it, on the control port 7835 and random
   ports [R43]. Read on 2026-11-02: it restarts on purpose and "isn't meant
   for long-lived connections" (its issue 170, 2025-06-24), it was down on

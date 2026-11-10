@@ -4324,6 +4324,45 @@ commands. The rules behind them:
   before it failed (Q76). The node's key is the pins' of NAME, or
   `--node-key`; `--no-e2e` with the flag is 64, and the flag with another
   destination too.
+- **`node --pinggy` serves the Pinggy road** (T-548, 2026-11-09), in each
+  build, a last fallback of the operator's ruling Q78: a TLS tunnel of
+  Pinggy's free tier with no account, or of the server of `PODSSH_PINGGY`
+  (`HOST[:PORT]`). The node's leg is SSH to Pinggy's server on port 443
+  (`pod-services`' `pinggy`, endpoint `ssh`), through `HTTPS_PROXY`, as user
+  `tls`, with one remote forward of port 0: raw SSH first, and where that
+  fails before SSH's version line (a proxy that passes TLS alone), SSH
+  inside TLS that the trust of `--ca-file`, `SSL_CERT_FILE` or podssh's
+  roots verifies, as for a relay host; a line says which way carries. The
+  tunnel's name comes from Pinggy's `GET /urls` at port 4300 of its end, or
+  from the session's text, and is its line `name NAME pin SHA256:...`, with
+  a client's `--pinggy-name NAME#PIN`, kept under NAME (`pinggy-NAME.name`).
+  Pinggy routes each visitor's TLS by SNI and never ends it: TLS ends at the
+  node with a certificate of its own key, which no CA signs, as a free
+  tunnel's name changes each hour. The node keeps that key in a private
+  file beside its own key (`KEY.pinggy-tls.pem`), so the pin stays across
+  its names and its starts; with `--ephemeral-key`, or a file that cannot be
+  used, the key is for the run, and the line says so. Pinggy's host key is
+  pinned where `pod-services` names it (the fact `host-key-sha256`), else
+  taken and said. A free tunnel ends at 60 minutes: the node opens the next,
+  under a new name, and says it. The door and the refused flags are the
+  OpenTunnel road's, and `--opentunnel` beside it is 64. A node with no
+  pair, a door, `PODSSH_DERP=no` and the OpenTunnel road off, or with no
+  service reached, serves it unasked; its lines name the third party.
+  `PODSSH_PINGGY=no` turns the road off, and so does `PODSSH_LAST_RESORT=no`,
+  the one switch of each last fallback of Q78.
+- **`ssh node://NAME --pinggy-name HOST#PIN`** races the Pinggy road 250 ms
+  after the road before it; an address kept under NAME is dialled last,
+  once each road before it failed. HOST is the tunnel's name and PIN the
+  SHA-256 of the node's TLS key (`SHA256:` and base64, the node's line
+  says both); a name with no pin is 64, and a kept name with none is not
+  raced. Each link is TCP to HOST on port 443 through `HTTPS_PROXY`, then
+  TLS by HOST with no upgrade, which takes only a certificate of the pinned
+  key, and refuses another with the key it showed (a stranger at the name,
+  or a proxy that ends TLS). The end-to-end channel then checks the node's
+  own key, by the pins of NAME or `--node-key`. A line says before the first
+  link that Pinggy, a third party that nobody vouches for, carries the
+  session. `--no-e2e` with the flag is 64, and the flag with another
+  destination too. `podssh ping node://NAME` measures it only when named.
 - **A carrier: the node's road on a stream that exists already (T-595).**
   For a host whose every road out is closed but that grants one channel,
   as the exec channel of a platform's own SSH: `node NAME TARGET --carrier

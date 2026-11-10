@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**687 entries: 95 open, 19 partial, 9 blocked, 564 done.**
+**687 entries: 94 open, 20 partial, 9 blocked, 564 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 26 | 8 | 1 | 260 | 295 |
+| P2 | 25 | 9 | 1 | 260 | 295 |
 | P3 | 65 | 9 | 5 | 234 | 313 |
-| **All** | 95 | 19 | 9 | 564 | 687 |
+| **All** | 94 | 20 | 9 | 564 | 687 |
 
 ## Entries
 
@@ -595,7 +595,7 @@ repository and CI).
 | [T-545](mesh.md) | P3 | M | M10 | feature | open | Nostr's ephemeral events as a meeting point of the pairing by a short code |
 | [T-546](mesh.md) | P3 | S | M10 | research | done | Trackers as meeting points: whether a BitTorrent or WebTorrent tracker passes the pairing's messages |
 | [T-547](mesh.md) | P3 | M | M10 | research | open | The pub/sub networks and the public MQTT brokers, as carriers or meeting points |
-| [T-548](mesh.md) | P2 | L | M10 | feature | open | Pinggy as a last fallback of the reverse road: SSH inside TLS on 443, and a TLS tunnel that ends at the node |
+| [T-548](mesh.md) | P2 | L | M10 | feature | partial | Pinggy as a last fallback of the reverse road: SSH inside TLS on 443, and a TLS tunnel that ends at the node |
 | [T-549](mesh.md) | P3 | M | M10 | feature | open | Serveo as a last fallback: a node's alias by SSH, and a client's hop through it |
 | [T-550](mesh.md) | P3 | S | M10 | feature | done | The quick tunnel's node takes its net's members as its door, with no `--allow` |
 | [T-551](mesh.md) | P3 | M | M10 | feature | done | A copy to a node races the roads that `podssh ssh` races, not the pair's road alone |
