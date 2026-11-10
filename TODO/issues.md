@@ -234,12 +234,12 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #164 | The GSRN road: accountless SRP authentication on one TCP connection to port 443 | open | T-707 (blocked: the owner deferred `pod-gsr` on 2026-11-09) |
 | #165 | Forwarder roads re-derive the half-close discipline per road | closed 2026-11-09 (`cdb46f81`), its entry done | T-699 |
 | #166 | `doctor`: one verdict of the host's capabilities that names what each restriction closes | closed 2026-11-09, its entry done | T-706 (M5, beside T-248) |
-| #167 | `sftp` prints no near-cap line before a budget stop, and the reverse node discards the close reason | open | T-700 (sftp), T-701 (the node) |
+| #167 | `sftp` prints no near-cap line before a budget stop, and the reverse node discards the close reason | closed | T-700 (sftp), T-701 (the node) |
 | #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | open | T-698 (the drop; T-107 depends on it); the bound of the accept path is T-631 (#129) |
 | #169 | `relay serve`: the contract's limits are fixed constants; only `--keepalive` is configurable | closed 2026-11-09, its entry done | T-704, T-732 (a defect of the byte cap, found by its test) |
 | #170 | `ssh`: the direct road's banner check and the roost's sshd check give opposite verdicts on the same bytes | closed 2026-11-09, its entry done | T-702 |
 | #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | closed 2026-11-09 (`cbb31bc0`), its entry done | T-697 |
-| #172 | `ssh`: a `cf://` destination with the resumable layer keeps the user's SSH keepalives, with no warning | open | T-703 |
+| #172 | `ssh`: a `cf://` destination with the resumable layer keeps the user's SSH keepalives, with no warning | closed | T-703 |
 | #173 | `doctor`: `--full`'s QUIC handshake and stream probes do not run with `--quick` | closed 2026-11-09, its entry done | T-705 |
 | #174 | COORD-007: podssh took podcrates v0.7.0; the entries of cfb's asks of COORD-014 (to podcrates) | open | T-684 (the take at `1fd68cc4`), T-708 to T-731 |
 | #175 | COORD-008: public Wisp servers as a pod-services kind (to podcrates) | closed | T-535 (the list of public Wisp servers, asked of podcrates) |

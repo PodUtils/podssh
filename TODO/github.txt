@@ -172,12 +172,12 @@
 164 issue open
 165 issue closed
 166 issue closed
-167 issue open
+167 issue closed
 168 issue open
 169 issue closed
 170 issue closed
 171 issue closed
-172 issue open
+172 issue closed
 173 issue closed
 174 issue open
 175 issue closed
