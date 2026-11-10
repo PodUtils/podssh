@@ -8325,6 +8325,20 @@ node's ID (its own test caught it; the print now counts the lines), and the pipe
   release take from; a Trojan stand-in in the round's test (the Trojan stand-in is in `tests/trojan.rs`),
   and `scripts/release-short.sh`'s check of the built-in nodes. This entry stays open.
 
+2026-11-10: the lists and the nodes came in `pod-services` of podcrates `v0.10.0` (COORD-020, its
+T-133; taken at `49cb5c8c`): `proxy-list` 3 (`barry-far-list`, `mahdibland-list`, `v2go-list`, each
+on `raw.githubusercontent.com`, with the share that podssh takes measured by podcrates) and
+`proxy-node` 6 (four Trojan nodes over TLS, two VLESS `xhttp` nodes at IP addresses), each with its
+source; the research of Approach step 1 is podcrates'. `forwarder/nodes.rs` reads each of them as it
+is: the test `each_list_and_node_of_the_catalog_is_read_and_each_node_passes_the_filters` (in place of
+the test of the empty catalog) holds that no list or node is left out as a bad row and that each
+node that the binary ships passes podssh's own filters (Q79, Q90). `cargo test -p podssh-cli --lib
+forwarder::nodes`: 4 passed. Planted, `net` among the refused suffixes: the test fails ("left out:
+1 with a name under a school's, a church's or a government's suffix"); put back, it passes. Still
+waiting: Q90's live check of each node before a release (a session to `github.com:22` through it,
+as the kind `proxy-banner` of pod-services watches), the run against Xray-core in a container, the
+Trojan stand-in in the round's test, and `release-short.sh`'s check.
+
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
 
 **Source:** the operator's ruling Q78 (2026-11-02).

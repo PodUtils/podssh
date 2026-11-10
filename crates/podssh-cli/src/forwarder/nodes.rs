@@ -261,11 +261,17 @@ mod tests {
         Plan { lists: lists.iter().map(list).collect(), built_in: nodes.iter().map(|n| n.to_string()).collect() }
     }
 
-    /// The catalog of `pod-services` v0.7.0 has neither kind: the round has
-    /// nothing to try and says nothing (T-574 waits for podcrates' list).
+    /// Each list and each node of the catalog is read, none left out as a
+    /// bad row, and each node that the binary ships passes podssh's own
+    /// filters (Q79, Q90): a change of the filters cannot drop one unseen.
     #[test]
-    fn a_catalog_with_no_list_and_no_node_is_an_empty_plan() {
-        assert!(PLAN.lists.len() <= pod_services::of_kind(KIND_LIST).count());
+    fn each_list_and_node_of_the_catalog_is_read_and_each_node_passes_the_filters() {
+        assert_eq!(PLAN.lists.len(), pod_services::of_kind(KIND_LIST).count(), "a list was left out");
+        assert_eq!(PLAN.built_in.len(), pod_services::of_kind(KIND_NODE).count(), "a node was left out");
+        assert!(!PLAN.is_empty(), "pod-services v0.10.0 names lists and nodes");
+        let body = PLAN.built_in.join("\n");
+        let listed = podssh_ws::proxy_nodes::list::parse(body.as_bytes()).unwrap();
+        assert_eq!(listed.nodes.len(), PLAN.built_in.len(), "a shipped node fails the filters: {:?}", listed.note());
         assert!(Plan::default().is_empty());
         assert!(!plan(&["l.example"], &[]).is_empty());
     }
