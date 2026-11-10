@@ -152,16 +152,6 @@ pub mod groups {
     }
 }
 
-impl From<pod_tls::Error> for WsError {
-    fn from(e: pod_tls::Error) -> WsError {
-        match e {
-            pod_tls::Error::Bundle { path, why } => WsError::Bundle { path, why },
-            pod_tls::Error::Config(why) => WsError::Config(why),
-            other => WsError::Config(other.to_string()),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

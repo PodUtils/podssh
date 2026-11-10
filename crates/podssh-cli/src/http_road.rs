@@ -200,8 +200,8 @@ fn verdict(end: Option<End>, target: &str) -> Verdict {
                 return None;
             }
             let leg = podssh_ws::session::forward_close(Some(code), &reason);
-            let mut lines = vec![format!("{}: {code} {reason}", leg.what(target))];
-            lines.extend(leg.remedy(&reason).map(str::to_string));
+            let mut lines = vec![format!("{}: {code} {reason}", leg.what(target, "podssh"))];
+            lines.extend(podssh_ws::session::Remedy::remedy(leg, &reason).map(str::to_string));
             Some((EX_UNAVAILABLE, lines))
         }
         Some(End::Failed(why)) => Some((EX_UNAVAILABLE, vec![why])),

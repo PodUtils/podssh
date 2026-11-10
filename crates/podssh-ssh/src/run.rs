@@ -97,12 +97,12 @@ pub fn failure_lines(message: &str, relay: Option<&RelayEnd>, target: &str) -> V
             return lines;
         }
     };
-    let mut lines = vec![format!("{label}: {} ({why})", leg.what(target))];
+    let mut lines = vec![format!("{label}: {} ({why})", leg.what(target, "podssh"))];
     let reason = match relay {
         Some(RelayEnd::Closed { reason, .. }) => reason.as_str(),
         _ => "",
     };
-    lines.extend(leg.remedy(reason).map(str::to_string));
+    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(str::to_string));
     lines
 }
 

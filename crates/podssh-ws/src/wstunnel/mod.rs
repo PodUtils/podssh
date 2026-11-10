@@ -297,7 +297,7 @@ pub async fn open(
         Stream::Tls(Box::new(tls.map_err(WstunnelError::Connect)?))
     } else {
         let tcp = dial::dial(h, p, dial.proxy, limit).await;
-        Stream::Plain(tcp.map_err(|e| WstunnelError::Connect(ConnectError::Dial(e)))?)
+        Stream::Plain(Box::new(tcp.map_err(|e| WstunnelError::Connect(ConnectError::Dial(e)))?))
     };
     let upgraded = tokio::time::timeout(limit, upgrade::upgrade(stream, request.as_bytes(), &key)).await;
     let late = |_| WstunnelError::Connect(ConnectError::Timeout { step: "the WebSocket upgrade", after: limit });

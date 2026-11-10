@@ -162,7 +162,7 @@ no `hello` comes (crates/podssh-transport/src/control.rs lines 111-137 at `e8bbd
 T-075 and T-076 (each repaired 2026-10-09).
 
 Read: `RelaySession` has text, binary, Ping and Close writes and a liveness watcher
-(`crates/podssh-ws/src/session.rs:223-334`); `podssh_relay::open::backoff` has a jitter
+(`PodUtils/podssh:crates/podssh-ws/src/session.rs:223-334`); `podssh_relay::open::backoff` has a jitter
 (`crates/podssh-relay/src/open.rs:421-435`). Not measured: whether the relay answers a Ping on a reverse socket
 (`docs/relay.md:386-388` is the forward path), and its idle cut there (`docs/relay.md` lines 191-192 at `cd75137`, T-061). A node
 that connects again ends each operator session on it (`docs/design.md:695-698`).
@@ -230,7 +230,7 @@ cargo test -p podssh-relay --features pair --test reverse_live -- --ignored node
 ```
 
 Offline: the runner runs over an in-memory stream, against a scripted relay that writes real WebSocket frames
-(`RelaySession::new` takes any stream: `crates/podssh-ws/src/session.rs:110-114`). The cases: two mixed sessions
+(`RelaySession::new` takes any stream: `PodUtils/podssh:crates/podssh-ws/src/session.rs:110-114`). The cases: two mixed sessions
 with exact bytes; late bytes after `close` dropped, the socket kept; no data before `ready`; one exit on `409`;
 the hook on `1001 pair expired`; exit and a deleted pair on `1001 operator stopped reverse relay`. Plant: send
 `ready` before the handler returns; that test must fail. Live: pair (T-078), run an echo node, open two
@@ -642,7 +642,7 @@ types and two retry tables for one protocol, which is how `403` and `503` alread
    `crates/podssh-relay/tests/reverse_closes.rs` checks against the pinned copy (Approach, step 4).
    The copy stays in `crates/podssh-probe/tests/spec/` until T-060 decides.
 6. The Close captured from the live relay is a fixture of `podssh-ws`, which reads the Close
-   (`crates/podssh-ws/tests/control_frames.rs`).
+   (`PodUtils/podssh:crates/podssh-ws/tests/control_frames.rs`).
 7. The examples open their session through `podssh_relay::open`, as the commands do, and take a
    token from the environment, the cache or a mint: `crates/podssh-relay/examples/live_forward.rs`
    replaces the crate's example, and `crates/podssh-cli/examples/live_irc.rs` uses podssh's own
@@ -680,7 +680,7 @@ compiler. Plant: leave one `use podssh_transport` in an example; the build must 
   (`ready_waits_for_the_handler_and_comes_before_data`, `plant_data_before_ready`,
   `input_before_ready_is_kept_then_sent_in_order`), a Close keeps its code and reason
   (`a_close_of_the_relay_ends_the_socket_with_its_code_and_reason`), and the token travels in its
-  header (`crates/podssh-ws/tests/rfc6455.rs:280`).
+  header (`PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs:280`).
 - Deleted: crates/podssh-transport, its lines in `Cargo.toml`, `Cargo.lock` and
   `crates/podssh-cli/Cargo.toml`, and its name in the library lists of `scripts/gate.sh` and
   `scripts/plant.sh`. The comments that named it in `podssh-core`, `podssh-ws` and a test of
@@ -3916,7 +3916,7 @@ Read at `2042200`:
   `crates/podssh-relay/src/e2e/net.rs:8` says "An end of before must never meet a form that it does not
   read." A node outside the net, or of before, is let in by its own door and its key's proof; the
   document carries the net's newer state, not the session's admission. The issue reads it as a downgrade.
-- The dialer's headers are fixed in `crates/podssh-ws/src/handshake.rs:52`.
+- The dialer's headers are fixed in `PodUtils/podssh:crates/podssh-ws/src/handshake.rs:52`.
 
 ## Approach
 

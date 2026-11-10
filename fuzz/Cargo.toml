@@ -37,13 +37,6 @@ ssh-key = { path = "../vendor/ssh-key" }
 debug = 1
 
 [[bin]]
-name = "ws_frame"
-path = "fuzz_targets/ws_frame.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
 name = "http_head"
 path = "fuzz_targets/http_head.rs"
 test = false
@@ -53,13 +46,6 @@ bench = false
 [[bin]]
 name = "http_chunked"
 path = "fuzz_targets/http_chunked.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "ws_upgrade"
-path = "fuzz_targets/ws_upgrade.rs"
 test = false
 doc = false
 bench = false
@@ -88,13 +74,6 @@ bench = false
 [[bin]]
 name = "socks5_answer"
 path = "fuzz_targets/socks5_answer.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "close_reason"
-path = "fuzz_targets/close_reason.rs"
 test = false
 doc = false
 bench = false

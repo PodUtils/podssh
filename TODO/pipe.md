@@ -1609,19 +1609,19 @@ user who needs `websocat` must bring it, and a cage may not run it.
   relay is reached by `relay:HOST:PORT`, whose path is the relay's forward path (`:139-145`), and
   `tcp:HOST:PORT` carries bytes in the clear to any host that the user names (`:27-28`).
 - Read: the endpoint of the client is a host, a port and a path
-  (`crates/podssh-ws/src/client.rs:48-55`); `validate` refuses a query other than the relay's
+  (`PodUtils/podssh:crates/podssh-ws/src/client.rs:48-55`); `validate` refuses a query other than the relay's
   knobs, as a query goes into the logs of proxies (`:74-113`); `connect` takes a token and sends it
   in `X-Relay-Token` (`:181-205`); the name of the certificate has no bypass (`:63-65`); the upgrade
   is generic over its stream (`:237-243`).
 - Read: the token never goes in a URL, and the request has no query
-  (`crates/podssh-ws/src/handshake.rs:1-8`); `accept_key` gives the server's value (`:82`), tested
-  on the vector of RFC 6455 (`crates/podssh-ws/tests/rfc6455.rs:259`).
+  (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:1-8`); `accept_key` gives the server's value (`:82`), tested
+  on the vector of RFC 6455 (`PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs:259`).
 - Read: the codec of frames takes its role, and never writes a masked frame of a server
-  (`crates/podssh-ws/src/frame.rs:61-70`); a session is generic over its stream
-  (`crates/podssh-ws/src/session.rs:40`).
+  (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:61-70`); a session is generic over its stream
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:40`).
 - Read: plain `ws://` goes to the loopback only, for tests, behind the feature `plain-ws`, which
   the binary never enables, as the relay's token over plain TCP must not leave the host
-  (`crates/podssh-ws/src/plain.rs:1-6`).
+  (`PodUtils/podssh:crates/podssh-ws/src/plain.rs:1-6`).
 - Read: the rules of a listener of `pipe` (`crates/podssh-cli/src/pipe/listen.rs:1-13`; T-177).
 
 ## Approach
@@ -1682,7 +1682,7 @@ user who needs `websocat` must bring it, and a cage may not run it.
 - The server's session is `RelaySession` with a role (`as_server`), and its errors name the other
   end (`naming`), the relay's words unchanged by default: one reader, one writer and one reassembly
   of fragments for both sides. The writer and the reader of frames for a role are in
-  `crates/podssh-ws/src/wire.rs`. Lost: a second session for the server, which would repeat the
+  `PodUtils/podssh:crates/podssh-ws/src/wire.rs`. Lost: a second session for the server, which would repeat the
   reassembly, the Pings and the closing handshake.
 
 ## Prove
@@ -1703,10 +1703,12 @@ Planted: the server's frames encoded as `Role::Client`; the test of the masks fa
 ## Correction
 
 2026-10-31: two citations name other lines, as they did when the entry was written (read at
-`8207d29`). The role of the codec is `crates/podssh-ws/src/frame.rs:74-83`, and `encode` ignores a
-key of a server's at `:85-88`; `crates/podssh-ws/src/frame.rs:61-70` holds the markers of a length
+`8207d29`). The role of the codec is `PodUtils/podssh:crates/podssh-ws/src/frame.rs:74-83`, and `encode` ignores a
+key of a server's at `:85-88`; `PodUtils/podssh:crates/podssh-ws/src/frame.rs:61-70` holds the markers of a length
 and `Frame`. The relay was a separate project then, a ruling that Q63 replaced on 2026-11-02
 (`docs/decisions.md:44`); `docs/decisions.md:80` is the ruling on a listener that the user asks for. Nothing in the Approach changes.
+
+The test target `rfc6455` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates when podssh took the crate: `cargo test -p pod-ws --all-features` there runs it, with its names.
 
 ## Done
 
@@ -1910,7 +1912,7 @@ text, the same for each path. An owner who put a name on the port has no page to
 Read at `2042200`:
 
 - `crates/podssh-cli/src/pipe/ws_listen.rs:76` reads the head and checks it with
-  `crates/podssh-ws/src/server.rs:52`, which refuses a request with no upgrade at `:83`, which says
+  `PodUtils/podssh:crates/podssh-ws/src/server.rs:52`, which refuses a request with no upgrade at `:83`, which says
   "this is a WebSocket: Upgrade: websocket and Connection: Upgrade".
 - The answer's writer always writes text: `PodUtils/podssh:crates/podssh-ws/src/http/request.rs:286` says
   "Content-Type: text/plain; charset=utf-8".
@@ -1919,7 +1921,7 @@ Read at `2042200`:
   `crates/podssh-relay/src/serve/reverse/mod.rs:104`, `409` and `429` in
   `crates/podssh-relay/src/serve/reverse/mod.rs:207-211`, `413` in
   `crates/podssh-relay/src/serve/mod.rs:407`). A small defect, found here (rule 8 of `AGENTS.md`).
-- The check reads no path (`crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
+- The check reads no path (`PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
 - The flag's neighbours: `crates/podssh-cli/src/flags/pipe.rs:40` (`keep-listening`), refused with no
   listening side in `crates/podssh-cli/src/pipe/mod.rs:78`; `crates/podssh-cli/src/pipe/serve.rs:34`.
@@ -2052,8 +2054,8 @@ as a client and cannot answer it.
 
 Read at `2042200`:
 
-- `crates/podssh-ws/src/server.rs:52-107` checks in a fixed order; the version comes before the key:
-  `crates/podssh-ws/src/server.rs:91` says "this server speaks version 13 of RFC 6455", and a request with
+- `PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107` checks in a fixed order; the version comes before the key:
+  `PodUtils/podssh:crates/podssh-ws/src/server.rs:91` says "this server speaks version 13 of RFC 6455", and a request with
   no key is refused at `:96`.
 - podssh's WebTunnel client sends no key and no version (`crates/podssh-ws/src/webtunnel.rs:1-6`), and
   takes a `101` with the two headers and no `Sec-WebSocket-Accept`

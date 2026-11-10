@@ -602,7 +602,7 @@ lines say what. `cargo +nightly fuzz list` names the targets.
 ```sh
 export PODSSH_BUILD_IMAGE=docker.io/library/rust:1-trixie   # glibc, for this machine's runs
 sh scripts/dev.sh run -- 'sh /work/scripts/fuzz.sh 120'      # each target for 120 s
-sh scripts/dev.sh run -- 'sh /work/scripts/fuzz.sh 60 ws_frame close_reason'
+sh scripts/dev.sh run -- 'sh /work/scripts/fuzz.sh 60 known_hosts_line http_chunked'
 gh workflow run fuzz.yml -f seconds=300                       # in CI
 ```
 

@@ -101,7 +101,7 @@ impl Server {
             return Ok(Stream::Tls(Box::new(tls)));
         }
         let tcp = dial::dial(&self.host, self.port, &proxy, CONNECT_WAIT).await.map_err(|e| e.to_string())?;
-        Ok(Stream::Plain(tcp))
+        Ok(Stream::Plain(Box::new(tcp)))
     }
 }
 

@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7028-7029`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7036-7037`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -1508,10 +1508,10 @@ Read:
   only the write can end the wait.
 - The relay leg limits each write: `WRITE_TIMEOUT` is 60 s
   (`crates/podssh-ws/src/client.rs:42-43`, given to the session at
-  `crates/podssh-ws/src/client.rs:204`), and `write` applies it
-  (`crates/podssh-ws/src/session.rs:420-427`). Then the copy task stops
+  `PodUtils/podssh:crates/podssh-ws/src/client.rs:204`), and `write` applies it
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:420-427`). Then the copy task stops
   (`crates/podssh-ssh/src/relay_stream.rs:216-232`), the next ping meets the
-  same limit and ends the read task (`crates/podssh-ws/src/session.rs:329-332`,
+  same limit and ends the read task (`PodUtils/podssh:crates/podssh-ws/src/session.rs:329-332`,
   `crates/podssh-ssh/src/relay_stream.rs:240-251`), and russh's next write
   fails. So the relay road ends a stuck write in about 60 to 130 s.
 - The direct road gives russh the TCP stream with only `nodelay` set
@@ -3147,7 +3147,7 @@ and a cut file. The relay's close is in `--result-file` alone.
   a status, then a lost link, reads as the command's end.
 - Read: a run that ends with a code prints no line, whatever the relay's close
   (`crates/podssh-ssh/src/run.rs:63`); the lines of a close, with "a session carries 64 MiB at
-  most" (`crates/podssh-ws/src/close.rs:91-93`), come for a run that failed alone
+  most" (`PodUtils/podssh:crates/podssh-ws/src/close.rs:91-93`), come for a run that failed alone
   (`crates/podssh-ssh/src/run.rs:87-107`).
 - Read: the exec of the copy and the probes takes the same rule: a status, then a lost channel, is
   its end (`crates/podssh-ssh/src/exec.rs`, line 109 at `582b1bf`).
@@ -3419,11 +3419,11 @@ first word is the cut's. A warning 30 s before would let the user press a key, o
 
 - Read: the warning at the connect, on the relay's road when ServerAliveInterval is off or at least
   the cut (`crates/podssh-cli/src/ssh/resolve.rs:395-398`); after the cut, the relay's close with
-  its remedy (`crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
+  its remedy (`PodUtils/podssh:crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
   (`crates/podssh-relay/src/relay.rs:97-100`), counted on payload alone (`docs/relay.md:473`).
 - Read: the relay stream counts the payload both ways
   (`crates/podssh-ssh/src/relay_stream.rs:133-137`), and keeps the time of the relay's last frame
-  of any kind, keepalives among them (`crates/podssh-ws/src/session.rs:291-294`,
+  of any kind, keepalives among them (`PodUtils/podssh:crates/podssh-ws/src/session.rs:291-294`,
   `crates/podssh-ssh/src/relay_stream.rs:192`); it kept no time of the last payload before this
   entry's draft (read at `582b1bf`). So #98's
   reading that the client already knows the time of the last byte holds for no clock that the cut

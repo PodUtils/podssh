@@ -234,8 +234,8 @@ impl Ending for RelayEnding {
                 Some(Ended::Closed { code: Some(code), reason }) => {
                     // The hop first; `CODE REASON` stays as the relay wrote it.
                     let leg = podssh_ws::session::forward_close(Some(code), &reason);
-                    let mut lines = vec![format!("{}: {code} {reason}", leg.what(&target))];
-                    lines.extend(leg.remedy(&reason).map(str::to_string));
+                    let mut lines = vec![format!("{}: {code} {reason}", leg.what(&target, "podssh"))];
+                    lines.extend(podssh_ws::session::Remedy::remedy(leg, &reason).map(str::to_string));
                     lines.extend(podssh_relay::relay::ipv6_note(v6, &reason).map(str::to_string));
                     Some((EX_UNAVAILABLE, lines))
                 }

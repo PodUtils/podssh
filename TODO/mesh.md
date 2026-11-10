@@ -8256,7 +8256,7 @@ client (`docs/research/forward-carriers.md`, section 3.6): through `loca.lt`, cu
 16 MiB of random bytes with no `Bypass-Tunnel-Reminder` and got `200` and exactly 16,777,216
 bytes, at 1.80 MiB/s, so no page came before the file (Read in its results/reverse.json and
 tools/measure_reverse.py). Inferred: the page keys on a browser's `User-Agent`, which curl does not
-send. podssh sends `podssh/` and its version (`crates/podssh-ws/src/url.rs:25`), so its client may
+send. podssh sends `podssh/` and its version (`PodUtils/podssh:crates/podssh-ws/src/url.rs:25`), so its client may
 never meet the page, and the Prove's plant, the header left out, may pass unseen. Step 3 keeps the
 header, which costs nothing. The plant changes: the live client with the header left out and a
 browser's `User-Agent` meets the page, which the test names; where it still gets the tunnel's
@@ -9538,7 +9538,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 
 - Read: the node's side of the reverse road runs over any `RelaySession<S>`
   (`crates/podssh-relay/src/reverse/serve.rs:163`), and a `RelaySession` is made over any stream,
-  with no HTTP in it (`crates/podssh-ws/src/session.rs:110-114`).
+  with no HTTP in it (`PodUtils/podssh:crates/podssh-ws/src/session.rs:110-114`).
 - Read: podssh's relay role serves the relay's side of a node's socket and of an operator's
   (`crates/podssh-relay/src/serve/reverse/mod.rs:1-3`, T-427).
 - Read: `pipe`'s local addresses are `stdio` (or `-`), `fd:N` and `exec:CMD`, a program with no
@@ -10694,7 +10694,7 @@ through an HTTP CONNECT proxy.
   its file crates/podssh-ws/src/turn/mod.rs, and its docs/poc.md: "proxy logs 2 CONNECTs").
   `AGENTS.md:340` says "Make one outbound connection", with five exceptions, none for this road.
 - podssh-ws holds the parts of TURN's long-term credential in pure Rust: `hmac`
-  (`crates/podssh-ws/Cargo.toml:30`), and `md5` and `sha1` (`crates/podssh-ws/Cargo.toml:47-48`);
+  (`crates/podssh-ws/Cargo.toml:34`), and `md5` and `sha1` (`crates/podssh-ws/Cargo.toml:51-52`);
   and a resolver order of its own (`PodUtils/podssh:crates/podssh-ws/src/resolve.rs:2` says "resolver works. In
   order"), as a Connect names an address, not a name.
 - No code of podssh names TURN: `crates/podssh-ws/src/forwarder/template.rs:65` says "a

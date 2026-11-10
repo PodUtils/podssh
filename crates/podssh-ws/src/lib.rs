@@ -109,7 +109,6 @@ pub mod vless;
 pub mod wake;
 // Tor's WebTunnel, for a bridge of the Tor road (T-385).
 pub mod webtunnel;
-mod wire;
 // Many TCP streams over one WebSocket, by the Wisp protocol (T-438).
 pub mod wisp;
 // A write that makes no progress fails at its limit, as pod-proxy bounds it.

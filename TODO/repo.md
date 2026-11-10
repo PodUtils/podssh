@@ -1369,7 +1369,7 @@ Read:
 
 - `scripts/gate.sh` lines 55-166 at `528bb64` have no step for rustfmt or clippy. There is no
   rustfmt.toml and no clippy.toml.
-- One `allow` for clippy exists (`crates/podssh-ws/src/client.rs:337`).
+- One `allow` for clippy exists (`PodUtils/podssh:crates/podssh-ws/src/client.rs:337`).
 - Files near 500 lines: `crates/podssh-cli/src/flags.rs` (469),
   crates/podssh-transport/src/socket.rs at `e8bbd4d` (458),
   `crates/podssh-cli/src/tree.rs` (454). Formatting can make a file longer.
@@ -1452,7 +1452,7 @@ fail clippy (`len_zero`); two spaces before an `=` must fail the fmt step.
 read. `crates/podssh-cli/src/tree.rs` is 358 lines (T-051 moved `Parsed` to
 `parsed.rs`); `crates/podssh-cli/src/flags.rs` is 482;
 crates/podssh-transport/src/socket.rs at `e8bbd4d` is 480 (T-071);
-`crates/podssh-cli/src/dispatch.rs` is 480; `crates/podssh-ws/tests/rfc6455.rs`
+`crates/podssh-cli/src/dispatch.rs` is 480; `PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs`
 is 486. Measure again before the format.
 
 2026-10-09: the gate of CI failed at its step of clippy on the push of this

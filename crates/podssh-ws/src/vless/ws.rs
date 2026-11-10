@@ -40,7 +40,7 @@ pub(super) async fn open(server: &Server, first: Vec<u8>, dial: &Dial<'_>) -> Re
         url::Stream::Tls(Box::new(tls))
     } else {
         let tcp = crate::dial::dial(&server.host, server.port, dial.proxy, dial.timeout).await;
-        url::Stream::Plain(tcp.map_err(VlessError::Dial)?)
+        url::Stream::Plain(Box::new(tcp.map_err(VlessError::Dial)?))
     };
     let upgraded = tokio::time::timeout(dial.timeout, client::upgrade_with(stream, &request, &key))
         .await

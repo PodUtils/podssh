@@ -26,9 +26,9 @@ acceptance on rare input stays hidden. The release build aborts on a panic
 ## Premise
 
 Read, the parsers that take input from a peer or a file: WebSocket frames
-(`crates/podssh-ws/src/frame.rs:144`); HTTP heads and chunked bodies
+(`PodUtils/podssh:crates/podssh-ws/src/frame.rs:144`); HTTP heads and chunked bodies
 (`PodUtils/podssh:crates/podssh-ws/src/http.rs:125`, line 183 at `e892b0f`); the upgrade answer
-(`crates/podssh-ws/src/handshake.rs:195`); proxy URLs
+(`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:195`); proxy URLs
 (`PodUtils/podssh:crates/podssh-ws/src/proxy.rs:82`), `NO_PROXY` and the CONNECT status
 (`crates/podssh-ws/src/dial.rs`, lines 178 and 334 at `22c3b88`); since T-070 (2026-10-11), a
 SOCKS5 proxy's answers (`PodUtils/podssh:crates/podssh-ws/src/socks5.rs:156`); close
@@ -63,7 +63,7 @@ compiler.
 4. Seeds from bytes that podssh did not make:
    `crates/podssh-core/tests/fixtures/grammar.txt`,
    `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`, and the
-   frames of `crates/podssh-ws/tests/rfc6455.rs`.
+   frames of `PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs`.
 5. A scheduled workflow (also by hand) runs each target for 120 s with a
    pinned nightly toolchain and `-rss_limit_mb=512`, and keeps a crash input
    as an artifact; it is not in the gate (nightly Rust and C++). Each crash
@@ -109,6 +109,14 @@ The list names each target, and each run ends with no crash (`ws_frame`
 after T-063). Planted defect: remove the length guard of
 `close_code_and_reason` (`crates/podssh-ws/src/close.rs:21-23`);
 `close_reason` must crash within its 120 s.
+
+## Correction
+
+2026-11-10. The targets `ws_frame`, `ws_upgrade` and `close_reason` fuzzed the WebSocket code of
+`crates/podssh-ws`, which went to `pod-ws` of PodUtils/podcrates when podssh took it (T-684,
+`v0.13.0`): they run in podcrates' `fuzz/` now, beside the code that they read, and podssh's copies
+are gone (`fuzz/Cargo.toml`, `fuzz/fuzz_targets/`). The Prove's runs of `ws_frame` and
+`close_reason` and the counts below are this entry's history; a run of them is podcrates'.
 
 ## Done
 
@@ -522,12 +530,12 @@ tests.
 
 Read, the bounds today:
 
-- A frame: 262144 bytes (`crates/podssh-ws/src/frame.rs:30`, refused at lines
+- A frame: 262144 bytes (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:30`, refused at lines
   180-194). A message in fragments: 16 MiB
-  (`crates/podssh-ws/src/session.rs:36`, checked at lines 240-242 at `23b5d82`).
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:36`, checked at lines 240-242 at `23b5d82`).
 - A response head: 16 KiB for HTTP (`PodUtils/podssh:crates/podssh-ws/src/http.rs:13`), for the
   proxy (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:25`) and for the upgrade
-  (`crates/podssh-ws/src/handshake.rs:144`).
+  (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:144`).
 - The pool document: 256 KiB (`crates/podssh-relay/src/pool.rs:37`). A cache
   file: 64 KiB (`crates/podssh-relay/src/cache.rs:47`).
 - The SSH window: 512 KiB (`crates/podssh-ssh/src/run.rs:30`). The relay pipe:
@@ -586,18 +594,20 @@ Each command exits 0. Planted defect: set `WINDOW`
 channel (`channel_buffer_size`, `crates/podssh-ssh/src/run_config.rs:68-81`) to
 2^20 messages; the slow-reader check must fail. The window alone is not
 enough: the queue is a second bound (Correction). A second plant: remove the
-check at `crates/podssh-ws/src/session.rs:476-478`; the fragment test must
+check at `PodUtils/podssh:crates/podssh-ws/src/session.rs:476-478`; the fragment test must
 fail.
 
 ## Correction
 
 2026-10-11, read against the Premise; each holds at the cited lines:
 
-- The frame's bound refuses a 64-bit length (`crates/podssh-ws/src/frame.rs:221-223`). The check
-  after it (`crates/podssh-ws/src/frame.rs:229-231`) cannot fire: a shorter length is at most 65535.
+The test target `limits` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates when podssh took the crate: `cargo test -p pod-ws --all-features` there runs it, with its names.
+
+- The frame's bound refuses a 64-bit length (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:221-223`). The check
+  after it (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:229-231`) cannot fire: a shorter length is at most 65535.
 - The upgrade that podssh sends is `client::upgrade`, whose bound was a literal; it is
   `UPGRADE_HEAD` now (`crates/podssh-ws/src/client.rs:46`). `MAX_HANDSHAKE_RESPONSE`
-  (`crates/podssh-ws/src/handshake.rs:144`) bounds `handshake::handshake`, which no command calls.
+  (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:144`) bounds `handshake::handshake`, which no command calls.
 - The steps of the connection wait `CONNECT_TIMEOUT` each (`crates/podssh-relay/src/open.rs:33`).
   `DEFAULT_TIMEOUT` (`crates/podssh-ws/src/client.rs:29`) is a default for an embedder, which no
   command of podssh takes.
@@ -643,7 +653,7 @@ whose output nobody reads; `scripts/interop-baseline.txt` has its two ids.
 - `cargo test -p podssh-ssh --test known_hosts`: 17 passed. A file of 16 MiB is read; one byte
   more is unreadable, with its reason, and a record into it is refused, the file unchanged.
 - Planted, natively: without the check of fragments
-  (`crates/podssh-ws/src/session.rs:476-478`), a message of 16777217 bytes came through, and the
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:476-478`), a message of 16777217 bytes came through, and the
   test failed; without the bound of `known_hosts`, the larger file was read, and the test failed.
 - In the build image, `scripts/interop-limits.sh` alone with the Prove's plants: as the code is, a
   reader that took each byte peaked at 6884 KiB, and one that took nothing for 30 s at 7460 KiB,
@@ -675,10 +685,10 @@ split of the input only is not found.
 
 Read: the candidates, each a pure function or a state machine with no I/O.
 
-- WebSocket frames: `encode` and `decode` (`crates/podssh-ws/src/frame.rs:98`,
-  `crates/podssh-ws/src/frame.rs:144`).
-- The joining of fragments (`crates/podssh-ws/src/session.rs:470-494`). It is
-  private, but `RelaySession::new` (`crates/podssh-ws/src/session.rs:114`) takes
+- WebSocket frames: `encode` and `decode` (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:98`,
+  `PodUtils/podssh:crates/podssh-ws/src/frame.rs:144`).
+- The joining of fragments (`PodUtils/podssh:crates/podssh-ws/src/session.rs:470-494`). It is
+  private, but `RelaySession::new` (`PodUtils/podssh:crates/podssh-ws/src/session.rs:114`) takes
   any stream, so a test can drive it.
 - Relay lists and paths (`crates/podssh-relay/src/relay.rs:173-266`, `crates/podssh-ws/src/names.rs:8-85`).
 - `known_hosts` patterns (`crates/podssh-ssh/src/known_hosts.rs:277-333`).
@@ -736,7 +746,7 @@ Decided in the work (2026-10-12):
   terminal oracle's (T-200).
 - The property of a message past 16 MiB takes 4 inputs: each moves more
   than 16 MiB through the session. Its bound is
-  `crates/podssh-ws/tests/limits.rs` too, at 16 MiB and one byte more.
+  `PodUtils/podssh:crates/podssh-ws/tests/limits.rs` too, at 16 MiB and one byte more.
 - A long payload of a frame comes from a seed (a fixed xorshift), and its
   length leans to where the length field changes (125, 126, 65535, 65536)
   and to the forward cap: a payload of 262144 bytes made byte by byte by
@@ -759,8 +769,12 @@ sh scripts/dev.sh check     # proptest builds under CC=/nonexistent and CXX=/non
 ```
 
 Each command exits 0. Planted defect: in `encode`, mask with
-`masking_key[(i + 1) % 4]` (`crates/podssh-ws/src/frame.rs:131`); the round
+`masking_key[(i + 1) % 4]` (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:131`); the round
 trip of frames must fail and print the smallest frame that fails.
+
+## Correction
+
+The test target `properties` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates when podssh took the crate: `cargo test -p pod-ws --all-features` there runs it, with its names.
 
 ## Done
 
@@ -768,7 +782,7 @@ trip of frames must fail and print the smallest frame that fails.
 - `proptest` 1.11 in `[workspace.dependencies]` (`Cargo.toml`), a
   dev-dependency of podssh-ws, podssh-relay, podssh-ssh, podssh-core and
   podssh-terminal.
-- `crates/podssh-ws/tests/properties.rs`:
+- `PodUtils/podssh:crates/podssh-ws/tests/properties.rs`:
   `a_frame_reads_back_whole_and_no_prefix_is_a_frame`,
   `a_control_frame_that_rfc_6455_forbids_is_refused`,
   `a_message_cut_into_any_fragments_arrives_whole` (fragments, Pings

@@ -1235,7 +1235,7 @@ The new Approach, in place of the one above:
    SIGHUP), or from ACME (TLS-ALPN-01 on the same port) for a name that the user gives. The
    routes, the tokens, the policy and the codecs go in `podssh-relay`, with no C (rule 4 of
    `AGENTS.md`); the server's signing key and ACME go in `podssh-cli`, which links aws-lc
-   already. Reused: the server's side of the handshake (`crates/podssh-ws/src/server.rs:1-5`),
+   already. Reused: the server's side of the handshake (`PodUtils/podssh:crates/podssh-ws/src/server.rs:1-5`),
    the request reader and the listeners' probe.
 2. Tokens of the contract's form, `ephm1.<expiry-ms>.forward.<mac>`, under a secret of the
    role's in a 0600 file. `/v1/mint` mints for a key of the net's members (T-429), and before
@@ -1367,7 +1367,7 @@ on TCP, and registers with Cap'n Proto RPC. Read: the measured proxy allows
 and the sandbox refuses UDP (`docs/target-environment.md:23`). If the edge
 needs port 7844, a cage cannot publish a tunnel. A client in a cage can still
 reach the tunnel's name on port 443 with `podssh-ws`
-(`crates/podssh-ws/src/client.rs:181-205`).
+(`PodUtils/podssh:crates/podssh-ws/src/client.rs:181-205`).
 
 ## Approach
 
@@ -1430,7 +1430,7 @@ that the section names.
 quick tunnel uses QUIC alone unless the user names `--protocol http2`: cloudflared sets `quic`
 for it, and a protocol that the user names has no fallback (`docs/design.md:323-327`). And the
 client in a cage is the road of T-264, `crates/podssh-ws/src/cloudflare.rs`, whose upgrade is
-cloudflared's; the cited `crates/podssh-ws/src/client.rs:181-205` is the relay's upgrade, with
+cloudflared's; the cited `PodUtils/podssh:crates/podssh-ws/src/client.rs:181-205` is the relay's upgrade, with
 its token header.
 
 ## Done
@@ -1474,7 +1474,7 @@ Cloudflare Access. From a cage, podssh cannot reach it: the client is
 ## Premise
 
 Read: podssh's WebSocket client sends its credential in one fixed header,
-`X-Relay-Token` (`crates/podssh-ws/src/client.rs:181-205`,
+`X-Relay-Token` (`PodUtils/podssh:crates/podssh-ws/src/client.rs:181-205`,
 `crates/podssh-ws/src/handshake.rs:3`), through `HTTPS_PROXY`, with podssh's
 own TLS provider; the measured proxy allows `CONNECT` to port 443
 (`docs/target-environment.md:21`). Not verified here (to read in the source
@@ -1544,7 +1544,7 @@ publishes waits for the operator.
 ## Correction
 
 The command of the Prove runs no test: the test file is behind the feature `plain-ws`, as
-`crates/podssh-ws/tests/plain_loopback.rs` is; measured on 2026-10-11, it ran 0 tests. The command
+`PodUtils/podssh:crates/podssh-ws/tests/plain_loopback.rs` is; measured on 2026-10-11, it ran 0 tests. The command
 is `cargo test -p podssh-ws --features plain-ws --test cloudflare_access`. No bytes were captured
 from `cloudflared access tcp`: the stand-in checks the upgrade against cloudflared's source, read
 at `bf4f502`. A capture of the program, and the live check, wait for a service that the operator
@@ -3453,10 +3453,10 @@ Read and verified at the cited lines (2026-10-30):
 - podssh offers no ALPN: `PodUtils/podssh:crates/podssh-ws/src/tls.rs:325` says "no ALPN",
   and a caller's configuration that offers ALPN is refused
   (`PodUtils/podssh:crates/podssh-ws/src/tls.rs:86` says "alpn_protocols.is_empty()").
-- The upgrade is HTTP/1.1: `crates/podssh-ws/src/handshake.rs:52` builds
-  it, and `crates/podssh-ws/src/handshake.rs:205` says "status != 101".
+- The upgrade is HTTP/1.1: `PodUtils/podssh:crates/podssh-ws/src/handshake.rs:52` builds
+  it, and `PodUtils/podssh:crates/podssh-ws/src/handshake.rs:205` says "status != 101".
 - A relay session is generic over its stream
-  (`crates/podssh-ws/src/session.rs:42`, whose default since T-326 is TLS
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:42`, whose default since T-326 is TLS
   or TCP alone, and `:110`). RFC 8441 section 5 runs the frames of RFC 6455 on the HTTP/2
   stream "as if it were the TCP connection", and drops `Sec-WebSocket-Key`
   and `Sec-WebSocket-Accept`.
@@ -3515,7 +3515,7 @@ this road.
   would set.
 - **The SETTINGS are read before any request, by a PING** after HTTP/2's handshake: the
   server's SETTINGS are its first frame (RFC 9113, section 3.4), so they were applied once the
-  PING's answer came (`crates/podssh-ws/src/h2_road/dial.rs:46` says
+  PING's answer came (`PodUtils/podssh:crates/podssh-ws/src/h2_road/dial.rs:46` says
   "is_extended_connect_protocol_enabled() {"). Lost: h2's `ready()`, which returns before them,
   as h2 takes 100 streams until it reads them; a CONNECT sent at once, which RFC 8441, section 3,
   forbids and which a server with no setting resets (`hyperium/h2:src/proto/streams/recv.rs`).
@@ -3524,7 +3524,7 @@ this road.
   pays nothing. Where it chose `h2` with no extended CONNECT, that connection closes, and only
   then does the upgrade's open, so a session holds one connection at a time (`AGENTS.md`,
   section 5, rule 2). Lost: a second dial after each `http/1.1`, a connection for nothing.
-- **How sessions share a connection: a pool of the process** (`crates/podssh-ws/src/h2_road/pool.rs`),
+- **How sessions share a connection: a pool of the process** (`PodUtils/podssh:crates/podssh-ws/src/h2_road/pool.rs`),
   by the host, its port, the certificate's name, the trust and the proxy; one connection of a
   host made at a time, under a lock of that host alone, so that sessions that start together
   share it and the race between relay hosts waits for none; 16 sessions at most on one, or the
@@ -3653,7 +3653,7 @@ with the setting absent; the fallback test fails. Live, on a GitHub runner where
 `podssh relay serve` runs: `podssh doctor` names `h2` and the setting, and `podssh ssh` runs on
 the road.
 
-2026-11-04 (the drafting agent). The Premise holds at its lines; `crates/podssh-ws/src/session.rs:110`
+2026-11-04 (the drafting agent). The Premise holds at its lines; `PodUtils/podssh:crates/podssh-ws/src/session.rs:110`
 holds the session's methods once the draft adds its field. Since T-444 (done) each trust's
 configuration is kept (`PodUtils/podssh:crates/podssh-ws/src/tls.rs:124` says "pub fn config_for(trust: &Trust)"),
 so a second connection of a run resumes TLS: the motive's "each dial builds a new rustls
@@ -3711,7 +3711,7 @@ are `let Err(..) = .. else`. What the draft holds:
   WebSocket over HTTP/2" (`crates/podssh-cli/src/man/facts/http_road.rs`), and the notes of `ssh`,
   `relay serve` and `doctor`; `docs/relay.md` ("The relay role's HTTP/2"), `docs/cli.md`,
   `docs/architecture.md`, `SECURITY.md`, `docs/STATUS.md`.
-- The tests: `crates/podssh-ws/tests/h2_road.rs` (stand-ins whose HTTP/2 is h2's server, with
+- The tests: `PodUtils/podssh:crates/podssh-ws/tests/h2_road.rs` (stand-ins whose HTTP/2 is h2's server, with
   and without the setting, and one whose TLS chooses `http/1.1`; each HEADERS frame counted off
   the wire), `crates/podssh-relay/tests/relay_serve_h2.rs` (the role behind TLS of the test's CA,
   as `serve::listener::connection` takes a connection), and the unit tests of each new file; the
@@ -5928,7 +5928,7 @@ relay's path and token.
   path is `/connect/<host>/<port>` (`:181-194`); a run has one road, of five kinds
   (`crates/podssh-cli/src/ssh/resolve.rs:23-80`).
 - Read: `validate` refuses a query other than the relay's knobs, and `connect` always sends a token
-  (`crates/podssh-ws/src/client.rs:74-113`, `:181-205`); a token goes only to the deployment that
+  (`PodUtils/podssh:crates/podssh-ws/src/client.rs:74-113`, `:181-205`); a token goes only to the deployment that
   minted it (`docs/decisions.md:97`).
 - Read: a SOCKS5 proxy that the user names in `ALL_PROXY` carries each road already (T-070;
   `PodUtils/podssh:crates/podssh-ws/src/socks5.rs:1-7`): podssh takes a third party's proxy that the user chooses.
@@ -6249,7 +6249,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: a prompt goes to the terminal, or to the program of `SSH_ASKPASS`, chosen as OpenSSH
   chooses it (`crates/podssh-ssh/src/prompt.rs:1-12`).
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
-  and then a reset: `TODO/ws.md:1184` says "gets 200, then a reset". A proxy that waits for TLS
+  and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
   port 443 answers (`docs/STATUS.md:189`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
@@ -6376,11 +6376,11 @@ TCP, and podssh runs no `ProxyCommand` that could add TLS.
   `cf://`, `node://` or `iroh:` (`crates/podssh-cli/src/ssh/resolve.rs:23-80`).
 - Read: podssh runs no `ProxyCommand` (`crates/podssh-cli/src/ssh/options.rs:231-236`).
 - Read: podssh-ws opens TCP through the proxy, then a TLS handshake checked for a name
-  (`crates/podssh-ws/src/client.rs:207-235`), with no ALPN and no client certificate
+  (`PodUtils/podssh:crates/podssh-ws/src/client.rs:207-235`), with no ALPN and no client certificate
   (`PodUtils/podssh:crates/podssh-ws/src/tls.rs:325-328`).
 - Read: the agent proxy of a cloud container re-terminates TLS for some names, with its CA in
   `SSL_CERT_FILE` (`docs/target-environment.md:61-70`), and reset SSH on port 443
-  (`TODO/ws.md:1182-1185`). Inferred: SSH inside TLS passes such a proxy where podssh trusts the
+  (`TODO/ws.md:1194-1197`). Inferred: SSH inside TLS passes such a proxy where podssh trusts the
   proxy's CA.
 - Read in GitHub #61 (a tester's report, which the tester's own run did not reproduce):
   `mx1.vpnjantit.com:443` and `ee2.vpnjantit.com:443` answer TLS, then SSH.
@@ -9953,7 +9953,7 @@ the service token on `cf://` only, and reads it from variables (the secret in th
   user's token from `PODSSH_CF_ACCESS_TOKEN` or a file (`crates/podssh-cli/src/ssh/cloudflare.rs:35-40`,
   `:110-120`); the headers are `access.headers()` (`crates/podssh-ws/src/cloudflare.rs:74-85`).
 - Read: the relay client sends `X-Relay-Token` and no other credential header
-  (`crates/podssh-ws/src/client.rs:183-205`, `crates/podssh-ws/src/handshake.rs:3`); `https_request` takes
+  (`PodUtils/podssh:crates/podssh-ws/src/client.rs:183-205`, `crates/podssh-ws/src/handshake.rs:3`); `https_request` takes
   headers (`client.rs:343`).
 - Read: `--install` never carries a secret variable (`crates/podssh-cli/src/node_install/env.rs:36`); a
   service needs the file form.

@@ -123,7 +123,7 @@ pub async fn open(server: &Server, dial: &Dial<'_>) -> Result<Carried, UptermErr
         Stream::Tls(Box::new(tls.map_err(UptermError::Connect)?))
     } else {
         let tcp = dial::dial(h, p, dial.proxy, limit).await;
-        Stream::Plain(tcp.map_err(|e| UptermError::Connect(ConnectError::Dial(e)))?)
+        Stream::Plain(Box::new(tcp.map_err(|e| UptermError::Connect(ConnectError::Dial(e)))?))
     };
     let upgraded = tokio::time::timeout(limit, upgrade(stream, request.as_bytes(), &key)).await;
     let late = |_| UptermError::Connect(ConnectError::Timeout { step: "the WebSocket upgrade", after: limit });

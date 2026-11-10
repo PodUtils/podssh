@@ -109,7 +109,7 @@ pub fn host_port(authority: &str, default: u16) -> Result<(String, u16), String>
 pub(crate) async fn open(host: &str, port: u16, tls: bool, server_name: &str, reach: &Reach) -> Result<Stream, String> {
     if !tls {
         let tcp = crate::dial::dial(host, port, &reach.proxy, reach.wait).await.map_err(|e| e.to_string())?;
-        return Ok(Stream::Plain(tcp));
+        return Ok(Stream::Plain(Box::new(tcp)));
     }
     match crate::client::open_tls(host, port, server_name, &reach.trust, &reach.proxy, reach.wait).await {
         Ok(stream) => Ok(Stream::Tls(Box::new(stream))),

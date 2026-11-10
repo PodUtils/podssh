@@ -207,7 +207,7 @@ status' with no NAME, the relay's own state, is not implemented yet"), `relay in
 `relay trace github.com 22` 64 ("one word too many"), as a subcommand took one NAME; `--timeout`
 is an unknown flag (64). `spec` is T-060's and done (step 3), and the tests of `spec` read
 `--document`, so the stand-in needs no `/llms-full.txt`. `https_with_token` already sends a token
-in a header (`crates/podssh-ws/src/client.rs:313-335`), for the pairing calls. On the live relay,
+in a header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:313-335`), for the pairing calls. On the live relay,
 2026-10-11: `/trace` alone answers without a token with the caller's address, city, coordinates
 and network; a target trace answers `target` with `ok`, `road`, `dialed`, `address_family`,
 `connect_ms`, `first_byte_ms`, `bytes_seen`, `verdict` and `banner`, or `error` alone for a
@@ -515,7 +515,7 @@ relay sends no keepalives on reverse sockets, and a quiet socket becomes dormant
 1. A live test, ignored by default, in a new file crates/podssh-relay/tests/live_reverse.rs:
    `POST /v1/pair`; a node socket to `/v1/node/NAME`; an operator socket to `/v1/connect/NAME`;
    the node answers `open` with `ready`. Send `ready` with `RelaySession::send_text`
-   (`crates/podssh-ws/src/session.rs:238-242`), which sends a real text frame; since T-071,
+   (`PodUtils/podssh:crates/podssh-ws/src/session.rs:238-242`), which sends a real text frame; since T-071,
    `Leg::send_control` over `WsSocket` sends one too.
 2. Three runs of 240 s: (a) no payload and no pings; (b) WebSocket pings every 20 s from both
    ends; (c) one byte of payload every 60 s. For each socket, record the time, the code and the
@@ -1696,7 +1696,7 @@ known: the relay's source is not available to the repository.
   ("const CHUNK: usize = 32 * 1024;", crates/podssh-cli/src/pipe/relay.rs line 34 at `c00c9fd`) and
   the blocking facade for podbox ("const FRAME_PAYLOAD: usize = 32 * 1024;",
   crates/podssh-relay/src/blocking/forward.rs line 16 at `c00c9fd`).
-- Read: `crates/podssh-ws/src/frame.rs:30` names the relay's cap, `FORWARD_MAX_FRAME`, which is
+- Read: `PodUtils/podssh:crates/podssh-ws/src/frame.rs:30` names the relay's cap, `FORWARD_MAX_FRAME`, which is
   262,144. The reverse road is not concerned: its node frames end in WebSockets, not in a socket of
   `connect()` (Inferred).
 - Read in the issue: the failure shows only in the production runtime, not in a local one, and
@@ -2105,10 +2105,10 @@ in; the code compiles it in, and the live check never reads `/relays.json`.
   under them (60 MiB, 11 h 30 min) are constants (`crates/podssh-relay/src/relay.rs:33-64`);
   `PODSSH_SESSION_BUDGET` lowers the byte budget and never raises it (`:66-100`).
 - Read: the frame decoder refuses a received frame over 262144 bytes
-  (`crates/podssh-ws/src/frame.rs:30`, `:221-231`), and the session then ends with a Close 1002
-  (`crates/podssh-ws/src/session.rs:347`); a message is at most 16 MiB (`:36`).
+  (`PodUtils/podssh:crates/podssh-ws/src/frame.rs:30`, `:221-231`), and the session then ends with a Close 1002
+  (`PodUtils/podssh:crates/podssh-ws/src/session.rs:347`); a message is at most 16 MiB (`:36`).
 - Read: `crates/podssh-probe/facts/relay-facts.toml` line 14 at `deacafd` said "Read from /relays.json at startup,
-  never compiled in" of that cap. `crates/podssh-ws/src/frame.rs:30` compiles it in, and
+  never compiled in" of that cap. `PodUtils/podssh:crates/podssh-ws/src/frame.rs:30` compiles it in, and
   `podssh-core` takes it from the facts file at compile time
   (`crates/podssh-core/src/irc/limits.rs:3-9`). The live check fetches `/llms-full.txt` and
   `/health` alone (`scripts/check-relay-spec.py:399-400`); `:196-197` reads the cap from the

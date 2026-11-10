@@ -188,7 +188,13 @@ async fn open(
         .await
         .map_err(|_| ConnectError::Timeout { step: "the WebSocket upgrade", after: STEP })??;
     leg.upgrade = Some(started.elapsed());
-    Ok(RelaySession::over_tls(tls, peer, pending, Some(podssh_ws::DEFAULT_IDLE_TIMEOUT)))
+    Ok(RelaySession::over_tls(
+        tls,
+        peer,
+        pending,
+        Some(podssh_ws::DEFAULT_IDLE_TIMEOUT),
+        podssh_ws::client::WRITE_TIMEOUT,
+    ))
 }
 
 /// `count` pings, each with its sequence and its send time (nanoseconds
