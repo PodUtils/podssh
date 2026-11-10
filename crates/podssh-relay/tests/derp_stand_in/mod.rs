@@ -176,14 +176,17 @@ impl StandIn {
         lock(&self.clients).insert(key, Client { queue: queue.clone(), cut: cut.clone() });
         let answer = [9u8; 24];
         let sealed = opener.encrypt(&crypto_box::Nonce::from(answer), &b"{\"version\":2}"[..]).expect("a box");
+        // Counted before the answer, as the client is registered: a client
+        // that has the answer may count the logins before this task runs on.
+        self.logins.fetch_add(1, Ordering::SeqCst);
         if message(&mut writer, &derp(0x03, &[&answer[..], &sealed[..]].concat())).await.is_err() {
+            self.logins.fetch_sub(1, Ordering::SeqCst);
             let mut clients = lock(&self.clients);
             if clients.get(&key).is_some_and(|c| Arc::ptr_eq(&c.queue, &queue)) {
                 clients.remove(&key);
             }
             return;
         }
-        self.logins.fetch_add(1, Ordering::SeqCst);
         let writing = tokio::spawn({
             let queue = queue.clone();
             async move {

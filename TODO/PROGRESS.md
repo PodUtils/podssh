@@ -53,7 +53,7 @@ entry keeps its proof in the entry; this page keeps no history (git does).
      run is asked of the owner's agent (`docs/development.md`, "A run of GitHub Actions asked of the
      owner's agent"). Before it:
      the runs of `a791553` to `eea8c63` are red on the two regressions of T-690 (the step
-     `ts`; the step `release`'s interop `resume.cut.up.sftp`) and on one-off failures (T-688). The run
+     `ts`; the step `release`'s interop `resume.cut.up.sftp`) and on one-off failures (T-688, T-744). The run
      of `ccfef9e`, which repairs T-690, was running at the checkpoint: read it first. The daily
      `record-issues` is red: GitHub #107 (closed), the pull requests #149 and #150 and the COORD test
      #151 are not in `TODO/github.txt` and `TODO/issues.md`.
@@ -361,7 +361,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 698 entries: 90 open, 19 partial, 9 blocked, 580 done.
+`TODO/INDEX.md` holds 699 entries: 90 open, 20 partial, 9 blocked, 580 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

@@ -114,19 +114,27 @@ fn python(mode: &str) -> Option<(Python, String)> {
     std::fs::create_dir_all(&dir).unwrap();
     let (script, socket, ready) = (dir.join("server.py"), dir.join("app.sock"), dir.join("ready"));
     std::fs::write(&script, SERVER).unwrap();
+    // Python's stderr in a file, so that a server that did not start says why.
+    let log = dir.join("stderr.log");
     let child = Command::new(program)
         .arg("-I")
         .arg(&script)
         .args([mode, &socket.display().to_string(), &ready.display().to_string()])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(std::fs::File::create(&log).ok().map_or(Stdio::null(), Stdio::from))
         .spawn()
         .ok()?;
-    let server = Python { child, dir };
-    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut server = Python { child, dir };
+    // A cold runner may take long to start Python: 60 s, and a server that
+    // ended before it was ready fails at once with its words.
+    let deadline = Instant::now() + Duration::from_secs(60);
     while !ready.exists() {
-        assert!(Instant::now() < deadline, "Python's server did not start");
+        let said = || std::fs::read_to_string(&log).unwrap_or_default();
+        if let Ok(Some(status)) = server.child.try_wait() {
+            panic!("Python's server ended before it was ready ({status}): {}", said());
+        }
+        assert!(Instant::now() < deadline, "Python's server did not start within 60 s: {}", said());
         std::thread::sleep(Duration::from_millis(50));
     }
     let at = match mode {

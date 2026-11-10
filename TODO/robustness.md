@@ -1977,3 +1977,57 @@ holder that keeps it for 5 s fails a change (75). The test
 planted, the code before the change, it fails ("refused after 7.05 s behind 135 changes that each
 ended"); with the change, `cargo test -p podssh-cli --lib share::` 7 passed, 20 runs in a row. The job
 `windows` of the next gate reads it again.
+
+# T-744: Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS
+
+**Source:** the session of 2026-11-10, the gate's job `gate (libs)` of run 42763603512 (`2f8e0bb0`) and
+its job `macos` of run 42794811364 (`ec730ac2`); each commit changed the record alone.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+A test that fails at random hides a real failure, and turns the gate red for nothing.
+`a_server_that_closes_after_the_client_s_info_sends_the_node_to_the_next` (`-p podssh-relay --test
+derp_link`) read `(0, 0)` logins where it wants `(0, 1)`; and on macOS
+`a_funnel_serves_python_over_tcp_a_get_in_chunks_and_a_post_with_no_length` (`-p podssh-relay
+--features quick --test quick_publish`) said "Python's server did not start" after its 20 s.
+
+## Premise
+
+- Read: `crates/podssh-relay/tests/derp_link.rs:323` asserts the two stand-ins' logins; the stand-in
+  (`crates/podssh-relay/tests/derp_stand_in/mod.rs`) counted a login after it had sent its answer, so
+  a client that had the answer could read the count first.
+- Read: `crates/podssh-relay/tests/quick_publish.rs` started Python with its stderr dropped, so a
+  server that ended at once and one that was slow looked alike.
+
+## Approach
+
+Count the login before the answer, as the stand-in registers the client before it, and take it back
+when the answer fails. Keep Python's stderr, fail at once with it when Python ends before it is
+ready, and wait 60 s for a cold runner; the next failure, if one comes, names its cause.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features derp --test derp_link
+cargo test -p podssh-relay --features quick --test quick_publish
+```
+
+Planted: the stand-in's count after its answer, with 50 ms between, and the DERP test fails as the
+gate's did.
+
+## Done
+
+Partial, 2026-11-10. The stand-in of DERP counts each login before its answer
+(`crates/podssh-relay/tests/derp_stand_in/mod.rs`); planted, the old order with 50 ms before the
+count, `a_server_that_closes_after_the_client_s_info_sends_the_node_to_the_next` failed with
+`left: (0, 0)`, the gate's words; put back, `--test derp_link` passed 25 runs in 25. The funnel's
+test keeps Python's stderr (`crates/podssh-relay/tests/quick_publish.rs`), fails at once with it
+and Python's status when the server ends before it is ready, and waits 60 s; `--test quick_publish`
+passed 10 runs in 10 here (Linux). It stays partial for the macOS runner: the next failure there,
+if one comes, says why Python did not start.
