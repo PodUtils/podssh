@@ -278,7 +278,13 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   worktree `agent-aacedb4783ec9331d`), merged and tested on the local branch `merge-t548`, which waits:
   its verifier that took any certificate broke SECURITY.md's rule, and the branch's worktree
   `.claude/worktrees/t548-pin` holds its repair (the client's TLS pinned to the node's certificate,
-  the node's leg raw SSH first). Pushed as `draft/merge-t548` before a session ends.
+  the node's leg raw SSH first), merged on `main` as one commit (`a5b2eeb1`); its worktrees and branches
+  are gone. The research of M10's item 4 (T-538 to T-540, T-542, T-547, T-579, T-572, T-573, T-577,
+  T-623, T-624, T-626) was drafted on 2026-11-10 by four agents (`draft-r1` to `draft-r4`), the new
+  entries renumbered T-733 to T-743 at the merge, and merged (`9a49ac7f`, `b5e8ad24`, `628b7131`,
+  `72f4d1d9`); their worktrees and branches are gone. Drafting on 2026-11-10: T-694 (`draft-f1`),
+  T-549 (`draft-f2`) and T-570 (`draft-f3`), each in `.claude/worktrees/`, pushed as `draft/` before a
+  session ends.
 
   On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
   as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
