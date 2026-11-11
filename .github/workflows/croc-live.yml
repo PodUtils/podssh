@@ -1,0 +1,45 @@
+name: croc live
+
+# croc's relay road (T-694) through getcroc.com's own bridge and relays
+# (pod-services), a last fallback of the operator's ruling Q78; a short run
+# that Q91 allows: a node and a client of one pair meet in one room and carry
+# 1 MiB each way. A planted run gives the client another pair's rooms, and
+# must fail. croc's relays take the password that croc publishes; no
+# credential of podssh's goes there. Started by hand alone; it publishes
+# nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: croc-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-relay --features croc --test croc_live --no-run
+      - name: a short run through getcroc.com
+        run: |
+          timeout 300 cargo test --locked -p podssh-relay --features croc --test croc_live -- --ignored --nocapture
+      # The check must see a client of another pair fail.
+      - name: a planted stranger fails it
+        env:
+          PODSSH_CROC_TEST_PLANT: stranger
+        run: |
+          rc=0
+          timeout 300 cargo test --locked -p podssh-relay --features croc --test croc_live -- --ignored || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: another pair's client met the node"
+            exit 1
+          fi
+          echo "another pair's client failed (exit $rc), as it must"

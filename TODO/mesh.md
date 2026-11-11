@@ -12231,6 +12231,12 @@ croc's relay sends its frames to a waiting member from the start. Left: the shor
 `wss://getcroc.com/ws` (Q91), `podssh doctor`'s line of the carriers, and the node roads of `--derp` and
 of the Piping Server road.
 
+2026-11-11: `croc-interop.yml` at `b1c85b71` (run 42957326904) passed on a runner: the binaries' sums,
+8 of 8, and the planted member failed. The live session has its test and its workflow:
+`crates/podssh-relay/tests/croc_live.rs` (ignored outside the workflow) and `.github/workflows/croc-live.yml`,
+started by hand: a node and a client of one pair through the bridge of `pod-services`, 1 MiB each way; a
+planted client with another pair's rooms must fail.
+
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 
