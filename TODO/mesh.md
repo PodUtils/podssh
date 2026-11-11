@@ -12237,6 +12237,12 @@ of the Piping Server road.
 started by hand: a node and a client of one pair through the bridge of `pod-services`, 1 MiB each way; a
 planted client with another pair's rooms must fail.
 
+2026-11-11, live, `croc-live.yml` at `48ec5635` (run 42957736151): a node and a client of one pair met
+in the pair's first room through the bridge of `pod-services` (`wss://getcroc.com/ws`, `public`) and
+carried 1 MiB each way with equal digests; the test passed in 3.4 s. Planted, a client with another
+pair's rooms: the node stayed alone for its 30 s (`Alone(30s)`), exit 101, as it must. Left: `podssh
+doctor`'s line of the carriers, and the node roads of `--derp` and of the Piping Server road.
+
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 
