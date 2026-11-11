@@ -80,6 +80,9 @@ pub fn relays(cfg: &Config, head: &Request) -> Value {
             "max_session_ms": l.session.as_millis() as u64,
             "max_session_bytes": l.bytes,
             "max_frame_bytes": podssh_ws::frame::FORWARD_MAX_FRAME,
+            // The listener's open connections, 0 for no cap (T-748).
+            "max_connections_per_address": l.connections.per_address,
+            "max_connections": l.connections.total,
             "udp": "unsupported",
             // The probes' own limits, beside the contract's (T-325).
             "probe": super::probe::limits(),
@@ -301,6 +304,7 @@ mod tests {
             (&json!(3000), &json!(5000), &json!(7_200_000), &json!(8 << 20))
         );
         assert!(l.get("keepalive_ms").is_none() && !doc.to_string().contains("keepalive"), "{doc}");
+        assert_eq!((&l["max_connections_per_address"], &l["max_connections"]), (&json!(256), &json!(0)));
     }
 
     #[test]

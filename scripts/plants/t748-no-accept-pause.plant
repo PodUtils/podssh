@@ -1,0 +1,7 @@
+# T-748: the relay role's accept loop retries at once after a failed
+# accept; with its descriptors limited to 64 and 200 idle clients, it takes
+# the whole core, and the test of its CPU must fail.
+ENTRY=T-748
+GROUP=cli-tests
+EXPECT='test serve_slots::with_its_descriptors_spent_the_role_pauses_after_each_failed_accept \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --test relay_serve -- serve_slots::with_its_descriptors_spent_the_role_pauses_after_each_failed_accept'

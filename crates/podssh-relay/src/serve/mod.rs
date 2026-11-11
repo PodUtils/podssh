@@ -55,6 +55,8 @@ pub mod ranges;
 pub mod reverse;
 // The name of a ClientHello, read before any handshake (T-649).
 pub mod sni;
+// The listener's open connections, bounded (T-748).
+pub mod slots;
 pub mod sockets;
 pub mod sshd;
 pub mod tokens;
@@ -89,6 +91,8 @@ pub struct Limits {
     /// After the client's Close, the target's bytes go on until it is silent
     /// this long (T-671).
     pub half_closed: Duration,
+    /// The open connections of the listener, by address and in all (T-748).
+    pub connections: slots::Caps,
 }
 
 impl Default for Limits {
@@ -103,6 +107,7 @@ impl Default for Limits {
             bytes: crate::relay::session_byte_cap(),
             keepalive: Duration::from_secs(25),
             half_closed: Duration::from_secs(15),
+            connections: slots::Caps { per_address: slots::PER_ADDRESS, total: 0 },
         }
     }
 }

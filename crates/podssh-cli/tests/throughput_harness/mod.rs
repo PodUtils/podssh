@@ -149,6 +149,13 @@ impl Session {
         self.children.lock().unwrap().push(child);
     }
 
+    /// The process ids of the children that the session keeps, the latest
+    /// last: a test that limits or measures one of them (T-748).
+    #[allow(dead_code)]
+    pub fn pids(&self) -> Vec<u32> {
+        self.children.lock().unwrap().iter().map(Child::id).collect()
+    }
+
     /// Stop the pair `name` on the relay when the session ends.
     pub fn revoke_later(&self, name: &str) {
         self.pairs.lock().unwrap().push(name.to_string());

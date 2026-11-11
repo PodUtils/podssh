@@ -23,6 +23,7 @@ mod serve_limits;
 mod serve_list;
 mod serve_net;
 mod serve_proxy;
+mod serve_slots;
 mod serve_sshd;
 mod ssh_harness;
 mod throughput_harness;

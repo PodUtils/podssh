@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/relay_serve.rs
++++ b/crates/podssh-cli/src/relay_serve.rs
+@@ -360,7 +360,7 @@
+                             if let Some(line) = slots.accept_failed(&e) {
+                                 let _ = writeln!(said, "podssh relay serve: {line}");
+                             }
+-                            tokio::time::sleep(serve::slots::ACCEPT_PAUSE).await;
++                            // planted: no pause
+                             continue;
+                         }
+                     };

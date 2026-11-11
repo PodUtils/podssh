@@ -1,6 +1,8 @@
 //! The limits of `podssh relay serve` that its operator can move (T-704,
 //! GitHub #169): `--keepalive`, `--idle`, `--session-hours`,
-//! `--max-session-mib` and `--connect`. The defaults are the compiled caps
+//! `--max-session-mib` and `--connect`; and the caps of the listener's open
+//! connections, `--max-connections-per-address` and `--max-connections`
+//! (T-748). The defaults are the compiled caps
 //! of the default relay (`Limits::default()`, the facts of `pod-services`).
 //! A value above a default is allowed: it moves this role's cut only, and a
 //! client keeps its own lower budgets, as it only ever lowers them to what
@@ -9,6 +11,7 @@
 
 use std::time::Duration;
 
+use podssh_relay::serve::slots::Caps;
 use podssh_relay::serve::Limits;
 
 use super::ServeArgs;
@@ -48,6 +51,22 @@ pub(super) fn of(s: &ServeArgs) -> Result<Limits, Refusal> {
         })?,
         bytes: pick("--max-session-mib", s.max_session_mib.as_deref(), (1, 4096, "MiB"), d.bytes, |m| m << 20)?,
         connect: pick("--connect", s.connect.as_deref(), (1, 120, "seconds"), d.connect, Duration::from_secs)?,
+        connections: Caps {
+            per_address: pick(
+                "--max-connections-per-address",
+                s.max_connections_per_address.as_deref(),
+                (0, 1_000_000, "connections"),
+                d.connections.per_address,
+                |n| n as usize,
+            )?,
+            total: pick(
+                "--max-connections",
+                s.max_connections.as_deref(),
+                (0, 1_000_000, "connections"),
+                d.connections.total,
+                |n| n as usize,
+            )?,
+        },
         ..d
     })
 }
@@ -70,6 +89,20 @@ mod tests {
             (l.connect, l.idle, l.session, l.bytes, l.keepalive),
             (d.connect, d.idle, d.session, d.bytes, d.keepalive)
         );
+    }
+
+    #[test]
+    fn the_caps_of_open_connections_default_to_256_an_address_and_take_0_for_none() {
+        let d = of(&ServeArgs::default()).unwrap().connections;
+        assert_eq!((d.per_address, d.total), (256, 0));
+        let l = with(|s| {
+            s.max_connections_per_address = Some("0".into());
+            s.max_connections = Some("5000".into());
+        })
+        .unwrap();
+        assert_eq!((l.connections.per_address, l.connections.total), (0, 5000));
+        let refused = with(|s| s.max_connections = Some("-1".into())).unwrap_err();
+        assert!(format!("{refused:?}").contains("--max-connections"), "{refused:?}");
     }
 
     #[test]

@@ -511,6 +511,16 @@ the values in force in `/relays.json`. A value above the default moves the
 server's cut only: a client keeps its own lower budgets and its own
 warning, as it only lowers them to a published value.
 
+The role also bounds the connections that its listener holds open (T-748):
+`--max-connections-per-address N` (an IPv4 address, or the /64 of an IPv6
+one; default 256) and `--max-connections N` (in all; default none), each 0
+for no cap, published as `max_connections_per_address` and
+`max_connections`. A connection over a cap is closed at once, before TLS,
+and said once a minute for its address; a peer on the loopback, a proxy in
+front of the role, counts in all alone. After a failed `accept` (most often
+the descriptors spent) the listener pauses 100 ms, where it once retried at
+once and took a whole core.
+
 Because of the idle cut, an idle SSH session must send traffic at least
 every 180 s: `ServerAliveInterval=60` with `podssh proxy`, and the client's
 keepalives (on by default) with `podssh ssh`. To a node, the resumable

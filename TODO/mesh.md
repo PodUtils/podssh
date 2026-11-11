@@ -3687,10 +3687,10 @@ The draft's calls, 2026-11-02:
    each socket of both roads, which needs a token or a pair that the brake let through and is
    checked with a MAC or a digest and no state. Lost: a brake of the upgrades with no token, as
    the default relay counts them: the role's refusal of one costs less than the count.
-4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:449`), never a
+4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:355`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
-   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:206`),
+   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:211`),
    with `from` read by `brake::edge_visitor` (`crates/podssh-relay/src/serve/brake.rs:56`) from
    the `cf-connecting-ip` of the edge's own request, which reaches the node only on the
    connection that podssh dialed to the edge. Lost: the role reading that header itself when a
@@ -3745,7 +3745,7 @@ name. `/v1/pair` is answered in the reverse road, where `serve/mod.rs` routes it
 address to count by: at `33ccb11`,
 `podssh relay serve` dropped the peer of each connection that it accepted
 (`let Ok((tcp, _)) = accepted` in `crates/podssh-cli/src/relay_serve.rs`). So the brake stands in
-the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:219`), and
+the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:224`), and
 `serve_from` takes the address, which the listener gives. The Prove that runs, in place of the
 one above:
 
@@ -4059,7 +4059,7 @@ nothing, works.
 ## Premise
 
 - `crates/podssh-relay/src/serve/forward.rs:159` dials the resolved addresses with
-  `TcpStream::connect`, and `crates/podssh-relay/src/serve/docs.rs:144` does the same for
+  `TcpStream::connect`, and `crates/podssh-relay/src/serve/docs.rs:147` does the same for
   `/trace`; neither reads `HTTPS_PROXY`.
 - Rule 2 of `AGENTS.md`: one outbound connection, through `HTTPS_PROXY` when it is set.
 
@@ -12532,7 +12532,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/mod.rs:196`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
+- `crates/podssh-relay/src/serve/mod.rs:201`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `crates/podssh-relay/src/derp/conn.rs:9`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.

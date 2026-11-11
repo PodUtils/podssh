@@ -79,6 +79,11 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
         "serve: end a session after MIB of payload, both ways together, 1 to 4096 (default 64); published as max_session_bytes. Above the default, a client still opens a new session at its own budget", None),
     row(None, "connect", Some("SECONDS"), FlagKind::Supported,
         "serve: wait SECONDS for the dial of a target before the upgrade, 1 to 120 (default 10); published as connect_timeout_ms", None),
+    // The listener's open connections (T-748).
+    row(None, "max-connections-per-address", Some("N"), FlagKind::Supported,
+        "serve: keep at most N connections open from one address (an IPv4 address, or the /64 of an IPv6 one), 0 for no cap (default 256); one more is closed before TLS and said once a minute; a peer on the loopback, a proxy in front, counts in all alone; published as max_connections_per_address", None),
+    row(None, "max-connections", Some("N"), FlagKind::Supported,
+        "serve: keep at most N connections open in all, 0 for no cap (the default); published as max_connections", None),
     row(None, "pairs", Some("FILE"), FlagKind::Supported,
         "serve: keep the pairs of the reverse road in FILE, of mode 0600, so that they outlive a restart (the digests of their tokens, never a token)", None),
     // What each key carried, and its budget for a day (T-636).
