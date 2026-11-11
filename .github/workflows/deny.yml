@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: deny-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deny:
     name: deny

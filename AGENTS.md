@@ -202,7 +202,8 @@ recorded as a COORD issue.
 ### Releases
 
 - **No release until the migration to PodUtils/podcrates is done** (T-684);
-  betas go out whenever a batch fits. `v1.1.0` waits for the migration.
+  the next beta goes out when podssh is nearly complete, so that the testers
+  test finished features. `v1.1.0` waits for the migration.
   podssh stays a beta until the owner calls it stable; crates.io is asked
   again only after that (T-687).
 - **Until podssh is stable, move fast (Q88).** A release or a beta goes out
@@ -213,8 +214,8 @@ recorded as a COORD issue.
   a candidate, `plants.yml` and planted defects in the build image wait
   until the operator calls podssh stable; the rules below that ask for them
   hold again then.
-- **Betas** (T-309): a prerelease from `main`, after a batch of repairs or
-  of M10's entries that the testers should test, at most one a day. A tag
+- **Betas** (T-309): a prerelease from `main`, when the work order is nearly
+  done (not after each batch), at most one a day. A tag
   never moves: a defect found in a beta goes into the next one. The betas
   of M10 are `v1.1.0-beta.N` (T-446).
 - **Stable releases.** A defect found in `v1.0.0` goes into `v1.0.N`, from

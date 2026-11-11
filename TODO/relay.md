@@ -395,7 +395,7 @@ Read on `3ee70dc`, the defect holds. No source, test or example of `podssh-cli` 
 declares `libc` (`crates/podssh-probe/Cargo.toml` line 11 at `f8a94ca`), which none of its sources uses.
 `crates/podssh-probe/src/facts.rs` lines 3-6 at `f8a94ca` name a "startup assertion" that no command runs;
 `crates/podssh-probe/src/relay_facts.rs` lines 261-289 at `f8a94ca` are that unused startup part. CI runs
-`scripts/check-relay-spec.py` live, with three plants (`.github/workflows/build.yml:193-223`).
+`scripts/check-relay-spec.py` live, with three plants (`.github/workflows/build.yml:223-253`).
 The gate runs the crate's tests with no C compiler (`scripts/gate.sh:172-188`). The build image
 has no Python (`crates/podssh-probe/src/facts.rs:14-19`), so the crate is the only form of the
 check that the container gate can run.
@@ -1953,8 +1953,8 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   document: "Exact addresses" (`:9`), "Reverse close codes" (`:160`) and "Protocol (for other
   clients)" (`:205`).
 - Read: the job `checks` runs the live check, and fails on exit 1 (a changed fact) and on exit 2
-  (a relay that cannot be read) alike (`.github/workflows/build.yml:193-223`);
-  the gate's step `release` asks the binary and the script for one verdict, live (`:82-87`).
+  (a relay that cannot be read) alike (`.github/workflows/build.yml:223-253`);
+  the gate's step `release` asks the binary and the script for one verdict, live (`:111-116`).
 - Read: each of the eight build jobs of the release runs `podssh proxy github.com 22` through the
   live relay (`scripts/release-short.sh:109-115`, run at `.github/workflows/release.yml:151`, `:213`,
   `:284`, `:323` and `:417`; three of these run in a matrix of two). The audit counted seven
@@ -3604,7 +3604,7 @@ to hosts that the session does not use.
 
 ## Premise
 
-- Read: `AGENTS.md:327-359`, rule 2: one outbound connection, and its four exceptions (a listener
+- Read: `AGENTS.md:328-360`, rule 2: one outbound connection, and its four exceptions (a listener
   that the user asks for, the race between relay hosts, the split HTTP road of Q44, the quick
   tunnel's second connection of Q62); `docs/decisions.md:42` adds XHTTP's second connection (Q67).
   None covers a probe of a host that the session does not use.
@@ -3721,7 +3721,7 @@ once; the test of the overlap fails.
   unasked only with `RelayRank auto`, at most once a day for each egress, 8 hosts, one probe each
   10 s at most, each with `?dial=lazy`. Item 1 no longer waits on a default.
 - 2026-11-03, the draft: the Premise's lines moved before it was read. Rule 2 begins at
-  `AGENTS.md:331`, and the rows of Q89 and Q90 came above the others: Q67 is at
+  `AGENTS.md:332`, and the rows of Q89 and Q90 came above the others: Q67 is at
   `docs/decisions.md:44`, Q83 at `docs/decisions.md:28` and Q73 at `docs/decisions.md:38`. Rule 2
   had four exceptions, and Q67's XHTTP is not among them; the draft adds Q89's as the fifth.
 - The settings file's `RelayRank` took yes or no alone (`crates/podssh-cli/src/settings.rs`, its

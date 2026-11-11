@@ -334,7 +334,7 @@ Read:
 - Stale comments, at `912acd0`: `scripts/dev.sh` lines 69-73 ("the default
   build"), lines 397-404 ("links the fork since 4b", "steps 4-5") and line
   462.
-- CI parses `scripts/*.sh` with dash (`.github/workflows/build.yml:185-191`);
+- CI parses `scripts/*.sh` with dash (`.github/workflows/build.yml:215-221`);
   `scripts/check-scripts.py:53-57` finds the scripts under `scripts/` at any
   depth.
 
@@ -1163,7 +1163,7 @@ Read:
 - `scripts/box/probe.sh:148-153` exits 1 when the box differs from the sandbox
   in a required property (17 properties, `docs/STATUS.md:437`).
 - The box needs a static binary; CI uploads one
-  (`.github/workflows/build.yml:89-94`).
+  (`.github/workflows/build.yml:118-123`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:156`) and a mask on
   `/dev/pts` (`scripts/test_in_box.sh:263`). Nobody measured the Podman of a
   GitHub runner with them.
@@ -2032,7 +2032,7 @@ Read, in the tree as it is now:
   `docs/STATUS.md:881` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
-- `.github/workflows/build.yml:103-111` runs the plant on each push.
+- `.github/workflows/build.yml:133-141` runs the plant on each push.
 
 ## Approach
 
@@ -2114,7 +2114,7 @@ Read:
 3. A plant in the same script: a mode `--plant-empty` runs the checks on an
    empty temporary directory and must exit 1. The control is the real tree,
    which must exit 0. CI runs both, as it does for the relay check
-   (`.github/workflows/build.yml:198-223`).
+   (`.github/workflows/build.yml:228-253`).
 4. With T-207: the size check also reads `scripts/`, with its own floor.
 5. The checker of `TODO/` gets its own floor in its own change; this entry
    does not plan it.
@@ -3205,8 +3205,8 @@ Read: each image is pinned to a digest in its Dockerfile
 (`images/trufflehog/Dockerfile:3`,
 `images/build/Dockerfile:6`), and at `b932993` each workflow gave
 the reference to `docker run`, which pulls from Docker Hub (now
-`.github/workflows/secrets.yml:70`, `.github/workflows/secrets.yml:84`,
-`.github/workflows/build.yml:76-80`, `.github/workflows/build.yml:109-112`
+`.github/workflows/secrets.yml:75`, `.github/workflows/secrets.yml:89`,
+`.github/workflows/build.yml:105-109`, `.github/workflows/build.yml:139-142`
 and `.github/workflows/release.yml:124-127`). Measured on 2026-10-09, each
 manifest asked for by its digest: Google's mirror of Docker Hub
 (`mirror.gcr.io`) serves both images, the GitHub registry serves the
@@ -4377,7 +4377,7 @@ would get no pull request, and maybe no red job.
   (CVSS: availability high), dated 2026-05-15, patched from 0.60.3; 0.64.1 has the fix. The audit
   gave its date as 2026-06-02.
 - Read: `cargo deny` checks the advisories of the lock on each push and each day
-  (`.github/workflows/deny.yml:7-13`, `:31-32`).
+  (`.github/workflows/deny.yml:7-13`, `:36-37`).
 - Inferred: cargo-deny matches an advisory to a package of crates.io's source, and may pass over
   a path package. Not measured.
 
@@ -5673,7 +5673,7 @@ compiled binary, has no check of its own beside the release's.
 - Read: `scripts/gate.sh:21` lists the steps `msrv`, `msrv_ssh`, `msrv_ts`, `msrv_iroh`,
   `msrv_warp` and `msrv_tor`, each a check of crates at a declared minimum Rust
   (`scripts/gate.sh:276` and after); CI's matrix is `sh scripts/gate.sh --list`
-  (`.github/workflows/build.yml:50`), so a step removed from the list leaves CI.
+  (`.github/workflows/build.yml:78`), so a step removed from the list leaves CI.
 - Read: `scripts/gate.sh` runs 17 commands under `env CC=/nonexistent CXX=/nonexistent`, which
   refuse a crate that builds C (`scripts/gate.sh:128` tells why).
 - Read: `Cargo.toml:57` declares `rust-version = "1.89"` and `Cargo.toml:51` edition 2021; each crate
@@ -6028,7 +6028,7 @@ the record.
 
 ## Premise
 
-- Read: `.github/workflows/deny.yml:27`, `fuzz.yml:32` and `release.yml:441` pin
+- Read: `.github/workflows/deny.yml:32`, `fuzz.yml:32` and `release.yml:441` pin
   `taiki-e/install-action` at `68a389c` (v2.88.1); the pull request moves deny's and fuzz's only.
 - Read: `Cargo.lock` holds aes 0.9.3, which `aes-gcm` 0.11.1 and `pkcs5` 0.8.1 take (the keys
   that russh and ssh-key read, and pod-tls's certificates).
@@ -6083,7 +6083,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 
 ## Premise
 
-- `.github/workflows/build.yml:252` (`windows`, `windows-2025`) and `:313` (`macos`, `macos-15`): tests, the
+- `.github/workflows/build.yml:282` (`windows`, `windows-2025`) and `:345` (`macos`, `macos-15`): tests, the
   system stores, repository checks, the console checks against MSYS2's sshd. No step per command.
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions

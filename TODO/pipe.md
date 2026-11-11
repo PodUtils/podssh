@@ -72,12 +72,12 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    (`crates/podssh-cli/src/man/examples.rs:8-316`; its test at
    `crates/podssh-cli/src/man/examples.rs:439-465` learns the new variant),
    `docs/design.md:1142-1151`, `docs/STATUS.md`. Each file stays under 500
-   lines (`AGENTS.md:371-372`).
+   lines (`AGENTS.md:372-373`).
 
 ## Decision
 
 Recommendation: `exec:` splits the words itself and starts no shell, because
-podssh must not assume a shell (`AGENTS.md:329-330`), and the user can name one
+podssh must not assume a shell (`AGENTS.md:330-331`), and the user can name one
 (`exec:sh -c 'CMD'`). The alternative, a `system:` address through
 `/bin/sh -c` as in socat, lost: Windows and some images have no `/bin/sh`.
 
@@ -412,7 +412,7 @@ shows that an AF_UNIX or loopback bind works (`docs/design.md:1185-1187`).
   allows the bind. The default is loopback and AF_UNIX; the user can
   configure the address and can turn listening off.
 - Read: five documents still say that podssh never listens:
-  `AGENTS.md:331-359`, `docs/architecture.md:284-301`,
+  `AGENTS.md:332-360`, `docs/architecture.md:284-301`,
   `docs/target-environment.md:99-103`, `SECURITY.md:263-298`, `README.md:47-56`.
 - Read: sandbox A refuses an AF_INET bind and allows an AF_UNIX bind
   (`docs/STATUS.md:458`). The box refuses each `bind`, AF_UNIX too
@@ -500,7 +500,7 @@ Plant: bind with no umask; the check of the mode must fail.
 ## Correction
 
 2026-10-10: three of the five documents already say what the ruling
-allows: `AGENTS.md:331-359`, `docs/architecture.md:284-301` and
+allows: `AGENTS.md:332-360`, `docs/architecture.md:284-301` and
 `docs/target-environment.md:99-103` name a listener that the user asks for,
 after a probe. `SECURITY.md` and `README.md` still said that nothing
 listens, and change here. Step 4's umask 077 makes a socket's file mode
@@ -1223,7 +1223,7 @@ and with which limits.
 - Read: through the relay, a session ends at 64 MiB (`docs/relay.md:475`);
   the traffic of a USB disk reaches that in seconds.
 - Read: podssh cannot load a module or attach a device, and never assumes a
-  privilege (`AGENTS.md:329-330`). The recipe uses the user's own `usbip` and
+  privilege (`AGENTS.md:330-331`). The recipe uses the user's own `usbip` and
   its privileges.
 
 ## Approach

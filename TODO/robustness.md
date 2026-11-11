@@ -864,7 +864,7 @@ Read:
   (`crates/podssh-ssh/src/session.rs:22`); a write, 60 s, and liveness, three
   times 10 s (`crates/podssh-ws/src/client.rs:39-43`).
 - The gate's container gets no added capability
-  (`.github/workflows/build.yml:69-80`).
+  (`.github/workflows/build.yml:98-109`).
 
 ## Approach
 

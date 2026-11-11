@@ -16,6 +16,13 @@ on:
 permissions:
   contents: read
 
+# Moving fast while podssh is a beta (the operator, 2026-11-11): a newer push
+# cancels the gate of the older one, and a push that changes only documents
+# and the record runs the repository checks alone.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The build image and the gate's steps, each read from the tree: the
   # matrix of the job `gate` is what `gate.sh --list` prints, so it cannot
@@ -27,8 +34,29 @@ jobs:
     outputs:
       image: ${{ steps.image.outputs.image }}
       steps: ${{ steps.steps.outputs.steps }}
+      code: ${{ steps.code.outputs.code }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Whether the push changes more than documents and the record (docs/,
+      # TODO/, a Markdown file): if not, the jobs that build are skipped. A
+      # pull request, a dispatch, or a diff that cannot be read builds.
+      - name: what the push changes
+        id: code
+        env:
+          BEFORE: ${{ github.event.before }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -u
+          code=true
+          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] &&
+             git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" HEAD) || changed=x
+            others=$(printf '%s\n' "$changed" | grep -v -E '^(docs/|TODO/)|\.md$' | grep -c . || true)
+            [ -n "$changed" ] && [ "$others" = 0 ] && code=false
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "builds: $code"
 
       # The one place that names the build image, pinned to a digest.
       - name: the build image
@@ -56,6 +84,7 @@ jobs:
   gate:
     name: gate (${{ matrix.step }})
     needs: plan
+    if: needs.plan.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
@@ -97,6 +126,7 @@ jobs:
   plant:
     name: plant
     needs: plan
+    if: needs.plan.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -251,6 +281,8 @@ jobs:
   # the token cache that are not Unix are tested nowhere else.
   windows:
     name: windows
+    needs: plan
+    if: needs.plan.outputs.code == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
     env:
@@ -312,6 +344,8 @@ jobs:
   # release builds and runs both Mac binaries.
   macos:
     name: macos
+    needs: plan
+    if: needs.plan.outputs.code == 'true'
     runs-on: macos-15
     timeout-minutes: 60
     env:
@@ -343,6 +377,8 @@ jobs:
   # Ubuntu's package would start for it is masked before the install.
   tor-net:
     name: tor-net
+    needs: plan
+    if: needs.plan.outputs.code == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -399,7 +435,8 @@ jobs:
         run: sh scripts/tor-net.sh stop "$RUNNER_TEMP/tor-net-bridges"
 
   # The one status to require: each job above passed. A job that was
-  # skipped or cancelled is not a pass.
+  # skipped or cancelled is not a pass, but where the push changed only
+  # documents and the record, and the plan skipped the jobs that build.
   all:
     name: all
     if: always()
@@ -410,9 +447,13 @@ jobs:
       - name: each job passed
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
+          CODE: ${{ needs.plan.outputs.code }}
         run: |
-          echo "the jobs: $RESULTS"
+          echo "the jobs: $RESULTS (builds: $CODE)"
           for r in $RESULTS; do
+            if [ "$r" = skipped ] && [ "$CODE" = false ]; then
+              continue
+            fi
             if [ "$r" != success ]; then
               echo "a job did not pass ($r)"
               exit 1

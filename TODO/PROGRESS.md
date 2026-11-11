@@ -15,8 +15,8 @@ Read on 2026-11-11.
    `bc5107b0` (run 42948403145: Linux, macOS, Windows, the static release binary). The record
    agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
 2. **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is
-   `v1.0.1` (2026-11-03, at `6ece1f9`). Betas may go out whenever a batch fits, under the rules of
-   `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
+   `v1.0.1` (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete
+   (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
    stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
 3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321,
    T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks, where
@@ -84,10 +84,9 @@ item whenever it appears.
    build already pass. Done when the Decision is in T-733 (and in `release.yml` and
    `docs/development.md`, "Release builds", if yes), the STATUS row is current, and
    `cargo todo set T-733 done` passes.
-6. **T-734: Tox's TCP relays on 443** (offline; a short live run when the road works). The next
-   open entry of M10's item 4 after T-733, as the lead set it; the work order (rule 5) puts
-   osewa's open T-678, T-680 and T-681 ahead of item 4, so take those first unless the lead's call
-   was deliberate. Done when its Prove passes.
+6. **osewa's open entries, T-678, T-680 and T-681** (offline first), then **T-734: Tox's TCP
+   relays on 443** (offline; a short live run when the road works), in the work order's rule 5
+   (the operator, 2026-11-11). Done when each Prove passes.
 7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
    passes.
 8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
@@ -105,10 +104,9 @@ item whenever it appears.
     run): T-571, T-576, T-578, T-738, T-739 (T-740 stays blocked; T-566, T-567 and T-575 are
     parked), then T-580, T-581 and T-582 (live where UDP passes), then T-625, T-621, T-741 and
     T-742. Done when each Prove passes, one entry at a time.
-13. **A beta, if the night's batch fits** (live: the release workflow by hand, then the tag).
-    Why: much of M10 has landed since `v1.1.0-beta.3`, and betas may go out before the migration
-    ends. Done when `v1.1.0-beta.4` passes the checks of `AGENTS.md` ("Releases") and
-    `release-proofs.yml` and `update-live.yml` pass on it; else skip it tonight.
+13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
+    complete, so that the testers test finished features. Questions that come up overnight are
+    settled with the other sessions by COORD issues, and forks of policy as Q86 says.
 
 ## Baseline
 
@@ -179,7 +177,7 @@ operator interrupts it.
    accounts for the live run of the roads of iap:// and eice://) wait for inputs that only the
    operator has. T-672 (TLS tickets kept across runs) waits for a release of rustls that lets a
    client write one. M4's T-085 (the exit measurement) goes with the holds.
-8. A beta may go out when a batch fits (T-446).
+8. The next beta goes out when podssh is nearly complete (T-446; the operator, 2026-11-11).
 
 **M10**, the mesh and the relay in podssh (Q63 to Q66, `docs/mesh.md`), in this order (the done
 parts are named so that the open ones read in their place):
@@ -224,7 +222,8 @@ parts are named so that the open ones read in their place):
    (T-621), the research of smee.io, of three hosted tunnels and of I2P, Nym and cjdns (done; it
    filed smee.io as a last fallback, T-741, hostc's, T-742, and Sandhole's public server as a host
    of the localhost.run road's module, done), and the HTTP road's one-POST form (T-622, parked).
-5. T-446: betas `v1.1.0-beta.N` after batches, and `v1.1.0` at the end, once the migration is done.
+5. T-446: the next beta `v1.1.0-beta.N` when podssh is nearly complete, and `v1.1.0` at the end,
+   once the migration is done.
 
 ## Parked open work
 
