@@ -29,7 +29,7 @@ use std::time::Duration;
 use podssh_relay::pinggy::far::Visitor;
 use podssh_relay::pinggy::{self, urls, Say, Service};
 use podssh_ssh::russh::client::{self, ChannelOpenHandle, KeyboardInteractiveAuthResponse, Msg};
-use podssh_ssh::russh::keys::{Algorithm, HashAlg, PrivateKey, PrivateKeyWithHashAlg, PublicKeyOrCertificate};
+use podssh_ssh::russh::keys::{HashAlg, PublicKeyOrCertificate};
 use podssh_ssh::russh::{self, Channel, ChannelMsg};
 use podssh_ws::{ProxyChoice, Trust};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
@@ -258,8 +258,7 @@ pub(crate) async fn login<H: client::Handler>(handle: &mut client::Handle<H>, us
     }
     // Sandhole lets any key in but asks for one (T-743): a key made for this
     // login alone, never the node's, so that no key of the host goes to it.
-    let throwaway = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).map_err(|e| format!("the login: {e}"))?;
-    let key = PrivateKeyWithHashAlg::new(Arc::new(throwaway), None);
+    let key = podssh_ssh::throwaway_login_key().map_err(|e| format!("the login: {e}"))?;
     if handle.authenticate_publickey(user, key).await.map_err(word)?.success() {
         return Ok(());
     }

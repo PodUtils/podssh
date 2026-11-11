@@ -30,6 +30,14 @@ pub(crate) fn russh_key(key: PrivateKey, hash: Option<HashAlg>) -> Result<Privat
     Ok(PrivateKeyWithHashAlg::new(Arc::new(key), hash))
 }
 
+/// A key made for one login alone, Ed25519, ready for russh to sign with:
+/// a service that lets any key in but asks for one (Sandhole, T-743) gets
+/// this, never a key of the host's, and it is dropped with the login.
+pub fn throwaway_login_key() -> Result<PrivateKeyWithHashAlg, String> {
+    let key = PrivateKey::random(&mut rand::rng(), russh::keys::Algorithm::Ed25519).map_err(|e| e.to_string())?;
+    russh_key(key, None).map_err(|_| "an Ed25519 key came back as RSA".to_string())
+}
+
 /// Whether an agent's request adds an RSA key (`SSH_AGENTC_ADD_IDENTITY`,
 /// 17, or with constraints, 25). russh's agent server would sign with it
 /// through the `rsa` crate, so `podssh agent` refuses it.

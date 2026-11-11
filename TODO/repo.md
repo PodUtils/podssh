@@ -5626,6 +5626,14 @@ Each crate of `v0.1.0` is taken.
   `sandhole` (T-186, for T-743) and the node `openbare-xyz` of kind `bare-node` (T-187, for T-740), which no
   code reads yet. clippy as the gate runs it, and `cargo test -p podssh-cli -p podssh-relay -p podssh-ws` in a
   namespace with the loopback alone: 3,288 passed, 100 ignored; `doctor_upgrade` passed with the network (2).
+- podcrates `v0.21.0` (`ada3699`), on 2026-11-11 (PodUtils/podcrates#65, COORD-040): each tag moved from
+  `v0.20.0`, 14 packages of podcrates in the lock and no other. For podssh, fixes with no change of API: a private
+  store of `pod-core` writes `.NAME.PID.N.tmp`, so two threads that store one name no longer tear it, and a pin of
+  `pod-identity` holds a lock of the process, so two pins at once keep both lines (podcrates T-195); `pod-incus` and
+  `pod-broker` are not podssh's. `cargo test -p podssh-cli -p podssh-relay -p podssh-ws -p podssh-ssh -p podssh-todo`
+  in a namespace with the loopback alone: 3,729 passed, 103 ignored, and 2 failed: `doctor_upgrade`, which needs
+  the network, and `no_rsa_private_op`, which found `PrivateKeyWithHashAlg::new` in T-743's login outside
+  `rsa_key.rs` (a key of Ed25519, but the rule is by the text): repaired at once by `podssh_ssh::throwaway_login_key`.
 
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

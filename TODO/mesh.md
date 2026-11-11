@@ -13169,7 +13169,16 @@ relay's carries a token, which never goes to a third party (as none goes to a fo
 relay roads stay out of the hop. Its unit tests (the node's setting, the line): 2 passed, 2026-11-11, in
 `cargo test -p podssh-cli --lib` (1085 passed); clippy and rustfmt clean. The live run,
 `behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session` of `last-roads-live.yml`: the
-node behind localhost.run, the client behind a proxy of the test that passes the Bare node alone: UNVERIFIED.
+node behind localhost.run, the client behind a proxy of the test that passes the Bare node alone.
+
+2026-11-11, the live run 42989086142 (`last-roads-live.yml` at `9cc3e08c`): the hop raced last, as it must, and
+`openbare.xyz` refused its upgrade: HTTP 400 `MISSING_BARE_URL`, "x-bare-url header is required". The node's own source
+(`nirholas/openbare`, `edge/src/websocket.js` and `bare-protocol.js` at `65a4d8d`, read through forge.web.pkgforge.dev)
+reads the far URL from the upgrade's headers, `X-Bare-URL` (`https:` turned to `wss:`) and `X-Bare-Headers`, opens
+the far WebSocket before its 101, and then passes each message as it is, with no `connect` and no `open`: a second
+form of v3's WebSocket, beside TompHTTP's. `podssh_ws::bare::dial` asks a node that refuses the first form's upgrade
+with 400 again in the header form (`header_request`, `dial_headers`); TompHTTP's server, which ignores the headers and
+waits for `connect`, still takes the first. Its unit test, and the live run again: UNVERIFIED.
 
 
 # T-741: smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back
@@ -13397,6 +13406,10 @@ localhost.run off. (6) The manual (`PODSSH_SANDHOLE`, the notes, `PODSSH_LAST_RE
 stand-in in Sandhole's shape: 7 passed on 2026-11-11 (each login a new key, the user `tunnel`, the name under the
 server's own taken, port 443 refused by the proxy and 22 taken, `greet` through it); `ssh_http`'s unit tests, 11
 passed. What remains: the live job through the demo server.
+
+2026-11-11, live, `last-roads-live.yml` run 42989086142 at `9cc3e08c`: `a_node_behind_sandhole_serves_a_client_at_its_tunnel_s_url`
+passed (a node with `--sandhole` behind the demo server, its login by a key made for it, `greet` and 1 MiB down
+through `https://NAME.demo.sandhole.com.br`, "the Sandhole road answered first"), and its planted stranger failed.
 
 # T-749: `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs
 

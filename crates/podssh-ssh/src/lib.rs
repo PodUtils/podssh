@@ -88,6 +88,7 @@ mod remote_join;
 pub mod remote_spec;
 pub mod retry;
 mod rsa_key;
+pub use rsa_key::throwaway_login_key;
 pub mod run;
 // podssh's last messages, for the report of a failure (T-195).
 pub mod said;

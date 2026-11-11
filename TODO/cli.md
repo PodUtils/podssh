@@ -1363,7 +1363,7 @@ OpenSSH's verify with `-n git` then fails.
 ## Done
 
 2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-367`; an RSA key
-signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:62-69`), and the keys of
+signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:70-77`), and the keys of
 the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:402-408`). The command is
 `crates/podssh-cli/src/keygen_sign.rs:1-479`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
 - `cargo test -p podssh-ssh --lib -- sshsig`: 6 passed: the signatures of OpenSSH's (Ed25519 in
@@ -1486,7 +1486,7 @@ the `sshd` login check fails.
 ## Done
 
 2026-10-11. Certificates in `crates/podssh-ssh/src/cert.rs:1-424`, signed by an RSA CA through
-`Detached` (`crates/podssh-ssh/src/rsa_key.rs:87-115`); the command in
+`Detached` (`crates/podssh-ssh/src/rsa_key.rs:95-123`); the command in
 `crates/podssh-cli/src/keygen_cert.rs:1-199`, its new flags at
 `crates/podssh-cli/src/flags/keygen.rs:53-60` and `:67-68`.
 - `cargo test -p podssh-ssh --lib -- cert::`: 5 passed: `-L` of a certificate of OpenSSH's prints
