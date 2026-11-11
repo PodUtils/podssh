@@ -23,9 +23,9 @@ use std::time::Duration;
 use crate::client::{self, ConnectError, WRITE_TIMEOUT};
 use crate::dial::ProxyChoice;
 use crate::frame::{OPCODE_BINARY, OPCODE_TEXT};
+use crate::handshake;
 use crate::session::RelaySession;
 use crate::tls::Trust;
-use crate::handshake;
 use crate::url::{self, Stream, WsUrl, USER_AGENT};
 
 /// The longest `open` that is read.
@@ -106,7 +106,8 @@ async fn dial_headers(
         false => Stream::Plain(way.tcp(&hop.host, hop.port, timeout).await.map_err(ConnectError::Dial)?.io),
     };
     let upgraded = tokio::time::timeout(timeout, client::upgrade_with(stream, &request, &key)).await;
-    let (stream, pending) = upgraded.map_err(|_| ConnectError::Timeout { step: "the WebSocket upgrade", after: timeout })??;
+    let (stream, pending) =
+        upgraded.map_err(|_| ConnectError::Timeout { step: "the WebSocket upgrade", after: timeout })??;
     Ok(RelaySession::new(stream, pending, idle, WRITE_TIMEOUT).naming("the server"))
 }
 
@@ -152,10 +153,9 @@ pub async fn dial(
         // A node of the header form refuses an upgrade that names no far URL.
         Err(ConnectError::Refused { status: 400, .. }) => {
             return dial_headers(node, far, trust, proxy, timeout, idle).await.map_err(|e| match e {
-                ConnectError::Refused { status, body } => refused(format!(
-                    "the header form: HTTP {status}: {}",
-                    crate::text::one_line(&body)
-                )),
+                ConnectError::Refused { status, body } => {
+                    refused(format!("the header form: HTTP {status}: {}", crate::text::one_line(&body)))
+                }
                 other => other,
             });
         }
