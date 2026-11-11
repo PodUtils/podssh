@@ -8220,6 +8220,11 @@ Repairs at the merge:
 Left (so `partial`): the service `localhost-run` of `pod-services` (the Decision; asked of
 podcrates), the short live run (Step 1), the containers of the Prove (T-251).
 
+2026-11-11: podcrates `v0.18.0` names the service `localhost-run`, so the road is on by default. The live
+run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs` (the client takes the node's
+`--tunnel-url` and key), `.github/workflows/last-roads-live.yml`, started by hand, with a planted stranger.
+
+
 # T-566: srv.us as a last fallback: an HTTPS name derived from the node's SSH key
 
 **Source:** the operator's ruling Q78 (2026-11-02).
@@ -8540,6 +8545,13 @@ with a plain squid (T-251), the short live run through `localtunnel.me` (T-548's
 entry of `pod-services` asked of podcrates (the Decision, item 5) as a COORD issue `(to
 podcrates)`.
 
+2026-11-11: podcrates `v0.18.0` names the service `localtunnel` (`localtunnel.me`), so the road is on by
+default; `crates/podssh-relay/src/localtunnel/route.rs` reads a head again with `pod-session`'s
+`client::Rewound::new`, and its private `Replay` is gone (`--features localtunnel` clippy-clean; the full
+suite passed). The live run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs`,
+`.github/workflows/last-roads-live.yml`.
+
+
 # T-569: bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads
 
 **Source:** the operator's ruling Q78 (2026-11-02).
@@ -8729,6 +8741,11 @@ Left (so `partial`): the service `bore` of `pod-services` (the COORD ask of the 
 live run through bore.pub (T-548's Decision), which measures its range of ports; bore's own server in
 a container (T-251).
 
+2026-11-11: podcrates `v0.18.0` names the service `bore` (`bore.pub:7835`), so the road is on by default.
+The live run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs`,
+`.github/workflows/last-roads-live.yml`, started by hand, with a planted stranger.
+
+
 # T-570: `ssh-j.com` as a last fallback: a public SSH jump and forward by name
 
 **Source:** the operator's ruling Q78 (2026-11-02).
@@ -8904,6 +8921,10 @@ then 1 MiB down whole; the test passed in 7.0 s. ssh-j.com's host key, read live
 `pod-services`). Planted, a client that named another node's key failed: ssh-j.com had no node at its
 name (`AdministrativelyProhibited`), exit 101, as it must. `pod-services` names `ssh-j` since v0.14.0.
 Done; the containers of the Prove wait for the checks of a release (T-251).
+
+2026-11-11: podcrates `v0.18.0` gives `pod-services`' `ssh-j` the fact `host-key-sha256`
+(`SHA256:EQqn3kjIF8XkXoN40tNJmRRE/eiz+AQmK2EWuEzOz6Y`, from this entry's live run), which the road reads
+(`crates/podssh-cli/src/sshj/mod.rs`): ssh-j.com's host key is pinned now.
 
 
 # T-571: Syncthing's relays on 443 as a last fallback of the reverse road

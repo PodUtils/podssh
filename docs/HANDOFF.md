@@ -25,25 +25,18 @@ right.
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.16.0"` (`fab57923`).
+podssh pins every podcrates crate at `tag = "v0.18.0"`.
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole` (`baa00a06`) and `pod-session`
   (`6f78a7c7`). podcrates recorded the last two (`14982fc`): `code/` and `session/` of podssh-relay are
   glue over the crates, and work on them is done in PodUtils/podcrates (Rule Q3).
-- `v0.17.0` changes nothing of podssh's. podcrates' `main` (`8af9fb6`) holds T-171 (the services
-  `localhost-run`, `localtunnel` and `bore` of `pod-services`), T-172 (`client::Rewound::new` of
-  `pod-session`) and T-181 (ssh-j's `host-key-sha256`); they go out with `v0.18.0`. Take the tag, not
-  `main`: then pin ssh-j's host key (T-570), drop the private `Replay` of
-  `crates/podssh-relay/src/localtunnel/route.rs`, make T-565, T-568 and T-569's short live runs, and close
-  #186.
-- ssh-j.com's host key, read live, went to podcrates as a fact for `pod-services`; podssh pins it with
-  the tag that brings it (T-570).
+- `v0.18.0` is taken: the services localhost-run, localtunnel and bore are on by default, `Rewound::new`
+  replaced localtunnel's `Replay`, and ssh-j.com's host key is pinned. #186 is closed.
 
 ## Open COORD issues
 
-- #186 (COORD-019): podcrates T-171 and T-172, next in podcrates' order. Then T-565, T-568 and T-569's
-  short live runs, and the private `Replay` of `crates/podssh-relay/src/localtunnel/route.rs` goes.
+- #186 (COORD-019): closed with the take of `v0.18.0`.
 - #177 (COORD-010): stays open for T-574's live check of the nodes (Q90); `v0.16.0` dropped the four
   dead Trojan nodes.
 
@@ -68,7 +61,7 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
 | T-694 | A test of a `--derp` node with a pair of its own served through croc's road (the DERP harness has no node pair yet); the rest is done. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
-| T-565, T-568, T-569 | Off until `pod-services` names their servers (#186). |
+| T-565, T-568, T-569 | On by default since `v0.18.0`; their short live runs: `last-roads-live.yml` (`crates/podssh-cli/tests/last_roads_live.rs`). |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
 | T-684 | Each next podcrates release that podssh takes. |
 | T-446 | Betas wait for the end of the migration (T-684). |

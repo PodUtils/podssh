@@ -5611,6 +5611,15 @@ Each crate of `v0.1.0` is taken.
   podssh-cli -p podssh-relay -p podssh-ws` in a namespace with the loopback alone: 3,279 passed, 83
   ignored; `doctor_upgrade` passed with the network (2).
 
+- podcrates `v0.18.0` (`c284d3a`), on 2026-11-11 (PodUtils/podcrates#60, COORD-035): each tag moved from
+  `v0.16.0` (`v0.17.0` changed nothing of podssh's). It brings podssh's asks of #186: `pod-services` names
+  `localhost-run`, `localtunnel` and `bore` (podcrates T-171), so their roads are on by default;
+  `pod-session` has `client::Rewound::new` (T-172), which takes the place of the private `Replay` of
+  `crates/podssh-relay/src/localtunnel/route.rs`; and ssh-j's `host-key-sha256` (T-181), which the ssh-j
+  road reads, so its host key is pinned. clippy as the gate runs it (with all of podssh-relay's
+  features), and `cargo test -p podssh-cli -p podssh-relay -p podssh-ws` in a namespace with the loopback
+  alone: 3,279 passed, 97 ignored; `doctor_upgrade` passed with the network (2).
+
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

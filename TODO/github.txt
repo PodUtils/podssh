@@ -191,5 +191,5 @@
 183 issue closed
 184 issue closed
 185 issue closed
-186 issue open
+186 issue closed
 187 issue closed

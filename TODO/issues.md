@@ -253,7 +253,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #183 | COORD-016: pod-services: the service croc, for podssh T-694 (to podcrates) | closed | T-694 (croc's bridge, asked of podcrates) |
 | #184 | COORD-017: podssh took podcrates v0.13.0 and pod-ws (to podcrates) | closed | T-684 (the take of pod-ws, `a083593e`) |
 | #185 | COORD-018: podssh took podcrates v0.14.0 and pod-quic (to podcrates) | closed | T-684 (the take of pod-quic, `525f8907`) |
-| #186 | COORD-019: pod-services: localhost-run, localtunnel and bore; pod-session: Rewound::new (to podcrates) | open | T-565, T-568, T-569 (their servers), T-568 (`Rewound::new`) |
+| #186 | COORD-019: pod-services: localhost-run, localtunnel and bore; pod-session: Rewound::new (to podcrates) | closed (2026-11-11: taken with podcrates v0.18.0) | T-565, T-568, T-569 (their servers), T-568 (`Rewound::new`) |
 | #187 | COORD-020: podssh took podcrates v0.15.0, pod-wormhole and pod-session (to podcrates) | closed (2026-11-11: podcrates `14982fc`; the gate green at `bc5107b0`) | T-684 (the takes at `baa00a06` and `6f78a7c7`) |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of

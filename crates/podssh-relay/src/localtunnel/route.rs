@@ -18,12 +18,12 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{Context, Poll};
 use std::time::Duration;
 
+use pod_session::client::Rewound;
 use podssh_ws::http::request::{self, Request};
 use podssh_ws::server;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
 
 use crate::serve::{self, Config};
 
@@ -80,7 +80,7 @@ where
         Whom::Role => {
             let Some(cfg) = router.role.clone() else { return };
             // The role reads the head again itself, as from its listener.
-            serve::serve_from(Replay::new(raw, stream), cfg, Some(name), None).await;
+            serve::serve_from(Rewound::new(raw, stream), cfg, Some(name), None).await;
         }
         Whom::Link => {
             let Some(visit) = router.visit.clone() else { return };
@@ -95,55 +95,13 @@ where
                 return;
             }
             // The bytes after the head are the visitor's first frames.
-            let (from, to) = tokio::io::split(Replay::new(raw[end..].to_vec(), stream));
+            let (from, to) = tokio::io::split(Rewound::new(raw[end..].to_vec(), stream));
             visit(crate::quick::visitor::websocket(from, to)).await;
         }
         Whom::Nobody => {
             let path = head.target.split('?').next().unwrap_or_default();
             let _ = stream.write_all(&request::refusal(404, &format!("{path}: not found"), &[])).await;
         }
-    }
-}
-
-/// A connection whose first bytes, the head that chose who serves it, are
-/// read again before its own. Its own type, not the resumable layer's
-/// `Rewound`: that module is frozen for fixes while podcrates imports it.
-struct Replay<S> {
-    first: Vec<u8>,
-    at: usize,
-    stream: S,
-}
-
-impl<S> Replay<S> {
-    fn new(first: Vec<u8>, stream: S) -> Replay<S> {
-        Replay { first, at: 0, stream }
-    }
-}
-
-impl<S: AsyncRead + Unpin> AsyncRead for Replay<S> {
-    fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {
-        if self.at < self.first.len() {
-            let n = (self.first.len() - self.at).min(buf.remaining());
-            let at = self.at;
-            buf.put_slice(&self.first[at..at + n]);
-            self.at += n;
-            return Poll::Ready(Ok(()));
-        }
-        Pin::new(&mut self.stream).poll_read(cx, buf)
-    }
-}
-
-impl<S: AsyncWrite + Unpin> AsyncWrite for Replay<S> {
-    fn poll_write(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<std::io::Result<usize>> {
-        Pin::new(&mut self.stream).poll_write(cx, buf)
-    }
-
-    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut self.stream).poll_flush(cx)
-    }
-
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut self.stream).poll_shutdown(cx)
     }
 }
 
