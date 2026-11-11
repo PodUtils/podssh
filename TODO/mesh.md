@@ -8892,6 +8892,12 @@ under 500 lines by `man/notes_ssh_more.rs`.
   of the Decision); a short live run through ssh-j.com (T-548's Decision), whose host key it reads;
   the containers of the Prove (T-251).
 
+2026-11-11: the live run has its test and its workflow, as T-549's: `crates/podssh-cli/tests/ssh_j_live.rs`
+(ignored outside the workflow) and `.github/workflows/ssh-j-live.yml`, started by hand: a node with a
+throwaway key at the name of its key, `greet` and 1 MiB down, Pinggy and Serveo off; a planted client
+that names another node's key must fail. Built and clippy-clean here.
+
+
 # T-571: Syncthing's relays on 443 as a last fallback of the reverse road
 
 **Source:** the operator's ruling Q78 (2026-11-02); T-442's verdict.

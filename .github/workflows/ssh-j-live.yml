@@ -1,0 +1,45 @@
+name: ssh-j live
+
+# The ssh-j road (T-570) through ssh-j.com itself (pod-services), a last
+# fallback of the operator's ruling Q78; a short run that Q91 allows: one node
+# with a throwaway key at the name of its key, one client, `greet` and 1 MiB
+# down, and the node stopped at the end, which gives the name up. A planted
+# run makes the client name another node's key, so another name, and must
+# fail. No credential goes to ssh-j: it has no accounts. Started by hand
+# alone; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ssh-j-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-cli --test ssh_j_live --no-run
+      - name: a short run through ssh-j
+        run: |
+          timeout 300 cargo test --locked -p podssh-cli --test ssh_j_live -- --ignored --nocapture
+      # The check must see a client that names another node's key fail.
+      - name: a planted stranger fails it
+        env:
+          PODSSH_SSH_J_TEST_PLANT: stranger
+        run: |
+          rc=0
+          timeout 300 cargo test --locked -p podssh-cli --test ssh_j_live -- --ignored || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: another node's key passed"
+            exit 1
+          fi
+          echo "another node's key failed (exit $rc), as it must"
