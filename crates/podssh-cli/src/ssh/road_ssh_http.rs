@@ -170,7 +170,11 @@ impl SshHttpRoads {
         kinds.push(Kind::Bare);
     }
 
-    async fn bare_link(&self, node: &WsUrl, record: Option<&crate::ssh::iroh::RecordRoads<'_>>) -> Result<Road, String> {
+    async fn bare_link(
+        &self,
+        node: &WsUrl,
+        record: Option<&crate::ssh::iroh::RecordRoads<'_>>,
+    ) -> Result<Road, String> {
         let name = self.name(record).await?;
         let word = word_of(&name);
         if let Ok(Some(by)) = off(word) {

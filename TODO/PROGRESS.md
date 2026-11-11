@@ -371,7 +371,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 706 entries: 89 open, 20 partial, 9 blocked, 588 done.
+`TODO/INDEX.md` holds 706 entries: 89 open, 19 partial, 9 blocked, 589 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -467,7 +467,7 @@ this order:
    the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public Wisp servers
    made for it (done: none qualifies), Pinggy (T-548) and the public proxy nodes (T-574); then the research of the
    overlay networks (NetBird, Firezone, ZeroTier, Tox, Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the pub/sub networks (done),
-   then what they filed: croc's relay as a road and a meeting point (T-694), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's peers (T-735),
+   then what they filed: croc's relay as a road and a meeting point (done), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's peers (T-735),
    HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566,
    T-567, T-571, T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last

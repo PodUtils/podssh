@@ -12,8 +12,11 @@
 //! no `--allow` whose key is a member of the net is the module `derp_net`
 //! (T-452). A session goes on across the node's upgrade in place, as the
 //! node comes home again under the same key (T-679, `upgrade_support`).
+//! croc's relay road beside a node's own pair is the module `derp_croc`
+//! (T-694).
 
 mod cleanup;
+mod derp_croc;
 mod derp_net;
 mod derp_support;
 mod ssh_harness;
@@ -21,6 +24,9 @@ mod upgrade_support;
 // The TLS acceptor of the test's own CA.
 #[path = "update_support/mod.rs"]
 mod update_support;
+// croc's relay and croc-web's bridge, podssh-relay's stand-ins (T-694).
+#[path = "../../podssh-relay/tests/croc_stand_in/mod.rs"]
+mod croc_stand_in;
 
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};

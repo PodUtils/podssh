@@ -12115,7 +12115,7 @@ and trojan-go's own servers carried a session, and another password named each f
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -12302,6 +12302,15 @@ it from the pair, none with no pair or with the road off; each node road's harne
 `PODSSH_CROC=no`. clippy and rustfmt clean; `--test derp_road` 8 passed and `--test node_piping` 2, in a
 namespace with the loopback alone. Left: a test of a `--derp` node with a pair of its own that serves a
 client through croc's road, which needs the node's pair in the DERP harness.
+
+2026-11-11, the last test: `crates/podssh-cli/tests/derp_croc/mod.rs`, a module of `--test derp_road`, with podssh-relay's
+stand-ins of croc's relay and croc-web's bridge (`croc_stand_in`) on the loopback, named by `PODSSH_CROC`: a `--derp`
+node holds a pair whose relay is down and waits in a room of croc's relay beside its DERP road; a client of the same
+pair, its DERP road off and the pair's road down, runs `greet` over croc's relay road ("croc's relay road answered
+first"). `cargo test -p podssh-cli --test derp_road`, 9 passed, in a namespace with the loopback alone; planted, the
+node with no croc road: the client failed (255), as it must. clippy and rustfmt clean. Each part of the Prove is done:
+the vectors, the stand-in tests, croc's own software (`croc-interop.yml`), the live session (`croc-live.yml`),
+`podssh doctor`'s line, and the node roads of `--derp` and of the Piping Server road.
 
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
