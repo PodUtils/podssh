@@ -7842,7 +7842,7 @@ why the net's list does not hold it).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8041,6 +8041,13 @@ in `A`.
 throwaway key at the alias of its key, `greet` and 1 MiB down, the node stopped at the end; a planted
 client that names another node's key must fail. Built and clippy-clean here; the run itself is the
 workflow's (this host's proxy passes no raw SSH).
+
+2026-11-11, live, `serveo-live.yml` at `17e6280d` (run 42953995316): the node held the alias of its key
+at `serveo.net` over raw SSH on 443, its host key the pin of `pod-services`; the client jumped to it,
+"the Serveo road answered first, in 3479 ms", `greet` came back, and then 1 MiB down whole (3451 ms to
+answer); the test passed in 17.8 s. Planted, a client that named another node's key failed: serveo.net
+opened none of its four aliases (`ConnectFailed`), exit 101, as it must. Done; the Prove's squid in a
+container waits for the checks of a release (T-251).
 
 - Waits: `pod-services`' `serveo` (the ask); the live run, short,
   through Serveo (T-548's Decision, Q91), which needs it; the Prove's squid in a container (T-251).
