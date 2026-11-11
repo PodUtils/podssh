@@ -43,7 +43,10 @@ pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races t
      session over HTTPS that it ends, and that the end-to-end channel keeps its bytes. A free name changes \
      after a few hours. podssh ping measures it only with --tunnel-url. PODSSH_LOCALHOST_RUN=no or \
      PODSSH_LAST_RESORT=no turns the road off. A name under Sandhole's tunnels' zone is the Sandhole road's: \
-     its line names Sandhole, and PODSSH_SANDHOLE=no turns it off.";
+     its line names Sandhole, and PODSSH_SANDHOLE=no turns it off. Last of all, once each road before it \
+     failed, the Bare hop reaches the same name through a Bare v3 node (the one of podssh's list of services, \
+     or of PODSSH_BARE), so that a proxy sees the node's name alone; its line names the node, which sees the \
+     tunnel's name and which nobody vouches for. PODSSH_BARE=no turns it off.";
 
 #[cfg(test)]
 mod tests {

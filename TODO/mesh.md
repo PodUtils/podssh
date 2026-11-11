@@ -13150,6 +13150,18 @@ both on each push of the hop; its first run on a runner passed (run 42974162578:
 passed, the planted connect failed). Next: the node from `pod-services` (podcrates T-187, `v0.20.0`), the hop
 tried after each other WebSocket road with its line, and the short live session through `openbare.xyz`.
 
+2026-11-11, the wiring (`crates/podssh-cli/src/ssh/road_bare.rs`): the node is the first of the kind `bare-node` of
+`pod-services` (`openbare-xyz`, endpoint `bare`, `https://openbare.xyz/bare/`), or the `https://` URL of `PODSSH_BARE`;
+`PODSSH_BARE=no` or `PODSSH_LAST_RESORT=no` turns the hop off, another word is 78 before anything connects. The hop
+races last of all (`Start::WhenAllFailed`, after bore's road), as the road `Kind::Bare`, "the Bare hop", and carries the
+tunnel's name of the road of `ssh -R` (localhost.run's or Sandhole's) to `wss://NAME/` through the node, with its own
+line of Q78 that names the node and the far name. Only that road: its WebSocket carries no credential, where a
+relay's carries a token, which never goes to a third party (as none goes to a forwarder, T-370); the WebSockets of the
+relay roads stay out of the hop. Its unit tests (the node's setting, the line): 2 passed, 2026-11-11, in
+`cargo test -p podssh-cli --lib` (1085 passed); clippy and rustfmt clean. The live run,
+`behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session` of `last-roads-live.yml`: the
+node behind localhost.run, the client behind a proxy of the test that passes the Bare node alone: UNVERIFIED.
+
 
 # T-741: smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back
 

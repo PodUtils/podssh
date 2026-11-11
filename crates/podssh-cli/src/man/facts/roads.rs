@@ -130,6 +130,15 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           which does not echo the value.",
     ),
     (
+        &["PODSSH_BARE"],
+        "The Bare hop (T-740), the last fallback of all of the operator's ruling Q78: podssh ssh node://NAME \
+          reaches the tunnel's name of the localhost.run or Sandhole road through a Bare v3 node, once each road \
+          before it failed, so that a proxy sees the node's name alone; the node dials the name itself and sees it, \
+          and the end-to-end channel keeps the bytes. No relay token goes to it. no: no such hop; an https:// URL: \
+          that node; unset, empty or yes: the node of the kind bare-node of podssh's list of services, else none. \
+          Another word is a configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_LOCALTUNNEL"],
         "The localtunnel road (T-568), a last fallback of the operator's ruling Q78, before the bore road: \
           localtunnel's public server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
@@ -300,7 +309,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
-      PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
+      PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
       PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),

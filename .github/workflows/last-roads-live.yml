@@ -2,7 +2,8 @@ name: last roads live
 
 # The last roads of all (Q78) through their own public servers, named by
 # pod-services: localhost.run (T-565), Sandhole's demo (T-743),
-# localtunnel.me (T-568) and bore.pub (T-569); short runs that Q91 allows: for each, one node with a throwaway
+# localtunnel.me (T-568), bore.pub (T-569), and the Bare node of the last hop
+# (T-740), whose client's proxy passes that node alone; short runs that Q91 allows: for each, one node with a throwaway
 # key, one client, `greet` and 1 MiB down, each other road off, and the node
 # stopped at the end, which gives its tunnel up. A planted run makes the
 # client name another node's key, and must fail. No credential goes to
@@ -29,6 +30,7 @@ jobs:
         test:
           - a_node_behind_localhost_run_serves_a_client_at_its_tunnel_s_url
           - a_node_behind_sandhole_serves_a_client_at_its_tunnel_s_url
+          - behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session
           - a_node_behind_localtunnel_serves_a_client_that_names_its_key
           - a_node_at_its_bore_port_serves_a_client_that_names_its_key
     env:

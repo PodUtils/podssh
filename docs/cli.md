@@ -4483,6 +4483,18 @@ commands. The rules behind them:
   after localhost.run's; a client takes the word whose `tunnel-zone` holds
   the name, for its switch and its line. `PODSSH_SANDHOLE=no` or
   `PODSSH_LAST_RESORT=no` turns it off.
+- **The Bare hop is the last road of `ssh node://NAME`** (T-740): the
+  tunnel's name of the road of `ssh -R` (localhost.run's or Sandhole's),
+  reached through a Bare v3 node (`podssh_ws::bare`), once each road
+  before it failed, bore's too. A proxy on the way sees the node's name
+  alone. The node is the first of the kind `bare-node` of `pod-services`
+  (`openbare.xyz` now, endpoint `bare`), or the `https://` URL of
+  `PODSSH_BARE`. Only that road: its WebSocket carries no credential,
+  where a relay's carries a token, which never goes to a third party. A
+  line before its first link names the node, says that it sees the
+  tunnel's name and that nobody vouches for it; the end-to-end channel
+  keeps the bytes. `PODSSH_BARE=no` or `PODSSH_LAST_RESORT=no` turns it
+  off; another word of `PODSSH_BARE` is 78.
 - **`node --localtunnel` serves the localtunnel road** (T-568, partial;
   merged 2026-11-10), a last fallback of Q78, after the localhost.run road:
   localtunnel's public server, with no account, where `pod-services` names

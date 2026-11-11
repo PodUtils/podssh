@@ -145,12 +145,15 @@ pub(crate) enum Kind {
     /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
     SshJ,
     /// A node's tunnel of HTTP made by `ssh -R`, the last of the fallbacks of
-    /// Q78 (T-565), and whether its name was given in this run.
-    SshHttp(bool),
+    /// Q78 (T-565), whether its name was given in this run, and whether the
+    /// name known before the race is Sandhole's (T-743).
+    SshHttp(bool, bool),
     /// A node's name at localtunnel's server, the last of the fallbacks of Q78 (T-568).
     LocalTunnel,
     /// A port of a node's key at bore.pub, the last of the fallbacks of Q78 (T-569).
     Bore,
+    /// The tunnel's name of `ssh -R` through a Bare node, the last of all (T-740).
+    Bare,
     /// A road of the node's record, by its name.
     Record(&'static str),
     /// A leg at a member of the net with the relay role (T-434).
@@ -173,9 +176,11 @@ impl Kind {
             Kind::Croc => "croc's relay road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
-            Kind::SshHttp(_) => "the localhost.run road",
+            Kind::SshHttp(_, false) => "the localhost.run road",
+            Kind::SshHttp(_, true) => "the Sandhole road",
             Kind::LocalTunnel => "the localtunnel road",
             Kind::Bore => "the bore road",
+            Kind::Bare => "the Bare hop",
             Kind::Member => "a member's relay role",
             Kind::Frp => "the frp road",
         }
@@ -224,7 +229,11 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             (_, Kind::SshJ | Kind::LocalTunnel | Kind::Bore) => {
                 "when each road before it failed (the node's key, the last fallback of Q78)".to_string()
             }
-            (_, Kind::SshHttp(false)) => {
+            (_, Kind::Bare) => {
+                "when each road before it failed (the tunnel's name through a Bare node, the last fallback of Q78)"
+                    .to_string()
+            }
+            (_, Kind::SshHttp(false, _)) => {
                 "when each road before it failed (a kept name or its record, the last fallback of Q78)".to_string()
             }
             (_, Kind::Piping) if unasked.piping => {

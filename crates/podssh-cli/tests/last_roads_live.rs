@@ -8,7 +8,10 @@
 //! client that names the node's key runs `greet`, then takes 1 MiB down; the
 //! node is stopped at the end, which gives its tunnel up. With
 //! `PODSSH_LAST_TEST_PLANT=stranger`, the client names another node's key,
-//! and the run must fail: the check is not vacuous.
+//! and the run must fail: the check is not vacuous. Sandhole's demo (T-743)
+//! too; and the Bare hop (T-740): the client's proxy of the test passes the
+//! Bare node of `pod-services` alone, so the tunnel's name of localhost.run
+//! is reached through that node, the last road of all.
 
 mod cleanup;
 mod ssh_harness;
@@ -102,6 +105,53 @@ impl Drop for Node {
 /// `url_of` takes the address that a client gives from the ready line, as
 /// `--tunnel-url` names one, where the road needs it.
 fn live(road: &str, flag: &str, ready: &str, answered: &str, url_of: Option<fn(&str) -> String>) {
+    live_via(road, flag, ready, answered, url_of, None)
+}
+
+/// A proxy of the client's on the loopback that passes a CONNECT to
+/// `allowed` on port 443 alone, and refuses each other with 403: its port.
+fn proxy_of(allowed: String) -> u16 {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        for mut tcp in listener.incoming().map_while(Result::ok) {
+            let allowed = allowed.clone();
+            std::thread::spawn(move || {
+                let mut head = Vec::new();
+                let mut byte = [0u8; 1];
+                while !head.ends_with(b"\r\n\r\n") && head.len() < 8192 {
+                    if tcp.read(&mut byte).unwrap_or(0) == 0 {
+                        return;
+                    }
+                    head.push(byte[0]);
+                }
+                let line = String::from_utf8_lossy(&head).lines().next().unwrap_or_default().to_string();
+                let target = line.split_whitespace().nth(1).unwrap_or_default().to_string();
+                if target != format!("{allowed}:443") {
+                    let _ = tcp.write_all(b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n");
+                    return;
+                }
+                let Ok(far) = std::net::TcpStream::connect((allowed.as_str(), 443)) else { return };
+                let _ = tcp.write_all(b"HTTP/1.1 200 Connection established\r\n\r\n");
+                let (mut up, mut down) = (tcp.try_clone().unwrap(), far.try_clone().unwrap());
+                let (mut tcp, mut far) = (tcp, far);
+                std::thread::spawn(move || std::io::copy(&mut up, &mut down));
+                let _ = std::io::copy(&mut far, &mut tcp);
+            });
+        }
+    });
+    port
+}
+
+/// [`live`], with the client behind a proxy that passes `only` alone, when given.
+fn live_via(
+    road: &str,
+    flag: &str,
+    ready: &str,
+    answered: &str,
+    url_of: Option<fn(&str) -> String>,
+    only: Option<String>,
+) {
     let home =
         std::env::temp_dir().join(format!("podssh-last-live-{}-{}", flag.trim_start_matches('-'), std::process::id()));
     let _ = std::fs::remove_dir_all(&home);
@@ -156,6 +206,7 @@ fn live(road: &str, flag: &str, ready: &str, answered: &str, url_of: Option<fn(&
     let planted = std::env::var("PODSSH_LAST_TEST_PLANT").ok().as_deref() == Some("stranger");
     let stranger = file::load(&Place::Ephemeral, &mut OsEntropy).unwrap().identity.public().fingerprint().to_string();
     let expected = if planted { stranger } else { node_key };
+    let proxy = only.map(proxy_of);
     let ssh = |words: &[&str]| {
         let known = format!("UserKnownHostsFile={}", client_home.join("known_hosts").display());
         let client_key = client_key.to_string_lossy().into_owned();
@@ -165,7 +216,12 @@ fn live(road: &str, flag: &str, ready: &str, answered: &str, url_of: Option<fn(&
             args.extend_from_slice(&["--tunnel-url", url]);
         }
         args.extend_from_slice(words);
-        run(&mut command(&client_home, road, &args))
+        let mut cmd = command(&client_home, road, &args);
+        if let Some(port) = proxy {
+            let proxy = format!("http://127.0.0.1:{port}");
+            cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env_remove("NO_PROXY").env_remove("no_proxy");
+        }
+        run(&mut cmd)
     };
     let (rc, out, err) = ssh(&["node://tester@lab", "greet"]);
     eprintln!("client, greet: {err}");
@@ -209,4 +265,13 @@ fn a_node_behind_localtunnel_serves_a_client_that_names_its_key() {
 #[ignore = "a live run through bore.pub: last-roads-live.yml"]
 fn a_node_at_its_bore_port_serves_a_client_that_names_its_key() {
     live("PODSSH_BORE", "--bore", ": bore port ", "the bore road", None);
+}
+
+#[test]
+#[ignore = "a live run through localhost.run and the Bare node of pod-services: last-roads-live.yml"]
+fn behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session() {
+    let node = pod_services::of_kind("bare-node").next().expect("pod-services names a Bare node");
+    let host = node.endpoint("bare").expect("its endpoint").host().to_string();
+    let road = ("PODSSH_LOCALHOST_RUN", "--localhost-run", ": tunnel https://");
+    live_via(road.0, road.1, road.2, "the Bare hop", Some(tunnel_url), Some(host));
 }

@@ -29,6 +29,7 @@ use podssh_relay::ssh_http::{self, name, Setting, Word};
 use podssh_ssh::Log;
 use podssh_ws::client::DEFAULT_IDLE_TIMEOUT;
 use podssh_ws::cloudflare::{self, Access};
+use podssh_ws::url::WsUrl;
 use podssh_ws::{ProxyChoice, Trust};
 
 use crate::relay_settings::Refusal;
@@ -77,6 +78,8 @@ pub(crate) fn race(args: &SshArgs) -> Result<(), Refusal> {
     for word in ssh_http::WORDS {
         off(*word)?;
     }
+    // A bad PODSSH_BARE is refused here, before anything connects (T-740).
+    super::last::bare::node()?;
     if let Some(given) = &name {
         let word = word_of(given);
         if let Some(by) = off(word)? {
@@ -113,6 +116,8 @@ pub(crate) struct SshHttpRoads {
     trust: Trust,
     /// Whether the line of the third party was said, once a run.
     said: AtomicBool,
+    /// Whether the line of the Bare hop was said, once a run.
+    said_bare: AtomicBool,
     /// The name that the last link dialed, so that `-v` says each change once.
     last: Mutex<Option<String>>,
     log: Arc<Log>,
@@ -148,7 +153,39 @@ impl SshHttpRoads {
             }
         }
         let (trust, log, shown, last) = (trust.clone(), log.clone(), shown.to_string(), Mutex::new(None));
-        Some(SshHttpRoads { given, kept, record, trust, said: AtomicBool::new(false), last, log, shown })
+        let said = (AtomicBool::new(false), AtomicBool::new(false));
+        Some(SshHttpRoads { given, kept, record, trust, said: said.0, said_bare: said.1, last, log, shown })
+    }
+
+    /// The Bare hop of the same name (T-740, `road_bare`): last of all, once
+    /// each road before it failed, through the node of `node`.
+    pub(super) fn push_bare<'r>(
+        &'r self,
+        node: &'r WsUrl,
+        list: &mut Vec<(Start, Going<'r>)>,
+        kinds: &mut Vec<Kind>,
+        record: Option<&'r crate::ssh::iroh::RecordRoads<'_>>,
+    ) {
+        list.push((Start::WhenAllFailed, Box::pin(self.bare_link(node, record))));
+        kinds.push(Kind::Bare);
+    }
+
+    async fn bare_link(&self, node: &WsUrl, record: Option<&crate::ssh::iroh::RecordRoads<'_>>) -> Result<Road, String> {
+        let name = self.name(record).await?;
+        let word = word_of(&name);
+        if let Ok(Some(by)) = off(word) {
+            return Err(format!("wss://{name}/: {by}=no turns the {} road off", word.name));
+        }
+        let far = super::last::bare::far(&name)?;
+        // Its own line of Q78, once a run, before the first byte goes to the node.
+        if !self.said_bare.swap(true, Ordering::SeqCst) {
+            self.log.info(&format!("{}: {}", self.shown, super::last::bare::line(node, &far)));
+        }
+        let (proxy, limit) = (ProxyChoice::FromEnvironment, podssh_relay::open::CONNECT_TIMEOUT);
+        match podssh_ws::bare::dial(node, &far, &self.trust, &proxy, limit, Some(DEFAULT_IDLE_TIMEOUT)).await {
+            Ok(session) => Ok(Road::SshHttp(podssh_ssh::relay_stream::spawn(session).0)),
+            Err(e) => Err(format!("{} through {}: {e}", far.shown(), node.shown())),
+        }
     }
 
     /// Whether the user gave the name in this run.
@@ -166,7 +203,9 @@ impl SshHttpRoads {
     ) {
         let start = if self.asked() { Start::After(HEAD_START) } else { Start::WhenAllFailed };
         list.push((start, Box::pin(self.link(record))));
-        kinds.push(Kind::SshHttp(self.asked()));
+        let known = self.given.as_ref().or(self.kept.as_ref());
+        let sandhole = known.is_some_and(|name| word_of(name).id == ssh_http::SANDHOLE.id);
+        kinds.push(Kind::SshHttp(self.asked(), sandhole));
     }
 
     /// The name of a link: the one given; else the record's, read again at

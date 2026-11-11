@@ -5,7 +5,8 @@
 //! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
 //! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
 //! localtunnel's server (T-568, [`localtunnel`]), then its port at bore.pub
-//! (T-569, [`bore`]), the last of all. The road that a host with 443 alone
+//! (T-569, [`bore`]), then the tunnel's name of `ssh -R` through a Bare node
+//! (T-740, [`bare`]), the last of all. The road that a host with 443 alone
 //! can serve comes before the roads of raw TCP to another port, and bore's
 //! raw port, which more cages refuse, comes last. Each starts as its own `push` says. The order is the node's
 //! too: a node that would serve none of the roads before them unasked serves
@@ -28,6 +29,10 @@ pub(crate) mod localtunnel;
 #[path = "bore.rs"]
 pub(crate) mod bore;
 
+// The tunnel's name through a Bare node, the last of all (T-740).
+#[path = "road_bare.rs"]
+pub(crate) mod bare;
+
 /// The last fallbacks of one run, each where it races.
 pub(crate) struct LastRoads {
     serveo: Option<crate::ssh::serveo::ServeoRoads>,
@@ -35,6 +40,8 @@ pub(crate) struct LastRoads {
     tunnel: Option<super::ssh_http::SshHttpRoads>,
     localtunnel: Option<localtunnel::LocalTunnelRoads>,
     bore: Option<bore::BoreRoads>,
+    /// The Bare node of the hop of the tunnel's name, where the hop is on.
+    bare: Option<podssh_ws::url::WsUrl>,
 }
 
 impl LastRoads {
@@ -56,6 +63,8 @@ impl LastRoads {
             tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
             localtunnel: localtunnel::LocalTunnelRoads::new(label, ask, trust, log, shown),
             bore: bore::BoreRoads::new(label, ask, trust, log, shown),
+            // A bad PODSSH_BARE is refused before the race (`race` of the road).
+            bare: bare::node().ok().flatten(),
         }
     }
 
@@ -66,7 +75,7 @@ impl LastRoads {
     pub(crate) fn asked(label: &str, trust: &Trust, log: &Arc<Log>, shown: &str) -> Self {
         let tunnel = super::ssh_http::SshHttpRoads::new(label, false, false, trust, log, shown);
         let tunnel = tunnel.filter(|tunnel| tunnel.asked());
-        LastRoads { serveo: None, sshj: None, tunnel, localtunnel: None, bore: None }
+        LastRoads { serveo: None, sshj: None, tunnel, localtunnel: None, bore: None, bare: None }
     }
 
     /// Whether one of them races.
@@ -97,6 +106,9 @@ impl LastRoads {
         }
         if let Some(bore) = &self.bore {
             bore.push(list, kinds);
+        }
+        if let (Some(tunnel), Some(node)) = (&self.tunnel, &self.bare) {
+            tunnel.push_bare(node, list, kinds, record);
         }
     }
 }

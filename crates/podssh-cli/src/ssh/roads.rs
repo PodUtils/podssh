@@ -59,7 +59,7 @@ use super::road_link::{lost_words, order, winner, Handed, Rider};
 mod pair_links;
 use pair_links::pair_link;
 
-// The last fallbacks of Q78, in their order (T-549, T-570, T-565, T-568, T-569).
+// The last fallbacks of Q78, in their order (T-549, T-570, T-565, T-568, T-569, T-740).
 #[path = "road_last.rs"]
 pub(crate) mod last;
 
