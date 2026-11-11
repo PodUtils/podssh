@@ -1,0 +1,45 @@
+name: serveo live
+
+# The Serveo road (T-549) through Serveo itself, `serveo.net` (pod-services),
+# a last fallback of the operator's ruling Q78; a short run that Q91 allows:
+# one node with a throwaway key at the private alias of its key, one client,
+# `greet` and 1 MiB down, and the node stopped at the end, which gives the
+# alias up. A planted run makes the client name another node's key, so
+# another alias, and must fail. No credential goes to Serveo: an anonymous
+# tunnel has no account. Started by hand alone; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: serveo-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-cli --test serveo_live --no-run
+      - name: a short run through Serveo
+        run: |
+          timeout 300 cargo test --locked -p podssh-cli --test serveo_live -- --ignored --nocapture
+      # The check must see a client that names another node's key fail.
+      - name: a planted stranger fails it
+        env:
+          PODSSH_SERVEO_TEST_PLANT: stranger
+        run: |
+          rc=0
+          timeout 300 cargo test --locked -p podssh-cli --test serveo_live -- --ignored || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: another node's key passed"
+            exit 1
+          fi
+          echo "another node's key failed (exit $rc), as it must"

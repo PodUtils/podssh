@@ -8036,6 +8036,12 @@ in `A`.
   (`the_node_s_alias_is_its_key_s_and_a_client_with_the_key_jumps_to_it_last`,
   `an_alias_that_serveo_holds_sends_the_node_to_the_next_of_its_series`, and the known answer);
   put back, each passes.
+2026-11-11: the live run has its test and its workflow, as T-548's: `crates/podssh-cli/tests/serveo_live.rs`
+(ignored outside the workflow) and `.github/workflows/serveo-live.yml`, started by hand. A node with a
+throwaway key at the alias of its key, `greet` and 1 MiB down, the node stopped at the end; a planted
+client that names another node's key must fail. Built and clippy-clean here; the run itself is the
+workflow's (this host's proxy passes no raw SSH).
+
 - Waits: `pod-services`' `serveo` (the ask); the live run, short,
   through Serveo (T-548's Decision, Q91), which needs it; the Prove's squid in a container (T-251).
 
