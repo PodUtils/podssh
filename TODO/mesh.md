@@ -6382,8 +6382,7 @@ that they let podssh in.
   which a server may count by,": a server may refuse podssh by the name of its program.
 - `crates/podssh-relay/tests/derp_live.rs:3` says "server of the fleet whose probe answers
   through the proxy of the": the live test of tailcat's fleet, 64 KiB each way, run by hand.
-- `AGENTS.md:320` says "session's own host: Tailscale's main DERP fleet, to learn whether it
-  lets": short runs from GitHub Actions and the session's host.
+- `AGENTS.md:318` says "Short, to learn whether it lets podssh in": short runs from GitHub Actions and the session's host.
 
 ## Approach
 
@@ -6520,8 +6519,8 @@ taken over.
   proxies on", and `docs/carriers.md:247` says "No host names an operator, terms or limits. The
   sweep flagged 54 of": the sweep's hosts give no operator, and most are domains of other
   parties, so none of them is a source for this entry.
-- `AGENTS.md:321` says "podssh in (Q74); the public Wisp servers that their operators run for
-  that": short live runs may reach them.
+- `AGENTS.md:319` says "The public Wisp servers that their operators run for that use":
+  short live runs may reach them.
 
 ## Approach
 
@@ -11161,7 +11160,7 @@ through an HTTP CONNECT proxy.
 - RFC 6062 carries the bytes on a second TCP connection to the server, bound by `ConnectionBind`,
   while the control connection that holds the allocation stays open (Read in the archive's patch,
   its file crates/podssh-ws/src/turn/mod.rs, and its docs/poc.md: "proxy logs 2 CONNECTs").
-  `AGENTS.md:340` says "Make one outbound connection", with five exceptions, none for this road.
+  `AGENTS.md:331` says "Make one outbound connection", with five exceptions, none for this road.
 - podssh-ws holds the parts of TURN's long-term credential in pure Rust: `hmac`
   (`crates/podssh-ws/Cargo.toml:34`), and `md5` and `sha1` (`crates/podssh-ws/Cargo.toml:51-52`);
   and a resolver order of its own (`PodUtils/podssh:crates/podssh-ws/src/resolve.rs:2` says "resolver works. In

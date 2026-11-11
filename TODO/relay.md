@@ -3604,7 +3604,7 @@ to hosts that the session does not use.
 
 ## Premise
 
-- Read: `AGENTS.md:336-346`, rule 2: one outbound connection, and its four exceptions (a listener
+- Read: `AGENTS.md:327-359`, rule 2: one outbound connection, and its four exceptions (a listener
   that the user asks for, the race between relay hosts, the split HTTP road of Q44, the quick
   tunnel's second connection of Q62); `docs/decisions.md:42` adds XHTTP's second connection (Q67).
   None covers a probe of a host that the session does not use.
@@ -3721,7 +3721,7 @@ once; the test of the overlap fails.
   unasked only with `RelayRank auto`, at most once a day for each egress, 8 hosts, one probe each
   10 s at most, each with `?dial=lazy`. Item 1 no longer waits on a default.
 - 2026-11-03, the draft: the Premise's lines moved before it was read. Rule 2 begins at
-  `AGENTS.md:340`, and the rows of Q89 and Q90 came above the others: Q67 is at
+  `AGENTS.md:331`, and the rows of Q89 and Q90 came above the others: Q67 is at
   `docs/decisions.md:44`, Q83 at `docs/decisions.md:28` and Q73 at `docs/decisions.md:38`. Rule 2
   had four exceptions, and Q67's XHTTP is not among them; the draft adds Q89's as the fifth.
 - The settings file's `RelayRank` took yes or no alone (`crates/podssh-cli/src/settings.rs`, its

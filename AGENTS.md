@@ -2,7 +2,8 @@
 
 Read this file first. It tells you what podssh is, which documents to read
 for your task, and the rules for all work on this repository. It is for
-agents and for people.
+agents and for people. The rulings behind each rule, with their dates, are
+in [docs/decisions.md](docs/decisions.md); a `Q` number names one.
 
 ## 1. What podssh is
 
@@ -30,30 +31,29 @@ You have no memory of earlier sessions. The files in this repository are the
 only record. A session can start with the prompt "Read AGENTS.md in full and
 follow it" and nothing more: this file is then your whole instruction.
 
-**Work unattended.** The operator's standing instruction (2026-10-08,
-[docs/decisions.md](docs/decisions.md)): work for as long as you can. Do not
-stop to ask, and do not wait for a reply. Stop only when the operator
-interrupts you, or when the goal is reached.
+**Work unattended** (the operator's standing instruction): work for as long
+as you can. Do not stop to ask, and do not wait for a reply. Stop only when
+the operator interrupts you, or when the goal is reached.
 
 **The goal.** Each entry of `TODO/` is done, except the entries that the
 operator holds (`TODO/PROGRESS.md`). Each test passes, and the gate is green
-in CI. `v1.0.0`, the first stable release, went out on 2026-11-02 (T-250).
-Milestone M10 follows it (the operator, 2026-11-02, Q63;
-[docs/mesh.md](docs/mesh.md)): podssh's own nodes as a mesh at parity with
-Tailscale, and the relay as a role of podssh itself, so that no entry waits
-for the relay's operator. Betas `v1.1.0-beta.N` reach the testers on the
-way, and `v1.1.0` is published and verified from end to end at the end
-(T-446).
+in CI. `v1.0.0`, the first stable release, is out (T-250). The current
+milestone is M10 (Q63, [docs/mesh.md](docs/mesh.md)): podssh's own nodes as
+a mesh at parity with Tailscale, and the relay as a role of podssh itself,
+so that no entry waits for the relay's operator. Betas `v1.1.0-beta.N`
+reach the testers on the way, and `v1.1.0` is published and verified from
+end to end at the end (T-446).
 
 ### At the start of a session
 
 1. Read [README.md](README.md), [docs/STATUS.md](docs/STATUS.md) (the
    measured state) and [docs/decisions.md](docs/decisions.md) (the
    operator's decisions).
-2. Read [TODO/PROGRESS.md](TODO/PROGRESS.md) (the state, the baseline and
-   the only work order) and [TODO/RULES.md](TODO/RULES.md) (how the record
-   is kept). [docs/ROADMAP.md](docs/ROADMAP.md) gives the milestones and
-   their exit criteria.
+2. Read [TODO/PROGRESS.md](TODO/PROGRESS.md) (the state, tonight's queue,
+   the baseline and the only work order) and [TODO/RULES.md](TODO/RULES.md)
+   (how the record is kept). [docs/HANDOFF.md](docs/HANDOFF.md) holds the
+   facts that change from day to day; [docs/ROADMAP.md](docs/ROADMAP.md)
+   gives the milestones and their exit criteria.
 3. Measure the baseline again: `cargo todo check`,
    `python scripts/check-repo.py` and the tests
    ([docs/development.md](docs/development.md)). Read the last CI run
@@ -92,9 +92,7 @@ After a compaction of your context, read this file again, then
 
 ### Drafting agents
 
-One entry at a time is slow. The operator asked on 2026-10-12 for more
-work at once: while the main session merges and tests, subagents draft
-the next entries.
+While the main session merges and tests, subagents draft the next entries.
 
 - **A drafting agent** works in a git worktree of its own under
   `.claude/worktrees/` (excluded from git), on a local branch. It reads
@@ -121,20 +119,18 @@ the next entries.
   and its branch once each of its drafts is merged.
 - **A draft lives on one machine** until its branch is on GitHub. Before a
   session ends, push each draft branch as `draft/<branch>` (never to
-  `main`): on 2026-10-30 a cloud session could not see the drafts of the
-  operator's machine.
+  `main`), so that a session on another machine can see it.
 - **An agent that searches or reads the web** uses the services of
-  <https://web.pkgforge.dev/llms.txt> (the operator, 2026-10-31): it reads
-  that page first, then the chosen service's own `llms.txt`. Say so in each
-  brief.
+  <https://web.pkgforge.dev/llms.txt>: it reads that page first, then the
+  chosen service's own `llms.txt`. Say so in each brief.
 - **An agent that stops** (a session limit, a crash): commit what it left
   on its branch as "WIP T-NNN: ...", write its state in the table, and
   later resume it, or start a new agent on that branch.
 
 ### The migration to PodUtils/podcrates
 
-The migration session (not a session of podssh's own work) takes each shared crate of
-PodUtils/podcrates on its release day (T-684). A session of podssh's own work:
+The shared crates move to PodUtils/podcrates (T-684, Q101); podssh takes
+each by a git tag of that repository. A session of podssh's own work:
 
 - changes a module that is being imported into podcrates for fixes only, and tells the podcrates
   session of each fix (`TODO/PROGRESS.md`, state item 7, lists the frozen files);
@@ -146,9 +142,11 @@ PodUtils/podcrates on its release day (T-684). A session of podssh's own work:
 
 ### Talk with the other sessions of PodUtils
 
-The owner's protocol for each session of PodUtils (2026-11-06; PodUtils/podcrates
-`docs/session-protocol.md` at `54427f6`). A session of podssh can run with no messages to the other
-sessions; GitHub issues are then the channel, and each session watches them.
+The owner's protocol for each session of PodUtils is PodUtils/podcrates
+`docs/session-protocol.md` at `54427f6`. A session of podssh can run with no messages to the other
+sessions; GitHub issues are then the channel, and each session watches them. While a podcrates
+session runs, it and podssh may also talk by direct messages (`send_message`); each take is still
+recorded as a COORD issue.
 
 1. At the start of each session, get the watcher of the organization from PodUtils/podcrates at a
    pinned commit, and keep it running under the Monitor tool (it polls each 90 s; start it again
@@ -177,8 +175,8 @@ sessions; GitHub issues are then the channel, and each session watches them.
 4. With PodUtils/podcrates (the shared crates):
    - Its releases are the tags `vX.Y.Z`. The hand-off to podssh is `adoption/podssh/CRATE.patch` and
      `adoption/podssh/CRATE.run` at the tag: apply the patch, run the commands of the `.run`,
-     commit, and write the commit as a COORD issue `(to podcrates)`. The migration session does
-     this while it runs (the owner, 2026-11-06).
+     commit, and write the commit as a COORD issue `(to podcrates)`
+     ([docs/HANDOFF.md](docs/HANDOFF.md), "A take of podcrates", has the steps).
    - The files of podssh that podcrates imported are frozen until podssh takes the crate: they take
      fixes only. The blocks `repo PodUtils/podssh` of `crates/*/SOURCES` in podcrates list them; a
      `taken` line ends the freeze. Write each fix of a frozen file as a COORD issue
@@ -198,35 +196,33 @@ sessions; GitHub issues are then the channel, and each session watches them.
 - When somebody outside must act, set the entry to `blocked`, write a
   `## Blocker` that names who, and take the next entry. Do not work on the
   entries that the operator holds (`TODO/PROGRESS.md`). No entry waits for
-  the relay's operator since Q63: podssh's own relay role does each item.
+  the relay's operator (Q63): podssh's own relay role does each item.
 - Never close an entry as out of scope or as "won't fix".
 
 ### Releases
 
-- **Betas whenever they fit; no release until the migration to PodUtils/podcrates is done (the
-  owner, 2026-11-06 and 2026-11-09; T-684).** A beta follows the rules below. `v1.1.0` waits for
-  the migration. podssh stays a beta until the owner calls it stable; crates.io is asked again
-  only after that (T-687).
-- **Move fast until podssh is stable (Q88, 2026-11-03).** A release or a
-  beta goes out when the gate is green at its commit, the release workflow
-  passed by hand on it, and `scripts/release-short.sh BINARY --net` passed
-  on its binary; after the tag, `release-proofs.yml` and `update-live.yml`.
-  The whole release check of T-251, the dispatch of each live and interop
-  workflow at a candidate, `plants.yml` and planted defects in the build
-  image wait until the operator calls podssh stable; the rules below that
-  ask for them hold again then.
-- Betas (the operator, 2026-10-30; T-309): a prerelease from `main` when
-  the gate passed on its commit, the release workflow passed by hand on it,
-  and the local checks of its binary passed. The next beta follows a batch
-  of repairs or of M10's entries that the testers should test, at most one a
-  day. A tag never moves: a defect found in a beta goes into the next one.
-  The betas of M10 are `v1.1.0-beta.N` (T-446).
-- `v1.0.0` went out on 2026-11-02 (T-250); a defect found in it goes into
-  `v1.0.1`, from `main` with the same checks. `v1.1.0`, the release of
-  M10, when each other entry is done (T-446). Check it from end to end with
-  no human, as T-251 checked `v1.0.0`: before the tag, on the gate's
-  artifact of the last push and a local build; then tag once; then check
-  the published files.
+- **No release until the migration to PodUtils/podcrates is done** (T-684);
+  betas go out whenever a batch fits. `v1.1.0` waits for the migration.
+  podssh stays a beta until the owner calls it stable; crates.io is asked
+  again only after that (T-687).
+- **Until podssh is stable, move fast (Q88).** A release or a beta goes out
+  when the gate is green at its commit, the release workflow passed by hand
+  on it, and `scripts/release-short.sh BINARY --net` passed on its binary;
+  after the tag, `release-proofs.yml` and `update-live.yml`. The whole
+  release check of T-251, the dispatch of each live and interop workflow at
+  a candidate, `plants.yml` and planted defects in the build image wait
+  until the operator calls podssh stable; the rules below that ask for them
+  hold again then.
+- **Betas** (T-309): a prerelease from `main`, after a batch of repairs or
+  of M10's entries that the testers should test, at most one a day. A tag
+  never moves: a defect found in a beta goes into the next one. The betas
+  of M10 are `v1.1.0-beta.N` (T-446).
+- **Stable releases.** A defect found in `v1.0.0` goes into `v1.0.N`, from
+  `main` with the same checks. `v1.1.0`, the release of M10, goes out when
+  each other entry is done (T-446). Check it from end to end with no human,
+  as T-251 checked `v1.0.0`: before the tag, on the gate's artifact of the
+  last push and a local build; then tag once; then check the published
+  files.
 - Run the release workflow by hand on the commit before each tag, and once
   for the tag.
 - [docs/development.md](docs/development.md) (section "Release builds")
@@ -266,8 +262,8 @@ current.
 
 ## 4. Safety
 
-CAUTION: Builds can use all the memory of this machine. On 2026-10-07, three
-builds at the same time almost stopped it.
+CAUTION: Builds can use all the memory of this machine; three builds at
+the same time once almost stopped it.
 
 1. Set `CARGO_BUILD_JOBS=4` before each cargo command. In a cloud session,
    `.claude/settings.json` sets it, and `sh scripts/cloud-setup.sh` makes
@@ -290,8 +286,8 @@ Do not call `wsl.exe`. Do not use `wsl --shutdown`, `--terminate` or
 WARNING: A relay token and a private key are credentials. Do not put a
 credential in output, logs, URLs, argv, commits or issues. Mint a relay
 token, use it and discard it in one shell. Use a file of `.env/` only by
-passing its path to podssh (the operator, 2026-10-10: the tailnet auth key
-for `podssh ts --ts-auth-key-file`); never print its contents, and keep
+passing its path to podssh (the tailnet auth key for
+`podssh ts --ts-auth-key-file`, Q40); never print its contents, and keep
 `.env/` ignored by git.
 
 WARNING: GitHub is public. Push only verified work to `main`. Publish the
@@ -300,36 +296,31 @@ releases that section 2 names, and comment on and close issues as
 tag or a release. Do not write a local user name, host name or path of the
 operator's machine into a file of the repository.
 
-Test targets that a session may use (the operator, 2026-10-08): the live
-relay, railway.new, GitHub's SSH endpoint, the two tailnet hosts of
-[docs/STATUS.md](docs/STATUS.md) (with `--direct`), the Podman box
-(`scripts/test_in_box.sh`) and GitHub Actions. Since 2026-10-10 (Q38, Q39):
-n0's public iroh relays and the operator's SSH host of
-`PODSSH_THROUGHPUT_SSH`, for the throughput run; and the IRC networks
-undernet, libera and OFTC, with short runs and a throwaway nick and
-channel. Since 2026-10-30: the session's own host, as a restricted host to
-measure podssh in (a cloud container behind its own proxy, T-311), and
-GitHub Actions for a live test that this host cannot run. Since 2026-10-31:
-WARP's network, from GitHub Actions and the session's own host (Q52), with
-a throwaway WARP device (Q59); the three public WebSocket forwarders of
-GitHub #59, from GitHub Actions only, with short runs (Q56); and Tailscale's
-tailcat DERP fleet, with short runs, from GitHub Actions and the session's
-own host (Q58). Since 2026-11-01: the public Tor network, with short runs
-(one bootstrap and one stream), from GitHub Actions and the session's own
-host (Q60). Since 2026-11-02, with short runs, from GitHub Actions and the
-session's own host: Tailscale's main DERP fleet, to learn whether it lets
-podssh in (Q74); the public Wisp servers that their operators run for that
-use (Q75); and OpenTunnel, `opentunnel.xyz` (Q76). Since 2026-11-03 (Q91), with
-short runs: the operator's SSH host of `PODSSH_THROUGHPUT_SSH` for three minutes
-with nothing sent (T-463); the services of Q77 and Q78 (T-548); one onion service
-on the public Tor network (T-578); and OpenTunnel each week from GitHub Actions
-(T-531). Since 2026-11-04, with short runs: smee.io, hostc, Tunnelmole and
-Sandhole's public server, once each research entry has read the service's terms
-(Q94; T-623, T-624); and the public servers of osewa, where their terms allow
-(Q99). Use throwaway keys, and
-delete them after the test. Keep keys and scratch files in `.work/`, which
-git ignores, or outside the repository. Never print the claim URL of
-railway.new.
+**Test targets.** A session may use only these. "Short" means a short run;
+"own host" is the session's own host. Use throwaway keys, and delete them
+after the test. Keep keys and scratch files in `.work/`, which git ignores,
+or outside the repository. Never print the claim URL of railway.new.
+
+| Target | From | Limits | Ruling |
+| --- | --- | --- | --- |
+| The live relay, railway.new, GitHub's SSH endpoint | Any | | standing |
+| The two tailnet hosts of [docs/STATUS.md](docs/STATUS.md) | Any | With `--direct` | standing |
+| The Podman box (`scripts/test_in_box.sh`) | Own host | | standing |
+| GitHub Actions | | Also for a live test that the own host cannot run | standing |
+| The session's own host, as a restricted host to measure podssh in (a cloud container behind its own proxy) | Own host | | T-311 |
+| n0's public iroh relays | Any | The throughput run | Q38 |
+| The operator's SSH host of `PODSSH_THROUGHPUT_SSH` | Any | The throughput run; and three minutes with nothing sent (T-463) | Q38, Q91 |
+| The IRC networks undernet, libera and OFTC | Any | Short; a throwaway nick and channel | Q39 |
+| WARP's network | Actions, own host | A throwaway WARP device | Q52, Q59 |
+| The three public WebSocket forwarders of GitHub #59 | Actions only | Short | Q56 |
+| Tailscale's tailcat DERP fleet | Actions, own host | Short | Q58 |
+| The public Tor network | Actions, own host | Short: one bootstrap and one stream; and one onion service (T-578) | Q60, Q91 |
+| Tailscale's main DERP fleet | Actions, own host | Short, to learn whether it lets podssh in | Q74 |
+| The public Wisp servers that their operators run for that use | Actions, own host | Short | Q75 |
+| OpenTunnel, `opentunnel.xyz` | Actions, own host | Short; and once a week from Actions (T-531) | Q76, Q91 |
+| The services of Q77 and Q78 (T-548) | Any | Short | Q91 |
+| smee.io, hostc, Tunnelmole, Sandhole's public server | Any | Short, once each research entry has read the service's terms (T-623, T-624) | Q94 |
+| The public servers of osewa | Any | Short, where their terms allow | Q99 |
 
 ## 5. Rules for the code
 
@@ -340,39 +331,43 @@ These rules come from [docs/decisions.md](docs/decisions.md).
 2. Make one outbound connection, through `HTTPS_PROXY` when it is set. Do
    not bind, listen, or use loopback helpers. (`podssh doctor` binds a
    socket to test the host, listens once with a backlog of 1, accepts
-   nothing, and closes it at once; never with `PODSSH_LISTEN=no`, Q53.) Nine
-   exceptions: by the decisions of 2026-10-08, a listener that the user asks
-   for, when a probe at run time allows the bind, and a race between relay
-   hosts, which can open a second connection for a short time; by the
-   decision of 2026-10-30 (Q44), the split HTTP road, which carries a
-   session on two connections where a probe found the upgrade refused; by
-   the decision of 2026-11-01 (Q62), the quick tunnel's node, which keeps a
-   second connection to Cloudflare's edge, to its other region; by the
-   decision of 2026-11-03 (Q89), with `RelayRank auto`, a session's rank of
-   the relay hosts in its background, at most once a day for each egress,
-   8 hosts, one probe each 10 s at most, each probe with `?dial=lazy` so
-   that no target is dialed; by the decision of 2026-11-02 (Q67), XHTTP over
-   HTTP/1.1, which opens its second connection to the same server only after
-   HTTP/2 was refused; by the decisions of 2026-11-04, the TURN road's data
-   connection to the user's own TURN server, only with `--turn` (Q93), and a
-   read before a session's connection, never beside it, at most once a day for
-   each host: the offer of the resumable layer of a relay host that the user
-   named (Q96), and the list of each relay member of the user's net (Q97); by
-   the decision of 2026-11-11 (Q105), a node's read of its signed net
-   document again each TTL, only with `--net-url`, at most one GET through
-   `HTTPS_PROXY` each TTL (never under 60 s, never while a read is open), the
-   reply at most 64 KiB and its signature checked against `--net-owner`.
+   nothing, and closes it at once; never with `PODSSH_LISTEN=no`, Q53.)
+   Nine exceptions:
+   1. a listener that the user asks for, when a probe at run time allows
+      the bind;
+   2. a race between relay hosts, which can open a second connection for a
+      short time;
+   3. the split HTTP road, which carries a session on two connections where
+      a probe found the upgrade refused (Q44);
+   4. the quick tunnel's node, which keeps a second connection to
+      Cloudflare's edge, to its other region (Q62);
+   5. with `RelayRank auto`, a session's rank of the relay hosts in its
+      background: at most once a day for each egress, 8 hosts, one probe
+      each 10 s at most, each probe with `?dial=lazy` so that no target is
+      dialed (Q89);
+   6. XHTTP over HTTP/1.1, which opens its second connection to the same
+      server only after HTTP/2 was refused (Q67);
+   7. the TURN road's data connection to the user's own TURN server, only
+      with `--turn` (Q93);
+   8. a read before a session's connection, never beside it, at most once a
+      day for each host: the offer of the resumable layer of a relay host
+      that the user named (Q96), and the list of each relay member of the
+      user's net (Q97);
+   9. a node's read of its signed net document again each TTL, only with
+      `--net-url`: at most one GET through `HTTPS_PROXY` each TTL (never
+      under 60 s, never while a read is open), the reply at most 64 KiB and
+      its signature checked against `--net-owner` (Q105).
 3. Do not use `LD_PRELOAD` or shims in other processes. Start another
    program only when the user names it (`SSH_ASKPASS`, `PAGER`) or a probe
    found it (`less` for `podssh man` on a terminal). A tty in user space for
    a child of `podssh serve` is not a shim: podssh answers the child's tty
-   system calls from its own process (decision of 2026-10-08, T-248). This
-   binary started again at the user's request (`--detach`, `ssh -f`,
-   `session start`) is no helper (decision of 2026-11-01, Q61).
+   system calls from its own process (T-248). This binary started again at
+   the user's request (`--detach`, `ssh -f`, `session start`) is no helper
+   (Q61).
 4. Use whatever is necessary: C, zig and the newest stable Rust are
-   allowed in each crate (the operator, 2026-11-05). The one rule of the
-   build: each released binary is statically compiled. Do not keep a check
-   or a minimum version that only holds podssh back (T-685).
+   allowed in each crate. The one rule of the build: each released binary
+   is statically compiled. Do not keep a check or a minimum version that
+   only holds podssh back (T-685).
 5. Keep each source file at 500 lines or fewer. Split a longer file. Do not
    remove comments to make a file shorter.
 6. Write comments that tell why, in few words. Do not write `⛔`, session
@@ -384,14 +379,13 @@ These rules come from [docs/decisions.md](docs/decisions.md).
 ## 6. Procedure for a change
 
 1. Do one entry of `TODO/` at a time. Complete it until the native parts
-   of its Prove pass. Runs in the build image and planted defects wait for
-   the checks of the release (T-251; `docs/decisions.md`, 2026-10-09); the
-   entry's `## Done` says what waits. So does a live test of more than 5
-   minutes or 100 MiB; a shorter live test runs with the entry, and so does
-   each live test of the relay (the operator, 2026-10-31). Until podssh is
-   stable (Q88), a live test of more than a few minutes waits too, and work
-   does not wait on a gate that has not ended; a red gate is repaired first.
-   A test that fails at random is repaired before any other work.
+   of its Prove pass; the entry's `## Done` says what waits. These wait for
+   the checks of the release (T-251): runs in the build image, planted
+   defects, and a live test of more than 5 minutes or 100 MiB (until
+   podssh is stable, Q88, more than a few minutes). A shorter live test
+   runs with the entry, and so does each live test of the relay. Work does
+   not wait on a gate that has not ended, but a red gate is repaired first,
+   and a test that fails at random is repaired before any other work.
 2. Test protocol code against software that podssh did not write: OpenSSH,
    Dropbear, a real IRC server, the live relay, or bytes captured from one.
    A test that needs the build image waits for T-251.
@@ -433,7 +427,7 @@ These rules come from [docs/decisions.md](docs/decisions.md).
 | `crates/podssh-warp` | WARP's MASQUE road over HTTP/2 (feature `warp`): the device's registration and record, TLS with its pin and client certificate, connect-ip's capsules, TCP inside on smoltcp, names inside, and a stand-in edge for the tests |
 | `crates/podssh-tor` | The Tor road through Arti (feature `tor`) |
 | `crates/podssh-todo` | `cargo todo`: a wrapper of `pod-todo` (PodUtils/podcrates) with this repository's facts in `TODO/todo.toml`: `check` (the gate runs it), `set`, `counts`, `next`, `remap`; and `cargo todo interop`, the ids of the interop harnesses and a run's logs against `scripts/interop-baseline.txt`, which stays here |
-| PodUtils/podcrates, by git tag | The crates that podssh shares with podnet and podvm (T-684, Q101 in `TODO/PROGRESS.md`): taken now `pod-todo`, `pod-term` (the line discipline and the terminal grammar; `crates/podssh-terminal` is gone), `pod-identity`, `pod-core`, `pod-testkit` and `pod-tls` (podssh-ws's TLS, behind thin wrappers). From the import of a module, podssh changes it for fixes only; after podssh takes the crate, work on it is done in PodUtils/podcrates under its `AGENTS.md` (Rule Q3, `docs/decisions.md`) |
+| PodUtils/podcrates, by git tag | The crates that podssh shares with podnet and podvm (T-684, Q101 in `TODO/PROGRESS.md`; the tag that podssh pins and each crate taken: [docs/HANDOFF.md](docs/HANDOFF.md)): among them `pod-todo`, `pod-term` (the line discipline and the terminal grammar; `crates/podssh-terminal` is gone), `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls` (podssh-ws's TLS, behind thin wrappers), `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session` and `pod-e2e`. From the import of a module, podssh changes it for fixes only; after podssh takes the crate, work on it is done in PodUtils/podcrates under its `AGENTS.md` (Rule Q3, `docs/decisions.md`) |
 | `vendor/tailscale-rs` | A fork with local patches (`vendor/patches/`). It is outside the workspace and the 500-line rule. |
 | `vendor/russh` | russh 0.65.0 with six patches (`vendor/patches/russh/`, T-460, T-661, T-664, T-670, and two of T-490), in the place of the release through `[patch.crates-io]`. It is outside the workspace and the 500-line rule. |
 | `vendor/ssh-key` | ssh-key 0.7.0-rc.11, the keys that russh reads, with one patch (`vendor/patches/ssh-key/`, T-609), in the place of the release through `[patch.crates-io]`. It is outside the workspace and the 500-line rule. |
