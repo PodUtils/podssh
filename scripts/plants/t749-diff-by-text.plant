@@ -1,0 +1,6 @@
+# T-749: policy diff compares the policies' text, not the answers of each
+# question; a reordered policy then shows a change, and the test must fail.
+ENTRY=T-749
+GROUP=cli-tests
+EXPECT='test net::policy_diff::tests::a_policy_against_itself_and_a_reordered_one_change_nothing \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --lib -- net::policy_diff::tests::a_policy_against_itself_and_a_reordered_one_change_nothing'

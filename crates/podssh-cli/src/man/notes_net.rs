@@ -68,7 +68,15 @@ pub const NET: &[&str] = &[
      the newest document that it holds, and refuses the rest with the policy's words on its own lines; the keys of \
      podssh node --allow are not narrowed by it. policy check FROM TO says what the policy lets, with no \
      connection: FROM a member's name or key, TO NODE, NODE/ROUTE, exit:NODE, relay:NODE, relay:* (a relay that is \
-     no member) or an address; on stdout allowed or refused, a tab and the rule or the reason, and 0 or 77. A \
+     no member) or an address; on stdout allowed or refused, a tab and the rule or the reason, and 0 or 77. policy test FILE runs \
+     the cases of FILE, {\"expect\": [{\"from\": \"ci\", \"to\": \"lab/db\", \"want\": \"allow\", \"note\": \"...\"}]} \
+     (want allow or refuse), through the same check: a line each, ok or FAIL with the rule or the reason, and 65 \
+     when one is false. policy diff POLICY asks each question of the net (each member to each node, route of a \
+     share, exit, relay role, the first address of each range, and relay:*) under the policy held and under \
+     POLICY, and prints each answer that changes, + widened and - narrowed, then the counts; by the answers, so a \
+     reordered policy changes nothing; --exit-code makes a widened pair 65. policy set FILE prints the same before \
+     it signs; --expect FILE signs nothing (65) when a case is false under the new policy, and --dry-run signs \
+     nothing at all. A \
      document with a policy requires it, so a podssh that cannot read the rules refuses the document and keeps the \
      one before.",
     "A member's name is a destination: podssh ssh node://NAME, and podssh ssh NAME alone when NAME is a member \

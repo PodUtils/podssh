@@ -15,6 +15,7 @@
 
 mod net_copy;
 mod net_policy;
+mod net_policy_test;
 // A member that relays between two others (T-434).
 mod net_relay;
 mod net_status;

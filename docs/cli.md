@@ -4763,6 +4763,20 @@ that the owner's key signs, and that each end keeps.
   `exit:NODE`, `relay:NODE`, `relay:*` (a relay role that is no member) or
   an address. One line on stdout, `allowed` or `refused`, a tab, then the
   rule that lets it or the reason; 0 or 77.
+- **`policy test FILE`, `policy diff POLICY`, and `set --expect FILE` and
+  `--dry-run`** (T-749, the block "tunnet 1" of PodUtils/podnet#438):
+  `test` runs the cases of FILE, `{"expect": [{"from", "to", "want": "allow"
+  or "refuse", "note"}]}`, through `policy::check`, a line each (`ok` or
+  `FAIL`, the rule or the reason), 65 when one is false. `diff` asks each
+  question of the net (each member to each node, route of a share, exit,
+  relay role, the first address of each range of routes, and `relay:*`)
+  under the policy held and under POLICY, and prints each answer that
+  changes, `+` widened then `-` narrowed, and the counts: by the answers, so
+  a reordered policy changes nothing; a member that the held document lacks
+  is counted apart; `--exit-code` makes a widened pair 65. `set FILE`
+  prints the same (20 lines at most) before it signs; with `--expect FILE`
+  it signs nothing (65) when a case is false under the new policy, and with
+  `--dry-run` it signs nothing at all: `net.doc` and its serial stay.
 - **A member's name** is a destination: `podssh ssh node://NAME`, and
   `podssh ssh NAME` alone when NAME is a member with the role `node`. The
   net names the member's key, which the channel checks in place of the pins

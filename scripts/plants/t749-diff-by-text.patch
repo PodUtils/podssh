@@ -1,0 +1,13 @@
+--- a/crates/podssh-cli/src/net/policy_diff.rs
++++ b/crates/podssh-cli/src/net/policy_diff.rs
+@@ -108,6 +108,10 @@
+ /// Each question whose answer differs between `old` and `new`.
+ pub fn diff(old: &Doc, new: &Doc) -> Diff {
+     let mut out = Diff::default();
++    // planted: the documents' text, not the answers
++    if old.policy != new.policy {
++        out.narrowed.push(Change { from: "*".into(), to: Target::Relay(None), why: "the text changed".into() });
++    }
+     for (from, to) in questions(&[old, new]) {
+         let member = |doc: &Doc| doc.member(&from).cloned();
+         let names_new = |doc: &Doc| match &to {

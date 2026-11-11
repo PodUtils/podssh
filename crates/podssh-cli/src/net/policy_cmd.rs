@@ -12,17 +12,20 @@ use serde_json::{json, Map, Value};
 
 use super::doc::{Doc, Member, MAX_DOC};
 use super::policy::{self, Want};
+use super::policy_diff;
 use super::{held, summary, NetArgs};
 use crate::exitmap::sysexits;
 use crate::relay_settings::Refusal;
 
 /// The words of `policy`, as a refusal names them.
-const WORDS: &str = "check FROM TO, show, set FILE or clear";
+const WORDS: &str = "check FROM TO, test FILE, diff POLICY, show, set FILE or clear";
 
 /// The count of words after `net`, its verb included, and their shape.
 pub(super) fn shape(args: &[String]) -> Result<(usize, &'static str), Refusal> {
     match args.first().map(String::as_str) {
         Some("check") => Ok((3, "policy check FROM TO")),
+        Some("test") => Ok((2, "policy test FILE")),
+        Some("diff") => Ok((2, "policy diff POLICY")),
         Some("set") => Ok((2, "policy set FILE")),
         Some("show") => Ok((1, "policy show")),
         Some("clear") => Ok((1, "policy clear")),
@@ -43,6 +46,15 @@ pub(super) fn run(args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write) -> R
     let doc = &held.signed.doc;
     match args.args[0].as_str() {
         "show" => Ok(show(doc, out, err)),
+        "test" => test(doc, &read_json(&args.args[1])?, &args.args[1], out),
+        "diff" => {
+            let next = with_policy(doc, &args.args[1], err)?;
+            let changed = policy_diff::diff(doc, &next);
+            for line in changed.lines(usize::MAX) {
+                let _ = writeln!(out, "{line}");
+            }
+            Ok(if args.exit_code && !changed.widened.is_empty() { sysexits::EX_DATAERR } else { 0 })
+        }
         _ => check(doc, &args.args[1], &args.args[2], out),
     }
 }
@@ -77,6 +89,63 @@ fn check(doc: &Doc, from: &str, to: &str, out: &mut dyn Write) -> Result<i32, Re
     };
     let _ = writeln!(out, "{word}\t{why}");
     Ok(code)
+}
+
+/// `test FILE`: each case of the expectation file through `policy::check`
+/// of `doc`, one line each on `out`; 0, or 65 when one is false.
+fn test(doc: &Doc, value: &Value, file: &str, out: &mut dyn Write) -> Result<i32, Refusal> {
+    let failed = expectations(doc, value, file, out)?;
+    Ok(if failed == 0 { 0 } else { sysexits::EX_DATAERR })
+}
+
+/// The cases of `value` against `doc`: how many are false.
+fn expectations(doc: &Doc, value: &Value, file: &str, out: &mut dyn Write) -> Result<usize, Refusal> {
+    let cases = policy_diff::cases(value).map_err(|why| data(format!("{file}: {why}")))?;
+    let mut failed = 0;
+    for case in &cases {
+        let (member, want) = (member_named(doc, &case.from)?, wanted(doc, &case.to)?);
+        let answer = policy::check(doc, member, want);
+        let (word, why) = match &answer {
+            Ok(why) => ("allow", why),
+            Err(why) => ("refuse", why),
+        };
+        let ok = answer.is_ok() == case.allow;
+        failed += usize::from(!ok);
+        let expected = if case.allow { "allow" } else { "refuse" };
+        let note = case.note.as_deref().map(|n| format!(" ({n})")).unwrap_or_default();
+        let status = if ok { "ok" } else { "FAIL" };
+        let _ =
+            writeln!(out, "{status}\t{} -> {}: {expected}{note}, the policy says {word}: {why}", case.from, case.to);
+    }
+    Ok(failed)
+}
+
+/// The JSON of `file`, read as `set` reads its own.
+fn read_json(file: &str) -> Result<Value, Refusal> {
+    let path = Path::new(file);
+    let no_input = |why: String| Refusal { message: why, code: sysexits::EX_NOINPUT };
+    if !path.exists() {
+        return Err(no_input(format!("{file}: no such file")));
+    }
+    let bytes = std::fs::read(path).map_err(|e| no_input(format!("{file}: {e}")))?;
+    if bytes.len() > MAX_DOC {
+        return Err(data(format!("{file} has {} bytes, more than a net's document holds", bytes.len())));
+    }
+    serde_json::from_slice(&bytes).map_err(|e| data(format!("{file} is not JSON: {e}")))
+}
+
+/// `doc` with the policy of `file`, checked as `set` checks it, unsigned.
+fn with_policy(doc: &Doc, file: &str, err: &mut dyn Write) -> Result<Doc, Refusal> {
+    let value = read_json(file)?;
+    let (_, said) = policy::checked(&value, doc).map_err(|why| data(format!("{file}: {why}")))?;
+    for line in said {
+        let _ = writeln!(err, "podssh net: {file}: {line}");
+    }
+    let next = doc.next_whole(doc.issued, doc.expires, |whole| {
+        whole.insert(policy::FIELD.into(), value);
+        require(whole, true);
+    });
+    next.map_err(data)
 }
 
 /// FROM: a member's name, or its key or fingerprint, as a node's line names
@@ -134,7 +203,7 @@ pub(super) fn change(
     err: &mut dyn Write,
 ) -> Result<(Doc, String), Refusal> {
     match args.args[0].as_str() {
-        "set" => set(before, &args.args[1], issued, expires, err),
+        "set" => set(before, args, issued, expires, err),
         _ => clear(before, issued, expires),
     }
 }
@@ -146,17 +215,9 @@ fn data(why: String) -> Refusal {
 /// `set FILE`: a policy of JSON, checked strictly, in place of the one held;
 /// the document then requires the policy, so that an end that cannot read
 /// it keeps the document before rather than skip its rules.
-fn set(before: &Doc, file: &str, issued: i64, expires: i64, err: &mut dyn Write) -> Result<(Doc, String), Refusal> {
-    let path = Path::new(file);
-    let no_input = |why: String| Refusal { message: why, code: sysexits::EX_NOINPUT };
-    if !path.exists() {
-        return Err(no_input(format!("{file}: no such file")));
-    }
-    let bytes = std::fs::read(path).map_err(|e| no_input(format!("{file}: {e}")))?;
-    if bytes.len() > MAX_DOC {
-        return Err(data(format!("{file} has {} bytes, more than a net's document holds", bytes.len())));
-    }
-    let value: Value = serde_json::from_slice(&bytes).map_err(|e| data(format!("{file} is not JSON: {e}")))?;
+fn set(before: &Doc, args: &NetArgs, issued: i64, expires: i64, err: &mut dyn Write) -> Result<(Doc, String), Refusal> {
+    let file = args.args[1].as_str();
+    let value = read_json(file)?;
     let (read, said) = policy::checked(&value, before).map_err(|why| data(format!("{file}: {why}")))?;
     for line in said {
         let _ = writeln!(err, "podssh net: {file}: {line}");
@@ -165,8 +226,21 @@ fn set(before: &Doc, file: &str, issued: i64, expires: i64, err: &mut dyn Write)
         whole.insert(policy::FIELD.into(), value);
         require(whole, true);
     });
+    let next = next.map_err(data)?;
+    // What it changes, before the signature makes it live (T-749).
+    for line in policy_diff::diff(before, &next).lines(20) {
+        let _ = writeln!(err, "podssh net: {line}");
+    }
+    if let Some(expect) = &args.expect {
+        let mut lines = Vec::new();
+        let failed = expectations(&next, &read_json(expect)?, expect, &mut lines)?;
+        let _ = err.write_all(&lines);
+        if failed > 0 {
+            return Err(data(format!("{expect}: {failed} cases are false under {file}: nothing is signed")));
+        }
+    }
     let (rules, tags) = (read.rules.len(), read.tags.len());
-    Ok((next.map_err(data)?, format!("set the policy: {rules} rules, {tags} tags")))
+    Ok((next, format!("set the policy: {rules} rules, {tags} tags")))
 }
 
 /// `clear`: no policy, so each member reaches each again.

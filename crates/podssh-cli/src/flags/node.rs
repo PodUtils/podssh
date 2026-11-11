@@ -236,6 +236,13 @@ pub const NET_FLAGS: &[FlagRow] = &[
     // The join by a short code (T-616), over the mailboxes of T-086.
     row(None, "pair-mailbox", Some("URLS"), FlagKind::Supported,
         "invite and join: where the two ends meet, wss://HOST[:PORT]/PATH or ws://, by commas, in order, such as podssh relay serve's wss://HOST/v1/mailbox (default: env PODSSH_PAIR_MAILBOX, else magic-wormhole's public mailbox, then Least Authority's); no turns the code off", None),
+    // What a policy changes before it is signed (T-749).
+    row(None, "dry-run", None, FlagKind::Supported,
+        "policy set: check FILE, print what it changes and run --expect, and sign nothing: the document and its serial stay", None),
+    row(None, "expect", Some("FILE"), FlagKind::Supported,
+        "policy set: the cases of FILE ({\"expect\": [{\"from\", \"to\", \"want\": allow or refuse, \"note\"}]}) must hold under the new policy, else nothing is signed (65)", None),
+    row(None, "exit-code", None, FlagKind::Supported,
+        "policy diff: exit 65 when the policy widens a pair, for a check of CI", None),
     row(None, "key", Some("FILE"), FlagKind::Supported,
         "join: this device's key in FILE, made when missing, the member's key that the owner signs in (default: node-NAME.key in the cache, the key of podssh node NAME)", None),
 ];

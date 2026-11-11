@@ -41,6 +41,15 @@ pub(super) fn run(word: &str, args: &NetArgs, err: &mut dyn Write) -> Result<i32
         "policy" => super::policy_cmd::change(before, args, issued, expires, err)?,
         _ => (before.next(issued, expires, |_| {}).map_err(data)?, "renewed".to_string()),
     };
+    // `--dry-run` (T-749): each check, the diff and the cases ran; nothing is signed.
+    if args.dry_run {
+        let _ = writeln!(
+            err,
+            "podssh net: {said}: a dry run: nothing is signed, and the net {} stays at serial {}",
+            before.name, before.serial
+        );
+        return Ok(0);
+    }
     let signing = sign::signing_for(&before.owner, key).map_err(Refusal::config)?;
     let signed = sign::sign_with(&next, &signing).map_err(Refusal::config)?;
     let path = store::keep_own(&signed).map_err(|why| Refusal { message: why, code: sysexits::EX_CANTCREAT })?;

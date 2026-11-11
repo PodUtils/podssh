@@ -13434,7 +13434,7 @@ plant.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -13443,7 +13443,7 @@ policy: N rules, M tags": an owner learns what a policy changed when a member is
 
 ## Premise
 
-- The review: `crates/podssh-cli/src/net/policy_cmd.rs:23-30` lists the verbs `check`, `set`, `show`, `clear`;
+- The review: `crates/podssh-cli/src/net/policy_cmd.rs:24-33` lists the verbs `check`, `set`, `show`, `clear`;
   `:149-169`, `set` prints no effect.
 - The review: `crates/podssh-cli/src/net/policy.rs:167-176` (`check`) is the one evaluator, which a node uses
   for each session.
@@ -13465,6 +13465,30 @@ cargo test -p podssh-cli --test net_policy_test
 A case that the policy refuses fails `test` with its reason; a diff of a policy against itself is empty; a
 deleted tag line shows its pairs narrowed; `--dry-run` leaves `net.doc` byte for byte. Planted: `diff` that
 compares the documents' text, not the answers, and a reordered policy shows a change.
+
+
+## Correction
+
+The Prove's target `net_policy_test` is a module of the target `net` (`crates/podssh-cli/tests/net_policy_test/mod.rs`),
+beside `net_policy`, to share its harness of keys and documents: `cargo test -p podssh-cli --test net net_policy`.
+## Done
+
+2026-11-11. `crates/podssh-cli/src/net/policy_diff.rs` (with `policy_diff_tests.rs`): `questions` (each member to each
+node, route of a share, exit, relay role, the first address of each range of routes, and `relay:*`), `diff` by the
+answers of `policy::check` under the two documents, a member that the old one lacks counted apart, and `cases` of an
+expectation file. `podssh net policy test FILE` (65 when a case is false, its line naming the case and the reason),
+`policy diff POLICY` (`+` widened, `-` narrowed, the counts; `--exit-code` 65 when widened), and `policy set FILE`,
+which prints the diff before it signs, with `--expect FILE` (nothing signed, 65, on a false case) and `--dry-run`
+(nothing signed). The flag rows, the manual's note of the policy and `docs/cli.md`.
+
+Measured: the test is a module of `tests/net.rs`, `net_policy_test`, to share its harness, so its Prove is `cargo test
+-p podssh-cli --test net net_policy`: 12 passed in a namespace with the loopback alone (the new test and the old ones,
+whose words of `policy` now name `test` and `diff`): a case that the policy refuses fails `test` with "no rule of the
+net home"; a diff of a policy against itself is empty; the tag's line deleted narrows `ci -> lab`; an open policy
+widens and `--exit-code` gives 65; `set --expect` with a false case and `set --dry-run` leave `net.doc`'s SHA-256 as it
+was. The unit tests of the module, 4 passed (`--lib`, 1095). Planted (`scripts/plants/t749-diff-by-text.patch`), a diff by
+the policies' text: the reordered policy's test and the tag line's FAILED. clippy and rustfmt clean.
+
 
 # T-750: A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it
 

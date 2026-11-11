@@ -30,6 +30,8 @@ pub mod lookup;
 pub mod mint;
 pub mod policy;
 mod policy_cmd;
+// What a policy changes, and its expectations (T-749).
+mod policy_diff;
 pub(crate) mod policy_words;
 // The road that last reached each node, and the net in `podssh status` (T-435).
 pub mod reached;
@@ -76,6 +78,12 @@ pub struct NetArgs {
     pub pair_mailbox: Option<String>,
     /// `--key FILE` of `join`: the device's key, the member's.
     pub key: Option<String>,
+    /// `--dry-run` of `policy set`: check, diff and test; sign nothing (T-749).
+    pub dry_run: bool,
+    /// `--expect FILE` of `policy set`: cases that must hold before it signs.
+    pub expect: Option<String>,
+    /// `--exit-code` of `policy diff`: 65 when the policy widens a pair.
+    pub exit_code: bool,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -98,6 +106,9 @@ impl NetArgs {
             signature: matches.get_flag("signature"),
             pair_mailbox: get("pair-mailbox"),
             key: get("key"),
+            dry_run: matches.get_flag("dry-run"),
+            expect: get("expect"),
+            exit_code: matches.get_flag("exit-code"),
             refused,
         }
     }
@@ -161,7 +172,7 @@ fn checked(args: &NetArgs) -> Result<&str, Refusal> {
         _ => word.to_string(),
     };
     let signing: &[&str] = &["init", "add", "rm", "renew", "invite", "policy set", "policy clear"];
-    let flags: [(&str, bool, &[&str]); 12] = [
+    let flags: [(&str, bool, &[&str]); 15] = [
         ("--owner-key", args.owner_key.is_some(), signing),
         ("--days", args.days.is_some(), signing),
         ("--roles", args.roles.is_some(), &["add", "invite"]),
@@ -174,6 +185,9 @@ fn checked(args: &NetArgs) -> Result<&str, Refusal> {
         ("--signature", args.signature, &["show"]),
         ("--pair-mailbox", args.pair_mailbox.is_some(), &["invite", "join"]),
         ("--key", args.key.is_some(), &["join"]),
+        ("--dry-run", args.dry_run, &["policy set"]),
+        ("--expect", args.expect.is_some(), &["policy set"]),
+        ("--exit-code", args.exit_code, &["policy diff"]),
     ];
     if let Some((flag, _, with)) = flags.iter().find(|(_, given, with)| *given && !with.contains(&form.as_str())) {
         return Err(Refusal::usage(format!("{flag} is for podssh net {}", with.join(", "))));
