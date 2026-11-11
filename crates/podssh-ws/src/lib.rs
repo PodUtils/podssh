@@ -31,6 +31,8 @@
 //! Verdicts from [`doctor`] are three-valued: `ok`, `FAIL`, and `????` for a
 //! check that could not run, which is never reported as passing.
 
+// A Bare server of TompHTTP's v3 as a hop of a WebSocket road (T-740).
+pub mod bare;
 pub mod bundle;
 // chisel's WebSocket, to a server that the user runs (T-490).
 pub mod chisel;

@@ -13134,6 +13134,21 @@ v3 server of the project's own, offered for others' use, and passes Q79. The kin
 as the road's stream), tried after each other WebSocket road with its line; its test against
 `tomphttp/bare-server-node` on the loopback; the short live session through the node.
 
+2026-11-11: the hop, `crates/podssh-ws/src/bare.rs`: `bare::dial(node, far, ...)` opens the node's `v3/`
+(the path of its versions, `/bare/` gives `/bare/v3/`), sends the `connect` text frame (`remote` the far
+`ws:` or `wss:` URL with its port, `headers` its `Host` and podssh's `User-Agent`, no `Origin`), reads the
+`open` within the dial's bound, and gives the session, whose binary messages are then the far WebSocket's;
+a refusal is an upgrade's failure "through the Bare node NODE: ..." with the node's words. Its test,
+`crates/podssh-ws/tests/bare_hop.rs`, against TompHTTP's own `@tomphttp/bare-server-node` 2.0.6 run by
+`scripts/bare-hop-server.mjs` on the loopback in front of a WebSocket echo of the test's: 1 MiB each way,
+whole, binary kept binary; a far port that the operator's `filterRemote` refuses fails the hop (the node
+said "the operator refuses port N"); a binary first message opens nothing. Here, with the server
+installed under `.work/`: 3 passed (`--ignored`), clippy and rustfmt clean, and the unit tests of the
+module (`--lib bare`), 3 passed. Planted (`scripts/plants/t740-bare-connect-binary.patch`), the connect
+sent as binary: the echo's test failed, the other two passed. `.github/workflows/bare-interop.yml` runs
+both on each push of the hop. Next: the node from `pod-services` (podcrates T-187, `v0.20.0`), the hop
+tried after each other WebSocket road with its line, and the short live session through `openbare.xyz`.
+
 
 # T-741: smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back
 

@@ -62,7 +62,7 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
 | T-694 | A test of a `--derp` node with a pair of its own served through croc's road (the DERP harness has no node pair yet); the rest is done. |
 | T-743 | Sandhole's demo server measured (no account; 22 and 443): the host joins the localhost.run road's module when podcrates `v0.20.0` brings the service `sandhole` (podcrates T-186); the same tag pins localhost.run's host key (T-185). |
-| T-740 | Step one decided (`openbare.xyz` passes Q79); next the Bare v3 hop in `podssh-ws`, its test against `tomphttp/bare-server-node`, and the node from `pod-services`' kind `bare-node` (asked of podcrates). |
+| T-740 | The hop is built and tested against TompHTTP's server (`bare-interop.yml`); next, with podcrates `v0.20.0` (T-187, the node `openbare-xyz`), the hop tried after each other WebSocket road, and its live session. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
 | T-684 | Each next podcrates release that podssh takes. |

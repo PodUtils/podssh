@@ -1,0 +1,60 @@
+name: bare interop
+
+# The Bare hop (T-740) against TompHTTP's own server,
+# `@tomphttp/bare-server-node` 2.0.6 from npm (MIT), run on the loopback by
+# scripts/bare-hop-server.mjs in front of the test's own WebSocket echo:
+# crates/podssh-ws/tests/bare_hop.rs. No Bare node of a third party is
+# reached. A planted run sends the connect as a binary message, which the
+# specification forbids, and must fail. Started by hand, and on a push that
+# changes the hop; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-ws/src/bare.rs"
+      - "crates/podssh-ws/tests/bare_hop.rs"
+      - "scripts/bare-hop-server.mjs"
+      - "scripts/plants/t740-*"
+      - ".github/workflows/bare-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+      PODSSH_BARE_NODE_MODULES: ${{ runner.temp }}/bare/node_modules
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: TompHTTP's Bare server, of the pinned release
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/bare" && cd "$RUNNER_TEMP/bare"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund --ignore-scripts @tomphttp/bare-server-node@2.0.6
+          node --version
+      - name: build the test
+        run: cargo test --locked -p podssh-ws --test bare_hop --no-run
+      - name: the hop through TompHTTP's server
+        run: |
+          set -o pipefail
+          timeout 600 cargo test --locked -p podssh-ws --test bare_hop -- --ignored 2>&1 | tee "$RUNNER_TEMP/run.log"
+          grep -q "test result: ok. 3 passed" "$RUNNER_TEMP/run.log"
+      # The check must see a connect sent as a binary message fail.
+      - name: a planted binary connect fails it
+        run: |
+          git apply scripts/plants/t740-bare-connect-binary.patch
+          rc=0
+          timeout 600 cargo test --locked -p podssh-ws --test bare_hop -- --ignored \
+            the_hop_reaches_the_far_websocket_and_one_mib_comes_back_whole || rc=$?
+          git apply -R scripts/plants/t740-bare-connect-binary.patch
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: the planted connect opened"
+            exit 1
+          fi
+          echo "the planted connect failed (exit $rc), as it must"

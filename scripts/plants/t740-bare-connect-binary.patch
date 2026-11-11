@@ -1,0 +1,11 @@
+--- a/crates/podssh-ws/src/bare.rs
++++ b/crates/podssh-ws/src/bare.rs
+@@ -93,7 +93,7 @@
+     let hop = hop_url(node);
+     let session = url::dial(&hop, trust, proxy, timeout, idle).await?;
+     let refused = |why: String| ConnectError::Upgrade(format!("through the Bare node {}: {why}", node.shown()));
+-    session.send_text(&connect_message(far)).await.map_err(|e| refused(format!("the connect: {e}")))?;
++    session.send_binary(connect_message(far).as_bytes()).await.map_err(|e| refused(format!("the connect: {e}")))?;
+     let first = tokio::time::timeout(timeout, session.read_frame())
+         .await
+         .map_err(|_| refused(format!("no open within {} s", timeout.as_secs())))?
