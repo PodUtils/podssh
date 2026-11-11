@@ -107,7 +107,8 @@ entry keeps its proof in the entry; this page keeps no history (git does).
      (`podssh-relay`'s `identity` re-exports them) are taken; `pod-tls` (`podssh-ws`'s TLS, with thin
      wrappers) is taken; `pod-proxy` (`v0.3.0`) is taken too; `pod-dns` is being imported into podcrates, so
      `podssh-ws`'s `resolve.rs`, `resolve/` and its tests `doh_h2.rs`, `doh_names.rs`, `doh_wire.rs`,
-     `live_doh.rs` take fixes only (each told to the podcrates session); `pod-e2e` is taken (podcrates `v0.22.0`, 2026-11-11): `podssh-relay`'s `src/e2e/` is its glue; next `pod-dns` and `pod-ws`, then the waves of Q101. An
+     `live_doh.rs` take fixes only (each told to the podcrates session); `pod-e2e` is taken (podcrates `v0.22.0`, 2026-11-11): `podssh-relay`'s `src/e2e/` is its glue; since `75a50318`, the files of `pod-relay` (podcrates T-025: `docs/design.md`, section 4, the row `pod-relay`)
+     take fixes only, each told to podcrates as a COORD issue, until podssh takes it; next `pod-dns` and `pod-ws`, then the waves of Q101. An
      open entry whose code is in such a module has a `## Correction` of 2026-11-05 that names the
      crate. Settled 2026-11-06 (`docs/decisions.md`): no release and no beta until the migration is
      done, podssh stays beta until the owner calls it stable, crates.io is asked again after that
