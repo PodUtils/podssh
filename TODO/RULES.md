@@ -102,6 +102,9 @@ entry that large is two entries.
   when its other entries are done; the comment names the entries that wait.
   Comment only after the work is done (the operator, 2026-10-08). Write in
   `TODO/issues.md` that the issue is closed, with the commit.
+- An issue whose work is done but for entries that are parked, blocked or wait
+  for another milestone may be closed as stale, with a comment that names the
+  entries left; they stay open in the record (the operator, 2026-11-11).
 - `TODO/github.txt` lists each number of the repository, an issue or a pull
   request, with its state (T-360). `cargo todo check` holds `TODO/issues.md`
   to it: each issue has one place in the map (the first cell of a row, or the
