@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:768`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:769`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:157-176`, `Cargo.toml:235-237`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:158-177`, `Cargo.toml:235-237`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -4636,7 +4636,7 @@ uses. After an adjust it passes the handler's `adjust_window` the session's
 keeps the answer there, but the target of each adjust of CHANNEL_DATA and CHANNEL_EXTENDED_DATA was
 the configured window, `self.common.config.window_size`, and nothing read `target_window_size`
 again. The hook alone holds no window. The patch of Decision 1 asks at each message:
-`vendor/russh/src/client/encrypted.rs:614` says "let target = window_target(client, channel_num, self.common.config.window_size);".
+`vendor/russh/src/client/encrypted.rs:624` says "let target = window_target(client, channel_num, self.common.config.window_size);".
 
 At the merge (2026-11-04) the Prove's second bound did not hold on the slowest path: on the fake
 path of 1 Mbit/s and 100 ms, with a key each 300 ms for the whole run, the paced download moved

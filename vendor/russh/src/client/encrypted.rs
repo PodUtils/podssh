@@ -430,6 +430,16 @@ impl Session {
                         Some((&msg::EXT_INFO, mut r)) => {
                             return self.handle_ext_info(&mut r).map_err(Into::into);
                         }
+                        // The answer to the service request that this auth
+                        // request followed with no wait; it comes once, first.
+                        Some((&msg::SERVICE_ACCEPT, mut r)) if auth_request.service_accept_due => {
+                            if map_err!(Bytes::decode(&mut r))?.as_ref() != b"ssh-userauth" {
+                                return Err(crate::Error::Inconsistent.into());
+                            }
+                            map_err!(ensure_end(&r))?;
+                            auth_request.service_accept_due = false;
+                            return Ok(());
+                        }
                         other => {
                             debug!("unknown message: {other:?}");
                             return Err(crate::Error::Inconsistent.into());
@@ -1103,9 +1113,14 @@ impl Session {
         meth: auth::Method,
     ) -> Result<bool, crate::Error> {
         let mut is_waiting = false;
+        // Whether the server's SERVICE_ACCEPT is still to come.
+        let mut accept_due = false;
         if let Some(ref mut enc) = self.common.encrypted {
             is_waiting = match enc.state {
-                EncryptedState::WaitingAuthRequest(_) => true,
+                EncryptedState::WaitingAuthRequest(ref request) => {
+                    accept_due = request.service_accept_due;
+                    true
+                }
                 EncryptedState::WaitingAuthServiceRequest {
                     accepted,
                     ref mut sent,
@@ -1119,14 +1134,20 @@ impl Session {
                         })?;
                         *sent = true
                     }
-                    accepted
+                    // The auth request follows the service request with no
+                    // wait for its answer, a round trip less: a server reads
+                    // its packets in order (RFC 4253, section 10, names no
+                    // wait). podssh's patch (vendor/patches/russh/).
+                    accept_due = !accepted;
+                    true
                 }
                 EncryptedState::InitCompression | EncryptedState::Authenticated => false,
             };
             debug!("write_auth_request_if_needed: is_waiting = {is_waiting:?}");
             if is_waiting {
                 enc.write_auth_request(user, &meth)?;
-                let auth_request = AuthRequest::new(&meth);
+                let mut auth_request = AuthRequest::new(&meth);
+                auth_request.service_accept_due = accept_due;
                 enc.state = EncryptedState::WaitingAuthRequest(auth_request);
             }
         }

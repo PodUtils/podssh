@@ -370,6 +370,10 @@ pub struct AuthRequest {
     pub(crate) principal: Option<AuthPrincipal>,
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub rejection_count: usize,
+    /// The client wrote this request behind its service request, before
+    /// the server's SERVICE_ACCEPT came, which is still to come. podssh's
+    /// patch (vendor/patches/russh/).
+    pub(crate) service_accept_due: bool,
 }
 
 #[doc(hidden)]
@@ -406,6 +410,7 @@ impl AuthRequest {
             current: None,
             principal: None,
             rejection_count: 0,
+            service_accept_due: false,
         }
     }
 
@@ -426,6 +431,7 @@ impl AuthRequest {
             current,
             principal: None,
             rejection_count: 0,
+            service_accept_due: false,
         }
     }
 

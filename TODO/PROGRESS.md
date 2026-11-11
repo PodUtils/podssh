@@ -84,7 +84,7 @@ item whenever it appears.
    build already pass. Done when the Decision is in T-733 (and in `release.yml` and
    `docs/development.md`, "Release builds", if yes), the STATUS row is current, and
    `cargo todo set T-733 done` passes.
-6. **osewa's open entries, T-678, T-680 and T-681** (offline first), then **T-734: Tox's TCP
+6. **osewa's open entries, T-678, T-681 and T-752** (offline first; T-680 is done), then **T-734: Tox's TCP
    relays on 443** (offline; a short live run when the road works), in the work order's rule 5
    (the operator, 2026-11-11). Done when each Prove passes.
 7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
@@ -137,7 +137,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 706 entries: 84 open, 18 partial, 10 blocked, 594 done.
+`TODO/INDEX.md` holds 707 entries: 84 open, 18 partial, 10 blocked, 595 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -165,8 +165,8 @@ operator interrupts it.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
    rest of M10, in this order: T-660, T-662, T-670, T-665 and T-666 (each waits for a run that its
-   `## Done` names), their follow-up T-678, and what the netem run found, T-680 and T-681; then the
-   open entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
+   `## Done` names), their follow-up T-678, and what the netem run found, T-681 and T-752; then the open
+   entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
 6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
    podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks, T-708 to T-731, stay behind
    podssh's own work order, M10 included (the owner's ruling "Priority"; Q105 is settled).

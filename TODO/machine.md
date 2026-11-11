@@ -1681,7 +1681,7 @@ the run that it was. `docs/development.md` ("What a user feels") tells both ways
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1709,6 +1709,42 @@ gh workflow run feel-netem.yml -f tag=TAG
 ```
 
 A cold connect on the far link in fewer round trips than before, with its count.
+
+## Done
+
+2026-11-11. Counted on this host's loopback with a forwarder that delays each direction 60 ms (a
+path of 120 ms) and logs each flight, a cold `podssh ssh --direct ... true` to OpenSSH 9.6p1's sshd:
+
+| Step | Before | After |
+| --- | --- | --- |
+| TCP | 1 | 1 |
+| The banner, then the server's KEXINIT (OpenSSH sends it only once the client's banner came) | 1 | 1 |
+| The key exchange's ECDH_INIT and its reply | 1 | 1 |
+| SERVICE_REQUEST, then its SERVICE_ACCEPT | 1 | 0: the auth request follows it at once |
+| The auth: `none` and a query, then the signed request; the signed request alone for a host whose key is kept (T-664) | 3, or 1 | 3, or 1 |
+| CHANNEL_OPEN, then the exec request (the pty's goes with it, T-664) | 2 | 2 |
+| **A cold connect and `true`**, a kept key | **7**: 791 and 804 ms | **6**: 664 and 667 ms |
+| The same, the first login to the host | **9**: 1,060 ms | **8** |
+
+- `vendor/patches/russh/0007-auth-behind-service-request.patch`: russh's client writes its first
+  `USERAUTH_REQUEST` behind its `SERVICE_REQUEST` with no wait for `SERVICE_ACCEPT` (RFC 4253, section
+  10, names none; a server reads its packets in order), and takes that one `SERVICE_ACCEPT` in the
+  auth's state. Dropbear 2022.83 takes it too: 850 ms for a first login, then 591 and 599 ms (Dropbear
+  sends its KEXINIT with its banner, a round trip less again).
+- `cargo test -p podssh-ssh --test cold_connect`: 4 passed, with the new
+  `the_auth_request_follows_the_service_request_with_no_wait` (the server's bytes 400 ms late: three
+  waits). Planted: russh's own way back, and the test fails ("the login took 1.63 s, 4.1 answers
+  late").
+- A connect of osewa's kind (a session kept with its server): podssh's `-M`/`ControlPath` master,
+  through the same link: a command through the master took 268, 267 and 260 ms, 2.2 round trips (the
+  channel and the exec), where osewa takes three. `podssh session` keeps a pty's session the same way,
+  and the resumable layer keeps a session over a lost link.
+- Two more round trips would need the far end's help, and are T-752: the key exchange's guess
+  (`first_kex_packet_follows`, right only when the client's first key exchange and host key name are
+  the server's, which a stock sshd orders by its host key files, RSA first), and a CHANNEL_OPEN behind
+  the auth request, which OpenSSH drops while the auth runs and Dropbear ends the connection for.
+- Waits: `feel-netem.yml` on the artifact of this push's run of `build.yml`, the Prove's run, with its
+  count (STATUS records it).
 
 # T-681: The echo beside a download on cellular, wifi and the slow link is 1.5 to 3.5 times osewa's
 
@@ -2066,3 +2102,47 @@ nothing printed, a missing `-F` 78. The unit tests of the shapes, 2 passed (`--l
 (`scripts/plants/t751-unknown-flag.patch`), the donor's `--mcp-listen stdio` in the entry: the test of the four clients
 FAILED. clippy and rustfmt clean; `--test mcp`, 6 passed. Unverified, as the block says: each client's place of its file,
 which the stderr line attributes to the client's documents.
+
+# T-752: The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect
+
+**Source:** T-680's count, 2026-11-11.
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+After T-680, a cold connect and its command to a host whose key is kept takes six round trips; two of
+them wait for the far end only because the client does not guess: the ECDH_INIT waits for the server's
+KEXINIT, and the CHANNEL_OPEN for USERAUTH_SUCCESS.
+
+## Premise
+
+- T-680's `## Done` gives the count, step by step.
+- `vendor/russh/src/client/kex.rs` (`ClientKex::kexinit`, `step` in `ClientKexState::Created`) writes
+  the ECDH_INIT only once the server's KEXINIT came.
+
+## Approach
+
+1. The guess (RFC 4253, section 7, `first_kex_packet_follows`): keep, for each host, the first key
+   exchange and host key names of its last KEXINIT (a file of the cache, as T-664's
+   `accepted-keys.txt`); when the client's own first names, with the host key that `known_hosts` holds
+   first, are those, send KEXINIT and the guessed ECDH_INIT with the banner. OpenSSH counts a guess
+   right when the two first names match (`proposals_match`) and drops a wrong one, so a wrong guess
+   costs bytes and no time. A patch of russh; test against OpenSSH and Dropbear, right and wrong.
+2. The channel: a CHANNEL_OPEN behind the auth request, only to a server whose banner is OpenSSH's
+   (it ignores a channel message while the auth runs, and keeps the next packets for after it);
+   Dropbear ends the connection for one, so never to it. On a failure of the auth, the channel is
+   opened again after the success. Decide in `## Decision` whether the round trip is worth the risk.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test cold_connect
+```
+
+And T-680's count on the loopback's link of 120 ms: a cold connect to a host whose key and KEXINIT
+are kept in fewer than six round trips, against OpenSSH and Dropbear.

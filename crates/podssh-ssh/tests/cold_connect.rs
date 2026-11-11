@@ -7,7 +7,10 @@
 //!   other keys, and the record moves to the key that it took;
 //! - the pty's request and the command's go together: a server that answers
 //!   the pty only once the command's request came still starts the command
-//!   at once, where a client that waits for the pty's answer first waits 30 s.
+//!   at once, where a client that waits for the pty's answer first waits 30 s;
+//! - the first auth request follows the service request with no wait for its
+//!   answer (T-680): on a link whose server's bytes come late, the login
+//!   waits three of the server's answers, not four.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -333,4 +336,69 @@ async fn the_pty_and_the_command_go_together() {
     let gap = seen.gap.lock().unwrap().expect("both requests came");
     assert!(gap < LATE / 3, "the command's request came {gap:?} after the pty's: it waited for the pty's answer");
     disconnect_all(&handles).await;
+}
+
+/// The server's end of a link whose bytes to the client each come `late`
+/// after the server wrote them, as on a long path: a burst is not held
+/// behind the one before it.
+fn link_late(late: Duration) -> (tokio::io::DuplexStream, tokio::io::DuplexStream) {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (client_end, near) = tokio::io::duplex(1 << 16);
+    let (far, server_end) = tokio::io::duplex(1 << 16);
+    let (mut near_read, mut near_write) = tokio::io::split(near);
+    let (mut far_read, mut far_write) = tokio::io::split(far);
+    tokio::spawn(async move {
+        let _ = tokio::io::copy(&mut near_read, &mut far_write).await;
+    });
+    let (due, mut queue) = tokio::sync::mpsc::unbounded_channel::<(tokio::time::Instant, Vec<u8>)>();
+    tokio::spawn(async move {
+        let mut buf = vec![0u8; 1 << 16];
+        loop {
+            match far_read.read(&mut buf).await {
+                Ok(0) | Err(_) => break,
+                Ok(n) => {
+                    if due.send((tokio::time::Instant::now() + late, buf[..n].to_vec())).is_err() {
+                        break;
+                    }
+                }
+            }
+        }
+    });
+    tokio::spawn(async move {
+        while let Some((at, chunk)) = queue.recv().await {
+            tokio::time::sleep_until(at).await;
+            if near_write.write_all(&chunk).await.is_err() {
+                break;
+            }
+        }
+        let _ = near_write.shutdown().await;
+    });
+    (client_end, server_end)
+}
+
+/// The server's bytes come this late in the test of the auth request.
+const FAR: Duration = Duration::from_millis(400);
+
+#[tokio::test]
+async fn the_auth_request_follows_the_service_request_with_no_wait() {
+    let host = PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).expect("a host key");
+    let (client_end, server_end) = link_late(FAR);
+    let (config, handler) = (config(&host), Holds::default());
+    tokio::spawn(async move {
+        if let Ok(session) = server::run_stream(config, server_end, handler).await {
+            let _ = session.await;
+        }
+    });
+    let log = Arc::new(Log::new(LogLevel::Quiet));
+    let start = std::time::Instant::now();
+    let handles = tokio::time::timeout(LIMIT, connect_hops(client_end, &options(&[]), &log))
+        .await
+        .expect("in time")
+        .expect("logged in");
+    let took = start.elapsed();
+    disconnect_all(&handles).await;
+    // The banner with the key exchange's offer, its reply, then the service's
+    // answer with the auth's: three waits; a client that waits for the
+    // service's answer before its auth request waits a fourth.
+    assert!(took > FAR * 2 && took < FAR * 7 / 2, "the login took {took:?}, {:.1} answers late", took.as_secs_f64() / FAR.as_secs_f64());
 }
