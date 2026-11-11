@@ -25,7 +25,7 @@ right.
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.18.0"`.
+podssh pins every podcrates crate at `tag = "v0.20.0"`.
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole` (`baa00a06`) and `pod-session`

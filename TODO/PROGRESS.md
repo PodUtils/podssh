@@ -19,7 +19,7 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
      PodUtils/podcrates#37): a move of each tag, no patch. Since then each tag moved, and
      `pod-ws` is taken (`a083593e`, COORD-017; podcrates' `SOURCES` holds its `taken`
-     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Then `v0.15.0` with `pod-wormhole` and `pod-session` (2026-11-11, PodUtils/podcrates#54): `code/` and `session/` of podssh-relay are glue over the crates, and the freeze below ended with the takes. Then `v0.16.0`, a move of each tag (COORD-032). Then `v0.18.0` (COORD-035), which brings #186's asks. Frozen now, for fixes
+     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Then `v0.15.0` with `pod-wormhole` and `pod-session` (2026-11-11, PodUtils/podcrates#54): `code/` and `session/` of podssh-relay are glue over the crates, and the freeze below ended with the takes. Then `v0.16.0`, a move of each tag (COORD-032). Then `v0.18.0` (COORD-035), which brings #186's asks. Then `v0.20.0` (COORD-039). Frozen now, for fixes
      only, each told to podcrates as a COORD issue, until `v0.15.0` takes them:
      `crates/podssh-relay/src/code/` (`pod-wormhole`, podcrates T-022; its exchange goes to `pod-relay`)
      and `crates/podssh-relay/src/session/` (`pod-session`, podcrates T-020). A draft that changes a

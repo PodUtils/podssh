@@ -5620,6 +5620,13 @@ Each crate of `v0.1.0` is taken.
   features), and `cargo test -p podssh-cli -p podssh-relay -p podssh-ws` in a namespace with the loopback
   alone: 3,279 passed, 97 ignored; `doctor_upgrade` passed with the network (2).
 
+- podcrates `v0.20.0` (`4daf31c`), on 2026-11-11 (PodUtils/podcrates#64, COORD-039): each tag moved from
+  `v0.18.0` (`v0.19.0`'s breaks touch `pod-enter` and `pod-broker`, not podssh's). `pod-services` gives
+  localhost.run its `host-key-sha256` (podcrates T-185; the road reads it, so the key is pinned), the service
+  `sandhole` (T-186, for T-743) and the node `openbare-xyz` of kind `bare-node` (T-187, for T-740), which no
+  code reads yet. clippy as the gate runs it, and `cargo test -p podssh-cli -p podssh-relay -p podssh-ws` in a
+  namespace with the loopback alone: 3,288 passed, 100 ignored; `doctor_upgrade` passed with the network (2).
+
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
