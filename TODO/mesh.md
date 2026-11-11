@@ -12798,6 +12798,11 @@ Next: the core's wire over the relay (a task that carries the two channels on th
 `HTTPS_PROXY`), the service in `pod-services`, the road in the race and the node's side, the line of Q78, and the
 Prove's runs against `zerotier-one` and live.
 
+2026-11-11: `relay::carry` carries a member's wire on the relay's TCP stream (any `AsyncRead + AsyncWrite`, so the
+command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a record for each datagram to an IPv4
+address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its
+test on a stream of memory, and the codec's: 3 passed.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

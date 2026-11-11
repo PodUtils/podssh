@@ -74,6 +74,46 @@ impl Records {
     }
 }
 
+/// Carry a member's wire on `stream`, the relay's TCP connection: the HELLO,
+/// then each datagram to an IPv4 address that the relay sends (another is
+/// dropped, as a wire may drop it); what comes back goes to the member. The
+/// wire's ends close with the stream.
+pub fn carry<S>(stream: S, version: (i32, i32, i32)) -> crate::member::Wire
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Send + 'static,
+{
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (to_member, inbound) = tokio::sync::mpsc::channel(1024);
+    let (out, mut from_member) = tokio::sync::mpsc::channel::<crate::member::Datagram>(1024);
+    let (mut read, mut write) = tokio::io::split(stream);
+    tokio::spawn(async move {
+        if write.write_all(&hello(version)).await.is_err() {
+            return;
+        }
+        while let Some((to, datagram)) = from_member.recv().await {
+            let std::net::SocketAddr::V4(to) = to else { continue };
+            let Ok(record) = encode(to, &datagram) else { continue };
+            if write.write_all(&record).await.is_err() {
+                return;
+            }
+        }
+    });
+    tokio::spawn(async move {
+        let (mut records, mut buf) = (Records::default(), vec![0u8; 65536]);
+        while let Ok(n) = read.read(&mut buf).await {
+            if n == 0 {
+                return;
+            }
+            for (from, datagram) in records.push(&buf[..n]) {
+                if to_member.send((std::net::SocketAddr::V4(from), datagram)).await.is_err() {
+                    return;
+                }
+            }
+        }
+    });
+    crate::member::Wire { out, inbound }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -103,5 +143,24 @@ mod tests {
         assert!(encode(to, &[0u8; 2048]).is_err());
         // A record of the old form, or a HELLO, carries no datagram.
         assert!(Records::default().push(&hello((1, 16, 0))).is_empty());
+    }
+
+    /// The carrier on a stream of memory: its HELLO first, a datagram's
+    /// record, an IPv6 one passed over; a record that comes back reaches
+    /// the member.
+    #[tokio::test]
+    async fn the_carrier_writes_the_hello_and_each_record_and_reads_what_comes_back() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let (ours, mut theirs) = tokio::io::duplex(65536);
+        let mut wire = carry(ours, (1, 16, 2));
+        let to: SocketAddrV4 = "198.51.100.7:9993".parse().unwrap();
+        wire.out.send(("[2001:db8::1]:9993".parse().unwrap(), vec![1u8; 20])).await.unwrap();
+        wire.out.send((to.into(), vec![2u8; 20])).await.unwrap();
+        let mut head = vec![0u8; 9 + 5 + 7 + 20];
+        theirs.read_exact(&mut head).await.unwrap();
+        assert_eq!(&head[..9], hello((1, 16, 2)).as_slice());
+        assert_eq!(&head[9..], encode(to, &[2u8; 20]).unwrap().as_slice(), "the IPv6 one passed over");
+        theirs.write_all(&encode(to, &[3u8; 30]).unwrap()).await.unwrap();
+        assert_eq!(wire.inbound.recv().await, Some((to.into(), vec![3u8; 30])));
     }
 }
