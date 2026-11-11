@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use podssh_zerotier::member::{sixplane, Member, State};
 use podssh_zerotier::relay;
+use podssh_zerotier::road::connect as road_connect;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 /// The ad-hoc network of the port 4096 alone: `ff`, 0x1000 to 0x1000, `000000`.
@@ -52,7 +53,7 @@ async fn two_members_meet_through_zerotier_s_roots_and_relay_and_carry_64_kib() 
     }
     let stack = a.stack.as_ref().unwrap();
     let began = std::time::Instant::now();
-    let mut conn = stack.connect(at, Duration::from_secs(90)).await.expect("a connection through the relay");
+    let mut conn = road_connect(stack, at, Duration::from_secs(90)).await.expect("a connection through the relay");
     let sent: Vec<u8> = (0..65536u32).map(|i| (i % 251) as u8).collect();
     conn.write_all(&sent).await.unwrap();
     let mut got = vec![0u8; 65536];

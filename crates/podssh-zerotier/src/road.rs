@@ -117,9 +117,33 @@ pub async fn link(road: &PairRoad, dial: &Dial, limit: Duration) -> Result<Link,
     let state = State { planet: road.planet.clone(), ..State::default() };
     let member = Member::start(Arc::new(Mutex::new(state)), wire, Some(road.nwid))?;
     let stack = member.stack.as_ref().ok_or("the member joined no network")?;
-    let stream = stack.connect(node_at(road), limit).await?;
+    let stream = connect(stack, node_at(road), limit).await?;
     Ok(Link { stream, _member: member })
 }
+
+/// A TCP connection to `to` on `stack`, within `limit`, in short tries, each
+/// with a fresh SYN: the first SYNs are lost while the core finds the far
+/// member through the roots, and one try's own backoff would send its next
+/// SYN 30 s and more later (a live run linked at 31.8 s, the SYN of second 31).
+pub async fn connect(stack: &podssh_warp::stack::Stack, to: SocketAddr, limit: Duration) -> Result<Stream, String> {
+    let deadline = tokio::time::Instant::now() + limit;
+    loop {
+        let (began, left) =
+            (tokio::time::Instant::now(), deadline.saturating_duration_since(tokio::time::Instant::now()));
+        match stack.connect(to, left.min(TRY)).await {
+            Ok(stream) => return Ok(stream),
+            Err(why) if stack.ended().is_some() => return Err(why),
+            Err(_) if left > TRY => {
+                // A try that failed at once (a reset) waits out its second.
+                tokio::time::sleep(Duration::from_secs(1).saturating_sub(began.elapsed())).await;
+            }
+            Err(_) => return Err(format!("{to}: no answer inside the network within {} s", limit.as_secs())),
+        }
+    }
+}
+
+/// The bound of one try of a client's connection to the node.
+const TRY: Duration = Duration::from_secs(4);
 
 impl AsyncRead for Link {
     fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {

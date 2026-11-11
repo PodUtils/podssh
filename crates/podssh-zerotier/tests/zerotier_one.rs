@@ -56,7 +56,9 @@ async fn zerotier_one_and_a_member_carry_tcp_both_ways() {
 
     // This member reaches zerotier-one's host, whose echo waits at its 6plane address.
     let theirs = SocketAddr::new(IpAddr::V6(sixplane(nwid, node)), PORT);
-    let mut conn = stack.connect(theirs, Duration::from_secs(120)).await.expect("a connection to zerotier-one's host");
+    let mut conn = podssh_zerotier::road::connect(stack, theirs, Duration::from_secs(120))
+        .await
+        .expect("a connection to zerotier-one's host");
     conn.write_all(b"podssh to zerotier-one").await.unwrap();
     let mut got = [0u8; 22];
     tokio::time::timeout(Duration::from_secs(60), conn.read_exact(&mut got)).await.expect("in time").unwrap();
