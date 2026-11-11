@@ -7,7 +7,9 @@ name: zerotier interop
 # reached. A planted encoder that takes what the relay drops must fail. And
 # the command line from end to end, a node and a client of one pair through
 # podssh-zerotier's stand-in relay and root (tests/derp_road.rs, the module
-# derp_zerotier); a planted client of another pair must fail.
+# derp_zerotier); a planted client of another pair must fail. And the
+# binary with the feature, static musl in the gate's image, as the release
+# builds it: the C++ of the core links statically too.
 # Started by hand, and on a push that changes the crate; it publishes nothing.
 
 on:
@@ -75,3 +77,32 @@ jobs:
             exit 1
           fi
           echo "the planted client failed (exit $rc), as it must"
+
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the build image
+        run: |
+          set -eu
+          ref=$(tr -d '\r' < images/build/Dockerfile | sed -n 's/^FROM[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p')
+          case "$ref" in
+            *@sha256:*) echo "BUILD_IMAGE=$ref" >> "$GITHUB_ENV" ;;
+            *) echo "images/build/Dockerfile names no image pinned to a digest" >&2; exit 1 ;;
+          esac
+      - name: build with the road (static musl, in the gate's image)
+        run: |
+          image=$(sh scripts/pull-image.sh "$BUILD_IMAGE")
+          docker run --rm -v "$PWD:/work" -w /work \
+            -e CARGO_BUILD_JOBS=4 -e RUSTFLAGS=-Ctarget-feature=+crt-static \
+            "$image" \
+            cargo build --locked --release --target x86_64-unknown-linux-musl -p podssh-cli --features iroh,warp,zerotier
+      - name: the binary is static, and runs
+        run: |
+          set -eu
+          B=target/x86_64-unknown-linux-musl/release/podssh
+          sh scripts/check-static.sh "$B"
+          ls -l "$B"
+          "$B" --version
+          "$B" man --no-pager | grep -q PODSSH_ZEROTIER_PLANET
