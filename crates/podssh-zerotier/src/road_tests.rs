@@ -101,7 +101,7 @@ async fn a_client_links_to_the_node_of_its_pair_after_the_node_dialed_again() {
     road.planet = Some(planet);
     let dials = node(&routes, &road, 1);
     let (client, _) = dial(&routes, 0x0a00_0200, 0);
-    let mut link = link(&road, &client, Duration::from_secs(30)).await.expect("a link to the node");
+    let mut link = link(&road, &client, Duration::from_secs(30), Default::default()).await.expect("a link to the node");
     carry(&mut link).await;
     assert!(dials.load(Ordering::SeqCst) >= 2, "the node dialed again after its first wire ended");
 
@@ -109,7 +109,25 @@ async fn a_client_links_to_the_node_of_its_pair_after_the_node_dialed_again() {
     let mut other = PairRoad::of("lab", "token-two").unwrap();
     other.planet = road.planet.clone();
     let (stranger, _) = dial(&routes, 0x0a00_0300, 0);
-    assert!(super::link(&other, &stranger, Duration::from_secs(10)).await.is_err());
+    assert!(super::link(&other, &stranger, Duration::from_secs(10), Default::default()).await.is_err());
+}
+
+/// A client's identity is the caller's: one kept from an earlier link is
+/// used again, and the one that the core made is left in the state.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_client_keeps_its_identity_from_one_link_to_the_next() {
+    let routes: Routes = Arc::default();
+    let (_root, planet) = root(&routes);
+    let mut road = PairRoad::of("lab", "token-one").unwrap();
+    road.planet = Some(planet);
+    node(&routes, &road, 0);
+    let (client, _) = dial(&routes, 0x0a00_0400, 0);
+    let first: Arc<Mutex<State>> = Arc::default();
+    drop(link(&road, &client, Duration::from_secs(30), first.clone()).await.expect("a first link"));
+    let made = first.lock().unwrap().identity.clone().expect("the core made an identity");
+    let again = Arc::new(Mutex::new(State { identity: Some(made.clone()), ..State::default() }));
+    drop(link(&road, &client, Duration::from_secs(30), again.clone()).await.expect("a second link"));
+    assert_eq!(again.lock().unwrap().identity.as_ref(), Some(&made), "the kept identity, not a new one");
 }
 
 #[test]

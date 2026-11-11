@@ -95,7 +95,8 @@ async fn the_pair_s_road_meets_through_zerotier_s_roots_and_relay() {
     });
     tokio::time::sleep(Duration::from_secs(5)).await;
     let linking = std::time::Instant::now();
-    let mut link = road::link(&made, &dial, road::CONNECT_LIMIT).await.expect("a link to the pair's node");
+    let mut link =
+        road::link(&made, &dial, road::CONNECT_LIMIT, Default::default()).await.expect("a link to the pair's node");
     eprintln!("linked in {:.1} s", linking.elapsed().as_secs_f64());
     link.write_all(b"hello").await.unwrap();
     let mut got = [0u8; 5];

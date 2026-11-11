@@ -12871,6 +12871,18 @@ not yet linked live within the road's 60 s; tries of 4 s with a fresh SYN (`road
 time is the meeting's, not TCP's. A member's trace (`PODSSH_ZT_TRACE=1`, its datagrams by address and its frames, each
 2 s) is on in the live run's library steps, to find where.
 
+2026-11-11: the trace found it (`zerotier-live.yml` run 43057920713): for about 55 s each member sent HELLO to
+each root through the relay and got no reply at all, then the replies came. A root checks an identity that it does
+not know only once each 2 s for each /24 that sends it (`Node.hpp`, `rateGateIdentityVerification`;
+`ZT_IDENTITY_VALIDATION_SOURCE_RATE_LIMIT`, 2000 ms on x86_64), and ZeroTier Inc.'s TCP relay sends each of its
+clients' packets from its one address, so a new identity waits its turn among the relay's other users; an identity
+that the root knows is not checked again. Repair: the client keeps its ZeroTier identity in a private file of the
+cache (`zerotier-client.secret`) and uses it again, the node's being the pair's already; `road::link` takes the
+caller's state, kept also when a link fails; the road waits 120 s (`road::CONNECT_LIMIT`), as a first run still
+waits its turn; the manual says so. Lost: sending HELLO more often, which would take the turns of the relay's other
+users. `cargo test -p podssh-zerotier --lib`, 14 passed (a kept identity is used again); the command line's tests
+offline and the manual's, passed; clippy clean.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

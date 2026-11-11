@@ -78,8 +78,19 @@ impl ZeroTierRoads {
             to.port(),
             self.relay
         ));
-        let link = road::link(made, &crate::zerotier::dial(self.relay), road::CONNECT_LIMIT).await?;
-        Ok(Road::ZeroTier(Box::new(link)))
+        // The client's identity of earlier runs, which the roots may know
+        // already, so that they do not check it again (`road::CONNECT_LIMIT`).
+        let kept = crate::zerotier::client_identity();
+        let state = podssh_zerotier::member::State { identity: kept.clone(), ..Default::default() };
+        let state = std::sync::Arc::new(std::sync::Mutex::new(state));
+        let linked = road::link(made, &crate::zerotier::dial(self.relay), road::CONNECT_LIMIT, state.clone()).await;
+        let made_now = state.lock().unwrap_or_else(|e| e.into_inner()).identity.clone();
+        if made_now.is_some() && made_now != kept {
+            if let Err(why) = crate::zerotier::keep_client_identity(made_now.as_deref().unwrap_or_default()) {
+                self.log.verbose(&format!("{}: ZeroTier's identity of this client was not kept: {why}", self.shown));
+            }
+        }
+        Ok(Road::ZeroTier(Box::new(linked?)))
     }
 
     #[cfg(not(feature = "zerotier"))]

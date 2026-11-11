@@ -23,12 +23,14 @@ pub(super) const NODE: &str = "In a build with the feature zerotier, a node of t
 pub(super) const SSH: &str = "In a build with the feature zerotier, node://NAME also races ZeroTier's road \
      of its pair (T-733), only once each road before it failed, after croc's relay road and the Pinggy road \
      and before the Serveo road, the last fallback of the operator's ruling Q78: a member of the pair's own \
-     ad-hoc network, with a ZeroTier identity made for the run, through ZeroTier Inc.'s roots and TCP relay \
-     (or those of PODSSH_ZEROTIER and PODSSH_ZEROTIER_PLANET), to the node's address, which both ends make \
-     of the pair's connect token; it waits 60 s at most for the node to answer. Before its first link through \
-     ZeroTier Inc.'s relay, a line says that ZeroTier Inc.'s roots and relay carry the session. \
-     PODSSH_ZEROTIER=no or PODSSH_LAST_RESORT=no turns it off, and --no-e2e leaves it out. podssh ping \
-     node://NAME does not measure it.";
+     ad-hoc network, with the client's own ZeroTier identity (made at its first run and kept in the cache, \
+     a private file), through ZeroTier Inc.'s roots and TCP relay (or those of PODSSH_ZEROTIER and \
+     PODSSH_ZEROTIER_PLANET), to the node's address, which both ends make of the pair's connect token. It \
+     waits 120 s at most for the node to answer: the roots check an identity that they do not know yet, and \
+     that comes through the relay, only in turn with the relay's other users, so a first run is the slow \
+     one. Before its first link through ZeroTier Inc.'s relay, a line says that ZeroTier Inc.'s roots and \
+     relay carry the session. PODSSH_ZEROTIER=no or PODSSH_LAST_RESORT=no turns it off, and --no-e2e leaves \
+     it out. podssh ping node://NAME does not measure it.";
 
 #[cfg(test)]
 mod tests {

@@ -31,9 +31,14 @@ pub type Dial = Arc<dyn Fn() -> Dialing + Send + Sync>;
 /// Where an end's lines go.
 pub type Say = Arc<dyn Fn(String) + Send + Sync>;
 
-/// The bound of a client's connection to the node: the roots' WHOIS and the
-/// path through the relay took 30 s in the live run.
-pub const CONNECT_LIMIT: Duration = Duration::from_secs(60);
+/// The bound of a client's connection to the node. A root checks a new
+/// identity once each 2 s for each /24 that sends it (`Node.hpp`,
+/// `rateGateIdentityVerification`), and ZeroTier Inc.'s TCP relay sends each
+/// client's packets from its one address, so a client whose identity the
+/// roots do not know yet waits its turn: 30 s to past 90 s in the live runs.
+/// An identity that the roots know is not checked again: the caller keeps
+/// the client's ([`link`]'s `state`).
+pub const CONNECT_LIMIT: Duration = Duration::from_secs(120);
 /// The longest wait before the node dials again.
 const MOST_WAIT: Duration = Duration::from_secs(60);
 /// A member that lived this long ended as a lost connection does: the next
@@ -111,11 +116,13 @@ pub struct Link {
 }
 
 /// A client's link to the node of `road`, on a wire of `dial`, open within
-/// `limit`.
-pub async fn link(road: &PairRoad, dial: &Dial, limit: Duration) -> Result<Link, String> {
+/// `limit`. `state` holds the client's identity when the caller kept one, and
+/// the one that the core made otherwise, for the caller to keep, also when
+/// the link fails: the roots may have checked it by then.
+pub async fn link(road: &PairRoad, dial: &Dial, limit: Duration, state: Arc<Mutex<State>>) -> Result<Link, String> {
     let wire = dial().await?;
-    let state = State { planet: road.planet.clone(), ..State::default() };
-    let member = Member::start(Arc::new(Mutex::new(state)), wire, Some(road.nwid))?;
+    state.lock().unwrap_or_else(|e| e.into_inner()).planet = road.planet.clone();
+    let member = Member::start(state, wire, Some(road.nwid))?;
     let stack = member.stack.as_ref().ok_or("the member joined no network")?;
     let stream = connect(stack, node_at(road), limit).await?;
     Ok(Link { stream, _member: member })

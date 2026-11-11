@@ -94,6 +94,23 @@ pub fn third_party_line(relay: SocketAddr) -> String {
     )
 }
 
+/// The file of the cache that keeps this client's ZeroTier identity: a
+/// private key, in a private file as the pins are, never printed.
+const CLIENT_IDENTITY: &str = "zerotier-client.secret";
+
+/// The client's identity kept by an earlier run, when one reads as one.
+pub(crate) fn client_identity() -> Option<Vec<u8>> {
+    let text = podssh_relay::cache::load_file(CLIENT_IDENTITY)?;
+    let text = text.trim();
+    // The core's text form: the address, `0`, the public and the secret keys.
+    (text.split(':').count() == 4 && text.len() < 1024).then(|| text.as_bytes().to_vec())
+}
+
+/// Keep `identity` for later runs.
+pub(crate) fn keep_client_identity(identity: &[u8]) -> Result<std::path::PathBuf, String> {
+    podssh_relay::cache::store_file(CLIENT_IDENTITY, identity)
+}
+
 /// The road's dial: one TCP connection to `relay` through `HTTPS_PROXY`,
 /// and the relay's framing on it.
 #[cfg(feature = "zerotier")]

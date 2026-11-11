@@ -144,7 +144,8 @@ mod tests {
             conn.write_all(&buf).await.unwrap();
             tokio::time::sleep(Duration::from_secs(5)).await;
         });
-        let mut link = road::link(&made, &dial(stand_in.relay), Duration::from_secs(30)).await.unwrap();
+        let mut link =
+            road::link(&made, &dial(stand_in.relay), Duration::from_secs(30), Default::default()).await.unwrap();
         link.write_all(b"hello").await.unwrap();
         let mut got = [0u8; 5];
         tokio::time::timeout(Duration::from_secs(30), link.read_exact(&mut got)).await.unwrap().unwrap();
