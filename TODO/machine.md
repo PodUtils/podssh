@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5914-5944`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5926-5956`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -766,10 +766,10 @@ session path; the test that parses each stdout line fails.
 
 ## Done
 
-2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:75-140`, its
-lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:147-233`,
-the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:237-263`, a
-call at `crates/podssh-cli/src/mcp/mod.rs:266-298`. The messages in
+2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:79-147`, its
+lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:154-240`,
+the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:244-270`, a
+call at `crates/podssh-cli/src/mcp/mod.rs:273-305`. The messages in
 `crates/podssh-cli/src/mcp/protocol.rs:70-103`, the two eras at
 `crates/podssh-cli/src/mcp/protocol.rs:113-168` and
 `crates/podssh-cli/src/mcp/protocol.rs:188-220`, the answers at
@@ -782,7 +782,7 @@ session at `crates/podssh-cli/src/mcp/tools.rs:166-184`, and its result at
 `crates/podssh-cli/src/mcp/child.rs:125-157`. The patterns of
 `--allow-host` at `crates/podssh-cli/src/mcp/allow.rs:36-124`. The flags in
 `crates/podssh-cli/src/flags/mcp.rs`, the risk and the rest in the manual
-(`crates/podssh-cli/src/man/notes_mcp.rs:4-46`), and `docs/cli.md`.
+(`crates/podssh-cli/src/man/notes_mcp.rs:4-52`), and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/mcp.rs`, 4 tests, over the stdin and the
 stdout of `podssh mcp`, reads each line of stdout as one JSON-RPC answer:
@@ -2019,7 +2019,7 @@ Each fails its test.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2028,7 +2028,7 @@ the right flags; a hand-written one can name a flag that does not start the stdi
 
 ## Premise
 
-- The review: `crates/podssh-cli/src/flags/mcp.rs:9-20` (`MCP_FLAGS`) has no option to print it;
+- The review: `crates/podssh-cli/src/flags/mcp.rs:9-22` (`MCP_FLAGS`) has no option to print it;
   `crates/podssh-cli/src/mcp/mod.rs` reads `std::env::current_exe()` already.
 - The review: `crates/podssh-cli/tests/mcp_harness/mod.rs` starts `podssh mcp` as a client does.
 
@@ -2048,3 +2048,21 @@ cargo test -p podssh-cli --test mcp_client_config
 
 The printed command, started, offers `ssh_exec` with `--allow-host` and not without. Planted: a printer that
 emits an unknown flag, and the test fails.
+
+## Done
+
+2026-11-11. `crates/podssh-cli/src/mcp/client_config.rs`: `podssh mcp --client-config CLIENT` prints the entry of
+`claude-desktop`, `cursor`, `gemini` (`mcpServers`) or `vscode` (`servers`, `type` `stdio`) and starts no server: the
+command is this binary's absolute path (`current_exe`, resolved); the args are `mcp` and the flags typed, in a fixed
+order, checked by the run's own checks (`Allow::new` 64, `-F` 78, `Dirs::new` 64 or 78), each directory and `-F` file made
+absolute; a line on stderr names where the client's documents say that it reads the entry, and that no file is written;
+with no `--allow-host`, a line says that the server reaches no host. The flag row (`flags/mcp.rs`), the manual's note
+(`notes_mcp.rs`), `docs/cli.md`; the harness's `Mcp::spawn` starts any command.
+
+Measured: `cargo test -p podssh-cli --test mcp_client_config`, 2 passed, in a namespace with the loopback alone: for each
+of the four clients, the entry printed for `--allow-host 'build-*' --allow-dir DIR`, its command absolute, started as a
+client starts it, offered `ssh_exec` and `cp_put`; with no flag, neither; `emacs` and `--allow-host 'a b'` were 64 with
+nothing printed, a missing `-F` 78. The unit tests of the shapes, 2 passed (`--lib`, 1091). Planted
+(`scripts/plants/t751-unknown-flag.patch`), the donor's `--mcp-listen stdio` in the entry: the test of the four clients
+FAILED. clippy and rustfmt clean; `--test mcp`, 6 passed. Unverified, as the block says: each client's place of its file,
+which the stderr line attributes to the client's documents.

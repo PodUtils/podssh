@@ -54,6 +54,11 @@ impl Dirs {
         self.allowed.is_empty()
     }
 
+    /// The directories as resolved.
+    pub fn resolved(&self) -> &[PathBuf] {
+        &self.allowed
+    }
+
     /// The directories as given, joined for a sentence.
     pub fn shown(&self) -> String {
         self.shown.join(", ")

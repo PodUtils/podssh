@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**706 entries: 88 open, 17 partial, 10 blocked, 591 done.**
+**706 entries: 87 open, 17 partial, 10 blocked, 592 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 59 | 6 | 6 | 257 | 328 |
-| **All** | 88 | 17 | 10 | 591 | 706 |
+| P3 | 58 | 6 | 6 | 258 | 328 |
+| **All** | 87 | 17 | 10 | 592 | 706 |
 
 ## Entries
 
@@ -781,4 +781,4 @@ repository and CI).
 | [T-748](relay.md) | P2 | S | M10 | defect | done | `relay serve`: a cap on the open connections of an address and in all, and a pause after a failed accept |
 | [T-749](mesh.md) | P3 | M | M10 | feature | open | `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs |
 | [T-750](mesh.md) | P3 | M | M10 | feature | open | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
-| [T-751](machine.md) | P3 | S | M10 | feature | open | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |
+| [T-751](machine.md) | P3 | S | M10 | feature | done | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |

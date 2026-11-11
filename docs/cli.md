@@ -5514,6 +5514,18 @@ gets no answer.
 `--allow-dir` of keys, and 78 for a `-F` file or an `--allow-dir` that does
 not exist.
 
+`podssh mcp --client-config CLIENT` (T-751, the block "agentanycast 3" of
+PodUtils/podnet#438) prints the entry that CLIENT reads to start the server,
+and starts none: `claude-desktop`, `cursor` and `gemini` as `{"mcpServers":
+{"podssh": {"command", "args"}}}`, `vscode` as `{"servers": {"podssh":
+{"type": "stdio", "command", "args"}}}`. The command is this binary's
+absolute path; the args are `mcp` and the other flags typed, in a fixed
+order, checked as a run checks them, with each directory and `-F` file made
+absolute. A line on stderr names where the client's documents say it reads
+the entry; nothing is written into a client's file. Another CLIENT is 64.
+`tests/mcp_client_config.rs` starts each printed entry and reads its
+`tools/list`.
+
 ## `podssh session`
 
 `podssh session` (T-186) keeps one SSH session with a pty between the calls

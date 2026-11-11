@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/mcp/client_config.rs
++++ b/crates/podssh-cli/src/mcp/client_config.rs
+@@ -29,7 +29,7 @@
+ /// The arguments of the entry: `mcp`, then the flags in a fixed order, with
+ /// the directories as resolved and `-F`'s file made absolute.
+ pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Path>) -> Vec<String> {
+-    let mut out = vec!["mcp".to_string()];
++    let mut out = vec!["mcp".to_string(), "--mcp-listen".to_string(), "stdio".to_string()]; // planted: a flag of no server
+     for pattern in &args.allow_host {
+         out.extend(["--allow-host".to_string(), pattern.clone()]);
+     }

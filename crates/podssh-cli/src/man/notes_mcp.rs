@@ -43,4 +43,10 @@ pub const MCP: &[&str] = &[
      shell with a pty on an allowed host, held by podssh session between the calls. The server drives only \
      the sessions that it started, never one of yours, and stops each as it ends; the text of session_send \
      goes on the child's stdin, never on a command line.",
+    "--client-config CLIENT (claude-desktop, cursor, vscode or gemini) prints the JSON entry that the \
+     client reads to start this server, and starts none: its command is this binary's absolute path, as a \
+     client started from a launcher may not have the shell's PATH, and its args are mcp and the other flags \
+     typed, checked as a run checks them (64, 78), each path made absolute. VS Code's entry is under servers \
+     with type stdio, the others' under mcpServers. A line on stderr says where the client's documents say \
+     that it reads the entry; the command writes no file of the client's. Another CLIENT is 64.",
 ];

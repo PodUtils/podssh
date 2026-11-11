@@ -16,6 +16,8 @@
 
 mod allow;
 mod child;
+// The client's entry for the flags typed (T-751).
+pub mod client_config;
 mod copy;
 mod dirs;
 mod protocol;
@@ -66,6 +68,8 @@ pub struct McpArgs {
     pub config: Option<String>,
     /// `--direct`: each session over TCP.
     pub direct: bool,
+    /// `--client-config CLIENT`: print the client's entry, start no server.
+    pub client_config: Option<String>,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -73,6 +77,9 @@ pub struct McpArgs {
 /// that is not one or a directory of keys, 78 for a `-F` file or an
 /// `--allow-dir` that is not there.
 pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
+    if let Some(client) = &args.client_config {
+        return client_config::print(args, client, &mut std::io::stdout().lock(), err);
+    }
     let allow = match Allow::new(&args.allow_host) {
         Ok(allow) => allow,
         Err(why) => {

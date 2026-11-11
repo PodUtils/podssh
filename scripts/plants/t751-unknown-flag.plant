@@ -1,0 +1,6 @@
+# T-751: the client's entry names a flag that starts no server (the donor's
+# `--mcp-listen stdio`); the printed command, started, must fail the test.
+ENTRY=T-751
+GROUP=cli-tests
+EXPECT='test each_client_s_entry_starts_a_server_that_offers_what_its_flags_promise \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --test mcp_client_config -- each_client_s_entry_starts_a_server_that_offers_what_its_flags_promise'

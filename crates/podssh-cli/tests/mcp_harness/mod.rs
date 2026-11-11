@@ -36,14 +36,15 @@ pub fn podssh(dir: &Path) -> Command {
 
 impl Mcp {
     pub fn start(dir: &Path, args: &[&str]) -> Mcp {
-        let mut child = podssh(dir)
-            .arg("mcp")
-            .args(args)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
+        let mut cmd = podssh(dir);
+        cmd.arg("mcp").args(args);
+        Mcp::spawn(cmd)
+    }
+
+    /// The server that `cmd` starts, as a client starts it (T-751: the
+    /// command of a client's entry).
+    pub fn spawn(mut cmd: Command) -> Mcp {
+        let mut child = cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
         let stdout = child.stdout.take().unwrap();
         let (tx, lines) = channel();
         std::thread::spawn(move || {

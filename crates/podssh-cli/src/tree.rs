@@ -344,6 +344,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             allow_session: matches.get_flag("allow-session"),
             config: matches.get_one::<String>("config").cloned(),
             direct: matches.get_flag("direct"),
+            client_config: matches.get_one::<String>("client-config").cloned(),
             refused,
         }));
     }
