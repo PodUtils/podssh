@@ -140,8 +140,9 @@ LINTS_ALLOWED="-A clippy::collapsible_if"
 step_lint() {
     run "rustfmt and clippy: the components" retry3 rustup component add rustfmt clippy
     # ZeroTier's core is C++ (T-733), which the image's compiler of C alone
-    # does not build: Alpine's g++, statically linked as each release is.
-    run "a C++ compiler, for ZeroTier's core" retry3 apk add --no-cache g++
+    # does not build: Alpine's g++, statically linked as each release is,
+    # and the kernel's headers that its OS layer includes (linux/if_addr.h).
+    run "a C++ compiler, for ZeroTier's core" retry3 apk add --no-cache g++ linux-headers
     # shellcheck disable=SC2086  # $PKGS is a list of flags
     run "the format of the code" cargo fmt $PKGS -- --check
     # shellcheck disable=SC2086
