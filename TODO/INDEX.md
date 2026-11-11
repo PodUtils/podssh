@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**706 entries: 88 open, 19 partial, 9 blocked, 590 done.**
+**706 entries: 88 open, 17 partial, 10 blocked, 591 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 59 | 8 | 5 | 256 | 328 |
-| **All** | 88 | 19 | 9 | 590 | 706 |
+| P3 | 59 | 6 | 6 | 257 | 328 |
+| **All** | 88 | 17 | 10 | 591 | 706 |
 
 ## Entries
 
@@ -770,10 +770,10 @@ repository and CI).
 | [T-737](mesh.md) | P3 | M | M10 | feature | open | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | open | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
-| [T-740](mesh.md) | P3 | S | M10 | feature | partial | Bare servers as a hop of the WebSocket roads, tried last |
+| [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
 | [T-741](mesh.md) | P3 | M | M10 | feature | open | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
 | [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
-| [T-743](mesh.md) | P3 | S | M10 | feature | partial | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
+| [T-743](mesh.md) | P3 | S | M10 | feature | done | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |
 | [T-746](robustness.md) | P2 | S | M10 | defect | partial | Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS |

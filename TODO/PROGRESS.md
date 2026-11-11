@@ -371,7 +371,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 706 entries: 88 open, 19 partial, 9 blocked, 590 done.
+`TODO/INDEX.md` holds 706 entries: 88 open, 17 partial, 10 blocked, 591 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -478,7 +478,7 @@ this order:
    filed: the rates of `ppng.io`'s road and of the Wisp demo server through podssh (T-625), TURN
    with RFC 6062 for a server that the user runs (T-621), the research of smee.io, of three
    hosted tunnels and of I2P, Nym and cjdns (done 2026-11-10; it filed smee.io as a last fallback,
-   T-741, hostc's, T-742, and Sandhole's public server as a host of the localhost.run road's module, T-743), and the
+   T-741, hostc's, T-742, and Sandhole's public server as a host of the localhost.run road's module, done), and the
    HTTP road's one-POST form (T-622, parked).
 5. T-446: betas `v1.1.0-beta.N` after batches, and `v1.1.0` at the end.
 

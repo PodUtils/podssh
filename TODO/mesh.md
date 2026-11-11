@@ -13078,7 +13078,7 @@ decodes in the test's reader. Planted: the KDF's label changed, and the test aga
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** blocked
 
 ## Problem
 
@@ -13134,7 +13134,18 @@ WebSocket road: the client reaches the road's banner through it, and a `filterRe
 the hop fail with a line that says so. Planted: a binary frame sent as text, and the test fails. Live (short, Q78):
 one session to the node of step 1, from GitHub Actions.
 
-## Done
+## Blocker
+
+A public Bare node whose WebSocket works. `openbare.xyz`, the one node of `pod-services` (`openbare-xyz`), carries
+none for any client: its edge (`nirholas/openbare`, `edge/src/websocket.js` at `65a4d8d`) calls `new WebSocket(url,
+{ headers })` on Cloudflare Workers, whose constructor takes the subprotocols as its second argument, so each upgrade
+ends in its own 500, "WebSocket Constructor: The protocol header token is invalid" (live run 42994885604, the header
+form, 2026-11-11). Who acts: OpenBare's operator (its repository, which this session may not write to), or the
+consumers of `pod-services`, when a node of another operator is found and named there (PodUtils/podcrates). Unblocked
+when a node of the kind `bare-node` passes the live job
+`behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session`.
+
+## Correction
 
 Partial, 2026-11-11: step one is read and decided (the Decision): the node `openbare.xyz` is alive, a Bare
 v3 server of the project's own, offered for others' use, and passes Q79. The kind `bare-node` of
@@ -13178,7 +13189,10 @@ reads the far URL from the upgrade's headers, `X-Bare-URL` (`https:` turned to `
 the far WebSocket before its 101, and then passes each message as it is, with no `connect` and no `open`: a second
 form of v3's WebSocket, beside TompHTTP's. `podssh_ws::bare::dial` asks a node that refuses the first form's upgrade
 with 400 again in the header form (`header_request`, `dial_headers`); TompHTTP's server, which ignores the headers and
-waits for `connect`, still takes the first. Its unit test, and the live run again: UNVERIFIED.
+waits for `connect`, still takes the first. Its unit test: 4 of `--lib bare` passed. The live run again, 42994885604 at
+`d1ec1e0b`: the header form reached the node, which answered 500 "WebSocket Constructor: The protocol header token is
+invalid": the defect of its edge that `## Blocker` names. The hop stays wired, last of all, and fails in its own words
+until a node carries it; the entry is blocked.
 
 
 # T-741: smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back
@@ -13318,7 +13332,7 @@ operator's rulings Q78 and Q94.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13409,7 +13423,9 @@ passed. What remains: the live job through the demo server.
 
 2026-11-11, live, `last-roads-live.yml` run 42989086142 at `9cc3e08c`: `a_node_behind_sandhole_serves_a_client_at_its_tunnel_s_url`
 passed (a node with `--sandhole` behind the demo server, its login by a key made for it, `greet` and 1 MiB down
-through `https://NAME.demo.sandhole.com.br`, "the Sandhole road answered first"), and its planted stranger failed.
+through `https://NAME.demo.sandhole.com.br`, "the Sandhole road answered first"), and its planted stranger failed;
+again in run 42994885604 at `d1ec1e0b`, both. Each step of the Approach is done, the stand-in test, the live run and its
+plant.
 
 # T-749: `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs
 

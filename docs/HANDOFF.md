@@ -60,8 +60,8 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | --- | --- |
 | T-746 | The datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; its next failure says the program's verdict. OpenTunnel's resume test is repaired (macOS passed at `bc5107b0`). |
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
-| T-743 | Wired (`4a5268a7`, `9cc3e08c`): `node --sandhole`, a key made for the login, the word by zone, a stand-in test; left, the live job of `last-roads-live.yml`. |
-| T-740 | The hop is the last road of `ssh node://NAME` for the tunnel's name of `ssh -R` (`9cc3e08c`, `road_bare.rs`); left, its live job of `last-roads-live.yml` (a proxy that passes the Bare node alone). |
+| T-740 | Blocked: the hop speaks TompHTTP's form and OpenBare's header form, last of all; `openbare.xyz`'s edge answers each WebSocket with 500 (its constructor call). Unblocked by a `bare-node` that passes the live job. |
+| localhost.run | Its live job stalls in 1 MiB down since 2026-11-11 08:46 UTC (the service's window); rerun `last-roads-live.yml` to tell a slow day from a change. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
 | T-684 | Each next podcrates release that podssh takes. |
