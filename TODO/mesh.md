@@ -12217,6 +12217,21 @@ nothing; merged the same day onto `main` after the Serveo road (T-549) and the s
   (`crates/podssh-cli/src/node_derp.rs`, `crates/podssh-cli/src/node_piping.rs`), which take the
   transit relay's road and not this one.
 
+2026-11-11: the harness of the Prove against croc's own software. `crates/podssh-relay/tests/croc_interop.rs`
+holds the eight cases of `croc.rs` against the bridge that `PODSSH_CROC_INTEROP_BRIDGE` names (ignored
+unless asked; the stand-in's own counts of rooms are not asked of croc), and
+`.github/workflows/croc-interop.yml` runs them on a runner, on each push that changes the road, against
+`croc relay` and `croc-web` of the release v11.6.5, each binary checked against the SHA-256 of croc's
+checksums file. Two findings of the software itself: croc-web drops a relay host named twice, so the
+harness names one relay by four loopback addresses (`relay index is not allowed` else); and croc's relay
+lets one source join 30 times a minute, which the eight tests from one address pass, so the harness
+raises it. Measured here, with both binaries on this host's loopback: 8 passed, 5 runs in 5; planted
+(`scripts/plants/t694-croc-waiting-frame.patch`), 7 of 8 failed, the waiting node's test among them, as
+croc's relay sends its frames to a waiting member from the start. Left: the short live session through
+`wss://getcroc.com/ws` (Q91), `podssh doctor`'s line of the carriers, and the node roads of `--derp` and
+of the Piping Server road.
+
+
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 
 **Source:** T-546 (2026-11-06).

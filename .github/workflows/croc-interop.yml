@@ -1,0 +1,75 @@
+name: croc interop
+
+# croc's relay road (T-694) against croc's own `croc relay` and croc-web's
+# bridge of the release v11.6.5 (schollz/croc, MIT), each binary checked
+# against the SHA-256 that croc's checksums file gives:
+# crates/podssh-relay/tests/croc_interop.rs, the cases of the stand-in's
+# tests against the software itself. One relay listens on the loopback, and
+# croc-web leads to it by four loopback addresses, as getcroc.com leads to
+# its four relays (croc-web drops a host named twice). The relay's limit of
+# joins for one source is raised: each join of the tests comes from one
+# address. No host of croc's is reached. A planted run makes a waiting
+# member take the relay's frame for its peer's hello, and must fail.
+# Started by hand, and on a push that changes the road; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/croc/**"
+      - "crates/podssh-relay/tests/croc*"
+      - ".github/workflows/croc-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+      CROC_VERSION: v11.6.5
+      CROC_SHA256: 01bbbb4eafe12c01ddb84ddebf556c35ea9989a976f4abc7e72933c2a6e5e61e
+      CROC_WEB_SHA256: 93dee5057252d3bc49b4640cc40ecf8b90e57bd47291b8e789baa7fbfafa43e7
+      PODSSH_CROC_INTEROP_BRIDGE: ws://127.0.0.1:8099/ws
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: croc's relay and croc-web, of the release, checked
+        run: |
+          set -eu
+          mkdir -p "$RUNNER_TEMP/croc" && cd "$RUNNER_TEMP/croc"
+          base="https://github.com/schollz/croc/releases/download/$CROC_VERSION"
+          curl -qfsSL --retry 3 -o croc.tgz "$base/croc_${CROC_VERSION}_Linux-64bit.tar.gz"
+          curl -qfsSL --retry 3 -o web.tgz "$base/croc-web_${CROC_VERSION}_Linux-amd64.tar.gz"
+          printf '%s  croc.tgz\n%s  web.tgz\n' "$CROC_SHA256" "$CROC_WEB_SHA256" | sha256sum -c -
+          tar xzf croc.tgz croc && tar xzf web.tgz croc-web
+          ./croc relay --host 0.0.0.0 --source-join-limit 1000 --room-join-limit 1000 > relay.log 2>&1 &
+          ./croc-web --bind 127.0.0.1:8099 --relays 127.0.0.1,127.0.0.2,127.0.0.3,127.0.0.4 \
+            --ports 9009,9010,9011,9012,9013 > web.log 2>&1 &
+          for i in $(seq 30); do
+            curl -qfsS --max-time 2 -o /dev/null http://127.0.0.1:8099/healthz && exit 0
+            sleep 1
+          done
+          echo "croc-web did not answer"; cat relay.log web.log; exit 1
+      - name: build the test
+        run: cargo test --locked -p podssh-relay --features croc --test croc_interop --no-run
+      - name: the road against croc's own relay and bridge
+        run: timeout 600 cargo test --locked -p podssh-relay --features croc --test croc_interop -- --ignored
+      # The check must see a member that takes the relay's frame for a hello fail.
+      - name: a planted waiting member fails it
+        run: |
+          git apply scripts/plants/t694-croc-waiting-frame.patch
+          rc=0
+          timeout 600 cargo test --locked -p podssh-relay --features croc --test croc_interop -- --ignored \
+            a_node_that_waited_through_the_relay_s_frames_still_meets || rc=$?
+          git apply -R scripts/plants/t694-croc-waiting-frame.patch
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: the planted member passed"
+            exit 1
+          fi
+          echo "the planted member failed (exit $rc), as it must"
+      - name: the servers' logs
+        if: always()
+        run: tail -n 50 "$RUNNER_TEMP/croc/relay.log" "$RUNNER_TEMP/croc/web.log" || true
