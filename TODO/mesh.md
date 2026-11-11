@@ -12803,6 +12803,9 @@ command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a 
 address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its
 test on a stream of memory, and the codec's: 3 passed.
 
+2026-11-11: the relay's address is asked of podcrates as the service `zerotier-tcp-relay` of `pod-services` (COORD-023,
+#190); the roots need no entry, as the core's own planet names them. The live run and the road's wiring read it there.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 
