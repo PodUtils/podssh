@@ -33,5 +33,6 @@
   },
   "env": {
     "CARGO_BUILD_JOBS": "4"
-  }
+  },
+  "disableAllHooks": true
 }
