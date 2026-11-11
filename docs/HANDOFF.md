@@ -59,12 +59,13 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | Entry | Next step |
 | --- | --- |
 | T-746 | The datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; its next failure says the program's verdict. OpenTunnel's resume test is repaired (macOS passed at `bc5107b0`). |
+| T-733 | ZeroTier's road: the core is vendored and linked (`podssh-zerotier`); the relay's framing passes against ZeroTier's `tcp-proxy` (`zerotier-interop.yml`); TCP over an ad-hoc network on WARP's stack. Next: the live run (`zerotier-live.yml`) once podcrates releases `zerotier-tcp-relay` (COORD-023, #190); then the feature `zerotier` of podssh-cli, the node's side, the client's race, the line of Q78, a static musl build of the C++. |
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
 | T-740 | Blocked: the hop speaks TompHTTP's form and OpenBare's header form, last of all; `openbare.xyz`'s edge answers each WebSocket with 500 (its constructor call). Unblocked by a `bare-node` that passes the live job. |
-| localhost.run | Its live job stalls in 1 MiB down since 2026-11-11 08:46 UTC (the service's window); rerun `last-roads-live.yml` to tell a slow day from a change. |
+| localhost.run | Its live job stalled in 1 MiB down twice on 2026-11-11 (runs 42989086142, 42994885604); rerun `last-roads-live.yml` to tell a slow day from a change. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
-| T-684 | Each next podcrates release that podssh takes. |
+| T-684 | Each next podcrates release that podssh takes; `v0.22.0` brings `pod-e2e` (podcrates T-021): until it is taken, `podssh-relay`'s `src/e2e/` and its tests take fixes only (`TODO/PROGRESS.md`, state item 7). |
 | T-446 | Betas wait for the end of the migration (T-684). |
 | Each other partial entry | T-319, T-321, T-450, T-459, T-660, T-662, T-665, T-666, T-670 and T-698: each `## Done` names what waits. |
 
