@@ -261,6 +261,9 @@ pub async fn lookup(
 }
 
 /// What [`keep_roads`] last said, so that it says each change once.
+// One value for the life of the task, compared with each new record: a box
+// would cost an allocation at each comparison and save nothing.
+#[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Eq)]
 enum Said {
     Put(Roads),

@@ -39,6 +39,16 @@ ignore = [
   # at build time only, that only the Tailscale fork brings (through
   # stun-rs). The fork's own deny.toml ignores it too. Read 2026-10-09.
   { id = "RUSTSEC-2024-0436", reason = "unmaintained build-time proc-macro, only through the Tailscale fork" },
+  # SQLite before 3.54.0 can return stale page-cache memory when it opens a
+  # database with a crafted `-wal` file of another page size. Only the Tor
+  # road (feature `tor`) links it, through arti's tor-dirmgr, and each arti
+  # release up to 0.48 (tor-dirmgr `rusqlite >=0.36, <0.41`) refuses the
+  # rusqlite 0.41 that brings the fixed libsqlite3-sys 0.39. Arti opens only
+  # the database of podssh's own cache directory, which its permission check
+  # (fs-mistrust) refuses when another user can write it; the exposure is a
+  # party that already writes the user's own files. Take the fix when arti
+  # accepts rusqlite 0.41. Read 2026-11-11.
+  { id = "RUSTSEC-2026-0459", reason = "no arti release takes the fixed libsqlite3-sys; arti opens only podssh's own cache, which its permission check keeps to the user" },
 ]
 
 [licenses]

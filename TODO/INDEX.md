@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**699 entries: 87 open, 23 partial, 9 blocked, 580 done.**
+**700 entries: 87 open, 22 partial, 9 blocked, 582 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 4 | 2 | 3 | 69 | 78 |
-| P2 | 25 | 9 | 1 | 261 | 296 |
+| P1 | 4 | 2 | 3 | 70 | 79 |
+| P2 | 25 | 8 | 1 | 262 | 296 |
 | P3 | 58 | 12 | 5 | 249 | 324 |
-| **All** | 87 | 23 | 9 | 580 | 699 |
+| **All** | 87 | 22 | 9 | 582 | 700 |
 
 ## Entries
 
@@ -774,4 +774,5 @@ repository and CI).
 | [T-741](mesh.md) | P3 | M | M10 | feature | open | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
 | [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
 | [T-743](mesh.md) | P3 | S | M10 | feature | open | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
-| [T-744](robustness.md) | P2 | S | M10 | defect | partial | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
+| [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
+| [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |

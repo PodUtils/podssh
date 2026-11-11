@@ -1986,7 +1986,7 @@ its job `macos` of run 42794811364 (`ec730ac2`); each commit changed the record 
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2055,3 +2055,74 @@ macOS, `openssh_through_podssh_proxy_and_the_role_reaches_openssh_with_equal_dig
 before. Its assertion now says ssh's exit status beside its words (`relay_serve.rs`), so the next
 failure names its cause; `--test relay_serve`, 28 passed here. It stays partial for those two runs.
 
+2026-11-11, the gate at `d2361ef1` (run 42871529371): each check that this entry waited for passed.
+On Windows, `--features croc --test croc` passed (the job failed on bore's stand-in alone, T-745); on
+macOS, the job passed whole, `--test relay_serve` and the funnel's `--test quick_publish` among its
+tests. Done.
+
+
+# T-745: The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows
+
+**Source:** the session of 2026-11-11, the runs at `d2361ef1` (the hand-off): `build` 42871529371
+(jobs `gate (lint)` and `windows`), `deny` 42871529370 and `secrets` 42871529365.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The gate must be green before other work, and each of the three workflows was red at the head of
+`main` for a cause that neither `docs/HANDOFF.md` nor an entry named.
+
+## Premise
+
+- Read: `gate (lint)` failed on clippy's `large_enum_variant` (Rust 1.99) at the enum `Said` of
+  `crates/podssh-iroh/src/pkarr.rs`: `Put(Roads)` holds at least 208 bytes, `Failed` none.
+- Read: `deny` failed on RUSTSEC-2026-0459 (SQLite before 3.54.0, a crafted `-wal` file), in
+  `libsqlite3-sys` 0.38.2 through `rusqlite` 0.40.2, `tor-dirmgr` 0.47.0 and `podssh-tor`. The fixed
+  `libsqlite3-sys` 0.39 comes with `rusqlite` 0.41, and each release of `tor-dirmgr` to 0.48.0 asks
+  `rusqlite >=0.36.0, <0.41.0` (crates.io's index, read 2026-11-11).
+- Read: `secrets` found two URIs of state "unknown": `https://u:SECRET@h.test`, a test value of
+  T-565 in `crates/podssh-relay/src/ssh_http/name.rs`, at the draft's commit and at its merge.
+- Read: on Windows, `a_server_with_a_secret_takes_its_answer_and_refuses_none_or_another`
+  (`-p podssh-relay --test bore_link`, T-569) read "An existing connection was forcibly closed by
+  the remote host. (os error 10054)" in place of "invalid secret". The stand-in
+  (`crates/podssh-relay/tests/bore_stand_in/mod.rs`) dropped its socket at once after its `Error`,
+  with the client's next message unread: the same reset as croc's stand-in of T-744.
+
+## Approach
+
+- clippy: keep the value unboxed, with the lint allowed and its reason beside it; one value lives for
+  the life of the task, and a box would cost an allocation at each comparison.
+- The advisory: no version of arti takes the fix, so `deny.toml` ignores it with the judgement and
+  the date; arti opens only the database of podssh's own cache directory, which its permission check
+  refuses when another user can write it. Take the fix when arti accepts `rusqlite` 0.41.
+- The URL: an entry for each commit in `.github/secrets-allow.txt`, as for each test value before.
+- bore's stand-in: each refusal ends gracefully, its write half shut and the peer's bytes read to
+  their end within 2 s, as croc's stand-in does.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo +1.99 clippy -p podssh-iroh --all-targets -- -D warnings
+cargo +1.99 test -p podssh-relay --features bore --test bore_link
+python scripts/check-repo.py
+cargo todo check
+```
+
+The next gate's `gate (lint)`, `windows`, `deny` and `secrets` are the check on CI.
+
+## Done
+
+2026-11-11. clippy 1.99 as the gate's step lint runs it for iroh (`cargo +1.99 clippy --locked
+--all-targets -p podssh-cli -p podssh-iroh --features podssh-cli/iroh-test -- -D warnings -A
+clippy::collapsible_if`): exit 0, where the run at `d2361ef1` failed on `Said`. `cargo-deny` 0.20.2
+(its release binary, checked against its SHA-256): `check advisories licenses bans sources` says
+"advisories ok, bans ok, licenses ok, sources ok", where the same run without the ignore failed on
+RUSTSEC-2026-0459. `.github/secrets-allow.txt` names both commits of the URL. bore's stand-in ends
+each refusal gracefully; `--features bore --test bore_link` passed 8 runs in 8 here (Linux, in a
+network namespace with the loopback alone). The next gate's `windows`, `gate (lint)`, `deny` and
+`secrets` are the check on CI.

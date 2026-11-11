@@ -157,6 +157,19 @@ impl StandIn {
     }
 }
 
+/// bore's `Error` and the end, gracefully: the client can send its next
+/// message before it reads the refusal, and on Windows a socket dropped with
+/// input unread is a reset, which discards the refusal before the client
+/// reads it. So shut the write half and read the peer's bytes to their end,
+/// within 2 s.
+async fn refuse(tcp: &mut TcpStream, words: &str) {
+    let _ = send(tcp, json!({ "Error": words })).await;
+    let _ = tcp.shutdown().await;
+    let mut sink = [0u8; 4096];
+    let drain = async { while matches!(tcp.read(&mut sink).await, Ok(n) if n > 0) {} };
+    let _ = tokio::time::timeout(Duration::from_secs(2), drain).await;
+}
+
 /// One connection to the control port, as bore's `handle_connection`.
 async fn control(
     mut tcp: TcpStream,
@@ -179,8 +192,7 @@ async fn control(
             None => Some("server requires secret, but no secret was provided"),
         };
         if let Some(words) = refused {
-            let _ = send(&mut tcp, json!({ "Error": words })).await;
-            return;
+            return refuse(&mut tcp, words).await;
         }
     }
     let Some(Value::Object(message)) = recv(&mut tcp).await else { return };
@@ -190,8 +202,7 @@ async fn control(
             Ok(listener) => listener,
             Err(words) => {
                 seen.hellos.lock().unwrap().push((port, false));
-                let _ = send(&mut tcp, json!({ "Error": words })).await;
-                return;
+                return refuse(&mut tcp, words).await;
             }
         };
         let given = listener.local_addr().unwrap().port();
