@@ -1103,6 +1103,17 @@ are read; none was run for this reading, and the feature entries below carry the
     are always enabled for HTTP services" [SH1]. The quota and the rate limit of a server are
     its own options, and the demo's are not known. `sandhole.com.br` has no category (Verified
     [SH2]).
+  - Measured on 2026-11-11 (T-743, Q94), from GitHub Actions, with stock OpenSSH and a throwaway
+    key made for the run and given up after it (`.github/workflows/sandhole-probe.yml`, runs
+    42970029119 and 42970697875): an unknown key may make a remote forward, so the demo server
+    lets any key in as a user. `ssh -R 80:localhost:4321 demo.sandhole.com.br` on port 22, and
+    the same on 443 (raw SSH there, as its code reads), each gave a random name of six characters,
+    new at each connection ("Starting HTTPS on https://NAME.demo.sandhole.com.br"), and a request
+    through it came back from the runner's own server with 200 and its body; a request with a
+    WebSocket's upgrade headers passed to it too (the server there answers 200, as it speaks no
+    WebSocket). Its host key: Ed25519, `SHA256:EV7UJ46EDUHvG0yx4I4dw+9r3bypGpBt9+vQy2w9V/o`, on
+    both ports. No quota or rate limit showed in a run this short. The verdict: one more host of
+    the localhost.run road's module, by `pod-services`.
   - Verdict: no module of its own. It is one more host for T-565's module, a tunnel of HTTP made
     by `ssh -R`, which a stock OpenSSH client already reaches; whether it takes an unknown key
     for a remote forward decides it, and T-743 begins with that short run (Q94). If the demo
