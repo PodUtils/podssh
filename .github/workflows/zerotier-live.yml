@@ -5,8 +5,11 @@ name: zerotier live
 # of one process with identities made for the run, 64 KiB each way, then the
 # process ends and the identities with it. No credential goes to ZeroTier:
 # an ad-hoc network has no account. A planted run puts the second member on
-# another network, and must fail. Started by hand alone; it publishes
-# nothing.
+# another network, and must fail. Then the command line from end to end:
+# a `podssh node --derp` of a pair whose relay is down, and `podssh ssh
+# node://` of the same pair (the fixture's tokens, no credential), meet
+# through the same roots and relay alone; a planted client of another pair
+# must fail. Started by hand alone; it publishes nothing.
 
 on:
   workflow_dispatch:
@@ -38,3 +41,19 @@ jobs:
             exit 1
           fi
           echo "the planted member failed (exit $rc), as it must"
+      - name: the command line through the roots and the relay
+        run: |
+          set -o pipefail
+          timeout 600 cargo test --locked -p podssh-cli --features zerotier-test --test derp_road -- --ignored --nocapture live_through_zerotier 2>&1 | tee "$RUNNER_TEMP/cli.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/cli.log"
+      - name: a planted client of another pair fails it
+        run: |
+          git apply scripts/plants/t733-other-pair.patch
+          rc=0
+          timeout 600 cargo test --locked -p podssh-cli --features zerotier-test --test derp_road -- --ignored live_through_zerotier || rc=$?
+          git apply -R scripts/plants/t733-other-pair.patch
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: a client of another pair reached the node"
+            exit 1
+          fi
+          echo "the planted client failed (exit $rc), as it must"
