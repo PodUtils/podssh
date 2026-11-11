@@ -96,18 +96,38 @@ fn command(home: &Path, args: &[&str]) -> Command {
 
 /// Run `podssh ARGS` to its end, within the limit: (code, stdout, stderr).
 fn run(cmd: &mut Command) -> (i32, String, String) {
+    run_within(cmd, LIMIT)
+}
+
+/// Run `podssh ARGS` to its end within `limit`; one that does not end is
+/// killed, and its stderr says why. Each pipe is read on its own thread, so
+/// a full pipe does not hold the child.
+fn run_within(cmd: &mut Command, limit: Duration) -> (i32, String, String) {
     let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().expect("it runs");
-    let deadline = Instant::now() + LIMIT;
-    while child.try_wait().expect("wait").is_none() {
+    let read = |mut pipe: Box<dyn std::io::Read + Send>| {
+        std::thread::spawn(move || {
+            let mut bytes = Vec::new();
+            let _ = pipe.read_to_end(&mut bytes);
+            String::from_utf8_lossy(&bytes).into_owned()
+        })
+    };
+    let out = read(Box::new(child.stdout.take().expect("stdout")));
+    let err = read(Box::new(child.stderr.take().expect("stderr")));
+    let deadline = Instant::now() + limit;
+    let status = loop {
+        if let Some(status) = child.try_wait().expect("wait") {
+            break status;
+        }
         if Instant::now() > deadline {
             let _ = child.kill();
-            panic!("podssh did not end within {} s", LIMIT.as_secs());
+            let _ = child.wait();
+            let err = err.join().unwrap_or_default();
+            panic!("podssh did not end within {} s; its stderr:\n{err}", limit.as_secs());
         }
         std::thread::sleep(Duration::from_millis(50));
-    }
-    let out = child.wait_with_output().expect("output");
-    let text = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
-    (out.status.code().unwrap_or(-1), text(&out.stdout), text(&out.stderr))
+    };
+    let (out, err) = (out.join().unwrap_or_default(), err.join().unwrap_or_default());
+    (status.code().unwrap_or(-1), out, err)
 }
 
 /// Kills the node when the test ends, as it ends.

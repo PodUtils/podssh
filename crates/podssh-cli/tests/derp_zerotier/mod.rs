@@ -11,9 +11,10 @@
 //! `zerotier-live.yml`.
 
 use std::process::Stdio;
+use std::time::Duration;
 
 use crate::derp_croc::store_pair;
-use crate::{lines_of, run, wait_for, Lab, Node, GREETING};
+use crate::{lines_of, run_within, wait_for, Lab, Node, GREETING};
 
 #[test]
 fn a_derp_node_with_a_pair_serves_a_client_through_zerotier_s_road() {
@@ -22,7 +23,8 @@ fn a_derp_node_with_a_pair_serves_a_client_through_zerotier_s_road() {
     let planet = lab.node_home.join("planet");
     std::fs::write(&planet, &stand_in.planet).unwrap();
     let (relay, planet) = (stand_in.relay.to_string(), planet.to_string_lossy().into_owned());
-    serve_and_reach(&lab, &[("PODSSH_ZEROTIER", &relay), ("PODSSH_ZEROTIER_PLANET", &planet)]);
+    let env = [("PODSSH_ZEROTIER", relay.as_str()), ("PODSSH_ZEROTIER_PLANET", planet.as_str())];
+    serve_and_reach(&lab, &env, Duration::from_secs(60));
     drop(stand_in);
     drop(lab.runtime);
 }
@@ -35,14 +37,16 @@ fn a_derp_node_with_a_pair_serves_a_client_through_zerotier_s_road() {
 #[ignore = "a live run through ZeroTier's roots and relay: zerotier-live.yml"]
 fn live_through_zerotier_s_roots_and_relay() {
     let lab = Lab::new("zerotier-live");
-    serve_and_reach(&lab, &[("PODSSH_ZEROTIER", "yes")]);
+    // The roots' WHOIS and the path through the relay took 30 s in the
+    // library's live run; the road waits 60 s after the other roads failed.
+    serve_and_reach(&lab, &[("PODSSH_ZEROTIER", "yes")], Duration::from_secs(240));
     drop(lab.runtime);
 }
 
 /// A `--derp` node of a pair whose relay is down, with `env`, and a client
 /// of the pair with `env` and its DERP road off: the client reaches the node
 /// through ZeroTier's road alone.
-fn serve_and_reach(lab: &Lab, env: &[(&str, &str)]) {
+fn serve_and_reach(lab: &Lab, env: &[(&str, &str)], limit: Duration) {
     lab.let_in();
     store_pair(&lab.node_home);
     store_pair(&lab.client_home);
@@ -62,7 +66,7 @@ fn serve_and_reach(lab: &Lab, env: &[(&str, &str)]) {
     let mut client = lab.ssh(&["-v", "--derp-server", &servers, "node://tester@lab", "greet"]);
     client.envs(env.iter().copied()).env("PODSSH_DERP", "no");
     let began = std::time::Instant::now();
-    let (rc, out, err) = run(&mut client);
+    let (rc, out, err) = run_within(&mut client, limit);
     assert_eq!(rc, 0, "stdout {out:?}, stderr {err}");
     assert_eq!(out, GREETING, "the command's output over ZeroTier's road");
     assert!(err.contains("ZeroTier's road answered first"), "{err}");
