@@ -12798,6 +12798,16 @@ Next: the core's wire over the relay (a task that carries the two channels on th
 `HTTPS_PROXY`), the service in `pod-services`, the road in the race and the node's side, the line of Q78, and the
 Prove's runs against `zerotier-one` and live.
 
+2026-11-11: the core's wire over the relay, `relay::carry` (the HELLO, then each datagram to an IPv4 address as a
+record; what comes back goes to the member), unit-tested on a stream of memory; the relay's address is
+`zerotier-tcp-relay` of `pod-services` (podcrates T-203, taken in v0.22.0). Live, `zerotier-live.yml` run 43031239655
+from GitHub Actions: two members of one process, each with an identity made for the run and dropped, each on its own
+TCP connection to the relay, met through the roots of the core's own planet on the ad-hoc network `ff10001000000000`;
+a TCP connection between them carried 64 KiB each way, equal, in 31.5 s. Planted, the second member on another
+network: no answer inside the tunnel within 90 s, and the test failed (exit 101), as it must. Next: the feature
+`zerotier` of `podssh-cli`, the node's side and the client's road in the race (the pair's ZeroTier addresses from the
+pairing, T-086), the line of Q78, the static musl build of the C++, and the run against `zerotier-one`.
+
 2026-11-11: `relay::carry` carries a member's wire on the relay's TCP stream (any `AsyncRead + AsyncWrite`, so the
 command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a record for each datagram to an IPv4
 address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its
