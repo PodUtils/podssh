@@ -211,7 +211,7 @@ Read:
   `.github/workflows/release.yml` line 23 and `scripts/dev.sh` line 60, both at `e1ba5ba`. No check makes
   them equal.
 - The release builds aarch64 on an arm64 runner
-  (`.github/workflows/release.yml:108-109`). So the pin must be the digest of
+  (`.github/workflows/release.yml:110-111`). So the pin must be the digest of
   the multi-platform index, not the digest of one platform's image.
 - The box uses two more moving tags, `alpine:3.20` and `python:3.12-alpine`
   (`scripts/test_in_box.sh` lines 39-40 at `e1ba5ba`).
@@ -329,7 +329,7 @@ Read:
   members with `CC=/nonexistent`, and the release too (lines 339-342). The
   gate builds the library crates with `CC` and `CXX` set to `/nonexistent`,
   and the release with neither (`scripts/gate.sh:172-188`,
-  `scripts/gate.sh:326-328`). The help omits the work record, interop, the man
+  `scripts/gate.sh:326-329`). The help omits the work record, interop, the man
   page, the C++ plant, and the subcommand `gate` (line 602 at `912acd0`).
 - Stale comments, at `912acd0`: `scripts/dev.sh` lines 69-73 ("the default
   build"), lines 397-404 ("links the fork since 4b", "steps 4-5") and line
@@ -349,7 +349,7 @@ Read:
    comment. Invariant: the text of the bridge does not change by one byte;
    compare the old and the new text with `cmp`.
 3. Correct the help and the stale comments to the gate as it is
-   (`scripts/gate.sh:137-359`).
+   (`scripts/gate.sh:137-360`).
 4. Extend the size check of `scripts/check-repo.py` to the shell and Python
    files under `scripts/`, with a floor (T-223).
 5. Drop the sentence on the exception from `docs/decisions.md`, and move it
@@ -430,7 +430,7 @@ previous release, so a change that the notes forget is invisible to a user.
 Read:
 
 - The job `publish` reads the notes from `docs/releases/`, and fails without
-  them (`.github/workflows/release.yml:584-588`).
+  them (`.github/workflows/release.yml:586-590`).
   No notes file exists yet; T-250 writes the first. The notes drafted for a
   beta that the operator dropped are in git:
   `git show b1b111b:docs/releases/v0.1.0-beta.1.md`.
@@ -458,7 +458,7 @@ Read:
 3. On a run by hand, make the list of the commits since the last tag as an
    artifact, so that it can be read before a tag.
 4. Link each "Fixes #N" of a commit to its issue in the list.
-5. docs/development.md, "Release builds" (`docs/development.md:850-975`): the
+5. docs/development.md, "Release builds" (`docs/development.md:850-978`): the
    body is the notes file and the generated list.
 
 No new shell script: each step is a step of the workflow.
@@ -670,9 +670,9 @@ Measured: `target/debug/podssh.exe --version` prints `podssh 0.1.0`, exit 0.
 Read:
 
 - The jobs `linux` and `windows` build the binaries, and `publish` adds
-  `SHA256SUMS` and publishes them (`.github/workflows/release.yml:56-627`).
+  `SHA256SUMS` and publishes them (`.github/workflows/release.yml:58-629`).
   The workflow has `contents: read` (`:45-46`); `publish` adds
-  `contents: write` (`:481-482`).
+  `contents: write` (`:483-484`).
 - The KTM tester could not tell from an artifact which commit made it, and
   moved the checkout one commit ahead (the KTM report, section 1a; read in
   the report).
@@ -753,7 +753,7 @@ github.com when the workflow is written). The Approach names `actions/attest-bui
   `actions/attest` v4.2.2 (commit `1e69f48acb82d1966a394da916b4c1698aa569d6`), pinned by that commit,
   as item 1 asks. (The wrapper is at commit `4d101475d8b20a2381f78447822ac1eab6504dd8`.)
 - Permissions for a binary (GitHub documentation): `id-token: write`, `contents: read` and
-  `attestations: write`. `publish` has `contents: write` today (`.github/workflows/release.yml:482`
+  `attestations: write`. `publish` has `contents: write` today (`.github/workflows/release.yml:484`
   says "contents: write"), which includes the read. The README of `actions/attest` also lists
   `artifact-metadata: write`, "necessary to create the artifact storage record"; that record needs
   `push-to-registry: true`, which is for images, so a file subject does not need it (Inferred): add
@@ -868,7 +868,7 @@ the release workflow of podssh.
 
 Read:
 
-- `.github/workflows/release.yml:502-507` writes `SHA256SUMS` with
+- `.github/workflows/release.yml:504-509` writes `SHA256SUMS` with
   `sha256sum`, and the job published it with the binaries (lines 370-382 at
   `cdf9308`). No signature was published.
 - The notes drafted for the dropped beta told the user that `SHA256SUMS`
@@ -937,7 +937,7 @@ Approach, and disproves no Premise.
   deprecated, hidden flag in v3.1.4: do not pass it with v3 (it is needed only with v2.6.x). `--yes`
   skips the prompts, and CI needs it. The keyless signing takes the job's own OIDC token, so the job
   needs `id-token: write`; give `publish` that and `attestations: write` for T-210, beside
-  `contents: write` (`.github/workflows/release.yml:482` says "contents: write"). The convention for
+  `contents: write` (`.github/workflows/release.yml:484` says "contents: write"). The convention for
   the bundle's name is `*.sigstore.json` (https://docs.sigstore.dev/cosign/signing/signing_with_blobs/).
 - The identity. The certificate's subject alternative name is `https://github.com/{job_workflow_ref}`
   (https://github.com/sigstore/fulcio/blob/main/docs/oidc.md), so for a tag
@@ -1154,14 +1154,14 @@ sees it.
 
 Read:
 
-- `docs/STATUS.md:431-445`: the box, measured by hand on 2026-10-08.
+- `docs/STATUS.md:430-444`: the box, measured by hand on 2026-10-08.
 - `scripts/test_in_box.sh:275-278`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
   not fail on it (T-006). So today the box exits 0 when podssh fails in it.
 - `scripts/box/probe.sh:148-153` exits 1 when the box differs from the sandbox
-  in a required property (17 properties, `docs/STATUS.md:438`).
+  in a required property (17 properties, `docs/STATUS.md:437`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:118-123`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:156`) and a mask on
@@ -1188,7 +1188,7 @@ Read:
    that CI runs the box.
 
 Pitfall: the live path can drop a session (179 of 180 short sessions,
-`docs/STATUS.md:468`). Run a failure again by hand and record it. Never retry
+`docs/STATUS.md:467`). Run a failure again by hand and record it. Never retry
 inside the job.
 
 ## Decision
@@ -1206,7 +1206,7 @@ test "$(grep -c '^match ' box.log)" -eq 17                  # the box was faithf
 
 The run passed, with the job `box`, and its log has 17 `match` lines.
 Planted defect: run the job by hand with the seccomp option removed (an input
-of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:439`,
+of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:438`,
 and the job must fail.
 
 ## Correction
@@ -1225,7 +1225,7 @@ the entry joins the work order by its priority.
 # T-214: CI on Windows
 
 **Source:** the triage of GitHub #27 (2026-10-08). Windows is a released
-platform (`.github/workflows/release.yml:334-422`).
+platform (`.github/workflows/release.yml:336-424`).
 **Category:** chore
 **Milestone:** none
 **Priority:** P2
@@ -1245,12 +1245,12 @@ machine.
 Read:
 
 - `.github/workflows/build.yml` lines 17-19 at `e892b0f`: one job, on `ubuntu-latest`.
-- `.github/workflows/release.yml:334-422`: the Windows job installs NASM
+- `.github/workflows/release.yml:336-424`: the Windows job installs NASM
   (line 76), builds, and checks for C runtime DLLs (lines 86-101); it runs no
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
   run by hand.
-  `docs/STATUS.md:205`: `scripts/interop-conpty.py` passes 14 of 14 against a
+  `docs/STATUS.md:204`: `scripts/interop-conpty.py` passes 14 of 14 against a
   Tailscale SSH server, by hand.
 - `scripts/interop-conpty.py:219-275` needs a server with a POSIX shell,
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
@@ -1268,7 +1268,7 @@ Read:
    deletes (see Decision). Run the script with `--direct`; 14 of 14 must pass.
 3. With T-199: score the output with the Windows part of the baseline.
 4. The plant: a podssh that does not restore the mode of the console must
-   fail the three restore checks (as measured by hand, `docs/STATUS.md:205`).
+   fail the three restore checks (as measured by hand, `docs/STATUS.md:204`).
    Run it once in CI, and record it.
 5. docs/STATUS.md cites the CI run for the rows of Windows;
    docs/development.md names the job.
@@ -1758,12 +1758,12 @@ with a C toolchain for aws-lc.
 
 Read:
 
-- `.github/workflows/release.yml:105-109`: x86_64 and aarch64 musl, each on a
-  native runner in `rust:1-alpine`. `.github/workflows/release.yml:334-422`:
+- `.github/workflows/release.yml:107-111`: x86_64 and aarch64 musl, each on a
+  native runner in `rust:1-alpine`. `.github/workflows/release.yml:336-424`:
   Windows x86_64 with a static C runtime.
 - The check of each platform: `readelf` for `NEEDED` and `INTERP`
-  (`.github/workflows/release.yml:131-137`), `dumpbin /dependents` on Windows
-  (`:389-414`).
+  (`.github/workflows/release.yml:133-139`), `dumpbin /dependents` on Windows
+  (`:391-416`).
 - The binary needs a C compiler for aws-lc (`docs/development.md:11-14`); the
   library crates need none.
 - Some code reads facts of Linux. The terminal check reads `tty_nr` from
@@ -1797,7 +1797,7 @@ Recommendation: build each new Linux target in the image family of the gate
 under QEMU, where that image exists for the platform, so that there is one
 toolchain. `cross` and `cargo-zigbuild` lost: each brings a second C
 toolchain that the gate never judged. Measure the build time first: QEMU is
-slow, and the job limit is 60 min (`.github/workflows/release.yml:111`).
+slow, and the job limit is 60 min (`.github/workflows/release.yml:113`).
 
 2026-10-30, the calls of this entry's session:
 
@@ -1912,7 +1912,7 @@ leaves armv7 out of the Decision; the plan below takes Alpine's own toolchain fo
   needs `-Wno-string-compare` with GCC 11; Alpine's GCC is newer (not needed: Inferred). Plan B:
   `ghcr.io/cross-rs/riscv64gc-unknown-linux-musl:main` (musl GCC and qemu inside).
 - The job's own limit. `timeout-minutes: 60` is the repository's choice
-  (`.github/workflows/release.yml:111` says "timeout-minutes: 60"); GitHub's limit for a hosted job is 6
+  (`.github/workflows/release.yml:113` says "timeout-minutes: 60"); GitHub's limit for a hosted job is 6
   hours. Set the QEMU jobs up to 360 for the first measurement, and lower it to the measured time.
 - Public repositories: the standard hosted runners are free and unlimited; the Linux and Windows arm64
   runners (4 vCPU) are generally available for them (changelog of 2025-08-07).
@@ -2029,7 +2029,7 @@ Read, in the tree as it is now:
   build must fail at `/nonexistent`; the control, with `CC` alone, must not
   stop there.
 - `docs/development.md:322-324` states the rule with `CXX`, and
-  `docs/STATUS.md:882` records the measurement. Rule 4 of
+  `docs/STATUS.md:881` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
 - `.github/workflows/build.yml:133-141` runs the plant on each push.
@@ -2060,7 +2060,7 @@ the same script in its step "the no-C rule is load-bearing".
 (CXX=/nonexistent)"). Measured with `sh scripts/dev.sh plant` in
 `rust:1-alpine`: the C plant failed twice for the right reason, the C++ plant
 failed at `CXX=/nonexistent`, the control with `CC` alone was not stopped
-there, and the clean tree built (`docs/STATUS.md:882`). The CI run of
+there, and the clean tree built (`docs/STATUS.md:881`). The CI run of
 `eacd94e`, which contains `a378863`, passed, with its step "the no-C rule is
 load-bearing".
 
@@ -2453,7 +2453,7 @@ Read:
 
 - `scripts/box/seccomp.json:5-10`: `bind` fails with EACCES for each socket,
   whatever its family.
-- `docs/STATUS.md:459`: in sandbox A, `bind` is refused for AF_INET and
+- `docs/STATUS.md:458`: in sandbox A, `bind` is refused for AF_INET and
   allowed for AF_UNIX. In the KTM report (read there), `doctor` printed
   `Permission denied (os error 13)` for AF_INET, and "bound" for an AF_UNIX
   path and for the abstract namespace.
@@ -3207,7 +3207,7 @@ Read: each image is pinned to a digest in its Dockerfile
 the reference to `docker run`, which pulls from Docker Hub (now
 `.github/workflows/secrets.yml:75`, `.github/workflows/secrets.yml:89`,
 `.github/workflows/build.yml:105-109`, `.github/workflows/build.yml:139-142`
-and `.github/workflows/release.yml:124-127`). Measured on 2026-10-09, each
+and `.github/workflows/release.yml:126-129`). Measured on 2026-10-09, each
 manifest asked for by its digest: Google's mirror of Docker Hub
 (`mirror.gcr.io`) serves both images, the GitHub registry serves the
 scanner, and Amazon's gallery of the official images
@@ -4254,13 +4254,13 @@ two jobs of the release run an image of Docker Hub by the tag `latest`, with no 
 ## Approach
 
 1. Each `uses:` of each workflow names a commit of 40 hexadecimal digits, with its tag in a
-   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:515`): the commits of
+   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:517`): the commits of
    T-210's list, read again at each release's API on the day of the change.
 2. A check in `scripts/check-repo.py`: each `uses:` under `.github/workflows/` names a commit. A
    copy with a planted `@v7` fails it, and its floor fails on an empty tree.
 3. binfmt: `images/binfmt/Dockerfile` names `tonistiigi/binfmt` by its tag and its digest, and
    Dependabot's list of directories takes it (`.github/dependabot.yml:37-43`). The two jobs read it
-   as the armv7 job reads its image (`.github/workflows/release.yml:174-181`), pull it through
+   as the armv7 job reads its image (`.github/workflows/release.yml:176-183`), pull it through
    `scripts/pull-image.sh`, and run `docker run --privileged --rm IMAGE --install riscv64` (`arm`
    for armv7) in the place of the action. The step then checks that the kernel lists the handler
    (`/proc/sys/fs/binfmt_misc/qemu-riscv64`, or `qemu-arm`) before the binary runs.
@@ -4475,7 +4475,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
 ## Premise
 
 - Read: the riscv64 job pins Zig's version and SHA-256 and downloads it from ziglang.org
-  (`.github/workflows/release.yml:229-235`; its download, `.github/workflows/release.yml` lines
+  (`.github/workflows/release.yml:231-237`; its download, `.github/workflows/release.yml` lines
   247-249 at `1a46970`).
 - Read, through read.web.pkgforge.dev on 2026-10-31
   (https://ziglang.org/download/community-mirrors/): "The ziglang.org website does not offer any
@@ -4483,13 +4483,13 @@ Each can stop a release, or the gate, for a reason outside podssh.
   it hardcodes it as a download URL." The mirrors that
   https://ziglang.org/download/community-mirrors.txt lists serve the same file names, and each
   download must be checked; the pinned SHA-256 checks the exact bytes.
-- Read: the armv7 job installs Alpine's own `rust` and `cargo` (`.github/workflows/release.yml:194-202`),
+- Read: the armv7 job installs Alpine's own `rust` and `cargo` (`.github/workflows/release.yml:196-204`),
   in Alpine 3.24 (`images/armv7/Dockerfile`); the CLI declares Rust 1.89
   (`crates/podssh-cli/Cargo.toml:8`), and Q48 lets the minimum rise (`docs/decisions.md:64`).
   Inferred: Alpine 3.24's rust is 1.89 or later, as the job built `v1.0.0-beta.2`.
 - Read: `pipx run check-jsonschema` names no version (`.github/workflows/build.yml` lines 175 and
   177 at `1a46970`).
-- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:545-570`).
+- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:547-572`).
   Inferred (the audit): an outage delays a release, and a run again repairs it.
 
 ## Approach
@@ -4914,8 +4914,8 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
   `docs/design.md` gave "A reverse node and operator" first of what podssh "does not yet have",
   and said that "the real sandbox is not run yet"; `docs/irc.md` said "No command uses the IRC
   client yet", with T-097 and T-098 as its known defects; `docs/STATUS.md` said "Over IRC too
-  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:134`, `:142`), two runs
-  in real sandboxes (T-001; `docs/STATUS.md:450-459`), and `podssh chat --irc` (T-252, done, as
+  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:133`, `:141`), two runs
+  in real sandboxes (T-001; `docs/STATUS.md:449-458`), and `podssh chat --irc` (T-252, done, as
   T-097 and T-098 are). Of the same kind: `docs/design.md`'s summary and the head of its section
   4, and the row of `podssh-terminal` in `docs/architecture.md`. The triage's commit corrected
   each in place.
@@ -4942,7 +4942,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 3. A status written beside an id in those documents (`T-NNN, partial`, `(T-NNN, open)`) agrees
    with the index, unless its paragraph reads at a date or at a commit, as the record's readings
    do (`TODO/RULES.md:148-153`): "T-099, partial" of 2026-10-10 is such a reading
-   (`docs/STATUS.md:839`).
+   (`docs/STATUS.md:838`).
 4. `TODO/RULES.md` says it, beside the rules of citations.
 
 ## Decision
@@ -5127,7 +5127,7 @@ names no version and no way to a newer release. Docs.
 - Read: the page's head says that it "gives the measured state of podssh" (line 3 of
   `docs/STATUS.md` at `38f424c`), with no word of `main` or of a release; the README sends a
   reader to it for the measured state (lines 24-25 of `README.md` at `38f424c`).
-- Read: the exit's row (`docs/STATUS.md:137`) says "drafted and merged 2026-11-02" and **Works**.
+- Read: the exit's row (`docs/STATUS.md:136`) says "drafted and merged 2026-11-02" and **Works**.
   Measured: its commit `0b07025` is not in `v1.0.0` (`git merge-base --is-ancestor 0b07025
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
@@ -6088,7 +6088,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
   at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
-- `docs/STATUS.md:208`: only the console and the MSYS2 sshd are measured on Windows.
+- `docs/STATUS.md:207`: only the console and the MSYS2 sshd are measured on Windows.
 
 ## Approach
 

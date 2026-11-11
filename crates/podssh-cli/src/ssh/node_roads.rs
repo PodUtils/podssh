@@ -143,7 +143,7 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let croc = crate::node_croc::bridge().is_some() && !channel.off && good_pair();
     // ZeroTier's road (T-733, Q78), as croc's; a bad PODSSH_ZEROTIER or planet is refused here.
     let zerotier = matches!(crate::zerotier::setting()?, crate::zerotier::Setting::On(..))
-        && cfg!(feature = "zerotier")
+        && cfg!(all(feature = "zerotier", unix))
         && !channel.off
         && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.

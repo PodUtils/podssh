@@ -868,9 +868,12 @@ new crate name is reserved by the owner first.
 
 `.github/workflows/release.yml` makes the release binaries, each with the
 features of its variable `RELEASE_FEATURES`, the same on each target: the
-iroh road (T-348) and WARP's road (T-352, Q59). `scripts/release-short.sh`
-checks that each binary has both roads, and the gate's step `release` builds
-the same features:
+iroh road (T-348), WARP's road (T-352, Q59) and ZeroTier's road (T-733, the
+operator's ruling of 2026-11-11: it joined once its live run passed; Unix's
+alone, so on Windows the feature builds nothing). ZeroTierOne's core is C++:
+each Alpine build adds `g++` and `linux-headers`. `scripts/release-short.sh`
+checks that each binary has the first two roads, and the gate's step
+`release` builds the same features:
 
 - static musl binaries for x86_64 and aarch64, each built in
   `rust:1-alpine` on a native runner, with a check for dynamic dependencies;

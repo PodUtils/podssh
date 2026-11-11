@@ -25,7 +25,7 @@ pub(crate) struct ZeroTierRoads {
     public: bool,
     /// Whether the line of the third party was said, once a run.
     said: AtomicBool,
-    #[cfg(feature = "zerotier")]
+    #[cfg(all(feature = "zerotier", unix))]
     road: tokio::sync::OnceCell<podssh_zerotier::pair::PairRoad>,
     log: Arc<Log>,
     shown: String,
@@ -45,7 +45,7 @@ impl ZeroTierRoads {
             relay,
             public,
             said: AtomicBool::new(false),
-            #[cfg(feature = "zerotier")]
+            #[cfg(all(feature = "zerotier", unix))]
             road: tokio::sync::OnceCell::new(),
             log: log.clone(),
             shown: shown.to_string(),
@@ -66,7 +66,7 @@ impl ZeroTierRoads {
         self.linked().await
     }
 
-    #[cfg(feature = "zerotier")]
+    #[cfg(all(feature = "zerotier", unix))]
     async fn linked(&self) -> Result<Road, String> {
         use podssh_zerotier::road;
         let made = self.road.get_or_try_init(|| crate::zerotier::pair_road(&self.name, &self.token)).await?;
@@ -93,7 +93,7 @@ impl ZeroTierRoads {
         Ok(Road::ZeroTier(Box::new(linked?)))
     }
 
-    #[cfg(not(feature = "zerotier"))]
+    #[cfg(not(all(feature = "zerotier", unix)))]
     async fn linked(&self) -> Result<Road, String> {
         // `relay()` gives no road without the feature.
         let _ = (&self.name, &self.token);

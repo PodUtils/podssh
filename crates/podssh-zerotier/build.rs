@@ -6,6 +6,10 @@
 use std::path::Path;
 
 fn main() {
+    // The road is Unix's alone (`src/lib.rs`): no core to build elsewhere.
+    if std::env::var_os("CARGO_CFG_UNIX").is_none() {
+        return;
+    }
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/zerotier-node");
     let mut build = cc::Build::new();
     build.cpp(true).std("c++17").opt_level(2).warnings(false).define("NDEBUG", None).define("ZT_NO_PEER_METRICS", None);

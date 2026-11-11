@@ -17,7 +17,7 @@ use tokio::io::DuplexStream;
 use crate::node_expiry::Say;
 
 /// The node's road: the pair's name and token, the relay, and its lines.
-#[cfg_attr(not(feature = "zerotier"), allow(dead_code))]
+#[cfg_attr(not(all(feature = "zerotier", unix)), allow(dead_code))]
 pub(crate) struct Road {
     name: String,
     token: String,
@@ -59,7 +59,7 @@ where
     }
 }
 
-#[cfg(feature = "zerotier")]
+#[cfg(all(feature = "zerotier", unix))]
 async fn serve<O, F>(road: Road, open: O, keeper: Arc<Keeper<DuplexStream>>)
 where
     O: Fn() -> F + Clone + Send + Sync + 'static,
@@ -93,7 +93,7 @@ where
     std::future::pending().await
 }
 
-#[cfg(not(feature = "zerotier"))]
+#[cfg(not(all(feature = "zerotier", unix)))]
 async fn serve<O, F>(_: Road, _: O, _: Arc<Keeper<DuplexStream>>)
 where
     O: Fn() -> F + Clone + Send + Sync + 'static,

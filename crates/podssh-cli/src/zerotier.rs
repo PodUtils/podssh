@@ -81,7 +81,7 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 /// The relay of the road, when the road is on in this build.
 pub(crate) fn relay() -> Option<(SocketAddr, bool)> {
     match setting() {
-        Ok(Setting::On(at, public)) if cfg!(feature = "zerotier") => Some((at, public)),
+        Ok(Setting::On(at, public)) if cfg!(all(feature = "zerotier", unix)) => Some((at, public)),
         _ => None,
     }
 }
@@ -96,9 +96,11 @@ pub fn third_party_line(relay: SocketAddr) -> String {
 
 /// The file of the cache that keeps this client's ZeroTier identity: a
 /// private key, in a private file as the pins are, never printed.
+#[cfg(all(feature = "zerotier", unix))]
 const CLIENT_IDENTITY: &str = "zerotier-client.secret";
 
 /// The client's identity kept by an earlier run, when one reads as one.
+#[cfg(all(feature = "zerotier", unix))]
 pub(crate) fn client_identity() -> Option<Vec<u8>> {
     let text = podssh_relay::cache::load_file(CLIENT_IDENTITY)?;
     let text = text.trim();
@@ -107,13 +109,14 @@ pub(crate) fn client_identity() -> Option<Vec<u8>> {
 }
 
 /// Keep `identity` for later runs.
+#[cfg(all(feature = "zerotier", unix))]
 pub(crate) fn keep_client_identity(identity: &[u8]) -> Result<std::path::PathBuf, String> {
     podssh_relay::cache::store_file(CLIENT_IDENTITY, identity)
 }
 
 /// The road's dial: one TCP connection to `relay` through `HTTPS_PROXY`,
 /// and the relay's framing on it.
-#[cfg(feature = "zerotier")]
+#[cfg(all(feature = "zerotier", unix))]
 pub(crate) fn dial(relay: SocketAddr) -> podssh_zerotier::road::Dial {
     use std::sync::Arc;
     Arc::new(move || {
@@ -145,7 +148,7 @@ pub(crate) fn planet() -> Result<Option<Vec<u8>>, String> {
 /// The road of the pair `name` with the token `token`, made off the
 /// runtime's threads: the node's identity takes a memory-hard hash. Its
 /// planet is that of [`PLANET_ENV`], else the core's own.
-#[cfg(feature = "zerotier")]
+#[cfg(all(feature = "zerotier", unix))]
 pub(crate) async fn pair_road(name: &str, token: &str) -> Result<podssh_zerotier::pair::PairRoad, String> {
     let planet = planet()?;
     let (name, token) = (name.to_string(), token.to_string());

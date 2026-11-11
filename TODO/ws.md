@@ -1978,7 +1978,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
   clock's errors only (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 96-105 at `b9e007c`), and its test
   asserts none for `UnknownIssuer` (`:379`).
 - Read: the release builds two binaries for macOS and two for Windows
-  (`.github/workflows/release.yml:291-302`, `:334-350`).
+  (`.github/workflows/release.yml:293-304`, `:336-352`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
   (`crates/podssh-relay/Cargo.toml:177-178`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates

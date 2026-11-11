@@ -324,7 +324,8 @@ step_m6() {
 step_release() {
     # The binary that ships: the features of the release's builds
     # (.github/workflows/release.yml, RELEASE_FEATURES; T-348).
-    features=${RELEASE_FEATURES:-iroh,warp}
+    features=${RELEASE_FEATURES:-iroh,warp,zerotier}
+    run "a C++ compiler, for ZeroTier's core" retry3 apk add --no-cache g++ linux-headers
     run "static musl release (features: $features)" \
         env RUSTFLAGS=-Ctarget-feature=+crt-static \
             cargo build --locked --release --target "$TARGET" -p podssh-cli --features "$features"

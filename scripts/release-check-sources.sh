@@ -109,7 +109,7 @@ sources_local() {
     else
         # The features of the release's builds, from the one place that names them.
         _features=$(sed -n 's/^  RELEASE_FEATURES: *\([a-z,]*\).*/\1/p' "$REPO/.github/workflows/release.yml")
-        _features=${_features:-iroh,warp}
+        _features=${_features:-iroh,warp,zerotier}
         timed 3600 "$LOGS/build.log" env CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-4}" \
             cargo build --locked --release -p podssh-cli --features "$_features"
         _built=${CARGO_TARGET_DIR:-$REPO/target}/${CARGO_BUILD_TARGET:+$CARGO_BUILD_TARGET/}release/podssh

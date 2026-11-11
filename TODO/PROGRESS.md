@@ -19,9 +19,9 @@ Read on 2026-11-11.
    (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
    stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
 3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321,
-   T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks, where
-   ZeroTier's road (T-733) is under way. See "Work order".
-4. **Partial entries** (18; each `## Done` names its next step): T-733 (ZeroTier's road); the
+   T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks; ZeroTier's
+   road is done and in the release's features. See "Work order".
+4. **Partial entries** (17; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
    migration, T-684; the release of M10, T-446; and T-319, T-321, T-450, T-459, T-548, T-574,
    T-660, T-662, T-665, T-666, T-670 and T-698 (its serve part waits for T-107).
@@ -72,18 +72,8 @@ item whenever it appears.
 2. **Watch the tests that fail at random: T-746, T-465, T-627** (live: the gate runs of tonight).
    Why: each is partial, waiting for its next failure, and comes before any other work. Done when
    a failure is repaired and its entry closed, or the night ends with none.
-3. **T-733: find where the meeting time goes** (live: `zerotier-live.yml`). Why: two podssh members
-   take 31 s to more than 90 s to meet through ZeroTier Inc.'s roots and TCP relay, so the command
-   line's live test fails within the road's 60 s; the per-member trace (`PODSSH_ZT_TRACE=1`) is in.
-   Done when a run's trace says which step takes the time, written in T-733.
-4. **T-733: repair the meeting time** (offline, then live: `zerotier-live.yml` again). Done when
-   the command line's live test passes within the road's 60 s and its planted client of another
-   pair fails, or a `## Decision` changes the road's limit with the measurement behind it.
-5. **T-733: decide whether `zerotier` joins the release features, and close it** (offline).
-   Library, command line, stand-in test, interop with `zerotier-one` both ways and the static musl
-   build already pass. Done when the Decision is in T-733 (and in `release.yml` and
-   `docs/development.md`, "Release builds", if yes), the STATUS row is current, and
-   `cargo todo set T-733 done` passes.
+3. **ZeroTier's road is done** (2026-11-11): live through the roots and the relay at `b738a6ff`,
+   and in `RELEASE_FEATURES`; the hand run of `release.yml` checks each target's build with it.
 6. **osewa's open entries, T-678, T-681 and T-752** (offline first; T-680 is done), then **T-734: Tox's TCP
    relays on 443** (offline; a short live run when the road works), in the work order's rule 5
    (the operator, 2026-11-11). Done when each Prove passes.
@@ -137,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 707 entries: 84 open, 18 partial, 10 blocked, 595 done.
+`TODO/INDEX.md` holds 707 entries: 84 open, 17 partial, 10 blocked, 596 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -210,7 +200,7 @@ parts are named so that the open ones read in their place):
    (T-574); then the research of the overlay networks (NetBird, Firezone, ZeroTier, Tox,
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
-   (done), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's
+   (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (T-734), Yggdrasil's
    peers (T-735), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last

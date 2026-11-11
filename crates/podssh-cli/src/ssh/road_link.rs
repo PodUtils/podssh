@@ -39,7 +39,7 @@ pub enum Road {
     Bore(podssh_relay::opentunnel::dial::BoxIo),
     /// A connection over the pair's ZeroTier network, through ZeroTier
     /// Inc.'s roots and TCP relay (T-733), which a build with the road makes.
-    #[cfg_attr(not(feature = "zerotier"), allow(dead_code))]
+    #[cfg_attr(not(all(feature = "zerotier", unix)), allow(dead_code))]
     ZeroTier(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
@@ -149,7 +149,7 @@ pub(crate) enum Kind {
     /// croc's relay, a last fallback of Q78 (T-694).
     Croc,
     /// The pair's ZeroTier network, a last fallback of Q78 (T-733).
-    #[cfg_attr(not(feature = "zerotier"), allow(dead_code))]
+    #[cfg_attr(not(all(feature = "zerotier", unix)), allow(dead_code))]
     ZeroTier,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,

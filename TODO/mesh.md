@@ -10371,7 +10371,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:299-300`), and needs the net's role exit, signed by
   its owner (`:297-298`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:137`).
+  (`docs/STATUS.md:136`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -12672,7 +12672,7 @@ owner ruled on 2026-11-09 that there are no test accounts as CI secrets.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -12882,6 +12882,16 @@ caller's state, kept also when a link fails; the road waits 120 s (`road::CONNEC
 waits its turn; the manual says so. Lost: sending HELLO more often, which would take the turns of the relay's other
 users. `cargo test -p podssh-zerotier --lib`, 14 passed (a kept identity is used again); the command line's tests
 offline and the manual's, passed; clippy clean.
+
+2026-11-11, the live run at `b738a6ff` (`zerotier-live.yml` run 43064557134, both jobs green): two members met
+through ZeroTier Inc.'s roots and relay and carried 64 KiB (75.8 s; planted, a member of another network: FAILED, as
+it must); the pair's road of the library linked (78.9 s); and the command line, a node of the pair and `podssh ssh
+node://lab` with every other road off, reached the node and ran its command through the roots and the relay (50.8
+s; planted, a client of another pair: FAILED, exit 101, as it must). zerotier-one at 899352e and a member of podssh:
+TCP both ways again (job `one`). So, by the operator's ruling of 2026-11-11, `zerotier` joins `RELEASE_FEATURES`
+(`release.yml`, `docs/development.md` "Release builds", the gate's step `release`): the road is Unix's alone, so the
+crate's `build.rs` compiles no core off Unix and the CLI's code of the road is `all(feature = "zerotier", unix)`; the
+Alpine builds add `g++` and `linux-headers`. The hand run of `release.yml` at the commit checks each target's build.
 
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
