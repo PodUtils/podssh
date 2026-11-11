@@ -12243,6 +12243,17 @@ carried 1 MiB each way with equal digests; the test passed in 3.4 s. Planted, a 
 pair's rooms: the node stayed alone for its 30 s (`Alone(30s)`), exit 101, as it must. Left: `podssh
 doctor`'s line of the carriers, and the node roads of `--derp` and of the Piping Server road.
 
+2026-11-11: `podssh doctor`'s section `carriers` asks croc's bridge as the road reads it (`PODSSH_CROC`
+and `PODSSH_LAST_RESORT`, `crates/podssh-cli/src/doctor/carriers.rs`): its WebSocket to relay 0 opened and
+closed with no frame, so that no room is joined and no password said; off, `????` with the variable that
+turned it off, or `pod-services` when it names no bridge; a value that the road refuses, `FAIL`. The
+manual (`DOCTOR_NET`) and `docs/cli.md` say so. Measured with croc's own relay and croc-web of v11.6.5 on
+this host's loopback: `ok ... the WebSocket to relay 0 opened in 5 ms; no room joined`, and croc's relay
+logged nothing after its start; a closed port, `FAIL ... Connection refused`; `PODSSH_CROC=no`, `????`.
+`cargo test -p podssh-cli --lib doctor::carriers` (the plan of each switch, the words of each line off) and
+`--lib man`, 90 passed; clippy and rustfmt clean. Left: the node roads of `--derp` and of the Piping
+Server road, which take the transit relay's road and not this one.
+
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 

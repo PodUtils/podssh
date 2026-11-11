@@ -6196,7 +6196,10 @@ Tailscale's `ping`, `status` and `netcheck` for the net of `podssh net`.
   Authority's), its welcome read and podssh's application bound, no
   nameplate claimed; and each Piping Server of `PODSSH_PIPING` (`ppng.io`,
   then `piping.onrender.com`), asked its `/version`, which waits for no
-  sender. A variable's `no` asks
+  sender; and croc's bridge of `PODSSH_CROC` (getcroc.com's, from
+  `pod-services`, a third party's, which `PODSSH_LAST_RESORT=no` turns off
+  too; T-694), its WebSocket to the first relay opened and closed with no
+  frame, so that it joins no room. A variable's `no` asks
   none of its carrier (`????`), a value that its road refuses is `FAIL`. The
   Wisp demo server is a forwarder: the line `fallback` names it, and
   `--forwarder wisp` asks it.

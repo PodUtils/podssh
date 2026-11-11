@@ -31,8 +31,12 @@ podssh pins every podcrates crate at `tag = "v0.16.0"` (`fab57923`).
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole` (`baa00a06`) and `pod-session`
   (`6f78a7c7`). podcrates recorded the last two (`14982fc`): `code/` and `session/` of podssh-relay are
   glue over the crates, and work on them is done in PodUtils/podcrates (Rule Q3).
-- `v0.17.0` changes nothing of podssh's; move the tag with the release that brings podcrates T-171 and
-  T-172 (#186: the services localhost-run, localtunnel and bore, and `Rewound::new`).
+- `v0.17.0` changes nothing of podssh's. podcrates' `main` (`8af9fb6`) holds T-171 (the services
+  `localhost-run`, `localtunnel` and `bore` of `pod-services`), T-172 (`client::Rewound::new` of
+  `pod-session`) and T-181 (ssh-j's `host-key-sha256`); they go out with `v0.18.0`. Take the tag, not
+  `main`: then pin ssh-j's host key (T-570), drop the private `Replay` of
+  `crates/podssh-relay/src/localtunnel/route.rs`, make T-565, T-568 and T-569's short live runs, and close
+  #186.
 - ssh-j.com's host key, read live, went to podcrates as a fact for `pod-services`; podssh pins it with
   the tag that brings it (T-570).
 
@@ -62,7 +66,7 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | --- | --- |
 | T-746 | The datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; its next failure says the program's verdict. OpenTunnel's resume test is repaired (macOS passed at `bc5107b0`). |
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
-| T-694 | `podssh doctor`'s line of croc's bridge (the section `carriers` holds Q65's carriers alone; a probe that carries nothing of the user's), and the node roads of `--derp` and of the Piping Server road. |
+| T-694 | The node roads of `--derp` and of the Piping Server road; `doctor`'s line is done. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-565, T-568, T-569 | Off until `pod-services` names their servers (#186). |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
