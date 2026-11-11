@@ -13069,7 +13069,7 @@ decodes in the test's reader. Planted: the KDF's label changed, and the test aga
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -13094,6 +13094,25 @@ operator and terms are unread.
    (`bare-node`), never a name in this repository; the hop is tried after each other WebSocket road (Q78), once.
 3. A line on stderr that names the node, that the node sees the far host's name, and that nobody vouches for it.
 
+## Decision
+
+2026-11-11, step one, read through the services of web.pkgforge.dev (fetch, forge):
+
+- The node `openbare.xyz` answers `/` with `{"status":"ok","service":"openbare-edge","version":"3",
+  "protocol":"bare-v3","features":{"websocket":true,...}}`, and a Cloudflare ray of the edge (IAD): a Bare v3
+  server on Cloudflare's network, alive.
+- Its operator is the project's own: `nirholas/openbare` names `https://openbare.xyz` as its homepage and its
+  README's "Live Example", and the README's own client example uses `servers: ['https://openbare.xyz/bare/']`;
+  it asks others to "Use community nodes" and to "Run a public node". So the node is run for others' use, by the
+  project, under its own name: it passes Q79 (not a domain taken over).
+- No terms of the node were found: the README has none, the repository holds none; its `LICENSE` is the
+  software's, proprietary ("All rights reserved"). podssh never runs or copies that software; it speaks the
+  open Bare v3 protocol of TompHTTP (`tomphttp/specifications`), as a browser of the network does.
+- So, by Q78, the hop goes in as the last of the WebSocket roads, with its line to the user; its nodes are the
+  `pod-services` kind `bare-node` (asked of podcrates), not a host here. Whether a Worker opens a `wss:` to
+  another host that Cloudflare serves is for the short live test of the Prove to find. Lost: stopping for want
+  of terms (Q78 rules on a service whose terms say nothing); the project's own client library (proprietary).
+
 ## Prove
 
 ```sh
@@ -13105,6 +13124,17 @@ Against `tomphttp/bare-server-node` (software that podssh did not write) on the 
 WebSocket road: the client reaches the road's banner through it, and a `filterRemote` that refuses the host makes
 the hop fail with a line that says so. Planted: a binary frame sent as text, and the test fails. Live (short, Q78):
 one session to the node of step 1, from GitHub Actions.
+
+## Done
+
+Partial, 2026-11-11: step one is read and decided (the Decision): the node `openbare.xyz` is alive, a Bare
+v3 server of the project's own, offered for others' use, and passes Q79. The kind `bare-node` of
+`pod-services`, with that node, is asked of podcrates. Next: the hop in `podssh-ws` (a WebSocket to
+`NODE/v3/`, the `connect` frame with the far `wss:` URL and headers, the `open` read, then binary messages
+as the road's stream), tried after each other WebSocket road with its line; its test against
+`tomphttp/bare-server-node` on the loopback; the short live session through the node.
+
+
 # T-741: smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back
 
 **Source:** T-623's research (`docs/carriers.md`, the smee.io item, read on 2026-11-10); the

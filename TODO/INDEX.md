@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**701 entries: 86 open, 19 partial, 9 blocked, 587 done.**
+**701 entries: 85 open, 20 partial, 9 blocked, 587 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 262 | 297 |
-| P3 | 57 | 8 | 5 | 254 | 324 |
-| **All** | 86 | 19 | 9 | 587 | 701 |
+| P3 | 56 | 9 | 5 | 254 | 324 |
+| **All** | 85 | 20 | 9 | 587 | 701 |
 
 ## Entries
 
@@ -770,7 +770,7 @@ repository and CI).
 | [T-737](mesh.md) | P3 | M | M10 | feature | open | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | open | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
-| [T-740](mesh.md) | P3 | S | M10 | feature | open | Bare servers as a hop of the WebSocket roads, tried last |
+| [T-740](mesh.md) | P3 | S | M10 | feature | partial | Bare servers as a hop of the WebSocket roads, tried last |
 | [T-741](mesh.md) | P3 | M | M10 | feature | open | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
 | [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
 | [T-743](mesh.md) | P3 | S | M10 | feature | partial | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
