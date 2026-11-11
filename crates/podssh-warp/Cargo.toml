@@ -45,7 +45,11 @@ zeroize = { workspace = true }
 # The stand-in of WARP's edge and of its API, for the tests of another crate
 # (podssh-relay's `quick_edge_warp`, T-374). It listens on the loopback, so a
 # binary never enables it.
-stand-in = []
+stand-in = ["inside"]
+# Connections that come in inside a link (`inside.rs`): sockets of smoltcp in
+# this process, no socket of the system; the member of ZeroTier's road takes
+# them (T-733).
+inside = []
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

@@ -5364,6 +5364,8 @@ version = "1.1.0-beta.3"
 dependencies = [
  "cc",
  "libc",
+ "podssh-warp",
+ "tokio",
 ]
 
 [[package]]

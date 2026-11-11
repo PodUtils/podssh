@@ -40,8 +40,9 @@ pub mod device;
 pub mod dns;
 pub mod endpoints;
 pub mod flow;
-// The far end of the stand-in takes connections inside its tunnel.
-#[cfg(any(test, feature = "stand-in"))]
+// Connections that come in inside a link: the far end of the stand-in, and
+// a member of ZeroTier's road (T-733, feature `inside`).
+#[cfg(any(test, feature = "stand-in", feature = "inside"))]
 pub mod inside;
 pub mod key;
 mod phy;

@@ -6,6 +6,7 @@
 #![cfg(unix)]
 
 mod ffi;
+pub mod member;
 pub mod node;
 pub mod relay;
 

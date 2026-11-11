@@ -336,8 +336,8 @@ impl Stack {
         }
     }
 
-    /// What the stack's streams share, for a listener of the stand-in.
-    #[cfg(any(test, feature = "stand-in"))]
+    /// What the stack's streams share, for a listener.
+    #[cfg(any(test, feature = "stand-in", feature = "inside"))]
     pub(crate) fn core(&self) -> &Arc<Core> {
         &self.core
     }

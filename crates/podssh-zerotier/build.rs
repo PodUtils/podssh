@@ -1,13 +1,14 @@
 //! ZeroTierOne's core (`vendor/zerotier-node`, MPL-2.0), compiled as C++17
 //! into a static library of this crate, with no service and no OS layer but
-//! `osdep/OSUtils.cpp`, as `objects.mk`'s `CORE_OBJS` lists it.
+//! `osdep/OSUtils.cpp`, as `objects.mk`'s `CORE_OBJS` lists it; optimized in
+//! each profile, as an identity's memory-hard hash takes seconds unoptimized.
 
 use std::path::Path;
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../vendor/zerotier-node");
     let mut build = cc::Build::new();
-    build.cpp(true).std("c++17").warnings(false).define("NDEBUG", None).define("ZT_NO_PEER_METRICS", None);
+    build.cpp(true).std("c++17").opt_level(2).warnings(false).define("NDEBUG", None).define("ZT_NO_PEER_METRICS", None);
     // The core reads no JSON; only the service does.
     build.define("OMIT_JSON_SUPPORT", None);
     build.include(root.join("ext/prometheus-cpp-lite-1.0/core/include"));

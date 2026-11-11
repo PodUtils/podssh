@@ -12,6 +12,12 @@ publish.workspace = true
 # `zerotier` of podssh-cli builds it.
 [dependencies]
 libc = { workspace = true }
+# TCP over the network's frames: WARP's stack on smoltcp, with its listener.
+podssh-warp = { path = "../podssh-warp", features = ["inside"] }
+tokio = { workspace = true }
 
 [build-dependencies]
 cc = "1.2"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

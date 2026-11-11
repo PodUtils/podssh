@@ -12787,6 +12787,17 @@ came back as nothing. Unit tests 2 passed. Planted (`scripts/plants/t733-relay-d
 relay under sudo on its fixed port 443. Next: smoltcp over the frames, the core's wire over the relay, the road in the
 race.
 
+2026-11-11: TCP over the network, `crates/podssh-zerotier/src/member.rs`: a `Member` drives its node on one task of
+tokio, with WARP's stack on smoltcp (`podssh_warp::stack`, whose listener `inside.rs` now has a feature `inside` of
+its own, which `stand-in` implies) at its 6plane address; a packet's frame goes to the MAC of the ZeroTier address in
+its destination, so no neighbour discovery is needed; the wire is two channels. `cargo test -p podssh-zerotier`, 5
+passed: two members and a root of the test's own on a wire of memory routed by a task: a TCP connection from one
+member's stack to a listener of the other's carried 64 KiB each way, equal, in 7 s with the three identities made.
+`-p podssh-warp`, 71 and its other targets passed with the feature split. The core now builds at `-O2` in each profile.
+Next: the core's wire over the relay (a task that carries the two channels on the relay's TCP stream, through
+`HTTPS_PROXY`), the service in `pod-services`, the road in the race and the node's side, the line of Q78, and the
+Prove's runs against `zerotier-one` and live.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 
