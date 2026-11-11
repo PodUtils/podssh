@@ -5604,6 +5604,13 @@ Each crate of `v0.1.0` is taken.
   in a namespace with the loopback alone: 3,279 passed, 83 ignored; `doctor_upgrade` passed with the
   network (2).
 
+- podcrates `v0.16.0` (`60a675c`), on 2026-11-11 (PodUtils/podcrates#57, COORD-032): each podcrates tag
+  moved from `v0.15.0`; no patch. For podssh it drops the four dead public Trojan nodes of `pod-services`
+  (podcrates T-157; T-574 reads the short list); `pod-supervise` and `pod-broker`, which change, are not
+  podssh's. clippy as the gate runs it (with all of podssh-relay's features), and `cargo test -p
+  podssh-cli -p podssh-relay -p podssh-ws` in a namespace with the loopback alone: 3,279 passed, 83
+  ignored; `doctor_upgrade` passed with the network (2).
+
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
