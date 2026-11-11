@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**701 entries: 87 open, 22 partial, 9 blocked, 583 done.**
+**701 entries: 87 open, 21 partial, 9 blocked, 584 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 262 | 297 |
-| P3 | 58 | 11 | 5 | 250 | 324 |
-| **All** | 87 | 22 | 9 | 583 | 701 |
+| P3 | 58 | 10 | 5 | 251 | 324 |
+| **All** | 87 | 21 | 9 | 584 | 701 |
 
 ## Entries
 
@@ -609,7 +609,7 @@ repository and CI).
 | [T-567](mesh.md) | P3 | S | M10 | feature | open | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
 | [T-568](mesh.md) | P3 | M | M10 | feature | partial | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
 | [T-569](mesh.md) | P3 | M | M10 | feature | partial | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
-| [T-570](mesh.md) | P3 | S | M10 | feature | partial | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
+| [T-570](mesh.md) | P3 | S | M10 | feature | done | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
 | [T-571](mesh.md) | P3 | M | M10 | feature | open | Syncthing's relays on 443 as a last fallback of the reverse road |
 | [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |
 | [T-573](mesh.md) | P3 | S | M10 | research | done | VMess's protocol: the research, for the public proxy nodes that speak it alone |

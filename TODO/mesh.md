@@ -8736,7 +8736,7 @@ a container (T-251).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8896,6 +8896,14 @@ under 500 lines by `man/notes_ssh_more.rs`.
 (ignored outside the workflow) and `.github/workflows/ssh-j-live.yml`, started by hand: a node with a
 throwaway key at the name of its key, `greet` and 1 MiB down, Pinggy and Serveo off; a planted client
 that names another node's key must fail. Built and clippy-clean here.
+
+2026-11-11, live, `ssh-j-live.yml` at `ab96fe00` (run 42954754303): the node held the name of its key at
+ssh-j.com on port 22; the client dialed it, "the ssh-j road answered first, in 634 ms", `greet` came back,
+then 1 MiB down whole; the test passed in 7.0 s. ssh-j.com's host key, read live:
+`SHA256:EQqn3kjIF8XkXoN40tNJmRRE/eiz+AQmK2EWuEzOz6Y` (taken unpinned; told to podcrates as a fact for
+`pod-services`). Planted, a client that named another node's key failed: ssh-j.com had no node at its
+name (`AdministrativelyProhibited`), exit 101, as it must. `pod-services` names `ssh-j` since v0.14.0.
+Done; the containers of the Prove wait for the checks of a release (T-251).
 
 
 # T-571: Syncthing's relays on 443 as a last fallback of the reverse road
