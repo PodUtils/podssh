@@ -20,6 +20,11 @@
 // A dependency that no code uses fails the build (the tests have their own).
 #![cfg_attr(not(test), deny(unused_crate_dependencies))]
 
+// ZeroTier's road is Unix's alone: off Unix its crate is empty, yet the
+// feature names it.
+#[cfg(all(feature = "zerotier", not(unix)))]
+use podssh_zerotier as _;
+
 // The ACME client of `podssh relay serve --acme NAME` (T-447).
 pub mod acme;
 pub mod agent;

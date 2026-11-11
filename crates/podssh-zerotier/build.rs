@@ -15,6 +15,12 @@ fn main() {
     build.cpp(true).std("c++17").opt_level(2).warnings(false).define("NDEBUG", None).define("ZT_NO_PEER_METRICS", None);
     // The core reads no JSON; only the service does.
     build.define("OMIT_JSON_SUPPORT", None);
+    // GCC on aarch64 calls libgcc's helpers for each atomic (outline atomics,
+    // `__aarch64_ldadd4_sync`), which a static link with Rust's runtime does
+    // not carry: the instructions inline instead.
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") {
+        build.flag_if_supported("-mno-outline-atomics");
+    }
     build.include(root.join("ext/prometheus-cpp-lite-1.0/core/include"));
     build.include(root.join("ext/prometheus-cpp-lite-1.0/simpleapi/include"));
     let mut files: Vec<_> = std::fs::read_dir(root.join("node"))

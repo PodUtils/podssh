@@ -12893,6 +12893,15 @@ TCP both ways again (job `one`). So, by the operator's ruling of 2026-11-11, `ze
 crate's `build.rs` compiles no core off Unix and the CLI's code of the road is `all(feature = "zerotier", unix)`; the
 Alpine builds add `g++` and `linux-headers`. The hand run of `release.yml` at the commit checks each target's build.
 
+2026-11-11, the hand run of `release.yml` at `f1cb6c9f` (run 43069457043): x86_64 and riscv64 musl built with
+`zerotier`, static, and ran; four jobs failed. Repaired: aarch64 musl's link wanted libgcc's outline atomics
+(`__aarch64_ldadd4_sync`), so the core builds with `-mno-outline-atomics` on aarch64 (`build.rs`); Windows'
+build refused the empty crate as an unused dependency, so `lib.rs` names it off Unix; macos-15-intel's and
+windows-11-arm's images held a rust older than the workspace's 1.99, so each native job takes the newest
+stable first; armv7's Alpine rust was 1.96.1, so armv7 cross-compiles with cargo-zigbuild in the gate's
+image, as riscv64 does, and runs under QEMU. The last three predate ZeroTier (the rust-version of 1.99). The
+plant `t733-other-pair` follows the cfg of the road's code. The release run is dispatched again at the push.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

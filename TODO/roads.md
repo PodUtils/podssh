@@ -4249,7 +4249,7 @@ that says why.
 ## Premise
 
 - Read: the release builds `podssh-cli` with no feature on each target
-  (`.github/workflows/release.yml:129`, `:198`, `:278`, `:321`, `:397`); the feature `iroh` is
+  (`.github/workflows/release.yml:129`, `:198`, `:292`, `:340`, `:421`); the feature `iroh` is
   off by default, and `crates/podssh-cli/Cargo.toml:26-28` says "about 200 crates, needs Rust
   1.91 and a C compiler" of it.
 - Read: `docs/decisions.md` line 41 at `27b8d8f` said "iroh is a road that the user must select", and made n0's
@@ -4262,7 +4262,7 @@ that says why.
   release of iroh is officially supported".
 - Read: the armv7 job builds with Alpine's rust (`.github/workflows/release.yml:198`); whether it
   is 1.91 or later was not read (T-343 checks it in the job). The notices of the licenses are
-  made for the default features (`.github/workflows/release.yml:470`); `cargo deny` checks the
+  made for the default features (`.github/workflows/release.yml:494`); `cargo deny` checks the
   licenses and the sources with each feature (`.github/workflows/deny.yml:49-51`).
 - Read: `docs/design.md:1210-1211` says "about 190 to 245 crates, and several megabytes" of iroh.
 

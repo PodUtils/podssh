@@ -162,46 +162,57 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # A Raspberry Pi with 32 bits: Alpine's own toolchain for armv7, in a
-  # container of linux/arm/v7 on an arm64 runner. The runner's CPU runs
-  # 32-bit code where its kernel allows it; a probe decides, and QEMU stands
-  # in where it does not.
+  # A Raspberry Pi with 32 bits, cross-compiled as riscv64 is: Alpine's own
+  # rust for armv7 lags the workspace's rust-version (1.96 against 1.99), and
+  # rustup has no host toolchain for musl armv7; the binary then runs on the
+  # runner under QEMU.
   linux-armv7:
     if: inputs.publish == '' || startsWith(github.ref, 'refs/tags/')
     name: linux armv7-unknown-linux-musleabihf
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 120
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      # zig from a community mirror, else ziglang.org, checked by the sum of
+      # its download index (scripts/fetch-zig.sh, T-343); cargo-zigbuild from
+      # crates.io, built with its own lock file.
+      ZIG_VERSION: 0.16.0
+      ZIG_SHA256: 70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00
+      ZIGBUILD_VERSION: 0.23.4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: the image
+      - name: the build image
         run: |
           set -eu
-          ref=$(tr -d '\r' < images/armv7/Dockerfile | sed -n 's/^FROM[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p')
+          ref=$(tr -d '\r' < images/build/Dockerfile | sed -n 's/^FROM[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*/\1/p')
           case "$ref" in
-            *@sha256:*) echo "ARMV7_IMAGE=$(PULL_PLATFORM=linux/arm/v7 sh scripts/pull-image.sh "$ref")" >> "$GITHUB_ENV" ;;
-            *) echo "images/armv7/Dockerfile names no image pinned to a digest" >&2; exit 1 ;;
+            *@sha256:*) echo "BUILD_IMAGE=$(sh scripts/pull-image.sh "$ref")" >> "$GITHUB_ENV" ;;
+            *) echo "images/build/Dockerfile names no image pinned to a digest" >&2; exit 1 ;;
           esac
-      - name: does the runner run 32-bit ARM?
-        id: probe
+      - name: build (static musl, cross-compiled with cargo-zigbuild in the gate's image)
         run: |
-          if docker run --rm --platform linux/arm/v7 "$ARMV7_IMAGE" uname -m; then
-            echo "native=yes" >> "$GITHUB_OUTPUT"
-          else
-            echo "native=no" >> "$GITHUB_OUTPUT"
-          fi
-      # QEMU's handler, from the pinned image of images/binfmt.
-      - if: steps.probe.outputs.native != 'yes'
-        name: QEMU for 32-bit ARM
-        run: sh scripts/binfmt.sh arm
-      - name: build (static musl, Alpine's rust for armv7)
-        run: |
-          docker run --rm --platform linux/arm/v7 -v "$PWD:/work" -w /work \
-            -e CARGO_BUILD_JOBS=4 -e RUSTFLAGS=-Ctarget-feature=+crt-static -e PODSSH_BUILD_COMMIT -e RELEASE_FEATURES \
-            "$ARMV7_IMAGE" sh -c 'apk add --no-cache build-base linux-headers rust cargo >/dev/null && rustc -vV &&
-              sh scripts/check-rustc.sh "$RELEASE_FEATURES" &&
-              t=$(rustc -vV | sed -n "s/^host: //p") &&
-              cargo build --locked --release --target "$t" -p podssh-cli --features "$RELEASE_FEATURES" &&
-              mkdir -p dist && cp "target/$t/release/podssh" dist/podssh-armv7-unknown-linux-musleabihf'
+          start=$(date +%s)
+          docker run --rm -v "$PWD:/work" -w /work \
+            -e CARGO_BUILD_JOBS=4 -e RUSTFLAGS=-Ctarget-feature=+crt-static -e PODSSH_BUILD_COMMIT \
+            -e ZIG_VERSION -e ZIG_SHA256 -e ZIGBUILD_VERSION -e RELEASE_FEATURES \
+            "$BUILD_IMAGE" sh -c '
+              set -eu
+              rustc -vV
+              z="zig-x86_64-linux-$ZIG_VERSION"
+              sh scripts/fetch-zig.sh "$ZIG_VERSION" "$ZIG_SHA256" "/tmp/$z.tar.xz"
+              xzcat "/tmp/$z.tar.xz" | tar -x -C /tmp
+              export PATH="/tmp/$z:$PATH"
+              echo "zig $(zig version)"
+              # A host build: +crt-static with no --target would reach its
+              # proc-macros on this musl host.
+              RUSTFLAGS= cargo install --quiet --locked --root /tmp/zigbuild cargo-zigbuild --version "$ZIGBUILD_VERSION"
+              export PATH="/tmp/zigbuild/bin:$PATH"
+              cargo install --list --root /tmp/zigbuild
+              rustup target add armv7-unknown-linux-musleabihf
+              cargo zigbuild --locked --release --target armv7-unknown-linux-musleabihf -p podssh-cli \
+                --features "$RELEASE_FEATURES"
+              mkdir -p dist
+              cp target/armv7-unknown-linux-musleabihf/release/podssh dist/podssh-armv7-unknown-linux-musleabihf'
+          echo "the build took $(( $(date +%s) - start )) s"
       - name: the binary is static
         run: |
           set -eu
@@ -209,10 +220,13 @@ jobs:
           file "$B"
           sh scripts/check-static.sh "$B"
           readelf -h "$B" | grep -E 'Class|Machine|Flags'
-      - name: the binary runs
-        run: |
-          docker run --rm --platform linux/arm/v7 -v "$PWD:/work" -w /work -e PODSSH_BUILD_COMMIT "$ARMV7_IMAGE" \
-            sh scripts/release-short.sh dist/podssh-armv7-unknown-linux-musleabihf --net
+      # The handler of binfmt that QEMU registers runs a static armv7 binary
+      # on the runner itself, so the check needs no second image; the handler
+      # comes from the pinned image of images/binfmt.
+      - name: QEMU for 32-bit ARM
+        run: sh scripts/binfmt.sh arm
+      - name: the binary runs (under QEMU)
+        run: sh scripts/release-short.sh dist/podssh-armv7-unknown-linux-musleabihf --net
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: podssh-armv7-unknown-linux-musleabihf
@@ -308,6 +322,11 @@ jobs:
       CARGO_BUILD_JOBS: 4
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The image's rust may lag the workspace's rust-version (macos-15-intel's
+      # and windows-11-arm's did): the newest stable, as the gate's image has.
+      - name: the newest stable rust
+        shell: bash
+        run: rustup update stable --no-self-update && rustup default stable && rustc -V
       - name: build
         run: cargo build --locked --release --target ${{ matrix.target }} -p podssh-cli --features "$RELEASE_FEATURES"
       # A Mac binary links libSystem at least; nothing outside the system.
@@ -379,6 +398,11 @@ jobs:
             echo "::warning::no NASM: aws-lc's prebuilt objects (AWS_LC_SYS_PREBUILT_NASM=1)"
             echo "AWS_LC_SYS_PREBUILT_NASM=1" >> "$GITHUB_ENV"
           fi
+      # The image's rust may lag the workspace's rust-version (macos-15-intel's
+      # and windows-11-arm's did): the newest stable, as the gate's image has.
+      - name: the newest stable rust
+        shell: bash
+        run: rustup update stable --no-self-update && rustup default stable && rustc -V
       - name: build
         shell: bash
         run: cargo build --locked --release -p podssh-cli --features "$RELEASE_FEATURES"

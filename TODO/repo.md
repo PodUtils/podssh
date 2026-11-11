@@ -430,7 +430,7 @@ previous release, so a change that the notes forget is invisible to a user.
 Read:
 
 - The job `publish` reads the notes from `docs/releases/`, and fails without
-  them (`.github/workflows/release.yml:610-614`).
+  them (`.github/workflows/release.yml:634-638`).
   No notes file exists yet; T-250 writes the first. The notes drafted for a
   beta that the operator dropped are in git:
   `git show b1b111b:docs/releases/v0.1.0-beta.1.md`.
@@ -672,7 +672,7 @@ Read:
 - The jobs `linux` and `windows` build the binaries, and `publish` adds
   `SHA256SUMS` and publishes them (`.github/workflows/release.yml:58-653`).
   The workflow has `contents: read` (`:45-46`); `publish` adds
-  `contents: write` (`:507-508`).
+  `contents: write` (`:531-532`).
 - The KTM tester could not tell from an artifact which commit made it, and
   moved the checkout one commit ahead (the KTM report, section 1a; read in
   the report).
@@ -753,7 +753,7 @@ github.com when the workflow is written). The Approach names `actions/attest-bui
   `actions/attest` v4.2.2 (commit `1e69f48acb82d1966a394da916b4c1698aa569d6`), pinned by that commit,
   as item 1 asks. (The wrapper is at commit `4d101475d8b20a2381f78447822ac1eab6504dd8`.)
 - Permissions for a binary (GitHub documentation): `id-token: write`, `contents: read` and
-  `attestations: write`. `publish` has `contents: write` today (`.github/workflows/release.yml:508`
+  `attestations: write`. `publish` has `contents: write` today (`.github/workflows/release.yml:532`
   says "contents: write"), which includes the read. The README of `actions/attest` also lists
   `artifact-metadata: write`, "necessary to create the artifact storage record"; that record needs
   `push-to-registry: true`, which is for images, so a file subject does not need it (Inferred): add
@@ -868,7 +868,7 @@ the release workflow of podssh.
 
 Read:
 
-- `.github/workflows/release.yml:528-533` writes `SHA256SUMS` with
+- `.github/workflows/release.yml:552-557` writes `SHA256SUMS` with
   `sha256sum`, and the job published it with the binaries (lines 370-382 at
   `cdf9308`). No signature was published.
 - The notes drafted for the dropped beta told the user that `SHA256SUMS`
@@ -1225,7 +1225,7 @@ the entry joins the work order by its priority.
 # T-214: CI on Windows
 
 **Source:** the triage of GitHub #27 (2026-10-08). Windows is a released
-platform (`.github/workflows/release.yml:355-448`).
+platform (`.github/workflows/release.yml:374-472`).
 **Category:** chore
 **Milestone:** none
 **Priority:** P2
@@ -1245,7 +1245,7 @@ machine.
 Read:
 
 - `.github/workflows/build.yml` lines 17-19 at `e892b0f`: one job, on `ubuntu-latest`.
-- `.github/workflows/release.yml:355-448`: the Windows job installs NASM
+- `.github/workflows/release.yml:374-472`: the Windows job installs NASM
   (line 76), builds, and checks for C runtime DLLs (lines 86-101); it runs no
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
@@ -1759,11 +1759,11 @@ with a C toolchain for aws-lc.
 Read:
 
 - `.github/workflows/release.yml:107-111`: x86_64 and aarch64 musl, each on a
-  native runner in `rust:1-alpine`. `.github/workflows/release.yml:355-448`:
+  native runner in `rust:1-alpine`. `.github/workflows/release.yml:374-472`:
   Windows x86_64 with a static C runtime.
 - The check of each platform: `readelf` for `NEEDED` and `INTERP`
   (`.github/workflows/release.yml:133-139`), `dumpbin /dependents` on Windows
-  (`:415-440`).
+  (`:439-464`).
 - The binary needs a C compiler for aws-lc (`docs/development.md:11-14`); the
   library crates need none.
 - Some code reads facts of Linux. The terminal check reads `tty_nr` from
@@ -4254,7 +4254,7 @@ two jobs of the release run an image of Docker Hub by the tag `latest`, with no 
 ## Approach
 
 1. Each `uses:` of each workflow names a commit of 40 hexadecimal digits, with its tag in a
-   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:541`): the commits of
+   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:565`): the commits of
    T-210's list, read again at each release's API on the day of the change.
 2. A check in `scripts/check-repo.py`: each `uses:` under `.github/workflows/` names a commit. A
    copy with a planted `@v7` fails it, and its floor fails on an empty tree.
@@ -4475,7 +4475,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
 ## Premise
 
 - Read: the riscv64 job pins Zig's version and SHA-256 and downloads it from ziglang.org
-  (`.github/workflows/release.yml:245-251`; its download, `.github/workflows/release.yml` lines
+  (`.github/workflows/release.yml:259-265`; its download, `.github/workflows/release.yml` lines
   247-249 at `1a46970`).
 - Read, through read.web.pkgforge.dev on 2026-10-31
   (https://ziglang.org/download/community-mirrors/): "The ziglang.org website does not offer any
@@ -4489,7 +4489,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
   Inferred: Alpine 3.24's rust is 1.89 or later, as the job built `v1.0.0-beta.2`.
 - Read: `pipx run check-jsonschema` names no version (`.github/workflows/build.yml` lines 175 and
   177 at `1a46970`).
-- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:571-596`).
+- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:595-620`).
   Inferred (the audit): an outage delays a release, and a run again repairs it.
 
 ## Approach

@@ -1957,7 +1957,7 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   the gate's step `release` asks the binary and the script for one verdict, live (`:111-116`).
 - Read: each of the eight build jobs of the release runs `podssh proxy github.com 22` through the
   live relay (`scripts/release-short.sh:109-115`, run at `.github/workflows/release.yml:153`, `:215`,
-  `:300`, `:344` and `:443`; three of these run in a matrix of two). The audit counted seven
+  `:314`, `:363` and `:467`; three of these run in a matrix of two). The audit counted seven
   jobs; the matrices give eight.
 - Read: a beta needs the job `all` of the gate (`docs/decisions.md:68`). Citations of an older
   document of the relay were once off by 35 (`TODO/repo.md:2320-2323`).
