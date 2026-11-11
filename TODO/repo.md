@@ -2646,7 +2646,7 @@ command uses `podssh-probe`.
 2. Move `podssh-core` and `podssh-transport` to the dev-dependencies: an
    example can use a dev-dependency, and the binary does not declare them.
 3. Move `libc` to the dependencies for Unix only, as
-   `crates/podssh-relay/Cargo.toml:166` does; else the lint of step 4 fails on
+   `crates/podssh-relay/Cargo.toml:169` does; else the lint of step 4 fails on
    Windows.
 4. The check: `#![cfg_attr(not(test), deny(unused_crate_dependencies))]` in
    `crates/podssh-cli/src/lib.rs`. rustc then refuses a dependency that the
@@ -3980,7 +3980,7 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
   `Cargo.toml:157` for `x25519-dalek` 2;
   `PodUtils/podssh:crates/podssh-ws/src/crypto/aead.rs` and `PodUtils/podssh:crates/podssh-ws/src/crypto/kx.rs`
   hold the calls, with `PodUtils/podssh:crates/podssh-relay/src/identity/mod.rs` and
-  `crates/podssh-relay/src/session/secret.rs`, and
+  `PodUtils/podssh:crates/podssh-relay/src/session/secret.rs`, and
   `PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs` their vectors.
 - Read: `vt100` 0.15 (`Cargo.toml:114`) is the model of the terminal
   oracle (T-200) and of `podssh session` (T-186).
@@ -4485,7 +4485,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
   download must be checked; the pinned SHA-256 checks the exact bytes.
 - Read: the armv7 job installs Alpine's own `rust` and `cargo` (`.github/workflows/release.yml:194-202`),
   in Alpine 3.24 (`images/armv7/Dockerfile`); the CLI declares Rust 1.89
-  (`crates/podssh-cli/Cargo.toml:8`), and Q48 lets the minimum rise (`docs/decisions.md:63`).
+  (`crates/podssh-cli/Cargo.toml:8`), and Q48 lets the minimum rise (`docs/decisions.md:64`).
   Inferred: Alpine 3.24's rust is 1.89 or later, as the job built `v1.0.0-beta.2`.
 - Read: `pipx run check-jsonschema` names no version (`.github/workflows/build.yml` lines 175 and
   177 at `1a46970`).
@@ -5588,6 +5588,21 @@ Each crate of `v0.1.0` is taken.
   10, the CLI's 1,082 with `net_invite`, `relay_code` and `relay_code_role`, the plants that stay,
   rustfmt; and the release's features for x86_64 musl with zig 0.16.0 and cargo-zigbuild 0.23.4,
   static by `scripts/check-static.sh`.
+
+- `pod-session` (podcrates T-020), the second take of `v0.15.0`, on 2026-11-11, after `pod-wormhole`
+  (`adoption/podssh/pod-session.needs`): `adoption/podssh/pod-session.patch` applied with
+  `git apply --3way`; six citation lines conflicted (`TODO/mesh.md`, `TODO/repo.md`,
+  `TODO/resume.md`, `TODO/ssh.md`, `TODO/ws.md`): main's side taken and remapped, but in
+  `TODO/resume.md`, where podcrates' side cites the removed client as `PodUtils/podssh:`. podssh-relay's
+  `crates/podssh-relay/src/session/` is glue over `pod-session` (`budget.rs`, `handover.rs`, `mod.rs`:
+  podssh's sink of the budget's lines with its words, and podssh's own `Movable`); `src/udp/`,
+  `src/answer.rs` and `src/transit/link.rs` are re-exports; the layer's tests and their plants left
+  podssh. Each line of `adoption/podssh/pod-session.run` with Rust 1.99 passed, with podcrates at
+  the tag: the builds, clippy with all of podssh-relay's features, the tests of the layer's users in
+  podssh-relay, podssh-cli and podssh-iroh, rustfmt, the two checks of a consumer, and the release's
+  features for x86_64 musl with zig, static. Then `cargo test -p podssh-cli -p podssh-relay -p podssh-ws`
+  in a namespace with the loopback alone: 3,279 passed, 83 ignored; `doctor_upgrade` passed with the
+  network (2).
 
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

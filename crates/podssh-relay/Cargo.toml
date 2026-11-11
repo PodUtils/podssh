@@ -22,9 +22,12 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 zeroize = { workspace = true }
 rand = { workspace = true }
-# The resumable layer (src/session/): X25519 gives a new session its secret
-# through HKDF-SHA256, and HMAC-SHA256 proves it on a resume. Pure Rust, as
-# in podssh-ws.
+# The resumable layer (src/session/), UDP in a stream (src/udp/), the link
+# over a WebSocket (src/transit/link.rs) and the rule of a peer's answer
+# (src/answer.rs): pod-session of PodUtils/podcrates (T-020 there).
+pod-session = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0" }
+# SHA-256, HMAC-SHA-256 and HKDF of the tokens, the mailbox and croc, and
+# X25519 of the key of DERP. Pure Rust, as in podssh-ws.
 sha2 = { workspace = true }
 hmac = { workspace = true }
 hkdf = { workspace = true }

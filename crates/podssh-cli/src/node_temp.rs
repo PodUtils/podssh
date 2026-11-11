@@ -189,7 +189,8 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         gate: None,
     };
     let settings = crate::layered::settings();
-    let keeper: Arc<Keeper<DuplexStream>> = Arc::new(Keeper::new(settings.resume_deadline));
+    let keeper: Arc<Keeper<DuplexStream>> =
+        Arc::new(Keeper::new(settings.resume_deadline).with_tell(podssh_relay::session::budget::told()));
     let tcp = TcpHandler { host: target.host.clone(), port: target.port, timeout: DIAL_LIMIT, sshd: true };
     let budget = reverse::layered::NODE_BUDGET;
     let handler = Arc::new(Layered::with_keeper(E2e::new(tcp, node), settings, budget, keeper.clone()));

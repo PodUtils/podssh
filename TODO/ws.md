@@ -1980,7 +1980,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:291-302`, `:334-350`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
-  (`crates/podssh-relay/Cargo.toml:173-174`), a crate with no C; `rustls-native-certs` 0.8.4,
+  (`crates/podssh-relay/Cargo.toml:176-177`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
   (`Cargo.lock:6227-6228`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the

@@ -6146,7 +6146,7 @@ Tailscale's `ping`, `status` and `netcheck` for the net of `podssh net`.
   OpenTunnel road, the record's roads and the transit road where `ssh` has
   them. The race is measured, not won: each road that starts runs on to the
   far end's first bytes, so each has its time
-  (`crates/podssh-relay/src/session/race.rs`, `each_timed`); a road whose
+  (`PodUtils/podcrates:crates/pod-session/src/race.rs`, `each_timed`); a road whose
   wait came after another answered still starts at its wait, as the race
   would have started it had the first been slow; a fallback that waits for
   each road before it to fail does not start once one answered, and says so.

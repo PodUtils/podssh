@@ -111,6 +111,10 @@ which has no `RelayStatus`; the layer goes there. The far end in
 By the operator's decision of 2026-10-09 (`docs/decisions.md`), the gate run
 and the planted decoder wait for the checks of the release (T-251).
 
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test targets
+`session_codec`, `session_handshake` moved to `pod-session` with their names; run `cargo test -p
+pod-session --test session_codec` `cargo test -p pod-session --test session_handshake` there.
+
 ## Done
 
 2026-10-09.
@@ -253,11 +257,15 @@ of T-153: no resume runs before it, and `Link::resume` gives the count of
 the bytes sent again. By the operator's decision of 2026-10-09, the planted
 buffers wait for the checks of the release (T-251).
 
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_replay` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_replay` there.
+
 ## Done
 
 2026-10-09.
 
-- `crates/podssh-relay/src/session/replay.rs`: the bytes from the
+- `PodUtils/podssh:crates/podssh-relay/src/session/replay.rs`: the bytes from the
   acknowledged offset to the sent offset, taken as they come and given back
   when the buffer empties; 4 MiB by default, up to 16 MiB with
   `PODSSH_REPLAY_BUFFER` (the manual's ENVIRONMENT); bytes past the room
@@ -409,7 +417,7 @@ policy wait for the checks of the release (T-251).
 
 2026-10-09.
 
-- The client's session across links (`crates/podssh-relay/src/session/resume.rs`):
+- The client's session across links (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs`):
   after a loss, it asks its caller for a new link, proves the secret on it,
   and each side sends again from the other's offset; a `CLOSE`, a `REFUSE`,
   or a close that says not to come back ends it, and else it tries with the
@@ -565,12 +573,12 @@ the layer should carry over.
 ## Premise
 
 Measured: the test failed in CI's gate at `7797b2a` (step `libs`, the
-read at `crates/podssh-relay/tests/session_resume.rs:117` failed), and
+read at `PodUtils/podssh:crates/podssh-relay/tests/session_resume.rs:117` failed), and
 locally in 2 of 3 runs on 2026-10-09; it passed in each run before that
 day's last changes. The cause is not known: the resume driver
-(`crates/podssh-relay/src/session/resume.rs`), the far end's keeper
-(`crates/podssh-relay/src/session/keep.rs`), the pump
-(`crates/podssh-relay/src/session/pump.rs`), or the test's stand-in relay.
+(`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs`), the far end's keeper
+(`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`), the pump
+(`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs`), or the test's stand-in relay.
 
 ## Approach
 
@@ -588,6 +596,12 @@ cargo test -p podssh-relay --features pair --test session_resume
 ```
 
 20 runs in a row pass, and so does CI's gate.
+
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_resume` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_resume` there.
 
 ## Done
 
@@ -680,14 +694,14 @@ would see a loss that should not happen.
 ## Premise
 
 - Measured: `a_session_moves_while_both_ends_send_at_full_speed`
-  (`crates/podssh-relay/tests/session_move.rs:185-195`) failed once in the
+  (`PodUtils/podssh:crates/podssh-relay/tests/session_move.rs:185-195`) failed once in the
   native run of the workspace on 2026-10-10, with `[Lost { why: "the link
   ended with no word from the far end" }]`. It then passed 30 runs alone,
   60 with four copies at once, 40 with the other test of its file, and 75
   with three copies at once.
 - Read: the far end numbered each resume when its task reached
   `run_resumed`, after `far::accept` had sent the `ACCEPT`, and the newest
-  number won (`Keeper::run_resumed`, `crates/podssh-relay/src/session/keep.rs`).
+  number won (`Keeper::run_resumed`, `PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`).
   At full speed the client moves again as soon as the new link carries
   256 KiB, so the far end can answer the handshake of a third link before
   the task of the second reaches `run_resumed`. That task then took a
@@ -716,13 +730,19 @@ A gives way at once with "a newer link resumed the session", and B still
 carries the session. Plant: number by the order of the tasks again; the
 test must fail.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_newest` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_newest` there.
+
 ## Done
 
 2026-10-10. `Sessions::next_resume` numbers each resume in `far::accept`
-before its `ACCEPT` goes out (`crates/podssh-relay/src/session/sessions.rs`,
-`crates/podssh-relay/src/session/far.rs`); `Accepted` carries the number,
+before its `ACCEPT` goes out (`PodUtils/podssh:crates/podssh-relay/src/session/sessions.rs`,
+`PodUtils/podssh:crates/podssh-relay/src/session/far.rs`); `Accepted` carries the number,
 and `Keeper::run_resumed` only raises the newest
-(`crates/podssh-relay/src/session/keep.rs`).
+(`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`).
 - `cargo test -p podssh-relay --test session_newest`: 1 passed. Planted,
   the number by the order of the tasks: the older resume took the session
   from the newer, and the test failed at its limit of 5 s.
@@ -883,12 +903,16 @@ greets with the layer a layered road too; the greeting is known only after the c
 keepalives follow the greeting: no `ServerAliveInterval` named, no SSH keepalives; a named one stays,
 with the same warning as on `node://` (printed once, after the connection); `0` has no warning.
 
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_heartbeat` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_heartbeat` there.
+
 ## Done
 
 2026-10-09, with T-262's repair and T-155's work so far, which the session
 before left in the same files.
 
-- `crates/podssh-relay/src/session/pump.rs`: with `heartbeat.v1` named by
+- `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs`: with `heartbeat.v1` named by
   both sides (`session::FEATURES` now names it), each end sends `PING` when it
   sent nothing for 10 s, the far end answers `PONG` with its received offset,
   and a link with nothing from the far end for 30 s ends as a loss, which
@@ -998,6 +1022,9 @@ expiry the relay ends each session of the pair with `1001 pair expired`
 the policy of T-153 does not resume. The repair of T-262 changed step 3:
 the new link greets while the old one carries the session, but its
 handshake takes the offsets only after the old one stopped.
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target `session_move`
+moved to `pod-session` with its name; run `cargo test -p pod-session --test session_move` there.
 
 ## Done
 
@@ -1551,7 +1578,7 @@ T-114 does. Read at `b03c8d5` (2026-10-12): no source in `crates/` outside
 the tests uses `russh::server`, and the verb table of
 `crates/podssh-cli/src/flags.rs` has no `serve`. The far end of the resumable
 layer keeps a stream to its target until the resume deadline, not a shell
-(`crates/podssh-relay/src/session/keep.rs`), so a kept shell has no other
+(`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`), so a kept shell has no other
 place to live. The parts that need no server (the lease, the limits, the stop
 and the state file) wait too, as the TOTP code of T-115 waits: their shape
 follows the server's pty and channels, which T-107 to T-110 decide. The
@@ -1934,10 +1961,10 @@ a full-screen program is written into its screen.
 
 ## Premise
 
-- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:421`) and a
-  resume (`crates/podssh-cli/src/layered.rs:432`). The heartbeat each 10 s, and a link dead after
-  30 s with nothing from the far end (`crates/podssh-relay/src/session/pump.rs:62`,
-  `crates/podssh-relay/src/session/pump.rs:65`). The forward road's checks
+- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:423`) and a
+  resume (`crates/podssh-cli/src/layered.rs:434`). The heartbeat each 10 s, and a link dead after
+  30 s with nothing from the far end (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:62`,
+  `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`). The forward road's checks
   (`docs/design.md:688`).
 - Read in Mosh (`docs/design.md:786-800`): the notice comes after 6.5 s with no word from the
   server, or 10 s with no acknowledged state; Mosh draws it over its own model of the screen,
@@ -1966,7 +1993,7 @@ Taken (2026-10-13), the source of the silence: the resumable layer, not
 SSH's bytes. The layer hears each byte of the far end, and knows which of
 its own records the far end answers at once: `DATA` that it acknowledges
 within 200 ms (both named `replay.v1`), a `PING`, and a resume after a loss
-(`crates/podssh-relay/src/session/hearing.rs`). Any byte answers each
+(`PodUtils/podssh:crates/podssh-relay/src/session/hearing.rs`). Any byte answers each
 question. The alternative, the time since the SSH channel's last bytes,
 lost: to a node, SSH sends no keepalive (`docs/design.md`, section 5), so
 an idle shell would show the notice, and so would a password's prompt,
@@ -2044,15 +2071,15 @@ that gives `Line` to a terminal in raw mode; in the model, the control
 ## Correction
 
 The first item of the Premise cites the layer's lines at lines of `next_leg`, which opens a new
-leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:472`) and a resume
-(`crates/podssh-cli/src/layered.rs:483`). What the item says of them holds.
+leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:474`) and a resume
+(`crates/podssh-cli/src/layered.rs:485`). What the item says of them holds.
 
 ## Done
 
 2026-10-13, a draft; merged on 2026-10-30, when the main session built it
 and ran each check below.
 
-- `crates/podssh-relay/src/session/hearing.rs`: the far end's last byte and
+- `PodUtils/podssh:crates/podssh-relay/src/session/hearing.rs`: the far end's last byte and
   the oldest question that waits, across the links of a session; the pump
   hears each read, and asks with each `PING` and each `DATA` that the peer
   acknowledges; a loss asks too. `Client::with_hearing`, and
@@ -2250,7 +2277,7 @@ then resumes over a new one. For those 30 s, an interactive session shows nothin
 ## Premise
 
 - Read: a link with nothing from the far end for 30 s is dead
-  (`crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:915-923`).
+  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:915-923`).
 - Read: a resume can come while the far end still runs the old link; the old link stops, and the
   new one goes on (`docs/design.md:929-931`). The far end lets the newest resume take a session
   (`docs/design.md:1005-1007`).
@@ -2273,7 +2300,7 @@ then resumes over a new one. For those 30 s, an interactive session shows nothin
 ## Decision
 
 Taken (2026-10-13), what makes a link silent: the client's hearing of
-T-302 (`crates/podssh-relay/src/session/hearing.rs`), across the session's
+T-302 (`PodUtils/podssh:crates/podssh-relay/src/session/hearing.rs`), across the session's
 links. A question of the client, `DATA` that the far end acknowledges
 within 200 ms or a `PING`, that waited 3 s with nothing from the far end;
 or, where both ends run the heartbeat, nothing at all for 20 s, two of its
@@ -2284,7 +2311,7 @@ tests that measure) found a resume 3.0 to 3.2 s after a new address with
 them, and they stand.
 
 Taken: a spare link is a link beside the old one, as a move's is
-(`crates/podssh-relay/src/session/beside.rs`): the caller gets
+(`PodUtils/podssh:crates/podssh-relay/src/session/beside.rs`): the caller gets
 `End::Moving`, so it opens a new link with no wait for the old one's end;
 the client reads the new link's `GREETING` and sends nothing. When the old
 link's bytes come first, the new link closes, and its far end, which waits
@@ -2352,12 +2379,18 @@ checks in the library, on a paused clock, with the control of no spare link:
 `cargo test -p podssh-cli --test roam_at_once -- --ignored --test-threads 1 --nocapture measure`;
 with `--features iroh-test`, the iroh road's check that a new address opens no spare link.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_spare` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_spare` there.
+
 ## Done
 
 2026-10-13, a draft; merged on 2026-10-30, when the main session built it
 and ran each check below.
 
-- `crates/podssh-relay/src/session/beside.rs`: the watch beside a link,
+- `PodUtils/podssh:crates/podssh-relay/src/session/beside.rs`: the watch beside a link,
   for a move and a spare; `resume.rs` runs it, says its steps as they come
   (`Note::Spare`, `Note::SpareClosed`), stops the old link of a spare with
   no `RETIRE`, and resumes on the spare. `Settings::spare_links`; the
@@ -2447,14 +2480,14 @@ session 10 minutes after its link was lost. A session of Mosh waits.
 
 ## Premise
 
-- Read: the deadline is 10 minutes at both ends (`crates/podssh-relay/src/session/resume.rs:44`;
+- Read: the deadline is 10 minutes at both ends (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`;
   `docs/design.md:924-934`). T-153's Decision kept a deadline, as a node in a cage would keep
   connections for clients that never come back.
 - Read: a node keeps 64 MiB of replay buffers at most, a whole buffer for each session that it
   keeps (`docs/design.md:1115-1118`); a pair expires after 72 h at most
   (`docs/design.md:1036-1038`).
 - Read: the client measures the deadline with `Instant`
-  (`crates/podssh-relay/src/session/resume.rs:332`). Not verified: whether `Instant` counts the
+  (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:332`). Not verified: whether `Instant` counts the
   time that the host slept, on Linux, macOS and Windows. If it does not, a client that wakes
   counts too little, and tries to resume a session that the far end forgot; it then gets
   `REFUSE` with the code 1.
@@ -2480,10 +2513,10 @@ side ignores each name that it does not know, so an older client keeps 10
 minutes, and an older far end names none, so a new client keeps 10 minutes
 too. The alternatives lost: a new record after `ACCEPT`, which an older
 client refuses at its type byte
-(`crates/podssh-relay/src/session/decode.rs:85`), and which so needs a
+(`PodUtils/podssh:crates/podssh-relay/src/session/decode.rs:85`), and which so needs a
 feature to gate it as well; a field after the body of `ACCEPT`, which an
 older decoder refuses as bytes after the end of a body
-(`crates/podssh-relay/src/session/decode.rs:235-241`). A name for each value
+(`PodUtils/podssh:crates/podssh-relay/src/session/decode.rs:235-241`). A name for each value
 is not a feature that both sides name, so `deadline::of` reads the far
 end's own names, not the common ones.
 
@@ -2539,15 +2572,19 @@ Item 3 of the Approach says that a session past the node's bound is refused
 with `REFUSE` (6). Read: the far end accepts the handshake, then ends the
 session with a `CLOSE` that gives the reason ("this node keeps as many
 resumable sessions as its budget allows",
-`crates/podssh-relay/src/session/far.rs:269-279`, whose words since T-586 name what holds the
+`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:269-279`, whose words since T-586 name what holds the
 budget); code 6 is not sent. The bound and its words stay as they are.
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_deadline` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_deadline` there.
 
 ## Done
 
 2026-10-13, a draft; merged on 2026-10-30, when the main session built it
 and ran each check below.
 
-- `crates/podssh-relay/src/session/deadline.rs`: the name
+- `PodUtils/podssh:crates/podssh-relay/src/session/deadline.rs`: the name
   `deadline.SECONDS`, its reading (72 h at most; a name that is not a number
   is ignored), the far end's names, the client's wait, and the words of item
   4. `Settings` has `client_deadline` and `wall_clock`; `Established` has
@@ -2908,7 +2945,7 @@ say so:
 
 **Source:** CI's macOS job at `08275ee`, 2026-10-31 (run 41158346607):
 `a_session_moves_while_both_ends_send_at_full_speed`
-(`crates/podssh-relay/tests/session_move.rs:188-195`) failed once.
+(`PodUtils/podssh:crates/podssh-relay/tests/session_move.rs:188-195`) failed once.
 **Category:** defect
 **Milestone:** backlog
 **Priority:** P2
@@ -2928,16 +2965,16 @@ for a new link, and the test that asks for no loss fails at random.
 - Measured: in the macOS job of CI at `08275ee` (run 41158346607), the
   test's notes held one loss, `Lost { why: "the link ended before the far end
   answered this side's CLOSE" }`, and no `Resumed`; the outcome and both
-  digests held (`crates/podssh-relay/tests/session_move.rs:168-170`), and the
+  digests held (`PodUtils/podssh:crates/podssh-relay/tests/session_move.rs:168-170`), and the
   assertion that failed is `:193`. The commit changed only `TODO/issues.md`.
 - Not reproduced here: 40 runs of the test alone, and 80 runs eight at a
   time, passed (a Claude Code cloud container, 2026-10-31).
 - Read: `End::Closing` comes from the pump's wait for the answer to its
-  `CLOSE` (`crates/podssh-relay/src/session/pump.rs:366-373`): a reader that
+  `CLOSE` (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:366-373`): a reader that
   ended with anything but the peer's `CLOSE`, the 10 s of `LINGER` (not
   reached in a run of 2.9 s), or a stop. A loss with no `Resumed` after it is
   a resume that found the session forgotten while this side's application
-  had ended (`crates/podssh-relay/src/session/resume.rs:362`): the far end
+  had ended (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:362`): the far end
   had the `CLOSE` and ended the session, and this side's reader ended before
   its answer.
 - Inferred: both ends closed at once (the test's target ends as the
@@ -2956,7 +2993,7 @@ for a new link, and the test that asks for no loss fails at random.
 ## Decision
 
 1. **A far end's last record on a link waits for the client**: `last_word`
-   (`crates/podssh-relay/src/session/far.rs:203-220`) writes the record, then
+   (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:203-220`) writes the record, then
    keeps the link, reading and dropping what the client sends, until the
    client ends it or 10 s pass (the wait of a `CLOSE` for its answer). It
    ends the four places: the `REFUSE` of the handshake, the `CLOSE` of a
@@ -2967,7 +3004,7 @@ for a new link, and the test that asks for no loss fails at random.
    a shorter wait (1 s), which a slow path to the client could outlast; a
    wait in the relay's own close, which podssh cannot change.
 2. **A loss after this side's `CLOSE` is said only when the resume goes
-   on** (`crates/podssh-relay/src/session/resume.rs:274-280`, `:310-414`): the
+   on** (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:274-280`, `:310-414`): the
    line "the link ended before the far end answered this side's CLOSE;
    resuming the session" waits, and comes before the next step said (a
    retry, the resume, the end that the resume gave up at), or once the
@@ -2977,7 +3014,7 @@ for a new link, and the test that asks for no loss fails at random.
    line on each end whose answer a relay drops; never saying it, which hides
    a resume that waits.
 3. **A handshake whose write fails reads what came before**
-   (`crates/podssh-relay/src/session/client.rs:301-329`), 2 s at most, as the
+   (`PodUtils/podssh:crates/podssh-relay/src/session/client.rs:293-321`), 2 s at most, as the
    pump reads a link whose writes fail: a `REFUSE` there is the answer, else
    the write's failure is. Redundant with item 1 at podssh's own far end,
    and the answer from a far end or a relay that closes right after its
@@ -3004,7 +3041,7 @@ one kind, and the client's word for it in a fourth. Debug lines in the close
 paths, 40 runs of the test on one CPU (a Claude Code cloud container,
 2026-10-31): in one run the far end accepted a resume on a move's new link,
 then found the session ended on the old link (`NotTaken::Ended`,
-`crates/podssh-relay/src/session/keep.rs` at `cbaa806`, lines 277-280), wrote its `CLOSE` there and
+`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs` at `cbaa806`, lines 277-280), wrote its `CLOSE` there and
 dropped the link at once. The client's pump wrote on that link (the `DATA`
 of a resume, its own `CLOSE`), and the stand-in relay, which ends both ways
 when one way ends or fails as the relay ends a session, failed that write and
@@ -3014,12 +3051,15 @@ link that the far end had ended the session. A new test of both ends closing
 at once while the session moves each 16 KiB, 50 sessions a run, failed once
 in 10 runs on one CPU on the code before, by the same kind of cut in the
 handshake: the far end refused a resume at its `OPEN` and dropped the link
-(`crates/podssh-relay/src/session/far.rs:182-186`) while the client wrote its
+(`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:182-186`) while the client wrote its
 `PROOF`, so the client got a broken pipe in place of the refusal, said a
 move's failure and a loss, and tried again. The same pattern is in
 `Accepted::close`, whose reason the client would lose for "the far end did
-not resume the session" (`crates/podssh-relay/src/session/far.rs:322-330`).
+not resume the session" (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:322-330`).
 Approach item 2 is done as the Decision says.
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target `session_move`
+moved to `pod-session` with its name; run `cargo test -p pod-session --test session_move` there.
 
 ## Done
 
@@ -3030,14 +3070,14 @@ Approach item 2 is done as the Decision says.
   waits (Decision 2); a handshake whose write fails reads the `REFUSE` before
   it (Decision 3). `docs/design.md` (the end of a session) says so.
 - Tests, each against a stand-in relay that ends both ways when one fails:
-  `crates/podssh-relay/tests/session_end.rs`,
+  `PodUtils/podssh:crates/podssh-relay/tests/session_end.rs`,
   `a_close_whose_answer_its_link_lost_ends_with_no_loss_said` (the far end
   had the `CLOSE` and forgot the session; no note); the new
-  `crates/podssh-relay/tests/session_last_word.rs`, 4 tests: a resumed
+  `PodUtils/podssh:crates/podssh-relay/tests/session_last_word.rs`, 4 tests: a resumed
   link's `CLOSE` slower than the client's next write, the handshake's
   `REFUSE` at the `OPEN` while the `PROOF` is on its way, a `REFUSE` before a
   failed write read, and a new session's reason "no target here" while the
-  client's application writes; `crates/podssh-relay/tests/session_move.rs`,
+  client's application writes; `PodUtils/podssh:crates/podssh-relay/tests/session_move.rs`,
   `both_ends_close_at_once_while_the_session_moves` (50 sessions, both ends
   closing at once, a move each 16 KiB, no note but moves). `cargo test -p
   podssh-relay --test session_end --test session_last_word --test
@@ -3075,11 +3115,11 @@ tunnel of a busy protocol) crawls, and each resume costs 4 MiB again.
 
 - Measured: the same in both places, so not this host's egress (`TODO/release.md`, T-251's Done).
 - Read: the reader of the link awaits the write of each delivered record to the application before
-  it reads the next (`crates/podssh-relay/src/session/pump/down.rs`, before this entry). While the
+  it reads the next (`PodUtils/podssh:crates/podssh-relay/src/session/pump/down.rs`, before this entry). While the
   application is slow, nothing on the link is read: not the far end's `ACK` and `PONG`, which free
   this side's replay buffer, and not its data, which a relay then holds for a slow receiver. The
   node's application, an echo, waits for the node's own sends, which wait for the client's `ACK`.
-- Read: `ACK` and `PONG` carry the received offset (`crates/podssh-relay/src/session/link.rs`);
+- Read: `ACK` and `PONG` carry the received offset (`PodUtils/podssh:crates/podssh-relay/src/session/link.rs`);
   the far end may send a replay window past it.
 - Inferred, not yet shown: the link ends from the relay's side or the node's watchdog (30 s with
   nothing heard), within the 35 s seen.
@@ -3107,13 +3147,18 @@ cargo test -p podssh-cli --test node_live -- --ignored --exact move_200mib_each_
 
 The live test makes 6 moves or more and loses no link; the relay's tests pass.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target `session_echo`
+moved to `pod-session` with its name; run `cargo test -p pod-session --test session_echo` there.
+
 ## Done
 
 2026-11-01, done with T-388: a session through a node carried 200 MiB each way on the live relay in
 156 s with 7 moves and no link lost, where it took 720 s and lost a link each 35 s before; first
 partial, then closed with T-388's repair, which the move needed.
 
-- The reader (`crates/podssh-relay/src/session/pump/down.rs`) writes to the application and reads
+- The reader (`PodUtils/podssh:crates/podssh-relay/src/session/pump/down.rs`) writes to the application and reads
   the link in one `select!`, the application first; a `CLOSE` or a broken record still waits for
   each byte before it to reach the application (the gap test of `session_link`, which failed at
   first with the bytes held, passes so). `ACK` and `PONG` cover the bytes written: the pump says
@@ -3122,7 +3167,7 @@ partial, then closed with T-388's repair, which the move needed.
 - Live, here, `move_200mib_each_way_through_a_node` with the repair on both ends: the link carried
   the session to the 48 MiB of a move in 20 s, with no loss, where before each link ended after
   about 35 s and 11 MiB. The move then failed: T-388.
-- `crates/podssh-relay/tests/session_echo.rs`: 32 MiB through a far end that echoes, through a
+- `PodUtils/podssh:crates/podssh-relay/tests/session_echo.rs`: 32 MiB through a far end that echoes, through a
   stand-in relay with a round trip of 100 ms and 1 MiB held each way: 3.5 s, no link lost. It
   passes on the code before the repair too (3.6 s), so it does not show the defect: on a link of
   its own the old reader stalled nothing. The live link of a node is a session of the reverse
@@ -3209,7 +3254,7 @@ know of a Close that the relay has not yet passed on to it.
   Only a node that does not end it in time gets this side's Close, and the answer is awaited as
   before. A plain operator (`podssh operator`) keeps its Close at once (`None`).
 - A retired link is still read until its far end closes it, 35 s at most
-  (`crates/podssh-relay/src/session/pump.rs`, `linger`): the pump splits the link, and after a
+  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs`, `linger`): the pump splits the link, and after a
   `RETIRE` of either side a task drains its reading half, so that the far end's last records are
   taken and its writes never block.
 - Tests: `cargo test -p podssh-relay --features pair --test reverse_operator`, 10 passed, two new:
@@ -3278,13 +3323,13 @@ From GitHub's network: `relay-live.yml` with `node_live`, 6 moves or more, no fa
   first leg, which has the plain operator's limits, sent its Close at once; the relay forgot the
   old id while the node still sent its bulk for it, and the next of them closed the node's socket
   with `1003 unknown session id`. The input ended because the client's pump shut its side of the
-  link after `RETIRE` (`crates/podssh-relay/src/session/pump/outbox.rs`), which T-388's linger
+  link after `RETIRE` (`PodUtils/podssh:crates/podssh-relay/src/session/pump/outbox.rs`), which T-388's linger
   could not undo; the legs of `next_leg` hid it, as they wait for the node's close.
 - Repaired: after `RETIRE` the writer flushes and leaves the link open; only the far end ends a
   retired link (`Watch::ends_links`, set by `Watch::far_end()` in `far.rs` and `keep.rs`): it shuts
   its side after its last bytes, so that the node's `close` follows its data and the relay then
   ends the operator's leg; the client holds the link until then (`linger` in
-  `crates/podssh-relay/src/session/pump.rs`). Live with the trace: at each of the 7 moves the node
+  `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs`). Live with the trace: at each of the 7 moves the node
   closed the old session first, then the relay closed the old leg with 1000, and no 1003.
 - Also repaired: the node's writer has two queues (`Outbox` in
   `crates/podssh-relay/src/reverse/serve.rs`): control first (`ready`, `reject`, the relay's close
@@ -3335,17 +3380,17 @@ an ordinary use of its documented ProxyCommand form ends that.
 
 - Read, at `3bb42ea` (the lines that this entry's work changed; see the Correction): a new
   session is refused when the kept sessions, each charged a whole replay buffer, leave no room:
-  `crates/podssh-relay/src/session/far.rs` line 219 said
+  `PodUtils/podssh:crates/podssh-relay/src/session/far.rs` line 219 said
   "let held = keeper.kept_admitted().saturating_mul(settings.replay_capacity);", and the refusal's
   words were at lines 221-224. `kept_admitted` counted each kept session whose client was let in,
-  with a link or with none (`crates/podssh-relay/src/session/keep.rs`, lines 121-125). The budget
+  with a link or with none (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`, lines 121-125). The budget
   is 64 MiB (`crates/podssh-relay/src/reverse/layered.rs:27`), 16 sessions with the default
   buffer, as the manual said (`crates/podssh-cli/src/man/notes_pair.rs`, lines 17-19).
 - Read, at `3bb42ea`: a link whose end is not the session's own keeps the session for the whole
-  deadline (`crates/podssh-relay/src/session/keep.rs`, lines 280-281 and 301-305); a loss and a
-  `CLOSE` with no answer are such ends (`crates/podssh-relay/src/session/pump.rs:107-113`). The
+  deadline (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`, lines 280-281 and 301-305); a loss and a
+  `CLOSE` with no answer are such ends (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:107-113`). The
   node's `CLOSE` after its target's last byte waits 10 s for the operator's answer, and with none
-  the end is `End::Closing`: `crates/podssh-relay/src/session/pump.rs:371` says "_ => End::Closing,".
+  the end is `End::Closing`: `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:371` says "_ => End::Closing,".
 - Known, from OpenSSH's source (not read here): at its exit, OpenSSH's client sends SIGHUP to its
   ProxyCommand and does not wait for it (`openssh/openssh-portable:sshconnect.c`,
   `ssh_kill_proxy_command`). `podssh operator` took no signal at `3bb42ea`
@@ -3357,7 +3402,7 @@ an ordinary use of its documented ProxyCommand form ends that.
   refused. The tester did not count the held sessions, as the issue says.
 - Read: a session whose target ended can take no more bytes into its buffer, and is charged as
   much as a live one.
-- Read: `--resume-deadline` takes 1 minute to 72 h (`crates/podssh-cli/src/layered.rs:126`), and
+- Read: `--resume-deadline` takes 1 minute to 72 h (`crates/podssh-cli/src/layered.rs:128`), and
   `--plain` is a node with no layer.
 - Not the cap of GitHub #84 (T-461): that is the relay's 64 MiB for one session.
 
@@ -3376,7 +3421,7 @@ an ordinary use of its documented ProxyCommand form ends that.
    `CLOSE` went out keeps the bytes that the client has not acknowledged, and is charged those,
    not a whole buffer; once the client acknowledged each byte, it keeps its id alone, charged
    nothing, until the deadline, and a resume of it gets its `CLOSE`, as a resume of a session that
-   ended on its old link does (`crates/podssh-relay/src/session/keep.rs:282-286`).
+   ended on its old link does (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs:282-286`).
 4. The refusal says what holds the budget and when room comes: "this node keeps 16 resumable
    sessions (64 MiB of replay buffers): 3 with a link, 13 waiting for their client, the first of
    them for 4 min 10 s more; --resume-deadline and PODSSH_REPLAY_BUFFER of the node change its budget".
@@ -3441,7 +3486,7 @@ buffer): the first test of `reverse_layered` fails.
 Read while drafting, 2026-11-03:
 
 - A budget of 2 sessions cannot come of `PODSSH_REPLAY_BUFFER`, item 1 and the Prove's OpenSSH
-  test: the setting takes 4 to 16 MiB (`crates/podssh-relay/src/session/replay.rs:18-20`), so the
+  test: the setting takes 4 to 16 MiB (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:18-20`), so the
   node's 64 MiB hold 4 sessions at the least. The OpenSSH test of the roost runs with 16 MiB, a
   budget of 4, and 8 logins: the code before refuses the fifth. `reverse_layered`'s tests give the
   budget to `Layered::new`, and keep 2.
@@ -3453,9 +3498,9 @@ Read while drafting, 2026-11-03:
   channel above the layer, the end of stdin is the channel's `END`, a half-close
   (`crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, lines 127-129), and the layer's `CLOSE` follows only once
   the TARGET ends too. So a signal ends the layer's own input, the channel's ciphertext, in
-  `crates/podssh-cli/src/layered.rs:277`, and the `CLOSE` goes at once, whatever the TARGET does.
+  `crates/podssh-cli/src/layered.rs:279`, and the `CLOSE` goes at once, whatever the TARGET does.
 - The layer's own wait for the answer to a `CLOSE` stays 10 s
-  (`crates/podssh-relay/src/session/pump.rs:52`), as for an end of stdin. After a signal the
+  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:52`), as for an end of stdin. After a signal the
   session has 2 s in all (`crates/podssh-cli/src/hangup.rs:29`), the node's answer and the leg's
   Close included; a session cut then is a clean end of a session that the node took, exit 0. A
   signal before the node took the session ends the wait at once, with the session's fault (70).
@@ -3473,8 +3518,8 @@ Read while drafting, 2026-11-03:
 
 2026-11-03, drafted by an agent and merged here, at `b5a0709`.
 
-- The node (`crates/podssh-relay/src/session/keep.rs`, `crates/podssh-relay/src/session/budget.rs`,
-  `crates/podssh-relay/src/session/far.rs`): each slot is charged by what it can hold; a session
+- The node (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`, `crates/podssh-relay/src/session/budget.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/session/far.rs`): each slot is charged by what it can hold; a session
   whose target ended, whose `CLOSE` went out and whose client acknowledged each byte keeps its id
   alone (`Slot::Closed`), its target shut, and a resume gets the `CLOSE`; the refusal counts the
   sessions with a link and those waiting, and the first one's time left; the node's lines, once a
@@ -3584,12 +3629,18 @@ cargo test -p podssh-cli --test operator
 With `--no-resume`, the node's budget is free at once after the client's link goes; without it, the
 session waits its deadline; planted, the ask dropped: the test fails.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_newest` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_newest` there.
+
 ## Done
 
 Drafted 2026-11-03; merged and measured on this machine the same day.
 The Premise holds: T-586's `## Decision` names no `--no-resume` (`TODO/resume.md`, T-586).
 
-- `crates/podssh-relay/src/session/once.rs` (new): `ONCE`, `asked` (the names of the client's
+- `PodUtils/podssh:crates/podssh-relay/src/session/once.rs` (new): `ONCE`, `asked` (the names of the client's
   `OPEN`) and `agreed`; its unit test. `session/mod.rs`: `Settings::resumes` (default true), and
   `Settings::link` gives `Link::with_once` when both named `once.v1` (`session/link.rs`).
   `session/client.rs`: the `OPEN` names `once::asked`. `session/far.rs`: the `GREETING` names
@@ -3610,15 +3661,15 @@ The Premise holds: T-586's `## Decision` names no `--no-resume` (`TODO/resume.md
   (cp, scp, sftp), `man/notes_proxy.rs`, `man/notes_pipe.rs`. `docs/cli.md` (ssh's destinations,
   cp's node, the reverse road's section and pipe's), `docs/reverse.md`, `docs/design.md` (section
   5), `docs/STATUS.md` (a row).
-- Tests: `crates/podssh-relay/tests/session_newest.rs`,
+- Tests: `PodUtils/podssh:crates/podssh-relay/tests/session_newest.rs`,
   `a_session_that_ends_with_its_link_leaves_the_far_end_nothing` and its control
   `with_no_ask_a_lost_session_waits_its_deadline`, through a stand-in relay that drops the link both
   ways; `crates/podssh-cli/tests/operator.rs`,
   `an_operator_of_no_resume_leaves_the_node_nothing_at_a_loss` (through the stand-in relay, an
   operator killed after the target's line; and the control, with no ask), the target of T-586's test
   moved to a module of its own for both.
-- The plants: `scripts/plants/t612-ask-dropped.plant` (GROUP=resume) and
-  `scripts/plants/t612-ask-dropped-operator.plant` (GROUP=resume-cli), one patch each, which `git
+- The plants: `PodUtils/podssh:scripts/plants/t612-ask-dropped.plant` (GROUP=resume) and
+  `PodUtils/podssh:scripts/plants/t612-ask-dropped-operator.plant` (GROUP=resume-cli), one patch each, which `git
   apply --check` takes: each caught (below).
 
 Measured at the merge (2026-11-03, Linux, `CARGO_BUILD_JOBS=4`):
@@ -3667,10 +3718,10 @@ session that it could have resumed.
 
 ## Premise
 
-- Read, at `38f424c`: `crates/podssh-relay/src/session/keep.rs`, `take` returned
+- Read, at `38f424c`: `PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`, `take` returned
   `NotTaken::Ended` for `None` from the slots; `run_new_admitted` attaches the state and inserts
   `Slot::Live` only when it is called.
-- Read: `crates/podssh-relay/src/session/far.rs`, `serve` opens the target (`TARGET_LIMIT`, 10 s)
+- Read: `PodUtils/podssh:crates/podssh-relay/src/session/far.rs`, `serve` opens the target (`TARGET_LIMIT`, 10 s)
   between `accept` and `run_new_admitted`; `Accepted::close` removes the session from `Sessions`.
 - Measured: with a line at the failure, B's run ended with "the session ended on its old link"
   while the keeper held one session (the first link's, put in later).
@@ -3693,14 +3744,20 @@ Three passed; 200 runs of the binary under the load that failed 3 of 60. Planted
 `None => Ended`: the new test fails; planted, the check of `Sessions` skipped: the closed
 session's test fails.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target
+`session_newest` moved to `pod-session` with its name; run `cargo test -p pod-session --test
+session_newest` there.
+
 ## Done
 
 2026-11-03.
 
-- `crates/podssh-relay/src/session/keep.rs`: `take` waits for a slot that the handshake's table
+- `PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`: `take` waits for a slot that the handshake's table
   still knows, and says ended only once the table forgot the session (its entry of `newest` goes
   with it).
-- `crates/podssh-relay/tests/session_newest.rs`: `a_resume_before_the_first_link_is_carried_waits_for_it`
+- `PodUtils/podssh:crates/podssh-relay/tests/session_newest.rs`: `a_resume_before_the_first_link_is_carried_waits_for_it`
   and `a_resume_of_a_session_closed_before_its_first_link_ends`, beside T-270's.
 - `cargo test -p podssh-relay --test session_newest`: 3 passed. Its binary, under a load of 20
   to 24 on 4 CPUs (T-599's loop of 12 copies beside it): 200 runs passed, then 300 more, where
@@ -3727,8 +3784,8 @@ wakes from sleep waits for those bounds too.
 
 ## Premise
 
-- `crates/podssh-relay/src/session/beside.rs:38` says "pub const SPARE_AFTER: Duration = Duration::from_secs(3);",
-  and `crates/podssh-relay/src/session/beside.rs:41` the 20 s of quiet.
+- `PodUtils/podssh:crates/podssh-relay/src/session/beside.rs:38` says "pub const SPARE_AFTER: Duration = Duration::from_secs(3);",
+  and `PodUtils/podssh:crates/podssh-relay/src/session/beside.rs:41` the 20 s of quiet.
 - T-305 measured 3.0 to 3.2 s with the stand-in proxy's `--move`, no real client.
 
 ## Approach
@@ -3750,7 +3807,7 @@ the clocks opens no connection.
 1. **The round trip is timed on the layer's own records, one question of each kind at a time**, as
    TCP times one segment (RFC 6298): a `PING` to the `PONG` of its value, and a batch of `DATA` to
    the `ACK` or `PONG` that reaches its end; smoothed by an eighth
-   (`crates/podssh-relay/src/session/round_trip.rs`). A sample of `DATA` holds the 200 ms for
+   (`PodUtils/podssh:crates/podssh-relay/src/session/round_trip.rs`). A sample of `DATA` holds the 200 ms for
    which the far end may hold its `ACK`: it is the wait of such a question for its answer, which
    the bound must outlast, so it is taken as it is. Lost: `PING` and `PONG` alone, as a `PING`
    goes only after 10 s with nothing sent, so a session that types would never time one; the
@@ -3830,13 +3887,20 @@ slow link gets a spare); `Wake::tick` that gives `None` always (the last two tes
 with the fixed bound): `cargo test -p podssh-cli --test roam_at_once -- --ignored --test-threads 1
 --nocapture measure`.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test targets
+`session_round_trip`, `session_spare`, `session_heartbeat` moved to `pod-session` with their names;
+run `cargo test -p pod-session --test session_round_trip` `cargo test -p pod-session --test
+session_spare` `cargo test -p pod-session --test session_heartbeat` there.
+
 ## Done
 
 2026-11-04, merged from its draft (`5cabd12`).
 
 - `crates/podssh-ws/src/wake.rs`: the tick of the clocks (`Wake`, `Reading`, `slept`): a tick more
   than 2 s late by tokio's clock, or by the time that the host slept (CLOCK_BOOTTIME against
-  CLOCK_MONOTONIC on Linux, else the wall clock), is a wake. `crates/podssh-relay/src/session/round_trip.rs`:
+  CLOCK_MONOTONIC on Linux, else the wall clock), is a wake. `PodUtils/podssh:crates/podssh-relay/src/session/round_trip.rs`:
   the smoothed round trip of each link, from one `PING` and one batch of `DATA` at a time;
   `session/beside.rs`: `spare_after`, three round trips, 1 s to 3 s, and a `PING` on the old link
   when a spare opens; `session/pump.rs`: a `PING` at a wake. `crates/podssh-ssh/src/relay_stream.rs`:
@@ -3878,21 +3942,21 @@ Read at `2042200`:
 - The channel's end of one direction: `crates/podssh-relay/src/e2e/frame.rs:13` says "The clean end of
   one direction.", and `crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, line 128 says "The stream stays open: the
   peer's bytes may still come." The issue's line numbers of `channel.rs` are of an older tree.
-- The layer: `crates/podssh-relay/src/session/record.rs:62` says "pub const CLOSE: u8 = 0x0a;", the
-  end of the session; `crates/podssh-relay/src/session/pump/up.rs:84` says
-  "Ok(0) | Err(_) => return None,", and `crates/podssh-relay/src/session/pump.rs:356` says "The
+- The layer: `PodUtils/podssh:crates/podssh-relay/src/session/record.rs:62` says "pub const CLOSE: u8 = 0x0a;", the
+  end of the session; `PodUtils/podssh:crates/podssh-relay/src/session/pump/up.rs:84` says
+  "Ok(0) | Err(_) => return None,", and `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:356` says "The
   application ended its bytes: the writer sends the", then `CLOSE`, which the peer answers with its
   own: the peer's later bytes are not asked for.
 - Sessions of the layer with no channel above it: the relay role's road for a standard sshd
   (`crates/podssh-relay/src/serve/layer.rs:1-8`), which `proxy` and `ssh` take unasked for a relay
-  host that the user named and that offers it (Q96, `docs/decisions.md:20`); and a node's sessions with
+  host that the user named and that offers it (Q96, `docs/decisions.md:21`); and a node's sessions with
   `--no-e2e` (`crates/podssh-cli/src/flags/node.rs:139`).
 - The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:284-287` shuts
   the target's writing side at the client's Close and goes on, as the default relay does
   (`docs/relay.md:367-370`). So `podssh proxy` to a target that reads until its end loses the answer on
   the layer road where it gets it on `/connect/` (Inferred from the code; not measured).
-- The layer names its features in its handshake (`crates/podssh-relay/src/session/record.rs:9-10`), and
-  `crates/podssh-relay/src/session/mod.rs:76` says "pub const FEATURES: &[&str]": a new record goes only
+- The layer names its features in its handshake (`PodUtils/podssh:crates/podssh-relay/src/session/record.rs:9-10`), and
+  `PodUtils/podssh:crates/podssh-relay/src/session/mod.rs:76` says "pub const FEATURES: &[&str]": a new record goes only
   to a peer that names its feature. The issue proposes the node's `hello`, which is the reverse road's
   control, not the layer's.
 
@@ -3905,7 +3969,7 @@ Read at `2042200`:
    and received its `END`, the session ends with `CLOSE` as today.
 3. `END` is replayed as `DATA` is, from its offset, so that a resume after a loss carries it; a link that
    ends with no `END` and no `CLOSE` stays a loss (`End::Lost`), as now.
-4. `docs/design.md` (section 5), the table of `crates/podssh-relay/src/session/record.rs`, and
+4. `docs/design.md` (section 5), the table of `PodUtils/podssh:crates/podssh-relay/src/session/record.rs`, and
    `docs/relay.md` ("The relay role's resumable layer") say the record.
 
 ## Decision
@@ -3914,7 +3978,7 @@ Read at `2042200`:
 changes one.
 
 1. **A far end of this build names `end.v1` in each `GREETING`; a client names it in its `OPEN` only
-   where its settings ask** (`Settings::half_close`, `crates/podssh-relay/src/session/half_close.rs`),
+   where its settings ask** (`Settings::half_close`, `PodUtils/podssh:crates/podssh-relay/src/session/half_close.rs`),
    as `once.v1` goes (T-612). `podssh proxy` on the relay role's road asks; `podssh ssh`, the
    copies, `podssh operator` and `podssh proxy node://` do not: SSH above the layer, and the
    end-to-end channel with its own `END` (T-088), end both ways at once, so `END` would only add a
@@ -4010,8 +4074,13 @@ fails; no `END` again after a resume, and the test of a lost `END` fails; `podss
   `END`; the second side's end is its `CLOSE` instead (the `## Decision`, item 2).
 - The Prove's role test is in `session_relay_resume`, not `relay_serve_contract` (the `## Decision`,
   item 9), and the Prove above names the new targets and the plants.
-- `crates/podssh-relay/tests/session_codec.rs` refused type `0x0c` as unknown; it now decodes `END`, and
+- `PodUtils/podssh:crates/podssh-relay/tests/session_codec.rs` refused type `0x0c` as unknown; it now decodes `END`, and
   the test refuses `0x0d`.
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test targets
+`session_half_close`, `session_end`, `session_resume` moved to `pod-session` with their names; run
+`cargo test -p pod-session --test session_half_close` `cargo test -p pod-session --test session_end`
+`cargo test -p pod-session --test session_resume` there.
 
 ## Done
 
@@ -4104,7 +4173,7 @@ same setting.
   `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:479` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
-  (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:869-873`) says that the resumable
+  (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:889-893`) says that the resumable
   road is `node://` alone; T-300 made that sentence false.
 
 ## Approach
@@ -4118,7 +4187,7 @@ same setting.
    `Transport::Cloud`, the jump tunnels). Give each the same warning, or write in this entry's
    `## Done` why it needs none.
 4. Add a `## Correction` to T-154 that names `cf://` and T-300, as the sentence at
-   `TODO/resume.md:869-873` stays as it was written.
+   `TODO/resume.md:889-893` stays as it was written.
 
 ## Decision
 

@@ -1066,15 +1066,20 @@ joins two datagrams fails it. The pipe test sends DNS queries from a child,
 over the socketpair and a node, to a local UDP echo server, and checks each
 reply.
 
+## Correction
+
+2026-11-10, the take of `pod-session` (PodUtils/podcrates `v0.15.0`): the test target `udp_framing`
+moved to `pod-session` with its name; run `cargo test -p pod-session --test udp_framing` there.
+
 ## Done
 
 2026-10-12. Written as a draft beside T-166, then merged over it: a UDP
 TARGET and `--sshd` do not go together (64), and `--iroh` with a UDP
 TARGET is refused before the road's build is looked at (64).
 
-- podssh-relay: `crates/podssh-relay/src/udp/codec.rs` (the framing:
+- podssh-relay: `PodUtils/podssh:crates/podssh-relay/src/udp/codec.rs` (the framing:
   `framed`, `encode`, `Decoder`, and `Frames`, a reader of datagrams that is
-  safe to cancel in a `select!`), `crates/podssh-relay/src/udp/flow.rs`
+  safe to cancel in a `select!`), `PodUtils/podssh:crates/podssh-relay/src/udp/flow.rs`
   (`connect`, `probe` and `carry`: a socket of port 0 connected to the
   target, the idle limit of 60 s, the counts of a flow) and
   `crates/podssh-relay/src/reverse/udp.rs` (`UdpHandler`, a node's handler
@@ -1900,7 +1905,7 @@ as T-299's. The operator reads Cloudflare's terms as allowing a client other tha
 
 2026-10-30, the spelling of item 6: the client is `cf://NAME.trycloudflare.com`, the road of
 T-264, and a far end whose first frame is the layer's `GREETING` is a podssh node, as the reverse
-road tells a node that greets from one that does not (`crates/podssh-relay/src/session/client.rs`,
+road tells a node that greets from one that does not (`PodUtils/podssh:crates/podssh-relay/src/session/client.rs`,
 `greeted`). cloudflared's SSH service speaks SSH first, so its sessions pass on as before, and the
 wait for a far end's first byte costs them nothing. The node's key is the one of `--node-key`, else
 pinned under `cf://NAME` at its first sight; a quick tunnel's name lives one run of its node, so
@@ -2613,7 +2618,7 @@ The part of podssh, when the start condition holds:
   in each proxy's log). The secret is in neither: the path names the target alone, and each
   resume proves the secret inside the layer's records.
 - **The role is a far end of role 2, a node's**, with the node's keeper, handshake and records
-  (`crates/podssh-relay/src/session/keep.rs`), so each client of 1.x speaks to it as to a node
+  (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs`), so each client of 1.x speaks to it as to a node
   in front of a TARGET. Lost: a role byte of its own (4), which a client of before would show
   as "a podssh of role 4" and which changes nothing of what the layer does.
 - **Its budget is 256 MiB of replay buffers, 64 sessions of the default 4 MiB**, four times a
@@ -2623,7 +2628,7 @@ The part of podssh, when the start condition holds:
   of a relay; no bound, which a run of short logins whose client went away would fill (GitHub
   #112). A flag of `relay serve` for it is later work, as the node's `--resume-deadline` is.
 - **A link of the road is the transit road's byte stream over one WebSocket**
-  (`crates/podssh-relay/src/transit/link.rs`, `Link::start_by`, whose failures name "the relay"),
+  (`PodUtils/podssh:crates/podssh-relay/src/transit/link.rs`, `Link::start_by`, whose failures name "the relay"),
   and the role's side pumps it with `/connect/`'s own pump, its limits and its bound on a slow
   reader, made generic over the target's two halves (`crates/podssh-relay/src/serve/forward.rs`).
   Lost: a third copy of the same two pumps.
@@ -2750,7 +2755,7 @@ The Premise holds for the default deployment (`docs/design.md:695-698`). By Q63 
 `docs/decisions.md`; docs/mesh.md, section 4) the relay is a role of podssh itself, so this
 entry is podssh's work, and the proposal of Approach item 1 needs no other project: in podssh's
 relay role (T-169) the relay's side of the forward road is podssh's code, and the far end of the
-resumable layer already exists (`crates/podssh-relay/src/session/far.rs:1-8`). A relay that runs
+resumable layer already exists (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:1-8`). A relay that runs
 it holds the TCP connection to a standard sshd while the client's link drops and comes back, with
 no Durable Object and no time billed.
 
@@ -2792,7 +2797,7 @@ the far end closes the target at a cut; the test fails. Live, on a GitHub runner
 2026-11-04 (the drafting agent). Read at `6a62cdc`: the Premise holds at each line that it cites
 (`docs/design.md` lines 659-662, 702-706 and 1410-1413 at that commit; `docs/relay.md:450-452`;
 `crates/podssh-relay/src/pool.rs:140-149`), and so does the Correction above: the far end of the
-layer is `crates/podssh-relay/src/session/far.rs`, and the role's `/connect/` ends the target with
+layer is `PodUtils/podssh:crates/podssh-relay/src/session/far.rs`, and the role's `/connect/` ends the target with
 its WebSocket (`crates/podssh-relay/src/serve/forward.rs`). Three parts of the Approach above
 change, by the `## Decision`: the layer is asked for by a path of its own,
 `/v1/layer/<host>/<port>`, not by a header on `/connect/` (item 1); a resume goes to the host, by
@@ -2935,7 +2940,7 @@ serving line sit beside T-346's `--deployment` and `--list-key`.
 - Item 5: `relay serve --resume-budget MIB` and `--resume-deadline TIME`
   (`crates/podssh-cli/src/relay_serve/resumes.rs`), the first line naming them; a new session past
   the budget refused before its `ACCEPT` (`far::accept_with_room` of
-  `crates/podssh-relay/src/session/far.rs`), counted from its admission until its target is
+  `PodUtils/podssh:crates/podssh-relay/src/session/far.rs`), counted from its admission until its target is
   dialed; `proxy` and `ssh` on `/connect/` after it (`forward_layer::no_room`,
   `crates/podssh-cli/src/relay_layer.rs`).
 - Item 4: `.github/workflows/relay-layer-live.yml` (`workflow_dispatch` alone), the runner's sshd
@@ -4116,7 +4121,7 @@ account (`podssh node NAME --sshd --quick-tunnel`), and reach it from a cage wit
 `podssh ssh cf://NAME`. That host cannot yet be a jump host: `-J cf://HOST` is refused, so the
 targets that it can reach still need the relay. With it, the forward road has a carrier that is not the operator's
 relay, for each user with such a host. Cloudflare documents SSH through a tunnel, and the operator
-allows podssh as a client of Cloudflare (`docs/decisions.md:69`).
+allows podssh as a client of Cloudflare (`docs/decisions.md:70`).
 
 ## Premise
 
@@ -4348,7 +4353,7 @@ adapter under the layer and the tests against derper make it L.
   session on a message that is changed, dropped, repeated or reordered
   (`crates/podssh-relay/src/e2e/mod.rs:1-17`; `crates/podssh-relay/src/e2e/channel.rs:1-4`), and
   the layer resumes on any link that reads and writes
-  (`crates/podssh-relay/src/session/resume.rs:144-157`).
+  (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:144-157`).
 - Read: a gap of the layer's offsets ends a link (`docs/design.md:873-876`): a carrier of packets
   that may drop needs a layer under it that sends again.
 - Read: the vendored fork's client speaks DERP over a WebSocket
@@ -4720,7 +4725,7 @@ Endpoint puts a credential in its URL.
   Endpoint takes a presigned SigV4 `wss://` URL, valid for 60 s, then raw binary frames; AWS's
   client honours `HTTPS_PROXY`; a connection lasts an hour at most, and 20 run at once.
 - Read: credentials never go in URLs (`docs/architecture.md:326-331`; `docs/design.md:82`), and
-  `docs/decisions.md:85` says "in a header or a 0600 file and never in a URL" of the relay's
+  `docs/decisions.md:86` says "in a header or a 0600 file and never in a URL" of the relay's
   tokens. The presigned URL carries an access key id and a signature in its query.
 - Read: the `cf://` road uses podssh-ws's WebSocket client through the proxy
   (`crates/podssh-cli/src/ssh/cloudflare.rs:244`); an RSA key signs through aws-lc-rs in the
@@ -5496,7 +5501,7 @@ tunnel until a run against the clouds.
 ## Premise
 
 - Read: the operator allowed both roads and asked for stand-ins first, the live run to wait for
-  accounts (`docs/decisions.md:55`).
+  accounts (`docs/decisions.md:56`).
 
 ## Approach
 
@@ -5929,7 +5934,7 @@ relay's path and token.
   (`crates/podssh-cli/src/ssh/resolve.rs:23-80`).
 - Read: `validate` refuses a query other than the relay's knobs, and `connect` always sends a token
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:74-113`, `:184-208`); a token goes only to the deployment that
-  minted it (`docs/decisions.md:97`).
+  minted it (`docs/decisions.md:98`).
 - Read: a SOCKS5 proxy that the user names in `ALL_PROXY` carries each road already (T-070;
   `PodUtils/podssh:crates/podssh-ws/src/socks5.rs:1-7`): podssh takes a third party's proxy that the user chooses.
 
@@ -5963,7 +5968,7 @@ relay's path and token.
   step.
 - A forwarder of the user's own, #59's road 2 (the same Worker in the user's own Cloudflare
   account), is a template as any other; podssh ships no forwarder, as the relay stays a separate
-  project (`docs/decisions.md:80`; T-169).
+  project (`docs/decisions.md:81`; T-169).
 - The drafting agent's calls (2026-10-31):
   1. The template, the dial and the stream are in `podssh-ws` (`forwarder/`), pure Rust, so a
      live check of a forwarder builds that crate alone (T-370); `podssh-cli` chooses a run's road
@@ -6019,7 +6024,7 @@ are). Planted: the host put in with no check; the test of `&` fails.
 `a3f948d`. A relay is a host and a port at `crates/podssh-relay/src/relay.rs:107-113`, and its
 forward path is built at `crates/podssh-relay/src/relay.rs:205-218`; `:83-89` and `:181-194` hold
 the byte budget and the parser of a relay list. A token goes only to the deployment that minted it
-at `docs/decisions.md:99` (T-057), and at Q49's row, `docs/decisions.md:53`; `docs/decisions.md:94`
+at `docs/decisions.md:100` (T-057), and at Q49's row, `docs/decisions.md:54`; `docs/decisions.md:95`
 holds the exit codes. `Transport` in `crates/podssh-cli/src/ssh/resolve.rs` had six kinds, not five
 (the relay, `--direct`, `node://`, `iroh:`, `cf://`, and the clouds' roads of T-351); this entry
 adds the seventh. Two facts of #59 that the Premise did not hold, read in the forwarders' sources:
@@ -6636,7 +6641,7 @@ edge still needs the operator's relay. WARP's tunnel (T-352) carries any port ov
 ## Premise
 
 - Read: `PodUtils/podssh:crates/podssh-relay/src/quick/edge.rs:23` says "pub const PORT: u16 = 7844". The relay's
-  VPC road carried TLS to that port, and `TODO/roads.md:1970` says "the edge's 443 and 8443 serve
+  VPC road carried TLS to that port, and `TODO/roads.md:1975` says "the edge's 443 and 8443 serve
   no tunnel".
 - Read: the measured proxy allows ports 443, 80 and 8443 alone (`docs/target-environment.md:21`).
 - Read: T-352 plans WARP's road over HTTP/2, with smoltcp for TCP inside, which the operator
@@ -6646,7 +6651,7 @@ edge still needs the operator's relay. WARP's tunnel (T-352) carries any port ov
   tunnel's name answered `200`, after a closed port and an address with no route had failed first.
   It carried QUIC through its stack; the edge's HTTP/2 on TCP 7844, over smoltcp's TCP, would reuse
   the client of T-300.
-- Read: the quick tunnel's live tests run in GitHub Actions only (`docs/decisions.md:54`).
+- Read: the quick tunnel's live tests run in GitHub Actions only (`docs/decisions.md:55`).
 
 ## Approach
 
@@ -6718,7 +6723,7 @@ Read at `a3f948d` on 2026-10-31.
   the VPC road carried TLS to 7844 when T-299 measured it by hand through `podssh proxy`. Step 1
   of the Approach therefore reads: after QUIC and the TCP dial failed.
 - The ruling of the quick tunnel's live tests in GitHub Actions alone is Q47's row (and Q43's),
-  `docs/decisions.md:61`; the Premise's `docs/decisions.md:54` names the row of Q50 since rows
+  `docs/decisions.md:62`; the Premise's `docs/decisions.md:55` names the row of Q50 since rows
   came above it.
 - The Prove names its test with no feature; the test needs the stand-in of WARP's edge, a
   feature of podssh-relay (the Decision, item 5).
@@ -6858,7 +6863,7 @@ ask, and nothing does so.
   (`crates/podssh-cli/src/node.rs:120-122`).
 - Read: `podssh ssh` resolves its destination into an enum of transports
   (`crates/podssh-cli/src/ssh/resolve.rs:24-80`), in a file of 488 of its 500 lines.
-- Read: the race of T-164 orders two roads (`crates/podssh-relay/src/session/race.rs:59-61`), and
+- Read: the race of T-164 orders two roads (`PodUtils/podssh:crates/podssh-relay/src/session/race.rs:59-61`), and
   the race of the command line is in a build with the feature `iroh` only
   (`crates/podssh-cli/src/ssh/iroh.rs:8-11`).
 - Read: T-349's node and dialer (`crates/podssh-relay/src/derp/far.rs`,
@@ -6977,7 +6982,7 @@ moves the resolver's environment to `crates/podssh-cli/src/ssh/resolve_env.rs`.
 measured here and live from this session's host.
 
 - podssh-relay: `session::race::in_turn` and `Start`, a race of more than two roads of one link
-  (`crates/podssh-relay/src/session/race.rs`); a node that moves home, `far::serve_roaming`, `Roam`,
+  (`PodUtils/podssh:crates/podssh-relay/src/session/race.rs`); a node that moves home, `far::serve_roaming`, `Roam`,
   `MOVE_AFTER` and `connect_to` (`crates/podssh-relay/src/derp/far.rs`); a client of the user's own
   list, `servers::for_client_in` and `Dialer::with_servers`; the stand-in answers `/derp/probe`.
 - podssh-cli: `podssh node --derp` and `--derp-server`, the DERP road alone, beside the pair's road,
@@ -9108,7 +9113,7 @@ banner where a hop holds the body: the form needs a test of the way and a fallba
 
 ## Premise
 
-- `TODO/roads.md:3235` says "An answer down ends 20 ms after nothing more came": T-319's answers
+- `TODO/roads.md:3240` says "An answer down ends 20 ms after nothing more came": T-319's answers
   end so that a hop which holds them holds little, and none of its forms streams an answer while
   its request's body is open.
 - `crates/podssh-cli/src/doctor/stream/mod.rs:2` says "passes as it comes or is held until its

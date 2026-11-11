@@ -74,6 +74,8 @@ pub const SHORTEST_DEADLINE: Duration = Duration::from_secs(60);
 
 /// `no`: a client opens no spare link beside a silent one (T-305).
 pub const SPARE_LINKS_ENV: &str = "PODSSH_SPARE_LINKS";
+/// The replay buffer's capacity each way: 4 to 16 MiB (`replay::capacity`).
+pub const CAPACITY_ENV: &str = "PODSSH_REPLAY_BUFFER";
 
 /// The layer's settings on the pair's road, with the replay buffer of
 /// `PODSSH_REPLAY_BUFFER` and the deadlines of `--resume-deadline`; a client
@@ -82,7 +84,7 @@ pub const SPARE_LINKS_ENV: &str = "PODSSH_SPARE_LINKS";
 /// `--no-resume` (T-612). A link carries less than the relay holds for a
 /// slow receiver (T-443): another road takes `off_the_pair`.
 pub fn settings() -> Settings {
-    let capacity = replay::capacity(std::env::var(replay::CAPACITY_ENV).ok().as_deref());
+    let capacity = replay::capacity(std::env::var(CAPACITY_ENV).ok().as_deref());
     let defaults = Settings::default();
     let far = *lock(&FAR_DEADLINE);
     let own = *lock(&OWN_DEADLINE);

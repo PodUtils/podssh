@@ -254,7 +254,7 @@ current.
 | Change TLS, proxies or DNS | [docs/architecture.md](docs/architecture.md), `crates/podssh-ws/`; TLS is `pod-tls` of PodUtils/podcrates (T-684) |
 | Work on a module that moved to PodUtils/podcrates | [docs/decisions.md](docs/decisions.md) (section "The crates of PodUtils/podcrates", Rule Q3), Q101 of [TODO/PROGRESS.md](TODO/PROGRESS.md), T-684 in [TODO/repo.md](TODO/repo.md), and the crate's own `AGENTS.md` in PodUtils/podcrates |
 | Work on reverse mode (milestone M4) | [docs/reverse.md](docs/reverse.md), [docs/design.md](docs/design.md) |
-| Work on the resumable layer (milestone M6) | [docs/design.md](docs/design.md) (section 5), `crates/podssh-relay/src/session/`, [TODO/resume.md](TODO/resume.md) |
+| Work on the resumable layer (milestone M6) | [docs/design.md](docs/design.md) (section 5), `pod-session` of PodUtils/podcrates (its glue: `crates/podssh-relay/src/session/`), [TODO/resume.md](TODO/resume.md) |
 | Work on IRC | [docs/irc.md](docs/irc.md) |
 | Work on Tailscale | [docs/tailscale.md](docs/tailscale.md) |
 | Work on the mesh or the relay role (milestone M10) | [docs/mesh.md](docs/mesh.md), [docs/relay.md](docs/relay.md) (the contract that the role serves), `TODO/mesh.md`, [docs/carriers.md](docs/carriers.md) |
@@ -340,7 +340,7 @@ These rules come from [docs/decisions.md](docs/decisions.md).
 2. Make one outbound connection, through `HTTPS_PROXY` when it is set. Do
    not bind, listen, or use loopback helpers. (`podssh doctor` binds a
    socket to test the host, listens once with a backlog of 1, accepts
-   nothing, and closes it at once; never with `PODSSH_LISTEN=no`, Q53.) Eight
+   nothing, and closes it at once; never with `PODSSH_LISTEN=no`, Q53.) Nine
    exceptions: by the decisions of 2026-10-08, a listener that the user asks
    for, when a probe at run time allows the bind, and a race between relay
    hosts, which can open a second connection for a short time; by the
@@ -357,7 +357,11 @@ These rules come from [docs/decisions.md](docs/decisions.md).
    connection to the user's own TURN server, only with `--turn` (Q93), and a
    read before a session's connection, never beside it, at most once a day for
    each host: the offer of the resumable layer of a relay host that the user
-   named (Q96), and the list of each relay member of the user's net (Q97).
+   named (Q96), and the list of each relay member of the user's net (Q97); by
+   the decision of 2026-11-11 (Q105), a node's read of its signed net
+   document again each TTL, only with `--net-url`, at most one GET through
+   `HTTPS_PROXY` each TTL (never under 60 s, never while a read is open), the
+   reply at most 64 KiB and its signature checked against `--net-owner`.
 3. Do not use `LD_PRELOAD` or shims in other processes. Start another
    program only when the user names it (`SSH_ASKPASS`, `PAGER`) or a probe
    found it (`less` for `podssh man` on a terminal). A tty in user space for

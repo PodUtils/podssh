@@ -18,7 +18,9 @@
 
 pub mod client;
 pub mod far;
-pub mod link;
+// The link of the transit road, a byte stream over a WebSocket: pod-session
+// of PodUtils/podcrates.
+pub use pod_session::ws_link as link;
 pub mod meet;
 pub mod token;
 

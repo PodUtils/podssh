@@ -802,7 +802,7 @@ A node's sessions lived in its process, so a node that started again to
 take a new binary ended each of them, and its sshd's connections with them.
 A node of the pair's road now hands them to the binary that takes its place
 (T-668, drafted 2026-11-05; `crates/podssh-cli/src/node_upgrade/`,
-`crates/podssh-relay/src/session/handover/`,
+`PodUtils/podcrates:crates/pod-session/src/handover/`,
 `crates/podssh-relay/src/e2e/hold/`):
 
 1. SIGUSR2 asks. `podssh update` sends it, once it replaced the binary, to

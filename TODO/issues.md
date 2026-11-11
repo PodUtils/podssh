@@ -241,9 +241,9 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | closed 2026-11-09 (`cbb31bc0`), its entry done | T-697 |
 | #172 | `ssh`: a `cf://` destination with the resumable layer keeps the user's SSH keepalives, with no warning | closed | T-703 |
 | #173 | `doctor`: `--full`'s QUIC handshake and stream probes do not run with `--quick` | closed 2026-11-09, its entry done | T-705 |
-| #174 | COORD-007: podssh took podcrates v0.7.0; the entries of cfb's asks of COORD-014 (to podcrates) | open | T-684 (the take at `1fd68cc4`), T-708 to T-731 |
+| #174 | COORD-007: podssh took podcrates v0.7.0; the entries of cfb's asks of COORD-014 (to podcrates) | closed (2026-11-11: podcrates recorded it under its #38) | T-684 (the take at `1fd68cc4`), T-708 to T-731 |
 | #175 | COORD-008: public Wisp servers as a pod-services kind (to podcrates) | closed | T-535 (the list of public Wisp servers, asked of podcrates) |
-| #176 | COORD-009: podssh took podcrates v0.8.0 (to podcrates) | open | T-684 (the take at `0e3c9eaf`), T-707 (open, as v0.8.0 ships `pod-gsr`) |
+| #176 | COORD-009: podssh took podcrates v0.8.0 (to podcrates) | closed (2026-11-11: podcrates read it; a tag move with no frozen module) | T-684 (the take at `0e3c9eaf`), T-707 (open, as v0.8.0 ships `pod-gsr`) |
 | #177 | COORD-010: pod-services: the kinds proxy-list and proxy-node, for podssh T-574 (to podcrates) | open | T-574 (the lists of public proxy nodes, asked of podcrates) |
 | #178 | COORD-011: pod-services: Pinggy's endpoint of SSH inside TLS and its host key (to podcrates) | closed | T-548 (the Pinggy road's endpoint and host key, asked of podcrates) |
 | #179 | COORD-012: podssh took podcrates v0.9.0 (to podcrates) | closed | T-684 (the take of v0.9.0, `d4b03aa7`) |

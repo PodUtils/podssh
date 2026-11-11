@@ -103,7 +103,7 @@ where
     A: AsyncRead + AsyncWrite + Unpin + Send + Movable,
 {
     fn hand_over(&self) -> std::pin::Pin<Box<dyn std::future::Future<Output = Vec<Handed>> + '_>> {
-        Box::pin(Keeper::hand_over(self))
+        Box::pin(self.hand_over_with(A::move_out))
     }
 }
 
@@ -282,7 +282,7 @@ where
     A: AsyncRead + AsyncWrite + Unpin + Send + Movable,
     R: FnMut(SessionId, Moved) -> Result<A, String>,
 {
-    let keeper = Arc::new(Keeper::new(deadline));
+    let keeper = Arc::new(Keeper::new(deadline).with_tell(podssh_relay::session::budget::told()));
     if let Some(handed) = lock(&TAKEN).take() {
         for line in keeper.take_over(handed, restore) {
             say(line);

@@ -581,7 +581,7 @@ and crates/podssh-transport/examples/live_forward.rs lines 23-25 at `e8bbd4d`; `
 (`crates/podssh-cli/Cargo.toml` line 34 at `e8bbd4d`). The plan: "`podssh-transport` moves into `podssh-relay`. Its
 unused backpressure module goes." (`docs/design.md` lines 122-123 at `e8bbd4d`).
 
-Read: the comments of the crate break rule 6 of `AGENTS.md:374-375`: they carry the stop-sign marker,
+Read: the comments of the crate break rule 6 of `AGENTS.md:378-379`: they carry the stop-sign marker,
 session history and line numbers of documents, for example crates/podssh-transport/src/socket.rs lines 1-11 at `e8bbd4d`
 and crates/podssh-transport/src/control.rs lines 3-14 at `e8bbd4d`. The close rows cite lines of the pinned contract,
 and a test reads that copy to check them (crates/podssh-transport/src/closes.rs lines 45-59 at `e8bbd4d`).
@@ -592,11 +592,11 @@ and a test reads that copy to check them (crates/podssh-transport/src/closes.rs 
    and T-080 use the repaired codecs as a dependency until then.
 2. Move into crates/podssh-relay/src/reverse/: `framing.rs` and `framing/legs.rs`, `control.rs`,
    `closes.rs`, the retry parts of `error.rs`, and the name check of T-076, with their tests. Keep
-   each file at 500 lines or fewer (`AGENTS.md:372-373`).
+   each file at 500 lines or fewer (`AGENTS.md:376-377`).
 3. Delete, do not move: the backpressure module (T-074), the `Transport` trait and `backoff.rs`
    (T-077), and `RelayConfig` (`podssh-relay` has `Relay` and `RelayList`,
    `crates/podssh-relay/src/relay.rs:107-129`).
-4. Rewrite the comments of the moved code to `AGENTS.md:374-375`: why, in few words; no markers, no
+4. Rewrite the comments of the moved code to `AGENTS.md:378-379`: why, in few words; no markers, no
    history, no line numbers. Keep the check of the close rows against the pinned copy as a test
    (T-060 decides where the copy lives).
 5. Move the examples to `podssh_relay::open`, the forward path that the commands use. Then remove
@@ -1100,7 +1100,7 @@ short code safe.
 3. A meeting point that both reach with no pair: see the Decision.
 4. The code: three words from a fixed list and a number, used once, valid for 10 min. The node shows
    it only on its terminal, never in stdout, a log or argv; the operator types it at a prompt.
-5. A pure-Rust SPAKE2 crate, built under `CC=/nonexistent` before it is chosen (`AGENTS.md:368-370`).
+5. A pure-Rust SPAKE2 crate, built under `CC=/nonexistent` before it is chosen (`AGENTS.md:372-374`).
 6. Pitfalls: limit the attempts at the meeting point; one failed exchange ends the code; check the
    received part as T-076 and T-078 check a pair.
 
@@ -1496,7 +1496,7 @@ The resumable layer of M6 runs under SSH (`docs/design.md:710-722`).
 Read in the report (GitHub #18, not verified here): warren uses `Noise_IK_25519_ChaChaPoly_BLAKE2s`
 so that the relay cannot read a stream (`willykeenan/warren:src/noise.rs`).
 
-Read: the library crates must build with no C compiler (`AGENTS.md:368-370`, `scripts/gate.sh:130`).
+Read: the library crates must build with no C compiler (`AGENTS.md:372-374`, `scripts/gate.sh:130`).
 
 ## Approach
 
@@ -1905,7 +1905,7 @@ T-107), and the relay stays a separate project (`docs/decisions.md`). The two sh
    the seam of T-088 and T-089. Spent nonces are create-new private files
    (`crates/podssh-relay/src/cache.rs:364-382`).
 3. Both shapes: an SSHSIG signature in a fixed podssh namespace, which `ssh-keygen -Y verify` can check
-   (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:368-370`).
+   (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:372-374`).
 4. Relations: T-078 makes the pair that a grant protects; T-086 can deliver a grant in place of the
    `connect_token`; T-087 gives the keys that a grant names.
 
@@ -2187,7 +2187,7 @@ session through a node loses a link that it need not lose.
   7 runs, at HEAD too, and the node had closed the session with `the node's local side does not
   read`. The node's queue for a local side held 32 frames, about 1 MiB, and a client of the
   resumable layer sends up to its replay window, 4 MiB, with no acknowledgement
-  (`crates/podssh-relay/src/session/replay.rs:15-18`).
+  (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:15-18`).
 
 ## Approach
 
@@ -3581,7 +3581,7 @@ that it carries.
    again; each client resumes on a new leg, which is what the layer is for. Lost: the node's socket
    across the exec (see the Correction).
 5. **The state is the layer's as values, never its records**
-   (`crates/podssh-relay/src/session/handover/mod.rs`): the offsets, the replay buffer, the bytes
+   (`PodUtils/podssh:crates/podssh-relay/src/session/handover/mod.rs`): the offsets, the replay buffer, the bytes
    not yet written to the target, the flags; with the end-to-end channel above, its keys (snow's raw
    split, its feature `risky-raw-split`), its nonces, the bytes cut short each way and the seed of
    its tokens of one leg. A version byte guards each part, and the probe asks for it. The channel's
@@ -3632,7 +3632,7 @@ A new test: a session through a node goes on across the node's upgrade, its byte
   the old inode"; the manual says that an installed node "goes on with its own binary until it
   starts again" (`crates/podssh-cli/src/man/notes_update.rs:23`). The sessions end when the node
   starts again to take the new binary. The Premise holds: the sessions are in the process
-  (`crates/podssh-relay/src/session/keep.rs:142` says "slots: Mutex<HashMap<SessionId, Slot<A>>>,").
+  (`PodUtils/podssh:crates/podssh-relay/src/session/keep.rs:142` says "slots: Mutex<HashMap<SessionId, Slot<A>>>,").
 - Approach item 1, "inherits the node's links": a link to the relay is a TLS session in rustls,
   often inside a proxy's CONNECT, whose secrets rustls exports for kernel TLS but builds no
   connection from; the new binary connects again, and the layer resumes each session on a new leg
@@ -3652,11 +3652,11 @@ A new test: a session through a node goes on across the node's upgrade, its byte
 
 2026-11-05, merged from its draft (`8a39501`).
 
-- The layer's state as values and its bytes (`crates/podssh-relay/src/session/handover/mod.rs`,
-  `crates/podssh-relay/src/session/handover/wire.rs`), with the parts of `Link`, of the replay
-  buffer and of the carry (`crates/podssh-relay/src/session/link/parts.rs`,
-  `crates/podssh-relay/src/session/pump/parts.rs`); `Keeper::hand_over` and `Keeper::take_over`
-  (`crates/podssh-relay/src/session/keep/handover.rs`); a closed slot keeps the words of its
+- The layer's state as values and its bytes (`PodUtils/podssh:crates/podssh-relay/src/session/handover/mod.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/session/handover/wire.rs`), with the parts of `Link`, of the replay
+  buffer and of the carry (`PodUtils/podssh:crates/podssh-relay/src/session/link/parts.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/session/pump/parts.rs`); `Keeper::hand_over` and `Keeper::take_over`
+  (`PodUtils/podssh:crates/podssh-relay/src/session/keep/handover.rs`); a closed slot keeps the words of its
   `CLOSE`; the far end names the session's id around its target's opening (`handover::scope`).
 - The channel held between two messages: its carry in a buffer of its own
   (`crates/podssh-relay/src/e2e/channel/carry.rs`), its keys from the handshake, the hold, its
@@ -3864,7 +3864,7 @@ order. Planted: the helper with `is_some()`, and the tests of `false` fail.
 
 2026-11-05.
 
-- `podssh_relay::answer` (`crates/podssh-relay/src/answer.rs`): `says_true` (JSON's `true` alone),
+- `podssh_relay::answer` (`PodUtils/podssh:crates/podssh-relay/src/answer.rs`): `says_true` (JSON's `true` alone),
   `offers`, `kept` (a guarantee not asked holds; one asked holds by `true` alone) and `hint` (absent
   or zero keeps the floor). `pair::once::said_once`, `e2e::legs::offered`, `reverse::legs::says_rotation`
   and `NodeLimits::apply` call it, and `relay pair --once` checks its guarantee with `kept`.
@@ -4015,7 +4015,7 @@ podssh-ws, and the five plants.
 
 - The dialect: `PROTO`, `PROTO_MIN`, `UNSTATED` and `Skew` beside `Hello`, whose `version` is any
   JSON value (`crates/podssh-relay/src/reverse/control.rs`), by the fourth kind of
-  `crates/podssh-relay/src/answer.rs`; the dialer's `X-Podssh-Proto` of a reverse socket
+  `PodUtils/podssh:crates/podssh-relay/src/answer.rs`; the dialer's `X-Podssh-Proto` of a reverse socket
   (`crates/podssh-ws/src/handshake.rs`).
 - The node: `End::Unread` at a `hello` of another dialect (`crates/podssh-relay/src/reverse/serve.rs`),
   which the run loop, and a `426` to its upgrade, end as `Exit::Unusable` with the sentence, never a
@@ -4086,7 +4086,7 @@ Read at `2042200`:
 - A refusal with a cause before the upgrade exists for a planned stop alone: `503` with `Retry-After: 1`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:171-174`). Since T-255 a planned stop sends `1012`,
   and the node joins the role that comes back, so a restart costs no 409's wait; the issue's waits
-  (`crates/podssh-relay/src/reverse/serve.rs:81` and `crates/podssh-relay/src/session/resume.rs:44`)
+  (`crates/podssh-relay/src/reverse/serve.rs:81` and `PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`)
   are for a node whose old socket the role still holds.
 - A pair's state (`crates/podssh-relay/src/serve/reverse/pairs.rs:124-137`) has no halt, and the file is
   486 lines, so the state goes in a module beside it.
@@ -4451,7 +4451,7 @@ before its `ready`, and the test of a dead session fails.
   and `crates/podssh-relay/src/reverse/layered.rs:4` says "session dials the target, after its handshake";
   the channel too dials TARGET only once the operator's key is let in. So a spare there is a pipe and a
   task, and TARGET sees nothing of it; but the far end gives the client 30 s from the session's `open`
-  (`crates/podssh-relay/src/session/far.rs:40` says "HANDSHAKE_LIMIT: Duration = Duration::from_secs(30)",
+  (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:40` says "HANDSHAKE_LIMIT: Duration = Duration::from_secs(30)",
   and the channel's step `crates/podssh-relay/src/e2e/mod.rs:61` says "HANDSHAKE_LIMIT: Duration =
   Duration::from_secs(30)"), so a spare goes stale at the node in 30 s, and it greets at once, so a
   spare carries the node's bytes before any operator: the Decision's items 3 and 6.

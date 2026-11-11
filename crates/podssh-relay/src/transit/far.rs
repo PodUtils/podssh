@@ -68,7 +68,7 @@ where
     O: Fn() -> F + Clone + Send + Sync + 'static,
     F: Future<Output = Result<A, String>> + Send + 'static,
 {
-    let keeper = Arc::new(Keeper::new(settings.resume_deadline));
+    let keeper = Arc::new(Keeper::new(settings.resume_deadline).with_tell(crate::session::budget::told()));
     serve_kept(node, settings, budget, open, keeper).await
 }
 

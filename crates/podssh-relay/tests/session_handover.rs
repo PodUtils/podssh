@@ -1,12 +1,11 @@
 //! A far end's sessions handed to the binary that takes its place (T-668),
-//! within one process: the first keeper hands each session over in the
-//! middle of 8 MiB each way, its state goes through its bytes, as between
-//! two binaries, and a second keeper takes it, with the same TCP connection
-//! to the target; the client resumes on a link to the second keeper, and
-//! the bytes at both ends have equal SHA-256 digests. Once with the layer
-//! over the target as it is (a node of `--no-e2e`), once with the
-//! end-to-end channel above it, whose keys and nonces move too; and a
-//! session whose target cannot move ends at its resume with why.
+//! within one process, with the end-to-end channel above the layer: the
+//! first keeper hands the session over in the middle of 8 MiB each way, its
+//! state goes through its bytes, as between two binaries, and a second
+//! keeper takes it, with the same TCP connection to the target and the
+//! channel's keys and nonces; the client resumes on a link to the second
+//! keeper, and the bytes at both ends have equal SHA-256 digests. The tests
+//! of the layer alone are pod-session's (PodUtils/podcrates).
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -21,10 +20,10 @@ use podssh_relay::e2e::ends::{self, Node};
 use podssh_relay::e2e::hold;
 use podssh_relay::identity::Identity;
 use podssh_relay::session::client::{self, Outcome};
-use podssh_relay::session::handover::{Handed, LayerState};
+use podssh_relay::session::handover::{Handed, LayerState, Movable};
 use podssh_relay::session::keep::Keeper;
 use podssh_relay::session::resume::{self, Next};
-use podssh_relay::session::{far, Ask, End, OsEntropy, Role, Settings};
+use podssh_relay::session::{far, Ask, OsEntropy, Role, Settings};
 
 const PIPE: usize = 256 * 1024;
 const MIB: usize = 1 << 20;
@@ -173,43 +172,6 @@ async fn client_session(
     };
     tokio::spawn(async move { resume::run(client, app_end, connect, |_| {}, &mut OsEntropy).await })
 }
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_session_over_its_target_as_it_is_goes_on_across_a_handover_its_bytes_whole() {
-    let (up, down) = (pseudo_random(BYTES, 1), pseudo_random(BYTES, 2));
-    let (at, accepted, got) = target(down.clone()).await;
-    let first: Arc<Keeper<TcpStream>> = Arc::new(Keeper::new(Duration::from_secs(60)));
-    let current: Current<TcpStream> = Arc::new(Mutex::new(Some(first.clone())));
-    let (links_tx, links_rx) = mpsc::unbounded_channel();
-    let open = move || async move { TcpStream::connect(at).await.map_err(|e| e.to_string()) };
-    far_end(current.clone(), settings(), links_rx, open);
-
-    let (app, app_end) = tokio::io::duplex(PIPE);
-    let session = client_session(links_tx, app_end).await;
-    let (half_tx, half_rx) = oneshot::channel();
-    let at_client = tokio::spawn(exchange(app, up.clone(), BYTES / 4, half_tx));
-
-    tokio::time::timeout(LIMIT, half_rx).await.unwrap().unwrap();
-    let second: Arc<Keeper<TcpStream>> = Arc::new(Keeper::new(Duration::from_secs(60)));
-    *current.lock().unwrap() = None;
-    let handed = through_bytes(first.hand_over().await);
-    assert_eq!(handed.len(), 1, "one session handed over");
-    let said = second.take_over(handed, |_, moved| {
-        moved.socket.set_nonblocking(true).map_err(|e| e.to_string())?;
-        TcpStream::from_std(moved.socket).map_err(|e| e.to_string())
-    });
-    assert!(said.is_empty(), "{said:?}");
-    assert_eq!(first.kept(), 0, "the first keeper holds nothing after");
-    *current.lock().unwrap() = Some(second.clone());
-
-    let at_client = tokio::time::timeout(LIMIT, at_client).await.unwrap().unwrap();
-    let at_server = tokio::time::timeout(LIMIT, got).await.unwrap().unwrap();
-    assert_eq!(Sha256::digest(&at_server), Sha256::digest(&up), "the client's bytes reached the target whole");
-    assert_eq!(Sha256::digest(&at_client), Sha256::digest(&down), "the target's bytes reached the client whole");
-    assert_eq!(accepted.load(Ordering::SeqCst), 1, "the same connection to the target");
-    session.abort();
-}
-
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_session_of_the_channel_goes_on_across_a_handover_with_its_keys_and_nonces() {
     let (up, down) = (pseudo_random(BYTES, 3), pseudo_random(BYTES, 4));
@@ -249,7 +211,7 @@ async fn a_session_of_the_channel_goes_on_across_a_handover_with_its_keys_and_no
     tokio::time::timeout(LIMIT, half_rx).await.unwrap().unwrap();
     let second: Arc<Keeper<DuplexStream>> = Arc::new(Keeper::new(Duration::from_secs(60)));
     *current.lock().unwrap() = None;
-    let handed = through_bytes(first.hand_over().await);
+    let handed = through_bytes(first.hand_over_with(<DuplexStream as Movable>::move_out).await);
     assert_eq!(handed.len(), 1, "one session handed over");
     assert!(handed[0].target.as_ref().is_ok_and(|moved| moved.channel.is_some()), "its channel moved");
     let said = second.take_over(handed, |id, moved| {
@@ -270,45 +232,4 @@ async fn a_session_of_the_channel_goes_on_across_a_handover_with_its_keys_and_no
     assert!(!lines.iter().any(|line| line.contains("ended")), "no session of the channel ended: {lines:?}");
     session.abort();
     operator.abort();
-}
-
-/// A target that runs no channel and is no TCP connection cannot move: the
-/// next keeper keeps its id, and the client's resume hears `CLOSE` with
-/// why, never a session that the far end forgot.
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn a_session_whose_target_cannot_move_ends_at_its_resume_with_why() {
-    let first: Arc<Keeper<DuplexStream>> = Arc::new(Keeper::new(Duration::from_secs(60)));
-    let current: Current<DuplexStream> = Arc::new(Mutex::new(Some(first.clone())));
-    let (links_tx, links_rx) = mpsc::unbounded_channel();
-    let (targets_tx, mut targets_rx) = mpsc::unbounded_channel::<DuplexStream>();
-    let open = move || {
-        let targets_tx = targets_tx.clone();
-        async move {
-            let (ours, theirs) = tokio::io::duplex(PIPE);
-            let _ = targets_tx.send(theirs);
-            Ok::<_, String>(ours)
-        }
-    };
-    far_end(current.clone(), settings(), links_rx, open);
-    let (mut app, app_end) = tokio::io::duplex(PIPE);
-    let session = client_session(links_tx, app_end).await;
-    let mut far_app = tokio::time::timeout(LIMIT, targets_rx.recv()).await.unwrap().unwrap();
-    app.write_all(b"before").await.unwrap();
-    let mut before = [0u8; 6];
-    far_app.read_exact(&mut before).await.unwrap();
-
-    let second: Arc<Keeper<DuplexStream>> = Arc::new(Keeper::new(Duration::from_secs(60)));
-    *current.lock().unwrap() = None;
-    let handed = through_bytes(first.hand_over().await);
-    assert!(handed[0].target.is_err());
-    let said = second.take_over(handed, |_, _| Err("never asked".to_string()));
-    assert!(said.iter().any(|line| line.contains("could not move")), "{said:?}");
-    *current.lock().unwrap() = Some(second.clone());
-
-    let outcome = tokio::time::timeout(LIMIT, session).await.unwrap().unwrap();
-    let Outcome::Layer(ended) = outcome else { panic!("{outcome:?}") };
-    match &ended.end {
-        End::Closed(reason) => assert!(reason.contains("upgrade could not move"), "{reason}"),
-        other => panic!("the session ends with the far end's CLOSE, not {other:?}"),
-    }
 }

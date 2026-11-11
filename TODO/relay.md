@@ -60,7 +60,7 @@ pool host accepted the token of the default host: `docs/STATUS.md`, "`podssh pro
 live"), and no token goes to another deployment. The exact minting host lost: each pool host
 would mint its own token, against the brake of 120 attempts a minute (`docs/relay.md:476`).
 The decision said "one machine has one cached token"; on 2026-10-08 the operator ruled
-"one for each relay deployment" (`docs/decisions.md:102`).
+"one for each relay deployment" (`docs/decisions.md:103`).
 
 The session that did it (2026-10-08) made one call stricter than step 3: an old entry, with
 no minting host, is not used at all, also under the default key. An old list that put the
@@ -1853,9 +1853,9 @@ give, as its forward check reads `bufferedAmount`.
 
 The research on the client's side (2026-11-02) found podssh's own part of the exposure, which
 Approach item 3 above calls done. The layer's window on the pair's road is its replay capacity,
-4 MiB by default and up to 16 MiB (`crates/podssh-relay/src/session/replay.rs:18-20`), and a node
+4 MiB by default and up to 16 MiB (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:18-20`), and a node
 takes twice that before it calls a local side stalled
-(`crates/podssh-relay/src/reverse/layered.rs:99-104`): above the contract's 1 MiB on the reverse
+(`crates/podssh-relay/src/reverse/layered.rs:104-109`): above the contract's 1 MiB on the reverse
 road (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`). Its repair is T-443.
 And a raw forward stream (`podssh proxy`, `pipe relay:`) has no bound of podssh's: the pump
 reads 32 KiB, then writes (`crates/podssh-cli/src/pipe/pump.rs:4-6`).
@@ -1959,7 +1959,7 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   live relay (`scripts/release-short.sh:109-115`, run at `.github/workflows/release.yml:151`, `:213`,
   `:284`, `:323` and `:417`; three of these run in a matrix of two). The audit counted seven
   jobs; the matrices give eight.
-- Read: a beta needs the job `all` of the gate (`docs/decisions.md:67`). Citations of an older
+- Read: a beta needs the job `all` of the gate (`docs/decisions.md:68`). Citations of an older
   document of the relay were once off by 35 (`TODO/repo.md:2320-2323`).
 - Read: no workflow checks the relay on a schedule: `relay-live.yml` runs by hand
   (`.github/workflows/relay-live.yml:14-23`), and `build.yml` on a push, a pull request or by hand
@@ -2235,8 +2235,8 @@ relay's operator has no way to move the binaries in the field to another deploym
   (`crates/podssh-relay/src/pair.rs:1-4`; `docs/relay.md:654-659`). The audit cited
   `docs/relay.md:646-651`; the fact is at `:654-659`.
 - Read: a release binary is uploaded or copied into its host, which cannot build it or download
-  it (Q48, `docs/decisions.md:63`); a machine keeps one token for each deployment, and podssh
-  "never sends a token to a deployment that did not mint it" (`docs/decisions.md:102`).
+  it (Q48, `docs/decisions.md:64`); a machine keeps one token for each deployment, and podssh
+  "never sends a token to a deployment that did not mint it" (`docs/decisions.md:103`).
 - Read, by the audit through web.pkgforge.dev on 2026-10-31
   (https://pubapi.registry.google/rdap/domain/ajam.dev): Cloudflare's name servers, no DNSSEC, an
   expiry on 2028-01-19.
@@ -2260,7 +2260,7 @@ podssh's side:
    still meets TLS on its own name.
 4. The default becomes a list of deployments: today's first, then those that the signed document
    names. A token is minted at each deployment and sent to no other (T-057), and the hosts are
-   tried in the ways of Q10 (`docs/decisions.md:81`).
+   tried in the ways of Q10 (`docs/decisions.md:82`).
 5. The cache keeps the signed document and its signature, so that a binary keeps the other
    deployments when the old domain is gone.
 6. `podssh relay status` and doctor name each deployment, and whether its pool was signed.
@@ -2900,7 +2900,7 @@ podssh's cache (the keys, the pins, the tokens, the logs of detached runs) goes 
 the first one's files in the second one's tree, which that user's tools take for their own; and
 where that `.cache` is missing, podssh makes it, mode 0700 and owned by the running user, so the
 home's owner can no longer use a cache of their own. A defect: the decision names "the user's
-cache directory" (`docs/decisions.md:102`), and this one is another user's.
+cache directory" (`docs/decisions.md:103`), and this one is another user's.
 
 ## Premise
 
@@ -2915,9 +2915,9 @@ cache directory" (`docs/decisions.md:102`), and this one is another user's.
   (`PodUtils/podssh:crates/podssh-relay/src/identity/file.rs` lines 97-110 at `3bb42ea`): a list without that home
   would make a new key, a new identity, for a node whose operators pinned the old one.
 - Read: the tokens' row of the decisions names "the user's cache directory, the user's runtime
-  directory, the temporary directory, the working directory" (`docs/decisions.md:102`); Q68 reads
+  directory, the temporary directory, the working directory" (`docs/decisions.md:103`); Q68 reads
   the effective uid's entry of `/etc/passwd` as a file, for the login name
-  (`docs/decisions.md:42`, T-500).
+  (`docs/decisions.md:43`, T-500).
 
 ## Approach
 
@@ -3606,15 +3606,15 @@ to hosts that the session does not use.
 
 - Read: `AGENTS.md:336-346`, rule 2: one outbound connection, and its four exceptions (a listener
   that the user asks for, the race between relay hosts, the split HTTP road of Q44, the quick
-  tunnel's second connection of Q62); `docs/decisions.md:41` adds XHTTP's second connection (Q67).
+  tunnel's second connection of Q62); `docs/decisions.md:42` adds XHTTP's second connection (Q67).
   None covers a probe of a host that the session does not use.
 - Read: the pool's refresh after a mint is a request of its own in the background
   (`crates/podssh-relay/src/open.rs:408-419`): one request to the host that minted, at most once in
   7 days.
 - Read: the contract's `?dial=lazy` (`docs/relay.md:519-522`): the relay dials the target on the
   client's first byte, so a probe with it and no byte reaches no target.
-- Read: Q83, the experience of a user first (`docs/decisions.md:25`), and Q73, `doctor`'s sections
-  at once (`docs/decisions.md:35`).
+- Read: Q83, the experience of a user first (`docs/decisions.md:26`), and Q73, `doctor`'s sections
+  at once (`docs/decisions.md:36`).
 - Read: T-606 ranks on demand and T-607 samples the race; neither probes a host unasked.
 
 ## Approach
@@ -3722,7 +3722,7 @@ once; the test of the overlap fails.
   10 s at most, each with `?dial=lazy`. Item 1 no longer waits on a default.
 - 2026-11-03, the draft: the Premise's lines moved before it was read. Rule 2 begins at
   `AGENTS.md:340`, and the rows of Q89 and Q90 came above the others: Q67 is at
-  `docs/decisions.md:43`, Q83 at `docs/decisions.md:27` and Q73 at `docs/decisions.md:37`. Rule 2
+  `docs/decisions.md:44`, Q83 at `docs/decisions.md:28` and Q73 at `docs/decisions.md:38`. Rule 2
   had four exceptions, and Q67's XHTTP is not among them; the draft adds Q89's as the fifth.
 - The settings file's `RelayRank` took yes or no alone (`crates/podssh-cli/src/settings.rs`, its
   `relayrank`), and the file's `no` won over the variable (`crates/podssh-relay/src/rank_list.rs`,
@@ -3971,7 +3971,7 @@ samples hold.
 
 ## Premise
 
-- Read: Q63, `docs/decisions.md:44` says "stays the default relay; a change of that deployment
+- Read: Q63, `docs/decisions.md:45` says "stays the default relay; a change of that deployment
   stays an item of"; no entry waits for one.
 - Read: `docs/relay-operator.md` has no item on `/relays.json`'s rank or `score_ms`: its sections
   "Defects on the relay's side" (`docs/relay-operator.md:34`) and "Questions about the contract"
@@ -4533,7 +4533,7 @@ failures covers between runs.
   link goes through `open` to its one host, a list of one that the user named
   (`crates/podssh-relay/src/forward_layer/client.rs:154` says "hosts: vec![relay], explicit: true"), and
   waits the same backoff between links
-  (`crates/podssh-relay/src/session/resume.rs:377` says "let pause = crate::open::backoff(attempt);"):
+  (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:377` says "let pause = crate::open::backoff(attempt);"):
   under a gate of 300 s, a session alone would wait up to 300 s after its host came back, where its own
   backoff waits 30 s at most, and a first wait of 5 s would cost a brief outage 5 s to resume where it
   cost about 1 s. So the gate shares one backoff for each host among the sessions of a process: a lone
@@ -4928,7 +4928,7 @@ Read at `2042200`:
   (`crates/podssh-relay/tests/opentunnel_stand_in/parse.rs:110` for the record's length, `:120` for the
   name), and routing by a name's label in OpenTunnel's road (`crates/podssh-relay/src/opentunnel/wire.rs:206`).
 - A node that ends a visitor's TLS with a name of its own exists for OpenTunnel (T-530):
-  `crates/podssh-relay/Cargo.toml:105` says "the key and the CSR of its" name come from the binary.
+  `crates/podssh-relay/Cargo.toml:108` says "the key and the CSR of its" name come from the binary.
 - Publishing a local HTTP service at a public name is T-180 (`podssh funnel`, TLS at the quick tunnel's
   edge); this entry is the role's form, with TLS at the node.
 

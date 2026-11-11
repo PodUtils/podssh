@@ -45,7 +45,9 @@ impl Handler for UdpHandler {
         let (host, port, timeout, idle) = (self.host.clone(), self.port, self.timeout, self.idle);
         let say = self.say.clone();
         Box::pin(async move {
-            let socket = flow::connect(&host, port, timeout).await.map_err(|e| e.to_string())?;
+            let socket = flow::connect(&*podssh_ws::resolve::resolver(), &host, port, timeout)
+                .await
+                .map_err(|e| e.to_string())?;
             let (ours, theirs) = tokio::io::duplex(PIPE);
             tokio::spawn(async move {
                 let carried = flow::carry(theirs, socket, idle).await;

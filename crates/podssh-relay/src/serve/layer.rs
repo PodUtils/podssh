@@ -83,7 +83,7 @@ impl Resumes {
     /// Sessions of `settings` (their replay buffer, their deadline), within
     /// `budget` bytes of replay buffers in all; 0 offers no session.
     pub fn new(settings: Settings, budget: usize) -> Resumes {
-        let keeper = Arc::new(Keeper::new(settings.resume_deadline));
+        let keeper = Arc::new(Keeper::new(settings.resume_deadline).with_tell(crate::session::budget::told()));
         let (name, quic) = (None, None);
         Resumes { keeper, settings, budget, name, quic, pending: Mutex::new(0), sweeping: AtomicBool::new(false) }
     }

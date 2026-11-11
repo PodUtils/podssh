@@ -393,7 +393,7 @@ where
     let keeper = match (upgrades, &channel) {
         (true, Some(node)) => crate::node_upgrade::channel_keeper(node, settings.resume_deadline),
         (true, None) => crate::node_upgrade::pipe_keeper(settings.resume_deadline),
-        (false, _) => Arc::new(Keeper::new(settings.resume_deadline)),
+        (false, _) => Arc::new(Keeper::new(settings.resume_deadline).with_tell(podssh_relay::session::budget::told())),
     };
     if upgrades {
         crate::node_upgrade::lines(Arc::new(say.clone()));

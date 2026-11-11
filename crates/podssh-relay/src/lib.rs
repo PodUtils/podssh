@@ -86,7 +86,8 @@
 //! the crates of PodUtils/podcrates (T-684).
 
 pub mod addresses;
-pub mod answer;
+// A peer's answer, read by one rule (T-633): pod-session of PodUtils/podcrates.
+pub use pod_session::answer;
 #[cfg(feature = "blocking")]
 pub mod blocking;
 #[cfg(feature = "bore")]
@@ -147,7 +148,8 @@ pub mod ssh_http;
 pub mod tls_groups;
 pub mod token;
 pub mod transit;
-pub mod udp;
+// UDP over a byte stream (T-168): pod-session of PodUtils/podcrates.
+pub use pod_session::udp;
 
 pub use open::{open, Failure, OpenError, Opened, Request};
 pub use relay::{default_relay_host, Relay, RELAY_ENV};

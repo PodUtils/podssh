@@ -29,7 +29,7 @@ where
     F: Future<Output = Result<A, String>> + Send + 'static,
     G: Fn(&PublicKey) -> bool + Clone + Send + Sync + 'static,
 {
-    let keeper = Arc::new(Keeper::new(settings.resume_deadline));
+    let keeper = Arc::new(Keeper::new(settings.resume_deadline).with_tell(podssh_relay::session::budget::told()));
     serve_kept(endpoint, settings, budget, open, admit, keeper).await
 }
 

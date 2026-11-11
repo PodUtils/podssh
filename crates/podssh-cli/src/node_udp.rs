@@ -55,7 +55,7 @@ pub(crate) fn shown(target: &Route) -> String {
 /// that refuses UDP gives 78; a name with no address, 69.
 pub(crate) async fn probe(target: &Route, limit: Duration) -> Result<(), Refusal> {
     let shown = shown(target);
-    match flow::probe(&target.host, target.port, limit).await {
+    match flow::probe(&*podssh_ws::resolve::resolver(), &target.host, target.port, limit).await {
         Ok(_) => Ok(()),
         Err(e) if e.host_refuses() => Err(Refusal {
             message: format!("TARGET {shown}: {e}; a node that sends UDP needs a host that allows it"),

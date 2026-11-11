@@ -38,7 +38,12 @@ pub struct Layered<H: Handler> {
 
 impl<H: Handler> Layered<H> {
     pub fn new(inner: H, settings: Settings, budget: usize) -> Layered<H> {
-        Layered::with_keeper(inner, settings, budget, Arc::new(Keeper::new(settings.resume_deadline)))
+        Layered::with_keeper(
+            inner,
+            settings,
+            budget,
+            Arc::new(Keeper::new(settings.resume_deadline).with_tell(crate::session::budget::told())),
+        )
     }
 
     /// With `keeper`, which another road's far end may share: a session

@@ -19,7 +19,7 @@ entry keeps its proof in the entry; this page keeps no history (git does).
   4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
      PodUtils/podcrates#37): a move of each tag, no patch. Since then each tag moved, and
      `pod-ws` is taken (`a083593e`, COORD-017; podcrates' `SOURCES` holds its `taken`
-     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Then `v0.15.0` with `pod-wormhole` (2026-11-11, PodUtils/podcrates#54). Frozen now, for fixes
+     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Then `v0.15.0` with `pod-wormhole` and `pod-session` (2026-11-11, PodUtils/podcrates#54): `code/` and `session/` of podssh-relay are glue over the crates, and the freeze below ended with the takes. Frozen now, for fixes
      only, each told to podcrates as a COORD issue, until `v0.15.0` takes them:
      `crates/podssh-relay/src/code/` (`pod-wormhole`, podcrates T-022; its exchange goes to `pod-relay`)
      and `crates/podssh-relay/src/session/` (`pod-session`, podcrates T-020). A draft that changes a
@@ -407,7 +407,7 @@ are repaired, and the checks of the tests that failed at random on 2026-11-10 pa
 **First (2026-11-09):** the share lock's flake is repaired, v0.7.0 is taken, ssh node://'s refusals and the Trojan servers are done,
 T-698 is partial (its serve part waits for T-107). Then podssh's own order, by priority beside M10's
 order below: the partial entries of the testers' issues are closed (2026-11-10: each ran against a stand-in); T-707 (the GSRN road) is open since podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). **cfb's asks wait** (the owner's ruling "Priority", 2026-11-09): T-708 to T-731 stay filed
-behind podssh's own work order, M10 included, and Q105 waits with them. A beta may go out when a batch
+behind podssh's own work order, M10 included (Q105 is settled: allowed, 2026-11-11). A beta may go out when a batch
 fits (T-446).
 
 **After M3 and before M4 (the operator's ruling of 2026-10-08):**
@@ -557,13 +557,12 @@ ranks relay hosts unasked only with `RelayRank auto` (Q89); the calls of Q86 sta
 T-548, T-578, T-531's weekly run); and the holds end (Q92), T-328 and T-376 waiting for their
 inputs alone.
 
-**Q105 (2026-11-09; not asked now: it waits with cfb's asks, the owner's ruling "Priority"): a node's door from a net document at a URL, read again each TTL (T-715).** cfb's
+**Q105 (2026-11-09): settled by the owner on 2026-11-11, allowed as recommended** (`docs/decisions.md`; T-715 keeps its place behind podssh's own work). **The question: a node's door from a net document at a URL, read again each TTL (T-715).** cfb's
 ask A-S-08 wants a node to read its signed net document again each TTL (300 s by default) while it
 runs. Rule 2 of `AGENTS.md` allows a read beside a session only once a day and before it (Q96, Q97).
 Recommendation: allow it as a ninth exception: only with `--net-url`, which the user names; one GET
 through `HTTPS_PROXY` each TTL at most (never under 60 s), never while a read is open; the reply
-bounded (64 KiB) and its signature checked against `--net-owner`. Until then T-715 does the one read
-before the node goes online, and the rest waits.
+bounded (64 KiB) and its signature checked against `--net-owner`.
 
 **Q102, Q103, Q104 (2026-11-05): settled by the owner on 2026-11-06** (`docs/decisions.md`): no
 release and no beta until the migration is done, podssh stays beta until the owner calls it stable,

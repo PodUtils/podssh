@@ -816,7 +816,7 @@ measured: a race needs two processes; the test below makes it certain.
    (`crates/podssh-ssh/src/hostkey.rs:352-376`). Else append.
 3. Hold the lock only for the read and the write, never across a prompt.
 4. When the file system refuses locks, append as today, with a verbose note
-   (a fallback that says so, `AGENTS.md:376`).
+   (a fallback that says so, `AGENTS.md:380`).
 
 ## Prove
 
@@ -2990,7 +2990,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
    that podssh could not read, then russh's words; a connection lost while the forwards were asked
    for names russh's cause, as a lost session does (the reading of T-464).
 5. The patch offered to russh upstream. That is the operator's to send, as no session changes
-   another repository (`docs/decisions.md:78` says "no session changes another repository"); the
+   another repository (`docs/decisions.md:79` says "no session changes another repository"); the
    copy goes once a release of russh reads such replies.
 6. `docs/cli.md` (the keepalive, and `-R`'s refusal), `docs/STATUS.md`.
 
@@ -4222,8 +4222,8 @@ A defect: `ssh node://` is the documented way to log in to a node.
   names no byte, no version line and no step (`crates/podssh-ssh/src/run.rs`, lines 395-403 at
   `3bb42ea`).
 - Read: `ssh node://` carries SSH with `carry_keeping`: the layer's settings of `ssh`, which name
-  `keep.v1` (`crates/podssh-cli/src/layered.rs:222`), the far end's shells learned and its
-  silence watched (`:256-262`), and the SSH client and the carriage joined in one task
+  `keep.v1` (`crates/podssh-cli/src/layered.rs:224`), the far end's shells learned and its
+  silence watched (`:258-264`), and the SSH client and the carriage joined in one task
   (`crates/podssh-cli/src/ssh/node.rs:333-336`); `operator` carries with `carry_through`, with
   none of these (`crates/podssh-cli/src/operator.rs:164-165`). These are the client's differences
   between the run that stopped and the one that worked; which one stopped it is not known.
@@ -4259,7 +4259,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
 ## Decision
 
 The 10 s of item 4 are the node's own bound on its TARGET's answer
-(`crates/podssh-relay/src/session/far.rs:42`): a sshd that the node reached has answered by then.
+(`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:42`): a sshd that the node reached has answered by then.
 Lost: a retry of the handshake (the issue's third ask), which sends a second login while the
 first may be on its way; the line of item 4 is the shorter first bound that it asks for.
 
@@ -4332,7 +4332,7 @@ Read on 2026-11-03 by the drafting agent, at `e176606` (the tree of `3bb42ea` wi
   here: the run of item 1 confirms it.
 - On `main`, `ssh node://NAME` with a good pair goes through the race of the roads
   (`crates/podssh-cli/src/ssh/node_roads.rs:173-179`, moved from `ssh/mod.rs` by T-531 and to `node_roads.rs` by T-551), not through `node::connect`, as the transit road is
-  on by default (`crates/podssh-relay/src/transit/mod.rs:59`) since T-436; at `35a0d19`, the
+  on by default (`crates/podssh-relay/src/transit/mod.rs:61`) since T-436; at `35a0d19`, the
   tester's build, it went through `node::connect`. The record is in the login of `podssh-ssh`,
   which both roads share, and both count what their layer carries.
 
