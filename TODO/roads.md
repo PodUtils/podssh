@@ -3434,6 +3434,15 @@ What remains of the entry, for its next part:
    runner where `podssh relay serve` runs (Q88: they wait until podssh is stable).
 5. XHTTP's packet-up over HTTP/1.1 to a user's Xray-core (item 4) is T-456's.
 
+2026-11-11, an addition of PodUtils/podnet#438 (block "agentanycast 2", the owner's review) to the five
+invariants of GitHub #55, for the protocol's Prove: (6) a stored `seq` received again is answered with the same
+acknowledgement, never dropped in silence; (7) an acknowledgement goes only after the chunk is stored, and a
+full window is a refusal; (8) a refusal is a frame with its reason (`full`, `unknown session`, `not allowed`);
+(9) the close of a direction carries its count, and a mismatch fails the session; (10) a retry log on disk is
+keyed by (session, `seq`). Its test: a stand-in that drops every third acknowledgement still ends a 20 MiB
+session with equal digests, at most one resend for each lost acknowledgement; with (6) removed it fails.
+
+
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)
 
 **Source:** GitHub #51 (Nemo-010, 2026-10-30).
@@ -9731,7 +9740,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:170` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:5810`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:5819`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The

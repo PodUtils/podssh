@@ -3892,3 +3892,44 @@ prefix is allowed, as each names a capability that is missing.
 - Waits for the checks of the release (T-251): the box run (`sh scripts/test_in_box.sh`, a read-only
   `/etc/ssl` and a noexec directory show their closed features), and a planted probe that says ok on
   an error.
+
+# T-747: `podssh doctor`: a probe of concurrent handshakes that tells a per-connection limit from a lone failure
+
+**Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "satmux 7" (donor Th0rgal/satmux, MIT).
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`doctor` samples a path with sequential tries, so it cannot see a gateway that resets connections only when
+several are open at once: each probe is ok alone, and an operator whose sessions reset when a second and a
+third start together cannot tell a concurrency limit from a flaky network, and picks the wrong remedy.
+
+## Premise
+
+- The review: `crates/podssh-cli/src/doctor/samples.rs:17-18` (`TRIES`, `SPREAD`) and `:137-144` (a sleep
+  before each later try) make every probe sequential.
+- The review: no probe separates a concurrency limit from a lone-connection failure (GitHub #99's case).
+
+## Approach
+
+A section `burst` (in `--quick` too): K = 6 handshakes to the relay host at once, a sequential control of the
+same K, the two rounds in swapped order; a verdict of three, "no concurrency limit seen up to 6", "concurrency
+limit: k/6 together, 6/6 one at a time", or "not shown to be a concurrency limit: m/6 fail even alone"; each
+failure classed by its kind (reset, timeout, refused by the proxy), never by its words; within `BUDGET`; both
+arms' counts in `--json`; through a proxy, the line says that it measures the proxy's limit. The block's
+Proposal and Acceptance in PodUtils/podnet#438 are the full text.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test doctor_burst
+```
+
+A fake relay listener that accepts the first N concurrent connections and resets the rest gives `k_ok = N`;
+one that resets each gives "not shown"; a clean one, 6/6 twice; a silent one, `timeout` within `BUDGET`;
+`--jobs 1` and the default agree. Planted: a probe that counts the burst arm alone fails the "not shown" case.

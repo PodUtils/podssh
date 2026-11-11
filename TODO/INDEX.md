@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**701 entries: 85 open, 20 partial, 9 blocked, 587 done.**
+**706 entries: 90 open, 20 partial, 9 blocked, 587 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 25 | 9 | 1 | 262 | 297 |
-| P3 | 56 | 9 | 5 | 254 | 324 |
-| **All** | 85 | 20 | 9 | 587 | 701 |
+| P2 | 26 | 9 | 1 | 262 | 298 |
+| P3 | 60 | 9 | 5 | 254 | 328 |
+| **All** | 90 | 20 | 9 | 587 | 706 |
 
 ## Entries
 
@@ -777,3 +777,8 @@ repository and CI).
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |
 | [T-746](robustness.md) | P2 | S | M10 | defect | partial | Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS |
+| [T-747](cli.md) | P3 | S | M10 | feature | open | `podssh doctor`: a probe of concurrent handshakes that tells a per-connection limit from a lone failure |
+| [T-748](relay.md) | P2 | S | M10 | defect | open | `relay serve`: a cap on the open connections of an address and in all, and a pause after a failed accept |
+| [T-749](mesh.md) | P3 | M | M10 | feature | open | `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs |
+| [T-750](mesh.md) | P3 | M | M10 | feature | open | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
+| [T-751](machine.md) | P3 | S | M10 | feature | open | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |

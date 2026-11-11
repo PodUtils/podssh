@@ -5578,3 +5578,44 @@ forward road gives the cap's bytes before its 1009. Measured: 20 runs of `cargo 
 podssh-relay --all-features --test http_road`, 0 failed (before: 5 of 15); `--lib` and the role's
 serve targets, each passed.
 
+# T-748: `relay serve`: a cap on the open connections of an address and in all, and a pause after a failed accept
+
+**Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "airhand 13" (donor sqlpxc/airhand, MIT).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The relay role's accept loop spawns a task for each TCP connection and bounds none: not for one address, not in
+all. One client can hold thousands of connections (30 s each before TLS begins); past the descriptor limit,
+`accept` fails and the loop retries at once, so the role uses a whole core while every client is refused.
+
+## Premise
+
+- The review: `crates/podssh-cli/src/relay_serve.rs:448-454` (`let Ok((tcp, peer)) = accepted else { continue };`,
+  then a spawn), with no count and no pause.
+- The review: `crates/podssh-relay/src/serve/brake.rs:61-89` (`Who`) already groups an IPv4 address and an
+  IPv6 /64; `crates/podssh-cli/src/relay_serve/limits.rs:1-9` has no bound of connections.
+
+## Approach
+
+A slot for each connection, held for its life, counted by `Who` and in all: `--max-connections-per-address N`
+and `--max-connections N` (0 no limit), published in `/relays.json` with the other limits; a refused connection
+closed before TLS and said once a minute for each address; behind the edge, the visitor's address as
+`brake.rs` reads it; after a failed `accept`, a pause of 100 ms and one line a minute. The defaults are a
+Decision of the entry. The block's Proposal and Acceptance in PodUtils/podnet#438 are the full text.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve_slots
+```
+
+Per address 2: a third idle connection is closed at once, and a new one is taken once one of two ends; two
+addresses of one /64 share a count; a silent connection stops counting at `HANDSHAKE_WAIT`; with `ulimit -n 64`
+and 200 idle clients, the role's CPU over 3 s is under a tenth of a core. Planted: no pause after a failed
+accept, and the CPU test fails.

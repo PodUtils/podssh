@@ -2011,3 +2011,40 @@ cargo test -p podssh-cli --test mcp -- read_only
 
 Plants: let `uptime; id` pass with the pattern `uptime`; a `cp_put` call by name in read-only mode succeeds.
 Each fails its test.
+
+# T-751: `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it
+
+**Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "agentanycast 3" (donor AgentAnycast; behaviour only).
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+An agent's client (Claude Desktop, Cursor, VS Code, Gemini) needs a JSON entry that starts `podssh mcp` with
+the right flags; a hand-written one can name a flag that does not start the stdio server, and nothing checks it.
+
+## Premise
+
+- The review: `crates/podssh-cli/src/flags/mcp.rs:9-20` (`MCP_FLAGS`) has no option to print it;
+  `crates/podssh-cli/src/mcp/mod.rs` reads `std::env::current_exe()` already.
+- The review: `crates/podssh-cli/tests/mcp_harness/mod.rs` starts `podssh mcp` as a client does.
+
+## Approach
+
+`--client-config claude-desktop|cursor|vscode|gemini` prints the client's JSON: `command`, the absolute path of
+the running binary, and `args` from the flags typed (`--allow-host`, `--allow-dir`, `--allow-session`, `-F`,
+`--direct`), checked as `run` checks them (an unknown client or a bad pattern, 64). The test starts the printed
+command and reads `tools/list`. The block's Proposal and Acceptance in PodUtils/podnet#438 are the full text.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test mcp_client_config
+```
+
+The printed command, started, offers `ssh_exec` with `--allow-host` and not without. Planted: a printer that
+emits an unknown flag, and the test fails.

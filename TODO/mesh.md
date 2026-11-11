@@ -13146,7 +13146,8 @@ said "the operator refuses port N"); a binary first message opens nothing. Here,
 installed under `.work/`: 3 passed (`--ignored`), clippy and rustfmt clean, and the unit tests of the
 module (`--lib bare`), 3 passed. Planted (`scripts/plants/t740-bare-connect-binary.patch`), the connect
 sent as binary: the echo's test failed, the other two passed. `.github/workflows/bare-interop.yml` runs
-both on each push of the hop. Next: the node from `pod-services` (podcrates T-187, `v0.20.0`), the hop
+both on each push of the hop; its first run on a runner passed (run 42974162578: the server from npm, 3
+passed, the planted connect failed). Next: the node from `pod-services` (podcrates T-187, `v0.20.0`), the hop
 tried after each other WebSocket road with its line, and the short live session through `openbare.xyz`.
 
 
@@ -13349,3 +13350,81 @@ asked of podcrates (no host of a third party in podssh's code): its endpoints `s
 `PODSSH_SANDHOLE=no`, and its Prove.
 podcrates filed it as its T-186 (`services/sandhole.toml`, with `tunnel-zone`), and localhost.run's host key
 of T-565's live run as its T-185; both go out with podcrates `v0.20.0`.
+
+# T-749: `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs
+
+**Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "tunnet 1" (donor tunnetio/Tunnet; its Apache-2.0 parts only, the rest from the description).
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podssh net policy set FILE` signs a document and sends it to each member at once, and says only "set the
+policy: N rules, M tags": an owner learns what a policy changed when a member is refused.
+
+## Premise
+
+- The review: `crates/podssh-cli/src/net/policy_cmd.rs:23-30` lists the verbs `check`, `set`, `show`, `clear`;
+  `:149-169`, `set` prints no effect.
+- The review: `crates/podssh-cli/src/net/policy.rs:167-176` (`check`) is the one evaluator, which a node uses
+  for each session.
+
+## Approach
+
+`policy test FILE EXPECT` (each case allow or refuse, through `check`; exit 65 naming the first false case and
+its reason), `policy diff OLD NEW` (each member and target whose answer changes, widened or narrowed), and
+`policy set --dry-run` and `--expect FILE`, which run both before the signature and leave `net.doc` and its
+serial untouched on a failure. The block's Proposal and Acceptance in PodUtils/podnet#438 are the full text.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test net_policy_test
+```
+
+A case that the policy refuses fails `test` with its reason; a diff of a policy against itself is empty; a
+deleted tag line shows its pairs narrowed; `--dry-run` leaves `net.doc` byte for byte. Planted: `diff` that
+compares the documents' text, not the answers, and a reordered policy shows a change.
+
+# T-750: A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it
+
+**Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "agentanycast 4" (donor AgentAnycast; behaviour only, from the description).
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A podssh net tags members in its signed policy, but a destination names one member: a user who needs "a
+machine with the tag `arm64`" names one, and when it is offline the session fails though another would do.
+
+## Premise
+
+- The review: `crates/podssh-cli/src/net/lookup.rs:25-35` (`bare`) takes no word with `:` as a member, so
+  `tag:x` is free; `crates/podssh-cli/src/ssh/node.rs:41-44` (`destination`) classifies a destination.
+- The review: `crates/podssh-cli/src/net/policy.rs:119-121` (`Policy::tagged`) maps a tag to names.
+
+## Approach
+
+`tag:NAME` resolves, from the net held, to the members with the tag and the role `node`, in a shuffled order
+with a hold of 30 s on a member that just failed; each is opened in turn until one opens; a line names the
+member used; a command that started is never run again on the next; `tag:nosuch` exits 64 before any
+connection; commands that need one member (`job wait`) refuse a tag. The block's Proposal and Acceptance in
+PodUtils/podnet#438 are the full text.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib net::tag
+cargo test -p podssh-cli --test node_tag
+```
+
+With `a`, `b`, `c` tagged and `a` offline, the session ends on `b` or `c` and tries `a` once; 20 resolutions in
+the hold never put `a` first; all offline names each cause. Planted: no hold, and `a` comes first again.
