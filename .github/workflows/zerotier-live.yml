@@ -35,17 +35,22 @@ jobs:
       - name: a short run through the roots and the relay
         run: |
           set -o pipefail
-          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture 2>&1 | tee "$RUNNER_TEMP/run.log"
+          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture two_members 2>&1 | tee "$RUNNER_TEMP/run.log"
           grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/run.log"
       - name: a planted member of another network fails it
         run: |
           rc=0
-          PODSSH_ZT_LIVE_PLANT=other timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored || rc=$?
+          PODSSH_ZT_LIVE_PLANT=other timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored two_members || rc=$?
           if [ "$rc" -eq 0 ]; then
             echo "the check is vacuous: a member of another network was reached"
             exit 1
           fi
           echo "the planted member failed (exit $rc), as it must"
+      - name: the pair's road of the library through the roots and the relay
+        run: |
+          set -o pipefail
+          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture the_pair_s_road 2>&1 | tee "$RUNNER_TEMP/pair.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/pair.log"
       - name: the command line through the roots and the relay
         run: |
           set -o pipefail

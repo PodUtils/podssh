@@ -67,7 +67,9 @@ fn serve_and_reach(lab: &Lab, env: &[(&str, &str)], limit: Duration) {
     client.envs(env.iter().copied()).env("PODSSH_DERP", "no");
     let began = std::time::Instant::now();
     let (rc, out, err) = run_within(&mut client, limit);
-    assert_eq!(rc, 0, "stdout {out:?}, stderr {err}");
+    // What the node said meanwhile, for a run that fails.
+    let node_said: Vec<String> = lines.try_iter().collect();
+    assert_eq!(rc, 0, "stdout {out:?}, stderr {err}; the node said: {node_said:#?}");
     assert_eq!(out, GREETING, "the command's output over ZeroTier's road");
     assert!(err.contains("ZeroTier's road answered first"), "{err}");
     eprintln!("podssh ssh node:// through ZeroTier's road in {:.1} s", began.elapsed().as_secs_f64());

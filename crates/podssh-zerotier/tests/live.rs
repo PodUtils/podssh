@@ -60,3 +60,44 @@ async fn two_members_meet_through_zerotier_s_roots_and_relay_and_carry_64_kib() 
     assert_eq!(got, sent);
     eprintln!("64 KiB each way through ZeroTier's relay in {:.1} s", began.elapsed().as_secs_f64());
 }
+
+/// The pair's road as the command line runs it, through the same roots and
+/// relay: the node of a pair (`road::serve`, at the identity that both ends
+/// make of the pair's token), and a client's `road::link` with the road's
+/// own limit. Its lines say each step's time, so a slow one shows.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "a live run through ZeroTier's roots and relay: zerotier-live.yml"]
+async fn the_pair_s_road_meets_through_zerotier_s_roots_and_relay() {
+    use podssh_zerotier::pair::PairRoad;
+    use podssh_zerotier::road::{self, Dial};
+    let began = std::time::Instant::now();
+    let dial: Dial = Arc::new(|| {
+        Box::pin(async {
+            let tcp = tokio::net::TcpStream::connect(relay_at()).await.map_err(|e| e.to_string())?;
+            Ok(road::relay_wire(tcp))
+        })
+    });
+    // A token made for the run, so that no other run's node holds the address.
+    let token = format!("live-{}-{}", std::process::id(), began.elapsed().as_nanos());
+    let made = PairRoad::of("live", &token).unwrap();
+    eprintln!("the road: {made:?}, made in {:.1} s", began.elapsed().as_secs_f64());
+    let (visitors, mut came) = tokio::sync::mpsc::channel(4);
+    let say: road::Say = Arc::new(move |line| eprintln!("node: {line}"));
+    tokio::spawn(road::serve(made.clone(), dial.clone(), visitors, say));
+    tokio::spawn(async move {
+        let (mut conn, peer) = came.recv().await.unwrap();
+        eprintln!("node: a visitor from {peer}");
+        let mut buf = [0u8; 5];
+        conn.read_exact(&mut buf).await.unwrap();
+        conn.write_all(&buf).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(5)).await;
+    });
+    tokio::time::sleep(Duration::from_secs(5)).await;
+    let linking = std::time::Instant::now();
+    let mut link = road::link(&made, &dial, road::CONNECT_LIMIT).await.expect("a link to the pair's node");
+    eprintln!("linked in {:.1} s", linking.elapsed().as_secs_f64());
+    link.write_all(b"hello").await.unwrap();
+    let mut got = [0u8; 5];
+    tokio::time::timeout(Duration::from_secs(60), link.read_exact(&mut got)).await.expect("in time").unwrap();
+    assert_eq!(&got, b"hello");
+}
