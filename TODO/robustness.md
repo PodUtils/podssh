@@ -2183,3 +2183,7 @@ test now says the program's verdict when the answer is missing. `echo_mib` holds
 the cut. In a namespace with the loopback alone: `pipe::datagram` 10 runs in 10, `--test opentunnel_link`
 10 in 10, each asserting the resume. clippy with the feature `opentunnel`, rustfmt: clean. Next: the gate's
 `macos` for OpenTunnel, and the datagram test's next failure, if one comes, for its cause.
+
+2026-11-11, the gate at `bc5107b0` (run 42948403145): each job passed; on macOS, `--features opentunnel
+--test opentunnel_link` passed with the held thirds. The entry stays partial for the datagram test's
+next failure, which now names the program's verdict.
