@@ -26,14 +26,23 @@ fn path(typing: bool) -> Inputs {
 }
 
 #[test]
-fn while_a_key_waits_a_window_is_a_round_trip_and_40_ms_of_the_rate() {
-    // 1.25 MB/s for 100 ms, three quarters in flight: 166666 bytes.
+fn while_a_key_waits_a_window_is_a_round_trip_and_10_ms_of_the_rate() {
+    // 1.25 MB/s for 70 ms, and four thirds: 116666 bytes.
     let held = of(&path(true));
-    assert_eq!(held, 166_666);
+    assert_eq!(held, 116_666);
     // What waits in front of a key, with three quarters of it in flight,
-    // beyond the path's own: 40 ms of the rate, not 512 KiB's 420 ms.
+    // beyond the path's own: 10 ms of the rate, not 512 KiB's 420 ms.
     let queued = f64::from(held) * 0.75 / 1_250_000.0 - 0.060;
-    assert!((queued - 0.040).abs() < 0.001, "{queued}");
+    assert!((queued - 0.010).abs() < 0.001, "{queued}");
+}
+
+/// On a slow path the margin is one message at its rate: 8 KiB at 125 kB/s
+/// is 65.5 ms, so the window never runs dry between messages (T-681).
+#[test]
+fn on_a_slow_path_the_margin_is_a_message() {
+    let slow = Inputs { rate: Some(125_000), rtt: Some(ms(100)), ..path(true) };
+    let want = 125_000.0 * (0.100 + 8192.0 / 125_000.0) * 4.0 / 3.0;
+    assert!((f64::from(of(&slow)) - want).abs() < 2.0, "{} {want}", of(&slow));
 }
 
 #[test]
@@ -122,11 +131,11 @@ fn while_the_windows_drain_each_is_the_floor_but_a_carriers() {
 #[test]
 fn on_a_long_path_the_room_of_an_adjust_still_fills_the_path() {
     let long = Inputs { rtt: Some(ms(200)), ..path(true) };
-    // 1.25 MB/s for 200 + 40 ms, and four thirds.
-    assert_eq!(of(&long), 400_000);
+    // 1.25 MB/s for 200 + 10 ms, and four thirds.
+    assert_eq!(of(&long), 350_000);
     let room = low(of(&long), true);
-    assert_eq!(room, 300_000);
-    assert!(f64::from(room) >= 1_250_000.0 * 0.240, "a round trip's bytes and the margin's");
+    assert_eq!(room, 262_500);
+    assert!(f64::from(room) >= 1_250_000.0 * 0.210, "a round trip's bytes and the margin's");
 }
 
 /// Measured, russh tops a window up once a quarter of its target is used;
@@ -187,4 +196,17 @@ fn the_channels_that_carry_bulk_share_the_roads_cap() {
     assert_eq!(of(&Inputs { sharing: 64, ..fat }), 512 * KIB, "never under the window of before");
     assert_eq!(of(&Inputs { sharing: 2, cap: Road::Relay.cap(), ..fat }), 768 * KIB);
     assert_eq!(of(&Inputs { sharing: 4, carrier: true, ..fat }), 16 * MIB);
+}
+
+/// With a rate and no round trip timed yet, idle, the window holds half a
+/// second of the rate, not START's seconds of a slow path (T-681).
+#[test]
+fn untimed_a_window_is_half_a_second_of_the_rate() {
+    let slow = Inputs { rate: Some(125_000), rtt: None, ..path(false) };
+    assert_eq!(of(&slow), 62_500);
+    // A fast path keeps START, the window of before.
+    let fast = Inputs { rate: Some(50_000_000), rtt: None, ..path(false) };
+    assert_eq!(of(&fast), START);
+    // While a key waits, the floor, as before.
+    assert_eq!(of(&Inputs { typing: true, ..slow }), FLOOR);
 }

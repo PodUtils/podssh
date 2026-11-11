@@ -114,6 +114,11 @@ impl Path {
         self.rate.fresh(now)
     }
 
+    /// When the message before came.
+    pub(super) fn last(&self) -> Option<Instant> {
+        self.last
+    }
+
     /// The path's least round trip.
     pub(super) fn rtt(&self) -> Option<Duration> {
         self.rtt.best()
@@ -202,8 +207,14 @@ impl Path {
         })
     }
 
-    /// The rate of `bytes` over `took` is a sample.
+    /// The rate of `bytes` over `took` is a sample, when they are bulk: an
+    /// interval of a few keys' echo is the terminal's pace, not the path's,
+    /// and such a rate made the bytes behind a timed one seconds long, so a
+    /// round trip of 1 ms stood for the least (T-681).
     fn sample(&mut self, now: Instant, took: Duration, bytes: u64) {
+        if bytes < BUSY {
+            return;
+        }
         let rate = (u128::from(bytes) * 1_000_000 / took.as_micros().max(1)) as u64;
         self.rate.add(now, rate);
     }

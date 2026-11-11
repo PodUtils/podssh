@@ -224,3 +224,23 @@ fn a_burst_longer_than_an_interval_ends_it_anyway() {
     let rate = path.rate(t0 + ms(300)).expect("a rate");
     assert!((99_000_000..=101_000_000).contains(&rate), "{rate}");
 }
+
+/// A terminal's echo is no rate of the path: an interval of a few keys'
+/// bytes gives no sample, and one of bulk does (T-681).
+#[test]
+fn a_few_keys_echo_is_no_rate() {
+    let t0 = Instant::now();
+    let mut path = Path::default();
+    // A key's echo each 150 ms for 2 s: far under BUSY in each interval.
+    for i in 0..14 {
+        path.count(t0 + ms(150 * i), 40);
+    }
+    assert_eq!(path.rate(t0 + ms(2000)), None);
+    // Bulk: 8 KiB each 10 ms, for 2 s.
+    let t1 = t0 + ms(3000);
+    for i in 0..200 {
+        path.count(t1 + ms(10 * i), 8192);
+    }
+    let rate = path.rate(t1 + ms(2000));
+    assert!(rate.is_some_and(|rate| rate > 500_000), "{rate:?}");
+}

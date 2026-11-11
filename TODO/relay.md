@@ -1308,7 +1308,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:383`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:384`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -1957,7 +1957,7 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   the gate's step `release` asks the binary and the script for one verdict, live (`:111-116`).
 - Read: each of the eight build jobs of the release runs `podssh proxy github.com 22` through the
   live relay (`scripts/release-short.sh:109-115`, run at `.github/workflows/release.yml:153`, `:215`,
-  `:286`, `:325` and `:419`; three of these run in a matrix of two). The audit counted seven
+  `:300`, `:344` and `:443`; three of these run in a matrix of two). The audit counted seven
   jobs; the matrices give eight.
 - Read: a beta needs the job `all` of the gate (`docs/decisions.md:68`). Citations of an older
   document of the relay were once off by 35 (`TODO/repo.md:2320-2323`).

@@ -400,5 +400,9 @@ async fn the_auth_request_follows_the_service_request_with_no_wait() {
     // The banner with the key exchange's offer, its reply, then the service's
     // answer with the auth's: three waits; a client that waits for the
     // service's answer before its auth request waits a fourth.
-    assert!(took > FAR * 2 && took < FAR * 7 / 2, "the login took {took:?}, {:.1} answers late", took.as_secs_f64() / FAR.as_secs_f64());
+    assert!(
+        took > FAR * 2 && took < FAR * 7 / 2,
+        "the login took {took:?}, {:.1} answers late",
+        took.as_secs_f64() / FAR.as_secs_f64()
+    );
 }

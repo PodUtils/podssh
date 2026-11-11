@@ -66,8 +66,8 @@ pub const DRAIN_MAX: Duration = Duration::from_secs(10);
 /// podssh counts a message once the whole of it came, and a server sends a
 /// grant smaller than a message as one, so a window of a message or two
 /// moves one message at a time, each a round trip and its own time on the
-/// path: while a key waits, a slow path's window, its round trip and 40 ms,
-/// is 23 KB at 1 Mbit/s and 100 ms, under one message of 32 KiB. A message
+/// path: while a key waits, a slow path's window, its round trip and one
+/// message, is 27 KB at 1 Mbit/s and 100 ms, under one message of 32 KiB. A message
 /// costs about 40 bytes of its own, 0.5% of 8 KiB.
 pub const PACKET: u32 = 8 * 1024;
 
@@ -171,10 +171,19 @@ impl Pace {
         if let Some(sample) = self.chan(channel).received(n as u64, now) {
             // The message is whole once its last byte came: the bytes behind
             // the timed one took their time at the path's rate.
+            // They came after the message before at the latest: a rate that the
+            // window held below the path's makes them no slower (T-681).
+            let since = self.path.last().map_or(Duration::ZERO, |last| now.saturating_duration_since(last));
             let sending = self.path.rate(now).map_or(Duration::ZERO, |rate| {
                 Duration::try_from_secs_f64(sample.behind as f64 / rate.max(1) as f64).unwrap_or(Duration::ZERO)
             });
-            self.path.round_trip(now, sample.took.saturating_sub(sending).max(Duration::from_millis(1)));
+            let sending = sending.min(since);
+            // A correction of half the sample or more reads a rate below the
+            // path's (a window held it, or the terminal's pace): the whole
+            // sample then, too long by a message at most, never a round trip
+            // of nothing that would stand as the least for 20 s (T-681).
+            let took = if sending * 2 <= sample.took { sample.took - sending } else { sample.took };
+            self.path.round_trip(now, took.max(Duration::from_millis(1)));
             // Clean: its adjust went out once the drain held its channel's
             // window, and no other channel that carries bulk still had more
             // than a held window in flight, whose bytes queue in front of it.

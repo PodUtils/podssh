@@ -1753,7 +1753,7 @@ path of 120 ms) and logs each flight, a cold `podssh ssh --direct ... true` to O
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1781,6 +1781,43 @@ gh workflow run feel-netem.yml -f tag=TAG
 ```
 
 The echo beside a download on each of the three links nearer the idle echo than this run's.
+
+## Done
+
+2026-11-11. Read T-660's run (`feel-netem.yml` run 41961591548, its artifact) key by key, then traced the
+pace's inputs on this host's loopback links (`scripts/feel-matrix.py --roads direct`, a debug build, the
+links of `scripts/fake_shape.py`, which read cellular as netem did: 120 ms). Three causes, each repaired in
+`crates/podssh-ssh/src/pace/`:
+
+- **A round trip of 1 ms stood as the least.** A rate sample came from intervals of a few keys' echo
+  (20 kB/s), and the bytes behind a timed byte, at that rate, made 8 KiB "sending" for 400 ms, more
+  than the 124 ms that the sample took: the round trip floored to 1 ms and stood for 10 to 20 s, so the
+  window while typing was the margin's bytes alone, and only the 40 ms margin kept the far link moving.
+  Now a rate sample needs `BUSY` (8 KiB) bytes in its interval (`path.rs`), and a correction of half the sample
+  or more is not made (`mod.rs`): the far link's least round trip reads 115 ms.
+- **With no round trip timed, a slow link held START's 512 KiB, 4 s of queue,** and a window that never
+  gates a byte never times one: the first key waited 3.4 s. Now, idle, with a rate and no round trip,
+  the window is 0.5 s of the rate, at most START (`target.rs`, `UNTIMED`): the first key waits 1.3 s.
+- **The margin while typing, 40 ms,** held a queue of 40 to 73 ms in front of each key on cellular (the
+  run's 97 to 137 ms sawtooth over an idle 61 ms); osewa holds about 11 ms. Now 10 ms, or one message at
+  the rate where that is longer, so a slow path never runs dry (`TYPING_MARGIN`).
+
+The echo beside a download (p50, ms) and the download while typing, before and after, on the same links:
+
+| Link | Before | After | osewa (T-660's netem) |
+| --- | --- | --- | --- |
+| far | 123.5, 1.2 MiB/s | 123.2 to 123.5, 1.9 to 2.6 MiB/s | 155.5 |
+| cellular | 120.2 | 85.6 | 72.1 |
+| wifi | 83.7 | 44.1 | 90.7 |
+| slow | 392.4 | 238.2, 293.5, 351.6 | 161.2 |
+
+`cargo test -p podssh-ssh --lib pace`: 50 passed, with `a_few_keys_echo_is_no_rate`,
+`untimed_a_window_is_half_a_second_of_the_rate` and `on_a_slow_path_the_margin_is_a_message`; planted,
+each of the three repairs undone, its test fails (and `on_a_slow_long_path_too` for the margin). `cargo
+test -p podssh-ssh`: each passed. Not done here: the fake links' halving of a sender's window at a loss
+(the Approach's step 2), as the three causes were the pace's own; wifi's download reads 2.2 MiB/s here
+and 0.7 on netem. Waits: `feel-netem.yml` on this push's artifact, the Prove's run.
+
 
 # T-705: `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema
 

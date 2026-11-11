@@ -314,8 +314,8 @@ fn on_a_slow_long_path_too() {
     assert!(today.echo_p50() > 10 * idle, "the reference queues up to 4 s in front of each key");
     assert!(paced.echo_p50() <= 2 * idle, "echo p50 {} ms, idle {idle} ms", paced.echo_p50());
     // A key each 300 ms for the whole run holds the bulk to a round trip and
-    // 40 ms the whole time, 23 KB: in OpenSSH's messages of 32 KiB that was
-    // one message a round trip, 72% of today's (T-661's Correction); in
+    // a message at the rate the whole time, 27 KB (T-681): in OpenSSH's
+    // messages of 32 KiB that was one message a round trip, 72% of today's (T-661's Correction); in
     // messages of 8 KiB, topped up once a quarter is used, the path stays
     // full (T-670).
     assert!(paced.delivered * 10 >= today.delivered * 9, "{} of {}", paced.delivered, today.delivered);
@@ -399,9 +399,9 @@ fn the_least_round_trip_does_not_grow_with_the_queue() {
     let at = run.t0 + Duration::from_millis(60_000);
     assert!(!pace.draining(at), "no drain at 60 s: one began at 52 s or so, for less than a second");
     let target = pace.target(BULK, at);
-    // 1.25 MB/s for 60 + 40 ms, and four thirds: 166666; a queue of 100 ms
-    // more in the least round trip would give twice that.
-    assert!((150_000..250_000).contains(&target), "{target}");
+    // 1.25 MB/s for 60 + 10 ms, and four thirds: 116666; a queue of 100 ms
+    // more in the least round trip would give twice that and more.
+    assert!((100_000..180_000).contains(&target), "{target}");
 }
 
 /// T-662: 100 Mbit/s and 100 ms, where nobody types: on the direct road the

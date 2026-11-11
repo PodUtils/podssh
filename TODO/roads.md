@@ -4249,7 +4249,7 @@ that says why.
 ## Premise
 
 - Read: the release builds `podssh-cli` with no feature on each target
-  (`.github/workflows/release.yml:129`, `:198`, `:264`, `:307`, `:378`); the feature `iroh` is
+  (`.github/workflows/release.yml:129`, `:198`, `:278`, `:321`, `:397`); the feature `iroh` is
   off by default, and `crates/podssh-cli/Cargo.toml:26-28` says "about 200 crates, needs Rust
   1.91 and a C compiler" of it.
 - Read: `docs/decisions.md` line 41 at `27b8d8f` said "iroh is a road that the user must select", and made n0's
@@ -4262,7 +4262,7 @@ that says why.
   release of iroh is officially supported".
 - Read: the armv7 job builds with Alpine's rust (`.github/workflows/release.yml:198`); whether it
   is 1.91 or later was not read (T-343 checks it in the job). The notices of the licenses are
-  made for the default features (`.github/workflows/release.yml:446`); `cargo deny` checks the
+  made for the default features (`.github/workflows/release.yml:470`); `cargo deny` checks the
   licenses and the sources with each feature (`.github/workflows/deny.yml:49-51`).
 - Read: `docs/design.md:1210-1211` says "about 190 to 245 crates, and several megabytes" of iroh.
 
@@ -6265,7 +6265,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:214`).
+  port 443 answers (`docs/STATUS.md:215`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
