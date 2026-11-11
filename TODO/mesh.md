@@ -13302,3 +13302,5 @@ the host key is `SHA256:EV7UJ46EDUHvG0yx4I4dw+9r3bypGpBt9+vQy2w9V/o` on both por
 asked of podcrates (no host of a third party in podssh's code): its endpoints `ssh` (22) and `ssh-443`
 (443) and the fact `host-key-sha256`; then the host joins the localhost.run road's module with
 `PODSSH_SANDHOLE=no`, and its Prove.
+podcrates filed it as its T-186 (`services/sandhole.toml`, with `tunnel-zone`), and localhost.run's host key
+of T-565's live run as its T-185; both go out with podcrates `v0.20.0`.
