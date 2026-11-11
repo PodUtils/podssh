@@ -12806,6 +12806,11 @@ test on a stream of memory, and the codec's: 3 passed.
 2026-11-11: the relay's address is asked of podcrates as the service `zerotier-tcp-relay` of `pod-services` (COORD-023,
 #190); the roots need no entry, as the core's own planet names them. The live run and the road's wiring read it there.
 
+The live run is written: `crates/podssh-zerotier/tests/live.rs` (ignored outside its workflow) and
+`.github/workflows/zerotier-live.yml`, started by hand: two members with identities made for the run, each on its own
+TCP connection to the relay of `pod-services`, the core's own roots, an ad-hoc network of the port 4096, 64 KiB each
+way; planted, the second member on another network, which must fail. It runs once podcrates releases the service.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

@@ -5364,6 +5364,7 @@ version = "1.1.0-beta.3"
 dependencies = [
  "cc",
  "libc",
+ "pod-services",
  "podssh-warp",
  "tokio",
 ]

@@ -1,0 +1,40 @@
+name: zerotier live
+
+# ZeroTier's road (T-733) through ZeroTier Inc.'s own roots and TCP relay,
+# the relay of pod-services: a short run that Q78 and Q91 allow, two members
+# of one process with identities made for the run, 64 KiB each way, then the
+# process ends and the identities with it. No credential goes to ZeroTier:
+# an ad-hoc network has no account. A planted run puts the second member on
+# another network, and must fail. Started by hand alone; it publishes
+# nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-zerotier --test live --no-run
+      - name: a short run through the roots and the relay
+        run: |
+          set -o pipefail
+          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture 2>&1 | tee "$RUNNER_TEMP/run.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/run.log"
+      - name: a planted member of another network fails it
+        run: |
+          rc=0
+          PODSSH_ZT_LIVE_PLANT=other timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: a member of another network was reached"
+            exit 1
+          fi
+          echo "the planted member failed (exit $rc), as it must"
