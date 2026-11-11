@@ -12254,6 +12254,14 @@ logged nothing after its start; a closed port, `FAIL ... Connection refused`; `P
 `--lib man`, 90 passed; clippy and rustfmt clean. Left: the node roads of `--derp` and of the Piping
 Server road, which take the transit relay's road and not this one.
 
+2026-11-11: the node roads of `--derp` (`crates/podssh-cli/src/node_derp.rs`) and of the Piping Server
+(`crates/podssh-cli/src/node_piping.rs`) take croc's road beside the transit road, the last, for the
+operators of the node's pair, as the pair's own node does (`node_transit.rs`): `node_croc::beside` builds
+it from the pair, none with no pair or with the road off; each node road's harness keeps
+`PODSSH_CROC=no`. clippy and rustfmt clean; `--test derp_road` 8 passed and `--test node_piping` 2, in a
+namespace with the loopback alone. Left: a test of a `--derp` node with a pair of its own that serves a
+client through croc's road, which needs the node's pair in the DERP harness.
+
 
 # T-695: WebTorrent's trackers as a meeting point of the pairing, after Nostr's
 

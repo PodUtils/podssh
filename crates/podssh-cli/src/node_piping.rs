@@ -240,6 +240,9 @@ pub(crate) async fn serve(
         (false, Some(url)) => crate::node_transit::road(&label, &pair, stored, &trust, url, say.clone()),
         _ => None,
     };
+    // croc's relay road (T-694) beside them, the last, for the same operators.
+    let croc_open = open.clone();
+    let croc = crate::node_croc::beside(&label, (!alone).then_some((&pair, stored)), &trust, say.clone());
     let (stop, stopped) = watch::channel(false);
     let until_stopped = |mut stopped: watch::Receiver<bool>| async move {
         let _ = stopped.wait_for(|stop| *stop).await;
@@ -275,7 +278,8 @@ pub(crate) async fn serve(
         let piped = crate::channel::Piped { inner: Arc::new(handler), channel: Some(channel.clone()), routes };
         let layered = Layered::with_keeper(piped, crate::layered::settings(), budget, keeper.clone());
         let run = Box::pin(reverse::run(&mut config, Arc::new(layered), until_stopped(stopped.clone())));
-        let exit = crate::node_transit::alongside(run, transit, transit_open, keeper.clone()).await;
+        let with_croc = Box::pin(crate::node_croc::alongside(run, croc, croc_open, keeper.clone()));
+        let exit = crate::node_transit::alongside(with_croc, transit, transit_open, keeper.clone()).await;
         expiry.abort();
         if let Some((_, why)) = crate::node::ended(&label, exit) {
             (channel.say)(format!("the pair's road ended: {why}; the Piping Server road goes on"));

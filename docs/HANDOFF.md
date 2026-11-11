@@ -66,7 +66,7 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | --- | --- |
 | T-746 | The datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; its next failure says the program's verdict. OpenTunnel's resume test is repaired (macOS passed at `bc5107b0`). |
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
-| T-694 | The node roads of `--derp` and of the Piping Server road; `doctor`'s line is done. |
+| T-694 | A test of a `--derp` node with a pair of its own served through croc's road (the DERP harness has no node pair yet); the rest is done. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-565, T-568, T-569 | Off until `pod-services` names their servers (#186). |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |

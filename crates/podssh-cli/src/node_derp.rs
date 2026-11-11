@@ -429,13 +429,14 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     // binary before this one, and those that go to the next (T-679).
     let keeper = crate::node_upgrade::channel_keeper(&channel, settings().resume_deadline);
     crate::node_upgrade::lines(say.clone());
-    // The transit relay of Q65 for the pair's operators (T-436), beside the
-    // pair's road and with its keeper.
+    // The transit relay of Q65 for the pair's operators (T-436), and croc's
+    // relay road (T-694), the last, beside the pair's road and with its keeper.
     let transit = match (&pair, crate::node_transit::url()) {
         (Ok((pair, stored)), Some(url)) => crate::node_transit::road(&label, pair, *stored, &trust, url, say.clone()),
         _ => None,
     };
-    let transit_open = open.clone();
+    let (transit_open, croc_open) = (open.clone(), open.clone());
+    let croc = crate::node_croc::beside(&label, pair.as_ref().ok().map(|(p, s)| (p, *s)), &trust, say.clone());
     let (stop, stopped) = watch::channel(false);
     let until_stopped = |mut stopped: watch::Receiver<bool>| async move {
         let _ = stopped.wait_for(|stop| *stop).await;
@@ -468,7 +469,8 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         let piped = crate::channel::Piped { inner: Arc::new(handler), channel: Some(channel.clone()), routes };
         let layered = Layered::with_keeper(piped, crate::layered::settings(), budget, keeper.clone());
         let pair_run = Box::pin(reverse::run(&mut config, Arc::new(layered), until_stopped(stopped.clone())));
-        let exit = crate::node_transit::alongside(pair_run, transit, transit_open, keeper.clone()).await;
+        let with_croc = Box::pin(crate::node_croc::alongside(pair_run, croc, croc_open, keeper.clone()));
+        let exit = crate::node_transit::alongside(with_croc, transit, transit_open, keeper.clone()).await;
         expiry.abort();
         if let Some((_, why)) = crate::node::ended(&label, exit) {
             (channel.say)(format!("the pair's road ended: {why}; the DERP road goes on"));

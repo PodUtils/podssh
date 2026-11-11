@@ -93,6 +93,13 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge
     far::Node { bridge, rooms, trust, proxy: ProxyChoice::FromEnvironment, say }
 }
 
+/// The road beside another node road's pair (`--derp`, the Piping Server
+/// road), the last of its roads: `None` with no pair there or the road off.
+pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, say: Say) -> Option<far::Node> {
+    let (pair, stored) = pair?;
+    Some(road(label, pair, stored, trust, bridge()?, say))
+}
+
 /// `pair_road` with croc's relay road `road` beside it, under `keeper`,
 /// until the pair's road ends: its end is the node's, as the road's rooms
 /// are the pair's. With no road, the pair's road alone.
