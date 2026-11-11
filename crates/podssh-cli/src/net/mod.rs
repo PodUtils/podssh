@@ -30,6 +30,8 @@ pub mod lookup;
 pub mod mint;
 pub mod policy;
 mod policy_cmd;
+// A destination tag:NAME, each member of the tag in turn (T-750).
+pub mod tag;
 // What a policy changes, and its expectations (T-749).
 mod policy_diff;
 pub(crate) mod policy_words;

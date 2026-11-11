@@ -4777,6 +4777,15 @@ that the owner's key signs, and that each end keeps.
   prints the same (20 lines at most) before it signs; with `--expect FILE`
   it signs nothing (65) when a case is false under the new policy, and with
   `--dry-run` it signs nothing at all: `net.doc` and its serial stay.
+- **`podssh ssh [user@]tag:NAME`** (T-750, the block "agentanycast 4" of
+  PodUtils/podnet#438) is each member of the net held that the policy's tag
+  NAME holds with the role `node`, shuffled, each member that no road
+  reached in the last 30 s put last (`net-tag-holds.json` in the cache, by
+  name and time). Each is run as `node://[user@]MEMBER` until a race reaches
+  one (`crate::net::reached` records it), and a line names each member tried
+  and the one used: the run ends at the first member reached, whatever came
+  after, so a command never runs on two. With none reached, a line names
+  each, and the exit is the last one's; a tag that no member has is 64.
 - **A member's name** is a destination: `podssh ssh node://NAME`, and
   `podssh ssh NAME` alone when NAME is a member with the role `node`. The
   net names the member's key, which the channel checks in place of the pins

@@ -78,6 +78,9 @@ pub(crate) mod ssh_http;
 // Each road of the race timed for `podssh ping node://NAME` (T-435).
 #[path = "road_probe.rs"]
 pub(crate) mod probe;
+// `podssh ssh tag:NAME`, each member of the tag in turn (T-750).
+#[path = "tag_run.rs"]
+pub(crate) mod tag_run;
 
 /// The roads of a run beside the pair's: the iroh road of `--iroh-ticket`,
 /// the DERP road of a ticket given or kept, the transit relay's, and the

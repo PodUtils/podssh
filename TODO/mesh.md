@@ -13497,7 +13497,7 @@ the policies' text: the reordered policy's test and the tag line's FAILED. clipp
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -13528,3 +13528,29 @@ cargo test -p podssh-cli --test node_tag
 
 With `a`, `b`, `c` tagged and `a` offline, the session ends on `b` or `c` and tries `a` once; 20 resolutions in
 the hold never put `a` first; all offline names each cause. Planted: no hold, and `a` comes first again.
+
+
+## Correction
+
+The Prove's `--test node_tag` is the test `derp_net::a_tag_reaches_the_one_live_member_and_holds_each_that_missed` of
+`--test derp_road`, whose harness has the DERP servers and the net's owner that a live member needs:
+`cargo test -p podssh-cli --test derp_road tag`.
+## Done
+
+2026-11-11. `crates/podssh-cli/src/net/tag.rs`: `parse` of `[user@]tag:NAME`, `members` of the net held that the
+policy's tag holds with the role `node` (64 with none), `order` (shuffled, each member held put last, in the order of
+its hold), and the holds of 30 s in the cache's `net-tag-holds.json`. `crates/podssh-cli/src/ssh/tag_run.rs`: `podssh ssh`
+runs each member as `node://[user@]MEMBER` in turn, with a line for each and for the one used; it ends at the first
+member that a race reached (`net::reached` keeps the last race of the process), so a command or a login never runs on
+two; a member with no such record is held and the next tried; with none reached, a line names each. `job wait` names a
+job, never a destination, so there is no tag to refuse there. The manual's note and `docs/cli.md`.
+
+Measured: `cargo test -p podssh-cli --lib net::tag`, 2 passed (20 orders in the hold never put the held member first,
+and each other member comes first some time). The Prove's `--test node_tag` is a test of `--test derp_road`
+(`derp_net::a_tag_reaches_the_one_live_member_and_holds_each_that_missed`), whose DERP harness serves the live member:
+2 runs in 2 passed, in a namespace with the loopback alone: `tag:off`, two members with no road, names each and tries
+each once (255); then within the hold, three runs of `tag:builders` each start on lab, the live member over DERP, run
+`greet` there and try no held member; `tag:nosuch` is 64. Planted (`scripts/plants/t750-no-hold.patch`), no hold: the
+order's test FAILED. clippy and rustfmt clean.
+
+

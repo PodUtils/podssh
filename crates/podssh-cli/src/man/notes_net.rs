@@ -79,6 +79,11 @@ pub const NET: &[&str] = &[
      nothing at all. A \
      document with a policy requires it, so a podssh that cannot read the rules refuses the document and keeps the \
      one before.",
+    "podssh ssh [user@]tag:NAME names each member of the net held that the policy's tag NAME holds with the role \
+     node, in a shuffled order, a member that no road reached in the last 30 s put last: each is tried as \
+     node://[user@]MEMBER until a race reaches one, and a line names each tried and the one used; the run ends at \
+     the first member reached, so a command never runs on two. When none is reached, a line names each, and the \
+     exit is the last one's; a tag that no member has is 64 before any connection.",
     "A member's name is a destination: podssh ssh node://NAME, and podssh ssh NAME alone when NAME is a member \
      with the role node, as MagicDNS names a host of its tailnet; so is [user@]NAME:path of podssh cp, mv, scp \
      and edit, and NAME of podssh sftp, each read as podssh ssh reads it. A name has no dot, so no DNS name is \

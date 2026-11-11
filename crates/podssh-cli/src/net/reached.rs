@@ -108,11 +108,26 @@ pub fn load_from(dirs: &[PathBuf]) -> Records {
 
 /// The race to the node `label` was won by `road`, `took` after its start.
 pub fn reached(label: &str, road: &str, took: Duration) {
+    set_last(label, true);
     reached_in(&podssh_relay::cache::candidate_dirs(), label, road, took, crate::pairs::now_ms());
+}
+
+/// The last race of this process: its label, whether a road won, and why
+/// not; a run over a tag's members reads it (T-750).
+static LAST: std::sync::Mutex<Option<(String, bool)>> = std::sync::Mutex::new(None);
+
+fn set_last(label: &str, won: bool) {
+    *LAST.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some((label.to_string(), won));
+}
+
+/// The last race of this process, and forget it.
+pub fn take_last() -> Option<(String, bool)> {
+    LAST.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take()
 }
 
 /// No road of the race to the node `label` answered, for `why`.
 pub fn missed(label: &str, why: &str) {
+    set_last(label, false);
     missed_in(&podssh_relay::cache::candidate_dirs(), label, why, crate::pairs::now_ms());
 }
 

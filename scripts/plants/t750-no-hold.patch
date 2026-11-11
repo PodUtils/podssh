@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/net/tag.rs
++++ b/crates/podssh-cli/src/net/tag.rs
+@@ -54,7 +54,7 @@
+ /// `names` shuffled, each held at `now_ms` put last, in the order of their holds.
+ pub fn order(mut names: Vec<String>, holds: &BTreeMap<String, u64>, now_ms: u64) -> Vec<String> {
+     names.shuffle(&mut rand::rng());
+-    let held_until = |name: &String| holds.get(name).copied().filter(|until| *until > now_ms);
++    let held_until = |name: &String| holds.get(name).copied().filter(|until| *until > now_ms && false); // planted: no hold
+     let (mut held, free): (Vec<String>, Vec<String>) = names.into_iter().partition(|n| held_until(n).is_some());
+     held.sort_by_key(|n| held_until(n));
+     free.into_iter().chain(held).collect()

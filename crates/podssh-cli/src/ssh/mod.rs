@@ -114,7 +114,7 @@ pub fn run_ssh(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         Ok(place) => place,
         Err(refusal) => return refusal.report("ssh", err),
     };
-    let code = run(args, tty, err);
+    let code = roads::tag_run::run_or(args, tty, err, run);
     let object = result::object(code, started);
     // With no failure class, the code is the remote command's, or a
     // session's that ended with none: no failure of podssh (T-195).

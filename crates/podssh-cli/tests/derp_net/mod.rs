@@ -280,3 +280,53 @@ fn a_copy_to_a_member_whose_pair_is_refused_goes_over_the_derp_ticket_of_the_net
     drop(relay);
     drop(lab.runtime);
 }
+
+/// `tag:NAME` (T-750): the tag builders holds lab, which serves over DERP,
+/// and two members with no road, which no race reaches. Each run ends on
+/// lab, with each member tried at most once, and says which it used; a
+/// member that missed goes last for a while; a tag of offline members alone
+/// names each cause; a tag that no member has is 64 before any connection.
+#[test]
+fn a_tag_reaches_the_one_live_member_and_holds_each_that_missed() {
+    let lab = Lab::new("net-tag");
+    let owner = Owner::new(&lab.node_home.parent().unwrap().join("owner"));
+    key_file(&lab.node_home.join("node.key"), NODE_SEED);
+    owner.says(&["init", "home"]);
+    owner.says(&["add", "lab", node_hex().as_str()]);
+    owner.says(&["add", "laptop", key_hex(&lab.client_key).as_str()]);
+    owner.says(&["add", "down1", &Identity::from_seed(&[0x61; 32]).public().hex()]);
+    owner.says(&["add", "down2", &Identity::from_seed(&[0x62; 32]).public().hex()]);
+    let policy = owner.dir.join("policy.json");
+    let rules = r#"{"tags": {"builders": ["lab", "down1", "down2"], "off": ["down1", "down2"]},
+        "rules": [{"from": ["*"], "to": ["*"]}]}"#;
+    std::fs::write(&policy, rules).unwrap();
+    owner.says(&["policy", "set", policy.to_str().unwrap()]);
+    let (node_doc, client_doc) = (lab.node_home.join("net.doc"), lab.client_home.join("net.doc"));
+    owner.give(&lab.node_home, &node_doc, "tag-node");
+    let servers = lab.servers();
+    let (_node, _lines, started) = lab.node_with(&[], Some(node_doc.as_path()), &["--derp", "--derp-server", &servers]);
+    let ticket = ticket_in(&started, "ticket derp:");
+    owner.says(&["add", "lab", node_hex().as_str(), "--derp-ticket", ticket.as_str()]);
+    owner.give(&lab.client_home, &client_doc, "tag-client");
+    // Offline members alone: each tried once, each cause named, and each held.
+    let (rc, _, err) = ssh_as(&lab, &lab.client_key, &client_doc, &["tester@tag:off", "greet"]);
+    assert_eq!(rc, 255, "{err}");
+    assert!(
+        err.contains("tag:off: no member was reached: ") && err.contains("down1") && err.contains("down2"),
+        "{err}"
+    );
+    for name in ["down1", "down2"] {
+        assert_eq!(err.matches(&format!("tag:off: {name}, ")).count(), 1, "{name} tried once: {err}");
+    }
+    // Within the hold, lab comes first each time, and the run ends there.
+    for _ in 0..3 {
+        let (rc, out, err) = ssh_as(&lab, &lab.client_key, &client_doc, &["tester@tag:builders", "greet"]);
+        assert_eq!((rc, out.as_str()), (0, GREETING), "{err}");
+        assert!(err.contains("tag:builders: lab, 1 of 3") && err.contains("tag:builders: used lab"), "{err}");
+        assert!(!err.contains("tag:builders: down"), "no held member tried: {err}");
+    }
+    let (rc, _, err) = ssh_as(&lab, &lab.client_key, &client_doc, &["tester@tag:nosuch", "greet"]);
+    assert_eq!(rc, 64, "{err}");
+    assert!(err.contains("no member of the net home with the role node has the tag nosuch"), "{err}");
+    drop(lab.runtime);
+}
