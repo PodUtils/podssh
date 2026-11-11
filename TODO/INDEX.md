@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**701 entries: 87 open, 21 partial, 9 blocked, 584 done.**
+**701 entries: 87 open, 18 partial, 9 blocked, 587 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 262 | 297 |
-| P3 | 58 | 10 | 5 | 251 | 324 |
-| **All** | 87 | 21 | 9 | 584 | 701 |
+| P3 | 58 | 7 | 5 | 254 | 324 |
+| **All** | 87 | 18 | 9 | 587 | 701 |
 
 ## Entries
 
@@ -604,11 +604,11 @@ repository and CI).
 | [T-562](roads.md) | P3 | S | none | feature | done | WARP's registration dials one name of the API, with no second route |
 | [T-563](relay.md) | P2 | S | none | defect | done | The relay's record forgets a host that opens, and one road's failure moves the host on each road |
 | [T-564](robustness.md) | P3 | S | none | feature | done | podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE` |
-| [T-565](mesh.md) | P3 | M | M10 | feature | partial | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
+| [T-565](mesh.md) | P3 | M | M10 | feature | done | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
 | [T-566](mesh.md) | P3 | S | M10 | feature | open | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
 | [T-567](mesh.md) | P3 | S | M10 | feature | open | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
-| [T-568](mesh.md) | P3 | M | M10 | feature | partial | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
-| [T-569](mesh.md) | P3 | M | M10 | feature | partial | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
+| [T-568](mesh.md) | P3 | M | M10 | feature | done | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
+| [T-569](mesh.md) | P3 | M | M10 | feature | done | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
 | [T-570](mesh.md) | P3 | S | M10 | feature | done | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
 | [T-571](mesh.md) | P3 | M | M10 | feature | open | Syncthing's relays on 443 as a last fallback of the reverse road |
 | [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |

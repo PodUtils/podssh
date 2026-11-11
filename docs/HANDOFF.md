@@ -50,6 +50,7 @@ Each is a test ignored outside its workflow, and a workflow started by hand (or 
 | ssh-j (T-570, done) | `crates/podssh-cli/tests/ssh_j_live.rs` | `ssh-j-live.yml` | passed, run 42954754303 |
 | croc, interop (T-694) | `crates/podssh-relay/tests/croc_interop.rs` | `croc-interop.yml` | passed, run 42957326904 |
 | croc, live (T-694) | `crates/podssh-relay/tests/croc_live.rs` | `croc-live.yml` | passed, run 42957736151 |
+| localhost.run, localtunnel, bore (T-565, T-568, T-569, done) | `crates/podssh-cli/tests/last_roads_live.rs` | `last-roads-live.yml` | passed, run 42967245046 |
 
 Each has a planted run that must fail, and each did, for the reason that the entry names.
 
@@ -61,7 +62,6 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
 | T-694 | A test of a `--derp` node with a pair of its own served through croc's road (the DERP harness has no node pair yet); the rest is done. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
-| T-565, T-568, T-569 | On by default since `v0.18.0`; their short live runs: `last-roads-live.yml` (`crates/podssh-cli/tests/last_roads_live.rs`). |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
 | T-684 | Each next podcrates release that podssh takes. |
 | T-446 | Betas wait for the end of the migration (T-684). |

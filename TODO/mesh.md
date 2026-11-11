@@ -8059,7 +8059,7 @@ container waits for the checks of a release (T-251).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8224,6 +8224,13 @@ podcrates), the short live run (Step 1), the containers of the Prove (T-251).
 run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs` (the client takes the node's
 `--tunnel-url` and key), `.github/workflows/last-roads-live.yml`, started by hand, with a planted stranger.
 
+2026-11-11, live, `last-roads-live.yml` at `50ef8922` (run 42967245046): the node held a tunnel of localhost.run (`https://NAME.lhr.life`, its host
+key `SHA256:pG6qrBxubYfWa1Zadu/V0NUgjEDiBds/7e2xzte/QNM`, unpinned, as localhost.run publishes none); the
+client gave its `--tunnel-url` and the node's key, "the localhost.run road answered first, in 318 ms",
+`greet` came back, then 1 MiB down whole. Planted, a client that named another key: it refused the node
+("the node has the key ..., not ... which --node-key names"), exit 101, as it must. Done; the containers
+of the Prove wait for the checks of a release (T-251).
+
 
 # T-566: srv.us as a last fallback: an HTTPS name derived from the node's SSH key
 
@@ -8332,7 +8339,7 @@ it.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8551,6 +8558,12 @@ default; `crates/podssh-relay/src/localtunnel/route.rs` reads a head again with 
 suite passed). The live run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs`,
 `.github/workflows/last-roads-live.yml`.
 
+2026-11-11, live, `last-roads-live.yml` at `50ef8922` (run 42967245046): the node held `https://podssh-NAME.loca.lt`, the name of its key, through
+`localtunnel.me`; the client derived the name from the key, the localtunnel road answered first, `greet`
+came back, then 1 MiB down whole. Planted, a client that named another key: no tunnel held that name
+(`502` from `loca.lt`), exit 101, as it must. Done; the run against localtunnel's own server in a
+container waits for the checks of a release (T-251).
+
 
 # T-569: bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads
 
@@ -8559,7 +8572,7 @@ suite passed). The live run's test and workflow: `crates/podssh-cli/tests/last_r
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8744,6 +8757,13 @@ a container (T-251).
 2026-11-11: podcrates `v0.18.0` names the service `bore` (`bore.pub:7835`), so the road is on by default.
 The live run's test and workflow: `crates/podssh-cli/tests/last_roads_live.rs`,
 `.github/workflows/last-roads-live.yml`, started by hand, with a planted stranger.
+
+2026-11-11, live, `last-roads-live.yml` at `50ef8922` (run 42967245046): the node held a port of its key at `bore.pub`; the client found it by the
+key, the bore road answered first, `greet` came back, then 1 MiB down whole. Planted, a client that named
+another key: no port of that key at bore.pub gave its hello (four ports of its series, from 16040 to
+52292, refused), exit 101, as it must; the client also asked the public forwarders of Q56 for each port,
+as the road does where a direct connection fails. Done; bore's own server in a container waits for the
+checks of a release (T-251).
 
 
 # T-570: `ssh-j.com` as a last fallback: a public SSH jump and forward by name
