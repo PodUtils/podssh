@@ -22,7 +22,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.24.0"` (COORD-025, GitHub #192).
+podssh pins every podcrates crate at `tag = "v0.25.0"` (COORD-026).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session` and `pod-e2e`. Work
