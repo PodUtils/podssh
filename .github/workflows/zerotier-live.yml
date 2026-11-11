@@ -9,7 +9,8 @@ name: zerotier live
 # a `podssh node --derp` of a pair whose relay is down, and `podssh ssh
 # node://` of the same pair (the fixture's tokens, no credential), meet
 # through the same roots and relay alone; a planted client of another pair
-# must fail. And the job `one`: ZeroTierOne's own zerotier-one, built from
+# must fail. The library's steps print each member's trace (PODSSH_ZT_TRACE)
+# each 2 s. And the job `one`: ZeroTierOne's own zerotier-one, built from
 # the pinned commit, joins the same kind of network through the roots, and
 # TCP passes both ways between its host and a member of podssh through the
 # relay (crates/podssh-zerotier/tests/zerotier_one.rs); planted, a member
@@ -35,7 +36,7 @@ jobs:
       - name: a short run through the roots and the relay
         run: |
           set -o pipefail
-          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture two_members 2>&1 | tee "$RUNNER_TEMP/run.log"
+          PODSSH_ZT_TRACE=1 timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture two_members 2>&1 | tee "$RUNNER_TEMP/run.log"
           grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/run.log"
       - name: a planted member of another network fails it
         run: |
@@ -49,7 +50,7 @@ jobs:
       - name: the pair's road of the library through the roots and the relay
         run: |
           set -o pipefail
-          timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture the_pair_s_road 2>&1 | tee "$RUNNER_TEMP/pair.log"
+          PODSSH_ZT_TRACE=1 timeout 300 cargo test --locked -p podssh-zerotier --test live -- --ignored --nocapture the_pair_s_road 2>&1 | tee "$RUNNER_TEMP/pair.log"
           grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/pair.log"
       - name: the command line through the roots and the relay
         run: |

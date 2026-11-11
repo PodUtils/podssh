@@ -60,14 +60,17 @@ struct Glue {
     wire: mpsc::Sender<Datagram>,
     packets: Option<mpsc::Sender<Vec<u8>>>,
     state: Arc<Mutex<State>>,
+    trace: Arc<crate::trace::Trace>,
 }
 
 impl Host for Glue {
     fn wire(&mut self, to: SocketAddr, packet: &[u8]) {
+        self.trace.sent(to);
         // A full wire drops, as UDP does; the core sends again.
         let _ = self.wire.try_send((to, packet.to_vec()));
     }
     fn frame(&mut self, _: u64, _: u64, _: u64, ether_type: u16, data: &[u8]) {
+        self.trace.frame_in();
         if let (0x86dd, Some(packets)) = (ether_type, &self.packets) {
             let _ = packets.try_send(data.to_vec());
         }
@@ -113,12 +116,14 @@ impl Member {
     pub fn start(state: Arc<Mutex<State>>, wire: Wire, network: Option<u64>) -> Result<Member, String> {
         let (packets_in, inbound) = mpsc::channel(QUEUE);
         let (out, mut packets_out) = mpsc::channel::<Vec<u8>>(QUEUE);
-        let glue = Glue { wire: wire.out, packets: network.map(|_| packets_in), state };
+        let trace = crate::trace::Trace::from_env();
+        let glue = Glue { wire: wire.out, packets: network.map(|_| packets_in), state, trace: trace.clone() };
         let mut node = Node::new(Box::new(glue), now_ms())?;
         if let Some(nwid) = network {
             node.join(nwid)?;
         }
         let address = node.address();
+        trace.start(address);
         let why = Why::default();
         let (mut wire_in, ended) = (wire.inbound, why.clone());
         let task = tokio::spawn(async move {
@@ -128,12 +133,16 @@ impl Member {
                     Duration::from_millis((node.next - now_ms()).clamp(1, MOST_SLEEP.as_millis() as i64) as u64);
                 tokio::select! {
                     got = wire_in.recv() => match got {
-                        Some((from, bytes)) => running = node.wire(now_ms(), from, &bytes).is_ok(),
+                        Some((from, bytes)) => {
+                            trace.came(from);
+                            running = node.wire(now_ms(), from, &bytes).is_ok();
+                        }
                         None => running = false,
                     },
                     packet = packets_out.recv(), if network.is_some() => match (packet, network) {
                         (Some(packet), Some(nwid)) => {
                             if let Some(dest) = destination(&packet) {
+                                trace.frame_out();
                                 let (src, dst) = (mac_of(node.address(), nwid), mac_of(address_of(&dest), nwid));
                                 running = node.frame(now_ms(), nwid, src, dst, 0x86dd, &packet).is_ok();
                             }
