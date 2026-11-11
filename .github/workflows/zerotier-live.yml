@@ -9,7 +9,12 @@ name: zerotier live
 # a `podssh node --derp` of a pair whose relay is down, and `podssh ssh
 # node://` of the same pair (the fixture's tokens, no credential), meet
 # through the same roots and relay alone; a planted client of another pair
-# must fail. Started by hand alone; it publishes nothing.
+# must fail. And the job `one`: ZeroTierOne's own zerotier-one, built from
+# the pinned commit, joins the same kind of network through the roots, and
+# TCP passes both ways between its host and a member of podssh through the
+# relay (crates/podssh-zerotier/tests/zerotier_one.rs); planted, a member
+# that looks for another node must fail. Started by hand alone; it
+# publishes nothing.
 
 on:
   workflow_dispatch:
@@ -57,3 +62,83 @@ jobs:
             exit 1
           fi
           echo "the planted client failed (exit $rc), as it must"
+
+  one:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+      ZEROTIER_COMMIT: "899352e"
+      NWID: "ff10001000000000"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-zerotier --test zerotier_one --no-run
+      - name: ZeroTierOne's zerotier-one, of the pinned commit
+        run: |
+          set -eu
+          git clone -q https://github.com/zerotier/ZeroTierOne.git "$RUNNER_TEMP/zt"
+          cd "$RUNNER_TEMP/zt" && git checkout -q "$ZEROTIER_COMMIT"
+          make -j4 one ZT_SSO_SUPPORTED=0 > "$RUNNER_TEMP/make.log" 2>&1 || { tail -40 "$RUNNER_TEMP/make.log"; exit 1; }
+          sudo mkdir -p /var/lib/zerotier-one
+          sudo nohup ./zerotier-one > "$RUNNER_TEMP/one.log" 2>&1 &
+          for i in $(seq 60); do sudo ./zerotier-one -q info 2>/dev/null | grep -q ONLINE && break; sleep 2; done
+          sudo ./zerotier-one -q info
+          sudo ./zerotier-one -q join "$NWID"
+          echo "ZT_NODE=$(sudo ./zerotier-one -q info | awk '{print $3}')" >> "$GITHUB_ENV"
+          for i in $(seq 60); do ip -6 addr | grep -q 'inet6 fc' && break; sleep 2; done
+          ip -6 addr | grep 'inet6 fc'
+      - name: an echo on the runner, at each address
+        run: |
+          cat > "$RUNNER_TEMP/echo.py" <<'PY'
+          import socket, threading
+          s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+          s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+          s.bind(("::", 4096)); s.listen(4)
+          def serve(c):
+              with c:
+                  while (b := c.recv(4096)): c.sendall(b)
+          while True:
+              c, _ = s.accept(); threading.Thread(target=serve, args=(c,), daemon=True).start()
+          PY
+          nohup python3 -I "$RUNNER_TEMP/echo.py" > "$RUNNER_TEMP/echo.log" 2>&1 &
+      - name: TCP both ways between zerotier-one's host and a member of podssh
+        run: |
+          set -u
+          out="$RUNNER_TEMP/member.txt"
+          PODSSH_ZT_ONE_OUT="$out" PODSSH_ZT_ONE_NODE="$ZT_NODE" timeout 400 \
+            cargo test --locked -p podssh-zerotier --test zerotier_one -- --ignored --nocapture > "$RUNNER_TEMP/test.log" 2>&1 &
+          test_pid=$!
+          for i in $(seq 120); do [ -s "$out" ] && break; sleep 1; done
+          addr=$(cat "$out")
+          cat > "$RUNNER_TEMP/client.py" <<'PY'
+          import socket, sys, time
+          end = time.time() + 180
+          while time.time() < end:
+              try:
+                  c = socket.create_connection((sys.argv[1], 4096), timeout=20)
+                  c.sendall(b"zerotier-one to podssh")
+                  got = c.recv(64)
+                  print("echo:", got)
+                  sys.exit(0 if got == b"zerotier-one to podssh" else 1)
+              except OSError as e:
+                  print("again:", e); time.sleep(3)
+          sys.exit(1)
+          PY
+          rc_client=0
+          python3 -I "$RUNNER_TEMP/client.py" "$addr" || rc_client=$?
+          rc_test=0
+          wait "$test_pid" || rc_test=$?
+          cat "$RUNNER_TEMP/test.log"
+          echo "client $rc_client, test $rc_test"
+          [ "$rc_client" -eq 0 ] && [ "$rc_test" -eq 0 ]
+      - name: a planted member that looks for another node fails it
+        run: |
+          rc=0
+          PODSSH_ZT_ONE_OUT="$RUNNER_TEMP/planted.txt" PODSSH_ZT_ONE_NODE=0123456789 timeout 400 \
+            cargo test --locked -p podssh-zerotier --test zerotier_one -- --ignored || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: a member reached a node that is not there"
+            exit 1
+          fi
+          echo "the planted member failed (exit $rc), as it must"
