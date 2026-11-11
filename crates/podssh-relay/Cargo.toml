@@ -10,12 +10,12 @@ publish.workspace = true
 # A library other projects (podvm) use; its crates move to PodUtils/podcrates
 # (T-684).
 [dependencies]
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
-pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0" }
+pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0" }
 # The services of other parties: the relay's host, limits and seed, the
 # DERP servers, Piping, the mailboxes and transit, OpenTunnel, the edge of
 # the quick tunnel and its roots.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0" }
 podssh-ws = { path = "../podssh-ws" }
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -51,7 +51,7 @@ rustls = { workspace = true, optional = true }
 # The QUIC endpoint, its keys, the connection within its wait, the race of
 # handshakes and the probe of UDP (PodUtils/podcrates, T-019): pod-quic, on
 # the same noq.
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.14.0", optional = true }
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0", optional = true }
 # DERP's handshake (src/derp/, T-349): the client's info sealed to the
 # server's key with NaCl's crypto_box (X25519, XSalsa20, Poly1305). Pure
 # Rust, RustCrypto's, in the lock already through the vendored tailscale-rs;
@@ -65,16 +65,10 @@ tokio-rustls = { workspace = true, optional = true }
 # T-374): a TCP stream to the edge's port 7844 on podssh-warp's road (T-352),
 # pure Rust; only with the feature `warp`.
 podssh-warp = { path = "../podssh-warp", optional = true }
-# Pairing by a short code (src/code/, T-086): SPAKE2 of RustCrypto's PAKEs,
-# the crate that magic-wormhole's Rust port interoperates with, on the
-# curve25519-dalek 4, hkdf 0.12 and sha2 0.10 that crypto_box and snow keep
-# in the lock; with no `getrandom`, its scalar comes from podssh's own source
-# through rand_core 0.6's traits. Then NaCl's SecretBox (XSalsa20 and
-# Poly1305) of crypto_secretbox, which crypto_box builds already. Pure Rust;
-# only with the feature `code`.
-spake2 = { version = "0.4", default-features = false, optional = true }
-rand_core_06 = { package = "rand_core", version = "0.6", default-features = false, optional = true }
-crypto_secretbox = { version = "0.1", default-features = false, features = ["alloc", "salsa20"], optional = true }
+# Pairing by a short code (src/code/, T-086): the mailbox client, SPAKE2, the
+# sealed phases and the words of a code, which podssh gives its AppID, its
+# name and its way out; only with the feature `code`.
+pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.15.0", optional = true }
 # croc's relay road (src/croc/, T-694): the curve SIEC of croc's relay
 # handshake, which no crate implements, on num-bigint's integers (0.4, in
 # the lock already), and AES-256-GCM of croc's crypt, the workspace's.
@@ -160,7 +154,7 @@ serve = ["pair", "dep:h2", "dep:http", "dep:bytes"]
 # Pairing by a short code (T-086): magic-wormhole's mailbox protocol, SPAKE2
 # keyed by the code, then its phases in NaCl's SecretBox, which carry the
 # operator's part of a pair and each end's key. No C either; the gate builds it.
-code = ["pair", "dep:spake2", "dep:rand_core_06", "dep:crypto_secretbox"]
+code = ["pair", "dep:pod-wormhole"]
 # croc's relay road (T-694): croc's public relays through the WebSocket
 # bridge of croc-web, a last fallback of Q78, under the resumable layer;
 # its PAKE on SIEC, written here. No C either; the gate builds it.

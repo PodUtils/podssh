@@ -16,16 +16,16 @@
 
 use std::time::Duration;
 
+use pod_wormhole::meet::or_close;
 use podssh_ws::url::WsUrl;
 use podssh_ws::{ProxyChoice, Trust};
 use serde_json::Value;
 
 use super::exchange::{self, Answer, Done, Kind, Offer};
-use super::mailbox::{crowded, Mailbox, Mood};
+use super::mailbox::Mood;
 use super::wormhole::Wormhole;
-use super::{hex, Code, Failed, Say, LIFETIME};
+use super::{Code, Failed, Say, LIFETIME};
 use crate::identity::PublicKey;
-use crate::session::secret::{Entropy, OsEntropy};
 
 /// Where the ends meet, and how they are reached.
 pub struct Ends {
@@ -34,6 +34,15 @@ pub struct Ends {
     pub trust: Trust,
     pub proxy: ProxyChoice,
     pub say: Say,
+}
+
+impl Ends {
+    /// The ends as `pod-wormhole` takes them: podssh's AppID and name, the
+    /// way out, and each line of the run as a line of `say`.
+    pub fn wormhole(&self) -> pod_wormhole::Ends {
+        let config = super::config(&self.trust, &self.proxy, self.say.clone());
+        pod_wormhole::Ends { mailboxes: self.mailboxes.clone(), config }
+    }
 }
 
 /// The bounds of a run; a test shortens them.
@@ -231,125 +240,14 @@ pub async fn take_with<T>(
 /// wormhole, this end's `pake` added: what a giver shows. `versions` goes in
 /// its version phase.
 pub async fn opened(ends: &Ends, versions: Value) -> Result<(Wormhole, Code), Failed> {
-    let side = new_side()?;
-    let mut missed = Vec::new();
-    for url in &ends.mailboxes {
-        let mut mailbox = match Mailbox::connect(url, &ends.trust, &ends.proxy, &side).await {
-            Ok(mailbox) => mailbox,
-            Err(why) => {
-                (ends.say)(reason(&why));
-                missed.push(reason(&why));
-                continue;
-            }
-        };
-        say_motd(ends, &mailbox);
-        let claimed = match mailbox.allocate().await {
-            Ok(nameplate) => mailbox.claim(&nameplate).await.map(|id| (nameplate, id)),
-            Err(why) => Err(why),
-        };
-        let (nameplate, id) = match claimed {
-            Ok(claimed) => claimed,
-            Err(why) => {
-                mailbox.end().await;
-                (ends.say)(reason(&why));
-                missed.push(reason(&why));
-                continue;
-            }
-        };
-        let code = Code::make(&nameplate, &mut OsEntropy).map_err(|_| Failed::NoRandom)?;
-        let hole = Wormhole::open(mailbox, side, nameplate, id, &code, versions).await?;
-        return Ok((hole, code));
-    }
-    Err(Failed::Unreachable(missed.join("; ")))
+    pod_wormhole::opened(&ends.wormhole(), versions).await
 }
 
 /// The wormhole of `code` at the mailbox where its giver waits, the key
 /// made: each mailbox of `ends` in order, by its list of nameplates, and
 /// where it lists none, by the giver's `pake` within `waits.giver`.
 pub async fn joined(ends: &Ends, code: &Code, versions: Value, waits: &Waits) -> Result<Wormhole, Failed> {
-    let side = new_side()?;
-    let (mut missed, mut reached) = (Vec::new(), false);
-    for url in &ends.mailboxes {
-        let mut mailbox = match Mailbox::connect(url, &ends.trust, &ends.proxy, &side).await {
-            Ok(mailbox) => mailbox,
-            Err(why) => {
-                (ends.say)(reason(&why));
-                missed.push(reason(&why));
-                continue;
-            }
-        };
-        say_motd(ends, &mailbox);
-        let listed = match mailbox.list().await {
-            Ok(listed) => listed,
-            Err(why) => {
-                mailbox.end().await;
-                (ends.say)(reason(&why));
-                missed.push(reason(&why));
-                continue;
-            }
-        };
-        reached = true;
-        // A mailbox that lists others has no giver of this code: claiming
-        // the nameplate there would spend a stranger's code.
-        if !listed.is_empty() && !listed.iter().any(|nameplate| nameplate == code.nameplate()) {
-            mailbox.end().await;
-            continue;
-        }
-        let id = match mailbox.claim(code.nameplate()).await {
-            Ok(id) => id,
-            Err(why) if crowded(&why) => {
-                mailbox.end().await;
-                let shown = &mailbox.shown;
-                return Err(Failed::Refused(format!("two ends hold this code at {shown} already: it was taken")));
-            }
-            Err(why) => {
-                mailbox.end().await;
-                (ends.say)(reason(&why));
-                missed.push(reason(&why));
-                continue;
-            }
-        };
-        let nameplate = code.nameplate().to_string();
-        let mut hole = Wormhole::open(mailbox, side.clone(), nameplate, id, code, versions.clone()).await?;
-        if hole.agree(waits.giver).await? {
-            return Ok(hole);
-        }
-        hole.close(Mood::Lonely).await;
-    }
-    if reached {
-        Err(Failed::Nobody)
-    } else {
-        Err(Failed::Unreachable(missed.join("; ")))
-    }
-}
-
-/// `done`, or its failure after the wormhole closed with `errory`.
-async fn or_close<T>(hole: &mut Wormhole, done: Result<T, Failed>) -> Result<T, Failed> {
-    match done {
-        Ok(value) => Ok(value),
-        Err(failed) => Err(hole.fail(Mood::Errory, failed).await),
-    }
-}
-
-/// A side for a run: 10 hex digits, as magic-wormhole's own.
-fn new_side() -> Result<String, Failed> {
-    let mut bytes = [0u8; 5];
-    OsEntropy.fill(&mut bytes).map_err(|_| Failed::NoRandom)?;
-    Ok(hex(&bytes))
-}
-
-/// The words of a failure at one mailbox, with no prefix of the whole run.
-fn reason(failed: &Failed) -> String {
-    match failed {
-        Failed::Unreachable(why) => why.clone(),
-        other => other.to_string(),
-    }
-}
-
-fn say_motd(ends: &Ends, mailbox: &Mailbox) {
-    if let Some(motd) = &mailbox.motd {
-        (ends.say)(format!("the mailbox {} says: {motd}", mailbox.shown));
-    }
+    pod_wormhole::joined(&ends.wormhole(), code, versions, waits.giver).await
 }
 
 fn now_ms() -> i64 {
@@ -366,18 +264,5 @@ mod tests {
         let waits = Waits::default();
         assert_eq!(waits.life, Duration::from_secs(600));
         assert!(waits.giver < waits.life && waits.step < waits.life);
-    }
-
-    #[test]
-    fn a_side_is_10_hex_digits_of_its_own() {
-        let (one, two) = (new_side().unwrap(), new_side().unwrap());
-        assert!(one.len() == 10 && one.bytes().all(|b| b.is_ascii_hexdigit()), "{one}");
-        assert_ne!(one, two);
-    }
-
-    #[test]
-    fn a_failure_at_one_mailbox_is_said_with_no_prefix_of_the_run() {
-        assert_eq!(reason(&Failed::Unreachable("wss://m/v1: refused".into())), "wss://m/v1: refused");
-        assert_eq!(reason(&Failed::Broken("x".into())), "x");
     }
 }

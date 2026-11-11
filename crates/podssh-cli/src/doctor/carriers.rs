@@ -10,6 +10,7 @@
 //! that its variable turns off is not asked. The Wisp demo server of Q65 is
 //! a forwarder: the line `fallback` says how `--forwarder wisp` asks it.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use podssh_relay::code::mailbox::Mailbox;
@@ -137,7 +138,8 @@ async fn mailbox_line(report: &mut Report<'_>, url: &WsUrl, trust: &Trust) {
     }
     let side: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     let started = Instant::now();
-    match tokio::time::timeout(WAIT, Mailbox::connect(url, trust, &ProxyChoice::FromEnvironment, &side)).await {
+    let config = podssh_relay::code::config(trust, &ProxyChoice::FromEnvironment, Arc::new(|_| {}));
+    match tokio::time::timeout(WAIT, Mailbox::connect(url, &config, &side)).await {
         Ok(Ok(mailbox)) => {
             let ms = started.elapsed().as_millis();
             let motd = mailbox.motd.as_ref().map(|motd| format!("; it says: {motd}")).unwrap_or_default();

@@ -2646,7 +2646,7 @@ command uses `podssh-probe`.
 2. Move `podssh-core` and `podssh-transport` to the dev-dependencies: an
    example can use a dev-dependency, and the binary does not declare them.
 3. Move `libc` to the dependencies for Unix only, as
-   `crates/podssh-relay/Cargo.toml:172` does; else the lint of step 4 fails on
+   `crates/podssh-relay/Cargo.toml:166` does; else the lint of step 4 fails on
    Windows.
 4. The check: `#![cfg_attr(not(test), deny(unused_crate_dependencies))]` in
    `crates/podssh-cli/src/lib.rs`. rustc then refuses a dependency that the
@@ -5342,7 +5342,7 @@ built after the transfer refuses each release, whose signer names PodUtils/podss
   `crates/podssh-cli/src/update/mod.rs:163` takes the repository from `CARGO_PKG_REPOSITORY`.
 - Read: `crates/podssh-cli/src/update/sigstore.rs:30` makes the signer's URI from that repository,
   and `crates/podssh-cli/src/update/sigstore.rs:134` refuses a leaf that does not name it.
-- Read: `crates/podssh-relay/src/code/mod.rs:37` and `crates/podssh-relay/src/serve/mailbox/mod.rs:32`
+- Read: `crates/podssh-relay/src/code/mod.rs:35` and `crates/podssh-relay/src/serve/mailbox/mod.rs:32`
   name the pairing's AppID `github.com/Azathothas/podssh/pair`.
 - Read: 39 files of the repository name `Azathothas/podssh` (`git grep -l`).
 
@@ -5575,6 +5575,19 @@ Each crate of `v0.1.0` is taken.
   question, so that no DoH connection waits beside a session (rule 2). `pod-core`'s new classes meet
   matches that keep a `_` arm. `pod-gsr` is new in it: T-707's Blocker is met. `cargo test --workspace
   --no-fail-fast` with Rust 1.99: 4,190 passed, 0 failed.
+
+- podcrates `v0.15.0` (`27a4ccd`), `pod-wormhole` (podcrates T-022), on 2026-11-11
+  (PodUtils/podcrates#54, COORD-029): `adoption/podssh/pod-wormhole.patch` applied with
+  `git apply --3way` on `main` at `ea911a78` (made at `9975fe92`); two citations of
+  `crates/podssh-relay/Cargo.toml` (in `TODO/repo.md` and `TODO/ws.md`) conflicted, main's side
+  taken and remapped. `crates/podssh-relay/src/code/` keeps `exchange.rs` and `run.rs` (they go to
+  `pod-relay`) and a thin `mod.rs` over `pod-wormhole`; each podcrates tag is `v0.15.0`. Each line of
+  `adoption/podssh/pod-wormhole.run` with Rust 1.99 passed, with podcrates at the tag for its two
+  checks of a consumer: the record, the repository checks, the builds of the default and the
+  release's features, clippy (with all of podssh-relay's features), the relay's 593 and `pair_code`'s
+  10, the CLI's 1,082 with `net_invite`, `relay_code` and `relay_code_role`, the plants that stay,
+  rustfmt; and the release's features for x86_64 musl with zig 0.16.0 and cargo-zigbuild 0.23.4,
+  static by `scripts/check-static.sh`.
 
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

@@ -11,26 +11,24 @@
 //! mailbox stores and forwards ([`mailbox`]); the ends run SPAKE2 keyed by
 //! the whole code over it, then seal each later message with a key of it
 //! ([`wormhole`]), as magic-wormhole's own client does, so that a peer of its
-//! Python library pairs with podssh's. The mailbox learns nothing of the
+//! Python library pairs with podssh's. The client, the code and its words
+//! are `pod-wormhole`'s; podssh gives it the AppID, its name, its way out
+//! and the mailboxes ([`config`]). The mailbox learns nothing of the
 //! code and can change nothing, and an attacker who claims the code's
 //! nameplate gets one guess of its 24 bits: the giver ends the code at the
 //! first exchange, whatever its end ([`run`]). What the ends say is
 //! podssh's own ([`exchange`]).
 
 pub mod exchange;
-pub mod mailbox;
-pub mod phrase;
 pub mod run;
-pub mod words;
-pub mod wormhole;
 
-use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
 use podssh_ws::url::WsUrl;
+use podssh_ws::{ProxyChoice, Trust};
 
-pub use phrase::Code;
+pub use pod_wormhole::{mailbox, phrase, words, wormhole, Code, Failed, WORDS};
 
 /// podssh's application in the mailbox, as magic-wormhole asks each to name
 /// one: nameplates and mailboxes of another application never meet it.
@@ -45,54 +43,21 @@ pub fn public_mailboxes() -> Vec<String> {
 pub const ENV: &str = "PODSSH_PAIR_MAILBOX";
 /// How long a code lives: past it the giver leaves, and the code fails.
 pub const LIFETIME: Duration = Duration::from_secs(600);
-/// The words of a code after its nameplate: 24 bits, one guess for each.
-pub const WORDS: usize = 3;
 
 /// Where the lines of a pairing go, for the user. No line holds the code.
 pub type Say = Arc<dyn Fn(String) + Send + Sync>;
 
-/// Why a pairing by code gave nothing. No variant holds the code.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failed {
-    /// No mailbox could be reached: why, for each.
-    Unreachable(String),
-    /// A mailbox refused this end, in its words.
-    Refused(String),
-    /// Nobody took the code within its life: the giver's end.
-    Expired(Duration),
-    /// No giver waits at the code: it expired, it was used, or it never was.
-    Nobody,
-    /// The two ends' keys differ: a code typed wrong, or a guess. The code
-    /// is spent at both ends.
-    WrongCode,
-    /// The other end broke the exchange, or is no pairing of podssh's.
-    Peer(String),
-    /// This end refused what the other end gave: why.
-    Mine(String),
-    /// The connection to the mailbox failed or stalled.
-    Broken(String),
-    /// The system gave no random bytes.
-    NoRandom,
+/// The settings of each connection to a mailbox: podssh's AppID and name,
+/// the way out of `proxy` with podssh's TLS and DNS, the roots of `trust`,
+/// and the events of `say` as lines.
+pub fn config(trust: &Trust, proxy: &ProxyChoice, say: Say) -> pod_wormhole::Config {
+    let way = podssh_ws::client::way(proxy);
+    let mut config = pod_wormhole::Config::new(APPID, "podssh", env!("CARGO_PKG_VERSION"), way);
+    config.trust = trust.clone();
+    config.connect_timeout = crate::open::CONNECT_TIMEOUT;
+    config.events = Arc::new(move |event: pod_core::Event| say(event.text));
+    config
 }
-
-impl fmt::Display for Failed {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Failed::Unreachable(why) => write!(f, "no mailbox could be reached: {why}"),
-            Failed::Refused(why) | Failed::Peer(why) | Failed::Mine(why) | Failed::Broken(why) => f.write_str(why),
-            Failed::Expired(life) => {
-                write!(f, "nobody took the code within its {} minutes; it is spent", life.as_secs().div_ceil(60))
-            }
-            Failed::Nobody => f.write_str("no node waits at this code: it expired, it was used, or it was typed wrong"),
-            Failed::WrongCode => f.write_str(
-                "the code did not match at the other end: it was typed wrong, or someone guessed; the code is spent",
-            ),
-            Failed::NoRandom => f.write_str("the system gave no random bytes"),
-        }
-    }
-}
-
-impl std::error::Error for Failed {}
 
 /// The mailboxes to try, in order: the ones of `named` (`--pair-mailbox`),
 /// else of the variable's `value`, else the public ones. `no` turns pairing
@@ -121,24 +86,6 @@ pub fn mailboxes_for(named: Option<&str>, value: Option<&str>, way: &str) -> Res
     }
 }
 
-/// Lower-case hex, as the mailbox carries a body.
-pub(crate) fn hex(bytes: &[u8]) -> String {
-    use std::fmt::Write;
-    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut out, b| {
-        let _ = write!(out, "{b:02x}");
-        out
-    })
-}
-
-/// The bytes of hex in either case; `None` for another text.
-pub(crate) fn unhex(text: &str) -> Option<Vec<u8>> {
-    if !text.len().is_multiple_of(2) {
-        return None;
-    }
-    let digit = |c: u8| (c as char).to_digit(16);
-    text.as_bytes().chunks(2).map(|pair| u8::try_from(digit(pair[0])? * 16 + digit(pair[1])?).ok()).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,22 +112,5 @@ mod tests {
         let net = mailboxes_for(None, Some("off"), "the net's own way").unwrap_err();
         assert_eq!(net, "PODSSH_PAIR_MAILBOX no turns pairing by code off: the net's own way");
         assert_eq!(mailboxes_for(None, None, "x").unwrap(), public);
-    }
-
-    #[test]
-    fn hex_goes_both_ways_and_refuses_what_is_not_hex() {
-        assert_eq!(hex(&[0, 0x5a, 0xff]), "005aff");
-        assert_eq!(unhex("005AfF"), Some(vec![0, 0x5a, 0xff]));
-        for bad in ["0", "0g", "zz", "a b "] {
-            assert_eq!(unhex(bad), None, "{bad:?}");
-        }
-        assert_eq!(unhex(""), Some(Vec::new()));
-    }
-
-    #[test]
-    fn no_failure_says_more_than_its_words() {
-        assert!(Failed::Expired(LIFETIME).to_string().contains("within its 10 minutes"));
-        assert!(Failed::WrongCode.to_string().contains("the code is spent"));
-        assert!(Failed::Nobody.to_string().starts_with("no node waits at this code"));
     }
 }

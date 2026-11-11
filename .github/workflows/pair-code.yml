@@ -46,4 +46,4 @@ jobs:
       # Each check must be seen to fail on its planted defect, here with
       # magic-wormhole's server beside the role.
       - name: the planted defects fail their tests
-        run: timeout 1800 sh scripts/plant-each.sh --here t086-third-side t086-code-said t086-version-unchecked
+        run: timeout 1800 sh scripts/plant-each.sh --here t086-third-side t086-code-said
