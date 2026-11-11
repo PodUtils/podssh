@@ -398,7 +398,7 @@ Decided in the work (2026-10-12):
   copy of the rules of `PodUtils/podssh:crates/podssh-terminal/src/echo/screen.rs`, and the
   oracle would judge the discipline by its own rules.
 - The runs of keys come from a fixed xorshift, as `pseudo_random` in
-  `crates/podssh-relay/tests/session_replay.rs`, with the seed in each
+  `PodUtils/podssh:crates/podssh-relay/tests/session_replay.rs`, with the seed in each
   failure. proptest lost here: T-202 brings it to other crates, and a run of
   keys needs no shrinking to be read.
 - The runs leave out the control bytes that the discipline types into the
@@ -576,7 +576,7 @@ Read, the bounds today:
    message that names the file, or state in the table that it has none.
 6. In M6, the replay buffer joins the table (T-152, 2026-10-09): 4 MiB in
    each direction of each resumable session by default, 16 MiB at most with
-   `PODSSH_REPLAY_BUFFER` (`crates/podssh-relay/src/session/replay.rs`); at
+   `PODSSH_REPLAY_BUFFER` (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs`); at
    the bound the writer waits for an `ACK`, and no byte is dropped. A node
    keeps 64 MiB of them at most, a whole buffer for each session that it
    keeps (`crates/podssh-relay/src/reverse/layered.rs`, T-153).
@@ -620,7 +620,7 @@ The test target `limits` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates 
   file that it cannot use as none (`crates/podssh-relay/src/cache.rs:325-327`). Each is made again,
   so the table says so, and nothing is added.
 - `PODSSH_REPLAY_BUFFER` above 16 MiB gives 4 MiB, the default, not 16 MiB
-  (`crates/podssh-relay/src/session/replay.rs:27-31`), as its comment says: another value is
+  (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:27-31`), as its comment says: another value is
   ignored. The table says so.
 - The window is not the only bound of a reader that takes nothing: russh queues at most 100
   messages of a channel (`channel_buffer_size`, its default, which
@@ -2084,7 +2084,8 @@ The gate must be green before other work, and each of the three workflows was re
   `libsqlite3-sys` 0.38.2 through `rusqlite` 0.40.2, `tor-dirmgr` 0.47.0 and `podssh-tor`. The fixed
   `libsqlite3-sys` 0.39 comes with `rusqlite` 0.41, and each release of `tor-dirmgr` to 0.48.0 asks
   `rusqlite >=0.36.0, <0.41.0` (crates.io's index, read 2026-11-11).
-- Read: `secrets` found two URIs of state "unknown": `https://u:SECRET@h.test`, a test value of
+- Read: `secrets` found two URIs of state "unknown": a made-up URL with a user and a password at
+  `h.test`, a test value of
   T-565 in `crates/podssh-relay/src/ssh_http/name.rs`, at the draft's commit and at its merge.
 - Read: on Windows, `a_server_with_a_secret_takes_its_answer_and_refuses_none_or_another`
   (`-p podssh-relay --test bore_link`, T-569) read "An existing connection was forcibly closed by
@@ -2122,7 +2123,8 @@ The next gate's `gate (lint)`, `windows`, `deny` and `secrets` are the check on 
 clippy::collapsible_if`): exit 0, where the run at `d2361ef1` failed on `Said`. `cargo-deny` 0.20.2
 (its release binary, checked against its SHA-256): `check advisories licenses bans sources` says
 "advisories ok, bans ok, licenses ok, sources ok", where the same run without the ignore failed on
-RUSTSEC-2026-0459. `.github/secrets-allow.txt` names both commits of the URL. bore's stand-in ends
+RUSTSEC-2026-0459. `.github/secrets-allow.txt` names both commits of the URL, and the commit of this entry, whose
+Premise first quoted the URL (`secrets` at `ea911a78`, run 42937074059, found it there). bore's stand-in ends
 each refusal gracefully; `--features bore --test bore_link` passed 8 runs in 8 here (Linux, in a
 network namespace with the loopback alone). The next gate's `windows`, `gate (lint)`, `deny` and
 `secrets` are the check on CI.
