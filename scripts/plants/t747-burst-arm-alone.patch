@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/doctor/burst.rs
++++ b/crates/podssh-cli/src/doctor/burst.rs
+@@ -163,7 +163,7 @@
+     let Rounds { bursts, controls } = rounds;
+     let cut = bursts.iter().chain(controls).any(|r| r.cut);
+     let cut_words = if cut { format!("; the rounds were cut at {} s", BUDGET.as_secs()) } else { String::new() };
+-    let alone_failed = controls.iter().map(Round::failures).max().unwrap_or(0);
++    let alone_failed = 0; // planted: the burst arm alone
+     if alone_failed > 0 {
+         let why = format!(
+             "not shown to be a concurrency limit: {alone_failed}/{K} handshakes fail even alone ({}); see the relay's \

@@ -27,7 +27,9 @@ use podssh_ws::Trust;
 
 // Whether the way out takes an address as well as a name (T-366).
 mod address;
+// Handshakes at once against one at a time (T-747).
 mod agent;
+mod burst;
 pub(crate) mod clock;
 // What a request with no TLS meets on the way (T-326).
 mod cleartext;

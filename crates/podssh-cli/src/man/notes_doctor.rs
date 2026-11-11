@@ -1,6 +1,6 @@
 //! The notes of `podssh doctor` for the time of a run (T-511): its sections
 //! at once, `--jobs` and `--quick`; its diagnosis of the TLS handshakes
-//! (T-487); its line of the NAT's mapping (T-641); its line of IPv6 targets (T-253); its line of a request with no
+//! (T-487); its burst of handshakes (T-747); its line of the NAT's mapping (T-641); its line of IPv6 targets (T-253); its line of a request with no
 //! TLS (T-326); its line of HTTP/2 (T-321); its section of an exit (T-458);
 //! and its probes of what a path does to a stream (T-325), with the relay
 //! role's side of them. Apart from the others so that each file stays short.
@@ -10,8 +10,8 @@ pub(super) const DOCTOR_AT_ONCE: &str = "The sections that connect run at once b
      the first one that still runs line by line, so a run takes about as long as its longest section, not their \
      sum. Each section reaches its servers one at a time, as before, so a run holds at most one connection for each \
      section that runs (the egress, the relay, OpenTunnel, DERP, the public carriers, the net's member relays, and \
-     each road that it names), with the one UDP socket of the line nat, and the relay's \
-     forward races its hosts as podssh ssh does. --jobs N, or DoctorJobs N in the settings file, starts at most N \
+     each road that it names), with the one UDP socket of the line nat, the 6 handshakes \
+     at once of the section burst, and the relay's forward races its hosts as podssh ssh does. --jobs N, or DoctorJobs N in the settings file, starts at most N \
      sections together, in the order of the report; --jobs 1 runs one after another.";
 
 pub(super) const DOCTOR_QUICK: &str = "--quick checks this host, the egress and the relay alone, what each run of \
@@ -20,6 +20,14 @@ pub(super) const DOCTOR_QUICK: &str = "--quick checks this host, the egress and 
      and edge road, so that --quick --full makes no QUIC handshake), the line nat, iroh and tor in a build with them, OpenTunnel, DERP, the public carriers, the \
      pairs and the net held; its last line, sections \
      in the section left out, names them, as ????: checks that did not run.";
+
+pub(super) const DOCTOR_BURST: &str = "The section burst, after the relay's checks and in --quick too, opens 6 TLS \
+     handshakes with the first relay host at once and 6 one after another, in two rounds whose order is swapped \
+     (burst, one at a time, one at a time, burst), within 10 s: its line concurrency says no concurrency limit \
+     seen up to 6; or a concurrency limit, k/6 together and 6/6 one at a time, with the kind of each failure (reset, \
+     timeout, refused, refused by the proxy), where fewer sessions at once may hold; or not shown to be a \
+     concurrency limit, where a handshake fails alone too. Through a proxy, it measures the proxy's limit. In \
+     --json, its numbers are k, burst_ok, control_ok and each round's.";
 
 pub(super) const DOCTOR_TIER: &str =
     "--tier (T-706) checks this host alone, with the lines of its section, and ends with one \

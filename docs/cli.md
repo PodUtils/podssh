@@ -2959,6 +2959,18 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   a read that failed, a refusal, or the 5 minutes after one). It is `ok`, a
   fact; `????` when no connection to the host was made; `FAIL` when
   `PODSSH_ECH=strict` sent no plain hello.
+- **The section `burst`** (T-747, the block "satmux 7" of PodUtils/podnet#438),
+  after the relay's checks in their part, in `--quick` too: 6 TLS handshakes
+  with the first relay host at once, and 6 one after another 125 ms apart, in
+  the order burst, control, control, burst, a pause of 125 ms before each so
+  that what came before has closed, all within 10 s. Its line `concurrency`:
+  `ok` "no concurrency limit seen up to 6"; `FAIL` "concurrency limit: k/6
+  handshakes succeed together, 6/6 one at a time", with the failures by kind
+  (`reset`, `timeout`, `refused`, `closed`, `refused by the proxy`, never by
+  their words), the worse burst's count; `????` "not shown to be a
+  concurrency limit" where the control failed too (GitHub #99's case). Through
+  a proxy it says that it measures the proxy's limit. `--json` carries `k`,
+  `burst_ok`, `control_ok` and each round's counts under `samples`.
 - `--full` adds the check `login` (GitHub #13): a login to `github.com` as
   `git` through the relay, with an Ed25519 key made for the check, kept in
   memory and never written. GitHub refuses it, which is `ok`: the handshake,

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**706 entries: 89 open, 19 partial, 9 blocked, 589 done.**
+**706 entries: 88 open, 19 partial, 9 blocked, 590 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 60 | 8 | 5 | 255 | 328 |
-| **All** | 89 | 19 | 9 | 589 | 706 |
+| P3 | 59 | 8 | 5 | 256 | 328 |
+| **All** | 88 | 19 | 9 | 590 | 706 |
 
 ## Entries
 
@@ -777,7 +777,7 @@ repository and CI).
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |
 | [T-746](robustness.md) | P2 | S | M10 | defect | partial | Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS |
-| [T-747](cli.md) | P3 | S | M10 | feature | open | `podssh doctor`: a probe of concurrent handshakes that tells a per-connection limit from a lone failure |
+| [T-747](cli.md) | P3 | S | M10 | feature | done | `podssh doctor`: a probe of concurrent handshakes that tells a per-connection limit from a lone failure |
 | [T-748](relay.md) | P2 | S | M10 | defect | done | `relay serve`: a cap on the open connections of an address and in all, and a pause after a failed accept |
 | [T-749](mesh.md) | P3 | M | M10 | feature | open | `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs |
 | [T-750](mesh.md) | P3 | M | M10 | feature | open | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |

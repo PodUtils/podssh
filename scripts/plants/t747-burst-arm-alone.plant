@@ -1,0 +1,7 @@
+# T-747: the burst's verdict counts the burst arm alone, never the control;
+# a relay that resets each connection then reads as a limit, and the test
+# of GitHub #99's case must fail.
+ENTRY=T-747
+GROUP=cli-tests
+EXPECT='test a_relay_that_resets_each_is_not_shown_to_be_a_limit \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --test doctor_burst -- a_relay_that_resets_each_is_not_shown_to_be_a_limit'

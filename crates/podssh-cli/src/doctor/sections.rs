@@ -172,7 +172,12 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         }
         // Unasked, two public STUN servers by default (Q86).
         Kind::Nat => super::nat::check(report, checks.stun).await,
-        Kind::Relay => super::relay_checks::check(report, relays, trust, failover, full).await,
+        Kind::Relay => {
+            super::relay_checks::check(report, relays, trust, failover, full).await;
+            // After the relay's own checks, in their part, so that no other
+            // section opens a connection to the relay beside it (T-747).
+            super::burst::check(report, relays, trust).await;
+        }
         Kind::Forwarders => match forwarders.is_empty() {
             true => super::forwarder::fallback_line(report, relays),
             false => super::forwarder::check(report, forwarders, trust).await,

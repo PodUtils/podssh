@@ -48,7 +48,7 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    keep the additions small, or split first.
 5. The JSON carries the same detail strings as the text, which hide proxy credentials and
    tokens today (`crates/podssh-cli/tests/doctor.rs:142-167`).
-6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:255-340`) and
+6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:255-341`) and
    `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -335,7 +335,7 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
 6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:165-216`), the `doctor` notes
-   (`crates/podssh-cli/src/man/notes.rs:255-340`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
+   (`crates/podssh-cli/src/man/notes.rs:255-341`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5902-5932`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:5914-5944`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -1768,16 +1768,16 @@ both from the schema alone.
 - Read, at `47e1eba`: `crates/podssh-cli/src/flags/relay.rs:179-181` is the `--full` row, with the QUIC
   handshake. `crates/podssh-cli/src/flags/relay.rs:186-188` is the `--quick` row, which names no
   probe of `--full`.
-- `crates/podssh-cli/src/doctor/mod.rs:229-231` guards the whole section of the quick tunnel with
+- `crates/podssh-cli/src/doctor/mod.rs:231-233` guards the whole section of the quick tunnel with
   `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
   `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
 - `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.
-- `crates/podssh-cli/src/man/notes_doctor.rs:114-134` (`DOCTOR_STREAM`) says that `--full` runs the
+- `crates/podssh-cli/src/man/notes_doctor.rs:122-142` (`DOCTOR_STREAM`) says that `--full` runs the
   stream section. `crates/podssh-cli/src/man/notes_doctor.rs:17-22` (`DOCTOR_QUICK`) lists what
   `--quick` leaves out and names no probe of `--full`.
 - `crates/podssh-cli/src/mcp/tools.rs:78` repeats the QUIC handshake. Line 79 offers `quick`.
   `crates/podssh-cli/src/mcp/tools.rs:209-218` builds `--full --quick` when both are true.
-- `crates/podssh-cli/src/doctor/sections.rs:242-247` already names the quick tunnel's edge among the
+- `crates/podssh-cli/src/doctor/sections.rs:247-252` already names the quick tunnel's edge among the
   sections that `--quick` leaves out.
 - T-511's Decision (`TODO/machine.md:1368-1373`) records that `--quick` leaves the edge out.
 
