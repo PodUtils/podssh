@@ -1,0 +1,63 @@
+name: sandhole probe
+
+# T-743's first step, by the operator's ruling Q94: a short run of stock
+# OpenSSH against Sandhole's public demo server, `demo.sandhole.com.br`,
+# with a throwaway key made for the run and given up after it: whether an
+# unknown key may make a remote forward (`ssh -R 80:localhost:PORT`), on
+# port 22 and on 443; the URL that it gives; and a request through it,
+# with and without a WebSocket upgrade, to a local server that answers a
+# known string. No podssh code runs; nothing of a user's goes there.
+# Started by hand alone; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: a local server that answers a known string
+        run: |
+          mkdir -p "$RUNNER_TEMP/www" && echo "podssh-sandhole-probe-ok" > "$RUNNER_TEMP/www/index.html"
+          (cd "$RUNNER_TEMP/www" && python3 -m http.server 4321 --bind 127.0.0.1 > "$RUNNER_TEMP/http.log" 2>&1 &)
+          sleep 1 && curl -fsS http://127.0.0.1:4321/
+      - name: a throwaway key
+        run: ssh-keygen -q -t ed25519 -N "" -f "$RUNNER_TEMP/probe_key" -C sandhole-probe
+      - name: the forward on each port
+        run: |
+          for port in 22 443; do
+            echo "=== port $port"
+            log="$RUNNER_TEMP/ssh-$port.log"
+            timeout 40 ssh -p "$port" -i "$RUNNER_TEMP/probe_key" -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" \
+              -o ServerAliveInterval=10 -o ExitOnForwardFailure=yes -o ConnectTimeout=15 \
+              -tt -R 80:localhost:4321 demo.sandhole.com.br > "$log" 2>&1 &
+            pid=$!
+            sleep 15
+            echo "--- what the server said"
+            sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | tr -d '\r' | head -40
+            url=$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -oE 'https://[A-Za-z0-9.-]+' | grep -v 'demo.sandhole.com.br$' | head -1 || true)
+            if [ -n "$url" ]; then
+              echo "--- a request to $url"
+              curl -sS --max-time 15 -o "$RUNNER_TEMP/body" -w "HTTP %{http_code}\n" "$url/" || true
+              head -c 200 "$RUNNER_TEMP/body" 2>/dev/null; echo
+              echo "--- a WebSocket upgrade to $url"
+              curl -sS --max-time 15 -o /dev/null -w "HTTP %{http_code}\n" --http1.1 \
+                -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" \
+                -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" "$url/" || true
+            else
+              echo "--- no URL: the server gave none for this key"
+            fi
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+          done
+          echo "=== the server's host key"
+          cat "$RUNNER_TEMP/known_hosts" 2>/dev/null | awk '{print $2}' | sort -u
+          ssh-keygen -lf "$RUNNER_TEMP/known_hosts" 2>/dev/null || true
+      - name: the throwaway key given up
+        if: always()
+        run: rm -f "$RUNNER_TEMP/probe_key" "$RUNNER_TEMP/probe_key.pub"
