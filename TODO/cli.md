@@ -3956,3 +3956,7 @@ and the default alike; one that resets each, `not shown`, `control_ok` 0; a sile
 FAILED, the other three passed. clippy and rustfmt clean; `--test doctor --test doctor_tls --test doctor_cleartext`,
 13, 4 and 3 passed. Found on the way: a gateway counts a connection until it sees its end, so the round right after
 another met the last one's slot; the pause before each round is that finding's repair.
+
+2026-11-11: the gate's runs after this entry failed in `--test doctor_jobs` on each platform (build run 43011838227 and
+the four before it): the test of `--quick` listed its sections without `burst`, which this entry puts in `--quick` too.
+The test's list now holds it: `cargo test -p podssh-cli --test doctor_jobs`, 3 passed.

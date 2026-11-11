@@ -9,7 +9,8 @@ name: zerotier interop
 # podssh-zerotier's stand-in relay and root (tests/derp_road.rs, the module
 # derp_zerotier); a planted client of another pair must fail. And the
 # binary with the feature, static musl in the gate's image, as the release
-# builds it: the C++ of the core links statically too.
+# builds it, with Alpine's g++ added as the gate's lint adds it: the C++ of
+# the core links statically too.
 # Started by hand, and on a push that changes the crate; it publishes nothing.
 
 on:
@@ -97,7 +98,7 @@ jobs:
           docker run --rm -v "$PWD:/work" -w /work \
             -e CARGO_BUILD_JOBS=4 -e RUSTFLAGS=-Ctarget-feature=+crt-static \
             "$image" \
-            cargo build --locked --release --target x86_64-unknown-linux-musl -p podssh-cli --features iroh,warp,zerotier
+            sh -c 'apk add --no-cache g++ && cargo build --locked --release --target x86_64-unknown-linux-musl -p podssh-cli --features iroh,warp,zerotier'
       - name: the binary is static, and runs
         run: |
           set -eu

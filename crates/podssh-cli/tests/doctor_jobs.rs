@@ -219,8 +219,9 @@ fn the_sections_run_at_once_and_jobs_1_runs_them_one_after_another() {
     }
 }
 
-/// `--quick`: this host, the egress and the relay, the roads that the run
-/// names (here `--via`), and no line of the quick tunnel's edge, DERP or
+/// `--quick`: this host, the egress and the relay with its burst of
+/// handshakes (T-747, in `--quick` too), the roads that the run names (here
+/// `--via`), and no line of the quick tunnel's edge, DERP or
 /// the pairs; the DERP server is never asked, and the last line names what
 /// was left out.
 #[test]
@@ -233,7 +234,7 @@ fn quick_checks_the_host_the_egress_and_the_relay_and_names_what_it_left_out() {
     // The sections, after the title and the version, and before the counts.
     let heads = run.out.lines().filter(|l| !l.is_empty() && !l.starts_with(' ') && !l.contains(" ok, "));
     let sections: Vec<&str> = heads.skip(2).collect();
-    assert_eq!(sections, ["this host", "egress", "relay", "forwarders", "via", "left out"], "{}", run.out);
+    assert_eq!(sections, ["this host", "egress", "relay", "burst", "forwarders", "via", "left out"], "{}", run.out);
     let last = run.out.lines().rev().find(|l| l.starts_with("  ")).unwrap_or_default();
     assert!(last.starts_with("  ????  sections       not checked with --quick: the quick tunnel's edge"), "{last}");
     let tail = "DERP, the public carriers, the pairs and the net held; a run without --quick checks them";

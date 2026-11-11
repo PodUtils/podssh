@@ -139,6 +139,9 @@ LINTS_ALLOWED="-A clippy::collapsible_if"
 # components are added at each run.
 step_lint() {
     run "rustfmt and clippy: the components" retry3 rustup component add rustfmt clippy
+    # ZeroTier's core is C++ (T-733), which the image's compiler of C alone
+    # does not build: Alpine's g++, statically linked as each release is.
+    run "a C++ compiler, for ZeroTier's core" retry3 apk add --no-cache g++
     # shellcheck disable=SC2086  # $PKGS is a list of flags
     run "the format of the code" cargo fmt $PKGS -- --check
     # shellcheck disable=SC2086
@@ -162,6 +165,9 @@ step_lint() {
     # The Tor road (T-353): the crate and the CLI's road with its feature.
     run "clippy: no warning with the Tor feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-tor --features podssh-cli/tor -- -D warnings $LINTS_ALLOWED
+    # ZeroTier's road (T-733): the CLI's road with its stand-in.
+    run "clippy: no warning with the ZeroTier feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-zerotier --features podssh-cli/zerotier-test -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings
