@@ -1,372 +1,139 @@
 # Progress
 
-The current state, the measured baseline, and the only work order. A closed
-entry keeps its proof in the entry; this page keeps no history (git does).
+The current state, tonight's queue, the measured baseline, and the only work order. A closed entry
+keeps its proof in the entry, and `docs/HANDOFF.md` holds the facts that change from day to day;
+this page keeps no history (git does).
 
 ## State
 
-- **Checkpoint, 2026-11-09: a new lead session after a stop with no handoff (the account ran out of
-  credits).** The podcrates session started it; its phase of orientation was read-only, then "go".
-  1. **Found lost:** the last session's test of the share lock and its entry were never pushed; the
-     defect was real (the gate of `8c7519c0`, run 42290205000, red on Windows). T-696 repairs it.
-  2. **Mapped:** GitHub #164 to #173 are T-697 to T-707 (T-707 blocked: `pod-gsr` deferred); cfb's
-     asks of COORD-014 (PodUtils/podcrates#38) are T-708 to T-731, five blocked on podcrates crates or
-     on test accounts. Closed with evidence: #56, #154, #156, #161, #163.
-  3. **The owner's rulings of 2026-11-09** (`docs/decisions.md`): betas whenever they fit; no
-     crates.io; podnet Linux only, so podssh serves the operator commands on Windows and macOS; no
-     test accounts as CI secrets; `podkey` its own project. The product calls of the triage are
-     recorded beside them.
-  4. **podcrates v0.7.0** is taken by this session (the owner, 2026-11-09; COORD-013,
-     PodUtils/podcrates#37): a move of each tag, no patch. Since then each tag moved, and
-     `pod-ws` is taken (`a083593e`, COORD-017; podcrates' `SOURCES` holds its `taken`
-     line). Then `v0.14.0` with `pod-quic` (`525f8907`, COORD-018). Then `v0.15.0` with `pod-wormhole` and `pod-session` (2026-11-11, PodUtils/podcrates#54): `code/` and `session/` of podssh-relay are glue over the crates, and the freeze below ended with the takes. Then `v0.16.0`, a move of each tag (COORD-032). Then `v0.18.0` (COORD-035), which brings #186's asks. Then `v0.20.0` (COORD-039). Frozen now, for fixes
-     only, each told to podcrates as a COORD issue, until `v0.15.0` takes them:
-     `crates/podssh-relay/src/code/` (`pod-wormhole`, podcrates T-022; its exchange goes to `pod-relay`)
-     and `crates/podssh-relay/src/session/` (`pod-session`, podcrates T-020). A draft that changes a
-     file there for a feature keeps that change out, or asks it of podcrates.
-  5. **Branches:** this session's git proxy refuses deletes (HTTP 403); the owner deletes the 139
-     `draft/*` branches (each checked as in `main`) and six stale Dependabot branches by hand.
+Read on 2026-11-11.
 
-- **Checkpoint, 2026-11-06, about 03:00 UTC: the migration session is paused (the owner).** The
-  next session starts fresh, with no memory and no messages to the sibling sessions.
-  1. **Done in the migration (2026-11-05 to 06):** T-683 (`67c0768`, the name PodUtils/podssh);
-     T-685 (`6514238`, `7d4753a`: no `msrv*` steps, no `CC=/nonexistent`, edition 2024, the static
-     check `scripts/check-static.sh` with its plant); T-686 (`85d4e9d`, `publish.yml`, switch off);
-     T-690 (`ccfef9e`, two regressions of `pod-proxy`); the audit of the record and the documents
-     (`9d0623d`); the owner's rulings (`eea8c63`, `docs/decisions.md` 2026-11-06); the session
-     protocol of PodUtils in `AGENTS.md` (section 2, "Talk with the other sessions of PodUtils").
-  2. **T-684 is partial.** Taken by git tag: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`,
-     `pod-testkit` (v0.1.0), `pod-tls` (v0.2.0, `6ece2ff`), `pod-proxy` (v0.3.0, `a791553`), and
-     `pod-dns` with `pod-services` (v0.4.0, taken on 2026-11-06 by the session of podssh's own work, as
-     the owner's prompt asked; T-684's `## Done`); each tag at `v0.5.0` since (COORD-007), which also brought pod-proxy's fix of vectored
-     writes (podcrates T-065) and removed the workaround `PodUtils/podssh:crates/podssh-ws/src/dial/bare.rs`
-     of T-690. Next `pod-ws`, then the waves of Q101. The steps of a take are those of `AGENTS.md`
-     ("Talk with the other sessions", item 4) and T-684's `## Done`: apply with `git apply --3way`,
-     run each line of the `.run`, add clippy with the features `ts` and `tor` (podcrates' trial
-     builds neither), `cargo todo remap Cargo.lock`, record in T-684 and `docs/STATUS.md`, commit,
-     push, and write the commit as a COORD issue `(to podcrates)`. Who takes the hand-offs while no
-     migration session runs is the owner's to say; a session of podssh's own work asks the owner.
-  3. **Taken in v0.4.0, so worked on in PodUtils/podcrates (Rule Q3):** pod-dns (podssh-ws's
-     resolver; `resolve.rs` stays as glue) and pod-services (each place of other parties' services in
-     `PodUtils/podcrates:docs/research/services/podssh.md`: the lists of hosts, the probes, the live
-     and watch workflows and their scripts and data files, `docs/decisions.md` 2026-11-05). Frozen
-     now (fixes only, each written as a COORD issue `(to podcrates)`): what the next releases import,
-     as the `repo PodUtils/podssh` blocks of `crates/*/SOURCES` in podcrates list it.
-  4. **CI, 2026-11-06:** the gate passed each job at `285b0562` (run 42254589426: Linux, macOS,
-     Windows, the release's static binary, `ts`, `tor`), after the takes of podcrates v0.4.0 and
-     v0.5.0 and the drafts of the day; Actions start no workflow for this account's pushes, so each
-     run is asked of the owner's agent (`docs/development.md`, "A run of GitHub Actions asked of the
-     owner's agent"). Before it:
-     the runs of `a791553` to `eea8c63` are red on the two regressions of T-690 (the step
-     `ts`; the step `release`'s interop `resume.cut.up.sftp`) and on one-off failures (T-688, T-744). The run
-     of `ccfef9e`, which repairs T-690, was running at the checkpoint: read it first. The daily
-     `record-issues` is red: GitHub #107 (closed), the pull requests #149 and #150 and the COORD test
-     #151 are not in `TODO/github.txt` and `TODO/issues.md`.
-  5. **Waiting for the owner:** T-687 (crates.io: asked again only after the owner calls podssh
-     stable). No release and no beta until the migration is done (T-446).
+1. **The gate.** `build.yml` has been red since the morning of 2026-11-11 on two causes, each
+   repaired and pushed, neither confirmed green: the test of `doctor --quick` missed the section
+   `burst` that T-747 added (`4ca0adb8`), and the build image lacked Alpine's `g++` and
+   `linux-headers` for ZeroTier's C++ core (`4ca0adb8`, `78220a35`). The last green gate is at
+   `bc5107b0` (run 42948403145: Linux, macOS, Windows, the static release binary). The record
+   agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
+2. **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is
+   `v1.0.1` (2026-11-03, at `6ece1f9`). Betas may go out whenever a batch fits, under the rules of
+   `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
+   stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
+3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321,
+   T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks, where
+   ZeroTier's road (T-733) is under way. See "Work order".
+4. **Partial entries** (18; each `## Done` names its next step): T-733 (ZeroTier's road); the
+   tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
+   migration, T-684; the release of M10, T-446; and T-319, T-321, T-450, T-459, T-548, T-574,
+   T-660, T-662, T-665, T-666, T-670 and T-698 (its serve part waits for T-107).
+5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
+   operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
+   working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
+   Trojan node ids for T-574 arrive after 2026-11-12T03:05Z.
+6. **The sessions of PodUtils.** The owner's pause ended on 2026-11-11 (PodUtils/podcrates#53
+   closed). podssh and podcrates talk by direct messages (`send_message`) and record each take as
+   a COORD issue; podnet, podvm and podrunner answer COORD issues. Open: #177 (COORD-010), for
+   T-574's live check of the nodes. cfb's asks, T-708 to T-731, wait behind podssh's own work
+   order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
+   among them.
+7. **The move to PodUtils/podcrates, and the frozen files** (T-684, Q101, Rule Q3). podssh pins
+   each podcrates crate at `v0.24.0` (COORD-025, GitHub #192). Taken, so worked on in
+   PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`,
+   `pod-tls`, `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`,
+   `pod-session` and `pod-e2e`; podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`,
+   `session/` and `src/e2e/` of `podssh-relay`). **Frozen now, for fixes only**, each fix written
+   as a COORD issue `(to podcrates)` so that podcrates ports it: the files of `pod-relay`
+   (podcrates T-025), until podssh takes podcrates' `adoption/podssh/pod-relay.patch`. The
+   `repo PodUtils/podssh` block of PodUtils/podcrates:crates/pod-relay/SOURCES lists the files. A
+   draft that changes a frozen file for a feature keeps that change out, or asks it of podcrates.
+   An open entry whose code moved has a `## Correction` that names the crate.
+8. **Drafts.** None waits:
 
-- **Checkpoint, 2026-11-05, about 00:30 UTC: the end of the night of 2026-11-04 (Q98 to Q100); items 7
-    and 8 tell the move to PodUtils as it stood at the end of that morning.**
-  1. **`v1.1.0-beta.2` is published** (from `dbd0fac`, 2026-11-04 18:48 UTC; its proofs passed).
-     **`v1.1.0-beta.3` is published** (Q98), from `6d30328` at 01:30 UTC on 2026-11-05: made
-     ready at `35e4932`, but the gate had been red since T-664 on three causes that the night read
-     as the place's (the record of the keys that hosts took lost a change of logins at once, the
-     stall's interop check looked for the old first request, and a WARP test inherited a reused
-     port's memory); T-675 and T-676 repaired them (`0500af1`). Then its gate passed (run
-     41940971099), the release workflow by hand on `beta/v1.1.0-beta.3` (run 41941007776),
-     `scripts/release-short.sh BINARY --net` on a static build of `6d30328`, the publish (run
-     41944902543) and the tag's run (41945306047); then `release-proofs.yml` (run 41949133180) and
-     `update-live.yml` (run 41949136901) passed. `docs/STATUS.md` marks its 19 rows. The lesson: read each failed job's
-     log before calling a red gate the place's.
-  2. **GitHub #126 to #148** (Nemo-010) are T-628 to T-650 (Q100); done and closed: #126, #127,
-     #128, #131, #132, #133, #134, #135, #136, #137, #138, #139, #140, #141, #142, #143, #144, #145,
-     #146, #147, #148: each is closed but #129, whose T-631 waits for T-124.
-  3. **osewa** (Q99, `docs/research/osewa.md`): T-660 to T-670, T-673. Done: T-661, T-663, T-664, T-667, T-669,
-     T-673;
-     partial: T-660 (iroh's and DERP's rows, osewa on a runner), T-662 (a copy through a shaped
-     link), T-665 (the A/B run on a wide-area path), T-666 (the HTTP/2 part), T-670 (a far link's
-     download while typing, a node's road on the slow link). Measured on the loopback (T-660's
-     matrix): a key's echo beside a download is now about 100 to 140 ms on a cellular link
-     (OpenSSH 1.6 s) and 0.4 to 0.8 s on a link of 1 Mbit/s (OpenSSH 16 s); a session resumes 1 s
-     after a move; a cold connect is two round trips shorter than before and than OpenSSH's.
-  4. **Partial and watched:** T-465, T-627, T-319, T-321 (as before), T-684 (item 7), and those of item 3.
-  5. **The work order** (below): the move's open work (item 7), then the rest of osewa's entries
-     (T-678 and the partial ones), then GitHub #127 to #148's open entries by priority, then M10's
-     items 2 and 3 (T-106, T-180, T-434, T-459).
-  6. **Two lessons of the night** (each in the paragraph of the drafts below): never commit while
-     `scripts/plant-each.sh` runs; when the disk fills, remove `target/` whole.
-  7. **The move to PodUtils (2026-11-05).** The repository is PodUtils/podssh and the shared crates
-     go to PodUtils/podcrates (`docs/decisions.md`). No compatibility with the released binaries for
-     now, and no bridge release (the operator). Done: T-683 (the name in the code, the manual, the
-     workflows and the documents); T-685 (the gate has no step at a minimum Rust and no
-     `CC=/nonexistent`; each crate is edition 2024 with Rust 1.97 from the workspace, moving to 1.99
-     with `pod-tls`; `scripts/check-static.sh` checks the one rule, a static binary); T-686
-     (`publish.yml`, its switch off). Partial: T-684. podssh takes each crate by a git tag of
-     PodUtils/podcrates (Q101, Rule Q3): `pod-todo` (`crates/podssh-todo` is a wrapper, with
-     `TODO/todo.toml`), `pod-term` (`podssh-terminal` is gone), `pod-identity` and `pod-core`
-     (`podssh-relay`'s `identity` re-exports them) are taken; `pod-tls` (`podssh-ws`'s TLS, with thin
-     wrappers) is taken; `pod-proxy` (`v0.3.0`) is taken too; `pod-dns` is being imported into podcrates, so
-     `podssh-ws`'s `resolve.rs`, `resolve/` and its tests `doh_h2.rs`, `doh_names.rs`, `doh_wire.rs`,
-     `live_doh.rs` take fixes only (each told to the podcrates session); `pod-e2e` is taken (podcrates `v0.22.0`, 2026-11-11): `podssh-relay`'s `src/e2e/` is its glue; since `75a50318`, the files of `pod-relay` (podcrates T-025: `docs/design.md`, section 4, the row `pod-relay`)
-     take fixes only, each told to podcrates as a COORD issue, until podssh takes it; next `pod-dns` and `pod-ws`, then the waves of Q101. An
-     open entry whose code is in such a module has a `## Correction` of 2026-11-05 that names the
-     crate. Settled 2026-11-06 (`docs/decisions.md`): no release and no beta until the migration is
-     done, podssh stays beta until the owner calls it stable, crates.io is asked again after that
-     (T-687, T-446); podvm takes the facade from `pod-relay` (T-085); T-689 is moot; a standing yes for
-     COORD issues. The migration session applies podcrates' patches; a session of podssh's own work
-     leaves T-684 to it. podbox is podvm.
-  8. **Whatever is necessary, statically compiled (2026-11-05, the operator):** C, zig and the newest
-     stable Rust in each crate (rule 4 of `AGENTS.md`); T-685 retired the checks of the old rules. An
-     entry that says "no C" or "pure Rust" for a crate has a `## Correction` that reads it so.
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | none | | | |
 
-- **The record.** The work is in `TODO/` since 2026-10-08 (T-204). Each open
-  item of `docs/ROADMAP.md`, each row of the former defects page, each
-  GitHub issue and the two sandbox reports of 2026-10-08 is an entry or part
-  of one. `TODO/issues.md` maps the GitHub issues. The writers of the
-  entries read the code at each cited line, and found more defects; each is
-  an entry (T-230 to T-248).
-- **M3.** Done on 2026-10-09: measured in two real sandboxes (T-001), each
-  defect that the sandbox runs found is repaired, and the interactive
-  session runs in the box (T-004). There is one release only: `v1.0.0`, at
-  the end (T-250).
-- **GitHub.** 36 issues on 2026-10-08. #1, #4, #5 and #16 are closed by their
-  commits (T-014, T-015, T-016, T-017). #15 is repaired in `eacd94e`,
-  measured in the box, and closed (T-005). The feature requests #18 to #26 are
-  split into entries. The requests #29 to #36 came later the same day; each
-  is an entry (T-027, and T-220 to T-227). The operator ruled on the
-  twelve questions of scope and design the same day (`docs/decisions.md`).
-- **The mode of work.** Since 2026-10-08, each session runs unattended
-  toward `v1.0.0` (`AGENTS.md`, section 2; `docs/decisions.md`). Since
-  2026-10-09, an entry closes with the native tests; the runs in the build
-  image and the planted defects wait for T-251 (`docs/decisions.md`).
-- **The branch.** The record was added in `22c3b88` and `e275d36` on
-  2026-10-08, and CI passed for both (runs 37777359030 and 37777669130).
-- **The resumable layer (2026-10-09).** T-262 is repaired: the test of
-  T-153 that cut a session at random points and failed in CI at `7797b2a`
-  passes 20 runs in a row, with a test for each of its causes. T-154 is
-  done in the same commit, and T-155 after it; their live tests of more
-  than 5 minutes or 100 MiB wait for T-251. The operator settled Q31 to Q37 on 2026-10-09
-  (`docs/decisions.md`). A copy of the tree before T-262 is at the local ref
-  `refs/checkpoints/2026-10-09`, a backup only: never pushed, never merged.
-- **M6 (2026-10-10).** Its exit is met on the loopback (T-156): a session
-  survives a stopped relay host, a new address of its client and a stall of
-  3 minutes, on the resumable layer and on the iroh road; the gate's step
-  `m6` runs the checks at each push. T-263 is the last entry of M6.
+   The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
+   deletes, so the owner deletes them by hand.
+9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's.
+   Never commit while `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the
+   disk fills, remove `target/` whole, never files under it. Never amend a commit that was pushed,
+   not even on a draft branch: the next push would be a force-push. A merge in progress waits on a
+   local branch `merge-NNN`, never on `main`.
 
-- **The session of 2026-10-30, in a Claude Code cloud container.** The
-  operator allowed betas again (`docs/decisions.md`): `v1.0.0-beta.N`
-  before `v1.0.0` (T-309). The container is ready by `scripts/cloud-setup.sh`,
-  and `scripts/dev.sh` reaches the build image through its Docker or Podman
-  (T-310). podssh works there through the agent proxy (T-311). The CI's job
-  `deny` was red from 2026-10-15 (T-312), and the native tests met three
-  causes of the test or of the place, none of podssh (T-313, T-314, T-315).
-  `v1.0.0-beta.1` was published from that session (T-309): its git may not
-  push a tag, so the release workflow publishes from a run by hand. GitHub
-  #14, #21, #23 and #26 are closed. The gate's steps m6 and release were
-  red from `472adff`, as T-318 sent the runs of the fault checks around
-  their stand-in proxy, and the job secrets from `95ef7a3`, as TruffleHog
-  took a placeholder for a credential; both are repaired (T-318's Done).
-- **Drafts (2026-10-13).** Since 2026-10-12 agents draft entries in local
-  worktrees (`.claude/worktrees/`, excluded from git) on local branches
-  `worktree-agent-*`, never pushed; they do not build. The main session
-  merges a draft, builds it, runs its tests and plants, fills each
-  UNVERIFIED and closes the entry (T-179 to T-184, T-200, T-202, T-221, T-225, T-232, T-235, T-242, T-279, T-280, T-229, T-281, T-289, T-291, T-293, T-187 to T-191, T-195, T-296, T-297 and T-298 so, T-185, merged in
-  `d1c5bd1` and measured on 2026-10-30, and T-186, T-193, T-197, T-192,
-  T-306, T-302 and T-305, merged on 2026-10-30; T-344, T-349, T-351, T-367, T-368 and T-350, merged on
-  2026-10-31, and T-352 and T-374, merged and closed on 2026-10-31, and T-379, T-363, T-369 and T-370 on 2026-11-01). The operator pushed each branch to GitHub as
-  `draft/worktree-agent-*` on 2026-10-30; each draft of the four is in
-  `main` now, so those branches and the worktrees on the operator's machine
-  can go, as can `draft/draft-dns` and `draft/draft-derp` (merged on
-  2026-10-31), and `draft/draft-cloud`, `draft/draft-pipe`, `draft/draft-pkarr`,
-  `draft/draft-warp`, `draft/draft-roads-cli` and `draft/draft-forwarder`, which this
-  cloud session's git proxy would not delete.
+## Tonight
 
-  T-373's (`1be3e28`), T-334's (`4bddbb5`) and T-385's (`450654d`), drafted by
-  agents of this cloud session, are merged, and their worktrees and branches
-  are gone. T-251's planted defects, four drafts of agents (ssh, faults and
-  multi; copy, pipe and cli; resume and roads; the box), joined on the
-  branch `draft/t251-plants` (`e622607`), then carried onto `main` at
-  `da543fd` as `draft/t251-plants-2`, and the release check of an agent
-  (`draft/t251-release-check`, `54d172c`), are merged on 2026-11-01, after
-  `plants.yml` and `box.yml` passed on that branch at `bb46515`; those three
-  branches can go, as this session's git proxy would not delete them.
+The lead session's queue for the night of 2026-11-11, in order. "Live" needs a run of GitHub
+Actions; "offline" needs none. A test that fails at random, or a red gate, goes before the next
+item whenever it appears.
 
-  On 2026-11-02, `draft-m10-corrections` (the Corrections of the 15 entries that waited for the
-  relay's operator, after Q63, with `docs/relay-operator.md` and `docs/carriers.md`, Q64 and
-  Q65), drafted by an agent of this cloud session, is merged, and its worktree and branch are
-  gone. The same day, the drafts of agents of this session for T-443 and T-444 are merged (their
-  node window test found a defect of the stand-in's new mode, repaired); T-439's is merged and closed
-  (`via-interop.yml` passed against Caddy and squid), and T-436's is merged and closed (its
-  live runs through Least Authority's relay passed; three first runs that met nobody are T-450);
-  T-437's is merged and closed (its
-  two servers, its live run through ppng.io; nwtgck's server answers a sender only once a byte
-  came, so the mark now goes with the POST's head; the command-level run is T-451); T-438's is merged
-  and closed (against wisp-server-python, and live through the demo server); T-429's is merged and
-  closed. T-427's and T-448's are merged and closed. T-440's is merged and closed (three compile
-  repairs; its XHTTP stand-in made the session for either request first, as Xray-core does; its
-  interop's first run found that Xray-core blackholes a private target unless a final rule allows
-  it, then 15 of 15). T-441's is merged onto it and closed (each list of roads took both, and
-  `--vless` and `--wstunnel` refuse each other; 12 of 12 against wstunnel's own server). T-430's is merged and closed (the synopsis of `podssh
-  net` was wider than the page). T-428's is merged and closed (live through Cloudflare's edge, run
-  41440851652), T-447's is merged and closed (8 of 8 against Pebble), and T-454's is merged and
-  closed (the merge gave the role behind a quick tunnel the visitor that the edge names, so that
-  each visitor counts apart). `draft/worktree-agent-t430-net-policy`,
-  `draft/worktree-agent-t428-quick-relay`, `-t447-acme` and `-t454-brake` can go. T-431, T-445 and T-452 are merged and closed, and
-  `draft/worktree-agent-t431-exit` can go. These branches can go, as this
-  session's git proxy would not delete them: `draft/worktree-agent-t429-net`,
-  `draft/worktree-agent-t440-vless`, `draft/worktree-agent-t441-wstunnel`, `draft/draft-t427-t448`,
-  and the merges' `draft/m10-merge-427`, `-429`, `-437`, `-438`, `-439`, `-440`, `-443-444` and
-  `-448`.
-
-  On 2026-11-02 an agent drafted the testers' defects of SSH, unbuilt, one commit each, on the
-  local branch `worktree-agent-a7cc3c512bf98ec67`: T-460 to T-464 (T-463 a feature, by Q85), each
-  merged and closed the same day. The branch and its worktree can go, and so can
-  `worktree-agent-t460-ssh` (`818f7fe`) and `draft/worktree-agent-t460-ssh`.
-
-  On 2026-11-03 the drafts of the testers' features, by agents of this cloud session, are merged
-  and closed, one at a time: T-561 (`c5299c2`) and T-562 (`cde307f`) of WARP, with the live run
-  41597035711; T-564 (`5b643b1`); T-489 (`ea2a70b`, live through the relay); T-483 (`7417676`); and
-  T-488 (`f8eaeb4`). Their worktrees and local branches are gone; `draft/worktree-agent-af45a8be5552d1bf0`,
-  `draft/worktree-agent-aad1db2c11baba50c` and `draft/worktree-agent-a3b8eb20dc7bccfa9` can go, as
-  this session's git proxy would not delete them.
-
-  On 2026-11-03 the third round of drafts is merged and closed, one at a time: T-475 (`535893e`),
-  T-484 and T-486, OpenTunnel's road T-530 and T-531 (live run 41679059624), T-592 (`5c14126`) and
-  T-596. Their worktrees and local branches are gone; their `draft/` branches on GitHub can go.
-  The research of the operator's relay archive followed (`09f0c0d`): its four entries, with T-605
-  partial, and `docs/research/relay-measurement.md`; `draft/relay-measure` can go.
-
-  On 2026-11-03 a fourth round was drafted, unbuilt, one commit for each entry: T-614
-  (`worktree-agent-afe7db2e2c9eeb0a3`, merged and closed, `e0a2496`); T-612 and T-613
-  (`worktree-agent-ac366026bd4dfc2dc`, `6b76515` and `741e842`); T-455 and T-457
-  (`worktree-agent-a78b0fb3db0c3f0c8`, `2454434` and `ac38d51`). Each is merged and closed, in that
-  order (`5f0165b`, `a29abfc`, `3c30ce2` and T-457's), and their worktrees are gone; their
-  `draft/` branches on GitHub can go.
-
-  On 2026-11-03 a fifth round was drafted, unbuilt, one commit for each entry, each branch pushed
-  as `draft/worktree-agent-*`: T-226 (`worktree-agent-ab46b7435cc875cd9`, `d4da618`, merged and closed); T-253
-  (`worktree-agent-a6a21bc1a5b921742`, `330e6ed`, merged as partial on `draft/merge-253`,
-  `5d0db76`, its tests of IPv6 on a runner); T-255 (`worktree-agent-ab9d837b93edc90b0`,
-  `8f09eb3`, merged and closed); T-325 (`worktree-agent-ab532bbdaa9b8fe7b`, `fbda4ad`, merged and closed); T-608
-  (`worktree-agent-ab7069457e3f92567`, `be90ae1`, merged and closed, `6060558`). Each is merged in
-  that order, T-253 as partial on `main` (`5d0db76`); their worktrees and local branches are gone,
-  and their `draft/` branches on GitHub, with `draft/merge-253`, can go.
-
-  On 2026-11-04 a sixth round was drafted, unbuilt, one commit for each entry, each branch pushed as
-  `draft/worktree-agent-*` (the agents stopped at a limit of use at 00:50 UTC and were resumed):
-  T-326 (`worktree-agent-a8b2a4b9acf9c2a8f`, `27a97cf`, merged and closed); T-319
-  (`worktree-agent-a39b6bc24832c974f`, `3739bcf`, a first part, merged, the entry partial); T-173
-  (`worktree-agent-a935f48070b310b7c`, `6165bbc`, a first part, merged, the entry partial); T-551
-  (`worktree-agent-a5583c3e8856c1e14`, `b4568a4`, merged and closed); T-086 (`worktree-agent-aae965649ba432a53`,
-  `7a0c97f`, merged and closed). Each is merged in that order; their worktrees and local branches
-  are gone, and their `draft/` branches on GitHub can go.
-
-  On 2026-11-04 a seventh round was drafted, unbuilt, one commit for each entry, each branch pushed
-  as `draft/worktree-agent-*`: T-616 (`worktree-agent-af68081e13f6b11f8`, `81bc6f2`, merged and
-  closed); T-346 (`worktree-agent-a6730d81d38c2e802`, `363fcc1`, merged and closed); T-173's next part
-  (`worktree-agent-ac6a1db72f01e3003`, `71dbd72`, merged, the entry partial for its live run and the road by
-  default); T-321 (`worktree-agent-afc21daca5ecea253`,
-  `4d7c7d0`, merged, the entry partial for Apache httpd's server, `each` over 8 hosts and the live run); T-615 (`worktree-agent-a3c0e12c59fd9dc1e`, `fe2bbaf`, after a stop at a limit of
-  use, resumed; merged and closed). Each is merged; their worktrees and local branches are gone, and
-  their `draft/` branches on GitHub can go.
-
-  On 2026-11-06 one draft was made, unbuilt, by an agent of this cloud session: T-434
-  (`worktree-agent-a28220759deade9a5`, branch `draft-t434`, `09dbd12`), merged and closed the same
-  day; its worktree and branch are gone. Then T-456 (`draft-t456`, `34d1459`), merged and closed the
-  same day; and T-180 (`draft-t180`, `7da08fe`), merged and closed the same day; then T-459
-  (`draft-t459`, `8c085d46`), merged as partial the same day; and T-490 (`draft-t490`, `15743b03`),
-  merged as partial the same day; and T-493 (`draft-t493`, `fb99826c`), merged and closed the same day;
-  and T-492 (`draft-t492`, `9c2bf1d5`) and T-491 (`draft-t491`, `e95dd58f`), merged and closed the same day;
-  T-495 (`draft-t495`, `f58eb5b5`), merged and closed the same day; T-498 (`draft-t498`, `6b6654ff`), merged as partial the same day.
-
-  On 2026-11-09 drafts of this cloud session, each unbuilt: T-498's second part (`4316ddfc`), merged and
-  closed by its run against frp's own frps (13 passed); T-548, Pinggy (`draft-t548`, `910a53ac`,
-  worktree `agent-aacedb4783ec9331d`), merged and tested on the local branch `merge-t548`, which waits:
-  its verifier that took any certificate broke SECURITY.md's rule, and the branch's worktree
-  `.claude/worktrees/t548-pin` holds its repair (the client's TLS pinned to the node's certificate,
-  the node's leg raw SSH first), merged on `main` as one commit (`a5b2eeb1`); its worktrees and branches
-  are gone. The research of M10's item 4 (T-538 to T-540, T-542, T-547, T-579, T-572, T-573, T-577,
-  T-623, T-624, T-626) was drafted on 2026-11-10 by four agents (`draft-r1` to `draft-r4`), the new
-  entries renumbered T-733 to T-743 at the merge, and merged (`9a49ac7f`, `b5e8ad24`, `628b7131`,
-  `72f4d1d9`); their worktrees and branches are gone. Drafted on 2026-11-10 and merged the same day,
-  one at a time: T-549 (`draft-f2`, `961acb1f`), T-570 (`draft-f3`, `32517128`, onto T-549's lists)
-  and T-694 (`draft-f1`, `d254f2a2`); their worktrees and local branches are gone, and
-  `draft/draft-f1` and `draft/draft-f3` on GitHub can go. Drafting on 2026-11-10: T-565 (`draft-g1`), T-568
-  (`draft-g2`) and T-569 (`draft-g3`); each agent stopped at a limit of use, its work committed as
-  WIP and pushed as `draft/`, then resumed. Merged on 2026-11-10, one at a time, each `partial`
-  (each waits for `pod-services` to name its server, a short live run and T-251): T-565, T-568 and
-  T-569, into one module of the last roads in that order; their worktrees and local branches are
-  gone, and `draft/draft-g1` to `draft/draft-g3` on GitHub can go.
-
-  On 2026-11-04 an eighth round was drafted, unbuilt, one commit for each entry, each branch pushed
-  as `draft/worktree-agent-*`: T-435 (`093970b`, merged and closed, `57faf83`); T-617 (`1cbdc10`,
-  merged and closed, `00ba332`); T-618 and T-619 (`worktree-agent-a813dd96e40d4756b`, `9d04d4d` and
-  `66eb08b`, merged and closed, `b750af3`; the live relay's document read once for T-619); T-620
-  (`worktree-agent-a866bb2e35c2100ff`, `cc54c09`, merged and closed after `b750af3`). Their worktrees
-  and local branches are gone, and their `draft/` branches on GitHub can go.
-
-  On 2026-11-04 (evening and night) a ninth round was drafted by agents of this cloud session,
-  unbuilt, each branch pushed as `draft/worktree-agent-*`: the triage of GitHub #127 to #148, T-660,
-  T-661 and T-662, T-663, T-629 and T-635, T-630 and T-648, T-632, T-664, T-671 and T-647, T-639
-  and T-645, T-634 and T-640, T-665 and T-666, and T-670: each merged, their worktrees gone.
-
-  On 2026-11-05 a tenth round is drafted, unbuilt, one commit for each entry, each branch pushed
-  as `draft/worktree-agent-*`: T-631 and T-674 (`68687d5`, merged: T-631 parked until T-124, T-674
-  done), T-667 (`249f01f`, merged), T-636 (`034dc65`, merged), T-637 (`18b641c`, merged), T-641 (`dfa734e`, merged), T-646 (`d69b76f`, merged), T-668 (`8a39501`, merged; its follow-ups T-678 and T-679); T-660's run of `tc netem` with osewa
-  (`cf91fcd`) is merged, its figures waiting for the workflow's first run.
-  On 2026-11-05 at 04:20 UTC an eleventh round was drafted: T-643, T-644, T-638 and T-642, each
-  merged (GitHub #141, #142, #136 and #140 closed), their worktrees gone. A lesson of the night: never amend a commit
-  that was pushed, not even of a draft branch, as the push after it is a force-push (`draft/merge-668`
-  was so pushed once, its one change the drop of an import); a new commit each time.
-  At 06:15 UTC a twelfth round was drafted: T-649 and T-650 (GitHub #147 and #148), T-433
-  (`podssh share`), each merged, and T-679 (a node's upgrade on its other roads,
-  `09ed1ba`), merged in `bbac5dc`; no draft waits.
-  On 2026-11-05 a thirteenth round, the audit of the record and the live documents after the move,
-  was drafted and merged the same day (`cargo todo check` at the merge); its worktree is gone.
-  A merge in progress waits on a local branch `merge-NNN` that tracks `draft/merge-NNN`, never on
-  `main`. Two lessons of the night: never commit while `scripts/plant-each.sh` runs (a plant is
-  applied in the tree then); and when the disk fills, remove `target/` whole, never files under
-  `target/debug/deps` (cargo's records then name outputs that are gone).
-
-  CI: the gate passed at
-  `24b9f6e` (run 38331509229), and its step `release` at `cad2885` (478
-  checks, the desktop's, `usbip` and `each` among them). At `d0dbb59` (run
-  41103062568) the step `release` failed on `job.queue.choose` of T-197,
-  whose two servers share one user and so one queue; the check now has a
-  user of its own on Dropbear (T-197's Done).
+1. **Confirm the gate green** (live: read `build.yml`). Why: it is red since the morning, and its
+   two repairs are pushed but unconfirmed. Done when each job of `build.yml` passes at the newest
+   commit of `main`; else read the failed job's log, repair, push, and read again.
+2. **Watch the tests that fail at random: T-746, T-465, T-627** (live: the gate runs of tonight).
+   Why: each is partial, waiting for its next failure, and comes before any other work. Done when
+   a failure is repaired and its entry closed, or the night ends with none.
+3. **T-733: find where the meeting time goes** (live: `zerotier-live.yml`). Why: two podssh members
+   take 31 s to more than 90 s to meet through ZeroTier Inc.'s roots and TCP relay, so the command
+   line's live test fails within the road's 60 s; the per-member trace (`PODSSH_ZT_TRACE=1`) is in.
+   Done when a run's trace says which step takes the time, written in T-733.
+4. **T-733: repair the meeting time** (offline, then live: `zerotier-live.yml` again). Done when
+   the command line's live test passes within the road's 60 s and its planted client of another
+   pair fails, or a `## Decision` changes the road's limit with the measurement behind it.
+5. **T-733: decide whether `zerotier` joins the release features, and close it** (offline).
+   Library, command line, stand-in test, interop with `zerotier-one` both ways and the static musl
+   build already pass. Done when the Decision is in T-733 (and in `release.yml` and
+   `docs/development.md`, "Release builds", if yes), the STATUS row is current, and
+   `cargo todo set T-733 done` passes.
+6. **T-734: Tox's TCP relays on 443** (offline; a short live run when the road works). The next
+   open entry of M10's item 4 after T-733, as the lead set it; the work order (rule 5) puts
+   osewa's open T-678, T-680 and T-681 ahead of item 4, so take those first unless the lead's call
+   was deliberate. Done when its Prove passes.
+7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
+   passes.
+8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
+   its Prove passes.
+9. **T-737: public MQTT brokers as a meeting point** (offline; a short live run). Done when its
+   Prove passes.
+10. **T-574: the new Trojan node ids** (live, after 2026-11-12T03:05Z: Q90's live check of the
+    nodes). Why: the ids arrive then; until then T-574 waits. Done when the live check passes, or
+    its `## Done` says what it found.
+11. **The take of `pod-relay`** (offline, then the gate), only when podcrates publishes
+    `adoption/podssh/pod-relay.patch`: apply it as `docs/HANDOFF.md` ("A take of podcrates") says,
+    record it in T-684 and as a COORD issue. Until then the files of `pod-relay` take fixes only
+    (State, item 7).
+12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
+    run): T-571, T-576, T-578, T-738, T-739 (T-740 stays blocked; T-566, T-567 and T-575 are
+    parked), then T-580, T-581 and T-582 (live where UDP passes), then T-625, T-621, T-741 and
+    T-742. Done when each Prove passes, one entry at a time.
+13. **A beta, if the night's batch fits** (live: the release workflow by hand, then the tag).
+    Why: much of M10 has landed since `v1.1.0-beta.3`, and betas may go out before the migration
+    ends. Done when `v1.1.0-beta.4` passes the checks of `AGENTS.md` ("Releases") and
+    `release-proofs.yml` and `update-live.yml` pass on it; else skip it tonight.
 
 ## Baseline
 
-Measured on 2026-10-30 in a Claude Code cloud container (Linux x86_64,
-Rust 1.99.0, `CARGO_BUILD_JOBS=4`), at `9b6dda2`: `cargo test --no-fail-fast`
-2028 passed, 20 failed, 55 ignored, in 22 min 43 s, with groff stopped by
-hand after 13 minutes (T-314). Each failure is of the test or of the place:
-16 tests take the machine's proxy (T-313), and 4 live handshakes dial past it
-into an egress that intercepts TLS (T-315). `cargo todo check` and
+Measured on 2026-10-30 in a Claude Code cloud container (Linux x86_64, Rust 1.99.0,
+`CARGO_BUILD_JOBS=4`), at `9b6dda2`: `cargo test --no-fail-fast` 2028 passed, 20 failed, 55
+ignored, in 22 min 43 s, with groff stopped by hand after 13 minutes (T-314). Each failure is of
+the test or of the place: 16 tests take the machine's proxy (T-313), and 4 live handshakes dial
+past it into an egress that intercepts TLS (T-315). `cargo todo check` and
 `python scripts/check-repo.py`: ok.
 
-Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0
-and `CARGO_BUILD_JOBS=4`:
+Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
+`CARGO_BUILD_JOBS=4`:
 
-- `cargo test --workspace --no-fail-fast`, again at `905f92c`
-  (2026-10-13): 1887 passed, 1 failed, 54 ignored (the live tests, and the
-  checks of faults and of the exit of M6). The failure was a test of T-042
-  that depends on time; it is repaired, and passed 20 runs in a row. With the feature `iroh` and the test
-  relay, `cargo test -p podssh-iroh -p podssh-cli --features
-  podssh-cli/iroh-test`, with the same: 468 passed, 0 failed, 29 ignored.
-  With the feature `ts`, `cargo test -p podssh-ts -p podssh-cli --features
-  podssh-cli/ts`, after T-099: 520 passed, 0 failed, 25 ignored.
-  CI's gate passed at `14f6cde` (run 38073235063); at `8cf2587` three steps
-  failed on directories that a test left (run 38074648006), repaired in
-  `c29fa82`.
-- `cargo test -p podssh-relay --all-features --no-fail-fast`, after T-270:
-  181 passed, 0 failed, 14 ignored (the live tests).
-- `sh scripts/dev.sh check` (after T-212): green; interop 103 of 103. The steps that
-  later changes touched, each alone in the build image after them: green.
+- `cargo test --workspace --no-fail-fast`, again at `905f92c` (2026-10-13): 1887 passed, 1
+  failed, 54 ignored (the live tests, and the checks of faults and of the exit of M6). The failure
+  was a test of T-042 that depends on time; it is repaired, and passed 20 runs in a row. With the
+  feature `iroh` and the test relay, `cargo test -p podssh-iroh -p podssh-cli --features
+  podssh-cli/iroh-test`: 468 passed, 0 failed, 29 ignored. With the feature `ts`,
+  `cargo test -p podssh-ts -p podssh-cli --features podssh-cli/ts`, after T-099: 520 passed, 0
+  failed, 25 ignored.
+- `cargo test -p podssh-relay --all-features --no-fail-fast`, after T-270: 181 passed, 0 failed,
+  14 ignored (the live tests).
+- `sh scripts/dev.sh check` (after T-212): green; interop 103 of 103.
 - `cargo test -p podssh-todo` (2026-10-11; since 2026-11-05 the package is a wrapper of `pod-todo`
-  of PodUtils/podcrates, whose tests are its own, T-684): 77 passed: 15 unit tests, 37
-  plant tests (35 planted disagreements and two controls), 15 tests of the
-  remap, 2 of `--base`, 7 tests of the writer, and the test of this record.
+  of PodUtils/podcrates, whose tests are its own, T-684): 77 passed.
 - `cargo todo check`: the record agrees. `python scripts/check-repo.py`: ok.
 - `cargo clippy -p podssh-todo --all-targets -- -D warnings`: no warning.
 
@@ -378,139 +145,86 @@ Open includes parked work. `cargo todo check` verifies this line.
 
 ## Work order
 
-Finish each entry, close it in place, update this page in the same commit,
-then take the next one. Each session runs unattended until the goal of
-`AGENTS.md` (section 2) is reached or the operator interrupts it.
+Finish each entry, close it in place, update this page in the same commit, then take the next
+one. Each session runs unattended until the goal of `AGENTS.md` (section 2) is reached or the
+operator interrupts it.
 
-**First (2026-11-05): the move to PodUtils.** T-684, partial, is continued first, as `AGENTS.md`
-says: merge `pod-tls`, then take `pod-proxy`, `pod-dns` and `pod-ws` as the podcrates session hands
-each over (Rule Q3 of `docs/decisions.md`: from the import, podssh changes that code for fixes only;
-after podssh takes the crate, the work is done in PodUtils/podcrates). With it, the defects T-688 and
-T-688, tests that fail on one platform, before any other work. T-687 waits for the owner (stable,
-then a new question). Where a `## Correction` of 2026-11-05 says that the code of an entry is in a crate that
-podssh has taken (`pod-tls` once merged, `pod-term`, `pod-todo`, `pod-identity`), that change is made
-in PodUtils/podcrates, or asked there as an issue; the part of the entry that uses the crate stays
-podssh's (T-111's serve, for one). A crate that podssh has not taken yet is changed here, as before,
-and carried by the import. T-085 keeps its two boxes only (Q103: the facade goes with `pod-relay`).
-T-446 waits: no beta and no release until the migration is done (Q104).
+**The rules of the order**, first to last:
 
-**The owner's pause (2026-11-10, PodUtils/podcrates#53):** each session paused after its last
-runs. `docs/HANDOFF.md` holds the state at the pause: `main`, each podcrates take, the open COORD
-issues, and the next step of each partial entry. A session that starts again reads it first, after
-`AGENTS.md`; the tests that fail at random (T-465, T-627, T-746) come first.
+1. A red gate, then a test that fails at random (T-465, T-627, T-746), before any other work.
+2. A `partial` entry before a new one.
+3. The migration's takes (T-684), as the podcrates session hands each crate over (Rule Q3 of
+   `docs/decisions.md`: from the import, podssh changes that code for fixes only; after podssh takes
+   the crate, the work is done in PodUtils/podcrates). Where a `## Correction` of 2026-11-05 says
+   that the code of an entry is in a crate that podssh has taken, that change is made in
+   PodUtils/podcrates, or asked there as an issue; the part of the entry that uses the crate stays
+   podssh's (T-111's serve, for one). T-085 keeps its two boxes only (Q103: the facade goes with
+   `pod-relay`).
+4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
+   entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-571, T-574 to
+   T-576, T-578 and T-580 to T-582, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
+   M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
+   Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
+5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
+   rest of M10, in this order: T-660, T-662, T-670, T-665 and T-666 (each waits for a run that its
+   `## Done` names), their follow-up T-678, and what the netem run found, T-680 and T-681; then the
+   open entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
+6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
+   podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks, T-708 to T-731, stay behind
+   podssh's own work order, M10 included (the owner's ruling "Priority"; Q105 is settled).
+7. The holds are released (Q92): T-085, T-107 to T-113, T-117, T-118, T-213, T-222, T-245 and
+   T-248 are open and go by their priority, M5's `podssh serve` among them, after M10's entries of
+   their priority; the work parked behind them ("Parked open work") starts as its condition says.
+   T-328 (a real export of FinalShell and of Termius) and T-376 (the operator's throwaway cloud
+   accounts for the live run of the roads of iap:// and eice://) wait for inputs that only the
+   operator has. T-672 (TLS tickets kept across runs) waits for a release of rustls that lets a
+   client write one. M4's T-085 (the exit measurement) goes with the holds.
+8. A beta may go out when a batch fits (T-446).
 
-**The pause ends for podssh (2026-11-11):** PodUtils/podcrates#53 is closed, and the podcrates
-session started this session on the owner's word. podssh and podcrates talk by direct messages
-(`send_message`); podnet, podvm and podrunner by COORD issues. The gate's four new causes at the pause
-are repaired, and the checks of the tests that failed at random on 2026-11-10 passed; next the takes of podcrates `v0.15.0`
-(PodUtils/podcrates#54: `pod-wormhole`, then `pod-session`; T-684), then the order below.
+**M10**, the mesh and the relay in podssh (Q63 to Q66, `docs/mesh.md`), in this order (the done
+parts are named so that the open ones read in their place):
 
-**First (2026-11-09):** the share lock's flake is repaired, v0.7.0 is taken, ssh node://'s refusals and the Trojan servers are done,
-T-698 is partial (its serve part waits for T-107). Then podssh's own order, by priority beside M10's
-order below: the partial entries of the testers' issues are closed (2026-11-10: each ran against a stand-in); T-707 (the GSRN road) is open since podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). **cfb's asks wait** (the owner's ruling "Priority", 2026-11-09): T-708 to T-731 stay filed
-behind podssh's own work order, M10 included (Q105 is settled: allowed, 2026-11-11). A beta may go out when a batch
-fits (T-446).
-
-**After M3 and before M4 (the operator's ruling of 2026-10-08):**
-the surface for agents: done.
-
-**M4:** T-085 (the exit measurement) is on hold (Q32).
-
-**First (2026-11-02):** `v1.0.0-beta.4` is published, a prerelease at `4e79a1f` (01:59 UTC),
-its files proven by `release-proofs.yml` (run 41375376913) and `update-live.yml` (run
-41375379843); `v1.0.0` is tagged from `35a0d19` the same night, and the check of its published
-files passed on 2026-11-03 (43 passed, 6 skipped).
-
-**The operator's request of 2026-11-01:** `--detach` is in, `session start` asks its prompts on
-the terminal, and both are measured on Windows and macOS in Actions (2026-11-01); since Q61 a
-detached run leaves a login session's scope of systemd for one of its own.
-
-**Now (2026-11-01):** the operator's request of 2026-11-01, two studies: of Nemo-010/d-mon, a
-daemonizer, for a `--detach` that must never leave a server locked out, and of Azathothas/cfrs, its
-code and its issues. Each of their findings is done (a line that fails to write no longer aborts a
-detached node, `--persist-forever` never gives up, `--restart` starts a detached run again, a node
-goes on with the next pair at its pair's expiry, a lock names each detached run, a hung run is
-started again, the smaller gaps of `--detach` are closed; the quick tunnel races its roads, drains
-a connection on the edge's GOAWAY, keeps its window in small frames and answers a push of
-configuration over QUIC, and keeps two connections to the edge since Q62). Before them, a bulk session through a node and its moves on
-the live relay are repaired, and the entries of the audit, the study and the issues
-of 2026-10-31 (GitHub #59 to #63 and #69 to #76), each done. Each other `backlog` entry is done, but for those on hold, those of the relay's
-operator and the parked ones.
-
-**First tonight (2026-11-04, Q98 to Q100):** `v1.1.0-beta.2` is out (GitHub #126, the testers'
-P1 defect, is in it); then the entries that the studies of osewa filed (Q99,
-`docs/research/osewa.md`), in this order: T-660 (measure what a user feels, first; its iroh and DERP rows),
-T-662 (a copy through a shaped link; the SSH client's flow control and liveness in round trips are done), T-670, T-665,
-T-666, their follow-up T-678, and what the netem run found, T-680 and T-681 (compression's figures, the rate on a lossy link, QUIC to the relay role and a node's upgrade in place on each road but Windows are done); then GitHub #127 to #148 (`TODO/issues.md`) by
-their priority, beside the order of M10 below (Q85, Q100); `v1.1.0-beta.3` at the end of the night.
-
-**Next (2026-11-02): M10**, the mesh and the relay in podssh (Q63 to Q66, `docs/mesh.md`), in
-this order:
-
-0. A test that fails at random comes first: the relay suite's, named and repaired (done, 50 runs
-   in a row here and on a runner).
-1. The relay role (its certificate from ACME, its brake of mint and pair, the role behind a node's quick tunnel, the net's members' mint, the role's dial through `HTTPS_PROXY`, its bound on a slow reader's bytes and its planned stop are done): what the role serves:
-   T-319 and T-321 (the resumable layer for a standard sshd, by default where the first host offers it, is done); `doctor`'s measure of a stream's path, the role's IPv6 targets,
-   with `doctor`'s line of them, a client's lost link during a node's bulk, and the cleartext road
-   on the relay's port are done.
-2. The net (its policy, the record of each road, the DERP node of a member, the copies by a name, the quick tunnel's node with the net as its door, the grants used once, a copy's race of the roads, the pairing by a short code, a device's join by one, the signed list of deployments and the
-   tokens of one leg, the hosts of the relay members, and the rotation at a node's next pair, are
-   done): T-106.
-3. Exit, routes, share and funnel (the exit, `doctor --exit`, the net's routes and `podssh share` are done):
-   T-459 (the funnel and a member that relays between two members are done; the status of the net, `ping` of a node and doctor's sections are done).
-4. The public carriers of Q65 (the Piping Server road from end to end is done; T-450 from the runs of `transit-live.yml`; the
-   protocols of Q66 are done), XHTTP over HTTP/1.1 (Q67, done), then what the research of more services (done) filed: the protocols of
-   servers that a user runs (chisel's is done; Outline's servers are done; Shadowsocks 2022 is done; Trojan is done; NaiveProxy's server is done; trojan-gfw's and trojan-go's are done; frp's is done), upterm's door
-   (done) and a second Piping Server (done), T-496 and T-499 parked; then what the triage of the sweep of public relays
-   (2026-11-02) filed, as Q74 to Q79 rule: OpenTunnel's road (Q76; done 2026-11-03),
-   and the manual's word on the public services that podssh uses and the ones it never names
-   (done 2026-11-03); T-532 is parked; then what the rulings Q74, Q75, Q77, Q78 and Q82 filed (2026-11-02),
-   the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public Wisp servers
-   made for it (done: none qualifies), Pinggy (T-548) and the public proxy nodes (T-574); then the research of the
-   overlay networks (NetBird, Firezone, ZeroTier, Tox, Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the pub/sub networks (done),
-   then what they filed: croc's relay as a road and a meeting point (done), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's peers (T-735),
-   HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
-   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566,
-   T-567, T-571, T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
+0. A test that fails at random comes first (the relay suite's is done).
+1. The relay role (its certificate from ACME, its brake of mint and pair, the role behind a node's
+   quick tunnel, the net's members' mint, the role's dial through `HTTPS_PROXY`, its bound on a slow
+   reader's bytes and its planned stop are done): what the role serves: T-319 and T-321 (the
+   resumable layer for a standard sshd, by default where the first host offers it, is done);
+   `doctor`'s measure of a stream's path, the role's IPv6 targets with `doctor`'s line of them, a
+   client's lost link during a node's bulk, and the cleartext road on the relay's port are done.
+2. The net (its policy, the record of each road, the DERP node of a member, the copies by a name,
+   the quick tunnel's node with the net as its door, the grants used once, a copy's race of the
+   roads, the pairing by a short code, a device's join by one, the signed list of deployments and
+   the tokens of one leg, the hosts of the relay members, and the rotation at a node's next pair,
+   are done): T-106.
+3. Exit, routes, share and funnel (the exit, `doctor --exit`, the net's routes and `podssh share`
+   are done): T-459 (the funnel and a member that relays between two members are done; the status
+   of the net, `ping` of a node and doctor's sections are done).
+4. The public carriers of Q65 (the Piping Server road from end to end is done; T-450 from the runs
+   of `transit-live.yml`; the protocols of Q66 are done), XHTTP over HTTP/1.1 (Q67, done), then
+   what the research of more services (done) filed: the protocols of servers that a user runs
+   (chisel's, Outline's, Shadowsocks 2022, Trojan, NaiveProxy's, trojan-gfw's, trojan-go's and
+   frp's are done), upterm's door (done) and a second Piping Server (done), T-496 and T-499
+   parked; then what the triage of the sweep of public relays filed, as Q74 to Q79 rule:
+   OpenTunnel's road (Q76, done), and the manual's word on the public services that podssh uses
+   and the ones it never names (done); T-532 is parked; then what the rulings Q74, Q75, Q77, Q78
+   and Q82 filed, the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public
+   Wisp servers made for it (done: none qualifies), Pinggy (T-548) and the public proxy nodes
+   (T-574); then the research of the overlay networks (NetBird, Firezone, ZeroTier, Tox,
+   Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
+   pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
+   (done), WebTorrent's trackers (T-695), ZeroTier's relay (T-733), Tox's (T-734), Yggdrasil's
+   peers (T-735), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
+   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
+   T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (T-739) and Bare servers as a hop (T-740); T-566, T-567 and
-   T-575 parked); and the roads over UDP (T-580, T-581,
-   T-582). These are features of a tester's report and of the sweep, done after the defects (Q85).
-   Then what the archive of forward carriers (2026-11-04, `docs/research/forward-carriers.md`)
-   filed: the rates of `ppng.io`'s road and of the Wisp demo server through podssh (T-625), TURN
-   with RFC 6062 for a server that the user runs (T-621), the research of smee.io, of three
-   hosted tunnels and of I2P, Nym and cjdns (done 2026-11-10; it filed smee.io as a last fallback,
-   T-741, hostc's, T-742, and Sandhole's public server as a host of the localhost.run road's module, done), and the
-   HTTP road's one-POST form (T-622, parked).
-5. T-446: betas `v1.1.0-beta.N` after batches, and `v1.1.0` at the end.
-
-Between entries: the `none` entries, the highest priority first, but for the testers' entries.
-
-**The testers' defects go first, then their features** (Q84, Q85, the operator, 2026-11-02). The
-defects of the issues of the testers of `v1.0.0` (GitHub #83 to #111) and of the testers' bundle
-and relay sweep of 2026-11-02 come first among the `none` entries, the P1 ones before any other
-(T-465, a test that failed once, 100 runs in a row passed since), each other one done and
-merged; `v1.0.1` went out with them on 2026-11-03. The defects of GitHub #112 to #124 (triaged
-on 2026-11-03) are done and go into `v1.1.0-beta.1`. Until podssh is stable the expensive checks wait (Q88). Their
-features and documents (T-532,
-and T-545, T-548, T-566, T-567, T-571, T-574 to T-576, T-578 and T-580 to T-582, which Q74, Q75, Q77, Q78
-and Q82 filed; the features of #112 to #124 are done) follow, by priority, beside M10 (Q85); Dependabot's #119,
-#120 and #122 are in `main` (2026-11-03), and #123 waits for an iroh-dns that takes simple-dns 0.13. Overnight a fork of
-policy is decided and listed below for the operator to confirm (Q86). The drafts of 2026-11-03, both rounds, are merged. GitHub #125 (2026-11-03, `relay info`'s rank changes with the edge that answered) is done: the line says whose order it is; the research of the operator's relay archive is merged (2026-11-03). The operator's export of #125 (2026-11-04; GitHub has since deleted it) left two parts, both done: `relay info` names `relay rank` and the order that a run takes, and the remedy on the relay's side is an item of `docs/relay-operator.md`.
-
-**The operator's request of 2026-11-03:** an archive of research on relays, read in
-`docs/research/relay-measurement.md`: its harness, adapted to run podssh itself, is done
-(2026-11-03, `scripts/relay-measure.py` and `relay-measure.yml`), and so is the rank of the relay
-hosts on demand (`podssh relay rank`, 2026-11-03), and so is the default list's use of it, with
-the samples of each race (2026-11-03), and so is a rank that podssh makes unasked, with
-`RelayRank auto` alone (Q89, 2026-11-03).
-
-**The holds are released** (Q92, the operator, 2026-11-03): T-085, T-107 to T-113, T-117,
-T-118, T-213, T-222, T-245 and T-248 are open and go by their priority, M5's `podssh serve`
-among them, after M10's entries of their priority; the work parked behind them ("Parked open
-work") starts as its condition says. T-328 (a real export of FinalShell and of Termius) and
-T-376 (the operator's throwaway cloud accounts for the live run of the roads of iap:// and
-eice://) are no longer held, but still wait for those inputs, which only the operator has.
-T-672 (TLS tickets kept across runs) waits for a release of rustls that lets a client write one.
+   T-575 parked); and the roads over UDP (T-580, T-581, T-582). These are features of a tester's
+   report and of the sweep, done after the defects (Q85). Then what the archive of forward
+   carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the
+   Wisp demo server through podssh (T-625), TURN with RFC 6062 for a server that the user runs
+   (T-621), the research of smee.io, of three hosted tunnels and of I2P, Nym and cjdns (done; it
+   filed smee.io as a last fallback, T-741, hostc's, T-742, and Sandhole's public server as a host
+   of the localhost.run road's module, done), and the HTTP road's one-POST form (T-622, parked).
+5. T-446: betas `v1.1.0-beta.N` after batches, and `v1.1.0` at the end, once the migration is done.
 
 ## Parked open work
 
@@ -545,12 +259,11 @@ it can start.
 
 ## Questions for the operator
 
-The operator ruled on the questions of the triage (Q1 to Q12) and of the
-unattended session (Q13 to Q28) on 2026-10-08; the rulings are in
-`docs/decisions.md`. A new question goes here, with its number, the entries
-that it blocks (status `blocked`) and a recommendation; the session then
-takes the next entry. Nothing is closed as out of scope until the operator
-rules.
+No question is open. Below are the questions asked so far and how they were settled, each
+ruling in `docs/decisions.md`. The operator ruled on the questions of the triage (Q1 to
+Q12) and of the unattended session (Q13 to Q28) on 2026-10-08. A new question goes here, with its
+number, the entries that it blocks (status `blocked`) and a recommendation; the session then
+takes the next entry. Nothing is closed as out of scope until the operator rules.
 
 The operator settled Q89 to Q92 on 2026-11-03 (`docs/decisions.md`), each asked on its own: podssh
 ranks relay hosts unasked only with `RelayRank auto` (Q89); the calls of Q86 stand but four
@@ -811,19 +524,14 @@ before `v1.0.0`.
 
 ## Operator actions
 
-None blocks a session. At any time: requiring the status `all` of the
-workflow `build` for `main`, if the operator wants a required check (T-212);
-`main` requires none today.
+None blocks a session.
 
-Dependabot's updates reach `main` through a session (the operator, 2026-10-30,
-`docs/decisions.md`). The group of 11 that failed the gate's step iroh (Dependabot's #53) is in `main` (T-329).
-
-After the release:
-
-- A run of T-004 and T-005 in a real sandbox, with the brief of
+- At any time: require the status `all` of the workflow `build` for `main`, if the operator wants a
+  required check (T-212); `main` requires none today.
+- Dependabot's updates reach `main` through a session (`docs/decisions.md`).
+- After the release: a run of T-004 and T-005 in a real sandbox, with the brief of
   `scripts/sandbox-check.sh`.
-- Pinning the facade of `podssh-relay` in podvm, formerly podbox (T-081, T-085): replaced by podvm taking
-  `pod-relay`'s feature `blocking` by a tag (Q103, ruled 2026-11-06).
-
-As the operator of the default relay, at any time and with no entry waiting: the notes of
-`docs/relay-operator.md`, each of which podssh's own relay role does since Q63 (2026-11-02).
+- The facade of `podssh-relay` for podvm (T-081, T-085): podvm takes `pod-relay`'s feature
+  `blocking` by a tag (Q103).
+- As the operator of the default relay, at any time and with no entry waiting: the notes of
+  `docs/relay-operator.md`, each of which podssh's own relay role does since Q63.
