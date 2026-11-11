@@ -12545,7 +12545,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `crates/podssh-relay/src/derp/conn.rs:9`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.
-- `Cargo.toml:41`, `vendor/iroh-relay`: iroh's relay is a client only here.
+- `Cargo.toml:42`, `vendor/iroh-relay`: iroh's relay is a client only here.
 
 ## Approach
 
@@ -12673,7 +12673,7 @@ owner ruled on 2026-11-09 that there are no test accounts as CI secrets.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -12717,6 +12717,36 @@ network through the planet's roots. podssh speaks no ZeroTier.
    the relay may have gone away (the source says "this will eventually go away"), so a failed
    connect is a quiet fall to the next road.
 
+## Decision
+
+2026-11-11. The road links ZeroTierOne's MPL-2.0 core statically, and does not rewrite it in Rust. Read at
+ZeroTierOne `899352e` (2026-07-22): `node/` and `osdep/OSUtils.cpp` are 40,606 lines of C++, 408 KiB of them crypto
+(AES, ECC, Poly1305, Salsa20, SHA-512). The core is a library with callbacks (`include/ZeroTierOne.h`:
+`ZT_Node_new`, `ZT_Node_processWirePacket`, `ZT_Node_processVirtualNetworkFrame`, and a wire packet send function and a
+virtual frame function that the host gives). Its one dependency outside `node/` is `ext/prometheus-cpp-lite-1.0`,
+header-only and MIT. It makes an ad-hoc network's configuration locally (`Network::requestConfiguration`, an id
+`0xff` with the low 24 bits 0: IPv6 only, a 6plane address, and TCP and UDP to the network's port range), so no
+controller and no account is needed. Rule 4 allows C and C++, statically compiled. A rewrite would carry the
+protocol's whole risk for no gain, and the core keeps up with ZeroTier's own changes when its vendored copy moves.
+
+- Vendored as `vendor/zerotier-node` (`node/`, `osdep/OSUtils.*`, `include/`, `version.h`, `LICENSE-MPL.txt` and the
+  prometheus headers), built by a crate `podssh-zerotier` behind the feature `zerotier`, as `vendor/tailscale-rs` is.
+  `nonfree/` (the controller, source-available) and `service/` are not taken. The relay's framing
+  (`service/OneService.cpp`, `tcp-proxy/tcp-proxy.cpp`, MPL-2.0) is written again in Rust, from those files.
+- The terms of ZeroTier Inc.'s service forbid reverse engineering it and competing with it. Q78 rules that such a road
+  is a last fallback whatever the terms. podssh runs ZeroTier's own published core, which needs no reverse
+  engineering. The road comes after each road of podssh's own and after croc's (T-694), with a line that says that
+  ZeroTier Inc.'s roots and relay carry the session, that they see the two ZeroTier addresses, the times and the
+  sizes, and that the end-to-end channel keeps the bytes.
+- The relay's address, `204.80.128.1/443`, the default of `ZT_TCP_FALLBACK_RELAY`, is a value of `pod-services`,
+  asked of podcrates, never a host in podssh.
+- The tests need no third party: a world (planet) of the test's own, whose root is a third `ZT_Node` in the test's
+  process, on an in-memory wire. Then ZeroTierOne's own `zerotier-one` and `tcp-proxy` in a container (T-251's
+  image), and one short live session through ZeroTier's roots and relay from GitHub Actions (Q78, Q91).
+- Lost: a Rust rewrite (all of the protocol's risk, and nothing gained against the vendored core); `libzt` (its
+  socket layer is lwIP, a second TCP stack beside the smoltcp that podssh already carries for WARP); and taking
+  `service/` (it opens a TUN device and sockets that bind, which rules 1 and 2 forbid).
+
 ## Prove
 
 ```sh
@@ -12727,6 +12757,14 @@ Test against software that podssh did not write: ZeroTierOne's own `tcp-proxy` a
 built in the build image, and a short live session through the roots and the relay of ZeroTier Inc.
 from GitHub Actions, if the Decision allows it. Plant: a datagram below 16 bytes, or to a port of
 1024 or less; the test fails on a frame the relay drops.
+
+## Done
+
+Partial, 2026-11-11: the Decision. Next: `vendor/zerotier-node` and `crates/podssh-zerotier` (its `build.rs` with
+`cc`, the FFI of `ZeroTierOne.h`); a test of three `ZT_Node`s in one process on an in-memory wire, a world of the
+test's own whose root is one of them, the other two on one ad-hoc network exchanging an Ethernet frame; then the
+relay's framing, smoltcp over the frames, the road in the race, and the Prove.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

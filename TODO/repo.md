@@ -1903,7 +1903,7 @@ leaves armv7 out of the Decision; the plan below takes Alpine's own toolchain fo
   container. Plan B, which the Decision rejected, for native speed: `ghcr.io/cross-rs/armv7-unknown-
   linux-musleabihf:main`, or `cargo-zigbuild` (its CI covers x86_64, aarch64 and Apple, not armv7).
   The release profile is `opt-level = "z"`, `lto = true`, `codegen-units = 1`
-  (`Cargo.toml:214` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
+  (`Cargo.toml:215` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
   rustc may run out of address space, and under QEMU it is slow. Measure first.
 - `riscv64gc-unknown-linux-musl`: Rust tier 2 with host tools. Plan A: `runs-on: ubuntu-24.04`,
   `docker/setup-qemu-action` with `platforms: riscv64`, `docker run --platform linux/riscv64
@@ -3970,19 +3970,19 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 ## Premise
 
 - Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:115`
-  ask for `sha1` 0.10.7, and the root `Cargo.toml:139` for `hmac` 0.12;
+  ask for `sha1` 0.10.7, and the root `Cargo.toml:140` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)
   builds on the newer line, so the binary holds both lines today. podssh's `sha1`
   moves with its `hmac`, where the two meet (the hashed names of
   `known_hosts`): Inferred.
-- Read: the root `Cargo.toml:148` asks for `aes-gcm` 0.10 and
-  `Cargo.toml:157` for `x25519-dalek` 2;
+- Read: the root `Cargo.toml:149` asks for `aes-gcm` 0.10 and
+  `Cargo.toml:158` for `x25519-dalek` 2;
   `PodUtils/podssh:crates/podssh-ws/src/crypto/aead.rs` and `PodUtils/podssh:crates/podssh-ws/src/crypto/kx.rs`
   hold the calls, with `PodUtils/podssh:crates/podssh-relay/src/identity/mod.rs` and
   `PodUtils/podssh:crates/podssh-relay/src/session/secret.rs`, and
   `PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs` their vectors.
-- Read: `vt100` 0.15 (`Cargo.toml:114`) is the model of the terminal
+- Read: `vt100` 0.15 (`Cargo.toml:115`) is the model of the terminal
   oracle (T-200) and of `podssh session` (T-186).
 
 ## Approach
@@ -5262,8 +5262,8 @@ builds with, so that its DNS packets and iroh's are of one type.
   box's CONNECT proxy (`scripts/box/proxy.py`), which `scripts/test_in_box.sh` and
   `scripts/chat-in-boxes.sh` build; `images/build/Dockerfile:6` pins `rust:1-alpine` by the digest
   `0cce0a5...`, the gate's image.
-- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:141`), and the lock holds 0.11.0; 0.11.1
-  needs Rust 1.88, under the workspace's 1.89 (`Cargo.toml:56`, Q48).
+- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:142`), and the lock holds 0.11.0; 0.11.1
+  needs Rust 1.88, under the workspace's 1.89 (`Cargo.toml:57`, Q48).
 - Read: `crates/podssh-iroh/Cargo.toml:59-62` takes `simple-dns` 0.12, "the simple-dns that
   iroh-dns builds and reads with, so no crate is added"; iroh-dns 1.4.1, which the lock holds,
   takes simple-dns 0.12.0, the lock's only version.
@@ -5338,7 +5338,7 @@ built after the transfer refuses each release, whose signer names PodUtils/podss
 
 ## Premise
 
-- Read: `Cargo.toml:57` sets `repository = "https://github.com/Azathothas/podssh"`;
+- Read: `Cargo.toml:58` sets `repository = "https://github.com/Azathothas/podssh"`;
   `crates/podssh-cli/src/update/mod.rs:163` takes the repository from `CARGO_PKG_REPOSITORY`.
 - Read: `crates/podssh-cli/src/update/sigstore.rs:30` makes the signer's URI from that repository,
   and `crates/podssh-cli/src/update/sigstore.rs:134` refuses a leaf that does not name it.
@@ -5396,7 +5396,7 @@ The operator has transferred the repository to PodUtils/podssh.
   `cargo test -p podssh-cli --test update`: 19 passed.
 - Check 12 of `python scripts/check-repo.py` (`scripts/repo_names.py`): no tracked file names the
   old repository outside the dated records; it passed (2,916 files read). Planted, the old name back
-  in `Cargo.toml`: it failed and named `Cargo.toml:57`; `--plant-empty`: each of the 12 checks
+  in `Cargo.toml`: it failed and named `Cargo.toml:58`; `--plant-empty`: each of the 12 checks
   failed on an empty tree.
 - The frozen files of Q3a (`docs/decisions.md`) hold no old name: no file of podcrates' imports
   changed.
@@ -5662,7 +5662,7 @@ compiled binary, has no check of its own beside the release's.
   (`.github/workflows/build.yml:50`), so a step removed from the list leaves CI.
 - Read: `scripts/gate.sh` runs 17 commands under `env CC=/nonexistent CXX=/nonexistent`, which
   refuse a crate that builds C (`scripts/gate.sh:128` tells why).
-- Read: `Cargo.toml:56` declares `rust-version = "1.89"` and `Cargo.toml:50` edition 2021; each crate
+- Read: `Cargo.toml:57` declares `rust-version = "1.89"` and `Cargo.toml:51` edition 2021; each crate
   declares its own minimum (1.89, 1.91 or 1.92).
 
 ## Approach

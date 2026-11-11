@@ -3987,9 +3987,9 @@ roots must be exactly three, and a refusal of the edge does not say which releas
   (`crates/podssh-relay/src/quick/edge.rs:22-29`); the roots must give 3 anchors and no invalid
   one (`:66-70`); the API's host is fixed (`crates/podssh-relay/src/quick/api.rs:28`). The node
   registers as `podssh` and the package's version (`crates/podssh-cli/src/node_quick.rs:345-346`),
-  `1.0.0-beta.2` today (`Cargo.toml:49`).
+  `1.0.0-beta.2` today (`Cargo.toml:50`).
 - Read: the three roots end on 2029-08-15, 2029-08-15 and 2029-11-01
-  (`PodUtils/podssh:crates/podssh-relay/src/quick/cloudflare-roots.pem:6`, `:25`, `:52`).
+  (`PodUtils/podssh:crates/podssh-relay/src/quick/cloudflare-roots.pem:6`, `:26`, `:53`).
 - Read: cloudflared's README says "Cloudflare currently supports versions of cloudflared that are
   within one year of the most recent release", and that breaking changes "may be introduced" for
   older ones (`cloudflare/cloudflared:README.md`, read in a clone).

@@ -1,0 +1,16 @@
+[package]
+name = "podssh-zerotier"
+description = "ZeroTier's MPL-2.0 core, vendored and linked statically, for a last road of a podssh pair through ZeroTier's roots and TCP relay (T-733)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# A crate of its own, outside the default members, as podssh-tor is: it
+# compiles C++ (rule 4 allows it; the binary stays static). The feature
+# `zerotier` of podssh-cli builds it.
+[dependencies]
+
+[build-dependencies]
+cc = "1.2"
