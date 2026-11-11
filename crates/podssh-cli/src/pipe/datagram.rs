@@ -196,6 +196,22 @@ pub fn exec(words: &[String], _say: &mut dyn FnMut(&str)) -> Result<End, Unopene
     super::local::exec(words, &super::local::socketpair)
 }
 
+/// Each datagram that the program sent and the loop has not read yet, into
+/// the pump, so that an end loses none of them.
+#[cfg(unix)]
+async fn drain(
+    socket: &tokio::net::UnixDatagram,
+    buf: &mut [u8],
+    to_pump: &mut tokio::io::WriteHalf<DuplexStream>,
+    dropped: &mut u64,
+) {
+    while let Ok(n) = socket.try_recv(buf) {
+        if !into_pump(&buf[..n], to_pump, dropped).await {
+            break;
+        }
+    }
+}
+
 /// The program's datagrams into the pump, each after its length, and the
 /// pump's to the program, until it exits: its exit code, as a shell gives
 /// it. What it sent before it exited still goes.
@@ -222,8 +238,11 @@ async fn datagrams(
             },
             next = frames.recv() => match next {
                 Ok(Some(datagram)) => {
-                    // A program that closed its socket takes no more.
+                    // A program that closed its socket takes no more, but
+                    // what it sent before it closed is queued here still:
+                    // it goes to the pump before the end.
                     if socket.send(&datagram).await.is_err() {
+                        drain(&socket, &mut buf, &mut to_pump, &mut dropped).await;
                         break None;
                     }
                 }
@@ -235,15 +254,12 @@ async fn datagrams(
     };
     let status = match exited {
         Some(status) => {
-            while let Ok(n) = socket.try_recv(&mut buf) {
-                if !into_pump(&buf[..n], &mut to_pump, &mut dropped).await {
-                    break;
-                }
-            }
+            drain(&socket, &mut buf, &mut to_pump, &mut dropped).await;
             let _ = to_pump.shutdown().await;
             status
         }
         None => {
+            let _ = to_pump.shutdown().await;
             drop((socket, to_pump, frames));
             ended(&mut child).await
         }
@@ -333,7 +349,14 @@ mod tests {
         write.write_all(&framed(b"second").unwrap()).await.unwrap();
         let mut frames = Frames::new(&mut read);
         let echoed = tokio::time::timeout(Duration::from_secs(10), frames.recv()).await.expect("an answer");
-        assert_eq!(echoed.unwrap(), Some(b"first datagram".to_vec()), "one read is one whole datagram");
+        let echoed = echoed.unwrap();
+        if echoed.is_none() {
+            // The gate saw this once (2026-11-11): say how the program
+            // ended, so that the next time names its cause.
+            let verdict = ending.expect("an ending").finish().await;
+            panic!("the program's output ended with no answer; its verdict: {verdict:?}");
+        }
+        assert_eq!(echoed, Some(b"first datagram".to_vec()), "one read is one whole datagram");
         // Then the end of its output, at its exit.
         let end = tokio::time::timeout(Duration::from_secs(10), frames.recv()).await.expect("the end");
         assert_eq!(end.unwrap(), None);

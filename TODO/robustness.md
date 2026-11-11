@@ -2128,3 +2128,58 @@ Premise first quoted the URL (`secrets` at `ea911a78`, run 42937074059, found it
 each refusal gracefully; `--features bore --test bore_link` passed 8 runs in 8 here (Linux, in a
 network namespace with the loopback alone). The next gate's `windows`, `gate (lint)`, `deny` and
 `secrets` are the check on CI.
+
+# T-746: Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS
+
+**Source:** the session of 2026-11-11, the gate's run 42943481826 at `6f78a7c7`: jobs `gate (iroh)` and
+`macos`.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+A test that fails at random hides a real failure, and turns the gate red for nothing.
+`pipe::datagram::tests::a_program_sends_and_takes_whole_datagrams_and_its_status_comes_back`
+(`-p podssh-cli --lib`, in the build image) read the end of the program's output where it wants its
+echo; `a_bridge_that_the_service_ends_attaches_again_and_the_session_resumes` (`-p podssh-relay
+--features opentunnel --test opentunnel_link`, on macOS) saw `Lost` and `Retry` but no `Resumed`.
+
+## Premise
+
+- Read: in `crates/podssh-cli/src/pipe/datagram.rs`, the loop of `datagrams` ended with `None` when a
+  send to the program failed, and dropped the socket with what the program had sent before it closed
+  still unread, against its own comment "What it sent before it exited still goes".
+- Read: no line of `sh` or `dd` came in the job's log (their stderr is the test's); the program ended
+  without its answer reaching the pump, and the log does not say why.
+- Read: the OpenTunnel test (`crates/podssh-relay/tests/opentunnel_link.rs`, `echo_mib`) cut the bridges
+  after a third of the echo came back, with all 3 MiB written at once: the bytes in flight could finish
+  the echo, and then only the CLOSE met the cut, a `Lost` and a `Retry` for it, with no resume.
+
+## Approach
+
+- `datagrams`: a failed send drains what the program sent into the pump before the end, as an exit does.
+  The test, when the echo is missing, says the program's verdict, so that its next failure names its
+  cause.
+- `echo_mib`: with a cut, the writer sends the last two thirds only after the cut, so those bytes need
+  the resumed link.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib pipe::datagram
+cargo test -p podssh-relay --features opentunnel --test opentunnel_link
+```
+
+## Done
+
+Partial, 2026-11-11. `datagrams` drains the program's datagrams on a failed send; a test that sent to a
+program that had answered and closed its socket did not catch the old code (20 runs; 150 more of the gate's
+test under load with the old code passed too), so the cause of the gate's failure stays unproven, and the
+test now says the program's verdict when the answer is missing. `echo_mib` holds the last two thirds until
+the cut. In a namespace with the loopback alone: `pipe::datagram` 10 runs in 10, `--test opentunnel_link`
+10 in 10, each asserting the resume. clippy with the feature `opentunnel`, rustfmt: clean. Next: the gate's
+`macos` for OpenTunnel, and the datagram test's next failure, if one comes, for its cause.

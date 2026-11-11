@@ -371,7 +371,7 @@ and `CARGO_BUILD_JOBS=4`:
 
 ## Counts
 
-`TODO/INDEX.md` holds 700 entries: 87 open, 22 partial, 9 blocked, 582 done.
+`TODO/INDEX.md` holds 701 entries: 87 open, 23 partial, 9 blocked, 582 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -396,7 +396,7 @@ T-446 waits: no beta and no release until the migration is done (Q104).
 **The owner's pause (2026-11-10, PodUtils/podcrates#53):** each session paused after its last
 runs. `docs/HANDOFF.md` holds the state at the pause: `main`, each podcrates take, the open COORD
 issues, and the next step of each partial entry. A session that starts again reads it first, after
-`AGENTS.md`; the tests that fail at random (T-465, T-627) come first.
+`AGENTS.md`; the tests that fail at random (T-465, T-627, T-746) come first.
 
 **The pause ends for podssh (2026-11-11):** PodUtils/podcrates#53 is closed, and the podcrates
 session started this session on the owner's word. podssh and podcrates talk by direct messages

@@ -141,9 +141,20 @@ async fn echo_mib(dialer: &Dialer, cut: Option<&StandIn>) -> Vec<Note> {
         notes.lock().unwrap().push(note);
     }));
     let cut_done = AtomicBool::new(false);
+    // With a cut, the last two thirds go only after it: else the bytes in
+    // flight (macOS's socket buffers are large) can finish the echo, and
+    // only the CLOSE meets the cut, with no resume to see.
+    let cut_made = tokio::sync::Notify::new();
     let using = async {
         let (mut reader, mut writer) = tokio::io::split(user);
-        let writing = async { writer.write_all(&out).await.expect("the layer takes the bytes") };
+        let writing = async {
+            let third = if cut.is_some() { out.len() / 3 } else { out.len() };
+            writer.write_all(&out[..third]).await.expect("the layer takes the bytes");
+            if third < out.len() {
+                cut_made.notified().await;
+                writer.write_all(&out[third..]).await.expect("the layer takes the bytes after the cut");
+            }
+        };
         let reading = async {
             let (mut back, mut buf) = (Vec::with_capacity(out.len()), vec![0u8; 64 * 1024]);
             while back.len() < out.len() {
@@ -153,6 +164,7 @@ async fn echo_mib(dialer: &Dialer, cut: Option<&StandIn>) -> Vec<Note> {
                 if let Some(stand_in) = cut.filter(|_| back.len() >= out.len() / 3) {
                     if !cut_done.swap(true, Ordering::SeqCst) {
                         stand_in.cut_bridges();
+                        cut_made.notify_one();
                     }
                 }
             }
