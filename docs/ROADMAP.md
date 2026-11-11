@@ -93,8 +93,8 @@ The client is `russh` with the `aws-lc-rs` backend
 ## M3: Nothing single-point and nothing assumed
 
 After M3, no single relay host, missing DNS or silent stop can stop
-podssh. M3 has no release: the one release is `v1.0.0`, in M9
-([decisions.md](decisions.md)).
+podssh. M3 had no release of its own; the first stable release was
+`v1.0.0`, in M9 ([decisions.md](decisions.md)).
 
 - [x] **Relay hosts with failover** (`podssh-relay`). `--relay-host` and
       `PODSSH_RELAY` take an ordered list. By default, the main host comes
@@ -174,8 +174,8 @@ podssh. M3 has no release: the one release is `v1.0.0`, in M9
 
 ## M5: `podssh serve`, into the cage
 
-The operator holds the entries of M5 (Q32, [decisions.md](decisions.md)), and
-no release has `podssh serve`.
+The operator's hold on M5 (Q32) is released (Q92, [decisions.md](decisions.md)):
+its entries go by their priority, after M10's of the same priority.
 
 - The server of russh in the node: T-107, T-108, T-109, T-117, T-118. It
   runs as the user that the sandbox gives, with no passwd entry, setgroups,
@@ -260,9 +260,8 @@ no release has `podssh serve`.
 ## After M8
 
 The entries with the milestone `backlog` in [TODO/INDEX.md](../TODO/INDEX.md)
-come after M8, in the order of the index: the operator scheduled each of
-them on 2026-10-08. Since Q63 (2026-11-02) no entry waits for the relay's
-operator: those entries are M10's.
+come after M8, in the order of the index. No entry waits for the relay's
+operator (Q63): those entries are M10's.
 
 ## M9: `v1.0.0`, the first stable release
 
@@ -285,9 +284,9 @@ operator: those entries are M10's.
 
 ## M10: The mesh, at parity with Tailscale, and the relay in podssh
 
-The operator's ruling of 2026-11-02 (Q63; [mesh.md](mesh.md)): podssh grows
-into a mesh of its user's own nodes, and the relay is a role of podssh
-itself, so that no entry waits for another party.
+The current milestone (Q63; [mesh.md](mesh.md)): podssh grows into a mesh
+of its user's own nodes, and the relay is a role of podssh itself, so that
+no entry waits for another party.
 
 - The relay's role in podssh: its forward road (T-169), its reverse road
   (T-427), and behind a node's quick tunnel with no listener (T-428); its
@@ -304,10 +303,15 @@ itself, so that no entry waits for another party.
   servers that a user runs (Q66): T-439, T-440, T-441; more that fit:
   T-442.
 - Repairs that the research found: T-443, T-444.
-- The move to PodUtils (2026-11-05): the repository (T-683), the crates that podssh shares with podnet
+- The last fallbacks of Q77 and Q78, in the order of
+  [TODO/PROGRESS.md](../TODO/PROGRESS.md): among them ZeroTier's relay
+  (T-733), Tox's (T-734), Yggdrasil's peers (T-735), HyperDHT (T-736) and
+  the public MQTT brokers (T-737).
+- The move to PodUtils: the repository (T-683), the crates that podssh shares with podnet
   and podvm (T-684), the retired rules of the build (T-685), and the publish to crates.io (T-686,
   T-687).
-- The release: betas `v1.1.0-beta.N`, then `v1.1.0` (T-446).
+- The release: betas `v1.1.0-beta.N`, then `v1.1.0` once the move to
+  PodUtils is done (T-446).
 
 **Exit criteria** (T-446)
 

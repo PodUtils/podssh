@@ -12,14 +12,17 @@ no installed `ssh`, and no TLS or crypto library of the system.
 > [!WARNING]
 > **Status: beta.** `podssh ssh`, `podssh each`, `podssh run`, `podssh job`, `podssh session`,
 > `podssh containers`,
-> `podssh proxy`, `podssh pipe`, `podssh cp`, `podssh mv`, `podssh scp`,
+> `podssh proxy`, `podssh pipe`, `podssh funnel` (a local HTTP service at a
+> public name), `podssh cp`, `podssh mv`, `podssh scp`,
 > `podssh sftp` and `podssh edit` (files), `podssh doctor`, `podssh keygen`,
 > `podssh agent`, `podssh man`, `podssh status`, `podssh ping`,
 > `podssh health`, the reverse road (`podssh node`, `podssh operator`,
 > `podssh relay`), `podssh chat`, `podssh play` (recordings),
 > `podssh detached` (the runs of `--detach`, by their names),
-> `podssh config` (settings), `podssh mcp` and `podssh update` (this
-> binary, from a signed release) work.
+> `podssh config` (settings), `podssh mcp`, `podssh net` (the owner's
+> signed list of its nodes) and `podssh update` (this binary, from a signed
+> release) work. `podssh ts`, the iroh road and WARP's `warp://` refuse with
+> exit code 70 in a build without their features.
 > Tests run them against OpenSSH and Dropbear servers, through the live
 > relay, and in a box like the target sandbox. The measured state of `main`
 > is in [docs/STATUS.md](docs/STATUS.md), where a row of work after `v1.0.0`
@@ -60,9 +63,10 @@ podssh --TLS 1.3 + WebSocket, port 443--> relay --TCP--> sshd (or another TCP se
 
 ## First steps on a new host
 
-1. Get a static binary for the host: a beta from the
-   [releases page](https://github.com/PodUtils/podssh/releases) (each
-   `v1.0.0-beta.N` is a prerelease), or build one (see "Build"). Check it
+1. Get a static binary for the host: a release from the
+   [releases page](https://github.com/PodUtils/podssh/releases) (`v1.0.N`
+   is stable; each `v1.1.0-beta.N` is a prerelease of the next), or build
+   one (see "Build"). Check it
    against `SHA256SUMS`, and make it executable:
 
    ```sh
@@ -305,9 +309,11 @@ that session lasts; `usbip detach` ends it.
 
 podssh is a Rust workspace (`crates/`). It needs Rust 1.99 or later and a C
 compiler: the SSH client uses aws-lc (through `russh`). Each released
-binary is statically compiled, and the gate checks it. Some crates (the terminal's, the record's
-checker, the identity) come from [PodUtils/podcrates](https://github.com/PodUtils/podcrates) by a
-tag of that repository, so the first build needs github.com.
+binary is statically compiled, and the gate checks it. The crates that podssh shares with its
+sibling projects (TLS, proxies, DNS, the WebSocket client, the terminal's line discipline, the
+resumable layer, the record's checker and more) come from
+[PodUtils/podcrates](https://github.com/PodUtils/podcrates) by a tag of that repository, so the
+first build needs github.com.
 
 ```sh
 export CARGO_BUILD_JOBS=4
@@ -337,7 +343,8 @@ container. See [docs/development.md](docs/development.md).
 | [docs/terminal.md](docs/terminal.md) | Ptys, raw mode, and the line discipline |
 | [docs/target-environment.md](docs/target-environment.md) | What a constrained host allows, and the rules that follow |
 | [docs/decisions.md](docs/decisions.md) | The decisions of the operator |
-| [TODO/PROGRESS.md](TODO/PROGRESS.md) | The work order, and the questions for the operator |
+| [TODO/PROGRESS.md](TODO/PROGRESS.md) | The current state, the work order, and the questions for the operator |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | The facts that change from day to day: the gate, the podcrates takes, the next step of each partial entry |
 | [TODO/INDEX.md](TODO/INDEX.md) | Each open and done item of work (defects, features, measurements), with its entry |
 | [docs/development.md](docs/development.md) | Build, test, checks, the sandbox box, releases |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability; what podssh guarantees |
