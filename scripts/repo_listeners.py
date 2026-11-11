@@ -150,12 +150,16 @@ LISTENERS = {
     # And the Tor road's TCP provider (T-353): Arti's trait asks each
     # provider for a listen method, and podssh's refuses each call with an
     # error, binding nothing.
+    # And a member of ZeroTier's road (T-733), whose test waits for a
+    # connection inside the network: a socket of smoltcp in the process, on
+    # WARP's stack, no socket of the system.
     "listen(": [
         "crates/podssh-cli/src/pipe/listen_win.rs",
         "crates/podssh-cli/src/doctor/unix.rs",
         "crates/podssh-warp/src/stand_in.rs",
         "crates/podssh-warp/src/inside.rs",
         "crates/podssh-tor/src/runtime.rs",
+        "crates/podssh-zerotier/src/member_tests.rs",
     ],
     "socket2": [],
 }
