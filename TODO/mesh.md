@@ -12859,6 +12859,19 @@ whose pair's relay is down served `podssh ssh node://tester@lab greet` through Z
 DERP road off at the client). Planted, a client that makes another pair's road: no answer within 60 s, and the test
 FAILED. `cargo test -p podssh-zerotier --lib`, 12 passed (the stand-in's own test too).
 
+2026-11-11: against ZeroTierOne's own `zerotier-one`, built from `899352e` on a runner (`tests/zerotier_one.rs`, the
+job `one` of `zerotier-live.yml`, runs 43046134231 and 43050782095): it joined the ad-hoc network of port 4096 through
+ZeroTier Inc.'s roots, a member of podssh joined through the TCP relay, and TCP passed both ways (podssh to its host's
+echo, and its host to podssh's), with each core's own emulation of 6plane's NDP. Planted, a member that looks for a
+node that is not there: FAILED, as it must. The static build: the binary with `iroh,warp,zerotier`, musl in the gate's
+image with Alpine's `g++` and `linux-headers` added (`zerotier-interop.yml`, the job `static`, run 43051014888), is
+static (`scripts/check-static.sh`), 25,669,552 bytes, and runs. The gate's lint step adds the same two packages, and
+lints the feature `zerotier-test`. Open: through ZeroTier Inc.'s roots and relay, two members of podssh took 31.8 s,
+53.1 s, and past 60 s and 90 s to meet (runs 43050782095 and 43055337176), so the pair's road of the command line has
+not yet linked live within the road's 60 s; tries of 4 s with a fresh SYN (`road::connect`) did not change it, so the
+time is the meeting's, not TCP's. A member's trace (`PODSSH_ZT_TRACE=1`, its datagrams by address and its frames, each
+2 s) is on in the live run's library steps, to find where.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 
