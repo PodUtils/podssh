@@ -12776,6 +12776,17 @@ of memory and a clock of the test's own (a root of a planet made in the test, an
 frame, and the test failed. clippy and rustfmt clean; the gate's packages now hold `podssh-zerotier`. Next: the relay's
 framing, smoltcp over the frames, the road in the race.
 
+2026-11-11: the relay's framing, `crates/podssh-zerotier/src/relay.rs`, written from `tcp-proxy/tcp-proxy.cpp` and
+`service/OneService.cpp` (MPL-2.0): the HELLO of 4 bytes of version, records of `0x17 0x03 0x03`, a length, `4`, the
+IPv4 address, the port and the datagram; the encoder refuses a port of 1024 or less and a datagram outside 16 to 2,047
+bytes, which the relay drops with no word. Against ZeroTierOne's own `tcp-proxy` of `899352e`, built here and run in a
+namespace with the loopback alone (`tests/tcp_proxy.rs`, `PODSSH_ZT_TCP_PROXY=127.0.0.1:443`): 1 passed, a datagram of
+200 bytes through the relay came back from the test's UDP echo whole, and one of 15 bytes written past the encoder
+came back as nothing. Unit tests 2 passed. Planted (`scripts/plants/t733-relay-drops.patch`), an encoder that takes
+15 bytes and port 1024: its unit test FAILED. `.github/workflows/zerotier-interop.yml` runs both on a runner, with the
+relay under sudo on its fixed port 443. Next: smoltcp over the frames, the core's wire over the relay, the road in the
+race.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

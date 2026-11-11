@@ -1,0 +1,57 @@
+name: zerotier interop
+
+# ZeroTier's road (T-733) against ZeroTierOne's own software, MPL-2.0, of
+# the pinned commit: its `tcp-proxy`, built here and run with sudo on its
+# fixed port 443, in front of the test's own UDP echo on the loopback:
+# crates/podssh-zerotier/tests/tcp_proxy.rs. No host of ZeroTier Inc. is
+# reached. A planted encoder that takes what the relay drops must fail.
+# Started by hand, and on a push that changes the crate; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-zerotier/**"
+      - "vendor/zerotier-node/**"
+      - "scripts/plants/t733-*"
+      - ".github/workflows/zerotier-interop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+      ZEROTIER_COMMIT: "899352e"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: ZeroTierOne's tcp-proxy, of the pinned commit
+        run: |
+          set -eu
+          git clone -q https://github.com/zerotier/ZeroTierOne.git "$RUNNER_TEMP/zt"
+          cd "$RUNNER_TEMP/zt" && git checkout -q "$ZEROTIER_COMMIT" && cd tcp-proxy
+          g++ -O2 -I../ext/prometheus-cpp-lite-1.0/core/include -I../ext/prometheus-cpp-lite-1.0/simpleapi/include \
+            -std=c++11 -pthread -o tcp-proxy tcp-proxy.cpp ../node/Metrics.cpp
+          sudo nohup ./tcp-proxy > "$RUNNER_TEMP/proxy.log" 2>&1 &
+          sleep 1
+      - name: the core's tests, and the framing through ZeroTier's relay
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-zerotier
+          PODSSH_ZT_TCP_PROXY=127.0.0.1:443 timeout 300 cargo test --locked -p podssh-zerotier --test tcp_proxy -- --ignored 2>&1 | tee "$RUNNER_TEMP/run.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/run.log"
+      - name: a planted encoder of what the relay drops fails
+        run: |
+          git apply scripts/plants/t733-relay-drops.patch
+          rc=0
+          timeout 600 cargo test --locked -p podssh-zerotier --lib relay || rc=$?
+          git apply -R scripts/plants/t733-relay-drops.patch
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: the planted encoder passed"
+            exit 1
+          fi
+          echo "the planted encoder failed (exit $rc), as it must"

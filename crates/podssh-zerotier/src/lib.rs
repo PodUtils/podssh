@@ -7,6 +7,7 @@
 
 mod ffi;
 pub mod node;
+pub mod relay;
 
 use std::ffi::CString;
 

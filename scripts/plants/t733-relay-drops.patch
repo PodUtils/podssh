@@ -1,0 +1,15 @@
+--- a/crates/podssh-zerotier/src/relay.rs
++++ b/crates/podssh-zerotier/src/relay.rs
+@@ -29,10 +29,10 @@
+ /// The record that sends `datagram` to `to`; why not, where the relay
+ /// would drop it.
+ pub fn encode(to: SocketAddrV4, datagram: &[u8]) -> Result<Vec<u8>, String> {
+-    if to.port() <= 1024 {
++    if to.port() < 1024 { // planted: port 1024 passes
+         return Err(format!("the relay sends to a port above 1024 alone, not {}", to.port()));
+     }
+-    if !(LEAST..=MOST).contains(&datagram.len()) {
++    if !(1..=MOST).contains(&datagram.len()) { // planted: 15 bytes pass
+         return Err(format!("the relay carries {LEAST} to {MOST} bytes, not {}", datagram.len()));
+     }
+     let len = (7 + datagram.len()) as u16;

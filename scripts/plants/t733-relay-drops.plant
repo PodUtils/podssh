@@ -1,0 +1,6 @@
+# T-733: the relay's encoder takes a datagram of 15 bytes and one to port
+# 1024, which ZeroTier's relay drops with no word; its unit test must fail.
+ENTRY=T-733
+GROUP=cli-tests
+EXPECT='test relay::tests::a_datagram_that_the_relay_drops_is_refused_here \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-zerotier --lib -- relay::tests::a_datagram_that_the_relay_drops_is_refused_here'
