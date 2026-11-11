@@ -12758,6 +12758,14 @@ built in the build image, and a short live session through the roots and the rel
 from GitHub Actions, if the Decision allows it. Plant: a datagram below 16 bytes, or to a port of
 1024 or less; the test fails on a frame the relay drops.
 
+
+## Correction
+
+2026-11-11: the Prove's tests are not in `podssh-relay`: the road is the crate `podssh-zerotier` (`cargo test -p
+podssh-zerotier`; `tests/tcp_proxy.rs`, `tests/live.rs` and `tests/zerotier_one.rs` with their workflows) and the
+command line's `cargo test -p podssh-cli --features zerotier-test --test derp_road zerotier`. The pairing does not carry
+the pair's ZeroTier addresses (the Approach's step 4): both ends make the node's from the pair's connect token, as the
+Done of the same day says.
 ## Done
 
 Partial, 2026-11-11: the Decision. Next: `vendor/zerotier-node` and `crates/podssh-zerotier` (its `build.rs` with
