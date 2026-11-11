@@ -20,8 +20,10 @@ fn main() {
         .collect();
     files.push(root.join("osdep/OSUtils.cpp"));
     files.sort();
-    // podssh's own calls over the core (`src/shim.cpp`).
+    // podssh's own calls over the core (`src/shim.cpp`), and an identity of
+    // a seed (`src/seed.cpp`, the core's own steps).
     files.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/shim.cpp"));
+    files.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/seed.cpp"));
     build.include(&root);
     for file in &files {
         println!("cargo:rerun-if-changed={}", file.display());

@@ -12808,6 +12808,20 @@ network: no answer inside the tunnel within 90 s, and the test failed (exit 101)
 `zerotier` of `podssh-cli`, the node's side and the client's road in the race (the pair's ZeroTier addresses from the
 pairing, T-086), the line of Q78, the static musl build of the C++, and the run against `zerotier-one`.
 
+2026-11-11: the pair's road in the library. Correction of the Approach's step 4: the pairing does not carry the
+node's ZeroTier address; both ends make it from the pair's name and connect token (`src/pair.rs`): a seed of SHA-512,
+from which `src/seed.cpp` makes the node's identity with `Identity::generate`'s own steps (the core's memory-hard hash,
+copied under the MPL-2.0), and an ad-hoc network of one port of the pair's own. So the pairing and `pod-relay`'s
+frozen files do not change, and a client knows the node's address with no word between them; a holder of the token
+could hold the node's address too, but the end-to-end channel checks the node's key. `src/road.rs`: the node holds a
+member at its identity and gives each connection to its port to the caller, and dials the wire again with a backoff
+of 1 s doubled to 32 s; a client joins with an identity of its run, and its link holds its member. `cargo test -p
+podssh-zerotier --lib`, 11 passed: the core takes the seed's identity at the address that the client computed; on a
+wire of memory with a root of the test's own, a client links to its pair's node after the node's first wire ended, and
+carries 64 KiB each way; a client of another pair reaches no node. Planted, a node that does not dial again: the test
+FAILED. clippy and rustfmt clean. Next: the feature `zerotier` of `podssh-cli`, the node's road and the client's place
+in the race, the line of Q78.
+
 2026-11-11: `relay::carry` carries a member's wire on the relay's TCP stream (any `AsyncRead + AsyncWrite`, so the
 command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a record for each datagram to an IPv4
 address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its

@@ -1,5 +1,5 @@
 //! The C API of ZeroTier's core (`vendor/zerotier-node/include/ZeroTierOne.h`)
-//! that this crate calls, and podssh's own two calls (`src/shim.cpp`).
+//! that this crate calls, and podssh's own calls (`src/shim.cpp`, `src/seed.cpp`).
 
 #![allow(non_camel_case_types)]
 
@@ -121,4 +121,5 @@ unsafe extern "C" {
         cap: c_uint,
     ) -> c_int;
     pub fn podssh_zt_mac(address: u64, nwid: u64) -> u64;
+    pub fn podssh_zt_identity_of_seed(seed: *const u8, out: *mut c_char, cap: c_uint) -> c_int;
 }

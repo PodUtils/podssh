@@ -152,7 +152,8 @@ LISTENERS = {
     # error, binding nothing.
     # And a member of ZeroTier's road (T-733), whose test waits for a
     # connection inside the network: a socket of smoltcp in the process, on
-    # WARP's stack, no socket of the system.
+    # WARP's stack, no socket of the system; and the node of the pair's road,
+    # which waits the same way at its 6plane address.
     "listen(": [
         "crates/podssh-cli/src/pipe/listen_win.rs",
         "crates/podssh-cli/src/doctor/unix.rs",
@@ -160,6 +161,7 @@ LISTENERS = {
         "crates/podssh-warp/src/inside.rs",
         "crates/podssh-tor/src/runtime.rs",
         "crates/podssh-zerotier/src/member_tests.rs",
+        "crates/podssh-zerotier/src/road.rs",
     ],
     "socket2": [],
 }

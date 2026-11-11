@@ -1,5 +1,6 @@
 //! ZeroTier's core for podssh (T-733): `vendor/zerotier-node`, MPL-2.0,
-//! linked statically, with podssh's own calls of `src/shim.cpp`. The core
+//! linked statically, with podssh's own calls of `src/shim.cpp` and
+//! `src/seed.cpp`. The core
 //! runs on the caller's wire and clock ([`node::Node`]); the road over
 //! ZeroTier Inc.'s roots and TCP relay is built on it.
 
@@ -8,7 +9,9 @@
 mod ffi;
 pub mod member;
 pub mod node;
+pub mod pair;
 pub mod relay;
+pub mod road;
 
 use std::ffi::CString;
 

@@ -14,6 +14,7 @@ publish.workspace = true
 libc = { workspace = true }
 # TCP over the network's frames: WARP's stack on smoltcp, with its listener.
 podssh-warp = { path = "../podssh-warp", features = ["inside"] }
+sha2 = { workspace = true }
 tokio = { workspace = true }
 
 [build-dependencies]

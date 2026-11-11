@@ -5382,6 +5382,7 @@ dependencies = [
  "libc",
  "pod-services",
  "podssh-warp",
+ "sha2 0.11.1",
  "tokio",
 ]
 
