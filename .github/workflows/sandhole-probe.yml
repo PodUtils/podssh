@@ -40,7 +40,7 @@ jobs:
             sleep 15
             echo "--- what the server said"
             sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | tr -d '\r' | head -40
-            url=$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -oE 'https://[A-Za-z0-9.-]+' | grep -v 'demo.sandhole.com.br$' | head -1 || true)
+            url=$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -oE 'https://[A-Za-z0-9.-]+' | grep -vx 'https://demo.sandhole.com.br' | head -1 || true)
             if [ -n "$url" ]; then
               echo "--- a request to $url"
               curl -sS --max-time 15 -o "$RUNNER_TEMP/body" -w "HTTP %{http_code}\n" "$url/" || true
