@@ -28,7 +28,6 @@ jobs:
     timeout-minutes: 30
     env:
       CARGO_BUILD_JOBS: "4"
-      PODSSH_BARE_NODE_MODULES: ${{ runner.temp }}/bare/node_modules
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: TompHTTP's Bare server, of the pinned release
@@ -38,6 +37,7 @@ jobs:
           npm init -y > /dev/null
           npm install --no-audit --no-fund --ignore-scripts @tomphttp/bare-server-node@2.0.6
           node --version
+          echo "PODSSH_BARE_NODE_MODULES=$RUNNER_TEMP/bare/node_modules" >> "$GITHUB_ENV"
       - name: build the test
         run: cargo test --locked -p podssh-ws --test bare_hop --no-run
       - name: the hop through TompHTTP's server
