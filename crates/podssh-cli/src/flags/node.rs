@@ -151,6 +151,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
     super::opentunnel::NODE_SERVEO,
     super::opentunnel::NODE_SSH_J,
     super::opentunnel::NODE_LOCALHOST_RUN,
+    super::opentunnel::NODE_SANDHOLE,
     super::opentunnel::NODE_LOCALTUNNEL,
     super::opentunnel::NODE_BORE,
     row(None, "quick-tunnel", None, FlagKind::Supported,

@@ -55,8 +55,12 @@ pub struct Word {
     pub forward: (&'static str, u32),
     /// The SSH ports where a value names none, in the order tried.
     pub ports: &'static [u16],
-    /// The word of the service's line that names a tunnel.
+    /// The words of the service's line that name a tunnel, in lower case.
     pub marker: &'static str,
+    /// Whether its tunnels are names under its own server, as Sandhole's
+    /// `NAME.demo.sandhole.com.br`: only the server's own name is then its
+    /// own, else each name under it is (`admin.localhost.run`).
+    pub tunnels_under_host: bool,
 }
 
 /// localhost.run's word. The user `nokey`: "For free tunnels, skip the key
@@ -75,7 +79,43 @@ pub const LOCALHOST_RUN: Word = Word {
     forward: ("localhost", 80),
     ports: &[22],
     marker: "tunneled",
+    tunnels_under_host: false,
 };
+
+/// Sandhole's public server (T-743): it lets any key in as a user and
+/// serves a remote forward of port 80 at a random name under its own,
+/// `NAME.demo.sandhole.com.br`, new at each connection; its line is
+/// `Starting HTTPS on https://NAME... for address localhost` (measured on
+/// 2026-11-11, `docs/carriers.md`). The user is a fixed word, so that no
+/// local user's name goes to it; it asks for a key, which the leg's login
+/// makes for the login alone. Its ports are its endpoints' (443, then 22).
+pub const SANDHOLE: Word = Word {
+    id: "sandhole",
+    name: "Sandhole",
+    env: "PODSSH_SANDHOLE",
+    flag: "--sandhole",
+    user: "tunnel",
+    forward: ("localhost", 80),
+    ports: &[443, 22],
+    marker: "starting https",
+    tunnels_under_host: true,
+};
+
+/// Each word of the module, in the order that a node tries them unasked.
+pub const WORDS: &[Word] = &[LOCALHOST_RUN, SANDHOLE];
+
+/// The word whose service holds `name` under its tunnels' zone (the fact
+/// `tunnel-zone` of `pod-services`), else localhost.run's, whose zone
+/// moves (`lhr.life` now) and is the module's first.
+pub fn word_of_name(name: &str) -> Word {
+    let name = name.trim_end_matches('.').to_ascii_lowercase();
+    let zone_of = |word: &Word| pod_services::get(word.id)?.text("tunnel-zone").map(|zone| zone.to_ascii_lowercase());
+    WORDS
+        .iter()
+        .find(|word| zone_of(word).is_some_and(|zone| name.ends_with(&format!(".{zone}"))))
+        .copied()
+        .unwrap_or(LOCALHOST_RUN)
+}
 
 /// A server of a word's shape: SSH on `host`, at each of `ports` in turn,
 /// and the SHA256 fingerprint of its host key when one is known.
@@ -123,7 +163,7 @@ impl Service {
     /// which its text names beside a tunnel's, as `admin.localhost.run`.
     pub fn own(&self, host: &str) -> bool {
         let host = host.trim_end_matches('.').to_ascii_lowercase();
-        host == self.host || host.ends_with(&format!(".{}", self.host))
+        host == self.host || (!self.word.tunnels_under_host && host.ends_with(&format!(".{}", self.host)))
     }
 }
 
@@ -259,6 +299,21 @@ mod tests {
         for other in ["a1b2c3d4e5f6.lhr.life", "notlocalhost.run", "twitter.com"] {
             assert!(!service.own(other), "{other}");
         }
+        // Sandhole's tunnels are names under its server: only the server is its own.
+        let sandhole =
+            Service { word: SANDHOLE, host: "demo.sandhole.com.br".into(), ports: vec![443], host_key: None };
+        assert!(sandhole.own("demo.sandhole.com.br") && !sandhole.own("ke97cq.demo.sandhole.com.br"));
+    }
+
+    #[test]
+    fn a_tunnel_s_name_belongs_to_the_word_whose_zone_holds_it() {
+        assert_eq!(word_of_name("ke97cq.demo.sandhole.com.br").id, "sandhole", "pod-services' tunnel-zone");
+        assert_eq!(word_of_name("KE97CQ.Demo.Sandhole.com.br.").id, "sandhole");
+        assert_eq!(word_of_name("a1b2c3.lhr.life").id, "localhost-run");
+        assert_eq!(word_of_name("demo.sandhole.com.br").id, "localhost-run", "the server itself is no tunnel");
+        let sandhole = Service::hosted(SANDHOLE).expect("pod-services names Sandhole");
+        assert_eq!((sandhole.host.as_str(), sandhole.ports.as_slice()), ("demo.sandhole.com.br", &[443, 22][..]));
+        assert!(sandhole.host_key.as_deref().is_some_and(|key| key.starts_with("SHA256:")), "pinned");
     }
 
     #[test]

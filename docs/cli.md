@@ -4469,6 +4469,20 @@ commands. The rules behind them:
   says before the first link that localhost.run, a third party that nobody
   vouches for, carries the session. Never with `--no-e2e` (64 with the
   URL); `podssh ping` measures it only with the URL.
+- **`node --sandhole` serves the same road at Sandhole's public server**
+  (T-743), after the localhost.run road: `demo.sandhole.com.br` where
+  `pod-services` names it (the service `sandhole`, endpoints `ssh-443` and
+  `ssh`, facts `host-key-sha256` and `tunnel-zone`), or the server of
+  `PODSSH_SANDHOLE`. The leg is raw SSH on port 443, then 22, as the user
+  `tunnel`; the server lets any key in but asks for one, so the login of
+  the module ends with a key made for that login alone, never the node's.
+  The server's line `Starting HTTPS on https://NAME.demo.sandhole.com.br`
+  names a random name under its own, new at each connection: so the word
+  says that its tunnels are names under its server, and only the server's
+  own name is passed over. A node with no other road serves it unasked
+  after localhost.run's; a client takes the word whose `tunnel-zone` holds
+  the name, for its switch and its line. `PODSSH_SANDHOLE=no` or
+  `PODSSH_LAST_RESORT=no` turns it off.
 - **`node --localtunnel` serves the localtunnel road** (T-568, partial;
   merged 2026-11-10), a last fallback of Q78, after the localhost.run road:
   localtunnel's public server, with no account, where `pod-services` names

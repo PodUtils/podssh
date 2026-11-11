@@ -119,6 +119,17 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_SANDHOLE"],
+        "The Sandhole road (T-743), a last fallback of the operator's ruling Q78: the localhost.run road's shape \
+          at Sandhole's public server, SSH on port 443, then 22, with a key made for the login alone and the forward \
+          of port 80, of podssh node --sandhole and podssh ssh node://NAME --tunnel-url https://HOST of a name under \
+          its tunnels' zone, which a node with no other road serves unasked after the localhost.run road. no: no \
+          such road, and the flags are refused (64); HOST[:PORT]: that server of the same shape, whose host key \
+          nobody names; unset, empty or yes: demo.sandhole.com.br where podssh's list of services names it, else \
+          no server, and --sandhole is a configuration error (78). Another word is a configuration error (78), \
+          which does not echo the value.",
+    ),
+    (
         &["PODSSH_LOCALTUNNEL"],
         "The localtunnel road (T-568), a last fallback of the operator's ruling Q78, before the bore road: \
           localtunnel's public server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
@@ -289,7 +300,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
-      PODSSH_LOCALHOST_RUN, T-565; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
+      PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
       PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),

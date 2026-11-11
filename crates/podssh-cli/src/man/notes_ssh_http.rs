@@ -24,7 +24,12 @@ pub(super) const NODE: &str = "With --localhost-run, the node serves TARGET over
      NAME is not served beside it, and a line says so. A node that would serve the ssh-j road unasked serves \
      this one, before the localtunnel and bore roads, when it reached no service, or when it is turned off, by the operator's ruling \
      Q78, and its lines say so and name the third party, which nobody vouches for. PODSSH_LOCALHOST_RUN=no \
-     turns the road off, and so does PODSSH_LAST_RESORT=no, the switch of each last fallback.";
+     turns the road off, and so does PODSSH_LAST_RESORT=no, the switch of each last fallback. With \
+     --sandhole, the node serves the same road at Sandhole's public server (demo.sandhole.com.br where podssh's \
+     list of services names it, or the server of PODSSH_SANDHOLE): its leg is SSH on port 443, then 22, as the \
+     user tunnel with a key made for the login alone, never the node's; the server's line that says Starting \
+     HTTPS names a random name under its own, new at each connection. A node that would serve the localhost.run \
+     road unasked serves this one after it when it reached no server; PODSSH_SANDHOLE=no turns it off.";
 
 /// The note of `podssh ssh node://NAME` on the localhost.run road.
 pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races the localhost.run road too, \
@@ -37,7 +42,8 @@ pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races t
      Before its first link, a line says that localhost.run, a third party that nobody vouches for, carries the \
      session over HTTPS that it ends, and that the end-to-end channel keeps its bytes. A free name changes \
      after a few hours. podssh ping measures it only with --tunnel-url. PODSSH_LOCALHOST_RUN=no or \
-     PODSSH_LAST_RESORT=no turns the road off.";
+     PODSSH_LAST_RESORT=no turns the road off. A name under Sandhole's tunnels' zone is the Sandhole road's: \
+     its line names Sandhole, and PODSSH_SANDHOLE=no turns it off.";
 
 #[cfg(test)]
 mod tests {

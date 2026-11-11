@@ -39,7 +39,8 @@ fn command(home: &Path, args: &[&str]) -> Command {
     // Nor the roads before Serveo's: Pinggy (T-548) and ssh-j (T-570).
     cmd.env("PODSSH_PINGGY", "no").env("PODSSH_SSH_J", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
-    cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");
+    cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
+    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");
     cmd.env("PODSSH_DERP", "no").env("PODSSH_IROH_PKARR", "off");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));

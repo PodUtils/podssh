@@ -17,10 +17,13 @@
 //! (so a WebSocket passes; whether localhost.run's edge passes one is
 //! T-565's live run). A tunnel can be given a new name, as a free domain
 //! "changes after a few hours", and a name can be given to another tunnel,
-//! a stranger at the name.
+//! a stranger at the name. As Sandhole's demo (T-743, `StandIn::sandhole`):
+//! a login needs a key, any key, and the shell's one line is `Starting
+//! HTTPS on https://NAME for address localhost`, the name under the
+//! server's own, which is then the zone itself (`docs/carriers.md`).
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
@@ -61,12 +64,21 @@ pub struct StandIn {
     /// The tunnels made, and the visitors sent down one.
     pub made: AtomicUsize,
     pub visits: AtomicUsize,
+    /// Sandhole's shape: a key for each login, and its line.
+    pub sandhole: AtomicBool,
+    /// The fingerprint of each key that logged in.
+    keys: Mutex<Vec<String>>,
 }
 
 impl StandIn {
     /// The user of each login, in order.
     pub fn users(&self) -> Vec<String> {
         lock(&self.users).clone()
+    }
+
+    /// The fingerprint of each key that logged in, in order.
+    pub fn keys(&self) -> Vec<String> {
+        lock(&self.keys).clone()
     }
 
     /// Each remote forward that was taken: its address and its port.
@@ -198,8 +210,34 @@ impl server::Handler for Far {
     type Error = russh::Error;
 
     async fn auth_none(&mut self, user: &str) -> Result<Auth, Self::Error> {
+        if self.stand_in.sandhole.load(Ordering::SeqCst) {
+            // Sandhole: any key, but a key.
+            let methods = russh::MethodSet::from(&[russh::MethodKind::PublicKey][..]);
+            return Ok(Auth::Reject { proceed_with_methods: Some(methods), partial_success: false });
+        }
         // `nokey`: a free tunnel needs no key and no account.
         lock(&self.stand_in.users).push(user.to_string());
+        Ok(Auth::Accept)
+    }
+
+    async fn auth_password(&mut self, _user: &str, _password: &str) -> Result<Auth, Self::Error> {
+        Ok(Auth::reject())
+    }
+
+    async fn auth_publickey_offered(
+        &mut self,
+        _user: &str,
+        _key: server::PublicKeyOffer<'_>,
+    ) -> Result<Auth, Self::Error> {
+        Ok(if self.stand_in.sandhole.load(Ordering::SeqCst) { Auth::Accept } else { Auth::reject() })
+    }
+
+    async fn auth_publickey(&mut self, user: &str, key: server::VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
+        if !self.stand_in.sandhole.load(Ordering::SeqCst) {
+            return Ok(Auth::reject());
+        }
+        lock(&self.stand_in.users).push(user.to_string());
+        lock(&self.stand_in.keys).push(key.public_key.fingerprint(russh::keys::HashAlg::Sha256).to_string());
         Ok(Auth::Accept)
     }
 
@@ -238,14 +276,17 @@ impl server::Handler for Far {
         if let Some(held) = lock(&self.stand_in.tunnels).get_mut(&name) {
             held.shell = Some(channel);
         }
-        let text = format!(
-            "\r\n===============================================\r\nWelcome to localhost.run!\r\n\
+        let text = match self.stand_in.sandhole.load(Ordering::SeqCst) {
+            true => format!("Starting HTTPS on https://{name} for address localhost\r\n"),
+            false => format!(
+                "\r\n===============================================\r\nWelcome to localhost.run!\r\n\
              Follow your favourite reverse tunnel at [https://twitter.com/localhost_run].\r\n\
              To set up and manage custom domains go to https://admin.{SERVER}/\r\n\
              ===============================================\r\n\r\n\
              ** your connection id is 7f3a-test, please mention it if you send me any bug reports **\r\n\r\n\
              {name} tunneled with tls termination, https://{name}\r\n"
-        );
+            ),
+        };
         session.data(channel, text.into_bytes())?;
         Ok(())
     }

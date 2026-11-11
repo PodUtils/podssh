@@ -6113,7 +6113,7 @@ the net that already names them.
 
 ## Premise
 
-- `crates/podssh-cli/src/node_quick.rs:157`, where the node with no `--allow` was refused: its
+- `crates/podssh-cli/src/node_quick.rs:158`, where the node with no `--allow` was refused: its
   name is public, so only the operator keys of the file came in.
 - `crates/podssh-cli/src/node_derp.rs:117` says "pub(crate) fn door(allow: Option<&Path>, place: &Place) -> Result<Door, Refusal>",
   the door of T-452 that the quick tunnel's node can take too.
@@ -13362,6 +13362,20 @@ server, as `Service::own` passes over each name under the server and would pass 
 whose `tunnel-zone` holds the name, for its switch and its line; (4) the node: `--sandhole`, and Sandhole after
 localhost.run in the unasked chain; (5) `PODSSH_SANDHOLE=no` in each harness that turns the last roads off;
 (6) the manual, and a job of `last-roads-live.yml`.
+
+2026-11-11, the wiring: the six steps are in the code. (1) `pinggy_leg::login` ends with a key made for that login
+alone (`PrivateKey::random`, Ed25519), after none, an empty password and keyboard-interactive. (2) `ssh_http::SANDHOLE`
+(user `tunnel`, marker `starting https`, ports 443 then 22), the field `tunnels_under_host` that `Service::own` reads,
+`ssh_http::WORDS`, and `word_of_name`, which reads the fact `tunnel-zone`. (3) The client road takes the word of the
+name for its switch and its line; the road is on while one word is. (4) `node --sandhole` (`NodeArgs::sandhole`, the
+flag row, each list of the roads' flags), and `node_ssh_http::WORDS` is `ssh_http::WORDS`, so Sandhole follows
+localhost.run unasked; `--relay` takes it too. (5) `PODSSH_SANDHOLE=no` in each harness and script that turns
+localhost.run off. (6) The manual (`PODSSH_SANDHOLE`, the notes, `PODSSH_LAST_RESORT`), `docs/cli.md`, and a job
+`a_node_behind_sandhole_serves_a_client_at_its_tunnel_s_url` of `last-roads-live.yml`. The test
+`as_sandhole_a_key_made_for_the_login_and_a_name_under_the_server_carry_the_session` of `ssh_tunnel_http` puts the
+stand-in in Sandhole's shape: 7 passed on 2026-11-11 (each login a new key, the user `tunnel`, the name under the
+server's own taken, port 443 refused by the proxy and 22 taken, `greet` through it); `ssh_http`'s unit tests, 11
+passed. What remains: the live job through the demo server.
 
 # T-749: `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs
 

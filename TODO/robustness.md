@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:169`, `docs/STATUS.md:175`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:5760-5761` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:5774-5775` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:5760-5761`). A difference that the table does not name fails,
+   `docs/cli.md:5774-5775`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:5760-5761` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:5774-5775` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:5318-5319` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:5332-5333` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:5318-5319`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:5332-5333`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -1702,8 +1702,8 @@ Read at `2042200`:
   line to stderr, and `crates/podssh-ssh/src/log.rs:32-37` holds a level and stderr or a file; the
   level stops in the process.
 - `crates/podssh-cli/src/flags.rs:291` says "podssh does not write to syslog", for `-y`.
-- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:149`)
-  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:151` says
+- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:150`)
+  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:152` says
   "RestartPreventExitStatus=64 78"): a fault of the journal must never become one of those.
 - No source reads `JOURNAL_STREAM` (searched).
 

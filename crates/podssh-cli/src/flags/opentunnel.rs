@@ -46,6 +46,11 @@ pub const NODE_SSH_J: FlagRow = row(None, "ssh-j", None, FlagKind::Supported,
 pub const NODE_LOCALHOST_RUN: FlagRow = row(None, "localhost-run", None, FlagKind::Supported,
     "serve TARGET over the localhost.run road, a tunnel of HTTP made by ssh -R with no account (localhost.run where podssh's list of services names it, or the server of env PODSSH_LOCALHOST_RUN): SSH on port 22, directly or through the proxy's CONNECT, as the user nokey, with the remote forward of port 80; the service ends each visitor's TLS at an HTTPS name, new after a few hours, which the node prints, keeps under NAME in the cache and puts in its record; a client takes a WebSocket at / of that name; with --relay, the relay role behind it too, and TARGET may be left out; a third party that nobody vouches for, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
 
+/// `node --sandhole` (T-743).
+#[rustfmt::skip]
+pub const NODE_SANDHOLE: FlagRow = row(None, "sandhole", None, FlagKind::Supported,
+    "serve TARGET over the same road at Sandhole's public server (demo.sandhole.com.br where podssh's list of services names it, or the server of env PODSSH_SANDHOLE): SSH on port 443, then 22, directly or through the proxy's CONNECT, with a key made for the login alone and the remote forward of port 80; the service ends each visitor's TLS at a random HTTPS name under its own, new at each connection, which the node prints, keeps under NAME in the cache and puts in its record; with --relay, the relay role behind it too; a third party that nobody vouches for, so a last fallback, after localhost.run's; the road alone; needs the end-to-end channel, and --allow or a key that the net held here names", None);
+
 /// `ssh node://NAME --tunnel-url https://HOST`.
 #[rustfmt::skip]
 pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKind::Supported,

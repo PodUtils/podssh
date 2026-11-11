@@ -19,7 +19,9 @@
 //! Serveo's or the ssh-j road unasked serves this one when none of them
 //! reached a service, or when each is off, and says that a third party that
 //! nobody vouches for carries its sessions. `PODSSH_LOCALHOST_RUN=no` turns
-//! the road off, and so does `PODSSH_LAST_RESORT=no`. The road is served
+//! the road off, and so does `PODSSH_LAST_RESORT=no`. `--sandhole` serves the
+//! same road at Sandhole's public server (T-743), which a node serves unasked
+//! after localhost.run's; `PODSSH_SANDHOLE=no` turns it off. The road is served
 //! alone, as the ssh-j road is (T-570's Decision). stdout stays empty.
 
 use std::io::Write;
@@ -34,12 +36,16 @@ use crate::node_quick_relay::Role;
 use crate::relay_settings::Refusal;
 
 /// The words of the module, in the order that a node serves them unasked:
-/// localhost.run's alone so far (T-743 would add Sandhole's after it).
-pub(crate) const WORDS: &[Word] = &[ssh_http::LOCALHOST_RUN];
+/// localhost.run's, then Sandhole's (T-743).
+pub(crate) const WORDS: &[Word] = ssh_http::WORDS;
 
 /// The word that the node's flags ask for.
 pub(crate) fn asked(args: &NodeArgs) -> Option<Word> {
-    args.localhost_run.then_some(ssh_http::LOCALHOST_RUN)
+    match (args.localhost_run, args.sandhole) {
+        (true, _) => Some(ssh_http::LOCALHOST_RUN),
+        (false, true) => Some(ssh_http::SANDHOLE),
+        _ => None,
+    }
 }
 
 /// The word's variable and `PODSSH_LAST_RESORT`, read: a value that is none
@@ -117,6 +123,8 @@ pub(crate) fn check(args: &NodeArgs, word: Word) -> Result<(), Refusal> {
         (args.pinggy, "--pinggy"),
         (args.serveo, "--serveo"),
         (args.ssh_j, "--ssh-j"),
+        (args.localhost_run && flag != "--localhost-run", "--localhost-run"),
+        (args.sandhole && flag != "--sandhole", "--sandhole"),
         (args.localtunnel, "--localtunnel"),
         (args.bore, "--bore"),
         (args.iroh, "--iroh"),
@@ -254,6 +262,11 @@ mod tests {
             assert!(refusal.message.contains(flag), "{flag}: {}", refusal.message);
         }
         assert!(check(&base(), ssh_http::LOCALHOST_RUN).is_ok());
+        let both = NodeArgs { sandhole: true, ..base() };
+        assert!(check(&both, ssh_http::LOCALHOST_RUN).unwrap_err().message.contains("--sandhole"));
+        let sandhole = NodeArgs { localhost_run: false, sandhole: true, ..base() };
+        assert!(check(&sandhole, ssh_http::SANDHOLE).is_ok());
+        assert_eq!(asked(&sandhole), Some(ssh_http::SANDHOLE));
         assert!(check(&NodeArgs { relay: true, ..base() }, ssh_http::LOCALHOST_RUN).is_ok(), "the relay role");
     }
 

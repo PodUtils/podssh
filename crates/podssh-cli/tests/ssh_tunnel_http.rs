@@ -14,7 +14,8 @@
 //! role's answer, and another path 404. A stranger at the name is refused
 //! by the end-to-end channel; a new name of the tunnel is said and carries
 //! the next session; a node with no pair and each other road off serves the
-//! road unasked (Q78). Planted: a visitor's request of the role's path never
+//! road unasked (Q78). As Sandhole (T-743): a key made for the login alone,
+//! a name under the server's own, and port 443 refused before 22. Planted: a visitor's request of the role's path never
 //! given to the role (`scripts/plants/t565-role-not-taken.patch`), and the
 //! test of the role's contract fails.
 
@@ -65,7 +66,7 @@ fn command(home: &Path, proxy: u16, ca: &Path, args: &[&str]) -> Command {
     cmd.env("SSL_CERT_FILE", ca);
     let proxy = format!("http://127.0.0.1:{proxy}");
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
-    cmd.env("PODSSH_LOCALHOST_RUN", SERVER);
+    cmd.env("PODSSH_LOCALHOST_RUN", SERVER).env("PODSSH_SANDHOLE", "no");
     // No other road, no public forwarder and no record at n0's server.
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");
@@ -148,7 +149,8 @@ async fn proxy(ssh: u16, edge: u16) -> u16 {
                 let Ok((request, rest)) = podssh_ws::http::read_request(&mut tcp, Vec::new()).await else { return };
                 let target = podssh_ws::http::request::connect_target(&request.target);
                 let to = match (request.method.as_str(), target) {
-                    ("CONNECT", Ok((host, 22))) if host == SERVER => ssh,
+                    // The zone is the server of the Sandhole stand-in, whose tunnels are under it.
+                    ("CONNECT", Ok((host, 22))) if host == SERVER || host == ZONE => ssh,
                     ("CONNECT", Ok((host, 443))) if host.ends_with(&format!(".{ZONE}")) => edge,
                     _ => {
                         let words = "this proxy passes the names of the service alone";
@@ -431,5 +433,29 @@ fn the_switches_turn_the_road_off_and_a_node_needs_a_door() {
     assert_eq!(rc, 64, "{err}");
     assert!(err.contains("--tunnel-url"), "{err}");
     assert_eq!(lab.stand_in.made.load(Ordering::SeqCst), 0, "no tunnel made");
+    drop(lab.runtime);
+}
+
+/// Sandhole's shape (T-743): the server asks for a key, any key, and names
+/// tunnels under its own name; its port 443 is refused here, so the leg
+/// takes 22. Each login's key is a new one, never the node's.
+#[test]
+fn as_sandhole_a_key_made_for_the_login_and_a_name_under_the_server_carry_the_session() {
+    let lab = Lab::new("sandhole");
+    lab.stand_in.sandhole.store(true, Ordering::SeqCst);
+    lab.let_in();
+    lab.pair_down();
+    let env = [("PODSSH_SANDHOLE", ZONE), ("PODSSH_LOCALHOST_RUN", "no")];
+    let (_node, lines, _) = lab.node("node.key", &["--sandhole"], &env);
+    assert!(lines.iter().any(|l| l.contains("raw SSH on port 22, as tunnel")), "{lines:#?}");
+    let name = name_of(lines.last().unwrap());
+    assert_eq!(name, format!("t1.{ZONE}"), "a name under the server's own is the tunnel's");
+    let (_other, _, _) = lab.node("other.key", &["--sandhole"], &env);
+    assert_eq!(lab.stand_in.users(), ["tunnel", "tunnel"]);
+    let keys = lab.stand_in.keys();
+    assert!(keys.len() == 2 && keys[0] != keys[1], "a key for each login: {keys:?}");
+    let url = format!("https://{name}");
+    let (rc, out, err) = run(&mut lab.ssh(&["--tunnel-url", &url, "node://tester@lab", "greet"]));
+    assert_eq!((rc, out.as_str()), (0, GREETING), "{err}");
     drop(lab.runtime);
 }

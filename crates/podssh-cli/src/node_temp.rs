@@ -92,6 +92,7 @@ fn prepare(args: &NodeArgs, key: &str) -> Result<Ready, Refusal> {
         ("--serveo", args.serveo),
         ("--ssh-j", args.ssh_j),
         ("--localhost-run", args.localhost_run),
+        ("--sandhole", args.sandhole),
         ("--localtunnel", args.localtunnel),
         ("--bore", args.bore),
     ];

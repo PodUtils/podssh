@@ -45,8 +45,8 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
     if let Some((_, flag)) = given.iter().find(|(given, _)| *given).filter(|_| !args.relay) {
         return Err(Refusal::usage(format!("{flag} is a setting of the relay role of a quick tunnel: add --relay")));
     }
-    if args.relay && !args.quick_tunnel && !args.localhost_run && !args.localtunnel {
-        let why = "--relay is for --quick-tunnel, --localhost-run or --localtunnel, whose node then serves the relay with no \
+    if args.relay && !args.quick_tunnel && !args.localhost_run && !args.sandhole && !args.localtunnel {
+        let why = "--relay is for --quick-tunnel, --localhost-run, --sandhole or --localtunnel, whose node then serves the relay with no \
                    listener; a relay that listens is podssh relay serve --listen";
         return Err(Refusal::usage(why));
     }

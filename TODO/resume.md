@@ -800,7 +800,7 @@ as they are, with no resumable layer: the node's handler is then the TCP
 handler alone, which dials TARGET at `open`
 (`crates/podssh-cli/src/node.rs`, lines 152-163 at `8e31960`). The node's first line names its
 mode (`crates/podssh-cli/src/node.rs:342`). `--plain` with `--iroh` is
-refused with 64 (`crates/podssh-cli/src/node_flags.rs:112-114`, moved from `node.rs` by T-531): the iroh road
+refused with 64 (`crates/podssh-cli/src/node_flags.rs:113-115`, moved from `node.rs` by T-531): the iroh road
 always runs the layer. The flag's row, the manual's note of `node`,
 `docs/reverse.md` and `docs/cli.md`.
 - Native: `cargo test -p podssh-cli -- plain`, 3 passed. The argument test:

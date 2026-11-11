@@ -28,8 +28,15 @@ const LIMIT: Duration = Duration::from_secs(120);
 const DOWN: usize = 1 << 20;
 
 /// Each last road's switch, which a run turns off but for its own.
-const LAST_ROADS: [&str; 6] =
-    ["PODSSH_PINGGY", "PODSSH_SSH_J", "PODSSH_SERVEO", "PODSSH_LOCALHOST_RUN", "PODSSH_LOCALTUNNEL", "PODSSH_BORE"];
+const LAST_ROADS: [&str; 7] = [
+    "PODSSH_PINGGY",
+    "PODSSH_SSH_J",
+    "PODSSH_SERVEO",
+    "PODSSH_LOCALHOST_RUN",
+    "PODSSH_SANDHOLE",
+    "PODSSH_LOCALTUNNEL",
+    "PODSSH_BORE",
+];
 
 /// `podssh ARGS` with HOME and the cache under `home`, the runner's own
 /// egress, and none of the roads but the one of the switch `road`.
@@ -184,6 +191,12 @@ fn tunnel_url(line: &str) -> String {
 #[ignore = "a live run through localhost.run: last-roads-live.yml"]
 fn a_node_behind_localhost_run_serves_a_client_at_its_tunnel_s_url() {
     live("PODSSH_LOCALHOST_RUN", "--localhost-run", ": tunnel https://", "the localhost.run road", Some(tunnel_url));
+}
+
+#[test]
+#[ignore = "a live run through Sandhole's public server: last-roads-live.yml"]
+fn a_node_behind_sandhole_serves_a_client_at_its_tunnel_s_url() {
+    live("PODSSH_SANDHOLE", "--sandhole", ": tunnel https://", "the Sandhole road", Some(tunnel_url));
 }
 
 #[test]

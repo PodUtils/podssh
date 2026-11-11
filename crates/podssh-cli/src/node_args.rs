@@ -38,6 +38,9 @@ pub struct NodeArgs {
     /// Serve the road of a tunnel of HTTP made by `ssh -R` at localhost.run
     /// (T-565), a last fallback of Q78.
     pub localhost_run: bool,
+    /// The same road at Sandhole's public server (T-743), a last fallback
+    /// of Q78 after localhost.run's.
+    pub sandhole: bool,
     /// Serve the localtunnel road (T-568), a last fallback of Q78: a name
     /// derived from the node's key at localtunnel's public server.
     pub localtunnel: bool,
@@ -135,7 +138,7 @@ impl NodeArgs {
     /// T-565, T-568, T-569). One list, so that each check names each road.
     pub fn tunnel_asked(&self) -> bool {
         let first = self.opentunnel || self.pinggy || self.serveo || self.ssh_j;
-        first || self.localhost_run || self.localtunnel || self.bore
+        first || self.localhost_run || self.sandhole || self.localtunnel || self.bore
     }
 
     /// The arguments of `node` in `matches`.
@@ -156,6 +159,7 @@ impl NodeArgs {
             serveo: matches.get_flag("serveo"),
             ssh_j: matches.get_flag("ssh-j"),
             localhost_run: matches.get_flag("localhost-run"),
+            sandhole: matches.get_flag("sandhole"),
             localtunnel: matches.get_flag("localtunnel"),
             bore: matches.get_flag("bore"),
             frp: get("frp"),

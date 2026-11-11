@@ -750,7 +750,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:5762`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:5776`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -888,7 +888,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:660-663`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:252-262`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:418`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:5758-5762`).
+`podssh proxy` sysexits (`docs/cli.md:5772-5776`).
 
 ## Approach
 
@@ -2257,7 +2257,7 @@ podssh knew in advance, and said nowhere.
 
 ## Premise
 
-- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:118`).
+- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:119`).
 - Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:363`, `repair:
   None`).
 
@@ -4638,7 +4638,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   key at its server (`crates/podssh-cli/src/node_derp.rs:185` says "let (secret, dial) =
   (Arc::new(Secret::of_node(identity)), dial::tls(trust.clone(), proxy.clone()));"): a new key is a new ticket. A quick tunnel's name is new at each
   request (`crates/podssh-cli/src/node_quick.rs:4` says "The name is new each run"), which the node made
-  at each start before (`crates/podssh-cli/src/node_quick.rs:254` says "asked = api::request(&trust,
+  at each start before (`crates/podssh-cli/src/node_quick.rs:255` says "asked = api::request(&trust,
   &proxy, &*say) => asked,"). Both pass as parts of the run (Decision, items 2 and 3).
 - The Approach's "the road's own connection is made again" needs nothing more on two roads: the Piping
   Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:233` says "let secret

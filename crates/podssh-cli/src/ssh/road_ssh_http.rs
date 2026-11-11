@@ -14,7 +14,8 @@
 //! channel checks the node's own key, by the pins of NAME or `--node-key`,
 //! on whichever road wins; so `--no-e2e` leaves the road out. Its failure
 //! names `wss://NAME/`, never `cf://` or Cloudflare Access: the edge is the
-//! service's, not Cloudflare's.
+//! service's, not Cloudflare's. A name under Sandhole's tunnels' zone is
+//! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold.
 //!
 //! The name of `--tunnel-url` is read with the destination and kept for
 //! the race in a static, as `--pinggy-name` keeps its own. A module of
@@ -35,19 +36,29 @@ use crate::ssh::args::SshArgs;
 use crate::ssh::road_link::{Kind, Road};
 use crate::ssh::roads::Going;
 
-/// The word of the road: localhost.run's, whose switch the client reads.
-const WORD: Word = ssh_http::LOCALHOST_RUN;
+/// The word of a name: Sandhole's for a name under its tunnels' zone, else
+/// localhost.run's (T-743), whose switch and line the link takes.
+fn word_of(name: &str) -> Word {
+    ssh_http::word_of_name(name)
+}
 
 /// The name of `--tunnel-url` of this run, once the destination is read.
 static GIVEN: Mutex<Option<String>> = Mutex::new(None);
 
 /// The variable that turns the road off, when one does; a bad value is a
 /// configuration error (78). A client needs no server: it dials the name.
-fn off() -> Result<Option<&'static str>, Refusal> {
-    match ssh_http::from_env(WORD).map_err(Refusal::config)? {
+fn off(word: Word) -> Result<Option<&'static str>, Refusal> {
+    match ssh_http::from_env(word).map_err(Refusal::config)? {
         Setting::Off(by) => Ok(Some(by)),
         Setting::On(_) | Setting::Unnamed => Ok(None),
     }
+}
+
+/// Whether a word of the road is on, and no variable of one is bad: a name
+/// that the record gives later takes its own word's switch at its link.
+fn any_on() -> bool {
+    let read: Vec<_> = ssh_http::WORDS.iter().map(|&word| off(word)).collect();
+    read.iter().all(Result::is_ok) && read.iter().any(|off| matches!(off, Ok(None)))
 }
 
 /// `--tunnel-url` and the road's variables of a `node://NAME` destination,
@@ -63,8 +74,14 @@ pub(crate) fn race(args: &SshArgs) -> Result<(), Refusal> {
                    key that the end-to-end channel proves";
         return Err(Refusal::usage(why));
     }
-    if let (Some(_), Some(by)) = (&name, off()?) {
-        return Err(Refusal::usage(format!("--tunnel-url: {by}=no turns the {} road off", WORD.name)));
+    for word in ssh_http::WORDS {
+        off(*word)?;
+    }
+    if let Some(given) = &name {
+        let word = word_of(given);
+        if let Some(by) = off(word)? {
+            return Err(Refusal::usage(format!("--tunnel-url: {by}=no turns the {} road off", word.name)));
+        }
     }
     *GIVEN.lock().unwrap_or_else(PoisonError::into_inner) = name;
     Ok(())
@@ -81,7 +98,7 @@ fn kept(label: &str) -> Option<String> {
 /// race too, which [`SshHttpRoads::new`] reads.
 pub(crate) fn named(label: &str, no_e2e: bool) -> bool {
     let given = GIVEN.lock().unwrap_or_else(PoisonError::into_inner).is_some();
-    !no_e2e && matches!(off(), Ok(None)) && (given || kept(label).is_some())
+    !no_e2e && any_on() && (given || kept(label).is_some())
 }
 
 /// The road to the node of one run, when it has a name, or a record that
@@ -115,7 +132,7 @@ impl SshHttpRoads {
         log: &Arc<Log>,
         shown: &str,
     ) -> Option<SshHttpRoads> {
-        if no_e2e || !matches!(off(), Ok(None)) {
+        if no_e2e || !any_on() {
             return None;
         }
         let given = GIVEN.lock().unwrap_or_else(PoisonError::into_inner).clone();
@@ -174,15 +191,19 @@ impl SshHttpRoads {
 
     async fn link(&self, record: Option<&crate::ssh::iroh::RecordRoads<'_>>) -> Result<Road, String> {
         let name = self.name(record).await?;
+        let word = word_of(&name);
+        if let Ok(Some(by)) = off(word) {
+            return Err(format!("wss://{name}/: {by}=no turns the {} road off", word.name));
+        }
         // The line of Q78, before the first byte goes to the third party.
         if !self.said.swap(true, Ordering::SeqCst) {
-            self.log.info(&format!("{}: {}", self.shown, ssh_http::client_line(WORD, &name)));
+            self.log.info(&format!("{}: {}", self.shown, ssh_http::client_line(word, &name)));
         }
         // In a block of its own: no guard is held across the dial.
         {
             let mut last = self.last.lock().unwrap_or_else(PoisonError::into_inner);
             if last.as_deref() != Some(name.as_str()) {
-                self.log.verbose(&format!("{}: the {} road dials wss://{name}/", self.shown, WORD.name));
+                self.log.verbose(&format!("{}: the {} road dials wss://{name}/", self.shown, word.name));
                 *last = Some(name.clone());
             }
         }
