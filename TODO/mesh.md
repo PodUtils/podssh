@@ -13351,6 +13351,18 @@ asked of podcrates (no host of a third party in podssh's code): its endpoints `s
 podcrates filed it as its T-186 (`services/sandhole.toml`, with `tunnel-zone`), and localhost.run's host key
 of T-565's live run as its T-185; both go out with podcrates `v0.20.0`.
 
+2026-11-11: podssh took `v0.20.0` (`0c40ed3e`): the service is in the lock, not read yet. What the wiring needs, read
+in the code: (1) the leg's login (`crates/podssh-cli/src/pinggy_leg.rs:240`) tries none, an empty password and
+keyboard-interactive; Sandhole lets any key in but asks for one, so the login ends with a key made for the
+login alone, never the node's; (2) a `Word` `SANDHOLE` in `crates/podssh-relay/src/ssh_http/mod.rs`: its marker
+`starting https` (its line `Starting HTTPS on https://NAME.demo.sandhole.com.br for address localhost`), its
+ports 443 then 22 from the service's endpoints, and a field that says its tunnels are names under its own
+server, as `Service::own` passes over each name under the server and would pass over the tunnel's;
+(3) the client road (`crates/podssh-cli/src/ssh/road_ssh_http.rs`) dials any name, so the word is the one
+whose `tunnel-zone` holds the name, for its switch and its line; (4) the node: `--sandhole`, and Sandhole after
+localhost.run in the unasked chain; (5) `PODSSH_SANDHOLE=no` in each harness that turns the last roads off;
+(6) the manual, and a job of `last-roads-live.yml`.
+
 # T-749: `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs
 
 **Source:** PodUtils/podnet#438 (COORD-020 of podnet, 2026-11-11): the owner's review of donor projects, relayed by the podnet session, block "tunnet 1" (donor tunnetio/Tunnet; its Apache-2.0 parts only, the rest from the description).

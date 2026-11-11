@@ -61,8 +61,8 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | T-746 | The datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; its next failure says the program's verdict. OpenTunnel's resume test is repaired (macOS passed at `bc5107b0`). |
 | T-465, T-627 | Each `## Done` names the failure that it waits for. |
 | T-694 | A test of a `--derp` node with a pair of its own served through croc's road (the DERP harness has no node pair yet); the rest is done. |
-| T-743 | Sandhole's demo server measured (no account; 22 and 443): the host joins the localhost.run road's module when podcrates `v0.20.0` brings the service `sandhole` (podcrates T-186); the same tag pins localhost.run's host key (T-185). |
-| T-740 | The hop is built and tested against TompHTTP's server (`bare-interop.yml`); next, with podcrates `v0.20.0` (T-187, the node `openbare-xyz`), the hop tried after each other WebSocket road, and its live session. |
+| T-743 | `v0.20.0` is taken (`0c40ed3e`): the service `sandhole` is in the lock. The wiring's six steps are in the entry's `## Done`: a key made for the login, the `Word` and its zone, the client's word by zone, the node's flag and chain, `PODSSH_SANDHOLE=no` in the harnesses, the manual and a live job. |
+| T-740 | The hop is built and tested against TompHTTP's server (`bare-interop.yml`); `v0.20.0` brings the node `openbare-xyz`: next, the hop tried after each other WebSocket road, and its live session. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
 | T-684 | Each next podcrates release that podssh takes. |
