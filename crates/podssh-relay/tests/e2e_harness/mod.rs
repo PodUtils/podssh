@@ -48,7 +48,18 @@ pub fn node(
     let kept = lines.clone();
     let say = Arc::new(move |line: String| kept.lock().unwrap().push(line));
     let admit = Arc::new(move |key: &PublicKey, _: &Ask| admit(key));
-    (Node { identity: me, admit, say, redeem: None, leases: Default::default(), gate: None }, lines)
+    let events = podssh_relay::e2e::events(say);
+    let node = Node {
+        identity: me,
+        admit,
+        events,
+        redeem: None,
+        leases: Default::default(),
+        gate: None,
+        docs: None,
+        holds: Default::default(),
+    };
+    (node, lines)
 }
 
 /// A target that echoes each byte, and counts how often it is opened.

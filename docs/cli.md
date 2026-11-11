@@ -3856,7 +3856,7 @@ commands. The rules behind them:
   leg"). Where the node's socket heard the role's offer, each session that
   the end-to-end channel lets in above the layer gets the seed of its
   tokens of one leg in the node's verdict, and the node registers their
-  digests at the role (`crates/podssh-relay/src/e2e/legs.rs`). `operator`,
+  digests at the role (`PodUtils/podcrates:crates/pod-e2e/src/legs.rs`). `operator`,
   `proxy node://`, `ssh node://`, `pipe`'s `node:` side and each command
   that rides them open each leg after the first with the session's next
   token, by `podssh_relay::reverse::legs::start`

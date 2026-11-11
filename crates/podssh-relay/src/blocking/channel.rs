@@ -43,7 +43,11 @@ impl NodeChannel {
             NodeChannel::With(node) => Ok(Some(node.clone())),
             NodeChannel::Default => {
                 let key = file::load(&file::node_place(label.unwrap_or(name)), &mut OsEntropy)?;
-                Ok(Some(ends::Node::open_to_all(Arc::new(key.identity), Arc::new(|_: String| {}))))
+                Ok(Some(ends::Node {
+                    docs: crate::e2e::net::process(),
+                    holds: crate::e2e::hold::holds(),
+                    ..ends::Node::open_to_all(Arc::new(key.identity), Arc::new(crate::e2e::NoEvents))
+                }))
             }
         }
     }

@@ -258,9 +258,10 @@ pub(crate) async fn serve(
         if alone {
             return;
         }
-        let say_pair = |line: String| (channel.say)(line);
+        let channel_say = podssh_relay::e2e::say(&channel);
+        let say_pair = |line: String| channel_say(line);
         let proxy = ProxyChoice::FromEnvironment;
-        let (repair, expiry) = crate::node_expiry::watch(&label, &pair, stored, channel.say.clone(), &trust);
+        let (repair, expiry) = crate::node_expiry::watch(&label, &pair, stored, channel_say.clone(), &trust);
         let mut config = NodeConfig {
             pair,
             label: stored.then(|| label.clone()),
@@ -282,7 +283,7 @@ pub(crate) async fn serve(
         let exit = crate::node_transit::alongside(with_croc, transit, transit_open, keeper.clone()).await;
         expiry.abort();
         if let Some((_, why)) = crate::node::ended(&label, exit) {
-            (channel.say)(format!("the pair's road ended: {why}; the Piping Server road goes on"));
+            channel_say(format!("the pair's road ended: {why}; the Piping Server road goes on"));
         }
     };
     // Alone, the road ends with its pair: a client's part of it expires too.

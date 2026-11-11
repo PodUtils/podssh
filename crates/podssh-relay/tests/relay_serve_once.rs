@@ -236,7 +236,7 @@ async fn layered_node(pair: Pair, stop: oneshot::Receiver<()>) -> Exit {
         say: None,
     };
     let say: Arc<dyn Fn(String) + Send + Sync> = Arc::new(|_| {});
-    let channel = Node::open_to_all(Arc::new(Identity::from_seed(&[2; 32])), say);
+    let channel = Node::open_to_all(Arc::new(Identity::from_seed(&[2; 32])), podssh_relay::e2e::events(say));
     let handler = Arc::new(Layered::new(E2e::new(Echo, channel), layer(), reverse::layered::NODE_BUDGET));
     reverse::run(&mut config, handler, async {
         let _ = stop.await;

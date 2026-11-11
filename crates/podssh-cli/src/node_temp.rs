@@ -183,11 +183,13 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let node = ends::Node {
         identity: Arc::new(key.identity),
         admit: Arc::new(admit),
-        say: say.clone(),
+        events: podssh_relay::e2e::events(say.clone()),
         redeem: None,
         leases: Default::default(),
         // Nobody is at the far end of an upgrade to ask (T-638).
         gate: None,
+        docs: podssh_relay::e2e::net::process(),
+        holds: podssh_relay::e2e::hold::holds(),
     };
     let settings = crate::layered::settings();
     let keeper: Arc<Keeper<DuplexStream>> =

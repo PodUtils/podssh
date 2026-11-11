@@ -114,7 +114,7 @@ impl Stand {
             // The node's side of the layer, one for the run: a visitor that
             // resumes finds its session.
             let me = Arc::new(Identity::from_seed(&[7; 32]));
-            let node = Node::open_to_all(me, Arc::new(|_| {}));
+            let node = Node::open_to_all(me, Arc::new(podssh_relay::e2e::NoEvents));
             let target = TcpHandler { host: "127.0.0.1".into(), port: ssh, timeout: LIMIT, sshd: false };
             let layered = Arc::new(Layered::new(E2e::new(target, node), Settings::default(), 64 << 20));
             let ids = Arc::new(std::sync::atomic::AtomicU64::new(1));

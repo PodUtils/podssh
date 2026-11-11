@@ -332,7 +332,7 @@ async fn a_conversation_runs_over_the_end_to_end_channel() {
     let (here, inbox) = (scratch("e2e-here"), scratch("e2e-inbox"));
     let big: Vec<u8> = (0..300_000u32).map(|i| (i % 253) as u8).collect();
     std::fs::write(here.join("big.bin"), &big).unwrap();
-    let node = ends::Node::open_to_all(Arc::new(Identity::from_seed(&[2; 32])), Arc::new(|_: String| {}));
+    let node = ends::Node::open_to_all(Arc::new(Identity::from_seed(&[2; 32])), Arc::new(podssh_relay::e2e::NoEvents));
     let (link, node_link) = pair();
     let (plain_node_side, chat_b) = pair();
     tokio::spawn(async move {

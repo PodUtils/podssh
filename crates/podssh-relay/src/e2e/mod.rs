@@ -1,157 +1,43 @@
-//! The channel between two podssh ends (T-088): Noise XX over the bytes of a
-//! session, so that the relay sees ciphertext only, and each end proves its
-//! key of T-087 (`crate::identity`). It runs above the resumable layer: one
-//! handshake for each session, which a resume carries on, as the layer gives
-//! each byte once and in order.
-//!
-//! On the wire, each end first sends [`MAGIC`]; then frames, each a 2-byte
-//! length and one Noise message. The handshake is `-> e`, `<- e, ee, s, es`
-//! and `-> s, se`; the second and third messages carry their sender's
-//! Ed25519 key and its signature of the Noise static key, encrypted. The
-//! responder, a node, then sends its verdict: let in, or refused with the
-//! reason. Each message after it is data, or the clean end of its direction.
-//! A stream that ends with no such end is a cut, never a clean end, as the
-//! relay can drop the last frames; and a message that fails its check
-//! (changed, dropped, repeated or out of order) ends the session, as nothing
-//! may be skipped. Two ends that hold the net's document give each other
-//! the newer one inside the channel (T-429, [`net`]). The operator's proof
-//! names what it asks of the node ([`Ask`]): a route, or the target of an
-//! exit (T-431); and it may carry a grant used once (T-226), which the node
-//! checks before it dials, and which no relay sees. The node's verdict may
-//! give the seed of the session's tokens of one leg, so that each leg that
-//! resumes it through podssh's relay role has a token of its own ([`legs`],
-//! T-615). A node's channel stops between two messages for the binary that
-//! takes its place, which carries it on from the same keys and nonces
-//! ([`hold`], T-668). A node may ask a person after its door ([`person`],
-//! T-638), so the operator waits for the verdict longer than for a step.
+//! The channel between two podssh ends (T-088): `pod-e2e` of
+//! PodUtils/podcrates. Noise XX over the bytes of a session, so that the
+//! relay sees ciphertext only, and each end proves its key of T-087
+//! (`crate::identity`). podssh keeps three parts of its own: the net's
+//! documents of this process ([`net`], T-429), the holds of this process's
+//! channels and the move of a channel's pipe at a handover ([`hold`],
+//! T-668), and podssh's lines of a node's events ([`events`], [`say`]).
 
-mod ask;
-mod channel;
-pub mod ends;
-mod frame;
-mod handshake;
+/// The events of a node's lines, for the users of this module.
+pub use pod_core::{Event, Events, NoEvents};
+pub use pod_e2e::*;
+
 pub mod hold;
-pub mod legs;
 pub mod net;
-pub mod person;
 
-use std::fmt;
-use std::time::Duration;
+use std::sync::Arc;
 
-pub use ask::{exit_word, Ask, MAX_WORD};
-pub use channel::{Carried, Channel, Held, Start};
-pub use handshake::{initiate, initiate_with, respond, respond_with, Asked, Offered};
-
-/// What each end sends first: the channel and its version, so that an end
-/// with no channel is told apart at once, before any byte of a session.
-pub const MAGIC: &[u8; 13] = b"podssh-e2e/1\n";
-/// The Noise protocol.
-pub const PATTERN: &str = "Noise_XX_25519_ChaChaPoly_SHA256";
-/// The prologue, which binds the handshake to this channel and version.
-pub const PROLOGUE: &[u8] = b"podssh-e2e/1";
-/// The largest Noise message.
-pub const MAX_MESSAGE: usize = 65535;
-/// Noise's tag on each message of the transport.
-pub const TAG: usize = 16;
-/// The most bytes of a session in one message: its type byte and the tag
-/// go with them.
-pub const MAX_DATA: usize = MAX_MESSAGE - TAG - 1;
-/// The bound on each step of the handshake, and on the verdict, in which the
-/// node may dial its target.
-pub const HANDSHAKE_LIMIT: Duration = Duration::from_secs(30);
-/// The largest grant that the operator's proof carries (T-226): an Ed25519
-/// certificate with a few principals is about 300 bytes.
-pub const MAX_GRANT: usize = 8 * 1024;
-
-/// Why a node refused a session.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Refusal {
-    /// The node's allowlist does not hold this end's key.
-    NotAllowed,
-    /// The node could not reach its target: why.
-    NoTarget(String),
-    /// Another reason.
-    Other(String),
+/// A node's lines, as the crate's events: the text of each to `say`.
+pub fn events(say: Arc<dyn Fn(String) + Send + Sync>) -> Arc<dyn Events> {
+    Arc::new(move |event: Event| say(event.text))
 }
 
-impl fmt::Display for Refusal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Refusal::NotAllowed => f.write_str("this end's key is not in the node's allowlist"),
-            Refusal::NoTarget(why) => write!(f, "the node could not reach its target: {why}"),
-            Refusal::Other(why) => f.write_str(why),
-        }
-    }
+/// A node of this process: its lines go to `say`, and it reads the net's
+/// documents and the holds of this process.
+pub fn node(
+    identity: Arc<pod_identity::Identity>,
+    admit: Arc<ends::Admit>,
+    say: Arc<dyn Fn(String) + Send + Sync>,
+    redeem: Option<Arc<ends::Redeem>>,
+    gate: Option<Arc<person::Gate>>,
+) -> ends::Node {
+    let (events, docs, holds) = (events(say), net::process(), hold::holds());
+    ends::Node { identity, admit, events, redeem, leases: Default::default(), gate, docs, holds }
 }
 
-/// The bound on the operator's wait for the node's verdict: a step's, and
-/// the question of a node's person before it (T-638), so that an operator
-/// waits for the answer of a node of `podssh node --ask`.
-pub const VERDICT_LIMIT: Duration =
-    Duration::from_secs(HANDSHAKE_LIMIT.as_secs() + person::Times::DEFAULT.question.as_secs());
-/// The step of [`Error::Timeout`] that [`VERDICT_LIMIT`] bounds.
-pub const VERDICT_STEP: &str = "the node's verdict";
+/// The kind of the events of podssh's own lines through a node's sink.
+pub const LINE: &str = "podssh.node";
 
-/// Why the channel failed.
-#[derive(Debug)]
-pub enum Error {
-    /// The stream under the channel failed.
-    Io(std::io::Error),
-    /// The peer does not speak the channel: what it sent first, made safe.
-    NotChannel(String),
-    /// The handshake failed: a message that is not Noise's, or a key that
-    /// does not sign the peer's Noise key.
-    Handshake(String),
-    /// A message failed its check: changed, dropped, repeated or out of
-    /// order on its way.
-    Tampered,
-    /// The stream ended before the clean end of its direction.
-    Cut,
-    /// The node refused this end.
-    Refused(Refusal),
-    /// This end refused the node's key: why (a changed key, with both
-    /// fingerprints).
-    NodeKey(String),
-    /// A step of the handshake took longer than [`HANDSHAKE_LIMIT`]: which.
-    Timeout(&'static str),
-    /// A frame or a message that the channel does not have.
-    Malformed(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::Io(e) => write!(f, "the stream under the channel failed: {e}"),
-            Error::NotChannel(saw) => write!(
-                f,
-                "the other end does not speak podssh's end-to-end channel (it sent {saw}): an older podssh, \
-                 or one run with --no-e2e, which must then be given at both ends"
-            ),
-            Error::Handshake(why) => write!(f, "the channel's handshake failed: {why}"),
-            Error::Tampered => f.write_str(
-                "a message of the channel failed its check: the relay, or something on the way, changed, \
-                 dropped or repeated it",
-            ),
-            Error::Cut => f.write_str("the channel was cut before its end: the last bytes may be missing"),
-            Error::Refused(why) => write!(f, "the node refused the session: {why}"),
-            Error::NodeKey(why) => write!(f, "the node's key is not the one expected: {why}"),
-            Error::Timeout(step) => {
-                let limit = if *step == VERDICT_STEP { VERDICT_LIMIT } else { HANDSHAKE_LIMIT };
-                write!(f, "{step} did not come within {} s", limit.as_secs())
-            }
-            Error::Malformed(why) => write!(f, "the channel carried a message that it does not have: {why}"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        if e.kind() == std::io::ErrorKind::UnexpectedEof {
-            Error::Cut
-        } else {
-            Error::Io(e)
-        }
-    }
+/// podssh's own lines of a node, through the node's events.
+pub fn say(node: &ends::Node) -> Arc<dyn Fn(String) + Send + Sync> {
+    let events = node.events.clone();
+    Arc::new(move |line: String| events.event(Event::info(LINE, line)))
 }

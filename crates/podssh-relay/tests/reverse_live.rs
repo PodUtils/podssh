@@ -211,7 +211,10 @@ fn now_ms() -> i64 {
 fn channel_node(seed: u8) -> (ends::Node, PublicKey) {
     let key = Arc::new(Identity::from_seed(&[seed; 32]));
     let public = key.public();
-    (ends::Node::open_to_all(key, Arc::new(|line: String| eprintln!("node: {line}"))), public)
+    (
+        ends::Node::open_to_all(key, podssh_relay::e2e::events(Arc::new(|line: String| eprintln!("node: {line}")))),
+        public,
+    )
 }
 
 /// One operator session over the channel: send `payload`, read as many bytes

@@ -65,7 +65,7 @@ Each has a planted run that must fail, and each did, for the reason that the ent
 | localhost.run | Its live job stalled in 1 MiB down twice on 2026-11-11 (runs 42989086142, 42994885604); rerun `last-roads-live.yml` to tell a slow day from a change. |
 | T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
 | T-574 | Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
-| T-684 | Each next podcrates release that podssh takes; `v0.22.0` brings `pod-e2e` (podcrates T-021): until it is taken, `podssh-relay`'s `src/e2e/` and its tests take fixes only (`TODO/PROGRESS.md`, state item 7). |
+| T-684 | Each next podcrates release that podssh takes; `v0.22.0` (with `pod-e2e`) is taken. |
 | T-446 | Betas wait for the end of the migration (T-684). |
 | Each other partial entry | T-319, T-321, T-450, T-459, T-660, T-662, T-665, T-666, T-670 and T-698: each `## Done` names what waits. |
 

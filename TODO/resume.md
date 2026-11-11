@@ -3496,7 +3496,7 @@ Read while drafting, 2026-11-03:
   the session, and keeps it for the deadline with a session that it keeps as a loss.
 - Item 2's "as for an end of stdin" holds for the exit, not for the bytes. With the end-to-end
   channel above the layer, the end of stdin is the channel's `END`, a half-close
-  (`crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, lines 127-129), and the layer's `CLOSE` follows only once
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, lines 127-129), and the layer's `CLOSE` follows only once
   the TARGET ends too. So a signal ends the layer's own input, the channel's ciphertext, in
   `crates/podssh-cli/src/layered.rs:279`, and the `CLOSE` goes at once, whatever the TARGET does.
 - The layer's own wait for the answer to a `CLOSE` stays 10 s
@@ -3939,8 +3939,8 @@ layer's own sessions with no channel do not.
 
 Read at `2042200`:
 
-- The channel's end of one direction: `crates/podssh-relay/src/e2e/frame.rs:13` says "The clean end of
-  one direction.", and `crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, line 128 says "The stream stays open: the
+- The channel's end of one direction: `PodUtils/podssh:crates/podssh-relay/src/e2e/frame.rs:13` says "The clean end of
+  one direction.", and `PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, line 128 says "The stream stays open: the
   peer's bytes may still come." The issue's line numbers of `channel.rs` are of an older tree.
 - The layer: `PodUtils/podssh:crates/podssh-relay/src/session/record.rs:62` says "pub const CLOSE: u8 = 0x0a;", the
   end of the session; `PodUtils/podssh:crates/podssh-relay/src/session/pump/up.rs:84` says

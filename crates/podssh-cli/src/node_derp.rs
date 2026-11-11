@@ -29,7 +29,7 @@ use std::time::Duration;
 
 use podssh_relay::derp::far::{self, Node, Roam};
 use podssh_relay::derp::{self, dial, servers, Conn, Secret, Server, Ticket};
-use podssh_relay::e2e::ends;
+use podssh_relay::e2e;
 use podssh_relay::identity::file::{self as key_file, Place};
 use podssh_relay::identity::Identity;
 use podssh_relay::pair::Pair;
@@ -405,8 +405,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let (admit, grant) = crate::net::admit::doors(allow, public, true);
     // The person of --ask (T-638), as on the node's other roads.
     let gate = crate::node_ask::gate();
-    let channel =
-        ends::Node { identity: identity.clone(), admit, say: say.clone(), redeem, leases: Default::default(), gate };
+    let channel = e2e::node(identity.clone(), admit, say.clone(), redeem, gate);
     let routes = crate::node::routes_of(&targets, grant, roost, Some(public));
     let first = crate::node_exit::first(&targets);
     let (host, port) = (first.host, first.port);
@@ -449,9 +448,10 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     };
     let pair_road = async {
         let Ok((pair, stored)) = pair else { return };
-        let say_pair = |line: String| (channel.say)(line);
+        let channel_say = e2e::say(&channel);
+        let say_pair = |line: String| channel_say(line);
         let proxy = ProxyChoice::FromEnvironment;
-        let (repair, expiry) = crate::node_expiry::watch(&label, &pair, stored, channel.say.clone(), &trust);
+        let (repair, expiry) = crate::node_expiry::watch(&label, &pair, stored, channel_say.clone(), &trust);
         let mut config = NodeConfig {
             pair,
             label: stored.then(|| label.clone()),
@@ -473,7 +473,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         let exit = crate::node_transit::alongside(with_croc, transit, transit_open, keeper.clone()).await;
         expiry.abort();
         if let Some((_, why)) = crate::node::ended(&label, exit) {
-            (channel.say)(format!("the pair's road ended: {why}; the DERP road goes on"));
+            channel_say(format!("the pair's road ended: {why}; the DERP road goes on"));
         }
     };
     // Until Ctrl-C, an upgrade (T-679), or until both roads ended by themselves.

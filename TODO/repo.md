@@ -1903,7 +1903,7 @@ leaves armv7 out of the Decision; the plan below takes Alpine's own toolchain fo
   container. Plan B, which the Decision rejected, for native speed: `ghcr.io/cross-rs/armv7-unknown-
   linux-musleabihf:main`, or `cargo-zigbuild` (its CI covers x86_64, aarch64 and Apple, not armv7).
   The release profile is `opt-level = "z"`, `lto = true`, `codegen-units = 1`
-  (`Cargo.toml:215` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
+  (`Cargo.toml:210` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
   rustc may run out of address space, and under QEMU it is slow. Measure first.
 - `riscv64gc-unknown-linux-musl`: Rust tier 2 with host tools. Plan A: `runs-on: ubuntu-24.04`,
   `docker/setup-qemu-action` with `platforms: riscv64`, `docker run --platform linux/riscv64
@@ -2646,7 +2646,7 @@ command uses `podssh-probe`.
 2. Move `podssh-core` and `podssh-transport` to the dev-dependencies: an
    example can use a dev-dependency, and the binary does not declare them.
 3. Move `libc` to the dependencies for Unix only, as
-   `crates/podssh-relay/Cargo.toml:169` does; else the lint of step 4 fails on
+   `crates/podssh-relay/Cargo.toml:170` does; else the lint of step 4 fails on
    Windows.
 4. The check: `#![cfg_attr(not(test), deny(unused_crate_dependencies))]` in
    `crates/podssh-cli/src/lib.rs`. rustc then refuses a dependency that the
@@ -5634,6 +5634,20 @@ Each crate of `v0.1.0` is taken.
   in a namespace with the loopback alone: 3,729 passed, 103 ignored, and 2 failed: `doctor_upgrade`, which needs
   the network, and `no_rsa_private_op`, which found `PrivateKeyWithHashAlg::new` in T-743's login outside
   `rsa_key.rs` (a key of Ed25519, but the rule is by the text): repaired at once by `podssh_ssh::throwaway_login_key`.
+- podcrates `v0.22.0` (`93de04a`), on 2026-11-11 (PodUtils/podcrates#71, COORD-046): each tag moved from `v0.21.0`, and
+  `pod-e2e` taken (podcrates T-021, call C55): `adoption/podssh/pod-e2e.patch` of the tag, applied with `--3way`; its
+  conflicts were the tag lines of the manifests (the patch's side) and citations of `Cargo.toml` (podssh's side, then
+  remapped). `podssh-relay`'s `src/e2e/` is now the glue of the process over `pod-e2e` (the node's events, the net's
+  documents, the holds); the tests of the channel moved to podcrates; `e2e_layered.rs` stays. podssh's hints where it
+  prints them: `--no-e2e` after `NotChannel`, `(podssh node --exit)` after `NO_EXIT` (`crates/podssh-cli/src/channel.rs`).
+  `podssh-zerotier`'s `pod-services` moved too, which brings `zerotier-tcp-relay` (podcrates T-203). The checks of
+  `adoption/podssh/pod-e2e.run`, in a namespace with the loopback alone, each passed: the record and `check-repo.py`;
+  the builds of the default and of the gate's features; clippy of the four crates and of `podssh-relay` with each
+  feature; the tests of `podssh-relay` (`--lib`, `e2e_layered`, `grant`, `quick_exit`, `relay_serve_once`,
+  `routes_shared`, `bore_link`, `session_policy`, `session_relay_resume`, `reverse_layered`) and of `podssh-cli` (`--lib`,
+  `channel_cli`, `chat_converse`, `cloudflare_layer_alive`, `node_moves`, `node_ask`, `node_routes`, `net`, `exit`,
+  `node`); rustfmt; podcrates' checks of the consumer's toolchains and tests. Its musl build with zig waits for the
+  release workflow, as this container has no zig.
 
 Next: `pod-ws`, then the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

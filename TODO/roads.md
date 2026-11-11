@@ -4360,7 +4360,7 @@ adapter under the layer and the tests against derper make it L.
 - Read: a carrier of the reverse road gives a meeting point and bytes in order, and no more: the
   end-to-end channel (Noise XX, each end's Ed25519 key, a verdict before the node dials) ends the
   session on a message that is changed, dropped, repeated or reordered
-  (`crates/podssh-relay/src/e2e/mod.rs:1-17`; `crates/podssh-relay/src/e2e/channel.rs:1-4`), and
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/mod.rs:1-17`; `PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs:1-4`), and
   the layer resumes on any link that reads and writes
   (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:144-157`).
 - Read: a gap of the layer's offsets ends a link (`docs/design.md:873-876`): a carrier of packets
@@ -6868,7 +6868,7 @@ ask, and nothing does so.
 ## Premise
 
 - Read: the node of the iroh road serves the pair's road beside it, with one keeper for both
-  (`crates/podssh-cli/src/node_iroh.rs:382-383`), and `podssh node` sends `--iroh` there
+  (`crates/podssh-cli/src/node_iroh.rs:384-385`), and `podssh node` sends `--iroh` there
   (`crates/podssh-cli/src/node.rs:120-122`).
 - Read: `podssh ssh` resolves its destination into an enum of transports
   (`crates/podssh-cli/src/ssh/resolve.rs:24-80`), in a file of 488 of its 500 lines.

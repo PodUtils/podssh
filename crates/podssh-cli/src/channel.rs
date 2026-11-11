@@ -231,10 +231,11 @@ pub fn around_told<A: Bytes + 'static>(
         }
         verdict
     };
-    let tell = move |line: String| {
-        let _ = tell.send(line);
+    let tell = move |event: podssh_relay::e2e::Event| {
+        let _ = tell.send(event.text);
     };
-    let (cipher, session) = ends::operator_told(app, identity, checked, route, grant, tell);
+    let docs = podssh_relay::e2e::net::installed();
+    let (cipher, session) = ends::operator_told(app, identity, checked, route, grant, docs, tell);
     (Box::new(cipher), Some(Box::pin(session)), told)
 }
 
@@ -260,9 +261,15 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::GRANT_REFUSED => {
             (Fault::Auth, format!("the node refused: {why}"))
         }
+        // podssh's hint of the flag that makes a node an exit (pod-e2e's words name none).
+        e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::NO_EXIT => {
+            (Fault::SessionFault, format!("the node refused: {why} (podssh node --exit)"))
+        }
         e2e::Error::Refused(NodeRefusal::Other(why)) => (Fault::SessionFault, format!("the node refused: {why}")),
         e2e::Error::Timeout(_) => (Fault::RelayUnreachable, e.to_string()),
-        e2e::Error::NotChannel(_) | e2e::Error::Handshake(_) | e2e::Error::Tampered | e2e::Error::Malformed(_) => {
+        // podssh's hint of the switch at both ends (pod-e2e's words name none).
+        e2e::Error::NotChannel(_) => (Fault::SessionFault, format!("{e}; --no-e2e turns it off at this end")),
+        e2e::Error::Handshake(_) | e2e::Error::Tampered | e2e::Error::Malformed(_) => {
             (Fault::SessionFault, e.to_string())
         }
         e2e::Error::Cut | e2e::Error::Io(_) => return None,
@@ -328,7 +335,16 @@ pub fn node_end(label: &str, identity: Identity, admit: Arc<ends::Admit>) -> end
     let say = Arc::new(move |line: String| podssh_ssh::err_line!("podssh node: {shown}: {line}"));
     // The person of --ask (T-638), on each road whose channel this makes.
     let gate = crate::node_ask::gate();
-    ends::Node { identity: Arc::new(identity), admit, say, redeem: None, leases: Default::default(), gate }
+    ends::Node {
+        identity: Arc::new(identity),
+        admit,
+        events: podssh_relay::e2e::events(say),
+        redeem: None,
+        leases: Default::default(),
+        gate,
+        docs: podssh_relay::e2e::net::process(),
+        holds: podssh_relay::e2e::hold::holds(),
+    }
 }
 
 /// Who may come in through the channel: the keys of the allowlist at

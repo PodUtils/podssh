@@ -77,7 +77,10 @@ fn open_echo(
     key: u8,
     opened: Arc<AtomicUsize>,
 ) -> impl Fn() -> std::future::Ready<Result<DuplexStream, String>> + Clone {
-    let node = ends::Node::open_to_all(identity(key), Arc::new(|line: String| eprintln!("node's channel: {line}")));
+    let node = ends::Node::open_to_all(
+        identity(key),
+        podssh_relay::e2e::events(Arc::new(|line: String| eprintln!("node's channel: {line}"))),
+    );
     move || {
         let (node, opened) = (node.clone(), opened.clone());
         let (ours, theirs) = tokio::io::duplex(PIPE);

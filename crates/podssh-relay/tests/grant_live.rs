@@ -113,7 +113,7 @@ async fn a_grant_is_used_once_through_the_live_relay() {
     let issuers: Arc<grant::Issuers> = Arc::new(|_: &PublicKey, _: &Ask| -> Result<(), String> { Err("none".into()) });
     let door = Door { node: node_key.public(), issuers, spent: Spent::at(spent.clone()), revoked: None };
     let say = Arc::new(|line: String| eprintln!("node: {line}"));
-    let mut node_end = ends::Node::open_to_all(node_key.clone(), say);
+    let mut node_end = ends::Node::open_to_all(node_key.clone(), podssh_relay::e2e::events(say));
     node_end.admit = Arc::new(|_: &PublicKey, _: &Ask| -> Result<(), String> { Err("no allowlist".into()) });
     node_end.redeem = Some(Arc::new(move |peer: &PublicKey, ask: &Ask, blob: &[u8]| {
         door.redeem(peer, ask, blob, now_secs()).map(|redeemed| redeemed.to_string())

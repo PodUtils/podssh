@@ -342,7 +342,15 @@ impl Client {
         };
         let outcome = match to.channel.end(to.name).map_err(Error::Key)? {
             Some((identity, check)) => {
-                let (cipher, session) = crate::e2e::ends::operator(bridged.stream, identity, check);
+                let (cipher, session) = crate::e2e::ends::operator_told(
+                    bridged.stream,
+                    identity,
+                    check,
+                    None,
+                    None,
+                    crate::e2e::net::installed(),
+                    |_| {},
+                );
                 let (outcome, ended) =
                     runtime.block_on(async { tokio::join!(reverse::operator::run(&config, cipher), session) });
                 // A cut, or a failed stream, is the leg's to tell.

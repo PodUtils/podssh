@@ -302,7 +302,7 @@ certificates that OpenSSH 9.6's `ssh-keygen -s` minted.
 A node's door is a file: a key of `--allow`, or a member of the net, comes
 in from the moment that it is written until someone removes it. `podssh node
 NAME --ask` (T-638, GitHub #136) puts a person at the node's terminal after
-the door, on each road of the node (`crates/podssh-relay/src/e2e/person.rs`,
+the door, on each road of the node (`PodUtils/podcrates:crates/pod-e2e/src/person.rs`,
 `crates/podssh-cli/src/node_ask.rs`):
 
 1. The door decides first, then the person: each key that the door, or a
@@ -341,7 +341,7 @@ and its stop token lasts as long as the pair: a token that a proxy logged
 from a request's headers stays good until then. Through podssh's relay
 role, each leg after a session's first has a connect token of its own,
 which one upgrade spends, and the node rotates its stop token (T-615,
-drafted 2026-11-04; `crates/podssh-relay/src/e2e/legs.rs`,
+drafted 2026-11-04; `PodUtils/podcrates:crates/pod-e2e/src/legs.rs`,
 `crates/podssh-relay/src/reverse/legs.rs`,
 `crates/podssh-relay/src/serve/reverse/legs.rs`):
 
@@ -803,7 +803,7 @@ take a new binary ended each of them, and its sshd's connections with them.
 A node of the pair's road now hands them to the binary that takes its place
 (T-668, drafted 2026-11-05; `crates/podssh-cli/src/node_upgrade/`,
 `PodUtils/podcrates:crates/pod-session/src/handover/`,
-`crates/podssh-relay/src/e2e/hold/`):
+`PodUtils/podcrates:crates/pod-e2e/src/hold/`):
 
 1. SIGUSR2 asks. `podssh update` sends it, once it replaced the binary, to
    each node of `--detach` of the user that takes it (such a node writes

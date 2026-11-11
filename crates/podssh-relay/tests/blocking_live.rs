@@ -65,7 +65,7 @@ fn a_node_and_two_operator_sessions_at_once_through_the_facade() {
         node: KeyName::Key(node_key.public()),
     });
     let options = NodeOptions {
-        channel: NodeChannel::With(ends::Node::open_to_all(node_key, Arc::new(|_: String| {}))),
+        channel: NodeChannel::With(ends::Node::open_to_all(node_key, Arc::new(podssh_relay::e2e::NoEvents))),
         ..NodeOptions::default()
     };
     let stopper = Stopper::new();

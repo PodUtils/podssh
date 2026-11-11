@@ -87,12 +87,16 @@ pub(super) async fn run<W: AsyncWrite + Unpin>(
     let node = ends::Node {
         identity: Arc::new(key.identity),
         admit: crate::channel::admit_of(allow),
-        say: Arc::new(move |line: String| podssh_ssh::err_line!("podssh chat: {shown}: {line}")),
+        events: podssh_relay::e2e::events(Arc::new(move |line: String| {
+            podssh_ssh::err_line!("podssh chat: {shown}: {line}")
+        })),
         // A chat lets in the keys of its allowlist, and no grant (T-226), and
         // asks no person (T-638).
         redeem: None,
         leases: Default::default(),
         gate: None,
+        docs: podssh_relay::e2e::net::process(),
+        holds: podssh_relay::e2e::hold::holds(),
     };
     let (door, mut peers) = Door::new();
     let layer = crate::layered::settings();

@@ -526,8 +526,9 @@ security:
   connect token, and its key goes into `--allow` where the giver named the
   file. The public mailboxes (Q65) can stop a pairing, never read it; a
   user who wants no third party names their own relay's mailbox.
-- The end-to-end channel is podssh's own framing over the `snow` crate. No
-  third party has audited it (T-088).
+- The end-to-end channel is podssh's own framing over the `snow` crate,
+  now `pod-e2e` of PodUtils/podcrates. No third party has audited it
+  (T-088).
 - A key that signs a list of relay deployments (T-346) is trusted until a
   binary drops it: one compiled in leaves a binary in the field only with
   a release, so a leaked key can name hosts for up to 400 days of each list

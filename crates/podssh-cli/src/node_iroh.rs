@@ -349,11 +349,13 @@ where
         true => Some(ends::Node {
             identity: Arc::new(podssh_relay::identity::Identity::from_seed(&key.identity.seed())),
             admit: door,
-            say: Arc::new(say.clone()),
+            events: podssh_relay::e2e::events(Arc::new(say.clone())),
             // Grants used once (T-226), and the person of --ask (T-638), as on the node's other roads.
             redeem: crate::grants::door(&label, me, allow.clone()),
             leases: Default::default(),
             gate: crate::node_ask::gate(),
+            docs: podssh_relay::e2e::net::process(),
+            holds: podssh_relay::e2e::hold::holds(),
         }),
         false => {
             let _ = writeln!(err, "podssh {verb}: {label}: no end-to-end channel (--no-e2e): the relay sees each byte");

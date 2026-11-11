@@ -406,7 +406,7 @@ edited by hand.
 
 - A node lets in the operator keys of its `--allow` file, read again for each session, on each
   road (`podssh node --help`); the end-to-end channel proves each end's Ed25519 key
-  (`crates/podssh-relay/src/e2e/handshake.rs`).
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`).
 - A node's record at a pkarr server names its iroh home relay
   (`crates/podssh-iroh/src/pkarr.rs:1`).
 
@@ -615,7 +615,7 @@ The calls of the draft (2026-11-02), each with what lost:
   before T-430 refuses a document with a policy and keeps the one before, never skipping the
   rules (the rule of T-429). Lost: no part in `requires`, with which an end of before would take
   the document and let in each member.
-- **The node's admission sees the route** (`crates/podssh-relay/src/e2e/ends.rs`: `Admit` takes
+- **The node's admission sees the route** (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`: `Admit` takes
   the route that the operator named, or none), so one check at the node gives the verdict for
   the key and what it asks, and its refusal is the channel's `NotAllowed`, which names no route
   to the operator, while the node's line gives the policy's words. Lost: the admission by key
@@ -665,7 +665,7 @@ the next session. Planted: the node that skips the check, and the refusal test f
 The Premise holds: the node gives its verdict before it dials (`docs/reverse.md`, "The
 end-to-end channel", rule 3), and its routes are `podssh node NAME TARGET [ROUTE=TARGET]...`.
 One read that the Approach did not name: the node's admission (`Admit` of
-`crates/podssh-relay/src/e2e/ends.rs`) saw the operator's key alone, and the grant of a route
+`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`) saw the operator's key alone, and the grant of a route
 (`crates/podssh-relay/src/reverse/routes.rs`) was asked for a named route only, so nothing
 checked the target with no route by itself. The admission takes the route named now (the
 Decision), on each road, as each road's node serves the channel through it.
@@ -687,7 +687,7 @@ the main session the same day.
 - The node (`crates/podssh-cli/src/net/admit.rs`): the verdict for what is asked (a route, the
   target with no route, or anything at a road's door), in the admission, the routes' grant and
   the iroh road's door; the node's first line counts the policy's rules. The channel's admission
-  takes the route (`crates/podssh-relay/src/e2e/ends.rs`), and each admission of the binary and
+  takes the route (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`), and each admission of the binary and
   of the tests with it (`crates/podssh-cli/src/channel.rs`, `crates/podssh-cli/src/node_temp.rs`,
   `crates/podssh-cli/src/ssh/cloudflare/layer.rs`, `crates/podssh-relay/tests/e2e_harness/mod.rs`);
   the operator's words of a refusal name the policy.
@@ -769,9 +769,9 @@ The calls of the draft (2026-11-02), each with what lost:
 
 - **The operator names its target in the word of its proof**, where a route's name goes (T-089):
   `HOST:PORT`, an IPv6 address in brackets, which its `:` tells from each route's name, as no
-  route's name holds one (`crates/podssh-relay/src/e2e/ask.rs`). The library reads the word as a
+  route's name holds one (`PodUtils/podssh:crates/podssh-relay/src/e2e/ask.rs`). The library reads the word as a
   typed `Ask` (the target with no route, a route, or an exit's target); the channel's admission
-  takes it (`Admit` of `crates/podssh-relay/src/e2e/ends.rs` gets `&Ask` in place of the route),
+  takes it (`Admit` of `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs` gets `&Ask` in place of the route),
   and `serve_asked` hands it to the node's opener, so the compiler makes each admission and each
   opener say what it does with an exit's target; `serve_routed` and `serve_node` stay, and refuse
   one. The word travels encrypted, so the relay sees neither the target nor a byte. A node of
@@ -870,11 +870,11 @@ its first form, and T-432 builds on it (the Decision); item 4, `doctor`, is T-45
 2026-11-02: drafted by an agent in a worktree, which built and ran nothing; merged and measured by
 the main session the same day.
 
-- The channel's word (`crates/podssh-relay/src/e2e/ask.rs`, `handshake.rs`, `ends.rs`): `Ask`,
+- The channel's word (`PodUtils/podssh:crates/podssh-relay/src/e2e/ask.rs`, `handshake.rs`, `ends.rs`): `Ask`,
   the proof's word read as a route or an exit's target; `Admit` takes `&Ask`; `serve_asked`; a
   node that is no exit refuses an exit's target (`NO_EXIT`). The node's routes take the exit's
   dial (`crates/podssh-relay/src/reverse/routes.rs`: `ExitDial`, `Routes::exit`). Tests:
-  `ask.rs` (3), and `crates/podssh-relay/tests/routes.rs` (an exit's target reaches only a node
+  `ask.rs` (3), and `PodUtils/podssh:crates/podssh-relay/tests/routes.rs` (an exit's target reaches only a node
   that serves each ask); the admissions of the tests take `&Ask`
   (`crates/podssh-relay/tests/e2e_harness/mod.rs`, `crates/podssh-cli/src/ssh/cloudflare/layer.rs`).
 - The node (`crates/podssh-cli/src/node_exit.rs`, with `node_exit_tests.rs`): `--exit` and
@@ -9622,7 +9622,7 @@ the roads over TCP.
   with a request of ID 0x401 and the address; `docs/carriers.md:2083` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
-  packet of a reserved", and `crates/podssh-relay/Cargo.toml:48` says "The quick tunnel over
+  packet of a reserved", and `crates/podssh-relay/Cargo.toml:49` says "The quick tunnel over
   QUIC (src/quick/quic.rs, T-301): noq, the QUIC of the": a probe of UDP and a QUIC with no C
   exist.
 
@@ -9688,7 +9688,7 @@ road with no relay. podssh does not speak it (Q82).
 - `docs/carriers.md:2094-2095` says "a token of 32 bytes that the TLS keying material exporter
   derives", and `docs/carriers.md:2097-2098` says "as the server never answers a command";
   `docs/carriers.md:2100` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
-- `crates/podssh-relay/Cargo.toml:48` says "The quick tunnel over QUIC (src/quick/quic.rs,
+- `crates/podssh-relay/Cargo.toml:49` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
 ## Approach
@@ -11708,7 +11708,7 @@ podssh's relay role speaks TCP alone.
 2026-11-05, with the draft (read in noq 1.4.0 and the crates that `Cargo.lock` holds):
 
 1. **QUIC is noq in podssh-relay, behind a feature `quic`.** The quick tunnel's QUIC (T-301) is noq
-   with no ring and no aws-lc (`crates/podssh-relay/Cargo.toml:52`), its TLS on podssh-ws's
+   with no ring and no aws-lc (`crates/podssh-relay/Cargo.toml:53`), its TLS on podssh-ws's
    provider, so rule 4 holds in the library crate, and Approach 3's other branch, a crate of its
    own, is needless; `quic` is `quick` with the role's endpoint and the client's race, and takes its
    noq, its endpoint and its probe. Lost: quinn, which is not in the lock and which noq forks.
@@ -11842,21 +11842,21 @@ a device for while it is present, nor be asked at the moment a key comes.
 Read at `2042200`:
 
 - The admission is a function of a key and its ask
-  (`crates/podssh-relay/src/e2e/ends.rs:47`), read again for each session
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:47`), read again for each session
   (`PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:102-106`); the doors are made in
   `crates/podssh-cli/src/net/admit.rs:114`, `crates/podssh-cli/src/net/admit.rs:225` and
-  `crates/podssh-cli/src/channel.rs:338`.
-- The verdict: a grant decides first (`crates/podssh-relay/src/e2e/ends.rs:162` says "A grant decides
-  alone"), and else the door (`crates/podssh-relay/src/e2e/ends.rs:174`).
+  `crates/podssh-cli/src/channel.rs:354`.
+- The verdict: a grant decides first (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:162` says "A grant decides
+  alone"), and else the door (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:174`).
 - The issue reads the grant's arm as a way past the door that widens a credential. It is not: the grant's
   issuer must be let in by the same door for the same ask
   (`crates/podssh-relay/src/grant/door.rs:63-65`), as `crates/podssh-relay/src/grant/door.rs:22` says
   "reach itself, so that a grant never reaches more than its issuer."; that is T-226's Decision 4
-  (`TODO/reverse.md:1934` says "The issuers are the node's own key, and a key of").
+  (`TODO/reverse.md:1939` says "The issuers are the node's own key, and a key of").
 - The issue reads the role's forward token as too wide for a member: it names no target
   (`crates/podssh-relay/src/serve/tokens.rs:61`), as the contract's token does; the node's door, end to
   end, is what admits (Q4, `docs/decisions.md:86`).
-- The refusal says only that the key is not let in (`crates/podssh-relay/src/e2e/mod.rs:80`); the
+- The refusal says only that the key is not let in (`PodUtils/podssh:crates/podssh-relay/src/e2e/mod.rs:80`); the
   reason stays in the node's line.
 
 ## Approach
@@ -11962,7 +11962,7 @@ alone, and the test of a grant at the gate fails.
   `serve_asked`, which each road of a node runs: the pair's, the iroh, DERP, OpenTunnel, Piping
   Server, quick tunnel and transit roads, a carrier, and an exit's targets.
 - The Prove's two commands test the net's door and the channel, as before; the gate's own tests are
-  `crates/podssh-relay/tests/person.rs`, the grant's at the gate in
+  `PodUtils/podssh:crates/podssh-relay/tests/person.rs`, the grant's at the gate in
   `crates/podssh-relay/tests/grant.rs`, the gate's unit tests on a paused clock, and
   `crates/podssh-cli/tests/node_ask.rs`, whose pty is Linux's.
 
@@ -11970,13 +11970,13 @@ alone, and the test of a grant at the gate fails.
 
 2026-11-05, merged from its draft (`e7243d9`); each test below passed at the merge.
 
-- The gate (`crates/podssh-relay/src/e2e/person.rs`): one slot for each key (a question out, a
+- The gate (`PodUtils/podssh:crates/podssh-relay/src/e2e/person.rs`): one slot for each key (a question out, a
   cover, a no that stands), a pass that holds the cover while its session lives, a question whose
   session went taken back so the next session asks anew; its unit tests on tokio's paused clock
-  (`crates/podssh-relay/src/e2e/person_tests.rs`). `serve_asked` reads a standing no before the
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/person_tests.rs`). `serve_asked` reads a standing no before the
   door, crosses the gate after the door or the grant, and says by what each session came in
-  (`crates/podssh-relay/src/e2e/ends.rs`, `Node::gate`); the operator's wait for the verdict is
-  `VERDICT_LIMIT` (`crates/podssh-relay/src/e2e/mod.rs`, `crates/podssh-relay/src/e2e/handshake.rs`);
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`, `Node::gate`); the operator's wait for the verdict is
+  `VERDICT_LIMIT` (`crates/podssh-relay/src/e2e/mod.rs`, `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`);
   an exit's client waits `VERDICT_WAIT`, 160 s (`crates/podssh-cli/src/exit/open.rs`).
 - The node (`crates/podssh-cli/src/node_ask.rs`): `--ask` (`crates/podssh-cli/src/flags/node.rs`,
   `crates/podssh-cli/src/node_args.rs`), its refusals and its probe in the node's dispatch
@@ -12007,11 +12007,11 @@ alone, and the test of a grant at the gate fails.
   clean.
 - Planted, the nine plants of the Prove: 9 caught.
 - Found on the way: the plant `t429-net-gossip` no longer applied, as T-615 made the node's verdict
-  `admit_with` in `crates/podssh-relay/src/e2e/handshake.rs`; its patch is made again there, the
+  `admit_with` in `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`; its patch is made again there, the
   same defect (the node's newer document never given): caught (`sh scripts/plant-each.sh --here
   t429-net-gossip`).
 - Waits: `cargo todo remap` at the merge of the files that this draft moved (`docs/cli.md`,
-  `docs/reverse.md`, `docs/mesh.md`, `docs/STATUS.md`, `crates/podssh-relay/src/e2e/ends.rs`,
+  `docs/reverse.md`, `docs/mesh.md`, `docs/STATUS.md`, `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`,
   `crates/podssh-relay/src/e2e/mod.rs`, `crates/podssh-cli/src/channel.rs`,
   `crates/podssh-cli/src/man/mod.rs`, `crates/podssh-cli/src/man/notes_pair.rs`,
   `crates/podssh-cli/src/node_derp.rs`, `crates/podssh-cli/src/node_iroh.rs`,

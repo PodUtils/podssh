@@ -1707,14 +1707,19 @@ Offline: two routes reach their own TARGET; an unknown route, and a route that t
 may not use, end with a reason and no dial of a TARGET; a change of the grant file applies to the
 next session. Plant: ignore the grant; the refusal test must fail.
 
+## Correction
+
+2026-11-11, the take of `pod-e2e` (PodUtils/podcrates `v0.22.0`): the test target `routes`
+moved to `pod-e2e` with its name; run `cargo test -p pod-e2e --test routes` there.
+
 ## Done
 
 2026-10-12. The route in the channel's handshake: the proof that names one
-at `crates/podssh-relay/src/e2e/handshake.rs:27-32`, made at
-`crates/podssh-relay/src/e2e/handshake.rs:318-327` and read at
-`crates/podssh-relay/src/e2e/handshake.rs:354-432`; the node's side of a
-routed session at `crates/podssh-relay/src/e2e/ends.rs:112-234`, and the
-operator's at `crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`, lines 194-202. The grants at
+at `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:27-32`, made at
+`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:318-327` and read at
+`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:354-432`; the node's side of a
+routed session at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:112-234`, and the
+operator's at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`, lines 194-202. The grants at
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:33-64` and
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:114-122`. The routes of a node,
 their check and their dial in `crates/podssh-relay/src/reverse/routes.rs:1-178`.
@@ -1722,8 +1727,8 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:238-274`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:276-291`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:291-299`; the channel's glue at
-`crates/podssh-cli/src/channel.rs:354-363` and
-`crates/podssh-cli/src/channel.rs:408-427`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:370-379` and
+`crates/podssh-cli/src/channel.rs:424-443`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -1738,7 +1743,7 @@ granted), `lab/nope` (no such route) and `lab` (no TARGET with no route)
 are refused with their words, and `db` saw no connection but the node's
 first; `routes=*` in the list lets `lab/db` in at the next session; and
 `podssh ssh node://tester@lab/ssh greet` logs in to the tests' SSH server,
-its host key kept under `node://lab/ssh`. In `crates/podssh-relay/tests/routes.rs`,
+its host key kept under `node://lab/ssh`. In `PodUtils/podssh:crates/podssh-relay/tests/routes.rs`,
 over the channel: the node gets the route that the operator named, with
 the operator's key, and its target; a route that the node refuses, and one
 named to a node with no routes, end with the refusal and no target; a name
@@ -1988,7 +1993,7 @@ parts, and the Decision above (the relay's shape, by the relay's operator) gives
 
 - At the node. The seam that the client's shape lacked exists: the e2e channel carries an
   encrypted proof of the operator's key, with a version byte
-  (`crates/podssh-relay/src/e2e/handshake.rs:28-32`), so a third version carries a grant that no
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:28-32`), so a third version carries a grant that no
   relay sees. A grant is an OpenSSH user certificate over the grantee's Ed25519 key, signed by an
   issuer that the node's allowlist names (`PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:1-8`) or by
   the node's own key: a principal `node:SHA256:<the node's key>` (with `/ROUTE`), a validity
@@ -2038,7 +2043,7 @@ fails. Live, on a GitHub runner where `podssh relay serve` runs: a node and an o
 grant used, then refused.
 
 2026-11-03 (the drafting agent). Read at `d262613`: the proof's version 3 is the net's form (T-429,
-`NET_PROOF` in `crates/podssh-relay/src/e2e/handshake.rs`), so a grant is the proof's version 4, around a
+`NET_PROOF` in `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`), so a grant is the proof's version 4, around a
 proof of each other form (Decision 9). Item 3 of the new Approach is `podssh node NAME --grant-to KEY`,
 with `--grant-route` and `--grant-for` (Decision 10), and `--revoked FILE` names the serials. Item 4 is a
 pair of `--once` in podssh's relay role (`POST /v1/pair?once=1`); the connect token for each session and
@@ -2056,8 +2061,8 @@ findings of clippy (a `contains`, and a type of the test's cases) and formatted 
 
 - The grant in `podssh-relay` (feature `grant`, `crates/podssh-relay/src/grant/`): the reader and the writer
   of the Ed25519 user certificate, the node's door in the order of the Approach, and the record of each grant
-  used; the proof's version 4 in `crates/podssh-relay/src/e2e/handshake.rs`, the door's hook `Redeem` of
-  `crates/podssh-relay/src/e2e/ends.rs`, and a route that a grant named in
+  used; the proof's version 4 in `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`, the door's hook `Redeem` of
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`, and a route that a grant named in
   `crates/podssh-relay/src/reverse/routes.rs`. `cargo test -p podssh-relay --features pair,grant --test
   grant`: 9 passed (a grant that `ssh-keygen -s` of OpenSSH 9.6 minted lets its key in once, the relay never
   sees it, a second use is refused, also by a node started again; another node, a window that ended or is to
@@ -3215,12 +3220,12 @@ the channel.
 
 1. **How the token reaches the operator: a seed in the node's verdict, and a token for each leg derived
    from it**, HMAC-SHA256 under the seed of `podssh leg token, version 1` and the leg's number, 64 hex
-   digits (`crates/podssh-relay/src/e2e/legs.rs`). The verdict that lets a session in carries the seed as
+   digits (`PodUtils/podssh:crates/podssh-relay/src/e2e/legs.rs`). The verdict that lets a session in carries the seed as
    an item after its code, which `frame::answer` of a podssh of before reads past
-   (`crates/podssh-relay/src/e2e/frame.rs`), so no word of either end is needed first, and no token
+   (`PodUtils/podssh:crates/podssh-relay/src/e2e/frame.rs`), so no word of either end is needed first, and no token
    crosses a wire before its own leg. Lost: a message of the channel with each next token, as the
    Approach had it, because an operator of before ends its session at a message type that it does not
-   know (`crates/podssh-relay/src/e2e/channel.rs`), so each end would first have to say that it reads it,
+   know (`PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs`), so each end would first have to say that it reads it,
    and a leg lost before the next token came would have none for its resume; a record of the layer,
    which the relay reads, and so does a proxy that ends TLS, before the token's use; tokens derived from
    the layer's secret, which needs no byte more but takes that secret out of the layer's code at both
@@ -3355,12 +3360,12 @@ resume boxes the node, the layer's handshake, the session and its steps, as toge
 2 MiB stack of a test's thread in a build with no optimization (with a 16 MiB stack it passed as it was;
 the binary's own futures are boxed where it runs them, and its suites passed).
 
-- The seed and the tokens (`crates/podssh-relay/src/e2e/legs.rs`, its tests in
-  `crates/podssh-relay/src/e2e/legs_tests.rs`): the node's `Leases`, the operator's `Taker` inside
-  `legs::during`; the seed after the verdict's code (`crates/podssh-relay/src/e2e/frame.rs`,
-  `crates/podssh-relay/src/e2e/channel.rs`, `Asked::admit_with` of
-  `crates/podssh-relay/src/e2e/handshake.rs`); `ends::Node::leases`, a seed for each session let in, and
-  the operator's taker given the seed (`crates/podssh-relay/src/e2e/ends.rs`).
+- The seed and the tokens (`PodUtils/podssh:crates/podssh-relay/src/e2e/legs.rs`, its tests in
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/legs_tests.rs`): the node's `Leases`, the operator's `Taker` inside
+  `legs::during`; the seed after the verdict's code (`PodUtils/podssh:crates/podssh-relay/src/e2e/frame.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs`, `Asked::admit_with` of
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`); `ends::Node::leases`, a seed for each session let in, and
+  the operator's taker given the seed (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`).
 - The node's socket: `Handler::attach`, `registers` and `spent` (`crates/podssh-relay/src/reverse/node.rs`),
   forwarded by `Layered` and taken by `E2e`, `Routed` and the CLI's `Piped`; the `token` frames through
   the writer, and the `spent` frame read (`crates/podssh-relay/src/reverse/serve.rs`,
@@ -3643,10 +3648,15 @@ A new test: a session through a node goes on across the node's upgrade, its byte
 - Approach item 3: see Decision, item 9.
 - The channel's state had to move too, which the Approach did not name: each session of a node runs
   the end-to-end channel above the layer by default, and its keys live in snow's transport
-  (`crates/podssh-relay/src/e2e/channel.rs:39` says "state: StatelessTransportState,").
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs:39` says "state: StatelessTransportState,").
 - A detached child closes each descriptor from 3 up at its start
   (`crates/podssh-cli/src/detach/child.rs:175`), which would close the sessions' sockets in the new
   binary: it no longer does when the variable of the handover names a descriptor.
+
+2026-11-11, the take of `pod-e2e` (PodUtils/podcrates `v0.22.0`): the test target
+`session_handover` (the channel across a handover) and the unit tests of `e2e::hold` and
+`e2e::channel` moved to `pod-e2e` with their names; run `cargo test -p pod-e2e --test
+session_handover` and `cargo test -p pod-e2e --lib -- hold channel` there.
 
 ## Done
 
@@ -3659,10 +3669,10 @@ A new test: a session through a node goes on across the node's upgrade, its byte
   (`PodUtils/podssh:crates/podssh-relay/src/session/keep/handover.rs`); a closed slot keeps the words of its
   `CLOSE`; the far end names the session's id around its target's opening (`handover::scope`).
 - The channel held between two messages: its carry in a buffer of its own
-  (`crates/podssh-relay/src/e2e/channel/carry.rs`), its keys from the handshake, the hold, its
-  registry by the layer's id and the channel's state (`crates/podssh-relay/src/e2e/hold/mod.rs`,
-  `crates/podssh-relay/src/e2e/hold/state.rs`, `crates/podssh-relay/src/e2e/hold/resume.rs`), the
-  lease of its tokens of one leg handed over and restored (`crates/podssh-relay/src/e2e/legs.rs`).
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/channel/carry.rs`), its keys from the handshake, the hold, its
+  registry by the layer's id and the channel's state (`PodUtils/podssh:crates/podssh-relay/src/e2e/hold/mod.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/hold/state.rs`, `PodUtils/podssh:crates/podssh-relay/src/e2e/hold/resume.rs`), the
+  lease of its tokens of one leg handed over and restored (`PodUtils/podssh:crates/podssh-relay/src/e2e/legs.rs`).
 - The node (`crates/podssh-cli/src/node_upgrade/mod.rs`, with `pass.rs`, `probe.rs`, `state.rs` and
   `mark.rs` beside it): the signal, the probe, the keepers, the handover, the exec, the bytes, the
   mark of a detached node; `node.rs` and `node_transit.rs` take its keepers and its stop;
@@ -3830,7 +3840,7 @@ Read at `2042200`; each reader that exists is right:
   `crates/podssh-relay/src/grant/door.rs:130` says "no such file, so no grant is let in".
 - A hint: `crates/podssh-relay/src/reverse/control.rs:96` says "and 16 sessions, a small number that
   cannot exhaust a relay." for a `hello` with no `maxSessions`.
-- Offers, each `true` alone: `crates/podssh-relay/src/e2e/legs.rs:79` says "and nothing else", and
+- Offers, each `true` alone: `PodUtils/podssh:crates/podssh-relay/src/e2e/legs.rs:79` says "and nothing else", and
   `crates/podssh-relay/src/reverse/legs.rs:50-52` the same for the stop token's rotation.
 - So three readers write the same comparison apart, and no helper holds it; `docs/reverse.md` and
   `docs/relay.md` describe each member where it appears, and name no class (searched for "absent").
@@ -3909,11 +3919,11 @@ Read at `2042200`:
 - `crates/podssh-relay/src/reverse/serve.rs:240` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
 - `crates/podssh-relay/src/reverse/node.rs:306` says "Next::Exit(_) => Next::Reconnect,", and
   `crates/podssh-relay/src/reverse/node.rs:118` says "A reconnection would" of `Exit::Unusable`.
-- The channel: an operator offers only with a document (`crates/podssh-relay/src/e2e/handshake.rs:113`),
+- The channel: an operator offers only with a document (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:113`),
   a node answers in the net's form only when offered and when it holds one
-  (`crates/podssh-relay/src/e2e/handshake.rs:221-222`), and the operator keeps no net then
-  (`crates/podssh-relay/src/e2e/handshake.rs:128-131`). That is T-429's design, not a slip:
-  `crates/podssh-relay/src/e2e/net.rs:8` says "An end of before must never meet a form that it does not
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:221-222`), and the operator keeps no net then
+  (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:128-131`). That is T-429's design, not a slip:
+  `PodUtils/podssh:crates/podssh-relay/src/e2e/net.rs:8` says "An end of before must never meet a form that it does not
   read." A node outside the net, or of before, is let in by its own door and its key's proof; the
   document carries the net's newer state, not the session's admission. The issue reads it as a downgrade.
 - The dialer's headers are fixed in `PodUtils/podssh:crates/podssh-ws/src/handshake.rs:52`.
@@ -4009,6 +4019,9 @@ of 485 lines with no room: the role's tests are `--test relay_serve_dialect`, an
 `--test reverse_dialect`, new; the Prove above names them, with the tests of the CLI and of
 podssh-ws, and the five plants.
 
+2026-11-11, the take of `pod-e2e` (PodUtils/podcrates `v0.22.0`): the test target `e2e_net`
+moved to `pod-e2e` with its name; run `cargo test -p pod-e2e --test e2e_net` there.
+
 ## Done
 
 2026-11-05, merged from its draft (`833cc75`); each test below passed at the merge.
@@ -4025,8 +4038,8 @@ podssh-ws, and the five plants.
   `crates/podssh-relay/src/serve/reverse/mod.rs` after the token; its `hello` says `PROTO`. An
   operator's `426` is final (`crates/podssh-cli/src/layered.rs`) and 78 at its first leg
   (`crates/podssh-cli/src/pairs.rs`).
-- The channel: `Offered::net_unanswered` (`crates/podssh-relay/src/e2e/handshake.rs`),
-  `ends::operator_told` and `ends::NO_NET` (`crates/podssh-relay/src/e2e/ends.rs`),
+- The channel: `Offered::net_unanswered` (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`),
+  `ends::operator_told` and `ends::NO_NET` (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`),
   `channel::around_told` (`crates/podssh-cli/src/channel.rs`), said at `-v` by `carry_keeping`.
 - The manual (`crates/podssh-cli/src/man/notes_dialect.rs`, the notes of node, operator, relay and
   net, and the row 78 of EXIT STATUS), `docs/reverse.md` ("The dialect of the road" and its
@@ -4452,7 +4465,7 @@ before its `ready`, and the test of a dead session fails.
   the channel too dials TARGET only once the operator's key is let in. So a spare there is a pipe and a
   task, and TARGET sees nothing of it; but the far end gives the client 30 s from the session's `open`
   (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:40` says "HANDSHAKE_LIMIT: Duration = Duration::from_secs(30)",
-  and the channel's step `crates/podssh-relay/src/e2e/mod.rs:61` says "HANDSHAKE_LIMIT: Duration =
+  and the channel's step `PodUtils/podssh:crates/podssh-relay/src/e2e/mod.rs:61` says "HANDSHAKE_LIMIT: Duration =
   Duration::from_secs(30)"), so a spare goes stale at the node in 30 s, and it greets at once, so a
   spare carries the node's bytes before any operator: the Decision's items 3 and 6.
 - The Prove's two targets are near 500 lines (`relay_serve_reverse.rs` 459, `reverse_node.rs` 419): the
@@ -4646,7 +4659,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (`crates/podssh-relay/src/opentunnel/record.rs:47` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:396` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:412` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:100` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
@@ -4726,7 +4739,7 @@ dropped in the same way.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
   `crates/podssh-cli/src/ssh/mod.rs:173` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
-- `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2683`; Q90 confirmed it).
+- `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2688`; Q90 confirmed it).
 
 ## Approach
 

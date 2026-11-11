@@ -164,7 +164,7 @@ What T-430 built ([cli.md](cli.md), "`podssh net`"):
   only allows, so what this podssh does not read allows nothing.
 - The node that is reached decides, for each session, with the newest
   document that it holds: the channel's admission now sees the route that
-  the operator named (`crates/podssh-relay/src/e2e/ends.rs`), so that a
+  the operator named (`PodUtils/podcrates:crates/pod-e2e/src/ends.rs`), so that a
   member let in to one route reaches neither another route nor the target
   with no route. Its refusal names the rule list's serial and what was
   asked; a relay never sees which route.
@@ -335,7 +335,7 @@ member of the net").
 
   What T-431 built ([cli.md](cli.md), "The exit of the net"): the
   operator's word in the channel names the target, `HOST:PORT`, in place of
-  a route (`crates/podssh-relay/src/e2e/ask.rs`), so each road whose node
+  a route (`PodUtils/podcrates:crates/pod-e2e/src/ask.rs`), so each road whose node
   serves routes carries it: the pair's, the transit relay's, the Piping
   Server's, the DERP and the iroh roads (`Routes::exit`). The node lets out
   a member of a net that gives it the role `exit`, as the policy lets it

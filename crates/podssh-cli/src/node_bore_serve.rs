@@ -93,8 +93,16 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let (admit, grant) = crate::net::admit::doors(allow, public, true);
     // The person of --ask (T-638), as on the node's other roads.
     let gate = crate::node_ask::gate();
-    let channel =
-        ends::Node { identity: identity.clone(), admit, say: say.clone(), redeem, leases: Default::default(), gate };
+    let channel = ends::Node {
+        identity: identity.clone(),
+        admit,
+        events: podssh_relay::e2e::events(say.clone()),
+        redeem,
+        leases: Default::default(),
+        gate,
+        docs: podssh_relay::e2e::net::process(),
+        holds: podssh_relay::e2e::hold::holds(),
+    };
     let routes = crate::node::routes_of(&targets, grant, roost, Some(public));
     let first_target = crate::node_exit::first(&targets);
     let (host, port) = (first_target.host, first_target.port);
