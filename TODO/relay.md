@@ -4094,7 +4094,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:163` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:171` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
   78 is this host not set up for the mode.

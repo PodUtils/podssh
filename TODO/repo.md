@@ -3969,7 +3969,7 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 
 ## Premise
 
-- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:115`
+- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:123`
   ask for `sha1` 0.10.7, and the root `Cargo.toml:140` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)

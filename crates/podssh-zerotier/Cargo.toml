@@ -10,6 +10,11 @@ publish.workspace = true
 # A crate of its own, outside the default members, as podssh-tor is: it
 # compiles C++ (rule 4 allows it; the binary stays static). The feature
 # `zerotier` of podssh-cli builds it.
+[features]
+# A stand-in of the TCP relay and of a planet's root on the loopback, for the
+# tests of the road from end to end; never in a release.
+stand-in = ["tokio/net"]
+
 [dependencies]
 libc = { workspace = true }
 # TCP over the network's frames: WARP's stack on smoltcp, with its listener.
@@ -21,6 +26,6 @@ tokio = { workspace = true }
 cc = "1.2"
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread"] }
 # The relay of the live run, as podssh names no host of a third party.
 pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.22.0" }

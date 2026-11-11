@@ -28,7 +28,8 @@ LISTENERS = {
     # (T-169, Q63), which the user asks for with `podssh relay serve --listen
     # ADDR:PORT`: the bind is the probe, and PODSSH_LISTEN turns it off;
     # its QUIC (T-667) takes the bound listener's address, and its test binds
-    # one on the loopback.
+    # one on the loopback. And the stand-ins of WARP's edge (T-352) and of
+    # ZeroTier's relay (T-733), for tests alone, on the loopback.
     "TcpListener": [
         "crates/podssh-cli/src/relay_serve.rs",
         "crates/podssh-cli/src/relay_serve/quic.rs",
@@ -37,6 +38,7 @@ LISTENERS = {
         "crates/podssh-cli/src/ssh/local_bind.rs",
         "crates/podssh-iroh/src/test_pkarr.rs",
         "crates/podssh-warp/src/stand_in.rs",
+        "crates/podssh-zerotier/src/stand_in.rs",
     ],
     # The control socket of `podssh ssh -M` (T-039), which the user asks for:
     # pipe/listen.rs makes it before anything connects (the probe), and the
@@ -143,6 +145,7 @@ LISTENERS = {
         "crates/podssh-cli/src/ssh/local_bind.rs",
         "crates/podssh-ssh/src/mux/tests.rs",
         "crates/podssh-warp/src/stand_in.rs",
+        "crates/podssh-zerotier/src/stand_in.rs",
     ],
     # And the stand-in of WARP's edge, as above, whose far end waits for
     # connections inside its tunnel: sockets of smoltcp in the process, no
@@ -158,6 +161,7 @@ LISTENERS = {
         "crates/podssh-cli/src/pipe/listen_win.rs",
         "crates/podssh-cli/src/doctor/unix.rs",
         "crates/podssh-warp/src/stand_in.rs",
+        "crates/podssh-zerotier/src/stand_in.rs",
         "crates/podssh-warp/src/inside.rs",
         "crates/podssh-tor/src/runtime.rs",
         "crates/podssh-zerotier/src/member_tests.rs",

@@ -55,8 +55,8 @@ pub(crate) mod node_roads;
 pub mod opentunnel;
 // The Pinggy road of node://NAME, a last fallback of Q78 (T-548).
 pub(crate) mod pinggy;
-// croc's relay road of node://NAME, a last fallback of Q78 (T-694).
-pub(crate) mod croc;
+// `podssh ssh tag:NAME`, each member of the tag in turn (T-750).
+pub(crate) mod tag_run;
 // The Serveo road of node://NAME, a last fallback of Q78 after Pinggy's (T-549).
 pub(crate) mod serveo;
 // The ssh-j road of node://NAME, the last fallback after Serveo's (T-570).
@@ -114,7 +114,7 @@ pub fn run_ssh(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         Ok(place) => place,
         Err(refusal) => return refusal.report("ssh", err),
     };
-    let code = roads::tag_run::run_or(args, tty, err, run);
+    let code = tag_run::run_or(args, tty, err, run);
     let object = result::object(code, started);
     // With no failure class, the code is the remote command's, or a
     // session's that ended with none: no failure of podssh (T-195).

@@ -373,7 +373,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-495` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148`).
 
 ## Decision
 
@@ -9421,7 +9421,7 @@ Read at `2042200`:
 - No code of podssh speaks STUN (searched); the TURN road would bring a STUN codec (T-621, its step 2).
 - The measured sandbox refuses UDP: `docs/target-environment.md:23` says "EPERM", so there the line is
   unknown.
-- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:82` for `UdpSocket`),
+- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:84` for `UdpSocket`),
   which `scripts/check-repo.py:287` reads.
 
 ## Approach

@@ -166,6 +166,12 @@ pub mod node_frp;
 pub mod node_transit;
 // croc's relay beside a pair's road, a last fallback of Q78 (T-694).
 pub mod node_croc;
+// ZeroTier's road beside a pair's road, the last fallback of Q78 (T-733).
+pub mod node_zerotier;
+pub mod zerotier;
+// The stand-in relay and root of the road's test (`tests/derp_road.rs`).
+#[cfg(feature = "zerotier-test")]
+pub use podssh_zerotier::stand_in as zerotier_stand_in;
 // A node's pairs at the net's relay members, beside its own (T-434).
 pub mod node_members;
 // `podssh node --iroh`: the iroh road, with the feature `iroh` only.

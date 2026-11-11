@@ -12,6 +12,8 @@ pub mod node;
 pub mod pair;
 pub mod relay;
 pub mod road;
+#[cfg(any(test, feature = "stand-in"))]
+pub mod stand_in;
 
 use std::ffi::CString;
 

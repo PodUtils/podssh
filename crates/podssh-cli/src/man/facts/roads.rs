@@ -56,6 +56,23 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           while the list names none; another word is a configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_ZEROTIER"],
+        "ZeroTier's road of a pair (T-733), in a build with the feature zerotier, the last fallback of the \
+          operator's ruling Q78 after croc's: an ad-hoc network of the pair's own through ZeroTier Inc.'s roots and \
+          its TCP relay, the one that podssh's list of services names, where a node of the resumable layer and the \
+          end-to-end channel waits beside the pair's road, and where podssh ssh node://NAME reaches it when each \
+          other road failed. The node's identity and the network come from the pair's connect token; the roots \
+          and the relay see ciphertext. no: no road; IP:PORT: that relay (ZeroTierOne's tcp-proxy of your own), \
+          which PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the listed relay; another word is a \
+          configuration error (78).",
+    ),
+    (
+        &["PODSSH_ZEROTIER_PLANET"],
+        "A file of a ZeroTier planet (zerotier-one's planet, or one that mkworld made) whose roots ZeroTier's road \
+          (T-733) joins in the place of ZeroTier Inc.'s, so that no root of a third party carries it. A file that \
+          cannot be read, or that is empty or over 16 KiB, is a configuration error (78).",
+    ),
+    (
         &["PODSSH_PIPING"],
         "The Piping Server road of a pair (podssh node NAME, podssh ssh node://NAME), for a proxy that refuses \
           the WebSocket upgrade: a POST and a GET of plain HTTPS for each way of a link, on paths that the pair's \
@@ -310,7 +327,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
       PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
-      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; and the roads that join them); yes, the default, leaves each to its own variable. \
+      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),
     (

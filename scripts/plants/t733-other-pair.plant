@@ -1,0 +1,7 @@
+# T-733: the client of ZeroTier's road makes another pair's road, so it
+# looks for a node that is not there; the command line's test from end to
+# end, through the stand-in relay and root, must fail.
+ENTRY=T-733
+GROUP=cli-tests
+EXPECT='test derp_zerotier::a_derp_node_with_a_pair_serves_a_client_through_zerotier_s_road \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --features zerotier-test --test derp_road -- derp_zerotier'

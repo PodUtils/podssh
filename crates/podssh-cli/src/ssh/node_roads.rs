@@ -82,6 +82,8 @@ struct Chosen {
     bore: bool,
     /// Whether croc's relay road is on, with a good pair here (T-694).
     croc: bool,
+    /// Whether ZeroTier's road is on in this build, with a good pair here (T-733).
+    zerotier: bool,
     /// Whether a name of the node's tunnel of `ssh -R` is given or kept (T-565).
     tunnel: bool,
 }
@@ -93,7 +95,8 @@ impl Chosen {
         let piping_asked = self.piping.as_ref().is_some_and(|road| road.asked);
         let others =
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
-        let last = self.pinggy || self.serveo || self.sshj || self.croc || self.tunnel || self.localtunnel || self.bore;
+        let pair_last = self.croc || self.zerotier;
+        let last = self.pinggy || self.serveo || self.sshj || pair_last || self.tunnel || self.localtunnel || self.bore;
         dest.race.is_some() || others || piping_asked || self.members || self.frp || last
     }
 }
@@ -138,6 +141,11 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let bore = super::roads::last::bore::named(label, channel);
     // croc's relay road (T-694, Q78), as the transit relay's: never with --no-e2e, with a good pair.
     let croc = crate::node_croc::bridge().is_some() && !channel.off && good_pair();
+    // ZeroTier's road (T-733, Q78), as croc's; a bad PODSSH_ZEROTIER or planet is refused here.
+    let zerotier = matches!(crate::zerotier::setting()?, crate::zerotier::Setting::On(..))
+        && cfg!(feature = "zerotier")
+        && !channel.off
+        && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
     let tunnel = super::roads::ssh_http::named(label, channel.off);
     Ok(Chosen {
@@ -152,6 +160,7 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         serveo,
         sshj,
         croc,
+        zerotier,
         tunnel,
         localtunnel,
         bore,

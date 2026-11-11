@@ -26,6 +26,8 @@ mod notes_config;
 mod notes_containers;
 // croc's relay road, a last fallback of Q78 (T-694).
 mod notes_croc;
+// ZeroTier's road, a last fallback of Q78 after croc's (T-733).
+mod notes_zerotier;
 // relay's notes on the signed list of deployments (T-346).
 mod notes_deployments;
 mod notes_detached;

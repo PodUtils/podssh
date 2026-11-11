@@ -38,11 +38,12 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
     transit::setting(std::env::var(transit::ENV).ok().as_deref()).map_err(Refusal::config)
 }
 
-/// The variable, and croc's relay road's (T-694), checked before anything
-/// connects.
+/// The variable, and those of croc's relay road (T-694) and ZeroTier's
+/// (T-733), checked before anything connects.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
-    crate::node_croc::check()
+    crate::node_croc::check()?;
+    crate::zerotier::setting().map(|_| ())
 }
 
 /// The relay of the road, when the road is on.
@@ -130,9 +131,10 @@ where
 
 /// Whether a node of the pair's road with the layer and the channel runs
 /// [`Beside`]: the transit relay on (`transit`), a relay member of the net,
-/// or croc's relay road (T-694).
+/// or croc's relay road (T-694) or ZeroTier's (T-733).
 pub(crate) fn wanted(transit: bool) -> bool {
-    transit || crate::node_members::wanted() || crate::node_croc::bridge().is_some()
+    let last = crate::node_croc::bridge().is_some() || crate::zerotier::relay().is_some();
+    transit || crate::node_members::wanted() || last
 }
 
 /// A node's transit road, and its pairs at the net's relay members (T-434),
@@ -166,8 +168,12 @@ impl Beside<'_> {
         let say = self.say.clone();
         let road = self.url.and_then(|url| road(self.label, &config.pair, self.stored, self.trust, url, say));
         let (croc_say, stored) = (self.say.clone(), self.stored);
-        let croc = crate::node_croc::bridge()
-            .map(|bridge| crate::node_croc::road(self.label, &config.pair, stored, self.trust, bridge, croc_say));
+        let croc = crate::node_croc::bridge().map(|bridge| {
+            crate::node_croc::road(self.label, &config.pair, stored, self.trust, bridge, croc_say.clone())
+        });
+        // ZeroTier's road (T-733) after croc's, the last of all.
+        let zerotier = crate::node_zerotier::beside(Some(&config.pair), croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

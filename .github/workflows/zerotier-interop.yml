@@ -4,7 +4,10 @@ name: zerotier interop
 # the pinned commit: its `tcp-proxy`, built here and run with sudo on its
 # fixed port 443, in front of the test's own UDP echo on the loopback:
 # crates/podssh-zerotier/tests/tcp_proxy.rs. No host of ZeroTier Inc. is
-# reached. A planted encoder that takes what the relay drops must fail.
+# reached. A planted encoder that takes what the relay drops must fail. And
+# the command line from end to end, a node and a client of one pair through
+# podssh-zerotier's stand-in relay and root (tests/derp_road.rs, the module
+# derp_zerotier); a planted client of another pair must fail.
 # Started by hand, and on a push that changes the crate; it publishes nothing.
 
 on:
@@ -13,6 +16,10 @@ on:
     branches: [main]
     paths:
       - "crates/podssh-zerotier/**"
+      - "crates/podssh-cli/src/zerotier.rs"
+      - "crates/podssh-cli/src/node_zerotier.rs"
+      - "crates/podssh-cli/src/ssh/zerotier.rs"
+      - "crates/podssh-cli/tests/derp_zerotier/**"
       - "vendor/zerotier-node/**"
       - "scripts/plants/t733-*"
       - ".github/workflows/zerotier-interop.yml"
@@ -55,3 +62,16 @@ jobs:
             exit 1
           fi
           echo "the planted encoder failed (exit $rc), as it must"
+      - name: the command line from end to end, through the stand-in relay and root
+        run: timeout 1200 cargo test --locked -p podssh-cli --features zerotier-test --test derp_road -- derp_zerotier
+      - name: a planted client of another pair fails
+        run: |
+          git apply scripts/plants/t733-other-pair.patch
+          rc=0
+          timeout 1200 cargo test --locked -p podssh-cli --features zerotier-test --test derp_road -- derp_zerotier || rc=$?
+          git apply -R scripts/plants/t733-other-pair.patch
+          if [ "$rc" -eq 0 ]; then
+            echo "the check is vacuous: a client of another pair reached the node"
+            exit 1
+          fi
+          echo "the planted client failed (exit $rc), as it must"

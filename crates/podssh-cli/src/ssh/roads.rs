@@ -78,9 +78,6 @@ pub(crate) mod ssh_http;
 // Each road of the race timed for `podssh ping node://NAME` (T-435).
 #[path = "road_probe.rs"]
 pub(crate) mod probe;
-// `podssh ssh tag:NAME`, each member of the tag in turn (T-750).
-#[path = "tag_run.rs"]
-pub(crate) mod tag_run;
 
 /// The roads of a run beside the pair's: the iroh road of `--iroh-ticket`,
 /// the DERP road of a ticket given or kept, the transit relay's, and the
@@ -121,7 +118,7 @@ struct Roads<'a> {
     /// A node's Pinggy tunnel, the last fallback of Q78 (T-548).
     pinggy: Option<super::pinggy::PinggyRoads>,
     /// croc's relay, a last fallback of Q78 too (T-694).
-    croc: Option<super::croc::CrocRoads>,
+    croc: Option<last::croc::CrocRoads>,
     /// Serveo's alias, ssh-j.com's name, the tunnel of `ssh -R` and
     /// localtunnel's name, the last of all.
     last: last::LastRoads,
@@ -317,7 +314,9 @@ where
     let refused = AtomicBool::new(raced.piping.as_ref().is_some_and(|race| race.refused));
     // croc's relay (T-694): never with --no-e2e, nor once the upgrade was refused, as its bridge is a WebSocket.
     let croc =
-        super::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
+        last::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
+    // ZeroTier's road (T-733), raced after croc's: never with --no-e2e.
+    let last = last.with_zerotier(last::zerotier::ZeroTierRoads::new(part.as_ref(), ask.off, &log, &shown));
     let proxy = ProxyChoice::FromEnvironment;
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,

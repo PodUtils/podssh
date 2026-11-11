@@ -13,12 +13,14 @@
 //! (T-452). A session goes on across the node's upgrade in place, as the
 //! node comes home again under the same key (T-679, `upgrade_support`).
 //! croc's relay road beside a node's own pair is the module `derp_croc`
-//! (T-694).
+//! (T-694), and ZeroTier's is `derp_zerotier` (T-733).
 
 mod cleanup;
 mod derp_croc;
 mod derp_net;
 mod derp_support;
+#[cfg(feature = "zerotier-test")]
+mod derp_zerotier;
 mod ssh_harness;
 mod upgrade_support;
 // The TLS acceptor of the test's own CA.
@@ -79,6 +81,8 @@ fn command(home: &Path, args: &[&str]) -> Command {
     // No transit road (T-436): the roads of the test alone; and no record
     // at n0's server of pkarr, which a node of DERP alone keeps (Q81).
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_IROH_PKARR", "off");
+    // Nor ZeroTier's road (T-733), in a build with it, but where a test names its stand-in.
+    cmd.env("PODSSH_ZEROTIER", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
     cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");

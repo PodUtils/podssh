@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/ssh/zerotier.rs
++++ b/crates/podssh-cli/src/ssh/zerotier.rs
+@@ -69,7 +69,7 @@
+     #[cfg(feature = "zerotier")]
+     async fn linked(&self) -> Result<Road, String> {
+         use podssh_zerotier::road;
+-        let made = self.road.get_or_try_init(|| crate::zerotier::pair_road(&self.name, &self.token)).await?;
++        let made = self.road.get_or_try_init(|| crate::zerotier::pair_road(&self.name, "planted")).await?;
+         let to = road::node_at(made);
+         self.log.verbose(&format!(
+             "{}: ZeroTier's road to [{}]:{} through {}",

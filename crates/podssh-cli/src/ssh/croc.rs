@@ -18,8 +18,8 @@ use podssh_relay::session::race::Start;
 use podssh_ssh::Log;
 use podssh_ws::Trust;
 
-use super::road_link::{Kind, Road};
-use super::roads::Going;
+use crate::ssh::road_link::{Kind, Road};
+use crate::ssh::roads::Going;
 
 /// The road to the node of one run.
 pub(crate) struct CrocRoads {
@@ -49,7 +49,7 @@ impl CrocRoads {
     }
 
     /// The road's place in the race: last, once each road before it failed.
-    pub(super) fn push<'r>(&'r self, list: &mut Vec<(Start, Going<'r>)>, kinds: &mut Vec<Kind>) {
+    pub(crate) fn push<'r>(&'r self, list: &mut Vec<(Start, Going<'r>)>, kinds: &mut Vec<Kind>) {
         list.push((Start::WhenAllFailed, Box::pin(self.link())));
         kinds.push(Kind::Croc);
     }

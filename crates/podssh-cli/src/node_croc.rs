@@ -93,19 +93,26 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge
     far::Node { bridge, rooms, trust, proxy: ProxyChoice::FromEnvironment, say }
 }
 
-/// The road beside another node road's pair (`--derp`, the Piping Server
-/// road), the last of its roads: `None` with no pair there or the road off.
-pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, say: Say) -> Option<far::Node> {
-    let (pair, stored) = pair?;
-    Some(road(label, pair, stored, trust, bridge()?, say))
+/// The last roads of a pair at the node: croc's relay, then ZeroTier's
+/// network (T-733), each where it is on.
+pub(crate) struct Beside {
+    pub croc: Option<far::Node>,
+    pub zerotier: Option<crate::node_zerotier::Road>,
 }
 
-/// `pair_road` with croc's relay road `road` beside it, under `keeper`,
-/// until the pair's road ends: its end is the node's, as the road's rooms
-/// are the pair's. With no road, the pair's road alone.
+/// The roads beside another node road's pair (`--derp`, the Piping Server
+/// road), the last of its roads: none with no pair there, or each road off.
+pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, say: Say) -> Beside {
+    let croc = pair.and_then(|(pair, stored)| Some(road(label, pair, stored, trust, bridge()?, say.clone())));
+    Beside { croc, zerotier: crate::node_zerotier::beside(pair.map(|(pair, _)| pair), say) }
+}
+
+/// `pair_road` with croc's relay road and ZeroTier's of `beside` beside it,
+/// under `keeper`, until the pair's road ends: its end is the node's, as the
+/// roads' rooms and network are the pair's. With none, the pair's road alone.
 pub(crate) async fn alongside<P, O, F>(
-    mut pair_road: P,
-    road: Option<far::Node>,
+    pair_road: P,
+    beside: Beside,
     open: O,
     keeper: Arc<Keeper<DuplexStream>>,
 ) -> P::Output
@@ -114,7 +121,9 @@ where
     O: Fn() -> F + Clone + Send + Sync + 'static,
     F: Future<Output = Result<DuplexStream, String>> + Send + 'static,
 {
-    let Some(road) = road else { return pair_road.await };
+    let zerotier = crate::node_zerotier::alongside(pair_road, beside.zerotier, open.clone(), keeper.clone());
+    let mut pair_road = Box::pin(zerotier);
+    let Some(road) = beside.croc else { return pair_road.await };
     let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
     let croc_road = Box::pin(far::serve_kept(road, settings, budget, open, keeper));
     tokio::select! {

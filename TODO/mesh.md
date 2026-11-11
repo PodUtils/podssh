@@ -10015,7 +10015,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:289-299`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:290-300`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10369,8 +10369,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:298-299`), and needs the net's role exit, signed by
-  its owner (`:296-297`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:299-300`), and needs the net's role exit, signed by
+  its owner (`:297-298`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:111`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -12380,7 +12380,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:60`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:68`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -12798,6 +12798,19 @@ Next: the core's wire over the relay (a task that carries the two channels on th
 `HTTPS_PROXY`), the service in `pod-services`, the road in the race and the node's side, the line of Q78, and the
 Prove's runs against `zerotier-one` and live.
 
+2026-11-11: `relay::carry` carries a member's wire on the relay's TCP stream (any `AsyncRead + AsyncWrite`, so the
+command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a record for each datagram to an IPv4
+address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its
+test on a stream of memory, and the codec's: 3 passed.
+
+2026-11-11: the relay's address is asked of podcrates as the service `zerotier-tcp-relay` of `pod-services` (COORD-023,
+#190); the roots need no entry, as the core's own planet names them. The live run and the road's wiring read it there.
+
+The live run is written: `crates/podssh-zerotier/tests/live.rs` (ignored outside its workflow) and
+`.github/workflows/zerotier-live.yml`, started by hand: two members with identities made for the run, each on its own
+TCP connection to the relay of `pod-services`, the core's own roots, an ad-hoc network of the port 4096, 64 KiB each
+way; planted, the second member on another network, which must fail. It runs once podcrates releases the service.
+
 2026-11-11: the core's wire over the relay, `relay::carry` (the HELLO, then each datagram to an IPv4 address as a
 record; what comes back goes to the member), unit-tested on a stream of memory; the relay's address is
 `zerotier-tcp-relay` of `pod-services` (podcrates T-203, taken in v0.22.0). Live, `zerotier-live.yml` run 43031239655
@@ -12822,18 +12835,21 @@ carries 64 KiB each way; a client of another pair reaches no node. Planted, a no
 FAILED. clippy and rustfmt clean. Next: the feature `zerotier` of `podssh-cli`, the node's road and the client's place
 in the race, the line of Q78.
 
-2026-11-11: `relay::carry` carries a member's wire on the relay's TCP stream (any `AsyncRead + AsyncWrite`, so the
-command line dials it through `HTTPS_PROXY` by podssh's own dial): the HELLO, a record for each datagram to an IPv4
-address, an IPv6 one passed over as the relay has no form for it, and each record that comes back to the member. Its
-test on a stream of memory, and the codec's: 3 passed.
-
-2026-11-11: the relay's address is asked of podcrates as the service `zerotier-tcp-relay` of `pod-services` (COORD-023,
-#190); the roots need no entry, as the core's own planet names them. The live run and the road's wiring read it there.
-
-The live run is written: `crates/podssh-zerotier/tests/live.rs` (ignored outside its workflow) and
-`.github/workflows/zerotier-live.yml`, started by hand: two members with identities made for the run, each on its own
-TCP connection to the relay of `pod-services`, the core's own roots, an ad-hoc network of the port 4096, 64 KiB each
-way; planted, the second member on another network, which must fail. It runs once podcrates releases the service.
+2026-11-11: the road in the command line, behind the feature `zerotier` of `podssh-cli` (off by default until the
+static musl build is measured; `zerotier-test` adds the stand-in). `src/zerotier.rs`: `PODSSH_ZEROTIER` (no, or a
+relay's `IP:PORT`), `PODSSH_LAST_RESORT`, the relay of `pod-services`, and `PODSSH_ZEROTIER_PLANET`, a planet of the
+user's own roots, read before anything connects (78 when it cannot be); the dial is one TCP connection through
+`HTTPS_PROXY`. The node (`src/node_zerotier.rs`) runs the road beside the pair's road after croc's, in each of its
+three places (the pair's road with the transit relay, `--derp`, the Piping Server road), serving each connection with
+the resumable layer's far end under the node's keeper, and says the line of Q78. The client (`ssh/zerotier.rs`, raced
+from `road_last.rs`) races it once each road before it failed, after croc's and Pinggy's, with the line of Q78 before
+its first link; never with --no-e2e. The manual: the notes of `node` and `ssh`, `PODSSH_ZEROTIER`,
+`PODSSH_ZEROTIER_PLANET`, and the list of `PODSSH_LAST_RESORT`. `podssh-zerotier`'s stand-in (feature `stand-in`): a
+TCP relay of the same framing on the loopback, with a root of a planet of its own behind it. `cargo test -p podssh-cli
+--features zerotier-test --test derp_road zerotier`, in a namespace with the loopback alone: 1 passed, a `--derp` node
+whose pair's relay is down served `podssh ssh node://tester@lab greet` through ZeroTier's road alone, in 8.6 s (the
+DERP road off at the client). Planted, a client that makes another pair's road: no answer within 60 s, and the test
+FAILED. `cargo test -p podssh-zerotier --lib`, 12 passed (the stand-in's own test too).
 
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
