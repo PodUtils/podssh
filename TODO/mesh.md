@@ -12765,6 +12765,17 @@ Partial, 2026-11-11: the Decision. Next: `vendor/zerotier-node` and `crates/pods
 test's own whose root is one of them, the other two on one ad-hoc network exchanging an Ethernet frame; then the
 relay's framing, smoltcp over the frames, the road in the race, and the Prove.
 
+2026-11-11: `vendor/zerotier-node` (ZeroTierOne `899352e`, `README.podssh.md` names what was taken; no file changed) and
+`crates/podssh-zerotier`: `build.rs` compiles `node/*.cpp` and `osdep/OSUtils.cpp` as C++17 with `OMIT_JSON_SUPPORT`
+(the core reads no JSON) and `src/shim.cpp`, podssh's own calls (a planet of the caller's roots, signed by a key made
+and dropped; a member's MAC); `ffi.rs`, the C API; `node.rs`, a safe `Node` whose wire, frames and state are a `Host`'s.
+`cargo test -p podssh-zerotier`, 2 passed: the core links and says its version; three nodes in one process on a wire
+of memory and a clock of the test's own (a root of a planet made in the test, and two members of the ad-hoc network
+`ff0001ffff000000`, which no controller configures) carry an IPv6 UDP frame from one member to the other, whole, in
+14 s (the identities' memory-hard hash, in a debug build). Planted, the second member on another network: it got no
+frame, and the test failed. clippy and rustfmt clean; the gate's packages now hold `podssh-zerotier`. Next: the relay's
+framing, smoltcp over the frames, the road in the race.
+
 
 # T-734: Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair
 

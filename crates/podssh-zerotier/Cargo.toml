@@ -11,6 +11,7 @@ publish.workspace = true
 # compiles C++ (rule 4 allows it; the binary stays static). The feature
 # `zerotier` of podssh-cli builds it.
 [dependencies]
+libc = { workspace = true }
 
 [build-dependencies]
 cc = "1.2"

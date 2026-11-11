@@ -19,6 +19,9 @@ fn main() {
         .collect();
     files.push(root.join("osdep/OSUtils.cpp"));
     files.sort();
+    // podssh's own calls over the core (`src/shim.cpp`).
+    files.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/shim.cpp"));
+    build.include(&root);
     for file in &files {
         println!("cargo:rerun-if-changed={}", file.display());
         build.file(file);

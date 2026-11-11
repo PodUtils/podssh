@@ -122,7 +122,7 @@ echo "steps: $*"
 
 # Each package of the workspace, by name: `cargo fmt --all` would also format
 # the fork in vendor/, which keeps its own format and its patches.
-PKGS="-p podssh-cli -p podssh-ssh -p podssh-relay -p podssh-ws -p podssh-core -p podssh-probe -p podssh-ts -p podssh-iroh -p podssh-todo -p podssh-warp -p podssh-tor"
+PKGS="-p podssh-cli -p podssh-ssh -p podssh-relay -p podssh-ws -p podssh-core -p podssh-probe -p podssh-ts -p podssh-iroh -p podssh-todo -p podssh-warp -p podssh-tor -p podssh-zerotier"
 
 # The library crates. Each crate may use C, zig and the newest stable Rust;
 # the one rule of the build is a statically compiled binary (the operator,
