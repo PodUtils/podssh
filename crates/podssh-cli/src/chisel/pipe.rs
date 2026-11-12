@@ -30,6 +30,7 @@ pub fn beside(args: &ProxyArgs) -> Result<(), Refusal> {
         ("--relay-host", args.relay_host.is_some()),
         ("--relay-failover", args.relay_failover.is_some()),
         ("--vless", args.vless.is_some()),
+        ("--trojan", args.trojan.is_some()),
         ("--wstunnel", args.wstunnel.url.is_some()),
     ];
     let other = match own {
@@ -51,6 +52,7 @@ pub fn chosen(args: &ProxyArgs) -> Result<Option<Road>, Refusal> {
         || args.relay_host.is_some()
         || args.relay_failover.is_some()
         || args.vless.is_some()
+        || args.trojan.is_some()
         || args.wstunnel.url.is_some();
     if args.chisel.url.is_none() && args.chisel.auth_file.is_none() && others {
         return Ok(None);

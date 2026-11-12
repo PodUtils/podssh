@@ -265,6 +265,22 @@ fn a_flag_of_another_road_or_a_server_in_the_clear_is_refused_first() {
     let (code, err) = proxy(&home, "https://chisel.example.org", &["--vless", "servers.txt"]);
     assert_eq!(code, 64, "{err}");
     assert!(err.contains("--chisel cannot go with --vless"), "{err}");
+    let (code, err) = proxy(&home, "https://chisel.example.org", &["--trojan", "servers.txt"]);
+    assert_eq!(code, 64, "{err}");
+    assert!(err.contains("cannot go with") && err.contains("--trojan"), "{err}");
+    // PODSSH_CHISEL beside --trojan: the flag's road runs, as the manual
+    // says, and its file is read, not the chisel server dialed.
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));
+    cmd.args(["proxy", "--trojan", home.join("none.txt").to_str().unwrap(), "sshd.test", "22"]);
+    cmd.env("HOME", &*home).env("PODSSH_SSH_CONFIG", "none").env("PODSSH_CACHE_DIR", home.join("cache"));
+    for name in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"] {
+        cmd.env_remove(name);
+    }
+    cmd.env("PODSSH_CHISEL", "https://chisel.example.org");
+    let out = cmd.stdin(Stdio::null()).output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(!err.contains("chisel.example.org") && err.contains("--trojan"), "PODSSH_CHISEL won over --trojan: {err}");
+    assert!(err.contains("none.txt"), "the Trojan file was not read: {err}");
     let (code, err) = proxy(&home, "http://chisel.example.org", &[]);
     assert_eq!(code, 64, "{err}");
     assert!(err.contains("in the clear"), "{err}");
