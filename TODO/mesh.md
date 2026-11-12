@@ -13070,8 +13070,8 @@ progress; a FIN carries the length; the relay's pings answered).
   the job `live` reached the node through the first public node of 443 of the list, 205.185.115.131:443:
   `podssh ssh node://` through the Tox road in 4.2 s.
 
-Done, 2026-11-12. The road reads `pod-services`' list of the relays once podcrates names them (COORD-028, #196,
-open); until then a relay is named by `PODSSH_TOX`.
+Done, 2026-11-12. The road reads `pod-services`' list of the relays, which podcrates v0.28.0 names (COORD-028,
+#196): five on 443, each key a fact of its endpoint.
 
 
 # T-735: Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair
@@ -13200,8 +13200,8 @@ Yggdrasil's nodes set it, with one link to a peer that is dialed again, after 1 
   plants, 2 caught); `live` failed on the first public peer of the list and passed on the second, a `wss://`
   peer on 443: `podssh ssh node://` through Yggdrasil's road in 8.0 s.
 
-Done, 2026-11-12. The road reads `pod-services`' list of the peers once podcrates names them (COORD-029, #203,
-open); until then a peer is named by `PODSSH_YGGDRASIL`.
+Done, 2026-11-12. The road reads `pod-services`' list of the peers, which podcrates v0.28.0 names (COORD-029,
+#203): two `wss://` peers on 443.
 
 # T-736: HyperDHT as a road by key where UDP passes, after podssh's own
 
@@ -13324,8 +13324,8 @@ end; a client joins the topic, takes the first connection whose remote key is th
   public DHT, its bootstrap read from the package's constants: `podssh ssh node://` through HyperDHT's road in
   7.9 s.
 
-Done, 2026-11-12. The road reads `pod-services`' bootstrap once podcrates names it (COORD-030, #204, open); until
-then a DHT is named by `PODSSH_HYPERDHT`.
+Done, 2026-11-12. The road reads `pod-services`' bootstrap, which podcrates v0.28.0 names (COORD-030, #204):
+HyperDHT's three nodes.
 
 # T-737: Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers'
 

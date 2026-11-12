@@ -5666,6 +5666,16 @@ the release's features built with zig (`iroh,warp,zerotier`, `scripts/check-stat
 `derp_road` with the features `tox`, `yggdrasil` and `hyperdht` (13 passed, each against its reference server), and
 clippy with them.
 
+2026-11-12, podcrates `v0.28.0` (`4ce3625`, COORD-054, PodUtils/podcrates#86): each podcrates crate moved to it, no
+change of API for podssh. It brings the services that podssh asked for: `tox-tcp-relay` (five relays on 443, each
+key a fact `public-key-NAME` of its endpoint, which `crates/podssh-cli/src/tox.rs` now reads), `yggdrasil-wss-peer`
+(two `wss://` peers on 443) and `hyperdht-bootstrap` (HyperDHT's three nodes); and drops a Trojan node that Q90's
+live check found dead. Tests of each reader hold that no row of the catalog is left out
+(`the_listed_relays_read_with_their_keys`, `the_listed_peers_read`, `the_listed_bootstrap_reads`). `cargo test -p
+podssh-relay --all-features`: 55 targets, 631 passed; `cargo test -p podssh-cli --features
+tox,yggdrasil,hyperdht,strelay --lib --test derp_road`: 1128 passed; clippy of the five crates with those features:
+no warning.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

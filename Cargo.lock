@@ -1452,7 +1452,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 3.0.6",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1560,7 +1560,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17933e749f2502cfcd1c27519292fbbea22e8fc64ce680e863f855e8cd8cce23"
 dependencies = [
  "heck",
- "indexmap 2.14.2",
+ "indexmap 1.9.3",
  "itertools 0.15.0",
  "proc-macro-crate",
  "proc-macro2",
@@ -1693,7 +1693,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2004,7 +2004,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4222,7 +4222,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4954,8 +4954,8 @@ dependencies = [
 
 [[package]]
 name = "pod-core"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "libc",
  "rand 0.10.3",
@@ -4965,8 +4965,8 @@ dependencies = [
 
 [[package]]
 name = "pod-dns"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -4986,8 +4986,8 @@ dependencies = [
 
 [[package]]
 name = "pod-e2e"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "hmac 0.13.0",
  "pod-core",
@@ -5002,8 +5002,8 @@ dependencies = [
 
 [[package]]
 name = "pod-hostprobe"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "linux-raw-sys",
  "pod-core",
@@ -5012,8 +5012,8 @@ dependencies = [
 
 [[package]]
 name = "pod-identity"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 2.2.0",
@@ -5027,8 +5027,8 @@ dependencies = [
 
 [[package]]
 name = "pod-proxy"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "base64 0.23.1",
  "libc",
@@ -5043,8 +5043,8 @@ dependencies = [
 
 [[package]]
 name = "pod-quic"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "atomic-waker",
  "hmac 0.13.0",
@@ -5058,8 +5058,8 @@ dependencies = [
 
 [[package]]
 name = "pod-relay"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 2.2.0",
@@ -5088,8 +5088,8 @@ dependencies = [
 
 [[package]]
 name = "pod-services"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "pod-core",
  "toml 1.2.1+spec-1.1.0",
@@ -5097,8 +5097,8 @@ dependencies = [
 
 [[package]]
 name = "pod-session"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "hkdf 0.13.0",
  "hmac 0.13.0",
@@ -5113,16 +5113,16 @@ dependencies = [
 
 [[package]]
 name = "pod-term"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "pod-testkit"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "libc",
  "pod-hostprobe",
@@ -5131,8 +5131,8 @@ dependencies = [
 
 [[package]]
 name = "pod-tls"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm 0.11.1",
@@ -5162,13 +5162,13 @@ dependencies = [
 
 [[package]]
 name = "pod-todo"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 
 [[package]]
 name = "pod-wormhole"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "crypto_secretbox",
  "hkdf 0.13.0",
@@ -5184,8 +5184,8 @@ dependencies = [
 
 [[package]]
 name = "pod-ws"
-version = "0.27.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.27.0#547c6ee6f14cf1d2667685bf4619b973634cb5b9"
+version = "0.28.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.28.0#4ce3625945f962ad47fdf943b6cef8c9a7201fea"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -5720,7 +5720,7 @@ dependencies = [
  "derive-deftly",
  "libc",
  "paste",
- "thiserror 2.0.21",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6337,7 +6337,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6430,7 +6430,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7486,7 +7486,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9784,7 +9784,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

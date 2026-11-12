@@ -147,6 +147,16 @@ mod tests {
         }
     }
 
+    /// `pod-services` of podcrates v0.28.0 lists the public `wss://` peers on
+    /// 443: each reads.
+    #[test]
+    fn the_listed_peers_read() {
+        let peers = listed();
+        let named = pod_services::get(SERVICE_ID).and_then(|s| s.texts("urls")).map_or(0, |t| t.len());
+        assert_eq!(peers.len(), named, "a peer left out: {peers:?}");
+        assert!(peers.len() >= 2 && peers.iter().all(|p| p.starts_with("wss://")), "{peers:?}");
+    }
+
     #[test]
     fn both_ends_pick_the_same_peer_of_a_name() {
         let peers: Vec<String> = (1..=5).map(|i| format!("wss://p{i}.example.net/")).collect();

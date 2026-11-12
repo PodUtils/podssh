@@ -82,16 +82,16 @@ pub fn setting_of(value: Option<&str>, last: Option<&str>, listed: Vec<Relay>) -
     Ok(Setting::On(listed, true))
 }
 
-/// The relays of `pod-services`: none until its service lists them.
+/// The relays of `pod-services`: none until its service lists them. Each
+/// endpoint's key is its fact `public-key-NAME`.
 fn listed() -> Vec<Relay> {
     let Some(service) = pod_services::get(SERVICE_ID) else { return Vec::new() };
-    let keys = service.texts("keys").unwrap_or_default();
     service
         .endpoints()
         .iter()
-        .zip(keys)
-        .filter_map(|(endpoint, key)| {
+        .filter_map(|endpoint| {
             let at = SocketAddr::new(endpoint.host().parse().ok()?, endpoint.port());
+            let key = service.text(&format!("public-key-{}", endpoint.name()))?;
             Some(Relay { at, key: key_of(key)? })
         })
         .collect()
@@ -178,6 +178,16 @@ mod tests {
         for refused in ["127.0.0.1:33446", "127.0.0.1:33446=00", "host:1=", "x=y"] {
             assert!(setting_of(Some(refused), None, Vec::new()).unwrap_err().contains(ENV), "{refused}");
         }
+    }
+
+    /// `pod-services` of podcrates v0.28.0 lists five relays on 443, each with
+    /// its node's key: none is left out as a row that does not read.
+    #[test]
+    fn the_listed_relays_read_with_their_keys() {
+        let relays = listed();
+        assert_eq!(relays.len(), pod_services::get(SERVICE_ID).map_or(0, |s| s.endpoints().len()), "a relay left out");
+        assert!(relays.len() >= 5, "{relays:?}");
+        assert!(relays.iter().all(|r| r.at.port() == 443 && r.key != [0; KEY]));
     }
 
     #[test]

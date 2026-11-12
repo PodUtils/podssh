@@ -100,6 +100,16 @@ pub fn third_party_line() -> String {
 mod tests {
     use super::*;
 
+    /// `pod-services` of podcrates v0.28.0 lists HyperDHT's three bootstrap
+    /// nodes: each reads.
+    #[test]
+    fn the_listed_bootstrap_reads() {
+        let nodes = listed();
+        let named = pod_services::get(SERVICE_ID).and_then(|s| s.texts("nodes")).map_or(0, |t| t.len());
+        assert_eq!(nodes.len(), named, "a node left out: {nodes:?}");
+        assert!(nodes.len() >= 3, "{nodes:?}");
+    }
+
     #[test]
     fn the_variables_turn_the_road_off_or_name_a_dht() {
         let listed = vec!["192.0.2.1@node.example.net:49737".to_string()];
