@@ -109,3 +109,25 @@ pub const DOCTOR_HYSTERIA: FlagRow = row(
      GitHub's published host keys on github.com port 22 through it",
     None,
 );
+
+/// `--tuic` for `proxy` (T-581).
+pub const PROXY_TUIC: FlagRow = row(
+    None,
+    "tuic",
+    Some("FILE"),
+    FlagKind::Supported,
+    "reach the target through the TUIC servers of FILE, in order, in place of the relay, where UDP passes: tuic:// \
+     share links in a private file",
+    None,
+);
+
+/// `--tuic` for `doctor` (T-581).
+pub const DOCTOR_TUIC: FlagRow = row(
+    None,
+    "tuic",
+    Some("FILE"),
+    FlagKind::Supported,
+    "also check each TUIC server of FILE: whether UDP reaches its port, then one of GitHub's published host keys on \
+     github.com port 22 through it",
+    None,
+);

@@ -5569,7 +5569,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:229-234`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:237-242`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -6265,7 +6265,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:228`).
+  port 443 answers (`docs/STATUS.md:229`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
@@ -8239,9 +8239,9 @@ puts the fallback in its `ok` column without a probe.
   (`crates/podssh-cli/src/ssh/transport.rs:231-265`); the module's own words are that "a target
   that cannot go" ends the run as before (`crates/podssh-cli/src/forwarder/fallback.rs:10-12`).
 - Read: the relay's refusal of a target by its policy (400, a blocked address range) is 77
-  (`crates/podssh-cli/src/proxy.rs:390-391`), and each other answer, the 502 of a target that the
+  (`crates/podssh-cli/src/proxy.rs:400-401`), and each other answer, the 502 of a target that the
   relay could not reach or whose name does not resolve among them, is 69
-  (`crates/podssh-cli/src/proxy.rs:384-397`); so both go to the forwarders (L-28, and #106's dead
+  (`crates/podssh-cli/src/proxy.rs:394-407`); so both go to the forwarders (L-28, and #106's dead
   target).
 - Read: the relay pool already tells these apart: another host cannot help after a refusal by
   policy or of a token, or after a 502 whose target's name fails
@@ -9416,7 +9416,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:236`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:244`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:34` (`iroh UDP out`); a bind

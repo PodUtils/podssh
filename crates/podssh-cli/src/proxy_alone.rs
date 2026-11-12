@@ -15,6 +15,7 @@ pub(crate) fn exit_alone(args: &ProxyArgs) -> Result<(), crate::relay_settings::
         || args.vless.is_some()
         || args.trojan.is_some()
         || args.hysteria.is_some()
+        || args.tuic.is_some()
         || args.via != crate::via::Flags::default()
         || args.wstunnel != crate::wstunnel::Flags::default()
         || args.chisel != crate::chisel::Flags::default();

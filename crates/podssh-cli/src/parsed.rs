@@ -91,6 +91,8 @@ pub enum Parsed {
         trojan: Option<String>,
         /// `--hysteria` (T-580).
         hysteria: Option<String>,
+        /// `--tuic` (T-581).
+        tuic: Option<String>,
         /// `--wstunnel` and `--wstunnel-secret-file` (T-441).
         wstunnel: crate::wstunnel::Flags,
         /// `--chisel` and `--chisel-auth-file` (T-490).
@@ -182,6 +184,8 @@ pub enum Parsed {
         vless: Option<String>,
         /// `--hysteria`: the Hysteria 2 servers to check too (T-580).
         hysteria: Option<String>,
+        /// `--tuic`: the TUIC servers to check too (T-581).
+        tuic: Option<String>,
         /// `--quick` and `--jobs N` (T-511).
         quick: bool,
         /// `--tier`: this host's verdict alone (T-706).

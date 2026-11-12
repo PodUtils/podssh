@@ -437,7 +437,7 @@ through `curl` (`docs/design.md:628-629`).
 
 Read: `podssh-relay` declares the workspace minimum, Rust 1.88 (`crates/podssh-relay/Cargo.toml:5-6`,
 `Cargo.toml` lines 45-48 at `0d92eef`), above podbox's 1.85. `podssh proxy` already runs async code from sync code with
-a current-thread runtime and `shutdown_background` (`crates/podssh-cli/src/proxy.rs:274-287`).
+a current-thread runtime and `shutdown_background` (`crates/podssh-cli/src/proxy.rs:284-297`).
 
 Read: podbox keeps `ring` and TLS 1.2 through a `rustls::ClientConfig` that it supplies
 (`docs/design.md:621-625`); that is T-066, not this entry.
@@ -963,7 +963,7 @@ cargo test -p podssh-cli --test node_live -- --ignored ssh_to_a_node
 22. `operator.rs` runs the binary with no stored pair (78, naming `podssh relay pair`), and checks
 that stdout stays empty. The binary line must exit 255, name `podssh relay pair lab`, and open no
 connection. The live test runs `podssh ssh node://lab 'exit 3'` through a node whose TARGET is
-`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:212`), and expects 3. Plant: read `node:`
+`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:213`), and expects 3. Plant: read `node:`
 with no slashes as a node; `node_destinations` must fail.
 
 ## Done
@@ -2652,16 +2652,16 @@ documents works; the form that a user expects is missing.
 ## Premise
 
 - Read: with one word, `proxy` splits `node://NAME` at its last `:`
-  (`crates/podssh-cli/src/proxy.rs:389`) and says that `"//NAME"` is not a port (`:359-360`), the
+  (`crates/podssh-cli/src/proxy.rs:399`) and says that `"//NAME"` is not a port (`:369-370`), the
   issue's words; with a second word, that `"node://NAME"` is not a host name or an IPv6 address
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
-  which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:154`); not reproduced.
+  which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:158`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
   (`crates/podssh-cli/src/man/notes_pair.rs:333-335`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
   byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:392`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
-  `iap://`, `eice://`, `warp://` and `tor://` (`crates/podssh-cli/src/proxy.rs:135-150`).
+  `iap://`, `eice://`, `warp://` and `tor://` (`crates/podssh-cli/src/proxy.rs:139-154`).
 
 ## Approach
 
@@ -4801,8 +4801,8 @@ dropped in the same way.
 ## Premise
 
 - Read, at `47e1eba`: `crates/podssh-cli/src/proxy_node.rs:31` holds the reason "the pair names its
-  relay". `crates/podssh-cli/src/proxy_node.rs:176-191` lists the flags (`--relay-host` at line 180,
-  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:256-280` pins
+  relay". `crates/podssh-cli/src/proxy_node.rs:176-192` lists the flags (`--relay-host` at line 180,
+  `--relay-failover` at line 181). The test at `crates/podssh-cli/src/proxy_node.rs:257-281` pins
   `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
 - `crates/podssh-cli/src/ssh/node.rs:138-154` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
   and the family for a node. It has no clause for the relay flags.
@@ -4820,7 +4820,7 @@ dropped in the same way.
 
 ## Approach
 
-1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:176-191`) and their
+1. Lift the relay clauses of `beside` (`crates/podssh-cli/src/proxy_node.rs:176-192`) and their
    reasons to one shared helper. `proxy` and `ssh` call it, so the words cannot drift.
 2. Call it in `crates/podssh-cli/src/ssh/node.rs`, `transport`, for `node://NAME`, and in
    `or_exit` of `crates/podssh-cli/src/ssh/exit_road.rs` for `--exit NAME`. Refuse `--relay-host`

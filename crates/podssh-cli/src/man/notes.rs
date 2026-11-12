@@ -332,6 +332,7 @@ const DOCTOR: &[&str] = &[
      whose host key must be one that GitHub publishes. A 407 says what the proxy asks for.",
     super::notes_vless::DOCTOR_VLESS,
     super::notes_hysteria::DOCTOR,
+    super::notes_tuic::DOCTOR_TUIC,
     "With --json, the report is one JSON object on stdout when every check has run: schema (1), podssh, \
      os, arch, checks (each with section, check, status and detail; status is ok, FAIL or unknown), \
      counts (ok, fail, unknown) and diagnosis (each case after the counts; empty when none). A check tried \

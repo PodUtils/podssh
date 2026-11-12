@@ -721,7 +721,7 @@ socks5:// is not supported; podssh speaks HTTP CONNECT to an http:// proxy"
 `HTTPS_PROXY`, `all_proxy` and `ALL_PROXY` (lines 163 and 184), and parses the first that is set
 (line 192). `dial` makes the error `DialError::BadProxy` (line 232), which stops the failover at
 once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
-(`crates/podssh-cli/src/proxy.rs:458`). `doctor` reports it as `FAIL`
+(`crates/podssh-cli/src/proxy.rs:468`). `doctor` reports it as `FAIL`
 (`crates/podssh-cli/src/doctor/net.rs`, lines 101-107). Two tests assert the refusal:
 `crates/podssh-cli/tests/doctor.rs`, lines 144-153, and `PodUtils/podssh:crates/podssh-ws/tests/dial.rs`, lines
 50-58.
@@ -740,7 +740,7 @@ once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in
    order (pinned, system, DNS over HTTPS), and try once with the address.
 4. Map each answer to the HTTP case that `another_host_may_help`
    (`PodUtils/podssh:crates/podssh-relay/src/open.rs:71-93`) and the exit codes of `podssh proxy`
-   (`crates/podssh-cli/src/proxy.rs:454-467`) already treat: a refused user or password as 407
+   (`crates/podssh-cli/src/proxy.rs:464-477`) already treat: a refused user or password as 407
    (the same for each host: stop); 0x02 (not allowed) as 403; 0x03, 0x04 and 0x05 as 502.
 5. Credentials never in output: `Display` shows the host and port only (now
    `PodUtils/podssh:crates/podssh-ws/src/proxy.rs:70-75`).
@@ -2901,7 +2901,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:358-362`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:370-374`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3306,7 +3306,7 @@ and a local Unix socket of frames. podssh has the roads and the layer, and no co
 
 ## Premise
 
-- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:163-213` lists them, and
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:165-215` lists them, and
   AGENTS.md section 1 names none).
 - Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
   contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.

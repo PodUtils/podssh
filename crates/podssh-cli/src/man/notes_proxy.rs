@@ -65,6 +65,7 @@ pub const PROXY: &[&str] = &[
     super::notes_vless::PROXY_VLESS,
     super::notes_vless::PROXY_TROJAN,
     super::notes_hysteria::PROXY,
+    super::notes_tuic::PROXY_TUIC,
     super::notes_roads::PROXY_WSTUNNEL,
     super::notes_roads::PROXY_CHISEL,
     super::notes_roads::PROXY_CLEARTEXT,

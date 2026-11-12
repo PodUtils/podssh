@@ -155,8 +155,8 @@ http {
     access_log /tmp/access.log;
     server {
         listen 8443 ssl;
-        ssl_certificate /etc/podssh-outline/tls/outline.pem;
-        ssl_certificate_key /etc/podssh-outline/tls/outline.key;
+        ssl_certificate /etc/podssh-outline-tls/outline.pem;
+        ssl_certificate_key /etc/podssh-outline-tls/outline.key;
         location /keys/ { root /srv; }
         location /forbidden/ { return 403; }
         location / {
@@ -186,7 +186,7 @@ timeout 300 "$ENGINE" run -d --name podssh-outline-ss --network "$NET" --network
     -v "$W/o:/o:ro" -v "$W/conf:/etc/podssh-outline:ro" "$ALPINE" \
     /o/outline-ss-server -config /etc/podssh-outline/config.yml >/dev/null || die "outline-ss-server did not start"
 timeout 300 "$ENGINE" run -d --name podssh-outline-tls --network "$NET" --network-alias outline-tls.test \
-    -p "127.0.0.1:$TLS_PORT:8443" -v "$W/conf:/etc/podssh-outline:ro" -v "$W/tls:/etc/podssh-outline/tls:ro" \
+    -p "127.0.0.1:$TLS_PORT:8443" -v "$W/conf:/etc/podssh-outline:ro" -v "$W/tls:/etc/podssh-outline-tls:ro" \
     -v "$W/keys:/srv/keys:ro" "$ALPINE" sh -c 'apk add --no-cache nginx >/dev/null &&
     exec nginx -c /etc/podssh-outline/nginx.conf -g "daemon off;"' >/dev/null || die "nginx did not start"
 timeout 300 "$ENGINE" run -d --name podssh-outline-hop --network "$NET" -p "127.0.0.1:$HOP_PORT:3128" \

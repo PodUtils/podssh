@@ -161,7 +161,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
 (`crates/podssh-cli/src/flags/relay.rs:9-120`), and bound each request in the code, as `doctor`
-does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:361-382` stops
+does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:365-386` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
 
@@ -921,7 +921,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:212-226`,
    `crates/podssh-cli/src/man/data.rs:171-179`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
-   notes (`crates/podssh-cli/src/man/notes.rs:255-342`).
+   notes (`crates/podssh-cli/src/man/notes.rs:255-343`).
 
 ## Decision
 
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:397`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:398`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -2839,12 +2839,12 @@ session on 2026-11-03.
 - `crates/podssh-cli/src/relay_ends.rs`: what a cut is (`cut_by`, `cut`), and `Told`, the relay
   stream that tells the record how its session ended once SSH lets it go, which
   `crates/podssh-cli/src/ssh/transport.rs:225` spawns. `podssh proxy`
-  (`crates/podssh-cli/src/proxy.rs:402`) and the relay's end of `podssh pipe` (`carry_opened`)
+  (`crates/podssh-cli/src/proxy.rs:412`) and the relay's end of `podssh pipe` (`carry_opened`)
   tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:210-212`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:228-238`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:308-336`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:320-348`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-28`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -3166,7 +3166,7 @@ URL written into each result, and a download target that is no test target of `A
   (`crates/podssh-cli/src/ping/mod.rs:167-172`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
   (`crates/podssh-cli/src/doctor/relay_checks.rs:209-240`); `--quick` keeps the relay's sections and
-  `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:179-184`).
+  `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:180-185`).
 - Read: `podssh relay trace` asks the relay to dial a target and gives its own times
   (`crates/podssh-cli/src/relay_diag.rs:182-185`); `relay info` gives the pool
   (`crates/podssh-cli/src/relay_diag.rs:133-135`).

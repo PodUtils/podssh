@@ -20,7 +20,7 @@
 //! disagree, and `clap`'s own help output is never printed.
 
 use crate::flags::{FlagKind, FlagRow, Verb};
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgAction, Command};
 
 /// **The two flags OpenSSH lets a user repeat, and neither takes a value.**
 ///
@@ -113,6 +113,9 @@ pub use crate::parsed::Parsed;
 
 // The parse of `podssh ts`, apart for the length of this file.
 mod ts;
+// Whether a flag was given, apart for the length of this file.
+mod given;
+use given::was_given;
 
 /// Parse a whole `argv` **after** the program name.
 ///
@@ -265,6 +268,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             vless: get("vless"),
             trojan: get("trojan"),
             hysteria: get("hysteria"),
+            tuic: get("tuic"),
             wstunnel: crate::wstunnel::Flags { url: get("wstunnel"), secret_file: get("wstunnel-secret-file") },
             chisel: crate::chisel::Flags { url: get("chisel"), auth_file: get("chisel-auth-file") },
             exit: crate::exit::Flags { name: get("exit"), client_key: get("client-key") },
@@ -441,6 +445,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             via: crate::via::Flags { url: get("via"), auth_file: get("via-auth-file") },
             vless: get("vless"),
             hysteria: get("hysteria"),
+            tuic: get("tuic"),
             quick: matches.get_flag("quick"),
             tier: matches.get_flag("tier"),
             jobs: get("jobs"),
@@ -479,22 +484,4 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
     let sftp = (verb.name == "sftp").then(|| Box::new(crate::sftp::SftpArgs::from_matches(&matches)));
     let chat = (verb.name == "chat").then(|| Box::new(crate::chat::ChatArgs::from_matches(&matches)));
     Parsed::Command { verb: verb.name, refused, tag, timeout, jsonl, ssh, keygen, cp, sftp, chat }
-}
-
-/// Whether an argument id was actually supplied, under either spelling.
-///
-/// A boolean flag that was not given is still present in `ArgMatches` with
-/// the value `false`, so "contains the id" is not enough — the value has to be
-/// read, or the flag has to be true.
-fn was_given(m: &ArgMatches, id: &str) -> bool {
-    if let Ok(Some(v)) = m.try_get_one::<bool>(id) {
-        return *v;
-    }
-    if let Ok(Some(_)) = m.try_get_one::<String>(id) {
-        return true;
-    }
-    if let Ok(Some(v)) = m.try_get_one::<u8>(id) {
-        return *v > 0;
-    }
-    m.try_contains_id(id).unwrap_or(false)
 }

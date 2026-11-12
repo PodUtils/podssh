@@ -115,7 +115,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 71 open, 22 partial, 11 blocked, 605 done.
+`TODO/INDEX.md` holds 709 entries: 71 open, 21 partial, 11 blocked, 606 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -138,7 +138,7 @@ operator interrupts it.
    `pod-relay`).
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
    entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-571, T-574 to
-   T-576, T-578, T-581 and T-582, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
+   T-576, T-578 and T-582, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
@@ -193,7 +193,7 @@ parts are named so that the open ones read in their place):
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and
-   T-575 parked); and the roads over UDP (T-581, T-582; Hysteria 2's is done). These are features of a tester's
+   T-575 parked); and the roads over UDP (T-582; Hysteria 2's and TUIC's are done). These are features of a tester's
    report and of the sweep, done after the defects (Q85). Then what the archive of forward
    carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the
    Wisp demo server through podssh (T-625), TURN with RFC 6062 for a server that the user runs

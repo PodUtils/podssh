@@ -50,11 +50,13 @@ mod host;
 mod http2;
 // The servers of --hysteria, where UDP passes (T-580).
 mod hysteria;
+// The servers of --tuic, where UDP passes (T-581).
 mod ipv6;
 #[cfg(feature = "iroh")]
 mod iroh;
 pub mod listeners;
 mod names;
+mod tuic;
 // Whether the NAT keeps one mapping across destinations (T-641).
 mod nat;
 mod net;
@@ -120,6 +122,8 @@ pub struct DoctorArgs {
     pub vless: Option<String>,
     /// `--hysteria`: the file whose servers are checked (T-580).
     pub hysteria: Option<String>,
+    /// `--tuic`: the file whose servers are checked (T-581).
+    pub tuic: Option<String>,
     /// `--quick`: this host, the egress and the relay, with the roads that
     /// the run names, and none of the others (T-511).
     pub quick: bool,
@@ -173,6 +177,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         Err(refusal) => return refusal.report("doctor", err),
     };
     let quic_links = match crate::hysteria::for_doctor(args.hysteria.as_deref()) {
+        Ok(links) => links,
+        Err(refusal) => return refusal.report("doctor", err),
+    };
+    let tuic_links = match crate::tuic::for_doctor(args.tuic.as_deref()) {
         Ok(links) => links,
         Err(refusal) => return refusal.report("doctor", err),
     };
@@ -259,6 +267,9 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         if quic_links.is_some() {
             report.unknown("hysteria", "not attempted: PODSSH_OFFLINE is set");
         }
+        if tuic_links.is_some() {
+            report.unknown("tuic", "not attempted: PODSSH_OFFLINE is set");
+        }
         if exit.is_some() {
             report.unknown("exit", "not attempted: PODSSH_OFFLINE is set");
         }
@@ -286,6 +297,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
                 road: road.as_ref(),
                 links: links.as_ref(),
                 hysteria: quic_links.as_ref(),
+                tuic: tuic_links.as_ref(),
                 exit: exit.as_ref(),
                 quick: args.quick,
                 jobs,

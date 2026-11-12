@@ -24,3 +24,16 @@ pub const SSH_TUIC: &str = "--tuic FILE reaches the first hop through TUIC serve
      target's name and SSH's encrypted bytes. A run has one road: --relay-host, --relay-failover, --direct, \
      --forwarder, --shadowsocks, --via, --vless, --trojan, --wstunnel, --chisel, -4, -6, and a destination with a \
      road of its own cannot go with it (64).";
+
+/// The note of `podssh proxy --tuic` (T-581).
+pub const PROXY_TUIC: &str = "podssh proxy --tuic FILE carries the pipe through the TUIC servers of FILE, in \
+     order, with no relay, where UDP passes, as podssh ssh does (see its notes); the flag wins over \
+     PODSSH_CHISEL, PODSSH_WSTUNNEL and PODSSH_VIA. A TUIC server never answers the request, so a pipe whose \
+     client speaks first takes the stream after 3 s of silence. The end of stdin closes the stream's way up, \
+     which the server passes on to the target.";
+
+/// The note of `podssh doctor --tuic` (T-581).
+pub const DOCTOR_TUIC: &str = "With --tuic FILE, the section tuic gives a line for each server of FILE, after \
+     the roads over TCP and Hysteria's: whether UDP reaches its port, and the time of the session through it, \
+     then a session to github.com port 22 through it, whose host key must be one that GitHub publishes. Where \
+     the probe gets no answer, the line says that UDP does not pass here, with no wait for QUIC.";

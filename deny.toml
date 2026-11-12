@@ -81,6 +81,9 @@ exceptions = [
   { allow = ["MPL-2.0"], crate = "priority-queue" },
   { allow = ["Unlicense"], crate = "async_executors" },
   { allow = ["CC0-1.0"], crate = "notify" },
+  # Its onion services (T-578): Boost's permissive license, through
+  # tor-hsservice's growable-bloom-filter, the crate unchanged.
+  { allow = ["BSL-1.0"], crate = "xxhash-rust" },
   # Yggdrasil's router (feature yggdrasil, T-735): copyleft for each file, the
   # crate unchanged in its own repository, as ZeroTier's core is (T-733).
   { allow = ["MPL-2.0"], crate = "ironwood" },

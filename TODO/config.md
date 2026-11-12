@@ -626,8 +626,8 @@ output. Planted defect: copy the password field into a comment; the secret test 
 `crates/podssh-cli/src/config_import/mod.rs:177-230`; the verb in the
 tables at `crates/podssh-cli/src/flags.rs:438-439`,
 `crates/podssh-cli/src/positionals.rs:241-246`,
-`crates/podssh-cli/src/tree.rs:333-339` and
-`crates/podssh-cli/src/dispatch.rs:196-197`.
+`crates/podssh-cli/src/tree.rs:337-343` and
+`crates/podssh-cli/src/dispatch.rs:198-199`.
 - `cargo test -p podssh-cli --test config_import`: 5 passed. The fixture
   `crates/podssh-cli/tests/fixtures/ansible/inventory.ini`, read by
   ansible-core 2.21.0 in the build image (`inventory.list.json` and
@@ -673,9 +673,9 @@ command, or edits a shell profile. No file states them once.
 Read: each command resolves the same settings in its own copy. Relay hosts (`--relay-host`,
 then `PODSSH_RELAY`, then the default and the pool: `PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`)
 go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-92`), called in
-`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:148-151` and
-`crates/podssh-cli/src/proxy.rs:251-254`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
-`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:183-202` and
+`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:152-155` and
+`crates/podssh-cli/src/proxy.rs:261-264`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
+`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:191-210` and
 `crates/podssh-cli/src/proxy.rs`, lines 100-104 at `99743e6`. The pins of the flag and of the variable add up
 (`crates/podssh-cli/src/pins.rs:15-40`). The token cache uses the user's
 cache directory first, after the directory of `PODSSH_CACHE_DIR` (T-243;
@@ -765,8 +765,8 @@ of a bad file at `crates/podssh-cli/src/pins.rs:13-40`, the CA file at
 `crates/podssh-cli/src/ssh/resolve.rs:95-99`; `status` at
 `crates/podssh-cli/src/status.rs:65` and
 `crates/podssh-cli/src/status.rs:80`, `doctor` at
-`crates/podssh-cli/src/doctor/mod.rs:200` and
-`crates/podssh-cli/src/doctor/mod.rs:223`.
+`crates/podssh-cli/src/doctor/mod.rs:208` and
+`crates/podssh-cli/src/doctor/mod.rs:231`.
 - `cargo test -p podssh-cli --test settings`: 4 passed here, and 5 in the
   build image (`sh scripts/dev.sh run`), with the test of Unix: `status`
   takes the file's relay hosts, `PODSSH_RELAY` beats it and

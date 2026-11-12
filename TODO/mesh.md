@@ -9661,11 +9661,14 @@ Merged on 2026-11-12 (the draft `draft-t578`, `2fe94e3`, built and run; steps 2 
 - The live run, first try (`tor-live.yml` with `onion: yes`, run 43185779542, at `1043025`): the node's client
   bootstrapped on Tor's own network, but its service stayed `Bootstrapping`, with no problem reported, for the
   whole 180 s of the test network's wait, so no descriptor was published and no stream ran. The introduction
-  points and the upload take minutes there: the live test now waits 600 s (`LIVE_PUBLISH`); run it again.
+  points and the upload take minutes there: the live test now waits 600 s (`LIVE_PUBLISH`).
+- The live run, second try (run 43194481837, at `c2d44ad`): passed in 329 s on Tor's own network: a throwaway
+  service published its descriptor, a second client with the key of discovery reached it, 1 MiB each way, and the
+  service stopped. The Decision's live run is done.
 - Next: (1) a test of the command line from end to end on chutney (`podssh ssh node://NAME` through the onion
   road alone, as `tor_private` runs the Tor road); (2) the record of pkarr (an `onion=` key and the node's
-  `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) the live run of the Decision (Q91)
-  from Actions, `tor-live.yml` with `onion: yes`; (4) `docs/carriers.md`'s verdict on onion services.
+  `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) `docs/carriers.md`'s verdict on onion
+  services.
 
 # T-579: libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session
 
@@ -9877,7 +9880,7 @@ Done (2026-11-12). The draft `draft-t580` (`6f6f53b`) merged after T-581's, buil
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -9964,8 +9967,8 @@ version line first, as `crates/podssh-ws/tests/vmess.rs` uses; the server is Its
 
 ## Done
 
-Partial (2026-11-12): the draft `draft-t581` (`38b6c3e`) merged, built and tested; `podssh proxy --tuic` and
-`podssh doctor --tuic` remain, then a short live run where UDP passes.
+Done (2026-11-12): the draft `draft-t581` (`38b6c3e`) merged, built and tested; `podssh proxy --tuic` and
+`podssh doctor --tuic` added after it, as Hysteria's (T-580).
 
 - `crates/podssh-ws/src/tuic/` (feature `quic`, which the binary turns on): the link (`tuic://UUID:PASSWORD@HOST:PORT`,
   the credential redacted; `allow_insecure`, a version other than 5 and an unknown controller refused), the
@@ -9985,6 +9988,14 @@ Partial (2026-11-12): the draft `draft-t581` (`38b6c3e`) merged, built and teste
 - `cargo test -p podssh-ws --features quic --lib tuic`, 8 passed; `cargo test -p podssh-cli --lib`, 1120 passed;
   clippy of podssh-cli and podssh-ws with `quic` as the gate runs it, no warning. rustfmt expanded one merged
   `use` of `ssh/resolve.rs` past 500 lines: the imports are now plain lines (500).
+- `podssh proxy --tuic FILE` (`crates/podssh-cli/src/tuic/pipe.rs`: a pipe takes the stream after 3 s of silence,
+  as TUIC's server never answers) and `podssh doctor --tuic FILE` (`doctor/tuic.rs`, the section `tuic` after
+  Hysteria's), with their flag rows and notes. By hand against tuic-server v2.0.0-dev10 on the loopback: `podssh
+  proxy --tuic links.txt --ca-file ca.pem 127.0.0.1 PORT` carried a target's banner and an echo, exit 0; `doctor
+  --tuic` gave its section, here a FAIL that names the cause (this cloud's egress takes HTTPS alone, so the server
+  reached no github.com:22). `--tuic` and `--hysteria` refuse each other on `proxy` too (`tests/one_road.rs`).
+  `tree.rs` past 500 lines: `was_given` moved to `tree/given.rs`.
+- `tuic-interop.yml` passed from Actions at `c2d44ad`.
 
 # T-582: MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes
 
@@ -10633,7 +10644,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
   its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:150`).
+  (`docs/STATUS.md:151`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.

@@ -58,11 +58,11 @@ road). Each has a planted run that must fail, and each did.
 | --- | --- |
 | T-571 | Partial. Done but for `pod-services`' list (#209): take it with the next tag, run `strelay-interop.yml`, close. |
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
-| T-578 | Partial. Merged and tested on chutney (3 passed, 2 plants caught). Next: a test of the command line from end to end on chutney, pkarr's `onion=`, the live run (`tor-live.yml`, `onion: yes`). |
+| T-578 | Partial. Tested on chutney and live on Tor's own network (329 s). Next: a test of the command line from end to end on chutney, then pkarr's `onion=`. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
 | T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` passed from Actions (run 43178390705). |
 | T-580 | Done (2026-11-12): against Hysteria's own server; `hysteria-interop.yml` from Actions. |
-| T-581 | Partial: `proxy --tuic`, `doctor --tuic` and a live run remain; `tuic-interop.yml` from Actions. |
+| T-581 | Done (2026-11-12): `--tuic` for ssh, proxy and doctor; `tuic-interop.yml` from Actions. |
 | T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
 | T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
 | T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |

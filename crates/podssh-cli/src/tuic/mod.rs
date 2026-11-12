@@ -9,6 +9,7 @@
 //! (`podssh_ws::tuic`). The host key of SSH protects the session, as on each
 //! road: the server sees the target's name and SSH's encrypted bytes.
 
+pub mod pipe;
 pub mod reach;
 
 use std::path::Path;
@@ -97,6 +98,11 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         other => crate::ssh::servers::road_name(other),
     };
     Err(Refusal::usage(format!("--tuic cannot go with {other}, which is a road of its own; a run has one road")))
+}
+
+/// The servers that `doctor --tuic FILE` checks, or none without the flag.
+pub fn for_doctor(path: Option<&str>) -> Result<Option<Servers>, Refusal> {
+    path.map(read).transpose()
 }
 
 #[cfg(test)]

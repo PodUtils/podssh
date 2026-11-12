@@ -6413,5 +6413,7 @@ on).
   controller. `congestion_control`, `udp_relay_mode`, `disable_sni` and
   `reduce_rtt` pass: the first is the sender's own, and the road carries no
   UDP of its own.
-- `podssh proxy --tuic` and `doctor --tuic` are not there yet (T-581's
-  `## Done`).
+- `podssh proxy --tuic FILE HOST PORT` is the pipe of `ProxyCommand`
+  through the same servers: TUIC's server never answers a request, so a
+  pipe takes the stream after 3 s of silence. `podssh doctor --tuic FILE`
+  checks each server: UDP to its port, then GitHub's host key through it.

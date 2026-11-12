@@ -58,6 +58,9 @@ pub struct ProxyArgs {
     /// `--hysteria`: the file of Hysteria 2 servers in place of the relay,
     /// where UDP passes (T-580).
     pub hysteria: Option<String>,
+    /// `--tuic`: the file of TUIC servers in place of the relay, where UDP
+    /// passes (T-581).
+    pub tuic: Option<String>,
     /// `--wstunnel` and `--wstunnel-secret-file`: a wstunnel server in place
     /// of the relay (T-441).
     pub wstunnel: crate::wstunnel::Flags,
@@ -113,7 +116,8 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
         .and_then(|()| crate::wstunnel::pipe::beside(args))
         .and_then(|()| crate::chisel::pipe::beside(args))
         .and_then(|()| crate::trojan::pipe::beside(args))
-        .and_then(|()| crate::hysteria::pipe::beside(args));
+        .and_then(|()| crate::hysteria::pipe::beside(args))
+        .and_then(|()| crate::tuic::pipe::beside(args));
     if let Err(refusal) = beside.and_then(|()| crate::proxy_alone::key_alone(args)) {
         return refusal.report("proxy", err);
     }
@@ -163,6 +167,7 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
                 || args.vless.is_some()
                 || args.trojan.is_some()
                 || args.hysteria.is_some()
+                || args.tuic.is_some()
                 || args.via != crate::via::Flags::default()
                 || args.wstunnel != crate::wstunnel::Flags::default()
                 || args.chisel != crate::chisel::Flags::default();
@@ -202,6 +207,11 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
     if let Some(path) = args.hysteria.as_deref() {
         crate::connect_bound::step("no Hysteria 2 server answered");
         return crate::hysteria::pipe::run(path, &host, port, args.ca_file.as_deref(), err);
+    }
+    // The TUIC servers of a file (T-581), over QUIC as Hysteria's.
+    if let Some(path) = args.tuic.as_deref() {
+        crate::connect_bound::step("no TUIC server answered");
+        return crate::tuic::pipe::run(path, &host, port, args.ca_file.as_deref(), err);
     }
     match crate::chisel::pipe::chosen(args) {
         Ok(Some(road)) => {

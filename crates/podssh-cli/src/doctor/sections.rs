@@ -3,7 +3,7 @@
 //! and how many start together. `--quick` keeps this host, the egress and
 //! the relay, what each run of `ssh` and `proxy` needs, with the roads that
 //! the run names (`--forwarder`, `--shadowsocks`, `--via`, `--vless`,
-//! `--hysteria`), and a line names the sections that it left out.
+//! `--hysteria`, `--tuic`), and a line names the sections that it left out.
 
 use podssh_relay::failover::Mode;
 use podssh_relay::relay::RelayList;
@@ -33,6 +33,8 @@ pub(super) struct Checks<'a> {
     pub(super) links: Option<&'a crate::vless::Servers>,
     /// The servers of `--hysteria`, when it names a file (T-580).
     pub(super) hysteria: Option<&'a crate::hysteria::Servers>,
+    /// The servers of `--tuic`, when it names a file (T-581).
+    pub(super) tuic: Option<&'a crate::tuic::Servers>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
@@ -61,6 +63,8 @@ pub(super) enum Kind {
     Vless,
     /// The servers of `--hysteria`, where UDP passes (T-580).
     Hysteria,
+    /// The servers of `--tuic`, where UDP passes (T-581).
+    Tuic,
     /// The exit of `--exit NAME` (T-458).
     Exit,
     /// What the path does to a stream (T-325).
@@ -90,6 +94,7 @@ impl Kind {
             Kind::Via => "via",
             Kind::Vless => "vless",
             Kind::Hysteria => "hysteria",
+            Kind::Tuic => "tuic",
             Kind::Exit => "exit",
             Kind::Stream => "stream",
             #[cfg(feature = "iroh")]
@@ -147,6 +152,13 @@ pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
         let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless);
         let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Hysteria);
+    }
+    // TUIC's after Hysteria's: both over QUIC, after the roads over TCP.
+    if checks.tuic.is_some() {
+        let before =
+            |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Hysteria);
+        let after = kinds.iter().rposition(before).map_or(kinds.len(), |at| at + 1);
+        kinds.insert(after, Kind::Tuic);
     }
     let json = report.json;
     let start = |i: usize, seat: Seat| part(kinds[i], seat, json, checks);
@@ -211,6 +223,11 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Hysteria => {
             if let Some(servers) = checks.hysteria {
                 super::hysteria::check(report, servers, trust).await;
+            }
+        }
+        Kind::Tuic => {
+            if let Some(servers) = checks.tuic {
+                super::tuic::check(report, servers, trust).await;
             }
         }
         Kind::Exit => {
