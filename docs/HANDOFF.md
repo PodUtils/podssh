@@ -20,13 +20,14 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.32.0"` (COORD-061, PodUtils/podcrates#93; podssh's
-answer is COORD-042).
+podssh pins every podcrates crate at `tag = "v0.33.0"` (COORD-064, PodUtils/podcrates#103; podssh's
+answer is COORD-043).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
   Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- The next tag: `pod-devtunnel` (podcrates T-378) unblocks T-755 (#216); hostc's service is already in v0.32.0 for T-742.
+- v0.33.0 brings `pod-devtunnel` (podcrates T-378), which unblocks T-755 (#216, drafted on `draft-t755`), and
+  `pod-turn`, whose STUN codec `pod_proxy::stun` re-exports for the TURN road.
 
 ## Open COORD issues
 

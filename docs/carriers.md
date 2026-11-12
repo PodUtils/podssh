@@ -1065,6 +1065,10 @@ are read; none was run for this reading, and the feature entries below carry the
   - Verdict: it passes. A last fallback of the reverse road (Q78): the node makes a tunnel and
     serves the relay role behind it, as behind the quick tunnel, over a protocol that podssh
     speaks itself; T-742 is its entry.
+    Built and measured on 2026-11-12 (T-742): against hostc's own server at `c19ff67`, 1 MiB
+    each way through the role behind a tunnel, and `podssh ssh node://` through it with the
+    pair's road down; live through `hostc.app`, from GitHub Actions, the tunnel in 1.7 s and the
+    role's `/health` at its name in 3.3 s (`hostc-interop.yml`, run 43286907204).
 - **Tunnelmole** (T-624; out).
   - Who, and the terms: Tunnelmole Pty Ltd, "only one maintainer"; the client is MIT, the
     service AGPL-3.0 with a commercial licence on offer [TM1] [TM2]. Its terms are a PDF of

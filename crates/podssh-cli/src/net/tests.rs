@@ -231,3 +231,30 @@ fn the_relay_host_of_add_is_one_host_and_only_with_the_role_relay() {
     let bad = host("not a host!").unwrap_err();
     assert!(bad.code == 64 && bad.message.starts_with("--relay-host: "), "{bad}");
 }
+
+/// A member named by the display form of its fingerprint (pod-identity's
+/// A11) is written in that form, and the document reads it back as the
+/// same name, which matches the key and no other.
+#[test]
+fn a_member_named_by_the_display_form_reads_back_as_that_name() {
+    use podssh_relay::identity::{Identity, KeyName};
+    let (_, first) = owned();
+    let key = Identity::from_seed(&[0x5a; 32]).public();
+    let display = key.display_fingerprint().to_string();
+    let name = KeyName::parse(&display).expect("the display form is a key's name");
+    assert!(matches!(name, KeyName::Display(_)), "{name:?}");
+    let member = doc::Member {
+        name: "lab".into(),
+        key: name,
+        roles: vec!["node".into()],
+        tickets: Default::default(),
+        routes: Vec::new(),
+        relay: None,
+        shares: Vec::new(),
+    };
+    let value = doc::member_value(&member);
+    assert_eq!(value["key"].as_str(), Some(display.as_str()));
+    let next = first.next(1_793_577_700, 4_102_444_800, |list| list.push(value)).unwrap();
+    let read = &next.members[0].key;
+    assert!(read.matches(&key) && !read.matches(&Identity::from_seed(&[0x5b; 32]).public()), "{read:?}");
+}

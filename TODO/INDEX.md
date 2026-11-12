@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 66 open, 20 partial, 11 blocked, 613 done.**
+**710 entries: 66 open, 19 partial, 11 blocked, 614 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 37 | 8 | 7 | 279 | 331 |
-| **All** | 66 | 20 | 11 | 613 | 710 |
+| P3 | 37 | 7 | 7 | 280 | 331 |
+| **All** | 66 | 19 | 11 | 614 | 710 |
 
 ## Entries
 
@@ -772,7 +772,7 @@ repository and CI).
 | [T-739](mesh.md) | P3 | M | M10 | feature | done | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
 | [T-741](mesh.md) | P3 | M | M10 | feature | done | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
-| [T-742](mesh.md) | P3 | M | M10 | feature | partial | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
+| [T-742](mesh.md) | P3 | M | M10 | feature | done | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
 | [T-743](mesh.md) | P3 | S | M10 | feature | done | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |

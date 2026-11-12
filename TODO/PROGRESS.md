@@ -33,13 +33,17 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.32.0` (COORD-061, PodUtils/podcrates#93). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.33.0` (COORD-064, PodUtils/podcrates#103). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-582's, T-621's, T-741's and T-742's are merged).
+8. **Drafts.** One is being written, never built (T-582's, T-621's, T-741's and T-742's are merged):
+
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | T-755 | `draft-t755` | (in work) | a drafting agent writes the Dev Tunnels road over `pod-devtunnel` of v0.33.0 |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -76,7 +80,7 @@ item whenever it appears.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
     run): T-576, T-738 (T-571, T-578, T-737 and T-739 are done; T-740 stays blocked; T-566, T-567 and
-    T-575 are parked), then T-625 and T-742 (T-580, T-581, T-582 and T-621 are done). Done when each Prove passes, one entry at a time.
+    T-575 are parked), then T-625 (T-580, T-581, T-582, T-621 and T-742 are done; T-625 waits for the throughput host's secrets). Done when each Prove passes, one entry at a time.
 13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
     complete, so that the testers test finished features. Questions that come up overnight are
     settled with the other sessions by COORD issues, and forks of policy as Q86 says.
@@ -110,7 +114,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 66 open, 20 partial, 11 blocked, 613 done.
+`TODO/INDEX.md` holds 710 entries: 66 open, 19 partial, 11 blocked, 614 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -192,7 +196,7 @@ parts are named so that the open ones read in their place):
    carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the
    Wisp demo server through podssh (T-625), TURN with RFC 6062 for a server that the user runs
    (done), the research of smee.io, of three hosted tunnels and of I2P, Nym and cjdns (done; it
-   filed smee.io as a last fallback, done, hostc's, T-742, and Sandhole's public server as a host
+   filed smee.io as a last fallback, done, hostc's, done, and Sandhole's public server as a host
    of the localhost.run road's module, done), and the HTTP road's one-POST form (T-622, parked).
 5. T-446: the next beta `v1.1.0-beta.N` when podssh is nearly complete, and `v1.1.0` at the end,
    once the migration is done.

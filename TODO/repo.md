@@ -5710,6 +5710,13 @@ once found coturn gone at its start: its port, picked by `free_port`, was taken 
 coturn's bind, while the readiness loop's connect found that listener; the harness now checks that coturn itself
 stays up, else tries another port (`turn_road`, 4 passed, twice).
 
+2026-11-12, podcrates `v0.33.0` (`8edf8af`, COORD-064, PodUtils/podcrates#103): each crate moved; no patch for podssh.
+New: `pod-turn` (the STUN codec, which `pod_proxy::stun` re-exports, so the TURN road needs only the tag) and
+`pod-devtunnel` (#216, for T-755). Two changes of an API: pod-session's `End::GaveUp` holds a `GaveUp { cause,
+reason }` (`layered.rs` reads `.reason`), and pod-identity's `KeyName` has a display form of a fingerprint, which a
+net's member is now written in as given (`net/doc.rs`; `a_member_named_by_the_display_form_reads_back_as_that_name`).
+`cargo test --workspace --no-fail-fast`: 3927 passed, 0 failed, 94 ignored.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

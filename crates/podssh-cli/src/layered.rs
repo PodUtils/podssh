@@ -364,7 +364,9 @@ pub(crate) fn why_ended(outcome: Outcome) -> Option<String> {
                 Some(format!("the far end ended the session: {}", podssh_ws::text::one_line(&reason)))
             }
             End::Broken(e) => Some(e.to_string()),
-            End::GaveUp(reason) => Some(format!("the session could not go on: {}", podssh_ws::text::one_line(&reason))),
+            End::GaveUp(gave) => {
+                Some(format!("the session could not go on: {}", podssh_ws::text::one_line(&gave.reason)))
+            }
             // The leg's close code and reason say more of a lost link.
             End::Closed(_)
             | End::LocalEnd

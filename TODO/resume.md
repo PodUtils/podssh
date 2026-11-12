@@ -1963,8 +1963,8 @@ a full-screen program is written into its screen.
 
 ## Premise
 
-- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:420`) and a
-  resume (`crates/podssh-cli/src/layered.rs:431`). The heartbeat each 10 s, and a link dead after
+- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:422`) and a
+  resume (`crates/podssh-cli/src/layered.rs:433`). The heartbeat each 10 s, and a link dead after
   30 s with nothing from the far end (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:62`,
   `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`). The forward road's checks
   (`docs/design.md:688`).
@@ -2073,8 +2073,8 @@ that gives `Line` to a terminal in raw mode; in the model, the control
 ## Correction
 
 The first item of the Premise cites the layer's lines at lines of `next_leg`, which opens a new
-leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:471`) and a resume
-(`crates/podssh-cli/src/layered.rs:482`). What the item says of them holds.
+leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:473`) and a resume
+(`crates/podssh-cli/src/layered.rs:484`). What the item says of them holds.
 
 ## Done
 

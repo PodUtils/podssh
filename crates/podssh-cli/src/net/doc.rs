@@ -254,6 +254,8 @@ pub fn member_value(member: &Member) -> Value {
     let key = match &member.key {
         KeyName::Key(key) => key.hex(),
         KeyName::Fingerprint(print) => print.clone(),
+        // The display form, as written: it reads back as the same name.
+        KeyName::Display(display) => display.to_string(),
     };
     let mut value = json!({ "name": member.name, "key": key, "roles": member.roles, "tickets": member.tickets });
     // Only an exit's, so that a member with none is written as before.
