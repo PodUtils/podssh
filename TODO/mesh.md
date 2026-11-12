@@ -9042,7 +9042,7 @@ the client's connect request and its session, 100 ms after the invitation so tha
   `strelay-interop.yml` builds `strelaysrv` at its tag and runs the tests and the plants on each push of the road;
   its job `live`, by hand, takes the relays on 443 of the pool's own list at run time and runs `derp_strelay`
   through each until one passes. UNVERIFIED until its first run on Actions. The list of `pod-services` is asked of
-  podcrates.
+  podcrates as COORD-035 (GitHub #209, 2026-11-12: 8 of the pool's 100 relays were on 443).
 
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research

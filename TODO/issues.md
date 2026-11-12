@@ -271,6 +271,8 @@ and num-bigint 0.5) are T-754.
 | #205 | COORD-031: a meeting point of the pairing over public MQTT brokers on 443 in pod-wormhole, for podssh's T-737 (to podcrates) | open (2026-11-12: asked) | T-737 |
 | #206 | COORD-032: pod-relay taken at v0.27.0 in podssh 0872c2c6 (to podcrates) | closed 2026-11-12: podcrates recorded the take in v0.28.0 | T-684 |
 | #207 | COORD-033: Q90's live check of the proxy nodes: drop two of the ten (to podcrates) | open (2026-11-12: asked) | T-574 |
+| #208 | COORD-034: podcrates v0.28.0 taken in podssh 12473a10 (to podcrates) | closed 2026-11-12: a report of the take, with adeae2eb | T-684 |
+| #209 | COORD-035: a service of Syncthing's public relays on 443 in pod-services, for podssh's T-571 (to podcrates) | open (2026-11-12: asked) | T-571 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
