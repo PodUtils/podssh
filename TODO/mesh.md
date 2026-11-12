@@ -9327,7 +9327,11 @@ passed; `--lib proxy_nodes`: 8 passed; clippy (`-D warnings`) clean. Planted, th
 SSH's version line comes back; each node that fails is named for the catalog to drop. The catalog of podcrates
 v0.26.0 ships ten nodes (two VLESS, eight Trojan). From this cloud session each failed at TLS with a reset, which is
 the session's proxy's (as the Tox road's relays were reset here); the check is the workflow's on Actions.
-UNVERIFIED until its first run there.
+On Actions (run 43157171177, at `0872c2c6`): 8 of the 10 nodes carried a session to `github.com:22` (one VLESS
+node and seven Trojan nodes gave GitHub's version line); the VLESS node at `78.17.39.129` refused the connection
+and the Trojan node at `70.34.207.14` timed out. Asked of podcrates to drop the two from the catalog (Q90),
+COORD-033 (#207). What stays: the run against Xray-core of the Prove, `release-short.sh`'s check, and the check
+again after podcrates' next tag.
 
 
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
@@ -10409,7 +10413,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:302-303`), and needs the net's role exit, signed by
   its owner (`:300-301`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:143`).
+  (`docs/STATUS.md:144`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13195,7 +13199,7 @@ open); until then a peer is named by `PODSSH_YGGDRASIL`.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13304,7 +13308,13 @@ end; a client joins the topic, takes the first connection whose remote key is th
   allowlist above the stream is the end-to-end channel's, whose plants are its own (Correction).
   `hyperdht-interop.yml` installs Node.js's `hyperdht` 6.36.0 and runs the tests and the plant on each push of the
   road; its job `live`, by hand, reads the public bootstrap from the package's constants at run time and runs
-  `derp_hyperdht` through the public DHT. UNVERIFIED until its first run on Actions.
+  `derp_hyperdht` through the public DHT. On Actions (run 43152296592, at `2a1527a3`): `interop` passed (the
+  tests in a private DHT of Node.js's `hyperdht` 6.36.0, and the plant, caught); `live` passed through HyperDHT's
+  public DHT, its bootstrap read from the package's constants: `podssh ssh node://` through HyperDHT's road in
+  7.9 s.
+
+Done, 2026-11-12. The road reads `pod-services`' bootstrap once podcrates names it (COORD-030, #204, open); until
+then a DHT is named by `PODSSH_HYPERDHT`.
 
 # T-737: Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers'
 

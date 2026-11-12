@@ -270,6 +270,7 @@ and num-bigint 0.5) are T-754.
 | #204 | COORD-030: a service of HyperDHT's public bootstrap nodes in pod-services, for podssh's T-736 (to podcrates) | open (2026-11-12: asked) | T-736 |
 | #205 | COORD-031: a meeting point of the pairing over public MQTT brokers on 443 in pod-wormhole, for podssh's T-737 (to podcrates) | open (2026-11-12: asked) | T-737 |
 | #206 | COORD-032: pod-relay taken at v0.27.0 in podssh 0872c2c6 (to podcrates) | open (2026-11-12: written; closes when podcrates records the take) | T-684 |
+| #207 | COORD-033: Q90's live check of the proxy nodes: drop two of the ten (to podcrates) | open (2026-11-12: asked) | T-574 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

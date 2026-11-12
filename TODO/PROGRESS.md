@@ -75,13 +75,12 @@ item whenever it appears.
    `pod-services` wait for podcrates, #196).
 7. **T-735: Yggdrasil's `wss://` peers on 443** is done (2026-11-12: live through a public peer from
    Actions in 8.0 s; the peers of `pod-services` wait for podcrates, #203).
-8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
-   its Prove passes.
+8. **T-736: HyperDHT where UDP passes** is done (2026-11-12: live through the public DHT from Actions in
+   7.9 s; the bootstrap of `pod-services` waits for podcrates, #204).
 9. **T-737: public MQTT brokers as a meeting point** is blocked on podcrates: the meeting points are
    `pod-wormhole`'s (Rule Q3), asked as COORD-031 (#205).
-10. **T-574: the new Trojan node ids** (live, after 2026-11-12T03:05Z: Q90's live check of the
-    nodes). Why: the ids arrive then; until then T-574 waits. Done when the live check passes, or
-    its `## Done` says what it found.
+10. **T-574: Q90's live check of the nodes** ran (2026-11-12): 8 of 10 carried; two asked to be dropped
+    (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
     run): T-571, T-576, T-578, T-738, T-739 (T-740 stays blocked; T-566, T-567 and T-575 are
@@ -120,7 +119,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 76 open, 20 partial, 11 blocked, 602 done.
+`TODO/INDEX.md` holds 709 entries: 76 open, 19 partial, 11 blocked, 603 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -194,7 +193,7 @@ parts are named so that the open ones read in their place):
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
-   peers (done), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
+   peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (T-739) and Bare servers as a hop (T-740); T-566, T-567 and
