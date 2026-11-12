@@ -13419,7 +13419,14 @@ operator confirms (T-548's Decision).
 
 ## Blocker
 
-PodUtils/podcrates: the meeting points of the pairing are `pod-wormhole`'s (`meet.rs`, `mailbox.rs`), which
+2026-11-12, at podcrates v0.29.0 (`a4d3630`): `pod_wormhole::mqtt` is there (#205 answered), but the runs of a
+code that podssh calls (`pod_relay::code::run`, `give_with` and `take_with`) meet only through `run::opened` and
+`run::joined` over `Ends.mailboxes`, and `Ends` holds no broker, so podssh's glue cannot add the brokers after the
+mailboxes. Asked of podcrates as COORD-036 (#210): `Ends` takes the brokers, and the runs try them after each
+mailbox failed. podssh's part then: the services of the kind `mqtt-broker`, `PODSSH_MQTT=no`, the line of the third
+party, the test against Eclipse Mosquitto and the live run.
+
+Before (2026-11-12): PodUtils/podcrates: the meeting points of the pairing are `pod-wormhole`'s (`meet.rs`, `mailbox.rs`), which
 podssh took at v0.26.0, so a meeting point over MQTT is podcrates' work (the rule of a taken crate,
 `docs/decisions.md`). Asked as COORD-031 (#205),
 2026-11-12. podssh's part, once `pod-wormhole` offers it: its place in the pairing's order after Nostr's and the
@@ -13555,7 +13562,8 @@ the list reader's `vmess://` lines (`proxy_nodes/list.rs`); the manual's `PODSSH
   3 passed in 3.2 s: AES-128-GCM, ChaCha20-Poly1305 and `auto` each carry the target's version line and 300 KB
   echoed whole; a pipe takes a stream whose target waits; a clock 5 minutes behind, 5 minutes ahead, and another ID
   each get no session, with a line that names the clock; another path is refused by its status. With no Xray-core
-  each test says "did not run", and `vmess-interop.yml` (by hand, and on a push of the road) fails on that word.
+  each test says "did not run", and `vmess-interop.yml` (by hand, and on a push of the road) fails on that word;
+  from Actions it passed at `e475a63` (run 43178390705: 3 passed).
 - Xray's `freedom` blackholes a private target unless a final rule allows it (`proxy/freedom/freedom.go`): the
   test's configuration allows `127.0.0.0/8`, as `interop-vless.sh` allows its private ranges.
 - Planted: the label `VMess Header AEAD Key` changed by one byte, and `each_cipher_carries_a_session_through_xray`

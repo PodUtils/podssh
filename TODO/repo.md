@@ -5676,6 +5676,14 @@ podssh-relay --all-features`: 55 targets, 631 passed; `cargo test -p podssh-cli 
 tox,yggdrasil,hyperdht,strelay --lib --test derp_road`: 1128 passed; clippy of the five crates with those features:
 no warning.
 
+2026-11-12, podcrates `v0.29.0` (`a4d3630`, COORD-055, PodUtils/podcrates#87): each podcrates crate moved to it; its
+adoption folder for podssh holds no patch, and no change of podssh's code was needed. It brings `pod_wormhole::mqtt`
+(#205, but the runs of `pod-relay` do not reach it yet: COORD-036, #210, for T-737), the bracketed `Host` of an IPv6
+relay and one cache file for each host in `pod-relay` (one more mint and one more read of a pool after the take: the
+old files are not read), `reverse::channel`, and drops `node-xhttp-78-17-39-129` from `pod-services` (#207).
+`Failed::Unreachable` has new words ("no meeting point could be reached"); podssh quotes none of them. `cargo test
+-p podssh-cli -p podssh-relay -p podssh-ws -p podssh-ssh --no-fail-fast`: 3404 passed, 0 failed, 87 ignored.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

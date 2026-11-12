@@ -21,23 +21,20 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.28.0"` (COORD-054, PodUtils/podcrates#86; podssh's
-report is COORD-034, #208).
+podssh pins every podcrates crate at `tag = "v0.29.0"` (COORD-055, PodUtils/podcrates#87; podssh's
+report is COORD-037).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
   Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- The next tag brings, as podcrates said: the MQTT meeting point (`pod_wormhole::mqtt`, for T-737),
-  forward-url's keyboard-interactive login (serveo), and the drop of `node-xhttp-78-17-39-129` (#207).
+- The next tag brings, as podcrates said: the service `syncthing-relay` of #209 (podcrates T-276), for T-571.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #205 (COORD-031) | The MQTT meeting point in pod-wormhole; then T-737 is unblocked |
-| #207 (COORD-033) | The next tag's drop of the last proxy node of Q90's check (T-574) |
-| #209 (COORD-035) | A service `syncthing-relay` with each relay's device ID (T-571) |
-| #192, #193, #194 | Reports of the takes of v0.24.0 to v0.26.0; podcrates recorded later takes, so they may close |
+| #209 (COORD-035) | A service `syncthing-relay` with each relay's device ID (T-571); on podcrates' `main`, in the next tag |
+| #210 (COORD-036) | pod-relay's runs of a code try the MQTT brokers after the mailboxes; then T-737 is unblocked |
 
 ## The live runs and interop harnesses
 
@@ -49,6 +46,7 @@ road). Each has a planted run that must fail, and each did.
 | Tox (T-734, done) | `tox-interop.yml` | passed; live through 205.185.115.131:443 |
 | Yggdrasil (T-735, done) | `ygg-interop.yml` | passed; live through a wss:// peer |
 | HyperDHT (T-736, done) | `hyperdht-interop.yml` | passed, run 43152296592 |
+| VMess's AEAD form (T-739, done) | `vmess-interop.yml` | passed, run 43178390705, against Xray-core v26.10.21 |
 | Syncthing's relays (T-571) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
 | The binary's proxy nodes (T-574) | `proxy-nodes-live.yml` | 8 of 10 nodes passed, run 43157171177 |
 | HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement |
@@ -62,7 +60,7 @@ road). Each has a planted run that must fail, and each did.
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
 | T-578 | Partial. Step 1 (Arti 0.48's onion services) is read, in the entry. Next: the node's service and the client's road, a chutney network of 5 or more relays. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
-| T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` runs it from Actions. |
+| T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` passed from Actions (run 43178390705). |
 | T-580 to T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
 | T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
 | T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |

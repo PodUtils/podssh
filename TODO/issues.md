@@ -261,18 +261,19 @@ and num-bigint 0.5) are T-754.
 | #189 | COORD-022: podssh took podcrates v0.21.0 (to podcrates) | closed 2026-11-11, the take at `6de121b2` | T-684 |
 | #190 | COORD-023: ZeroTier's TCP relay as a service of pod-services (to podcrates) | closed 2026-11-11, written as podcrates T-203, out in `v0.22.0` and read by T-733 | T-733 |
 | #191 | COORD-024: podssh took podcrates v0.22.0 with pod-e2e; pod-relay's import takes 75a50318 (to podcrates) | closed 2026-11-11, the take at `75a50318`; pod-relay's take continues in #192 | T-684 |
-| #192 | COORD-025: podssh took podcrates v0.24.0; podcrates writes pod-relay's patch (to podcrates) | open (2026-11-11: the take at `2f4f292b`) | T-684 |
-| #193 | COORD-026: podssh took podcrates v0.25.0 at f029594d; the pod-relay cut stays frozen (to podcrates) | open (2026-11-11: the take at `f029594d`) | T-684 |
-| #194 | COORD-027: podssh took podcrates v0.26.0 at ff2f7bac; Pinggy's reader reads url-skip (to podcrates) | open (2026-11-12: the take at `ff2f7bac`) | T-684 |
+| #192 | COORD-025: podssh took podcrates v0.24.0; podcrates writes pod-relay's patch (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
+| #193 | COORD-026: podssh took podcrates v0.25.0 at f029594d; the pod-relay cut stays frozen (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
+| #194 | COORD-027: podssh took podcrates v0.26.0 at ff2f7bac; Pinggy's reader reads url-skip (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
 | #195 | cfb asks: tracker for the 22 asks of cfb owned by podssh (from podcrates#35) | open (2026-11-12: each ask an entry already) | T-708, T-709, T-710, T-711, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-719, T-720, T-721, T-722, T-723, T-724, T-725, T-726, T-727, T-728, T-729, T-730, T-731 |
 | #196 | COORD-028: a service of Tox's TCP relays on 443 in pod-services, for podssh's T-734 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-734 |
 | #203 | COORD-029: a service of Yggdrasil's public wss:// peers on 443 in pod-services, for podssh's T-735 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-735 |
 | #204 | COORD-030: a service of HyperDHT's public bootstrap nodes in pod-services, for podssh's T-736 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-736 |
-| #205 | COORD-031: a meeting point of the pairing over public MQTT brokers on 443 in pod-wormhole, for podssh's T-737 (to podcrates) | open (2026-11-12: asked) | T-737 |
+| #205 | COORD-031: a meeting point of the pairing over public MQTT brokers on 443 in pod-wormhole, for podssh's T-737 (to podcrates) | closed (2026-11-12: `pod_wormhole::mqtt` in v0.29.0; the runs' part is COORD-036, #210) | T-737 |
 | #206 | COORD-032: pod-relay taken at v0.27.0 in podssh 0872c2c6 (to podcrates) | closed 2026-11-12: podcrates recorded the take in v0.28.0 | T-684 |
-| #207 | COORD-033: Q90's live check of the proxy nodes: drop two of the ten (to podcrates) | open (2026-11-12: asked) | T-574 |
+| #207 | COORD-033: Q90's live check of the proxy nodes: drop two of the ten (to podcrates) | closed (2026-11-12: v0.29.0 drops `node-xhttp-78-17-39-129`) | T-574 |
 | #208 | COORD-034: podcrates v0.28.0 taken in podssh 12473a10 (to podcrates) | closed 2026-11-12: a report of the take, with adeae2eb | T-684 |
 | #209 | COORD-035: a service of Syncthing's public relays on 443 in pod-services, for podssh's T-571 (to podcrates) | open (2026-11-12: asked) | T-571 |
+| #210 | COORD-036: pod-relay's runs of a code try the MQTT brokers after the mailboxes, for podssh's T-737 (to podcrates) | open (2026-11-12: asked) | T-737 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

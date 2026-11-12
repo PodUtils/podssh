@@ -197,9 +197,9 @@
 189 issue closed
 190 issue closed
 191 issue closed
-192 issue open
-193 issue open
-194 issue open
+192 issue closed
+193 issue closed
+194 issue closed
 195 issue open
 196 issue closed
 197 pull open
@@ -210,8 +210,9 @@
 202 pull open
 203 issue closed
 204 issue closed
-205 issue open
+205 issue closed
 206 issue closed
-207 issue open
+207 issue closed
 208 issue closed
 209 issue open
+210 issue open
