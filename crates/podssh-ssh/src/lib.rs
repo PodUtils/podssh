@@ -36,6 +36,7 @@ mod agent_bind;
 // The lists of ssh_config's keywords of a restriction (T-505).
 mod agent_forward;
 pub mod algorithms;
+// The first names of each host's last KEXINIT, for a guess (T-752).
 mod answer;
 pub mod auth;
 pub mod cert;
@@ -46,6 +47,7 @@ pub mod escape;
 pub mod escape_command;
 mod escape_run;
 pub mod exec;
+pub mod kex_first;
 // `--expect` and `--send` of a session with a pty (T-191).
 pub mod expect;
 pub mod forward;

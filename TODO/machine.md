@@ -2156,7 +2156,7 @@ which the stderr line attributes to the client's documents.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2181,7 +2181,21 @@ KEXINIT, and the CHANNEL_OPEN for USERAUTH_SUCCESS.
 2. The channel: a CHANNEL_OPEN behind the auth request, only to a server whose banner is OpenSSH's
    (it ignores a channel message while the auth runs, and keeps the next packets for after it);
    Dropbear ends the connection for one, so never to it. On a failure of the auth, the channel is
-   opened again after the success. Decide in `## Decision` whether the round trip is worth the risk.
+   opened again after the success. The entry's Decision says whether the round trip is worth the risk.
+
+## Decision
+
+2026-11-12. The guess (the Approach's first point): yes, for a host whose last KEXINIT, kept by a hash of its
+known_hosts name, names first a key exchange of podssh's lists, which then goes first (unless KexAlgorithms gave
+the order), and the host key algorithm that podssh names first; never with a certificate asked for first. Lost:
+a guess with no record, which would send a large ML-KEM packet to each host whose names differ; and putting the
+host's first host key algorithm first, which would ask for a key that known_hosts may not hold.
+
+The channel behind the auth request (the second point): no. Dropbear ends the connection for a channel message
+before the auth (`Received message before userauth`), so it would go to OpenSSH alone, by its banner; OpenSSH
+ignores such a message while the auth runs, so a failed or a partial auth (`AuthenticationMethods`) would leave
+a channel that the client must know to open again, a state that no server confirms. A round trip on one kind of
+server does not pay for a login that a server's change could break.
 
 ## Prove
 
@@ -2192,3 +2206,30 @@ cargo test -p podssh-ssh --test cold_connect
 
 And T-680's count on the loopback's link of 120 ms: a cold connect to a host whose key and KEXINIT
 are kept in fewer than six round trips, against OpenSSH and Dropbear.
+
+## Correction
+
+2026-11-12. The guess pays only where the server's first host key algorithm is the client's first: a stock
+OpenSSH loads its host keys RSA first, so it names `rsa-sha2-512` first, which a client that knows the host by
+its Ed25519 key never names first; and OpenSSH 9.6's first key exchange, `sntrup761x25519-sha512@openssh.com`,
+is none of russh's. So the guess is for the servers whose names agree: Dropbear (curve25519 and Ed25519 first),
+OpenSSH 9.9 and later without an RSA key first (ML-KEM first), and russh's own servers. A host whose last
+KEXINIT said otherwise is not guessed, and a guess that a host's change made wrong costs bytes and no time.
+
+## Done
+
+2026-11-12. `vendor/patches/russh/0008-kex-guess.patch` (`Config::first_kex_follows`, `Names::peer_first`,
+the guessed exchange kept where right; russh's server takes the ignored packet of a wrong guess under strict
+kex), `crates/podssh-ssh/src/kex_first.rs` (the record, `kex-first.txt` of the cache, a private file),
+`run_config.rs` (the guess), `handler.rs` (`kex_done` keeps the host's names), `podssh-cli/src/pins.rs`.
+
+- `cargo test -p podssh-ssh --test kex_guess`: 1 passed (russh's server, its bytes 400 ms late: the second
+  login an answer sooner; a server whose first key exchange changed, its login no later); planted, the guess
+  off, it fails, and russh's server's order without the guessed packet, it fails. `cargo test -p podssh-ssh`:
+  each passed. clippy clean, also for Windows (`--target x86_64-pc-windows-gnu`).
+- On the loopback's link of 120 ms (a cold `podssh ssh --direct ... true`, a kept key, the second login of a
+  host): OpenSSH 9.6p1's sshd with `KexAlgorithms curve25519-sha256,...` 662 to 535 ms, 6 to 5 round trips;
+  its default (sntrup761 first) 656 to 664 ms, no guess; a guess made wrong by the server's change, 662 ms, as
+  without one; Dropbear 2022.83, 596 to 522 to 528 ms (Dropbear sends its KEXINIT with its banner, so half a
+  round trip less).
+

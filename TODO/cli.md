@@ -2507,7 +2507,7 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:460`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:461`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
 status lost: the report and its JSON have three (`docs/cli.md:2895-2898`). The issue's grade by a
@@ -2583,7 +2583,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:460`), so whether it listens is not known. The box refuses each bind
+  (`docs/STATUS.md:461`), so whether it listens is not known. The box refuses each bind
   (`scripts/box/seccomp.json:5-10`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket
@@ -3587,7 +3587,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
 ## Premise
 
 - Read (L-10): the client's version line is `SSH-2.0-podssh_VERSION`
-  (`crates/podssh-ssh/src/run_config.rs:69-70`), as RFC 4253 allows, and no part of the manual says
+  (`crates/podssh-ssh/src/run_config.rs:70-71`), as RFC 4253 allows, and no part of the manual says
   it. Inferred: a line shaped as OpenSSH's would make OpenSSH's server apply the quirks of its own
   client's versions to podssh, so the line stays podssh's. Against the report: the README says
   that podssh has "the options of OpenSSH" (`README.md:137`), not that it is OpenSSH.

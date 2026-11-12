@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:770`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:771`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -549,7 +549,7 @@ back to the plain key only when no CA line matches.
 
 1. Ask for certificates: when a `@cert-authority` line matches the name of a
    hop, set `host_key_certificates` in `client_config`
-   (`crates/podssh-ssh/src/run_config.rs:17-82`) to the algorithms of
+   (`crates/podssh-ssh/src/run_config.rs:17-84`) to the algorithms of
    `preferred.key`. A host with no CA line keeps today's negotiation.
 2. Add a lookup of CA keys in `crates/podssh-ssh/src/known_hosts.rs`, beside
    the `@revoked` arm (`crates/podssh-ssh/src/known_hosts.rs:113-115`). Match CA
@@ -600,7 +600,7 @@ Planted defect: accept each certificate, and the wrong-principal test fails.
 GitHub #29 says that podssh drops a certificate that russh gives. In fact no
 certificate comes: russh 0.64.1 offers certificate algorithms only from
 `Preferred::host_key_certificates`, which is empty by default, and
-`client_config` does not set it (`crates/podssh-ssh/src/run_config.rs:17-82`). So
+`client_config` does not set it (`crates/podssh-ssh/src/run_config.rs:17-84`). So
 a server always presents its plain key. The words "checked as plain keys"
 in `docs/STATUS.md` and `SECURITY.md` were not exact either: podssh never
 asks for a certificate. They were corrected in the change that wrote this
@@ -1503,7 +1503,7 @@ after 60 s" and names no road.
 Read:
 
 - `client_config` sets `inactivity_timeout: None`
-  (`crates/podssh-ssh/src/run_config.rs:73`). russh 0.64.1 races each write against
+  (`crates/podssh-ssh/src/run_config.rs:74`). russh 0.64.1 races each write against
   that timer in `flush_or_timeout`; with `None`, the timer never fires, so
   only the write can end the wait.
 - The relay leg limits each write: `WRITE_TIMEOUT` is 60 s
@@ -1541,7 +1541,7 @@ Read:
    `crates/podssh-cli/src/ssh/transport.rs:311-355` changes, and both roads behave
    the same.
 3. The other change: set `inactivity_timeout` at
-   `crates/podssh-ssh/src/run_config.rs:73`. russh resets that timer only in a loop
+   `crates/podssh-ssh/src/run_config.rs:74`. russh resets that timer only in a loop
    round that sent no keepalive, podssh's keepalive interval is also 60 s
    (`crates/podssh-ssh/src/options.rs:388`), and the timer also ends a
    session that is only idle. Measure an idle session with
@@ -2944,7 +2944,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
 `server_alive_check`).
 
 - Read: keepalives are on by default, each 60 s (`crates/podssh-ssh/src/options.rs:388`), as
-  russh's own (`crates/podssh-ssh/src/run_config.rs:71-72`), so that the relay's idle cut never
+  russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
   (`crates/podssh-cli/src/ssh/resolve.rs:398-401`) that #83's comment reads. T-332's question on
   `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:239`), which the same reply ends.
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:158-177`, `Cargo.toml:235-237`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:159-178`, `Cargo.toml:235-237`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3667,7 +3667,7 @@ Read with T-460's draft in the tree, 2026-11-02:
   at `vendor/russh/src/client/mod.rs:880-883` (`SendError`), `vendor/russh/src/client/mod.rs:799-802`
   (`Disconnect`) and `vendor/russh/src/client/mod.rs:796-797` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1415-1422`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1428-1435`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
@@ -4541,7 +4541,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3227` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3247` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).

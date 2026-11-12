@@ -1270,13 +1270,20 @@ where
     H: Handler + Send + 'static,
     R: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    // Writing SSH id.
-    let mut write_buffer = SSHBuffer::new();
+    // Writing SSH id, and with `first_kex_follows` the KEXINIT and the
+    // guessed packet behind it, in one write.
+    let mut packet_writer = PacketWriter::clear();
 
     debug!("ssh id = {:?}", config.as_ref().client_id);
 
-    write_buffer.send_ssh_id(&config.as_ref().client_id);
-    map_err!(stream.write_all(&write_buffer.buffer).await)?;
+    packet_writer.send_ssh_id(&config.as_ref().client_id);
+    let mut early_kex = None;
+    if config.first_kex_follows {
+        let mut kex = ClientKex::new(config.clone(), &config.client_id, &[], KexCause::Initial);
+        kex.kexinit_guess(&mut packet_writer)?;
+        early_kex = Some(kex);
+    }
+    map_err!(stream.write_all(&packet_writer.take_output()).await)?;
 
     // Reading SSH id and allocating a session if correct.
     let mut stream = SshRead::new(stream);
@@ -1294,7 +1301,7 @@ where
     let mut session = Session::new(
         config.window_size,
         CommonSession {
-            packet_writer: PacketWriter::clear(),
+            packet_writer,
             auth_user: String::new(),
             auth_attempts: 0,
             auth_method: None, // Client only.
@@ -1312,7 +1319,13 @@ where
         session_receiver,
         session_sender,
     );
-    session.begin_rekey()?;
+    match early_kex {
+        Some(mut kex) => {
+            kex.set_server_id(&session.common.remote_sshid);
+            session.kex = SessionKexState::InProgress(kex);
+        }
+        None => session.begin_rekey()?,
+    }
     let (kex_done_signal, kex_done_signal_rx) = oneshot::channel();
     let join = russh_util::runtime::spawn(session.run(stream, handler, Some(kex_done_signal)));
 
@@ -2809,6 +2822,12 @@ pub struct Config {
     pub gex: GexParams,
     /// If active, invoke `set_nodelay(true)` on the ssh socket; disabled by default (i.e. Nagle's algorithm is active).
     pub nodelay: bool,
+    /// Send the KEXINIT with the identification, and behind it the first
+    /// packet of the first preferred key exchange as a guess (RFC 4253,
+    /// section 7): a round trip less where the server's first key exchange
+    /// and host key algorithm are the client's first. podssh's patch
+    /// (vendor/patches/russh/).
+    pub first_kex_follows: bool,
 }
 
 impl Default for Config {
@@ -2831,6 +2850,7 @@ impl Default for Config {
             anonymous: false,
             gex: Default::default(),
             nodelay: false,
+            first_kex_follows: false,
         }
     }
 }

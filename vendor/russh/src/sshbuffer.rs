@@ -410,6 +410,17 @@ impl PacketWriter {
     // + padding_length (1 byte).
     const PACKET_PREFIX_LEN: usize = cipher::PACKET_LENGTH_LEN + 1;
 
+    /// The identification line, before any packet. podssh's patch.
+    pub fn send_ssh_id(&mut self, id: &SshId) {
+        self.write_buffer.send_ssh_id(id);
+    }
+
+    /// The bytes written so far, taken out; the sequence numbers stay.
+    /// podssh's patch (vendor/patches/russh/).
+    pub fn take_output(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.write_buffer.buffer).to_vec()
+    }
+
     pub fn clear() -> Self {
         Self::new(Box::new(cipher::clear::Key {}), Compress::None)
     }

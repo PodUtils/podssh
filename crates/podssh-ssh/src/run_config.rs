@@ -61,6 +61,7 @@ pub(super) fn client_config(opts: &Options, policy: &Policy) -> Config {
         };
         preferred.host_key_certificates = Cow::Owned(certs);
     }
+    let first_kex_follows = guess(&mut preferred, opts, &policy.name);
     if opts.compression {
         preferred.compression =
             Cow::Owned(vec![russh::compression::ZLIB_LEGACY, russh::compression::ZLIB, russh::compression::NONE]);
@@ -77,6 +78,26 @@ pub(super) fn client_config(opts: &Options, policy: &Policy) -> Config {
         maximum_packet_size: crate::pace::PACKET,
         nodelay: true,
         preferred,
+        first_kex_follows,
         ..Config::default()
     }
+}
+
+/// Whether the KEXINIT goes with the identification and the first packet of
+/// the first key exchange behind it, as a guess (T-752): only where `name`'s
+/// last KEXINIT named first a key exchange of the client's lists, which goes
+/// first then unless KexAlgorithms gave the order, and the host key
+/// algorithm that is the client's first; never when a certificate is asked
+/// for first.
+fn guess(preferred: &mut Preferred, opts: &Options, name: &str) -> bool {
+    let Some((kex, key)) = crate::kex_first::last(&crate::kex_first::host_id(name)) else { return false };
+    let Ok(kex) = russh::kex::Name::try_from(kex.as_str()) else { return false };
+    if opts.algorithms.kex.is_none() && preferred.kex.contains(&kex) {
+        let mut order = vec![kex];
+        order.extend(preferred.kex.iter().filter(|k| **k != kex).cloned());
+        preferred.kex = Cow::Owned(order);
+    }
+    preferred.host_key_certificates.is_empty()
+        && preferred.kex.first() == Some(&kex)
+        && preferred.key.first().is_some_and(|first| first.as_str() == key)
 }

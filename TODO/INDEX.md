@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**707 entries: 82 open, 18 partial, 10 blocked, 597 done.**
+**707 entries: 81 open, 18 partial, 10 blocked, 598 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 53 | 7 | 6 | 263 | 329 |
-| **All** | 82 | 18 | 10 | 597 | 707 |
+| P3 | 52 | 7 | 6 | 264 | 329 |
+| **All** | 81 | 18 | 10 | 598 | 707 |
 
 ## Entries
 
@@ -782,4 +782,4 @@ repository and CI).
 | [T-749](mesh.md) | P3 | M | M10 | feature | done | `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs |
 | [T-750](mesh.md) | P3 | M | M10 | feature | done | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
 | [T-751](machine.md) | P3 | S | M10 | feature | done | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |
-| [T-752](machine.md) | P3 | M | M10 | feature | open | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
+| [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |

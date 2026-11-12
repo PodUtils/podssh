@@ -1,0 +1,265 @@
+diff --git a/src/client/kex.rs b/src/client/kex.rs
+index d96cc785..22daaca1 100644
+--- a/src/client/kex.rs
++++ b/src/client/kex.rs
+@@ -50,6 +50,9 @@ pub(crate) struct ClientKex {
+     cause: KexCause,
+     state: ClientKexState,
+     config: Arc<Config>,
++    /// The key exchange whose first packet went behind the KEXINIT, as a
++    /// guess (RFC 4253, section 7). podssh's patch (vendor/patches/russh/).
++    guess: Option<(crate::kex::Name, KexAlgorithm)>,
+ }
+ 
+ impl Debug for ClientKex {
+@@ -87,9 +90,39 @@ impl ClientKex {
+             exchange,
+             cause,
+             state: ClientKexState::Created,
++            guess: None,
+         }
+     }
+ 
++    /// The server's identification, read after a KEXINIT that went with
++    /// the client's own. podssh's patch (vendor/patches/russh/).
++    pub fn set_server_id(&mut self, server_sshid: &[u8]) {
++        self.exchange.server_id = server_sshid.to_vec();
++    }
++
++    /// The KEXINIT, and behind it the first packet of the preferred key
++    /// exchange as a guess, `first_kex_packet_follows` set: a server whose
++    /// first key exchange and host key algorithm are the client's answers
++    /// it at once, a round trip before the usual way; another ignores it,
++    /// and the exchange goes the usual way. A group exchange, whose first
++    /// packet asks for a group, is not guessed. podssh's patch
++    /// (vendor/patches/russh/).
++    pub fn kexinit_guess(&mut self, output: &mut PacketWriter) -> Result<(), Error> {
++        let first = self.config.preferred.kex.iter().find(|k| !crate::negotiation::KEX_EXTENSION_NAMES.contains(k));
++        let made = first.and_then(|name| KEXES.get(name).map(|k| (*name, k.make())));
++        let Some((name, mut kex)) = made.filter(|(_, k)| !k.is_dh_gex() && !k.skip_exchange()) else {
++            return self.kexinit(output);
++        };
++        self.exchange.client_kex_init =
++            negotiation::write_kex_follows(&self.config.preferred, output, None, true)?;
++        output.write_packet(|w| {
++            kex.client_dh(&mut self.exchange.client_ephemeral, w)?;
++            Ok(())
++        })?;
++        self.guess = Some((name, kex));
++        Ok(())
++    }
++
+     /// `Created` is "our KEXINIT is out, the peer's has not arrived".
+     pub fn peer_kexinit_received(&self) -> bool {
+         !matches!(self.state, ClientKexState::Created)
+@@ -154,6 +187,17 @@ impl ClientKex {
+                     ));
+                 }
+ 
++                // The guess was right: its packet is the one the server reads.
++                if let Some((guessed, kex)) = self.guess.take() {
++                    if names.guess_right && names.kex == guessed {
++                        self.state = ClientKexState::WaitingForDhReply { names, kex };
++                        return Ok(KexProgress::NeedsReply {
++                            kex: self,
++                            reset_seqn: false,
++                        });
++                    }
++                }
++
+                 let mut kex = KEXES.get(&names.kex).ok_or(Error::UnknownAlgo)?.make();
+ 
+                 if kex.skip_exchange() {
+diff --git a/src/client/mod.rs b/src/client/mod.rs
+index c47c724f..4fa2afe8 100644
+--- a/src/client/mod.rs
++++ b/src/client/mod.rs
+@@ -1270,13 +1270,20 @@ where
+     H: Handler + Send + 'static,
+     R: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+ {
+-    // Writing SSH id.
+-    let mut write_buffer = SSHBuffer::new();
++    // Writing SSH id, and with `first_kex_follows` the KEXINIT and the
++    // guessed packet behind it, in one write.
++    let mut packet_writer = PacketWriter::clear();
+ 
+     debug!("ssh id = {:?}", config.as_ref().client_id);
+ 
+-    write_buffer.send_ssh_id(&config.as_ref().client_id);
+-    map_err!(stream.write_all(&write_buffer.buffer).await)?;
++    packet_writer.send_ssh_id(&config.as_ref().client_id);
++    let mut early_kex = None;
++    if config.first_kex_follows {
++        let mut kex = ClientKex::new(config.clone(), &config.client_id, &[], KexCause::Initial);
++        kex.kexinit_guess(&mut packet_writer)?;
++        early_kex = Some(kex);
++    }
++    map_err!(stream.write_all(&packet_writer.take_output()).await)?;
+ 
+     // Reading SSH id and allocating a session if correct.
+     let mut stream = SshRead::new(stream);
+@@ -1294,7 +1301,7 @@ where
+     let mut session = Session::new(
+         config.window_size,
+         CommonSession {
+-            packet_writer: PacketWriter::clear(),
++            packet_writer,
+             auth_user: String::new(),
+             auth_attempts: 0,
+             auth_method: None, // Client only.
+@@ -1312,7 +1319,13 @@ where
+         session_receiver,
+         session_sender,
+     );
+-    session.begin_rekey()?;
++    match early_kex {
++        Some(mut kex) => {
++            kex.set_server_id(&session.common.remote_sshid);
++            session.kex = SessionKexState::InProgress(kex);
++        }
++        None => session.begin_rekey()?,
++    }
+     let (kex_done_signal, kex_done_signal_rx) = oneshot::channel();
+     let join = russh_util::runtime::spawn(session.run(stream, handler, Some(kex_done_signal)));
+ 
+@@ -2809,6 +2822,12 @@ pub struct Config {
+     pub gex: GexParams,
+     /// If active, invoke `set_nodelay(true)` on the ssh socket; disabled by default (i.e. Nagle's algorithm is active).
+     pub nodelay: bool,
++    /// Send the KEXINIT with the identification, and behind it the first
++    /// packet of the first preferred key exchange as a guess (RFC 4253,
++    /// section 7): a round trip less where the server's first key exchange
++    /// and host key algorithm are the client's first. podssh's patch
++    /// (vendor/patches/russh/).
++    pub first_kex_follows: bool,
+ }
+ 
+ impl Default for Config {
+@@ -2831,6 +2850,7 @@ impl Default for Config {
+             anonymous: false,
+             gex: Default::default(),
+             nodelay: false,
++            first_kex_follows: false,
+         }
+     }
+ }
+diff --git a/src/msg.rs b/src/msg.rs
+index 4f5e4828..ef0f4977 100644
+--- a/src/msg.rs
++++ b/src/msg.rs
+@@ -130,6 +130,12 @@ pub(crate) fn validate_client_msg_strict_kex(msg_type: u8, seqno: usize) -> Resu
+             &[
+                 &[KEXINIT, KEX_ECDH_INIT, NEWKEYS],
+                 &[KEXINIT, KEX_DH_GEX_REQUEST, KEX_DH_GEX_INIT, NEWKEYS],
++                // A wrong guess of `first_kex_packet_follows`, which the
++                // server ignores (RFC 4253, section 7), then the exchange as
++                // negotiated; OpenSSH takes it under strict kex too.
++                // podssh's patch (vendor/patches/russh/).
++                &[KEXINIT, KEX_ECDH_INIT, KEX_ECDH_INIT, NEWKEYS],
++                &[KEXINIT, KEX_ECDH_INIT, KEX_DH_GEX_REQUEST, KEX_DH_GEX_INIT, NEWKEYS],
+             ],
+         )
+     {
+diff --git a/src/negotiation.rs b/src/negotiation.rs
+index 42f86747..50a325b8 100644
+--- a/src/negotiation.rs
++++ b/src/negotiation.rs
+@@ -50,6 +50,14 @@ pub struct Names {
+     pub server_compression: compression::Compression,
+     pub client_compression: compression::Compression,
+     pub ignore_guessed: bool,
++    /// The first key exchange and the first host key algorithms of both
++    /// lists agree: a `first_kex_packet_follows` guess of ours is right.
++    /// podssh's patch (vendor/patches/russh/).
++    pub(crate) guess_right: bool,
++    /// The peer's first key exchange and first host key algorithm, as its
++    /// KEXINIT named them, for a client that keeps them to guess the next
++    /// time. podssh's patch (vendor/patches/russh/).
++    pub peer_first: (String, String),
+     /// Whether `key` was negotiated as a certificate algorithm or not
+     pub(crate) host_key_is_certificate: bool,
+     // Prevent accidentally contructing [Names] without a [KeyCause]
+@@ -175,7 +183,7 @@ const SAFE_KEX_ORDER: &[kex::Name] = &[
+     kex::EXTENSION_OPENSSH_STRICT_KEX_AS_SERVER,
+ ];
+ 
+-const KEX_EXTENSION_NAMES: &[kex::Name] = &[
++pub(crate) const KEX_EXTENSION_NAMES: &[kex::Name] = &[
+     kex::EXTENSION_SUPPORT_AS_CLIENT,
+     kex::EXTENSION_SUPPORT_AS_SERVER,
+     kex::EXTENSION_OPENSSH_STRICT_KEX_AS_CLIENT,
+@@ -295,6 +303,7 @@ pub(crate) trait Select {
+                     .unwrap_or(true)
+             })
+             .collect::<Vec<_>>();
++        let peer_kex_first = _remote_kexes_no_ext.first().map(|k| k.to_string()).unwrap_or_default();
+         let (kex_both_first, kex_algorithm) = Self::select(
+             &_local_kexes_no_ext,
+             &_remote_kexes_no_ext,
+@@ -432,6 +441,7 @@ pub(crate) trait Select {
+         String::decode(&mut r)?; // languages client-to-server
+         String::decode(&mut r)?; // languages server-to-client
+ 
++        let peer_first = (peer_kex_first, key_list.first().map(|k| k.to_string()).unwrap_or_default());
+         let follows = u8::decode(&mut r)? != 0;
+         u32::decode(&mut r)?;
+         ensure_end(&r)?;
+@@ -446,6 +456,8 @@ pub(crate) trait Select {
+             host_key_is_certificate,
+             // Ignore the next packet if (1) it follows and (2) it's not the correct guess.
+             ignore_guessed: follows && !(kex_both_first && key_both_first),
++            guess_right: kex_both_first && key_both_first,
++            peer_first,
+             strict_kex: (strict_kex_requested && strict_kex_provided) || cause.is_strict_rekey(),
+         })
+     }
+@@ -512,6 +524,17 @@ pub(crate) fn write_kex(
+     prefs: &Preferred,
+     writer: &mut PacketWriter,
+     server_config: Option<&Config>,
++) -> Result<Bytes, Error> {
++    write_kex_follows(prefs, writer, server_config, false)
++}
++
++/// A KEXINIT whose `first_kex_packet_follows` is `follows`: a guessed key
++/// exchange packet comes right behind it. podssh's patch (vendor/patches/russh/).
++pub(crate) fn write_kex_follows(
++    prefs: &Preferred,
++    writer: &mut PacketWriter,
++    server_config: Option<&Config>,
++    follows: bool,
+ ) -> Result<Bytes, Error> {
+     writer.packet_bytes(|w| {
+         msg::KEXINIT.encode(w)?;
+@@ -628,7 +651,7 @@ pub(crate) fn write_kex(
+         Vec::<String>::new().encode(w)?; // languages client to server
+         Vec::<String>::new().encode(w)?; // languages server to client
+ 
+-        0u8.encode(w)?; // doesn't follow
++        u8::from(follows).encode(w)?; // whether a guessed packet follows
+         0u32.encode(w)?; // reserved
+         Ok(())
+     })
+diff --git a/src/sshbuffer.rs b/src/sshbuffer.rs
+index d0c64396..4a5bd810 100644
+--- a/src/sshbuffer.rs
++++ b/src/sshbuffer.rs
+@@ -410,6 +410,17 @@ impl PacketWriter {
+     // + padding_length (1 byte).
+     const PACKET_PREFIX_LEN: usize = cipher::PACKET_LENGTH_LEN + 1;
+ 
++    /// The identification line, before any packet. podssh's patch.
++    pub fn send_ssh_id(&mut self, id: &SshId) {
++        self.write_buffer.send_ssh_id(id);
++    }
++
++    /// The bytes written so far, taken out; the sequence numbers stay.
++    /// podssh's patch (vendor/patches/russh/).
++    pub fn take_output(&mut self) -> Vec<u8> {
++        std::mem::take(&mut self.write_buffer.buffer).to_vec()
++    }
++
+     pub fn clear() -> Self {
+         Self::new(Box::new(cipher::clear::Key {}), Compress::None)
+     }

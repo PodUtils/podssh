@@ -50,6 +50,9 @@ pub(crate) struct ClientKex {
     cause: KexCause,
     state: ClientKexState,
     config: Arc<Config>,
+    /// The key exchange whose first packet went behind the KEXINIT, as a
+    /// guess (RFC 4253, section 7). podssh's patch (vendor/patches/russh/).
+    guess: Option<(crate::kex::Name, KexAlgorithm)>,
 }
 
 impl Debug for ClientKex {
@@ -87,7 +90,37 @@ impl ClientKex {
             exchange,
             cause,
             state: ClientKexState::Created,
+            guess: None,
         }
+    }
+
+    /// The server's identification, read after a KEXINIT that went with
+    /// the client's own. podssh's patch (vendor/patches/russh/).
+    pub fn set_server_id(&mut self, server_sshid: &[u8]) {
+        self.exchange.server_id = server_sshid.to_vec();
+    }
+
+    /// The KEXINIT, and behind it the first packet of the preferred key
+    /// exchange as a guess, `first_kex_packet_follows` set: a server whose
+    /// first key exchange and host key algorithm are the client's answers
+    /// it at once, a round trip before the usual way; another ignores it,
+    /// and the exchange goes the usual way. A group exchange, whose first
+    /// packet asks for a group, is not guessed. podssh's patch
+    /// (vendor/patches/russh/).
+    pub fn kexinit_guess(&mut self, output: &mut PacketWriter) -> Result<(), Error> {
+        let first = self.config.preferred.kex.iter().find(|k| !crate::negotiation::KEX_EXTENSION_NAMES.contains(k));
+        let made = first.and_then(|name| KEXES.get(name).map(|k| (*name, k.make())));
+        let Some((name, mut kex)) = made.filter(|(_, k)| !k.is_dh_gex() && !k.skip_exchange()) else {
+            return self.kexinit(output);
+        };
+        self.exchange.client_kex_init =
+            negotiation::write_kex_follows(&self.config.preferred, output, None, true)?;
+        output.write_packet(|w| {
+            kex.client_dh(&mut self.exchange.client_ephemeral, w)?;
+            Ok(())
+        })?;
+        self.guess = Some((name, kex));
+        Ok(())
     }
 
     /// `Created` is "our KEXINIT is out, the peer's has not arrived".
@@ -152,6 +185,17 @@ impl ClientKex {
                         msg::KEXINIT,
                         input.seqn.0 as usize - 1,
                     ));
+                }
+
+                // The guess was right: its packet is the one the server reads.
+                if let Some((guessed, kex)) = self.guess.take() {
+                    if names.guess_right && names.kex == guessed {
+                        self.state = ClientKexState::WaitingForDhReply { names, kex };
+                        return Ok(KexProgress::NeedsReply {
+                            kex: self,
+                            reset_seqn: false,
+                        });
+                    }
                 }
 
                 let mut kex = KEXES.get(&names.kex).ok_or(Error::UnknownAlgo)?.make();

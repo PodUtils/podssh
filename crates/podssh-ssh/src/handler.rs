@@ -332,6 +332,18 @@ impl Handler for Client {
     // patches of russh, T-670), tells of each adjust that went out, then
     // hands over the bytes.
 
+    /// The host's first names, for the next login's guess (T-752).
+    async fn kex_done(
+        &mut self,
+        _shared_secret: Option<&[u8]>,
+        names: &russh::Names,
+        _session: &mut russh::client::Session,
+    ) -> Result<(), Self::Error> {
+        let (kex, key) = &names.peer_first;
+        crate::kex_first::named(&crate::kex_first::host_id(&self.policy.name), kex, key);
+        Ok(())
+    }
+
     fn window_target(&mut self, channel: ChannelId, _window: u32) -> u32 {
         self.pace.target(u32::from(channel), std::time::Instant::now())
     }

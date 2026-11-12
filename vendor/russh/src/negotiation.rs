@@ -50,6 +50,14 @@ pub struct Names {
     pub server_compression: compression::Compression,
     pub client_compression: compression::Compression,
     pub ignore_guessed: bool,
+    /// The first key exchange and the first host key algorithms of both
+    /// lists agree: a `first_kex_packet_follows` guess of ours is right.
+    /// podssh's patch (vendor/patches/russh/).
+    pub(crate) guess_right: bool,
+    /// The peer's first key exchange and first host key algorithm, as its
+    /// KEXINIT named them, for a client that keeps them to guess the next
+    /// time. podssh's patch (vendor/patches/russh/).
+    pub peer_first: (String, String),
     /// Whether `key` was negotiated as a certificate algorithm or not
     pub(crate) host_key_is_certificate: bool,
     // Prevent accidentally contructing [Names] without a [KeyCause]
@@ -175,7 +183,7 @@ const SAFE_KEX_ORDER: &[kex::Name] = &[
     kex::EXTENSION_OPENSSH_STRICT_KEX_AS_SERVER,
 ];
 
-const KEX_EXTENSION_NAMES: &[kex::Name] = &[
+pub(crate) const KEX_EXTENSION_NAMES: &[kex::Name] = &[
     kex::EXTENSION_SUPPORT_AS_CLIENT,
     kex::EXTENSION_SUPPORT_AS_SERVER,
     kex::EXTENSION_OPENSSH_STRICT_KEX_AS_CLIENT,
@@ -295,6 +303,7 @@ pub(crate) trait Select {
                     .unwrap_or(true)
             })
             .collect::<Vec<_>>();
+        let peer_kex_first = _remote_kexes_no_ext.first().map(|k| k.to_string()).unwrap_or_default();
         let (kex_both_first, kex_algorithm) = Self::select(
             &_local_kexes_no_ext,
             &_remote_kexes_no_ext,
@@ -432,6 +441,7 @@ pub(crate) trait Select {
         String::decode(&mut r)?; // languages client-to-server
         String::decode(&mut r)?; // languages server-to-client
 
+        let peer_first = (peer_kex_first, key_list.first().map(|k| k.to_string()).unwrap_or_default());
         let follows = u8::decode(&mut r)? != 0;
         u32::decode(&mut r)?;
         ensure_end(&r)?;
@@ -446,6 +456,8 @@ pub(crate) trait Select {
             host_key_is_certificate,
             // Ignore the next packet if (1) it follows and (2) it's not the correct guess.
             ignore_guessed: follows && !(kex_both_first && key_both_first),
+            guess_right: kex_both_first && key_both_first,
+            peer_first,
             strict_kex: (strict_kex_requested && strict_kex_provided) || cause.is_strict_rekey(),
         })
     }
@@ -512,6 +524,17 @@ pub(crate) fn write_kex(
     prefs: &Preferred,
     writer: &mut PacketWriter,
     server_config: Option<&Config>,
+) -> Result<Bytes, Error> {
+    write_kex_follows(prefs, writer, server_config, false)
+}
+
+/// A KEXINIT whose `first_kex_packet_follows` is `follows`: a guessed key
+/// exchange packet comes right behind it. podssh's patch (vendor/patches/russh/).
+pub(crate) fn write_kex_follows(
+    prefs: &Preferred,
+    writer: &mut PacketWriter,
+    server_config: Option<&Config>,
+    follows: bool,
 ) -> Result<Bytes, Error> {
     writer.packet_bytes(|w| {
         msg::KEXINIT.encode(w)?;
@@ -628,7 +651,7 @@ pub(crate) fn write_kex(
         Vec::<String>::new().encode(w)?; // languages client to server
         Vec::<String>::new().encode(w)?; // languages server to client
 
-        0u8.encode(w)?; // doesn't follow
+        u8::from(follows).encode(w)?; // whether a guessed packet follows
         0u32.encode(w)?; // reserved
         Ok(())
     })

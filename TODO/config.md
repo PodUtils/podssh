@@ -677,7 +677,7 @@ go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67
 `crates/podssh-cli/src/proxy.rs:241-244`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
 `crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:175-194` and
 `crates/podssh-cli/src/proxy.rs`, lines 100-104 at `99743e6`. The pins of the flag and of the variable add up
-(`crates/podssh-cli/src/pins.rs:15-38`). The token cache uses the user's
+(`crates/podssh-cli/src/pins.rs:15-40`). The token cache uses the user's
 cache directory first, after the directory of `PODSSH_CACHE_DIR` (T-243;
 `crates/podssh-relay/src/cache/dirs.rs:145-241`). The decision named the
 configuration directory first; the operator corrected it on 2026-10-08 (`docs/decisions.md:103`, T-243).
@@ -760,7 +760,7 @@ its places at `crates/podssh-cli/src/settings.rs:132-155`, its checks at
 failover below the flag and the variable at
 `crates/podssh-cli/src/relay_settings.rs:73-88` and
 `crates/podssh-cli/src/relay_settings.rs:129-139`, the pins and the refusal
-of a bad file at `crates/podssh-cli/src/pins.rs:13-38`, the CA file at
+of a bad file at `crates/podssh-cli/src/pins.rs:13-40`, the CA file at
 `crates/podssh-cli/src/settings.rs:323-333` and, for `podssh ssh`,
 `crates/podssh-cli/src/ssh/resolve.rs:153-157`; `status` at
 `crates/podssh-cli/src/status.rs:65` and

@@ -34,6 +34,8 @@ pub fn apply(flag: Option<&str>) -> Result<(), Refusal> {
     podssh_relay::addresses::install();
     // The key that each host took last, for a login with no query (T-664).
     podssh_ssh::accepted::keep_in(Box::new(AcceptedInCache));
+    // The first names of each host's last KEXINIT, for a guess (T-752).
+    podssh_ssh::kex_first::keep_in(Box::new(KexFirstInCache));
     Ok(())
 }
 
@@ -62,5 +64,19 @@ impl podssh_ssh::accepted::KeptFile for AcceptedInCache {
     fn store(&self, text: &[u8]) {
         // A record that cannot be kept costs the next login its round trips.
         let _ = podssh_relay::cache::store_file(podssh_ssh::accepted::FILE, text);
+    }
+}
+
+/// The first names of each host's last KEXINIT, a private file of the cache.
+struct KexFirstInCache;
+
+impl podssh_ssh::accepted::KeptFile for KexFirstInCache {
+    fn load(&self) -> Option<String> {
+        podssh_relay::cache::load_file(podssh_ssh::kex_first::FILE)
+    }
+
+    fn store(&self, text: &[u8]) {
+        // A record that cannot be kept costs the next login a round trip.
+        let _ = podssh_relay::cache::store_file(podssh_ssh::kex_first::FILE, text);
     }
 }

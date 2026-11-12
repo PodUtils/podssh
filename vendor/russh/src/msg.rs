@@ -130,6 +130,12 @@ pub(crate) fn validate_client_msg_strict_kex(msg_type: u8, seqno: usize) -> Resu
             &[
                 &[KEXINIT, KEX_ECDH_INIT, NEWKEYS],
                 &[KEXINIT, KEX_DH_GEX_REQUEST, KEX_DH_GEX_INIT, NEWKEYS],
+                // A wrong guess of `first_kex_packet_follows`, which the
+                // server ignores (RFC 4253, section 7), then the exchange as
+                // negotiated; OpenSSH takes it under strict kex too.
+                // podssh's patch (vendor/patches/russh/).
+                &[KEXINIT, KEX_ECDH_INIT, KEX_ECDH_INIT, NEWKEYS],
+                &[KEXINIT, KEX_ECDH_INIT, KEX_DH_GEX_REQUEST, KEX_DH_GEX_INIT, NEWKEYS],
             ],
         )
     {
