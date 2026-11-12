@@ -30,7 +30,7 @@ tor-rtcompat = { version = ">=0.47, <0.48", default-features = false, features =
 # The pattern of an address and a port that a first hop may have, and the
 # kind of Arti's errors: the versions that arti-client builds.
 tor-netdoc = { version = ">=0.47, <0.48", default-features = false }
-tor-error = { version = ">=0.47, <0.48", default-features = false }
+tor-error = { version = ">=0.47, <0.49", default-features = false }
 async-trait = "0.1"
 futures = { version = "0.3", default-features = false, features = ["std"] }
 tokio = { workspace = true }
