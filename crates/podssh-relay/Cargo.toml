@@ -122,6 +122,9 @@ tox = ["dep:crypto_box"]
 yggdrasil = ["dep:ironwood", "dep:blake2"]
 # HyperDHT's road where UDP passes (T-736).
 hyperdht = ["dep:peeroxide"]
+# Syncthing's relays on 443 as a last road (T-571): rustls with the
+# provider of podssh-ws, a certificate of the pair's made here.
+strelay = ["dep:rustls", "dep:tokio-rustls"]
 # The Piping Server road (T-437): a POST and a GET of a Piping Server for each
 # way of a link, over HTTP/2 or HTTP/1.1, under the resumable layer, for a
 # proxy that refuses the WebSocket upgrade. No C either; the gate builds it.

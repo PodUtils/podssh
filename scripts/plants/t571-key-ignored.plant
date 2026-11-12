@@ -1,0 +1,10 @@
+# T-571: the session's join ignores the invitation's key, so the relay finds
+# no session for it; the test of a pair through Syncthing's own relay must
+# fail. On the runner, not in the build image: strelaysrv is built there from
+# its tag, with Go.
+ENTRY=T-571
+GROUP=host-strelay
+EXPECT='test a_pair_s_node_and_its_client_meet_on_syncthing_s_relay_and_carry_a_mib_whole \.\.\. FAILED'
+SETUP='test -x .work/strelaysrv || { git clone -q --depth 1 --branch v2.1.7 https://github.com/syncthing/syncthing .work/st && (cd .work/st && go build -o ../strelaysrv ./cmd/strelaysrv); }'
+RUN='PODSSH_STRELAY_TEST_BIN="$PWD/.work/strelaysrv" cargo test --locked --no-fail-fast -p podssh-relay --features strelay --test strelay_link'
+LIMIT=1800

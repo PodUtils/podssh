@@ -136,6 +136,8 @@ pub mod piping;
 pub mod pool;
 #[cfg(feature = "serveo")]
 pub mod serveo;
+#[cfg(feature = "strelay")]
+pub mod strelay;
 #[cfg(feature = "tox")]
 pub mod tox;
 #[cfg(feature = "yggdrasil")]

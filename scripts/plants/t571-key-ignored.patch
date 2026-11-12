@@ -1,0 +1,12 @@
+--- a/crates/podssh-relay/src/strelay/pair.rs
++++ b/crates/podssh-relay/src/strelay/pair.rs
+@@ -79,7 +79,8 @@
+     let ip = ip.to_canonical();
+     let ip = if ip.is_unspecified() { relay.ip } else { ip };
+     let mut tcp = step("the session's connection", dial(ip, port)).await?;
+-    wire::write(&mut tcp, &Message::JoinSession { key }).await?;
++    let _ = key;
++    wire::write(&mut tcp, &Message::JoinSession { key: vec![0; 32] }).await?;
+     match step("the session's join", wire::read(&mut tcp)).await? {
+         Message::Response { code: SUCCESS, .. } => Ok(tcp),
+         Message::Response { code: ALREADY_CONNECTED, .. } => Err(io::Error::other(

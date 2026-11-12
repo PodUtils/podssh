@@ -8953,7 +8953,7 @@ Done; the containers of the Prove wait for the checks of a release (T-251).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -9003,6 +9003,36 @@ a thin wrapper. The line that this entry cites in `tls_server.rs` is the wrapper
 the facts are `pod-tls`'s `src/tls_server.rs`. Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates"): a change of that code is done in PodUtils/podcrates under its `AGENTS.md` (or
 asked as an issue there), and podssh takes it by the next tag.
+
+2026-11-12, read at Syncthing `v2.1.7` (`d6d0181f`, its `strelaysrv` built here with Go): one listener takes both
+modes (TLS for protocol mode, plain TCP for session mode); a session's two connections are proxied as they are, with
+no half-close passed on (a stream has no end of its own on this road; the resumable layer above needs none); the
+invitation's address is an IPv4 address in 16 bytes, mapped into IPv6; and a session takes its second connection only
+while its goroutine waits for one (`AddConnection` hands it on with no wait), so two joins at the same moment lose
+one of them, and the key of the refused one, which `findSession` spent at its lookup.
+
+## Done
+
+Partial, 2026-11-12. The library, behind the feature `strelay` of podssh-relay (`crates/podssh-relay/src/strelay/`):
+the protocol's messages in XDR (`wire.rs`); an Ed25519 certificate made the same each time from a seed, so the node's
+device ID (the SHA-256 of its certificate) comes from the pair's name and connect token, and rustls's TLS with it as
+the client's certificate (signed here: podssh-ws's provider loads no private key), the relay held to its own device
+ID, ALPN `bep-relay` (`cert.rs`); the node's join with its pings answered and a session joined for each invitation,
+the client's connect request and its session, 100 ms after the invitation so that the node's join comes first
+(`pair.rs`).
+
+- `cargo test -p podssh-relay --features strelay --lib strelay`: 2 passed (each message reads back and pads to four;
+  a seed makes the same certificate, which rustls reads and presents).
+- `PODSSH_STRELAY_TEST_BIN=... cargo test -p podssh-relay --features strelay --test strelay_link`: 1 passed, 25 runs
+  of 25, against Syncthing's own `strelaysrv` v2.1.7 on the loopback: the node joins, a client asks for its device
+  ID and 1 MiB comes back whole (0.2 s), and a client that asks for another device ID gets no session. Before the
+  client's spacing, 3 runs of 8 lost a join to the relay's race above.
+- Planted (`scripts/plants/t571-key-ignored.plant`, group `host-strelay`): the invitation's key ignored; the test
+  fails; 1 caught. clippy with the feature: no warning, and the gate lints it.
+- Next: the command line's road (the relays of 443 of the pool, from `pod-services` or the pool's list, by the
+  SHA-256 of the pair's name; `PODSSH_SYNCTHING_RELAY`; the line of Q78), the manual, a workflow that builds
+  `strelaysrv`, and one short live session through a relay of the pool on 443.
+
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research
 
@@ -10379,7 +10409,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:302-303`), and needs the net's role exit, signed by
   its owner (`:300-301`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:142`).
+  (`docs/STATUS.md:143`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
