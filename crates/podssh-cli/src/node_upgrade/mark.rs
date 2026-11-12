@@ -1,4 +1,5 @@
-//! A node of `--detach` that takes the signal of an upgrade says so beside
+//! A node of `--detach` that takes the request of an upgrade (SIGUSR2; on
+//! Windows its named event, T-678) says so beside
 //! its run's record (`detached/NAME.upgrade`, its pid), and `podssh update`
 //! asks each such node of this user to take the binary that it put in
 //! place (T-668). A node is sent the signal only while its run's lock is
@@ -19,7 +20,9 @@ fn mark_path(dir: &Path, name: &str) -> std::path::PathBuf {
 /// record, when it is a run of `--detach`.
 pub fn serving() {
     let (Some(dir), Some(name)) = (lock::dir(), lock::name()) else { return };
-    let _ = std::fs::write(mark_path(&dir, name), format!("{}\n", std::process::id()));
+    // The pid of the run's record: on Windows the first binary's, which
+    // waits for this one (T-678).
+    let _ = std::fs::write(mark_path(&dir, name), format!("{}\n", super::root_pid()));
 }
 
 /// The pid of a node that takes the signal, beside the record `name` in
@@ -73,9 +76,13 @@ fn send(pid: u32) -> Result<(), String> {
     }
 }
 
-/// Windows has no such signal: its node goes on with its binary until it
-/// starts again, as before.
-#[cfg(not(unix))]
+/// Windows has no such signal: the node's named event asks (T-678).
+#[cfg(windows)]
+fn send(pid: u32) -> Result<(), String> {
+    super::ask_windows::send(pid)
+}
+
+#[cfg(not(any(unix, windows)))]
 fn send(_: u32) -> Result<(), String> {
     Err("this system has no signal of an upgrade: the node goes on with its binary until it starts again".into())
 }

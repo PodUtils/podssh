@@ -35,7 +35,7 @@ fn lock() -> std::sync::MutexGuard<'static, BTreeMap<String, Zeroizing<Vec<u8>>>
 }
 
 /// The parts that the binary before this one handed over, at the start.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub(super) fn taken(parts: Vec<super::state::Part>) {
     let mut kept = lock();
     for part in parts {
@@ -44,7 +44,7 @@ pub(super) fn taken(parts: Vec<super::state::Part>) {
 }
 
 /// Each part of this run, for the handover.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub(super) fn all() -> Vec<super::state::Part> {
     let kept = lock();
     kept.iter().map(|(name, bytes)| super::state::Part { name: name.clone(), bytes: bytes.clone() }).collect()

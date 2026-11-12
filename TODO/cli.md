@@ -2507,7 +2507,7 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:459`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:460`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
 status lost: the report and its JSON have three (`docs/cli.md:2895-2898`). The issue's grade by a
@@ -2583,7 +2583,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:459`), so whether it listens is not known. The box refuses each bind
+  (`docs/STATUS.md:460`), so whether it listens is not known. The box refuses each bind
   (`scripts/box/seccomp.json:5-10`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket
@@ -3809,7 +3809,7 @@ allow, and which features does that close, before the user tries a session.
 
 ## Premise
 
-- Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:222-236` (exec,
+- Read: the probes exist and each is local: `crates/podssh-cli/src/doctor/host.rs:221-235` (exec,
   with `ok` and `unknown`, never `FAIL` for a refusal), `crates/podssh-cli/src/doctor/unix.rs:84-97`
   (`pty`), `crates/podssh-cli/src/harden.rs:245` (`status_sets`, reads `CapEff`,
   `CapPrm`, `CapInh`), `crates/podssh-ws/src/resolve.rs:1-18` (the order of the resolver).
@@ -3841,7 +3841,7 @@ The calls were made by the coordinator on 2026-11-09. No `memfd_create` plus `ex
 the exec rung reports the path probe only. Alternative that lost: the memfd probe from the issue. It
 loses because it needs a trampoline binary to embed and a forked child, its result depends on a
 kernel setting, and no feature reads the rung yet (`node upgrade` execs from a path:
-`crates/podssh-cli/src/node_upgrade/pass.rs:139` stages bytes in memory and then execs a path). Add the rung
+`crates/podssh-cli/src/node_upgrade/pass.rs:140` stages bytes in memory and then execs a path). Add the rung
 when a feature needs it. Alternative that lost: re-answer the serve-side tty routes here. It loses
 because T-248 owns them. Start the `terminal` category with the `pty` line only, and compose
 T-248's lines when they exist.

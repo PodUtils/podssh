@@ -19,7 +19,9 @@ mod ssh_harness;
 mod throughput_harness;
 
 use std::ffi::OsStr;
-use std::io::{Read, Write};
+#[cfg(unix)]
+use std::io::Read;
+use std::io::Write;
 use std::net::TcpListener;
 use std::process::{Child, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};

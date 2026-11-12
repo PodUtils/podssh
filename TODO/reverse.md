@@ -947,7 +947,7 @@ cargo test -p podssh-cli --test node_live -- --ignored ssh_to_a_node
 22. `operator.rs` runs the binary with no stored pair (78, naming `podssh relay pair`), and checks
 that stdout stays empty. The binary line must exit 255, name `podssh relay pair lab`, and open no
 connection. The live test runs `podssh ssh node://lab 'exit 3'` through a node whose TARGET is
-`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:199`), and expects 3. Plant: read `node:`
+`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:200`), and expects 3. Plant: read `node:`
 with no slashes as a node; `node_destinations` must fail.
 
 ## Done
@@ -4516,7 +4516,7 @@ before its `ready`, and the test of a dead session fails.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4536,6 +4536,23 @@ in place, so a node there takes a new binary at its next start, and each session
    the layer's state as T-668's bytes, and the old child exits.
 2. The request by a named event or a pipe of the node's own, in place of SIGUSR2.
 
+## Decision
+
+2026-11-12. The first binary stays the parent, and each binary after it is its child: at an upgrade
+the node starts the new binary as its child with its own words, hands it each target's socket by
+`WSADuplicateSocketW` (the child's pid known once it started, and the child blocked on its pipe till
+then) and the bytes of T-668 through an anonymous pipe whose read end alone the child inherits, then
+waits for it and ends with its code. The request is an event of the session, `podssh-node-upgrade-PID`,
+PID the first binary's (the pid of the run's record), which `podssh update` sets. Lost:
+
+- A parent that starts with the node (the Approach's first point as written): each node would run two
+  processes from its first start, for a rare upgrade; the chain of waiting parents costs one small
+  process for each upgrade, and none before one.
+- A new process that the supervisor is told about: neither a unit of the Service Control Manager nor
+  `podssh detached` takes a new pid without a stop.
+- A named pipe for the bytes: a name that another process of the user could open; the anonymous pipe
+  is inherited by the child alone, and the variable carries a nonce that the bytes repeat.
+
 ## Prove
 
 ```sh
@@ -4544,6 +4561,25 @@ cargo test -p podssh-cli --test node_moves
 ```
 
 The test of T-668's upgrade on the `windows` job of the gate.
+
+## Done
+
+Partial, 2026-11-12. `crates/podssh-cli/src/node_upgrade/`: `ask_windows.rs` (the event: the node
+waits for it in a thread of its own, `podssh update` sets it), `pass_windows.rs` (the child, the
+duplicates, the pipe, the job that ends the child with the parent), `mod.rs` (the start, the stop and
+the hand of Windows; `Taken` and `root_pid` shared), `mark.rs` (the root pid beside the record);
+the child takes no lock of the run (`detach/lock.rs`, `node_install/mod.rs`); the manual (`podssh
+node`'s notes, `podssh update`'s, `PODSSH_HANDOVER_ROOT`) and `docs/reverse.md`. The test:
+`crates/podssh-cli/tests/node_upgrade_windows.rs`, T-668's on Windows (32 MiB down, the event in the
+middle, the bytes whole, no new connection to the server).
+
+Checked here: `cargo clippy -p podssh-cli --target x86_64-pc-windows-gnu --all-targets -- -D warnings`
+clean (MinGW's cross toolchain), which also found and repaired three older lints of Windows alone
+(`podssh-ssh/src/sk/windows.rs`'s unsafe calls in unsafe functions, `doctor/host.rs`'s default with a
+field set after, `tests/roost.rs`'s import); the unit tests of the pipe's frame and the variable are
+Windows' own. On Linux: `cargo test -p podssh-cli --lib node_upgrade` 8 passed, `--test node_moves --
+upgrade` 1 passed, `--lib man` 91 passed. Waits: the test on the `windows` job of the gate.
+
 
 # T-679: A node of the iroh, DERP, quick tunnel, Piping Server or OpenTunnel road ends its sessions at its upgrade
 
@@ -4640,7 +4676,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
 2026-11-05 (the drafting agent of T-679), read in the tree of this draft:
 
 - The Premise holds: each node starts with the signal ignored
-  (`crates/podssh-cli/src/node_upgrade/mod.rs:118` says "libc::signal(libc::SIGUSR2, libc::SIG_IGN);"),
+  (`crates/podssh-cli/src/node_upgrade/mod.rs:154` says "libc::signal(libc::SIGUSR2, libc::SIG_IGN);"),
   and at `e2507f4` the nodes of the iroh, DERP, Piping Server and OpenTunnel roads waited for the stop of
   Ctrl-C alone, each with a keeper of its own, and the quick tunnel's with the keeper of `Layered::new`.
 - The Approach's "the handover's bytes are the same" holds for the sessions, but two roads need more of

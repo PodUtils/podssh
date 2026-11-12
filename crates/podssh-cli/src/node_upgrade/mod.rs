@@ -14,8 +14,11 @@
 //! serves on. This binary started again at the user's request is no helper
 //! (Q61).
 //!
-//! Where the system has no such signal (Windows), nothing asks, and a node
-//! goes on with its binary until it starts again, as before.
+//! On Windows (T-678), which has neither, a named event of the node asks
+//! (`ask_windows`), and the node starts the new binary as its child, hands
+//! it each socket by `WSADuplicateSocketW` and the bytes through a pipe,
+//! and waits for it (`pass_windows`): the pid and the locks of the run stay
+//! this process's.
 //!
 //! Each road of a node takes the same keepers and stop (T-679): the iroh
 //! road, the DERP road, the quick tunnel, the Piping Server road and the
@@ -26,9 +29,12 @@
 pub mod mark;
 // What a road keeps of its run for the binary after (T-679).
 pub mod parts;
+#[cfg(windows)]
+mod ask_windows;
 #[cfg(unix)]
 mod pass;
-#[cfg(unix)]
+#[cfg(windows)]
+pub mod pass_windows;
 mod probe;
 pub mod state;
 
@@ -87,6 +93,36 @@ pub(crate) fn lines(say: Arc<dyn Fn(String) + Send + Sync>) {
     *lock(&LINES) = Some(say);
 }
 
+/// What the binary before this one handed over: its line, each session,
+/// and the parts of the run (T-679).
+pub struct Taken {
+    pub from: String,
+    pub handed: Vec<Handed>,
+    pub parts: Vec<state::Part>,
+}
+
+/// The pid that the node's run's record and the request of an upgrade
+/// name: this process's, or on Windows the first binary's, which waits
+/// for the ones after it (T-678).
+pub fn root_pid() -> u32 {
+    #[cfg(windows)]
+    if let Some(pid) = std::env::var(pass_windows::ROOT_VARIABLE).ok().and_then(|v| v.parse().ok()) {
+        return pid;
+    }
+    std::process::id()
+}
+
+/// Whether this process is a node's next binary that its parent, the
+/// binary before it, waits for: the parent holds the run's locks (T-678).
+pub fn handed_by_parent() -> bool {
+    #[cfg(windows)]
+    {
+        std::env::var(VARIABLE).is_ok_and(|v| pass_windows::is_ours(&v))
+    }
+    #[cfg(not(windows))]
+    false
+}
+
 /// Whether this process took the place of a node of the binary before it:
 /// a detached run's terminal and streams were left already.
 pub fn took() -> bool {
@@ -125,7 +161,7 @@ pub fn start(err: &mut dyn Write) {
     #[cfg(unix)]
     match read(&value) {
         Ok(None) => {}
-        Ok(Some(pass::Taken { from, handed, parts: kept })) => {
+        Ok(Some(Taken { from, handed, parts: kept })) => {
             // Before any road reads them: its key, its tunnel (T-679).
             parts::taken(kept);
             let moved = handed.iter().filter(|h| h.target.is_ok()).count();
@@ -142,14 +178,42 @@ pub fn start(err: &mut dyn Write) {
             let _ = writeln!(err, "podssh node: the sessions of the binary before this one are lost: {why}");
         }
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    if pass_windows::is_ours(&value) {
+        // Read once: a child of this binary inherits no handover.
+        // SAFETY: at the node's start, before its runtime or any thread.
+        unsafe { std::env::remove_var(VARIABLE) };
+        took_from(pass_windows::read(&value), err);
+    }
+    #[cfg(not(any(unix, windows)))]
     let _ = (value, err);
+}
+
+/// The sessions of the binary before this one, before any road reads them.
+#[cfg(windows)]
+fn took_from(taken: Result<Taken, String>, err: &mut dyn Write) {
+    TOOK.store(true, Ordering::SeqCst);
+    match taken {
+        Ok(Taken { from, handed, parts: kept }) => {
+            parts::taken(kept);
+            let moved = handed.iter().filter(|h| h.target.is_ok()).count();
+            let _ = writeln!(
+                err,
+                "podssh node: took {moved} of {} sessions over from {from}: each resumes on this binary's socket",
+                handed.len()
+            );
+            *lock(&TAKEN) = Some(handed);
+        }
+        Err(why) => {
+            let _ = writeln!(err, "podssh node: the sessions of the binary before this one are lost: {why}");
+        }
+    }
 }
 
 /// The sessions and the parts in the memory that `value` names, when it
 /// names this process.
 #[cfg(unix)]
-fn read(value: &str) -> Result<Option<pass::Taken>, String> {
+fn read(value: &str) -> Result<Option<Taken>, String> {
     use std::os::fd::{FromRawFd, OwnedFd};
     let Some(fd) = pass::fd_of(value)? else { return Ok(None) };
     // SAFETY: the descriptor that the binary before this one left open for
@@ -186,12 +250,31 @@ pub(crate) async fn stop() {
             }
         }
     }
+    #[cfg(windows)]
+    if let Some((_wait, mut asked)) = ask_windows::watch(root_pid()) {
+        mark::serving();
+        let stopped = stop_signal();
+        tokio::pin!(stopped);
+        loop {
+            tokio::select! {
+                () = &mut stopped => return,
+                got = asked.recv() => {
+                    if got.is_none() {
+                        return stopped.await;
+                    }
+                    if ready().await {
+                        return;
+                    }
+                }
+            }
+        }
+    }
     stop_signal().await
 }
 
 /// An upgrade is asked: the binary at this binary's path, probed. Whether
 /// it passed, and the node stops for it.
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 async fn ready() -> bool {
     let binary = match crate::update::replace::running() {
         Ok(binary) => binary,
@@ -268,7 +351,23 @@ fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
     Some(AGAIN)
 }
 
-#[cfg(not(unix))]
+/// The new binary, this process's child, takes the sessions; this process
+/// waits for it and ends with its code, keeping the run's pid and locks.
+#[cfg(windows)]
+fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
+    let shown = crate::update::replace::shown(&binary);
+    match pass_windows::hand_to_child(&binary, &crate::version::line(), handed, &parts::all()) {
+        Ok(code) => Some(code),
+        Err((back, why)) => {
+            say(format!("{shown} did not start ({why}): this binary serves its {} sessions again", back.len()));
+            podssh_relay::reverse::node::set_upgrading(false);
+            *lock(&TAKEN) = Some(back);
+            Some(AGAIN)
+        }
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 fn hand(_: PathBuf, handed: Vec<Handed>) -> Option<i32> {
     *lock(&TAKEN) = Some(handed);
     Some(AGAIN)

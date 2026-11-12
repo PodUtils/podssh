@@ -309,7 +309,8 @@ unsafe fn bytes(pointer: *const u8, length: u32) -> Vec<u8> {
     if pointer.is_null() || length == 0 {
         return Vec::new();
     }
-    std::slice::from_raw_parts(pointer, length as usize).to_vec()
+    // SAFETY: the caller's promise, above.
+    unsafe { std::slice::from_raw_parts(pointer, length as usize) }.to_vec()
 }
 
 /// The text at `text`, UTF-16 that ends in NUL, read up to 256 units.
@@ -321,8 +322,10 @@ unsafe fn from_wide(text: PCWSTR) -> String {
         return String::new();
     }
     let mut length = 0;
-    while length < 256 && *text.add(length) != 0 {
+    // SAFETY: the caller's promise, above: each unit up to the NUL is read.
+    while length < 256 && unsafe { *text.add(length) } != 0 {
         length += 1;
     }
-    String::from_utf16_lossy(std::slice::from_raw_parts(text, length))
+    // SAFETY: the `length` units read above.
+    String::from_utf16_lossy(unsafe { std::slice::from_raw_parts(text, length) })
 }

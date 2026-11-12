@@ -262,7 +262,9 @@ pub fn enter_run(verb: &str) {
 /// name, or under a supervisor its run's lock. `Some(code)` ends it. A
 /// session's daemon, which starts as a detached child too, has its own lock.
 pub fn enter_child(argv: &[OsString]) -> Option<i32> {
-    if !super::is_child() {
+    // A node's next binary on Windows: the binary before it, which waits
+    // for it, holds the lock of the run (T-678).
+    if !super::is_child() || crate::node_upgrade::handed_by_parent() {
         return None;
     }
     let verb = argv.first().and_then(|w| w.to_str()).and_then(crate::flags::canonical_name)?;

@@ -31,14 +31,17 @@ pub(super) const NODE: &str = "SIGUSR2 asks a node to take the binary now at its
      asks for a new tunnel, under a new name, which the clients of the sessions that came over do not hold). A \
      session of --iroh with --no-e2e, a pipe in this process, ends at its resume. A node of --quick-tunnel with \
      --relay, whose relay role's tokens and pairs live in its process, a node of --carrier and one of \
-     --temporary ignore the signal and go on with their binary. Windows has no such signal: a node there takes \
-     a new binary at its next start, its sessions ending as before.";
+     --temporary ignore the signal and go on with their binary. Windows has no such signal and no exec: a node \
+     there waits for its event of an upgrade (podssh-node-upgrade-PID, PID the one of its run's record), probes \
+     the binary as above, starts it as its child with the same words, hands it each target's socket and the \
+     sessions' state, and waits for it, ending with its code: the pid and the locks of the run stay the first \
+     binary's, and a job ends the child should the first one be ended.";
 
 /// What `podssh update` does to the nodes that run.
 pub(super) const UPDATE: &str = "Once the binary is replaced, each node of --detach of this user that takes the \
      signal of an upgrade (a node of each road but a carrier's, a temporary one and a quick tunnel's with the \
      relay role behind it, which says so beside its record in the cache's detached directory) is sent \
-     SIGUSR2, while its run's lock is held and its record names its pid, and takes the new binary with its \
-     sessions (see the notes of podssh node); a line names each. A node that is no run of \
+     SIGUSR2 (on Windows, its event of an upgrade is set), while its run's lock is held and its record names \
+     its pid, and takes the new binary with its sessions (see the notes of podssh node); a line names each. A node that is no run of \
      --detach, as a unit of systemd, takes it by the signal USR2, which kill or systemctl kill sends to its process or its unit; until then, and \
      after --rollback, a node goes on with its own binary.";

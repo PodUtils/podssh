@@ -14,14 +14,13 @@ use super::Report;
 /// The lines of this host, and the facts that they found, which `--tier`
 /// composes into its verdict: the probes run once, whichever the flag.
 pub(super) fn check(report: &mut Report<'_>) -> Facts {
-    let mut facts = Facts::default();
+    let mut facts = Facts { bind: bind_capability(), ..Facts::default() };
     #[cfg(unix)]
     {
         let (line, name) = super::unix::user();
         report.line("user", line);
         facts.name = name;
     }
-    facts.bind = bind_capability();
     known_hosts(report);
     facts.state = token_cache(report);
     #[cfg(target_os = "linux")]

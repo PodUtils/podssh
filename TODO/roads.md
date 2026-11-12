@@ -54,7 +54,7 @@ unknown flag (exit 64), and `Cargo.lock` has no iroh crate.
    records of the resumable layer (T-151), so it can resume on the other road
    (T-153).
 5. `doctor`, with the feature: a UDP line, and the `/ping` of the home relay
-   through the proxy (`crates/podssh-cli/src/doctor/host.rs:11-28`).
+   through the proxy (`crates/podssh-cli/src/doctor/host.rs:11-27`).
 6. `availability()` knows `ts` as the only build feature
    (`crates/podssh-cli/src/flags.rs:473-481`): extend it. With no feature, an
    iroh destination refuses before it connects and names `--features iroh`,
@@ -6265,7 +6265,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:215`).
+  port 443 answers (`docs/STATUS.md:216`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not

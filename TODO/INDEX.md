@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**707 entries: 83 open, 17 partial, 10 blocked, 597 done.**
+**707 entries: 82 open, 18 partial, 10 blocked, 597 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 54 | 6 | 6 | 263 | 329 |
-| **All** | 83 | 17 | 10 | 597 | 707 |
+| P3 | 53 | 7 | 6 | 263 | 329 |
+| **All** | 82 | 18 | 10 | 597 | 707 |
 
 ## Entries
 
@@ -708,7 +708,7 @@ repository and CI).
 | [T-675](ssh.md) | P1 | S | M10 | defect | done | The gate red since T-664: the record of the keys that hosts took loses a change, and the stall's check names the old first request |
 | [T-676](roads.md) | P2 | S | M10 | defect | done | A WARP test inherits an earlier test's memory of a re-terminated TLS at a reused port |
 | [T-677](relay.md) | P2 | S | M10 | defect | done | A role with some 200 pairs or more does not start again: its file of pairs is read as a file of the cache |
-| [T-678](reverse.md) | P3 | M | M10 | feature | open | A node on Windows ends its sessions at its upgrade: no handover of its sockets and its state |
+| [T-678](reverse.md) | P3 | M | M10 | feature | partial | A node on Windows ends its sessions at its upgrade: no handover of its sockets and its state |
 | [T-679](reverse.md) | P3 | M | M10 | feature | done | A node of the iroh, DERP, quick tunnel, Piping Server or OpenTunnel road ends its sessions at its upgrade |
 | [T-680](machine.md) | P3 | M | M10 | measurement | done | A cold connect on a long path takes nine round trips, where osewa's takes three |
 | [T-681](machine.md) | P3 | M | M10 | measurement | done | The echo beside a download on cellular, wifi and the slow link is 1.5 to 3.5 times osewa's |

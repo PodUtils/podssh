@@ -150,8 +150,10 @@ pub fn dispatch(args: &NodeArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
         if let Err(refusal) = env::apply(Path::new(file)) {
             return refusal.report("node", err);
         }
-        // The parent of --detach holds nothing: its child takes the lock.
-        if !args.detach || crate::detach::is_child() {
+        // The parent of --detach holds nothing: its child takes the lock. A
+        // node's next binary on Windows neither: the binary before it, which
+        // waits for it, holds it (T-678).
+        if (!args.detach || crate::detach::is_child()) && !crate::node_upgrade::handed_by_parent() {
             if let Some(code) = lock::enter("node", Some(file), err) {
                 return code;
             }

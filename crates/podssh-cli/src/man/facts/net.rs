@@ -38,6 +38,13 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           its roads keep of the run (a key for the run only, a quick tunnel's name, T-679), and the node's pid, \
           so that only that process reads it, never a program that the node starts. probe makes podssh \
           --version add the line podssh-handover and the version of the sessions that this binary takes, \
-          which a node reads before it hands its sessions to a binary.",
+          which a node reads before it hands its sessions to a binary. On Windows (T-678) it names the inherited \
+          pipe that carries them and a nonce, and the child removes it once read.",
+    ),
+    (
+        &["PODSSH_HANDOVER_ROOT"],
+        "Set by podssh alone, never by hand, on Windows (T-678): in a node's next binary, the pid of the node's \
+          first binary, which waits for the ones after it and whose pid the run's record names; the event of an \
+          upgrade and the mark beside the record use it.",
     ),
 ];

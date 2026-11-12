@@ -10371,7 +10371,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:299-300`), and needs the net's role exit, signed by
   its owner (`:297-298`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:137`).
+  (`docs/STATUS.md:138`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13571,7 +13571,7 @@ podcrates filed it as its T-186 (`services/sandhole.toml`, with `tunnel-zone`), 
 of T-565's live run as its T-185; both go out with podcrates `v0.20.0`.
 
 2026-11-11: podssh took `v0.20.0` (`0c40ed3e`): the service is in the lock, not read yet. What the wiring needs, read
-in the code: (1) the leg's login (`crates/podssh-cli/src/pinggy_leg.rs:240`) tries none, an empty password and
+in the code: (1) the leg's login (`crates/podssh-cli/src/pinggy_leg.rs:241`) tries none, an empty password and
 keyboard-interactive; Sandhole lets any key in but asks for one, so the login ends with a key made for the
 login alone, never the node's; (2) a `Word` `SANDHOLE` in `crates/podssh-relay/src/ssh_http/mod.rs`: its marker
 `starting https` (its line `Starting HTTPS on https://NAME.demo.sandhole.com.br for address localhost`), its

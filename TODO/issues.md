@@ -261,6 +261,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #191 | COORD-024: podssh took podcrates v0.22.0 with pod-e2e; pod-relay's import takes 75a50318 (to podcrates) | closed 2026-11-11, the take at `75a50318`; pod-relay's take continues in #192 | T-684 |
 | #192 | COORD-025: podssh took podcrates v0.24.0; podcrates writes pod-relay's patch (to podcrates) | open (2026-11-11: the take at `2f4f292b`) | T-684 |
 | #193 | COORD-026: podssh took podcrates v0.25.0 at f029594d; the pod-relay cut stays frozen (to podcrates) | open (2026-11-11: the take at `f029594d`) | T-684 |
+| #194 | COORD-027: podssh took podcrates v0.26.0 at ff2f7bac; Pinggy's reader reads url-skip (to podcrates) | open (2026-11-12: the take at `ff2f7bac`) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

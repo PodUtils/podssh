@@ -869,10 +869,18 @@ finds the node where it was:
 6. A session of `--iroh --no-e2e`, a pipe in the process, ends at its
    resume, with why.
 
-Windows has no such signal, and a process that started the new binary
-beside it would change the node's pid, which a supervisor takes for its
-end: a node there takes a new binary at its next start, its sessions ending
-as before. Measured on 2026-11-05 (`cargo test -p podssh-relay --test
+Windows has neither the signal nor `execve` (T-678). A node there waits for
+a named event of its session, `podssh-node-upgrade-PID`, PID the pid of its
+run's record, which `podssh update` sets where it sends SIGUSR2 elsewhere.
+It probes the binary as above, then starts it as its own child with the
+same words, hands it each target's socket by `WSADuplicateSocketW` and the
+sessions' state and parts through an anonymous pipe that the child alone
+inherits, and waits for it, ending with its code. So the pid that a
+supervisor and `podssh detached` know, and the run's locks, stay the first
+binary's; the child takes no lock of its own, writes the first pid beside
+its record, and is in a job that ends it should the first binary be ended.
+A child that does not start gives the sessions back, each socket still the
+node's. Measured on 2026-11-05 (`cargo test -p podssh-relay --test
 session_handover`, 3 passed; `cargo test -p podssh-cli --test node_moves`, 3
 passed), on Linux. The other roads (T-679), the same day: `cargo test -p
 podssh-cli --test derp_road --test opentunnel_road`, 8 and 4 passed, and

@@ -16,6 +16,7 @@ use std::path::Path;
 use podssh_relay::session::handover::{Handed, LayerState, Moved};
 
 use super::state::{self, Decoded, Part, Session};
+use super::Taken;
 
 /// The value of the variable for the bytes in `fd`: `fd:N:pid:P`.
 pub fn value_of(fd: RawFd) -> String {
@@ -217,13 +218,6 @@ pub fn become_binary(binary: &Path, from: &str, handed: Vec<Handed>, parts: &[Pa
     }
 }
 
-/// What the binary before this one handed over: its line, each session,
-/// and the parts of the run (T-679).
-pub struct Taken {
-    pub from: String,
-    pub handed: Vec<Handed>,
-    pub parts: Vec<Part>,
-}
 
 /// `execve` of `binary`, with this run's words, and the variable: an
 /// error, as a success never returns.
