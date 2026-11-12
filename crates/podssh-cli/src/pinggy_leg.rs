@@ -217,7 +217,8 @@ pub(crate) async fn open(
     session.request_shell(false).await.map_err(|e| format!("{service}: a shell: {e}"))?;
     let (text, heard) = watch::channel(String::new());
     tokio::spawn(drain(session, text));
-    let skip: Vec<&str> = [Some(service.host.as_str()), pinggy::dashboard()].into_iter().flatten().collect();
+    let skips = pinggy::skips();
+    let skip: Vec<&str> = std::iter::once(service.host.as_str()).chain(skips.iter().map(String::as_str)).collect();
     let named = async {
         tokio::select! {
             Some(name) = from_api(&handle, &skip) => name,

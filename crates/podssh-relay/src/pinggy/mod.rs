@@ -61,10 +61,10 @@ fn catalog() -> &'static pod_services::Service {
     pod_services::get("pinggy").expect("pod-services holds the service pinggy")
 }
 
-/// The host of Pinggy's dashboard, which its text names beside a tunnel's
-/// address: never a tunnel's name.
-pub fn dashboard() -> Option<&'static str> {
-    catalog().text("dashboard-host")
+/// What Pinggy's text names beside a tunnel's address and is never a
+/// tunnel's name, as its dashboard's host: `url-skip` of `pod-services`.
+pub fn skips() -> Vec<String> {
+    pod_services::forward::Relay::of(catalog()).map(|relay| relay.url_rule().skips).unwrap_or_default()
 }
 
 /// A server of Pinggy's protocol: SSH on `host`:`port`, raw or inside TLS,
@@ -225,6 +225,14 @@ mod tests {
             assert!(why.starts_with("PODSSH_PINGGY: ") && !why.contains("SECRET"), "{why}");
         }
         assert_eq!(setting(None, Some("maybe")), Ok(Setting::Off(LAST_RESORT)), "another word is no");
+    }
+
+    /// The dashboard's host is never a tunnel's name: `url-skip` of
+    /// `pod-services` (its `dashboard-host` before podcrates v0.26.0).
+    #[test]
+    fn the_dashboard_s_host_is_skipped() {
+        let skips = skips();
+        assert!(skips.iter().any(|s| s.contains("dashboard.pinggy.io")), "{skips:?}");
     }
 
     #[test]
