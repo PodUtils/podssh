@@ -81,8 +81,8 @@ item whenever it appears.
    Actions in 8.0 s; the peers of `pod-services` wait for podcrates, #203).
 8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
    its Prove passes.
-9. **T-737: public MQTT brokers as a meeting point** (offline; a short live run). Done when its
-   Prove passes.
+9. **T-737: public MQTT brokers as a meeting point** is blocked on podcrates: the meeting points are
+   `pod-wormhole`'s (Rule Q3), asked as COORD-031 (#205).
 10. **T-574: the new Trojan node ids** (live, after 2026-11-12T03:05Z: Q90's live check of the
     nodes). Why: the ids arrive then; until then T-574 waits. Done when the live check passes, or
     its `## Done` says what it found.
@@ -127,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 78 open, 19 partial, 10 blocked, 602 done.
+`TODO/INDEX.md` holds 709 entries: 77 open, 19 partial, 11 blocked, 602 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

@@ -13275,7 +13275,7 @@ end; a client joins the topic, takes the first connection whose remote key is th
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -13323,6 +13323,22 @@ Against Eclipse Mosquitto's own broker with a `protocol websockets` listener in 
 code's tag is not delivered. Plant: derive the topic from a constant; the test fails on the second
 code's message. Then one short live pairing through each public broker from GitHub Actions, as the
 operator confirms (T-548's Decision).
+
+## Blocker
+
+PodUtils/podcrates: the meeting points of the pairing are `pod-wormhole`'s (`meet.rs`, `mailbox.rs`), which
+podssh took at v0.26.0, so a meeting point over MQTT is podcrates' work (the rule of a taken crate,
+`docs/decisions.md`). Asked as COORD-031 (#205),
+2026-11-12. podssh's part, once `pod-wormhole` offers it: its place in the pairing's order after Nostr's and the
+trackers', `PODSSH_MQTT`, the switch of T-548's Decision, the line of the third party, and the live run.
+
+## Correction
+
+2026-11-12. Read at podcrates' `fdb08f6` (v0.26.0): `pod-wormhole` meets only at magic-wormhole's mailboxes; a
+second transport of its `Wormhole` (MQTT over a WebSocket) goes inside that crate, not in podssh's glue
+(`crates/podssh-relay/src/code/`), as the Approach's item 5 foresaw.
+
+
 # T-738: File hosts as the last carrier of the resumable layer: one sealed upload for each piece
 
 **Source:** the operator's ruling Q78 (2026-11-02).
