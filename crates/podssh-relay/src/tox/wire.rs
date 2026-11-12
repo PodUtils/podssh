@@ -262,7 +262,13 @@ where
     // other's: c-toxcore's relay drops a client that sends under the
     // relay's (measured, the test), where the specification's words read
     // the other way.
-    Ok((Sender { io: write, sealer: session(), nonce: ours }, Receiver { io: read, opener: session(), nonce: theirs }))
+    let mut sender = Sender { io: write, sealer: session(), nonce: ours };
+    // The relay keeps a connection unconfirmed, and no other client's packet
+    // finds it, until a packet of its opens: a ping confirms it at once.
+    let mut ping: [u8; 8] = rand::random();
+    ping[0] |= 1;
+    sender.ping(ping).await?;
+    Ok((sender, Receiver { io: read, opener: session(), nonce: theirs }))
 }
 
 #[cfg(test)]

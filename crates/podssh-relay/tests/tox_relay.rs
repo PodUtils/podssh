@@ -156,3 +156,47 @@ async fn a_relay_of_another_key_is_refused_at_its_answer() {
     // The relay cannot open a hello to another key: it closes, or says nothing.
     assert!(!matches!(answer, Ok(Ok(_))), "a handshake with the wrong key of the relay passed");
 }
+
+/// A pair's road: the node waits on c-toxcore's relay under the pair's key,
+/// and two clients, each with a fresh key, reach it and carry their own
+/// bytes back from its echo at once.
+#[tokio::test]
+async fn a_pair_s_node_takes_two_clients_on_the_relay() {
+    use podssh_relay::tox::pair::{link, node_keys, serve, Dial};
+    let Some(relay) = start() else { return };
+    let port = relay.port;
+    let dial: Dial = std::sync::Arc::new(move || {
+        Box::pin(async move {
+            let tcp = tokio::net::TcpStream::connect(("127.0.0.1", port)).await?;
+            Ok(Box::new(tcp) as Box<dyn podssh_relay::tox::pair::Io>)
+        })
+    });
+    let node = node_keys("lab", "token");
+    let node_key = node.public();
+    let (visitors, mut came) = tokio::sync::mpsc::channel(4);
+    let say: podssh_relay::tox::pair::Say = std::sync::Arc::new(|_| {});
+    tokio::spawn(serve(dial.clone(), relay.key, node, visitors, say));
+    // Each session's stream is an echo at the node.
+    tokio::spawn(async move {
+        while let Some(stream) = came.recv().await {
+            tokio::spawn(async move {
+                let (mut r, mut w) = tokio::io::split(stream);
+                let _ = tokio::io::copy(&mut r, &mut w).await;
+                let _ = w.shutdown().await;
+            });
+        }
+    });
+    let one = |tag: u8| {
+        let dial = dial.clone();
+        let key = relay.key;
+        async move {
+            let mut stream = link(&dial, key, node_key, LIMIT).await.expect("the client reached the node");
+            let sent: Vec<u8> = (0..100_000u32).map(|i| (i as u8) ^ tag).collect();
+            stream.write_all(&sent).await.expect("the client writes");
+            let mut got = vec![0u8; sent.len()];
+            tokio::time::timeout(LIMIT, stream.read_exact(&mut got)).await.expect("in time").expect("the echo");
+            assert_eq!(got, sent, "client {tag}'s bytes came back whole");
+        }
+    };
+    tokio::join!(one(1), one(2));
+}

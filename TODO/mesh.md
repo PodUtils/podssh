@@ -12983,11 +12983,18 @@ progress; a FIN carries the length; the relay's pings answered).
   route to a key that never comes connects nothing within its limit; a hello to another key of the relay
   does not pass. Planted: each end sending under the other's base nonce, and the length in little-endian;
   the test fails for each. `--lib tox`: 2 passed (the nonce's count, the packets' parse).
-- Next: the pair's road at the node and the client (the keys from the pair's connect token, as ZeroTier's
-  road makes its identity; the relay by the SHA-256 of the pair's name among the nodes of 443 that
-  `pod-services` lists, an IP literal each), the end-to-end channel and the resumable layer above the
-  stream, the third party's line (Q78), the manual, `tox-bootstrapd` in a workflow, and one short live run
-  through a public node from GitHub Actions.
+- The pair's road in the library (`tox/pair.rs`): the node waits on the relay under a key that the pair's
+  name and connect token make, a client with a fresh key sends its hello out of band each 2 s, and the node
+  answers with the key of a new connection for that session alone, so that each session is a routed
+  connection of its own; the relay by the SHA-256 of the pair's name. Each connection confirms itself with a
+  ping at once: the relay keeps a connection that has sent nothing unconfirmed, and an out-of-band packet
+  does not find it (measured). `--test tox_relay`: 4 passed, with two clients of one node, each 100 kB
+  echoed whole at once (5 of 5 runs); planted, no confirming ping, the node never answers and the test
+  fails (the Prove's plant of an unconfirmed connection).
+- Next: the road in the command line (the setting `PODSSH_TOX`, the relays of 443 from `pod-services`, the
+  node beside its other last roads and the client's race, the end-to-end channel and the resumable layer above
+  the stream, the third party's line, Q78), the manual, `tox-bootstrapd` in a workflow, and one short live
+  run through a public node from GitHub Actions.
 
 
 # T-735: Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair

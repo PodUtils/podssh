@@ -2,5 +2,6 @@
 //! a last fallback of the operator's ruling Q78): a client of the relay
 //! protocol (`wire`) and one routed connection as a stream (`routed`).
 
+pub mod pair;
 pub mod routed;
 pub mod wire;
