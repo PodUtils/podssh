@@ -296,6 +296,7 @@ const FIRST: &[&str] = &[
     super::notes_vless::SSH_TROJAN,
     super::notes_hysteria::SSH,
     super::notes_turn::SSH,
+    super::notes_devtunnel::SSH,
     "node://NAME with --iroh-ticket TICKET races the two roads to the node: the iroh road starts first, \
      the pair's road 250 ms later, or at once when the iroh road fails, and the first far end that \
      speaks carries the session; the other link ends before it sends anything, so it opens nothing at \

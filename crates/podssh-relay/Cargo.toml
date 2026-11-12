@@ -95,6 +95,17 @@ pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.33.0",
 # Pure Rust; only with the feature `croc`.
 num-bigint = { version = "0.5", optional = true }
 aes-gcm = { workspace = true, optional = true }
+# The Dev Tunnels forward road (src/devtunnel/, T-755): the client side of
+# Microsoft Dev Tunnels (the management API, the relay WebSocket, SSH with no
+# user authentication to the tunnel's host, `direct-tcpip` channels) is
+# pod-devtunnel of PodUtils/podcrates; podssh gives it its way out, its
+# token file and its lines. Its SSH is russh on ring, beside podssh's
+# aws-lc-rs: only with the feature `devtunnel`.
+pod-devtunnel = { git = "https://github.com/PodUtils/podcrates", tag = "v0.33.0", optional = true }
+# The SSH server behind the stand-in's tunnel and the client of the session
+# through it in tests/devtunnel.rs: the release that vendor/russh patches,
+# with podssh's own crypto; only with `devtunnel-standin`.
+russh = { version = "0.65.0", default-features = false, features = ["aws-lc-rs"], optional = true }
 
 [features]
 # Pairs of the reverse road: `POST /v1/pair`, the status of a pair and
@@ -196,6 +207,14 @@ code = ["pair", "dep:pod-wormhole", "pod-relay/code"]
 # bridge of croc-web, a last fallback of Q78, under the resumable layer;
 # its PAKE on SIEC, written here. No C either; the gate builds it.
 croc = ["dep:num-bigint", "dep:aes-gcm"]
+# The Dev Tunnels forward road (T-755): a `direct-tcpip` channel to a port of
+# a tunnel's host through Microsoft's relay on 443. Off by default, as a
+# trial until its live run; it brings ring with pod-devtunnel's russh.
+devtunnel = ["dep:pod-devtunnel"]
+# The same with pod-devtunnel's stand-in of the management API, the relay and
+# the tunnel's host on the loopback, for tests/devtunnel.rs alone; the binary
+# never enables it.
+devtunnel-standin = ["devtunnel", "pod-devtunnel/standin", "dep:russh"]
 # Plain ws:// to a stand-in relay on the loopback, for the tests of an embedder
 # (T-068). The binary never enables it (scripts/no-plain-ws.sh).
 plain-ws = ["podssh-ws/plain-ws", "pod-relay/plain-ws"]

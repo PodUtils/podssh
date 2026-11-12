@@ -2,7 +2,7 @@ This file holds the work that makes podssh usable by programs and agents: JSON f
 `man` and the result of `ssh`, `podssh status`, the end-to-end check in the binary, `podssh
 ping`, an MCP server, and a log of sessions. stdout carries the answer and nothing else
 (`docs/architecture.md:332-333`). `serde` and `serde_json` are already dependencies of the binary
-(`crates/podssh-cli/Cargo.toml:136`), so no entry here needs a new crate for JSON.
+(`crates/podssh-cli/Cargo.toml:143`), so no entry here needs a new crate for JSON.
 
 # T-049: `podssh doctor --json` (GitHub #9)
 
@@ -42,13 +42,13 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    and `detail`) and `counts` (`ok`, `fail`, `unknown`). `status` is "ok", "FAIL" or "unknown",
    the shape of GitHub #9. The exit code does not change.
 3. One model and two renderers, as `podssh man` has (`crates/podssh-cli/src/man/model.rs`).
-4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:167-220`), read it into
+4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:167-225`), read it into
    `Parsed::Doctor` (`crates/podssh-cli/src/tree.rs` lines 172-181 and 384-392 at `c6f09a8`), and pass it on in
-   `crates/podssh-cli/src/dispatch.rs:232-283`. `tree.rs` has 454 lines and `dispatch.rs` 448:
+   `crates/podssh-cli/src/dispatch.rs:232-285`. `tree.rs` has 454 lines and `dispatch.rs` 448:
    keep the additions small, or split first.
 5. The JSON carries the same detail strings as the text, which hide proxy credentials and
    tokens today (`crates/podssh-cli/tests/doctor.rs:142-167`).
-6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:255-344`) and
+6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:255-345`) and
    `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -146,7 +146,7 @@ manual do not keep the kind and the `instead` of a flag.
    (`crates/podssh-cli/src/man/mod.rs` lines 73-78 at `332ee58`).
 5. The JSON is the same on each host: no path from `HOME` (`docs/cli.md:41-42`).
 6. Add the row to `MAN_FLAGS` (`crates/podssh-cli/src/flags.rs:391-398`), the field to
-   `man::Request` (`crates/podssh-cli/src/man/mod.rs:108-115`), and the parse
+   `man::Request` (`crates/podssh-cli/src/man/mod.rs:110-117`), and the parse
    (`crates/podssh-cli/src/tree.rs:246-254`). JSON for `--help` stays with T-010.
 
 ## Prove
@@ -227,7 +227,7 @@ opens no connection: the relay list (`PodUtils/podssh:crates/podssh-relay/src/re
 ## Approach
 
 1. The syntax: `podssh status [OPTIONS] [[user@]host[:port]]`, with the relay flags of `doctor`
-   (`crates/podssh-cli/src/flags/relay.rs:167-220`). Remove the owner row, and add "status" to
+   (`crates/podssh-cli/src/flags/relay.rs:167-225`). Remove the owner row, and add "status" to
    `DISPATCHED` (`crates/podssh-cli/tests/flag_table.rs:110-145`).
 2. Write one line of JSON to stdout and exit 0 (64 for a usage error). No text form: `doctor`
    is the report for people.
@@ -334,8 +334,8 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
    be tested; the notes say so. No OpenSSH step (Decision).
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
-6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:167-220`), the `doctor` notes
-   (`crates/podssh-cli/src/man/notes.rs:255-344`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
+6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:167-225`), the `doctor` notes
+   (`crates/podssh-cli/src/man/notes.rs:255-345`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
 
@@ -545,7 +545,7 @@ at `crates/podssh-cli/src/ssh/transport.rs:225`, and the relay's close reason is
    (`crates/podssh-ssh/src/io.rs:171-181`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:78-95`). T-055 needs the same change.
 3. stdout and stderr stay byte for byte as now; the command's output never goes into the JSON.
 4. Write the file on each path, also after a failure before the session: at the end of
-   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:291-295`). Mode 0600. Refuse `-`: stdout is data.
+   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:297-301`). Mode 0600. Refuse `-`: stdout is data.
 5. Add the row to `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-292`; the set of short flags
    does not change), and change the `ssh` notes and `docs/cli.md` in the same commit.
 
@@ -627,7 +627,7 @@ failure at `crates/podssh-ssh/src/run.rs:136-146` and
 `crates/podssh-cli/src/ssh/result.rs:126-140`, written at the end of
 `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:98-134`); the relay host at
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
-`crates/podssh-cli/src/ssh/mod.rs:365`. The flag in `SSH_FLAGS`
+`crates/podssh-cli/src/ssh/mod.rs:371`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:210`), its note at
 `crates/podssh-cli/src/man/notes_ssh_more.rs:128-142`, and `docs/cli.md`.
 
@@ -902,7 +902,7 @@ checks and its move aside at `crates/podssh-cli/src/session_log.rs:174-243`,
 and its last line at `crates/podssh-cli/src/session_log.rs:246-263`. The
 line of `podssh ssh` at the end of `run_ssh`, from its result
 (`crates/podssh-cli/src/ssh/mod.rs:103-134`), and its destination at
-`crates/podssh-cli/src/ssh/mod.rs:261`; that of `podssh proxy` at
+`crates/podssh-cli/src/ssh/mod.rs:267`; that of `podssh proxy` at
 `crates/podssh-cli/src/proxy.rs:89-103`, its destination at
 `crates/podssh-cli/src/proxy.rs:186` and `crates/podssh-cli/src/proxy.rs:328`,
 its session at `crates/podssh-cli/src/proxy.rs:448-455`; the bytes of the
@@ -1850,7 +1850,7 @@ both from the schema alone.
 - Read, at `47e1eba`: `crates/podssh-cli/src/flags/relay.rs:181-183` is the `--full` row, with the QUIC
   handshake. `crates/podssh-cli/src/flags/relay.rs:188-190` is the `--quick` row, which names no
   probe of `--full`.
-- `crates/podssh-cli/src/doctor/mod.rs:255-257` guards the whole section of the quick tunnel with
+- `crates/podssh-cli/src/doctor/mod.rs:263-265` guards the whole section of the quick tunnel with
   `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
   `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
 - `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.
@@ -1859,7 +1859,7 @@ both from the schema alone.
   `--quick` leaves out and names no probe of `--full`.
 - `crates/podssh-cli/src/mcp/tools.rs:78` repeats the QUIC handshake. Line 79 offers `quick`.
   `crates/podssh-cli/src/mcp/tools.rs:209-218` builds `--full --quick` when both are true.
-- `crates/podssh-cli/src/doctor/sections.rs:297-302` already names the quick tunnel's edge among the
+- `crates/podssh-cli/src/doctor/sections.rs:315-320` already names the quick tunnel's edge among the
   sections that `--quick` leaves out.
 - T-511's Decision (`TODO/machine.md:1368-1373`) records that `--quick` leaves the edge out.
 

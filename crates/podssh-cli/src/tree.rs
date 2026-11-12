@@ -448,6 +448,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             hysteria: get("hysteria"),
             tuic: get("tuic"),
             turn: crate::turn::Flags { url: get("turn"), auth_file: get("turn-auth-file") },
+            devtunnel: get("devtunnel"),
             quick: matches.get_flag("quick"),
             tier: matches.get_flag("tier"),
             jobs: get("jobs"),

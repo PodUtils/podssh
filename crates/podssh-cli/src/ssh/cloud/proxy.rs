@@ -211,6 +211,22 @@ async fn pipe(road: &Road, trust: &Trust, err: &mut dyn Write) -> i32 {
                 }
             }
         }
+        // Dev Tunnels (T-755): a channel to the port of the tunnel's host;
+        // the stream's end is the end of the pipe.
+        Road::Devtunnel(target) => {
+            let say: super::devtunnel::Say = Arc::new(|line: &str| podssh_ssh::err_line!("podssh: {line}"));
+            let quiet: super::devtunnel::Say = Arc::new(|_: &str| {});
+            match super::devtunnel::open(target, trust, say, quiet).await {
+                Ok(stream) => {
+                    let (read, write) = tokio::io::split(stream);
+                    End { read: Box::new(read), write: Box::new(write), child: None, last_word: true, ending: None }
+                }
+                Err((line, code)) => {
+                    let _ = writeln!(err, "podssh: {line}");
+                    return code;
+                }
+            }
+        }
     };
     crate::session_log::opened(None);
     let pumped = crate::pipe::pump::pump(crate::pipe::local::stdio(), end).await;

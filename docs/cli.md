@@ -6456,3 +6456,49 @@ line names no other road; `doctor --turn` checks it.
   here; `crates/podssh-cli/src/turn/`; a stand-in server in
   `crates/podssh-ws/tests/turn.rs`; the test against coturn
   `crates/podssh-cli/tests/turn_road.rs` and `.github/workflows/turn-interop.yml`.
+
+## Microsoft Dev Tunnels: `devtunnel://TUNNEL[:PORT]`
+
+T-755, GitHub #215: a host whose only way out is TCP 443 reaches a port of
+the host of a Microsoft Dev Tunnels tunnel through the service's relay, with
+no relay of podssh's. The protocol is `pod-devtunnel` of PodUtils/podcrates
+(`v0.33.0`); podssh's glue is `crates/podssh-relay/src/devtunnel/` and
+`crates/podssh-cli/src/ssh/cloud/devtunnel.rs`. The road is in a build with
+the feature `devtunnel` alone (off by default until its live run); in
+another build a `devtunnel://` destination and `doctor --devtunnel` exit 70
+before anything connects.
+
+- `podssh ssh [user@]devtunnel://TUNNEL[:PORT]`, as a road of a provider's
+  own tunnel (`crates/podssh-cli/src/ssh/cloud.rs`): TUNNEL is the tunnel's
+  name, or `ID.CLUSTER` as the vendor's tools show it; PORT is 22 by default,
+  and `-p` and `Port` give it. `--direct`, `-4`, `-6`, `HostName` and a `-J`
+  hop before it are refused (64); `-J devtunnel://TUNNEL` makes the tunnel
+  the first hop of a chain. The host key is recorded under
+  `devtunnel://TUNNEL`. `podssh proxy devtunnel://TUNNEL:PORT` is the same
+  pipe.
+- The steps: the management API (`GET /tunnels/NAME` with the scope
+  `connect`) with the user's token; the relay's WebSocket with the
+  subprotocol `tunnel-relay-client` and the connect token, through
+  `HTTPS_PROXY` when one is set, with podssh's TLS and trust; SSH to the
+  tunnel's host inside it, its key one of the API's `hostPublicKeys`, with
+  the user `tunnel` and no authentication; a `direct-tcpip` channel to
+  `127.0.0.1:PORT` of that host. A relay session that ends is opened again
+  with a fresh connect token, at most four tries, and never after a refused
+  token (401, 403) or a tunnel that is gone (404).
+- The token: `PODSSH_DEVTUNNEL_TOKEN_FILE` names a private file of one line,
+  `SCHEME TOKEN` (`github`, `aad` or `bearer`). It is never in argv, a line,
+  the journal or `--json`. `PODSSH_DEVTUNNEL_API` names another base of the
+  management API (`http://` to the loopback alone, for a test).
+- A failure names its stage (`management`, `websocket`, `ssh`, `channel`,
+  `reconnect`, or `setup` for the token file) and exits by its class: a
+  refused token or a host key that is not the tunnel's 77; a tunnel that does
+  not exist, no host connected or a refused port 69; a time limit or 429 75;
+  a token file or a setting that cannot be used 78.
+- `podssh doctor --devtunnel TUNNEL[:PORT]` runs the same steps and reads
+  the host key of the SSH server at the port; its line names the stage of a
+  failure.
+- The tests: `crates/podssh-relay/tests/devtunnel.rs` against the crate's
+  stand-in (feature `devtunnel-standin`): a session of SSH to a server of
+  the test behind the tunnel runs a command; a relay that goes away ends a
+  stream with the named error, and a new stream after it works; no token is
+  in a line, a `Debug` or a failure.

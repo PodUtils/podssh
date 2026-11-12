@@ -111,6 +111,9 @@ pub mod context;
 pub mod croc;
 #[cfg(feature = "derp")]
 pub mod derp;
+// The Dev Tunnels forward road, glue over pod-devtunnel (T-755).
+#[cfg(feature = "devtunnel")]
+pub mod devtunnel;
 pub mod e2e;
 pub mod failover;
 pub mod failures;

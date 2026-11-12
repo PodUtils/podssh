@@ -211,6 +211,11 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     super::vless::DOCTOR_HYSTERIA,
     super::vless::DOCTOR_TUIC,
     super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE, super::via::DOCTOR_TURN, super::via::TURN_AUTH_FILE,
+    // The Dev Tunnels road (T-755).
+    row(None, "devtunnel", Some("TUNNEL"), FlagKind::Supported,
+        "also check TUNNEL[:PORT] of Microsoft Dev Tunnels (a name, or ID.CLUSTER; port 22 by default) with the \
+         token of PODSSH_DEVTUNNEL_TOKEN_FILE: the management API, the relay's WebSocket, its SSH and a channel to \
+         the port, whose first bytes it reads; a failure names its stage; in a build with the feature devtunnel", None),
     // The exit of the net, and one session from it (T-458).
     row(None, "exit", Some("NAME"), FlagKind::Supported,
         "also check the exit NAME of your net: what the net held says of it and of this client, the pair kept under \

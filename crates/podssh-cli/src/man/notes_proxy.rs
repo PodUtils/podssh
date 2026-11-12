@@ -69,6 +69,7 @@ pub const PROXY: &[&str] = &[
     super::notes_roads::PROXY_WSTUNNEL,
     super::notes_roads::PROXY_CHISEL,
     super::notes_turn::PROXY,
+    super::notes_devtunnel::PROXY,
     super::notes_roads::PROXY_CLEARTEXT,
     "podssh proxy node://NAME[/ROUTE] is the pipe of podssh operator NAME[/ROUTE] (see its notes): stdin to \
      the node of the pair under the label NAME, and the bytes of its TARGET, or of its ROUTE, to stdout, with \

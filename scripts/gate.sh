@@ -182,6 +182,11 @@ step_lint() {
     # Syncthing's relays as a last road (T-571): the library and the CLI's road.
     run "clippy: no warning with the Syncthing relay feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/strelay -- -D warnings $LINTS_ALLOWED
+    # The Dev Tunnels road (T-755): the glue over pod-devtunnel with the
+    # crate's stand-in, and the CLI's road with its feature.
+    run "clippy: no warning with the Dev Tunnels feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay \
+            --features podssh-cli/devtunnel,podssh-relay/devtunnel-standin -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings
@@ -256,6 +261,10 @@ step_libs() {
     tests "the relay role as a quick tunnel's origin (features quick, serve)" \
         cargo test --locked --no-fail-fast -p podssh-relay --features quick,serve \
             --lib serve::behind
+    # The Dev Tunnels road (T-755) against pod-devtunnel's stand-in.
+    tests "the Dev Tunnels road against its stand-in (feature devtunnel-standin)" \
+        cargo test --locked --no-fail-fast -p podssh-relay --features devtunnel-standin \
+            --test devtunnel --lib devtunnel
     run "the binary does not enable plain-ws" sh scripts/no-plain-ws.sh
 }
 
@@ -293,6 +302,9 @@ step_ssh() {
     # and those of the manual, whose variables the feature's crate joins.
     tests "the CLI with WARP's road (feature warp): tests" \
         cargo test --locked --no-fail-fast -p podssh-cli --features warp --lib
+    # The road of devtunnel:// in the CLI, with its feature (T-755).
+    tests "the CLI with the Dev Tunnels road (feature devtunnel): tests" \
+        cargo test --locked --no-fail-fast -p podssh-cli --features devtunnel --lib devtunnel
 }
 
 # The Tailscale adapter (feature `ts`) links the vendored tailscale-rs fork,

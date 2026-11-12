@@ -334,6 +334,7 @@ const DOCTOR: &[&str] = &[
     super::notes_hysteria::DOCTOR,
     super::notes_tuic::DOCTOR_TUIC,
     super::notes_turn::DOCTOR,
+    super::notes_devtunnel::DOCTOR,
     "With --json, the report is one JSON object on stdout when every check has run: schema (1), podssh, \
      os, arch, checks (each with section, check, status and detail; status is ok, FAIL or unknown), \
      counts (ok, fail, unknown) and diagnosis (each case after the counts; empty when none). A check tried \

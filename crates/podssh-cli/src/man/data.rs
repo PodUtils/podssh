@@ -495,5 +495,6 @@ pub fn files() -> Vec<(Vec<String>, String)> {
     rows.push(super::notes_roads::chisel_file());
     rows.push(super::notes_hysteria::file());
     rows.push(super::notes_turn::file());
+    rows.push(super::notes_devtunnel::file());
     rows
 }

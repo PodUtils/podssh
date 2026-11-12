@@ -310,6 +310,7 @@ pub fn variables() -> impl Iterator<Item = &'static (&'static [&'static str], &'
         .chain(iroh_road::VARIABLES)
         .chain(roads::VARIABLES)
         .chain(turn::VARIABLES)
+        .chain(super::notes_devtunnel::VARIABLES)
         .chain(net::VARIABLES)
 }
 

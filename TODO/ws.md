@@ -2,7 +2,7 @@ This file holds the work on `podssh-ws`, the crate that reaches the relay: TCP a
 with podssh's own pure-Rust provider, and the WebSocket client. W10, W13 and W14 are rows of the
 former defects page (`git show 3ee70dc:docs/defects.md`); the features come from the
 `podssh-ws` item of ROADMAP M4 and `docs/design.md:621-625`, and from GitHub issues. The crate
-must build with no C compiler (`scripts/gate.sh:185-201`).
+must build with no C compiler (`scripts/gate.sh:190-206`).
 
 # T-063: W10: the frame decoder does not check a received control frame
 
@@ -1980,7 +1980,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
-  (`crates/podssh-relay/Cargo.toml:210-211`), a crate with no C; `rustls-native-certs` 0.8.4,
+  (`crates/podssh-relay/Cargo.toml:229-230`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
   (`Cargo.lock:6298-6299`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
@@ -2901,7 +2901,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:382-386`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:394-398`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3344,7 +3344,7 @@ when a podcrates tag has `pod-session` with the held link.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** blocked
+**Status:** partial
 
 ## Problem
 
@@ -3371,6 +3371,46 @@ podssh reaches no SSH server through a Dev Tunnels relay. The relay is a forward
    target; the token from a private file or the settings' secrets, never in argv, a log line, the journal or
    `--json`; a row of `podssh doctor` that names the stage of a failure. TCP alone.
 
+## Decision
+
+- The road is a destination, `devtunnel://[user@]TUNNEL[:PORT]`, a road of a provider's own tunnel beside `iap://`,
+  `warp://`, `tor://` and `upterm://` (`crates/podssh-cli/src/ssh/cloud.rs`): the tunnel names the host, as a VM's name
+  does, and `-p` gives the port. Lost: a flag `--devtunnel TUNNEL` of `ssh`'s road, as `--turn`, which takes the
+  target's host as a name for `known_hosts` alone and needs a row in each table of the verbs of `ssh`'s road; a
+  destination says what it reaches.
+- The user's token comes from the private file that `PODSSH_DEVTUNNEL_TOKEN_FILE` names, as `PODSSH_IAP_TOKEN_FILE`
+  does for `iap://`, read by `podssh_relay::cache::read_private`. Lost: a flag `--devtunnel-token-file FILE` of
+  `ssh`'s road (rows in each verb's table for one road of a feature that is off by default; the variable can be set
+  in the settings of a shell or a unit); the token in a variable or in argv (a process list and logs show them).
+- The file holds one line `SCHEME TOKEN` (`github`, `aad`, `bearer`), as `Authorization` takes it. Lost: a bare token
+  read as `github` (an AAD token would then be refused by the API with no cause named); a second variable for the
+  scheme (two settings for one secret).
+- `PODSSH_DEVTUNNEL_API` names another base of the management API, which `pod_devtunnel::Base::parse` takes:
+  `https://`, or `http://` to the loopback for a test. Lost: no variable (no test of the binary against the stand-in
+  and no other environment of the service).
+- The exit code comes from `Failure::class` through podssh's own table (`exitmap`): `Refused`, `Revoked` and
+  `Policy` 77; `TempFail` and `Timeout` 75; `Config` 78; `Usage` 64; `Unavailable`, `NotFound`, `Protocol` and
+  `Unsupported` 69. Lost: `Class::exit_code` of `pod-core` as it is, whose 66, 76, 79 and 80 are not in podssh's
+  table of exit codes (`docs/cli.md`, "Exit codes").
+- The stream of the road holds a clone of `pod_devtunnel::Relay` (`podssh_relay::devtunnel::Tunneled`), so that the
+  SSH session under the channel lives as long as the stream. Lost: a stream alone, whose session would end when the
+  client of the tunnel goes.
+- `podssh doctor --devtunnel TUNNEL[:PORT]` runs the road and reads the host key of the SSH server at the port, and
+  names the stage of a failure (`setup`, `management`, `websocket`, `ssh`, `channel`, `reconnect`). Lost: a check
+  of the management API alone (it would not find a relay or a proxy that stops the WebSocket).
+- The stand-in tests take a feature of their own, `devtunnel-standin` (with `pod-devtunnel/standin` and russh for
+  the test's SSH server and client), as `warp-stand-in` does; the binary never enables it. Lost: a dev-dependency on
+  `pod-devtunnel` with `standin`, which would build pod-devtunnel and ring for each test build of `podssh-relay`.
+- The management API's GET goes before the relay's WebSocket, on a connection of its own through `HTTPS_PROXY`, and
+  again before each reconnect: a read before a session's connection, never beside it, as the token endpoint of
+  `iap://` and the API of `warp://` are read. The road is the user's choice of a destination, as those roads are. Not
+  settled here: whether rule 2 of `AGENTS.md` needs an exception of its own for it (Q96 and Q97 name other reads);
+  the main session reads `docs/decisions.md` and asks the operator if it does. Lost: none, as the relay URI and its
+  connect token come from the API alone.
+- Each podcrates pin of the workspace moves to `v0.33.0`, so that the types of `pod-ws`, `pod-tls` and `pod-proxy`
+  that `pod-devtunnel` takes are those of `podssh-ws`. Lost: `pod-devtunnel` alone at `v0.33.0` (two copies of each
+  shared crate, and types that do not match).
+
 ## Prove
 
 ```sh
@@ -3383,7 +3423,43 @@ a stand-in SSH server completes its handshake and runs a command; a relay's reco
 and a new stream after it succeeds; the token is in no line of `--json`, the log or the journal. Live, short: a tunnel
 of the tester's, from GitHub Actions, where they give one.
 
-## Blocker
+## Correction
 
-PodUtils/podcrates: a crate `pod-devtunnel` with the client side of Dev Tunnels' relay, as the issue asks podssh to
-use (asked as COORD-041, #216). Unblocked when a podcrates tag has it.
+- The Blocker is gone: PodUtils/podcrates `v0.33.0` (`8edf8af`) has `pod-devtunnel` (COORD-041, #216), with the
+  management API, the relay WebSocket, SSH with `none`, `direct-tcpip` as `AsyncRead + AsyncWrite`, the named steps
+  (`step_of`), the bounded reconnect and a stand-in (feature `standin`, `Port::Forward`).
+- The Prove's command takes the feature `devtunnel-standin`, as the stand-in is a feature of the crate:
+  `cargo test -p podssh-relay --features devtunnel-standin --test devtunnel`.
+- The journal and `--json` are the binary's: the test of the relay crate checks each line of the road's report, each
+  `Debug` and each failure's words, which are what the binary writes there; a test of the binary against the stand-in
+  is not written (it would need the stand-in in `podssh-cli`'s tests).
+
+## Done
+
+Drafted 2026-11-12 by a drafting agent (`draft-t755`, `6e0c6e7`), merged, built and tested the same day by the main
+session with no change to its code. Written:
+
+- `crates/podssh-relay/src/devtunnel/` (feature `devtunnel`): `mod.rs` (the settings with podssh's SSH name and
+  `PODSSH_DEVTUNNEL_API`, the way out of `podssh-ws`, `Road`, `Tunneled`, `stage_of`, `session_ended`), `token.rs`
+  (the token file), `lines.rs` (the crate's events as podssh's lines); their unit tests (`cargo test -p podssh-relay --features devtunnel --lib
+  devtunnel`): 4 passed.
+- `crates/podssh-relay/tests/devtunnel.rs` (feature `devtunnel-standin`): a session of SSH to a server of the test
+  behind the stand-in's tunnel runs a command; a relay that goes away ends a stream with `SESSION_ENDED` and a new
+  stream on the same client works, on its second session; a refused token is `management` and 77's class, a refused
+  port `channel`; no token in a line, a `Debug` or a failure. `cargo test -p podssh-relay --features devtunnel-standin --test
+  devtunnel`: 4 passed. Planted: the step `management` named `websocket`, and
+  `devtunnel_a_refusal_names_its_stage_and_class` fails; restored, it passes.
+- `crates/podssh-cli/src/ssh/cloud/devtunnel.rs` and the variant `Road::Devtunnel` of `cloud.rs`, the arm of
+  `podssh proxy` (`cloud/proxy.rs`), the refusal with 70 in a build without the feature (`ssh/mod.rs`), the scheme in
+  the other roads' lists of targets with roads of their own (`*/pipe.rs`), the feature `devtunnel` of `podssh-cli`.
+  `cargo test -p podssh-cli --features devtunnel --lib`: 1138 passed; without the feature, the binary refuses
+  `podssh ssh devtunnel://NAME:22` with 70 and the line that names the feature.
+- `podssh doctor --devtunnel TUNNEL[:PORT]` (`doctor/devtunnel.rs`, its flag in `flags/relay.rs`, `parsed.rs`,
+  `tree.rs`, `dispatch.rs`, `doctor/mod.rs`, `doctor/sections.rs`).
+- The manual (`man/notes_devtunnel.rs`: the notes of `ssh`, `proxy` and `doctor`, the two variables, the token file
+  in FILES); `docs/cli.md` ("Microsoft Dev Tunnels"); the man's tests of each flag and variable pass in both builds.
+- Clippy as the gate runs it, in the default build and with `podssh-cli/devtunnel` and
+  `podssh-relay/devtunnel-standin`: no warning. `cargo test -p podssh-cli -p podssh-relay --no-fail-fast` (default):
+  2780 passed, 0 failed.
+- Waits, so the entry stays partial: the live run with a tester's tunnel from Actions, where a tester gives one
+  (asked on #215).

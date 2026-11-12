@@ -47,6 +47,13 @@ tor = ["dep:podssh-tor"]
 # MPL-2.0 core in C++, linked statically. Off by default until its static
 # musl build is measured; without it, the road is not there.
 zerotier = ["dep:podssh-zerotier"]
+# The Dev Tunnels forward road (T-755): `devtunnel://TUNNEL[:PORT]`, a
+# `direct-tcpip` channel to a port of a Microsoft Dev Tunnels host through
+# its relay on 443, over pod-devtunnel. Off by default, as a trial until its
+# live run with a tester's tunnel; its russh brings ring beside aws-lc-rs.
+# Without it, a devtunnel:// destination and doctor --devtunnel are refused
+# with exit 70.
+devtunnel = ["podssh-relay/devtunnel"]
 # Tox's TCP relays as a last road of a pair (T-734). No C.
 tox = ["podssh-relay/tox"]
 # Yggdrasil's network as a last road of a pair (T-735). No C.

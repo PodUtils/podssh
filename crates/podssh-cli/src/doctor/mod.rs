@@ -59,6 +59,8 @@ mod names;
 mod tuic;
 // The TURN server of --turn (T-621).
 mod turn;
+// The tunnel of --devtunnel (T-755).
+mod devtunnel;
 // Whether the NAT keeps one mapping across destinations (T-641).
 mod nat;
 mod net;
@@ -128,6 +130,8 @@ pub struct DoctorArgs {
     pub tuic: Option<String>,
     /// `--turn` and `--turn-auth-file`: the TURN server checked (T-621).
     pub turn: crate::turn::Flags,
+    /// `--devtunnel TUNNEL[:PORT]`: the Dev Tunnels tunnel checked (T-755).
+    pub devtunnel: Option<String>,
     /// `--quick`: this host, the egress and the relay, with the roads that
     /// the run names, and none of the others (T-511).
     pub quick: bool,
@@ -190,6 +194,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
     };
     let turn = match crate::turn::for_doctor(&args.turn, args.ca_file.as_deref()) {
         Ok(turn) => turn,
+        Err(refusal) => return refusal.report("doctor", err),
+    };
+    let tunnel = match devtunnel::asked(args.devtunnel.as_deref()) {
+        Ok(tunnel) => tunnel,
         Err(refusal) => return refusal.report("doctor", err),
     };
     let exit = match exit::asked(&args.exit, args.ca_file.as_deref()) {
@@ -281,6 +289,9 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         if turn.is_some() {
             report.unknown("turn", "not attempted: PODSSH_OFFLINE is set");
         }
+        if tunnel.is_some() {
+            report.unknown("devtunnel", "not attempted: PODSSH_OFFLINE is set");
+        }
         if exit.is_some() {
             report.unknown("exit", "not attempted: PODSSH_OFFLINE is set");
         }
@@ -310,6 +321,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
                 hysteria: quic_links.as_ref(),
                 tuic: tuic_links.as_ref(),
                 turn: turn.as_ref(),
+                devtunnel: tunnel.as_ref(),
                 exit: exit.as_ref(),
                 quick: args.quick,
                 jobs,

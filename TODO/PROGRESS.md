@@ -18,13 +18,14 @@ Read on 2026-11-11.
 3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321,
    T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks; ZeroTier's
    road is done and in the release's features. See "Work order".
-4. **Partial entries** (17; each `## Done` names its next step): the
+4. **Partial entries** (18; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
    migration, T-684; the release of M10, T-446; and T-319, T-321, T-450, T-459, T-548, T-574,
-   T-660, T-662, T-665, T-666, T-670 and T-698 (its serve part waits for T-107).
-5. **Blocked entries** (11; each `## Blocker` names who must act): T-328 and T-376 (the
+   T-660, T-662, T-665, T-666, T-670, T-698 (its serve part waits for T-107) and T-755 (a draft that waits
+   for its merge).
+5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
    operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
-   working Bare node, podcrates T-200), T-755 (`pod-devtunnel`, #216), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
+   working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
    Trojan node ids for T-574 arrive after 2026-11-12T03:05Z.
 6. **The sessions of PodUtils.** The owner's pause ended on 2026-11-11 (PodUtils/podcrates#53
    closed). podssh and podcrates talk by direct messages (`send_message`) and record each take as
@@ -39,11 +40,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** One is being written, never built (T-582's, T-621's, T-741's and T-742's are merged):
-
-   | Draft | Branch | Commit | State |
-   | --- | --- | --- | --- |
-   | T-755 | `draft-t755` | (in work) | a drafting agent writes the Dev Tunnels road over `pod-devtunnel` of v0.33.0 |
+8. **Drafts.** None waits (T-582's, T-621's, T-741's, T-742's and T-755's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -114,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 66 open, 19 partial, 11 blocked, 614 done.
+`TODO/INDEX.md` holds 710 entries: 66 open, 20 partial, 10 blocked, 614 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

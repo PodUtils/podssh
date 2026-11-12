@@ -37,6 +37,8 @@ pub(super) struct Checks<'a> {
     pub(super) tuic: Option<&'a crate::tuic::Servers>,
     /// The TURN server of `--turn`, when it names one (T-621).
     pub(super) turn: Option<&'a crate::turn::Road>,
+    /// The tunnel of `--devtunnel`, when it names one (T-755).
+    pub(super) devtunnel: Option<&'a crate::ssh::cloud::devtunnel::Target>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
@@ -69,6 +71,8 @@ pub(super) enum Kind {
     Tuic,
     /// The TURN server of `--turn`, a road over TCP (T-621).
     Turn,
+    /// The tunnel of `--devtunnel`, a road over TCP (T-755).
+    Devtunnel,
     /// The exit of `--exit NAME` (T-458).
     Exit,
     /// What the path does to a stream (T-325).
@@ -100,6 +104,7 @@ impl Kind {
             Kind::Hysteria => "hysteria",
             Kind::Tuic => "tuic",
             Kind::Turn => "turn",
+            Kind::Devtunnel => "devtunnel",
             Kind::Exit => "exit",
             Kind::Stream => "stream",
             #[cfg(feature = "iroh")]
@@ -147,6 +152,12 @@ pub(super) fn kinds(quick: bool, servers: bool, road: bool, links: bool, exit: b
     kinds
 }
 
+/// A road over TCP that a run names: the roads over QUIC go after each of
+/// them (Q82).
+fn over_tcp(k: &Kind) -> bool {
+    matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Turn | Kind::Devtunnel)
+}
+
 /// Each section that connects, at most `jobs` at once, into the report in
 /// its order; the lines of each section go out as `parts` lets them.
 pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
@@ -158,17 +169,19 @@ pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
         let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Turn);
     }
+    // Dev Tunnels' after TURN's: the last of the roads over TCP (T-755).
+    if checks.devtunnel.is_some() {
+        let after = kinds.iter().rposition(over_tcp).map_or(kinds.len(), |at| at + 1);
+        kinds.insert(after, Kind::Devtunnel);
+    }
     // After the roads over TCP that the run names (Q82).
     if checks.hysteria.is_some() {
-        let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Turn);
-        let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
+        let after = kinds.iter().rposition(over_tcp).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Hysteria);
     }
     // TUIC's after Hysteria's: both over QUIC, after the roads over TCP.
     if checks.tuic.is_some() {
-        let before = |k: &Kind| {
-            matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Turn | Kind::Hysteria)
-        };
+        let before = |k: &Kind| over_tcp(k) || matches!(k, Kind::Hysteria);
         let after = kinds.iter().rposition(before).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Tuic);
     }
@@ -245,6 +258,11 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Turn => {
             if let Some(road) = checks.turn {
                 super::turn::check(report, road).await;
+            }
+        }
+        Kind::Devtunnel => {
+            if let Some(target) = checks.devtunnel {
+                super::devtunnel::check(report, target, trust).await;
             }
         }
         Kind::Exit => {

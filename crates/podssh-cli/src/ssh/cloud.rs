@@ -12,9 +12,13 @@
 //! ([`warp`]), in a build with the feature `warp`. So is `tor://...`
 //! (T-353), through the Tor network ([`tor`]), with the feature `tor`. And
 //! `upterm://SESSION@HOST` (T-495): a session of upterm's host, as a guest of
-//! its uptermd reaches it by a WebSocket ([`upterm`]).
+//! its uptermd reaches it by a WebSocket ([`upterm`]). And
+//! `devtunnel://TUNNEL` (T-755): a port of the host of a Microsoft Dev
+//! Tunnels tunnel through the service's relay ([`devtunnel`]), with the
+//! feature `devtunnel`.
 
 mod aws;
+pub mod devtunnel;
 mod eice;
 pub mod google;
 mod iap;
@@ -51,6 +55,8 @@ pub enum Road {
     Tor(tor::Target),
     /// upterm: a session of upterm's host, through its uptermd (T-495).
     Upterm(upterm::Target),
+    /// Dev Tunnels: a port of a tunnel's host, through its relay (T-755).
+    Devtunnel(devtunnel::Target),
 }
 
 /// `iap://[user@]PROJECT/ZONE/INSTANCE[:PORT]` or
@@ -71,6 +77,9 @@ pub fn destination(text: &str) -> Result<Option<(Option<String>, Road)>, String>
     }
     if let Some((user, target)) = upterm::destination(text)? {
         return Ok(Some((user, Road::Upterm(target))));
+    }
+    if let Some((user, target)) = devtunnel::destination(text)? {
+        return Ok(Some((user, Road::Devtunnel(target))));
     }
     Ok(None)
 }
@@ -143,6 +152,7 @@ impl Road {
             Road::Warp(target) => target.shown(),
             Road::Tor(target) => target.shown(),
             Road::Upterm(target) => target.shown(),
+            Road::Devtunnel(target) => target.shown(),
         }
     }
 
@@ -156,6 +166,7 @@ impl Road {
             Road::Tor(target) => target.host.clone(),
             // uptermd's own name: `known_hosts` keys it as `[HOST]:443`.
             Road::Upterm(target) => target.server.host.clone(),
+            Road::Devtunnel(target) => target.tunnel.clone(),
         }
     }
 
@@ -166,6 +177,7 @@ impl Road {
             Road::Warp(target) => target.port,
             Road::Tor(target) => target.port,
             Road::Upterm(target) => target.server.port,
+            Road::Devtunnel(target) => target.port,
         }
     }
 
@@ -177,6 +189,7 @@ impl Road {
             Road::Warp(_) => "warp",
             Road::Tor(_) => "tor",
             Road::Upterm(_) => "upterm",
+            Road::Devtunnel(_) => "devtunnel",
         }
     }
 
@@ -231,6 +244,10 @@ pub(super) fn transport(road: &Road, r: &super::node::Ask<'_>, env: &Env, port: 
             target.server.port = port;
             Road::Upterm(target)
         }
+        Road::Devtunnel(mut target) => {
+            target.port = port;
+            Road::Devtunnel(target)
+        }
     };
     let trust = match super::resolve::ca_file(r.args, env) {
         Some(file) => Trust::File(file.into()),
@@ -251,6 +268,7 @@ pub(super) async fn reach(road: &Road, trust: &Trust, log: &Arc<Log>) -> Result<
         Road::Warp(target) => warp::reach(target, trust, log).await,
         Road::Tor(target) => tor::reach(target, trust, log).await,
         Road::Upterm(target) => upterm::reach(target, trust, log).await,
+        Road::Devtunnel(target) => devtunnel::reach(target, trust, log).await,
     }
 }
 

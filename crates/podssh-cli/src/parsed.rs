@@ -190,6 +190,8 @@ pub enum Parsed {
         tuic: Option<String>,
         /// `--turn` and `--turn-auth-file`: the TURN server to check too (T-621).
         turn: crate::turn::Flags,
+        /// `--devtunnel TUNNEL[:PORT]`: the Dev Tunnels tunnel to check too (T-755).
+        devtunnel: Option<String>,
         /// `--quick` and `--jobs N` (T-511).
         quick: bool,
         /// `--tier`: this host's verdict alone (T-706).

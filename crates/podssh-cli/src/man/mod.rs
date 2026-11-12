@@ -100,6 +100,8 @@ mod notes_vless;
 mod notes_hysteria;
 // The notes of --turn, a TURN server's TCP allocations (T-621).
 mod notes_turn;
+// The notes of devtunnel://, Microsoft Dev Tunnels' relay (T-755).
+mod notes_devtunnel;
 pub mod roff;
 pub mod text;
 

@@ -186,7 +186,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:370-371`,
 5. The node prints its ticket and its fingerprint on stderr when it starts.
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1151`).
 6. Add the key files to FILES in the manual
-   (`crates/podssh-cli/src/man/data.rs:164-499`), and each new variable to
+   (`crates/podssh-cli/src/man/data.rs:164-500`), and each new variable to
    `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-301`).
 
 ## Decision
@@ -373,7 +373,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-495` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`).
 
 ## Decision
 
@@ -513,7 +513,7 @@ in iroh's source at the pinned version.
    relay.
 7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-301`),
    the flag to the flag table, and the default to the relay section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:326-481`). The tests compare
+   manual (`crates/podssh-cli/src/man/facts.rs:327-482`). The tests compare
    `VARIABLES` with the source in both directions
    (`crates/podssh-cli/src/man/facts.rs:44-45`), so a variable that only the
    feature reads is in the manual only with the feature.
@@ -5569,7 +5569,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:245-250`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:253-258`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -6265,7 +6265,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:233`).
+  port 443 answers (`docs/STATUS.md:234`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
@@ -9422,7 +9422,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:252`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:260`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:34` (`iroh UDP out`); a bind
@@ -9607,7 +9607,7 @@ new road from getting the rule wrong, and no test per road keeps it.
 
 - Read: `crates/podssh-ws/src/forwarder/mod.rs:48-57`: `Dial` has `close_at_end: bool` and derives no
   `Default`; each road writes it. Pipe roads write `false` (`crates/podssh-cli/src/forwarder/pipe.rs:111`,
-  `crates/podssh-cli/src/trojan/pipe.rs:105`), reach roads write `true`
+  `crates/podssh-cli/src/trojan/pipe.rs:106`), reach roads write `true`
   (`crates/podssh-cli/src/forwarder/reach.rs:57`).
 - Read: `crates/podssh-ws/src/forwarder/carry.rs:185-188`: with `close_at_end` false, the read task
   waits for `down_ended_rx` before it sends Close.

@@ -173,6 +173,12 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh ssh: {}", cloud::tor::not_built(destination));
         return EXIT_NOT_IMPLEMENTED;
     }
+    // The Dev Tunnels road is in a build with the feature `devtunnel` alone (T-755).
+    let unbuilt = |d: &&str| cloud::devtunnel::is_devtunnel(d) && !cfg!(feature = "devtunnel");
+    if let Some(destination) = args.destination.as_deref().filter(unbuilt) {
+        let _ = writeln!(err, "podssh ssh: {}", cloud::devtunnel::not_built(destination));
+        return EXIT_NOT_IMPLEMENTED;
+    }
     if let Err(refusal) = crate::pins::apply(args.relay_addr.as_deref()) {
         return refusal.report("ssh", err);
     }
