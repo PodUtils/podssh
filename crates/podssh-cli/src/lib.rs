@@ -176,7 +176,10 @@ pub mod node_zerotier;
 pub mod zerotier;
 // Tox's TCP relays beside a pair's road, a last fallback of Q78 (T-734).
 pub mod node_tox;
+// Yggdrasil's network beside a pair's road, a last fallback of Q78 (T-735).
+pub mod node_ygg;
 pub mod tox;
+pub mod yggdrasil;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).
 #[cfg(feature = "zerotier-test")]
 pub use podssh_zerotier::stand_in as zerotier_stand_in;

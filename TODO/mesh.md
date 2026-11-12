@@ -10014,7 +10014,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:291-301`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:292-302`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10368,8 +10368,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:300-301`), and needs the net's role exit, signed by
-  its owner (`:298-299`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:301-302`), and needs the net's role exit, signed by
+  its owner (`:299-300`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:141`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -12379,7 +12379,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:70`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:72`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -13119,10 +13119,26 @@ Yggdrasil's nodes set it, with one link to a peer that is dialed again, after 1 
   to the other, by its key, arrives in 2.1 s (Ironwood's lookup across the node), the answer back at once.
 - Planted (`scripts/plants/t735-unsigned.plant`): the handshake's signature unchecked; the test of the changed key
   fails; 1 caught. clippy with the feature: no warning, and the gate lints it.
-- Next: a pair's road over it (the node's key from the pair's connect token, a stream of podssh's own over the
-  datagrams with its order and resends, the resumable layer and the end-to-end channel above it), the public
-  `wss://` peers of 443 from `pod-services` (asked as a COORD issue), the command line after Tox's road, the
-  manual, a workflow that builds yggdrasil-go at its tag, and one short live session through a public peer.
+- The pair's road (`ygg/pair.rs`): the node's key from the pair's name and connect token; a client's hello, with
+  a proof of the token, again each 1 s until the node welcomes it; each session a stream of its own under an id
+  that the client picks, over `crate::packet_stream`, the reliable stream of the Tox road's routed connection made
+  generic (offsets, acknowledgements, a window, resends; Tox's `tox_relay` passes on it, 4 of 4). `--test
+  ygg_network`: 2 passed, 5 runs of 5: through yggdrasil-go's node a pair's node echoes 1 MiB whole to its
+  client, 0.4 s after the session opened in 2.1 s, and a client with another token opens nothing.
+- The road in the command line, behind the feature `yggdrasil` of podssh-cli: `src/yggdrasil.rs` (the setting
+  `PODSSH_YGGDRASIL`: `no`, or a `wss://` or `ws://` peer of one's own, which `PODSSH_LAST_RESORT` leaves on;
+  else the peers of the service `yggdrasil-wss-peer` of `pod-services`, none until it lists them, COORD-029
+  #203; the peer by the SHA-256 of the pair's name), `src/node_ygg.rs` (the node beside its other last roads),
+  `src/ssh/ygg.rs` (the client's road after the Tox road's, one router a run, never with --no-e2e; Q78's line).
+  The manual: the notes of node and ssh (`man/notes_ygg.rs`) and the facts of `PODSSH_YGGDRASIL` and
+  `PODSSH_LAST_RESORT`. `cargo test -p podssh-cli --features yggdrasil --test derp_road -- derp_ygg`: 1 passed,
+  `podssh ssh node://` through Yggdrasil's road alone in 3.3 s; `--lib`: 1106 passed; clippy with and without
+  the feature: no warning.
+- Planted (group `host-ygg`): a node that takes a hello with no proof (`t735-any-token`), and a client of
+  another pair (`t735-other-pair`); 2 caught. `ygg-interop.yml` builds yggdrasil-go at its tag and runs the
+  tests and the plants on each push of the road; its job `live`, by hand, takes the `wss://` peers on 443 of
+  the network's own list at run time and runs `derp_ygg` through each until one passes. UNVERIFIED until its
+  first run on Actions.
 
 # T-736: HyperDHT as a road by key where UDP passes, after podssh's own
 

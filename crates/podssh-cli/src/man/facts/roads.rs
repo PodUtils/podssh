@@ -79,6 +79,18 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_YGGDRASIL"],
+        "Yggdrasil's road of a pair (T-735), in a build with the feature yggdrasil, the last fallback of the \
+          operator's ruling Q78 after the Tox road: a public wss:// peer of Yggdrasil's network, the one that the \
+          SHA-256 of the pair's name picks among those that podssh's list of services names, through which a node \
+          of the resumable layer and the end-to-end channel joins the network beside the pair's road under a key \
+          of the pair's connect token, and where podssh ssh node://NAME reaches it by that key when each other \
+          road failed; the peers see ciphertext, and an end routes for the network while the road is up. no: no \
+          road; a wss:// or ws:// URL: that peer (yggdrasil-go of your own, with that Listen), which \
+          PODSSH_LAST_RESORT does not turn off; unset, empty or yes: the listed peers, none while the list names \
+          none; another word is a configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_ZEROTIER_PLANET"],
         "A file of a ZeroTier planet (zerotier-one's planet, or one that mkworld made) whose roots ZeroTier's road \
           (T-733) joins in the place of ZeroTier Inc.'s, so that no root of a third party carries it. A file that \
@@ -339,7 +351,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
       PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
-      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; Tox's relay road, PODSSH_TOX, T-734; and the roads that join them); yes, the default, leaves each to its own variable. \
+      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; Tox's relay road, PODSSH_TOX, T-734; Yggdrasil's road, PODSSH_YGGDRASIL, T-735; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),
     (

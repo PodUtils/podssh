@@ -147,7 +147,10 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         && cfg!(all(feature = "zerotier", unix));
     // The Tox road (T-734, Q78), as ZeroTier's; a bad PODSSH_TOX is refused here.
     let tox_on = matches!(crate::tox::setting()?, crate::tox::Setting::On(..)) && cfg!(feature = "tox");
-    let zerotier = (zerotier_on || tox_on) && !channel.off && good_pair();
+    // Yggdrasil's road (T-735, Q78), as the Tox road's; a bad PODSSH_YGGDRASIL is refused here.
+    let ygg_on =
+        matches!(crate::yggdrasil::setting()?, crate::yggdrasil::Setting::On(..)) && cfg!(feature = "yggdrasil");
+    let zerotier = (zerotier_on || tox_on || ygg_on) && !channel.off && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
     let tunnel = super::roads::ssh_http::named(label, channel.off);
     Ok(Chosen {

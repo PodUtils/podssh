@@ -11,4 +11,8 @@
 pub mod key;
 pub mod link;
 pub mod meta;
+pub mod pair;
 pub mod router;
+
+/// An end's key in the network.
+pub use ed25519_dalek::SigningKey;

@@ -1,7 +1,7 @@
 //! The last fallbacks of the operator's ruling Q78 in the race of `podssh
 //! ssh node://NAME` (`super`), apart from `roads.rs` for its length: after a
 //! node's Pinggy tunnel (T-548, which `roads.rs` races itself, by its
-//! record), the pair's ZeroTier network (T-733, `crate::ssh::zerotier`), the pair's key on a Tox relay (T-734, [`tox`]), a node's alias at Serveo (T-549, `crate::ssh::serveo`), then its
+//! record), the pair's ZeroTier network (T-733, `crate::ssh::zerotier`), the pair's key on a Tox relay (T-734, [`tox`]), the pair's key in Yggdrasil's network (T-735, [`ygg`]), a node's alias at Serveo (T-549, `crate::ssh::serveo`), then its
 //! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
 //! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
 //! localtunnel's server (T-568, [`localtunnel`]), then its port at bore.pub
@@ -32,6 +32,9 @@ pub(crate) mod zerotier;
 // The Tox road of node://NAME, a last fallback of Q78 after ZeroTier's (T-734).
 #[path = "tox.rs"]
 pub(crate) mod tox;
+// Yggdrasil's road of node://NAME, a last fallback of Q78 after the Tox road's (T-735).
+#[path = "ygg.rs"]
+pub(crate) mod ygg;
 
 // The localtunnel road of node://NAME (T-568).
 #[path = "localtunnel.rs"]
@@ -51,6 +54,8 @@ pub(crate) struct LastRoads {
     zerotier: Option<zerotier::ZeroTierRoads>,
     /// A Tox relay of the pair (T-734), after it.
     tox: Option<tox::ToxRoads>,
+    /// Yggdrasil's network of the pair (T-735), after it.
+    ygg: Option<ygg::YggRoads>,
     serveo: Option<crate::ssh::serveo::ServeoRoads>,
     sshj: Option<crate::ssh::sshj::SshJRoads>,
     tunnel: Option<super::ssh_http::SshHttpRoads>,
@@ -76,6 +81,7 @@ impl LastRoads {
         LastRoads {
             zerotier: None,
             tox: None,
+            ygg: None,
             serveo: crate::ssh::serveo::ServeoRoads::new(label, ask, log, shown),
             sshj: crate::ssh::sshj::SshJRoads::new(label, ask, trust, log, shown),
             tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
@@ -96,6 +102,7 @@ impl LastRoads {
         LastRoads {
             zerotier: None,
             tox: None,
+            ygg: None,
             serveo: None,
             sshj: None,
             tunnel,
@@ -106,7 +113,7 @@ impl LastRoads {
     }
 
     /// With the roads of the pair `part` that are on: ZeroTier's, then the
-    /// Tox road; neither with --no-e2e (`off`).
+    /// Tox road, then Yggdrasil's; none with --no-e2e (`off`).
     pub(crate) fn with_pair(
         self,
         part: Option<&podssh_relay::pair::OperatorPart>,
@@ -115,7 +122,8 @@ impl LastRoads {
         shown: &str,
     ) -> Self {
         let zerotier = zerotier::ZeroTierRoads::new(part, off, log, shown);
-        LastRoads { zerotier, tox: tox::ToxRoads::new(part, off, log, shown), ..self }
+        let tox = tox::ToxRoads::new(part, off, log, shown);
+        LastRoads { zerotier, tox, ygg: ygg::YggRoads::new(part, off, log, shown), ..self }
     }
 
     /// Whether one of them races.
@@ -137,6 +145,9 @@ impl LastRoads {
         }
         if let Some(tox) = &self.tox {
             tox.push(list, kinds);
+        }
+        if let Some(ygg) = &self.ygg {
+            ygg.push(list, kinds);
         }
         if let Some(serveo) = &self.serveo {
             serveo.push(list, kinds);

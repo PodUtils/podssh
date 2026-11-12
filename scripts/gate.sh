@@ -172,9 +172,10 @@ step_lint() {
     # Tox's relay road (T-734): the protocol and the CLI's road with its feature.
     run "clippy: no warning with the Tox feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/tox -- -D warnings $LINTS_ALLOWED
-    # Yggdrasil's road (T-735): the link, the handshake and Ironwood's router.
+    # Yggdrasil's road (T-735): the link, the handshake, Ironwood's router and
+    # the CLI's road with its feature.
     run "clippy: no warning with the Yggdrasil feature" \
-        cargo clippy --locked --all-targets -p podssh-relay --features yggdrasil -- -D warnings $LINTS_ALLOWED
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/yggdrasil -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings

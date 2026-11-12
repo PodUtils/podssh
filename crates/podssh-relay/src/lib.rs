@@ -123,6 +123,8 @@ pub mod pair;
 #[cfg(feature = "pinggy")]
 pub mod pinggy;
 // Tox's TCP relays, a last road of a pair (T-734).
+#[cfg(any(feature = "tox", feature = "yggdrasil"))]
+pub mod packet_stream;
 #[cfg(feature = "piping")]
 pub mod piping;
 pub mod pool;

@@ -127,7 +127,7 @@ corrects a claim that the code does not support.
 
 ## Requests after the triage (#51 on)
 
-#37 to #50, #52, #53, #57, #58, #64 to #68, #77, #78 to #82, #119, #120, #122, #123, #149 and #150 are pull requests;
+#37 to #50, #52, #53, #57, #58, #64 to #68, #77, #78 to #82, #119, #120, #122, #123, #149, #150 and #197 to #202 are pull requests;
 Dependabot's #44 to #47, updates of a major version, are T-330, but #47 (aes-gcm 0.11), which is
 T-333 (done on 2026-10-31, after the ruling of Q48); Dependabot's #57 and #64
 to #68 are T-355, and so is #77 (pageant 0.2.5 in `fuzz/Cargo.lock`, as in the
@@ -135,7 +135,9 @@ root lock), made on `main` and closed with a comment; Dependabot's #78 to #82 of
 (the tailscale image, the minor and patch group, rand 0.10, sha2 0.11 and hmac 0.13) are T-386;
 Dependabot's #119, #120, #122 and #123 of 2026-11-02 (Python 3.15 for the box's proxy, the build
 image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 and #150 of 2026-11-06
-(taiki-e/install-action 2.90.0 and aes 0.9.4) are T-691.
+(taiki-e/install-action 2.90.0 and aes 0.9.4) are T-691. Dependabot's #197 to #202 of 2026-11-12
+(trufflehog, the actions group, the minor and patch group, Arti's tor-rtcompat and tor-error 0.48,
+and num-bigint 0.5) are T-754.
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
@@ -264,6 +266,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 | #194 | COORD-027: podssh took podcrates v0.26.0 at ff2f7bac; Pinggy's reader reads url-skip (to podcrates) | open (2026-11-12: the take at `ff2f7bac`) | T-684 |
 | #195 | cfb asks: tracker for the 22 asks of cfb owned by podssh (from podcrates#35) | open (2026-11-12: each ask an entry already) | T-708, T-709, T-710, T-711, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-719, T-720, T-721, T-722, T-723, T-724, T-725, T-726, T-727, T-728, T-729, T-730, T-731 |
 | #196 | COORD-028: a service of Tox's TCP relays on 443 in pod-services, for podssh's T-734 (to podcrates) | open (2026-11-12: asked) | T-734 |
+| #203 | COORD-029: a service of Yggdrasil's public wss:// peers on 443 in pod-services, for podssh's T-735 (to podcrates) | open (2026-11-12: asked) | T-735 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

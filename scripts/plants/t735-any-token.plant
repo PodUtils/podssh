@@ -1,0 +1,11 @@
+# T-735: the node takes a client's hello with no proof of the pair's token,
+# so another end of Yggdrasil's network that knows the node's key opens a
+# session; the test of a client with another token, through yggdrasil-go's
+# own node, must fail. On the runner, not in the build image: yggdrasil-go
+# is built there from its tag, with Go.
+ENTRY=T-735
+GROUP=host-ygg
+EXPECT='test a_pair_s_node_echoes_a_mib_to_its_client_and_refuses_another_token \.\.\. FAILED'
+SETUP='test -x .work/yggdrasil || { git clone -q --depth 1 --branch v0.5.15 https://github.com/yggdrasil-network/yggdrasil-go .work/ygg-go && (cd .work/ygg-go && go build -o ../yggdrasil ./cmd/yggdrasil); }'
+RUN='PODSSH_YGG_TEST_BIN="$PWD/.work/yggdrasil" cargo test --locked --no-fail-fast -p podssh-relay --features yggdrasil --test ygg_network'
+LIMIT=1800

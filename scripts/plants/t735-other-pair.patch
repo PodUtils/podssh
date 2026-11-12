@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/ssh/ygg.rs
++++ b/crates/podssh-cli/src/ssh/ygg.rs
+@@ -80,7 +80,7 @@
+             })
+             .await?;
+         self.log.verbose(&format!("{}: Yggdrasil's road through the peer {}", self.shown, self.peer));
+-        let node = node_secret(&self.name, &self.token).verifying_key().to_bytes();
++        let node = node_secret(&self.name, "planted").verifying_key().to_bytes();
+         let stream = ends.link(node, &self.token, LIMIT).await.map_err(|e| format!("Yggdrasil's road: {e}"))?;
+         Ok(Road::Ygg(Box::new(stream)))
+     }

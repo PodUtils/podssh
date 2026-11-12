@@ -325,6 +325,7 @@ const FIRST: &[&str] = &[
     super::notes_croc::SSH,
     super::notes_zerotier::SSH,
     super::notes_tox::SSH,
+    super::notes_ygg::SSH,
     super::notes_pair::SSH_OPENTUNNEL,
     super::notes_pinggy::SSH,
     super::notes_serveo::SSH,

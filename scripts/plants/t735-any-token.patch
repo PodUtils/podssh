@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/ygg/pair.rs
++++ b/crates/podssh-relay/src/ygg/pair.rs
+@@ -149,7 +149,7 @@
+                 }
+                 HELLO => {
+                     let Some(serve) = &serve else { continue };
+-                    if body != proof(&serve.token, &from, &me, id) {
++                    if body.is_empty() && body != proof(&serve.token, &from, &me, id) {
+                         continue;
+                     }
+                     let known = self.sessions.lock().is_ok_and(|s| s.contains_key(&(from, id)));
