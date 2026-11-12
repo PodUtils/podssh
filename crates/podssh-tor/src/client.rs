@@ -72,11 +72,11 @@ impl std::fmt::Display for Failure {
     }
 }
 
-fn failure(step: &'static str, e: impl std::fmt::Display) -> Failure {
+pub(crate) fn failure(step: &'static str, e: impl std::fmt::Display) -> Failure {
     Failure { step, detail: e.to_string(), permissions: false }
 }
 
-fn arti_failure(step: &'static str, e: &arti_client::Error) -> Failure {
+pub(crate) fn arti_failure(step: &'static str, e: &arti_client::Error) -> Failure {
     use tor_error::HasKind as _;
     let kind = e.kind();
     Failure { step, detail: format!("{e} ({kind})"), permissions: kind == tor_error::ErrorKind::FsPermissions }
@@ -87,9 +87,10 @@ pub fn reachable(ports: &[u16]) -> Result<Vec<AddrPortPattern>, String> {
     ports.iter().map(|p| format!("*:{p}").parse::<AddrPortPattern>().map_err(|e| format!("*:{p}: {e}"))).collect()
 }
 
-/// A client of Tor, bootstrapped.
+/// A client of Tor, bootstrapped; a clone shares it.
+#[derive(Clone)]
 pub struct Tor {
-    client: Arc<TorClient<Runtime>>,
+    pub(crate) client: Arc<TorClient<Runtime>>,
 }
 
 impl Tor {
@@ -151,17 +152,31 @@ impl Tor {
     /// resolves `host`. The stream keeps the client, whose channels carry it.
     pub async fn connect(&self, host: &str, port: u16, wait: Duration) -> Result<TorStream, Failure> {
         match tokio::time::timeout(wait, self.client.connect((host, port))).await {
-            Ok(Ok(stream)) => Ok(TorStream { stream, _client: self.client.clone() }),
+            Ok(Ok(stream)) => Ok(TorStream { stream, _client: self.client.clone(), _service: None }),
             Ok(Err(e)) => Err(arti_failure("the stream", &e)),
             Err(_) => Err(failure("the stream", format!("not open within {} s", wait.as_secs()))),
         }
     }
 }
 
-/// A stream through Tor, with the client that carries it.
+/// A stream through Tor, with the client that carries it, and the onion
+/// service that it reached at a node ([`crate::onion`]), which a stream
+/// keeps up while it lives.
 pub struct TorStream {
     stream: DataStream,
     _client: Arc<TorClient<Runtime>>,
+    _service: Option<Arc<tor_hsservice::RunningOnionService>>,
+}
+
+impl TorStream {
+    /// A stream that a client opened to the node's onion `service`.
+    pub(crate) fn served(
+        stream: DataStream,
+        client: Arc<TorClient<Runtime>>,
+        service: Arc<tor_hsservice::RunningOnionService>,
+    ) -> TorStream {
+        TorStream { stream, _client: client, _service: Some(service) }
+    }
 }
 
 impl tokio::io::AsyncRead for TorStream {

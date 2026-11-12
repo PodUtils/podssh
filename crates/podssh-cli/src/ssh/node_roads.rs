@@ -82,8 +82,9 @@ struct Chosen {
     bore: bool,
     /// Whether croc's relay road is on, with a good pair here (T-694).
     croc: bool,
-    /// Whether ZeroTier's road or the Tox road (T-734) is on in this build,
-    /// with a good pair here (T-733).
+    /// Whether ZeroTier's road or another road of the pair's secret after it
+    /// (T-734 to T-736, T-571, T-578) is on in this build, with a good pair
+    /// here (T-733).
     zerotier: bool,
     /// Whether a name of the node's tunnel of `ssh -R` is given or kept (T-565).
     tunnel: bool,
@@ -154,7 +155,10 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let dht_on = matches!(crate::hyperdht::setting()?, crate::hyperdht::Setting::On(..)) && cfg!(feature = "hyperdht");
     // Syncthing's relays (T-571, Q78), as the Tox road's; a bad PODSSH_SYNCTHING_RELAY is refused here.
     let st_on = matches!(crate::strelay::setting()?, crate::strelay::Setting::On(..)) && cfg!(feature = "strelay");
-    let zerotier = (zerotier_on || tox_on || ygg_on || dht_on || st_on) && !channel.off && good_pair();
+    // The onion road (T-578, Q78), as Syncthing's; a bad PODSSH_ONION is refused here.
+    let onion_on = matches!(crate::onion::setting()?, crate::onion::Setting::On(..)) && cfg!(feature = "tor");
+    let pair_last = zerotier_on || tox_on || ygg_on || dht_on || st_on || onion_on;
+    let zerotier = pair_last && !channel.off && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
     let tunnel = super::roads::ssh_http::named(label, channel.off);
     Ok(Chosen {

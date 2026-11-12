@@ -9569,6 +9569,31 @@ session's own host, a throwaway key for the service, one bootstrap at each end, 
 unused. Lost: no live run, which leaves the onion road tested on chutney alone; and a node's
 service kept up for a day, which Q60's short runs do not cover.
 
+Q91 (2026-11-03) since allows the run: "one onion service on the public Tor network, more than
+Q60's one bootstrap and one stream (T-578)".
+
+**The draft's calls** (2026-11-12, the drafting agent):
+- *Restricted discovery by the pair, not by the net.* The node lists one key, an x25519 secret
+  that both ends make of the pair's name and connect token (SHA-256 with a label of its own), as
+  HyperDHT's and Syncthing's roads make their keys: no word passes between the ends, and every
+  pair's operator has it. Lost: the keys of the net's members, which the net names as Ed25519
+  identities of the end-to-end channel and not as x25519 keys of discovery, so a member would
+  need a second key published somewhere; and no restricted discovery, which lets a stranger who
+  learns the address reach the introduction points. A later pair (T-395) makes another key:
+  the node lists the key of the pair that it started with until it starts again.
+- *The address: given or kept, the record later.* The node says its address, keeps it under
+  its label in the cache (`onion-LABEL.name`), and a client takes `PODSSH_ONION=ADDRESS.onion`,
+  else the address kept under NAME (a node of this host, or a run that was given it). Lost for
+  now: the node's record of pkarr (T-445), which would need an `onion=` key in
+  `podssh-iroh`'s record and the record's `Tell` at the nodes that run the pair's last roads
+  (`node_croc::beside` has none); it is the next step.
+- *chutney's `basic`, not `hs-v3-arti`.* `basic` has nine relays, each an HSDir under
+  `TestingTorNetwork`, more than the five that a service and its client need, and CI's job
+  `tor-net` already starts it; `hs-v3-arti` starts Arti's own binaries, which the runner lacks.
+  Lost: a network of its own for the test, which would cost the job another bootstrap.
+- *The virtual port 22.* Any port serves; 22 says what the road carries. A stream to another
+  port is refused with END DONE, as C tor refuses it.
+
 ## Prove
 
 ```sh
@@ -9609,8 +9634,34 @@ Partial (step 1, read on 2026-11-12 in arti-client 0.48.0, tor-hsservice 0.48.0 
 - chutney: an onion service needs 5 or more authorities, relays and exits (its `hs-v3-arti` network);
   `scripts/tor-net.sh` starts `basic`. Its `arti.toml` already sets `hsdir_interval` for a test network,
   which podssh's loader keeps.
-- Next: step 2, the node's service, then step 3, the client's road. The Decision's live run is
-  UNVERIFIED until then.
+
+Merged on 2026-11-12 (the draft `draft-t578`, `2fe94e3`, built and run; steps 2 to 4 in part):
+- `crates/podssh-tor/src/onion.rs`: `Tor::serve_onion` (the service of `ServiceOptions`: nickname, virtual
+  port, the keys of restricted discovery), `Onion::published`, `Onion::accept` (a stream to the port; END to
+  another), `Tor::connect_onion` (the key of discovery put in the client's keystore), `Discovery`, `is_onion`.
+  `Cargo.toml` takes arti-client's `onion-service-client`, `onion-service-service`, `restricted-discovery` and
+  `experimental-api`; the lock adds tor-hsservice, tor-hsclient, growable-bloom-filter, k12 and xxhash-rust. The
+  C under podssh-tor is still SQLite alone (`cargo tree -p podssh-tor -e normal`: `libsqlite3-sys`; the other
+  `-sys` crates are Rust bindings).
+- The CLI: `onion.rs` (`PODSSH_ONION`, the pair's key of discovery, the address kept as `onion-LABEL.name`, the
+  line that names the Tor network), `node_onion.rs` (the node's service beside the pair's road, after
+  Syncthing's relays, its state under `tor/onion/LABEL`), `ssh/onion.rs` (the client's road, raced last), and the
+  manual (`PODSSH_ONION`, `man/notes_onion.rs`).
+- Against chutney's `basic` on the loopback (`sh scripts/tor-net.sh start DIR 127.0.0.1`, Tor 0.4.9.11;
+  `PODSSH_TEST_TOR_NETWORK=... cargo test -p podssh-tor --test onion_service`): 3 passed in 7.3 s. A node's
+  service of restricted discovery carries 1 MiB each way to the client with the key; a stream to another port
+  is refused; a client with no key, and one with another key, cannot reach it; a second start with the same state
+  keeps the address, and another state makes another.
+- Planted, each caught: a new nickname at each start (a new key), and `a_second_start_keeps_the_address` fails
+  ("the service's key was not kept"); restricted discovery skipped, and the first test fails ("a client with no
+  key of restricted discovery reached the service"). Restored, both pass.
+- `cargo test -p podssh-tor --lib`, 11 passed; `cargo test -p podssh-cli --features tor --lib`, 1118 passed;
+  `--test tor_private`, 2 passed; `cargo test -p podssh-tor --test private_network`, 1 passed; clippy of
+  podssh-cli and podssh-tor with `tor` as the gate runs it, no warning.
+- Next: (1) a test of the command line from end to end on chutney (`podssh ssh node://NAME` through the onion
+  road alone, as `tor_private` runs the Tor road); (2) the record of pkarr (an `onion=` key and the node's
+  `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) the live run of the Decision (Q91)
+  from Actions, `tor-live.yml` with `onion: yes`; (4) `docs/carriers.md`'s verdict on onion services.
 
 # T-579: libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session
 
@@ -10101,7 +10152,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:294-304`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:295-305`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10455,10 +10506,10 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:303-304`), and needs the net's role exit, signed by
-  its owner (`:301-302`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
+  its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:145`).
+  (`docs/STATUS.md:146`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.

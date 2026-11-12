@@ -184,6 +184,9 @@ pub mod node_hyperdht;
 pub mod strelay;
 // Syncthing's relays beside a pair's road, a last fallback of Q78 (T-571).
 pub mod node_strelay;
+// An onion service of the Tor network beside a pair's road, a last fallback of Q78 (T-578).
+pub mod node_onion;
+pub mod onion;
 pub mod tox;
 pub mod yggdrasil;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).

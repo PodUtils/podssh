@@ -464,7 +464,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
    `serveraliveinterval 60` (the relay's idle cut, `docs/relay.md:473`) and `connecttimeout 60`.
 6. It does not wait for T-043: with no file, `-G` shows the effect of `-o`. After T-043 and
    T-044, `-v` names the files that were read, on stderr.
-7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-500` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-148`) and `docs/cli.md:48-950`
+7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-490` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`) and `docs/cli.md:48-950`
    in the same commit.
 
 ## Decision
@@ -1614,7 +1614,7 @@ user asked for is gone with no sign, and an audit finds it.
   `HostbasedAcceptedAlgorithms` restricts a hostbased login, which podssh does not make, so it is
   inert here.
 - Read (L-09): `-G` prints the keywords that podssh applies (`crates/podssh-cli/src/ssh/dump.rs:1-7`),
-  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:50-54`), so it has no line for
+  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:61-65`), so it has no line for
   an algorithm list.
 
 ## Approach

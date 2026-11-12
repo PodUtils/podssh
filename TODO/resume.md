@@ -860,7 +860,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:400-415`,
    `crates/podssh-cli/src/man/facts.rs:435-444`), the note at
-   `crates/podssh-cli/src/man/notes_ssh_more.rs:93`, `docs/relay.md`, `README.md`.
+   `crates/podssh-cli/src/man/notes_ssh_more.rs:104`, `docs/relay.md`, `README.md`.
 
 ## Decision
 
@@ -3507,7 +3507,7 @@ Read while drafting, 2026-11-03:
   Close included; a session cut then is a clean end of a session that the node took, exit 0. A
   signal before the node took the session ends the wait at once, with the session's fault (70).
 - `ssh node://` takes SIGHUP and SIGTERM alone: its Ctrl-C is the remote command's. The same on
-  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:217`, moved from
+  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:221`, moved from
   `crates/podssh-cli/src/ssh/roads.rs` by T-551).
 - The plant of the signals is two plants, one for each test, as a plant runs one check:
   `t586-hangup-not-taken` (the operator's test) and `t586-hangup-not-taken-openssh` (the

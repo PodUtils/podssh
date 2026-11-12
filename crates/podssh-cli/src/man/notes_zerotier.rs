@@ -22,7 +22,7 @@ pub(super) const NODE: &str = "In a build with the feature zerotier, a node of t
 /// The note of `podssh ssh`, after croc's relay road's.
 pub(super) const SSH: &str = "In a build with the feature zerotier, node://NAME also races ZeroTier's road \
      of its pair (T-733), only once each road before it failed, after croc's relay road and the Pinggy road \
-     and before the Serveo road, the last fallback of the operator's ruling Q78: a member of the pair's own \
+     and before Tox's relay road, a last fallback of the operator's ruling Q78: a member of the pair's own \
      ad-hoc network, with the client's own ZeroTier identity (made at its first run and kept in the cache, \
      a private file), through ZeroTier Inc.'s roots and TCP relay (or those of PODSSH_ZEROTIER and \
      PODSSH_ZEROTIER_PLANET), to the node's address, which both ends make of the pair's connect token. It \

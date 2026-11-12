@@ -20,7 +20,7 @@ pub(super) const NODE: &str = "In a build with the feature hyperdht, a node of t
 /// The note of `podssh ssh`, after Yggdrasil's road's.
 pub(super) const SSH: &str = "In a build with the feature hyperdht, node://NAME also races HyperDHT's road \
      of its pair (T-736), where UDP passes, only once each road before it failed, after Yggdrasil's road and \
-     before the Serveo road, by the operator's rulings Q77 and Q82: this end joins HyperDHT with a fresh key, \
+     before Syncthing's relay road, by the operator's rulings Q77 and Q82: this end joins HyperDHT with a fresh key, \
      once a run, through the bootstrap of podssh's list of services or of PODSSH_HYPERDHT, looks up the topic \
      of the node's key, which both ends make of the pair's connect token, again each 5 s, and connects by \
      that key. It waits 45 s at most; where no bootstrap node answers within 15 s, UDP does not pass, and the \

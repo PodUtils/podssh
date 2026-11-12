@@ -114,6 +114,20 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           the list names none; another word is a configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_ONION"],
+        "The onion road of a pair (T-578), in a build with the feature tor, the last fallback of the operator's \
+          ruling Q78 after Syncthing's relay road: an onion service of the Tor network, Arti's in podssh's process \
+          through the Tor road (its proxy, PODSSH_TOR_PORTS, PODSSH_TOR_BRIDGES and PODSSH_TOR_NETWORK hold), where \
+          a node of the resumable layer and the end-to-end channel waits beside the pair's road, and where podssh \
+          ssh node://NAME reaches it when each other road failed. The service's key stays in the node's own \
+          directory of the cache, so its address stays; its descriptor is of restricted discovery, readable only \
+          with a key that both ends make of the pair's connect token. The node's line says its address, which a \
+          node of this host keeps under its NAME. no: no road; an onion address (56 letters of base32 and .onion): \
+          the node's, for a client on another host, which PODSSH_LAST_RESORT does not turn off; unset, empty or \
+          yes: the road, with the address kept under NAME; another word is a configuration error (78), which does \
+          not echo the value.",
+    ),
+    (
         &["PODSSH_ZEROTIER_PLANET"],
         "A file of a ZeroTier planet (zerotier-one's planet, or one that mkworld made) whose roots ZeroTier's road \
           (T-733) joins in the place of ZeroTier Inc.'s, so that no root of a third party carries it. A file that \
@@ -374,7 +388,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
       PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
-      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; Tox's relay road, PODSSH_TOX, T-734; Yggdrasil's road, PODSSH_YGGDRASIL, T-735; HyperDHT's road, PODSSH_HYPERDHT, T-736; Syncthing's relay road, PODSSH_SYNCTHING_RELAY, T-571; and the roads that join them); yes, the default, leaves each to its own variable. \
+      PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; Tox's relay road, PODSSH_TOX, T-734; Yggdrasil's road, PODSSH_YGGDRASIL, T-735; HyperDHT's road, PODSSH_HYPERDHT, T-736; Syncthing's relay road, PODSSH_SYNCTHING_RELAY, T-571; the onion road, PODSSH_ONION, T-578; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),
     (

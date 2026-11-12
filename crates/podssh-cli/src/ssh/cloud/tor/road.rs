@@ -21,7 +21,10 @@ pub const STREAM_WAIT: Duration = Duration::from_secs(60);
 /// Arti's state and cache under the first of the cache's directories that
 /// can be made private (T-243). Another network's go under `networks/`, by
 /// a digest of its configuration: its guards and directory are not Tor's.
-fn directories(network: Option<&str>) -> Result<(PathBuf, PathBuf), Failed> {
+/// A node's onion service (T-578) has its own under `onion/LABEL`, whose
+/// keystore keeps the service's key, so that its address stays and no
+/// client of this host shares its guards.
+fn directories(network: Option<&str>, own: Option<&str>) -> Result<(PathBuf, PathBuf), Failed> {
     use podssh_relay::cache::{candidate_dirs, chosen, private_dir, Chosen, DIR_ENV};
     if chosen() == Chosen::Nothing {
         let line = format!(
@@ -41,6 +44,12 @@ fn directories(network: Option<&str>) -> Result<(PathBuf, PathBuf), Failed> {
             let name: String = digest[..8].iter().map(|b| format!("{b:02x}")).collect();
             base = base.join("networks").join(name);
             made.extend([base.parent().map(PathBuf::from).unwrap_or_default(), base.clone()]);
+        }
+        if let Some(label) = own {
+            base = base.join("onion");
+            made.push(base.clone());
+            base = base.join(podssh_relay::cache::safe_name(label));
+            made.push(base.clone());
         }
         let (state, cache) = (base.join("state"), base.join("cache"));
         made.extend([state.clone(), cache.clone()]);
@@ -126,6 +135,18 @@ pub async fn bootstrap(
     say: &(dyn Fn(&str) + Sync),
     verbose: &(dyn Fn(&str) + Sync),
 ) -> Result<(Tor, String), Failed> {
+    bootstrap_at(shown, None, trust, say, verbose).await
+}
+
+/// [`bootstrap`], with the directories of the node `own` when one is given:
+/// a node's onion service keeps its key there (T-578).
+pub async fn bootstrap_at(
+    shown: &str,
+    own: Option<&str>,
+    trust: &Trust,
+    say: &(dyn Fn(&str) + Sync),
+    verbose: &(dyn Fn(&str) + Sync),
+) -> Result<(Tor, String), Failed> {
     // Arti's rustls takes the process's provider; podssh's own, as each
     // other road's. A second call finds it there already, which is as good.
     let _ = rustls::crypto::CryptoProvider::install_default(podssh_ws::crypto::provider());
@@ -136,7 +157,7 @@ pub async fn bootstrap(
         .map_err(|why| (format!("{shown}: {why}"), EX_CONFIG))?;
     let network = network().map_err(|why| (format!("{shown}: {why}"), EX_CONFIG))?;
     let bridges = bridges().map_err(|why| (format!("{shown}: {why}"), EX_CONFIG))?;
-    let (state_dir, cache_dir) = directories(network.as_ref().map(|(text, _)| text.as_str()))
+    let (state_dir, cache_dir) = directories(network.as_ref().map(|(text, _)| text.as_str()), own)
         .map_err(|(line, code)| (format!("{shown}: {line}"), code))?;
     let held = match (&bridges, &ports) {
         // A bridge is the first hop, through its transport: the ports of a

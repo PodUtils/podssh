@@ -39,8 +39,9 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 }
 
 /// The variable, and those of croc's relay road (T-694), ZeroTier's
-/// (T-733), the Tox road (T-734), Yggdrasil's (T-735), HyperDHT's (T-736)
-/// and Syncthing's relays' (T-571), checked before anything connects.
+/// (T-733), the Tox road (T-734), Yggdrasil's (T-735), HyperDHT's (T-736),
+/// Syncthing's relays' (T-571) and the onion road's (T-578), checked before
+/// anything connects.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
     crate::node_croc::check()?;
@@ -48,7 +49,8 @@ pub(crate) fn check() -> Result<(), Refusal> {
     crate::tox::setting()?;
     crate::yggdrasil::setting()?;
     crate::hyperdht::setting()?;
-    crate::strelay::setting().map(|_| ())
+    crate::strelay::setting()?;
+    crate::onion::setting().map(|_| ())
 }
 
 /// The relay of the road, when the road is on.
@@ -143,7 +145,8 @@ pub(crate) fn wanted(transit: bool) -> bool {
         || crate::tox::on()
         || crate::yggdrasil::on()
         || crate::hyperdht::bootstrap().is_some()
-        || crate::strelay::relay_for("").is_some();
+        || crate::strelay::relay_for("").is_some()
+        || crate::onion::on();
     transit || crate::node_members::wanted() || last
 }
 
@@ -190,8 +193,10 @@ impl Beside<'_> {
         // HyperDHT's road (T-736) after Yggdrasil's, where UDP passes.
         let dht = crate::node_hyperdht::beside(Some(&config.pair), croc_say.clone());
         // Syncthing's relays (T-571) after HyperDHT's road.
-        let syncthing = crate::node_strelay::beside(Some(&config.pair), croc_say);
-        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht, syncthing };
+        let syncthing = crate::node_strelay::beside(Some(&config.pair), croc_say.clone());
+        // An onion service of the Tor network (T-578) after Syncthing's relays.
+        let onion = crate::node_onion::beside(self.label, Some(&config.pair), croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht, syncthing, onion };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

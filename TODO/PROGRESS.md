@@ -42,7 +42,12 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-739's `draft/t739-vmess` is merged, 2026-11-12).
+8. **Drafts.** Two wait (T-578's `draft-t578` is merged, 2026-11-12):
+
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | T-581 | `draft-t581` | `38b6c3e` | drafted, never built: TUIC v5 in `podssh-ws/src/tuic/`, `--tuic FILE` |
+   | T-580 | `draft-t580` | `6f6f53b` | drafted, never built: Hysteria 2 in `podssh-ws/src/hysteria/`, `--hysteria FILE` |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.

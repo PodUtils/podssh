@@ -316,7 +316,7 @@ where
     let croc =
         last::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
     // ZeroTier's road (T-733), then the Tox road (T-734), raced after croc's: never with --no-e2e.
-    let last = last.with_pair(part.as_ref(), ask.off, &log, &shown);
+    let last = last.with_pair(label, part.as_ref(), ask.off, trust, &log, &shown);
     let context = podssh_relay::context::process();
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,

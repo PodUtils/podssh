@@ -3,7 +3,9 @@
 # road (T-353): chutney's network `basic` (four authorities, five exits,
 # two clients), and arti-client's configuration of it, which the tests read
 # from PODSSH_TEST_TOR_NETWORK. Its relays know no other network, so
-# nothing of it reaches Tor's own.
+# nothing of it reaches Tor's own. The test of onion services (T-578) runs
+# in it too: chutney's TestingTorNetwork votes each relay an HSDir, and nine
+# relays are more than the five that a service and its client need.
 #
 # start-bridges (T-385) makes a network of podssh's own in its place: four
 # authorities, a bridge authority, four exits, and one bridge whose

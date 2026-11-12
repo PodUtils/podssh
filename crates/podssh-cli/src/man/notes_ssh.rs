@@ -328,6 +328,7 @@ const FIRST: &[&str] = &[
     super::notes_ygg::SSH,
     super::notes_hyperdht::SSH,
     super::notes_strelay::SSH,
+    super::notes_onion::SSH,
     super::notes_pair::SSH_OPENTUNNEL,
     super::notes_pinggy::SSH,
     super::notes_serveo::SSH,
@@ -486,15 +487,4 @@ const FIRST: &[&str] = &[
      change, and the new one is printed. The logins after the first ask nothing, unless \
      SSH_ASKPASS_REQUIRE is force and SSH_ASKPASS names a program to ask. With no forward, or \
      --persist-name, -N with --persist is refused (exit 64).",
-    "~C, in a session with a pty, opens the command line of OpenSSH, ssh>, on the terminal. -L, -D or -R \
-     with a spec of the command line adds that forward to the running session: the listeners of -L and \
-     -D are made as those of the command line are (the probe, -g, PODSSH_LISTEN), and -R asks the server \
-     and waits 20 s at most for its answer. -KL, -KD or -KR with [BIND:]PORT, or a socket path for -KL \
-     and -KD, stops one: a closed listener takes no new connection, and the connections that it took go \
-     on; the server lets the port of -R go, and a channel for that port is refused from then on. help or \
-     ? lists the commands; an empty line, Ctrl-C and Ctrl-D do nothing, and a line that starts with ! \
-     runs no command (OpenSSH's PermitLocalCommand). After a forward that ~C stopped, ~# says closed. The \
-     forwards that ~C adds last as long as the connection, and those that it stops stay stopped: a new \
-     connection of --persist asks only for the forwards of the command line that ~C did not stop. A \
-     session through a control master has no ~C, as with OpenSSH: the key goes to the server as typed.",
 ];

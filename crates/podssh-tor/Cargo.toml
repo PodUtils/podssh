@@ -21,9 +21,25 @@ publish.workspace = true
 # answers in the process (`transport.rs`); it adds tor-ptmgr, Rust alone (its
 # manifest read at 0.47.0), whose launcher of programs runs only for a
 # transport with a `path`, which podssh never writes and refuses.
+# `onion-service-client` and `onion-service-service` (T-578): onion
+# services, a node's and a client's, Rust alone (tor-hsclient, tor-hsservice,
+# and the keystore of tor-keymgr; read at 0.48.0). `restricted-discovery` and
+# `experimental-api`, which Arti marks experimental: a service that lists the
+# keys of its clients, and a client that puts its key in its keystore.
 arti-client = { version = ">=0.48, <0.49", default-features = false, features = [
   "tokio", "rustls", "static-sqlite", "pt-client",
+  "onion-service-client", "onion-service-service", "restricted-discovery", "experimental-api",
 ] }
+# The onion service's parts that arti-client does not re-export: the
+# requests of its clients, their streams, and the keys of restricted
+# discovery. The versions that arti-client builds.
+tor-hsservice = { version = ">=0.48, <0.49", default-features = false, features = ["restricted-discovery"] }
+tor-hscrypto = { version = ">=0.48, <0.49", default-features = false }
+tor-proto = { version = ">=0.48, <0.49", default-features = false, features = ["hs-service"] }
+tor-cell = { version = ">=0.48, <0.49", default-features = false }
+tor-llcrypto = { version = ">=0.48, <0.49", default-features = false }
+# The display of an onion address in full, which Arti redacts in its logs.
+safelog = { version = "0.10", default-features = false }
 # The runtime's parts: the TCP provider that dials through podssh-ws, in the
 # version that arti-client builds.
 tor-rtcompat = { version = ">=0.48, <0.49", default-features = false, features = ["tokio", "rustls"] }

@@ -23,7 +23,7 @@ pub(super) const NODE: &str = "In a build with the feature strelay, a node of th
 /// The note of `podssh ssh`, after HyperDHT's road's.
 pub(super) const SSH: &str = "In a build with the feature strelay, node://NAME also races Syncthing's \
      relay road of its pair (T-571), only once each road before it failed, after HyperDHT's road and before \
-     the Serveo road, the last fallback of the operator's ruling Q78: a request with a fresh certificate to \
+     the onion road, the last fallback of the operator's ruling Q78: a request with a fresh certificate to \
      the pair's relay (the one on 443 that the SHA-256 of its name picks among the pool's relays of \
      podssh's list of services, or the relay of PODSSH_SYNCTHING_RELAY) for the node's device ID, which both \
      ends make of the pair's connect token, then the session's own TCP connection to the relay. It waits \

@@ -409,6 +409,8 @@ jobs:
           set -eu
           cargo test --locked -p podssh-tor --test private_network
           cargo test --locked -p podssh-cli --features tor --test tor_private
+          # T-578: a node's onion service there, each relay an HSDir.
+          cargo test --locked -p podssh-tor --test onion_service -- --nocapture
       - name: the network stopped
         if: always()
         run: sh scripts/tor-net.sh stop "$RUNNER_TEMP/tor-net"

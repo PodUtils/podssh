@@ -9,12 +9,18 @@
 //! relays ([`bridges`]); meek_lite and WebTunnel, the two transports that
 //! pass where HTTPS passes, run in this process ([`transport`]), with no
 //! other program.
+//!
+//! An onion service (T-578) reaches a node by its onion address
+//! ([`onion`]): Arti's service in this process, whose every circuit is a
+//! connection out to a relay, so the node binds nothing.
 
 pub mod bridges;
 pub mod client;
+pub mod onion;
 pub mod runtime;
 mod socks;
 pub mod transport;
 
 pub use bridges::Bridge;
 pub use client::{Failure, Options, Tor, TorStream};
+pub use onion::{Discovery, Onion, ServiceOptions};

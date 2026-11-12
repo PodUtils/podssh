@@ -290,8 +290,16 @@ network (Q60). By hand, with `tor` and `tor-gencert` installed:
 toml=$(sh scripts/tor-net.sh start .work/tor-net "$(hostname -I | awk '{print $1}')")
 PODSSH_TEST_TOR_NETWORK=$toml cargo test -p podssh-tor --test private_network
 PODSSH_TEST_TOR_NETWORK=$toml cargo test -p podssh-cli --features tor --test tor_private
+PODSSH_TEST_TOR_NETWORK=$toml cargo test -p podssh-tor --test onion_service
 sh scripts/tor-net.sh stop .work/tor-net
 ```
+
+`onion_service` (T-578) runs a node's onion service in the same network:
+chutney's `TestingTorNetwork` makes each of its nine relays an HSDir, which
+an onion service needs five of. Its live run on Tor's own network, a
+service of a throwaway key, is asked for alone, with
+`PODSSH_TEST_TOR_ONION_LIVE=yes` (Q91), and from Actions by the input
+`onion` of `tor-live.yml`.
 
 The relays listen on the address given, as podssh sends no loopback address
 through a proxy; on the loopback, the CLI's test checks that no first hop

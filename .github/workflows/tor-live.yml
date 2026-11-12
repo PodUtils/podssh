@@ -2,7 +2,8 @@ name: tor live
 
 # T-353: the Tor road on Tor's public network, by the operator's leave
 # (Q60, 2026-11-01): short runs, one bootstrap of Arti and one stream to
-# github.com:22, twice. Started by hand only; it publishes nothing.
+# github.com:22, twice; with the input onion, one onion service of a
+# throwaway key (T-578, Q91). Started by hand only; it publishes nothing.
 
 on:
   workflow_dispatch:
@@ -10,6 +11,10 @@ on:
       confirm:
         description: "Type Q60 to reach Tor's public network"
         required: true
+      onion:
+        description: "yes: also one onion service of a throwaway key, 1 MiB each way, then stopped (T-578, Q91)"
+        required: false
+        default: "no"
 
 permissions:
   contents: read
@@ -30,6 +35,15 @@ jobs:
         run: cargo test --locked -p podssh-cli --features tor --test tor_live --no-run
       - name: GitHub's banner through Tor's public network
         run: timeout 900 cargo test --locked -p podssh-cli --features tor --test tor_live -- --ignored --nocapture
+      # T-578, Q91: one onion service on Tor's public network, more than
+      # Q60's one bootstrap and one stream: a throwaway key in a new state,
+      # one bootstrap at each end, 1 MiB each way, and the service stopped,
+      # so that its descriptor expires unused.
+      - name: one onion service of a throwaway key on Tor's public network
+        if: inputs.onion == 'yes'
+        env:
+          PODSSH_TEST_TOR_ONION_LIVE: "yes"
+        run: timeout 1200 cargo test --locked -p podssh-tor --test onion_service live_ -- --nocapture
       # The Prove's case of a cage: each first hop through the box's proxy,
       # which takes ports 443, 80 and 8443 alone; podssh holds Arti's first
       # hops to 443 through a proxy (PODSSH_TOR_PORTS), and the stream to
