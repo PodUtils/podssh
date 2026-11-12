@@ -94,6 +94,11 @@ jobs:
           test -s "$RUNNER_TEMP/relays.txt" || { echo "the pool lists no relay on 443"; exit 1; }
           wc -l < "$RUNNER_TEMP/relays.txt"
           cargo build --locked -q -p podssh-cli --features strelay --tests
+          # First the relay that podssh's list of services gives the pair, as
+          # a user's run takes it (T-571); then the pool's, one by one.
+          if PODSSH_STRELAY_TEST_RELAY=list timeout 300 cargo test --locked -q -p podssh-cli --features strelay \
+              --test derp_road -- --nocapture derp_strelay; then echo "the list of pod-services carried"; exit 0; fi
+          echo "the relay of the list did not carry; the pool's relays follow"
           rc=1
           while read -r relay; do
             echo "the relay ${relay%%/?*}"

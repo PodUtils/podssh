@@ -7,7 +7,8 @@
 //! The relay is `PODSSH_STRELAY_TEST_BIN`, or `strelaysrv` on the PATH; the
 //! check says that it did not run where there is none. With
 //! `PODSSH_STRELAY_TEST_RELAY=relay://IP:PORT/?id=ID`, the two ends meet on
-//! that relay in its place: the short live run through one of the pool's.
+//! that relay in its place: the short live run through one of the pool's;
+//! with `list`, on the relay that podssh's list of services gives the pair.
 
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -102,7 +103,10 @@ fn a_derp_node_with_a_pair_serves_a_client_through_syncthing_s_relay() {
             (relay.url.clone(), Some(relay))
         }
     };
-    let env = [("PODSSH_SYNCTHING_RELAY", named.as_str())];
+    // `list`: no relay named, so both ends take the relay of the pair's name
+    // from podssh's list of services, as a user's run does.
+    let env: Vec<(&str, &str)> =
+        if named == "list" { Vec::new() } else { vec![("PODSSH_SYNCTHING_RELAY", named.as_str())] };
     lab.let_in();
     store_pair(&lab.node_home);
     store_pair(&lab.client_home);
