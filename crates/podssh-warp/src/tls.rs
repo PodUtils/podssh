@@ -20,6 +20,8 @@ use crate::key::DeviceKey;
 
 /// The ALPN that the endpoint takes over TCP.
 pub const ALPN: &[u8] = b"h2";
+/// The ALPN of HTTP/3, over QUIC (usque's `http3.NextProtoH3`).
+pub const ALPN_H3: &[u8] = b"h3";
 
 /// The verifier that holds the endpoint to its key.
 #[derive(Debug)]
@@ -90,6 +92,17 @@ impl ServerCertVerifier for Pinned {
 /// SEC1 point `endpoint_point`, presenting `key`'s certificate made at
 /// `now`; and its verifier, which says what it refused.
 pub fn config(key: &DeviceKey, endpoint_point: &[u8], now: i64) -> Result<(Arc<ClientConfig>, Arc<Pinned>), String> {
+    config_for(key, endpoint_point, now, ALPN)
+}
+
+/// [`config`] with the ALPN `alpn`: [`ALPN_H3`] for the road over QUIC,
+/// whose TLS is the same, 1.3 alone as QUIC takes it.
+pub fn config_for(
+    key: &DeviceKey,
+    endpoint_point: &[u8],
+    now: i64,
+    alpn: &[u8],
+) -> Result<(Arc<ClientConfig>, Arc<Pinned>), String> {
     let provider = Arc::new(podssh_ws::crypto::provider());
     let pinned = Arc::new(Pinned {
         point: endpoint_point.to_vec(),
@@ -103,7 +116,7 @@ pub fn config(key: &DeviceKey, endpoint_point: &[u8], now: i64) -> Result<(Arc<C
         .dangerous()
         .with_custom_certificate_verifier(pinned.clone())
         .with_client_cert_resolver(Arc::new(rustls::sign::SingleCertAndKey::from(certified)));
-    config.alpn_protocols = vec![ALPN.to_vec()];
+    config.alpn_protocols = vec![alpn.to_vec()];
     Ok((Arc::new(config), pinned))
 }
 
@@ -120,6 +133,8 @@ mod tests {
         assert_eq!(config.alpn_protocols, vec![b"h2".to_vec()]);
         assert!(config.client_auth_cert_resolver.has_certs());
         assert_eq!(pinned.refused(), None);
+        let (h3, _) = config_for(&key, &endpoint.point(), 1_791_440_989, ALPN_H3).unwrap();
+        assert_eq!(h3.alpn_protocols, vec![b"h3".to_vec()]);
     }
 
     /// The endpoint's own certificate passes; another key's is refused, and

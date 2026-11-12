@@ -187,7 +187,7 @@ fn intercepted_now(issuer: String, endpoint: SocketAddr, proxied: Option<String>
 /// The tunnel of one device, and its stack.
 #[derive(Debug, Clone)]
 pub struct Warp {
-    stack: Stack,
+    pub(crate) stack: Stack,
     /// The endpoint, and the proxy that carries the tunnel, if any.
     pub endpoint: SocketAddr,
     pub proxy: Option<String>,

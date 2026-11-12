@@ -87,8 +87,11 @@ LISTENERS = {
     # it, which sends its packet three times and closes within 1.5 s; then
     # one socket of port 0 for its one connection, through pod-quic's
     # endpoint, wrapped in Salamander where the link names it (quic.rs); and
-    # the tests of Salamander's wrapper, on the loopback.
+    # the tests of Salamander's wrapper, on the loopback. And WARP's road over
+    # HTTP/3 (T-582), tried only where a probe found that UDP passes: one
+    # socket of port 0 for its one QUIC connection to the endpoint (quic.rs).
     "UdpSocket": [
+        "crates/podssh-warp/src/h3/quic.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-iroh/src/probe.rs",
         "crates/podssh-iroh/src/endpoint_udp_tests.rs",
@@ -126,6 +129,7 @@ LISTENERS = {
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above.
     "bind(": [
+        "crates/podssh-warp/src/h3/quic.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-ws/src/hysteria/quic.rs",
         "crates/podssh-ws/src/hysteria/salamander.rs",

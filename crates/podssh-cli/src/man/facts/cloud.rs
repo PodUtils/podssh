@@ -73,6 +73,22 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
       another word is a configuration error (78). A build with the feature warp.",
     ),
     (
+        &["PODSSH_WARP_H3"],
+        "When WARP's road goes over HTTP/3, connect-ip with each IP packet in a QUIC datagram on UDP port \
+      443, where a probe of UDP (one QUIC packet, answered within 300 ms) found that UDP passes: auto, the \
+      default, after the road over HTTP/2 failed to reach the endpoint (not after a refused device); first, \
+      before it; no, never. UDP goes through no proxy. Another word is a configuration error (78). A build \
+      with the feature warp.",
+    ),
+    (
+        &["PODSSH_WARP_SERVER", "PODSSH_WARP_SERVER_PIN"],
+        "A server of connect-ip over HTTP/3 (RFC 9484) that the user runs, as https://HOST[:PORT][/PATH], in \
+      place of WARP's endpoint: a warp:// destination then needs no device, the server assigns the address \
+      inside, and its certificate is checked by the roots of the trust, or pinned by PODSSH_WARP_SERVER_PIN, \
+      the SHA-256 of its DER in 64 hex digits (colons allowed). The probe of UDP waits 1.5 s. Another value \
+      is a configuration error (78). A build with the feature warp.",
+    ),
+    (
         &["PODSSH_TOR_PORTS"],
         "The ports that a first hop of a tor:// destination may have, which Arti reaches through the proxy: \
       a list such as 443,80, or any. Unset or empty: 443 alone when a proxy is set, as a cage's proxy allows \

@@ -373,7 +373,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-491` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-493` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`).
 
 ## Decision
 
@@ -5939,7 +5939,7 @@ relay's path and token.
   target over a WebSocket (`docs/carriers.md:22-23`); the three above publish no limit, and say
   nothing of other clients.
 - Read: a relay is a host and a port (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:83-89`), and its forward
-  path is `/connect/<host>/<port>` (`:181-194`); a run has one road, of five kinds
+  path is `/connect/<host>/<port>` (`:188-201`); a run has one road, of five kinds
   (`crates/podssh-cli/src/ssh/transport_kind.rs:9-70`).
 - Read: `validate` refuses a query other than the relay's knobs, and `connect` always sends a token
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:74-113`, now `crates/podssh-ws/src/client.rs:54-83`); a token goes only to the deployment that
@@ -7188,7 +7188,7 @@ has no road.
 ## Premise
 
 - Read: a key other than the pinned one is a refusal that names the issuer
-  (`crates/podssh-warp/src/tls.rs:59`), reported as interception (`crates/podssh-warp/src/road.rs:114`)
+  (`crates/podssh-warp/src/tls.rs:61`), reported as interception (`crates/podssh-warp/src/road.rs:114`)
   and remembered for the run (`crates/podssh-warp/src/road.rs`, line 130 at `ea2bd4f`).
 - Read: the device's record is read once, at registration; no request reads it again
   (`crates/podssh-warp/src/register.rs`, 2026-11-01).
@@ -8251,7 +8251,7 @@ puts the fallback in its `ok` column without a probe.
   measure (`crates/podssh-cli/src/doctor/report.rs:99-101`).
 - Read: the operator's rulings Q56 and Q65 (`docs/decisions.md`) let the binary try the forwarders,
   and the Wisp demo server last, "when each relay host fails", unasked (T-370, T-438); since T-438
-  there are four: mudlet, ssheasy, mudix and wisp (`crates/podssh-cli/src/man/notes_ssh.rs:240-251`).
+  there are four: mudlet, ssheasy, mudix and wisp (`crates/podssh-cli/src/man/notes_ssh.rs:242-253`).
   A default of off is a change of that ruling.
 - Not measured here: #106's times. Inferred from the code: with the direct road's dial refused at
   once by the tester's proxy, the 20.8 s are the forwarders' own dials of a dead address.
@@ -9426,7 +9426,7 @@ Read at `2042200`:
 - No code of podssh speaks STUN (searched); the TURN road would bring a STUN codec (T-621, its step 2).
 - The measured sandbox refuses UDP: `docs/target-environment.md:23` says "EPERM", so there the line is
   unknown.
-- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:91` for `UdpSocket`),
+- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:93` for `UdpSocket`),
   which `scripts/check-repo.py:287` reads.
 
 ## Approach

@@ -1,6 +1,7 @@
 //! `warp://[user@]HOST[:PORT]` (T-352): a port of any host, 22 by default,
 //! inside WARP's tunnel, MASQUE over HTTP/2 to Cloudflare's endpoint on port
-//! 443 through `HTTPS_PROXY` when one is set (`podssh_warp`), with no relay:
+//! 443 through `HTTPS_PROXY` when one is set (`podssh_warp`), or over HTTP/3
+//! where UDP passes (T-582, [`h3`]), with no relay:
 //! Cloudflare's own network reaches the host. The road is in a build with
 //! the feature `warp` only; without it, a `warp://` destination is refused
 //! before anything connects, with exit 70.
@@ -84,11 +85,24 @@ pub async fn open(
     say: &(dyn Fn(&str) + Sync),
     verbose: &(dyn Fn(&str) + Sync),
 ) -> Result<Box<dyn Duplex>, Failed> {
-    use crate::exitmap::sysexits::EX_UNAVAILABLE;
+    use crate::exitmap::sysexits::{EX_CONFIG, EX_UNAVAILABLE};
     let shown = target.shown();
+    let limit = podssh_relay::open::CONNECT_TIMEOUT;
+    // The user's own server of connect-ip over HTTP/3 needs no device (T-582).
+    if let Some(server) = h3::server().map_err(|(line, code)| (format!("{shown}: {line}"), code))? {
+        let probe = probe_kept(std::env::var(PROBE_ENV).ok().as_deref()).map_err(|why| (why, EX_CONFIG))?;
+        let warp = h3::to_server(&server, trust, probe, limit, verbose)
+            .await
+            .map_err(|fault| (format!("{shown}: {fault}"), road::code(&fault)))?;
+        verbose(&format!("{shown}: the tunnel opened, to {} ({})", server.shown(), warp.endpoint));
+        let stream = warp
+            .connect(&target.host, target.port, limit)
+            .await
+            .map_err(|why| (format!("{shown}: inside the tunnel of {}: {why}", server.shown()), EX_UNAVAILABLE))?;
+        return Ok(Box::new(stream));
+    }
     let mut device =
         road::device(trust, say, verbose).await.map_err(|(line, code)| (format!("{shown}: {line}"), code))?;
-    let limit = podssh_relay::open::CONNECT_TIMEOUT;
     let endpoints: Vec<String> = device.endpoints().iter().map(|at| at.to_string()).collect();
     let endpoints = endpoints.join(", then ");
     verbose(&format!("connecting to {shown}, port {}, inside WARP's tunnel (its endpoints: {endpoints})", target.port));
@@ -126,6 +140,8 @@ pub(super) async fn reach(target: &Target, trust: &Trust, log: &Arc<Log>) -> Res
     }
 }
 
+#[cfg(feature = "warp")]
+pub mod h3;
 #[cfg(feature = "warp")]
 pub mod road;
 

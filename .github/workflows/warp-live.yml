@@ -37,6 +37,10 @@ permissions:
 
 env:
   PODSSH_CACHE_DIR: ${{ github.workspace }}/../podssh-cache
+  # The road over HTTP/2 alone: a runner's UDP passes, and HTTP/3 (T-582)
+  # would open where this run proves that a proxy's refusal is named;
+  # masque-h3-interop.yml's live job runs the road over HTTP/3.
+  PODSSH_WARP_H3: "no"
   # GitHub's published Ed25519 host key (docs.github.com, "GitHub's SSH key
   # fingerprints"), as docs/STATUS.md records it through the relay.
   GITHUB_ED25519: "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"

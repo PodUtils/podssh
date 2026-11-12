@@ -493,7 +493,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    `[OPTIONS] [--] [user@]host [COMMAND...]` for `ssh` and
    `[OPTIONS] [--] HOST PORT` for `proxy`; `--help` and the synopsis of the
    manual (`crates/podssh-cli/src/man/model.rs:186-190`) read it.
-2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-491` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159` and `crates/podssh-cli/src/man/notes.rs:73-253`)
+2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-493` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159` and `crates/podssh-cli/src/man/notes.rs:73-253`)
    and an example (`crates/podssh-cli/src/man/examples.rs:8-316`). Pitfall: the
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
@@ -2509,7 +2509,7 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:474`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:475`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
 status lost: the report and its JSON have three (`docs/cli.md:2929-2932`). The issue's grade by a
@@ -2585,7 +2585,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:474`), so whether it listens is not known. The box refuses each bind
+  (`docs/STATUS.md:475`), so whether it listens is not known. The box refuses each bind
   (`scripts/box/seccomp.json:5-10`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket
@@ -3605,7 +3605,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   follow here" (`crates/podssh-relay/src/cache/own.rs`, lines 37-38 at `38f424c`);
   `--allow <(...)` gives such a link (`/dev/fd/63`), and the line does not say that a regular
   file works.
-- Read (L-27): `podssh proxy` has no direct road (`crates/podssh-cli/src/man/notes_ssh.rs:246`);
+- Read (L-27): `podssh proxy` has no direct road (`crates/podssh-cli/src/man/notes_ssh.rs:248`);
   `podssh pipe - tcp:%h:%p` is that road as a `ProxyCommand` (`crates/podssh-cli/src/man/notes_pipe.rs:5-14`),
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:246`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same

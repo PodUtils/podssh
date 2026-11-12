@@ -40,6 +40,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 base64 = { workspace = true }
 zeroize = { workspace = true }
+# connect-ip over HTTP/3 where UDP passes (T-582, feature `h3`): QUIC on
+# noq through pod-quic, the version that podssh-ws's roads over QUIC take.
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", optional = true }
 
 [features]
 # The stand-in of WARP's edge and of its API, for the tests of another crate
@@ -50,6 +53,14 @@ stand-in = ["inside"]
 # this process, no socket of the system; the member of ZeroTier's road takes
 # them (T-733).
 inside = []
+# MASQUE over HTTP/3 (T-582): the tunnel where a probe found that UDP
+# passes, with QPACK's and the pin's code of podssh-ws's Hysteria road.
+h3 = ["dep:pod-quic", "podssh-ws/quic"]
+
+# The interop test against connect-ip-go's server (T-582's Prove).
+[[test]]
+name = "connect_ip_h3"
+required-features = ["h3"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

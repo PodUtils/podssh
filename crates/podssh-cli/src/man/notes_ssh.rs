@@ -154,7 +154,9 @@ const FIRST: &[&str] = &[
      certificate is a proxy's that re-terminates TLS: it is named by its issuer, and the road is not \
      tried again in the run. Once the tunnel opens, one TCP connection inside it to 1.1.1.1:443 must be \
      answered through it, tried twice 700 ms apart: a front door that takes TLS and relays nothing is \
-     named so (69), not left to time out each stream; PODSSH_WARP_PROBE=no skips the probe. TCP \
+     named so (69), not left to time out each stream; PODSSH_WARP_PROBE=no skips the probe. Where a \
+     probe of UDP to the endpoint answers, the same tunnel goes over HTTP/3, each packet in a QUIC \
+     datagram: after HTTP/2 failed to reach it, or first (PODSSH_WARP_H3). TCP \
      inside the tunnel is smoltcp's, in this process, with no TUN device. The host key is recorded under \
      warp://HOST. -p and Port give the port; --direct, -4, -6 and HostName cannot go with it, and -J with \
      it first makes HOST the first hop of a chain.",

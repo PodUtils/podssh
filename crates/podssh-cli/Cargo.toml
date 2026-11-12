@@ -35,7 +35,9 @@ iroh-test = ["iroh", "podssh-iroh/test-relay"]
 # needs Rust 1.91, and the road waits for its live run (T-352's Prove).
 # Without it, a warp:// destination is refused with exit 70. With it, the
 # quick tunnel's node reaches the edge inside WARP's tunnel too (T-374).
-warp = ["dep:podssh-warp", "podssh-relay/warp"]
+# And over HTTP/3 where UDP passes (T-582), on the pod-quic that `quic` of
+# podssh-ws builds already.
+warp = ["dep:podssh-warp", "podssh-warp/h3", "podssh-relay/warp"]
 # Tor through Arti (T-353, the operator's ruling Q52): `tor://HOST[:PORT]`.
 # Off by default: Arti adds about 500 crates, SQLite's C and Rust 1.92, and
 # its live test waits for Q60. Without it, a tor:// destination is refused
