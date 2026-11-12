@@ -1,0 +1,103 @@
+name: strelay interop
+
+# Syncthing's relay road (T-571) against Syncthing's own relay, MPL-2.0:
+# `strelaysrv` built here with Go from its tag v2.1.7 (d6d0181f), on a port
+# of the loopback, joined to no pool; the tests start it themselves. No relay
+# of the pool is reached. The library (crates/podssh-relay/tests/
+# strelay_link.rs): a pair's node and its client meet and carry a MiB whole,
+# and another device ID gets no session; and the command line from end to end
+# (tests/derp_road.rs, the module derp_strelay). Each test says "did not run"
+# with no strelaysrv, so the job fails on that word. An ignored invitation
+# key, and a client of another pair, must fail (scripts/plants/t571-*).
+# By hand only, the job `live`: one short session from end to end through a
+# relay of Syncthing's pool on 443, a service of Q78 (a live target of Q91),
+# picked at run time from the pool's own list, so that no host of another
+# party is in podssh's source; podssh's list is pod-services'.
+# Started by hand, and on a push that changes the road; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/strelay/**"
+      - "crates/podssh-relay/tests/strelay_link.rs"
+      - "crates/podssh-cli/src/strelay.rs"
+      - "crates/podssh-cli/src/node_strelay.rs"
+      - "crates/podssh-cli/src/ssh/strelay.rs"
+      - "crates/podssh-cli/tests/derp_strelay/**"
+      - "scripts/plants/t571-*"
+      - ".github/workflows/strelay-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: strelay-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SYNCTHING_TAG: "v2.1.7"
+  SYNCTHING_COMMIT: "d6d0181f7d466381c4b39ec8fd944c364f939b32"
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Syncthing's strelaysrv of the pinned tag
+        run: |
+          set -eu
+          git clone -q --depth 1 --branch "$SYNCTHING_TAG" https://github.com/syncthing/syncthing .work/st
+          test "$(git -C .work/st rev-parse HEAD)" = "$SYNCTHING_COMMIT"
+          (cd .work/st && go build -o ../strelaysrv ./cmd/strelaysrv)
+          echo "PODSSH_STRELAY_TEST_BIN=$PWD/.work/strelaysrv" >> "$GITHUB_ENV"
+      - name: the library against Syncthing's relay
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-relay --features strelay --lib strelay
+          timeout 900 cargo test --locked -p podssh-relay --features strelay --test strelay_link -- --nocapture 2>&1 | tee "$RUNNER_TEMP/relay.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/relay.log"
+          if grep -q "did not run" "$RUNNER_TEMP/relay.log"; then echo "a test did not run"; exit 1; fi
+      - name: the command line from end to end, through Syncthing's relay
+        run: |
+          set -o pipefail
+          timeout 1200 cargo test --locked -p podssh-cli --features strelay --test derp_road -- --nocapture derp_strelay 2>&1 | tee "$RUNNER_TEMP/cli.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/cli.log"
+          if grep -q "did not run" "$RUNNER_TEMP/cli.log"; then echo "the test did not run"; exit 1; fi
+      - name: the planted defects fail
+        run: sudo -E env "PATH=$PATH" sh scripts/plant-each.sh --here --group host-strelay
+
+  live:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: one session through a relay of Syncthing's pool on 443
+        run: |
+          set -eu
+          curl -fsS --max-time 30 https://relays.syncthing.net/endpoint -o "$RUNNER_TEMP/pool.json"
+          python3 - "$RUNNER_TEMP/pool.json" > "$RUNNER_TEMP/relays.txt" <<'PY'
+          import json, sys
+          for r in json.load(open(sys.argv[1])).get("relays", []):
+              url = r.get("url", "")
+              if url.startswith("relay://") and ":443/" in url:
+                  print(url.split("&")[0])
+          PY
+          test -s "$RUNNER_TEMP/relays.txt" || { echo "the pool lists no relay on 443"; exit 1; }
+          wc -l < "$RUNNER_TEMP/relays.txt"
+          cargo build --locked -q -p podssh-cli --features strelay --tests
+          rc=1
+          while read -r relay; do
+            echo "the relay ${relay%%/?*}"
+            if PODSSH_STRELAY_TEST_RELAY="$relay" timeout 300 cargo test --locked -q -p podssh-cli --features strelay \
+                --test derp_road -- --nocapture derp_strelay; then rc=0; break; fi
+          done < "$RUNNER_TEMP/relays.txt"
+          exit $rc

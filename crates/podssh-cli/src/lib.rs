@@ -181,6 +181,9 @@ pub mod node_ygg;
 // HyperDHT beside a pair's road where UDP passes (T-736).
 pub mod hyperdht;
 pub mod node_hyperdht;
+pub mod strelay;
+// Syncthing's relays beside a pair's road, a last fallback of Q78 (T-571).
+pub mod node_strelay;
 pub mod tox;
 pub mod yggdrasil;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).

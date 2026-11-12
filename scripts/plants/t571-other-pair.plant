@@ -1,0 +1,10 @@
+# T-571: the client of Syncthing's relay road asks for another pair's device
+# ID, so the relay finds no node for it; the command line's test from end to
+# end, through Syncthing's own relay, must fail. On the runner, not in the
+# build image: strelaysrv is built there from its tag, with Go.
+ENTRY=T-571
+GROUP=host-strelay
+EXPECT='test derp_strelay::a_derp_node_with_a_pair_serves_a_client_through_syncthing_s_relay \.\.\. FAILED'
+SETUP='test -x .work/strelaysrv || { git clone -q --depth 1 --branch v2.1.7 https://github.com/syncthing/syncthing .work/st && (cd .work/st && go build -o ../strelaysrv ./cmd/strelaysrv); }'
+RUN='PODSSH_STRELAY_TEST_BIN="$PWD/.work/strelaysrv" cargo test --locked --no-fail-fast -p podssh-cli --features strelay --test derp_road -- derp_strelay'
+LIMIT=1800

@@ -28,6 +28,7 @@ mod notes_containers;
 mod notes_croc;
 // ZeroTier's road, a last fallback of Q78 after croc's (T-733).
 mod notes_hyperdht;
+mod notes_strelay;
 mod notes_tox;
 mod notes_ygg;
 mod notes_zerotier;

@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/ssh/strelay.rs
++++ b/crates/podssh-cli/src/ssh/strelay.rs
+@@ -66,7 +66,7 @@
+     async fn linked(&self) -> Result<Road, String> {
+         use podssh_relay::strelay::pair;
+         self.log.verbose(&format!("{}: Syncthing's relay road through {}", self.shown, self.relay.at));
+-        let node = pair::node_identity(&self.name, &self.token).id();
++        let node = pair::node_identity(&self.name, "planted").id();
+         let relay = crate::strelay::library(self.relay);
+         let stream = pair::link(&crate::strelay::dial(), &relay, node, LIMIT)
+             .await

@@ -9029,9 +9029,20 @@ the client's connect request and its session, 100 ms after the invitation so tha
   client's spacing, 3 runs of 8 lost a join to the relay's race above.
 - Planted (`scripts/plants/t571-key-ignored.plant`, group `host-strelay`): the invitation's key ignored; the test
   fails; 1 caught. clippy with the feature: no warning, and the gate lints it.
-- Next: the command line's road (the relays of 443 of the pool, from `pod-services` or the pool's list, by the
-  SHA-256 of the pair's name; `PODSSH_SYNCTHING_RELAY`; the line of Q78), the manual, a workflow that builds
-  `strelaysrv`, and one short live session through a relay of the pool on 443.
+- The road in the command line, behind the feature `strelay` of podssh-cli: `src/strelay.rs` (the setting
+  `PODSSH_SYNCTHING_RELAY`: `no`, or `relay://IP:PORT/?id=DEVICE-ID` of one's own, which `PODSSH_LAST_RESORT`
+  leaves on; else the pool's relays on 443 of the service `syncthing-relay` of `pod-services`, none until it lists
+  them; the relay by the SHA-256 of the pair's name; a device ID read as Syncthing writes it, base32 with a Luhn
+  check after each 13 characters, against `strelaysrv`'s own text of the node's ID), `src/node_strelay.rs` and
+  `src/ssh/strelay.rs` (after HyperDHT's road, never with --no-e2e; the line of Q78). The manual: the notes of node
+  and ssh (`man/notes_strelay.rs`) and the facts of `PODSSH_SYNCTHING_RELAY` and `PODSSH_LAST_RESORT`. `cargo test
+  -p podssh-cli --features strelay --test derp_road -- derp_strelay`: 1 passed, `podssh ssh node://` through
+  Syncthing's relay road alone in 0.4 s; `--lib`: 1111 passed; clippy with and without the feature: no warning.
+- Planted (group `host-strelay`): also a client of another pair (`t571-other-pair`); 2 caught.
+  `strelay-interop.yml` builds `strelaysrv` at its tag and runs the tests and the plants on each push of the road;
+  its job `live`, by hand, takes the relays on 443 of the pool's own list at run time and runs `derp_strelay`
+  through each until one passes. UNVERIFIED until its first run on Actions. The list of `pod-services` is asked of
+  podcrates.
 
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research
@@ -10056,7 +10067,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:293-303`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:294-304`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10410,8 +10421,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:302-303`), and needs the net's role exit, signed by
-  its owner (`:300-301`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:303-304`), and needs the net's role exit, signed by
+  its owner (`:301-302`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:144`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -12421,7 +12432,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:74`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:76`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 

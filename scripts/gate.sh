@@ -179,9 +179,9 @@ step_lint() {
     # HyperDHT's road where UDP passes (T-736): the library and the CLI's road.
     run "clippy: no warning with the HyperDHT feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/hyperdht -- -D warnings $LINTS_ALLOWED
-    # Syncthing's relays as a last road (T-571): the library.
+    # Syncthing's relays as a last road (T-571): the library and the CLI's road.
     run "clippy: no warning with the Syncthing relay feature" \
-        cargo clippy --locked --all-targets -p podssh-relay --features strelay -- -D warnings $LINTS_ALLOWED
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/strelay -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings

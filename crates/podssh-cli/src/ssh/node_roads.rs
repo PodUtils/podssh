@@ -152,7 +152,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         matches!(crate::yggdrasil::setting()?, crate::yggdrasil::Setting::On(..)) && cfg!(feature = "yggdrasil");
     // HyperDHT's road (T-736, Q77, Q82), as Yggdrasil's; a bad PODSSH_HYPERDHT is refused here.
     let dht_on = matches!(crate::hyperdht::setting()?, crate::hyperdht::Setting::On(..)) && cfg!(feature = "hyperdht");
-    let zerotier = (zerotier_on || tox_on || ygg_on || dht_on) && !channel.off && good_pair();
+    // Syncthing's relays (T-571, Q78), as the Tox road's; a bad PODSSH_SYNCTHING_RELAY is refused here.
+    let st_on = matches!(crate::strelay::setting()?, crate::strelay::Setting::On(..)) && cfg!(feature = "strelay");
+    let zerotier = (zerotier_on || tox_on || ygg_on || dht_on || st_on) && !channel.off && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
     let tunnel = super::roads::ssh_http::named(label, channel.off);
     Ok(Chosen {

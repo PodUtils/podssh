@@ -210,6 +210,7 @@ pub(super) const NODE: &[&str] = &[
     super::notes_tox::NODE,
     super::notes_ygg::NODE,
     super::notes_hyperdht::NODE,
+    super::notes_strelay::NODE,
     "A node of a pair has a road for a proxy that refuses the WebSocket upgrade: the Piping Server road, \
      through https://ppng.io, which needs no account, then https://piping.onrender.com where ppng.io fails, \
      or the server of PODSSH_PIPING alone. Once TARGET answered, the \

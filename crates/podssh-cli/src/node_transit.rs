@@ -39,15 +39,16 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 }
 
 /// The variable, and those of croc's relay road (T-694), ZeroTier's
-/// (T-733), the Tox road (T-734), Yggdrasil's (T-735) and HyperDHT's
-/// (T-736), checked before anything connects.
+/// (T-733), the Tox road (T-734), Yggdrasil's (T-735), HyperDHT's (T-736)
+/// and Syncthing's relays' (T-571), checked before anything connects.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
     crate::node_croc::check()?;
     crate::zerotier::setting()?;
     crate::tox::setting()?;
     crate::yggdrasil::setting()?;
-    crate::hyperdht::setting().map(|_| ())
+    crate::hyperdht::setting()?;
+    crate::strelay::setting().map(|_| ())
 }
 
 /// The relay of the road, when the road is on.
@@ -141,7 +142,8 @@ pub(crate) fn wanted(transit: bool) -> bool {
         || crate::zerotier::relay().is_some()
         || crate::tox::on()
         || crate::yggdrasil::on()
-        || crate::hyperdht::bootstrap().is_some();
+        || crate::hyperdht::bootstrap().is_some()
+        || crate::strelay::relay_for("").is_some();
     transit || crate::node_members::wanted() || last
 }
 
@@ -186,8 +188,10 @@ impl Beside<'_> {
         // Yggdrasil's road (T-735) after the Tox road.
         let ygg = crate::node_ygg::beside(Some(&config.pair), croc_say.clone());
         // HyperDHT's road (T-736) after Yggdrasil's, where UDP passes.
-        let dht = crate::node_hyperdht::beside(Some(&config.pair), croc_say);
-        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht };
+        let dht = crate::node_hyperdht::beside(Some(&config.pair), croc_say.clone());
+        // Syncthing's relays (T-571) after HyperDHT's road.
+        let syncthing = crate::node_strelay::beside(Some(&config.pair), croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht, syncthing };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

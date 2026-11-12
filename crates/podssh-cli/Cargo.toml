@@ -51,6 +51,8 @@ tox = ["podssh-relay/tox"]
 yggdrasil = ["podssh-relay/yggdrasil"]
 # HyperDHT where UDP passes, as a road of a pair (T-736). No C.
 hyperdht = ["podssh-relay/hyperdht"]
+# Syncthing's relays on 443 as a last road of a pair (T-571). No C.
+strelay = ["podssh-relay/strelay"]
 # The road with the stand-in relay and root on the loopback, for the test of
 # the command line from end to end (`tests/derp_road.rs`); never in a release.
 zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]

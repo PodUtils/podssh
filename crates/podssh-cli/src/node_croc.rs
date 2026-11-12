@@ -95,13 +95,15 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge
 
 /// The last roads of a pair at the node: croc's relay, then ZeroTier's
 /// network (T-733), then a Tox relay (T-734), then Yggdrasil's network
-/// (T-735), then HyperDHT where UDP passes (T-736), each where it is on.
+/// (T-735), then HyperDHT where UDP passes (T-736), then a relay of
+/// Syncthing's (T-571), each where it is on.
 pub(crate) struct Beside {
     pub croc: Option<far::Node>,
     pub zerotier: Option<crate::node_zerotier::Road>,
     pub tox: Option<crate::node_tox::Road>,
     pub ygg: Option<crate::node_ygg::Road>,
     pub dht: Option<crate::node_hyperdht::Road>,
+    pub syncthing: Option<crate::node_strelay::Road>,
 }
 
 /// The roads beside another node road's pair (`--derp`, the Piping Server
@@ -111,7 +113,8 @@ pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, sa
     let zerotier = crate::node_zerotier::beside(pair.map(|(pair, _)| pair), say.clone());
     let tox = crate::node_tox::beside(pair.map(|(pair, _)| pair), say.clone());
     let ygg = crate::node_ygg::beside(pair.map(|(pair, _)| pair), say.clone());
-    Beside { croc, zerotier, tox, ygg, dht: crate::node_hyperdht::beside(pair.map(|(pair, _)| pair), say) }
+    let dht = crate::node_hyperdht::beside(pair.map(|(pair, _)| pair), say.clone());
+    Beside { croc, zerotier, tox, ygg, dht, syncthing: crate::node_strelay::beside(pair.map(|(pair, _)| pair), say) }
 }
 
 /// `pair_road` with croc's relay road and ZeroTier's of `beside` beside it,
@@ -128,7 +131,8 @@ where
     O: Fn() -> F + Clone + Send + Sync + 'static,
     F: Future<Output = Result<DuplexStream, String>> + Send + 'static,
 {
-    let dht = crate::node_hyperdht::alongside(pair_road, beside.dht, open.clone(), keeper.clone());
+    let syncthing = crate::node_strelay::alongside(pair_road, beside.syncthing, open.clone(), keeper.clone());
+    let dht = crate::node_hyperdht::alongside(Box::pin(syncthing), beside.dht, open.clone(), keeper.clone());
     let ygg = crate::node_ygg::alongside(Box::pin(dht), beside.ygg, open.clone(), keeper.clone());
     let tox = crate::node_tox::alongside(Box::pin(ygg), beside.tox, open.clone(), keeper.clone());
     let zerotier = crate::node_zerotier::alongside(Box::pin(tox), beside.zerotier, open.clone(), keeper.clone());

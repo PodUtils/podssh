@@ -964,7 +964,7 @@ filed as it is, with no port, as OpenSSH files it (the Correction).
   a run in the build image stalled on the download of the crates, and the
   checks' plant waits for T-251.
 - `docs/cli.md:137-146` and the manual's note of host keys
-  (`crates/podssh-cli/src/man/notes_ssh.rs:341-352`) say how each hop is checked,
+  (`crates/podssh-cli/src/man/notes_ssh.rs:342-353`) say how each hop is checked,
   and which settings hold for each hop.
 - `cargo test -p podssh-ssh`: 141 passed; `cargo test -p podssh-cli`:
   563 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -4331,7 +4331,7 @@ Read on 2026-11-03 by the drafting agent, at `e176606` (the tree of `3bb42ea` wi
   (`crates/podssh-cli/tests/node_live.rs:188-192`), so no test met the question. Not reproduced
   here: the run of item 1 confirms it.
 - On `main`, `ssh node://NAME` with a good pair goes through the race of the roads
-  (`crates/podssh-cli/src/ssh/node_roads.rs:189-195`, moved from `ssh/mod.rs` by T-531 and to `node_roads.rs` by T-551), not through `node::connect`, as the transit road is
+  (`crates/podssh-cli/src/ssh/node_roads.rs:191-197`, moved from `ssh/mod.rs` by T-531 and to `node_roads.rs` by T-551), not through `node::connect`, as the transit road is
   on by default (`crates/podssh-relay/src/transit/mod.rs:61`) since T-436; at `35a0d19`, the
   tester's build, it went through `node::connect`. The record is in the login of `podssh-ssh`,
   which both roads share, and both count what their layer carries.
