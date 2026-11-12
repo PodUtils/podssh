@@ -10031,7 +10031,7 @@ Done (2026-11-12): the draft `draft-t581` (`38b6c3e`) merged, built and tested; 
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -10131,8 +10131,10 @@ for Actions, as this cloud session's containers cannot trust its proxy (the Go b
 - The draft pinned `pod-quic` at `v0.30.0`; the merge pins `v0.31.0` with the rest. Clippy's constant assertion in
   `h3/pump.rs` is now a `const` assertion, checked as the crate builds. Clippy as the gate runs it, and `cargo fmt
   --check`, clean.
-- Next: `masque-h3-interop.yml` (job `interop`: sshd's banner and 1 MiB each way through connect-ip-go's proxy; then
-  the job `live` through WARP's endpoint over UDP, confirm=Q52), then the plant (a datagram's Context ID dropped).
+- `masque-h3-interop.yml` at `555fddc` (run 43273489103, 2026-11-12): job `interop`, the road's own tests 14 passed,
+  and `connect_ip_h3` through connect-ip-go's proxy read `SSH-2.0-OpenSSH_10.3` and carried 1 MiB each way in
+  528 ms; job `live`, `podssh ssh -v` to GitHub inside WARP's tunnel over HTTP/3, the SSH handshake passed.
+- Waits for T-251 (Q88): the plant (a datagram's Context ID dropped, which the banner's test must catch).
 
 # T-592: A pair that its owner renews in podssh's relay role, so that a node of the role outlives 72 h with its operators' file unchanged
 

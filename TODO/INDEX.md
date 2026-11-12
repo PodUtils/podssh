@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 67 open, 22 partial, 11 blocked, 610 done.**
+**710 entries: 67 open, 21 partial, 11 blocked, 611 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 38 | 10 | 7 | 276 | 331 |
-| **All** | 67 | 22 | 11 | 610 | 710 |
+| P3 | 38 | 9 | 7 | 277 | 331 |
+| **All** | 67 | 21 | 11 | 611 | 710 |
 
 ## Entries
 
@@ -621,7 +621,7 @@ repository and CI).
 | [T-579](mesh.md) | P3 | S | M10 | research | done | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
 | [T-580](mesh.md) | P3 | L | M10 | feature | done | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
 | [T-581](mesh.md) | P3 | M | M10 | feature | done | TUIC version 5 as a client road over QUIC, where a probe found that UDP passes |
-| [T-582](mesh.md) | P3 | L | M10 | feature | partial | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
+| [T-582](mesh.md) | P3 | L | M10 | feature | done | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
 | [T-583](ssh.md) | P3 | S | none | feature | open | The warning before the relay's idle cut with `--persist` and `--upgrade` |
 | [T-584](release.md) | P1 | M | none | release | done | Publish `v1.0.1`, the repairs of the testers' defects |
 | [T-585](roads.md) | P3 | S | none | defect | open | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
