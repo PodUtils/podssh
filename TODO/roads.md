@@ -6455,6 +6455,11 @@ Planted: the certificate's name not checked; the test of another name fails.
   `--test doctor_hop`: 3 passed.
 - Planted (2026-11-01): the hop of TLS taken as plain: three tests failed; the certificate
   checked for a fixed name: the test of another name failed. Restored by `cp`, 5 passed.
+- Later, 2026-11-12, the gate at `2de0f1ad` (once): `a_proxy_that_waits_for_tls_passes_the_hop_of_tls_alone` got
+  no answer from the test's proxy, which closes a client whose upstream does not take its connection: stunnel's
+  port came from a listener that the test dropped, and another test's listener can take it first, so stunnel exits
+  and the readiness check reads the other listener. stunnel is now ready only while it runs after its port
+  answered, and starts again on another port when it ended (`tests/ssh_tls_hop.rs`; 5 passed, 3 runs of 3).
 
 
 # T-373: A Shadowsocks road, from a file of `ss://` lines that a subscription can refresh

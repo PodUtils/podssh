@@ -378,17 +378,19 @@ case $second in SSH-2.0-dropbear*) ;; *) second="" ;; esac
 . "$HERE/interop-kexstall.sh"
 
 # The shapes of the traffic (T-203). Each check shows that its fault was
-# there: the planted control of the delay fails with a limit of 5 s, the
-# rate takes near the time computed, and the cut ends the session.
+# there: the planted control of the delay fails with a limit of 3 s, less
+# than one round trip of 4 s (the key exchange's guess, T-752, finishes it in
+# one, so a limit of 5 s no longer shows the delay), the rate takes near the
+# time computed, and the cut ends the session.
 r "relay-delay.test:$(port delay)" "$T" 'echo late' >"$FK/out" 2>"$FK/err" </dev/null
 rc=$?
 [ "$rc" = 0 ] && [ "$(cat "$FK/out")" = late ] \
     && ok faults.delay.session "2 s each way: a command and its exit status come back" \
     || bad faults.delay.session "2 s each way: exit $rc" "$FK/err"
-r "relay-delay.test:$(port delay)" -o ConnectTimeout=5 "$T" 'echo late' >"$FK/out" 2>"$FK/err" </dev/null
+r "relay-delay.test:$(port delay)" -o ConnectTimeout=3 "$T" 'echo late' >"$FK/out" 2>"$FK/err" </dev/null
 rc=$?
-[ "$rc" = 255 ] && grep -q "did not finish within 5 s" "$FK/err" \
-    && ok faults.delay.control "the planted control: with a limit of 5 s, the delayed handshake does not finish" \
+[ "$rc" = 255 ] && grep -q "did not finish within 3 s" "$FK/err" \
+    && ok faults.delay.control "the planted control: with a limit of 3 s, the delayed handshake does not finish" \
     || bad faults.delay.control "the planted control of the delay: exit $rc" "$FK/err"
 
 head -c 5000000 /dev/urandom >"$FK/sent"

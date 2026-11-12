@@ -2232,4 +2232,10 @@ kex), `crates/podssh-ssh/src/kex_first.rs` (the record, `kex-first.txt` of the c
   its default (sntrup761 first) 656 to 664 ms, no guess; a guess made wrong by the server's change, 662 ms, as
   without one; Dropbear 2022.83, 596 to 522 to 528 ms (Dropbear sends its KEXINIT with its banner, so half a
   round trip less).
+- Later, 2026-11-12, the gate at `2de0f1ad`: the record of each host's first names is written after each key
+  exchange, so a test that ran `podssh ssh` with no home (`tests/ssh_host_keys.rs`) left it in the temporary
+  directory's place of the cache (`/tmp/podssh-0`), which the gate refuses; the test now runs with
+  `PODSSH_CACHE_DIR=none` there (7 passed, nothing left). And the guess saves the round trip that the interop's
+  planted control of a delay of 2 s each way counted on: `faults.delay.control` now has a limit of 3 s, less than
+  one round trip of 4 s (`scripts/interop-faults.sh`).
 

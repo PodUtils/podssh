@@ -60,7 +60,9 @@ fn ssh_with(port: u16, known: Option<&Path>, home: Option<&Path>, more: &[&str])
     }
     match home {
         Some(home) => cmd.env("HOME", home).env("USERPROFILE", home),
-        None => cmd.env_remove("HOME").env_remove("USERPROFILE"),
+        // With no home, the cache's place would be the temporary
+        // directory's, which a test leaves as it found it.
+        None => cmd.env_remove("HOME").env_remove("USERPROFILE").env("PODSSH_CACHE_DIR", "none"),
     };
     let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
     let deadline = Instant::now() + LIMIT;

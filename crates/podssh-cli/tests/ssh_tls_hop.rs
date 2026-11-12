@@ -100,24 +100,42 @@ fn free_port() -> u16 {
     std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port()
 }
 
-/// stunnel on `port`, TLS with the leaf, to the SSH server on `ssh`.
-fn start_stunnel(program: &Path, dir: &Path, port: u16, ssh: u16) -> Running {
-    let conf = dir.join("stunnel.conf");
-    let text = format!(
-        "foreground = yes\npid =\n[ssh]\naccept = 127.0.0.1:{port}\nconnect = 127.0.0.1:{ssh}\ncert = {}\nkey = {}\n",
-        dir.join("leaf.pem").display(),
-        dir.join("leaf.key").display()
-    );
-    std::fs::write(&conf, text).unwrap();
-    let mut child = Command::new(program);
-    child.arg(&conf).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-    let running = Running(child.spawn().unwrap());
-    let deadline = Instant::now() + Duration::from_secs(20);
-    while std::net::TcpStream::connect(("127.0.0.1", port)).is_err() {
-        assert!(Instant::now() < deadline, "stunnel did not listen on {port}");
-        std::thread::sleep(Duration::from_millis(50));
+/// stunnel, TLS with the leaf, to the SSH server on `ssh`, and its port. A
+/// port of [`free_port`] is free only until another test's listener takes
+/// it, and then stunnel cannot bind it and exits while the other answers:
+/// stunnel is ready once its port answers and it still runs, and a stunnel
+/// that ended is started again on another port.
+fn start_stunnel(program: &Path, dir: &Path, ssh: u16) -> (Running, u16) {
+    for _ in 0..5 {
+        let port = free_port();
+        let conf = dir.join("stunnel.conf");
+        let text = format!(
+            "foreground = yes\npid =\n[ssh]\naccept = 127.0.0.1:{port}\nconnect = 127.0.0.1:{ssh}\ncert = {}\nkey = {}\n",
+            dir.join("leaf.pem").display(),
+            dir.join("leaf.key").display()
+        );
+        std::fs::write(&conf, text).unwrap();
+        let mut child = Command::new(program);
+        child.arg(&conf).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        let mut running = Running(child.spawn().unwrap());
+        let deadline = Instant::now() + Duration::from_secs(20);
+        let answered = loop {
+            if running.0.try_wait().unwrap().is_some() {
+                break false;
+            }
+            if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
+                // A stunnel that could not bind ends at once.
+                std::thread::sleep(Duration::from_millis(300));
+                break running.0.try_wait().unwrap().is_none();
+            }
+            assert!(Instant::now() < deadline, "stunnel did not listen on {port}");
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        if answered {
+            return (running, port);
+        }
     }
-    running
+    panic!("stunnel ended five times before it listened");
 }
 
 /// A CONNECT proxy on the loopback that maps each name to 127.0.0.1 and
@@ -190,8 +208,7 @@ fn setup(name: &str) -> Option<Setup> {
     assert!(made.success());
     let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
     let ssh = runtime.block_on(ssh_harness::start(&key));
-    let stunnel_port = free_port();
-    let stunnel = start_stunnel(&program, &dir, stunnel_port, ssh);
+    let (stunnel, stunnel_port) = start_stunnel(&program, &dir, ssh);
     Some(Setup { dir, ssh, stunnel_port, _stunnel: stunnel, runtime })
 }
 
