@@ -317,7 +317,7 @@ jobs:
           sed 's/^/node2: /' "$RUNNER_TEMP/node2.log"
           grep -q "QUIC gave way: UDP got no answer" "$RUNNER_TEMP/node2.log" || { echo "FAIL QUIC's failure was not said"; exit 1; }
           grep -q "registered at .*, over HTTP/2" "$RUNNER_TEMP/node2.log" || { echo "FAIL not over HTTP/2"; exit 1; }
-          took=$(sed -n 's/.*, over HTTP\/2 (its race took \([0-9.]*\) s).*/\1/p' "$RUNNER_TEMP/node2.log" | head -n 1)
+          took=$(sed -n 's/.*, over HTTP\/2 (its race took \([0-9.]*\) s, .*/\1/p' "$RUNNER_TEMP/node2.log" | head -n 1)
           echo "the race to HTTP/2 took ${took:-?} s"
           awk -v t="${took:-99}" 'BEGIN { exit !(t < 5) }' || { echo "FAIL the race to HTTP/2 took 5 s or more (T-400)"; exit 1; }
           timeout 120 python3 scripts/quick-tunnel-probe.py --limit 60 "$host2"
@@ -400,7 +400,7 @@ jobs:
             || { echo "FAIL not registered inside WARP's tunnel"; exit 1; }
           # T-400: WARP starts 2 s after HTTP/2, which waits for TCP; cfrs's
           # testers saw the race won there at 6.74 s.
-          took=$(sed -n "s/.*, over HTTP\/2 inside WARP's tunnel (its race took \([0-9.]*\) s).*/\1/p" "$RUNNER_TEMP/node3.log" | head -n 1)
+          took=$(sed -n "s/.*, over HTTP\/2 inside WARP's tunnel (its race took \([0-9.]*\) s, .*/\1/p" "$RUNNER_TEMP/node3.log" | head -n 1)
           echo "the race to WARP's tunnel took ${took:-?} s"
           awk -v t="${took:-99}" 'BEGIN { exit !(t < 20) }' || { echo "FAIL the race to WARP's tunnel took 20 s or more (T-400)"; exit 1; }
           timeout 120 python3 scripts/quick-tunnel-probe.py --limit 60 "$host3"

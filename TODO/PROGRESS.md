@@ -40,7 +40,12 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-582's, T-621's, T-741's, T-742's and T-755's are merged).
+8. **Drafts.** Two are being written, never built (T-582's, T-621's, T-741's, T-742's and T-755's are merged):
+
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | T-574 | `draft-t574` | (in work) | the Prove's test against Xray-core with a stand-in list server over TLS |
+   | T-738 | `draft-t738` | (in work) | the file hosts' carrier, the research of its step 1, and the ask for its `pod-services` kind |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.

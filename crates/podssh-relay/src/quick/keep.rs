@@ -187,8 +187,14 @@ where
         let (began, plan) = (Instant::now(), Plan { conn_index: index, first: *shared.won.borrow() });
         let (made, ours, visitor, all) =
             ((*shared.roads)(plan), shared.connector.clone(), shared.visit.clone(), end.clone());
-        let race = async move { roads::race(made.await, ours, index, visitor, all).await };
-        let race = tokio::select! {
+        // The race is timed from its roads' start, apart from the finding
+        // of the edge before it, which only the first connection pays.
+        let race = async move {
+            let roads = made.await;
+            let raced = Instant::now();
+            (roads::race(roads, ours, index, visitor, all).await, raced)
+        };
+        let (race, raced) = tokio::select! {
             race = race => race,
             _ = end.wait_for(|end| *end) => break Ok(()),
         };
@@ -222,8 +228,10 @@ where
         for road in &race.silent {
             shared.tell(index, format!("{road} gave way: it had not registered when {} did", serving.road));
         }
-        let (took, road, location) = (began.elapsed().as_secs_f64(), serving.road, &serving.location);
-        shared.tell(index, format!("registered at Cloudflare's {location}, over {road} (its race took {took:.1} s)"));
+        let (took, road, location) = (raced.elapsed().as_secs_f64(), serving.road, &serving.location);
+        let found = raced.duration_since(began).as_secs_f64();
+        let line = format!("registered at Cloudflare's {location}, over {road} (its race took {took:.1} s, after {found:.1} s to find the edge)");
+        shared.tell(index, line);
         let ready = shared.ready.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(ready) = ready {
             ready();
