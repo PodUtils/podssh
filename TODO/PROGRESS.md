@@ -69,12 +69,12 @@ item whenever it appears.
 1. **Confirm the gate green** (live: read `build.yml`). Why: it is red since the morning, and its
    two repairs are pushed but unconfirmed. Done when each job of `build.yml` passes at the newest
    commit of `main`; else read the failed job's log, repair, push, and read again.
-2. **Watch the tests that fail at random: T-746, T-465, T-627** (live: the gate runs of tonight).
+2. **Watch the tests that fail at random: T-746, T-465, T-627, and T-753** (Windows, `node_carrier`, 2026-11-12) (live: the gate runs of tonight).
    Why: each is partial, waiting for its next failure, and comes before any other work. Done when
    a failure is repaired and its entry closed, or the night ends with none.
 3. **ZeroTier's road is done** (2026-11-11): live through the roots and the relay at `b738a6ff`,
    and in `RELEASE_FEATURES`; the hand run of `release.yml` checks each target's build with it.
-6. **osewa's open entry, T-678** (on the gate's Windows job; T-680, T-681 and T-752 are done), then **T-734: Tox's TCP
+6. **osewa's entries are done** (T-678, T-680, T-681 and T-752); now **T-734: Tox's TCP
    relays on 443** (offline; a short live run when the road works), in the work order's rule 5
    (the operator, 2026-11-11). Done when each Prove passes.
 7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
@@ -127,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 707 entries: 80 open, 19 partial, 10 blocked, 598 done.
+`TODO/INDEX.md` holds 708 entries: 81 open, 18 partial, 10 blocked, 599 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -155,7 +155,7 @@ operator interrupts it.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
    rest of M10, in this order: T-660, T-662, T-670, T-665 and T-666 (each waits for a run that its
-   `## Done` names), their follow-up T-678, and what the netem run found (done); then the open
+   `## Done` names), their follow-up and what the netem run found (done); then the open
    entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
 6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
    podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks, T-708 to T-731, stay behind

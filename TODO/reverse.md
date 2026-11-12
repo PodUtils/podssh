@@ -4516,7 +4516,7 @@ before its `ready`, and the test of a dead session fails.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4564,7 +4564,7 @@ The test of T-668's upgrade on the `windows` job of the gate.
 
 ## Done
 
-Partial, 2026-11-12. `crates/podssh-cli/src/node_upgrade/`: `ask_windows.rs` (the event: the node
+2026-11-12. `crates/podssh-cli/src/node_upgrade/`: `ask_windows.rs` (the event: the node
 waits for it in a thread of its own, `podssh update` sets it), `pass_windows.rs` (the child, the
 duplicates, the pipe, the job that ends the child with the parent), `mod.rs` (the start, the stop and
 the hand of Windows; `Taken` and `root_pid` shared), `mark.rs` (the root pid beside the record);
@@ -4578,7 +4578,10 @@ clean (MinGW's cross toolchain), which also found and repaired three older lints
 (`podssh-ssh/src/sk/windows.rs`'s unsafe calls in unsafe functions, `doctor/host.rs`'s default with a
 field set after, `tests/roost.rs`'s import); the unit tests of the pipe's frame and the variable are
 Windows' own. On Linux: `cargo test -p podssh-cli --lib node_upgrade` 8 passed, `--test node_moves --
-upgrade` 1 passed, `--lib man` 91 passed. Waits: the test on the `windows` job of the gate.
+upgrade` 1 passed, `--lib man` 91 passed. On Windows: the gate at `d71901cb` (run 43136322338, the `windows`
+job), `a_session_through_a_node_goes_on_across_the_node_s_upgrade_on_windows ... ok` (20.8 s): 32 MiB down,
+the event in the middle, the bytes whole, no new connection to the server. The job failed on another test,
+T-753's.
 
 
 # T-679: A node of the iroh, DERP, quick tunnel, Piping Server or OpenTunnel road ends its sessions at its upgrade

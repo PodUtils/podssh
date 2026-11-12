@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**707 entries: 80 open, 19 partial, 10 blocked, 598 done.**
+**708 entries: 81 open, 18 partial, 10 blocked, 599 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 25 | 9 | 1 | 263 | 298 |
-| P3 | 51 | 8 | 6 | 264 | 329 |
-| **All** | 80 | 19 | 10 | 598 | 707 |
+| P2 | 26 | 9 | 1 | 263 | 299 |
+| P3 | 51 | 7 | 6 | 265 | 329 |
+| **All** | 81 | 18 | 10 | 599 | 708 |
 
 ## Entries
 
@@ -708,7 +708,7 @@ repository and CI).
 | [T-675](ssh.md) | P1 | S | M10 | defect | done | The gate red since T-664: the record of the keys that hosts took loses a change, and the stall's check names the old first request |
 | [T-676](roads.md) | P2 | S | M10 | defect | done | A WARP test inherits an earlier test's memory of a re-terminated TLS at a reused port |
 | [T-677](relay.md) | P2 | S | M10 | defect | done | A role with some 200 pairs or more does not start again: its file of pairs is read as a file of the cache |
-| [T-678](reverse.md) | P3 | M | M10 | feature | partial | A node on Windows ends its sessions at its upgrade: no handover of its sockets and its state |
+| [T-678](reverse.md) | P3 | M | M10 | feature | done | A node on Windows ends its sessions at its upgrade: no handover of its sockets and its state |
 | [T-679](reverse.md) | P3 | M | M10 | feature | done | A node of the iroh, DERP, quick tunnel, Piping Server or OpenTunnel road ends its sessions at its upgrade |
 | [T-680](machine.md) | P3 | M | M10 | measurement | done | A cold connect on a long path takes nine round trips, where osewa's takes three |
 | [T-681](machine.md) | P3 | M | M10 | measurement | done | The echo beside a download on cellular, wifi and the slow link is 1.5 to 3.5 times osewa's |
@@ -783,3 +783,4 @@ repository and CI).
 | [T-750](mesh.md) | P3 | M | M10 | feature | done | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
 | [T-751](machine.md) | P3 | S | M10 | feature | done | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |
 | [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
+| [T-753](robustness.md) | P2 | M | M10 | defect | open | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |

@@ -2187,3 +2187,45 @@ the cut. In a namespace with the loopback alone: `pipe::datagram` 10 runs in 10,
 2026-11-11, the gate at `bc5107b0` (run 42948403145): each job passed; on macOS, `--features opentunnel
 --test opentunnel_link` passed with the held thirds. The entry stays partial for the datagram test's
 next failure, which now names the program's verdict.
+
+# T-753: On Windows, an operator over a carrier loses the echo's last bytes at the end of its input
+
+**Source:** the gate at `d71901cb` (run 43136322338, the `windows` job), 2026-11-12.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`node_carrier`'s `an_operator_reaches_the_node_at_the_other_end_of_a_program_s_stdio` failed once on the
+Windows job: `podssh operator --carrier exec:'podssh node --carrier stdio box TARGET'` with 1 MiB on stdin
+to an echo got 1,048,288 bytes back, 288 short; the node said "the session of KEY ended: the stream under
+the channel failed: An existing connection was forcibly closed by the remote host. (os error 10054)", then
+"the carrier's client ended the stream". It passed on Linux and on the Windows job of `a834dbed`.
+
+## Premise
+
+- `crates/podssh-relay/src/reverse/operator.rs:249-253` writes a frame's bytes to the local side only while
+  not `draining`; `end_of_input` (`:326-336`) sets `draining` once the input ends when `node_ends` is set,
+  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:437`).
+
+## Approach
+
+1. Find whether the layer ends a leg's input (at the operator) before the far end's last bytes came, so that
+   the leg drops them as bytes that nobody takes: the layer's own end (`pod-session` of PodUtils/podcrates,
+   its glue `crates/podssh-relay/src/session/`) should end only after both ends' streams ended and were
+   acknowledged. A fix of a module that podssh took goes to PodUtils/podcrates as an issue (Rule Q3).
+2. A test that holds the echo's last bytes back past the end of the input (a slow target), on Linux, that
+   fails as the Windows job did.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_carrier
+```
+
+The new test of a slow tail passes, and fails with the drop planted; the Windows job passes `node_carrier`.
+
