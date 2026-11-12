@@ -548,6 +548,43 @@ nodes; T-740 is filed.**
   first step is to read that node's operator and terms, and its Decision says what follows if
   none is found: nothing is built for a node that fails Q79.
 
+### T-738's second reading of the file hosts (read on 2026-11-12)
+
+T-738's first step read the four hosts of T-572 again, through the services of web.pkgforge.dev
+(read, fetch, domain, archive and search). Nothing was uploaded to a host, and podssh connected
+to none. The sources are in "Sources", under "T-738".
+
+| Host | Its name (Q79) | Upload | Answer and download | Size, life, rate | Delete | Operator and rules, as read |
+| --- | --- | --- | --- | --- | --- | --- |
+| tmpfiles.org | resolves: two A and two AAAA records of Cloudflare [R738-1]; held since 2015-07-27 at one registrar, until 2027-07-27 [R738-4] | `POST /api/v1/upload`, `file`, `expire` in seconds, 60 to 172,800, 3,600 by default [R738-5] | JSON, the URL at `data.url`, `https://tmpfiles.org/{id}/{name}`, a page; the file is under `/dl/` before the id, which a third party's client reads and the API page does not say [R738-5][R738-9] | 100 MiB; 1 to 48 hours (the API takes 60 s); 200 uploads an hour for each user [R738-5][R738-6] | none in its API [R738-5] | Terms of 2025-12-01: "Do not attempt to bypass usage limits or use the service for commercial automation without permission"; files may be removed after a report. The operator is not named: an address of the site, a Telegram bot, and a link to a permanent host; the registrant is redacted [R738-6][R738-4] |
+| litterbox.catbox.moe | resolves: one A record; its files are served from `litter.catbox.moe`, at the same address [R738-1]; `catbox.moe` held since 2015-04-06, until 2028-04-05 [R738-4] | `POST /resources/internals/api.php`, `reqtype=fileupload`, `time` of `1h`, `12h`, `24h` or `72h`, `fileToUpload` [R738-7] | the URL as text; a GET downloads [R738-9] | 1 GB; 1 to 72 hours [R738-7] | none: "only 1 request type" [R738-7] | Catbox LLC, under the law of California (terms of 2019-05-14): no "unreasonable burden", a commercial use needs approval, the IP of a violation is blacklisted, `.exe`, `.scr`, `.cpl`, `.doc*` and `.jar` are refused; its FAQ says that it cannot be reached from Australia, Iran, Afghanistan, Turkey, Comcast or Spectrum, and that it removes an upload made by "an AI Agent" for $5 a file [R738-8] |
+| temp.sh | resolves: one A record at OVH [R738-1]; held since 2018-12-19, until 2027-12-19, by the organization "tempsh" of Ireland [R738-4] | `curl -F "file=@test.txt" https://temp.sh/upload` [R738-10] | the URL as text; the download is a POST to it, then a GET, in a third party's client [R738-9] | 4 GB; 3 days, with no field of life [R738-10] | none read | one person's page ("I just made this"), a contact address and donations; no terms; its links to `up.sh` and `temp.sh.sxcu` answer 404 [R738-10]. A comparison site says that a file is deleted after its first download; the host does not say it, so it is not taken [R738-11] |
+| 0x0.st | resolves: one A and one AAAA record of Hetzner [R738-1]; held since 2015-02-26, until 2027-02-26 [R738-4] | `POST /`, multipart `file`, with `secret` and `expires` in hours [R738-3] | the URL as text; a GET downloads | 512 MiB; 30 days to a year by size, shortened by `expires`; no rate published [R738-3] | `POST` to the file's URL with `token` (the `X-Token` of the upload) and `delete` [R738-3] | One person in Germany, as T-572 read. Its page of 2026-11-03 adds a banner against machines ("CLANKERS ARE NOT WELCOME HERE"), blocks Tor's exit nodes, keeps each upload's IP and User-Agent, and still lists "other automated mass uploads" and "CI build artifacts" as what it is not for [R738-3]. Its page answered 500 through the fetch service's egress on 2026-11-12, the Wayback Machine's captures since 2026-06 alternate 200 and 418 [R738-2], and a third party's client says that its uploads are "often disabled by operator" [R738-9] |
+
+- **The verdict: each of the four passes, as the last of the last fallbacks (Q78).** Each name
+  resolves, and each has been held by one registrant for years, with the service that T-572 read:
+  none looks taken over (Q79). The operators of tmpfiles.org and temp.sh are not named on their
+  pages; temp.sh's registrant is an organization of Ireland, tmpfiles.org's is redacted. That is
+  not Q79's test, which is about a name that changed hands, so they stay in, and the line of the
+  road says that nobody vouches for them.
+- **Their rank, for `pod-services`.** tmpfiles.org first: it publishes its rate, so the road paces
+  under it, and its shortest life is 60 s. Litterbox second: a company, a life of 1 hour. temp.sh
+  third: a piece stays 3 days, as it takes no life. 0x0.st last: it alone deletes after a read, but
+  its terms and its page are against automated uploads, its operator blocks by IP, and it answered
+  500 on the day of the reading; the road's probe at run time decides, and a refusal moves the next
+  piece to the next host.
+- **The board that carries each URL.** No host lets the uploader name the path, so the far end
+  learns each URL from a meeting point. T-737's public MQTT broker can be that board: shiftr.io's
+  MQTT interface keeps retained messages in memory (lost when the instance restarts), takes 64 KB a
+  message and topics of 128 characters [R738-12]; a retained message is the one that a broker keeps
+  for each topic, a new subscriber gets it at once, and an empty retained message clears it (MQTT
+  3.1.1, section 3.3.1.3). Its HTTP interface on 443 publishes and reads a retained message by
+  `POST` and `GET` of `broker/TOPIC?retained=true`, with the instance's name and token as its
+  login [R738-12]; whether the public instance takes its public login there was not read.
+  `pod_wormhole::mqtt` (podcrates v0.33.0) writes each `PUBLISH` with no retain and subscribes to
+  the topic of a code alone, so the board needs a retained publish, a read of one topic and a
+  clear from it: asked of podcrates (T-738's Done).
+
 ## The reverse road
 
 podssh already protects a session on a carrier that it does not trust
@@ -2720,6 +2757,29 @@ T-572, T-573 and T-577 (read on 2026-11-10 through the services of web.pkgforge.
   and its README (GPL-3.0)
 - [R577-4] https://github.com/nirholas/openbare (its README)
 - [R577-5] https://domain.web.pkgforge.dev/openbare.xyz (its category, and the RDAP answer 403)
+
+T-738 (read on 2026-11-12 through the services of web.pkgforge.dev; nothing was uploaded):
+
+- [R738-1] https://domain.web.pkgforge.dev/dns/ for `tmpfiles.org`, `litterbox.catbox.moe`,
+  `litter.catbox.moe`, `temp.sh` and `0x0.st`
+- [R738-2] https://fetch.web.pkgforge.dev/https://0x0.st/ (500, through the egress `cf-fetch`), and
+  the captures of https://0x0.st/ since 2026-06 listed by archive.web.pkgforge.dev (the Wayback
+  Machine's)
+- [R738-3] https://0x0.st/, its capture of 2026-11-03 (`20261103083434`) in the Wayback Machine,
+  through archive.web.pkgforge.dev, whole
+- [R738-4] https://domain.web.pkgforge.dev/rdap/ for `tmpfiles.org`, `catbox.moe`, `temp.sh` and
+  `0x0.st` (the registry's RDAP, or its WHOIS)
+- [R738-5] https://tmpfiles.org/api
+- [R738-6] https://tmpfiles.org/tos (effective 2025-12-01) and https://tmpfiles.org/about
+- [R738-7] https://litterbox.catbox.moe/tools.php and https://litterbox.catbox.moe/
+- [R738-8] https://litterbox.catbox.moe/faq.php, https://catbox.moe/faq.php and
+  https://catbox.moe/legal.php
+- [R738-9] `evangit2/tmp-cli:tmpcli` (a third party's client of temporary file hosts, read by
+  fetch.web.pkgforge.dev): tmpfiles.org's `/dl/`, temp.sh's POST, Litterbox's and 0x0.st's answers
+- [R738-10] https://temp.sh/, and its `up.sh` and `temp.sh.sxcu` (404)
+- [R738-11] https://fileshot.io/vs/temp-sh, in a search result (a secondary source, not taken)
+- [R738-12] https://www.shiftr.io/docs/broker/mqtt-interface and
+  https://www.shiftr.io/docs/broker/http-interface
 
 Read on 2026-11-10 through the services of web.pkgforge.dev (read, fetch, domain, ip and search),
 for T-623, T-624 and T-626. No host of these services was connected to; each fact is from a

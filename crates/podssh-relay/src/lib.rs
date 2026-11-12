@@ -82,6 +82,9 @@
 //! - `bore` (feature `bore`): the bore road (T-569), a last fallback
 //!   through bore.pub: a public TCP port of the node's key, whose client
 //!   reaches it through the caller's roads;
+//! - `filehost` (feature `filehost`): file hosts as the last carrier of the
+//!   resumable layer (T-738), a last fallback of Q78: each piece one sealed
+//!   upload to a public file host, its URL sealed on a board;
 //! - `code` (feature `code`): pairing by a short code (T-086), SPAKE2 over a
 //!   magic-wormhole mailbox, which moves a pair's operator's part and each
 //!   end's key;
@@ -117,6 +120,9 @@ pub mod devtunnel;
 pub mod e2e;
 pub mod failover;
 pub mod failures;
+// File hosts as the last carrier of the resumable layer (T-738).
+#[cfg(feature = "filehost")]
+pub mod filehost;
 pub mod forward_layer;
 // A gate for each relay origin, shared by the sessions of a process (T-637).
 pub mod gate;

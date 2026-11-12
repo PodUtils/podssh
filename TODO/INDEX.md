@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 66 open, 18 partial, 10 blocked, 616 done.**
+**710 entries: 65 open, 19 partial, 10 blocked, 616 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 8 | 1 | 265 | 299 |
-| P3 | 37 | 8 | 6 | 280 | 331 |
-| **All** | 66 | 18 | 10 | 616 | 710 |
+| P3 | 36 | 9 | 6 | 280 | 331 |
+| **All** | 65 | 19 | 10 | 616 | 710 |
 
 ## Entries
 
@@ -768,7 +768,7 @@ repository and CI).
 | [T-735](mesh.md) | P3 | L | M10 | feature | done | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
 | [T-736](mesh.md) | P3 | L | M10 | feature | done | HyperDHT as a road by key where UDP passes, after podssh's own |
 | [T-737](mesh.md) | P3 | M | M10 | feature | done | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
-| [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
+| [T-738](mesh.md) | P3 | L | M10 | feature | partial | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | done | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
 | [T-741](mesh.md) | P3 | M | M10 | feature | done | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
