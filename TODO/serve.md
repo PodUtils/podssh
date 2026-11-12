@@ -91,8 +91,9 @@ the entry joins the work order by its priority.
 (`crate::harden::give_up(&[])`, `crates/podssh-cli/src/harden.rs`), the keep-list empty: `--stdio`
 before the runtime starts its threads, `--listen` after its bind. It refuses the start with exit 78
 where a capability was held and a step failed. The Prove gains one check: after the start, under
-both entry points and as root, each thread of `/proc/self/task` reports no capability. The entry
-waits for T-698's serve part, which waits for this one's command.
+both entry points and as root, each thread of `/proc/self/task` reports no capability. T-698's
+shared module is done (2026-11-12); the call and its check are this entry's step 6, so nothing waits
+on T-698.
 
 # T-108: `podssh serve`: exec, a shell and the environment, as the sandbox's user
 
@@ -1754,7 +1755,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1361-1362` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1362-1363` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
@@ -1814,7 +1815,7 @@ follows and the test of the listener that this Prove extends. T-124 waits for T-
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1879,8 +1880,8 @@ cargo test -p podssh-cli --test relay_serve
 cargo test -p podssh-cli --lib harden
 ```
 
-The relay role's tests pass after the move, unchanged. The check of `serve` (T-107's `serve_auth`
-and scripts/interop-serve.sh (T-107 writes it)) runs as root and reads every thread in `/proc/self/task`.
+The relay role's tests pass after the move, unchanged. (The check of `serve` as root on every thread of
+`/proc/self/task` moved to T-107's Prove: see the Correction of 2026-11-12.)
 
 ## Correction
 
@@ -1894,6 +1895,10 @@ does not count. The module is `crate::harden` (`crates/podssh-cli/src/harden.rs`
 is `serve`'s to make general (T-107). The plant `scripts/plants/t629-capset-failure-taken.plant` follows the
 new path; `t629-drop-after-runtime.patch` was already stale. T-107's Approach got its call as a
 `## Correction` of 2026-11-09.
+
+2026-11-12 (main session). The Prove named the interop script of `serve` (`interop-serve.sh` under `scripts/`) and its test `serve_auth`, which do not exist yet: T-107 writes
+them with `serve` itself, and their check as root is T-107's step 6. This entry closes on its own two
+commands.
 
 ## Done
 
@@ -1911,7 +1916,11 @@ call of `serve` (steps 3 and 5) waits for T-107.
 - clippy (the gate's lints): no warning; rustfmt: no change. The build image's run waits for the gate.
 - `cargo todo remap` for the files that cite `harden.rs`: done (`TODO/cli.md` cited
   `relay_serve/harden.rs:234`, moved by hand to `harden.rs:245`).
-- Left: the call from `serve` (T-107) and its check as root on each thread of `/proc/self/task`.
+- The call from `serve` and its check as root on each thread of `/proc/self/task` are T-107's step 6
+  (its Correction of 2026-11-09), as `serve` does not exist yet to call it.
+
+Done, 2026-11-12: the entry's own part, a drop that both roles share with a keep-list, is complete and
+tested; the two entries waited on each other, so the call now lives in T-107 alone, which owns `serve`.
 
 # T-709: A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as`
 

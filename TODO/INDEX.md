@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 66 open, 20 partial, 10 blocked, 614 done.**
+**710 entries: 66 open, 19 partial, 10 blocked, 615 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 25 | 10 | 1 | 263 | 299 |
+| P2 | 25 | 9 | 1 | 264 | 299 |
 | P3 | 37 | 8 | 6 | 280 | 331 |
-| **All** | 66 | 20 | 10 | 614 | 710 |
+| **All** | 66 | 19 | 10 | 615 | 710 |
 
 ## Entries
 
@@ -728,7 +728,7 @@ repository and CI).
 | [T-695](mesh.md) | P3 | M | M10 | feature | open | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
 | [T-696](robustness.md) | P1 | S | none | defect | done | A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows |
 | [T-697](reverse.md) | P2 | S | M10 | defect | done | `podssh ssh node://NAME` and `--exit NAME` refuse `--relay-host`, `--relay-failover` and `PODSSH_RELAY`, as `podssh proxy node://NAME` does |
-| [T-698](serve.md) | P2 | S | M5 | feature | partial | `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share |
+| [T-698](serve.md) | P2 | S | M5 | feature | done | `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share |
 | [T-699](roads.md) | P2 | M | backlog | chore | done | One end-of-input helper for the forwarder roads, with an invariant test for each |
 | [T-700](copy.md) | P3 | S | none | defect | done | `podssh sftp` prints a line before the relay's byte cap stops a transfer |
 | [T-701](reverse.md) | P3 | S | M10 | defect | done | The reverse node's journal names the cause when the relay closes a session |

@@ -20,9 +20,9 @@ Read on 2026-11-11.
    road is done and in the release's features. See "Work order".
 4. **Partial entries** (18; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
-   migration, T-684; the release of M10, T-446; and T-319, T-321, T-450, T-459, T-548, T-574,
-   T-660, T-662, T-665, T-666, T-670, T-698 (its serve part waits for T-107) and T-755 (a draft that waits
-   for its merge).
+   migration, T-684; the release of M10, T-446; and T-319, T-321, T-459, T-548, T-574,
+   T-660, T-662, T-665, T-666, T-670 and T-755 (its live run
+   waits for a tester's tunnel).
 5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
    operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
@@ -111,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 66 open, 20 partial, 10 blocked, 614 done.
+`TODO/INDEX.md` holds 710 entries: 66 open, 19 partial, 10 blocked, 615 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
