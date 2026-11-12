@@ -80,10 +80,10 @@ podssh-warp = { path = "../podssh-warp", optional = true }
 # name and its way out; only with the feature `code`.
 pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0", optional = true }
 # croc's relay road (src/croc/, T-694): the curve SIEC of croc's relay
-# handshake, which no crate implements, on num-bigint's integers (0.4, in
-# the lock already), and AES-256-GCM of croc's crypt, the workspace's.
+# handshake, which no crate implements, on num-bigint's integers (0.5 since
+# T-754), and AES-256-GCM of croc's crypt, the workspace's.
 # Pure Rust; only with the feature `croc`.
-num-bigint = { version = "0.4", optional = true }
+num-bigint = { version = "0.5", optional = true }
 aes-gcm = { workspace = true, optional = true }
 
 [features]

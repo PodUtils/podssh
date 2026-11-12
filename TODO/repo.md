@@ -6126,7 +6126,7 @@ repair.
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6158,3 +6158,14 @@ cargo deny --locked check
 ```
 
 Each passes on the new versions; deny's job and the gate pass in CI on the push.
+
+## Done
+
+2026-11-12: the pins of `taiki-e/install-action` are `cfdb7ed` (v2.90.3) in deny, fuzz and release, and of
+`sigstore/cosign-installer` `756fe2d` (v4.1.3) in release and release-proofs; trufflehog's image is 3.99.8 at its
+digest. The lock holds cc 1.11.1, crypto-bigint 0.7.11, smallvec 1.16.5 and toml 1.2.1 (with their parts), each
+crate of Arti at 0.48 (podssh-tor's ranges `>=0.48, <0.49` together, as one release of Arti builds), and
+num-bigint 0.5.1 for croc's road. `cargo test -p podssh-tor`: each target passed; `cargo check -p podssh-cli
+--features tor`: no error; `cargo test -p podssh-relay --features croc --lib croc`: 19 passed (the curve SIEC and
+the PAKE on num-bigint 0.5); `cargo test -p podssh-ssh`: each target passed. cargo-deny is not on this host:
+deny's job runs it in CI on the push.
