@@ -495,7 +495,14 @@ before `v1.0.0`.
 
 ## Operator actions
 
-None blocks a session.
+One blocks entries, none a session:
+
+- **The secrets of the throughput host** (2026-11-12): `PODSSH_THROUGHPUT_SSH` and
+  `PODSSH_THROUGHPUT_KEY` are not set in PodUtils/podssh's Actions (the runs of `wisp-rate.yml`,
+  43285906667, and `iroh-ab.yml`, 43286058774, said so and stopped). The operator's server of Q38 is
+  reached only with them: T-625's step 2 (the Wisp demo's rate), T-665 (the A/B of QUIC's settings)
+  and T-463's live run wait. Set both in the repository's settings (Secrets and variables, Actions);
+  a session cannot.
 
 - At any time: require the status `all` of the workflow `build` for `main`, if the operator wants a
   required check (T-212); `main` requires none today.

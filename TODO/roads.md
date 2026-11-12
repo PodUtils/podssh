@@ -9294,6 +9294,12 @@ Partial, 2026-11-04, merged from its draft (`2ad81c5`).
   `t665-quic-unset` caught. Clippy (with `test-relay`, and the CLI with `iroh`) and rustfmt clean.
 - Waits, so the entry is partial: the A/B run between GitHub Actions and the operator's host of
   `PODSSH_THROUGHPUT_SSH` (Q91), and then the default that it shows.
+- 2026-11-12: `iroh-ab.yml` (run 43286058774) stopped at once: the secrets of the throughput host are not
+  set in PodUtils/podssh.
+
+- Waits for the operator (`TODO/PROGRESS.md`, "Operator actions"): the Actions secrets `PODSSH_THROUGHPUT_SSH`
+  and `PODSSH_THROUGHPUT_KEY` of PodUtils/podssh. Then `gh workflow run iroh-ab.yml` runs the A/B, and the entry takes the
+  default that it shows.
 
 # T-666: Bulk off the interactive stream: a copy beside a terminal on its own QUIC stream of the same iroh connection
 

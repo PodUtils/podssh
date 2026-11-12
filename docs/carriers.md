@@ -762,7 +762,14 @@ The candidates, ranked:
      chunk on a numbered path, as the split road of Q44 does; the node
      keeps a GET waiting on a path derived from the two ends' keys, with
      the layer and the channel above.
-   - Limits: not published, and not determined. Rust and C: nothing new,
+   - Limits: not published. Measured through podssh on 2026-11-12 (T-625,
+     `piping_live`'s `the_rates_of_both_forms_through_the_public_servers`):
+     through `ppng.io`, streamed, 4 MiB each way at once, 0.40 to 0.54
+     MiB/s each way from GitHub Actions and 0.25 to 0.26 MiB/s from a
+     cloud session behind its agent proxy, each open 1.2 to 2.1 s; the
+     archive's curl saw 0.12 MiB/s one way. `piping.onrender.com` carried
+     no session that day (the layer's handshake ended, or no end in
+     240 s). Rust and C: nothing new,
      podssh-ws's HTTP client; its servers, nwtgck's and
      `piping-server-rust`, run in Podman for the tests. Effort: M.
    - Read in the source on 2026-11-02 [N25] [N26]: a sender and its

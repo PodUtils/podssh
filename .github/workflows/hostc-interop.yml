@@ -129,7 +129,8 @@ jobs:
           timeout 900 cargo test --locked -p podssh-cli --test hostc_road -- --nocapture --test-threads 1 \
             > hostc-road.log 2>&1 || rc=$?
           cat hostc-road.log
-          if grep -q "did not run" hostc-road.log; then echo "a test of the server did not run"; rc=1; fi
+          # The live test is the job live's; each other test must run here.
+          if grep "did not run" hostc-road.log | grep -qv "^test live_"; then echo "a test of the server did not run"; rc=1; fi
           [ "$rc" = 0 ] || { echo "the tests of the road exited $rc"; tail -50 "$RUNNER_TEMP/hostc.log"; exit 1; }
 
   live:
