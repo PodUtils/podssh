@@ -1,0 +1,43 @@
+# T-576, step 1: whether HTTP Relay's demo server answers, short (T-548's
+# Decision, Q91): its /health, and one POST met by a GET on a random
+# /link/ channel. Once a day for the three days that the entry asks for,
+# and by hand. A cloud session cannot measure it: its agent proxy fails the
+# demo's certificate. The run passes either way; its verdict line is the
+# measurement, and the record reads it.
+name: httprelay-probe
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 14 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: health and one exchange
+        run: |
+          base=https://demo.httprelay.io
+          date -u +%FT%TZ
+          health=$(curl -sS --max-time 20 -o /dev/null -w "%{http_code}" "$base/health") || health=none
+          echo "health: $health"
+          ch="podssh-t576-$(head -c8 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          msg="podssh-t576-$(date +%s)"
+          curl -sS --max-time 30 -o "$RUNNER_TEMP/got" -w "%{http_code}" "$base/link/$ch" > "$RUNNER_TEMP/get-code" 2>"$RUNNER_TEMP/get-err" &
+          getter=$!
+          sleep 2
+          post=$(curl -sS --max-time 20 -o /dev/null -w "%{http_code}" -X POST --data-binary "$msg" "$base/link/$ch") || post=none
+          wait "$getter"; got_rc=$?
+          get=$(cat "$RUNNER_TEMP/get-code" 2>/dev/null || echo none)
+          echo "post: $post; get: $get (curl exit $got_rc)"
+          if [ "$get" = 200 ] && [ "$(cat "$RUNNER_TEMP/got")" = "$msg" ]; then
+            verdict="answered: the message came back whole"
+          else
+            verdict="down: health $health, post $post, get $get"
+          fi
+          echo "VERDICT $verdict"
+          echo "HTTP Relay's demo on $(date -u +%F): $verdict" >> "$GITHUB_STEP_SUMMARY"

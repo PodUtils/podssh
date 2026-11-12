@@ -9416,7 +9416,7 @@ takes by the next tag; a test of the moved code then runs there.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -9459,6 +9459,16 @@ stand-in) goes to `pod-piping` of PodUtils/podcrates (T-684; the waves are in Q1
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
+
+## Done
+
+Partial (step 1, the measurement of three days):
+- 2026-11-12, from a cloud session: no measurement. Its agent proxy failed the demo's certificate
+  ("CERTIFICATE_VERIFY_FAILED" before any header), so the 503 that came back was the proxy's.
+- `httprelay-probe.yml` measures from Actions: once a day at 14:17 UTC, and by hand. Its line
+  `VERDICT` says whether `/health` and one exchange on a random `/link/` channel answered. Day 1, 2
+  and 3 are UNVERIFIED until its runs are read. Then the entry ends with the measurement where the
+  demo never answers, or goes on to step 2.
 
 # T-577: Bare servers as a hop to a WebSocket road: the research
 
