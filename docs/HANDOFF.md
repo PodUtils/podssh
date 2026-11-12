@@ -6,12 +6,11 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
-- Read on 2026-11-12. The gate at `adeae2eb` failed on one cause: `no_permissive_verifier` did not
-  know strelay's verifier (T-571), which pins a relay's device ID. `38070687` repairs it; read the
-  newest run of `build.yml` first. The gate before it, at `0872c2c6` (the take of `pod-relay`), failed
-  on pod-relay's words, which `adeae2eb` repaired.
+- The gate is green at `562751d` (run 43219698199). A push cancels the older gate, so read a commit's gate
+  before the next push.
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- No draft waits: `draft/t739-vmess` is merged (T-739, done).
+- Four drafts wait, on GitHub as `draft/t582`, `draft/t621`, `draft/t741` and `draft/t742` (see "Drafts" in
+  `TODO/PROGRESS.md`).
 
 ## The sessions of PodUtils
 

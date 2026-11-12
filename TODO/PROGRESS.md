@@ -8,12 +8,9 @@ this page keeps no history (git does).
 
 Read on 2026-11-11.
 
-1. **The gate.** `build.yml` has been red since the morning of 2026-11-11 on two causes, each
-   repaired and pushed, neither confirmed green: the test of `doctor --quick` missed the section
-   `burst` that T-747 added (`4ca0adb8`), and the build image lacked Alpine's `g++` and
-   `linux-headers` for ZeroTier's C++ core (`4ca0adb8`, `78220a35`). The last green gate is at
-   `bc5107b0` (run 42948403145: Linux, macOS, Windows, the static release binary). The record
-   agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
+1. **The gate.** Green at `562751d` (2026-11-12, run 43219698199: Linux, macOS, Windows, the Tor network
+   and the static release binary). The record agrees (`cargo todo check`), and `python scripts/check-repo.py`
+   passes. A push cancels the gate of the one before it, so a commit's gate is read before the next push.
 2. **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is
    `v1.0.1` (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete
    (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
