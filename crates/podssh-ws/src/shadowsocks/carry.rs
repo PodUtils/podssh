@@ -25,6 +25,11 @@ pub enum Ended {
     Chunk(String),
     /// The connection to the server failed.
     Failed(String),
+    /// The server ended the stream before any byte of its own, not even its
+    /// salt: a server is silent to a stream that it cannot open, so a pipe
+    /// that took the silence learns at the end that the password or the
+    /// method may not be the server's.
+    Unanswered,
 }
 
 /// The end of a stream, once it came; the first word wins.
@@ -110,16 +115,22 @@ where
     let down = tokio::spawn(async move {
         let mut decoder = decoder;
         let mut buf = vec![0u8; READ];
+        let mut heard = !early.is_empty();
         let mut open = early.is_empty() || to_local.write_all(&early).await.is_ok();
         while open {
             let n = match from_server.read(&mut buf).await {
                 Ok(0) => {
                     if decoder.buffered() > 0 {
                         down_status.set_once(Ended::Chunk("its stream ended inside a chunk".into()));
+                    } else if !heard {
+                        down_status.set_once(Ended::Unanswered);
                     }
                     break;
                 }
-                Ok(n) => n,
+                Ok(n) => {
+                    heard = true;
+                    n
+                }
                 Err(e) => {
                     down_status.set_once(Ended::Failed(format!("the connection to the server failed: {e}")));
                     break;

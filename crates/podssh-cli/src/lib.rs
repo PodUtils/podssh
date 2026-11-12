@@ -257,6 +257,9 @@ pub mod relay_ends;
 // `podssh proxy` in the resumable layer at podssh's relay role, where it is
 // asked for and offered (T-173).
 pub mod relay_layer;
+// The notes of an opener that wants a Send sink, said by a caller whose sink
+// is not (pod-relay's opener and roads).
+pub mod send_notes;
 // `podssh relay pair --renew NAME`: a pair renewed at podssh's relay role (T-592).
 mod relay_renew;
 // `podssh relay halt NAME` and `resume NAME`: the owner's halt of a pair (T-647).

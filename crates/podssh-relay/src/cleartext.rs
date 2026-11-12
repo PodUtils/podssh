@@ -31,13 +31,17 @@ pub async fn last(
     hosts: &[Relay],
     attempts: &[(String, OpenError)],
     path: &str,
-    notes: &mut dyn FnMut(&str),
+    notes: &mut (dyn FnMut(&str) + Send),
 ) -> Option<(Relay, RelaySession)> {
     pod_relay::cleartext::last(&crate::context::process(), hosts, attempts, path, notes).await
 }
 
 /// The road to `tried`, in order, as [`last`] takes it.
-pub async fn over(tried: Vec<Relay>, path: &str, notes: &mut dyn FnMut(&str)) -> Option<(Relay, RelaySession)> {
+pub async fn over(
+    tried: Vec<Relay>,
+    path: &str,
+    notes: &mut (dyn FnMut(&str) + Send),
+) -> Option<(Relay, RelaySession)> {
     pod_relay::cleartext::over(&crate::context::process(), tried, path, notes).await
 }
 

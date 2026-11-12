@@ -120,14 +120,19 @@ pub fn setting_of(value: Option<&str>, last: Option<&str>, listed: Vec<Relay>) -
     Ok(Setting::On(listed, true))
 }
 
-/// The relays of `pod-services` on 443: none until its service lists them.
+/// The relays of `pod-services` on 443, in its order (of the device IDs, so
+/// that a hash over it picks the same relay at both ends): each endpoint an
+/// IP literal, its device ID the fact `device-id-NAME`.
 fn listed() -> Vec<Relay> {
     let Some(service) = pod_services::get(SERVICE_ID) else { return Vec::new() };
     service
-        .texts("urls")
-        .unwrap_or_default()
+        .endpoints()
         .iter()
-        .filter_map(|u| relay_url(u))
+        .filter_map(|endpoint| {
+            let at = SocketAddr::new(endpoint.host().parse().ok()?, endpoint.port());
+            let id = service.text(&format!("device-id-{}", endpoint.name()))?;
+            Some(Relay { at, id: device_id(id)? })
+        })
         .filter(|r| r.at.port() == 443)
         .collect()
 }
@@ -188,6 +193,16 @@ fn unused(_: IpAddr) {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Each relay of the catalog reads, with its device ID: a row left out
+    /// would move the relay that a hash picks.
+    #[test]
+    fn the_listed_relays_read_with_their_device_ids() {
+        let relays = listed();
+        assert_eq!(relays.len(), pod_services::get(SERVICE_ID).map_or(0, |s| s.endpoints().len()), "a relay left out");
+        assert!(relays.len() >= 5, "{relays:?}");
+        assert!(relays.iter().all(|r| r.at.port() == 443 && r.id != [0; 32]));
+    }
 
     /// The node's device ID of the pair ("lab", "token-1"), as strelaysrv
     /// v2.1.7 wrote it in its log; the SHA-256 of that certificate.

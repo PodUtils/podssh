@@ -21,20 +21,19 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.29.0"` (COORD-055, PodUtils/podcrates#87; podssh's
-report is COORD-037).
+podssh pins every podcrates crate at `tag = "v0.30.0"` (COORD-057, PodUtils/podcrates#89; podssh's
+report is COORD-038).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
   Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- The next tag brings, as podcrates said: the service `syncthing-relay` of #209 (podcrates T-276), for T-571.
+- The next tag: nothing that podssh asked for waits in it.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #209 (COORD-035) | A service `syncthing-relay` with each relay's device ID (T-571); on podcrates' `main`, in the next tag |
-| #210 (COORD-036) | pod-relay's runs of a code try the MQTT brokers after the mailboxes; then T-737 is unblocked |
+| (none) | #209 and #210 are answered by v0.30.0 |
 
 ## The live runs and interop harnesses
 
@@ -56,7 +55,8 @@ road). Each has a planted run that must fail, and each did.
 
 | Entry | State and next step |
 | --- | --- |
-| T-571 | Partial. Done but for `pod-services`' list (#209): take it with the next tag, run `strelay-interop.yml`, close. |
+| T-571 | Partial. The list of `pod-services` is read (v0.30.0). Next: `strelay-interop.yml`'s job `live`, then close. |
+| T-737 | Partial. The brokers after the mailboxes, tested against Mosquitto. Next: `mqtt-interop.yml` with `live: yes`, then close. |
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
 | T-578 | Partial. Tested on chutney and live on Tor's own network (329 s). Next: a test of the command line from end to end on chutney, then pkarr's `onion=`. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
@@ -70,7 +70,7 @@ road). Each has a planted run that must fail, and each did.
 | T-684, T-446 | Each next podcrates tag; `v1.1.0` waits for the end of the migration. |
 
 Blocked, each on the owner or on another party, as its `## Blocker` names: T-328, T-376, T-672,
-T-687, T-711, T-719, T-722, T-727, T-729, T-737 (#205) and T-740 (a working Bare node, podcrates
+T-687, T-711, T-719, T-722, T-727, T-729 and T-740 (a working Bare node, podcrates
 T-200). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
 
 ## How to test

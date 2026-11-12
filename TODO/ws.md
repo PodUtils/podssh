@@ -617,7 +617,7 @@ Read; the lines of the files that this entry changed are those of `723d90b`. `se
 `read_frame` (170-221) and `write` (223-228) return `Result<_, String>`; `watch_liveness`
 returns a `String` (142-166). The callers keep or pass the text:
 `crates/podssh-ssh/src/relay_stream.rs` lines 95-96 and 138-140 at `23b5d82` put it in `RelayEnd::Failed`;
-`crates/podssh-cli/src/pipe/relay.rs:127-205` prints it; `podssh-transport` makes a write error
+`crates/podssh-cli/src/pipe/relay.rs:131-209` prints it; `podssh-transport` makes a write error
 `TransportError::Unexpected` (crates/podssh-transport/src/socket.rs at `e8bbd4d` lines 104-113, 143, 161
 and 185), and, since T-072, a read error `Aborted` with its text. Tests and the gate match the
 text: `PodUtils/podssh:crates/podssh-ws/tests/session.rs` lines 108 ("continuation") and 172 ("without a
@@ -721,7 +721,7 @@ socks5:// is not supported; podssh speaks HTTP CONNECT to an http:// proxy"
 `HTTPS_PROXY`, `all_proxy` and `ALL_PROXY` (lines 163 and 184), and parses the first that is set
 (line 192). `dial` makes the error `DialError::BadProxy` (line 232), which stops the failover at
 once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
-(`crates/podssh-cli/src/proxy.rs:468`). `doctor` reports it as `FAIL`
+(`crates/podssh-cli/src/proxy.rs:471`). `doctor` reports it as `FAIL`
 (`crates/podssh-cli/src/doctor/net.rs`, lines 101-107). Two tests assert the refusal:
 `crates/podssh-cli/tests/doctor.rs`, lines 144-153, and `PodUtils/podssh:crates/podssh-ws/tests/dial.rs`, lines
 50-58.
@@ -740,7 +740,7 @@ once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in
    order (pinned, system, DNS over HTTPS), and try once with the address.
 4. Map each answer to the HTTP case that `another_host_may_help`
    (`PodUtils/podssh:crates/podssh-relay/src/open.rs:71-93`) and the exit codes of `podssh proxy`
-   (`crates/podssh-cli/src/proxy.rs:464-477`) already treat: a refused user or password as 407
+   (`crates/podssh-cli/src/proxy.rs:467-480`) already treat: a refused user or password as 407
    (the same for each host: stop); 0x02 (not allowed) as 403; 0x03, 0x04 and 0x05 as 502.
 5. Credentials never in output: `Display` shows the host and port only (now
    `PodUtils/podssh:crates/podssh-ws/src/proxy.rs:70-75`).

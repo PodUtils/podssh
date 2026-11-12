@@ -69,6 +69,11 @@ pub async fn reach(
 pub fn ended(shown: &str, end: &Ended) -> String {
     match end {
         Ended::Chunk(why) | Ended::Failed(why) => format!("the Shadowsocks server {shown}: {why}"),
+        Ended::Unanswered => format!(
+            "the Shadowsocks server {shown} ended the stream with no byte of its own: the password or the method may \
+             not be the server's, as a server is silent to a stream that it cannot open, or the server could not \
+             reach the target"
+        ),
     }
 }
 

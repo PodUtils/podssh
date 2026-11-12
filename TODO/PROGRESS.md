@@ -36,7 +36,7 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.29.0` (COORD-055, PodUtils/podcrates#87). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.30.0` (COORD-057, PodUtils/podcrates#89). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
@@ -73,8 +73,8 @@ item whenever it appears.
    Actions in 8.0 s; the peers of `pod-services` wait for podcrates, #203).
 8. **T-736: HyperDHT where UDP passes** is done (2026-11-12: live through the public DHT from Actions in
    7.9 s; the bootstrap of `pod-services` waits for podcrates, #204).
-9. **T-737: public MQTT brokers as a meeting point** is blocked on podcrates: the meeting points are
-   `pod-wormhole`'s (Rule Q3), asked as COORD-031 (#205).
+9. **T-737: public MQTT brokers as a meeting point** is in part (2026-11-12): podcrates v0.30.0 put the
+   brokers in the runs of a code; podssh's glue passes against Mosquitto; its live run is next.
 10. **T-574: Q90's live check of the nodes** ran (2026-11-12): 8 of 10 carried; two asked to be dropped
     (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
@@ -115,7 +115,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 71 open, 21 partial, 11 blocked, 606 done.
+`TODO/INDEX.md` holds 709 entries: 71 open, 22 partial, 10 blocked, 606 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

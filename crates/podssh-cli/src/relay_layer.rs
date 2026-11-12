@@ -193,7 +193,12 @@ pub async fn run(relays: &RelayList, trust: &Trust, (host, port): (&str, u16), e
     let (dialer, at) = chosen(relays, trust, (host, port), asked_for, &mut |line: String| say(err, &line)).await?;
     // Bound first, so that the notes' hold on `err` ends before a refusal
     // is said.
-    let linked = dialer.link(&mut |note: &str| say(err, note)).await;
+    let linking = &dialer;
+    let linked = crate::send_notes::said(
+        |notes| async move { linking.link(&mut |n: &str| crate::send_notes::send(&notes, n)).await },
+        &mut |note: &str| say(err, note),
+    )
+    .await;
     let first = match linked {
         Ok(link) => link,
         Err(missed) => {

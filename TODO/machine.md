@@ -905,10 +905,10 @@ line of `podssh ssh` at the end of `run_ssh`, from its result
 `crates/podssh-cli/src/ssh/mod.rs:261`; that of `podssh proxy` at
 `crates/podssh-cli/src/proxy.rs:87-101`, its destination at
 `crates/podssh-cli/src/proxy.rs:182` and `crates/podssh-cli/src/proxy.rs:315`,
-its session at `crates/podssh-cli/src/proxy.rs:432-439`; the bytes of the
+its session at `crates/podssh-cli/src/proxy.rs:435-442`; the bytes of the
 pump at `crates/podssh-cli/src/pipe/pump.rs:120` and
 `crates/podssh-cli/src/pipe/pump.rs:130-158`, and the relay's close at
-`crates/podssh-cli/src/pipe/relay.rs:228`. `SessionLog` at
+`crates/podssh-cli/src/pipe/relay.rs:232`. `SessionLog` at
 `crates/podssh-cli/src/settings.rs:269-272`, and `podssh status` at
 `crates/podssh-cli/src/status.rs:136-147`. The variable in VARIABLES, the
 two files in FILES, and `docs/cli.md`.

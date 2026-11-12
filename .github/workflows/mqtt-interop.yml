@@ -1,0 +1,74 @@
+name: mqtt interop
+
+# The pairing by code through an MQTT broker where no mailbox answers
+# (T-737), against Eclipse Mosquitto, software that podssh did not write,
+# from Ubuntu's package, with a websockets listener on the loopback that the
+# test starts itself: crates/podssh-relay/tests/pair_mqtt.rs. Two ends whose
+# one mailbox is dead pair through the broker; a taker of another code finds
+# no giver. Each test says "did not run" with no mosquitto, so the job fails
+# on that word. By hand only, the job `live`: one short pairing of two podssh
+# ends through the public broker of pod-services (shiftr.io's, a service of
+# Q77 and Q78), with no mailbox. Started by hand, and on a push that changes
+# the brokers' glue; it publishes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "yes: also one pairing through the public broker of pod-services (T-737)"
+        required: false
+        default: "no"
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/code/**"
+      - "crates/podssh-relay/tests/pair_mqtt.rs"
+      - "crates/podssh-cli/src/relay_code.rs"
+      - ".github/workflows/mqtt-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: mqtt-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Eclipse Mosquitto, with no daemon of its own
+        run: |
+          set -eu
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends mosquitto
+          sudo systemctl stop mosquitto.service || true
+          echo "PODSSH_MOSQUITTO_TEST_BIN=$(command -v mosquitto || echo /usr/sbin/mosquitto)" >> "$GITHUB_ENV"
+      - name: the pairing through the broker
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-relay --features pair,code --lib code
+          timeout 900 cargo test --locked -p podssh-relay --features pair,code --test pair_mqtt -- --nocapture 2>&1 | tee "$RUNNER_TEMP/mqtt.log"
+          grep -q "test result: ok. 3 passed" "$RUNNER_TEMP/mqtt.log"
+          if grep -q "did not run" "$RUNNER_TEMP/mqtt.log"; then echo "a test did not run"; exit 1; fi
+
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.live == 'yes'
+    needs: interop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+      PODSSH_TEST_MQTT_LIVE: "yes"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: one pairing through the public broker
+        run: |
+          set -o pipefail
+          timeout 900 cargo test --locked -p podssh-relay --features pair,code --test pair_mqtt live -- --nocapture 2>&1 | tee "$RUNNER_TEMP/live.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/live.log"

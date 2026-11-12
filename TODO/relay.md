@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:398`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:399`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -2840,7 +2840,7 @@ session on 2026-11-03.
   stream that tells the record how its session ended once SSH lets it go, which
   `crates/podssh-cli/src/ssh/transport.rs:225` spawns. `podssh proxy`
   (`crates/podssh-cli/src/proxy.rs:412`) and the relay's end of `podssh pipe` (`carry_opened`)
-  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:210-212`).
+  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:214-216`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:228-238`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
@@ -3926,8 +3926,8 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 - `crates/podssh-cli/src/relay_diag.rs:167-172`: `relay info` reads the order before it prints,
   and `--json` adds `relay_order` and `relay_list` (each `host` and `port`) beside `info`,
   `pool_order` and `signed_list`, which stay as they were.
-- The manual's note of `relay info` (`crates/podssh-cli/src/man/notes_relay.rs:87-99`) and of the
-  default list's rank (`:120-121`), `docs/cli.md` and `docs/relay.md` say the same; the interop
+- The manual's note of `relay info` (`crates/podssh-cli/src/man/notes_relay.rs:88-100`) and of the
+  default list's rank (`:121-122`), `docs/cli.md` and `docs/relay.md` say the same; the interop
   check `relay.info` (`scripts/interop-relay.sh`) greps the line of the measures with `relay rank`
   and the line of the order named.
 - Tests: `the_text_names_relay_rank_and_the_order_that_a_run_takes` (each of `rank`, `samples`,

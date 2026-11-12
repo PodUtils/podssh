@@ -248,7 +248,12 @@ pub(crate) fn ends_of(
 ) -> Result<Ends, Refusal> {
     let mailboxes = mailboxes.map_err(|why| if named { Refusal::usage(why) } else { Refusal::config(why) })?;
     let say: code::Say = Arc::new(move |line: String| podssh_ssh::err_line!("{who}: {line}"));
-    Ok(Ends { mailboxes, config: code::config(&pairs::trust(ca_file), &ProxyChoice::FromEnvironment, say) })
+    let mut ends = Ends::new(mailboxes, code::config(&pairs::trust(ca_file), &ProxyChoice::FromEnvironment, say));
+    // The public MQTT brokers after each mailbox (T-737); pod-relay says the
+    // third party's line before the first of them.
+    let (mqtt, last) = (std::env::var(code::MQTT_ENV).ok(), std::env::var("PODSSH_LAST_RESORT").ok());
+    ends.brokers = code::brokers(mqtt.as_deref(), last.as_deref());
+    Ok(ends)
 }
 
 /// The code, from a prompt on the terminal, or from one line of a pipe;

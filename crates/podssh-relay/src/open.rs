@@ -36,7 +36,7 @@ pub struct Request<'a> {
 
 /// Open a session for `req` through the context of the process, as
 /// `pod_relay::open` does; `notes` hears each step.
-pub async fn open(req: &Request<'_>, notes: &mut dyn FnMut(&str)) -> Result<Opened, Failure> {
+pub async fn open(req: &Request<'_>, notes: &mut (dyn FnMut(&str) + Send)) -> Result<Opened, Failure> {
     let ctx = crate::context::process();
     let Request { relays, path, trust, target, rounds, failover } = *req;
     pod_relay::open::open(&pod_relay::open::Request { ctx: &ctx, relays, path, trust, target, rounds, failover }, notes)

@@ -380,6 +380,31 @@ async fn a_wrong_password_ends_in_silence_that_names_the_server_and_not_the_pass
     assert!(!line.contains("not-the-password") && !format!("{node:?}").contains("not-the-password"));
 }
 
+/// A pipe takes a silent server (its client may speak first); a server
+/// that then closes with no byte of its own, as outline-ss-server ends a
+/// stream that it cannot open, leaves `Unanswered`, which a pipe says with
+/// the password as a cause, never a quiet end.
+#[tokio::test]
+async fn a_pipe_that_took_the_silence_learns_at_the_end_that_nothing_answered() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let server = tokio::spawn(async move {
+        let (mut tcp, _) = listener.accept().await.unwrap();
+        let mut buf = vec![0u8; 4096];
+        let _ = tcp.read(&mut buf).await;
+        tokio::time::sleep(Duration::from_millis(600)).await;
+    });
+    let method = Method::Chacha20IetfPoly1305;
+    let node = Node::new(method, "not-the-password", "127.0.0.1", port).unwrap();
+    let pipe = shadowsocks::Dial { silence_is_ready: true, ..dial(Duration::from_millis(200)) };
+    let mut opened = shadowsocks::open(&node, "target.test", 22, &pipe).await.expect("the silence is taken");
+    let mut got = Vec::new();
+    tokio::time::timeout(Duration::from_secs(10), opened.carried.stream.read_to_end(&mut got)).await.unwrap().unwrap();
+    assert!(got.is_empty());
+    server.await.unwrap();
+    assert_eq!(opened.carried.status.get(), Some(shadowsocks::Ended::Unanswered));
+}
+
 #[test]
 fn sip002_uris_are_read_and_their_password_never_shown() {
     // The examples of SIP002: base64url user parts, with and without a plugin.

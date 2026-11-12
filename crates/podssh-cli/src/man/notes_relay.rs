@@ -75,7 +75,8 @@ pub const RELAY: &[&str] = &[
      magic-wormhole's public one, wss://relay.magic-wormhole.io/v1, then Least Authority's, \
      wss://mailbox.mw.leastauthority.com/v1, which the operator's ruling Q65 lets podssh use unasked; \
      --pair-mailbox URLS or PODSSH_PAIR_MAILBOX names others, such as podssh relay serve's, and no turns \
-     the pairing by code off. Both ends name the same ones.",
+     the pairing by code off. Both ends name the same ones. Where no mailbox answers, the ends meet at a \
+     public MQTT broker's topic of the code, after a line that names the third party (PODSSH_MQTT).",
     "podssh relay spec reads the relay's /health and its published document, /llms-full.txt, and checks \
      the document against the facts that podssh was built with (see RELAY FACTS). It prints ok, with the \
      document's lines, its digest and the version that the relay serves, or a FAIL line for each fact \

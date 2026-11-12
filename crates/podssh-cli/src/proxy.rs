@@ -423,9 +423,12 @@ async fn session(
     }
     let target = &podssh_ws::dial::authority(host, port);
     let request = Request { relays: road.relays, path, trust: road.trust, target, rounds: 1, failover: road.failover };
-    let opened = podssh_relay::open(&request, &mut |note: &str| {
-        let _ = writeln!(err, "podssh: {note}");
-    })
+    let opened = crate::send_notes::said(
+        |notes| async move { podssh_relay::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
+        &mut |note: &str| {
+            let _ = writeln!(err, "podssh: {note}");
+        },
+    )
     .await;
     match opened {
         Ok(opened) => {

@@ -20,6 +20,14 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           net add and take; a URL that cannot be read is a configuration error (78), which does not echo it.",
     ),
     (
+        &["PODSSH_MQTT"],
+        "The public MQTT brokers of the pairing by code (T-737), after each mailbox: where no mailbox answers, \
+          the two ends meet at the code's topic of a broker of podssh's list of services (shiftr.io's public \
+          instance, over a WebSocket on 443), and a line first says that a third party that nobody vouches for \
+          carries the messages, which the pairing's proof keeps secret. no, or PODSSH_LAST_RESORT=no: no broker; \
+          unset, empty or another word: the brokers.",
+    ),
+    (
         &["JOURNAL_STREAM"],
         "Set by systemd for a service whose stderr is the journal: the device and inode of that stream. Where \
           they are those of podssh's own stderr (a program that inherited the variable has another), each error \

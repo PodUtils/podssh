@@ -28,7 +28,7 @@ use std::time::Duration;
 use podssh_ws::url::WsUrl;
 use podssh_ws::{ProxyChoice, Trust};
 
-pub use pod_wormhole::{mailbox, phrase, words, wormhole, Code, Failed, WORDS};
+pub use pod_wormhole::{mailbox, mqtt, phrase, words, wormhole, Code, Failed, WORDS};
 
 /// podssh's application in the mailbox, as magic-wormhole asks each to name
 /// one: nameplates and mailboxes of another application never meet it.
@@ -41,6 +41,32 @@ pub fn public_mailboxes() -> Vec<String> {
 }
 /// `no` turns pairing by code off; mailbox URLs, by commas, name others.
 pub const ENV: &str = "PODSSH_PAIR_MAILBOX";
+/// `no` gives the pairing no MQTT broker after the mailboxes (T-737).
+pub const MQTT_ENV: &str = "PODSSH_MQTT";
+
+/// The public MQTT brokers, after each mailbox (T-737, the operator's rulings
+/// Q77 and Q78): the services of the kind `mqtt-broker` of `pod-services`, by
+/// their rank, each with its public login. `PODSSH_MQTT=no`, or
+/// `PODSSH_LAST_RESORT=no` (the last fallbacks of Q78), gives none; another
+/// value of `PODSSH_MQTT` is no setting of its own and leaves them on.
+pub fn brokers(mqtt: Option<&str>, last_resort: Option<&str>) -> Vec<mqtt::Point> {
+    let no = |v: Option<&str>| {
+        matches!(v.map(|v| v.trim().to_ascii_lowercase()).as_deref(), Some("no" | "off" | "false" | "0"))
+    };
+    if no(mqtt) || no(last_resort) {
+        return Vec::new();
+    }
+    pod_services::of_kind("mqtt-broker")
+        .filter_map(|service| {
+            let url = WsUrl::parse(&service.endpoint("broker")?.url()).ok()?;
+            let login = match (service.text("user"), service.text("password")) {
+                (Some(user), Some(password)) => Some(mqtt::Login { user: user.into(), password: password.into() }),
+                _ => None,
+            };
+            Some(mqtt::Point { url, login })
+        })
+        .collect()
+}
 /// How long a code lives: past it the giver leaves, and the code fails.
 pub const LIFETIME: Duration = Duration::from_secs(600);
 
@@ -112,5 +138,18 @@ mod tests {
         let net = mailboxes_for(None, Some("off"), "the net's own way").unwrap_err();
         assert_eq!(net, "PODSSH_PAIR_MAILBOX no turns pairing by code off: the net's own way");
         assert_eq!(mailboxes_for(None, None, "x").unwrap(), public);
+    }
+
+    /// The public broker of the catalog, with its login; none where either
+    /// switch says no.
+    #[test]
+    fn the_public_brokers_come_unless_a_switch_says_no() {
+        let public = brokers(None, None);
+        assert!(!public.is_empty(), "the catalog lists no mqtt-broker");
+        assert!(public.iter().all(|p| p.url.tls && p.url.port == 443 && p.login.is_some()), "{public:?}");
+        assert!(!format!("{public:?}").contains("password: "), "a login's Debug hides its password");
+        assert_eq!(brokers(Some("yes"), None).len(), public.len());
+        assert!(brokers(Some(" No "), None).is_empty());
+        assert!(brokers(None, Some("no")).is_empty());
     }
 }

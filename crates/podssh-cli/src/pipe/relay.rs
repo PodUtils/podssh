@@ -98,7 +98,11 @@ pub async fn session(
     let target = podssh_ws::dial::authority(host, port);
     let request =
         Request { relays: road.relays, path, trust: road.trust, target: &target, rounds: 1, failover: road.failover };
-    let opened = podssh_relay::open(&request, &mut |note: &str| say(note)).await?;
+    let opened = crate::send_notes::said(
+        |notes| async move { podssh_relay::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
+        say,
+    )
+    .await?;
     Ok(carry_opened(opened, target, podssh_relay::relay::is_ipv6_literal(host)))
 }
 

@@ -9045,7 +9045,12 @@ the client's connect request and its session, 100 ms after the invitation so tha
   through `strelaysrv`, the plants caught) and the live job, a session through a relay of the pool on 443. The
   list of `pod-services` is asked of
   podcrates as COORD-035 (GitHub #209, 2026-11-12: 8 of the pool's 100 relays were on 443).
-
+- 2026-11-12, podcrates v0.30.0: the service `syncthing-relay` of `pod-services` (#209) lists 25 relays of the pool on
+  443, each an IP literal with its device ID as the fact `device-id-NAME`, in the order of the device IDs; podssh's
+  reader (`crates/podssh-cli/src/strelay.rs`, `listed`) takes each endpoint and its fact, as Tox's reader does, where
+  it read a list of URLs that the service never had. `cargo test -p podssh-cli --features strelay --lib strelay`, 4
+  passed (`the_listed_relays_read_with_their_device_ids`: no row left out). Next: `strelay-interop.yml`'s job `live`
+  through a relay of the list, then close.
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research
 
@@ -10644,7 +10649,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
   its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:151`).
+  (`docs/STATUS.md:152`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13554,7 +13559,7 @@ HyperDHT's three nodes.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** blocked
+**Status:** partial
 
 ## Problem
 
@@ -13603,27 +13608,34 @@ code's tag is not delivered. Plant: derive the topic from a constant; the test f
 code's message. Then one short live pairing through each public broker from GitHub Actions, as the
 operator confirms (T-548's Decision).
 
-## Blocker
-
-2026-11-12, at podcrates v0.29.0 (`a4d3630`): `pod_wormhole::mqtt` is there (#205 answered), but the runs of a
-code that podssh calls (`pod_relay::code::run`, `give_with` and `take_with`) meet only through `run::opened` and
-`run::joined` over `Ends.mailboxes`, and `Ends` holds no broker, so podssh's glue cannot add the brokers after the
-mailboxes. Asked of podcrates as COORD-036 (#210): `Ends` takes the brokers, and the runs try them after each
-mailbox failed. podssh's part then: the services of the kind `mqtt-broker`, `PODSSH_MQTT=no`, the line of the third
-party, the test against Eclipse Mosquitto and the live run.
-
-Before (2026-11-12): PodUtils/podcrates: the meeting points of the pairing are `pod-wormhole`'s (`meet.rs`, `mailbox.rs`), which
-podssh took at v0.26.0, so a meeting point over MQTT is podcrates' work (the rule of a taken crate,
-`docs/decisions.md`). Asked as COORD-031 (#205),
-2026-11-12. podssh's part, once `pod-wormhole` offers it: its place in the pairing's order after Nostr's and the
-trackers', `PODSSH_MQTT`, the switch of T-548's Decision, the line of the third party, and the live run.
-
 ## Correction
 
 2026-11-12. Read at podcrates' `fdb08f6` (v0.26.0): `pod-wormhole` meets only at magic-wormhole's mailboxes; a
 second transport of its `Wormhole` (MQTT over a WebSocket) goes inside that crate, not in podssh's glue
 (`crates/podssh-relay/src/code/`), as the Approach's item 5 foresaw.
 
+2026-11-12, the blocker ended: podcrates v0.29.0 brought `pod_wormhole::mqtt` (#205), and v0.30.0 the brokers in the
+runs of a code (`pod_relay::code::run::Ends::brokers`, #210, COORD-057), so podssh's part is its glue alone.
+
+## Done
+
+Partial (2026-11-12): podssh's part is written and tested; the short live run through the public broker waits.
+
+- `crates/podssh-relay/src/code/mod.rs`: `brokers(PODSSH_MQTT, PODSSH_LAST_RESORT)`, the services of the kind
+  `mqtt-broker` of `pod-services` (shiftr.io's public instance, `wss://public.cloud.shiftr.io:443/`, with its public
+  login), none where either says no; `crate::code::mqtt` re-exported. `crates/podssh-cli/src/relay_code.rs` gives them
+  to the runs after the mailboxes. pod-relay says the third party's line (`relay.code.broker`, `BROKER_WORDS`) before
+  the first broker; podssh shows it as each event of the pairing. The manual: `PODSSH_MQTT`, and the note of `relay
+  pair --code`.
+- Against Eclipse Mosquitto 2.0.18 with a `websockets` listener on the loopback (`PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/
+  mosquitto cargo test -p podssh-relay --features pair,code --test pair_mqtt`, 3 passed in 15.2 s, the live one
+  skipped): two ends whose one mailbox is dead pair through the broker, both name it, and each says the third party's
+  line; a taker of another code reads another topic and finds no giver. `--lib code`, 8 passed (the public broker
+  with its login; none where a switch says no).
+- The plant of the Prove (the topic from a constant) is in `pod-wormhole`'s `topic`, podcrates' code: its tests hold
+  it there (Rule Q3).
+- `mqtt-interop.yml` runs the tests on a push of the glue; its input `live` runs one pairing through the public
+  broker. Next: that live run, then close.
 
 # T-738: File hosts as the last carrier of the resumable layer: one sealed upload for each piece
 

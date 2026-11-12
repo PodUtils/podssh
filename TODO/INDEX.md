@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**709 entries: 71 open, 21 partial, 11 blocked, 606 done.**
+**709 entries: 71 open, 22 partial, 10 blocked, 606 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 42 | 9 | 7 | 272 | 330 |
-| **All** | 71 | 21 | 11 | 606 | 709 |
+| P3 | 42 | 10 | 6 | 272 | 330 |
+| **All** | 71 | 22 | 10 | 606 | 709 |
 
 ## Entries
 
@@ -767,7 +767,7 @@ repository and CI).
 | [T-734](mesh.md) | P3 | M | M10 | feature | done | Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair |
 | [T-735](mesh.md) | P3 | L | M10 | feature | done | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
 | [T-736](mesh.md) | P3 | L | M10 | feature | done | HyperDHT as a road by key where UDP passes, after podssh's own |
-| [T-737](mesh.md) | P3 | M | M10 | feature | blocked | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
+| [T-737](mesh.md) | P3 | M | M10 | feature | partial | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | done | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
