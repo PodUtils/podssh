@@ -20,7 +20,7 @@ Read on 2026-11-11.
    road is done and in the release's features. See "Work order".
 4. **Partial entries** (18; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
-   migration, T-684; the release of M10, T-446; and T-319, T-321, T-459, T-548,
+   migration, T-684; the release of M10, T-446; and T-319, T-321, T-459,
    T-660, T-662, T-665, T-666, T-670 and T-755 (its live run
    waits for a tester's tunnel).
 5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
@@ -40,7 +40,12 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's and T-738's are merged).
+8. **Drafts.** One is being written, never built (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's and T-738's are
+   merged):
+
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | T-459 | `draft-t459` | (in work) | `podssh exit`, `proxy --exit` and `pipe --exit` over an exit behind a quick tunnel |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -111,7 +116,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 65 open, 19 partial, 10 blocked, 616 done.
+`TODO/INDEX.md` holds 710 entries: 65 open, 18 partial, 10 blocked, 617 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -133,7 +138,7 @@ operator interrupts it.
    podssh's (T-111's serve, for one). T-085 keeps its two boxes only (Q103: the facade goes with
    `pod-relay`).
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
-   entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-575,
+   entries, P1 before any other; their features (T-532, T-545, T-566, T-567, T-575,
    T-576, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
@@ -179,7 +184,7 @@ parts are named so that the open ones read in their place):
    OpenTunnel's road (Q76, done), and the manual's word on the public services that podssh uses
    and the ones it never names (done); T-532 is parked; then what the rulings Q74, Q75, Q77, Q78
    and Q82 filed, the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public
-   Wisp servers made for it (done: none qualifies), Pinggy (T-548) and the public proxy nodes
+   Wisp servers made for it (done: none qualifies), Pinggy (done) and the public proxy nodes
    (done); then the research of the overlay networks (NetBird, Firezone, ZeroTier, Tox,
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point

@@ -7410,7 +7410,7 @@ terms silent on it); HiveMQ, EMQX and Mosquitto have no 443. Entry filed: T-737.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -7851,7 +7851,15 @@ why the net's list does not hold it).
 - 2026-11-12 (main session), the measure of a proxy that ends TLS on the client's side: `pinggy_live`, with
   `PODSSH_PINGGY_TEST_INTERCEPT=PROXY|CA`, runs the client once more through such a proxy, given its CA by `--ca-file`,
   and says the verdict; it must carry, or refuse by the words of the pin of the node's TLS key. `pinggy-live.yml`
-  runs it through mitmproxy 12.1.2 (`mitmdump`, its CA of the run). Result: in the run below.
+  runs it through mitmproxy 12.1.2 (`mitmdump`, its CA of the run). Run 43309771525 at `f0ec9eb`: the session through
+  Pinggy passed as before (greet and 1 MiB down); through mitmproxy the client refused at TLS, "its certificate's key is
+  SHA256:R7+E..., not the pin", and its last line names both causes, a stranger at the name or a proxy that ended TLS;
+  then the Serveo and ssh-j roads were tried, and the run ended with 255 ("INTERCEPT verdict: refused by the pin of
+  the node's TLS key"). So a proxy that ends TLS on the client's side cannot carry the Pinggy road, by design: the pin
+  is end to end, and a client's CA does not stand in for the node's key. The planted stranger failed as it must.
+
+Done, 2026-11-12: each step's native and live parts pass; the containers of the Prove wait for the release's checks
+(T-251, Q88).
 
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
@@ -14059,6 +14067,8 @@ with no change to its code but rustfmt's of one test file.
   roads, the manual (`PODSSH_FILEHOSTS`) and the live run wait for podcrates' two asks below.
 
 - The two asks went to podcrates as COORD-045 (#220), the text below; the entry waits for a tag with them.
+  podcrates took both (COORD-066, PodUtils/podcrates#105): its T-416, the kind `file-host` with the four services in
+  this order, and its T-417, `pod_wormhole::mqtt::Board` (`put`, `take`, `clear`), for its next tag.
 
 The text of that COORD issue:
 
