@@ -67,4 +67,6 @@ pub enum Transport {
     Tuic { servers: crate::tuic::Servers, trust: Trust },
     /// Through the Hysteria 2 servers of a file, where UDP passes (T-580).
     Hysteria { servers: crate::hysteria::Servers, trust: Trust },
+    /// Through a TURN server's TCP allocation (`--turn`, T-621).
+    Turn { road: crate::turn::Road },
 }

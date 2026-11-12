@@ -97,6 +97,8 @@ pub enum Parsed {
         wstunnel: crate::wstunnel::Flags,
         /// `--chisel` and `--chisel-auth-file` (T-490).
         chisel: crate::chisel::Flags,
+        /// `--turn` and `--turn-auth-file` (T-621).
+        turn: crate::turn::Flags,
         /// `--exit NAME` and `--client-key FILE`: the pipe starts at this
         /// exit of the net (T-431).
         exit: crate::exit::Flags,
@@ -186,6 +188,8 @@ pub enum Parsed {
         hysteria: Option<String>,
         /// `--tuic`: the TUIC servers to check too (T-581).
         tuic: Option<String>,
+        /// `--turn` and `--turn-auth-file`: the TURN server to check too (T-621).
+        turn: crate::turn::Flags,
         /// `--quick` and `--jobs N` (T-511).
         quick: bool,
         /// `--tier`: this host's verdict alone (T-706).

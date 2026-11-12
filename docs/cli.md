@@ -6417,3 +6417,42 @@ on).
   through the same servers: TUIC's server never answers a request, so a
   pipe takes the stream after 3 s of silence. `podssh doctor --tuic FILE`
   checks each server: UDP to its port, then GitHub's host key through it.
+
+## A TURN server: `--turn turns:HOST[:PORT]`
+
+T-621, the operator's rulings Q66, Q93 and Q95: a TURN server that the user
+runs (coturn, as a server of calls or chat often has one on 443) dials the
+TCP target that its client names, a TCP allocation of RFC 6062, so it is a
+road in place of the relay. `--turn turns:HOST[:PORT]` (RFC 7065; 443 when
+no port is named) makes it the road for `ssh`, each command that reaches its
+server as `ssh` does, and `proxy`; `PODSSH_TURN` names it where the command
+line names no other road; `doctor --turn` checks it.
+
+- The control connection: TLS to HOST, through `HTTPS_PROXY` when one is
+  set, checked with podssh's trust (`--ca-file`); an Allocate with
+  REQUESTED-TRANSPORT 6, answered by the server's 401 with its realm and
+  nonce, then again with the long-term credential (MESSAGE-INTEGRITY over
+  MD5(user:realm:password)); a stale nonce (438) is tried once again.
+- Connect names the target's address, which podssh resolves in its own
+  order of resolvers (`podssh_ws::resolve`); a server waits at least 30 s
+  for the target before its 447, so the Connect's answer is waited for 40 s.
+- The data connection, the second connection that RFC 6062 needs to the
+  same server, an exception of rule 2 of `AGENTS.md` (Q93), only with
+  `--turn`: ConnectionBind with the CONNECTION-ID, then the target's bytes
+  as they are. The control connection stays open and sends a Refresh a
+  minute before the lifetime ends (at its half for a lifetime of two
+  minutes or less); the end of the session closes both.
+- `--turn-auth-file FILE` (`PODSSH_TURN_AUTH_FILE`): a private file of one
+  line, `USER:PASSWORD`, or `auth-secret SECRET` for a coturn of
+  `use-auth-secret`, from which podssh makes a user and a password of a day;
+  never the URI or argv.
+- `turn:HOST[:PORT]` (3478) has no TLS and goes to this host alone (64).
+- The refusals: no TCP allocation (442 or 508, or 400 to the Allocate: "the
+  server offers no RFC 6062", 69); a credential refused twice (401) and a
+  target that the server's policy refuses (403) (77); a target that the
+  server did not reach (447, 69).
+- The code: `crates/podssh-ws/src/turn/` over STUN's codec of `pod-proxy`
+  (`podssh_ws::stun`), which MESSAGE-INTEGRITY and FINGERPRINT complete
+  here; `crates/podssh-cli/src/turn/`; a stand-in server in
+  `crates/podssh-ws/tests/turn.rs`; the test against coturn
+  `crates/podssh-cli/tests/turn_road.rs` and `.github/workflows/turn-interop.yml`.

@@ -117,6 +117,9 @@ pub mod via;
 // VLESS over a WebSocket and over XHTTP, to a server that the user runs
 // (T-440).
 pub mod vless;
+// TURN's TCP allocations of RFC 6062, to a TURN server that the user runs
+// (T-621): a second connection to it carries the bytes (Q93).
+pub mod turn;
 // A tick of the clocks that tells a host that slept (T-663).
 pub mod wake;
 // Tor's WebTunnel, for a bridge of the Tor road (T-385).

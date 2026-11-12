@@ -39,11 +39,10 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** Three wait, each never built, to merge in the index's order (T-582's is merged):
+8. **Drafts.** Two wait, each never built, to merge in the index's order (T-582's and T-621's are merged):
 
    | Draft | Branch | Commit | State |
    | --- | --- | --- | --- |
-   | T-621 | `draft-t621` | `b08f0a8` | drafted: `--turn` (RFC 6062) in `podssh-ws/src/turn/` |
    | T-741 | `draft-t741` | `26b5b4f` | drafted: smee.io's road in `podssh-relay/src/smee/`; its server waits for `pod-services` |
    | T-742 | `draft-t742` | `74b6e4f` | drafted: hostc's road in `podssh-relay/src/hostc/`; its server waits for `pod-services` |
 
@@ -116,7 +115,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 70 open, 21 partial, 10 blocked, 608 done.
+`TODO/INDEX.md` holds 709 entries: 69 open, 21 partial, 10 blocked, 609 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -198,7 +197,7 @@ parts are named so that the open ones read in their place):
    report and of the sweep, done after the defects (Q85). Then what the archive of forward
    carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the
    Wisp demo server through podssh (T-625), TURN with RFC 6062 for a server that the user runs
-   (T-621), the research of smee.io, of three hosted tunnels and of I2P, Nym and cjdns (done; it
+   (done), the research of smee.io, of three hosted tunnels and of I2P, Nym and cjdns (done; it
    filed smee.io as a last fallback, T-741, hostc's, T-742, and Sandhole's public server as a host
    of the localhost.run road's module, done), and the HTTP road's one-POST form (T-622, parked).
 5. T-446: the next beta `v1.1.0-beta.N` when podssh is nearly complete, and `v1.1.0` at the end,

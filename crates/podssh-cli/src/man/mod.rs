@@ -96,6 +96,8 @@ mod notes_upgrade;
 mod notes_vless;
 // The notes of --hysteria, where UDP passes (T-580).
 mod notes_hysteria;
+// The notes of --turn, a TURN server's TCP allocations (T-621).
+mod notes_turn;
 pub mod roff;
 pub mod text;
 

@@ -139,6 +139,7 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         Transport::Trojan { .. } => "--trojan",
         Transport::Tuic { .. } => "--tuic",
         Transport::Hysteria { .. } => "--hysteria",
+        Transport::Turn { .. } => "--turn",
         Transport::Via { .. } => "--via",
         Transport::Vless { .. } => "--vless",
         Transport::Wstunnel { .. } => "--wstunnel",

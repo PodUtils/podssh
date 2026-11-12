@@ -113,6 +113,7 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         Transport::Trojan { .. } => "--trojan",
         Transport::Tuic { .. } => "--tuic",
         Transport::Hysteria { .. } => "--hysteria",
+        Transport::Turn { .. } => "--turn",
     };
     Err(Refusal::usage(format!("--vless cannot go with {other}, which is a road of its own; a run has one road")))
 }

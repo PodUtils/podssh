@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:785`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:786`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -964,7 +964,7 @@ filed as it is, with no port, as OpenSSH files it (the Correction).
   a run in the build image stalled on the download of the crates, and the
   checks' plant waits for T-251.
 - `docs/cli.md:137-146` and the manual's note of host keys
-  (`crates/podssh-cli/src/man/notes_ssh.rs:346-357`) say how each hop is checked,
+  (`crates/podssh-cli/src/man/notes_ssh.rs:347-358`) say how each hop is checked,
   and which settings hold for each hop.
 - `cargo test -p podssh-ssh`: 141 passed; `cargo test -p podssh-cli`:
   563 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1007,7 +1007,7 @@ and no other.
 
 1. Add the long flag `--host-key-fingerprint SHA256:B64[,SHA256:B64...]` to
    `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-292`), and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:199-245`). Refuse a malformed value with
+   (`crates/podssh-cli/src/ssh/args.rs:203-251`). Refuse a malformed value with
    exit 64 before anything connects.
 2. Carry it in `Options` (`crates/podssh-ssh/src/options.rs:195-332`) and
    `Policy` (`crates/podssh-ssh/src/hostkey.rs:19-39`), for the destination
@@ -1538,7 +1538,7 @@ Read:
 2. Preferred change: wrap the direct stream in a writer that fails a write
    that makes no progress for 60 s, with the constant of the relay leg
    (`crates/podssh-ws/src/client.rs:42-43`). Only
-   `crates/podssh-cli/src/ssh/transport.rs:296-340` changes, and both roads behave
+   `crates/podssh-cli/src/ssh/transport.rs:297-341` changes, and both roads behave
    the same.
 3. The other change: set `inactivity_timeout` at
    `crates/podssh-ssh/src/run_config.rs:74`. russh resets that timer only in a loop
@@ -4089,7 +4089,7 @@ The draft's calls (2026-11-02), where the Approach left a choice:
   multicast address takes a zone too, and the resolver is the judge of the rest. Through
   `HTTPS_PROXY` the zone goes in the `CONNECT` as before, for the proxy to refuse.
 - `pipe`'s `tcp:` and the target of `ssh:` keep the relay's rule of their parser
-  (`crates/podssh-cli/src/proxy.rs:363`, before anything starts), so `tcp:` takes no zone; the hops
+  (`crates/podssh-cli/src/proxy.rs:376`, before anything starts), so `tcp:` takes no zone; the hops
   of `ssh:` get the new check, through the resolve of `podssh ssh`. Lost: a zone for `tcp:` too:
   that parser is `podssh proxy`'s as well, whose target the relay dials.
 - A host in a refusal is shown as it is typed when each of its characters prints as itself, else

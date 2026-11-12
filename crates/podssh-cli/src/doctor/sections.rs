@@ -35,6 +35,8 @@ pub(super) struct Checks<'a> {
     pub(super) hysteria: Option<&'a crate::hysteria::Servers>,
     /// The servers of `--tuic`, when it names a file (T-581).
     pub(super) tuic: Option<&'a crate::tuic::Servers>,
+    /// The TURN server of `--turn`, when it names one (T-621).
+    pub(super) turn: Option<&'a crate::turn::Road>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
@@ -65,6 +67,8 @@ pub(super) enum Kind {
     Hysteria,
     /// The servers of `--tuic`, where UDP passes (T-581).
     Tuic,
+    /// The TURN server of `--turn`, a road over TCP (T-621).
+    Turn,
     /// The exit of `--exit NAME` (T-458).
     Exit,
     /// What the path does to a stream (T-325).
@@ -95,6 +99,7 @@ impl Kind {
             Kind::Vless => "vless",
             Kind::Hysteria => "hysteria",
             Kind::Tuic => "tuic",
+            Kind::Turn => "turn",
             Kind::Exit => "exit",
             Kind::Stream => "stream",
             #[cfg(feature = "iroh")]
@@ -147,16 +152,23 @@ pub(super) fn kinds(quick: bool, servers: bool, road: bool, links: bool, exit: b
 pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
     let (servers, road, links) = (checks.servers.is_some(), checks.road.is_some(), checks.links.is_some());
     let mut kinds = kinds(checks.quick, servers, road, links, checks.exit.is_some(), checks.stream.is_some());
+    // TURN's after VLESS's, the last of the roads over TCP (T-621).
+    if checks.turn.is_some() {
+        let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless);
+        let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
+        kinds.insert(after, Kind::Turn);
+    }
     // After the roads over TCP that the run names (Q82).
     if checks.hysteria.is_some() {
-        let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless);
+        let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Turn);
         let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Hysteria);
     }
     // TUIC's after Hysteria's: both over QUIC, after the roads over TCP.
     if checks.tuic.is_some() {
-        let before =
-            |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Hysteria);
+        let before = |k: &Kind| {
+            matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless | Kind::Turn | Kind::Hysteria)
+        };
         let after = kinds.iter().rposition(before).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Tuic);
     }
@@ -228,6 +240,11 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Tuic => {
             if let Some(servers) = checks.tuic {
                 super::tuic::check(report, servers, trust).await;
+            }
+        }
+        Kind::Turn => {
+            if let Some(road) = checks.turn {
+                super::turn::check(report, road).await;
             }
         }
         Kind::Exit => {

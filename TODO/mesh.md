@@ -10724,7 +10724,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
   its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:152`).
+  (`docs/STATUS.md:153`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -11491,7 +11491,7 @@ sections 3.7 and 6; the operator's ruling Q66.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -11564,6 +11564,38 @@ through an HTTP CONNECT proxy.
 - **`turns:` by default, TLS on 443**, which a host whose egress is HTTPS reaches.
   `docs/carriers.md:884` says "HTTP, so a proxy that re-terminates TLS breaks it": such a proxy
   stops this road, and `doctor` says so. Lost: `turn:` on 3478 first, which such a host refuses.
+- **`--turn-auth-file` is required, and holds `USER:PASSWORD` or `auth-secret SECRET`** (the drafting
+  agent, 2026-11-12). Each TURN server that allocates for a client asks the long-term credential, so a
+  `--turn` with no file is refused before any connection (64, or 78 for `PODSSH_TURN`). coturn's WebRTC
+  deployments mostly run `use-auth-secret` (its REST API), so the file also takes that secret, and podssh
+  makes the user `EXPIRY:podssh` and its password base64(HMAC-SHA1(secret, user)) for a day, as coturn
+  checks them. `USER:PASSWORD` splits at the first colon (the password may hold colons). Lost: the
+  credential in the URI (argv would show it); a file of keywords as `--chisel-auth-file` has (one line
+  says it); a server with `no-auth` (no deployment that offers TCP allocations to the internet runs it).
+- **The password goes into the key as its bytes, with no SASLprep** (the drafting agent): SASLprep
+  changes no ASCII password, and coturn applies none, so a key that SASLprep made would fail against
+  coturn for a non-ASCII password. Lost: RFC 8489's OpaqueString, which would need a profile of
+  Unicode's tables for no server that podssh meets.
+- **The target's address: IPv4 first** (the drafting agent): a Connect names an address, and an
+  allocation is IPv4 unless REQUESTED-ADDRESS-FAMILY asks IPv6, which podssh asks only for a target
+  with no IPv4 address. Lost: a race of the families, which would need two allocations.
+- **The Refresh comes a minute before the lifetime ends, at its half for two minutes or less, never
+  sooner than 5 s** (the drafting agent): coturn's default lifetime is 600 s, and a server that holds it
+  to 60 s still gets its Refresh at 30 s. Lost: RFC 8656's "before expiry" with no margin, which a slow
+  proxy would miss.
+- **The wait for Connect's answer is 40 s** (the drafting agent): RFC 6062, 5.2, makes a server try the
+  target for at least 30 s before its 447, so podssh's 30 s bound of a connection would say a timeout
+  where the server says why. Lost: the bound of each other step, which cuts that answer.
+- **The end of the keeper is said, the end of the session is not** (the drafting agent): the control
+  connection's close or a failed Refresh is one line (`podssh: the TURN server did not refresh the
+  allocation: ...`), as the session's end then says only that SSH's connection closed; the end of the
+  session closes both connections, which ends the allocation. Lost: a keeper that outlives the data
+  connection, which holds an allocation that nothing uses.
+- **The coturn test runs on the loopback with no TLS; TLS on 443, squid and sshd are steps of
+  `turn-interop.yml`** (the drafting agent): `turn:` is taken for this host alone, so the Rust test needs
+  no certificate, and the workflow runs the entry's whole road as a user would. Lost: one more
+  interop harness in a container (an `interop-turn.sh` of `scripts/`), which would add IDs to `scripts/interop-baseline.txt` for
+  what Ubuntu's packages already give the runner.
 
 ## Prove
 
@@ -11589,6 +11621,39 @@ TURN is a road of `pod-egress` kind (PodUtils/podcrates, Q101, wave 4), and the 
 goes to `pod-dns` (wave 1). Rule Q3 (`docs/decisions.md`, "The crates of PodUtils/podcrates")
 applies: from the import podssh makes fixes only, and once podssh takes the crate the work is done
 in PodUtils/podcrates, which podssh takes by the next tag; a test of the moved code then runs there.
+
+2026-11-12 (the drafting agent). The Premise's "five exceptions, none for this road" is out of date:
+`AGENTS.md`, rule 2, now names nine, and its seventh is this road's data connection, only with `--turn`
+(Q93). Step 2's "the STUN codec" is no longer this entry's: `pod-proxy` (taken, PodUtils/podcrates
+v0.30.0, re-exported as `podssh_ws::stun`) holds STUN's codec, each attribute's length checked before it
+is read, for doctor's line `nat` (T-641) and for this road. It has no MESSAGE-INTEGRITY and no
+FINGERPRINT, so `crates/podssh-ws/src/turn/msg.rs` writes and checks them over that codec, with TURN's
+methods and attributes; moving them into `pod-proxy`'s `stun` is podcrates' work (Rule Q3), asked as a
+COORD issue `(to podcrates)` with the draft. `pod-egress` (wave 4) is not taken yet, so the road itself
+lives in `podssh-ws` (`turn/`) and `podssh-cli` (`turn/`), as the other roads of the user's own server
+do; the resolver is `podssh_ws::resolve` over `pod-dns` (taken). Step 6's "both are CONNECTs to the same
+name" holds by construction: each connection is `podssh_ws::client::open_tls` (or `dial::dial` for
+`turn:`) to HOST through `ProxyChoice::FromEnvironment`.
+
+## Done
+
+Done (2026-11-12): the draft `draft-t621` (`b08f0a8`) merged, built and tested against coturn.
+
+- `crates/podssh-ws/src/turn/` (the messages over `pod_proxy::stun`, the long-term key, MESSAGE-INTEGRITY and
+  FINGERPRINT, the client over a stream, the control connection kept and refreshed, RFC 7065's URI, the credential
+  file) and `crates/podssh-cli/src/turn/` (`--turn`, `PODSSH_TURN`, `--turn-auth-file`; `proxy`; `doctor --turn`;
+  the manual; `docs/cli.md`). hmac 0.13's `KeyInit` imported where the draft missed it.
+- `cargo test -p podssh-ws --lib turn`: 10 passed (RFC 5769's vectors 2.1, 2.2 and 2.4 written and checked byte for
+  byte, a changed byte refused, the URI, the file, the time of a Refresh). `--test turn`: 2 passed (a stand-in on the
+  loopback: bytes before and after a Refresh, 442 and a wrong password refused). `cargo test -p podssh-cli --lib
+  turn`: 21 passed.
+- Against coturn 4.6 (Ubuntu's `coturn`): `PODSSH_TURN_TEST_BIN=/usr/bin/turnserver cargo test -p podssh-cli --test
+  turn_road`, 4 passed in 95 s: 1 MiB each way through coturn's TCP allocation, `no-tcp-relay` refused with 69, a wrong
+  password with 77, and a session held past a Refresh. Planted: the long-term key's second `:` made `;`, and each
+  test of the road fails (coturn refuses the integrity); restored, they pass.
+- Clippy as the gate runs it, `cargo fmt --check` and `python scripts/check-repo.py`: clean.
+- `turn-interop.yml` runs it from Actions, through squid, on a push of the road. podcrates v0.32.0 brings the same
+  STUN functions to `pod_proxy::stun` (#214): with that take, `turn/msg.rs` drops its copies.
 
 # T-623: smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research
 

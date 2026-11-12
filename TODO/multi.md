@@ -904,7 +904,7 @@ short numbered list helps a person; a script must still get the usage error.
 - Measured: `podssh ssh </dev/null` exits 64 with "missing destination"
   (`crates/podssh-cli/src/ssh/resolve.rs:79`).
 - Read: `run_ssh` gets no terminal state
-  (`crates/podssh-cli/src/dispatch.rs:392-394`), and the entry point of the
+  (`crates/podssh-cli/src/dispatch.rs:396-398`), and the entry point of the
   tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:32-40`,
   `crates/podssh-cli/src/pager.rs:21-45`).
 - Read: the names can come only from the `Host` lines of ssh_config (T-043,
@@ -1812,7 +1812,7 @@ a ticket, or a tool that asks an AI.
   command line (`crates/podssh-cli/src/dispatch.rs:27-30`), and `Log`, which
   writes to the stderr of the process itself
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
-  `crates/podssh-cli/src/dispatch.rs:438-482`.
+  `crates/podssh-cli/src/dispatch.rs:442-486`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
   status (`docs/cli.md:5865-5868`), which is not a failure of podssh.
 
@@ -2841,8 +2841,8 @@ relay reaches; nothing reports the far side.
 - Read: `doctor --hop` reaches the hop as `--direct` does, through `HTTPS_PROXY`
   (`crates/podssh-cli/src/doctor/hop.rs:1-8`), and logs in with a key made for the check, which
   the server refuses (`crates/podssh-cli/src/doctor/hop.rs:131-152`): no command runs there.
-- Read: `doctor` takes no option of `ssh` (`crates/podssh-cli/src/doctor/mod.rs:99-139`), and its
-  `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:119-120`), so the
+- Read: `doctor` takes no option of `ssh` (`crates/podssh-cli/src/doctor/mod.rs:101-143`), and its
+  `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:121-122`), so the
   issue's `doctor --via HOST` names a flag that exists.
 - Read: `podssh health` resolves the host as `ssh` does, logs in on the same road, and runs one
   exec (`crates/podssh-cli/src/health/mod.rs:170-208`, the login and the exec as this entry's
@@ -3522,7 +3522,7 @@ session on 2026-11-03.
   podssh-cli --test flag_table`: 9; `--lib session::`, 17; `--lib man`, 66; `--lib help`, 9.
 - Planted: `scripts/plants/t506-empty-silent.plant` (the line of an empty list never written):
   `sh scripts/plant-each.sh --here t506-empty-silent`: caught, the test of the empty list failed.
-- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:474-478`
+- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:476-480`
   (`TODO/cli.md`) and the citations of `docs/cli.md` were moved by hand; `cargo todo remap` from the
   tree before the draft confirmed them. rustfmt of `podssh-cli` (`exchange` of `session/client.rs`)
   and clippy of `podssh-cli` with `-D warnings`, all targets: clean.

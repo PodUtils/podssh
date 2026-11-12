@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**709 entries: 70 open, 21 partial, 10 blocked, 608 done.**
+**709 entries: 69 open, 21 partial, 10 blocked, 609 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 41 | 9 | 6 | 274 | 330 |
-| **All** | 70 | 21 | 10 | 608 | 709 |
+| P3 | 40 | 9 | 6 | 275 | 330 |
+| **All** | 69 | 21 | 10 | 609 | 709 |
 
 ## Entries
 
@@ -660,7 +660,7 @@ repository and CI).
 | [T-618](relay.md) | P2 | S | M10 | defect | done | `relay info` names neither `podssh relay rank` nor the order that this host's runs take, which T-610 left for T-606 and T-607 |
 | [T-619](relay.md) | P3 | S | M10 | docs | done | The note to the relay's operator asks nothing of `/relays.json`'s rank, which changes with the edge that answered |
 | [T-620](reverse.md) | P3 | S | M10 | defect | done | The stop token's rotation and the renewal follow the node's next pair at expiry |
-| [T-621](mesh.md) | P3 | M | M10 | feature | open | TURN with RFC 6062: a TURN server that the user runs, as a road with no relay |
+| [T-621](mesh.md) | P3 | M | M10 | feature | done | TURN with RFC 6062: a TURN server that the user runs, as a road with no relay |
 | [T-622](roads.md) | P3 | M | M10 | feature | open | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
 | [T-623](mesh.md) | P3 | S | M10 | research | done | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
 | [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |

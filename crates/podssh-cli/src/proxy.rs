@@ -67,6 +67,8 @@ pub struct ProxyArgs {
     /// `--chisel` and `--chisel-auth-file`: a chisel server in place of the
     /// relay (T-490).
     pub chisel: crate::chisel::Flags,
+    /// `--turn` and `--turn-auth-file`: a TURN server in place of the relay (T-621).
+    pub turn: crate::turn::Flags,
     /// `--exit NAME` and `--client-key FILE`: the pipe starts at this exit
     /// of the net, in place of the relay (T-431).
     pub exit: crate::exit::Flags,
@@ -117,7 +119,8 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
         .and_then(|()| crate::chisel::pipe::beside(args))
         .and_then(|()| crate::trojan::pipe::beside(args))
         .and_then(|()| crate::hysteria::pipe::beside(args))
-        .and_then(|()| crate::tuic::pipe::beside(args));
+        .and_then(|()| crate::tuic::pipe::beside(args))
+        .and_then(|()| crate::turn::pipe::beside(args));
     if let Err(refusal) = beside.and_then(|()| crate::proxy_alone::key_alone(args)) {
         return refusal.report("proxy", err);
     }
@@ -170,7 +173,8 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
                 || args.tuic.is_some()
                 || args.via != crate::via::Flags::default()
                 || args.wstunnel != crate::wstunnel::Flags::default()
-                || args.chisel != crate::chisel::Flags::default();
+                || args.chisel != crate::chisel::Flags::default()
+                || args.turn != crate::turn::Flags::default();
             if flags && (args.target.is_none() || args.port.is_none()) {
                 let _ = writeln!(err, "podssh proxy: a HOST that starts with - is read as a flag; put -- before it");
             }
@@ -204,6 +208,15 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
     // (T-439), the Shadowsocks servers of a file (T-373), then the
     // forwarders, when the command line or the environment names them
     // (T-369): then the relay is not asked.
+    // A TURN server (T-621), whose beside refused each other road's flag.
+    match crate::turn::pipe::chosen(args) {
+        Ok(Some(road)) => {
+            crate::connect_bound::step("the TURN server did not answer");
+            return crate::turn::pipe::run(&road, &host, port, err);
+        }
+        Ok(None) => {}
+        Err(refusal) => return refusal.report("proxy", err),
+    }
     if let Some(path) = args.hysteria.as_deref() {
         crate::connect_bound::step("no Hysteria 2 server answered");
         return crate::hysteria::pipe::run(path, &host, port, args.ca_file.as_deref(), err);

@@ -1,0 +1,130 @@
+name: turn interop
+
+# The TURN road (T-621, the operator's rulings Q66, Q93 and Q95) against
+# coturn, a TURN server that podssh did not write: Ubuntu's package. First
+# crates/podssh-cli/tests/turn_road.rs on the loopback with no TLS: 1 MiB
+# each way, a coturn of no-tcp-relay refused (69), a wrong password refused
+# (77), an allocation held to 60 s carrying bytes past 90 s by its Refresh;
+# each says "did not run" with no coturn, so the job fails on that word.
+# Then the entry's whole road: coturn with TLS on 443 under a CA made for the
+# run, Ubuntu's squid as the host's proxy (HTTPS_PROXY), OpenSSH's sshd as
+# the target: podssh ssh --turn turns:turn.test carries 1 MiB each way with
+# equal digests, and squid's log holds two CONNECTs to turn.test:443, the
+# control connection and the data connection. Started by hand, and on a push
+# that changes the road; it publishes nothing. The credential is the run's
+# own throwaway, in a file that the run removes.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-ws/src/turn/**"
+      - "crates/podssh-cli/src/turn/**"
+      - "crates/podssh-ws/tests/turn.rs"
+      - "crates/podssh-cli/tests/turn_road.rs"
+      - ".github/workflows/turn-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: turn-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: coturn, squid and sshd of Ubuntu
+        run: |
+          set -eu
+          sudo apt-get update -q
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q coturn squid openssh-server openssl
+          # The packages' own services stay off: the run starts its own.
+          sudo systemctl stop coturn 2>/dev/null || true
+          turnserver --version 2>&1 | head -1 || true
+          echo "PODSSH_TURN_TEST_BIN=$(command -v turnserver)" >> "$GITHUB_ENV"
+      - name: the road against coturn on the loopback
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-ws --lib turn
+          cargo test --locked -p podssh-ws --test turn
+          cargo test --locked -p podssh-cli --lib turn
+          timeout 900 cargo test --locked -p podssh-cli --test turn_road -- --nocapture 2>&1 \
+            | tee "$RUNNER_TEMP/turn.log"
+          grep -q "test result: ok. 4 passed" "$RUNNER_TEMP/turn.log"
+          if grep -q "did not run" "$RUNNER_TEMP/turn.log"; then echo "a test did not run"; exit 1; fi
+      - name: turns on 443 through squid to sshd
+        run: |
+          set -eu
+          cargo build --locked -p podssh-cli
+          BIN=$PWD/target/debug/podssh
+          W=$RUNNER_TEMP/turn
+          mkdir -p "$W"
+          cd "$W"
+          # A root and a leaf for turn.test, made for this run alone.
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -keyout ca.key -out ca.pem \
+            -days 2 -subj /CN=turn-root
+          openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -keyout srv.key -out srv.csr \
+            -subj /CN=turn.test
+          printf 'subjectAltName=DNS:turn.test\nbasicConstraints=CA:FALSE\n' > leaf.cnf
+          openssl x509 -req -in srv.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out srv.pem -days 2 \
+            -extfile leaf.cnf
+          echo "127.0.0.1 turn.test" | sudo tee -a /etc/hosts >/dev/null
+          # The run's password, in files alone: never an argument.
+          umask 077
+          openssl rand -hex 16 > pass
+          printf 'podssh-run:%s\n' "$(cat pass)" > auth
+          {
+            echo "user=podssh-run:$(cat pass)"
+            printf '%s\n' no-cli no-dtls no-udp listening-ip=127.0.0.1 relay-ip=127.0.0.1 allow-loopback-peers \
+              listening-port=3478 tls-listening-port=443 "cert=$W/srv.pem" "pkey=$W/srv.key" lt-cred-mech \
+              realm=podssh.test simple-log "log-file=$W/coturn.log"
+          } > turnserver.conf
+          umask 022
+          # coturn with TLS on 443, TCP allocations allowed to the loopback.
+          sudo turnserver -c "$W/turnserver.conf" --daemon
+          # sshd on 2222 with a host key and a user key of the run.
+          ssh-keygen -q -t ed25519 -N '' -f host_key
+          ssh-keygen -q -t ed25519 -N '' -f id
+          cp id.pub authorized_keys
+          sudo mkdir -p /run/sshd
+          sudo /usr/sbin/sshd -p 2222 -h "$W/host_key" -o "AuthorizedKeysFile=$W/authorized_keys" \
+            -o StrictModes=no -o PasswordAuthentication=no -o "PidFile=$W/sshd.pid"
+          # Ubuntu's squid as it comes: CONNECT to 443 from this host.
+          sudo systemctl restart squid
+          for _ in $(seq 1 50); do
+            (exec 3<>/dev/tcp/127.0.0.1/3128) 2>/dev/null && (exec 3<>/dev/tcp/127.0.0.1/443) 2>/dev/null && break
+            sleep 0.2
+          done
+          head -c 1048576 /dev/urandom > up
+          head -c 1048576 /dev/urandom > down
+          OPTS="-i $W/id -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$W/kh -o BatchMode=yes -p 2222"
+          road() {
+            HTTPS_PROXY=http://127.0.0.1:3128 PODSSH_SSH_CONFIG=none timeout 300 "$BIN" ssh \
+              --turn turns:turn.test --turn-auth-file "$W/auth" --ca-file "$W/ca.pem" $OPTS "$USER@127.0.0.1" "$@"
+          }
+          got_up=$(road sha256sum < up | cut -d' ' -f1)
+          [ "$got_up" = "$(sha256sum < up | cut -d' ' -f1)" ] || { echo "the 1 MiB up differs"; exit 1; }
+          got_down=$(road cat "$W/down" | sha256sum | cut -d' ' -f1)
+          [ "$got_down" = "$(sha256sum < down | cut -d' ' -f1)" ] || { echo "the 1 MiB down differs"; exit 1; }
+          echo "1 MiB each way through turns:turn.test, equal digests"
+          # Two CONNECTs to the same name for each session: the control
+          # connection and the data connection (Q93).
+          n=$(sudo grep -c 'CONNECT turn.test:443' /var/log/squid/access.log || true)
+          echo "squid's CONNECTs to turn.test:443: $n"
+          [ "$n" -ge 4 ] || { sudo tail -20 /var/log/squid/access.log; exit 1; }
+          # Nothing that podssh wrote shows the password.
+          if road -v true 2>&1 | grep -qFf pass; then echo "the password was shown"; exit 1; fi
+      - name: remove the run's keys and credential
+        if: always()
+        run: |
+          sudo kill "$(cat "$RUNNER_TEMP/turn/sshd.pid" 2>/dev/null)" 2>/dev/null || true
+          sudo pkill -x turnserver || true
+          rm -rf "$RUNNER_TEMP/turn"

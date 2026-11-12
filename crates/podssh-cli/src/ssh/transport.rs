@@ -291,6 +291,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
         | Transport::Trojan { .. }
         | Transport::Tuic { .. }
         | Transport::Hysteria { .. }
+        | Transport::Turn { .. }
         | Transport::Chisel { .. } => super::servers::reach(resolved, &first.host, first.port, log).await,
         Transport::Direct => {
             if podssh_relay::open::offline() {

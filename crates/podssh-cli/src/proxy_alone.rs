@@ -18,7 +18,8 @@ pub(crate) fn exit_alone(args: &ProxyArgs) -> Result<(), crate::relay_settings::
         || args.tuic.is_some()
         || args.via != crate::via::Flags::default()
         || args.wstunnel != crate::wstunnel::Flags::default()
-        || args.chisel != crate::chisel::Flags::default();
+        || args.chisel != crate::chisel::Flags::default()
+        || args.turn != crate::turn::Flags::default();
     if other {
         let why = "--exit takes the relay's place: it goes with no relay host and no server of another road";
         return Err(crate::relay_settings::Refusal::usage(why));
