@@ -1743,8 +1743,9 @@ path of 120 ms) and logs each flight, a cold `podssh ssh --direct ... true` to O
   (`first_kex_packet_follows`, right only when the client's first key exchange and host key name are
   the server's, which a stock sshd orders by its host key files, RSA first), and a CHANNEL_OPEN behind
   the auth request, which OpenSSH drops while the auth runs and Dropbear ends the connection for.
-- Waits: `feel-netem.yml` on the artifact of this push's run of `build.yml`, the Prove's run, with its
-  count (STATUS records it).
+- The Prove's run, `feel-netem.yml` run 43127674908 on the release dry run's binary at `f029594d`
+  (run 43103633849), a cold connect and `true` by `--direct` (p50) against T-660's run: far 1,147 to
+  1,013 ms, one round trip of 120 ms less; cellular 609 to 535, wifi 247 to 212, slow 1,315 to 885.
 
 # T-681: The echo beside a download on cellular, wifi and the slow link is 1.5 to 3.5 times osewa's
 
@@ -1816,7 +1817,10 @@ The echo beside a download (p50, ms) and the download while typing, before and a
 each of the three repairs undone, its test fails (and `on_a_slow_long_path_too` for the margin). `cargo
 test -p podssh-ssh`: each passed. Not done here: the fake links' halving of a sender's window at a loss
 (the Approach's step 2), as the three causes were the pace's own; wifi's download reads 2.2 MiB/s here
-and 0.7 on netem. Waits: `feel-netem.yml` on this push's artifact, the Prove's run.
+and 0.7 on netem. The Prove's run, `feel-netem.yml` run 43127674908 on the release dry run's binary at
+`f029594d`, the echo beside a download by `--direct` (p50) against T-660's run, with osewa's WebSocket of
+the same run: cellular 119.7 to 82.0 ms (osewa 83.6), wifi 131.1 to 30.5 (81.3), slow 565.3 to 239.0
+(161.3); far 120.5, its download while typing 3.1 MiB/s, as before. Each link's is nearer its idle echo.
 
 The gate at `f029594d` (run 43103626415): Windows failed `ping_feel`'s test, which asked that the echo beside
 the download read above the idle echo's p95, the queue that this entry removes (75.0 ms beside it, idle p50
