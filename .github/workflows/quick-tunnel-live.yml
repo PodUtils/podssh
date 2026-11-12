@@ -315,7 +315,7 @@ jobs:
           host2=$(sed -n 's#^https://##p' "$RUNNER_TEMP/url2" | head -n 1)
           [ -n "$host2" ] && echo "::add-mask::$host2"
           sed 's/^/node2: /' "$RUNNER_TEMP/node2.log"
-          grep -q "QUIC gave way: UDP to the edge got no answer" "$RUNNER_TEMP/node2.log" || { echo "FAIL QUIC's failure was not said"; exit 1; }
+          grep -q "QUIC gave way: UDP got no answer" "$RUNNER_TEMP/node2.log" || { echo "FAIL QUIC's failure was not said"; exit 1; }
           grep -q "registered at .*, over HTTP/2" "$RUNNER_TEMP/node2.log" || { echo "FAIL not over HTTP/2"; exit 1; }
           took=$(sed -n 's/.*, over HTTP\/2 (its race took \([0-9.]*\) s).*/\1/p' "$RUNNER_TEMP/node2.log" | head -n 1)
           echo "the race to HTTP/2 took ${took:-?} s"
