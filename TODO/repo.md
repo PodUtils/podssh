@@ -5717,6 +5717,10 @@ reason }` (`layered.rs` reads `.reason`), and pod-identity's `KeyName` has a dis
 net's member is now written in as given (`net/doc.rs`; `a_member_named_by_the_display_form_reads_back_as_that_name`).
 `cargo test --workspace --no-fail-fast`: 3927 passed, 0 failed, 94 ignored.
 
+2026-11-12, podcrates `v0.34.0` (`ee514e7`, COORD-065, PodUtils/podcrates#104): each crate moved; no patch for podssh, no
+change of an API that podssh uses (the TCP carrier of `pod-link`, podnet's `ip.rs` settings and WARP's closed sessions are
+podnet's). `cargo test --workspace --no-fail-fast`: 3929 passed, 0 failed, 94 ignored.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
