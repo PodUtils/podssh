@@ -361,6 +361,9 @@ jobs:
           sed 's/^/node5: /' "$RUNNER_TEMP/node5.log"
           [ -n "$host5" ] || { echo "FAIL the exit's node printed no name"; exit 1; }
           grep -q "127.0.0.1/32" "$RUNNER_TEMP/node5.log" || { echo "FAIL the exit's line named no range"; exit 1; }
+          # A new name resolves some seconds after its registration, as the
+          # other nodes' visitors wait for it.
+          timeout 120 python3 scripts/quick-tunnel-probe.py --limit 90 "$host5"
           export PODSSH_SSH_CONFIG="$RUNNER_TEMP/ssh_config"
           set +e
           got=$(PODSSH_NET="$net/net.doc" timeout 180 target/debug/podssh ssh --client-key "$net/member.key" \
