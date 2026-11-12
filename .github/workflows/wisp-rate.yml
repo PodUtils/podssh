@@ -1,0 +1,85 @@
+name: wisp rate
+
+# The rate of the Wisp demo server through podssh (T-625): from GitHub
+# Actions alone (the operator's ruling Q56), to the operator's server of
+# PODSSH_THROUGHPUT_SSH with the key of PODSSH_THROUGHPUT_KEY (Q38), through
+# `--forwarder wisp`. Three runs, each of a session that runs `true` (the
+# open and the login), then 4 MiB down by `head -c 4194304 /dev/zero`, then
+# 4 MiB up into `cat > /dev/null`; each rate is the bytes over the session's
+# time less the time of `true`. Short (Q88); by hand; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wisp-rate
+  cancel-in-progress: false
+
+jobs:
+  rate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build podssh
+        run: cargo build --locked -p podssh-cli
+      - name: three runs through the Wisp demo server
+        env:
+          DEST: ${{ secrets.PODSSH_THROUGHPUT_SSH }}
+          DEST_KEY: ${{ secrets.PODSSH_THROUGHPUT_KEY }}
+        run: |
+          set -u
+          if [ -z "$DEST" ] || [ -z "$DEST_KEY" ]; then
+            echo "FAIL the secrets PODSSH_THROUGHPUT_SSH and PODSSH_THROUGHPUT_KEY are not both set"
+            exit 1
+          fi
+          # The key in a file of the runner's own, read by its owner alone,
+          # and removed with the runner.
+          key="$RUNNER_TEMP/dest-key"
+          umask 077
+          printf '%s\n' "$DEST_KEY" > "$key"
+          head -c 4194304 /dev/zero > "$RUNNER_TEMP/up.bin"
+          # The first host key seen, kept for the run: a measurement, not a
+          # trust decision.
+          set -- --forwarder wisp -i "$key" -o BatchMode=yes \
+            -o "UserKnownHostsFile=$RUNNER_TEMP/known_hosts" -o StrictHostKeyChecking=accept-new
+          now() { date +%s.%N; }
+          failed=0
+          for run in 1 2 3; do
+            t0=$(now); rc=0
+            timeout 120 target/debug/podssh ssh "$@" "$DEST" true 2>"$RUNNER_TEMP/open.err" || rc=$?
+            t1=$(now)
+            if [ "$rc" -ne 0 ]; then
+              echo "run $run: true exited $rc"; tail -5 "$RUNNER_TEMP/open.err"; failed=1; continue
+            fi
+            rc=0
+            timeout 300 target/debug/podssh ssh "$@" "$DEST" 'head -c 4194304 /dev/zero' \
+              >"$RUNNER_TEMP/down.bin" 2>"$RUNNER_TEMP/down.err" || rc=$?
+            t2=$(now)
+            down=$(wc -c < "$RUNNER_TEMP/down.bin")
+            if [ "$rc" -ne 0 ] || [ "$down" -ne 4194304 ]; then
+              echo "run $run: down exited $rc with $down bytes"; tail -5 "$RUNNER_TEMP/down.err"; failed=1; continue
+            fi
+            rc=0
+            timeout 300 target/debug/podssh ssh "$@" "$DEST" 'cat > /dev/null' \
+              <"$RUNNER_TEMP/up.bin" 2>"$RUNNER_TEMP/up.err" || rc=$?
+            t3=$(now)
+            if [ "$rc" -ne 0 ]; then
+              echo "run $run: up exited $rc"; tail -5 "$RUNNER_TEMP/up.err"; failed=1; continue
+            fi
+            python3 -I - "$run" "$t0" "$t1" "$t2" "$t3" <<'EOF'
+          import sys
+          run, t0, t1, t2, t3 = sys.argv[1], *map(float, sys.argv[2:])
+          opened = t1 - t0
+          down, up = (t2 - t1) - opened, (t3 - t2) - opened
+          mib = 4.0
+          print(f"RATE run {run}: open and login {opened:.2f} s; 4 MiB down in {down:.2f} s, "
+                f"{mib / down:.3f} MiB/s; 4 MiB up in {up:.2f} s, {mib / up:.3f} MiB/s")
+          EOF
+          done
+          exit "$failed"

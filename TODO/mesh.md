@@ -11876,7 +11876,7 @@ results/wisp-throughput.json), read by a drafting agent the same day:
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -11922,6 +11922,15 @@ say of it, need podssh's own number.
   mostly its fixed costs (`docs/research/forward-carriers.md`, section 4, item 5); 16 MiB, more
   than two minutes each way through `ppng.io`.
 
+2026-11-12 (main session). **Each form where podssh uses it.** A client's links to `ppng.io` are
+streamed, and numbered only once a streamed one does not flow; to the server that pod-services marks as
+holding a body to its end (`piping.onrender.com`), they are numbered from the first. So the test
+measures the streamed form through `ppng.io` and the numbered pieces through that server, and says the
+form of each run. Lost: both forms through `ppng.io`, which would need a switch in the road for a test
+alone. A run that does not end within 240 s is a measurement too: it is said, and that server's other
+runs are skipped. The rate is 4 MiB each way at once through an echo, after one byte echoed, which
+times the open.
+
 ## Prove
 
 ```sh
@@ -11931,6 +11940,20 @@ cargo test -p podssh-relay --features piping --test piping_live -- --ignored
 
 The rates of both forms through `ppng.io`, three runs each, written with their date; the demo
 server's runs in `.github/workflows/forwarder-live.yml`, by hand, written the same way.
+
+## Done
+
+Partial (2026-11-12):
+- `piping_live.rs`'s `the_rates_of_both_forms_through_the_public_servers`, and `piping-rate.yml` (by hand),
+  which runs it from GitHub Actions. `wisp-rate.yml` (by hand) times step 2: three runs of `true`, 4 MiB
+  down and 4 MiB up through `--forwarder wisp` to the server of `PODSSH_THROUGHPUT_SSH`.
+- From this cloud session, through its agent proxy (`cargo test -p podssh-relay --features piping --test
+  piping_live -- --ignored --nocapture the_rates`): through `ppng.io`, streamed, three runs: open 2.04, 1.96
+  and 2.06 s; 4 MiB each way at once in 15.84, 15.29 and 15.28 s, 0.253, 0.262 and 0.262 MiB/s each way,
+  twice the archive's 0.12 MiB/s for one way alone. Through `piping.onrender.com`, numbered: the first run
+  did not end within 240 s.
+- Waits: the runs of `piping-rate.yml` and `wisp-rate.yml`; then the rates in `docs/carriers.md` and
+  `docs/STATUS.md`.
 
 # T-626: I2P, Nym and cjdns: whether an overlay of peer addresses carries a podssh pair: the research
 
@@ -14279,6 +14302,11 @@ egress reaches a WebSocket on 443. podssh does not use it.
   record's format in `podssh-iroh`, for a name that the existing field holds already); the relay
   road of step 4 (`--relay-host https://NAME` with `--relay`, which works unchanged, but gives a
   client no way to learn a random name).
+- **A name outside hostc.app's zone is a tunnel of `ssh -R` at a server of its own** (main session,
+  2026-11-12, after `hostc-interop.yml`'s first runs): the client knows a zone from `pod-services`
+  alone, so a name of a server that `PODSSH_HOSTC` names takes `PODSSH_LOCALHOST_RUN`'s switch and
+  line, as any name outside a known zone does. Lost: a zone in the variable (`URL#ZONE`), one more
+  form to read for a server whose user runs it and needs no line of a third party.
 - **The windows stay 256 KiB.** A grant back is of the bytes that the pipe took, never more; the
   node does not widen a window as hostc's `GrowingWindow` does. The node then holds at most one
   window of a request that its side does not read, and sends no more of an answer than the server

@@ -1,0 +1,33 @@
+name: piping rate
+
+# The rates of the Piping Server road through podssh (T-625), from GitHub's
+# network: three sessions through each public server, 4 MiB each way at
+# once, the streamed form through ppng.io and the numbered pieces through the
+# server that holds a body to its end, each open timed apart; a run that does
+# not end within its time says so. Short, as the operator's rulings Q65 and
+# Q88 allow; by hand; it publishes nothing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: piping-rate
+  cancel-in-progress: false
+
+jobs:
+  rate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-relay --features piping --test piping_live --no-run
+      - name: the rates through the public servers
+        run: |
+          timeout 1200 cargo test --locked -p podssh-relay --features piping --test piping_live -- \
+            --ignored --nocapture the_rates

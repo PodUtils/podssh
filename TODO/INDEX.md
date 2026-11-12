@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 67 open, 20 partial, 11 blocked, 612 done.**
+**710 entries: 66 open, 21 partial, 11 blocked, 612 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 38 | 8 | 7 | 278 | 331 |
-| **All** | 67 | 20 | 11 | 612 | 710 |
+| P3 | 37 | 9 | 7 | 278 | 331 |
+| **All** | 66 | 21 | 11 | 612 | 710 |
 
 ## Entries
 
@@ -664,7 +664,7 @@ repository and CI).
 | [T-622](roads.md) | P3 | M | M10 | feature | open | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
 | [T-623](mesh.md) | P3 | S | M10 | research | done | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
 | [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
-| [T-625](mesh.md) | P3 | S | M10 | measurement | open | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |
+| [T-625](mesh.md) | P3 | S | M10 | measurement | partial | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |
 | [T-626](mesh.md) | P3 | S | M10 | research | done | I2P, Nym and cjdns: whether an overlay of peer addresses carries a podssh pair: the research |
 | [T-627](robustness.md) | P1 | S | M10 | defect | partial | The relay role's test of a resume by the next token of one leg timed out once in the relay crate's suite |
 | [T-628](mesh.md) | P1 | S | M10 | defect | done | The relay role's refusal of a target names the address that its name resolved to, so a holder of a token maps the role's network |

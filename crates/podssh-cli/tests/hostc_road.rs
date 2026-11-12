@@ -299,10 +299,15 @@ fn the_binary_s_node_behind_hostc_s_server_carries_a_session_of_ssh_with_the_pai
     let destination = format!("node://{user}@lab");
     let mut words = words.to_vec();
     words.extend_from_slice(&[destination.as_str(), "echo ok"]);
-    let out = with_proxy(command(&client_home, &server, &words)).stdin(Stdio::null()).output().expect("ssh runs");
+    // The test's zone is no zone that the client knows (hostc's is
+    // hostc.app's, of pod-services), so the name takes the switch and the
+    // line of a tunnel of `ssh -R` at a server of its own, as any such name.
+    let mut client = with_proxy(command(&client_home, &server, &words));
+    client.env_remove("PODSSH_LOCALHOST_RUN");
+    let out = client.stdin(Stdio::null()).output().expect("ssh runs");
     let err = String::from_utf8_lossy(&out.stderr);
     assert_eq!(out.status.code(), Some(0), "{err}");
     assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "ok", "{err}");
-    assert!(err.contains("hostc") && err.contains("nobody vouches for"), "the line of Q78: {err}");
+    assert!(err.contains("nobody vouches for"), "the line of Q78: {err}");
     drop(node);
 }

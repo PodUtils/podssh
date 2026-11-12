@@ -76,7 +76,7 @@ item whenever it appears.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
     run): T-576, T-738 (T-571, T-578, T-737 and T-739 are done; T-740 stays blocked; T-566, T-567 and
-    T-575 are parked), then T-625 (T-580, T-581 and T-582 are done), T-621 and T-742. Done when each Prove passes, one entry at a time.
+    T-575 are parked), then T-625 and T-742 (T-580, T-581, T-582 and T-621 are done). Done when each Prove passes, one entry at a time.
 13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
     complete, so that the testers test finished features. Questions that come up overnight are
     settled with the other sessions by COORD issues, and forks of policy as Q86 says.
@@ -110,7 +110,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 67 open, 20 partial, 11 blocked, 612 done.
+`TODO/INDEX.md` holds 710 entries: 66 open, 21 partial, 11 blocked, 612 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
