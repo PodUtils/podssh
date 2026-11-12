@@ -59,7 +59,7 @@ server listens, and the client connects out for each connection.
 3. In the handler, accept a `forwarded-tcpip` channel only for an address and
    a port that podssh asked for, and reject the rest. Dial the spec's target
    with `podssh_ws::dial::dial` and `ProxyChoice::FromEnvironment`, as
-   `--direct` does (`crates/podssh-cli/src/ssh/transport.rs:383-389`), with the
+   `--direct` does (`crates/podssh-cli/src/ssh/transport.rs:386-392`), with the
    limit of 20 s (`PodUtils/podssh:crates/podssh-relay/src/open.rs:31-33`).
 4. Copy both ways. Pass EOF on in each direction, and close both ends on an
    error. The SSH window is the flow control.

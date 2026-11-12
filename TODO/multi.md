@@ -3624,7 +3624,7 @@ with no result file, no `--json`, no `--parallel` and no job record.
   and then refuses it (`crates/podssh-cli/src/each/host.rs:62`, `crates/podssh-cli/src/job/mod.rs:60`,
   `crates/podssh-cli/src/run_cmd/mod.rs:223`).
 - Read: `transport::reach` cannot reach a node, an `iroh:` or a `derp:` destination
-  (`crates/podssh-cli/src/ssh/transport.rs:265-275`). `ssh/node.rs:160` runs the whole session of a node
+  (`crates/podssh-cli/src/ssh/transport.rs:268-278`). `ssh/node.rs:160` runs the whole session of a node
   and gives no stream, so the sink of `each` (`each/host.rs:140`) has nothing to take.
 - Read: `--persist` refuses the same three (`crates/podssh-cli/src/ssh/persist.rs:60`); it stays as it is.
 - Not measured: a node whose TARGET is not an sshd. `job` needs the host's own `sh`; a node whose TARGET is a

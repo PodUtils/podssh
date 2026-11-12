@@ -5759,7 +5759,7 @@ does not depend on them.
 - Read: `Transport::Direct` comes from `--direct` alone
   (`crates/podssh-cli/src/ssh/resolve.rs`, lines 340-346 at `4e2010e`), and else the relay (lines 348-371 at `4e2010e`); its other
   uses are a label (`crates/podssh-cli/src/ssh/mod.rs:299`), the dial
-  (`crates/podssh-cli/src/ssh/transport.rs:311-355`) and a check of `--upgrade`
+  (`crates/podssh-cli/src/ssh/transport.rs:314-358`) and a check of `--upgrade`
   (`crates/podssh-cli/src/ssh/upgrade.rs:59`). The issue's citation of
   the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:344-347`.
 - Read: `docs/design.md:45` says "podssh tries the roads in this order"; for a public sshd, the
@@ -5770,7 +5770,7 @@ does not depend on them.
   and for the split HTTP road (`AGENTS.md:332-360`); a race of the forward and the direct road is
   neither.
 - Read: the direct dial goes through `HTTPS_PROXY` when it is set, with the relay's step limit of
-  20 s (`crates/podssh-cli/src/ssh/transport.rs:371-385`, `PodUtils/podssh:crates/podssh-relay/src/open.rs:33`),
+  20 s (`crates/podssh-cli/src/ssh/transport.rs:374-388`, `PodUtils/podssh:crates/podssh-relay/src/open.rs:33`),
   and names a proxy that takes the CONNECT and sends nothing back (T-317). doctor reads the
   server's version line on port 22, straight out or through the proxy, to say whether plain ssh
   can leave (`crates/podssh-cli/src/doctor/net.rs:193-200`, `:202-294`).
@@ -8236,7 +8236,7 @@ puts the fallback in its `ok` column without a probe.
 - Read: the fallback follows each failure of the relay whose exit is 69 or 77
   (`crates/podssh-cli/src/forwarder/fallback.rs:93-113`), on by default
   (`crates/podssh-cli/src/forwarder/fallback.rs:57-69`), after the direct road
-  (`crates/podssh-cli/src/ssh/transport.rs:231-262`); the module's own words are that "a target
+  (`crates/podssh-cli/src/ssh/transport.rs:231-265`); the module's own words are that "a target
   that cannot go" ends the run as before (`crates/podssh-cli/src/forwarder/fallback.rs:10-12`).
 - Read: the relay's refusal of a target by its policy (400, a blocked address range) is 77
   (`crates/podssh-cli/src/proxy.rs:423-424`), and each other answer, the 502 of a target that the

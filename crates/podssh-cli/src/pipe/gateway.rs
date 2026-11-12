@@ -57,7 +57,7 @@ async fn relay(host: &str, port: u16, settings: &Settings, say: &mut dyn FnMut(&
     let road = super::relay::Road { relays, trust: &settings.trust, failover: settings.failover };
     let opened = super::relay::session(&road, host, port, &path, say).await;
     opened.map_err(|failure| {
-        let lines = failure.lines(&podssh_ws::dial::authority(host, port));
+        let lines = podssh_relay::open::words(&failure, &podssh_ws::dial::authority(host, port));
         for line in &lines {
             say(line);
         }

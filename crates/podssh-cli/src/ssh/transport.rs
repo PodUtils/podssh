@@ -229,7 +229,10 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                     Ok(Reached { stream: Box::new(stream), relay: Some(status), direct_proxy: None, layer: None })
                 }
                 Err(failure) => {
-                    let not = NotReached { lines: failure.lines(&target), code: crate::proxy::sysexit(failure.last()) };
+                    let not = NotReached {
+                        lines: podssh_relay::open::words(&failure, &target),
+                        code: crate::proxy::sysexit(failure.last()),
+                    };
                     let answered = crate::forwarder::fallback::answered(&failure);
                     // Offline, neither the direct road nor a forwarder may connect.
                     if matches!(failure.last(), OpenError::Offline) {

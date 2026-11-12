@@ -1451,7 +1451,7 @@ measured, and the test fails.
 ## Correction
 
 - `podssh ping` with a node's destination was refused, not measured:
-  `crates/podssh-cli/src/ssh/transport.rs:266` says "a node:// destination is reached through
+  `crates/podssh-cli/src/ssh/transport.rs:269` says "a node:// destination is reached through
   its pair, not here", which `ping::run` reached for each destination that `podssh ssh` reads as a
   node (64). So item 2 gives `ping` a node's destination, with lines of its own, rather than a
   line among a host's measures.

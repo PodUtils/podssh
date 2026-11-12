@@ -190,7 +190,7 @@ async fn open_github(
     // Its progress notes repeat what the relay lines above already say.
     let opened = podssh_relay::open(&request, &mut |_: &str| {})
         .await
-        .map_err(|failure| format!("{target}: {}", failure.lines(&target).join("; ")))?;
+        .map_err(|failure| format!("{target}: {}", podssh_relay::open::words(&failure, &target).join("; ")))?;
     let skipped: Vec<&str> =
         relays.hosts.iter().map(|r| r.host.as_str()).take_while(|h| *h != opened.relay.host).collect();
     // The road that carried it, the cleartext one (T-326) and HTTP/2's

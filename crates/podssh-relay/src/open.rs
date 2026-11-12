@@ -42,3 +42,35 @@ pub async fn open(req: &Request<'_>, notes: &mut dyn FnMut(&str)) -> Result<Open
     pod_relay::open::open(&pod_relay::open::Request { ctx: &ctx, relays, path, trust, target, rounds, failover }, notes)
         .await
 }
+
+/// `pod-relay`'s words for an offline run and a rejected token, which name
+/// no variable; podssh's name the one that the user sets.
+const GENERIC_OFFLINE: &str = "the offline setting is on, so no connection goes anywhere";
+const GENERIC_TOKEN: &str = "the relay token that was given was rejected";
+
+/// The lines of `failure` for `target`, as `Failure::lines` gives them, in
+/// podssh's words where `pod-relay`'s name no variable: `PODSSH_OFFLINE`
+/// and `PODSSH_RELAY_TOKEN`, as before the crate moved (T-684).
+pub fn words(failure: &Failure, target: &str) -> Vec<String> {
+    failure
+        .lines(target)
+        .into_iter()
+        .map(|line| {
+            line.replace(GENERIC_OFFLINE, &format!("{OFFLINE_ENV} is set, so no connection goes anywhere"))
+                .replace(GENERIC_TOKEN, &format!("the token in {} was rejected", crate::token::TOKEN_ENV))
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod words_tests {
+    use super::*;
+
+    #[test]
+    fn the_lines_name_podssh_s_variables() {
+        let failure = Failure { attempts: vec![(String::from("relay.example"), OpenError::Offline)] };
+        let lines = words(&failure, "host:22");
+        assert!(lines.iter().any(|l| l.contains("PODSSH_OFFLINE is set")), "{lines:?}");
+        assert!(!lines.iter().any(|l| l.contains(GENERIC_OFFLINE)), "{lines:?}");
+    }
+}
