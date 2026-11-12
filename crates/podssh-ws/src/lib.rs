@@ -80,7 +80,7 @@ pub use pod_proxy::proxy;
 // What meek_lite and WebTunnel share: a bridge's arguments, its URL, the
 // connection (T-385).
 pub mod pt;
-// The public proxy nodes of aggregator lists, VLESS and Trojan: the last
+// The public proxy nodes of aggregator lists, VLESS, Trojan and VMess: the last
 // fallback of the forward road (T-574).
 pub mod proxy_nodes;
 pub mod resolve;
@@ -102,6 +102,9 @@ pub mod trojan;
 // A guest's WebSocket to uptermd, the first hop of `-J upterm://` (T-495).
 pub mod upterm;
 pub mod url;
+// VMess's AEAD form over a WebSocket, the third line form of the public
+// proxy nodes (T-739).
+pub mod vmess;
 // A second proxy over TLS, HTTP/1.1's and HTTP/2's CONNECT (T-439).
 pub mod via;
 // VLESS over a WebSocket and over XHTTP, to a server that the user runs

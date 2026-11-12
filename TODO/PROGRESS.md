@@ -42,11 +42,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** One waits:
-
-   | Draft | Branch | Commit | State |
-   | --- | --- | --- | --- |
-   | T-739 | `draft/t739-vmess` | `6d271ec4` | WIP, never built: the KDF, the header, the body, the link |
+8. **Drafts.** None waits (T-739's `draft/t739-vmess` is merged, 2026-11-12).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -83,7 +79,7 @@ item whenever it appears.
     (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
-    run): T-571, T-576, T-578, T-738, T-739 (T-740 stays blocked; T-566, T-567 and T-575 are
+    run): T-571, T-576, T-578, T-738 (T-739 is done; T-740 stays blocked; T-566, T-567 and T-575 are
     parked), then T-580, T-581 and T-582 (live where UDP passes), then T-625, T-621, T-741 and
     T-742. Done when each Prove passes, one entry at a time.
 13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
@@ -119,7 +115,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 73 open, 22 partial, 11 blocked, 603 done.
+`TODO/INDEX.md` holds 709 entries: 73 open, 21 partial, 11 blocked, 604 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -196,7 +192,7 @@ parts are named so that the open ones read in their place):
    peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
-   carrier (T-738), VMess's AEAD form (T-739) and Bare servers as a hop (T-740); T-566, T-567 and
+   carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and
    T-575 parked); and the roads over UDP (T-580, T-581, T-582). These are features of a tester's
    report and of the sweep, done after the defects (Q85). Then what the archive of forward
    carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the

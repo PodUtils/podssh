@@ -10458,7 +10458,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:303-304`), and needs the net's role exit, signed by
   its owner (`:301-302`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:144`).
+  (`docs/STATUS.md:145`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13498,7 +13498,7 @@ hosts, limits and sources are in `docs/carriers.md`; each is UNVERIFIED by a tes
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13545,12 +13545,27 @@ decodes in the test's reader. Planted: the KDF's label changed, and the test aga
 
 ## Done
 
-Partial (2026-11-12): the draft `draft/t739-vmess` (`6d271ec4`, never built) holds `podssh-ws/src/vmess/`: the KDF
-(nested HMAC-SHA-256, read against Xray-core v26.10.21's `aead/kdf.go`), the auth ID, the sealed header and
-the answer's, the body's chunks of the option S, and the `vmess://` link. To do: `mod.rs` and `ws.rs` as
-Trojan's, `Node::Vmess` in `proxy_nodes` and its list reader, and the test against Xray-core
-v26.10.21 (the release `scripts/interop-vless.sh` pins; `xray tls cert` makes the server's certificate).
-Each result is UNVERIFIED until it is built and run.
+Done (2026-11-12). The draft `draft/t739-vmess` (`6d271ec4`) merged, built and tested, with `mod.rs` and `ws.rs` as
+Trojan's (`crates/podssh-ws/src/vmess/`), `Node::Vmess` in `proxy_nodes` (the word "VMess" in each line of a node), and
+the list reader's `vmess://` lines (`proxy_nodes/list.rs`); the manual's `PODSSH_PROXY_LISTS` and `docs/cli.md` name it.
+
+- Against Xray-core v26.10.21 (the release and SHA-256 that `scripts/interop-vless.sh` pins), run natively on the
+  loopback by `crates/podssh-ws/tests/vmess.rs` over a WebSocket and TLS at `/vm`, with a root and a leaf that
+  `openssl` makes for the run: `PODSSH_XRAY_TEST_BIN=.work/xray/bin/xray cargo test -p podssh-ws --test vmess`,
+  3 passed in 3.2 s: AES-128-GCM, ChaCha20-Poly1305 and `auto` each carry the target's version line and 300 KB
+  echoed whole; a pipe takes a stream whose target waits; a clock 5 minutes behind, 5 minutes ahead, and another ID
+  each get no session, with a line that names the clock; another path is refused by its status. With no Xray-core
+  each test says "did not run", and `vmess-interop.yml` (by hand, and on a push of the road) fails on that word.
+- Xray's `freedom` blackholes a private target unless a final rule allows it (`proxy/freedom/freedom.go`): the
+  test's configuration allows `127.0.0.0/8`, as `interop-vless.sh` allows its private ranges.
+- Planted: the label `VMess Header AEAD Key` changed by one byte, and `each_cipher_carries_a_session_through_xray`
+  fails at once (Xray drops the header); restored, it passes.
+- The header from the spec's bytes decodes in the test's own reader (`vmess::header::tests`); `cargo test -p
+  podssh-ws --lib vmess`, 12 passed; `--lib proxy_nodes`, 8 passed (a kept VMess line, and the MD5 form counted as a
+  kind that podssh does not speak); the whole of `cargo test -p podssh-ws`, no failure; clippy as the gate runs it, no
+  warning.
+- The MD5 form: Xray-core v26.10.21 takes a user with `alterId` 64 in its configuration (`xray run -test`:
+  "Configuration OK"); whether it serves that form was not measured, and nothing relies on it: podssh never sends it.
 
 # T-740: Bare servers as a hop of the WebSocket roads, tried last
 

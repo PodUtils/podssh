@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:391`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:392`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -3835,7 +3835,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3458-3464`.
+  `docs/cli.md:3459-3465`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:167-172`),
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3500`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3501`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,

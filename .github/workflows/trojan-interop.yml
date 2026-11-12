@@ -44,4 +44,4 @@ jobs:
           PODSSH_ENGINE=docker timeout 1500 sh scripts/interop-trojan.sh "$GITHUB_WORKSPACE/target/debug/podssh" \
             > trojan.log 2>&1 || rc=$?
           cat trojan.log
-          [ "$rc" = 0 ] || { echo "interop-chisel exited $rc"; exit 1; }
+          [ "$rc" = 0 ] || { echo "interop-trojan exited $rc"; exit 1; }

@@ -358,8 +358,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_PROXY_LISTS"],
         "no: when each relay host, each forwarder and each ws:// form failed, podssh does not ask the public lists \
-      of proxy nodes (VLESS and Trojan, which anonymous operators run; the lists are the services of the kind \
-      proxy-list of pod-services) for a node to carry the session of podssh ssh (never a pipe of podssh proxy, \
+      of proxy nodes (VLESS, Trojan and VMess's AEAD form, which anonymous operators run; the lists are the \
+      services of the kind proxy-list of pod-services) for a node to carry the session of podssh ssh (never a pipe of podssh proxy, \
       whose stream a node could read). yes, the default, tries at most 16 nodes, \
       12 s each, as the last fallback, where the same conditions as the forwarders' hold; one line names the \
       lists' hosts and says that the target goes to a third party that nobody vouches for, and the line of the \

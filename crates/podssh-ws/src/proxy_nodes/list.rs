@@ -1,9 +1,9 @@
 //! A list's body as an aggregator serves it (T-574): lines of share links,
 //! or base64 of such lines, as a subscription is. The lines that podssh
-//! speaks, `vless://` and `trojan://`, are parsed, the filters of Q79
-//! ([`super::filter`]) keep some, and the rest is counted for one line of
-//! what was left out. A line of another scheme (VMess, Shadowsocks, ...) is
-//! counted as one that podssh does not speak (T-573 rules VMess).
+//! speaks, `vless://`, `trojan://` and `vmess://` (T-739), are parsed, the
+//! filters of Q79 ([`super::filter`]) keep some, and the rest is counted for
+//! one line of what was left out. A line of another scheme (Shadowsocks,
+//! ...), or VMess's MD5 form, is counted as one that podssh does not speak.
 
 use std::collections::{BTreeMap, HashSet};
 
@@ -13,6 +13,7 @@ use super::filter::{judge, Skip};
 use super::Node;
 use crate::trojan;
 use crate::vless;
+use crate::vmess;
 
 /// The largest list that is read.
 pub const MAX_BODY: usize = 4 << 20;
@@ -88,6 +89,7 @@ pub fn parse(body: &[u8]) -> Result<Listed, String> {
         let node = match (scheme.as_str(), line.contains("://")) {
             ("vless", true) => vless::Server::parse(line).map(Node::Vless),
             ("trojan", true) => trojan::Server::parse(line).map(Node::Trojan),
+            ("vmess", true) => vmess::Server::parse(line).map(Node::Vmess),
             (_, true) => {
                 listed.others += 1;
                 continue;
@@ -127,6 +129,13 @@ mod tests {
     fn trojan(rest: &str) -> String {
         ["trojan://", "a-list-pw", "@", rest, "\n"].concat()
     }
+    /// v2rayN's line: the base64 of the JSON, `aid` as given.
+    fn vmess(add: &str, aid: &str) -> String {
+        let json = format!(
+            r#"{{"add":"{add}","port":"443","id":"550e8400-e29b-41d4-a716-446655440000","aid":"{aid}","net":"ws","tls":"tls"}}"#
+        );
+        format!("vmess://{}\n", base64::engine::general_purpose::STANDARD.encode(json))
+    }
 
     fn body() -> String {
         [
@@ -137,6 +146,8 @@ mod tests {
             vless("c.example.com:8443?type=ws&security=tls"),
             trojan("t.example.com:443?security=tls"),
             "vmess://eyJ2IjoiMiJ9\n".into(),
+            vmess("v.example.com", "0"),
+            vmess("md5.example.com", "64"),
             "ss://abc@h.example:1\n".into(),
             "# a comment\n\n".into(),
             "vless://not-a-link\n".into(),
@@ -148,12 +159,15 @@ mod tests {
     fn a_list_of_links_gives_the_kept_nodes_once_each_and_counts_the_rest() {
         let listed = parse(body().as_bytes()).unwrap();
         let shown: Vec<String> = listed.nodes.iter().map(Node::shown).collect();
-        assert_eq!(shown, ["vless://a.example.com:443/", "trojan://t.example.com:443"]);
-        assert_eq!(listed.lines.len(), 2);
+        assert_eq!(shown, ["vless://a.example.com:443/", "trojan://t.example.com:443", "vmess://v.example.com:443/"]);
+        assert_eq!(listed.lines.len(), 3);
         assert_eq!(listed.skipped[&Skip::Fronts], 1);
         assert_eq!(listed.skipped[&Skip::Institution], 1);
         assert_eq!(listed.skipped[&Skip::Port], 1);
-        assert_eq!(listed.others, 3, "vmess, ss and a line that does not read");
+        assert_eq!(
+            listed.others, 4,
+            "a VMess line with no address, VMess's MD5 form, ss and a line that does not read"
+        );
         let note = listed.note().unwrap();
         assert!(note.starts_with("left out: ") && note.contains("kinds that podssh does not speak"), "{note}");
         assert!(!format!("{listed:?}").contains("550e8400"), "no ID in a debug print");
@@ -163,10 +177,10 @@ mod tests {
     fn a_base64_list_reads_as_its_lines() {
         let encoded = base64::engine::general_purpose::STANDARD.encode(body());
         let listed = parse(encoded.as_bytes()).unwrap();
-        assert_eq!(listed.nodes.len(), 2);
+        assert_eq!(listed.nodes.len(), 3);
         let wrapped: String =
             encoded.as_bytes().chunks(60).map(|c| format!("{}\n", String::from_utf8_lossy(c))).collect();
-        assert_eq!(parse(wrapped.as_bytes()).unwrap().nodes.len(), 2);
+        assert_eq!(parse(wrapped.as_bytes()).unwrap().nodes.len(), 3);
     }
 
     #[test]

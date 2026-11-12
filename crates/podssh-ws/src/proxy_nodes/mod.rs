@@ -1,5 +1,5 @@
 //! The public proxy nodes of aggregator lists (T-574, the operator's rulings
-//! Q78 and Q90): VLESS and Trojan nodes that anonymous operators run, which
+//! Q78 and Q90): VLESS, Trojan and VMess nodes that anonymous operators run, which
 //! take the target from the client and dial it. They are the last fallback
 //! of the forward road, so each one is a third party that nobody vouches for:
 //! it sees the target's name and the bytes that the session sends, which SSH
@@ -17,6 +17,7 @@ use std::time::Duration;
 use crate::trojan;
 use crate::via::Duplex;
 use crate::vless;
+use crate::vmess;
 
 pub use crate::vless::Dial;
 
@@ -25,6 +26,7 @@ pub use crate::vless::Dial;
 pub enum Node {
     Vless(vless::Server),
     Trojan(trojan::Server),
+    Vmess(vmess::Server),
 }
 
 impl Node {
@@ -33,15 +35,18 @@ impl Node {
         match self {
             Node::Vless(_) => "VLESS",
             Node::Trojan(_) => "Trojan",
+            Node::Vmess(_) => "VMess",
         }
     }
 
-    /// `vless://HOST:PORT/PATH` or `trojan://HOST:PORT/PATH`: no ID and no
-    /// password, which a line of a log has no use for.
+    /// `vless://HOST:PORT/PATH`, `trojan://HOST:PORT/PATH` or
+    /// `vmess://HOST:PORT/PATH`: no ID and no password, which a line of a log
+    /// has no use for.
     pub fn shown(&self) -> String {
         match self {
             Node::Vless(s) => s.shown(),
             Node::Trojan(s) => s.shown(),
+            Node::Vmess(s) => s.shown(),
         }
     }
 
@@ -50,6 +55,7 @@ impl Node {
         match self {
             Node::Vless(s) => (&s.host, s.port),
             Node::Trojan(s) => (&s.host, s.port),
+            Node::Vmess(s) => (&s.host, s.port),
         }
     }
 
@@ -58,6 +64,7 @@ impl Node {
         match self {
             Node::Vless(s) => (&s.sni, &s.authority),
             Node::Trojan(s) => (&s.sni, &s.authority),
+            Node::Vmess(s) => (&s.sni, &s.authority),
         }
     }
 
@@ -66,6 +73,7 @@ impl Node {
         match self {
             Node::Vless(s) => s.tls,
             Node::Trojan(_) => true,
+            Node::Vmess(s) => s.tls,
         }
     }
 }
@@ -126,6 +134,10 @@ async fn one(
         Node::Trojan(server) => match trojan::open(server, host, port, dial).await {
             Ok(o) => Ok((o.stream, o.how.to_string())),
             Err(e) => Err((e.line(shown, target), matches!(e, trojan::TrojanError::Target(_)))),
+        },
+        Node::Vmess(server) => match vmess::open(server, host, port, dial).await {
+            Ok(o) => Ok((o.stream, o.how.to_string())),
+            Err(e) => Err((e.line(shown, target), matches!(e, vmess::VmessError::Target(_)))),
         },
     }
 }

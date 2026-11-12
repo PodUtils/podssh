@@ -11,7 +11,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
   newest run of `build.yml` first. The gate before it, at `0872c2c6` (the take of `pod-relay`), failed
   on pod-relay's words, which `adeae2eb` repaired.
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- One draft waits: `draft/t739-vmess` (`6d271ec4`), see "Drafts" in `TODO/PROGRESS.md`.
+- No draft waits: `draft/t739-vmess` is merged (T-739, done).
 
 ## The sessions of PodUtils
 
@@ -62,7 +62,7 @@ road). Each has a planted run that must fail, and each did.
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
 | T-578 | Partial. Step 1 (Arti 0.48's onion services) is read, in the entry. Next: the node's service and the client's road, a chutney network of 5 or more relays. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
-| T-739 | Partial. The draft `draft/t739-vmess` holds the KDF, the header, the body and the link, never built. Next: `mod.rs` and `ws.rs` as Trojan's, `Node::Vmess` in `proxy_nodes`, the test against Xray-core v26.10.21 (`scripts/interop-vless.sh` pins its SHA-256; `xray tls cert` makes the server's certificate). |
+| T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` runs it from Actions. |
 | T-580 to T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
 | T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
 | T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |
