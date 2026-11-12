@@ -9,7 +9,9 @@
 //! serves its streams; the end-to-end channel runs above it. Every circuit
 //! of the service is a connection out to a Tor relay: the node binds nothing.
 //! Its line says the address, which a node of this host also keeps in the
-//! cache. With no pair, or the road off, or a build without the feature
+//! cache, and the node's record of pkarr names, where it keeps one (T-445).
+//! Restricted discovery keeps the address in the record harmless: a reader
+//! with no pair's key finds no descriptor. With no pair, or the road off, or a build without the feature
 //! `tor`, the pair's road runs alone.
 
 use std::future::Future;
@@ -29,6 +31,8 @@ pub(crate) struct Road {
     /// The public half of the pair's key, as Arti lists it.
     allowed: String,
     say: Say,
+    /// The keeper of the node's record, where it keeps one.
+    tell: crate::node_record::Tell,
 }
 
 /// The road beside the pair `pair` of the node `label`, when the road is on
@@ -45,7 +49,14 @@ pub(crate) fn beside(label: &str, pair: Option<&Pair>, say: Say) -> Option<Road>
     ));
     let line = crate::onion::third_party_line(crate::onion::network_named().as_deref());
     say(line.replace("carries this session", "carries the sessions of this road"));
-    Some(Road { label: label.to_string(), allowed: allowed(pair), say })
+    Some(Road { label: label.to_string(), allowed: allowed(pair), say, tell: Default::default() })
+}
+
+impl Road {
+    /// With `tell`, which hears the service's address once it has one.
+    pub(crate) fn telling(self, tell: crate::node_record::Tell) -> Road {
+        Road { tell, ..self }
+    }
 }
 
 /// The public half of the pair's key of restricted discovery.
@@ -129,6 +140,7 @@ where
     };
     let address = onion.address().to_string();
     crate::onion::keep(&road.label, &address);
+    road.tell.onion(&address);
     line(format!(
         "its address is {address}, which only the pair's operators can find; {}={address} names it to a client \
          on another host",

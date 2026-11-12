@@ -75,7 +75,7 @@ item whenever it appears.
     (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
-    run): T-576, T-578, T-738 (T-571, T-737 and T-739 are done; T-740 stays blocked; T-566, T-567 and
+    run): T-576, T-738 (T-571, T-578, T-737 and T-739 are done; T-740 stays blocked; T-566, T-567 and
     T-575 are parked), then T-625 (T-580, T-581 and T-582 are done), T-621 and T-742. Done when each Prove passes, one entry at a time.
 13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
     complete, so that the testers test finished features. Questions that come up overnight are
@@ -110,7 +110,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 67 open, 21 partial, 11 blocked, 611 done.
+`TODO/INDEX.md` holds 710 entries: 67 open, 20 partial, 11 blocked, 612 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -133,7 +133,7 @@ operator interrupts it.
    `pod-relay`).
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
    entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-574 to
-   T-576 and T-578, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
+   T-576, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
@@ -186,7 +186,7 @@ parts are named so that the open ones read in their place):
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
    peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (done),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567,
-   T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
+   T-575 and T-576, the onion services (done), and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and
    T-575 parked); and the roads over UDP (done: MASQUE over HTTP/3, Hysteria 2's and TUIC's). These are features of a tester's
    report and of the sweep, done after the defects (Q85). Then what the archive of forward

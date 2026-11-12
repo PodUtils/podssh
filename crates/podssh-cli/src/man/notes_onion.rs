@@ -14,8 +14,8 @@ pub(super) const NODE: &str = "In a build with the feature tor, a node of the pa
      circuit of the service is a connection out to a Tor relay: the node listens on nothing. Its descriptor \
      is of restricted discovery, readable only with a key that both ends make of the pair's name and connect \
      token. Each stream to its virtual port is served with the resumable layer under the keeper of its other \
-     roads. Its line says its address, which a node of this host keeps under NAME, and that the Tor \
-     network's volunteer relays carry the sessions of this road; the channel keeps the bytes from them. \
+     roads. Its line says its address, which a node of this host keeps under NAME, and which a node of \
+     DERP puts in its record of pkarr (onion=), where it keeps one; and that the Tor network's volunteer relays carry the sessions of this road; the channel keeps the bytes from them. \
      PODSSH_ONION=no or PODSSH_LAST_RESORT=no turns the road off.";
 
 /// The note of `podssh ssh`, after Syncthing's relay road's.
@@ -23,8 +23,9 @@ pub(super) const SSH: &str = "In a build with the feature tor, node://NAME also 
      pair (T-578), only once each road before it failed, after Syncthing's relay road and before the Serveo \
      road, the last fallback of the operator's ruling Q78: this end bootstraps Arti through the Tor road, once \
      a run, puts the pair's key of restricted discovery in its keystore, and opens a stream to the node's \
-     onion service, at the address of PODSSH_ONION (the node's line says it), else the one kept under NAME by \
-     a node of this host or by a run that was given it. It waits 120 s at most. Before its first circuit, a \
+     onion service, at the address of PODSSH_ONION (the node's line says it), else the one of the node's \
+     record of pkarr where the net names the node's key, read again at each link, else the one kept under \
+     NAME by a node of this host or by a run that was given it. It waits 120 s at most. Before its first circuit, a \
      line says that the Tor network carries the session. PODSSH_ONION=no or PODSSH_LAST_RESORT=no turns it \
      off, and --no-e2e leaves it out. podssh ping node://NAME does not measure it.";
 

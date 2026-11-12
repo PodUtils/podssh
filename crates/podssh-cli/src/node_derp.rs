@@ -392,7 +392,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh node: {label}: {words}");
     };
     let (_record, tell) = crate::node_record::alone(record, &identity, &trust, say.clone(), line);
-    let road = road.telling(tell);
+    let road = road.telling(tell.clone());
     // The channel of T-088 on both roads, with this node's key and its door:
     // a session made on one road may resume on the other. With no --allow,
     // the net's members alone, also when the node leaves the net.
@@ -435,7 +435,8 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         _ => None,
     };
     let (transit_open, croc_open) = (open.clone(), open.clone());
-    let croc = crate::node_croc::beside(&label, pair.as_ref().ok().map(|(p, s)| (p, *s)), &trust, say.clone());
+    let croc =
+        crate::node_croc::beside(&label, pair.as_ref().ok().map(|(p, s)| (p, *s)), &trust, say.clone()).telling(&tell);
     let (stop, stopped) = watch::channel(false);
     let until_stopped = |mut stopped: watch::Receiver<bool>| async move {
         let _ = stopped.wait_for(|stop| *stop).await;

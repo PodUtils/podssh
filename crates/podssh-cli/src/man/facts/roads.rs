@@ -135,7 +135,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           with a key that both ends make of the pair's connect token. The node's line says its address, which a \
           node of this host keeps under its NAME. no: no road; an onion address (56 letters of base32 and .onion): \
           the node's, for a client on another host, which PODSSH_LAST_RESORT does not turn off; unset, empty or \
-          yes: the road, with the address kept under NAME; another word is a configuration error (78), which does \
+          yes: the road, with the address of the node's record of pkarr, else the one kept under NAME; another word is a configuration error (78), which does \
           not echo the value.",
     ),
     (

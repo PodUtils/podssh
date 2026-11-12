@@ -2,7 +2,8 @@
 //! node keeps its home relay there (T-350), and its DERP home once its DERP
 //! road is online, again each time that home moves ([`keep`]). A node with
 //! no iroh endpoint, the quick tunnel's, the DERP road's, the Pinggy road's
-//! or the tunnel of `ssh -R`'s (T-565) alone, keeps its roads there too
+//! or the tunnel of `ssh -R`'s (T-565) alone, with the onion service beside
+//! its pair (T-578), keeps its roads there too
 //! ([`alone`]): at n0's server unless PODSSH_IROH_PKARR names another or `off`, as the operator's ruling
 //! Q81 widens Q57 to such a node, whose record names only public names (a
 //! Pinggy tunnel's name and its pin are public: the node says them). A build with no iroh road keeps no
@@ -71,6 +72,17 @@ impl Tell {
             told.send_modify(|roads| roads.tunnel = Some(name));
         }
     }
+
+    /// The node's onion service is `address` (T-578): its key is kept, so
+    /// the address stays from one start to the next. One that a client would
+    /// set aside is not put.
+    #[cfg_attr(not(feature = "tor"), allow(dead_code))]
+    pub(crate) fn onion(&self, address: &str) {
+        let Ok(address) = pkarr::record::onion_address(address) else { return };
+        if let Some(told) = &self.told {
+            told.send_modify(|roads| roads.onion = Some(address));
+        }
+    }
 }
 
 #[cfg(not(feature = "iroh"))]
@@ -84,6 +96,10 @@ impl Tell {
     }
 
     pub(crate) fn tunnel(&self, _: &str) {}
+
+    // The onion road tells it in a build with the feature `tor` alone.
+    #[cfg_attr(not(feature = "tor"), allow(dead_code))]
+    pub(crate) fn onion(&self, _: &str) {}
 }
 
 /// The keeper's task, stopped when this is dropped, as the node ends.

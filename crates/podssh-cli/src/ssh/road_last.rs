@@ -175,8 +175,8 @@ impl LastRoads {
         named || self.localtunnel.is_some() || self.bore.is_some()
     }
 
-    /// Their places in the race, in their order; the tunnel of `ssh -R`
-    /// reads its name of the node's `record` at each link.
+    /// Their places in the race, in their order; the onion road and the
+    /// tunnel of `ssh -R` read the node's `record` at each link.
     pub(crate) fn push<'r>(
         &'r self,
         list: &mut Vec<(Start, Going<'r>)>,
@@ -199,7 +199,7 @@ impl LastRoads {
             syncthing.push(list, kinds);
         }
         if let Some(onion) = &self.onion {
-            onion.push(list, kinds);
+            onion.push(list, kinds, record);
         }
         if let Some(smee) = &self.smee {
             smee.push(list, kinds);

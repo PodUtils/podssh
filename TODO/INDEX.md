@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 67 open, 21 partial, 11 blocked, 611 done.**
+**710 entries: 67 open, 20 partial, 11 blocked, 612 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 38 | 9 | 7 | 277 | 331 |
-| **All** | 67 | 21 | 11 | 611 | 710 |
+| P3 | 38 | 8 | 7 | 278 | 331 |
+| **All** | 67 | 20 | 11 | 612 | 710 |
 
 ## Entries
 
@@ -617,7 +617,7 @@ repository and CI).
 | [T-575](mesh.md) | P3 | S | M10 | feature | open | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | partial | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |
-| [T-578](mesh.md) | P3 | L | M10 | feature | partial | Tor's onion services: a node reached by its onion address, through the Tor road |
+| [T-578](mesh.md) | P3 | L | M10 | feature | done | Tor's onion services: a node reached by its onion address, through the Tor road |
 | [T-579](mesh.md) | P3 | S | M10 | research | done | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
 | [T-580](mesh.md) | P3 | L | M10 | feature | done | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
 | [T-581](mesh.md) | P3 | M | M10 | feature | done | TUIC version 5 as a client road over QUIC, where a probe found that UDP passes |

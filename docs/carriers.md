@@ -1326,6 +1326,21 @@ Ruled out:
   repaired defects of onion services [R41]. Both reasons changed on
   2026-11-01: T-385 runs meek_lite and WebTunnel in podssh's own process,
   and both pass a proxy that re-terminates TLS whose CA podssh trusts.
+  - Verdict (T-578, measured on 2026-11-12): it passes, as a last fallback
+    (Q78) after Syncthing's relays. Arti 0.48's `onion-service-service`
+    and `onion-service-client` are Rust alone (the C under `podssh-tor`
+    stays SQLite). The node launches a service whose key Arti keeps, so its
+    address stays from one start to the next, with restricted discovery by
+    a key that both ends make of the pair: a stranger who learns the
+    address finds no descriptor. On chutney's `basic` network a node's
+    service carried 1 MiB each way, and `podssh ssh node://` reached a node
+    of DERP through the onion road alone; on Tor's own network, from
+    GitHub Actions (Q91), a throwaway service published its descriptor and
+    carried 1 MiB each way in 329 s from the node's start. Its costs: the
+    first publish takes minutes (447 s on a fresh test network), each
+    stream of Arti must be flushed (a pump written for TCP stalls), and a
+    session's round trip crosses six relays. The node puts the address in
+    its record of pkarr (`onion=`), where a client of the net reads it.
 - **Pinggy, localhost.run and Serveo**: small operators. Corrected on
   2026-11-02: Pinggy's leg need not be raw SSH, as it takes SSH inside TLS
   on ports 443 and 7878, also through an HTTP proxy, and gives TLS tunnels

@@ -5,7 +5,9 @@
 //! secret, and opens a stream to the node's onion service. So it needs the
 //! pair here; never with --no-e2e, as the end-to-end channel checks the
 //! node's key above it. The address is the one of `PODSSH_ONION`, else the
-//! one kept under NAME by a node of this host or by a run that was given it.
+//! one of the node's record of pkarr where the net asks it (T-445), read
+//! again at each link, else the one kept under NAME by a node of this host or
+//! by a run that was given it.
 //! Before the first circuit, a line names the Tor network as the third party.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,6 +19,7 @@ use podssh_ssh::Log;
 use podssh_ws::Trust;
 
 use crate::onion::Setting;
+use crate::ssh::iroh::RecordRoads;
 use crate::ssh::road_link::{Kind, Road};
 use crate::ssh::roads::Going;
 
@@ -69,23 +72,40 @@ impl OnionRoads {
     }
 
     /// The road's place in the race: once each road before it failed.
-    pub(crate) fn push<'r>(&'r self, list: &mut Vec<(Start, Going<'r>)>, kinds: &mut Vec<Kind>) {
-        list.push((Start::WhenAllFailed, Box::pin(self.link())));
+    pub(crate) fn push<'r>(
+        &'r self,
+        list: &mut Vec<(Start, Going<'r>)>,
+        kinds: &mut Vec<Kind>,
+        record: Option<&'r RecordRoads<'_>>,
+    ) {
+        list.push((Start::WhenAllFailed, Box::pin(self.link(record))));
         kinds.push(Kind::Onion);
     }
 
-    /// The node's address: the one given, else the one kept.
-    fn address(&self) -> Result<String, String> {
-        self.given.clone().or_else(|| crate::onion::kept(&self.label)).ok_or_else(|| {
+    /// The node's address: the one given, else its record's, else the one
+    /// kept.
+    async fn address(&self, record: Option<&RecordRoads<'_>>) -> Result<String, String> {
+        if let Some(given) = &self.given {
+            return Ok(given.clone());
+        }
+        let mut why = None;
+        if let Some(record) = record {
+            match record.onion().await {
+                Ok(address) => return Ok(address),
+                Err(not) => why = Some(not),
+            }
+        }
+        crate::onion::kept(&self.label).ok_or_else(|| {
+            let of_record = why.map(|why| format!(" ({why})")).unwrap_or_default();
             format!(
-                "the onion road: no onion address of the node; its line says it, and {}=ADDRESS names it",
+                "the onion road: no onion address of the node{of_record}; its line says it, and {}=ADDRESS names it",
                 crate::onion::ENV
             )
         })
     }
 
-    async fn link(&self) -> Result<Road, String> {
-        let address = self.address()?;
+    async fn link(&self, record: Option<&RecordRoads<'_>>) -> Result<Road, String> {
+        let address = self.address(record).await?;
         // The line of Q78, before the first circuit goes to the third party.
         if !self.said.swap(true, Ordering::SeqCst) {
             let network = crate::onion::network_named();

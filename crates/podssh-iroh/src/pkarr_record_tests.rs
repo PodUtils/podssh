@@ -41,6 +41,7 @@ fn each_road(secret: &SecretKey) -> Roads {
         quick: Some(QUICK.into()),
         pinggy: Some(pinggy(PINGGY_NAME)),
         tunnel: None,
+        onion: None,
     }
 }
 
@@ -226,8 +227,13 @@ fn a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes() {
         quick: Some(quick.clone()),
         pinggy: Some(pinggy(&name)),
         tunnel: None,
+        onion: None,
     };
     let packet = packet(&node, &roads, TTL).expect("each road at its longest fits");
+    // With the onion service too it would not fit, so it goes without it.
+    let onion = Roads { onion: Some(ONION.into()), ..roads.clone() };
+    let without = read_back(&node, &super::packet(&node, &onion, TTL).expect("put without the onion")).unwrap();
+    assert_eq!((without.onion, without.pinggy.is_some()), (None, true));
     let record = read_back(&node, &packet).unwrap();
     assert_eq!((record.quick, record.pinggy), (Some(quick), roads.pinggy.clone()));
     assert!(packet.encoded_packet().len() <= MAX_DNS_PACKET, "{}", packet.encoded_packet().len());
@@ -259,5 +265,41 @@ fn a_record_of_a_tunnel_of_ssh_r_names_it_and_sets_a_bad_name_aside() {
     assert_eq!(two.tunnel.as_deref(), Some("one.lhr.life"));
     assert!(two.set_aside.iter().any(|why| why.contains("a second tunnel=")), "{:?}", two.set_aside);
     let bad = Roads { tunnel: Some("not a name".into()), ..Roads::default() };
+    assert!(packet(&node, &bad, TTL).is_err(), "a node never puts what a client would set aside");
+}
+
+/// An address of Tor's version 3 (the Tor Project's own), and its siblings.
+const ONION: &str = "2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion";
+
+/// The onion service (T-578): its address comes back as the node put it, in
+/// lower case; one that is not of version 3, a name under it, or a second
+/// one is set aside unsaid, and a node never puts one.
+#[test]
+fn a_record_of_an_onion_service_names_it_and_sets_a_bad_address_aside() {
+    let node = SecretKey::from_bytes(&[0x4a; 32]);
+    let roads = Roads { onion: Some(ONION.to_ascii_uppercase()), ..Roads::default() };
+    assert!(!roads.is_empty() && roads.said().contains("the onion service"), "{}", roads.said());
+    let record = read_back(&node, &packet(&node, &roads, TTL).unwrap()).expect("a record of one road");
+    assert_eq!((record.onion.as_deref(), record.tunnel), (Some(ONION), None));
+    let quick = format!("quick={QUICK}");
+    let version2 = "onion=expyuzz4wqqyqhjn.onion".to_string();
+    let not_3 = format!("onion={}a.onion", &ONION[..55]);
+    let under = format!("onion=SECRET.{ONION}");
+    let alphabet = format!("onion={}1d.onion", &ONION[..54]);
+    for bad in [version2.as_str(), not_3.as_str(), under.as_str(), alphabet.as_str(), "onion=example.com"] {
+        let record = read_back(&node, &planted(&node, &[bad, quick.as_str()])).unwrap();
+        assert_eq!((record.onion, record.quick.as_deref()), (None, Some(QUICK)), "{bad}");
+        assert!(record.set_aside.iter().all(|why| !why.contains("SECRET")), "{:?}", record.set_aside);
+    }
+    let first = format!("onion={ONION}.");
+    let two = read_back(&node, &planted(&node, &[first.as_str(), "onion=x.onion"])).unwrap();
+    assert_eq!(two.onion.as_deref(), Some(ONION));
+    assert!(two.set_aside.iter().any(|why| why.contains("a second onion=")), "{:?}", two.set_aside);
+    // A node's roads of today with its onion service fit pkarr's bytes.
+    let each = Roads { onion: Some(ONION.into()), ..each_road(&node) };
+    let whole = packet(&node, &each, TTL).expect("each road and the onion service fit");
+    assert!(whole.encoded_packet().len() <= MAX_DNS_PACKET, "{}", whole.encoded_packet().len());
+    assert_eq!(read_back(&node, &whole).unwrap().onion.as_deref(), Some(ONION));
+    let bad = Roads { onion: Some("www.torproject.org".into()), ..Roads::default() };
     assert!(packet(&node, &bad, TTL).is_err(), "a node never puts what a client would set aside");
 }

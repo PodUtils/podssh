@@ -123,6 +123,14 @@ pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, sa
     Beside { croc, zerotier, tox, ygg, dht, syncthing, onion, smee }
 }
 
+impl Beside {
+    /// With `tell`, the keeper of the node's record, which hears the address
+    /// of its onion service (T-578).
+    pub(crate) fn telling(self, tell: &crate::node_record::Tell) -> Beside {
+        Beside { onion: self.onion.map(|road| road.telling(tell.clone())), ..self }
+    }
+}
+
 /// `pair_road` with croc's relay road and ZeroTier's of `beside` beside it,
 /// under `keeper`, until the pair's road ends: its end is the node's, as the
 /// roads' rooms and network are the pair's. With none, the pair's road alone.

@@ -129,7 +129,8 @@ impl<'a> RecordRoads<'a> {
             Ok(Some(record)) => {
                 let (relay, derp, quick) = (record.relays.first().cloned(), record.derp.clone(), record.quick.clone());
                 let (pinggy, tunnel) = (record.pinggy.clone(), record.tunnel.clone());
-                let roads = Roads { relay, derp, quick, pinggy, tunnel };
+                let onion = record.onion.clone();
+                let roads = Roads { relay, derp, quick, pinggy, tunnel, onion };
                 self.log.verbose(&format!("{shown}: its record at {host} names {}", roads.said()));
                 for why in &record.set_aside {
                     self.log.verbose(&format!("{shown}: of its record, {why}"));
@@ -205,6 +206,14 @@ impl<'a> RecordRoads<'a> {
     pub(crate) async fn tunnel(&self) -> Result<String, String> {
         let record = self.record().await?;
         record.tunnel.ok_or_else(|| "its record names no tunnel of ssh -R".into())
+    }
+
+    /// The address of the record's onion service, for the onion road
+    /// (T-578): the node puts it once its service has one, and only the
+    /// pair's key of restricted discovery finds the service there.
+    pub(crate) async fn onion(&self) -> Result<String, String> {
+        let record = self.record().await?;
+        record.onion.ok_or_else(|| "its record names no onion service".into())
     }
 
     /// Which road of the record carried the session, for `-v`.
