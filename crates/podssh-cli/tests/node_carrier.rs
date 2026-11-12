@@ -30,6 +30,40 @@ use live_harness::{echo_server, scratch, LIMIT};
 
 const BIN: &str = env!("CARGO_BIN_EXE_podssh");
 
+/// An echo server that says what each connection saw: the bytes in and out
+/// and how its copy ended, for the failure's message (T-753: on Windows the
+/// node's socket to it was reset once before its last bytes were read).
+fn echo_logged() -> (u16, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
+    use std::sync::{Arc, Mutex};
+    let echo = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = echo.local_addr().unwrap().port();
+    let said = Arc::new(Mutex::new(Vec::new()));
+    let log = said.clone();
+    std::thread::spawn(move || {
+        for stream in echo.incoming().map_while(Result::ok) {
+            let log = log.clone();
+            std::thread::spawn(move || {
+                let (mut reader, mut writer) = (stream.try_clone().unwrap(), stream);
+                let (mut buf, mut total) = (vec![0u8; 64 * 1024], 0u64);
+                let end = loop {
+                    match reader.read(&mut buf) {
+                        Ok(0) => break "its input ended".to_string(),
+                        Ok(n) => match writer.write_all(&buf[..n]) {
+                            Ok(()) => total += n as u64,
+                            Err(e) => break format!("a write failed: {e}"),
+                        },
+                        Err(e) => break format!("a read failed: {e}"),
+                    }
+                };
+                let shut = writer.shutdown(std::net::Shutdown::Write).err().map(|e| format!(", its shutdown: {e}"));
+                let line = format!("the echo: {total} bytes back, {end}{}", shut.unwrap_or_default());
+                log.lock().unwrap().push(line);
+            });
+        }
+    });
+    (port, said)
+}
+
 /// Removes the scratch directory, with its keys, however the test ends.
 struct Scratch(PathBuf);
 
@@ -105,10 +139,12 @@ fn run_with(mut cmd: Command, input: Vec<u8>, limit: Duration) -> (Option<i32>, 
 fn an_operator_reaches_the_node_at_the_other_end_of_a_program_s_stdio() {
     let home = scratch("carrier-echo");
     let _scratch = Scratch(home.clone());
-    let target = format!("127.0.0.1:{}", echo_server());
+    let (port, echoed) = echo_logged();
+    let target = format!("127.0.0.1:{port}");
     let carrier = node_exec(&target, "");
     let sent = pattern(1 << 20);
     let (code, out, err) = run_with(podssh(&home, &["operator", "--carrier", &carrier, "box"]), sent.clone(), LIMIT);
+    let err = format!("{err}{}", echoed.lock().unwrap().join("\n"));
     assert_eq!(code, Some(0), "{err}");
     assert_eq!(out.len(), sent.len(), "{err}");
     assert!(out == sent, "the bytes came back changed: {err}");

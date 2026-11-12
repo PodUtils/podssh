@@ -2238,3 +2238,10 @@ bytes unread sends a reset there, not a FIN. Next: which end closes a socket wit
 session on Windows (the node's target socket, or the carrier's), from the job's log with `-v` on a run of the
 Windows job alone.
 
+The job's log (run 43136322338) narrows it: the node's line says the session ended with "the stream under
+the channel failed: ... (os error 10054)", which pod-e2e's carry says of a read or a write of either side;
+the stream under it at the node is the layer's, in memory, so the reset is of the node's TCP socket to TARGET,
+the test's echo, before its last 288 bytes were read. The test's echo now says what each connection saw (the
+bytes back, and whether its read, its write or its shutdown failed) in the failure's message; next, the test
+50 times on `windows-2025` (`suite-repeat.yml`, package podssh-cli, test node_carrier).
+
