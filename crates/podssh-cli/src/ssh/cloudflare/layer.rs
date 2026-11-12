@@ -54,7 +54,7 @@ where
         .start(Ask::New, layered::ssh_settings().off_the_pair(), &mut OsEntropy)
         .await
         .map_err(|e| format!("the far end greets with the resumable layer, but its handshake failed: {e}"))?;
-    log.verbose(&format!("{shown}: {}", client.found()));
+    crate::no_resume::found_lines(client.found()).iter().for_each(|l| log.verbose(&format!("{shown}: {l}")));
     layered::learn(client.found(), &shared.offer);
     let client = layered::heard(client, &shared.silence);
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);

@@ -81,12 +81,6 @@ fn a_message_with_no_integrity_says_none_and_an_unsigned_one_is_the_codec_s() {
 }
 
 #[test]
-fn crc_32_is_iso_3309_s() {
-    // The check value of CRC-32 in each catalogue of CRCs.
-    assert_eq!(crc32(b"123456789"), 0xcbf4_3926);
-}
-
-#[test]
 fn the_types_and_values_are_rfc_6062_s() {
     assert_eq!(success(CONNECT), 0x010a);
     assert_eq!(error(CONNECTION_BIND), 0x011b);

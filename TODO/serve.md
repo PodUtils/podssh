@@ -321,7 +321,7 @@ the entry joins the work order by its priority.
 # T-111: `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group
 
 **Source:** `docs/ROADMAP.md:186-191`, `docs/design.md:660-664`,
-`docs/decisions.md:101`; GitHub #20 (fux line-discipline notes).
+`docs/decisions.md:102`; GitHub #20 (fux line-discipline notes).
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -505,7 +505,7 @@ out with matching digests.
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:251-255`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
   `docs/STATUS.md:479`). With no pty device, no podssh code can give the child
-  a tty: shims are excluded (`docs/decisions.md:100`).
+  a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
   (`docs/relay.md:557`; measured: `docs/STATUS.md:487`). 200 MiB each way
   needs the new sessions of T-137.
@@ -552,7 +552,7 @@ dates.
 The premise that no podssh code can give the child a tty where `/dev/ptmx` is
 missing is too strong. The operator allows two routes, each after a probe at
 run time (Q11, 2026-10-08), and T-248 studies them. The ban on `LD_PRELOAD`
-stays (`docs/decisions.md:100`).
+stays (`docs/decisions.md:101`).
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.

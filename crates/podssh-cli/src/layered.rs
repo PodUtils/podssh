@@ -243,10 +243,7 @@ where
     };
     // The layer is up, a step of --ConnectTimeout (T-589).
     crate::connect_bound::layer_up();
-    say(Line::Verbose(client.found().to_string()));
-    if let Found::Layer { features, .. } = client.found() {
-        say(Line::Verbose(format!("the layer's features: {}", features.join(", "))));
-    }
+    crate::no_resume::found_lines(client.found()).into_iter().for_each(|line| say(Line::Verbose(line)));
     // What the far end does with --no-resume (T-612).
     if let Some((always, line)) = crate::no_resume::heard(client.found()) {
         say(if always { Line::Always(line) } else { Line::Verbose(line) });

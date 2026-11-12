@@ -4485,7 +4485,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
   download must be checked; the pinned SHA-256 checks the exact bytes.
 - Read: the armv7 job installs Alpine's own `rust` and `cargo` (`.github/workflows/release.yml:196-204`),
   in Alpine 3.24 (`images/armv7/Dockerfile`); the CLI declares Rust 1.89
-  (`crates/podssh-cli/Cargo.toml:8`), and Q48 lets the minimum rise (`docs/decisions.md:64`).
+  (`crates/podssh-cli/Cargo.toml:8`), and Q48 lets the minimum rise (`docs/decisions.md:65`).
   Inferred: Alpine 3.24's rust is 1.89 or later, as the job built `v1.0.0-beta.2`.
 - Read: `pipx run check-jsonschema` names no version (`.github/workflows/build.yml` lines 175 and
   177 at `1a46970`).
@@ -5698,6 +5698,17 @@ change of API for podssh. `cargo test -p podssh-cli -p podssh-relay -p podssh-ws
 passed, 0 failed, 87 ignored. podcrates' next tag adds Serveo's `url-skip` of `console.serveo.net`: podssh's Serveo
 road takes a private alias, never a URL of the banner, and the `ssh -R` road takes a name from its marker's line
 alone, so neither changes.
+
+2026-11-12, podcrates `v0.32.0` (`032e86f`, COORD-061, PodUtils/podcrates#93): each crate moved; no patch for podssh. It
+brings `pod_proxy::stun`'s TURN integrity (#214), so T-621's `turn/msg.rs` now speaks through it (its HMAC, CRC-32 and
+long-term key are gone; RFC 5769's vectors still pass, and coturn's road tests do), and `pod-services`' `smee-io` and
+`hostc` (#213), so the smee.io road (T-741) is on by default. That showed a gap: a session that the race of a node's
+roads starts (`ssh/roads.rs`, `ssh/cloudflare/layer.rs`) said what it found but never the layer's features, which
+`layered.rs` says (`node_plain` failed on it); each path now says both (`no_resume::found_lines`). `cargo test -p
+podssh-cli -p podssh-relay -p podssh-ws -p podssh-ssh --no-fail-fast`: 3492 passed, 0 failed, 87 ignored. The TURN test
+once found coturn gone at its start: its port, picked by `free_port`, was taken by another test's listener before
+coturn's bind, while the readiness loop's connect found that listener; the harness now checks that coturn itself
+stays up, else tries another port (`turn_road`, 4 passed, twice).
 
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

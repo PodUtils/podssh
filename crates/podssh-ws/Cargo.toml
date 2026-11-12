@@ -10,22 +10,22 @@ publish.workspace = true
 [dependencies]
 # TLS: the trust, the configurations, the pure-Rust crypto provider, the
 # server's side and Encrypted Client Hello, with podssh's settings (tls.rs).
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0" }
-pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", features = ["pure", "rsa", "ech"] }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0" }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", features = ["pure", "rsa", "ech"] }
 # The dial, the proxies, the race of addresses, Multipath TCP, the HTTP/1.1
 # heads, the GET client (sealed with ECH where asked) and STUN's codec, with
 # podssh's settings (dial.rs).
-pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", features = ["ech"] }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", features = ["ech"] }
 # The resolver: an IP literal, the pins, the system, the cache of addresses
 # and DNS over HTTPS, the SRV and HTTPS records (resolve.rs), with its reader
 # of ECH lists for pod-tls.
-pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", features = ["ech"] }
+pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", features = ["ech"] }
 # The WebSocket: the frames, the session, the client of the relay on each
 # road (TLS, HTTP/2, cleartext), a URL's WebSocket and the server's side,
 # over podssh's way out (client.rs), with ECH.
-pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", features = ["ech"] }
+pod-ws = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", features = ["ech"] }
 # The services of other parties: the forwarders of `--via` (forwarder/builtin.rs).
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0" }
 tokio = { workspace = true }
 rustls = { workspace = true }
 tokio-rustls = { workspace = true }
@@ -63,7 +63,7 @@ aes = { workspace = true }
 # connection and probe of UDP on noq, the quick tunnel's. Only with the
 # feature `quic`, which the binary turns on. BLAKE2b-256 of Hysteria's
 # Salamander, pure Rust, in the lock already (0.11, through argon2).
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", optional = true }
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", optional = true }
 blake2 = { version = "0.11", default-features = false, optional = true }
 
 # The clocks of a host that slept (wake.rs): CLOCK_BOOTTIME beside
@@ -81,7 +81,7 @@ plain-ws = ["pod-ws/plain-ws"]
 quic = ["dep:pod-quic", "dep:blake2"]
 
 [dev-dependencies]
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0", features = ["screen"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0", features = ["screen"] }
 # The doctor is async because it may be asked to perform a handshake, and
 # the plants that assert `????` rather than `ok` have to drive it as a caller
 # would. `macros` is what makes `#[tokio::test]` exist.

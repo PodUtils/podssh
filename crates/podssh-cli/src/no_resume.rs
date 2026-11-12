@@ -32,6 +32,16 @@ pub fn asked() -> bool {
 /// What the client says of the far end that `found` names, when this run
 /// asked: with `-v` that the far end ends the session with its link; always
 /// that one which does not know the ask keeps it, as a user who asked would
+/// The verbose lines of what a session's start found: the layer or none,
+/// and the layer's features, said alike on each road's path.
+pub fn found_lines(found: &Found) -> Vec<String> {
+    let mut lines = vec![found.to_string()];
+    if let Found::Layer { features, .. } = found {
+        lines.push(format!("the layer's features: {}", features.join(", ")));
+    }
+    lines
+}
+
 /// count on its budget. `None` when this run did not ask, or with no layer.
 pub fn heard(found: &Found) -> Option<(bool, String)> {
     heard_as(asked(), found)

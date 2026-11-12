@@ -1963,8 +1963,8 @@ a full-screen program is written into its screen.
 
 ## Premise
 
-- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:423`) and a
-  resume (`crates/podssh-cli/src/layered.rs:434`). The heartbeat each 10 s, and a link dead after
+- Read: the layer's lines, written always: a loss (`crates/podssh-cli/src/layered.rs:420`) and a
+  resume (`crates/podssh-cli/src/layered.rs:431`). The heartbeat each 10 s, and a link dead after
   30 s with nothing from the far end (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:62`,
   `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`). The forward road's checks
   (`docs/design.md:688`).
@@ -2073,8 +2073,8 @@ that gives `Line` to a terminal in raw mode; in the model, the control
 ## Correction
 
 The first item of the Premise cites the layer's lines at lines of `next_leg`, which opens a new
-leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:474`) and a resume
-(`crates/podssh-cli/src/layered.rs:485`). What the item says of them holds.
+leg. The lines are in `line_of`: a loss (`crates/podssh-cli/src/layered.rs:471`) and a resume
+(`crates/podssh-cli/src/layered.rs:482`). What the item says of them holds.
 
 ## Done
 
@@ -3500,7 +3500,7 @@ Read while drafting, 2026-11-03:
   channel above the layer, the end of stdin is the channel's `END`, a half-close
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs` at `cbaa806`, lines 127-129), and the layer's `CLOSE` follows only once
   the TARGET ends too. So a signal ends the layer's own input, the channel's ciphertext, in
-  `crates/podssh-cli/src/layered.rs:279`, and the `CLOSE` goes at once, whatever the TARGET does.
+  `crates/podssh-cli/src/layered.rs:276`, and the `CLOSE` goes at once, whatever the TARGET does.
 - The layer's own wait for the answer to a `CLOSE` stays 10 s
   (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:52`), as for an end of stdin. After a signal the
   session has 2 s in all (`crates/podssh-cli/src/hangup.rs:29`), the node's answer and the leg's
@@ -3951,7 +3951,7 @@ Read at `2042200`:
   own: the peer's later bytes are not asked for.
 - Sessions of the layer with no channel above it: the relay role's road for a standard sshd
   (`crates/podssh-relay/src/serve/layer.rs:1-8`), which `proxy` and `ssh` take unasked for a relay
-  host that the user named and that offers it (Q96, `docs/decisions.md:21`); and a node's sessions with
+  host that the user named and that offers it (Q96, `docs/decisions.md:22`); and a node's sessions with
   `--no-e2e` (`crates/podssh-cli/src/flags/node.rs:139`).
 - The plain forward road keeps a half-close: `crates/podssh-relay/src/serve/forward.rs:284-287` shuts
   the target's writing side at the client's Close and goes on, as the default relay does

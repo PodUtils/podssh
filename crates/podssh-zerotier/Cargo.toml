@@ -28,4 +28,4 @@ cc = "1.2"
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread"] }
 # The relay of the live run, as podssh names no host of a third party.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.31.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.32.0" }

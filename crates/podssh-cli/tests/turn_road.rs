@@ -48,23 +48,37 @@ fn coturn(tag: &str, extra: &[&str]) -> Option<Coturn> {
     };
     let dir = std::env::temp_dir().join(format!("podssh-turn-{}-{tag}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
-    let port = free_port();
-    let mut cmd = Command::new(bin);
-    // No configuration file of the host; the loopback alone, TCP alone.
-    cmd.args(["-n", "--no-cli", "--no-tls", "--no-dtls", "--no-udp", "--simple-log", "--log-file", "stdout"]);
-    cmd.args(["--listening-ip", "127.0.0.1", "--relay-ip", "127.0.0.1", "--allow-loopback-peers"]);
-    cmd.args(["--listening-port", &port.to_string(), "--lt-cred-mech", "--realm", REALM]);
-    cmd.arg(format!("--user={USER}:{PASSWORD}"));
-    cmd.args(extra).current_dir(&dir);
-    let log = std::fs::File::create(dir.join("coturn.log")).unwrap();
-    let child = cmd.stdout(log.try_clone().unwrap()).stderr(log).stdin(Stdio::null()).spawn().unwrap();
-    let server = Coturn { child, dir, port };
-    let until = Instant::now() + Duration::from_secs(15);
-    while TcpStream::connect(("127.0.0.1", port)).is_err() {
-        assert!(Instant::now() < until, "coturn did not listen: {}", log_of(&server.dir));
-        std::thread::sleep(Duration::from_millis(100));
+    // A port that another test's listener takes between `free_port` and
+    // coturn's bind makes coturn exit, while a connect to the port still
+    // succeeds: so coturn must be up itself, else a new port is tried.
+    for _ in 0..5 {
+        let port = free_port();
+        let mut cmd = Command::new(&bin);
+        // No configuration file of the host; the loopback alone, TCP alone.
+        cmd.args(["-n", "--no-cli", "--no-tls", "--no-dtls", "--no-udp", "--simple-log", "--log-file", "stdout"]);
+        cmd.args(["--listening-ip", "127.0.0.1", "--relay-ip", "127.0.0.1", "--allow-loopback-peers"]);
+        cmd.args(["--listening-port", &port.to_string(), "--lt-cred-mech", "--realm", REALM]);
+        cmd.arg(format!("--user={USER}:{PASSWORD}"));
+        cmd.args(extra).current_dir(&dir);
+        let log = std::fs::File::create(dir.join("coturn.log")).unwrap();
+        let child = cmd.stdout(log.try_clone().unwrap()).stderr(log).stdin(Stdio::null()).spawn().unwrap();
+        let mut server = Coturn { child, dir: dir.clone(), port };
+        let until = Instant::now() + Duration::from_secs(15);
+        while TcpStream::connect(("127.0.0.1", port)).is_err() {
+            assert!(Instant::now() < until, "coturn did not listen: {}", log_of(&server.dir));
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        // Up a moment after the connect: coturn's own listener, not another.
+        std::thread::sleep(Duration::from_millis(300));
+        if server.child.try_wait().unwrap().is_none() {
+            return Some(server);
+        }
+        eprintln!("coturn on {port} ended at its start, a port taken: another port");
+        // Its Drop removes the directory; the next try makes it again.
+        drop(server);
+        std::fs::create_dir_all(&dir).unwrap();
     }
-    Some(server)
+    panic!("coturn did not stay up on five ports")
 }
 
 fn log_of(dir: &Path) -> String {

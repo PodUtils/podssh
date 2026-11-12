@@ -276,8 +276,10 @@ and num-bigint 0.5) are T-754.
 | #210 | COORD-036: pod-relay's runs of a code try the MQTT brokers after the mailboxes, for podssh's T-737 (to podcrates) | closed (2026-11-12: `Ends::brokers` in v0.30.0) | T-737 |
 | #211 | COORD-037: podssh took podcrates v0.29.0 at 5b56c4d (to podcrates) | closed (2026-11-12: podcrates recorded it in COORD-057) | T-684 |
 | #212 | COORD-038: podssh took podcrates v0.30.0 at ef3666f (to podcrates) | closed (2026-11-12: podcrates recorded it in COORD-058) | T-684 |
-| #213 | COORD-039: pod-services: smee.io's server and hostc's server, for podssh's T-741 and T-742 (to podcrates) | open (2026-11-12: asked) | T-741, T-742 |
-| #214 | COORD-040: pod-proxy's stun: MESSAGE-INTEGRITY and FINGERPRINT, for podssh's TURN road T-621 (to podcrates) | open (2026-11-12: asked) | T-621 |
+| #213 | COORD-039: pod-services: smee.io's server and hostc's server, for podssh's T-741 and T-742 (to podcrates) | closed (2026-11-12: `smee-io` and `hostc` in v0.32.0) | T-741, T-742 |
+| #214 | COORD-040: pod-proxy's stun: MESSAGE-INTEGRITY and FINGERPRINT, for podssh's TURN road T-621 (to podcrates) | closed (2026-11-12: `pod_proxy::stun` in v0.32.0; T-621 uses it) | T-621 |
+| #215 | relay: add a Dev Tunnels forward road (Nemo-010) | open (2026-11-12: filed as T-755, blocked on podcrates) | T-755 |
+| #216 | COORD-041: pod-devtunnel, the client side of Microsoft Dev Tunnels' relay, for podssh's T-755 (#215) (to podcrates) | open (2026-11-12: asked) | T-755 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

@@ -1982,7 +1982,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
   (`crates/podssh-relay/Cargo.toml:204-205`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
-  (`Cargo.lock:6287-6288`).
+  (`Cargo.lock:6289-6290`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
   system's store of Linux (`docs/target-environment.md:61-67`).
 - Inferred: on macOS, `/etc/ssl/cert.pem` lacks a root that an administrator added to a keychain;
@@ -2327,7 +2327,7 @@ and each other command print rustls's words alone. An error should tell what to 
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
-- Read: rustls 0.23.46 (`Cargo.lock:6237-6238`) has the errors `Expired`, `ExpiredContext`,
+- Read: rustls 0.23.46 (`Cargo.lock:6239-6240`) has the errors `Expired`, `ExpiredContext`,
   `NotValidYet` and `NotValidYetContext`, and writes the two with a context as "certificate
   expired: verification time" and "certificate not valid yet: verification time" (its
   `src/error.rs`, read in cargo's registry); doctor's match of the text ("expired", "not valid
@@ -3336,3 +3336,54 @@ cross with none lost or repeated, in order.
 
 PodUtils/podcrates T-110 (`pod-session`) and T-120 (the wire document) must be released and taken. Unblocked
 when a podcrates tag has `pod-session` with the held link.
+
+# T-755: A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443
+
+**Source:** GitHub #215 (Nemo-010, 2026-11-12).
+**Category:** feature
+**Milestone:** none
+**Priority:** P3
+**Effort:** L
+**Status:** blocked
+
+## Problem
+
+A host whose only way out is TCP 443 and whose only reachable relay is a Microsoft Dev Tunnels endpoint has no road:
+podssh reaches no SSH server through a Dev Tunnels relay. The relay is a forward path: the client opens a
+`direct-tcpip` channel to a port of the tunnel's host, over the relay's WebSocket and an SSH session of its own.
+
+## Premise
+
+- The issue asks to use a crate `pod-devtunnel` for the management API, the relay's WebSocket, the SSH `none` session
+  and the `direct-tcpip` channel, and not to copy the protocol into podssh. No such crate exists: neither at the tag
+  that podssh pins (`v0.32.0`, `032e86f`) nor on podcrates' `main` (`978c040`, 2026-11-12), whose `crates/` has no
+  `pod-devtunnel`.
+- `docs/decisions.md` (Rule Q3): the code of a protocol that podssh, podnet and podvm share goes to podcrates.
+
+## Approach
+
+1. podcrates makes `pod-devtunnel` (asked as a COORD issue): the management API (the tunnel by name or id, its
+   connect token), the relay's WebSocket and subprotocol, the client's SSH session with no user authentication, and a
+   `direct-tcpip` channel as an `AsyncRead + AsyncWrite`, each failure named (management, WebSocket, SSH, channel,
+   reconnect), with a bounded reconnect that takes a fresh connect token.
+2. podssh's part, once a tag has it: a module `devtunnel/` of `podssh-relay` behind a feature `devtunnel`, off by
+   default; the road in the selection as `devtunnel://TUNNEL` (or `--devtunnel TUNNEL`), the port from the SSH
+   target; the token from a private file or the settings' secrets, never in argv, a log line, the journal or
+   `--json`; a row of `podssh doctor` that names the stage of a failure. TCP alone.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features devtunnel --test devtunnel
+```
+
+Against a stand-in relay (the WebSocket subprotocol, the SSH `none` session, `direct-tcpip` and an echo): a session to
+a stand-in SSH server completes its handshake and runs a command; a relay's reconnect ends a stream with a named error,
+and a new stream after it succeeds; the token is in no line of `--json`, the log or the journal. Live, short: a tunnel
+of the tester's, from GitHub Actions, where they give one.
+
+## Blocker
+
+PodUtils/podcrates: a crate `pod-devtunnel` with the client side of Dev Tunnels' relay, as the issue asks podssh to
+use (asked as COORD-041, #216). Unblocked when a podcrates tag has it.

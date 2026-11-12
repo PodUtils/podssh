@@ -2211,7 +2211,7 @@ the channel failed: An existing connection was forcibly closed by the remote hos
   podssh took `pod-relay` of PodUtils/podcrates at v0.27.0, that crate's `reverse::operator`) writes a frame's
   bytes to the local side only while not `draining`; `end_of_input` (lines 326 to 336 there) sets `draining`
   once the input ends when `node_ends` is set,
-  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:437`).
+  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:434`).
 
 ## Approach
 

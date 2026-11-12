@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7111-7112`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7113-7114`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -2990,7 +2990,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
    that podssh could not read, then russh's words; a connection lost while the forwards were asked
    for names russh's cause, as a lost session does (the reading of T-464).
 5. The patch offered to russh upstream. That is the operator's to send, as no session changes
-   another repository (`docs/decisions.md:79` says "no session changes another repository"); the
+   another repository (`docs/decisions.md:80` says "no session changes another repository"); the
    copy goes once a release of russh reads such replies.
 6. `docs/cli.md` (the keepalive, and `-R`'s refusal), `docs/STATUS.md`.
 
@@ -4223,7 +4223,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
   `3bb42ea`).
 - Read: `ssh node://` carries SSH with `carry_keeping`: the layer's settings of `ssh`, which name
   `keep.v1` (`crates/podssh-cli/src/layered.rs:224`), the far end's shells learned and its
-  silence watched (`:258-264`), and the SSH client and the carriage joined in one task
+  silence watched (`:255-261`), and the SSH client and the carriage joined in one task
   (`crates/podssh-cli/src/ssh/node.rs:333-336`); `operator` carries with `carry_through`, with
   none of these (`crates/podssh-cli/src/operator.rs:164-165`). These are the client's differences
   between the run that stopped and the one that worked; which one stopped it is not known.

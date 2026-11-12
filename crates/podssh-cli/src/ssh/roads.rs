@@ -383,7 +383,7 @@ where
             return code;
         }
     };
-    log.verbose(&format!("{shown}: {}", client.found()));
+    crate::no_resume::found_lines(client.found()).iter().for_each(|l| log.verbose(&format!("{shown}: {l}")));
     match crate::no_resume::heard(client.found()) {
         Some((true, line)) => log.info(&format!("{shown}: {line}")),
         Some((false, line)) => log.verbose(&format!("{shown}: {line}")),

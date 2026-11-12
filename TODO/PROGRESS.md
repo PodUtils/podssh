@@ -22,9 +22,9 @@ Read on 2026-11-11.
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
    migration, T-684; the release of M10, T-446; and T-319, T-321, T-450, T-459, T-548, T-574,
    T-660, T-662, T-665, T-666, T-670 and T-698 (its serve part waits for T-107).
-5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
+5. **Blocked entries** (11; each `## Blocker` names who must act): T-328 and T-376 (the
    operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
-   working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
+   working Bare node, podcrates T-200), T-755 (`pod-devtunnel`, #216), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
    Trojan node ids for T-574 arrive after 2026-11-12T03:05Z.
 6. **The sessions of PodUtils.** The owner's pause ended on 2026-11-11 (PodUtils/podcrates#53
    closed). podssh and podcrates talk by direct messages (`send_message`) and record each take as
@@ -33,7 +33,7 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.31.0` (COORD-058, PodUtils/podcrates#90). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.32.0` (COORD-061, PodUtils/podcrates#93). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
@@ -114,7 +114,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 68 open, 22 partial, 10 blocked, 609 done.
+`TODO/INDEX.md` holds 710 entries: 68 open, 22 partial, 11 blocked, 609 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

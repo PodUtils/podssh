@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**709 entries: 68 open, 22 partial, 10 blocked, 609 done.**
+**710 entries: 68 open, 22 partial, 11 blocked, 609 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 39 | 10 | 6 | 275 | 330 |
-| **All** | 68 | 22 | 10 | 609 | 709 |
+| P3 | 39 | 10 | 7 | 275 | 331 |
+| **All** | 68 | 22 | 11 | 609 | 710 |
 
 ## Entries
 
@@ -785,3 +785,4 @@ repository and CI).
 | [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
 | [T-753](robustness.md) | P2 | M | M10 | defect | partial | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
+| [T-755](ws.md) | P3 | L | none | feature | blocked | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
