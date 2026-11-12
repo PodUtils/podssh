@@ -9292,6 +9292,14 @@ holds an ID or a password. `cargo test -p podssh-ws --test proxy_nodes`: 4 passe
 passed; `--lib proxy_nodes`: 8 passed; clippy (`-D warnings`) clean. Planted, the Trojan arm of `one` in
 `proxy_nodes/mod.rs` made to fail: the new test and the older round test fail; put back, they pass.
 
+2026-11-12: Q90's live check is a test of its own, `forwarder::nodes_live` (ignored outside its workflow,
+`proxy-nodes-live.yml`, by hand): each node that the binary ships, alone, carries a session to `github.com:22` and
+SSH's version line comes back; each node that fails is named for the catalog to drop. The catalog of podcrates
+v0.26.0 ships ten nodes (two VLESS, eight Trojan). From this cloud session each failed at TLS with a reset, which is
+the session's proxy's (as the Tox road's relays were reset here); the check is the workflow's on Actions.
+UNVERIFIED until its first run there.
+
+
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
 
 **Source:** the operator's ruling Q78 (2026-11-02).

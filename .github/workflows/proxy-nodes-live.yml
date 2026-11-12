@@ -1,0 +1,26 @@
+name: proxy nodes live
+
+# Q90's live check of the public proxy nodes that the binary ships (T-574):
+# each node of the kind `proxy-node` of pod-services alone carries a session
+# to GitHub's SSH endpoint, whose version line comes back
+# (crates/podssh-cli/src/forwarder/nodes_live.rs). One short probe a node, by
+# hand, before each release; a node that fails is named, so that the catalog
+# drops it. The nodes are public nodes of public lists (Q78, a live target of
+# Q91); no ID or password of a node is printed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: each node of the binary, to github.com:22
+        run: timeout 1200 cargo test --locked -p podssh-cli --lib forwarder::nodes_live -- --ignored --nocapture

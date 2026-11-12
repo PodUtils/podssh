@@ -16,6 +16,9 @@ pub mod cleartext;
 pub mod fallback;
 // The public proxy nodes of aggregator lists, after all of these (T-574).
 pub mod nodes;
+// Q90's live check of the binary's nodes (T-574), a test alone.
+#[cfg(test)]
+mod nodes_live;
 pub mod pipe;
 pub mod public;
 pub mod reach;
