@@ -4,10 +4,11 @@
 //! installs it. The one that prints a chain for a diagnosis lives in
 //! `examples/inspect_peer_chain.rs` (T-065), so no build of a library has it.
 //! The shipped configuration installs the WebPKI verifier with
-//! `with_custom_certificate_verifier`, which the scan allows. Two verifiers
+//! `with_custom_certificate_verifier`, which the scan allows. Three verifiers
 //! pin a single key, and so accept no other certificate: WARP's endpoint,
-//! whose chain no public root signs (T-352), and a node of the Pinggy road,
-//! whose certificate is its own (T-548). Each is allowed in its one file
+//! whose chain no public root signs (T-352), a node of the Pinggy road,
+//! whose certificate is its own (T-548), and a relay of Syncthing's, which
+//! its device ID names (T-571). Each is allowed in its one file
 //! while that file still compares the key, and its own tests fail when the
 //! pin is skipped.
 
@@ -19,9 +20,10 @@ const FORBIDDEN: [&str; 3] = ["ServerCertVerifier for", "set_certificate_verifie
 
 /// Each pinning verifier's file, and the comparison with the pinned key that
 /// the file must hold for its allowance to stand.
-const PINNED: [(&str, &str); 2] = [
+const PINNED: [(&str, &str); 3] = [
     ("podssh-warp/src/tls.rs", "== Some(self.point.as_slice())"),
     ("podssh-relay/src/pinggy/tls.rs", "Some(seen) if seen == self.pin =>"),
+    ("podssh-relay/src/strelay/cert.rs", "if device_id(end_entity.as_ref()) == self.id {"),
 ];
 
 fn rust_files(dir: &Path, out: &mut Vec<PathBuf>) {
