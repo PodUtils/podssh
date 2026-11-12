@@ -75,6 +75,10 @@
 //!   last fallback through localtunnel's public server: the node's TCP
 //!   connections served by the relay role and the node's layer, the
 //!   client's WebSocket by name;
+//! - `hostc` (feature `hostc`): the hostc road (T-742), a last fallback
+//!   through hostc's public server: one WebSocket of the node's, each
+//!   visitor's request or WebSocket a stream on it, served as a visitor of a
+//!   tunnel of `ssh -R` is (the relay role, or a link of the node's layer);
 //! - `bore` (feature `bore`): the bore road (T-569), a last fallback
 //!   through bore.pub: a public TCP port of the node's key, whose client
 //!   reaches it through the caller's roads;
@@ -117,6 +121,8 @@ pub mod gate;
 pub mod grant;
 pub mod h2_road;
 pub mod health;
+#[cfg(feature = "hostc")]
+pub mod hostc;
 pub mod http_road;
 pub mod identity;
 pub mod keyed;

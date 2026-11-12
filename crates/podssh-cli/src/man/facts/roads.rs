@@ -228,6 +228,19 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           Another word is a configuration error (78), which does not echo the value.",
     ),
     (
+        &["PODSSH_HOSTC"],
+        "The hostc road (T-742), a last fallback of the operator's ruling Q78, after the Sandhole road and before \
+          the localtunnel road: hostc's public server with no account, of podssh node --hostc; the node asks it for \
+          a tunnel over HTTPS and keeps one WebSocket to it, both on 443 by name through HTTPS_PROXY; the name is \
+          random, so a client takes it as a tunnel's name of the localhost.run road (podssh ssh node://NAME \
+          --tunnel-url https://HOST, or the node's record), with this variable as its switch. A server that \
+          answers 426 speaks a newer version of hostc's protocol than this podssh: the road ends, and the next \
+          road goes on. no: no such road, and --hostc is refused (64); an https:// URL, or http:// on this \
+          host's loopback: that server of hostc's protocol; unset, empty or yes: hostc's where podssh's list of \
+          services names it, else no server, and --hostc is a configuration error (78). Another word is a \
+          configuration error (78), which does not echo the value.",
+    ),
+    (
         &["PODSSH_LOCALTUNNEL"],
         "The localtunnel road (T-568), a last fallback of the operator's ruling Q78, before the bore road: \
           localtunnel's public server with no account, of podssh node --localtunnel and podssh ssh node://NAME, where the node and \
@@ -398,7 +411,7 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "no: turns off each last fallback that sends the target to a public service of a third party that nobody \
       vouches for (the public proxy nodes, PODSSH_PROXY_LISTS; the Pinggy road, PODSSH_PINGGY, T-548; the \
       Serveo road, PODSSH_SERVEO, T-549; the ssh-j road, PODSSH_SSH_J, T-570; the localhost.run road, \
-      PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
+      PODSSH_LOCALHOST_RUN, T-565; the Sandhole road, PODSSH_SANDHOLE, T-743; the Bare hop, PODSSH_BARE, T-740; the hostc road, PODSSH_HOSTC, T-742; the localtunnel road, PODSSH_LOCALTUNNEL, T-568; the bore road, \
       PODSSH_BORE, T-569; croc's relay road, PODSSH_CROC, T-694; ZeroTier's road, PODSSH_ZEROTIER, T-733; Tox's relay road, PODSSH_TOX, T-734; Yggdrasil's road, PODSSH_YGGDRASIL, T-735; HyperDHT's road, PODSSH_HYPERDHT, T-736; Syncthing's relay road, PODSSH_SYNCTHING_RELAY, T-571; the onion road, PODSSH_ONION, T-578; the smee.io road, PODSSH_SMEE, T-741; and the roads that join them); yes, the default, leaves each to its own variable. \
       Another word is no.",
     ),
@@ -446,19 +459,6 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_CHISEL_AUTH_FILE"],
         "The file of the server of --chisel or PODSSH_CHISEL, as --chisel-auth-file, which wins: a private file \
       of auth USER:PASSWORD and fingerprint BASE64 (see FILES).",
-    ),
-    (
-        &["PODSSH_TURN"],
-        "The TURN server of podssh ssh, of each command that reaches its server as podssh ssh does, and of podssh \
-      proxy, as --turn: turns:HOST[:PORT] (RFC 7065; port 443 when none is named), in place of the relay. The \
-      flag wins, and so does each other road's flag; beside PODSSH_RELAY, PODSSH_FORWARDER, PODSSH_VIA, \
-      PODSSH_WSTUNNEL or PODSSH_CHISEL, or with a URI that cannot be read, it is a configuration error (78). An \
-      empty value is no value.",
-    ),
-    (
-        &["PODSSH_TURN_AUTH_FILE"],
-        "The credential file of the server of --turn or PODSSH_TURN, as --turn-auth-file, which wins: a private \
-      file of USER:PASSWORD, or auth-secret SECRET (see FILES).",
     ),
     (
         &["PODSSH_STUN"],

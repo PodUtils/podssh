@@ -50,6 +50,10 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 /// whose relay role `--relay` serves with no listener (T-428). Both at once
 /// are refused by the quick tunnel's checks.
 pub(crate) fn or_quick(args: &NodeArgs, err: &mut dyn Write) -> i32 {
+    // hostc's (T-742), whose checks refuse each other road given with it.
+    if args.hostc {
+        return crate::node_hostc::run(args, None, err);
+    }
     if args.localtunnel && !args.quick_tunnel {
         return run(args, None, err);
     }
@@ -61,13 +65,13 @@ fn asked_any(args: &NodeArgs) -> bool {
     args.tunnel_asked() || args.frp.is_some()
 }
 
-/// The OpenTunnel road, then the Pinggy road, Serveo's, ssh-j's and
-/// localhost.run's (`node_sshj::tunnels`), each asked, or unasked as the
-/// last of a node with no other road; then this one, unasked, before bore's
-/// (`node_bore::tunnels` wraps this): the exit code of the run; none when
-/// the node takes another road.
+/// The OpenTunnel road, then the Pinggy road, Serveo's, ssh-j's,
+/// localhost.run's and hostc's (`node_hostc::tunnels`, T-742), each asked, or
+/// unasked as the last of a node with no other road; then this one, unasked,
+/// before bore's (`node_bore::tunnels` wraps this): the exit code of the
+/// run; none when the node takes another road.
 pub(crate) fn tunnels(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
-    match crate::node_sshj::tunnels(args, err) {
+    match crate::node_hostc::tunnels(args, err) {
         Some(code) => Some(after(args, code, err).unwrap_or(code)),
         None => unasked(args, err),
     }

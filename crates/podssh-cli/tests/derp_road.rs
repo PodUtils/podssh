@@ -100,7 +100,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
         .env("PODSSH_ONION", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
-    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");
+    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_HOSTC", "no").env("PODSSH_SMEE", "no").env("PODSSH_BORE", "no");
     // Nor OpenTunnel's service, which a node with no other road takes
     // unasked (Q76, T-531), nor Pinggy's, the last of them (Q78, T-548).
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");

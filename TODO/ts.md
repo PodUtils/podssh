@@ -397,7 +397,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
 3. In `podssh ts`, take `--ts-proxy`, else `podssh_ws::dial::proxy_from_env`
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:98-123`). Give the fork a URL with an explicit port, and never
    print its credentials. The fork has one proxy for each process
-   (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:222-237`), so apply `NO_PROXY` for each host in
+   (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:224-239`), so apply `NO_PROXY` for each host in
    the new function.
 4. Update `crates/podssh-cli/src/flags.rs:366-367`, `docs/tailscale.md:145-146` and
    `docs/STATUS.md:861` in the same commit.
@@ -440,7 +440,7 @@ cargo test -p podssh-ts -p podssh-cli --features podssh-cli/ts --no-fail-fast
 ```
 
 A new step of the script runs the fork test vendor/tailscale-rs/ts_derp/tests/ws_proxy_dial.rs,
-which follows `vendor/tailscale-rs/ts_derp/tests/proxy_dial.rs:14-67`: the call
+which follows `vendor/tailscale-rs/ts_derp/tests/proxy_dial.rs:14-66`: the call
 `ws::connect("relay.invalid", 443)` must send `CONNECT relay.invalid:443` to a fake proxy, then fail
 at TLS, not at the name. Plant: remove the proxy branch; the fake sees nothing, and the test fails.
 A new test in crates/podssh-ts/tests/config.rs checks the choice: the flag, then the variables in
@@ -659,7 +659,7 @@ allowlist. The exit is 78, not the 77 that `podssh ts` gives for a refused key.
 
 Read, at `d345b14` for the code that T-104 and this entry changed: the transport turns a close
 into an `io::Error` with the text
-`websocket closed: code=1008 reason="not authorized"` (`vendor/tailscale-rs/ts_derp/src/ws.rs:224-237`),
+`websocket closed: code=1008 reason="not authorized"` (`vendor/tailscale-rs/ts_derp/src/ws.rs:228-241`),
 and the handshake returns it (`vendor/tailscale-rs/ts_derp/src/client.rs:211-216`). The runner
 passes it up (`vendor/tailscale-rs/ts_runtime/src/multiderp/uniderp.rs`, lines 248-254 at `a3c196e`), and `start_runner`
 gives it to `tracing::error!` only (`vendor/tailscale-rs/ts_runtime/src/multiderp/uniderp.rs`, lines 72-76 at `a3c196e`).
@@ -679,7 +679,7 @@ the relay. So a refused node can still print a status line and exit 0. This wide
 ## Approach
 
 1. In `ts_derp`, `WsIo` puts a typed `WsClose { code, reason }` inside its `io::Error`
-   (`vendor/tailscale-rs/ts_derp/src/ws.rs:224-237`), and `ts_derp::Error` gets a method that
+   (`vendor/tailscale-rs/ts_derp/src/ws.rs:228-241`), and `ts_derp::Error` gets a method that
    returns it. The frame codec does not change.
 2. In `ts_runtime`, keep the newest DERP state of each region (connected, refused or failed), set
    in `start_runner` and later in the loop of T-104. `Device::derp_state()` returns it with no wait,
@@ -921,7 +921,7 @@ Read: the row is at `crates/podssh-cli/src/flags.rs`, lines 293-294 at `efee2fc`
 (`crates/podssh-cli/src/ts.rs`, lines 314-316 at `efee2fc`, `crates/podssh-ts/src/status.rs:17-21`), and `-W` writes the
 stream (`crates/podssh-cli/src/ts.rs`, lines 391-393 at `efee2fc`). `proxy --jsonl` is refused at parse, with the reason
 (`crates/podssh-cli/src/tree.rs`, lines 179-187 at `efee2fc`, `crates/podssh-cli/src/non_interactive.rs`, lines 309-320 at `efee2fc`).
-`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:133`).
+`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:136`).
 
 ## Approach
 

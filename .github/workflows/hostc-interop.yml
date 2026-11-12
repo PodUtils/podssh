@@ -1,0 +1,151 @@
+name: hostc interop
+
+# The hostc road (T-742, the operator's rulings Q78 and Q94): a podssh node
+# behind hostc's own server (akazwz/hostc, apps/server, Apache-2.0), pinned
+# at its commit c19ff67 (version 5 of the protocol), under its local runtime
+# (`cf dev`, workerd), with a plain squid as the proxy of the node and of the
+# client, a TLS front of Caddy's internal CA for the tunnels' names on 443,
+# and OpenSSH's sshd as TARGET: crates/podssh-cli/tests/hostc_road.rs, whose
+# tests say "did not run" without the variables set here. The live job asks
+# one throwaway tunnel of the hosted server, where pod-services names it, and
+# frees it at once (Q94: short). Started by hand, and on a push that changes
+# the road; it publishes nothing. Keys are made for the run and never printed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "also run the short live test through the hosted server"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/hostc/**"
+      - "crates/podssh-cli/src/node_hostc*.rs"
+      - "crates/podssh-cli/src/ssh/road_ssh_http.rs"
+      - "crates/podssh-cli/tests/hostc_road.rs"
+      - ".github/workflows/hostc-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: hostc-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HOSTC_COMMIT: c19ff673f36ee5bf43bfe8e8c6233feb53e922e3
+  ZONE: hostc.test
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the build
+        run: cargo test --locked -p podssh-cli --test hostc_road --no-run
+      - name: hostc at its pinned commit
+        run: |
+          set -eu
+          git init -q hostc
+          git -C hostc fetch -q --depth 1 https://github.com/akazwz/hostc "$HOSTC_COMMIT"
+          git -C hostc checkout -q FETCH_HEAD
+          test "$(git -C hostc rev-parse HEAD)" = "$HOSTC_COMMIT"
+      # As hostc's own CI sets them up (its .github/workflows/ci.yml).
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: hostc/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: hostc's server under its local runtime
+        working-directory: hostc
+        run: |
+          set -u
+          pnpm install --frozen-lockfile
+          cp apps/server/.env.example apps/server/.env
+          # The tunnels' names under the zone of the run; the API on the loopback.
+          TUNNEL_DOMAIN="$ZONE" nohup pnpm -F @hostc/server dev > "$RUNNER_TEMP/hostc.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            curl -qfsS --max-time 2 http://127.0.0.1:8787/api/health && exit 0
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/hostc.log"
+          echo "hostc's server did not answer /api/health"
+          exit 1
+      - name: the names of the zone, a TLS front, a squid and an sshd
+        run: |
+          set -eu
+          # Each name of the zone is this host: dnsmasq answers them, and the
+          # system's resolver asks it first.
+          sudo apt-get install -y -q dnsmasq squid openssh-server > /dev/null
+          echo "address=/$ZONE/127.0.0.1" | sudo tee /etc/dnsmasq.d/hostc.conf > /dev/null
+          printf '%s\n' "listen-address=127.0.0.2" "bind-interfaces" | sudo tee -a /etc/dnsmasq.d/hostc.conf > /dev/null
+          sudo systemctl restart dnsmasq
+          # Caddy's internal CA ends the visitors' TLS on 443, as hostc's edge does.
+          cat > "$RUNNER_TEMP/Caddyfile" <<EOF
+          {
+            local_certs
+            skip_install_trust
+          }
+          *.$ZONE:443 {
+            tls internal
+            reverse_proxy 127.0.0.1:8787
+          }
+          EOF
+          docker run -d --name caddy --network host -v "$RUNNER_TEMP/Caddyfile:/etc/caddy/Caddyfile" \
+            caddy:2.10.2 > /dev/null
+          for _ in $(seq 1 30); do
+            docker cp caddy:/data/caddy/pki/authorities/local/root.crt "$RUNNER_TEMP/ca.pem" 2> /dev/null && break
+            sleep 1
+          done
+          test -s "$RUNNER_TEMP/ca.pem"
+          # A plain squid: CONNECT to 443 alone, the zone's names by dnsmasq.
+          printf '%s\n' "http_port 127.0.0.1:3128" "dns_nameservers 127.0.0.2" \
+            "acl ssl_port port 443" "http_access deny CONNECT !ssl_port" "http_access allow localhost" \
+            "http_access deny all" | sudo tee /etc/squid/squid.conf > /dev/null
+          sudo systemctl restart squid
+          # OpenSSH's sshd for TARGET, with a key of the run's own.
+          ssh-keygen -q -t ed25519 -N '' -f "$RUNNER_TEMP/id_ed25519"
+          mkdir -p ~/.ssh && cat "$RUNNER_TEMP/id_ed25519.pub" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+          sudo systemctl start ssh
+      - name: the tests of the road
+        env:
+          PODSSH_HOSTC_TEST_SERVER: http://127.0.0.1:8787
+          PODSSH_HOSTC_TEST_ZONE: ${{ env.ZONE }}
+          PODSSH_HOSTC_TEST_TARGET: 127.0.0.1:22
+          PODSSH_HOSTC_TEST_PROXY: http://127.0.0.1:3128
+        run: |
+          set -u
+          export PODSSH_HOSTC_TEST_IDENTITY="$RUNNER_TEMP/id_ed25519" PODSSH_HOSTC_TEST_USER="$USER"
+          export PODSSH_HOSTC_TEST_CA="$RUNNER_TEMP/ca.pem"
+          # Each exit code is read directly; the shell's -e would stop at it.
+          rc=0
+          timeout 900 cargo test --locked -p podssh-cli --test hostc_road -- --nocapture --test-threads 1 \
+            > hostc-road.log 2>&1 || rc=$?
+          cat hostc-road.log
+          if grep -q "did not run" hostc-road.log; then echo "a test of the server did not run"; rc=1; fi
+          [ "$rc" = 0 ] || { echo "the tests of the road exited $rc"; tail -50 "$RUNNER_TEMP/hostc.log"; exit 1; }
+
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: one throwaway tunnel of the hosted server (Q94)
+        env:
+          PODSSH_HOSTC_LIVE: "1"
+        run: |
+          set -u
+          rc=0
+          timeout 600 cargo test --locked -p podssh-cli --test hostc_road live_ -- --nocapture > live.log 2>&1 || rc=$?
+          cat live.log
+          [ "$rc" = 0 ] || { echo "the live test exited $rc"; exit 1; }

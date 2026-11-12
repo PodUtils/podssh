@@ -63,6 +63,7 @@ pub(crate) fn spares(args: &NodeArgs) -> Result<u8, Refusal> {
         (args.localhost_run, "--localhost-run"),
         (args.sandhole, "--sandhole"),
         (args.localtunnel, "--localtunnel"),
+        (args.hostc, "--hostc"),
         (args.bore, "--bore"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.carrier.is_some(), "--carrier"),

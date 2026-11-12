@@ -70,7 +70,7 @@ pair (`crates/podssh-relay/src/cache.rs` lines 126-153 and 221-240 at `9811e0d`)
 8. Use the control host only (`tcp.ssh.relay.ajam.dev`, or one host that the user names). No failover
    to pool hosts until a measurement shows that they serve `/v1/*`.
 9. In the same commit: `docs/relay.md` (lines 192-214 at `3632dcb`), `docs/reverse.md` (lines 46-53 at
-   `3632dcb`), and the FILES section of the manual (`crates/podssh-cli/src/man/facts.rs:314`).
+   `3632dcb`), and the FILES section of the manual (`crates/podssh-cli/src/man/facts.rs:320`).
 
 ## Decision
 
@@ -457,7 +457,7 @@ Read: podbox keeps `ring` and TLS 1.2 through a `rustls::ClientConfig` that it s
    it needs 1.88, and podbox follows (the operator's ruling of 2026-10-08). Write the result in
    `docs/design.md` (section 3).
 7. Document the facade in `docs/design.md` (lines 89-110 at `0d92eef`) and in the crate's header
-   (`crates/podssh-relay/src/lib.rs:1-89`); add the feature to the gate (`scripts/gate.sh:130`).
+   (`crates/podssh-relay/src/lib.rs:1-93`); add the feature to the gate (`scripts/gate.sh:130`).
 
 ## Decision
 
@@ -773,7 +773,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    `crates/podssh-cli/src/doctor/relay_checks.rs:52-106` (zuko's doctor checks its ticket and state).
 6. Remove `node` and `relay` from `VERB_OWNER`, and add them to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-145`). New variables go in `VARIABLES`
-   (`crates/podssh-cli/src/man/facts.rs:46`), files in FILES (`:314` there), examples in
+   (`crates/podssh-cli/src/man/facts.rs:46`), files in FILES (`:320` there), examples in
    `crates/podssh-cli/src/man/examples.rs:8-309`; update `docs/cli.md`, `docs/reverse.md` and
    `docs/STATUS.md` (lines 48-50 at `af0a163`).
 7. Pitfalls: `podssh man relay` shows the command; the topic THE RELAY has its own key since
@@ -4728,7 +4728,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   key at its server (`crates/podssh-cli/src/node_derp.rs:185` says "let (secret, dial) =
   (Arc::new(Secret::of_node(identity)), dial::tls(trust.clone(), proxy.clone()));"): a new key is a new ticket. A quick tunnel's name is new at each
   request (`crates/podssh-cli/src/node_quick.rs:4` says "The name is new each run"), which the node made
-  at each start before (`crates/podssh-cli/src/node_quick.rs:255` says "asked = api::request(&trust,
+  at each start before (`crates/podssh-cli/src/node_quick.rs:256` says "asked = api::request(&trust,
   &proxy, &*say) => asked,"). Both pass as parts of the run (Decision, items 2 and 3).
 - The Approach's "the road's own connection is made again" needs nothing more on two roads: the Piping
   Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:233` says "let secret
@@ -4738,7 +4738,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
   a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:412` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
-  each run (`crates/podssh-cli/src/node_quick_relay.rs:100` says "let tokens =
+  each run (`crates/podssh-cli/src/node_quick_relay.rs:101` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.
 - `podssh chat --listen NAME --iroh` runs the iroh road's node code
   (`crates/podssh-cli/src/chat/iroh/listen.rs:81` says "let code = node_iroh::serve(node, roads,

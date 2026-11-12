@@ -542,7 +542,7 @@ work.
 ## Premise
 
 Read: podssh has no import and no `config` command (`crates/podssh-cli/src/flags.rs:378-446`).
-`serde_json` is a dependency of the binary (`crates/podssh-cli/Cargo.toml:133`), so a JSON
+`serde_json` is a dependency of the binary (`crates/podssh-cli/Cargo.toml:136`), so a JSON
 export needs no new crate. XML and YAML need a parser that the binary does not have. The export
 formats of the other clients were not read here. Each step below starts from a real export of
 that client: bytes captured from the real program (`AGENTS.md`, section 6, rule 2).

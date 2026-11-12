@@ -97,7 +97,7 @@ pub fn run_node(args: &NodeArgs, err: &mut dyn Write) -> i32 {
         return refusal.report("node", err);
     }
     // A quick tunnel of Cloudflare's, which podssh makes itself (T-300), or localtunnel's (T-568).
-    if args.quick_tunnel || args.localtunnel {
+    if args.quick_tunnel || args.localtunnel || args.hostc {
         return crate::node_localtunnel::or_quick(args, err);
     }
     // The key and the allowlist serve each road (T-087); the relays are the

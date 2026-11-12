@@ -163,6 +163,10 @@ pub(crate) mod ssh_http_leg;
 // (T-568): the node's links and the relay role behind localtunnel's server.
 pub mod node_localtunnel;
 mod node_localtunnel_serve;
+// `podssh node --hostc`: the hostc road, a last fallback of Q78 (T-742): the
+// node's links and the relay role behind one WebSocket to hostc's server.
+pub mod node_hostc;
+mod node_hostc_serve;
 // The node of the frp road and the file that it shares with its clients (T-498).
 pub mod frp_file;
 pub mod node_frp;

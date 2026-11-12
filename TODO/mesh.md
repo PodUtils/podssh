@@ -6113,7 +6113,7 @@ the net that already names them.
 
 ## Premise
 
-- `crates/podssh-cli/src/node_quick.rs:158`, where the node with no `--allow` was refused: its
+- `crates/podssh-cli/src/node_quick.rs:159`, where the node with no `--allow` was refused: its
   name is public, so only the operator keys of the file came in.
 - `crates/podssh-cli/src/node_derp.rs:117` says "pub(crate) fn door(allow: Option<&Path>, place: &Place) -> Result<Door, Refusal>",
   the door of T-452 that the quick tunnel's node can take too.
@@ -14046,7 +14046,7 @@ operator's rulings Q78 and Q94.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -14169,9 +14169,9 @@ through web.pkgforge.dev's services: `lib/server.js` writes each event of a POST
 
 ## Done
 
-Partial (2026-11-12): the draft `draft-t741` (`26b5b4f`) merged, built and tested; the short live run through
-smee.io waits for podssh's take of podcrates v0.32.0, whose `pod-services` has the server (#213), and the run of the
-commands themselves (Decision 9).
+Done (2026-11-12): the draft `draft-t741` (`26b5b4f`) merged, built and tested, and live through smee.io once
+podcrates v0.32.0 named its server (#213). The run of the commands themselves behind squid (Decision 9) stays a later
+step of the interop job.
 
 - `crates/podssh-relay/src/smee/` (feature `smee`, on the Piping Server road's HTTP/1.1 and dial): the channels'
   names, server-sent events, the frames, a link of two channels; `crates/podssh-cli/src/smee_road.rs`,
@@ -14184,6 +14184,9 @@ commands themselves (Decision 9).
 - Clippy as the gate runs it, `cargo fmt --check` and `python scripts/check-repo.py`: clean. The header of
   `smee-interop.yml` said its interop job fails on "did not run": that job checks five passed and a MEASURE line,
   and the live job alone fails on the words; the header now says so.
+- Live, from Actions (`smee-interop.yml` with `live: yes`, run 43272468149, at `555fddc`): through `https://smee.io`,
+  1 MiB each way in 141 s (about 7 KiB/s, a last fallback's rate); a POST of about 64 KiB passes and one of 256 KiB
+  gets 413, under the road's frame bound; two POSTs in flight came in order 20 times of 20. The interop job passed too.
 
 # T-742: hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app`
 
@@ -14193,7 +14196,7 @@ rulings Q78 and Q94.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -14238,6 +14241,48 @@ egress reaches a WebSocket on 443. podssh does not use it.
    road. A last fallback (Q78), with the line of T-548's step 5 for hostc; `PODSSH_HOSTC=no`, and
    the switch of T-548's Decision.
 
+## Decision
+
+2026-11-12 (a drafting agent).
+
+- **Each stream is plain HTTP/1.1 on a pipe, served as a visitor of a tunnel of `ssh -R`.** The
+  bridge (`hostc/bridge*.rs`) writes an `OPEN` again as a request's head (the quick tunnel's
+  `Asked`), and its WebSocket's messages as frames; the node hands the pipe to
+  `node_ssh_http_serve::visitors_served`, so the relay role (T-428's `Behind`) and the node's links
+  (`ssh_http::visit`) take hostc's visitors with no code of their own. Lost: an origin of hostc's
+  frames inside the role, which would skip one parse, at the cost of a second copy of each route.
+- **The client takes the name as the tunnel of `ssh -R`'s** (`--tunnel-url https://NAME`, the
+  record's `tunnel`, the cache), with `PODSSH_HOSTC` as the switch and hostc's line of Q78 for a
+  name under hostc's zone (`hostc::owns`). Lost: a field of its own in the record (a change of the
+  record's format in `podssh-iroh`, for a name that the existing field holds already); the relay
+  road of step 4 (`--relay-host https://NAME` with `--relay`, which works unchanged, but gives a
+  client no way to learn a random name).
+- **The windows stay 256 KiB.** A grant back is of the bytes that the pipe took, never more; the
+  node does not widen a window as hostc's `GrowingWindow` does. The node then holds at most one
+  window of a request that its side does not read, and sends no more of an answer than the server
+  granted. Lost: the reference client's speed on a long round trip, which the relay's contract does
+  not need (its bodies are small; the bytes go in WebSockets, which have no window).
+- **A binary message longer than hostc passes goes in parts** of 1 MiB less 64 bytes: the node's
+  link carries a stream of bytes whose messages' edges mean nothing; a text message so long closes
+  with `1009`, as the server would. Lost: closing each such link.
+- **A WebSocket that its role does not read closes at 4 MiB held**, with `1013` to its visitor, as
+  hostc's client does; the other streams go on.
+- **A `426` is the road's failure** (exit 69, `RelayUnreachable`), so an unasked node goes on to the
+  next road, with a line that names the version and `podssh update`. Lost: a configuration error
+  (78), which would stop an unasked node's chain.
+- **The order: after the Sandhole road, before localtunnel's** (`node_hostc::tunnels` between
+  `node_sshj::tunnels` and `node_localtunnel::tunnels`): a name on 443 by WebSocket passes more
+  cages than localtunnel's raw port and bore's. `--hostc` goes by `node_localtunnel::or_quick`, as
+  `node.rs` is at 500 lines.
+- **The server comes from `pod-services` alone** (`hostc`, its endpoint `api` and its fact
+  `tunnel-zone`), or `PODSSH_HOSTC`: podssh names no host of hostc's. Until podcrates adds the
+  service (a COORD issue `(to podcrates)`), the road has no server unless the variable names one, and
+  a node serves it unasked only then.
+- **The interop's node reaches the server's API directly on the loopback** (`http://`, as
+  `Service::parse` allows the loopback alone); the client's leg goes through squid and a TLS front of
+  the tunnels' names on 443. The node's leg through a proxy is the live job's. Lost: a TLS front of
+  the API too, under which the local runtime would name `ws://` of a TLS host, which the node refuses.
+
 ## Prove
 
 ```sh
@@ -14250,6 +14295,61 @@ a container, with a plain squid as the proxy: `podssh node NAME TARGET` behind i
 node://NAME 'echo ok'` with the pair's road down, and 1 MiB each way with equal digests. Live,
 short, through `hostc.app` (Q94). Planted: a window granted for bytes that the role did not take,
 and the test of a slow target sees memory grow past its bound, which the test names.
+
+## Correction
+
+2026-11-12 (a drafting agent). The Premise's second line moved: `docs/carriers.md:901` now holds the
+item of n0's pkarr server, and "the node's leg is HTTPS by name on 443 and a WebSocket upgrade" is
+at `docs/carriers.md:1034`; `docs/carriers.md:1019` and `docs/decisions.md:33` hold as cited, and
+`crates/podssh-relay/src/serve/behind.rs:1` too. The protocol was read again at `akazwz/hostc`
+`c19ff67` (2026-11-06, the last push): version 5, as T-624 read it. Two facts of the reading change
+the Approach. A tunnel's id is random (12 of the server's alphabet, `index.ts`), never one that the
+node's key gives, so a client cannot derive it as localtunnel's: the node puts the name in its record
+and its cache as the tunnel of `ssh -R` does (T-565), and the client takes it by that road, not by
+the relay road of step 4. And under its local runtime the server names `http://` and `ws://` URLs
+(`url.protocol` of the request), so a server of the loopback is taken with them.
+
+## Done
+
+2026-11-12 (a drafting agent's draft, merged and tested the same day by the main session).
+
+- `crates/podssh-relay/src/hostc/`: `mod.rs` (the setting, `PODSSH_HOSTC`, the lines, the
+  constants of version 5), `wire.rs` (the frames, `OPEN`, `HEAD`, a close, a window), `api.rs`
+  (`POST /api/tunnels`, the checked answer, the socket's upgrade with the bearer token), `link.rs`
+  (one socket: the writer, the heartbeat, the dispatch, `1002` and `4000`), `bridge.rs`,
+  `bridge_http.rs`, `bridge_ws.rs` (each stream on a pipe, with its windows) and `keep.rs` (sockets
+  again within 10 minutes, new tunnels at most each 3 s, `426` the end); feature `hostc`.
+- `crates/podssh-cli`: `node_hostc.rs` and `node_hostc_serve.rs`, `--hostc`, the order of the
+  unasked roads, `--relay` behind it, the other roads' refusals of `--hostc`, the client's switch and
+  line in `ssh/road_ssh_http.rs`, `PODSSH_HOSTC` in the manual.
+- Tests: the unit tests of each module (the planted window in
+  `bridge_http_tests.rs::a_window_is_granted_only_for_bytes_that_the_role_took`, the bound in
+  `a_visitor_that_does_not_read_holds_the_role_back_at_one_window`); `tests/hostc_road.rs` (the
+  refusals; hostc's own server, the role's `/health`, 1 MiB each way with equal digests and the
+  `426`; the binary's node and `podssh ssh node://` with the pair's road down; live, short); and
+  `.github/workflows/hostc-interop.yml`, hostc pinned at `c19ff67`, squid, Caddy's internal CA,
+  OpenSSH's sshd.
+
+Merged 2026-11-12 by the main session (the draft's diff applied on `main`, then built and tested).
+Repaired in the merge: `api.rs` bound the request's authority before the exchange (a borrow of a
+temporary); `keep.rs` lost a dead assignment and waits on `link::stop_of`, which keeps the future
+`Send` inside `select!`; `bridge_ws_tests.rs` sent its visitor with no `Origin`, and a new test
+(`a_browser_s_origin_reaches_the_node_which_refuses_it`) proves that a browser's origin passes to the
+node, which refuses it. The rows of TURN moved from `man/facts/roads.rs` to `man/facts/turn.rs` (500
+lines). With `pod-services` v0.32.0 hostc is listed, so a node with no other road serves it unasked:
+each test that turns every other road off now sets `PODSSH_HOSTC=no` and `PODSSH_SMEE=no` too.
+
+- `cargo test -p podssh-relay --features hostc --lib hostc`: 27 passed.
+- `cargo test -p podssh-cli --test hostc_road`: the refusals pass; the server's and the live tests
+  say "did not run" here, with no hostc server on this host.
+- `cargo test -p podssh-cli --test bore_road --test derp_road`: 14 passed (both failed before the
+  `PODSSH_HOSTC=no` above). The whole suite: 3523 passed, 2 failed before that repair.
+- `cargo clippy --locked --workspace --all-targets -- -D warnings -A clippy::collapsible_if`: no
+  warning; `cargo fmt --check`, `python scripts/check-repo.py`, `cargo todo check`: clean.
+
+Waits (the entry stays `partial`): `hostc-interop.yml` on Actions (hostc's own server under
+`TUNNEL_DOMAIN`, the TLS front, squid), and step 1's short live run through `hostc.app` (Q94), whose
+results go in `docs/carriers.md`. The planted defects wait for T-251 (Q88).
 
 # T-743: Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R`
 

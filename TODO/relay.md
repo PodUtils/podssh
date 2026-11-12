@@ -284,7 +284,7 @@ nothing, and a host that does not start TLS, each cost the 20 s limit before the
 4. Print one note for each moved host: "trying HOST last: it failed N s ago (REASON)".
 5. Ignore a record with a time in the future (a clock that moved).
 6. `doctor` and `status` (T-051) show the records. State the window in THE RELAY section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:350-363`) and in `docs/relay.md:107-152`.
+   manual (`crates/podssh-cli/src/man/facts.rs:356-369`) and in `docs/relay.md:107-152`.
 7. This is retry policy across runs. T-220 shortens the wait inside one run; the two work
    together.
 
@@ -4098,7 +4098,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:186` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:189` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
   78 is this host not set up for the mode.
@@ -4233,7 +4233,7 @@ Read at `2042200`:
   `private`, so a role without `--allow-private` checks each address that it dials.
 - The flag: `crates/podssh-cli/src/flags/relay.rs:66` (the row `allow-private`),
   `crates/podssh-cli/src/relay_serve.rs:161` says "private: s.allow_private", and the role behind a
-  quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:111`.
+  quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:112`.
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:100`), the resumable layer
   (`crates/podssh-relay/src/serve/layer.rs:185`), the HTTP road
@@ -4807,7 +4807,7 @@ Read at `2042200`:
 - `crates/podssh-cli/src/relay_serve.rs:182-195` reads `keys:` and makes the rest a path, with no
   other form; `crates/podssh-cli/src/relay_serve.rs` at `fed191c`, lines 292-299, reads it at the start, and a file that
   does not read stops it (78). The role behind a quick tunnel reads the same words
-  (`crates/podssh-cli/src/node_quick_relay.rs:74`).
+  (`crates/podssh-cli/src/node_quick_relay.rs:75`).
 - The list is read again for each request: `crates/podssh-relay/src/serve/keys.rs` at `fed191c`, line 80, and
   `crates/podssh-relay/src/serve/keys.rs:87` says "this relay cannot read its list of keys";
   `docs/relay.md` at `fed191c`, line 849, says "read again for each request".

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 68 open, 22 partial, 11 blocked, 609 done.**
+**710 entries: 67 open, 22 partial, 11 blocked, 610 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 39 | 10 | 7 | 275 | 331 |
-| **All** | 68 | 22 | 11 | 609 | 710 |
+| P3 | 38 | 10 | 7 | 276 | 331 |
+| **All** | 67 | 22 | 11 | 610 | 710 |
 
 ## Entries
 
@@ -771,8 +771,8 @@ repository and CI).
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
 | [T-739](mesh.md) | P3 | M | M10 | feature | done | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
-| [T-741](mesh.md) | P3 | M | M10 | feature | partial | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
-| [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
+| [T-741](mesh.md) | P3 | M | M10 | feature | done | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
+| [T-742](mesh.md) | P3 | M | M10 | feature | partial | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
 | [T-743](mesh.md) | P3 | S | M10 | feature | done | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |

@@ -230,7 +230,7 @@ pub fn command_in(home: &Path, args: &[String]) -> Command {
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
-    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");
+    cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_HOSTC", "no").env("PODSSH_SMEE", "no").env("PODSSH_BORE", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

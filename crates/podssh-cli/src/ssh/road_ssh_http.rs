@@ -15,7 +15,10 @@
 //! on whichever road wins; so `--no-e2e` leaves the road out. Its failure
 //! names `wss://NAME/`, never `cf://` or Cloudflare Access: the edge is the
 //! service's, not Cloudflare's. A name under Sandhole's tunnels' zone is
-//! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold.
+//! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold. A
+//! name of hostc's tunnels is hostc's (T-742): a node of the hostc road
+//! names its tunnel so, and the same link reaches it; `PODSSH_HOSTC` and
+//! hostc's line hold for it.
 //!
 //! The name of `--tunnel-url` is read with the destination and kept for
 //! the race in a static, as `--pinggy-name` keeps its own. A module of
@@ -24,6 +27,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
+use podssh_relay::hostc;
 use podssh_relay::session::race::{Start, HEAD_START};
 use podssh_relay::ssh_http::{self, name, Setting, Word};
 use podssh_ssh::Log;
@@ -55,11 +59,34 @@ fn off(word: Word) -> Result<Option<&'static str>, Refusal> {
     }
 }
 
-/// Whether a word of the road is on, and no variable of one is bad: a name
-/// that the record gives later takes its own word's switch at its link.
+/// Whether a word of the road, or hostc's, is on, and no variable of one is
+/// bad: a name that the record gives later takes its own switch at its link.
 fn any_on() -> bool {
     let read: Vec<_> = ssh_http::WORDS.iter().map(|&word| off(word)).collect();
-    read.iter().all(Result::is_ok) && read.iter().any(|off| matches!(off, Ok(None)))
+    let hostc = hostc::from_env();
+    let all_ok = read.iter().all(Result::is_ok) && hostc.is_ok();
+    all_ok && (read.iter().any(|off| matches!(off, Ok(None))) || !matches!(hostc, Ok(hostc::Setting::Off(_))))
+}
+
+/// The switch that turns the road of `name` off, when one does, and the
+/// road's name: hostc's for a name of its tunnels (T-742), else the word's.
+fn switched_off(name: &str) -> Result<Option<(&'static str, &'static str)>, Refusal> {
+    if hostc::owns(name) {
+        return match hostc::from_env().map_err(Refusal::config)? {
+            hostc::Setting::Off(by) => Ok(Some((by, "hostc"))),
+            _ => Ok(None),
+        };
+    }
+    let word = word_of(name);
+    Ok(off(word)?.map(|by| (by, word.name)))
+}
+
+/// The line of Q78 before the first link to `name`.
+fn third_party(name: &str) -> String {
+    match hostc::owns(name) {
+        true => hostc::client_line(name),
+        false => ssh_http::client_line(word_of(name), name),
+    }
 }
 
 /// `--tunnel-url` and the road's variables of a `node://NAME` destination,
@@ -80,10 +107,10 @@ pub(crate) fn race(args: &SshArgs) -> Result<(), Refusal> {
     }
     // A bad PODSSH_BARE is refused here, before anything connects (T-740).
     super::last::bare::node()?;
+    hostc::from_env().map_err(Refusal::config)?;
     if let Some(given) = &name {
-        let word = word_of(given);
-        if let Some(by) = off(word)? {
-            return Err(Refusal::usage(format!("--tunnel-url: {by}=no turns the {} road off", word.name)));
+        if let Some((by, road)) = switched_off(given)? {
+            return Err(Refusal::usage(format!("--tunnel-url: {by}=no turns the {road} road off")));
         }
     }
     *GIVEN.lock().unwrap_or_else(PoisonError::into_inner) = name;
@@ -176,9 +203,8 @@ impl SshHttpRoads {
         record: Option<&crate::ssh::iroh::RecordRoads<'_>>,
     ) -> Result<Road, String> {
         let name = self.name(record).await?;
-        let word = word_of(&name);
-        if let Ok(Some(by)) = off(word) {
-            return Err(format!("wss://{name}/: {by}=no turns the {} road off", word.name));
+        if let Ok(Some((by, road))) = switched_off(&name) {
+            return Err(format!("wss://{name}/: {by}=no turns the {road} road off"));
         }
         let far = super::last::bare::far(&name)?;
         // Its own line of Q78, once a run, before the first byte goes to the node.
@@ -234,19 +260,19 @@ impl SshHttpRoads {
 
     async fn link(&self, record: Option<&crate::ssh::iroh::RecordRoads<'_>>) -> Result<Road, String> {
         let name = self.name(record).await?;
-        let word = word_of(&name);
-        if let Ok(Some(by)) = off(word) {
-            return Err(format!("wss://{name}/: {by}=no turns the {} road off", word.name));
+        if let Ok(Some((by, road))) = switched_off(&name) {
+            return Err(format!("wss://{name}/: {by}=no turns the {road} road off"));
         }
+        let road = if hostc::owns(&name) { "hostc" } else { word_of(&name).name };
         // The line of Q78, before the first byte goes to the third party.
         if !self.said.swap(true, Ordering::SeqCst) {
-            self.log.info(&format!("{}: {}", self.shown, ssh_http::client_line(word, &name)));
+            self.log.info(&format!("{}: {}", self.shown, third_party(&name)));
         }
         // In a block of its own: no guard is held across the dial.
         {
             let mut last = self.last.lock().unwrap_or_else(PoisonError::into_inner);
             if last.as_deref() != Some(name.as_str()) {
-                self.log.verbose(&format!("{}: the {} road dials wss://{name}/", self.shown, word.name));
+                self.log.verbose(&format!("{}: the {road} road dials wss://{name}/", self.shown));
                 *last = Some(name.clone());
             }
         }

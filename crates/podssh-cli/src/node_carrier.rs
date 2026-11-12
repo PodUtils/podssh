@@ -54,6 +54,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.localhost_run, "--localhost-run"),
         (args.sandhole, "--sandhole"),
         (args.localtunnel, "--localtunnel"),
+        (args.hostc, "--hostc"),
         (args.bore, "--bore"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.warp, "--warp"),
