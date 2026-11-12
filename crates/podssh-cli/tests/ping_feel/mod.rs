@@ -1,7 +1,7 @@
 //! What a user feels (T-660), as `podssh ping` measures it. Through the
 //! stand-in relay shaped as osewa's cellular link (`profile:cellular` of
 //! `scripts/fake_shape.py`: 60 ms, 10 Mbit/s and a deep queue),
-//! `--under-load` reads an echo beside the download above the idle one, with
+//! `--under-load` reads an echo beside the download no quicker than the idle one, with
 //! the raw time of each key and no key of the warm-up. `--connect-runs` times
 //! each cold connect, each a connection of its own. Each flag is refused
 //! before anything connects where it does not apply. The shaped check says
@@ -19,7 +19,7 @@ fn figure(value: &serde_json::Value) -> f64 {
 }
 
 #[test]
-fn under_load_through_a_shaped_stand_in_reads_an_echo_above_the_idle_one() {
+fn under_load_through_a_shaped_stand_in_reads_the_echo_beside_the_download() {
     let s = Session::start("ping-under-load");
     let Some(mut args) = relay_flags_in(&s, "profile:cellular") else { return };
     args.extend(["--target".to_string(), format!("127.0.0.1:{}", s.port)]);
@@ -40,9 +40,11 @@ fn under_load_through_a_shaped_stand_in_reads_an_echo_above_the_idle_one() {
     // No key of the warm-up is counted: the first went 3 s after the download started.
     let first = loaded.iter().map(|k| figure(&k["sent_ms"])).fold(f64::INFINITY, f64::min);
     assert!(first >= 3000.0, "a key went {first} ms after the download started, inside its warm-up: {under}");
-    // The echo beside the download waits behind it in the link's queue.
-    let (loaded_p50, idle_p95) = (figure(&under["loaded"]["p50_ms"]), figure(&under["idle"]["p95_ms"]));
-    assert!(loaded_p50 > idle_p95, "under load p50 {loaded_p50} ms, idle p95 {idle_p95} ms: {under}");
+    // The echo beside the download crosses the same link: never quicker than
+    // the idle one's least. The pace keeps the queue in front of it short
+    // (T-681), so it need not read above the idle echo's spread.
+    let (loaded_p50, idle_min) = (figure(&under["loaded"]["p50_ms"]), figure(&under["idle"]["min_ms"]));
+    assert!(loaded_p50 >= idle_min, "under load p50 {loaded_p50} ms, idle min {idle_min} ms: {under}");
     // The summary is of the raw samples: the 20th of 40 by rank is the p50.
     let mut echoes: Vec<f64> = loaded.iter().map(|k| figure(&k["echo_ms"])).collect();
     echoes.sort_by(f64::total_cmp);

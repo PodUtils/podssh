@@ -1818,6 +1818,11 @@ test -p podssh-ssh`: each passed. Not done here: the fake links' halving of a se
 (the Approach's step 2), as the three causes were the pace's own; wifi's download reads 2.2 MiB/s here
 and 0.7 on netem. Waits: `feel-netem.yml` on this push's artifact, the Prove's run.
 
+The gate at `f029594d` (run 43103626415): Windows failed `ping_feel`'s test, which asked that the echo beside
+the download read above the idle echo's p95, the queue that this entry removes (75.0 ms beside it, idle p50
+73.6, p95 94.5). The test now asks that it read no quicker than the idle echo's least, and is named
+`under_load_through_a_shaped_stand_in_reads_the_echo_beside_the_download`; its two plants (`t660-*`) still fail it.
+
 
 # T-705: `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema
 
