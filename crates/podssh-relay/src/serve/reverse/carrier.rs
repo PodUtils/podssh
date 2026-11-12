@@ -199,8 +199,8 @@ impl Role {
 }
 
 /// A carrier's role as the wire of an operator's leg
-/// ([`crate::reverse::Wire::Carrier`]): `Copy`, as each wire is, so the role
-/// lives as long as the process, which runs one carrier.
+/// (`Wire::Carrier(Carrier::of(door))` of `crate::reverse`): `Copy`, as each
+/// wire is, so the role lives as long as the process, which runs one carrier.
 #[derive(Clone, Copy)]
 pub struct Door(&'static Role);
 
@@ -221,6 +221,21 @@ impl PartialEq for Door {
 }
 
 impl Eq for Door {}
+
+/// The door of `pod-relay`'s operator (T-684): a socket of the role at a path.
+impl crate::reverse::wire::Door for Door {
+    fn open<'a>(
+        &'a self,
+        path: &'a str,
+        limit: Duration,
+    ) -> pod_core::BoxFuture<'a, Result<RelaySession<DuplexStream>, ConnectError>> {
+        Box::pin(self.0.open(path, limit))
+    }
+
+    fn label(&self) -> String {
+        self.0.shown.clone()
+    }
+}
 
 impl std::fmt::Debug for Door {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

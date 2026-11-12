@@ -138,7 +138,7 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
         name: &part.name,
         connect_token: part.connect_token(),
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: pairs::REQUEST_LIMIT,
         limits: OperatorLimits { on_ready: Some(crate::connect_bound::ready), ..OperatorLimits::default() },
         wire: Wire::Tls,

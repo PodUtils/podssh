@@ -72,6 +72,7 @@ fn exit_handler(lent: u16) -> Arc<Layered<Routed>> {
     let (node_end, _lines) = e2e_node(identity(2), |_| Ok(()));
     let grant: Arc<Grant> = Arc::new(|_: &PublicKey, _: &str| Ok(()));
     let routes = Routes {
+        dialer: podssh_relay::reverse::tcp::dialer(),
         routes: Arc::new(Vec::new()),
         grant,
         timeout: LIMIT,

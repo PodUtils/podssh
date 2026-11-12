@@ -21,6 +21,12 @@ fn main() {
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("aarch64") {
         build.flag_if_supported("-mno-outline-atomics");
     }
+    // Clang (zig's, for cargo-zigbuild) inlines the AVX-512 intrinsics of the
+    // core's VAES path only with `evex512`; the path runs only where the CPU
+    // has it, as the core checks at run time.
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64") {
+        build.flag_if_supported("-mevex512");
+    }
     build.include(root.join("ext/prometheus-cpp-lite-1.0/core/include"));
     build.include(root.join("ext/prometheus-cpp-lite-1.0/simpleapi/include"));
     let mut files: Vec<_> = std::fs::read_dir(root.join("node"))

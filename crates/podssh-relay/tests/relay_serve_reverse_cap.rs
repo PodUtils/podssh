@@ -21,7 +21,7 @@ use std::time::{Duration, Instant};
 
 use podssh_relay::pair::Pair;
 use podssh_relay::reverse::{self, operator, Exit, Handler, NodeConfig, Opening, OperatorConfig, OperatorLimits};
-use podssh_relay::reverse::{Outcome, SessionId, Settings, Wire};
+use podssh_relay::reverse::{Outcome, SessionId, Wire};
 use podssh_ws::{ProxyChoice, Trust};
 use role_harness::{Role, LIMIT};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, DuplexStream};
@@ -58,9 +58,10 @@ async fn node(pair: Pair, stop: oneshot::Receiver<()>) -> Exit {
         pair,
         label: None,
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: LIMIT,
-        settings: Settings::default(),
+        // The node of the process, whose lines go where podssh sends them.
+        settings: reverse::settings(),
         repair: None,
         wire: Wire::PlainLoopback,
         say: None,
@@ -80,7 +81,7 @@ async fn operate(role: &Role, name: &str, token: &str, sent: usize) -> (Outcome,
         name,
         connect_token: token,
         trust: &Trust::Default,
-        proxy: &ProxyChoice::Direct,
+        ctx: &podssh_relay::context::of(&ProxyChoice::Direct),
         timeout: LIMIT,
         limits: OperatorLimits::default(),
         wire: Wire::PlainLoopback,

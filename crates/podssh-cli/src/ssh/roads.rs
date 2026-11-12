@@ -38,7 +38,7 @@ use podssh_relay::session::race::{in_turn, Start, HEAD_START};
 use podssh_relay::session::resume::{self, Next, Note};
 use podssh_relay::session::{client, Ask, End, Ended, OsEntropy};
 use podssh_ssh::{Log, EXIT_FAILURE};
-use podssh_ws::{ProxyChoice, Trust};
+use podssh_ws::Trust;
 use tokio::task::JoinHandle;
 
 use super::iroh::IrohRoad;
@@ -317,13 +317,13 @@ where
         last::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
     // ZeroTier's road (T-733), then the Tox road (T-734), raced after croc's: never with --no-e2e.
     let last = last.with_pair(part.as_ref(), ask.off, &log, &shown);
-    let proxy = ProxyChoice::FromEnvironment;
+    let context = podssh_relay::context::process();
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,
         name: &part.name,
         connect_token: part.connect_token(),
         trust,
-        proxy: &proxy,
+        ctx: &context,
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
         limits: OperatorLimits::default(),
         wire: Wire::Tls,

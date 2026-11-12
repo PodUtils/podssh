@@ -83,7 +83,9 @@
 //!   thread, and refuses a call from inside a tokio runtime.
 //!
 //! Other projects (podvm, podnet) depend on it; its shared parts move to
-//! the crates of PodUtils/podcrates (T-684).
+//! the crates of PodUtils/podcrates (T-684). The relay client is
+//! `pod-relay`'s: each of its modules here is the glue of podssh's process
+//! ([`context`]: its way out, its cache, its variables, its shared state).
 
 pub mod addresses;
 // A peer's answer, read by one rule (T-633): pod-session of PodUtils/podcrates.
@@ -96,6 +98,8 @@ pub mod cache;
 pub mod cleartext;
 #[cfg(feature = "code")]
 pub mod code;
+// podssh's context of the relay client of pod-relay (T-684).
+pub mod context;
 #[cfg(feature = "croc")]
 pub mod croc;
 #[cfg(feature = "derp")]

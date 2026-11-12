@@ -199,7 +199,7 @@ pub(crate) async fn first_token(resolved: &Resolved, log: &Log) {
     let ctx = podssh_relay::token::MintContext {
         relay: relays.primary(),
         trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
     };
     match podssh_relay::token::obtain(&ctx, false).await {

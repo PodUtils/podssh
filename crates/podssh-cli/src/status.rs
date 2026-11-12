@@ -123,7 +123,10 @@ fn pairs_state() -> Value {
 /// The relay hosts that each run tries last now (T-059), with the seconds
 /// since each failed or was cut, why, and the road (T-563).
 fn relay_failures() -> Value {
-    let seen = podssh_relay::failures::recent(&podssh_relay::failures::Records::load(), crate::pairs::now_ms());
+    let seen = podssh_relay::failures::recent(
+        &podssh_relay::failures::Records::load(&podssh_relay::context::cache()),
+        crate::pairs::now_ms(),
+    );
     let last = seen.iter().filter_map(|s| s.last.as_ref().map(|(ago_s, why)| (s, ago_s, why)));
     last.map(|(s, ago_s, why)| json!({ "road": s.road, "host": s.host, "ago_s": ago_s, "reason": why })).collect()
 }
@@ -226,7 +229,10 @@ fn destination(text: &str) -> Result<Value, String> {
 /// their last session was not cut: the seconds since, and the opens that
 /// the record counts.
 fn relay_opened() -> Value {
-    let seen = podssh_relay::failures::recent(&podssh_relay::failures::Records::load(), crate::pairs::now_ms());
+    let seen = podssh_relay::failures::recent(
+        &podssh_relay::failures::Records::load(&podssh_relay::context::cache()),
+        crate::pairs::now_ms(),
+    );
     let opened = seen.iter().filter_map(|s| s.opened.map(|(ago_s, opens)| (s, ago_s, opens)));
     opened.map(|(s, ago_s, opens)| json!({ "road": s.road, "host": s.host, "ago_s": ago_s, "opens": opens })).collect()
 }

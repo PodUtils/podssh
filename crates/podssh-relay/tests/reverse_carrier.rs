@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use podssh_relay::relay::Relay;
 use podssh_relay::reverse::{self, operator, End, Handler, Opening, OperatorConfig, OperatorLimits, Outcome};
-use podssh_relay::reverse::{RelayClose, SessionId, Settings, Wire};
+use podssh_relay::reverse::{wire::Carrier, RelayClose, SessionId, Settings, Wire};
 use podssh_relay::serve::reverse::carrier::{self, Again, Door, Link, Role, NAME};
 use podssh_ws::client::ConnectError;
 use podssh_ws::{ProxyChoice, Trust};
@@ -122,10 +122,10 @@ async fn operate(door: Door, sent: Vec<u8>, limit: Duration) -> (Result<Outcome,
         name: NAME,
         connect_token: "",
         trust: &Trust::Default,
-        proxy: &ProxyChoice::Direct,
+        ctx: &podssh_relay::context::of(&ProxyChoice::Direct),
         timeout: limit,
         limits: OperatorLimits::default(),
-        wire: Wire::Carrier(door),
+        wire: Wire::Carrier(Carrier::of(door)),
     };
     let (app, leg) = tokio::io::duplex(64 * 1024);
     let (mut r, mut w) = tokio::io::split(app);

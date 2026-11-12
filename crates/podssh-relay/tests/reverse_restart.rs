@@ -178,7 +178,7 @@ async fn node(pair: Pair, lines: Lines, stop: oneshot::Receiver<()>) -> Exit {
         pair,
         label: None,
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: LIMIT,
         settings: reverse::Settings::default(),
         repair: None,
@@ -215,7 +215,7 @@ impl Legs {
             name: &self.name,
             connect_token: &self.token,
             trust: &Trust::Default,
-            proxy: &ProxyChoice::Direct,
+            ctx: &podssh_relay::context::of(&ProxyChoice::Direct),
             timeout: LIMIT,
             // A leg of the layer: the node ends it (T-388).
             limits: OperatorLimits { node_ends: Some(NODE_ENDS), ..OperatorLimits::default() },

@@ -1901,7 +1901,7 @@ Partial, 2026-11-09. The extraction (steps 1, 2, 4, 6 of the Approach) is drafte
 `450f0021`) and merged by the main session, with no repair; the
 call of `serve` (steps 3 and 5) waits for T-107.
 
-- Moved: `crates/podssh-cli/src/relay_serve/harden{,_sys,_tests}.rs` to
+- Moved: `PodUtils/podssh:crates/podssh-cli/src/relay_serve/harden{,_sys,_tests}.rs` to
   `crates/podssh-cli/src/`, declared in `lib.rs` beside `first_thread`; `relay_serve.rs` calls
   `crate::harden::give_up(&[])`, `certs.rs` reads `crate::harden::dropped()`. No change of behaviour.
 - `cargo test -p podssh-cli --lib harden`: 13 passed. New test:

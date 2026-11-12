@@ -11,11 +11,6 @@
 # and, when PODSSH_OLD names the binary of an earlier release, that client's
 # `podssh operator` reads GitHub's banner through a node of the role's pair.
 #
-# With `drops` (T-255): the drops of reverse sockets through the role on
-# this runner, by tests/reverse_drops_live.rs until PODSSH_DROPS_UNTIL, where
-# no platform restarts the relay's objects: a drop with no Close is the
-# path's.
-#
 # With `layer` (T-173): the role's forward road in the resumable layer, to
 # the runner's own sshd at PODSSH_LAYER_SSHD (127.0.0.1:PORT), which takes
 # the key of PODSSH_LAYER_KEY: OpenSSH's ssh with podssh proxy as its
@@ -23,10 +18,10 @@
 # link through scripts/fake-proxy.py, which cuts each open tunnel every few
 # seconds (scripts/relay-serve-layer.sh).
 #
-# Usage: sh scripts/relay-serve-live.sh PODSSH [reverse|drops|layer]
+# Usage: sh scripts/relay-serve-live.sh PODSSH [reverse|layer]
 set -eu
 
-PODSSH=${1:?usage: relay-serve-live.sh PODSSH [reverse|drops|layer]}
+PODSSH=${1:?usage: relay-serve-live.sh PODSSH [reverse|layer]}
 MODE=${2:-forward}
 HERE=$(cd "$(dirname "$0")" && pwd)
 FK=$(mktemp -d)
@@ -67,15 +62,6 @@ if [ "$MODE" = layer ]; then
     exit 0
 fi
 
-if [ "$MODE" = drops ]; then
-    export PODSSH_LIVE_RELAY="relay-a.test:$PORT" PODSSH_LIVE_RELAY_ADDR="relay-a.test=127.0.0.1" SSL_CERT_FILE="$FK/ca.pem"
-    rc=0
-    cargo test --locked -p podssh-relay --features pair --test reverse_drops_live -- --ignored --nocapture || rc=$?
-    echo "relay-serve-live: the role's last events: $(tail -n 40 "$FK/events" | tr '\n' ' ')"
-    [ "$rc" = 0 ] || { echo "relay-serve-live: the drops' run failed (exit $rc)" >&2; cat "$FK/role.log" >&2; exit 1; }
-    echo "relay-serve-live: ok"
-    exit 0
-fi
 
 if [ "$MODE" = reverse ]; then
     export PODSSH_LIVE_RELAY="relay-a.test:$PORT" PODSSH_LIVE_RELAY_ADDR="relay-a.test=127.0.0.1" SSL_CERT_FILE="$FK/ca.pem"

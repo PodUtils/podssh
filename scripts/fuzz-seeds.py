@@ -2,17 +2,16 @@
 
 Each seed is bytes that podssh did not make: the frames of RFC 6455's
 section 5.7, the IRC lines that crates/podssh-core/tests/fixtures/grammar.txt
-recorded from the RFCs and from real servers, the relay hosts that the
-relay's own document names, the messages of
+recorded from the RFCs and from real servers, the messages of
 Cap'n Proto that the reference encoder wrote for the quick tunnel
 (crates/podssh-relay/tests/fixtures/quick/, T-403), and the capsules and
 variable-length integers of connect-ip-go's tests and of RFC 9000. They go
 into fuzz/corpus/TARGET/, which libFuzzer reads first and adds to.
-scripts/fuzz.sh runs this before each run.
+scripts/fuzz.sh runs this before each run. The targets of the relay's lists
+and pool are pod-relay's (PodUtils/podcrates, T-684), with their seeds.
 """
 import hashlib
 import pathlib
-import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -64,12 +63,6 @@ def irc_lines():
         yield line.split(b" ||| ", 1)[0] + b"\r\n"
 
 
-def relay_hosts():
-    """The relay hosts that the relay's document names, once each."""
-    spec = (ROOT / "crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt").read_text("utf-8")
-    return sorted(set(re.findall(r"\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ajam\.dev\b", spec)))
-
-
 def main():
     for frame in FRAMES:
         put("ws_frame", frame)
@@ -80,15 +73,6 @@ def main():
         put("irc_message", line)
     # The first byte of an input of irc_framing is where it is cut in two.
     put("irc_framing", bytes([7]) + b"".join(lines))
-    hosts = relay_hosts()
-    if not hosts:
-        sys.exit("fuzz-seeds.py: the relay's document named no host")
-    for host in hosts:
-        put("relay_list", host.encode())
-        put("relay_list", f"{host}:443".encode())
-    put("relay_list", ",".join(hosts).encode())
-    pool = ",".join('{"host":"%s"}' % host for host in hosts)
-    put("relay_pool", ('{"pool":[%s]}' % pool).encode())
     messages = sorted((ROOT / "crates/podssh-relay/tests/fixtures/quick").glob("*.bin"))
     if not messages:
         sys.exit("fuzz-seeds.py: no message of Cap'n Proto in crates/podssh-relay/tests/fixtures/quick")

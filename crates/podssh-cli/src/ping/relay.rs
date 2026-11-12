@@ -120,7 +120,7 @@ pub async fn leg_with(relay: &Relay, trust: &Trust, target: (&str, u16), query: 
         }
     };
     let proxy = ProxyChoice::FromEnvironment;
-    let ctx = MintContext { relay, trust, proxy: &proxy, timeout: STEP };
+    let ctx = MintContext { relay, trust, ctx: &podssh_relay::context::of(&proxy), timeout: STEP };
     let mut fresh = false;
     let session = loop {
         let started = Instant::now();

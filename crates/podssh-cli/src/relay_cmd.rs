@@ -18,7 +18,6 @@ use std::io::Write;
 
 use podssh_relay::pair::{self, Pair, PairError};
 use podssh_relay::relay::{self, Relay};
-use podssh_ws::dial::ProxyChoice;
 
 use crate::exit_codes::EXIT_USAGE;
 use crate::exitmap::Fault;
@@ -266,8 +265,8 @@ pub(crate) fn make(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
     let relays = crate::relay_settings::relays(args.relay_host.as_deref(), std::env::var(relay::RELAY_ENV).ok())?;
     let control = relays.primary().clone();
     pairs::online()?;
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&control, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&control, &trust, &context);
     let (made, once) = block_on(pair::once::create_with(&ctx, args.once))?.map_err(|e| pairs::refusal(&e))?;
     // A relay that does not offer --once made a pair whose token takes each
     // upgrade (T-226): a guarantee asked for and not given, so the pair is
@@ -343,8 +342,8 @@ fn revoke(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut dyn Writ
     crate::pins::apply(args.relay_addr.as_deref())?;
     pairs::online()?;
     let control: Relay = stored.relay.clone();
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&control, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&control, &trust, &context);
     match block_on(pair::revoke(&ctx, label))? {
         Ok(answer) if answer.stopped => {
             let _ = writeln!(out, "{label}: stopped; its node was online");

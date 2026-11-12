@@ -6,9 +6,9 @@
 use std::path::Path;
 
 use podssh_relay::pair::{self, Pair, PairContext, PairError};
-use podssh_relay::relay::Relay;
+use podssh_relay::{context::Context, relay::Relay};
 use podssh_ws::client::ConnectError;
-use podssh_ws::dial::{DialError, ProxyChoice};
+use podssh_ws::dial::DialError;
 use podssh_ws::Trust;
 
 use crate::exitmap::Fault;
@@ -109,8 +109,8 @@ pub(crate) fn trust(ca_file: Option<&str>) -> Trust {
 }
 
 /// How a pairing call reaches `relay`.
-pub(crate) fn context<'a>(relay: &'a Relay, trust: &'a Trust, proxy: &'a ProxyChoice) -> PairContext<'a> {
-    PairContext { relay, trust, proxy, timeout: REQUEST_LIMIT }
+pub(crate) fn context<'a>(relay: &'a Relay, trust: &'a Trust, context: &'a Context) -> PairContext<'a> {
+    PairContext { relay, trust, ctx: context, timeout: REQUEST_LIMIT }
 }
 
 /// A refusal before any request when `PODSSH_OFFLINE` is set.
@@ -191,8 +191,8 @@ fn ended_at(part: &pair::OperatorPart) -> Result<Option<i64>, PairError> {
                 .enable_all()
                 .build()
                 .map_err(|e| PairError::Store(format!("could not start the async runtime: {e}")))?;
-            let (trust, proxy) = (trust(None), ProxyChoice::FromEnvironment);
-            let ctx = context(&part.relay, &trust, &proxy);
+            let (trust, relay_ctx) = (trust(None), podssh_relay::context::process());
+            let ctx = context(&part.relay, &trust, &relay_ctx);
             runtime.block_on(pair::renew::status(&ctx, part)).map(|status| status.expires)
         });
         asking.join().unwrap_or_else(|_| Err(PairError::Store("the status's thread ended in a panic".into())))

@@ -3846,7 +3846,7 @@ commands. The rules behind them:
   `relay pair NAME --once` asks `POST /v1/pair?once=1`: the role's answer
   says `"once": true`, and its connect token takes the first operator's
   upgrade alone, then is refused, the status too, so that one session uses
-  it (`crates/podssh-relay/src/pair/once.rs`), which resumes on the tokens
+  it (`PodUtils/podcrates:crates/pod-relay/src/pair/once.rs`), which resumes on the tokens
   of one leg that its node gives (T-615, below), and else has no resume. A
   relay that makes none (the default relay's contract has no such pair)
   gives a pair with no `once`, which is stopped, exit 69. `--once` with
@@ -3914,7 +3914,7 @@ commands. The rules behind them:
   where the first relay host offers it (T-173): with `PODSSH_RELAY_LAYER=yes`
   each reads that host's `/relays.json` at each run, and says each case;
   unset, each takes the offer that the host made within a day, kept in the
-  cache (`crates/podssh-relay/src/forward_layer/kept.rs`), with no line
+  cache (`PodUtils/podcrates:crates/pod-relay/src/forward_layer/kept.rs`), with no line
   where there is none, and reads it once, 1 s at most, for a relay that the
   user named whose offer is not kept (the default relay's comes with its
   pool's refresh), so that a silent first host costs its failover that

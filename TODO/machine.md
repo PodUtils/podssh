@@ -217,9 +217,9 @@ Measured: `podssh status` exits 70 with "'status' is not implemented yet; nothin
 Read, at `c6f09a8`: the verb has no flags (`crates/podssh-cli/src/flags.rs` lines 409-410), an
 owner row (line 429) and no arguments (`crates/podssh-cli/src/positionals.rs` line 50). Each fact
 has a local source that
-opens no connection: the relay list (`crates/podssh-relay/src/relay.rs:134-152`,
-`crates/podssh-relay/src/pool.rs:109-122`); the token cache
-(`crates/podssh-relay/src/cache.rs:86-106`, which returns the token itself in `Cached`, lines
+opens no connection: the relay list (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`,
+`PodUtils/podssh:crates/podssh-relay/src/pool.rs:109-122`); the token cache
+(`PodUtils/podssh:crates/podssh-relay/src/cache.rs:86-106`, which returns the token itself in `Cached`, lines
 29-33); a host key (`crates/podssh-ssh/src/known_hosts.rs:90-96`, 90-98); the attachment
 (`crates/podssh-cli/src/non_interactive.rs:68-70`); the proxy, shown with no credentials
 (its `Display`, `PodUtils/podssh:crates/podssh-ws/src/proxy.rs:70-75` since T-070).
@@ -830,7 +830,7 @@ host, and how they ended. Each of these facts is lost when the process ends.
 Read: podssh keeps no record of a session. `-E LOGFILE` appends podssh's own messages, which is
 another purpose (`crates/podssh-cli/src/flags.rs:145-146`). The cache directories and the rules
 for private files are in `crates/podssh-relay/src/cache/dirs.rs:136-241` and
-`crates/podssh-relay/src/cache.rs:191-326`. `write_private`
+`crates/podssh-relay/src/cache.rs:112-224`. `write_private`
 replaces a whole file (lines 178-197 at `22c3b88`), and no function appends to one.
 
 ## Approach
@@ -910,7 +910,7 @@ pump at `crates/podssh-cli/src/pipe/pump.rs:120` and
 `crates/podssh-cli/src/pipe/pump.rs:130-158`, and the relay's close at
 `crates/podssh-cli/src/pipe/relay.rs:228`. `SessionLog` at
 `crates/podssh-cli/src/settings.rs:269-272`, and `podssh status` at
-`crates/podssh-cli/src/status.rs:133-144`. The variable in VARIABLES, the
+`crates/podssh-cli/src/status.rs:136-147`. The variable in VARIABLES, the
 two files in FILES, and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/session_log.rs`, 4 tests, against the

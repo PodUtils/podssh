@@ -89,7 +89,7 @@ impl MemberRoads {
     /// A leg at `relay`: a token of one leg from its role, then the upgrade.
     async fn link(&self, relay: &Relay) -> Result<Road, String> {
         let timeout = podssh_relay::open::CONNECT_TIMEOUT;
-        let ctx = PairContext { relay, trust: &self.trust, proxy: &self.proxy, timeout };
+        let ctx = PairContext { relay, trust: &self.trust, ctx: &podssh_relay::context::of(&self.proxy), timeout };
         let at = podssh_relay::token::relay_name(relay);
         let drawn = leg::ask(&ctx, &self.node, self.identity.as_deref()).await.map_err(|e| format!("{at}: {e}"))?;
         let config = OperatorConfig {
@@ -97,7 +97,7 @@ impl MemberRoads {
             name: &drawn.name,
             connect_token: drawn.token(),
             trust: &self.trust,
-            proxy: &self.proxy,
+            ctx: &podssh_relay::context::of(&self.proxy),
             timeout,
             limits: OperatorLimits::default(),
             wire: Wire::Tls,

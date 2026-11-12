@@ -211,8 +211,6 @@ step_libs() {
         cargo test --locked --no-fail-fast -p podssh-ws --features plain-ws
     tests "the road of a Cloudflare tunnel against a stand-in (T-264, feature plain-ws)" \
         cargo test --locked --no-fail-fast -p podssh-ws --features plain-ws --test cloudflare_access
-    tests "the blocking facade against a stand-in relay (features blocking, plain-ws)" \
-        cargo test --locked --no-fail-fast -p podssh-relay --features blocking,plain-ws --test blocking_plain
     # The relay role (T-169, T-427): its routes, and its reverse road against
     # raw sockets and against podssh's node and operator on plain ws://, also
     # across a planned stop and the role's return (T-255); its forward road

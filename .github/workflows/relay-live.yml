@@ -21,8 +21,6 @@ on:
         required: true
         type: choice
         options:
-          - live_backpressure
-          - reverse_live
           - node_live
           - node_live_windows
           - relay_serve
@@ -47,7 +45,6 @@ jobs:
           TEST: ${{ inputs.test }}
         run: |
           case "$TEST" in
-            live_backpressure|reverse_live) cargo test --locked -p podssh-relay --features pair --test "$TEST" --no-run ;;
             node_live) cargo test --locked -p podssh-cli --test node_live --no-run ;;
             relay_serve) cargo build --locked -p podssh-cli && cargo test --locked -p podssh-cli --test proxy_live --no-run ;;
             relay_serve_reverse) cargo build --locked -p podssh-cli && cargo test --locked -p podssh-cli --test node_live --no-run ;;
@@ -78,7 +75,7 @@ jobs:
               chmod 0755 "$old/podssh-x86_64-unknown-linux-musl"
               PODSSH_OLD="$old/podssh-x86_64-unknown-linux-musl" PODSSH_TEST_NODE_LINES=1 \
                 sh scripts/relay-serve-live.sh target/debug/podssh reverse ;;
-            *) cargo test --locked -p podssh-relay --features pair --test "$TEST" -- --ignored --nocapture ;;
+            *) echo "not a live test of the list: $TEST" >&2; exit 2 ;;
           esac
 
   # The node on the runner, in front of railway.new (a runner of Windows runs

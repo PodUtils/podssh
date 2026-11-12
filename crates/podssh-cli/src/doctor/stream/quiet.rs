@@ -26,7 +26,7 @@ use super::judge::{self, SocketEnd};
 pub(super) async fn socket(report: &mut Report<'_>, relay: &Relay, trust: &Trust, hold: Duration) {
     let at = dial::authority(&relay.host, relay.port);
     let proxy = ProxyChoice::FromEnvironment;
-    let ctx = PairContext { relay, trust, proxy: &proxy, timeout: CONNECT_WAIT };
+    let ctx = PairContext { relay, trust, ctx: &podssh_relay::context::of(&proxy), timeout: CONNECT_WAIT };
     let pair = match pair::create(&ctx).await {
         Ok(pair) => pair,
         Err(e) => {

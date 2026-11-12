@@ -32,7 +32,12 @@ pub(crate) async fn pairs(identity: &Identity, own: &Relay, trust: &Trust, say: 
     let proxy = ProxyChoice::FromEnvironment;
     let mut made = Vec::new();
     for relay in crate::ssh::roads::member::relays().into_iter().filter(|relay| relay != own) {
-        let ctx = PairContext { relay: &relay, trust, proxy: &proxy, timeout: crate::pairs::REQUEST_LIMIT };
+        let ctx = PairContext {
+            relay: &relay,
+            trust,
+            ctx: &podssh_relay::context::of(&proxy),
+            timeout: crate::pairs::REQUEST_LIMIT,
+        };
         let at = relay_name(&relay);
         match once::create_by(&ctx, false, Some(identity)).await {
             Ok((pair, _)) => {
@@ -78,11 +83,11 @@ where
                 // Not stored: a member's pair lives with this run.
                 label: None,
                 trust,
-                proxy,
+                ctx: &podssh_relay::context::of(proxy),
                 timeout: crate::pairs::REQUEST_LIMIT,
                 settings: reverse::Settings {
                     rejoin: crate::layered::settings().resume_deadline,
-                    ..reverse::Settings::default()
+                    ..reverse::settings()
                 },
                 // A member's pair is not taken again at its expiry: the node
                 // makes new ones at its next start.

@@ -12,7 +12,6 @@ use std::io::Write;
 
 use podssh_relay::pair::halt::{self, Halted, Resumed};
 use podssh_relay::pair::{self, Pair, PairError};
-use podssh_ws::dial::ProxyChoice;
 
 use crate::exitmap::Fault;
 use crate::pairs;
@@ -26,8 +25,8 @@ pub(crate) fn halt(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
         halt::check_reason(words).map_err(|why| Refusal::usage(format!("--reason: {why}")))?;
     }
     let stored = stored(args, label, "halt")?;
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&stored.relay, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&stored.relay, &trust, &context);
     match block_on(halt::halt(&ctx, &stored, reason))? {
         Ok(Halted::Now { sessions }) => {
             let closed = match sessions {
@@ -57,8 +56,8 @@ pub(crate) fn halt(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
 /// Resume the pair stored under `label` at the relay that made it.
 pub(crate) fn resume(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut dyn Write) -> Result<(), Refusal> {
     let stored = stored(args, label, "resume")?;
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&stored.relay, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&stored.relay, &trust, &context);
     match block_on(halt::resume(&ctx, &stored))? {
         Ok(Resumed::Now) => {
             let _ = writeln!(out, "{label}: resumed");

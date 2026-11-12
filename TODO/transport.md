@@ -526,7 +526,7 @@ The new test gives the relay's own bodies (`missing or wrong token`,
 `forward: github.com:25 not in the ALLOW list`, `reverse: forbidden`,
 `forward relay authentication is not configured`) with `403` and `503` for each leg, and asserts
 the action. The bodies come from the contract and from the tests of
-`crates/podssh-relay/src/open_tests.rs:7-25`. Plant: map `503` back to `Reconnect`; the test must
+`PodUtils/podssh:crates/podssh-relay/src/open_tests.rs:7-25`. Plant: map `503` back to `Reconnect`; the test must
 fail.
 
 
@@ -702,7 +702,7 @@ crates/podssh-transport/tests/closes.rs lines 354-391 at `e8bbd4d`.
 
 Read: a node connects again "with a jittered backoff" (`docs/reverse.md:39-49`,
 `docs/ROADMAP.md:150-158`). `podssh_relay::open::backoff` doubles from 1 s to 30 s and multiplies
-by a random factor from 0.5 to 1.5 (`crates/podssh-relay/src/open.rs:421-435`); `podssh ssh` uses
+by a random factor from 0.5 to 1.5 (`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`); `podssh ssh` uses
 it (`crates/podssh-cli/src/ssh/transport.rs:323-329`).
 
 ## Approach
@@ -746,7 +746,7 @@ test -p podssh-relay` since.
 2026-10-09, with T-082, in the commit "The codecs of the reverse road in podssh-relay".
 
 - The trait `Transport`, `target_for`, `backoff.rs` and its two tests went with the crate. The
-  node runner waits with `podssh_relay::open::backoff` (`crates/podssh-relay/src/reverse/node.rs:347-367`).
+  node runner waits with `podssh_relay::open::backoff` (`PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:347-367`).
 - Step 1 said to keep `Control`, `LegShape` and `Limits` for `socket.rs`. They went with it: no runner
   used that layer (T-082, Decision 2). The runners read `control::NodeInbound` and keep
   `control::NodeLimits`.

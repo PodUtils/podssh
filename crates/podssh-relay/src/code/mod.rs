@@ -16,11 +16,11 @@
 //! and the mailboxes ([`config`]). The mailbox learns nothing of the
 //! code and can change nothing, and an attacker who claims the code's
 //! nameplate gets one guess of its 24 bits: the giver ends the code at the
-//! first exchange, whatever its end ([`run`]). What the ends say is
-//! podssh's own ([`exchange`]).
+//! first exchange, whatever its end ([`run`]). What the ends say and the
+//! runs of the two ends are `pod-relay`'s ([`exchange`], T-684).
 
-pub mod exchange;
-pub mod run;
+// The exchange and the runs of a code: pod-relay of PodUtils/podcrates.
+pub use pod_relay::code::{exchange, run};
 
 use std::sync::Arc;
 use std::time::Duration;

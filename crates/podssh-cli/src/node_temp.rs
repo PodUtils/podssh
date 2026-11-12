@@ -18,9 +18,8 @@ use podssh_relay::identity::{file, KeyName, PublicKey};
 use podssh_relay::pair;
 use podssh_relay::relay::{self, Relay};
 use podssh_relay::reverse::routes::Route;
-use podssh_relay::reverse::{self, E2e, Layered, NodeConfig, TcpHandler, Wire};
+use podssh_relay::reverse::{self, E2e, Layered, NodeConfig, Wire};
 use podssh_relay::session::keep::Keeper;
-use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 use tokio::io::DuplexStream;
 use tokio::sync::Notify;
@@ -139,11 +138,11 @@ pub(crate) fn candidates(words: &[String], session: Option<&str>) -> Result<Vec<
 
 async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let Ready { label, candidates, client, control, trust } = ready;
-    let proxy = ProxyChoice::FromEnvironment;
+    let context = podssh_relay::context::process();
     let Some((target, versions)) = sshd(&candidates, &label, err).await else {
         return Fault::RelayUnreachable.code();
     };
-    let ctx = crate::pairs::context(&control, &trust, &proxy);
+    let ctx = crate::pairs::context(&control, &trust, &context);
     let pair = match pair::create(&ctx).await {
         Ok(pair) => pair,
         Err(e) => return crate::pairs::refusal(&e).report("node", err),
@@ -194,7 +193,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let settings = crate::layered::settings();
     let keeper: Arc<Keeper<DuplexStream>> =
         Arc::new(Keeper::new(settings.resume_deadline).with_tell(podssh_relay::session::budget::told()));
-    let tcp = TcpHandler { host: target.host.clone(), port: target.port, timeout: DIAL_LIMIT, sshd: true };
+    let tcp = reverse::tcp::handler(target.host.clone(), target.port, DIAL_LIMIT, true);
     let budget = reverse::layered::NODE_BUDGET;
     let handler = Arc::new(Layered::with_keeper(E2e::new(tcp, node), settings, budget, keeper.clone()));
     // The relay takes the pair's sessions from the line `online` on: the
@@ -213,9 +212,9 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         pair,
         label: None,
         trust: &trust,
-        proxy: &proxy,
+        ctx: &context,
         timeout: crate::pairs::REQUEST_LIMIT,
-        settings: reverse::Settings { rejoin: settings.resume_deadline, ..reverse::Settings::default() },
+        settings: reverse::Settings { rejoin: settings.resume_deadline, ..reverse::settings() },
         repair: None,
         wire: Wire::Tls,
         say: Some(&node_say),

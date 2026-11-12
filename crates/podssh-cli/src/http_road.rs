@@ -73,8 +73,8 @@ fn announce(relay: &Relay) -> String {
 pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option<Form>) -> Result<Opened, String> {
     let proxy = ProxyChoice::FromEnvironment;
     let limit = podssh_relay::open::CONNECT_TIMEOUT;
-    let ctx = MintContext { relay, trust, proxy: &proxy, timeout: limit };
-    let road = Road::tls(relay, trust, &proxy, limit);
+    let ctx = MintContext { relay, trust, ctx: &podssh_relay::context::of(&proxy), timeout: limit };
+    let road = Road::tls(&podssh_ws::client::way(&proxy), relay, trust, limit);
     let mut token = token::obtain(&ctx, false).await.map_err(|e| e.to_string())?;
     let mut opened = client::open(&road, &target, token.secret(), form, Tuning::default()).await;
     // A cached token that the role no longer takes: minted once more, as

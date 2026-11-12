@@ -21,13 +21,13 @@ use std::time::{Duration, Instant};
 use podssh_relay::e2e::ends::{self, Node};
 use podssh_relay::e2e::legs;
 use podssh_relay::identity::Identity;
-use podssh_relay::pair::Pair;
 use podssh_relay::relay::Relay;
 use podssh_relay::reverse::{self, operator, E2e, Exit, Handler, Layered, NodeConfig, Opening, OperatorConfig};
 use podssh_relay::reverse::{OperatorLimits, Outcome as LegOutcome, SessionId, Wire};
 use podssh_relay::session::client::{self, Outcome};
 use podssh_relay::session::resume::{self, Next};
 use podssh_relay::session::{Ask, End, Ended, OsEntropy, Settings};
+use podssh_relay::{context::Context, pair::Pair};
 use podssh_ws::{ConnectError, ProxyChoice, Trust};
 use role_harness::{next_text, Role, LIMIT};
 use serde_json::Value;
@@ -228,7 +228,7 @@ async fn layered_node(pair: Pair, stop: oneshot::Receiver<()>) -> Exit {
         pair,
         label: None,
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: LIMIT,
         settings: reverse::Settings::default(),
         repair: None,
@@ -251,7 +251,7 @@ struct Opener {
     name: String,
     token: String,
     trust: Trust,
-    proxy: ProxyChoice,
+    ctx: Context,
     current: Mutex<Option<JoinHandle<LegOutcome>>>,
 }
 
@@ -262,7 +262,7 @@ impl Opener {
             name: &self.name,
             connect_token: &self.token,
             trust: &self.trust,
-            proxy: &self.proxy,
+            ctx: &self.ctx,
             timeout: LIMIT,
             // A leg of the layer: the node ends it (T-388).
             limits: OperatorLimits { node_ends: Some(Duration::from_secs(35)), ..OperatorLimits::default() },
@@ -329,8 +329,8 @@ async fn a_resume_takes_the_next_token_that_the_node_gave_and_a_replayed_one_is_
     let client_pair = podssh_relay::pair::parse(&role.relay, made.to_string().as_bytes(), now_ms() as i64).unwrap();
     let (name, connect) = (field(&made, "name").to_string(), field(&made, "connect_token").to_string());
     let (relay, token, current) = (role.relay.clone(), connect.clone(), Mutex::new(None));
-    let (trust, proxy) = (Trust::Default, ProxyChoice::Direct);
-    let opener = Opener { relay, name: name.clone(), token, trust, proxy, current };
+    let (trust, ctx) = (Trust::Default, podssh_relay::context::of(&ProxyChoice::Direct));
+    let opener = Opener { relay, name: name.clone(), token, trust, ctx, current };
     let (stop_node, node_stops) = oneshot::channel();
     let test = async {
         role.until_said("reverse node").await;

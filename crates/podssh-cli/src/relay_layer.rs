@@ -148,7 +148,8 @@ pub(crate) async fn chosen(
     if let Some(why) = &offered.refused {
         quiet(format!("{at}: forward.host of its /relays.json is not taken ({why}): each link goes to {at}"));
     }
-    let dialer = Dialer::for_offer(&asked, &offered, host, port, trust.clone()).ok()?;
+    let dialer =
+        Dialer::for_offer(&podssh_relay::context::process(), &asked, &offered, host, port, trust.clone()).ok()?;
     let held_at = shown(dialer.relay());
     Some((dialer, held_at))
 }

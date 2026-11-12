@@ -52,10 +52,10 @@ pair (`crates/podssh-relay/src/cache.rs` lines 126-153 and 221-240 at `9811e0d`)
    in the library step of the gate (`scripts/gate.sh` line 61 at `3632dcb`), so the no-C check covers
    it.
 2. `pair::create` returns a `Pair`: relay host, name, the three tokens, expiry. Keep each token in
-   `Zeroizing` with a redacted `Debug`, as `token::Token` does (`crates/podssh-relay/src/token.rs:28-57`).
+   `Zeroizing` with a redacted `Debug`, as `token::Token` does (`PodUtils/podssh:crates/podssh-relay/src/token.rs:28-57`).
    Check the name with T-076, and each token with `cache::valid_token`
    (`crates/podssh-relay/src/cache.rs` lines 52-56 at `3632dcb`). Never quote a 2xx body
-   (`crates/podssh-relay/src/token.rs:197`).
+   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:197`).
 3. Answers: `409`, pair again once; `429`, report `Retry-After`; `503`, stop. Refuse a pair with less
    than 10 min left, as the token cache does (`cache.rs` lines 15-16 at `3632dcb`).
 4. `pair::stop` sends `stop_token` to `/v1/stop/<name>`, then deletes the local copy whatever the
@@ -102,6 +102,10 @@ relay, with the tokens replaced by test strings. They refuse a bad name and a ba
 in `{:?}` or in an error, and check the mode 0600. Plant: print a token in `Debug`; the redaction test
 must fail. The live test pairs, asks for status with each token, stops, and asserts `403` for the other
 tokens, in one run that prints no token. The gate shows that the feature adds no C.
+
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test targets `pair`, `pair_live` moved to `pod-relay` with their names; run them there with `cargo test -p pod-relay --all-features --test pair` and the others.
 
 ## Done
 
@@ -163,7 +167,7 @@ T-075 and T-076 (each repaired 2026-10-09).
 
 Read: `RelaySession` has text, binary, Ping and Close writes and a liveness watcher
 (`PodUtils/podssh:crates/podssh-ws/src/session.rs:223-334`); `podssh_relay::open::backoff` has a jitter
-(`crates/podssh-relay/src/open.rs:421-435`). Not measured: whether the relay answers a Ping on a reverse socket
+(`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). Not measured: whether the relay answers a Ping on a reverse socket
 (`docs/relay.md:386-388` is the forward path), and its idle cut there (`docs/relay.md` lines 191-192 at `cd75137`, T-061). A node
 that connects again ends each operator session on it (`docs/design.md:695-698`).
 
@@ -190,7 +194,7 @@ verified here).
 5. Liveness: measure whether the relay answers a Ping on a node socket; if it does, use `watch_liveness`. Never
    send an empty binary frame: under 32 bytes is `1009 bad multiplex frame` (`:182` of the contract).
    Pitfall: no idle read limit while no probe exists; the forward opener sets 90 s
-   (`crates/podssh-relay/src/open.rs:382`), and a quiet socket would reconnect.
+   (`PodUtils/podssh:crates/podssh-relay/src/open.rs:382`), and a quiet socket would reconnect.
 6. Close actions, by code and reason (`docs/reverse.md:631-633`): `409`, exit, no retry;
    `1001 operator stopped reverse relay`, exit and delete the pair; `1001 pair expired`, or a `403` after the
    stored expiry, a re-pair hook that is off by default; `1003` and `1009`, exit with the reason, never a loop;
@@ -235,6 +239,10 @@ with exact bytes; late bytes after `close` dropped, the socket kept; no data bef
 the hook on `1001 pair expired`; exit and a deleted pair on `1001 operator stopped reverse relay`. Plant: send
 `ready` before the handler returns; that test must fail. Live: pair (T-078), run an echo node, open two
 sessions at once with T-080, compare the digests of 1 MiB each way, and stop the pair.
+
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test targets `reverse_live`, `reverse_node` moved to `pod-relay` with their names; run them there with `cargo test -p pod-relay --all-features --test reverse_live` and the others.
 
 ## Done
 
@@ -364,11 +372,15 @@ outcome is a success without `ready`. Plant: send the queue before `ready`; the 
 fail. The live test runs a node whose handler rejects with a 200-byte reason, and asserts that the
 operator's outcome holds all 200 bytes.
 
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test targets `reverse_live`, `reverse_operator` moved to `pod-relay` with their names; run them there with `cargo test -p pod-relay --all-features --test reverse_live` and the others.
+
 ## Done
 
 2026-10-09, in the commit "The operator of the reverse road".
 
-- `crates/podssh-relay/src/reverse/operator.rs` (new, feature `pair`): `operator::run` connects to
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs` (new, feature `pair`): `operator::run` connects to
   `/v1/connect/<name>` with the connect token, and `operator::exchange` carries a byte stream over a
   `RelaySession` on any stream. Before `ready` it keeps up to 1 MiB of input (`QUEUE_BEFORE_READY`)
   and sends nothing, for 20 s at most; a `reject` keeps its whole reason, and the Close after it gives
@@ -505,16 +517,20 @@ stand-in, a node and an operator against the scripted relay of T-079, and the re
 runtime. Plant: remove the `try_current` check; the test inside a runtime must fail (a panic). The
 gate shows the feature adds no C. The podbox side is proved in T-085.
 
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `blocking` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test blocking`.
+
 ## Done
 
 2026-10-09, in the commit "A blocking facade for podbox".
 
-- `crates/podssh-relay/src/blocking/` (new, feature `blocking`, which brings `pair`): `Client` (`new`,
+- `PodUtils/podssh:crates/podssh-relay/src/blocking/` (new, feature `blocking`, which brings `pair`): `Client` (`new`,
   `pair`, `status`, `stop`, `run_node`, `run_operator`, `open_forward`, and `forward_on_loopback` under
   `plain-ws`), `Config`, `Error`, `Stopper`, `NodeOptions` (a label, the settings, a blocking re-pair
   hook) and `Operator`; `bridge.rs`: `Local` (`new`, `tcp`, `on_finish`), `BlockingHandler` (also
   each closure of its shape) and the two threads of a session; `forward.rs`: `Forward` and `Closed`.
-- `crates/podssh-relay/src/reverse/wire.rs` (new): `Wire`. `NodeConfig.wire`, `OperatorConfig.wire`,
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/wire.rs` (new): `Wire`. `NodeConfig.wire`, `OperatorConfig.wire`,
   `run(&mut NodeConfig, ..)`, `Exit::Unusable`; `exchange` ends its stream's write side and its
   reading tasks at each end; a Close that crosses the operator's with a code other than `1000` is
   `Ended`. `crates/podssh-ws/src/session.rs`: no data frame after its own Close.
@@ -594,8 +610,8 @@ and a test reads that copy to check them (crates/podssh-transport/src/closes.rs 
    `closes.rs`, the retry parts of `error.rs`, and the name check of T-076, with their tests. Keep
    each file at 500 lines or fewer (`AGENTS.md:372-373`).
 3. Delete, do not move: the backpressure module (T-074), the `Transport` trait and `backoff.rs`
-   (T-077), and `RelayConfig` (`podssh-relay` has `Relay` and `RelayList`,
-   `crates/podssh-relay/src/relay.rs:107-129`).
+   (T-077), and `RelayConfig` (`podssh-relay` has `Relay` and `RelayList`, which are
+   `pod_relay::relay`'s of PodUtils/podcrates since podssh took `pod-relay` at v0.27.0).
 4. Rewrite the comments of the moved code to `AGENTS.md:374-375`: why, in few words; no markers, no
    history, no line numbers. Keep the check of the close rows against the pinned copy as a test
    (T-060 decides where the copy lives).
@@ -629,7 +645,7 @@ types and two retry tables for one protocol, which is how `403` and `503` alread
 3. The relay paths of the reverse legs are `relay::node_path` and `relay::operator_path`, beside the
    forward path, with the name checks of `podssh_ws::names` (T-076).
 4. The rules of T-075 hold where the answers are read. The forward opener mints a new token once for
-   a refused cached one, and never after a policy refusal (`crates/podssh-relay/src/open.rs:387-399`).
+   a refused cached one, and never after a policy refusal (`PodUtils/podssh:crates/podssh-relay/src/open.rs:387-399`).
    A node exits on a `409`, pairs again on a `403` after the expiry, and stops on a `403` before it
    (crates/podssh-relay/src/reverse/node.rs, lines 148-151 at `fb228e9`; T-261 later made a `409`
    after a loss a wait). A node connects again after a `503`, as
@@ -639,7 +655,7 @@ types and two retry tables for one protocol, which is how `403` and `503` alread
    no caller read it.
 5. The comments follow rule 6 of `AGENTS.md`. The rows of the close table keep their line of the
    pinned contract (`spec_line`), and a codec error names its row: these are data, which
-   `crates/podssh-relay/tests/reverse_closes.rs` checks against the pinned copy (Approach, step 4).
+   `PodUtils/podssh:crates/podssh-relay/tests/reverse_closes.rs` checks against the pinned copy (Approach, step 4).
    The copy stays in `crates/podssh-probe/tests/spec/` until T-060 decides.
 6. The Close captured from the live relay is a fixture of `podssh-ws`, which reads the Close
    (`PodUtils/podssh:crates/podssh-ws/tests/control_frames.rs`).
@@ -667,16 +683,16 @@ compiler. Plant: leave one `use podssh_transport` in an example; the build must 
 
 2026-10-09, in the commit "The codecs of the reverse road in podssh-relay". T-074 and T-077 closed in it.
 
-- Moved: `crates/podssh-relay/src/reverse/framing.rs`, `crates/podssh-relay/src/reverse/framing/legs.rs`,
-  `crates/podssh-relay/src/reverse/control.rs`, `crates/podssh-relay/src/reverse/closes.rs` and
-  `crates/podssh-relay/src/reverse/sessions.rs` (86 to 295 lines each), with their tests in
-  `crates/podssh-relay/tests/reverse_framing.rs`, `crates/podssh-relay/tests/reverse_closes.rs` and
-  `crates/podssh-relay/tests/reverse_plants.rs`. Of the crate's 84 tests, 43 moved with their names,
+- Moved: `PodUtils/podssh:crates/podssh-relay/src/reverse/framing.rs`, `PodUtils/podssh:crates/podssh-relay/src/reverse/framing/legs.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs`, `PodUtils/podssh:crates/podssh-relay/src/reverse/closes.rs` and
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/sessions.rs` (86 to 295 lines each), with their tests in
+  `PodUtils/podssh:crates/podssh-relay/tests/reverse_framing.rs`, `PodUtils/podssh:crates/podssh-relay/tests/reverse_closes.rs` and
+  `PodUtils/podssh:crates/podssh-relay/tests/reverse_plants.rs`. Of the crate's 84 tests, 43 moved with their names,
   one with a new name (`podssh-ws` reads a Close with no code as `None`, not `1005`), and 40 went
   with the code that they tested: 7 of the backpressure module, 2 of the backoff, 1 of the HTTP
   table, 6 of the endpoint builder, 7 of the forward framing, 2 of the adapter and 15 of the socket
   layer. What the runners need of that layer, their tests check: a control leaves as a text frame
-  (`crates/podssh-relay/tests/reverse_node.rs:144-147`), data waits for `ready`
+  (`PodUtils/podssh:crates/podssh-relay/tests/reverse_node.rs:144-147`), data waits for `ready`
   (`ready_waits_for_the_handler_and_comes_before_data`, `plant_data_before_ready`,
   `input_before_ready_is_kept_then_sent_in_order`), a Close keeps its code and reason
   (`a_close_of_the_relay_ends_the_socket_with_its_code_and_reason`), and the token travels in its
@@ -959,7 +975,7 @@ with no slashes as a node; `node_destinations` must fail.
   `--ca-file` and `--pair-file` (the table `PAIR_FLAGS`, shared with `node`).
 - `podssh ssh node://[user@]NAME` (`crates/podssh-cli/src/ssh/node.rs`, new): `Transport::Node`, the
   refusals of Decision 4, and the SSH client over `operator::start` (new in
-  `crates/podssh-relay/src/reverse/operator.rs`); `--pair-file` for `ssh`.
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs`); `--pair-file` for `ssh`.
 - podssh-relay: `pair::OperatorPart` and `pair::read_operator_file`, which reads an operator's file
   or a whole pair.
 - The manual: the notes of `operator` and of `node://` for `ssh`, the exit rows, two examples; the
@@ -1417,10 +1433,12 @@ fail. Live: a second node with another key under the same label is refused by th
   (`crates/podssh-iroh/src/allow.rs`). This entry shares them, rather than making keys of its own.
 - A refused operator cannot get `reject {id, "not allowed"}`: the node answers `ready` before it
   knows the operator's key, which only the channel's handshake gives (the operator's input waits for
-  `ready`, and with the layer `ready` goes out at once, `crates/podssh-relay/src/reverse/layered.rs`).
+  `ready`, and with the layer `ready` goes out at once, `PodUtils/podssh:crates/podssh-relay/src/reverse/layered.rs`).
   The refusal is the channel's verdict, encrypted, then the session's close.
 - The features `identity` and `e2e` of the Prove are not made: the keys and the channel build in
   each build of `podssh-relay`, with no C, and the commands drop them.
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_live` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_live`.
 
 ## Done
 
@@ -1574,6 +1592,8 @@ the live test runs one session through the real relay.
 - XX replaces IK (the Decision), and the vectors are those of `Noise_XX_25519_ChaChaPoly_SHA256`.
 - No feature `e2e` is made (T-087's correction); the commands drop it.
 
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_live` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_live`.
+
 ## Done
 
 2026-10-10, built with T-087, in `8e31960` (the libraries) and the commit that closes this
@@ -1722,7 +1742,7 @@ routed session at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs:112-234`,
 operator's at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`, lines 194-202. The grants at
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:33-64` and
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:114-122`. The routes of a node,
-their check and their dial in `crates/podssh-relay/src/reverse/routes.rs:1-178`.
+their check and their dial in `PodUtils/podssh:crates/podssh-relay/src/reverse/routes.rs:1-178`.
 The command line: the targets at `crates/podssh-cli/src/node.rs:238-274`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:276-291`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
@@ -1908,7 +1928,7 @@ T-107), and the relay stays a separate project (`docs/decisions.md`). The two sh
    start of the session: a change of the framing in crates/podssh-transport/src/framing/legs.rs lines 60-76 at `e8bbd4d`. The
    node checks the grant before it dials the TARGET, so the dial moves after `ready` (`docs/reverse.md:16`):
    the seam of T-088 and T-089. Spent nonces are create-new private files
-   (`crates/podssh-relay/src/cache.rs:364-382`).
+   (`crates/podssh-relay/src/cache.rs:262-280`).
 3. Both shapes: an SSHSIG signature in a fixed podssh namespace, which `ssh-keygen -Y verify` can check
    (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:368-371`).
 4. Relations: T-078 makes the pair that a grant protects; T-086 can deliver a grant in place of the
@@ -1924,7 +1944,7 @@ already protects, at the cost of a framing on a leg that the contract keeps bare
 2026-11-03 (the drafting agent), for what the Correction below leaves open. No row of `docs/decisions.md`
 settles these and none changes one: Q4 keeps the relay's tokens and the trust end to end, which a grant is.
 
-1. The reader of the certificate is podssh's own (`crates/podssh-relay/src/grant/cert.rs`), not the `ssh-key`
+1. The reader of the certificate is podssh's own (`PodUtils/podssh:crates/podssh-relay/src/grant/cert.rs`), not the `ssh-key`
    crate. Only the Ed25519 certificate is a grant, its form is a page of OpenSSH's PROTOCOL.certkeys, and the
    crate (the patched copy in `vendor/ssh-key`) would bring its features and a change of `Cargo.lock` into a
    library crate that the gate builds with no C. The same bytes as `ssh-keygen -s` gives are its test. Lost:
@@ -2000,7 +2020,7 @@ parts, and the Decision above (the relay's shape, by the relay's operator) gives
   window that it must have, a random serial, and the critical option `once@podssh`. OpenSSH's
   `ssh-keygen -s ... -O critical:once@podssh` mints one, and so does `podssh keygen -s`
   (`crates/podssh-cli/src/keygen_cert.rs:1-6`). The node checks it before it dials, records the
-  serial in a create-new private file (`crates/podssh-relay/src/cache.rs:364-370`), and refuses
+  serial in a create-new private file (`crates/podssh-relay/src/cache.rs:262-268`), and refuses
   a second use. Bound to the grantee's key, a leaked grant is worth nothing without that key,
   which answers the reporter's correction; a resume of the layer runs no new handshake, so a
   used grant ends no resumed session.
@@ -2050,7 +2070,7 @@ pair of `--once` in podssh's relay role (`POST /v1/pair?once=1`); the connect to
 the stop token that the node rotates moved to T-615 (Decision 11). The Prove adds the role's test,
 `relay_serve_once`, which needs the features `serve` and `plain-ws` on the loopback. The offline grants are
 certificates that OpenSSH 9.6's `ssh-keygen -s` minted, kept with their issuer's public key alone
-(`crates/podssh-relay/tests/fixtures/grant/`), so the test needs no `ssh-keygen` where it runs; the live
+(`PodUtils/podssh:crates/podssh-relay/tests/fixtures/grant/`), so the test needs no `ssh-keygen` where it runs; the live
 test runs through the live relay, which carries the channel as each relay does, in the place of a runner
 of `podssh relay serve`.
 
@@ -2059,11 +2079,11 @@ of `podssh relay serve`.
 2026-11-03, drafted (`DRAFT T-226`, `d4da618`) and merged by the main session, which repaired two
 findings of clippy (a `contains`, and a type of the test's cases) and formatted two files.
 
-- The grant in `podssh-relay` (feature `grant`, `crates/podssh-relay/src/grant/`): the reader and the writer
+- The grant in `podssh-relay` (feature `grant`, `PodUtils/podssh:crates/podssh-relay/src/grant/`): the reader and the writer
   of the Ed25519 user certificate, the node's door in the order of the Approach, and the record of each grant
   used; the proof's version 4 in `PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs`, the door's hook `Redeem` of
   `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`, and a route that a grant named in
-  `crates/podssh-relay/src/reverse/routes.rs`. `cargo test -p podssh-relay --features pair,grant --test
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/routes.rs`. `cargo test -p podssh-relay --features pair,grant --test
   grant`: 9 passed (a grant that `ssh-keygen -s` of OpenSSH 9.6 minted lets its key in once, the relay never
   sees it, a second use is refused, also by a node started again; another node, a window that ended or is to
   come, an unknown critical option, no `once@podssh`, no end, a host certificate, another key, an issuer not
@@ -2093,7 +2113,7 @@ findings of clippy (a `contains`, and a type of the test's cases) and formatted 
 
 # T-256: A local side that does not read stops every session of the node
 
-**Source:** a reading of `crates/podssh-relay/src/reverse/serve.rs` on
+**Source:** a reading of `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs` on
 2026-10-09, while T-118 was planned.
 **Category:** defect
 **Milestone:** M4
@@ -2113,7 +2133,7 @@ which ends every session.
 ## Premise
 
 Read: the reader awaits the queue of the session
-(`crates/podssh-relay/src/reverse/serve.rs` lines 133-134 at `1f89a82`), which
+(`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs` lines 133-134 at `1f89a82`), which
 holds 32 chunks (line 182 there). The relay has no flow
 control for one session of a socket: it closes a leg with `1011 relay
 backpressure` when more than 1 MiB waits for a slow receiver
@@ -2127,7 +2147,7 @@ backpressure` when more than 1 MiB waits for a slow receiver
    sessions go on.
 2. The local reader starts only after `ready` is queued, as now, so that its
    first bytes are not dropped.
-3. A test against the scripted relay (`crates/podssh-relay/tests/reverse_node.rs`):
+3. A test against the scripted relay (`PodUtils/podssh:crates/podssh-relay/tests/reverse_node.rs`):
    session A's local side reads nothing while the relay sends it 40 frames of
    64 KiB; session B still carries bytes both ways, and A gets the `close` with
    the reason.
@@ -2142,18 +2162,22 @@ cargo test -p podssh-relay --features pair --test reverse_node
 Plant: the reader awaits the full queue again. The test must fail at its time
 limit, not hang.
 
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_node` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_node`.
+
 ## Done
 
 2026-10-09, in the commit "A stalled local side ends its own session, not the
 node's".
 
-- `crates/podssh-relay/src/reverse/serve.rs`: the reader gives a frame to its
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`: the reader gives a frame to its
   session with `try_send` (`offer`). On a full queue the session ends: its two
   copies stop (each route keeps their abort handles), its route goes, and the
   writer sends `close {id}` with the reason "the node's local side does not
   read". The local reader starts once `ready` is queued, as before.
 - Test: `a_local_side_that_does_not_read_ends_its_session_and_not_the_others`
-  in `crates/podssh-relay/tests/reverse_node.rs`: A's local side reads
+  in `PodUtils/podssh:crates/podssh-relay/tests/reverse_node.rs`: A's local side reads
   nothing while the relay sends it 40 frames of 64 KiB; B carries bytes both
   ways, A gets the `close` with its reason, and at the stop only B is closed.
 - Prove: `cargo test -p podssh-relay --features pair --test reverse_node`:
@@ -2217,6 +2241,10 @@ still ends alone. The control passes where it failed. Plant: wait for `serving` 
 node's tunnel stalled 4 s, and the client gets `node unavailable`; a node that ignores the
 handler's window fails the new test.
 
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_node` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_node`.
+
 ## Done
 
 2026-10-10. Two causes, each repaired.
@@ -2225,10 +2253,10 @@ handler's window fails the new test.
   start a client after a node wait for it: the control of M6's exit, `node_plain`,
   `pipe_remote`, and `road_race`, which waits for the ticket and that line in either order.
   The notes of `node`, `docs/cli.md` and `docs/reverse.md` say so.
-- The node's queue for each local side counts bytes (`crates/podssh-relay/src/reverse/serve.rs`),
+- The node's queue for each local side counts bytes (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`),
   as many as its handler says (`Handler::queue_bytes`): 1 MiB by default, as the 32 frames held
   before, and for the resumable layer twice its window
-  (`crates/podssh-relay/src/reverse/layered.rs`), so a local side that reads late is not taken
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/layered.rs`), so a local side that reads late is not taken
   for a stopped one.
 - The control prints the stand-ins' logs when it fails, and the stand-in relay's stderr goes to
   a log of the session (`crates/podssh-cli/tests/throughput_harness/cells.rs`): its frames
@@ -2503,7 +2531,7 @@ that only the node reaches is locked out until somebody starts it again.
 ## Premise
 
 - Read: `after_close` gives `Next::Exit("fault")` for `1003` and `1009`
-  (`crates/podssh-relay/src/reverse/node.rs:141`), and `run` returned `Exit::Fault` for it.
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:141`), and `run` returned `Exit::Fault` for it.
 - Measured: the run of 41289022291: the node offline from the move on; the node's own lines were
   not printed by the workflow.
 
@@ -2521,6 +2549,10 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test node_detach a_node_closed_for_a_fault_comes_back
 cargo test -p podssh-relay --features pair --test reverse_node
 ```
+
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_node` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_node`.
 
 ## Done
 
@@ -2556,12 +2588,12 @@ only the node reaches is then locked out until somebody starts it again.
 ## Premise
 
 - Read: the `409` arm of `run` gave `Exit::NameInUse` when the node had lost no socket
-  (`crates/podssh-relay/src/reverse/node.rs:315-333`); only after a loss did it connect again.
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:315-333`); only after a loss did it connect again.
 - Measured: the run of job 124857212234: `b2` exited at its first `409`.
 
 ## Approach
 
-`Settings::first_conflict` (30 s, `crates/podssh-relay/src/reverse/serve.rs`): a `409` at the
+`Settings::first_conflict` (30 s, `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`): a `409` at the
 first registration is taken as the old socket that the relay still holds, and the node connects
 again with the jittered backoff for that time from the first `409`, with a line for each, then
 exits as before. A node of the pair that really serves still keeps the name: the new one ends
@@ -2580,6 +2612,10 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test node_restart
 cargo test -p podssh-relay --features blocking,plain-ws --test blocking_plain
 ```
+
+## Correction
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `blocking_plain` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test blocking_plain`.
 
 ## Done
 
@@ -2746,8 +2782,8 @@ cannot set.
   (`crates/podssh-cli/src/flags.rs:173-174`).
 - Read: `operator`'s waits are 30 s for each request of the relay
   (`crates/podssh-cli/src/operator.rs:142`, `crates/podssh-cli/src/pairs.rs:18`) and 20 s for the
-  node's `ready` (`crates/podssh-relay/src/reverse/operator.rs:59`); `proxy`'s, 20 s for each
-  relay host (`crates/podssh-relay/src/open.rs:33`), in the order of the failover.
+  node's `ready` (`PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs:59`); `proxy`'s, 20 s for each
+  relay host (`PodUtils/podssh:crates/podssh-relay/src/open.rs:33`), in the order of the failover.
 - Inferred, which the Prove measures: OpenSSH's ConnectTimeout bounds the wait for the server's
   version line through a ProxyCommand too (`openssh/openssh-portable:sshconnect.c`, where
   `ssh_login` gives it to `kex_exchange_identification`), but not the ProxyCommand's own start,
@@ -2822,9 +2858,9 @@ Premise holds at the cited lines (read at `5494bdd`).
   `opened` (past the bound it parks, so no byte of a session goes out), `ready`,
   `channel_follows` and `layer_up`; the steps' logic on `State`, which its unit tests hold on a
   state of their own: 2 passed.
-- `crates/podssh-relay/src/reverse/operator.rs`: `OperatorLimits::on_ready`, called as `ready`
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs`: `OperatorLimits::on_ready`, called as `ready`
   comes; a never-ready session says "the node did not answer ready within N s".
-  `crates/podssh-relay/tests/reverse_operator.rs`: its limits name the new field.
+  `PodUtils/podssh:crates/podssh-relay/tests/reverse_operator.rs`: its limits name the new field.
 - `crates/podssh-cli/src/operator.rs`: `OperatorArgs::connect_timeout`, parsed first in `prepare`;
   `to_node` watches, and names the steps (the relay, then `ready` after the socket); its limits
   take the hook. `crates/podssh-cli/src/proxy_node.rs` passes the flag on to a node's run.
@@ -3021,12 +3057,12 @@ to go on. A feature.
   issue's claim holds where no pair is stored under NAME, as on an operator's host.
 - Read: it reads the pair from the store alone (`crates/podssh-cli/src/relay_cmd.rs` line 229 at
   `2608b91`, `crates/podssh-cli/src/pairs.rs:36-44`); `relay` takes no `--pair-file`, and `--operator-file`
-  goes with `pair` alone (`crates/podssh-cli/src/relay_cmd.rs:135-138`).
+  goes with `pair` alone (`crates/podssh-cli/src/relay_cmd.rs:134-137`).
 - Read: the relay answers `/v1/status/<name>` to the connect token
-  (`crates/podssh-relay/src/pair.rs:202-206`), which the operator's part holds.
+  (`PodUtils/podssh:crates/podssh-relay/src/pair.rs:202-206`), which the operator's part holds.
 - Read: `relay pair` prints the label and its expiry and nothing more
-  (`crates/podssh-cli/src/relay_cmd.rs:307`); in the last 24 h of a stored pair it makes the next
-  one, which the node takes at the expiry (T-395, `crates/podssh-cli/src/relay_cmd.rs:235-258`);
+  (`crates/podssh-cli/src/relay_cmd.rs:306`); in the last 24 h of a stored pair it makes the next
+  one, which the node takes at the expiry (T-395, `crates/podssh-cli/src/relay_cmd.rs:234-257`);
   the operator's part of the next pair is a new file, and the default relay renews no pair (T-395's
   Decision, item 2).
 
@@ -3088,8 +3124,8 @@ Premise holds at the cited lines (read at `2608b91`).
   stdout and says the way past the expiry on stderr. The old `status` function went into the new
   module.
 - `crates/podssh-relay/src/pair.rs`: `status` takes the operator's part. Its callers:
-  `crates/podssh-relay/src/blocking/mod.rs`, `crates/podssh-cli/src/doctor/pairs.rs` and
-  `crates/podssh-relay/tests/pair_live.rs`.
+  `PodUtils/podssh:crates/podssh-relay/src/blocking/mod.rs`, `crates/podssh-cli/src/doctor/pairs.rs` and
+  `PodUtils/podssh:crates/podssh-relay/tests/pair_live.rs`.
 - `crates/podssh-cli/src/tree.rs` (the field), `crates/podssh-cli/src/lib.rs` (the module),
   `crates/podssh-cli/src/flags/relay.rs` (the row `--pair-file` of `relay`, and `--json`'s words).
 - The manual: `crates/podssh-cli/src/man/notes_relay.rs`, the notes of `pair`, `status NAME` and
@@ -3136,7 +3172,7 @@ session had ended before the abort; on the macOS runner its tasks still lived.
 
 ## Premise
 
-- Read, at `38f424c`: `crates/podssh-relay/src/reverse/serve.rs`, `serve` spawns
+- Read, at `38f424c`: `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`, `serve` spawns
   `write(session.clone(), ...)` and awaits it only at its own end, 5 s at most; `open` and its
   copies hold `tx.clone()`.
 - Read: `crates/podssh-relay/tests/reverse_carrier.rs`, the test aborts the node's task and
@@ -3161,7 +3197,7 @@ Each passes; planted, the guard that aborts nothing: the new test fails.
 
 2026-11-03.
 
-- `crates/podssh-relay/src/reverse/serve.rs`: `Writer`, the writer's task, aborted when `serve`
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`: `Writer`, the writer's task, aborted when `serve`
   is dropped.
 - `crates/podssh-relay/tests/reverse_carrier.rs`: `a_node_that_goes_with_a_session_open_ends_the_stream`,
   with a handler that holds each session open.
@@ -3233,7 +3269,7 @@ the channel.
 2. **The offer: two fields of the role's `hello`, `"legTokens": true` and `"stopRotation": true`, which
    the node reads on the socket itself**; `/relays.json` says the same (`reverse.leg_tokens`,
    `reverse.rotate`) for a client that asks. A node of before keeps the fields and reads nothing of them
-   (`crates/podssh-relay/src/reverse/control.rs`, `Hello::extra`). Lost: `/relays.json` alone, a second
+   (`PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs`, `Hello::extra`). Lost: `/relays.json` alone, a second
    request at each socket, which a host behind a balancer may answer apart from the one that holds the
    socket. A carrier's role (T-595) offers neither: its stream is the door, and its legs take no token.
 3. **What the role keeps, and how many**: the SHA-256 of each token that the node registers, by a text
@@ -3268,7 +3304,7 @@ the channel.
    session of a pair of `--once` at a restart of the role.
 7. **The stop token's rotation: the node draws the next token, names its SHA-256 at `POST
    /v1/rotate/<name>` by the token now, keeps the new one in the store, then uses it once**, which makes
-   it the pair's and ends each before it (`crates/podssh-relay/src/pair/rotate.rs`,
+   it the pair's and ends each before it (`PodUtils/podssh:crates/podssh-relay/src/pair/rotate.rs`,
    `crates/podssh-cli/src/node_rotate.rs`). The role takes both the token now and the one to come until
    that use, so a node that stops at any step keeps a token that the role takes, and the new token
    crosses no wire before its first use; the file of `--pairs` keeps both. A 403 of the new one at its
@@ -3368,13 +3404,13 @@ the binary's own futures are boxed where it runs them, and its suites passed).
   the operator's taker given the seed (`PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs`).
 - The node's socket: `Handler::attach`, `registers` and `spent` (`crates/podssh-relay/src/reverse/node.rs`),
   forwarded by `Layered` and taken by `E2e`, `Routed` and the CLI's `Piped`; the `token` frames through
-  the writer, and the `spent` frame read (`crates/podssh-relay/src/reverse/serve.rs`,
-  `crates/podssh-relay/src/reverse/control.rs`); the operator's leg by its token and the offer of the
+  the writer, and the `spent` frame read (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`,
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs`); the operator's leg by its token and the offer of the
   rotation heard (`crates/podssh-relay/src/reverse/legs.rs`).
 - The role: `crates/podssh-relay/src/serve/reverse/legs.rs`, beside `pairs.rs`, the `hello` and
   `/v1/rotate/` of `crates/podssh-relay/src/serve/reverse/mod.rs`, the `token` frame of `node.rs`, the
   `spent` frame of `operator.rs`, and `/relays.json` (`crates/podssh-relay/src/serve/docs.rs`).
-- The rotation: `crates/podssh-relay/src/pair/rotate.rs`, `crates/podssh-cli/src/node_rotate.rs`, and the
+- The rotation: `PodUtils/podssh:crates/podssh-relay/src/pair/rotate.rs`, `crates/podssh-cli/src/node_rotate.rs`, and the
   renewal's stop token now (`crates/podssh-cli/src/node_expiry.rs`).
 - `cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_once`: 6 passed, three runs (the
   2 of T-226, and 4 of T-615: the draft counted 5).
@@ -3582,7 +3618,7 @@ that it carries.
    types this one).
 4. **The relay's socket is not handed over; the sessions are.** The node's socket stops as a stop
    does, each session's `close` saying `the node is upgrading` (a client of the layer takes a node's
-   `close` as a loss, `crates/podssh-relay/src/reverse/closes.rs`), and the new binary connects
+   `close` as a loss, `PodUtils/podssh:crates/podssh-relay/src/reverse/closes.rs`), and the new binary connects
    again; each client resumes on a new leg, which is what the layer is for. Lost: the node's socket
    across the exec (see the Correction).
 5. **The state is the layer's as values, never its records**
@@ -3831,17 +3867,17 @@ so the next member's author copies a neighbour, and an `is_some()` reads a `fals
 
 Read at `2042200`; each reader that exists is right:
 
-- A guarantee asked for: `crates/podssh-relay/src/pair/once.rs:47-50` takes `"once": true` alone, and
-  `crates/podssh-cli/src/relay_cmd.rs:274-275` stops the pair that a relay made with no such word
-  before it refuses (`crates/podssh-cli/src/relay_cmd.rs:272` says "A relay that does not offer --once
+- A guarantee asked for: `PodUtils/podssh:crates/podssh-relay/src/pair/once.rs:47-50` takes `"once": true` alone, and
+  `crates/podssh-cli/src/relay_cmd.rs:273-274` stops the pair that a relay made with no such word
+  before it refuses (`crates/podssh-cli/src/relay_cmd.rs:271` says "A relay that does not offer --once
   made a pair whose token takes each").
-- A grant's markings: `crates/podssh-relay/src/grant/door.rs:94` says "it has no end, and a grant needs
-  one", `crates/podssh-relay/src/grant/door.rs:118` says "it has no critical option", and
-  `crates/podssh-relay/src/grant/door.rs:130` says "no such file, so no grant is let in".
-- A hint: `crates/podssh-relay/src/reverse/control.rs:96` says "and 16 sessions, a small number that
+- A grant's markings: `PodUtils/podssh:crates/podssh-relay/src/grant/door.rs:94` says "it has no end, and a grant needs
+  one", `PodUtils/podssh:crates/podssh-relay/src/grant/door.rs:118` says "it has no critical option", and
+  `PodUtils/podssh:crates/podssh-relay/src/grant/door.rs:130` says "no such file, so no grant is let in".
+- A hint: `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:96` says "and 16 sessions, a small number that
   cannot exhaust a relay." for a `hello` with no `maxSessions`.
 - Offers, each `true` alone: `PodUtils/podssh:crates/podssh-relay/src/e2e/legs.rs:79` says "and nothing else", and
-  `crates/podssh-relay/src/reverse/legs.rs:50-52` the same for the stop token's rotation.
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/legs.rs:50-52` the same for the stop token's rotation.
 - So three readers write the same comparison apart, and no helper holds it; `docs/reverse.md` and
   `docs/relay.md` describe each member where it appears, and name no class (searched for "absent").
 - The issue's claims of the three roads were not read by its author line by line; they hold, as above.
@@ -3911,14 +3947,14 @@ opens the session without the document, and neither end says so.
 
 Read at `2042200`:
 
-- `crates/podssh-relay/src/reverse/control.rs` at `78b5fc8`, line 70, holds the version, and
-  `crates/podssh-relay/src/reverse/control.rs:104-108` reads the two limits alone;
-  `crates/podssh-relay/src/reverse/serve.rs:199` is its one call. The role sends `"version": 1`
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs` at `78b5fc8`, line 70, holds the version, and
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:104-108` reads the two limits alone;
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:199` is its one call. The role sends `"version": 1`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:351-360`), as the default relay does
-  (`crates/podssh-relay/src/reverse/control.rs:64-65`). The issue's line numbers are of an older tree.
-- `crates/podssh-relay/src/reverse/serve.rs:240` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
-- `crates/podssh-relay/src/reverse/node.rs:306` says "Next::Exit(_) => Next::Reconnect,", and
-  `crates/podssh-relay/src/reverse/node.rs:118` says "A reconnection would" of `Exit::Unusable`.
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:64-65`). The issue's line numbers are of an older tree.
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:240` says "Ok(NodeInbound::Unknown) | Err(_) => {}".
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:306` says "Next::Exit(_) => Next::Reconnect,", and
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:118` says "A reconnection would" of `Exit::Unusable`.
 - The channel: an operator offers only with a document (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:113`),
   a node answers in the net's form only when offered and when it holds one
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/handshake.rs:221-222`), and the operator keeps no net then
@@ -4022,15 +4058,17 @@ podssh-ws, and the five plants.
 2026-11-11, the take of `pod-e2e` (PodUtils/podcrates `v0.22.0`): the test target `e2e_net`
 moved to `pod-e2e` with its name; run `cargo test -p pod-e2e --test e2e_net` there.
 
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `reverse_node` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test reverse_node`.
+
 ## Done
 
 2026-11-05, merged from its draft (`833cc75`); each test below passed at the merge.
 
 - The dialect: `PROTO`, `PROTO_MIN`, `UNSTATED` and `Skew` beside `Hello`, whose `version` is any
-  JSON value (`crates/podssh-relay/src/reverse/control.rs`), by the fourth kind of
+  JSON value (`PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs`), by the fourth kind of
   `PodUtils/podssh:crates/podssh-relay/src/answer.rs`; the dialer's `X-Podssh-Proto` of a reverse socket
   (`crates/podssh-ws/src/handshake.rs`).
-- The node: `End::Unread` at a `hello` of another dialect (`crates/podssh-relay/src/reverse/serve.rs`),
+- The node: `End::Unread` at a `hello` of another dialect (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs`),
   which the run loop, and a `426` to its upgrade, end as `Exit::Unusable` with the sentence, never a
   reconnection (`crates/podssh-relay/src/reverse/node.rs`); a carrier's node ends 78 on it
   (`crates/podssh-cli/src/node_carrier.rs`).
@@ -4095,17 +4133,17 @@ Read at `2042200`:
 - `status` answers `online`, `sessions` and `expires`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:148`); `stop` ends the pair with
   `crates/podssh-relay/src/serve/reverse/mod.rs:161`, which says "operator stopped reverse relay", and
-  the node exits on it (`crates/podssh-relay/src/reverse/node.rs:137`).
+  the node exits on it (`PodUtils/podssh:crates/podssh-relay/src/reverse/node.rs:137`).
 - A refusal with a cause before the upgrade exists for a planned stop alone: `503` with `Retry-After: 1`
   (`crates/podssh-relay/src/serve/reverse/mod.rs:171-174`). Since T-255 a planned stop sends `1012`,
   and the node joins the role that comes back, so a restart costs no 409's wait; the issue's waits
-  (`crates/podssh-relay/src/reverse/serve.rs:81` and `PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`)
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:81` and `PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`)
   are for a node whose old socket the role still holds.
 - A pair's state (`crates/podssh-relay/src/serve/reverse/pairs.rs:124-137`) has no halt, and the file is
   486 lines, so the state goes in a module beside it.
-- The client: `crates/podssh-relay/src/pair/renew.rs:70-83` and the line and JSON of
-  `crates/podssh-cli/src/relay_status.rs:50-67`; `relay` has no subcommand for it
-  (`crates/podssh-cli/src/relay_cmd.rs:161-168`).
+- The client: `PodUtils/podssh:crates/podssh-relay/src/pair/renew.rs:70-83` and the line and JSON of
+  `crates/podssh-cli/src/relay_status.rs:49-66`; `relay` has no subcommand for it
+  (`crates/podssh-cli/src/relay_cmd.rs:160-167`).
 - A `503` is no refusal on the way (`crates/podssh-relay/src/piping/probe.rs:27-33`), so no other road
   starts on it.
 
@@ -4236,22 +4274,22 @@ behind the copy's queue, not the network.
 
 Read at `2042200`:
 
-- `crates/podssh-relay/src/reverse/serve.rs:116-122` keeps control apart from data, and a session's
-  bytes in order with its close; `crates/podssh-relay/src/reverse/serve.rs` said
+- `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:116-122` keeps control apart from data, and a session's
+  bytes in order with its close; `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs` said
   "mpsc::channel(1024), mpsc::channel(256)" at line 145 at `2042200`: one queue of data for all the
   sessions of the socket.
-- Each item is one read of up to `CHUNK_BYTES` (`crates/podssh-relay/src/reverse/serve.rs:374`), which
-  `crates/podssh-relay/src/reverse/framing/legs.rs:51` says is 65504: up to 16 MiB of one session ahead
+- Each item is one read of up to `CHUNK_BYTES` (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:374`), which
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/framing/legs.rs:51` says is 65504: up to 16 MiB of one session ahead
   of another's (arithmetic on the two constants, not a measurement).
-- The writer is `biased`, control first (`crates/podssh-relay/src/reverse/serve.rs:414`), then the data
+- The writer is `biased`, control first (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:414`), then the data
   queue in order, each item's frames awaited before the next
-  (`crates/podssh-relay/src/reverse/serve.rs:437-444`); it chooses among no sessions.
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:437-444`); it chooses among no sessions.
 - The relay role's own socket has one bound for each socket too
   (`crates/podssh-relay/src/serve/reverse/outbox.rs:27`), a change of its own (the issue says so).
 
 ## Approach
 
-1. A fair queue in a module beside `crates/podssh-relay/src/reverse/serve.rs` (441 lines): a queue for
+1. A fair queue in a module beside `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs` (441 lines): a queue for
    each session, a turn each in a round, each with a room of 4 items and the socket's whole room of 256
    kept, so that the memory stays the same.
 2. `Out::Data` and `Out::LocalEnd` go to it, the close after its session's bytes as now; the writer takes
@@ -4262,7 +4300,7 @@ Read at `2042200`:
 
 ## Decision
 
-2026-11-04 (the drafting agent of T-648). The queue is one module, `crates/podssh-relay/src/reverse/fair.rs`
+2026-11-04 (the drafting agent of T-648). The queue is one module, `PodUtils/podssh:crates/podssh-relay/src/reverse/fair.rs`
 (feature `pair`), generic over the key of a line and its pieces, with a room for each line and one for
 the socket in the units of each piece's cost; both ends use it.
 
@@ -4310,9 +4348,9 @@ after its last bytes; a closed session's queue is dropped. Planted: one queue ag
 
 ## Correction
 
-2026-11-04 (the drafting agent of T-648). `crates/podssh-relay/tests/reverse_node.rs` is 395 lines and
+2026-11-04 (the drafting agent of T-648). `PodUtils/podssh:crates/podssh-relay/tests/reverse_node.rs` is 395 lines and
 other entries cite its lines, so the node's tests of this entry are a target of their own,
-`crates/podssh-relay/tests/reverse_fair.rs`, with the same scripted relay; `reverse_node` stays in the
+`PodUtils/podssh:crates/podssh-relay/tests/reverse_fair.rs`, with the same scripted relay; `reverse_node` stays in the
 Prove, as each of its tests must still pass. The 20 MiB of the Prove is what one session wrote until
 each queue on its way was full: the tests wait for that as a condition (a write that stays pending while
 each other task of the test's one thread runs), not for a time, and one queue for all held 16 MiB there.
@@ -4324,7 +4362,7 @@ buffer between the role and its node, so that the bound that it reads is the rol
 2026-11-04, merged from its draft (`f1f9449`).
 
 - A node's socket and the role's writer to a node keep a line for each session and serve a turn
-  each (`crates/podssh-relay/src/reverse/fair.rs`): a session waits for one piece of each other
+  each (`PodUtils/podssh:crates/podssh-relay/src/reverse/fair.rs`): a session waits for one piece of each other
   session at most, where one queue put it behind each byte queued before it; a line that holds
   nothing always takes one piece; the node keeps 4 reads a session and 256 a socket, the role 1 MiB
   a session and a socket; a session's `close` follows its own bytes. No frame of the wire changed.
@@ -4363,7 +4401,7 @@ Read at `2042200`:
   most (`crates/podssh-relay/src/serve/reverse/mod.rs:70`); no node is `1011 node unavailable`
   (`crates/podssh-relay/src/serve/reverse/operator.rs:99`).
 - A node readies a session only after its local side accepted:
-  `crates/podssh-relay/src/reverse/control.rs:183` says "Only after the local side has accepted", so a
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:183` says "Only after the local side has accepted", so a
   spare is a live connection to the target with no one on it, and only a node that says it may make one
   gets one.
 - The role's `hello` already carries offers that a node of before keeps and skips
@@ -4388,7 +4426,7 @@ Read at `2042200`:
 2026-11-04 (the drafting agent of the triage). Spares only when a node asks, by its own flag: a spare
 is a connection to the target that no operator uses, which a node's owner chooses. Lost: spares by
 default (that cost on each node); spares that the role opens with no `ready` (an operator then meets a
-dead session, as `crates/podssh-relay/src/reverse/control.rs:184` says of an early `ready`).
+dead session, as `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:184` says of an early `ready`).
 
 2026-11-05 (the drafting agent of T-650), each call with what lost:
 
@@ -4460,8 +4498,8 @@ before its `ready`, and the test of a dead session fails.
   spares are `crates/podssh-relay/src/serve/reverse/spares.rs`).
 - "A spare is a live connection to the target with no one on it" holds for a node of `--plain
   --no-e2e` alone, whose handler readies after its dial. With the resumable layer, podssh node's
-  default, `crates/podssh-relay/src/reverse/layered.rs:2` says "the node answers `ready` at once, greets",
-  and `crates/podssh-relay/src/reverse/layered.rs:4` says "session dials the target, after its handshake";
+  default, `PodUtils/podssh:crates/podssh-relay/src/reverse/layered.rs:2` says "the node answers `ready` at once, greets",
+  and `PodUtils/podssh:crates/podssh-relay/src/reverse/layered.rs:4` says "session dials the target, after its handshake";
   the channel too dials TARGET only once the operator's key is let in. So a spare there is a pipe and a
   task, and TARGET sees nothing of it; but the far end gives the client 30 s from the session's `open`
   (`PodUtils/podssh:crates/podssh-relay/src/session/far.rs:40` says "HANDSHAKE_LIMIT: Duration = Duration::from_secs(30)",
@@ -4470,7 +4508,7 @@ before its `ready`, and the test of a dead session fails.
   spare carries the node's bytes before any operator: the Decision's items 3 and 6.
 - The Prove's two targets are near 500 lines (`relay_serve_reverse.rs` 459, `reverse_node.rs` 419): the
   tests of the role are `crates/podssh-relay/tests/relay_serve_spares.rs`, those of the node
-  `crates/podssh-relay/tests/reverse_spares.rs`, with unit tests beside the role's module; the Prove
+  `PodUtils/podssh:crates/podssh-relay/tests/reverse_spares.rs`, with unit tests beside the role's module; the Prove
   names them, and the two targets of before run as they did.
 
 ## Done
@@ -4876,10 +4914,10 @@ An operator must reproduce the cut on the relay to learn that it was the cap.
 
 - Read: `crates/podssh-relay/src/serve/reverse/node.rs:353` sends the `close` with the reason
   "session byte cap" (the limit is `SESSION_BYTES`, 64 MiB, `crates/podssh-relay/src/serve/reverse/mod.rs:72`).
-- Read: the wire form carries the reason: `crates/podssh-relay/src/reverse/control.rs:31-35`
+- Read: the wire form carries the reason: `PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:31-35`
   (`reason: Option<String>`).
-- Read: the node's reader binds only the id: `crates/podssh-relay/src/reverse/serve.rs:229`
-  (`NodeInbound::Close { id, .. }`), and `Out::Closed(id)` at `crates/podssh-relay/src/reverse/serve.rs:444`
+- Read: the node's reader binds only the id: `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:229`
+  (`NodeInbound::Close { id, .. }`), and `Out::Closed(id)` at `PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:444`
   has no reason.
 - Read: the model to follow is the node's budget refusal line, rate-limited by `SAY_EVERY`
   (`crates/podssh-relay/src/session/budget.rs:25`). `docs/reverse.md` documents only the socket-level
@@ -5020,10 +5058,10 @@ relay needs to say that it wants a slower, protocol-level ping.
 ## Premise
 
 - Read: the client pings each 10 s and allows 3 silent checks (`crates/podssh-ws/src/client.rs:39-40`); the
-  reverse node and operator legs read their own limits (`crates/podssh-relay/src/reverse/serve.rs:63-88`,
-  `crates/podssh-relay/src/reverse/operator.rs:40-62`).
-- Read: `Hello` keeps each field that podssh does not model (`crates/podssh-relay/src/reverse/control.rs:65-79`),
-  and one field is already an offer of the relay: `stopRotation` (`crates/podssh-relay/src/reverse/legs.rs:29`).
+  reverse node and operator legs read their own limits (`PodUtils/podssh:crates/podssh-relay/src/reverse/serve.rs:63-88`,
+  `PodUtils/podssh:crates/podssh-relay/src/reverse/operator.rs:40-62`).
+- Read: `Hello` keeps each field that podssh does not model (`PodUtils/podssh:crates/podssh-relay/src/reverse/control.rs:65-79`),
+  and one field is already an offer of the relay: `stopRotation` (`PodUtils/podssh:crates/podssh-relay/src/reverse/legs.rs:29`).
   The same shape carries this offer.
 - Read: podssh's role pings each reverse socket each 20 s (`crates/podssh-relay/src/serve/reverse/mod.rs:58`);
   that is the role's own choice and stays.
@@ -5070,8 +5108,8 @@ a TCP `HOST:PORT` only, so the service needs a TCP bridge, and the bridge cannot
 
 ## Premise
 
-- Read: a route is `{name, host, port}` (`crates/podssh-relay/src/reverse/routes.rs:35-39`); the dial is
-  `dial_target(host, port, ...)` (`crates/podssh-relay/src/reverse/tcp.rs:38`).
+- Read: a route is `{name, host, port}` (`PodUtils/podssh:crates/podssh-relay/src/reverse/routes.rs:35-39`); the dial is
+  `dial_target(host, port, ...)` (`PodUtils/podssh:crates/podssh-relay/src/reverse/tcp.rs:38`).
 - Read: the grant gets the caller's key and the route's name (`routes.rs:43`), so the node has both.
 - Read: `podssh pipe` has `unix-connect:PATH`, with abstract names on Linux and AF_UNIX on Windows
   (`crates/podssh-cli/src/pipe/unix.rs:1-12`); a connect is no listener (rule 2).

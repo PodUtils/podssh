@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use podssh_relay::e2e::ends;
 use podssh_relay::pinggy::{self, far};
-use podssh_relay::reverse::{self, Layered, NodeConfig, TcpHandler, Wire};
+use podssh_relay::reverse::{self, Layered, NodeConfig, Wire};
 use podssh_ws::ProxyChoice;
 use rand::RngExt;
 use tokio::sync::{mpsc, watch};
@@ -146,7 +146,7 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let routes = crate::node::routes_of(&targets, grant, roost, Some(public));
     let first_target = crate::node_exit::first(&targets);
     let (host, port) = (first_target.host, first_target.port);
-    let handler = TcpHandler { host: host.clone(), port, timeout: DIAL_LIMIT, sshd: roost };
+    let handler = reverse::tcp::handler(host.clone(), port, DIAL_LIMIT, roost);
     let target = move || {
         let host = host.clone();
         async move { reverse::tcp::dial_target(&host, port, DIAL_LIMIT, roost).await }
@@ -235,12 +235,9 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
             pair,
             label: stored.then(|| label.clone()),
             trust: &trust,
-            proxy: &proxy,
+            ctx: &podssh_relay::context::of(&proxy),
             timeout: crate::pairs::REQUEST_LIMIT,
-            settings: reverse::Settings {
-                rejoin: crate::layered::settings().resume_deadline,
-                ..reverse::Settings::default()
-            },
+            settings: reverse::Settings { rejoin: crate::layered::settings().resume_deadline, ..reverse::settings() },
             repair,
             wire: Wire::Tls,
             say: Some(&say_pair),

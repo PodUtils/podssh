@@ -315,9 +315,9 @@ Read; the lines of `podssh-ws` are those of `c56792f`. `open_tls` builds the tru
 the configuration on each call (`crates/podssh-ws/src/client.rs` lines 187-207 at `723d90b`, through
 `crates/podssh-ws/src/tls.rs` lines 153-180 at `723d90b`). `WsClientConfig` carries only a `Trust`
 (`client.rs` lines 47-61 at `723d90b`). The same `Trust` goes through `podssh-relay`: `Request`
-(`crates/podssh-relay/src/open.rs:157-169`), `MintContext`
-(`crates/podssh-relay/src/token.rs:95-100`), the pool refresh
-(`crates/podssh-relay/src/pool.rs:178-186`), and the `https_*` functions (`client.rs` lines
+(`PodUtils/podssh:crates/podssh-relay/src/open.rs:157-169`), `MintContext`
+(`PodUtils/podssh:crates/podssh-relay/src/token.rs:95-100`), the pool refresh
+(`PodUtils/podssh:crates/podssh-relay/src/pool.rs:178-186`), and the `https_*` functions (`client.rs` lines
 261-287). podssh's configuration offers no ALPN (`tls.rs` lines 174-177 at `723d90b`), because the upgrade is
 HTTP/1.1 only (`docs/relay.md:627`). The `tls12` feature of `rustls` is on in the workspace
 (`[workspace.dependencies]` of `Cargo.toml`).
@@ -435,7 +435,7 @@ requires TLS 1.3 (`scripts/fake-relay.py`, lines 426-427 at `0d3d13a`).
    one suite at a time in the container gate, and `scripts/fake-relay.py` with an option for TLS
    1.2 only.
 5. The relay line of `doctor` names the version
-   (`crates/podssh-relay/src/health.rs:102-107`, which `doctor` and `relay status` share); the live relay must still give TLS
+   (`PodUtils/podssh:crates/podssh-relay/src/health.rs:102-107`, which `doctor` and `relay status` share); the live relay must still give TLS
    1.3.
 6. Change the comment of `suites.rs`, `docs/architecture.md` (line 46 at `0d3d13a`), the Trust item of the manual
    (`crates/podssh-cli/src/man/facts.rs` lines 408-424 at `59b67e6`) and `docs/STATUS.md` in the same commit.
@@ -522,7 +522,7 @@ Read: `connect` always calls `open_tls` (`crates/podssh-ws/src/client.rs` lines 
 `23b5d82`). `RelaySession` is
 generic over its stream (`PodUtils/podssh:crates/podssh-ws/src/session.rs:40`), so a session over `TcpStream`
 is possible. `podssh-relay` gives the TLS type back (`Opened`,
-`crates/podssh-relay/src/open.rs:171-178`). The tests use in-memory streams
+`PodUtils/podssh:crates/podssh-relay/src/open.rs:171-178`). The tests use in-memory streams
 (`PodUtils/podssh:crates/podssh-ws/tests/session.rs:34-36`) or local TLS servers
 (`PodUtils/podssh:crates/podssh-ws/tests/hostname_verification.rs:55`). `dial::is_loopback` exists
 (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:133-141`).
@@ -720,7 +720,7 @@ socks5:// is not supported; podssh speaks HTTP CONNECT to an http:// proxy"
 (`crates/podssh-ws/src/dial.rs`, lines 53-63). `proxy_from_vars` reads `https_proxy`,
 `HTTPS_PROXY`, `all_proxy` and `ALL_PROXY` (lines 163 and 184), and parses the first that is set
 (line 192). `dial` makes the error `DialError::BadProxy` (line 232), which stops the failover at
-once (`crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
+once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
 (`crates/podssh-cli/src/proxy.rs:491`). `doctor` reports it as `FAIL`
 (`crates/podssh-cli/src/doctor/net.rs`, lines 101-107). Two tests assert the refusal:
 `crates/podssh-cli/tests/doctor.rs`, lines 144-153, and `PodUtils/podssh:crates/podssh-ws/tests/dial.rs`, lines
@@ -739,7 +739,7 @@ once (`crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
 3. When the proxy answers 0x08 (address type not supported), resolve the name in podssh's own
    order (pinned, system, DNS over HTTPS), and try once with the address.
 4. Map each answer to the HTTP case that `another_host_may_help`
-   (`crates/podssh-relay/src/open.rs:71-93`) and the exit codes of `podssh proxy`
+   (`PodUtils/podssh:crates/podssh-relay/src/open.rs:71-93`) and the exit codes of `podssh proxy`
    (`crates/podssh-cli/src/proxy.rs:487-500`) already treat: a refused user or password as 407
    (the same for each host: stop); 0x02 (not allowed) as 403; 0x03, 0x04 and 0x05 as 502.
 5. Credentials never in output: `Display` shows the host and port only (now
@@ -1718,7 +1718,7 @@ sh scripts/plant-each.sh --here t325-chunk-times-ignored t325-parts-times-ignore
 - `cargo clippy` of both crates with `-D warnings`: clean; `cargo fmt --check`: clean after one file
   of the draft was formatted.
 - Repaired after the merge, 2026-11-03: a test of the verdicts named the default relay by its literal,
-  which `crates/podssh-relay/tests/default_relay.rs` allows in one place of the sources alone; it
+  which `PodUtils/podssh:crates/podssh-relay/tests/default_relay.rs` allows in one place of the sources alone; it
   takes `DEFAULT_RELAY_HOST` now (`--test default_relay`, 1 passed; `--lib doctor::stream`, 12).
 - Waits (Q88): the live run from a GitHub runner, `doctor --stream` through a quick tunnel of the
   run and at `podssh relay serve` on the runner, which no workflow runs; T-319's use of the numbers.
@@ -1980,9 +1980,9 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
-  (`crates/podssh-relay/Cargo.toml:192-193`), a crate with no C; `rustls-native-certs` 0.8.4,
+  (`crates/podssh-relay/Cargo.toml:199-200`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
-  (`Cargo.lock:6252-6253`).
+  (`Cargo.lock:6284-6285`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
   system's store of Linux (`docs/target-environment.md:61-67`).
 - Inferred: on macOS, `/etc/ssl/cert.pem` lacks a root that an administrator added to a keychain;
@@ -2135,7 +2135,7 @@ of that form, leaves `--relay-addr` alone. podssh keeps no address that carried 
 - Read: the resolvers are Cloudflare's and Google's, by IP literal, each with its JSON path
   (lines 28-32 at `927eb24`); each query dials port 443 directly (lines 144-163 at `927eb24`),
   with `Accept: application/dns-json` (line 156 at `927eb24`), for A and then AAAA (line 125 at `927eb24`).
-- Read: the relay's pool is cached on disk at a mint (`crates/podssh-relay/src/pool.rs:176-204`);
+- Read: the relay's pool is cached on disk at a mint (`PodUtils/podssh:crates/podssh-relay/src/pool.rs:176-204`);
   nothing caches an address.
 - Inferred: RFC 8484 defines the wire form, `application/dns-message`, and no standard defines the
   JSON form; firewalls that block the known addresses of public resolvers are common.
@@ -2327,14 +2327,14 @@ and each other command print rustls's words alone. An error should tell what to 
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
-- Read: rustls 0.23.46 (`Cargo.lock:6202-6203`) has the errors `Expired`, `ExpiredContext`,
+- Read: rustls 0.23.46 (`Cargo.lock:6234-6235`) has the errors `Expired`, `ExpiredContext`,
   `NotValidYet` and `NotValidYetContext`, and writes the two with a context as "certificate
   expired: verification time" and "certificate not valid yet: verification time" (its
   `src/error.rs`, read in cargo's registry); doctor's match of the text ("expired", "not valid
   yet") holds for both.
 - Read: the expiry of a cached token is read against the local clock, and a token that the relay
-  refuses is minted again once (`crates/podssh-relay/src/cache.rs:99`;
-  `crates/podssh-relay/src/open.rs:389-401`): that case needs no hint.
+  refuses is minted again once (`PodUtils/podssh:crates/podssh-relay/src/cache.rs:99`;
+  `PodUtils/podssh:crates/podssh-relay/src/open.rs:389-401`): that case needs no hint.
 
 ## Approach
 

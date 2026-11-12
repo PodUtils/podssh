@@ -86,20 +86,6 @@ doc = false
 bench = false
 
 [[bin]]
-name = "relay_list"
-path = "fuzz_targets/relay_list.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "relay_pool"
-path = "fuzz_targets/relay_pool.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
 name = "known_hosts_line"
 path = "fuzz_targets/known_hosts_line.rs"
 test = false

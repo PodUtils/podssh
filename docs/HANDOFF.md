@@ -22,13 +22,12 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.26.0"` (COORD-027).
+podssh pins every podcrates crate at `tag = "v0.27.0"` (COORD-053, PodUtils/podcrates#85).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
-  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session` and `pod-e2e`. Work
-  on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- Next: podcrates writes `adoption/podssh/pod-relay.patch`. Until podssh takes it, podssh's files of
-  `pod-relay` take fixes only, each told to podcrates as a COORD issue.
+  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
+  (2026-11-12). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
+- Next: the waves of Q101, as podcrates writes each `adoption/podssh/CRATE.patch`.
 
 ## Open COORD issues
 

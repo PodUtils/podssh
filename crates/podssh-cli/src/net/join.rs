@@ -41,9 +41,11 @@ pub(super) fn run(args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write) -> R
              names it, its fingerprint SHA256:... or its public key, as the owner's podssh net ls shows it",
         ));
     }
-    let ends = invitation::ends(args.pair_mailbox.as_deref())?;
+    let mut ends = invitation::ends(args.pair_mailbox.as_deref())?;
     let code = crate::relay_code::read_code(err, "podssh net: the code that the owner's host shows: ")?;
     crate::pins::apply(None)?;
+    // The way out of the ends, made again: it takes the resolver of the pins.
+    ends.config.way = podssh_ws::client::way(&podssh_ws::ProxyChoice::FromEnvironment);
     crate::pairs::online()?;
     let mut joining = None;
     let mut reply = |bytes: &[u8]| -> Result<Reply, Failed> {

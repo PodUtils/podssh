@@ -1,46 +1,28 @@
-//! A handler that offers a TCP service: each session of the relay is one
-//! connection to TARGET.
+//! A node's dial of a TCP target: `pod-relay` of PodUtils/podcrates (T-684),
+//! through podssh's dialer of the proxy that the environment names.
 
+use std::sync::Arc;
 use std::time::Duration;
 
+use pod_proxy::Dialer;
+pub use pod_relay::reverse::tcp::*;
 use podssh_ws::ProxyChoice;
 use tokio::net::TcpStream;
 
-use super::framing::SessionId;
-use super::node::{Handler, Opening};
-use super::sshd;
-
-/// Each session dials `host:port`, with `podssh_ws::dial::dial`, which keeps a
-/// loopback target off any proxy of the environment.
-#[derive(Debug, Clone)]
-pub struct TcpHandler {
-    pub host: String,
-    pub port: u16,
-    /// Bound on each dial, under the node's limit for opening a session.
-    pub timeout: Duration,
-    /// A roost (T-166): TARGET is a standard sshd, whose version line comes
-    /// first on each connection, or the session is refused.
-    pub sshd: bool,
+/// podssh's dialer of a node's targets: the proxy that the environment names,
+/// over the process's resolver.
+pub fn dialer() -> Arc<Dialer> {
+    Arc::new(podssh_ws::dial::dialer(&ProxyChoice::FromEnvironment, false))
 }
 
-impl Handler for TcpHandler {
-    type Stream = TcpStream;
-
-    fn open(&self, _id: SessionId) -> Opening<TcpStream> {
-        let (host, port, timeout, sshd) = (self.host.clone(), self.port, self.timeout, self.sshd);
-        Box::pin(async move { dial_target(&host, port, timeout, sshd).await })
-    }
+/// The handler of each session to `host:port`, through [`dialer`], each dial
+/// within `timeout`; a standard sshd is checked where `sshd` asks for it.
+pub fn handler(host: String, port: u16, timeout: Duration, sshd: bool) -> TcpHandler {
+    TcpHandler { host, port, timeout, sshd, dialer: dialer() }
 }
 
-/// One connection to `host:port`; with `sshd`, a roost's, which must then
-/// send an SSH version line first (T-166). The line stays in the stream for
-/// the session's SSH client.
+/// Dial `host:port` within `timeout` with [`dialer`]; a standard sshd is
+/// checked where `sshd` asks for it.
 pub async fn dial_target(host: &str, port: u16, timeout: Duration, sshd: bool) -> Result<TcpStream, String> {
-    let stream =
-        podssh_ws::dial::dial(host, port, &ProxyChoice::FromEnvironment, timeout).await.map_err(|e| e.to_string())?;
-    if sshd {
-        let at = podssh_ws::dial::authority(host, port);
-        sshd::check(&stream, sshd::BANNER_LIMIT).await.map_err(|why| format!("{at} is not an SSH server: it {why}"))?;
-    }
-    Ok(stream)
+    pod_relay::reverse::tcp::dial_target(&dialer(), host, port, timeout, sshd).await
 }

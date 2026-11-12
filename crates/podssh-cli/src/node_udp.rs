@@ -67,7 +67,7 @@ pub(crate) async fn probe(target: &Route, limit: Duration) -> Result<(), Refusal
 
 /// The handler of each session: a flow to TARGET, its lines on `say`.
 pub(crate) fn handler(target: &Route, limit: Duration, say: Arc<dyn Fn(String) + Send + Sync>) -> UdpHandler {
-    UdpHandler { say, ..UdpHandler::new(target.host.clone(), target.port, limit) }
+    UdpHandler { say, ..UdpHandler::new(target.host.clone(), target.port, limit, podssh_ws::resolve::resolver()) }
 }
 
 #[cfg(test)]

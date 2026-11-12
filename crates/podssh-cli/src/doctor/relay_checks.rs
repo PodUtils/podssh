@@ -147,7 +147,7 @@ fn now() -> i64 {
 /// answered. It is never shown.
 async fn token_check(report: &mut Report<'_>, at: &Relay, trust: &Trust) -> bool {
     let proxy = ProxyChoice::FromEnvironment;
-    let ctx = MintContext { relay: at, trust, proxy: &proxy, timeout: TIMEOUT };
+    let ctx = MintContext { relay: at, trust, ctx: &podssh_relay::context::of(&proxy), timeout: TIMEOUT };
     match token::obtain(&ctx, false).await {
         Ok(token) => {
             let minted = token.minted_at.clone().unwrap_or_default();

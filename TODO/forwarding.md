@@ -60,7 +60,7 @@ server listens, and the client connects out for each connection.
    a port that podssh asked for, and reject the rest. Dial the spec's target
    with `podssh_ws::dial::dial` and `ProxyChoice::FromEnvironment`, as
    `--direct` does (`crates/podssh-cli/src/ssh/transport.rs:383-389`), with the
-   limit of 20 s (`crates/podssh-relay/src/open.rs:31-33`).
+   limit of 20 s (`PodUtils/podssh:crates/podssh-relay/src/open.rs:31-33`).
 4. Copy both ways. Pass EOF on in each direction, and close both ends on an
    error. The SSH window is the flow control.
 5. A failed dial closes that channel only, and says why on stderr: the
@@ -1057,8 +1057,8 @@ sessions (GitHub #17).
 Read: a drop ends the run with 255 (`crates/podssh-ssh/src/run.rs:62-78`,
 `crates/podssh-ssh/src/run.rs:213-255`). `podssh_relay::open` fails over and
 backs off with jitter, but only before a session exists
-(`crates/podssh-relay/src/open.rs:212-298`,
-`crates/podssh-relay/src/open.rs:421-435`). With `-N`, no command runs, so a
+(`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`,
+`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). With `-N`, no command runs, so a
 new connection has no side effect on the server. `docs/design.md:728-735`
 puts a new connection with a new login in layer 3, for a standard sshd.
 T-153 (M6) resumes a session when both ends run podssh.

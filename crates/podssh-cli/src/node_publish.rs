@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use podssh_relay::pair::Pair;
 use podssh_relay::reverse::routes::Route;
-use podssh_relay::reverse::{self, Exit, NodeConfig, Settings, TcpHandler, Wire};
+use podssh_relay::reverse::{self, Exit, NodeConfig, Wire};
 use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 use tokio::sync::Notify;
@@ -176,16 +176,16 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         pair,
         label: stored.then(|| label.clone()),
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: pairs::REQUEST_LIMIT,
-        settings: Settings::default(),
+        settings: reverse::settings(),
         repair,
         wire: Wire::Tls,
         say: Some(&*say),
     };
     let ended = match ending {
         None => {
-            let tcp = TcpHandler { host: target.host, port: target.port, timeout: DIAL_LIMIT, sshd: false };
+            let tcp = reverse::tcp::handler(target.host, target.port, DIAL_LIMIT, false);
             Ok(Box::pin(reverse::run(&mut config, Arc::new(tcp), crate::node_upgrade::stop())).await)
         }
         Some(end) => Box::pin(end.run(&mut config, &target, online, say.clone())).await,

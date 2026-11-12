@@ -159,7 +159,12 @@ mod tests {
             let target = Echo { opened: opened.clone() };
             let channel = crate::channel::node_end("quick", Identity::from_seed(&[2; 32]), admit);
             let settings = crate::layered::settings().off_the_pair();
-            let handler = Layered::new(E2e::new(target, channel), settings, reverse::layered::NODE_BUDGET);
+            let handler = Layered::telling(
+                E2e::new(target, channel),
+                settings,
+                reverse::layered::NODE_BUDGET,
+                podssh_relay::session::budget::told(),
+            );
             (Arc::new(Node { handler, ids: AtomicU64::new(1), links: Mutex::new(Vec::new()) }), opened)
         }
 

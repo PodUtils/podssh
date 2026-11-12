@@ -49,7 +49,7 @@ fn waits() -> Waits {
 fn ends(mailboxes: Vec<WsUrl>, said: &Said) -> Ends {
     let said = said.clone();
     let say: code::Say = Arc::new(move |line: String| said.lock().unwrap().push(line));
-    Ends { mailboxes, trust: Trust::Default, proxy: ProxyChoice::Direct, say }
+    Ends { mailboxes, config: code::config(&Trust::Default, &ProxyChoice::Direct, say) }
 }
 
 fn offer() -> Offer {

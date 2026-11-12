@@ -1,5 +1,6 @@
 //! Small private files podssh keeps between runs: a minted relay token, and
-//! the relay's pool of hosts.
+//! the relay's pool of hosts. The entries of a token are `pod-relay`'s
+//! (PodUtils/podcrates, T-684), in podssh's places.
 //!
 //! The operator's decisions (2026-10-01, 2026-10-08; T-243): the cache lives
 //! in the first usable of the directory that `PODSSH_CACHE_DIR` names, the
@@ -16,8 +17,6 @@
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
-
-use serde::{Deserialize, Serialize};
 
 #[cfg(any(windows, test))]
 mod closed;
@@ -39,49 +38,14 @@ pub use own::{create_file_in_first, create_private, read_own, Others};
 pub use owner::{make_dirs as make_dirs_with, passwd_home, Host};
 pub use pod::{pod_places, POD_APP};
 
-/// A cached token is reused only while it has at least this long left.
-pub const MIN_REMAINING_MS: i64 = 10 * 60 * 1000;
+// The entries of a relay token: pod-relay of PodUtils/podcrates.
+pub use pod_relay::cache::{
+    file_name, load_from, peek_from, remove_from, store_in_first, valid_token, Cached, Peek, MIN_REMAINING_MS,
+};
 
 /// The largest cache file read (a pool of a few hundred host names fits).
 /// A larger one is not read: a cache file is ignored, and made again (T-201).
 pub const MAX_FILE: u64 = 64 * 1024;
-
-#[derive(Serialize, Deserialize)]
-struct Entry {
-    token: String,
-    /// Expiry in milliseconds since the epoch, as the relay reports it.
-    expires: i64,
-    /// The relay that minted the token: `host`, or `host:port`. An entry
-    /// written before podssh recorded it has none.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    minted_at: Option<String>,
-}
-
-/// A token found in the cache. Its `Debug` never shows the token.
-pub struct Cached {
-    pub token: String,
-    pub expires_ms: i64,
-    pub path: PathBuf,
-    /// The relay that minted it, when the entry says so.
-    pub minted_at: Option<String>,
-}
-
-impl std::fmt::Debug for Cached {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Cached")
-            .field("token", &"<redacted>")
-            .field("expires_ms", &self.expires_ms)
-            .field("path", &self.path)
-            .field("minted_at", &self.minted_at)
-            .finish()
-    }
-}
-
-/// Whether a string has the shape of a relay token: 8 to 4096 printable ASCII
-/// characters and no whitespace (it goes into an HTTP header).
-pub fn valid_token(token: &str) -> bool {
-    (8..=4096).contains(&token.len()) && token.bytes().all(|b| b.is_ascii_graphic())
-}
 
 /// The cached token for `relay_host` with at least [`MIN_REMAINING_MS`] left
 /// at `now_ms`, from the first directory that has one, a place passed over
@@ -90,53 +54,10 @@ pub fn load(relay_host: &str, now_ms: i64) -> Option<Cached> {
     load_from(&read_dirs(), relay_host, now_ms)
 }
 
-/// [`load`] over explicit directories (for tests).
-pub fn load_from(dirs: &[PathBuf], relay_host: &str, now_ms: i64) -> Option<Cached> {
-    let name = file_name(relay_host);
-    dirs.iter().find_map(|dir| {
-        let path = dir.join(&name);
-        let entry: Entry = serde_json::from_str(&read_trusted(&path)?).ok()?;
-        (entry.expires.saturating_sub(now_ms) >= MIN_REMAINING_MS && valid_token(&entry.token)).then_some(Cached {
-            token: entry.token,
-            expires_ms: entry.expires,
-            path,
-            minted_at: entry.minted_at,
-        })
-    })
-}
-
-/// What the cache holds for `relay_host`, without the token: when it
-/// expires, the file, and the relay that minted it. The token field is never
-/// read into memory, so `podssh status` cannot hold or show a token.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Peek {
-    pub expires_ms: i64,
-    pub path: PathBuf,
-    pub minted_at: Option<String>,
-}
-
-/// An entry with each field but the token.
-#[derive(Deserialize)]
-struct Meta {
-    expires: i64,
-    #[serde(default)]
-    minted_at: Option<String>,
-}
-
 /// The entry for `relay_host` in the first directory that has a trusted one,
 /// expired or not, as a [`Peek`].
 pub fn peek(relay_host: &str) -> Option<Peek> {
     peek_from(&read_dirs(), relay_host)
-}
-
-/// [`peek`] over explicit directories (for tests).
-pub fn peek_from(dirs: &[PathBuf], relay_host: &str) -> Option<Peek> {
-    let name = file_name(relay_host);
-    dirs.iter().find_map(|dir| {
-        let path = dir.join(&name);
-        let meta: Meta = serde_json::from_str(&read_trusted(&path)?).ok()?;
-        Some(Peek { expires_ms: meta.expires, path, minted_at: meta.minted_at })
-    })
 }
 
 /// The contents of the private file `name`, from the first directory that has
@@ -193,30 +114,17 @@ pub fn store(key: &str, token: &str, expires_ms: i64, minted_at: &str) -> Result
     store_in_first(&candidate_dirs(), key, token, expires_ms, minted_at)
 }
 
-/// [`store`] over explicit directories (for tests).
-pub fn store_in_first(
-    dirs: &[PathBuf],
-    key: &str,
-    token: &str,
-    expires_ms: i64,
-    minted_at: &str,
-) -> Result<PathBuf, String> {
-    if !valid_token(token) {
-        return Err("refusing to cache something that is not a relay token".into());
-    }
-    let entry = Entry { token: token.to_string(), expires: expires_ms, minted_at: Some(minted_at.to_string()) };
-    let body = serde_json::to_vec(&entry).map_err(|e| e.to_string())?;
-    store_file_in_first(dirs, &file_name(key), &body)
-}
-
 /// [`store`], with the refusals of the directories that came first.
 pub fn store_noted(key: &str, token: &str, expires_ms: i64, minted_at: &str) -> Result<Stored, String> {
     if !valid_token(token) {
         return Err("refusing to cache something that is not a relay token".into());
     }
-    let entry = Entry { token: token.to_string(), expires: expires_ms, minted_at: Some(minted_at.to_string()) };
-    let body = serde_json::to_vec(&entry).map_err(|e| e.to_string())?;
-    store_noting(&candidate_dirs(), &file_name(key), &body)
+    let dirs = candidate_dirs();
+    if dirs.is_empty() {
+        return Err(format!("{DIR_ENV} is none, so podssh keeps no file such as {}", file_name(key)));
+    }
+    let stored = pod_relay::cache::Cache::in_dirs(dirs).store_noted(key, token, expires_ms, minted_at)?;
+    Ok(Stored { path: stored.path, refused: stored.refused })
 }
 
 /// What to say of `PODSSH_CACHE_DIR` once a file went to `stored`: a
@@ -241,11 +149,6 @@ pub fn chosen_note(chosen: &Chosen, stored: &Stored) -> Option<String> {
 /// a place passed over too, so that a refused token is not read again there.
 pub fn remove(relay_host: &str) {
     remove_from(&read_dirs(), relay_host);
-}
-
-/// [`remove`] over explicit directories (for tests).
-pub fn remove_from(dirs: &[PathBuf], relay_host: &str) {
-    remove_named_from(dirs, &file_name(relay_host));
 }
 
 /// The names of the files that start with `prefix` and end with `suffix`, in
@@ -305,11 +208,6 @@ pub fn remove_named_from(dirs: &[PathBuf], name: &str) {
             let _ = std::fs::remove_file(&path);
         }
     }
-}
-
-/// `relay-token-<host>.json`, with anything but `[a-z0-9.-]` replaced.
-pub fn file_name(relay_host: &str) -> String {
-    format!("relay-token-{}.json", safe_name(relay_host))
 }
 
 /// `host` lower-cased, with anything but `[a-z0-9.-]` replaced, for file names.

@@ -12,7 +12,7 @@
 use podssh_relay::identity::KeyName;
 use podssh_relay::pool::kept::{self, Seen, Taken};
 use podssh_relay::pool::members;
-use podssh_relay::pool::signed::{self, Checked, Deployment, Keys, Signed};
+use podssh_relay::pool::signed::{self, Checked, Deployment, Signed};
 use podssh_relay::relay::{self, default_relay_host, RelayList};
 use podssh_relay::token::relay_name;
 use serde_json::{json, Value};
@@ -117,7 +117,7 @@ pub fn info(doc: &Value) -> (Vec<String>, Value) {
         return (vec![line.into()], Value::Null);
     };
     let taken = Signed::of_value(value)
-        .and_then(|s| kept::take(&s, &Keys::of_process(), crate::pairs::now_ms()).map_err(|why| why.to_string()));
+        .and_then(|s| kept::take(&s, &signed::of_process(), crate::pairs::now_ms()).map_err(|why| why.to_string()));
     match taken {
         Ok(taken) => {
             let c = taken.checked();
@@ -146,7 +146,7 @@ pub fn status_value(relays: &RelayList) -> Value {
     }
     let pool: Vec<String> = relays.hosts.iter().filter(|r| kept::of_default(r)).map(relay_name).collect();
     let mut out = vec![json!({ "name": "default", "hosts": pool, "signed": false })];
-    for seen in kept::seen(&Keys::of_process(), crate::pairs::now_ms()) {
+    for seen in kept::seen(&signed::of_process(), crate::pairs::now_ms()) {
         match seen.held {
             Ok(c) => out.extend(c.doc.deployments.iter().map(|d| deployment_value(d, &c))),
             Err((key, why)) => out.push(json!({
@@ -168,7 +168,7 @@ pub fn status_lines(relays: &RelayList) -> Vec<String> {
     let host = default_relay_host();
     let mut lines =
         vec![format!("deployment default: {host} and {pool} hosts of its pool, unsigned, as they share its domain")];
-    for seen in kept::seen(&Keys::of_process(), crate::pairs::now_ms()) {
+    for seen in kept::seen(&signed::of_process(), crate::pairs::now_ms()) {
         lines.extend(seen_lines(&seen));
     }
     lines.extend(member_lines());
@@ -282,7 +282,7 @@ pub fn doctor_line(relays: &RelayList) -> String {
     if relays.explicit {
         return "the hosts that you named: no list of deployments joins them".into();
     }
-    let lists = kept::in_force(&Keys::of_process(), crate::pairs::now_ms());
+    let lists = kept::in_force(&signed::of_process(), crate::pairs::now_ms());
     let each = |c: &Checked| -> Vec<String> {
         c.doc.deployments.iter().map(|d| format!("{} ({}; {})", d.name, d.shown(), signed_words(c))).collect()
     };

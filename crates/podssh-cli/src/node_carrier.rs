@@ -18,7 +18,7 @@ use std::time::Duration;
 
 use podssh_relay::e2e::ends::Node;
 use podssh_relay::reverse::routes::{Route, Routed};
-use podssh_relay::reverse::{self, E2e, End, Handler, Layered, Settings, TcpHandler};
+use podssh_relay::reverse::{self, E2e, End, Handler, Layered};
 use podssh_relay::serve::reverse::carrier::{self, Link};
 use podssh_ws::session::RelaySession;
 use tokio::process::Child;
@@ -193,14 +193,23 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
             Arc::new(move |line: String| podssh_ssh::err_line!("podssh node: {flow_label}: {line}"));
         with_handler(session, crate::node_udp::handler(&first, DIAL_LIMIT, flow_say), plain, channel).await
     } else {
-        let tcp = TcpHandler { host: first.host.clone(), port: first.port, timeout: DIAL_LIMIT, sshd: roost };
+        let tcp = reverse::tcp::handler(first.host.clone(), first.port, DIAL_LIMIT, roost);
         let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
         // The channel above the layer, and the route that each operator
         // named in it, as on the pair's road.
         match (plain, channel, routes) {
             (true, Some(node), Some(routes)) => served(session, Arc::new(Routed::new(routes, node))).await,
             (false, Some(node), Some(routes)) => {
-                served(session, Arc::new(Layered::new(Routed::new(routes, node), settings, budget))).await
+                served(
+                    session,
+                    Arc::new(Layered::telling(
+                        Routed::new(routes, node),
+                        settings,
+                        budget,
+                        podssh_relay::session::budget::told(),
+                    )),
+                )
+                .await
             }
             (_, channel, _) => with_handler(session, tcp, plain, channel).await,
         }
@@ -219,8 +228,22 @@ async fn with_handler<H: Handler>(session: RelaySession<Link>, inner: H, plain: 
     match (plain, channel) {
         (true, None) => served(session, Arc::new(inner)).await,
         (true, Some(node)) => served(session, Arc::new(E2e::new(inner, node))).await,
-        (false, None) => served(session, Arc::new(Layered::new(inner, settings, budget))).await,
-        (false, Some(node)) => served(session, Arc::new(Layered::new(E2e::new(inner, node), settings, budget))).await,
+        (false, None) => {
+            served(session, Arc::new(Layered::telling(inner, settings, budget, podssh_relay::session::budget::told())))
+                .await
+        }
+        (false, Some(node)) => {
+            served(
+                session,
+                Arc::new(Layered::telling(
+                    E2e::new(inner, node),
+                    settings,
+                    budget,
+                    podssh_relay::session::budget::told(),
+                )),
+            )
+            .await
+        }
     }
 }
 
@@ -228,7 +251,7 @@ async fn with_handler<H: Handler>(session: RelaySession<Link>, inner: H, plain: 
 /// SIGTERM.
 async fn served<H: Handler>(session: RelaySession<Link>, handler: Arc<H>) -> End {
     let mut stop = Box::pin(stop_signal());
-    reverse::serve(session, handler, Settings::default(), &mut stop).await
+    reverse::serve(session, handler, reverse::settings(), &mut stop).await
 }
 
 /// The exit code for each end of the stream, and its words: 0 for a stop or

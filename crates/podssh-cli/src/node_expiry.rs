@@ -24,7 +24,6 @@ use std::time::{Duration, Instant};
 use podssh_relay::pair::renew::Renewed;
 use podssh_relay::pair::{self, Pair, PairError};
 use podssh_relay::reverse::node::RepairHook;
-use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 
 use crate::node_rotate::Held;
@@ -233,8 +232,8 @@ impl Renewer {
     /// One renewal of the pair now, which ends at `expires_ms`; with the
     /// relay's name of the pair that it asked for.
     async fn once(&self, expires_ms: i64) -> (String, Tried) {
-        let (pair, proxy) = (self.pair.pair().with_expiry(expires_ms), ProxyChoice::FromEnvironment);
-        let ctx = crate::pairs::context(&pair.relay, &self.trust, &proxy);
+        let (pair, context) = (self.pair.pair().with_expiry(expires_ms), podssh_relay::context::process());
+        let ctx = crate::pairs::context(&pair.relay, &self.trust, &context);
         let tried = match pair::renew::renew(&ctx, &pair).await {
             Ok(Renewed::Until(until)) if until > expires_ms => Tried::Took(until),
             Ok(Renewed::Until(_)) => Tried::Again("the relay kept the same end".into()),

@@ -491,7 +491,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
   (T-140), a later write can land while an earlier one fails.
 - Read: the cache directories keep private files of mode 0600
   (`crates/podssh-relay/src/cache.rs`, lines 62-76 at `4dd52f8`,
-  `crates/podssh-relay/src/cache.rs:144-188`).
+  `crates/podssh-relay/src/cache.rs:65-109`).
 - Read: after a drop, the relay closes the target's TCP connection within
   15 s (`docs/design.md:695-698`), so a far `cat` can write for a while.
 
@@ -507,7 +507,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
    size and mtime are the same; else start over and say so.
 3. Invariant: the attempts are bounded. At most 5 in a row with no new
    acknowledged byte, with `podssh_relay::open::backoff`
-   (`crates/podssh-relay/src/open.rs:427-435`). Stop at once on a refused
+   (`PodUtils/podssh:crates/podssh-relay/src/open.rs:427-435`). Stop at once on a refused
    authentication, a changed host key, a policy refusal or the `--timeout`
    deadline.
 4. Across runs: the same command continues when the side file matches the
@@ -641,7 +641,7 @@ old writer can race the new one.
   report): `podssh proxy` received 67,107,943 bytes, then the relay closed
   with `1009 session byte cap`, 921 bytes short of 64 MiB on that side.
 - Read: `podssh-relay` has a constant for the idle cut only
-  (`crates/podssh-relay/src/relay.rs:19-21`); `podssh-core` has its own for
+  (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:19-21`); `podssh-core` has its own for
   IRC, with a budget of 60 MiB and the reason for the margin
   (`crates/podssh-core/src/irc/limits.rs:88-95`).
 - Read: the relay stream sees each payload byte both ways
@@ -2014,7 +2014,7 @@ host, and the copy back then destroys that change with no word.
 - Read: `VISUAL` and `EDITOR` are not in the manual's variables
   (`crates/podssh-cli/src/man/facts.rs:46-301`).
 - Read: the relay cuts a session after 180 s with no payload
-  (`crates/podssh-relay/src/relay.rs:19-21`); an editor stays open longer.
+  (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:19-21`); an editor stays open longer.
 
 ## Approach
 

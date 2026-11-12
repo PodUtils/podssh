@@ -20,7 +20,7 @@ use super::Report;
 /// user named when `explicit`.
 pub(super) async fn check(report: &mut Report<'_>, relay: &Relay, explicit: bool, trust: &Trust, timeout: Duration) {
     let offered = probe(&relay.host, relay.port, trust, timeout).await;
-    report.line("http2", verdict(&relay.host, offered, Choice::from_env(), explicit));
+    report.line("http2", verdict(&relay.host, offered, podssh_relay::h2_road::from_env(), explicit));
 }
 
 /// The line of a forwarder whose host is `host:port`, over TLS.

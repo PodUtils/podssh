@@ -46,7 +46,7 @@ use podssh_relay::quick::roads::{self, Link, Road};
 use podssh_relay::quick::{api, edge};
 use podssh_relay::reverse::framing::SessionId;
 use podssh_relay::reverse::routes::{Route, Routed};
-use podssh_relay::reverse::{self, E2e, Handler, Layered, TcpHandler};
+use podssh_relay::reverse::{self, E2e, Handler, Layered};
 use podssh_ws::ProxyChoice;
 use tokio::io::DuplexStream;
 use tokio::sync::{watch, Mutex};
@@ -318,7 +318,7 @@ async fn serve_quick(ready: Ready, err: &mut dyn Write) -> i32 {
                 }
                 None => {
                     let first = crate::node_exit::first(&targets);
-                    let tcp = TcpHandler { host: first.host, port: first.port, timeout: DIAL_LIMIT, sshd: roost };
+                    let tcp = reverse::tcp::handler(first.host, first.port, DIAL_LIMIT, roost);
                     Some(Arc::new(Layered::with_keeper(E2e::new(tcp, channel), settings, budget, keeper)))
                 }
             }

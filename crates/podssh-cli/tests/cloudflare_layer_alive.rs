@@ -29,7 +29,7 @@ use std::time::{Duration, Instant};
 
 use podssh_relay::e2e::ends::Node;
 use podssh_relay::identity::Identity;
-use podssh_relay::reverse::{E2e, Handler, Layered, SessionId, TcpHandler};
+use podssh_relay::reverse::{E2e, Handler, Layered, SessionId};
 use podssh_relay::session::Settings;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -115,7 +115,7 @@ impl Stand {
             // resumes finds its session.
             let me = Arc::new(Identity::from_seed(&[7; 32]));
             let node = Node::open_to_all(me, Arc::new(podssh_relay::e2e::NoEvents));
-            let target = TcpHandler { host: "127.0.0.1".into(), port: ssh, timeout: LIMIT, sshd: false };
+            let target = podssh_relay::reverse::tcp::handler("127.0.0.1".into(), ssh, LIMIT, false);
             let layered = Arc::new(Layered::new(E2e::new(target, node), Settings::default(), 64 << 20));
             let ids = Arc::new(std::sync::atomic::AtomicU64::new(1));
             tokio::spawn(async move {

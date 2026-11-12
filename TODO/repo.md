@@ -329,12 +329,12 @@ Read:
   members with `CC=/nonexistent`, and the release too (lines 339-342). The
   gate builds the library crates with `CC` and `CXX` set to `/nonexistent`,
   and the release with neither (`scripts/gate.sh:182-198`,
-  `scripts/gate.sh:336-339`). The help omits the work record, interop, the man
+  `scripts/gate.sh:334-337`). The help omits the work record, interop, the man
   page, the C++ plant, and the subcommand `gate` (line 602 at `912acd0`).
 - Stale comments, at `912acd0`: `scripts/dev.sh` lines 69-73 ("the default
   build"), lines 397-404 ("links the fork since 4b", "steps 4-5") and line
   462.
-- CI parses `scripts/*.sh` with dash (`.github/workflows/build.yml:215-221`);
+- CI parses `PodUtils/podssh:scripts/*.sh` with dash (`.github/workflows/build.yml:185-191`);
   `scripts/check-scripts.py:53-57` finds the scripts under `scripts/` at any
   depth.
 
@@ -349,7 +349,7 @@ Read:
    comment. Invariant: the text of the bridge does not change by one byte;
    compare the old and the new text with `cmp`.
 3. Correct the help and the stale comments to the gate as it is
-   (`scripts/gate.sh:137-370`).
+   (`scripts/gate.sh:137-368`).
 4. Extend the size check of `scripts/check-repo.py` to the shell and Python
    files under `scripts/`, with a floor (T-223).
 5. Drop the sentence on the exception from `docs/decisions.md`, and move it
@@ -458,7 +458,7 @@ Read:
 3. On a run by hand, make the list of the commits since the last tag as an
    artifact, so that it can be read before a tag.
 4. Link each "Fixes #N" of a commit to its issue in the list.
-5. docs/development.md, "Release builds" (`docs/development.md:850-978`): the
+5. docs/development.md, "Release builds" (`docs/development.md:851-979`): the
    body is the notes file and the generated list.
 
 No new shell script: each step is a step of the workflow.
@@ -1256,7 +1256,7 @@ Read:
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
 - The code for Windows: `crates/podssh-ssh/src/terminal/windows.rs`,
   `crates/podssh-ssh/src/prompt.rs:100`, and the `cfg(not(unix))` branches of
-  `crates/podssh-relay/src/cache.rs:356-490`.
+  `crates/podssh-relay/src/cache.rs:254-388`.
 
 ## Approach
 
@@ -2096,7 +2096,7 @@ Read:
   endings have no floor either.
 - `scripts/check-repo.py` lines 230-249 at `e892b0f`: `main` passes when each list of problems is
   empty.
-- The model of a floor: `crates/podssh-relay/tests/default_relay.rs:61`
+- The model of a floor: `PodUtils/podssh:crates/podssh-relay/tests/default_relay.rs:61`
   asserts that the sweep read more than 20 files.
   `scripts/check-scripts.py:152-155` already fails when it finds no script.
 - The counts today: 216 tracked Rust files under `crates/`, 24 live Markdown
@@ -2196,7 +2196,7 @@ are the bind probes of `doctor`, which close at once and never listen
 `PodUtils/podssh:crates/podssh-ws/tests/hostname_verification.rs:55`. No file uses
 `UdpSocket`, `UnixListener` or `socket2`. The model of a sweep with a floor
 that skips comments and test modules is
-`crates/podssh-relay/tests/default_relay.rs:25-63`.
+`PodUtils/podssh:crates/podssh-relay/tests/default_relay.rs:25-63`.
 
 ## Approach
 
@@ -2227,7 +2227,7 @@ that skips comments and test modules is
 Recommendation: a fifth check in `scripts/check-repo.py`, as #33 proposes. It
 runs before any build, on the host and in the first step of CI, beside the
 floors of T-223. A Rust test beside
-`crates/podssh-relay/tests/default_relay.rs` lost: it runs only after a build,
+`PodUtils/podssh:crates/podssh-relay/tests/default_relay.rs` lost: it runs only after a build,
 and its sweep and its floor are easy to repeat in Python.
 
 ## Prove
@@ -2547,7 +2547,7 @@ Read:
 - The record's checker reads `AGENTS.md` for ids, and drops a missing file
   with no word (`PodUtils/podssh:crates/podssh-todo/src/refs.rs:43-48`). It accepts
   `AGENTS.md` as a cited root file (line 20). The gate runs the checker in the
-  container (`scripts/gate.sh:262-269`). 22 lines of `TODO/` cite `AGENTS.md`.
+  container (`scripts/gate.sh:260-267`). 22 lines of `TODO/` cite `AGENTS.md`.
 - The area file that was TODO/agents.md is `TODO/machine.md` now.
 
 Not known: whether `wsl-toolkit run --exclude` matches a pattern at any depth,
@@ -2646,7 +2646,7 @@ command uses `podssh-probe`.
 2. Move `podssh-core` and `podssh-transport` to the dev-dependencies: an
    example can use a dev-dependency, and the binary does not declare them.
 3. Move `libc` to the dependencies for Unix only, as
-   `crates/podssh-relay/Cargo.toml:185` does; else the lint of step 4 fails on
+   `crates/podssh-relay/Cargo.toml:192` does; else the lint of step 4 fails on
    Windows.
 4. The check: `#![cfg_attr(not(test), deny(unused_crate_dependencies))]` in
    `crates/podssh-cli/src/lib.rs`. rustc then refuses a dependency that the
@@ -3119,7 +3119,7 @@ The tests pass, CI passes on the push, and none of the six is open.
 checkout action".
 
 - `Cargo.lock`: #38, applied with `git cherry-pick --no-commit`.
-- `.github/workflows/*.yml`: `actions/checkout@v7`, each of the 12 uses.
+- `PodUtils/podssh:.github/workflows/*.yml`: `actions/checkout@v7`, each of the 12 uses.
 - Prove: `cargo test --no-fail-fast --locked`: 824 passed, 0 failed, 20
   ignored. The six pull requests are closed after the push, each with its
   reason; #37 and #38 name the commit that applied them.
@@ -3285,7 +3285,7 @@ On a developer machine they fill the disk, run after run.
 ## Premise
 
 Read on `c0cdd2b`: `file` (`crates/podssh-ssh/tests/known_hosts.rs:32-39`) makes
-`podssh-kh-PID-NAME` and never removes it; `scratch` (`crates/podssh-relay/tests/cache.rs:21-27`)
+`podssh-kh-PID-NAME` and never removes it; `scratch` (`crates/podssh-relay/tests/cache.rs:17-23`)
 removes its directory before a test, not after it; `scratch`
 (`crates/podssh-cli/tests/pair_harness/mod.rs:26-33`) makes a new name for each test, and nothing
 removes it. Measured on 2026-10-10 in the temporary directory of the developer machine: 1097
@@ -3535,7 +3535,7 @@ Read on `cafcdb4`:
   `ubuntu-24.04-arm` for aarch64 in the matrix, `windows-latest` for the
   Windows build, and `ubuntu-latest` for the publishing job.
 - `.github/workflows/changelog.yml`, `.github/workflows/deny.yml`,
-  `.github/workflows/reverse-drops.yml` and `.github/workflows/secrets.yml`:
+  `PodUtils/podssh:.github/workflows/reverse-drops.yml` and `.github/workflows/secrets.yml`:
   `ubuntu-latest`.
 - The last green run (38073235063, at `14f6cde`) ran its Linux jobs on the
   image `ubuntu-24.04` (version 20261004.327.1, in the job's log) and its
@@ -3681,7 +3681,7 @@ the workflow "Dependabot Updates" failed, as it did on 2026-10-09 (twice).
 
 ## Problem
 
-The digests of the images (`.github/images/*/Dockerfile`) are to move with their tags through
+The digests of the images (`PodUtils/podssh:.github/images/*/Dockerfile`) are to move with their tags through
 Dependabot (T-205). Each run of its docker ecosystem fails, so no image gets an update: the box's
 Alpine 3.20 stays, where 3.24 exists.
 
@@ -5423,7 +5423,7 @@ each free of `podssh-ws`'s types, serves the three.
 
 ## Premise
 
-- Read: `crates/podssh-relay/Cargo.toml:19` depends on `podssh-ws` with no feature; each road of
+- Read: `crates/podssh-relay/Cargo.toml:26` depends on `podssh-ws` with no feature; each road of
   the relay crate takes `podssh-ws`'s dial, TLS and WebSocket.
 - Read: `PodUtils/podssh:crates/podssh-ws/src/crypto/rsa_sig.rs` is the one user of `rsa` 0.9, to verify RSA
   signatures; RUSTSEC-2023-0071 is a timing attack on the private key's operations.
@@ -5534,7 +5534,7 @@ Each crate of `v0.1.0` is taken.
   checks it, in CI.
 
   The gate of `ea5d4117` (run 42214300946) found one test that the `.run` did not name:
-  `crates/podssh-relay/tests/default_relay.rs` wanted the default relay's one literal in
+  `PodUtils/podssh:crates/podssh-relay/tests/default_relay.rs` wanted the default relay's one literal in
   `relay.rs`, which now reads it from pod-services (`ajam-relay`). The test now wants no literal of it
   in podssh's library code, and `relay::default_relay_host()` to give that name; planted, a literal
   in `relay.rs`'s library part fails it.
@@ -5649,7 +5649,24 @@ Each crate of `v0.1.0` is taken.
   `node`); rustfmt; podcrates' checks of the consumer's toolchains and tests. Its musl build with zig waits for the
   release workflow, as this container has no zig.
 
-Next: `pod-ws`, then the waves of Q101.
+2026-11-12, `pod-relay` (podcrates T-025, COORD-053, PodUtils/podcrates#85): taken from podcrates `v0.27.0`
+(`547c6ee`), its `adoption/podssh/pod-relay.patch` made at podssh `75a5031` and applied with `git apply --3way` on
+`main` 52 commits later: the conflicts were the tags of each `Cargo.toml` (v0.27.0 taken), the record's prose
+(main's side, but where main's side cites a file that the patch removed), `pinggy/mod.rs` (podssh's `skips()` of
+`ff2f7bac` kept, as the hand-off says) and `ssh/roads.rs` (main's croc place and its pair's last roads, with the
+patch's process context). podssh-relay's modules of the relay client are glue over `pod-relay` (`context.rs`); 173
+files of the moved code, its tests, plants and fuzz targets left. Each line of `adoption/podssh/pod-relay.run`
+passed here: the record and `check-repo.py`; no definition of the moved code in podssh; the default build, the
+check of the gate's features, the build of `iroh,warp`; the three clippy runs; `cargo test -p podssh-relay
+--all-features`; `podssh-cli`'s 21 targets of the `.run` (1278 passed); rustfmt; podcrates' checks of the
+consumer's toolchains (10 pins, none under 1.99) and tests (15 targets named, each exists); and the static binary of
+the release's features built with zig (`iroh,warp,zerotier`, `scripts/check-static.sh`: static). That build needed
+`-mevex512` for zig's clang on ZeroTier's AVX-512 AES path (`crates/podssh-zerotier/build.rs`): the trial at
+`75a5031` had no ZeroTier in the release's features. And podssh's roads made since `75a5031` on the taken crate:
+`derp_road` with the features `tox`, `yggdrasil` and `hyperdht` (13 passed, each against its reference server), and
+clippy with them.
+
+Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
 **Source:** the operator, 2026-11-05: "we use whatever is necessary, including c, zig, modern rust,
@@ -5672,7 +5689,7 @@ compiled binary, has no check of its own beside the release's.
 
 - Read: `scripts/gate.sh:21` lists the steps `msrv`, `msrv_ssh`, `msrv_ts`, `msrv_iroh`,
   `msrv_warp` and `msrv_tor`, each a check of crates at a declared minimum Rust
-  (`scripts/gate.sh:286` and after); CI's matrix is `sh scripts/gate.sh --list`
+  (`scripts/gate.sh:284` and after); CI's matrix is `sh scripts/gate.sh --list`
   (`.github/workflows/build.yml:78`), so a step removed from the list leaves CI.
 - Read: `scripts/gate.sh` runs 17 commands under `env CC=/nonexistent CXX=/nonexistent`, which
   refuse a crate that builds C (`scripts/gate.sh:128` tells why).

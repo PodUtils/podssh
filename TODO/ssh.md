@@ -256,7 +256,7 @@ after it.
 Read:
 
 - `podssh_relay::open` fails over and repeats rounds only until the
-  WebSocket upgrade succeeds (`crates/podssh-relay/src/open.rs:212-298`).
+  WebSocket upgrade succeeds (`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`).
   After the upgrade, a relay close ends the run
   (`crates/podssh-ssh/src/run.rs`, lines 38-47 at `981b8fc`).
 - Both reported drops printed `HOST: the connection closed unexpectedly`,
@@ -284,11 +284,11 @@ Read:
    session request, and before `-W` read a byte of stdin.
 3. Decide by the close, with the classification of T-024. The link from the
    client to the relay, or no Close: go to the next relay host, as `open`
-   does for a failed upgrade (`crates/podssh-relay/src/open.rs:69-93`). The
+   does for a failed upgrade (`PodUtils/podssh:crates/podssh-relay/src/open.rs:69-93`). The
    link from the relay to the target: try once more, then stop. Never retry
    `1001`, `1009` or `1013`.
 4. Wait with the jittered backoff that exists
-   (`crates/podssh-relay/src/open.rs:421-435`). Bound the whole by the rounds
+   (`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). Bound the whole by the rounds
    of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:467`) and
    the deadline of each host.
 5. Never prompt again without a person: under `BatchMode`, or with no
@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7076-7077`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7108-7109`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -1357,7 +1357,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 1. A verb `podssh agent` in the same binary. It probes, then listens on an
    AF_UNIX socket of mode 0600, in a directory of mode 0700 that it makes,
    with the owner checks of the token cache
-   (`crates/podssh-relay/src/cache.rs:1-12`). On Windows: a named pipe that
+   (`crates/podssh-relay/src/cache.rs:1-13`). On Windows: a named pipe that
    only the user can open. It prints the line
    `SSH_AUTH_SOCK=PATH; export SSH_AUTH_SOCK;` on stdout, as `ssh-agent -s`
    does.
@@ -1640,7 +1640,7 @@ Read, at `4cfbd5f`:
   (`crates/podssh-ssh/src/auth.rs`, lines 231-274), and the answers of
   keyboard-interactive (the same file, lines 176-229).
 - podssh stores no credential but the relay token cache, readable by the
-  owner only (`crates/podssh-relay/src/cache.rs:1-12`).
+  owner only (`crates/podssh-relay/src/cache.rs:1-13`).
 - russh's agent server has no handler for the extension message (27), so a
   store in `podssh agent` (T-034) needs a handler of podssh's own.
 
@@ -3154,7 +3154,7 @@ and a cut file. The relay's close is in `--result-file` alone.
 - Read: the relay stream counts the payload both ways, as the relay counts its cap
   (`crates/podssh-ssh/src/relay_stream.rs:133-137`), and `podssh cp` opens a new relay session
   before the cap with that count (T-137; the cap and the budget,
-  `crates/podssh-relay/src/relay.rs:25` and `crates/podssh-relay/src/relay.rs:61`). A session of
+  `PodUtils/podssh:crates/podssh-relay/src/relay.rs:25` and `PodUtils/podssh:crates/podssh-relay/src/relay.rs:61`). A session of
   `podssh ssh` cannot go on in a new relay session: its SSH connection is one, and a plain sshd
   keeps nothing to resume; a node's layer moves its session before the cap (T-155).
 - Read, through fetch.web.pkgforge.dev on 2026-11-02: OpenSSH's client ends its loop on a closed
@@ -3420,7 +3420,7 @@ first word is the cut's. A warning 30 s before would let the user press a key, o
 - Read: the warning at the connect, on the relay's road when ServerAliveInterval is off or at least
   the cut (`crates/podssh-cli/src/ssh/resolve.rs:398-401`); after the cut, the relay's close with
   its remedy (`PodUtils/podssh:crates/podssh-ws/src/close.rs:88-90`). The cut is the relay's, from its limits
-  (`crates/podssh-relay/src/relay.rs:97-100`), counted on payload alone (`docs/relay.md:473`).
+  (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:97-100`), counted on payload alone (`docs/relay.md:473`).
 - Read: the relay stream counts the payload both ways
   (`crates/podssh-ssh/src/relay_stream.rs:133-137`), and keeps the time of the relay's last frame
   of any kind, keepalives among them (`PodUtils/podssh:crates/podssh-ws/src/session.rs:291-294`,
@@ -4232,7 +4232,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
   checks sshd's version line on each session's connection
   (`crates/podssh-cli/src/man/notes_pair.rs:40-42`), so the node had sshd's line.
 - Read: no test runs `ssh node://` with a client on Windows: `relay-live.yml` runs `node_live` on
-  Linux alone (`.github/workflows/relay-live.yml:37`), and `node_live`'s `ssh_to_a_node`
+  Linux alone (`.github/workflows/relay-live.yml:35`), and `node_live`'s `ssh_to_a_node`
   (`crates/podssh-cli/tests/node_live.rs:141-142`) serves railway.new:22 where no sshd runs, so a
   Windows runner can run it.
 - Read: since `35a0d19`, T-460, T-462 and T-505 changed `crates/podssh-ssh/src/run.rs`, none for

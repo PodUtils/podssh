@@ -31,7 +31,7 @@ use std::time::Duration;
 use podssh_relay::e2e::ends::Node;
 use podssh_relay::pair::Pair;
 use podssh_relay::reverse::routes::{Route, Routed};
-use podssh_relay::reverse::{self, E2e, Exit, Handler, Layered, NodeConfig, TcpHandler, Wire};
+use podssh_relay::reverse::{self, E2e, Exit, Handler, Layered, NodeConfig, Wire};
 use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 
@@ -359,7 +359,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         pair,
         label: stored.then(|| label.clone()),
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: pairs::REQUEST_LIMIT,
         // A lost socket is taken again for as long as the layer keeps a
         // session (T-261); the sessions of --spares (T-650).
@@ -380,7 +380,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         expiry.abort();
         return upgrade::or_finish(|| finish(&label, exit, err)).await;
     }
-    let tcp = TcpHandler { host: first.host.clone(), port: first.port, timeout: DIAL_LIMIT, sshd: roost };
+    let tcp = reverse::tcp::handler(first.host.clone(), first.port, DIAL_LIMIT, roost);
     let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
     // The transit relay of Q65 (T-436), the pairs at the net's relay members
     // (T-434) and croc's relay (T-694) beside the pair's road, with one

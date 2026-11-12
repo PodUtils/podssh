@@ -55,7 +55,7 @@ pub(crate) fn misplaced(args: &RelayArgs) -> Option<&'static str> {
 /// `pair NAME --code`: the pair under NAME, given by a code to one operator.
 pub(crate) fn give(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut dyn Write) -> Result<(), Refusal> {
     pairs::check_label(label)?;
-    let ends = ends(args)?;
+    let mut ends = ends(args)?;
     // Before any request: a run with no terminal could show the code nowhere.
     let Some(mut terminal) = Terminal::open() else {
         return Err(Refusal::usage(
@@ -68,6 +68,8 @@ pub(crate) fn give(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
         cache::read_own(path, Others::Read).map_err(|why| Refusal::config(format!("--allow {why}")))?;
     }
     crate::pins::apply(args.relay_addr.as_deref())?;
+    // The way out of the ends, made again: it takes the resolver of the pins.
+    ends.config.way = podssh_ws::client::way(&podssh_ws::ProxyChoice::FromEnvironment);
     pairs::online()?;
     let pair = living_or_made(args, label, err)?;
     let key = crate::channel::load_node_key(&file::node_place(label))?;
@@ -174,9 +176,11 @@ pub(crate) fn join(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
             "a pair is stored under {label:?} on this host, which is its node's host: join under another label"
         )));
     }
-    let ends = ends(args)?;
+    let mut ends = ends(args)?;
     let code = read_code(err, "podssh relay: the code that the node's host shows: ")?;
     crate::pins::apply(args.relay_addr.as_deref())?;
+    // The way out of the ends, made again: it takes the resolver of the pins.
+    ends.config.way = podssh_ws::client::way(&podssh_ws::ProxyChoice::FromEnvironment);
     pairs::online()?;
     let say = |line: String| podssh_ssh::err_line!("podssh relay: {line}");
     let me = crate::channel::client_identity(args.client_key.as_deref(), &say).map_err(Refusal::config)?.public();
@@ -244,7 +248,7 @@ pub(crate) fn ends_of(
 ) -> Result<Ends, Refusal> {
     let mailboxes = mailboxes.map_err(|why| if named { Refusal::usage(why) } else { Refusal::config(why) })?;
     let say: code::Say = Arc::new(move |line: String| podssh_ssh::err_line!("{who}: {line}"));
-    Ok(Ends { mailboxes, trust: pairs::trust(ca_file), proxy: ProxyChoice::FromEnvironment, say })
+    Ok(Ends { mailboxes, config: code::config(&pairs::trust(ca_file), &ProxyChoice::FromEnvironment, say) })
 }
 
 /// The code, from a prompt on the terminal, or from one line of a pipe;

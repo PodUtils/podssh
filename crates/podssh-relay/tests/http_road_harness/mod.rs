@@ -47,7 +47,7 @@ pub fn dial(port: u16) -> Dial {
 
 /// The road to the loopback's `port`, whose requests name `authority`.
 pub fn road(port: u16, authority: &str) -> Road {
-    Road { dial: dial(port), authority: authority.to_string() }
+    Road { dial: dial(port), authority: authority.to_string(), user_agent: podssh_ws::dial::user_agent() }
 }
 
 /// A session of `road` to the loopback's `target`, with `token`, in `form`.

@@ -64,7 +64,7 @@ async fn node(pair: Pair, handler: Site, stop: oneshot::Receiver<()>) -> Exit {
         pair,
         label: None,
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: LIMIT,
         settings: Settings::default(),
         repair: None,

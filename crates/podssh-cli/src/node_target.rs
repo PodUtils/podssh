@@ -51,7 +51,15 @@ pub(crate) fn routes_of(targets: &[Route], grant: Arc<Grant>, roost: bool, me: O
     let exit = me.and_then(crate::node_exit::dial);
     let shared = crate::share::serve::shared();
     let routed = targets.iter().any(|t| t.name.is_some()) || crate::node_exit::asked() || shared.is_some();
-    routed.then(|| Routes { routes: Arc::new(targets.to_vec()), grant, timeout: DIAL_LIMIT, sshd: roost, exit, shared })
+    routed.then(|| Routes {
+        dialer: podssh_relay::reverse::tcp::dialer(),
+        routes: Arc::new(targets.to_vec()),
+        grant,
+        timeout: DIAL_LIMIT,
+        sshd: roost,
+        exit,
+        shared,
+    })
 }
 
 /// The words of a dial of TARGET that failed. A roost's TARGET on the

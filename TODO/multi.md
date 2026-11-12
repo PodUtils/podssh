@@ -36,7 +36,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
   work. `known_hosts` is appended under a lock since T-029
   (`crates/podssh-ssh/src/known_hosts.rs:335-410`).
 - Read: with no cached token, each session mints one
-  (`crates/podssh-relay/src/token.rs:135-180`); the relay allows 120 attempts
+  (`PodUtils/podssh:crates/podssh-relay/src/token.rs:135-180`); the relay allows 120 attempts
   with no token for each minute and address (`docs/relay.md:476`).
 
 ## Approach
@@ -1806,7 +1806,7 @@ a ticket, or a tool that asks an AI.
   its first line read back (`crates/podssh-ssh/src/prompt.rs:105-122`).
 - Read: credentials never go to output, logs, URLs or argv
   (`docs/architecture.md:324-326`). The token type never shows itself
-  (`crates/podssh-relay/src/token.rs:28-57`), and doctor never shows proxy
+  (`PodUtils/podssh:crates/podssh-relay/src/token.rs:28-57`), and doctor never shows proxy
   credentials or tokens (`docs/cli.md` lines 1345-1347 at `48a8744`).
 - Read: podssh's messages leave through two writers: `Streams.err` in the
   command line (`crates/podssh-cli/src/dispatch.rs:27-30`), and `Log`, which
@@ -2852,7 +2852,7 @@ relay reaches; nothing reports the far side.
   (`crates/podssh-ssh/src/remote.rs:121-135`), a channel `direct-tcpip`
   (`crates/podssh-ssh/src/local.rs:79`), keepalives each 60 s by default
   (`crates/podssh-ssh/src/options.rs:388-389`), and the relay's cap on a session
-  (`crates/podssh-relay/src/relay.rs:23-25`).
+  (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:23-25`).
 - Read in the issue: a Go SSH server's keepalive reply ended each idle session at 60 s (#83); it
   refused `tcpip-forward` (#85) and had no `direct-tcpip` (#86); its SFTP server had no
   `copy-data` (#87).

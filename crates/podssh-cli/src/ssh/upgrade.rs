@@ -185,7 +185,7 @@ async fn through(offer: Offer, node: Channel<Msg>, me: Arc<Identity>, road: Road
         name: &offer.name,
         connect_token: offer.connect_token(),
         trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
         limits: OperatorLimits::default(),
         wire: Wire::Tls,

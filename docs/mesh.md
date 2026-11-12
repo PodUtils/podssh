@@ -177,7 +177,7 @@ What T-430 built ([cli.md](cli.md), "`podssh net`"):
 What T-616 built (drafted 2026-11-04; [cli.md](cli.md), "`podssh net`"):
 
 - The join runs the exchange of the pairing by a code
-  (`crates/podssh-relay/src/code/run.rs`), whose runs carry an offer, an
+  (`PodUtils/podcrates:crates/pod-relay/src/code/run.rs`), whose runs carry an offer, an
   answer and the giver's last words as bytes for each kind of exchange; the
   version phase names the kind, so that a code given to the other kind's
   command is told apart before either end says a word, with the command
@@ -380,7 +380,7 @@ member of the net").
   NAME=HOST:PORT`, `rm NAME` and `ls` change and read that file under its
   lock (`crates/podssh-cli/src/share/file.rs`); the policy, an allowlist's
   `routes=` and a grant hold a share as a route, at the node
-  (`crates/podssh-relay/src/reverse/routes.rs`). The net's document lists
+  (`PodUtils/podcrates:crates/pod-relay/src/reverse/routes.rs`). The net's document lists
   each node's shares by name, as its owner writes them (`podssh net add
   NAME KEY --roles node,share --shares NAMES`), and `podssh share ls --net`
   lists them; each node serves what its own file holds, as the owner's key,

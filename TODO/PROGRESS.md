@@ -35,17 +35,13 @@ Read on 2026-11-11.
    T-574's live check of the nodes. cfb's asks, T-708 to T-731, wait behind podssh's own work
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
-7. **The move to PodUtils/podcrates, and the frozen files** (T-684, Q101, Rule Q3). podssh pins
-   each podcrates crate at `v0.24.0` (COORD-025, GitHub #192). Taken, so worked on in
-   PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`,
-   `pod-tls`, `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`,
-   `pod-session` and `pod-e2e`; podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`,
-   `session/` and `src/e2e/` of `podssh-relay`). **Frozen now, for fixes only**, each fix written
-   as a COORD issue `(to podcrates)` so that podcrates ports it: the files of `pod-relay`
-   (podcrates T-025), until podssh takes podcrates' `adoption/podssh/pod-relay.patch`. The
-   `repo PodUtils/podssh` block of PodUtils/podcrates:crates/pod-relay/SOURCES lists the files. A
-   draft that changes a frozen file for a feature keeps that change out, or asks it of podcrates.
-   An open entry whose code moved has a `## Correction` that names the crate.
+7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
+   `v0.27.0` (COORD-053, PodUtils/podcrates#85). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
+   `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
+   (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
+   `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
+   frozen now.
 8. **Drafts.** None waits:
 
    | Draft | Branch | Commit | State |
@@ -86,10 +82,7 @@ item whenever it appears.
 10. **T-574: the new Trojan node ids** (live, after 2026-11-12T03:05Z: Q90's live check of the
     nodes). Why: the ids arrive then; until then T-574 waits. Done when the live check passes, or
     its `## Done` says what it found.
-11. **The take of `pod-relay`** (offline, then the gate), only when podcrates publishes
-    `adoption/podssh/pod-relay.patch`: apply it as `docs/HANDOFF.md` ("A take of podcrates") says,
-    record it in T-684 and as a COORD issue. Until then the files of `pod-relay` take fixes only
-    (State, item 7).
+11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
     run): T-571, T-576, T-578, T-738, T-739 (T-740 stays blocked; T-566, T-567 and T-575 are
     parked), then T-580, T-581 and T-582 (live where UDP passes), then T-625, T-621, T-741 and

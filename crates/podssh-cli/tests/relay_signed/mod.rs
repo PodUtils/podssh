@@ -142,7 +142,8 @@ fn a_role_s_signed_list_names_a_deployment_outside_the_domain() {
     let out = info(&elsewhere, None);
     let stdout = text(&out.stdout);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out.stderr));
-    let refused = format!("signed list: not used: signed by {print}, a key that this podssh does not trust");
+    // The refusal is pod-relay's, in its words (PodUtils/podcrates, T-684).
+    let refused = format!("signed list: not used: signed by {print}, a key that this client does not trust");
     assert!(stdout.contains(&refused), "{stdout}");
     assert!(!listed(&elsewhere, None, "relay-b.test", port_b), "an untrusted list adds no host");
     let _ = std::fs::remove_dir_all(&elsewhere);

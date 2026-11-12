@@ -299,7 +299,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
 /// WebSocket road is named.
 fn relay_record(report: &mut Report<'_>) {
     use podssh_relay::failures::{self, Seen};
-    let recent = failures::recent(&failures::Records::load(), crate::pairs::now_ms());
+    let recent = failures::recent(&failures::Records::load(&podssh_relay::context::cache()), crate::pairs::now_ms());
     let window = failures::WINDOW.as_secs() / 60;
     let named = |s: &Seen| match s.road.as_str() {
         failures::WEBSOCKET => s.host.clone(),

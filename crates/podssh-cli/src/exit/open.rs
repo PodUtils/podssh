@@ -21,7 +21,6 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use podssh_relay::reverse::{operator, OperatorConfig, OperatorLimits, Wire};
-use podssh_ws::ProxyChoice;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
@@ -178,7 +177,7 @@ pub async fn open(to: &To, host: &str, port: u16) -> Result<End, Refused> {
     let app = Told { inner: theirs, told: told.clone() };
     let quiet = to.quiet;
     let task = tokio::spawn(async move {
-        let proxy = ProxyChoice::FromEnvironment;
+        let context = podssh_relay::context::process();
         let (config, expires_ms) = match &road {
             Road::Pair { part, trust } => {
                 let config = OperatorConfig {
@@ -186,7 +185,7 @@ pub async fn open(to: &To, host: &str, port: u16) -> Result<End, Refused> {
                     name: &part.name,
                     connect_token: part.connect_token(),
                     trust,
-                    proxy: &proxy,
+                    ctx: &context,
                     timeout: podssh_relay::open::CONNECT_TIMEOUT,
                     limits: OperatorLimits::default(),
                     wire: Wire::Tls,

@@ -12,7 +12,6 @@ use std::io::Write;
 
 use podssh_relay::pair::renew::{self, Renewed};
 use podssh_relay::pair::{self, Pair, PairError};
-use podssh_ws::dial::ProxyChoice;
 
 use crate::exitmap::Fault;
 use crate::pairs;
@@ -43,8 +42,8 @@ pub(crate) fn run(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut 
     let stored = pairs::usable(stored, label)?;
     crate::pins::apply(args.relay_addr.as_deref())?;
     pairs::online()?;
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&stored.relay, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&stored.relay, &trust, &context);
     match block_on(renew::renew(&ctx, &stored))? {
         Ok(Renewed::Until(until)) => kept(label, &stored, until, out, err),
         Ok(Renewed::NotServed) => Err(not_served(label, &stored)),

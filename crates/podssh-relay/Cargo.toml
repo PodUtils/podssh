@@ -10,12 +10,19 @@ publish.workspace = true
 # A library other projects (podvm) use; its crates move to PodUtils/podcrates
 # (T-684).
 [dependencies]
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0" }
-pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
+pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
+# The relay client: the hosts, the pool, the rank, the failover, the tokens,
+# the roads to a relay, the pairs, the grants, the reverse road and the
+# blocking facade (PodUtils/podcrates@T-025): pod-relay, over podssh's
+# process context (src/context.rs). The dialer of a node's targets is
+# pod-proxy's, with podssh's settings (podssh-ws's dial.rs).
+pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
 # The services of other parties: the relay's host, limits and seed, the
 # DERP servers, Piping, the mailboxes and transit, OpenTunnel, the edge of
 # the quick tunnel and its roots.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
 podssh-ws = { path = "../podssh-ws" }
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -25,7 +32,7 @@ rand = { workspace = true }
 # The resumable layer (src/session/), UDP in a stream (src/udp/), the link
 # over a WebSocket (src/transit/link.rs) and the rule of a peer's answer
 # (src/answer.rs): pod-session of PodUtils/podcrates (T-020 there).
-pod-session = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0" }
+pod-session = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
 # SHA-256, HMAC-SHA-256 and HKDF of the tokens, the mailbox and croc, and
 # X25519 of the key of DERP. Pure Rust, as in podssh-ws.
 sha2 = { workspace = true }
@@ -38,7 +45,7 @@ ed25519-dalek = { workspace = true, features = ["zeroize"] }
 base64 = { workspace = true }
 # The channel between two podssh ends (src/e2e/, T-088): Noise XX on snow,
 # pure Rust: pod-e2e of PodUtils/podcrates (T-021 there).
-pod-e2e = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0" }
+pod-e2e = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0" }
 # A quick tunnel's connection to Cloudflare's edge (src/quick/serve.rs, T-300):
 # the edge is the client of HTTP/2 on the connection that podssh dialed. Pure
 # Rust, in the lock already through hyper; only with the features `quick`,
@@ -55,7 +62,7 @@ rustls = { workspace = true, optional = true }
 # The QUIC endpoint, its keys, the connection within its wait, the race of
 # handshakes and the probe of UDP (PodUtils/podcrates, T-019): pod-quic, on
 # the same noq.
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0", optional = true }
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0", optional = true }
 # DERP's handshake (src/derp/, T-349): the client's info sealed to the
 # server's key with NaCl's crypto_box (X25519, XSalsa20, Poly1305). Pure
 # Rust, RustCrypto's, in the lock already through the vendored tailscale-rs;
@@ -81,7 +88,7 @@ podssh-warp = { path = "../podssh-warp", optional = true }
 # Pairing by a short code (src/code/, T-086): the mailbox client, SPAKE2, the
 # sealed phases and the words of a code, which podssh gives its AppID, its
 # name and its way out; only with the feature `code`.
-pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0", optional = true }
+pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.27.0", optional = true }
 # croc's relay road (src/croc/, T-694): the curve SIEC of croc's relay
 # handshake, which no crate implements, on num-bigint's integers (0.5 since
 # T-754), and AES-256-GCM of croc's crypt, the workspace's.
@@ -93,10 +100,10 @@ aes-gcm = { workspace = true, optional = true }
 # Pairs of the reverse road: `POST /v1/pair`, the status of a pair and
 # `POST /v1/stop/<name>` (T-078), and the node and operator runners (T-079,
 # T-080). No C either; the gate builds it.
-pair = []
+pair = ["pod-relay/pair"]
 # A synchronous facade over pairs, the runners and forward sessions, for a
 # caller with no async runtime (podvm, T-081). No C either; the gate builds it.
-blocking = ["pair"]
+blocking = ["pair", "pod-relay/blocking"]
 # A quick tunnel that podssh serves itself (T-300): HTTP/2 to the edge, and
 # QUIC where UDP reaches it (T-301). No C either; the gate builds it.
 quick = ["dep:h2", "dep:http", "dep:bytes", "dep:noq", "dep:rustls", "dep:pod-quic"]
@@ -104,7 +111,7 @@ quick = ["dep:h2", "dep:http", "dep:bytes", "dep:noq", "dep:rustls", "dep:pod-qu
 # its TCP roads after the quick tunnel's probe of UDP, and with `serve` the
 # role's QUIC endpoint. noq and the probe are the quick tunnel's, so no crate
 # is added. No C either; the gate builds it.
-quic = ["quick"]
+quic = ["quick", "pod-relay/quic"]
 # The DERP road (T-349): Tailscale's servers for tailcat, or a derper of the
 # user's own, under the resumable layer, with an adapter that sends again
 # what a server drops. No C either; the gate builds it.
@@ -162,7 +169,7 @@ warp-stand-in = ["warp", "podssh-warp/stand-in"]
 # certificate of an Ed25519 key, the node's check of one, and its record of
 # each grant used. Pure Rust, with the crates of `identity`; the channel
 # carries a grant's bytes with or without it. No C either; the gate builds it.
-grant = []
+grant = ["pod-relay/grant"]
 # The relay as a role of podssh (T-169, Q63): the forward road of the
 # relay's contract, served, and its reverse road (T-427), which reads and
 # writes the frames with the node's own codecs of `pair`; the caller owns the
@@ -173,14 +180,14 @@ serve = ["pair", "dep:h2", "dep:http", "dep:bytes"]
 # Pairing by a short code (T-086): magic-wormhole's mailbox protocol, SPAKE2
 # keyed by the code, then its phases in NaCl's SecretBox, which carry the
 # operator's part of a pair and each end's key. No C either; the gate builds it.
-code = ["pair", "dep:pod-wormhole"]
+code = ["pair", "dep:pod-wormhole", "pod-relay/code"]
 # croc's relay road (T-694): croc's public relays through the WebSocket
 # bridge of croc-web, a last fallback of Q78, under the resumable layer;
 # its PAKE on SIEC, written here. No C either; the gate builds it.
 croc = ["dep:num-bigint", "dep:aes-gcm"]
 # Plain ws:// to a stand-in relay on the loopback, for the tests of an embedder
 # (T-068). The binary never enables it (scripts/no-plain-ws.sh).
-plain-ws = ["podssh-ws/plain-ws"]
+plain-ws = ["podssh-ws/plain-ws", "pod-relay/plain-ws"]
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

@@ -38,9 +38,9 @@ Read: `parse_hop` already removes the brackets
 (`crates/podssh-cli/src/ssh/hop.rs:30-78`). The refusal is `check_host`
 (`crates/podssh-ws/src/names.rs:8-32`, re-exported by `podssh_relay::relay`), called at
 `crates/podssh-cli/src/ssh/resolve.rs:358`, `crates/podssh-cli/src/proxy.rs:394`
-and in `forward_path` (`crates/podssh-relay/src/relay.rs:205-218`); since this
+and in `forward_path` (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:205-218`); since this
 entry, each calls `check_target` there. Tests assert the refusal:
-`crates/podssh-relay/src/relay.rs:351`, and `crates/podssh-cli/tests/proxy.rs`
+`PodUtils/podssh:crates/podssh-relay/src/relay.rs:351`, and `crates/podssh-cli/tests/proxy.rs`
 (lines 49-50 at `eaf9822`).
 
 Not known: how `/connect/<host>/<port>` takes a literal. The contract does not
@@ -50,17 +50,17 @@ GitHub #2, not verified here: the relay's `/trace` dials `[V6]:8079`.
 
 ## Approach
 
-1. Measure first: an ignored live test in `crates/podssh-relay/tests/live.rs`,
-   built like `open_github` (`crates/podssh-relay/tests/live.rs:15-31`), so the
+1. Measure first: an ignored live test in `PodUtils/podssh:crates/podssh-relay/tests/live.rs`,
+   built like `open_github` (`PodUtils/podssh:crates/podssh-relay/tests/live.rs:15-31`), so the
    token stays in the process. It opens one public IPv6 target, chosen with
    `/trace`, by three paths: the bare literal, `%5B` and `%5D`, raw brackets.
    Give `/trace` its token in a header file, never on argv (`AGENTS.md`,
    section 4). Write the answers in `docs/relay.md`.
 2. A target check beside `check_host`: a name that `check_host` accepts, or
    text that `std::net::Ipv6Addr` parses. A zone id does not parse, so the rule
-   of `crates/podssh-relay/src/relay.rs:205-211` holds. Keep `check_host` for
-   relay hosts, which are TLS names (`crates/podssh-relay/src/relay.rs:190-203`,
-   `crates/podssh-relay/src/pool.rs:148`).
+   of `PodUtils/podssh:crates/podssh-relay/src/relay.rs:205-211` holds. Keep `check_host` for
+   relay hosts, which are TLS names (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:190-203`,
+   `PodUtils/podssh:crates/podssh-relay/src/pool.rs:148`).
 3. `forward_path` writes the literal in the measured form. `podssh ssh` uses
    the new check at `crates/podssh-cli/src/ssh/resolve.rs:358`, and refuses
    `-4` with an IPv6 literal (64).
@@ -115,6 +115,8 @@ brackets, and `%3A` for each colon. The reading of GitHub #2 holds:
 reached no IPv6 host. Through it, the session opens and closes at once with
 `1011 target closed before sending anything` (T-253, blocked on the relay's
 operator).
+
+2026-11-11, the take of `pod-relay` (PodUtils/podcrates): the test target `live` moved to `pod-relay` with its name; run it there with `cargo test -p pod-relay --all-features --test live`.
 
 ## Done
 
@@ -1777,7 +1779,7 @@ Measured offline (`PODSSH_OFFLINE=1`):
 - Control: `podssh proxy --relay-host 'bad host!' example.org 22` is 64, and
   that is correct: there the fault is in the command line.
 
-Read: `select_relays` (`crates/podssh-relay/src/relay.rs:134-152`) and
+Read: `select_relays` (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`) and
 `pins::apply` (`crates/podssh-cli/src/pins.rs` lines 10-20 at `cd3fea5`) give
 one error for the flag and for the variable. Each caller maps it to 64, at
 `cd3fea5`: `crates/podssh-cli/src/proxy.rs` lines 60-71,
@@ -2266,7 +2268,7 @@ write the key with `OpenOptions`, as now; the test fails.
 `KeyFiles` (`crates/podssh-ssh/src/keygen.rs:112-173`), and the CLI passes podssh-relay's
 (`crates/podssh-cli/src/keygen.rs:371-378`): the private key by `create_new_private`, a missing
 directory by `private_dir`, and `FILE.pub` by the new `create_new_public`
-(`crates/podssh-relay/src/cache.rs:384-403`), on Windows with an access list of its own that lets
+(`crates/podssh-relay/src/cache.rs:282-301`), on Windows with an access list of its own that lets
 Everyone read it, as OpenSSH's `ssh-keygen` makes it. `FILE.pub` is removed and made again, so
 that it never keeps a list that lets others change it, also after `-c`.
 - `cargo test -p podssh-cli --test keygen -- private`: 2 passed. On Windows the test opened the
@@ -3120,7 +3122,7 @@ the node ends with SIGABRT.
   quick tunnel's URL on stdout, and `-O forward`'s port.
 - `scripts/check-repo.py` (its check 9, with `scripts/repo_scans.py`, where the scan of `uses:`
   moved so that each file keeps to 500 lines) refuses `eprintln!`, `println!`, `eprint!`, `print!`
-  and `dbg!` in `crates/*/src` outside tests: 782 files read; planted, an `eprintln!` in a
+  and `dbg!` in `PodUtils/podssh:crates/*/src` outside tests: 782 files read; planted, an `eprintln!` in a
   source is found and one in a module of tests is not; with `eprintln!` back in the node's lines,
   the check fails and names `crates/podssh-cli/src/node.rs` at its line.
 - `tests/node_detach.rs`, `a_node_whose_stderr_fails_goes_on_serving`: a node with stderr on a
@@ -3155,7 +3157,7 @@ not a run of `ssh -f`.
 
 - Read: T-380's parent returns once the child said ready, and nothing watches the child after that
   (`crates/podssh-cli/src/detach/mod.rs:184`).
-- Read: the node retries its relay for ever within its process (`crates/podssh-relay/src/open.rs:429`,
+- Read: the node retries its relay for ever within its process (`PodUtils/podssh:crates/podssh-relay/src/open.rs:429`,
   its backoff); what ends the process ends the tunnel.
 - Read in d-mon's code: a supervisor of one `poll` loop that restarts its program, with a cap that
   counts the program's whole life (its supervisor, of d-mon at d64d6ec, read in the

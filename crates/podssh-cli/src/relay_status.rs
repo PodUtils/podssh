@@ -12,7 +12,6 @@
 use std::io::Write;
 
 use podssh_relay::pair;
-use podssh_ws::dial::ProxyChoice;
 use serde_json::json;
 
 use crate::pairs;
@@ -41,8 +40,8 @@ pub(crate) fn pair(args: &RelayArgs, label: Option<&str>, out: &mut dyn Write) -
         }
     };
     pairs::online()?;
-    let (trust, proxy) = (pairs::trust(args.ca_file.as_deref()), ProxyChoice::FromEnvironment);
-    let ctx = pairs::context(&part.relay, &trust, &proxy);
+    let (trust, context) = (pairs::trust(args.ca_file.as_deref()), podssh_relay::context::process());
+    let ctx = pairs::context(&part.relay, &trust, &context);
     let presence = block_on(pair::renew::status(&ctx, &part))?.map_err(|e| pairs::refusal(&e))?;
     // The end that podssh's relay role names, which a renewal moves past the
     // file's (T-592); a relay of the contract names none.

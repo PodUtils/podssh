@@ -196,7 +196,7 @@ pub fn trace(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     let path = format!("/trace?target={}&banner=1", query_value(&wanted));
     let doc = bounded(async {
         let proxy = ProxyChoice::FromEnvironment;
-        let ctx = MintContext { relay: &relay, trust: &trust, proxy: &proxy, timeout: STEP };
+        let ctx = MintContext { relay: &relay, trust: &trust, ctx: &podssh_relay::context::of(&proxy), timeout: STEP };
         let mut fresh = false;
         loop {
             let token = token::obtain(&ctx, fresh).await.map_err(|e| unavailable(format!("the relay token: {e}")))?;

@@ -101,7 +101,12 @@ pub(super) async fn run<W: AsyncWrite + Unpin>(
     let (door, mut peers) = Door::new();
     let layer = crate::layered::settings();
     let rejoin = layer.resume_deadline;
-    let handler = Arc::new(Layered::new(E2e::new(door.clone(), node), layer, reverse::layered::NODE_BUDGET));
+    let handler = Arc::new(Layered::telling(
+        E2e::new(door.clone(), node),
+        layer,
+        reverse::layered::NODE_BUDGET,
+        podssh_relay::session::budget::told(),
+    ));
     let shown = label.clone();
     let say = move |line: String| podssh_ssh::err_line!("podssh chat: {shown}: {line}");
     let proxy = ProxyChoice::FromEnvironment;
@@ -109,11 +114,11 @@ pub(super) async fn run<W: AsyncWrite + Unpin>(
         pair,
         label: stored.then(|| label.clone()),
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: crate::pairs::REQUEST_LIMIT,
         // A lost socket is taken again for as long as the layer keeps a
         // session (T-261).
-        settings: reverse::Settings { rejoin, ..reverse::Settings::default() },
+        settings: reverse::Settings { rejoin, ..reverse::settings() },
         repair: None,
         wire: Wire::Tls,
         say: Some(&say),

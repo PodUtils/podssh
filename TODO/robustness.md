@@ -34,7 +34,7 @@ Read, the parsers that take input from a peer or a file: WebSocket frames
 SOCKS5 proxy's answers (`PodUtils/podssh:crates/podssh-ws/src/socks5.rs:156`); close
 reasons (`crates/podssh-ws/src/close.rs:20`); PEM bundles
 (`PodUtils/podssh:crates/podssh-ws/src/bundle.rs:72`); relay lists and the pool document
-(`crates/podssh-relay/src/relay.rs:173`, `crates/podssh-relay/src/pool.rs:153`);
+(`PodUtils/podssh:crates/podssh-relay/src/relay.rs:173`, `PodUtils/podssh:crates/podssh-relay/src/pool.rs:153`);
 `known_hosts` lines, in a private function
 (`crates/podssh-ssh/src/known_hosts.rs:250`); the escape filter
 (`crates/podssh-ssh/src/escape.rs:94`); IRC lines and frames
@@ -204,7 +204,7 @@ differ: `ok` and four spaces in `scripts/interop.sh` (line 22) and
 ## Approach
 
 1. Give each check a stable id as its first word, in each harness
-   (`scripts/interop*.sh`, `scripts/interop-pty.py`,
+   (`PodUtils/podssh:scripts/interop*.sh`, `scripts/interop-pty.py`,
    `scripts/interop-conpty.py`), for example `ok    ssh.exit.dropbear.143 ...`.
    The text after the id can keep values of the run.
 2. One line format for all: `VERDICT ID TEXT`, with the verdicts `ok`, `FAIL`,
@@ -536,14 +536,14 @@ Read, the bounds today:
 - A response head: 16 KiB for HTTP (`PodUtils/podssh:crates/podssh-ws/src/http.rs:13`), for the
   proxy (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:25`) and for the upgrade
   (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:144`).
-- The pool document: 256 KiB (`crates/podssh-relay/src/pool.rs:37`). A cache
-  file: 64 KiB (`crates/podssh-relay/src/cache.rs:47`).
+- The pool document: 256 KiB (`PodUtils/podssh:crates/podssh-relay/src/pool.rs:37`). A cache
+  file: 64 KiB (`crates/podssh-relay/src/cache.rs:48`).
 - The SSH window: 512 KiB (`crates/podssh-ssh/src/run.rs:30`). The relay pipe:
   256 KiB each way, frames of 64 KiB
   (`crates/podssh-ssh/src/relay_stream.rs:36-39`). Pump buffers: 32 KiB
   (`crates/podssh-cli/src/pipe/pump.rs:24`).
 - Time: `crates/podssh-ws/src/client.rs:29-43`,
-  `crates/podssh-relay/src/open.rs:33-37`, `crates/podssh-ssh/src/session.rs:22`.
+  `PodUtils/podssh:crates/podssh-relay/src/open.rs:33-37`, `crates/podssh-ssh/src/session.rs:22`.
 - No limit: a `known_hosts` file was read whole (`crates/podssh-ssh/src/known_hosts.rs`,
   lines 186-192 at `72ca309`); the IRC buffer (T-096).
 - Two texts disagreed until T-024. The comment on the SSH window
@@ -579,7 +579,7 @@ Read, the bounds today:
    `PODSSH_REPLAY_BUFFER` (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs`); at
    the bound the writer waits for an `ACK`, and no byte is dropped. A node
    keeps 64 MiB of them at most, a whole buffer for each session that it
-   keeps (`crates/podssh-relay/src/reverse/layered.rs`, T-153).
+   keeps (`PodUtils/podssh:crates/podssh-relay/src/reverse/layered.rs`, T-153).
 
 ## Prove
 
@@ -608,7 +608,7 @@ The test target `limits` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates 
 - The upgrade that podssh sends is `client::upgrade`, whose bound was a literal; it is
   `UPGRADE_HEAD` now (`crates/podssh-ws/src/client.rs:46`). `MAX_HANDSHAKE_RESPONSE`
   (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:144`) bounds `handshake::handshake`, which no command calls.
-- The steps of the connection wait `CONNECT_TIMEOUT` each (`crates/podssh-relay/src/open.rs:33`).
+- The steps of the connection wait `CONNECT_TIMEOUT` each (`PodUtils/podssh:crates/podssh-relay/src/open.rs:33`).
   `DEFAULT_TIMEOUT` (`crates/podssh-ws/src/client.rs:29`) is a default for an embedder, which no
   command of podssh takes.
 - The IRC buffer has a bound since T-096: 8192 bytes for a line
@@ -616,8 +616,8 @@ The test target `limits` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates 
 - `known_hosts` was read whole a second time, under the lock of a record (`append`); the bound
   covers both reads.
 - A pool body past its bound, and a file of the cache past its bound, are dropped with no word:
-  the refresh's error goes nowhere (`crates/podssh-relay/src/open.rs:417`), and the cache reads a
-  file that it cannot use as none (`crates/podssh-relay/src/cache.rs:325-327`). Each is made again,
+  the refresh's error goes nowhere (`PodUtils/podssh:crates/podssh-relay/src/open.rs:417`), and the cache reads a
+  file that it cannot use as none (`crates/podssh-relay/src/cache.rs:223-225`). Each is made again,
   so the table says so, and nothing is added.
 - `PODSSH_REPLAY_BUFFER` above 16 MiB gives 4 MiB, the default, not 16 MiB
   (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:27-31`), as its comment says: another value is
@@ -690,7 +690,7 @@ Read: the candidates, each a pure function or a state machine with no I/O.
 - The joining of fragments (`PodUtils/podssh:crates/podssh-ws/src/session.rs:470-494`). It is
   private, but `RelaySession::new` (`PodUtils/podssh:crates/podssh-ws/src/session.rs:114`) takes
   any stream, so a test can drive it.
-- Relay lists and paths (`crates/podssh-relay/src/relay.rs:173-266`, `crates/podssh-ws/src/names.rs:8-85`).
+- Relay lists and paths (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:173-266`, `crates/podssh-ws/src/names.rs:8-85`).
 - `known_hosts` patterns (`crates/podssh-ssh/src/known_hosts.rs:277-333`).
 - The escape filter, which keeps its state from one read to the next
   (`crates/podssh-ssh/src/escape.rs:94-138`).
@@ -791,7 +791,7 @@ The test target `properties` of `podssh-ws` moved to `pod-ws` of PodUtils/podcra
   `a_message_past_16_mib_in_any_fragments_ends_the_session_with_1009`,
   `one_line_leaves_one_line_and_a_second_pass_changes_nothing` and
   `multi_line_leaves_lines_and_a_second_pass_changes_nothing`.
-- `crates/podssh-relay/tests/properties.rs`:
+- `PodUtils/podssh:crates/podssh-relay/tests/properties.rs`:
   `a_list_keeps_its_order_and_drops_its_duplicates` (each spelling: a
   scheme, a port, a `/`, capitals, spaces),
   `any_text_parses_only_to_hosts_that_pass_the_check`,
@@ -2207,8 +2207,10 @@ the channel failed: An existing connection was forcibly closed by the remote hos
 
 ## Premise
 
-- `crates/podssh-relay/src/reverse/operator.rs:249-253` writes a frame's bytes to the local side only while
-  not `draining`; `end_of_input` (`:326-336`) sets `draining` once the input ends when `node_ends` is set,
+- The operator's reverse road (podssh-relay's `reverse/operator.rs` at `75a5031`, lines 249 to 253; since
+  podssh took `pod-relay` of PodUtils/podcrates at v0.27.0, that crate's `reverse::operator`) writes a frame's
+  bytes to the local side only while not `draining`; `end_of_input` (lines 326 to 336 there) sets `draining`
+  once the input ends when `node_ends` is set,
   which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:437`).
 
 ## Approach

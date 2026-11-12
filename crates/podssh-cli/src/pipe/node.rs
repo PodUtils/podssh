@@ -12,10 +12,10 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use podssh_relay::pair::OperatorPart;
 use podssh_relay::reverse::{operator, OperatorConfig, OperatorLimits, Wire};
+use podssh_relay::{context::Context, pair::OperatorPart};
 use podssh_ws::client::ConnectError;
-use podssh_ws::{ProxyChoice, Trust};
+use podssh_ws::Trust;
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 
@@ -39,7 +39,7 @@ enum Legs {
 impl Legs {
     /// The config of each leg, and the pair's expiry when a pair carries
     /// them.
-    fn config<'a>(&'a self, proxy: &'a ProxyChoice) -> (OperatorConfig<'a>, Option<i64>) {
+    fn config<'a>(&'a self, context: &'a Context) -> (OperatorConfig<'a>, Option<i64>) {
         match self {
             Legs::Pair(part, trust) => {
                 let config = OperatorConfig {
@@ -47,7 +47,7 @@ impl Legs {
                     name: &part.name,
                     connect_token: part.connect_token(),
                     trust,
-                    proxy,
+                    ctx: context,
                     timeout: podssh_relay::open::CONNECT_TIMEOUT,
                     // The node's ready, a step of --ConnectTimeout (T-589).
                     limits: OperatorLimits { on_ready: Some(crate::connect_bound::ready), ..OperatorLimits::default() },
@@ -117,8 +117,8 @@ pub async fn open(label: &str, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Res
     let (started, has_started) = oneshot::channel();
     let (task_label, task_shown) = (label.to_string(), shown.clone());
     let task = tokio::spawn(async move {
-        let proxy = ProxyChoice::FromEnvironment;
-        let (config, expires_ms) = legs.config(&proxy);
+        let context = podssh_relay::context::process();
+        let (config, expires_ms) = legs.config(&context);
         let (link, leg_end) = tokio::io::duplex(PIPE);
         let leg = match operator::start(&config, leg_end).await {
             Ok(leg) => {

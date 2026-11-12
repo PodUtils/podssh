@@ -24,7 +24,6 @@ use std::time::Duration;
 use podssh_relay::pair::rotate::{self, Rotated};
 use podssh_relay::pair::{self, Pair, PairError};
 use podssh_relay::reverse::legs;
-use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 use tokio::sync::watch;
 
@@ -258,8 +257,8 @@ async fn once(label: &str, held: &Held, trust: &Trust) -> Turned {
         Ok(next) => next,
         Err(why) => return Turned::Again(why),
     };
-    let proxy = ProxyChoice::FromEnvironment;
-    let ctx = crate::pairs::context(&before.relay, trust, &proxy);
+    let context = podssh_relay::context::process();
+    let ctx = crate::pairs::context(&before.relay, trust, &context);
     // The one to come, asked by the token now.
     match rotate::rotate(&ctx, &before, &next).await {
         Ok(Rotated::Asked) => {}

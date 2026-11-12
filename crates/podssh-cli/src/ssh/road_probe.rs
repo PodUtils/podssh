@@ -15,7 +15,7 @@ use std::time::Duration;
 use podssh_relay::reverse::{OperatorConfig, OperatorLimits, Wire};
 use podssh_relay::session::race::{each_timed, first_answered, Timed};
 use podssh_ssh::Log;
-use podssh_ws::{ProxyChoice, Trust};
+use podssh_ws::Trust;
 
 use super::{Raced, Roads};
 use crate::exitmap::sysexits;
@@ -97,13 +97,13 @@ pub(crate) async fn measure(
         _ => None,
     };
     let refused = AtomicBool::new(raced.piping.as_ref().is_some_and(|race| race.refused));
-    let proxy = ProxyChoice::FromEnvironment;
+    let context = podssh_relay::context::process();
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,
         name: &part.name,
         connect_token: part.connect_token(),
         trust,
-        proxy: &proxy,
+        ctx: &context,
         timeout: podssh_relay::open::CONNECT_TIMEOUT,
         limits: OperatorLimits::default(),
         wire: Wire::Tls,

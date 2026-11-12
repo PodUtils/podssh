@@ -75,7 +75,7 @@ pub(super) async fn run<W: AsyncWrite + Unpin>(
         name: &part.name,
         connect_token: part.connect_token(),
         trust: &trust,
-        proxy: &proxy,
+        ctx: &podssh_relay::context::of(&proxy),
         timeout: crate::pairs::REQUEST_LIMIT,
         limits: OperatorLimits::default(),
         wire: Wire::Tls,

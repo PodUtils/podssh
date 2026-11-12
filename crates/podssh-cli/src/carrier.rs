@@ -16,9 +16,9 @@ use std::io::{IsTerminal as _, Write};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use podssh_relay::relay::Relay;
-use podssh_relay::reverse::{operator, OperatorConfig, OperatorLimits, Outcome, Wire};
+use podssh_relay::reverse::{operator, wire::Carrier, OperatorConfig, OperatorLimits, Outcome, Wire};
 use podssh_relay::serve::reverse::carrier::{self, Again, Door, Link, Role};
+use podssh_relay::{context::Context, relay::Relay};
 use podssh_ws::client::ConnectError;
 use podssh_ws::{ProxyChoice, Trust};
 use tokio::process::Child;
@@ -98,7 +98,7 @@ pub(crate) struct Client {
     child: Arc<Mutex<Option<Child>>>,
     relay: Relay,
     trust: Trust,
-    proxy: ProxyChoice,
+    ctx: Context,
     /// A stream that this end was given (`stdio`, `fd:N`), which nothing
     /// starts again: its end is the client's (T-596).
     one_life: bool,
@@ -141,8 +141,8 @@ impl Client {
         let role = Role::new(text, again, None).map_err(Refusal::config)?;
         role.attach(link).map_err(Refusal::config)?;
         let relay = Relay { host: carrier::NAME.into(), port: 0 };
-        let (trust, proxy) = (Trust::Default, ProxyChoice::Direct);
-        Ok(Client { door: Door::of(role), child, relay, trust, proxy, one_life })
+        let (trust, ctx) = (Trust::Default, podssh_relay::context::of(&ProxyChoice::Direct));
+        Ok(Client { door: Door::of(role), child, relay, trust, ctx, one_life })
     }
 
     /// Until the node left a stream that this end cannot start again, for a
@@ -166,10 +166,10 @@ impl Client {
             name: carrier::NAME,
             connect_token: "",
             trust: &self.trust,
-            proxy: &self.proxy,
+            ctx: &self.ctx,
             timeout: READY_LIMIT,
             limits: OperatorLimits { on_ready: Some(crate::connect_bound::ready), ..OperatorLimits::default() },
-            wire: Wire::Carrier(self.door),
+            wire: Wire::Carrier(Carrier::of(self.door)),
         }
     }
 

@@ -88,7 +88,7 @@ pub(crate) fn pair_settings(say: &crate::node_expiry::Say) -> Settings {
     let say = say.clone();
     podssh_relay::reverse::spares::tell(move |line: &str| say(line.to_string()));
     let rejoin = crate::layered::settings().resume_deadline;
-    Settings { rejoin, spares: SPARES.load(Ordering::SeqCst), ..Settings::default() }
+    Settings { rejoin, spares: SPARES.load(Ordering::SeqCst), ..podssh_relay::reverse::settings() }
 }
 
 /// `--resume-deadline TIME` (T-306): how long the node keeps a session whose

@@ -134,7 +134,7 @@ pub fn failover_from(flag: Option<&str>, env: Option<String>, file: &Defaults) -
         (None, false, Some(value)) => Mode::parse(&value.text).ok_or_else(|| {
             Refusal::config(format!("{}: RelayFailover {:?} is not a mode: give {}", value.at, value.text, Mode::NAMES))
         }),
-        _ => Mode::from_env(env).map_err(Refusal::config),
+        _ => Mode::from_setting(env.as_deref(), MODE_ENV).map_err(Refusal::config),
     }
 }
 

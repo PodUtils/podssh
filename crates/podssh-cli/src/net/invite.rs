@@ -47,7 +47,7 @@ pub(super) fn run(args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write) -> R
     super::edit::not_auto(name)?;
     let roles = args.roles.as_deref().map(doc::parse_roles).transpose().map_err(Refusal::usage)?;
     let days = edit::days(args.days.as_deref())?;
-    let ends = invitation::ends(args.pair_mailbox.as_deref())?;
+    let mut ends = invitation::ends(args.pair_mailbox.as_deref())?;
     let held = held()?;
     let doc = &held.signed.doc;
     let roles = match (doc.member(name), roles) {
@@ -72,6 +72,8 @@ pub(super) fn run(args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write) -> R
     // The passphrase now, not while the device waits a step for the answer.
     let signing = sign::signing_for(&doc.owner, args.owner_key.as_deref().map(Path::new)).map_err(Refusal::config)?;
     crate::pins::apply(None)?;
+    // The way out of the ends, made again: it takes the resolver of the pins.
+    ends.config.way = podssh_ws::client::way(&podssh_ws::ProxyChoice::FromEnvironment);
     crate::pairs::online()?;
     let offer = Offer {
         net: doc.name.clone(),

@@ -895,7 +895,7 @@ end-to-end channel offers the net's document in its first message. A node
 and a relay of two dialects got as far as a frame that one of them did not
 read, which it dropped, and the node connected again for ever; an operator
 whose offer a node answered plainly went on with no word (T-643, GitHub
-#141; `crates/podssh-relay/src/reverse/control.rs`,
+#141; `PodUtils/podcrates:crates/pod-relay/src/reverse/control.rs`,
 `crates/podssh-relay/src/serve/reverse/proto.rs`):
 
 1. The dialect is a number, 1 today. A `hello` with no `version`, or null,

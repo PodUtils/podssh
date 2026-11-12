@@ -58,8 +58,8 @@ found each of podssh's 7 facts in it.
    - Inferred, not measured: a Worker's memory has a limit, so a few such
      sessions in one isolate could end it, and each session that it
      carries. Check whether this causes the drops of item 2.
-   - podssh's check: `crates/podssh-relay/tests/live_backpressure.rs`
-     (108 s, from podssh's host or in `relay-live.yml`). When the relay
+   - podssh's check: `PodUtils/podcrates:crates/pod-relay/tests/live_backpressure.rs`
+     (108 s, from podssh's host). When the relay
      bounds the queue, its verdict names a `1013`, or less than 16 MiB past
      the node. podssh keeps the SSH window of a channel at 1.5 MiB at most
      on the relay's road (T-662), so the relay holds no more than that for
@@ -100,7 +100,7 @@ found each of podssh's 7 facts in it.
    sockets across a restart of the pair's object, where the platform allows
    it. Item 1 may be a cause. If the logs of that day are gone, ask podssh's
    operator for a new run in a window that you name:
-   `crates/podssh-relay/tests/reverse_drops_live.rs` holds four pairs for
+   `PodUtils/podcrates:crates/pod-relay/tests/reverse_drops_live.rs` holds four pairs for
    about 16 minutes from podssh's host, and `reverse-drops.yml`, run by
    hand, holds them from GitHub Actions at the same time. podssh's side is
    done: `podssh operator` and `podssh ssh node://NAME` say that the link
@@ -128,7 +128,7 @@ found each of podssh's 7 facts in it.
    refuses it. Give the egress an IPv6 route. Else refuse an IPv6 target
    before the upgrade, with a `502` and the reason, so that a client learns
    it at once, and say so in the contract. podssh's check:
-   `cargo test -p podssh-relay --test live -- --ignored ipv6 --nocapture`
+   `cargo test -p pod-relay --test live -- --ignored ipv6 --nocapture` (PodUtils/podcrates)
    prints "bytes came back from the IPv6 host".
    In podssh: T-253 gives podssh's own relay role (T-169) IPv6 egress on a
    dual-stack host, else a `502` before the upgrade that says

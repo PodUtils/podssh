@@ -602,8 +602,8 @@ is not a number as `0`, with no message.
   does not operate: through the relay's own loop, a client that read
   16 KiB/s for 90 s got no Close, from a cloud container and from GitHub's
   network, while 47 MiB more than it read had left the far end; the relay or
-  its edge held them (`crates/podssh-relay/tests/live_backpressure.rs`,
-  `.github/workflows/relay-live.yml`). podssh's SSH window of a channel on
+  its edge held them (`PodUtils/podcrates:crates/pod-relay/tests/live_backpressure.rs`,
+  a live test of `pod-relay` since T-684). podssh's SSH window of a channel on
   this road is 1.5 MiB at most (T-662), shared by the channels that carry
   bulk, each 512 KiB at least, so a server cannot have more than that in
   flight to a slow podssh, and the relay holds no more for an SSH session's
@@ -1484,8 +1484,8 @@ a target that speaks none, as a node is for its TARGET
 can have room, and `host`, the name of this process for each link of a
 session, `HOST` or `HOST:PORT`, which `--resume-host` gives, else `null`. A
 client asks for the layer only where `layer` is `true`
-(`crates/podssh-relay/src/forward_layer/offer.rs`). The client of the
-library (`crates/podssh-relay/src/forward_layer/client.rs`) sends each link
+(`PodUtils/podcrates:crates/pod-relay/src/forward_layer/offer.rs`). The client of the
+library (`PodUtils/podcrates:crates/pod-relay/src/forward_layer/client.rs`) sends each link
 of a session, the first too, to the host that `host` names, else to the
 host whose document it read, never another of a list, as only that process
 holds the session; it takes a `host` that is the host it asked, with any
@@ -1546,7 +1546,7 @@ before its TCP roads (`crates/podssh-relay/src/quic_road/`):
   connection is a line `quic` on stdout, beside `upgrade` for each session.
 - **The offer.** `/relays.json` names the port in `forward.quic`, beside
   `layer` and `host`. A client keeps it with the offer of the layer, for a
-  day (`crates/podssh-relay/src/forward_layer/kept.rs`), from the read that
+  day (`PodUtils/podcrates:crates/pod-relay/src/forward_layer/kept.rs`), from the read that
   the layer's offer makes before a session to a host that the user named
   (Q96): no request more.
 

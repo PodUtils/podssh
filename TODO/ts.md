@@ -532,7 +532,7 @@ Read, at `a3c196e`: `ControlRunner` stops when the map stream ends
 supervision (`vendor/tailscale-rs/ts_runtime/src/lib.rs` lines 161-170): five restarts in 5 s at
 most, with no wait
 (`tqwewe/kameo:src/supervision.rs`). podssh's relay client has the rules to copy: a capped backoff
-with jitter (`crates/podssh-relay/src/open.rs:421-435`), and a ping every 10 s with three silent
+with jitter (`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`), and a ping every 10 s with three silent
 checks allowed (`crates/podssh-ws/src/client.rs:39-40`, `docs/relay.md:387-389`).
 
 ## Approach
@@ -1011,7 +1011,7 @@ a third copy, a `String` that goes to the fork (`crates/podssh-ts/src/node.rs`, 
 its control runner, for each registration (`vendor/tailscale-rs/ts_runtime/src/lib.rs`, line 54 at `160773e`,
 `vendor/tailscale-rs/ts_runtime/src/control_runner.rs`, line 54 at `160773e`, `vendor/tailscale-rs/ts_runtime/src/control_runner.rs`, line 108 at `160773e`).
 
-Read: the relay token is a `Zeroizing<String>` (`crates/podssh-relay/src/token.rs:30`), and
+Read: the relay token is a `Zeroizing<String>` (`PodUtils/podssh:crates/podssh-relay/src/token.rs:30`), and
 `zeroize` is a workspace dependency (`Cargo.toml:198`), but podssh-ts does not use it
 (`crates/podssh-ts/Cargo.toml`, lines 10-14 at `160773e`). The fork already depends on it
 (`vendor/tailscale-rs/Cargo.toml:106`). The comment at `crates/podssh-ts/src/secret.rs`, lines 3-5 at `160773e` names a

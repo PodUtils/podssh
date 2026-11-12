@@ -573,7 +573,7 @@ wrong: the tests built their input with the same assumptions as the code.
 `tests/properties.rs` of podssh-ws, podssh-relay, podssh-ssh and
 podssh-core (and of `pod-term` in PodUtils/podcrates) state what must hold for each input of a state
 machine, and proptest checks it on inputs that it makes (T-202): frames
-and fragments of WebSocket, the sanitizer, relay lists and paths,
+and fragments of WebSocket, the sanitizer (relay lists and paths: `pod-relay`'s),
 `known_hosts` patterns, the escape filter, the IRC line framing and the
 line discipline. Each runs in the gate, on stable Rust.
 
@@ -639,12 +639,13 @@ These tests use the network. Run them only on request.
 ```sh
 cargo test -p podssh-cli --test proxy_live -- --ignored   # the proxy path, with a token
 cargo test -p podssh-cli --test doctor -- --ignored       # doctor, end to end
-cargo test -p podssh-relay --test live -- --ignored       # the relay answers pings
-cargo test -p podssh-relay --features pair --test pair_live -- --ignored     # a pair, made and stopped
-cargo test -p podssh-relay --features pair --test reverse_live -- --ignored  # a node and its operators
-cargo test -p podssh-relay --features blocking --test blocking_live -- --ignored  # the same, and a forward session, through the facade
 cargo test -p podssh-relay --features piping --test piping_live -- --ignored     # a session through ppng.io (Q65)
 ```
+
+The live tests of the relay client (`live`, `pair_live`, `reverse_live`,
+`blocking_live` and the others) are `pod-relay`'s, in PodUtils/podcrates
+(T-684): run them there with `cargo test -p pod-relay --all-features --test
+NAME -- --ignored`.
 
 The Piping Server road's tests on the loopback (T-437) start nwtgck's two
 servers by the commands of `PODSSH_TEST_PIPING_JS` (nwtgck/piping-server,
