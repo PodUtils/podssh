@@ -98,6 +98,13 @@ The candidates, ranked:
      extended CONNECT (which T-321 needs too), capsules, and smoltcp, which
      is pure Rust [F31] and which Cloudflare says "does not support modern
      TCP features" [F7].
+   - Over HTTP/3 (T-582, Q82): where a probe of UDP to the endpoint's port
+     443 answers, the same tunnel goes over QUIC, as usque's default mode:
+     the extended CONNECT with the protocol `cf-connect-ip`, each IP packet
+     in an HTTP Datagram (a Quarter Stream ID, then Context ID 0), and the
+     draft's SETTINGS_H3_DATAGRAM (0x276) beside RFC 9297's. The same code
+     reaches a server of connect-ip (RFC 9484) that the user runs
+     (`PODSSH_WARP_SERVER`), which assigns the address inside.
    - Effort: L. Risks: a closed API that can change at any time. T-352,
      after Q52.
    - Built (T-352, drafted 2026-10-31): `warp://HOST[:PORT]`, in a feature

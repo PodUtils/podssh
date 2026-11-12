@@ -3,7 +3,8 @@
 //! acceptance of the Terms, and kept; its tunnel, with a new key of the
 //! endpoint that WARP's API gives (T-399), the API's peers and the endpoint
 //! that opened (T-561) kept in the record; the run's settings of the
-//! endpoint and of the probe (T-560); and the exit code of each fault.
+//! endpoint and of the probe (T-560); HTTP/3 where UDP passes (T-582,
+//! `super::h3`); and the exit code of each fault.
 
 use std::time::SystemTime;
 
@@ -88,6 +89,7 @@ pub fn kept() -> Result<Option<Device>, (String, i32)> {
     endpoint()?;
     probe()?;
     api_route()?;
+    super::h3::mode()?;
     let Some(text) = podssh_relay::cache::load_file(DEVICE_FILE) else { return Ok(None) };
     let text = zeroize::Zeroizing::new(text);
     let device = Device::from_json(&text).map_err(|why| {
@@ -185,9 +187,27 @@ pub async fn tunnel(device: &mut Device, trust: &Trust, verbose: &(dyn Fn(&str) 
     if device.probe.is_none() {
         verbose(&format!("{PROBE_ENV}=no: WARP's tunnel is taken as it opens, with no packet through it proven"));
     }
-    let opened = Warp::open_reading(device, &api, &proxy, limit).await;
+    // HTTP/3 where UDP passes (T-582): first when the user asks, else after
+    // HTTP/2 failed to reach the endpoint; a mode that cannot be read was
+    // refused before the record was.
+    let h3 = super::h3::mode().unwrap_or(super::h3::Mode::Auto);
+    if h3 == super::h3::Mode::First {
+        if let Ok(warp) = super::h3::open(device, limit, verbose).await {
+            return Ok(warp);
+        }
+    }
+    let mut opened = Warp::open_reading(device, &api, &proxy, limit).await;
     if learnt(device) != before {
         keep(device, verbose);
+    }
+    if h3 == super::h3::Mode::Auto {
+        opened = match opened {
+            Err(fault) if super::h3::worth(&fault) => match super::h3::open(device, limit, verbose).await {
+                Ok(warp) => Ok(warp),
+                Err(over_h3) => Err(super::h3::both(fault, &over_h3)),
+            },
+            other => other,
+        };
     }
     if let Ok(warp) = &opened {
         verbose(&format!("WARP's tunnel opened at {}", warp.endpoint));

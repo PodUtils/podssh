@@ -5450,6 +5450,7 @@ dependencies = [
  "h2",
  "http",
  "p256 0.14.0",
+ "pod-quic",
  "pod-services",
  "podssh-ws",
  "rcgen",

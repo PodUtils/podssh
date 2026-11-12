@@ -10050,6 +10050,43 @@ Against quic-go's connect-ip-go (MIT), as a proxy of connect-ip over HTTP/3 in a
 banner through it, and 1 MiB each way. Live, short, through WARP's endpoint over UDP from GitHub
 Actions (Q52, Q59). Planted: a datagram's context ID dropped, and the test of the banner fails.
 
+## Decision
+
+2026-11-12, the draft (each call made here, with what lost):
+
+- **Where the code goes.** `pod-warp` is not taken by podssh (`TODO/PROGRESS.md`, state item 7), so
+  the Correction's Rule Q3 does not hold yet: the road is podssh-warp's, behind its new feature `h3`
+  (`src/h3/`, `src/road_h3.rs`). Lost: waiting for the crate's take, which no entry schedules.
+- **HTTP/3 of podssh's own**, the little that connect-ip needs, as T-580's Hysteria road has it:
+  QPACK's static table and literals alone, no dynamic table offered. The QPACK writer of
+  `podssh-ws/src/hysteria/h3.rs` (`put_int`, `put_literal`, now public), its `frame` and `status`, and
+  its `PinnedLeaf` and `config` of TLS for a user's pin are shared, not copied. Lost: the crate `h3`
+  with `h3-quinn` (another QUIC stack beside noq, and an API of quinn's types, not noq's).
+- **QUIC as usque's**: an endpoint of its own with Connection IDs of 20 bytes (usque's comment: WARP's
+  edge closed connections with PROTOCOL_VIOLATION without them), a first packet of 1242 bytes, a
+  keepalive of 30 s; the draft's SETTINGS_H3_DATAGRAM (0x276) beside RFC 9297's for WARP's edge, as
+  usque sends both; `:authority` `cloudflareaccess.com`, with no port, as connect-ip-go's `Dial`
+  sends `u.Host`. Lost: pod-quic's `endpoint::system` (8-byte IDs).
+- **The stack's MTU is a datagram's room**, `max_datagram_size` less the Quarter Stream ID and the
+  Context ID, at most 1280 (`Stack::start_mtu`), so that each TCP segment fits one datagram. Lost:
+  1280 with a packet too large sent as a DATAGRAM capsule on the stream (connect-ip-go's server ends
+  the tunnel on a capsule of a type that it does not know), or dropped (TCP would stall on it).
+- **When HTTP/3 is tried**: `PODSSH_WARP_H3`, `auto` by default (after HTTP/2 failed to reach the
+  endpoint: unreachable, intercepted, cut or silent; not after a refused device or a fault of this
+  host), `first`, or `no`. A variable, as `PODSSH_WARP_ENDPOINT` and `PODSSH_WARP_PROBE` are, rather
+  than a word in `warp://`, whose URL names the target inside. The probe of UDP is pod-quic's (a
+  Version Negotiation, 300 ms at WARP's edge, 1.5 s at a user's server). The record is read again
+  (T-399) by the road over HTTP/2 alone; over HTTP/3 a certificate of another key is named.
+- **A user's server**: `PODSSH_WARP_SERVER=https://HOST[:PORT][/PATH]` and `PODSSH_WARP_SERVER_PIN`
+  (the SHA-256 of its DER), the protocol `connect-ip`, the address from ADDRESS_ASSIGN, the extended
+  CONNECT sent only where the server's SETTINGS allow it (RFC 9220). Lost: a scheme of its own
+  (`masque://`), which needs its own parse, help and exit codes for the same road.
+- **The interop harness** runs connect-ip-go's integration proxy, built from the fork at
+  `66cba32d7d33e0fb3ba9d1cdaac664379271a54b` (the commit that usque's go.mod names, read on 2026-11-12)
+  in images/derper's Go, on images/box's Alpine, with an sshd and an echo behind it on a bridge of
+  their own; one tunnel for both checks, as that proxy assigns each client the same address. Its
+  certificate is P-256, not the fork's Ed25519, so that the pure-Rust provider surely verifies it.
+
 ## Correction
 
 2026-11-05. The code of this entry (`podssh-warp`, which retires for podnet's WARP code) goes to
@@ -10058,6 +10095,24 @@ map is `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The 
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+## Done
+
+UNVERIFIED: a draft of 2026-11-12 (branch `draft-t582`), written with no build. The main session
+fills in each result:
+
+- `cargo test -p podssh-warp --features h3 --lib`: UNVERIFIED (the vectors of `h3/wire_tests.rs`:
+  RFC 9204's appendix B.1, RFC 9000's varints, connect-ip-go's ADDRESS_ASSIGN tests; the pin's and the
+  URL's parse; each failure's fault).
+- `cargo test -p podssh-cli --features warp --lib`: UNVERIFIED (`PODSSH_WARP_H3`'s words, the faults
+  after which HTTP/3 is tried).
+- `cargo test -p podssh-warp --features h3 --test connect_ip_h3` with no proxy: UNVERIFIED (says "did
+  not run").
+- `sh scripts/masque-h3/interop.sh` (`masque-h3-interop.yml`, job `interop`): sshd's banner and 1 MiB
+  each way through connect-ip-go's proxy: UNVERIFIED.
+- Live through WARP's endpoint over UDP from Actions (job `live`, confirm=Q52): UNVERIFIED.
+- Planted, a datagram's Context ID dropped (`wire::datagram`), the banner's test fails: waits for
+  T-251.
 
 # T-592: A pair that its owner renews in podssh's relay role, so that a node of the role outlives 72 h with its operators' file unchanged
 

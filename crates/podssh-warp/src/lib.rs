@@ -29,6 +29,9 @@
 //!   (T-560).
 //! - [`endpoints`]: the device's endpoints in turn, the one that last opened
 //!   first, then the record's and the API's peers, one at a time (T-561).
+//! - `h3` and `road_h3` (feature `h3`, T-582): the same tunnel over HTTP/3
+//!   where a probe found that UDP passes, each packet in a QUIC datagram,
+//!   to WARP's endpoint or to a server of connect-ip that the user runs.
 //!
 //! Its rules are podssh's: one outbound connection, through `HTTPS_PROXY`
 //! when one is set; no listener and no TUN device; no credential in output.
@@ -40,6 +43,9 @@ pub mod device;
 pub mod dns;
 pub mod endpoints;
 pub mod flow;
+// connect-ip over HTTP/3 (T-582): QUIC on pod-quic, only with the feature.
+#[cfg(feature = "h3")]
+pub mod h3;
 // Connections that come in inside a link: the far end of the stand-in, and
 // a member of ZeroTier's road (T-733, feature `inside`).
 #[cfg(any(test, feature = "stand-in", feature = "inside"))]
@@ -49,6 +55,8 @@ mod phy;
 pub mod probe;
 pub mod register;
 pub mod road;
+#[cfg(feature = "h3")]
+pub mod road_h3;
 pub mod routes;
 pub mod stack;
 #[cfg(any(test, feature = "stand-in"))]
@@ -96,6 +104,14 @@ pub fn server_name() -> &'static str {
 pub fn authority() -> String {
     let uri = service().text("connect-uri").expect("cloudflare-warp of pod-services holds the fact connect-uri");
     format!("{}:443", uri.strip_prefix("https://").unwrap_or(uri))
+}
+/// The authority of the CONNECT over HTTP/3: the URI's host alone, as
+/// connect-ip-go's `Dial` sends `u.Host` of usque's `ConnectURI`, with no
+/// port where HTTP/2's client adds one.
+pub fn authority_h3() -> String {
+    let uri = service().text("connect-uri").expect("cloudflare-warp of pod-services holds the fact connect-uri");
+    let bare = uri.strip_prefix("https://").unwrap_or(uri);
+    bare.split('/').next().unwrap_or(bare).to_string()
 }
 /// The MTU of the tunnel: usque's default, and IPv6's minimum.
 pub const MTU: usize = 1280;

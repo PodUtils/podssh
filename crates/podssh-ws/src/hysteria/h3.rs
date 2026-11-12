@@ -59,8 +59,9 @@ pub fn control_stream() -> Vec<u8> {
 }
 
 /// An integer of QPACK with an `n`-bit prefix (RFC 7541, section 5.1), its
-/// first byte's high bits `flags`.
-fn put_int(out: &mut Vec<u8>, n: u8, flags: u8, v: usize) {
+/// first byte's high bits `flags`. Public for WARP's connect-ip over HTTP/3
+/// (podssh-warp's `h3`), which encodes its request with the same code.
+pub fn put_int(out: &mut Vec<u8>, n: u8, flags: u8, v: usize) {
     let max = (1usize << n) - 1;
     if v < max {
         out.push(flags | v as u8);
@@ -76,7 +77,7 @@ fn put_int(out: &mut Vec<u8>, n: u8, flags: u8, v: usize) {
 }
 
 /// A string literal of QPACK, not Huffman-coded: a 7-bit length.
-fn put_literal(out: &mut Vec<u8>, text: &[u8]) {
+pub fn put_literal(out: &mut Vec<u8>, text: &[u8]) {
     put_int(out, 7, 0x00, text.len());
     out.extend_from_slice(text);
 }

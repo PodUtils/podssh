@@ -253,10 +253,17 @@ impl Stack {
     /// The stack of a device with `addresses` (one of each family at most,
     /// as smoltcp keeps two), over `link`; its driver starts at once.
     pub fn start(addresses: &[IpAddr], link: Link) -> Result<Stack, String> {
+        Stack::start_mtu(addresses, link, crate::MTU)
+    }
+
+    /// [`Stack::start`] over a link whose packets are `mtu` bytes at most:
+    /// a QUIC datagram's room, under 1280 on a path that discovered no more,
+    /// where TCP's segments must fit whole (T-582).
+    pub fn start_mtu(addresses: &[IpAddr], link: Link, mtu: usize) -> Result<Stack, String> {
         if addresses.is_empty() || addresses.len() > 2 {
             return Err(format!("{} addresses inside the tunnel, where the stack takes one or two", addresses.len()));
         }
-        let mut phy = Queue::new(crate::MTU);
+        let mut phy = Queue::new(mtu);
         let mut config = Config::new(HardwareAddress::Ip);
         config.random_seed = random_u64();
         let mut iface = Interface::new(config, &mut phy, smoltcp::time::Instant::from_micros(0));
