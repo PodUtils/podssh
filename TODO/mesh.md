@@ -9658,6 +9658,10 @@ Merged on 2026-11-12 (the draft `draft-t578`, `2fe94e3`, built and run; steps 2 
 - `cargo test -p podssh-tor --lib`, 11 passed; `cargo test -p podssh-cli --features tor --lib`, 1118 passed;
   `--test tor_private`, 2 passed; `cargo test -p podssh-tor --test private_network`, 1 passed; clippy of
   podssh-cli and podssh-tor with `tor` as the gate runs it, no warning.
+- The live run, first try (`tor-live.yml` with `onion: yes`, run 43185779542, at `1043025`): the node's client
+  bootstrapped on Tor's own network, but its service stayed `Bootstrapping`, with no problem reported, for the
+  whole 180 s of the test network's wait, so no descriptor was published and no stream ran. The introduction
+  points and the upload take minutes there: the live test now waits 600 s (`LIVE_PUBLISH`); run it again.
 - Next: (1) a test of the command line from end to end on chutney (`podssh ssh node://NAME` through the onion
   road alone, as `tor_private` runs the Tor road); (2) the record of pkarr (an `onion=` key and the node's
   `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) the live run of the Decision (Q91)

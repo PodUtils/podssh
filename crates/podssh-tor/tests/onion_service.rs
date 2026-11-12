@@ -23,6 +23,9 @@ const PORT: u16 = 22;
 const BOOTSTRAP: Duration = Duration::from_secs(120);
 /// Three introduction points and a descriptor at each HSDir of the ring.
 const PUBLISH: Duration = Duration::from_secs(180);
+/// The same on Tor's own network, where the introduction points and the
+/// upload to the HSDirs take minutes, not a test network's seconds.
+const LIVE_PUBLISH: Duration = Duration::from_secs(600);
 /// The descriptor fetched, the introduction and the rendezvous.
 const REACH: Duration = Duration::from_secs(120);
 const MIB: usize = 1 << 20;
@@ -162,7 +165,7 @@ async fn live_a_throwaway_service_on_tor_s_own_network_carries_a_mebibyte_each_w
     let node = client(&node_home, None, ProxyChoice::FromEnvironment).await;
     let onion = node.serve_onion(&service(vec![key.public()])).unwrap_or_else(|f| panic!("{f}"));
     let address = onion.address().to_string();
-    onion.published(PUBLISH).await.unwrap_or_else(|f| panic!("{f}"));
+    onion.published(LIVE_PUBLISH).await.unwrap_or_else(|f| panic!("{f}"));
     let stopped = echo(onion);
     let visitor = client(&client_home, None, ProxyChoice::FromEnvironment).await;
     carry(&visitor, &address, &key).await;
