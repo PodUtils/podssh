@@ -9049,8 +9049,10 @@ the client's connect request and its session, 100 ms after the invitation so tha
   443, each an IP literal with its device ID as the fact `device-id-NAME`, in the order of the device IDs; podssh's
   reader (`crates/podssh-cli/src/strelay.rs`, `listed`) takes each endpoint and its fact, as Tox's reader does, where
   it read a list of URLs that the service never had. `cargo test -p podssh-cli --features strelay --lib strelay`, 4
-  passed (`the_listed_relays_read_with_their_device_ids`: no row left out). Next: `strelay-interop.yml`'s job `live`
-  through a relay of the list, then close.
+  passed (`the_listed_relays_read_with_their_device_ids`: no row left out).
+- `strelay-interop.yml`'s job `live` (run 43205562302, at `e557f1e`) passed through a relay of the pool in 3.0 s, but
+  its first try, the relay of the list, never ran the road: the lab's command sets `PODSSH_SYNCTHING_RELAY=no`, and
+  `list` set nothing in its place. The test now removes it for `list`. Next: the live job again, then close.
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research
 
@@ -9670,6 +9672,10 @@ Merged on 2026-11-12 (the draft `draft-t578`, `2fe94e3`, built and run; steps 2 
 - The live run, second try (run 43194481837, at `c2d44ad`): passed in 329 s on Tor's own network: a throwaway
   service published its descriptor, a second client with the key of discovery reached it, 1 MiB each way, and the
   service stopped. The Decision's live run is done.
+- The gate's job `tor-net` at `e557f1e` (run 43205562528): `onion_service`'s first test failed, the service still
+  `Bootstrapping` at 180 s on the runner's chutney network, where it passed at `1043025` and in 7 s on this host: a
+  wait too short for a busy runner (the live network needed 329 s). The private network's wait is now 600 s, as the
+  live one's, and the test prints the time that the publish took.
 - Next: (1) a test of the command line from end to end on chutney (`podssh ssh node://NAME` through the onion
   road alone, as `tor_private` runs the Tor road); (2) the record of pkarr (an `onion=` key and the node's
   `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) `docs/carriers.md`'s verdict on onion
@@ -13559,7 +13565,7 @@ HyperDHT's three nodes.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13619,7 +13625,7 @@ runs of a code (`pod_relay::code::run::Ends::brokers`, #210, COORD-057), so pods
 
 ## Done
 
-Partial (2026-11-12): podssh's part is written and tested; the short live run through the public broker waits.
+Done (2026-11-12): podssh's part written and tested, and the live run passed.
 
 - `crates/podssh-relay/src/code/mod.rs`: `brokers(PODSSH_MQTT, PODSSH_LAST_RESORT)`, the services of the kind
   `mqtt-broker` of `pod-services` (shiftr.io's public instance, `wss://public.cloud.shiftr.io:443/`, with its public
@@ -13635,7 +13641,8 @@ Partial (2026-11-12): podssh's part is written and tested; the short live run th
 - The plant of the Prove (the topic from a constant) is in `pod-wormhole`'s `topic`, podcrates' code: its tests hold
   it there (Rule Q3).
 - `mqtt-interop.yml` runs the tests on a push of the glue; its input `live` runs one pairing through the public
-  broker. Next: that live run, then close.
+  broker. Live, from Actions (run 43205567665, at `e557f1e`): two podssh ends whose one mailbox is dead paired
+  through `wss://public.cloud.shiftr.io/` with its public login in 2.8 s; the job against Mosquitto passed too.
 
 # T-738: File hosts as the last carrier of the resumable layer: one sealed upload for each piece
 

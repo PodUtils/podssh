@@ -116,6 +116,10 @@ fn a_derp_node_with_a_pair_serves_a_client_through_syncthing_s_relay() {
     let words = ["node", "lab", &lab.target, "--allow", &allow, "--key", &key, "--ca-file", &lab.ca, "--derp"];
     let mut cmd = crate::command(&lab.node_home, &words);
     cmd.args(["--derp-server", &servers]).envs(env.iter().copied());
+    // The lab's command turns the road off; `list` turns it on with no relay named.
+    if named == "list" {
+        cmd.env_remove("PODSSH_SYNCTHING_RELAY");
+    }
     let mut child = cmd.stdin(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();
     let lines = lines_of(&mut child);
     let _node = Node(child);
@@ -124,6 +128,9 @@ fn a_derp_node_with_a_pair_serves_a_client_through_syncthing_s_relay() {
 
     let mut client = lab.ssh(&["-v", "--derp-server", &servers, "node://tester@lab", "greet"]);
     client.envs(env.iter().copied()).env("PODSSH_DERP", "no");
+    if named == "list" {
+        client.env_remove("PODSSH_SYNCTHING_RELAY");
+    }
     let began = Instant::now();
     let (rc, out, err) = run_within(&mut client, Duration::from_secs(90));
     let node_said: Vec<String> = lines.try_iter().collect();

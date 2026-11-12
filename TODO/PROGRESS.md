@@ -73,8 +73,7 @@ item whenever it appears.
    Actions in 8.0 s; the peers of `pod-services` wait for podcrates, #203).
 8. **T-736: HyperDHT where UDP passes** is done (2026-11-12: live through the public DHT from Actions in
    7.9 s; the bootstrap of `pod-services` waits for podcrates, #204).
-9. **T-737: public MQTT brokers as a meeting point** is in part (2026-11-12): podcrates v0.30.0 put the
-   brokers in the runs of a code; podssh's glue passes against Mosquitto; its live run is next.
+9. **T-737: public MQTT brokers as a meeting point** is done (2026-11-12): live through shiftr.io's broker.
 10. **T-574: Q90's live check of the nodes** ran (2026-11-12): 8 of 10 carried; two asked to be dropped
     (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
@@ -115,7 +114,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 71 open, 22 partial, 10 blocked, 606 done.
+`TODO/INDEX.md` holds 709 entries: 71 open, 21 partial, 10 blocked, 607 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -189,7 +188,7 @@ parts are named so that the open ones read in their place):
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
-   peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (T-737),
+   peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (done),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and

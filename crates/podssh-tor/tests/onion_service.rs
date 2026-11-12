@@ -21,11 +21,11 @@ const NETWORK_ENV: &str = "PODSSH_TEST_TOR_NETWORK";
 const PORT: u16 = 22;
 /// A bootstrap in the private network: a few seconds, with room.
 const BOOTSTRAP: Duration = Duration::from_secs(120);
-/// Three introduction points and a descriptor at each HSDir of the ring.
-const PUBLISH: Duration = Duration::from_secs(180);
-/// The same on Tor's own network, where the introduction points and the
-/// upload to the HSDirs take minutes, not a test network's seconds.
-const LIVE_PUBLISH: Duration = Duration::from_secs(600);
+/// Three introduction points and a descriptor at each HSDir of the ring:
+/// seconds on a quiet host, minutes on a busy runner, as on Tor's own
+/// network, where the introduction points and the upload take minutes.
+const PUBLISH: Duration = Duration::from_secs(600);
+const LIVE_PUBLISH: Duration = PUBLISH;
 /// The descriptor fetched, the introduction and the rendezvous.
 const REACH: Duration = Duration::from_secs(120);
 const MIB: usize = 1 << 20;
@@ -91,7 +91,9 @@ async fn a_node_s_onion_service_carries_a_mebibyte_each_way_and_hides_from_a_str
     let onion = node.serve_onion(&service(vec![key.public()])).unwrap_or_else(|f| panic!("{f}"));
     let address = onion.address().to_string();
     assert!(podssh_tor::onion::is_onion(&address), "{address}");
+    let began = std::time::Instant::now();
     onion.published(PUBLISH).await.unwrap_or_else(|f| panic!("{f}"));
+    eprintln!("the descriptor was published in {} s", began.elapsed().as_secs());
     let stopped = echo(onion);
     let client = tor(&client_home, &network).await;
     carry(&client, &address, &key).await;

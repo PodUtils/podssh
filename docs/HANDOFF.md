@@ -22,7 +22,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 ## Each podcrates take
 
 podssh pins every podcrates crate at `tag = "v0.30.0"` (COORD-057, PodUtils/podcrates#89; podssh's
-report is COORD-038).
+report is COORD-038, #212).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
@@ -55,8 +55,8 @@ road). Each has a planted run that must fail, and each did.
 
 | Entry | State and next step |
 | --- | --- |
-| T-571 | Partial. The list of `pod-services` is read (v0.30.0). Next: `strelay-interop.yml`'s job `live`, then close. |
-| T-737 | Partial. The brokers after the mailboxes, tested against Mosquitto. Next: `mqtt-interop.yml` with `live: yes`, then close. |
+| T-571 | Partial. The list is read; its live job must run once more with the lab's switch removed (`strelay-interop.yml`, by hand), then close. |
+| T-737 | Done (2026-11-12): live through shiftr.io's broker. |
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
 | T-578 | Partial. Tested on chutney and live on Tor's own network (329 s). Next: a test of the command line from end to end on chutney, then pkarr's `onion=`. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
