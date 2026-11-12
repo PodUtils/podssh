@@ -83,7 +83,7 @@ pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.26.0",
 # handshake, which no crate implements, on num-bigint's integers (0.4, in
 # the lock already), and AES-256-GCM of croc's crypt, the workspace's.
 # Pure Rust; only with the feature `croc`.
-num-bigint = { version = "0.4", optional = true }
+num-bigint = { version = "0.5", optional = true }
 aes-gcm = { workspace = true, optional = true }
 
 [features]

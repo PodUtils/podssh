@@ -5245,7 +5245,7 @@ dependencies = [
  "ironwood",
  "libc",
  "noq",
- "num-bigint 0.4.8",
+ "num-bigint 0.5.1",
  "p256 0.14.0",
  "pod-core",
  "pod-e2e",
