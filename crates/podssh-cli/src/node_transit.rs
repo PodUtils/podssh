@@ -39,14 +39,15 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 }
 
 /// The variable, and those of croc's relay road (T-694), ZeroTier's
-/// (T-733), the Tox road (T-734) and Yggdrasil's (T-735), checked before
-/// anything connects.
+/// (T-733), the Tox road (T-734), Yggdrasil's (T-735) and HyperDHT's
+/// (T-736), checked before anything connects.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
     crate::node_croc::check()?;
     crate::zerotier::setting()?;
     crate::tox::setting()?;
-    crate::yggdrasil::setting().map(|_| ())
+    crate::yggdrasil::setting()?;
+    crate::hyperdht::setting().map(|_| ())
 }
 
 /// The relay of the road, when the road is on.
@@ -139,7 +140,8 @@ pub(crate) fn wanted(transit: bool) -> bool {
     let last = crate::node_croc::bridge().is_some()
         || crate::zerotier::relay().is_some()
         || crate::tox::on()
-        || crate::yggdrasil::on();
+        || crate::yggdrasil::on()
+        || crate::hyperdht::bootstrap().is_some();
     transit || crate::node_members::wanted() || last
 }
 
@@ -182,8 +184,10 @@ impl Beside<'_> {
         // The Tox road (T-734) after ZeroTier's.
         let tox = crate::node_tox::beside(Some(&config.pair), croc_say.clone());
         // Yggdrasil's road (T-735) after the Tox road.
-        let ygg = crate::node_ygg::beside(Some(&config.pair), croc_say);
-        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg };
+        let ygg = crate::node_ygg::beside(Some(&config.pair), croc_say.clone());
+        // HyperDHT's road (T-736) after Yggdrasil's, where UDP passes.
+        let dht = crate::node_hyperdht::beside(Some(&config.pair), croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

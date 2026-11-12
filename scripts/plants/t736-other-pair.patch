@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/ssh/hyperdht.rs
++++ b/crates/podssh-cli/src/ssh/hyperdht.rs
+@@ -77,7 +77,7 @@
+             .await
+             .map_err(|e| format!("HyperDHT's road: {e}"))?;
+         self.log.verbose(&format!("{}: HyperDHT's road by the node's key", self.shown));
+-        let node = node_keys(&self.name, &self.token).public_key;
++        let node = node_keys(&self.name, "planted").public_key;
+         let stream = end.lock().await.link(node, LIMIT).await.map_err(|e| format!("HyperDHT's road: {e}"))?;
+         Ok(Road::HyperDht(Box::new(stream)))
+     }

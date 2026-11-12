@@ -10014,7 +10014,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:292-302`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:293-303`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10368,8 +10368,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:301-302`), and needs the net's role exit, signed by
-  its owner (`:299-300`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:302-303`), and needs the net's role exit, signed by
+  its owner (`:300-301`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:142`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -12379,7 +12379,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:72`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:74`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -13253,9 +13253,20 @@ end; a client joins the topic, takes the first connection whose remote key is th
   (2.5 s, 7.5 s when the client's first lookup came before the node's announce); a bootstrap that never answers
   is UDP that does not pass. Measured on the way: on the loopback both ends call themselves firewalled and the
   node's passive holepunch times out, so a DHT of the loopback alone is joined unfirewalled (no NAT there).
-- Next: the command line's road (the bootstrap of `pod-services`, the node beside its last roads, the client's
-  race after Yggdrasil's, never with --no-e2e; the third party's line), the manual, the plant of the allowlist
-  above the stream, a workflow with Node.js, and one short live connect through the public bootstrap.
+- The road in the command line, behind the feature `hyperdht` of podssh-cli: `src/hyperdht.rs` (the setting
+  `PODSSH_HYPERDHT`: `no`, or the bootstrap of a DHT of one's own, which `PODSSH_LAST_RESORT` leaves on; else the
+  bootstrap of the service `hyperdht-bootstrap` of `pod-services`, none until it lists it, COORD-030 #204),
+  `src/node_hyperdht.rs` (the node beside its other last roads; where UDP does not pass it says so and serves the
+  others), `src/ssh/hyperdht.rs` (the client's road after Yggdrasil's, one swarm a run, never with --no-e2e; the
+  line of the public DHT). The manual: the notes of node and ssh (`man/notes_hyperdht.rs`) and the facts of
+  `PODSSH_HYPERDHT` and `PODSSH_LAST_RESORT`. `cargo test -p podssh-cli --features hyperdht --test derp_road --
+  derp_hyperdht`: 1 passed, `podssh ssh node://` through HyperDHT's road alone in 1.3 s; `--lib`: 1108 passed;
+  clippy with and without the feature: no warning, and the gate lints it.
+- Planted (`scripts/plants/t736-other-pair.plant`, group `host-hyperdht`): a client of another pair; 1 caught. The
+  allowlist above the stream is the end-to-end channel's, whose plants are its own (Correction).
+  `hyperdht-interop.yml` installs Node.js's `hyperdht` 6.36.0 and runs the tests and the plant on each push of the
+  road; its job `live`, by hand, reads the public bootstrap from the package's constants at run time and runs
+  `derp_hyperdht` through the public DHT. UNVERIFIED until its first run on Actions.
 
 # T-737: Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers'
 

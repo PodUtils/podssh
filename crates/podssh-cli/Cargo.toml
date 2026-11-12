@@ -49,6 +49,8 @@ zerotier = ["dep:podssh-zerotier"]
 tox = ["podssh-relay/tox"]
 # Yggdrasil's network as a last road of a pair (T-735). No C.
 yggdrasil = ["podssh-relay/yggdrasil"]
+# HyperDHT where UDP passes, as a road of a pair (T-736). No C.
+hyperdht = ["podssh-relay/hyperdht"]
 # The road with the stand-in relay and root on the loopback, for the test of
 # the command line from end to end (`tests/derp_road.rs`); never in a release.
 zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]

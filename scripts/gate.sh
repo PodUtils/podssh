@@ -176,6 +176,9 @@ step_lint() {
     # the CLI's road with its feature.
     run "clippy: no warning with the Yggdrasil feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/yggdrasil -- -D warnings $LINTS_ALLOWED
+    # HyperDHT's road where UDP passes (T-736): the library and the CLI's road.
+    run "clippy: no warning with the HyperDHT feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/hyperdht -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings
