@@ -55,6 +55,9 @@
 //! - `piping` (feature `piping`): the Piping Server road (T-437), a POST
 //!   and a GET for each way of a link, for a proxy that refuses the
 //!   WebSocket upgrade;
+//! - `smee` (feature `smee`): the smee.io road (T-741), a last fallback of
+//!   Q78 for a proxy that refuses the upgrade: a POST for each frame and a
+//!   stream of server-sent events for each way of a link;
 //! - `opentunnel` (feature `opentunnel`): the OpenTunnel road (T-530), a
 //!   blind TLS tunnel with no account, whose client's leg is TLS by name
 //!   with no upgrade;
@@ -136,6 +139,8 @@ pub mod piping;
 pub mod pool;
 #[cfg(feature = "serveo")]
 pub mod serveo;
+#[cfg(feature = "smee")]
+pub mod smee;
 #[cfg(feature = "strelay")]
 pub mod strelay;
 #[cfg(feature = "tox")]

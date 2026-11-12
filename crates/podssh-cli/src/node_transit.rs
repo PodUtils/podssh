@@ -195,8 +195,10 @@ impl Beside<'_> {
         // Syncthing's relays (T-571) after HyperDHT's road.
         let syncthing = crate::node_strelay::beside(Some(&config.pair), croc_say.clone());
         // An onion service of the Tor network (T-578) after Syncthing's relays.
-        let onion = crate::node_onion::beside(self.label, Some(&config.pair), croc_say);
-        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht, syncthing, onion };
+        let onion = crate::node_onion::beside(self.label, Some(&config.pair), croc_say.clone());
+        // The pair's channels at smee.io's server (T-741) after the onion service.
+        let smee = crate::node_smee::beside(Some(&config.pair), self.trust, croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier, tox, ygg, dht, syncthing, onion, smee };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

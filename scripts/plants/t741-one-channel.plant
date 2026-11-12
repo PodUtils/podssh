@@ -1,0 +1,8 @@
+# T-741: both ways of a smee.io link on one channel name, so the client reads
+# its own way and never the node's mark; the session through the stand-in of
+# smee.io's server must fail. On the runner: the stand-in needs no server.
+ENTRY=T-741
+GROUP=host-smee
+EXPECT='test a_session_carries_1_mib_each_way_through_smee_s_server \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --test smee_road'
+LIMIT=1800

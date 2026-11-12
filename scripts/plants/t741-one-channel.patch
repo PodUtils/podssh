@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/smee/names.rs
++++ b/crates/podssh-relay/src/smee/names.rs
+@@ -165,7 +165,7 @@
+     fn of(secret: &Secret, link: &LinkId, send: Way, recv: Way) -> Ends {
+         Ends {
+             send: secret.channel(send, link),
+-            recv: secret.channel(recv, link),
++            recv: secret.channel(send, link),
+             mine: secret.mark(send, link),
+             theirs: secret.mark(recv, link),
+         }

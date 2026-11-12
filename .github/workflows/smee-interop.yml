@@ -1,0 +1,128 @@
+name: smee interop
+
+# The smee.io road (T-741) against smee.io's own server, probot/smee.io (MIT
+# in its LICENSE, ISC in its package.json), built here by its own Dockerfile
+# at a pinned commit and run on a port of the loopback, as smee.io runs it
+# (NODE_ENV=production, `npm start`, no Redis). No server of smee.io's is
+# reached. The library (crates/podssh-cli/tests/smee_road.rs): a pair's node
+# and its client carry 1 MiB each way with equal digests, a stream gets
+# nothing from before it opened, a client of another pair finds no node,
+# and both ways of a link on one channel make each end read its own frames,
+# which the reader names; once directly, once through a plain squid as the
+# HTTP CONNECT proxy. Each test says "did not run" with no server, so the
+# job fails on that word. Both planted defects of T-741 must fail
+# (scripts/plants/t741-*).
+# By hand only, with `live: yes`: the short live run of Q94 through the
+# server of the kind `smee` of pod-services, with throwaway channels; it
+# says "did not run" while pod-services lists none, which fails the job, so
+# that no host of another party is in podssh's source.
+# Started by hand, and on a push that changes the road; it publishes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "yes: the short live run through the listed server (Q94)"
+        required: false
+        default: "no"
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/smee/**"
+      - "crates/podssh-cli/src/smee_road.rs"
+      - "crates/podssh-cli/src/node_smee.rs"
+      - "crates/podssh-cli/src/ssh/smee.rs"
+      - "crates/podssh-cli/tests/smee_road.rs"
+      - "crates/podssh-cli/tests/smee_stand_in/**"
+      - "scripts/plants/t741-*"
+      - ".github/workflows/smee-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: smee-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SMEE_COMMIT: "922d925bc241c2e40a1ec86da631b3dbbdd329cb"
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: smee.io's server of the pinned commit, by its own Dockerfile
+        run: |
+          set -eu
+          git clone -q https://github.com/probot/smee.io .work/smee
+          git -C .work/smee checkout -q "$SMEE_COMMIT"
+          test "$(git -C .work/smee rev-parse HEAD)" = "$SMEE_COMMIT"
+          docker build -q -t smee-io-pinned .work/smee
+          docker run -d --name smee -p 127.0.0.1:3000:3000 smee-io-pinned
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 2 -o /dev/null http://127.0.0.1:3000/; then break; fi
+            sleep 1
+          done
+          curl -fsS --max-time 5 -o /dev/null http://127.0.0.1:3000/
+      - name: a plain squid as the proxy
+        run: |
+          set -eu
+          sudo apt-get install -y -q squid >/dev/null
+          sudo systemctl stop squid || true
+          cat > "$RUNNER_TEMP/squid.conf" <<'EOF'
+          http_port 127.0.0.1:3128
+          acl loopback src 127.0.0.1/32
+          acl smee port 3000
+          acl CONNECT method CONNECT
+          http_access deny CONNECT !smee
+          http_access allow loopback
+          http_access deny all
+          cache deny all
+          access_log stdio:/tmp/squid-access.log
+          cache_log /tmp/squid-cache.log
+          pid_filename /tmp/squid.pid
+          EOF
+          sudo squid -f "$RUNNER_TEMP/squid.conf"
+          for _ in $(seq 1 30); do
+            if curl -fsS --max-time 2 -o /dev/null -x http://127.0.0.1:3128 http://127.0.0.1:3000/; then break; fi
+            sleep 1
+          done
+      - name: the library against smee.io's server, directly and through squid
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-relay --features smee --lib smee
+          for proxy in "" "http://127.0.0.1:3128"; do
+            echo "the proxy: ${proxy:-none}"
+            PODSSH_TEST_SMEE_URL=http://127.0.0.1:3000 PODSSH_TEST_SMEE_PROXY="$proxy" \
+              timeout 900 cargo test --locked -p podssh-cli --test smee_road -- --nocapture 2>&1 | tee "$RUNNER_TEMP/smee.log"
+            grep -q "test result: ok. 5 passed" "$RUNNER_TEMP/smee.log"
+            grep -q "MEASURE" "$RUNNER_TEMP/smee.log"
+          done
+          # Squid carried the second run's CONNECTs.
+          sudo grep -q "CONNECT 127.0.0.1:3000" /tmp/squid-access.log
+      - name: the planted defects fail
+        run: sudo -E env "PATH=$PATH" sh scripts/plant-each.sh --here --group host-smee
+      - name: the server's log
+        if: always()
+        run: docker logs smee 2>&1 | tail -n 200 || true
+
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.live == 'yes'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the short live run of Q94 through the listed server
+        run: |
+          set -o pipefail
+          PODSSH_TEST_SMEE_LIVE=yes timeout 900 cargo test --locked -p podssh-cli --test smee_road -- --nocapture \
+            the_short_live_run_through_the_listed_server 2>&1 | tee "$RUNNER_TEMP/live.log"
+          if grep -q "did not run" "$RUNNER_TEMP/live.log"; then echo "the live run did not run"; exit 1; fi
+          grep "MEASURE" "$RUNNER_TEMP/live.log"

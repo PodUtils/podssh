@@ -30,6 +30,8 @@ mod notes_croc;
 mod notes_hyperdht;
 // The onion road, a last fallback of Q78 after Syncthing's relay road (T-578).
 mod notes_onion;
+// The smee.io road, a last fallback of Q78 after the onion road (T-741).
+mod notes_smee;
 mod notes_strelay;
 mod notes_tox;
 mod notes_ygg;

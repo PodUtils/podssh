@@ -108,8 +108,10 @@ rustls = { workspace = true }
 # node://` (T-568), a last fallback of Q78, pure Rust, in each build.
 # `bore`: the bore road of `podssh node --bore` and `podssh ssh node://`
 # (T-569), the last fallback of Q78, raw TCP of bore's protocol, in each
-# build.
-podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel", "bore"] }
+# build. `smee`: the smee.io road of `podssh node` and `podssh ssh node://`
+# (T-741), a last fallback of Q78, pure Rust over the Piping Server road's
+# HTTP/1.1, in each build.
+podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel", "bore", "smee"] }
 # The native SSH client. It needs a C compiler (russh with aws-lc-rs); the
 # operator accepted that for the binary on 2026-10-08.
 podssh-ssh = { path = "../podssh-ssh" }

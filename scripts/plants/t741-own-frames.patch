@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/smee/link.rs
++++ b/crates/podssh-relay/src/smee/link.rs
+@@ -128,7 +128,7 @@
+ 
+ /// Whether `got`, the first frame of the far end's way, is its mark.
+ pub fn check_mark(got: &[u8], ends: &Ends) -> Result<(), Opening> {
+-    if same(got, &ends.theirs) {
++    if same(got, &ends.theirs) || same(got, &ends.mine) {
+         return Ok(());
+     }
+     if same(got, &ends.mine) {

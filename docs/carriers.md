@@ -1015,7 +1015,7 @@ are read; none was run for this reading, and the feature entries below carry the
   - Verdict: it passes. No account, bytes in both ways, 443 by name and no upgrade, which
     makes it a second provider, after Piping Server and OpenTunnel, for a proxy that refuses
     the upgrade. A last fallback (Q78) after those two; T-741 is its entry. Its costs are
-    no stop: base64, no replay, and the word "not for production".
+    no stop: base64, no replay, and the word "not for production". Built (T-741, drafted 2026-11-12, UNVERIFIED): `podssh-relay`'s `smee` module and the road of `podssh node` and `podssh ssh node://NAME` after the onion road, `PODSSH_SMEE`; the server is the kind `smee` of `pod-services`, which names none yet; tested against a stand-in written from `lib/server.js` and, in `smee-interop.yml`, against `probot/smee.io` at `922d925` (2025-12-02) built by its Dockerfile, directly and through squid; the short live run of the Approach's step 1 waits for the list.
 - **hostc** (T-624; a last fallback, T-742).
   - Who, and the terms: `akazwz/hostc` on GitHub, Apache-2.0, created 2026-04-16, last push
     2026-11-06, 632 stars; the server is a Cloudflare Worker with one Durable Object for each
