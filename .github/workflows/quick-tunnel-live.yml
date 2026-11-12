@@ -325,6 +325,55 @@ jobs:
           kill -TERM "$(cat "$RUNNER_TEMP/node2.pid")" 2>/dev/null || true
           sudo iptables -D OUTPUT -p udp --dport 7844 -j DROP
 
+      # T-459: an exit behind a quick tunnel. A throwaway net whose owner
+      # gives the node the role exit and a member the range of the sshd's
+      # address; the node lends its egress behind its tunnel, and `podssh ssh
+      # --exit cf://HOST` reaches the sshd through it. The keys are Ed25519
+      # seeds of openssl's, as podssh reads them: 64 hex digits.
+      - name: an exit behind a quick tunnel
+        run: |
+          net="$RUNNER_TEMP/exitnet"
+          # Keys that podssh reads only when no other user can.
+          umask 077
+          mkdir -m 700 "$net"
+          seed() {
+            openssl genpkey -algorithm ed25519 -outform DER -out "$net/$1.der"
+            tail -c 32 "$net/$1.der" | od -An -tx1 | tr -d ' \n' >"$net/$1.key"
+            echo >>"$net/$1.key"
+            openssl pkey -inform DER -in "$net/$1.der" -pubout -outform DER | tail -c 32 | od -An -tx1 | tr -d ' \n'
+          }
+          gw=$(seed gw)
+          member=$(seed member)
+          target/debug/podssh keygen -q -t ed25519 -N '' -f "$net/owner"
+          owner() { PODSSH_NET="$net/owner.doc" target/debug/podssh "$@" --owner-key "$net/owner"; }
+          owner net init live
+          owner net add gw "$gw" --roles node,exit --routes 127.0.0.1/32
+          owner net add member "$member"
+          printf '{"rules": [{"from": ["member"], "to": ["exit:gw", "127.0.0.1/32"]}]}\n' >"$net/policy.json"
+          owner net policy set "$net/policy.json"
+          PODSSH_NET="$net/net.doc" target/debug/podssh net take "$net/owner.doc"
+          PODSSH_NET="$net/net.doc" target/debug/podssh node gw --quick-tunnel --exit --routes 127.0.0.1/32 \
+            --key "$net/gw.key" >"$RUNNER_TEMP/url5" 2>"$RUNNER_TEMP/node5.log" &
+          echo $! >"$RUNNER_TEMP/node5.pid"
+          for _ in $(seq 1 90); do grep -q "registered at" "$RUNNER_TEMP/node5.log" && break; sleep 1; done
+          host5=$(sed -n 's#^https://##p' "$RUNNER_TEMP/url5" | head -n 1)
+          [ -n "$host5" ] && echo "::add-mask::$host5"
+          sed 's/^/node5: /' "$RUNNER_TEMP/node5.log"
+          [ -n "$host5" ] || { echo "FAIL the exit's node printed no name"; exit 1; }
+          grep -q "127.0.0.1/32" "$RUNNER_TEMP/node5.log" || { echo "FAIL the exit's line named no range"; exit 1; }
+          export PODSSH_SSH_CONFIG="$RUNNER_TEMP/ssh_config"
+          set +e
+          got=$(PODSSH_NET="$net/net.doc" timeout 180 target/debug/podssh ssh --client-key "$net/member.key" \
+            --exit "cf://$host5" -p 4022 "$(whoami)@127.0.0.1" 'echo through the exit' 2>"$RUNNER_TEMP/exit.log")
+          rc=$?
+          set -e
+          sed 's/^/client (exit): /' "$RUNNER_TEMP/exit.log" | tail -n 30
+          [ "$rc" = 0 ] || { echo "FAIL podssh ssh --exit cf://HOST exited $rc"; exit 1; }
+          [ "$got" = "through the exit" ] || { echo "FAIL the command's output through the exit: $got"; exit 1; }
+          echo "ok    podssh ssh --exit cf://HOST reached the sshd through the exit behind the quick tunnel"
+          kill -TERM "$(cat "$RUNNER_TEMP/node5.pid")" 2>/dev/null || true
+          rm -rf "$net"
+
       # T-374: TCP and UDP to the edge's 7844 dropped: the node says that
       # QUIC and TCP failed, opens WARP's tunnel on port 443, registers over
       # HTTP/2 inside it, and a visitor of that third name gets in; then
@@ -402,6 +451,8 @@ jobs:
       - name: the end
         if: always()
         run: |
+          kill -TERM "$(cat "$RUNNER_TEMP/node5.pid" 2>/dev/null)" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/exitnet"
           sudo iptables -D OUTPUT -p tcp --dport 7844 -j DROP 2>/dev/null || true
           sudo iptables -D OUTPUT -p udp --dport 7844 -j DROP 2>/dev/null || true
           kill -TERM "$(cat "$RUNNER_TEMP/node4.pid" 2>/dev/null)" 2>/dev/null || true
