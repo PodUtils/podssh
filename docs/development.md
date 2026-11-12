@@ -912,7 +912,13 @@ checks that each binary has the first two roads, and the gate's step
   check, `scripts/release-short.sh BINARY --net`: `--version` against
   `Cargo.toml` and the commit, the whole manual, `keygen` and `keygen -y`,
   and GitHub's SSH banner through the live relay. No target ships that no
-  run executed.
+  run executed;
+- before the tag, Q90's live check of the public proxy nodes that the binary
+  ships (T-574): `gh workflow run proxy-nodes-live.yml --ref main`, where each
+  node alone must carry a session to `github.com:22`; a node that fails is
+  asked of podcrates to drop by a COORD issue before the tag. It runs on
+  Actions, not in `release-short.sh`: a cloud host's proxy resets TLS to the
+  nodes.
 
 The actions of each job, each named by its commit, with its tag in a
 comment: a tag can move to another commit after its review, and a commit

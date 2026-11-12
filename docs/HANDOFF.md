@@ -48,6 +48,7 @@ road). Each has a planted run that must fail, and each did.
 | VMess's AEAD form (T-739, done) | `vmess-interop.yml` | passed, run 43178390705, against Xray-core v26.10.21 |
 | Syncthing's relays (T-571) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
 | The binary's proxy nodes (T-574) | `proxy-nodes-live.yml` | 8 of 10 nodes passed, run 43157171177 |
+| The proxy lists' round against Xray-core (T-574) | `proxy-lists-interop.yml` | drafted; UNVERIFIED |
 | HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement |
 | ZeroTier (T-733) | `zerotier-live.yml` | the library passed; the command line misses its 60 s |
 

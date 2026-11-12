@@ -1,0 +1,13 @@
+--- a/crates/podssh-ws/src/proxy_nodes/filter.rs
++++ b/crates/podssh-ws/src/proxy_nodes/filter.rs
+@@ -73,9 +73,7 @@ pub fn judge(node: &Node) -> Result<(), Skip> {
+             names
+         }
+         Err(_) => {
+-            if sni != host || http != host {
+-                return Err(Skip::Fronts);
+-            }
++            let _ = (sni, http);
+             vec![host]
+         }
+     };

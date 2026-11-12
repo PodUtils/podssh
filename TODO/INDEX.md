@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 66 open, 19 partial, 10 blocked, 615 done.**
+**710 entries: 66 open, 18 partial, 10 blocked, 616 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 25 | 9 | 1 | 264 | 299 |
+| P2 | 25 | 8 | 1 | 265 | 299 |
 | P3 | 37 | 8 | 6 | 280 | 331 |
-| **All** | 66 | 19 | 10 | 615 | 710 |
+| **All** | 66 | 18 | 10 | 616 | 710 |
 
 ## Entries
 
@@ -613,7 +613,7 @@ repository and CI).
 | [T-571](mesh.md) | P3 | M | M10 | feature | done | Syncthing's relays on 443 as a last fallback of the reverse road |
 | [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |
 | [T-573](mesh.md) | P3 | S | M10 | research | done | VMess's protocol: the research, for the public proxy nodes that speak it alone |
-| [T-574](mesh.md) | P2 | M | M10 | feature | partial | The public proxy nodes of aggregator lists (VLESS, Trojan) as a last fallback of the forward road |
+| [T-574](mesh.md) | P2 | M | M10 | feature | done | The public proxy nodes of aggregator lists (VLESS, Trojan) as a last fallback of the forward road |
 | [T-575](mesh.md) | P3 | S | M10 | feature | open | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | partial | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |

@@ -9195,7 +9195,7 @@ T-739's test records it), the third list `v2go`, and any node tried.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -9244,6 +9244,29 @@ taken over; and no list at all, which Q78 rules out.
   filters above still hold (no node that fronts another party's name, or sits under a school's,
   a church's or a government's suffix). Lost: no node in the binary, which leaves the road with
   nothing where the lists' hosts are blocked.
+
+**The Prove's run against Xray-core (a draft, 2026-11-12).** Five calls of `tests/proxy_lists.rs`:
+
+- No new variable names a list. The binary reaches the stand-in by `https_proxy` and `--ca-file`
+  alone, at the host and the path of the first list of `pod-services`' catalog, as the tests of
+  the forwarders and the clouds reach theirs (`tests/cloud_support`). Lost: `PODSSH_PROXY_LISTS=https://...`
+  naming lists in place of the catalog's: a surface whose only user would be the test, and a way
+  for a run to hand the target to a list that no source of the catalog names (Q79 names each list
+  with its source).
+- Xray-core runs as a process on the runner, as `tests/vmess.rs` runs it (T-739), from the release
+  and the SHA-256 that `scripts/interop-vless.sh` pins. Lost: the Prove's container, which needs an
+  engine and an image on the runner for a static binary whose zip the pin already fixes.
+- The target is the tests' SSH server of `ssh_harness`, as each fallback test of `forwarder_cli.rs`
+  has it, and the run is `podssh ssh ... greet`, a whole session. Lost: OpenSSH's sshd, which needs
+  root or a container on the runner; the road under test is VLESS through Xray-core, and
+  `scripts/interop-vless.sh` carries OpenSSH through Xray-core already.
+- A front proxy of the test sends the node's name to Xray-core's port as it is, so Xray-core does
+  its own TLS, and each other name to the intercepting proxy; `--ca-file` holds both roots. Lost:
+  Xray-core with no TLS behind the intercepting proxy, which tests that proxy's TLS, not
+  Xray-core's.
+- A workflow of its own, `proxy-lists-interop.yml`, whose push paths are the round's. Lost: a job
+  in `vmess-interop.yml`, whose paths are VMess's. The planted run is a new group of
+  `plants.yml`, `host-xray`, on the runner where Xray-core is fetched.
 
 ## Prove
 
@@ -9361,6 +9384,35 @@ node and seven Trojan nodes gave GitHub's version line); the VLESS node at `78.1
 and the Trojan node at `70.34.207.14` timed out. Asked of podcrates to drop the two from the catalog (Q90),
 COORD-033 (#207). What stays: the run against Xray-core of the Prove, `release-short.sh`'s check, and the check
 again after podcrates' next tag.
+
+2026-11-12 (a draft, DRAFT T-574): the Prove's run against Xray-core, written, not built.
+`crates/podssh-cli/tests/proxy_lists.rs` (the file the Prove names; the Correction's two tests stay):
+`podssh ssh -v ... greet` with no road named, the direct road and the `ws://` probe off, through a front
+proxy of the test: each relay host and each forwarder gets 503 from the intercepting proxy of
+`tests/cloud_support`; the first list of the catalog, at its own host and path, serves two `vless://`
+lines, the first fronting `fronted-site.test` from `fronting-node.test`, the second `vless-node.test`,
+which the front proxy sends to Xray-core v26.10.21 (`PODSSH_XRAY_TEST_BIN`) serving VLESS over a WebSocket
+and TLS under a certificate that `openssl` makes for the run. Test
+`the_fallback_takes_a_listed_node_through_xray_and_skips_the_fronting_line`: exit 0 and the server's
+greeting; the line of the third party before the round; `-v`'s "left out: 1 with an SNI or a Host that is
+another name than the host"; the line of the node that carries, with no ID; the list fetched once; a relay
+host before the node; no CONNECT to the fronting node, the name it fronts, or a node of the binary. It says
+"did not run" with no Xray-core. Test `either_switch_turns_the_round_off` (no Xray-core): with
+`PODSSH_PROXY_LISTS=no` and with `PODSSH_LAST_RESORT=no`, exit 255 after the forwarders, `-v` says why, no
+list fetched, no node dialed. `.github/workflows/proxy-lists-interop.yml` (by hand, and on a push of the
+round): the pinned Xray-core, the test, a failure on "did not run". The plant
+`scripts/plants/t574-fronted-kept.plant` (group `host-xray`): the filter's skip of a fronting name removed, the
+test of Xray-core must fail. Merged and run by the main session the same day, with no change to its code:
+`cargo test -p podssh-cli --test proxy_lists` with no Xray-core, 2 passed (the switches' test passes, the test of
+Xray-core says "did not run"); with Xray-core v26.10.21 (its pinned zip, checked by its SHA-256) in `.work/`, 2
+passed; the plant `t574-fronted-kept` applied, the test of Xray-core fails at its check of the fronting line, and
+passes restored.
+
+2026-11-12 (main session): the live check again after podcrates' tags (`proxy-nodes-live.yml`, run 43305389601 at
+v0.34.0): each of the catalog's 8 nodes (one VLESS, seven Trojan; #207 dropped two) carried a session to
+`github.com:22`. The check of the built-in nodes before a release is that workflow, written into the release's
+steps (`docs/development.md`, "Release builds"), not `release-short.sh`: a cloud host's proxy resets TLS to the
+nodes. The entry is done.
 
 
 # T-575: serv00's public Piping Server as the third server of the Piping Server road
@@ -10754,7 +10806,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:305-306`), and needs the net's role exit, signed by
   its owner (`:303-304`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:156`).
+  (`docs/STATUS.md:157`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.

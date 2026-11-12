@@ -1,0 +1,12 @@
+# T-574: the filters of Q79 keep a node whose SNI and Host are another name
+# than its host, so the round dials the line that fronts another name before
+# the node of Xray-core; the test of the process, against Xray-core through a
+# list that a stand-in serves, must fail. On the runner, not in the build
+# image: Xray-core of the pinned release (scripts/interop-vless.sh), its zip
+# checked against its SHA-256.
+ENTRY=T-574
+GROUP=host-xray
+EXPECT='test the_fallback_takes_a_listed_node_through_xray_and_skips_the_fronting_line \.\.\. FAILED'
+SETUP='test -x .work/xray/xray || { mkdir -p .work/xray && curl -qfsSL --retry 3 --max-time 120 -o .work/xray/xray.zip https://github.com/XTLS/Xray-core/releases/download/v26.10.21/Xray-linux-64.zip && echo "0eec3ed4163c273d8c8bf821f7d219e257921cf584aa3fb970715e458e631978  .work/xray/xray.zip" | sha256sum -c - && python3 -I -c "import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extract(\"xray\", sys.argv[2])" .work/xray/xray.zip .work/xray && chmod 755 .work/xray/xray; }'
+RUN='PODSSH_XRAY_TEST_BIN="$PWD/.work/xray/xray" cargo test --locked --no-fail-fast -p podssh-cli --test proxy_lists -- the_fallback_takes_a_listed_node_through_xray_and_skips_the_fronting_line'
+LIMIT=1800

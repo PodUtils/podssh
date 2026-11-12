@@ -1,0 +1,64 @@
+name: proxy lists interop
+
+# The public proxy nodes of the lists as the last fallback of the forward
+# road (T-574, the operator's rulings Q78, Q79 and Q90), as a process, against
+# Xray-core, a server that podssh did not write: the release that
+# scripts/interop-vless.sh pins (its zip checked against the pinned SHA-256),
+# run by crates/podssh-cli/tests/proxy_lists.rs on the loopback, serving VLESS
+# over a WebSocket and TLS with a certificate that openssl makes for the run,
+# named in a list that a stand-in serves at the catalog's first list. The
+# fallback takes the node and reaches the test's SSH server; the line that
+# fronts another name is skipped; stderr says the third party. The test of
+# Xray-core says "did not run" with no Xray-core, so the job fails on that
+# word. Started by hand, and on a push that changes the road; it publishes
+# nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-cli/src/forwarder/nodes.rs"
+      - "crates/podssh-cli/src/forwarder/fallback.rs"
+      - "crates/podssh-ws/src/proxy_nodes/**"
+      - "crates/podssh-ws/src/vless/**"
+      - "crates/podssh-cli/tests/proxy_lists.rs"
+      - ".github/workflows/proxy-lists-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: proxy-lists-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XRAY_RELEASE: "v26.10.21"
+  XRAY_SHA256: "0eec3ed4163c273d8c8bf821f7d219e257921cf584aa3fb970715e458e631978"
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Xray-core of the pinned release
+        run: |
+          set -eu
+          mkdir -p .work/xray
+          curl -qfsSL --retry 3 --max-time 120 -o .work/xray/xray.zip \
+            "https://github.com/XTLS/Xray-core/releases/download/$XRAY_RELEASE/Xray-linux-64.zip"
+          echo "$XRAY_SHA256  .work/xray/xray.zip" | sha256sum -c -
+          python3 -I -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extract("xray", sys.argv[2])' \
+            .work/xray/xray.zip .work/xray
+          chmod 755 .work/xray/xray
+          echo "PODSSH_XRAY_TEST_BIN=$PWD/.work/xray/xray" >> "$GITHUB_ENV"
+      - name: the fallback against Xray-core
+        run: |
+          set -o pipefail
+          timeout 1500 cargo test --locked -p podssh-cli --test proxy_lists -- --nocapture 2>&1 | tee "$RUNNER_TEMP/proxy-lists.log"
+          grep -q "test result: ok. 2 passed" "$RUNNER_TEMP/proxy-lists.log"
+          if grep -q "did not run" "$RUNNER_TEMP/proxy-lists.log"; then echo "a test did not run"; exit 1; fi
