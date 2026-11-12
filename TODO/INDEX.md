@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**708 entries: 81 open, 18 partial, 10 blocked, 599 done.**
+**708 entries: 80 open, 19 partial, 10 blocked, 599 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 26 | 9 | 1 | 263 | 299 |
+| P2 | 25 | 10 | 1 | 263 | 299 |
 | P3 | 51 | 7 | 6 | 265 | 329 |
-| **All** | 81 | 18 | 10 | 599 | 708 |
+| **All** | 80 | 19 | 10 | 599 | 708 |
 
 ## Entries
 
@@ -783,4 +783,4 @@ repository and CI).
 | [T-750](mesh.md) | P3 | M | M10 | feature | done | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
 | [T-751](machine.md) | P3 | S | M10 | feature | done | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |
 | [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
-| [T-753](robustness.md) | P2 | M | M10 | defect | open | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
+| [T-753](robustness.md) | P2 | M | M10 | defect | partial | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |

@@ -427,3 +427,38 @@ fn podssh_ssh_runs_a_command_on_openssh_s_sshd_through_a_node_on_a_carrier() {
 
 #[path = "node_carrier/clients.rs"]
 mod clients;
+
+/// An echo that answers only once its input ended, `late` after it: the
+/// whole answer comes after the operator's input is over (T-753).
+fn late_echo(late: Duration) -> u16 {
+    let echo = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = echo.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        for stream in echo.incoming().map_while(Result::ok) {
+            std::thread::spawn(move || {
+                let mut reader = stream.try_clone().unwrap();
+                let mut writer = stream;
+                let mut got = Vec::new();
+                let _ = reader.read_to_end(&mut got);
+                std::thread::sleep(late);
+                let _ = writer.write_all(&got);
+            });
+        }
+    });
+    port
+}
+
+/// The node's answer that comes after the operator's input ended still
+/// reaches the operator's output, whole (T-753).
+#[test]
+fn an_answer_that_comes_after_the_input_ended_reaches_the_operator_whole() {
+    let home = scratch("carrier-late");
+    let _scratch = Scratch(home.clone());
+    let target = format!("127.0.0.1:{}", late_echo(Duration::from_millis(1500)));
+    let carrier = node_exec(&target, "");
+    let sent = pattern(64 << 10);
+    let (code, out, err) = run_with(podssh(&home, &["operator", "--carrier", &carrier, "box"]), sent.clone(), LIMIT);
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(out.len(), sent.len(), "{err}");
+    assert!(out == sent, "the bytes came back changed: {err}");
+}

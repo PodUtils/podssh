@@ -2195,7 +2195,7 @@ next failure, which now names the program's verdict.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2228,4 +2228,13 @@ cargo test -p podssh-cli --test node_carrier
 ```
 
 The new test of a slow tail passes, and fails with the drop planted; the Windows job passes `node_carrier`.
+
+## Done
+
+Partial, 2026-11-12. A late answer is not it on Linux: `an_answer_that_comes_after_the_input_ended_reaches_the_operator_whole`
+(an echo that answers 1.5 s after its input ended, 64 KiB) passes (`cargo test -p podssh-cli --test node_carrier`),
+so the layer waits for the far end's last bytes there. The reset (10054) is Windows' own: a socket closed with
+bytes unread sends a reset there, not a FIN. Next: which end closes a socket with bytes unread at the end of a
+session on Windows (the node's target socket, or the carrier's), from the job's log with `-v` on a run of the
+Windows job alone.
 
