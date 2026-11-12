@@ -110,7 +110,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 66 open, 21 partial, 11 blocked, 612 done.
+`TODO/INDEX.md` holds 710 entries: 66 open, 20 partial, 11 blocked, 613 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -170,8 +170,7 @@ parts are named so that the open ones read in their place):
 3. Exit, routes, share and funnel (the exit, `doctor --exit`, the net's routes and `podssh share`
    are done): T-459 (the funnel and a member that relays between two members are done; the status
    of the net, `ping` of a node and doctor's sections are done).
-4. The public carriers of Q65 (the Piping Server road from end to end is done; T-450 from the runs
-   of `transit-live.yml`; the protocols of Q66 are done), XHTTP over HTTP/1.1 (Q67, done), then
+4. The public carriers of Q65 (the Piping Server road from end to end is done; the transit road's misses of 2026-11-06 are done, from a run of `transit-live.yml`; the protocols of Q66 are done), XHTTP over HTTP/1.1 (Q67, done), then
    what the research of more services (done) filed: the protocols of servers that a user runs
    (chisel's, Outline's, Shadowsocks 2022, Trojan, NaiveProxy's, trojan-gfw's, trojan-go's and
    frp's are done), upterm's door (done) and a second Piping Server (done), T-496 and T-499

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 66 open, 21 partial, 11 blocked, 612 done.**
+**710 entries: 66 open, 20 partial, 11 blocked, 613 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 37 | 9 | 7 | 278 | 331 |
-| **All** | 66 | 21 | 11 | 612 | 710 |
+| P3 | 37 | 8 | 7 | 279 | 331 |
+| **All** | 66 | 20 | 11 | 613 | 710 |
 
 ## Entries
 
@@ -521,7 +521,7 @@ repository and CI).
 | [T-447](mesh.md) | P2 | M | M10 | feature | done | `podssh relay serve` takes its certificate from ACME, and reads it again on SIGHUP |
 | [T-448](mesh.md) | P2 | M | M10 | feature | done | The relay role mints tokens for the keys of an allowlist or of the net |
 | [T-449](mesh.md) | P2 | S | M10 | defect | done | A test of the podssh-relay suite failed once in 11 runs, unnamed |
-| [T-450](mesh.md) | P3 | S | M10 | defect | partial | Three live runs of the transit road met nobody within 20 s |
+| [T-450](mesh.md) | P3 | S | M10 | defect | done | Three live runs of the transit road met nobody within 20 s |
 | [T-451](mesh.md) | P2 | M | M10 | measurement | done | The Piping Server road from end to end: `podssh node` and `ssh node://` behind a proxy that refuses the upgrade |
 | [T-452](mesh.md) | P3 | S | M10 | feature | done | A node of the DERP road whose key is a member of the net starts with no `--allow` |
 | [T-453](mesh.md) | P3 | S | M10 | feature | done | `podssh cp` and `podssh sftp` reach a member of the net by its name alone |

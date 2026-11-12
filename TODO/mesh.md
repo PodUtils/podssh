@@ -3298,7 +3298,7 @@ checked before they reach a shell.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3346,6 +3346,13 @@ Partial, 2026-11-06, at `1eb6a8b` from this cloud session's host: `cargo test -p
 transit -- --ignored`, 20 runs in a row, each met (2 passed a run, 3.3 s to 5.9 s). Not reproduced; the
 runs of `transit-live.yml` on GitHub Actions wait, as Actions start no workflow for this account on
 2026-11-06 (GitHub #152). It stays partial for the runs on a runner, or the next run that meets nobody.
+
+Done, 2026-11-12: `transit-live.yml` at `e81ca7f5` (run 43024636136, 2026-11-11, by hand) met on a runner:
+against magic-wormhole's own transit relay on the loopback 5 passed; through Least Authority's relay
+`wss://relay.mw.leastauthority.com` 2 passed in 7.5 s (two meetings, 1 MiB each way, one session of the
+resumable layer); the planted run, whose ends never pair, failed as it must. Not reproduced in 20 runs here
+and one on a runner: the three misses of 2026-11-06 were the relay's, not podssh's. The weekly run of
+`transit-live.yml` (Wednesdays, 05:41 UTC) watches it; a run that meets nobody opens a new entry.
 
 # T-451: The Piping Server road from end to end: `podssh node` and `ssh node://` behind a proxy that refuses the upgrade
 
@@ -9477,9 +9484,10 @@ Partial (step 1, the measurement of three days):
 - 2026-11-12, from a cloud session: no measurement. Its agent proxy failed the demo's certificate
   ("CERTIFICATE_VERIFY_FAILED" before any header), so the 503 that came back was the proxy's.
 - `httprelay-probe.yml` measures from Actions: once a day at 14:17 UTC, and by hand. Its line
-  `VERDICT` says whether `/health` and one exchange on a random `/link/` channel answered. Day 1, 2
-  and 3 are UNVERIFIED until its runs are read. Then the entry ends with the measurement where the
-  demo never answers, or goes on to step 2.
+  `VERDICT` says whether `/health` and one exchange on a random `/link/` channel answered. Then the
+  entry ends with the measurement where the demo never answers, or goes on to step 2.
+- Day 1, 2026-11-12 18:49 UTC (run 43283825054, by hand): `VERDICT down: health 503, post 503, get 503`.
+  Days 2 and 3 are the daily runs of 2026-11-13 and 2026-11-14.
 
 # T-577: Bare servers as a hop to a WebSocket road: the research
 
