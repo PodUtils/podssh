@@ -45,12 +45,13 @@ const DIAL_LIMIT: Duration = Duration::from_secs(8);
 const WAITING: usize = 64;
 
 /// The relay role behind the tunnel, and the tunnel's name now, whose
-/// origin takes the role's paths (T-428); `alone` with no TARGET.
+/// origin takes the role's paths (T-428); `alone` with no TARGET. The hostc
+/// road serves its streams so too (T-742, `node_hostc_serve`).
 #[derive(Clone)]
-struct Behind {
-    role: Option<Arc<RelayRole>>,
-    name: Arc<Mutex<String>>,
-    alone: bool,
+pub(crate) struct Behind {
+    pub(crate) role: Option<Arc<RelayRole>>,
+    pub(crate) name: Arc<Mutex<String>>,
+    pub(crate) alone: bool,
 }
 
 impl Behind {
@@ -63,7 +64,7 @@ impl Behind {
 /// Serve each visitor of `visitors` until its sender ends (the tunnel
 /// ended): its first request, then, for a WebSocket, the layer's far end
 /// with `keeper`, whose sessions outlive this tunnel.
-async fn visitors_served<A, O, F>(
+pub(crate) async fn visitors_served<A, O, F>(
     mut visitors: mpsc::Receiver<Visitor>,
     behind: Behind,
     open: O,
@@ -98,7 +99,7 @@ async fn visitors_served<A, O, F>(
 /// The node's lines of a new name: said, kept under the label in the cache
 /// for a client of this host, and put in the record in the place of the
 /// last.
-fn named(name: &str, label: &str, tell: &crate::node_record::Tell, say: &Say) {
+pub(crate) fn named(name: &str, label: &str, tell: &crate::node_record::Tell, say: &Say) {
     say(format!("tunnel https://{name} (podssh ssh node://{label} --tunnel-url https://{name})"));
     let file = crate::node_ssh_http::name_file(label);
     match podssh_relay::cache::store_file(&file, format!("https://{name}\n").as_bytes()) {

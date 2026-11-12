@@ -130,6 +130,7 @@ fn prepare(args: &NodeArgs) -> Result<Ready, Refusal> {
         (args.localhost_run, "--localhost-run"),
         (args.sandhole, "--sandhole"),
         (args.localtunnel, "--localtunnel"),
+        (args.hostc, "--hostc"),
         (args.bore, "--bore"),
     ];
     if let Some((_, flag)) = alone.iter().find(|(given, _)| *given) {

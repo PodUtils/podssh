@@ -157,6 +157,12 @@ ssh-http = ["quick", "pinggy"]
 # reader of a visitor's WebSocket (`quick`), with the Pinggy road's switches
 # and the OpenTunnel road's dials (`pinggy`). No C either; the gate builds it.
 localtunnel = ["serve", "quick", "pinggy"]
+# The hostc road (T-742): a last fallback of Q78 through hostc's public
+# server, whose node keeps one WebSocket through `HTTPS_PROXY` and serves each
+# stream on it as a visitor of a tunnel of `ssh -R` (`ssh-http`: the relay
+# role's origin and the reader of a link), with the Pinggy road's switches.
+# No C either; the gate builds it.
+hostc = ["ssh-http"]
 # The bore road (T-569): a last fallback of Q78 through bore.pub, a public
 # TCP port of bore's protocol (JSON frames on the control port 7835) at a
 # port of the node's key, whose client reaches it raw, through the caller's

@@ -55,6 +55,10 @@ pub const NODE_SANDHOLE: FlagRow = row(None, "sandhole", None, FlagKind::Support
 #[rustfmt::skip]
 pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKind::Supported,
     "node://NAME: race the road of a tunnel of HTTP made by ssh -R (localhost.run's) to https://HOST, the name that the node prints, 250 ms after the road before it: a WebSocket at / of HOST, whose TLS this host's roots verify; the name is kept under NAME, and a later run that gives none dials it, or the one of the node's record, last, when each road before it failed; a free name changes after a few hours", None);
+/// `node --hostc` (T-742).
+#[rustfmt::skip]
+pub const NODE_HOSTC: FlagRow = row(None, "hostc", None, FlagKind::Supported,
+    "serve TARGET over the hostc road, an HTTPS name at hostc's public server with no account (where podssh's list of services names it, or the server of env PODSSH_HOSTC): the node asks the server over HTTPS for a tunnel, then keeps one WebSocket to it on port 443, both through the proxy, so it passes where a WebSocket does; each visitor's request or WebSocket comes down that socket; the name is random: the node says it, keeps it under NAME and puts it in its record, and a client takes it as a tunnel of ssh -R's (--tunnel-url https://NAME, or the record), last; with --relay, the relay role answers its paths there too, and TARGET may be left out; the URL is the line on stdout; a third party that nobody vouches for, which ends the visitors' TLS, so a last fallback; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door", None);
 /// `node --localtunnel`.
 #[rustfmt::skip]
 pub const NODE_LOCALTUNNEL: FlagRow = row(None, "localtunnel", None, FlagKind::Supported,
