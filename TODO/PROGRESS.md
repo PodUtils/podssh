@@ -74,9 +74,9 @@ item whenever it appears.
    a failure is repaired and its entry closed, or the night ends with none.
 3. **ZeroTier's road is done** (2026-11-11): live through the roots and the relay at `b738a6ff`,
    and in `RELEASE_FEATURES`; the hand run of `release.yml` checks each target's build with it.
-6. **osewa's entries are done** (T-678, T-680, T-681 and T-752); now **T-734: Tox's TCP
-   relays on 443** (offline; a short live run when the road works), in the work order's rule 5
-   (the operator, 2026-11-11). Done when each Prove passes.
+6. **osewa's entries are done** (T-678, T-680, T-681 and T-752), and **T-734: Tox's TCP relays
+   on 443** is done (2026-11-12: live through a public node from Actions in 4.2 s; the relays of
+   `pod-services` wait for podcrates, #196).
 7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
    passes.
 8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
@@ -127,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 80 open, 20 partial, 10 blocked, 599 done.
+`TODO/INDEX.md` holds 709 entries: 80 open, 19 partial, 10 blocked, 600 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -200,7 +200,7 @@ parts are named so that the open ones read in their place):
    (T-574); then the research of the overlay networks (NetBird, Firezone, ZeroTier, Tox,
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
-   (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (T-734), Yggdrasil's
+   (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
    peers (T-735), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last

@@ -12910,7 +12910,7 @@ plant `t733-other-pair` follows the cfg of the road's code. The release run is d
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13012,8 +13012,13 @@ progress; a FIN carries the length; the relay's pings answered).
   their TCP relay on 443 from the Tox project's own list at run time (no host of another party in the
   source) and runs `derp_tox` through each until one passes. From this cloud session the five nodes of 443
   could not be reached: its proxy resets a raw connection to them, and with no proxy something on its path
-  answers in the relay's place (the answer does not open under the node's key). UNVERIFIED until the
-  job's first run on Actions.
+  answers in the relay's place (the answer does not open under the node's key). On Actions (run 43146221207,
+  at `8d31fd3b`): the job `interop` passed (the two tests with `tox-bootstrapd`, and the plants, 2 caught), and
+  the job `live` reached the node through the first public node of 443 of the list, 205.185.115.131:443:
+  `podssh ssh node://` through the Tox road in 4.2 s.
+
+Done, 2026-11-12. The road reads `pod-services`' list of the relays once podcrates names them (COORD-028, #196,
+open); until then a relay is named by `PODSSH_TOX`.
 
 
 # T-735: Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair

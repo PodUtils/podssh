@@ -2245,3 +2245,7 @@ the test's echo, before its last 288 bytes were read. The test's echo now says w
 bytes back, and whether its read, its write or its shutdown failed) in the failure's message; next, the test
 50 times on `windows-2025` (`suite-repeat.yml`, package podssh-cli, test node_carrier).
 
+2026-11-12: `suite-repeat.yml` at `8d31fd3b` (run 43146225199), 50 runs of the test on `windows-2025`: 50 passed. The
+failure is rare (once in the gate's runs since `a834dbed`); the test's echo now names what each connection saw,
+so the next failure on the gate's windows job says which side reset. Next: that failure's message.
+
