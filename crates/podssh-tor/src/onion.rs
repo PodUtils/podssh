@@ -81,6 +81,25 @@ pub struct ServiceOptions {
 }
 
 /// Whether `host` is an onion address of a v3 service: 56 letters of base32
+/// `stream` as a pipe whose task copies both ways and flushes Arti's stream
+/// each time its source has nothing more: a stream of Tor keeps a partial
+/// cell until it is full or flushed, and a pump that never flushes (a road
+/// written for TCP) would hold a short message there for ever. The task
+/// owns the stream, so the service and the client stay up with it.
+pub fn bridged(stream: crate::TorStream) -> tokio::io::DuplexStream {
+    const PIPE: usize = 64 * 1024;
+    let (ours, mut theirs) = tokio::io::duplex(PIPE);
+    tokio::spawn(async move {
+        let mut stream = stream;
+        let _ = tokio::io::copy_bidirectional(&mut theirs, &mut stream).await;
+    });
+    ours
+}
+
+/// The detail of [`Onion::published`]'s failure when the service ended,
+/// which no longer wait can mend.
+pub const STOPPED: &str = "the service stopped";
+
 /// and `.onion`, its checksum right.
 pub fn is_onion(host: &str) -> bool {
     HsId::from_str(host).is_ok()
@@ -192,7 +211,7 @@ impl Onion {
         };
         match tokio::time::timeout(wait, reached).await {
             Ok(true) => Ok(()),
-            Ok(false) => Err(failure(STEP, "the service stopped")),
+            Ok(false) => Err(failure(STEP, STOPPED)),
             Err(_) => {
                 let status = self.service.status();
                 let problem = status.current_problem().map_or_else(String::new, |p| format!(": {p:?}"));

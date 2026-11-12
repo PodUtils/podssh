@@ -42,7 +42,14 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-578, T-581 and T-580 merged, 2026-11-12).
+8. **Drafts.** Four wait, each never built, to merge in the index's order:
+
+   | Draft | Branch | Commit | State |
+   | --- | --- | --- | --- |
+   | T-582 | `draft-t582` | `cc81644` | drafted: connect-ip over HTTP/3 in `podssh-warp` (feature `h3`), `PODSSH_WARP_H3` |
+   | T-621 | `draft-t621` | `b08f0a8` | drafted: `--turn` (RFC 6062) in `podssh-ws/src/turn/` |
+   | T-741 | `draft-t741` | `26b5b4f` | drafted: smee.io's road in `podssh-relay/src/smee/`; its server waits for `pod-services` |
+   | T-742 | `draft-t742` | `74b6e4f` | drafted: hostc's road in `podssh-relay/src/hostc/`; its server waits for `pod-services` |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -78,9 +85,8 @@ item whenever it appears.
     (COORD-033, #207); the run against Xray-core and `release-short.sh`'s check stay.
 11. **The take of `pod-relay`** is done (2026-11-12, podcrates v0.27.0; T-684).
 12. **The rest of M10's item 4, in the work order's order** (offline first, each with a short live
-    run): T-571, T-576, T-578, T-738 (T-739 is done; T-740 stays blocked; T-566, T-567 and T-575 are
-    parked), then T-580 (done), T-581 and T-582 (live where UDP passes), then T-625, T-621, T-741 and
-    T-742. Done when each Prove passes, one entry at a time.
+    run): T-576, T-578, T-738 (T-571, T-737 and T-739 are done; T-740 stays blocked; T-566, T-567 and
+    T-575 are parked), then T-582 (T-580 and T-581 are done), then T-625, T-621, T-741 and T-742. Done when each Prove passes, one entry at a time.
 13. **No beta tonight** (the operator, 2026-11-11): the next beta waits until podssh is nearly
     complete, so that the testers test finished features. Questions that come up overnight are
     settled with the other sessions by COORD issues, and forks of policy as Q86 says.
@@ -114,7 +120,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 71 open, 21 partial, 10 blocked, 607 done.
+`TODO/INDEX.md` holds 709 entries: 71 open, 20 partial, 10 blocked, 608 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -136,7 +142,7 @@ operator interrupts it.
    podssh's (T-111's serve, for one). T-085 keeps its two boxes only (Q103: the facade goes with
    `pod-relay`).
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
-   entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-571, T-574 to
+   entries, P1 before any other; their features (T-532, T-545, T-548, T-566, T-567, T-574 to
    T-576, T-578 and T-582, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
@@ -189,7 +195,7 @@ parts are named so that the open ones read in their place):
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
    peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (done),
-   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
+   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and
    T-575 parked); and the roads over UDP (T-582; Hysteria 2's and TUIC's are done). These are features of a tester's

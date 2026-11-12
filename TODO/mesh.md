@@ -8953,7 +8953,7 @@ Done; the containers of the Prove wait for the checks of a release (T-251).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -9013,7 +9013,7 @@ one of them, and the key of the refused one, which `findSession` spent at its lo
 
 ## Done
 
-Partial, 2026-11-12. The library, behind the feature `strelay` of podssh-relay (`crates/podssh-relay/src/strelay/`):
+Done, 2026-11-12 (the last item below). Begun as partial, 2026-11-12. The library, behind the feature `strelay` of podssh-relay (`crates/podssh-relay/src/strelay/`):
 the protocol's messages in XDR (`wire.rs`); an Ed25519 certificate made the same each time from a seed, so the node's
 device ID (the SHA-256 of its certificate) comes from the pair's name and connect token, and rustls's TLS with it as
 the client's certificate (signed here: podssh-ws's provider loads no private key), the relay held to its own device
@@ -9052,7 +9052,9 @@ the client's connect request and its session, 100 ms after the invitation so tha
   passed (`the_listed_relays_read_with_their_device_ids`: no row left out).
 - `strelay-interop.yml`'s job `live` (run 43205562302, at `e557f1e`) passed through a relay of the pool in 3.0 s, but
   its first try, the relay of the list, never ran the road: the lab's command sets `PODSSH_SYNCTHING_RELAY=no`, and
-  `list` set nothing in its place. The test now removes it for `list`. Next: the live job again, then close.
+  `list` set nothing in its place. The test now removes it for `list`.
+- Done (2026-11-12): the live job again (run 43219710646, at `562751d`): `podssh ssh node://` through the relay that
+  `pod-services`' list gives the pair, on 443, in 2.8 s; the interop job passed too.
 
 # T-572: File hosts and paste sites as a carrier that stores and forwards: the research
 
@@ -9676,10 +9678,24 @@ Merged on 2026-11-12 (the draft `draft-t578`, `2fe94e3`, built and run; steps 2 
   `Bootstrapping` at 180 s on the runner's chutney network, where it passed at `1043025` and in 7 s on this host: a
   wait too short for a busy runner (the live network needed 329 s). The private network's wait is now 600 s, as the
   live one's, and the test prints the time that the publish took.
-- Next: (1) a test of the command line from end to end on chutney (`podssh ssh node://NAME` through the onion
-  road alone, as `tor_private` runs the Tor road); (2) the record of pkarr (an `onion=` key and the node's
-  `Tell`), so that a client finds the address with no `PODSSH_ONION`; (3) `docs/carriers.md`'s verdict on onion
-  services.
+- The command line from end to end on chutney (`crates/podssh-cli/tests/derp_onion/mod.rs`, in `derp_road` with
+  the feature `tor`, run by the gate's job `tor-net`): a node of DERP with a pair serves its onion service, and `podssh
+  ssh node://` on another home, given the address by `PODSSH_ONION`, reaches it through the onion road alone. Its
+  first runs found two defects, both repaired:
+  - the node's link stalled after the layer's first message ("0 bytes from the node, 47 to it"): a stream of Tor keeps
+    a partial cell until it is full or flushed, and the roads' pumps, written for TCP, never flush. Each onion stream,
+    at the node and at the client, is now `podssh_tor::onion::bridged`, a pipe whose task copies with
+    `copy_bidirectional`, which flushes Arti's stream each time its source has nothing more;
+  - a node whose descriptor took past its 300 s wait said "it goes on trying" and never said when it was published:
+    it now waits on, says so at each wait's end, and says when it is published (or that the service stopped, by
+    `podssh_tor::onion::STOPPED`).
+  `PODSSH_TEST_TOR_NETWORK=... cargo test -p podssh-cli --features tor --test derp_road -- derp_onion`: 1 passed,
+  `podssh ssh node://` through the onion road in 1.3 s. Planted: the bridge removed at both ends, and the client never
+  ends (240 s). On a fresh chutney network the first publish took 447 s (its HSDirs come late), on an older one 0 s.
+  The lab's command now sets `PODSSH_ONION=no`, as for each other road, so that no other test of a `tor` build
+  bootstraps into Tor's own network.
+- Next: (1) the record of pkarr (an `onion=` key and the node's `Tell`), so that a client finds the address with no
+  `PODSSH_ONION`; (2) `docs/carriers.md`'s verdict on onion services.
 
 # T-579: libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session
 

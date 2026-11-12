@@ -20,6 +20,8 @@ mod derp_croc;
 #[cfg(feature = "hyperdht")]
 mod derp_hyperdht;
 mod derp_net;
+#[cfg(feature = "tor")]
+mod derp_onion;
 #[cfg(feature = "strelay")]
 mod derp_strelay;
 mod derp_support;
@@ -94,7 +96,8 @@ fn command(home: &Path, args: &[&str]) -> Command {
         .env("PODSSH_TOX", "no")
         .env("PODSSH_YGGDRASIL", "no")
         .env("PODSSH_HYPERDHT", "no")
-        .env("PODSSH_SYNCTHING_RELAY", "no");
+        .env("PODSSH_SYNCTHING_RELAY", "no")
+        .env("PODSSH_ONION", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
     cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");

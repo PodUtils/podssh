@@ -134,14 +134,27 @@ where
          on another host",
         crate::onion::ENV
     ));
-    match onion.published(PUBLISH_WAIT).await {
-        Ok(()) => line("its descriptor is published".to_string()),
-        Err(failure) => line(format!("{failure}; it goes on trying")),
+    // No client can find the service before its descriptor is out, so the
+    // node waits for it, saying so at each wait's end, and says when it is.
+    let began = std::time::Instant::now();
+    loop {
+        match onion.published(PUBLISH_WAIT).await {
+            Ok(()) => {
+                line(format!("its descriptor is published, in {} s", began.elapsed().as_secs()));
+                break;
+            }
+            Err(failure) if failure.detail == podssh_tor::onion::STOPPED => {
+                line(format!("{failure}; the node serves its other roads"));
+                return std::future::pending().await;
+            }
+            Err(failure) => line(format!("{failure}; it goes on trying")),
+        }
     }
     let (queue, visitors) = tokio::sync::mpsc::channel::<Visitor>(64);
     tokio::spawn(async move {
         while let Some(stream) = onion.accept().await {
-            let visitor = Visitor { stream: Box::new(stream), peer: "the onion service".into() };
+            let visitor =
+                Visitor { stream: Box::new(podssh_tor::onion::bridged(stream)), peer: "the onion service".into() };
             if queue.send(visitor).await.is_err() {
                 return;
             }

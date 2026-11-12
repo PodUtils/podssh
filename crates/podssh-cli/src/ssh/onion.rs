@@ -115,7 +115,7 @@ impl OnionRoads {
         let port = crate::onion::VIRTUAL_PORT;
         let stream = tor.connect_onion(address, port, Some(&key), LIMIT).await;
         let stream = stream.map_err(|f| format!("the onion road: {f}"))?;
-        Ok(Road::Onion(Box::new(stream)))
+        Ok(Road::Onion(Box::new(podssh_tor::onion::bridged(stream))))
     }
 
     #[cfg(not(feature = "tor"))]

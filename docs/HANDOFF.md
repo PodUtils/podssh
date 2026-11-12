@@ -33,7 +33,8 @@ report is COORD-038, #212).
 
 | Issue | Waits for |
 | --- | --- |
-| (none) | #209 and #210 are answered by v0.30.0 |
+| #213 (COORD-039) | `pod-services`: smee.io's and hostc's servers (T-741, T-742) |
+| #214 (COORD-040) | `pod-proxy`'s STUN signatures, so that podssh's TURN road drops its copies (T-621) |
 
 ## The live runs and interop harnesses
 
@@ -55,10 +56,10 @@ road). Each has a planted run that must fail, and each did.
 
 | Entry | State and next step |
 | --- | --- |
-| T-571 | Partial. The list is read; its live job must run once more with the lab's switch removed (`strelay-interop.yml`, by hand), then close. |
+| T-571 | Done (2026-11-12): live through the list's relay. |
 | T-737 | Done (2026-11-12): live through shiftr.io's broker. |
 | T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
-| T-578 | Partial. Tested on chutney and live on Tor's own network (329 s). Next: a test of the command line from end to end on chutney, then pkarr's `onion=`. |
+| T-578 | Partial. On chutney from end to end (1.3 s) and live on Tor's own network. Next: the node's `onion=` in pkarr's record, then `docs/carriers.md`'s verdict. |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
 | T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` passed from Actions (run 43178390705). |
 | T-580 | Done (2026-11-12): against Hysteria's own server; `hysteria-interop.yml` from Actions. |
