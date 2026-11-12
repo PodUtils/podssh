@@ -3591,7 +3591,7 @@ The copies do ask the net (read 2026-11-02). Each reads its operand with its own
 (`crates/podssh-cli/src/cp/operand.rs:114`), and hands the server to `ssh`'s resolution
 (`crates/podssh-cli/src/cp/mod.rs:299`, `crates/podssh-cli/src/sftp/mod.rs:216`,
 `crates/podssh-cli/src/edit/mod.rs:153`), which reads the destination's node before its host
-(`crates/podssh-cli/src/ssh/resolve.rs:141`), and a name alone there in the net
+(`crates/podssh-cli/src/ssh/resolve.rs:142`), and a name alone there in the net
 (`crates/podssh-cli/src/ssh/node.rs:44` says "crate::net::lookup::bare(text)"); the copy's link then reaches `Transport::Node` through the pair
 (`crates/podssh-cli/src/cp/link.rs`, lines 161-162 at `6a62cdc`). So `podssh cp FILE lab:PATH` and `podssh sftp lab`
 already resolve to the member's node. What was missing: a test that proves it, the manual's and
@@ -4922,7 +4922,7 @@ that takes the destination from its client; podssh cannot use it.
   remotes; a channel `chisel` for each tunnel, its extra data `HOST:PORT`, which the server dials
   before it accepts; `ping` requests both ways.
 - The roads of servers that the user names in place of the relay are chained in one place:
-  `crates/podssh-cli/src/ssh/servers.rs:17` says "pub(super) fn or_relay".
+  `crates/podssh-cli/src/ssh/servers.rs:24` says "pub(super) fn or_relay".
 - russh links aws-lc, which rule 4 of `AGENTS.md` (section 5) keeps out of podssh-ws.
 
 ## Approach
@@ -6270,7 +6270,7 @@ keep it for the whole run (`crates/podssh-cli/src/cp/link.rs`, line 161 at `6a62
 `ssh::roads::connect` runs SSH itself over the layered stream, its roads borrowing the run's
 locals (`crates/podssh-cli/src/ssh/roads.rs`, lines 238-246 at `6a62cdc`). So the copies need the race in a task of
 its own, which owns what the roads borrow. Measured: `Transport` is `Clone`
-(`crates/podssh-cli/src/ssh/resolve.rs:24`), and each road's future is `Send` already (the type
+(`crates/podssh-cli/src/ssh/resolve.rs:23`), and each road's future is `Send` already (the type
 `Going` with `+ Send` compiled with no change elsewhere). The Approach's item 1 is then: the body
 of `connect` as a function that hands the layered stream to a closure in the place of
 `podssh_ssh::run`; `connect` passes SSH, and a copy's `reach` spawns it with a clone of the
@@ -9811,7 +9811,7 @@ takes by the next tag; a test of the moved code then runs there.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -9842,6 +9842,30 @@ road with no relay. podssh does not speak it (Q82).
    and a wrong token a connection that it closes; podssh names each by what it saw.
 4. T-580's probe of UDP first, and T-580's Decision on the order.
 
+## Decision
+
+2026-11-12, the draft (T-580's Decision on the order holds: a server that the user names is tried as asked
+once its probe found UDP; with no answer the road ends at once with its words, 69):
+
+- The exporter's label is the UUID's 16 bytes and its context the raw password, 32 bytes, as sing-box
+  (`SagerNet/sing-quic:tuic/service.go`) and wind-tuic, which Itsusinn's tuic runs, derive it. Lost: the
+  UUID's text as the label, which no server reads.
+- The probe is `pod_quic::probe` as it is, with a wait of 1 s. Lost: its 300 ms, measured against the
+  edge of Cloudflare, short for a server of the user's across the world; and QUIC's own handshake as the
+  probe, which waits 5 s.
+- QUIC goes beside `HTTPS_PROXY`, which carries no UDP, and `-v` says so: the user named the road, and the
+  probe tells whether UDP passes (Q82). Lost: refusing the road whenever a proxy is set, which would leave
+  it out where UDP does pass.
+- One QUIC connection for each session, closed with it. Lost: one connection for the sessions of a run
+  (`podssh each`), a later change if a measurement asks for it.
+- `congestion_control` passes and noq's default controller sends: the controller is each sender's own, and
+  no server reads the client's. Lost: building a controller for each name.
+- After a stream that ended with no byte, podssh waits 500 ms for the connection's close before it names
+  the target: sing-box ends each waiting stream a moment before it closes a connection whose token is
+  wrong. Lost: naming the target at once, which would call a wrong password an unreachable target.
+- No 0-RTT (a replay could carry `Connect` again) and no UDP relay (the road carries SSH's TCP alone).
+- The code is in `podssh-ws`'s `tuic/` until `pod-egress` is taken (see the Correction).
+
 ## Prove
 
 ```sh
@@ -9861,6 +9885,40 @@ exporter's label and context swapped, and the test of the banner fails.
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
+
+2026-11-12. The Premise holds: `docs/decisions.md:29`, `docs/carriers.md:2094-2100` and
+`crates/podssh-relay/Cargo.toml:56` say what it quotes. `pod-egress` is not taken (`TODO/PROGRESS.md`,
+State, item 7), so the road is in `podssh-ws` (`tuic/`, behind its feature `quic`) until it is, as T-739's
+VMess is; podcrates imports it with the other roads of `pod-egress`. The QUIC that it needs is `pod-quic`'s,
+taken on 2026-11-12 (the endpoint, the connection within its wait, the probe of UDP), used as it is: no
+change of a taken crate, and no QUIC helper of podssh's own. The Prove's sshd is a stand-in that sends a
+version line first, as `crates/podssh-ws/tests/vmess.rs` uses; the server is Itsusinn's tuic,
+`v2.0.0-dev10`, its static build checked by the SHA-256 that GitHub records for it
+(`.github/workflows/tuic-interop.yml`).
+
+## Done
+
+Partial (2026-11-12): the draft `draft-t581` (`38b6c3e`) merged, built and tested; `podssh proxy --tuic` and
+`podssh doctor --tuic` remain, then a short live run where UDP passes.
+
+- `crates/podssh-ws/src/tuic/` (feature `quic`, which the binary turns on): the link (`tuic://UUID:PASSWORD@HOST:PORT`,
+  the credential redacted; `allow_insecure`, a version other than 5 and an unknown controller refused), the
+  commands of `SPEC.md` and the token from the TLS exporter (`command.rs`), the stream with its heartbeat and
+  close (`stream.rs`), and `open` (`mod.rs`): the probe of UDP, QUIC on `pod-quic`, `Authenticate` and `Connect`
+  at once, each failure named. The draft pinned `pod-quic` at `v0.28.0`, written before the take; the merge
+  pins `v0.29.0` with the rest.
+- `crates/podssh-cli/src/tuic/`: `--tuic FILE` for `ssh` and each command of its road (exit 64, 77, else 69),
+  the manual's note (`man/notes_tuic.rs`), FILES, `docs/cli.md` ("TUIC servers") and `docs/carriers.md`.
+- Against Itsusinn's tuic-server v2.0.0-dev10 (the release that `tuic-interop.yml` pins; its SHA-256
+  `d2c76a3b...498a` checked on the download): `PODSSH_TUIC_TEST_BIN=.work/tuic/tuic-server cargo test -p
+  podssh-ws --features quic --test tuic`, 5 passed in 3.1 s: the banner and 300 KB echoed, a pipe, a wrong
+  password and another UUID closed with the server's "auth failed", a target that refuses ends the stream, and
+  a port that drops UDP ends the road at the probe.
+- Planted: the exporter's label and context swapped in `command::token`, and the banner's test fails ("closed
+  the connection (code 0, saying "auth failed")"); restored, it passes.
+- `cargo test -p podssh-ws --features quic --lib tuic`, 8 passed; `cargo test -p podssh-cli --lib`, 1120 passed;
+  clippy of podssh-cli and podssh-ws with `quic` as the gate runs it, no warning. rustfmt expanded one merged
+  `use` of `ssh/resolve.rs` past 500 lines: the imports are now plain lines (500).
 
 # T-582: MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes
 
@@ -10509,7 +10567,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
   its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:146`).
+  (`docs/STATUS.md:147`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -12517,7 +12575,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:76`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:78`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 

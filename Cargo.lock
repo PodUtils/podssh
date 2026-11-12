@@ -5484,6 +5484,7 @@ dependencies = [
  "pod-core",
  "pod-dns",
  "pod-proxy",
+ "pod-quic",
  "pod-services",
  "pod-testkit",
  "pod-tls",

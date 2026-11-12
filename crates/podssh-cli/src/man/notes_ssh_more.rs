@@ -189,4 +189,5 @@ pub(super) const MORE: &[&str] = &[
      the channel in its own. podssh names no uptermd: give \
      the server's name, the community server's too. upterm+ws://SESSION@127.0.0.1:PORT reaches an uptermd \
      of this host over ws://. -p gives the port; --direct, -4, -6 and HostName cannot go with it.",
+    super::notes_tuic::SSH_TUIC,
 ];

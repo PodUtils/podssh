@@ -2098,6 +2098,17 @@ with TCP and TLS alone.
    command; UDP goes in `Packet`s; a `Heartbeat` keeps the connection. The
    repository is GPL-3.0 and has no implementation of its own; its servers
    are mihomo, shoes, sing-box and Itsusinn's tuic. Entry: T-581.
+   Read again for T-581 on 2026-11-12 [X1b]: the label of the exporter is
+   the UUID's 16 bytes and the context the raw password (sing-box's
+   `ExportKeyingMaterial(string(uuid[:]), password, 32)`, and wind-tuic's,
+   which Itsusinn's tuic runs); a server that does not take the token
+   closes the connection with code 0 (sing-box with no words, wind-tuic
+   with `auth failed`), and sing-box first ends each stream that waited
+   for the token; a target that sing-box cannot dial ends the stream
+   (wind-tuic's way is unread: T-581's test measures it); both serve
+   ALPN `h3` by default, and Itsusinn's tuic drops a loopback or
+   private target unless its `experimental` settings allow it. A
+   congestion control is each sender's own: no peer reads it.
 
 ## Sources
 
@@ -2431,6 +2442,14 @@ from a project's own repository or document.
 - [X1] https://github.com/tuic-protocol/tuic: `tuic-protocol/tuic:SPEC.md`
   (version `0x05`) and its README (its servers and clients); GPL-3.0, its
   last push 2025-05-15
+- [X1b] Read on 2026-11-12 through web.pkgforge.dev (fetch, read, forge):
+  `EAimTY/tuic:SPEC.md` at `dev`; `SagerNet/sing-quic:tuic/service.go`,
+  `client.go`, `protocol.go` and `address.go` at `main`; sing-box's page
+  of the TUIC inbound; `Itsusinn/tuic` at `v2.0.0-dev10`
+  (`crates/tuic-server/src/config.rs`, `destination_guard.rs`, the
+  release's assets and their SHA-256 in GitHub's API); and
+  `rust-proxy/wind:crates/wind-tuic/src/server/mod.rs` and
+  `quinn/inbound.rs` at `12fbf7a`
 - [X2] https://localhost.run/docs/ (its pages "The Basics", "HTTP
   Tunnels", "TLS Passthru Tunnels", "CLI Reference", "Forever Free" and
   "FAQ")

@@ -281,34 +281,16 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
             super::cloudflare::reach(host, trust, channel, opts, log).await
         }
         Transport::Cloud { road, trust } => super::cloud::reach(road, trust, log).await,
-        // Other products' forwarders, in order (T-369).
-        Transport::Forwarder { forwarders, trust } => {
-            crate::forwarder::reach::reach(forwarders, trust, &first.host, first.port, log).await
-        }
-        // The Shadowsocks servers of a file, in order (T-373).
-        Transport::Shadowsocks { servers, trust } => {
-            crate::shadowsocks::reach::reach(servers, trust, &first.host, first.port, log).await
-        }
-        // A forward proxy over TLS that the user runs (T-439).
-        Transport::Via { road } => {
-            crate::via::reach::reach(road, &first.host, first.port, resolved.connection_attempts, log).await
-        }
-        // The VLESS servers of a file, in order (T-440).
-        Transport::Vless { servers, trust } => {
-            crate::vless::reach::reach(servers, trust, &first.host, first.port, log).await
-        }
-        // A wstunnel server that the user runs (T-441).
-        Transport::Wstunnel { road } => {
-            crate::wstunnel::reach::reach(road, &first.host, first.port, resolved.connection_attempts, log).await
-        }
-        // The Trojan servers of a file, in order (T-491).
-        Transport::Trojan { servers, trust } => {
-            crate::trojan::reach::reach(servers, trust, &first.host, first.port, log).await
-        }
-        // A chisel server that the user runs (T-490).
-        Transport::Chisel { road } => {
-            crate::chisel::reach::reach(road, &first.host, first.port, resolved.connection_attempts, log).await
-        }
+        // The roads of servers that the user names, in `servers.rs` for this
+        // file's length.
+        Transport::Forwarder { .. }
+        | Transport::Shadowsocks { .. }
+        | Transport::Via { .. }
+        | Transport::Vless { .. }
+        | Transport::Wstunnel { .. }
+        | Transport::Trojan { .. }
+        | Transport::Tuic { .. }
+        | Transport::Chisel { .. } => super::servers::reach(resolved, &first.host, first.port, log).await,
         Transport::Direct => {
             if podssh_relay::open::offline() {
                 return Err(NotReached {

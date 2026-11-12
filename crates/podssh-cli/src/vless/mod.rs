@@ -111,6 +111,7 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         Transport::Derp { .. } => "a derp: destination",
         Transport::Chisel { .. } => "--chisel",
         Transport::Trojan { .. } => "--trojan",
+        Transport::Tuic { .. } => "--tuic",
     };
     Err(Refusal::usage(format!("--vless cannot go with {other}, which is a road of its own; a run has one road")))
 }

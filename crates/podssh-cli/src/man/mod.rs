@@ -87,6 +87,8 @@ mod notes_share;
 mod notes_spares;
 mod notes_ssh;
 mod notes_ssh_more;
+// The notes of --tuic (T-581).
+mod notes_tuic;
 mod notes_update;
 // A node's upgrade in place (T-668).
 mod notes_upgrade;

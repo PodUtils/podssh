@@ -42,11 +42,10 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** Two wait (T-578's `draft-t578` is merged, 2026-11-12):
+8. **Drafts.** One waits (T-578's `draft-t578` and T-581's `draft-t581` are merged, 2026-11-12):
 
    | Draft | Branch | Commit | State |
    | --- | --- | --- | --- |
-   | T-581 | `draft-t581` | `38b6c3e` | drafted, never built: TUIC v5 in `podssh-ws/src/tuic/`, `--tuic FILE` |
    | T-580 | `draft-t580` | `6f6f53b` | drafted, never built: Hysteria 2 in `podssh-ws/src/hysteria/`, `--hysteria FILE` |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
@@ -120,7 +119,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 73 open, 21 partial, 11 blocked, 604 done.
+`TODO/INDEX.md` holds 709 entries: 72 open, 22 partial, 11 blocked, 604 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

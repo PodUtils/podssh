@@ -2,7 +2,8 @@
 //! place of the relay, for `ssh` and each command that reaches its server as
 //! `ssh` does, for `proxy`, and for `doctor`, which checks each server; and
 //! of `--trojan` (T-491), Trojan servers of a file, read as `--vless` reads
-//! its own.
+//! its own; and of `--tuic` (T-581), TUIC servers of a file, over QUIC where
+//! UDP passes.
 
 use super::{row, FlagKind, FlagRow};
 
@@ -60,5 +61,17 @@ pub const PROXY_TROJAN: FlagRow = row(
     FlagKind::Supported,
     "reach the target through the Trojan servers of FILE, in order, in place of the relay: trojan:// share links \
      in a private file",
+    None,
+);
+
+/// `--tuic` for `ssh`, `cp`, `each` and the others of `ssh`'s road (T-581).
+pub const TUIC: FlagRow = row(
+    None,
+    "tuic",
+    Some("FILE"),
+    FlagKind::Supported,
+    "reach the first hop through TUIC servers that you run (sing-box, mihomo, Itsusinn's tuic), in order, in \
+     place of the relay, over QUIC where a probe finds that UDP passes: FILE is private, with a tuic:// share link \
+     on each line",
     None,
 );

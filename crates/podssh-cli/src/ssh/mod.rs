@@ -95,6 +95,8 @@ use crate::session_log::Place;
 use crate::snippets::Asking;
 use args::SshArgs;
 use resolve::{Env, Resolved, Transport};
+// The word of a run's road, beside the other names of the roads.
+pub(crate) use servers::road;
 
 /// Run `podssh ssh`; returns the process exit code. With `--result-file`,
 /// the run's result is written at its end, on each path (T-054). `tty` says
@@ -292,26 +294,6 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
     // it, or podssh would hang after the session has ended.
     runtime.shutdown_background();
     code
-}
-
-/// The road of a run, as the session log names it when no relay host does.
-pub(crate) fn road(transport: &Transport) -> &'static str {
-    match transport {
-        Transport::Relay { .. } => "relay",
-        Transport::Direct => "direct",
-        Transport::Node { .. } => "node",
-        Transport::Iroh { .. } => "iroh",
-        Transport::Cloudflare { .. } => "cloudflare",
-        Transport::Cloud { road, .. } => road.word(),
-        Transport::Derp { .. } => "derp",
-        Transport::Forwarder { .. } => "forwarder",
-        Transport::Shadowsocks { .. } => "shadowsocks",
-        Transport::Via { .. } => "via",
-        Transport::Vless { .. } => "vless",
-        Transport::Wstunnel { .. } => "wstunnel",
-        Transport::Chisel { .. } => "chisel",
-        Transport::Trojan { .. } => "trojan",
-    }
 }
 
 /// The run of a resolved command line on its road: its exit code. The

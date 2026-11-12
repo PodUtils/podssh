@@ -393,11 +393,11 @@ pub fn files() -> Vec<(Vec<String>, String)> {
                 .to_string(),
         ),
         (
-            vec!["the file of --vless".to_string(), "the file of --trojan".to_string()],
-            "The VLESS servers of --vless, or the Trojan servers of --trojan: a vless:// or a trojan:// share link \
-             on each line (see podssh ssh); # starts a comment. Each link holds its user's ID or password, so \
-             podssh reads it only as a regular file of yours that \
-             others cannot read (on Windows, as its access list says), as a pair file; else, and for a line that \
+            ["the file of --vless", "the file of --trojan", "the file of --tuic"].map(String::from).to_vec(),
+            "The VLESS servers of --vless, the Trojan servers of --trojan, or the TUIC servers of --tuic: a \
+             vless://, trojan:// or tuic:// share link on each line (see podssh ssh); # starts a comment. Each link \
+             holds its user's ID or password, so podssh reads it only as a regular file of yours that others cannot \
+             read (on Windows, as its access list says), as a pair file; else, and for a line that \
              cannot be read, the run is refused (78), by the line's number, never its text. podssh never writes \
              it."
             .to_string(),

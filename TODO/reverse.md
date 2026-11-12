@@ -898,12 +898,12 @@ Measured on `3ee70dc`, offline: `podssh operator mynode` gives exit 70;
 `PODSSH_OFFLINE`); `podssh ssh -T node://lab true` gives `"//lab" is not a port` and exit 64.
 
 Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/ssh/hop.rs:30-78`).
-`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/resolve.rs:23-80`, chosen at `:314-377`).
+`Transport` is `Relay` or `Direct` (`crates/podssh-cli/src/ssh/resolve.rs:22-81`, chosen at `:315-378`).
 `connect_and_run` gives `relay_stream::spawn` to russh (`crates/podssh-cli/src/ssh/mod.rs` lines 73-116 at `6483366`), and
 `relay_stream` closes with 1002 on a text frame (`crates/podssh-ssh/src/relay_stream.rs:274-280`); the
 operator leg receives text frames (`docs/relay.md:660-663`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:252-262`); `HostKeyAlias` exists
-(`crates/podssh-cli/src/ssh/resolve.rs:418`). `podssh ssh` uses the exit codes of OpenSSH, and
+(`crates/podssh-cli/src/ssh/resolve.rs:419`). `podssh ssh` uses the exit codes of OpenSSH, and
 `podssh proxy` sysexits (`docs/cli.md:5832-5836`).
 
 ## Approach
@@ -912,7 +912,7 @@ host, never the relay's name (`SECURITY.md:252-262`); `HostKeyAlias` exists
    `operator::run` (T-080) on stdin and stdout: a byte pipe as `podssh proxy`
    (`crates/podssh-cli/src/pipe/relay.rs:107-247`). stdout carries data only; never 0 without `ready`.
 2. `podssh ssh node://[user@]NAME`: `parse_hop` reads `node://` as it reads `ssh://`; add
-   `Transport::Node` (`crates/podssh-cli/src/ssh/resolve.rs:23-80`).
+   `Transport::Node` (`crates/podssh-cli/src/ssh/resolve.rs:22-81`).
 3. For a node, `connect_and_run` opens the operator leg and waits for `ready` (T-080), then gives
    russh the raw stream. Do not give the leg to `relay_stream::spawn` as it is: reuse its pump after
    `ready`, with text frames read as control.
@@ -963,7 +963,7 @@ cargo test -p podssh-cli --test node_live -- --ignored ssh_to_a_node
 22. `operator.rs` runs the binary with no stored pair (78, naming `podssh relay pair`), and checks
 that stdout stays empty. The binary line must exit 255, name `podssh relay pair lab`, and open no
 connection. The live test runs `podssh ssh node://lab 'exit 3'` through a node whose TARGET is
-`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:208`), and expects 3. Plant: read `node:`
+`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:209`), and expects 3. Plant: read `node:`
 with no slashes as a node; `node_destinations` must fail.
 
 ## Done
@@ -4806,15 +4806,15 @@ dropped in the same way.
   `--relay-host does not apply` with exit 64. It has no case for `--relay-failover`.
 - `crates/podssh-cli/src/ssh/node.rs:138-154` refuses `--direct`, `-J`, `-W`, a port, `-o HostName`
   and the family for a node. It has no clause for the relay flags.
-  `crates/podssh-cli/src/ssh/carried.rs:38-65` refuses them only for `--carrier`.
-- `crates/podssh-cli/src/ssh/resolve.rs:325-326` takes a node destination first. The only read of
-  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:350`,
+  `crates/podssh-cli/src/ssh/carried.rs:38-66` refuses them only for `--carrier`.
+- `crates/podssh-cli/src/ssh/resolve.rs:326-327` takes a node destination first. The only read of
+  `args.relay_host` and `env.relay` (`PODSSH_RELAY`) is at `crates/podssh-cli/src/ssh/resolve.rs:351`,
   on the branch of a plain host.
 - `crates/podssh-cli/src/ssh/exit_road.rs:39-44` builds `Transport::Node` for `--exit NAME` and
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:173` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:175` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2688`; Q90 confirmed it).
 

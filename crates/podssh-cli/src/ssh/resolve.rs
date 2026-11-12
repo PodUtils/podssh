@@ -5,11 +5,10 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use podssh_ssh::{Hop, LogLevel, Options, Request, RequestTty};
-use podssh_ws::Trust;
-
 use podssh_relay::failover::Mode;
 use podssh_relay::relay::{self, RelayList};
+use podssh_ssh::{Hop, LogLevel, Options, Request, RequestTty};
+use podssh_ws::Trust;
 
 use super::args::SshArgs;
 use super::hop::{host_rule, request};
@@ -77,6 +76,8 @@ pub enum Transport {
     Chisel { road: crate::chisel::Road },
     /// Through the Trojan servers of a file, in order (`--trojan`, T-491).
     Trojan { servers: crate::trojan::Servers, trust: Trust },
+    /// Through the TUIC servers of a file, where UDP passes (`--tuic`, T-581).
+    Tuic { servers: crate::tuic::Servers, trust: Trust },
 }
 
 /// A command line, resolved.

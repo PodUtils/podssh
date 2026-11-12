@@ -6345,3 +6345,40 @@ removed while the node runs.
   counts against the budget once the channel let its key in and its route
   and grant passed, as a session of a node with no route did; before, a
   routed node counted a visitor before its key was checked.
+
+## TUIC servers: `--tuic FILE`
+
+T-581, the operator's ruling Q82: a TUIC server that the user runs
+(sing-box, mihomo, shoes, Itsusinn's tuic) takes the destination over QUIC
+and is the road in place of the relay where UDP passes. `--tuic FILE` makes
+it the road for `ssh` and each command that reaches its server as `ssh`
+does (`podssh_ws::tuic`, with the feature `quic`, which the binary turns
+on).
+
+- FILE is private (as a pair file): a share link on each line,
+  `tuic://UUID:PASSWORD@HOST:PORT?sni=&alpn=#TAG`, tried in order; the UUID
+  and the password never go to argv, a log or a message.
+- A probe first (`pod_quic::probe`, as the quick tunnel's): one QUIC packet
+  of a reserved version to HOST:PORT; with no Version Negotiation within 1 s
+  the server is not tried, and the line says that UDP does not pass (69).
+  QUIC is UDP, which no HTTP proxy carries: the road goes beside
+  `HTTPS_PROXY`, and `-v` says so.
+- QUIC on noq (`pod_quic::connect`) with podssh's provider, TLS 1.3 checked
+  for `sni` (else HOST) with podssh's trust (`--ca-file`), ALPN `h3` unless
+  the link names others. `Authenticate` on a unidirectional stream: the
+  UUID's 16 bytes and 32 bytes of TLS's keying material exporter, with the
+  UUID's bytes as its label and the password as its context. `Connect` on a
+  bidirectional stream, the session's bytes after it at once; a
+  `Heartbeat` datagram each 10 s, beside QUIC's own keepalive.
+- The server never answers a command: a session waits up to 10 s for the
+  target's first bytes. A closed connection is a UUID or a password that the
+  server did not take, said with the server's code and words (77 in
+  `exit_code`; `ssh` exits 255); a stream ended with no byte is a target
+  that the server could not reach, or whose address its rules refuse (69).
+- Refused by name (78): `allow_insecure` (and `insecure`, `allowInsecure`),
+  a `version` other than 5, a `congestion_control` that names no
+  controller. `congestion_control`, `udp_relay_mode`, `disable_sni` and
+  `reduce_rtt` pass: the first is the sender's own, and the road carries no
+  UDP of its own.
+- `podssh proxy --tuic` and `doctor --tuic` are not there yet (T-581's
+  `## Done`).

@@ -303,6 +303,8 @@ pub mod version;
 pub mod via;
 // `--trojan FILE`: Trojan servers in place of the relay (T-491).
 pub mod trojan;
+// `--tuic FILE`: TUIC servers in place of the relay, where UDP passes (T-581).
+pub mod tuic;
 // `--vless FILE`: VLESS servers in place of the relay (T-440).
 pub mod vless;
 // `--wstunnel URL`: a wstunnel server in place of the relay (T-441).

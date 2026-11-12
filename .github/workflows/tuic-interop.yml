@@ -1,0 +1,62 @@
+name: tuic interop
+
+# TUIC version 5 (T-581, the operator's ruling Q82), a client road over QUIC
+# where a probe found that UDP passes, against Itsusinn's tuic-server, a
+# server that podssh did not write: the pinned release, checked against the
+# SHA-256 that GitHub records for the file, run by
+# crates/podssh-ws/tests/tuic.rs on the loopback, with a certificate that
+# openssl makes for the run. The banner and an echo, a pipe, a wrong password
+# and another UUID, a target that refuses, and a port that drops UDP. Each
+# test of the server says "did not run" with no binary, so the job fails on
+# that word. Started by hand, and on a push that changes the road; it
+# publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-ws/src/tuic/**"
+      - "crates/podssh-ws/tests/tuic.rs"
+      - ".github/workflows/tuic-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: tuic-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Itsusinn/tuic, GPL-3.0; the server's static musl build. The digest is
+  # the one that GitHub's API gives for the asset (read 2026-11-12).
+  TUIC_RELEASE: "v2.0.0-dev10"
+  TUIC_ASSET: "tuic-server-x86_64-linux-musl"
+  TUIC_SHA256: "d2c76a3bd4fbd32b209d4f29bbf76dcb80b4c7d25ae8ef1a8b5130e0364c498a"
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: tuic-server of the pinned release
+        run: |
+          set -eu
+          mkdir -p .work/tuic
+          curl -qfsSL --retry 3 --max-time 120 -o .work/tuic/tuic-server \
+            "https://github.com/Itsusinn/tuic/releases/download/$TUIC_RELEASE/$TUIC_ASSET"
+          echo "$TUIC_SHA256  .work/tuic/tuic-server" | sha256sum -c -
+          chmod 755 .work/tuic/tuic-server
+          echo "PODSSH_TUIC_TEST_BIN=$PWD/.work/tuic/tuic-server" >> "$GITHUB_ENV"
+      - name: the road against tuic-server
+        run: |
+          set -o pipefail
+          cargo test --locked -p podssh-ws --features quic --lib tuic
+          timeout 900 cargo test --locked -p podssh-ws --features quic --test tuic -- --nocapture 2>&1 \
+            | tee "$RUNNER_TEMP/tuic.log"
+          grep -q "test result: ok. 5 passed" "$RUNNER_TEMP/tuic.log"
+          if grep -q "did not run" "$RUNNER_TEMP/tuic.log"; then echo "a test did not run"; exit 1; fi

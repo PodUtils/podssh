@@ -184,6 +184,7 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         Transport::Derp { .. } => "a derp: destination",
         Transport::Chisel { .. } => "--chisel",
         Transport::Trojan { .. } => "--trojan",
+        Transport::Tuic { .. } => "--tuic",
         Transport::Shadowsocks { .. } => "--shadowsocks",
         Transport::Via { .. } => "--via",
         Transport::Vless { .. } => "--vless",
