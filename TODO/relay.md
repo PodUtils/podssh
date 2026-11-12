@@ -1308,7 +1308,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:388`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:389`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -4928,7 +4928,7 @@ Read at `2042200`:
   (`crates/podssh-relay/tests/opentunnel_stand_in/parse.rs:110` for the record's length, `:120` for the
   name), and routing by a name's label in OpenTunnel's road (`crates/podssh-relay/src/opentunnel/wire.rs:206`).
 - A node that ends a visitor's TLS with a name of its own exists for OpenTunnel (T-530):
-  `crates/podssh-relay/Cargo.toml:119` says "the key and the CSR of its" name come from the binary.
+  `crates/podssh-relay/Cargo.toml:124` says "the key and the CSR of its" name come from the binary.
 - Publishing a local HTTP service at a public name is T-180 (`podssh funnel`, TLS at the quick tunnel's
   edge); this entry is the role's form, with TLS at the node.
 

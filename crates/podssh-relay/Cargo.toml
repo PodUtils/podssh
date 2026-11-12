@@ -67,6 +67,9 @@ crypto_box = { version = "0.9", default-features = false, features = ["alloc", "
 # handshake's signature, which Ironwood's keys take.
 ironwood = { git = "https://github.com/Revertron/Yggdrasil-ng", rev = "c3a3aa6", optional = true }
 blake2 = { version = "0.10", optional = true }
+# HyperDHT where UDP passes (T-736): peeroxide, a port of Hyperswarm in pure
+# Rust (MIT OR Apache-2.0), pinned to its release with peeroxide-dht and libudx.
+peeroxide = { version = "=1.7.4", optional = true }
 # The Piping Server road (src/piping/, T-437): TLS that offers HTTP/2 and
 # HTTP/1.1 by ALPN, on podssh-ws's provider and trust store; the async
 # wrapper of rustls that podssh-ws builds, with no provider of its own.
@@ -110,6 +113,8 @@ derp = ["dep:crypto_box"]
 tox = ["dep:crypto_box"]
 # Yggdrasil's road (T-735).
 yggdrasil = ["dep:ironwood", "dep:blake2"]
+# HyperDHT's road where UDP passes (T-736).
+hyperdht = ["dep:peeroxide"]
 # The Piping Server road (T-437): a POST and a GET of a Piping Server for each
 # way of a link, over HTTP/2 or HTTP/1.1, under the resumable layer, for a
 # proxy that refuses the WebSocket upgrade. No C either; the gate builds it.

@@ -10371,7 +10371,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:301-302`), and needs the net's role exit, signed by
   its owner (`:299-300`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:141`).
+  (`docs/STATUS.md:142`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13028,7 +13028,7 @@ open); until then a relay is named by `PODSSH_TOX`.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -13142,8 +13142,13 @@ Yggdrasil's nodes set it, with one link to a peer that is dialed again, after 1 
 - Planted (group `host-ygg`): a node that takes a hello with no proof (`t735-any-token`), and a client of
   another pair (`t735-other-pair`); 2 caught. `ygg-interop.yml` builds yggdrasil-go at its tag and runs the
   tests and the plants on each push of the road; its job `live`, by hand, takes the `wss://` peers on 443 of
-  the network's own list at run time and runs `derp_ygg` through each until one passes. UNVERIFIED until its
-  first run on Actions.
+  the network's own list at run time and runs `derp_ygg` through each until one passes. On Actions (run
+  43148539178, at `ef93ecef`): `interop` passed (the tests against yggdrasil-go v0.5.15 built at its tag, and the
+  plants, 2 caught); `live` failed on the first public peer of the list and passed on the second, a `wss://`
+  peer on 443: `podssh ssh node://` through Yggdrasil's road in 8.0 s.
+
+Done, 2026-11-12. The road reads `pod-services`' list of the peers once podcrates names them (COORD-029, #203,
+open); until then a peer is named by `PODSSH_YGGDRASIL`.
 
 # T-736: HyperDHT as a road by key where UDP passes, after podssh's own
 
@@ -13152,7 +13157,7 @@ Yggdrasil's nodes set it, with one link to a peer that is dialed again, after 1 
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -13194,6 +13199,24 @@ tried after podssh's own (Q77, Q82). podssh has no road by HyperDHT.
    T-548's Decision turn it off; a line on stderr names the DHT and says that its peers see the
    connection's address.
 
+## Decision
+
+2026-11-12. The road is podssh's, on `peeroxide` 1.7.4 (the Hyperswarm layer of the port, with `peeroxide-dht` and
+`libudx` of the same release, pure Rust, MIT OR Apache-2.0, `forbid(unsafe_code)` in its top crate), pinned to that
+release behind a feature `hyperdht` of podssh-relay, off by default as `iroh` is. Read: `peeroxide-dht` and `libudx`
+are 28,581 lines; `peeroxide::spawn` waits for the DHT's bootstrap, and its swarm hands each connection, with its
+remote key and a stream (`SecretStream` over UDX), to a channel.
+
+- Rule 2 of `AGENTS.md`: Q77 names HyperDHT among the overlay networks that become roads, tried unasked after
+  podssh's own, and Q82 makes roads over UDP where a probe finds that UDP passes. A road by a DHT has no form
+  without its queries to many peers from one socket, as the iroh road's discovery has, so the two rulings cover
+  it; no question goes to the operator. The probe is the DHT's own bootstrap within a limit: where no bootstrap
+  node answers, UDP did not pass, and the road says so and is off for the run.
+- The node's key comes from the pair's name and connect token, as the Tox and Yggdrasil roads' do, so that each
+  operator of the pair knows it; it never is the identity key. Each end joins a topic made of the node's key.
+- Lost: a port of the parts that the road needs (28,581 lines that the crate already carries, and tests of its
+  own against Node.js), and the Node.js package itself (a second runtime, against rule 4's static binary).
+
 ## Prove
 
 ```sh
@@ -13207,6 +13230,32 @@ with equal digests; a client key outside the allowlist is refused at the handsha
 firewall function return false for each key; the test fails on the refused client. Then one short
 live connect through the public bootstrap from GitHub Actions, as the operator confirms (T-548's
 Decision).
+
+## Correction
+
+2026-11-12. HyperDHT's handshake has no function that refuses a client by its key in `peeroxide`: its server's
+`firewall` is the class of its NAT (`ServerConfig::firewall`, `SwarmConfig::firewall`), not a test of a key. A
+stranger's handshake is refused one layer up, where it is on each other road: the end-to-end channel checks the
+client's key against the node's allowlist (`--allow`) before TARGET. The Prove's plant is that check's.
+
+## Done
+
+Partial, 2026-11-12. The library, behind the feature `hyperdht` of podssh-relay (`crates/podssh-relay/src/
+hyperdht.rs`): an end joins HyperDHT through its bootstrap (`peeroxide::spawn`), and an empty routing table after
+it, or no answer within 15 s, reads as UDP that does not pass; the node announces a topic of its key (the pair's
+name and connect token make it) and gives each connection's secret stream, as a byte stream, to the node's far
+end; a client joins the topic, takes the first connection whose remote key is the node's, and joins again each
+5 s until its limit, as the swarm looks a topic up once at its join.
+
+- `PODSSH_HYPERDHT_TEST_NODE_PATH=... cargo test -p podssh-relay --features hyperdht --test hyperdht --
+  --test-threads=1`: 2 passed, 5 runs of 5, in a private DHT of three nodes of Node.js's `hyperdht` 6.36.0
+  (`tests/hyperdht/testnet.js`): a pair's node and its client meet by key (1.1 s) and 1 MiB comes back whole
+  (2.5 s, 7.5 s when the client's first lookup came before the node's announce); a bootstrap that never answers
+  is UDP that does not pass. Measured on the way: on the loopback both ends call themselves firewalled and the
+  node's passive holepunch times out, so a DHT of the loopback alone is joined unfirewalled (no NAT there).
+- Next: the command line's road (the bootstrap of `pod-services`, the node beside its last roads, the client's
+  race after Yggdrasil's, never with --no-e2e; the third party's line), the manual, the plant of the allowlist
+  above the stream, a workflow with Node.js, and one short live connect through the public bootstrap.
 
 # T-737: Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers'
 

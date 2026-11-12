@@ -77,8 +77,8 @@ item whenever it appears.
 6. **osewa's entries are done** (T-678, T-680, T-681 and T-752), and **T-734: Tox's TCP relays
    on 443** is done (2026-11-12: live through a public node from Actions in 4.2 s; the relays of
    `pod-services` wait for podcrates, #196).
-7. **T-735: Yggdrasil's `wss://` peers on 443** (offline; a short live run). Done when its Prove
-   passes.
+7. **T-735: Yggdrasil's `wss://` peers on 443** is done (2026-11-12: live through a public peer from
+   Actions in 8.0 s; the peers of `pod-services` wait for podcrates, #203).
 8. **T-736: HyperDHT where UDP passes** (offline; live on a runner where UDP passes). Done when
    its Prove passes.
 9. **T-737: public MQTT brokers as a meeting point** (offline; a short live run). Done when its
@@ -127,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 79 open, 19 partial, 10 blocked, 601 done.
+`TODO/INDEX.md` holds 709 entries: 78 open, 19 partial, 10 blocked, 602 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -201,7 +201,7 @@ parts are named so that the open ones read in their place):
    Yggdrasil, Cabal, Hyphanet, croc and HyperDHT are done), of the trackers (done) and of the
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
-   peers (T-735), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
+   peers (done), HyperDHT's road (T-736) and the public MQTT brokers as a meeting point (T-737),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567, T-571,
    T-575, T-576 and T-578, and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (T-739) and Bare servers as a hop (T-740); T-566, T-567 and
