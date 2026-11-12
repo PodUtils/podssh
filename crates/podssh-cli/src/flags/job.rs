@@ -60,5 +60,5 @@ pub const JOB_FLAGS: &[FlagRow] = &[
     super::vless::TUIC,
     super::vless::HYSTERIA,
     super::via::VIA, super::via::VIA_AUTH_FILE, super::via::WSTUNNEL, super::via::WSTUNNEL_SECRET_FILE,
-    super::via::CHISEL, super::via::CHISEL_AUTH_FILE,
+    super::via::CHISEL, super::via::CHISEL_AUTH_FILE, super::via::TURN, super::via::TURN_AUTH_FILE,
 ];

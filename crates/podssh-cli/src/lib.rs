@@ -317,6 +317,8 @@ pub mod hysteria;
 pub mod vless;
 // `--wstunnel URL`: a wstunnel server in place of the relay (T-441).
 pub mod wstunnel;
+// `--turn URI`: a TURN server's TCP allocations in place of the relay (T-621).
+pub mod turn;
 
 pub use flags::{FlagKind, FlagRow, Verb, VERBS};
 pub use tree::{parse, Parsed};

@@ -177,6 +177,7 @@ pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
         Transport::Trojan { .. } => "--trojan",
         Transport::Tuic { .. } => "--tuic",
         Transport::Hysteria { .. } => "--hysteria",
+        Transport::Turn { .. } => "--turn",
     };
     if args.wstunnel.is_some() {
         let why = format!("--wstunnel cannot go with {other}, which is a road of its own; a run has one road");

@@ -188,6 +188,7 @@ fn beside(args: &ProxyArgs) -> Option<(&'static str, &'static str)> {
         (args.tuic.is_some(), "--tuic", ROAD),
         (args.wstunnel != crate::wstunnel::Flags::default(), "--wstunnel", ROAD),
         (args.chisel != crate::chisel::Flags::default(), "--chisel", ROAD),
+        (args.turn != crate::turn::Flags::default(), "--turn", ROAD),
         (args.exit.name.is_some(), "--exit", ROAD),
         (args.idle_warn.is_some(), "--idle-warn", IDLE),
     ]

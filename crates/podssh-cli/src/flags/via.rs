@@ -5,7 +5,9 @@
 //! `--wstunnel-secret-file` (T-441), a wstunnel server that the user runs,
 //! for `ssh`, the commands of its road and `proxy`; and those of `--chisel`
 //! and `--chisel-auth-file` (T-490), a chisel server that the user runs, for
-//! the same commands: each is a road of Q66 to a server of the user's own.
+//! the same commands; and those of `--turn` and `--turn-auth-file` (T-621), a
+//! TURN server that the user runs: each is a road of Q66 to a server of the
+//! user's own.
 
 use super::{row, FlagKind, FlagRow};
 
@@ -88,5 +90,40 @@ pub const CHISEL_AUTH_FILE: FlagRow = row(
     "what the server of --chisel takes and shows, in FILE, a private file: auth USER:PASSWORD, as chisel's \
      --auth, and fingerprint BASE64, the key that chisel server prints, which podssh then checks; never in \
      the URL; also env PODSSH_CHISEL_AUTH_FILE",
+    None,
+);
+
+/// `ssh`, `cp`, `each`, `proxy` and the others of `ssh`'s road (T-621).
+pub const TURN: FlagRow = row(
+    None,
+    "turn",
+    Some("turns:HOST[:PORT]"),
+    FlagKind::Supported,
+    "reach the first hop through a TURN server that you run (coturn), in place of the relay: a TCP allocation \
+     of RFC 6062, its control connection and a second connection to the same server that carries the bytes, \
+     each through HTTPS_PROXY when one is set (port 443 when none is named); turn: has no TLS and goes to this \
+     host alone; also env PODSSH_TURN",
+    None,
+);
+
+/// The same commands, and `doctor`.
+pub const TURN_AUTH_FILE: FlagRow = row(
+    None,
+    "turn-auth-file",
+    Some("FILE"),
+    FlagKind::Supported,
+    "the credential of the server of --turn, in FILE, a private file: USER:PASSWORD on one line, or \
+     auth-secret SECRET for a coturn of use-auth-secret; never in the URI; also env PODSSH_TURN_AUTH_FILE",
+    None,
+);
+
+/// `doctor`.
+pub const DOCTOR_TURN: FlagRow = row(
+    None,
+    "turn",
+    Some("turns:HOST[:PORT]"),
+    FlagKind::Supported,
+    "also check this TURN server: its software, the TCP allocation and its time, the Connect, then one of \
+     GitHub's published host keys on github.com port 22 through it (with --turn-auth-file)",
     None,
 );

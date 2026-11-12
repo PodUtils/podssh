@@ -2,7 +2,7 @@
 //! forwarders (T-369), Shadowsocks servers (T-373), a forward proxy over TLS
 //! (T-439), VLESS servers (T-440), a wstunnel server (T-441), a chisel
 //! server (T-490), Trojan servers (T-491), TUIC servers (T-581) and Hysteria 2
-//! servers (T-580), where UDP passes. Each takes
+//! servers (T-580), where UDP passes, and a TURN server (T-621). Each takes
 //! the relay's place when named, and each refuses the others, as a run has
 //! one road; here so that the resolver stays one file. An exit of the net
 //! (T-431, `super::exit_road`) takes it first. The stream through each of
@@ -26,7 +26,9 @@ pub(super) fn or_relay(args: &SshArgs, env: &Env, relay: Transport) -> Result<Tr
     if args.exit.is_some() {
         return super::exit_road::or_exit(args, env, relay);
     }
-    // TUIC first: its or_relay names each other server's flag (T-581).
+    // TURN first, then TUIC: each or_relay names each other server's flag
+    // (T-621, T-581).
+    let relay = crate::turn::or_relay(args, env, relay)?;
     let relay = crate::tuic::or_relay(args, relay)?;
     let relay = crate::hysteria::or_relay(args, relay)?;
     let relay = crate::chisel::or_relay(args, env, relay)?;
@@ -52,6 +54,7 @@ pub(super) fn check(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refus
         .and_then(|()| crate::trojan::check(args, resolved))
         .and_then(|()| crate::tuic::check(args, resolved))
         .and_then(|()| crate::hysteria::check(args, resolved))
+        .and_then(|()| crate::turn::check(args, resolved))
 }
 
 /// The words of a run's road, for the refusal of a flag of another road
@@ -69,6 +72,7 @@ pub(crate) fn road_name(transport: &Transport) -> &'static str {
         Transport::Trojan { .. } => "--trojan",
         Transport::Tuic { .. } => "--tuic",
         Transport::Hysteria { .. } => "--hysteria",
+        Transport::Turn { .. } => "--turn",
         Transport::Node { .. } => "a node:// destination",
         Transport::Iroh { .. } => "an iroh: destination",
         Transport::Cloudflare { .. } => "a cf://HOST destination or first hop",
@@ -96,6 +100,7 @@ pub(crate) fn road(transport: &Transport) -> &'static str {
         Transport::Trojan { .. } => "trojan",
         Transport::Tuic { .. } => "tuic",
         Transport::Hysteria { .. } => "hysteria",
+        Transport::Turn { .. } => "turn",
     }
 }
 
@@ -125,6 +130,10 @@ pub(super) async fn reach(resolved: &Resolved, host: &str, port: u16, log: &Arc<
         Transport::Tuic { servers, trust } => crate::tuic::reach::reach(servers, trust, host, port, log).await,
         // The Hysteria 2 servers of a file, where UDP passes (T-580).
         Transport::Hysteria { servers, trust } => crate::hysteria::reach::reach(servers, trust, host, port, log).await,
+        // A TURN server's TCP allocation (T-621).
+        Transport::Turn { road } => {
+            crate::turn::reach::reach(road, host, port, resolved.connection_attempts, log).await
+        }
         // A chisel server that the user runs (T-490).
         Transport::Chisel { road } => {
             crate::chisel::reach::reach(road, host, port, resolved.connection_attempts, log).await

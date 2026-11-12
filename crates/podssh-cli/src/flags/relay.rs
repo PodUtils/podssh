@@ -148,7 +148,7 @@ pub const PROXY_FLAGS: &[FlagRow] = &[
     super::vless::PROXY_HYSTERIA,
     super::vless::PROXY_TUIC,
     super::via::VIA, super::via::VIA_AUTH_FILE, super::via::WSTUNNEL, super::via::WSTUNNEL_SECRET_FILE,
-    super::via::CHISEL, super::via::CHISEL_AUTH_FILE,
+    super::via::CHISEL, super::via::CHISEL_AUTH_FILE, super::via::TURN, super::via::TURN_AUTH_FILE,
     // The exit of the net (T-431).
     super::node::PROXY_EXIT, super::node::PROXY_CLIENT_KEY,
     // The warning before the relay's idle cut (T-463).
@@ -210,7 +210,7 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     super::vless::DOCTOR_VLESS,
     super::vless::DOCTOR_HYSTERIA,
     super::vless::DOCTOR_TUIC,
-    super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE,
+    super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE, super::via::DOCTOR_TURN, super::via::TURN_AUTH_FILE,
     // The exit of the net, and one session from it (T-458).
     row(None, "exit", Some("NAME"), FlagKind::Supported,
         "also check the exit NAME of your net: what the net held says of it and of this client, the pair kept under \
