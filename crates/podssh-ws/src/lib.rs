@@ -64,6 +64,9 @@ pub mod frp;
 pub mod h2_road;
 pub mod handshake;
 pub mod http;
+// Hysteria 2 over QUIC, where a probe finds that UDP passes (T-580).
+#[cfg(feature = "quic")]
+pub mod hysteria;
 // TCP_NOTSENT_LOWAT on each dialed socket (T-661), as pod-proxy sets it.
 pub use pod_proxy::lowat;
 // The road of GCP's Identity-Aware Proxy for TCP (T-351).

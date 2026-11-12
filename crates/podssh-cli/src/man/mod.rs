@@ -94,6 +94,8 @@ mod notes_update;
 mod notes_upgrade;
 // The notes of --vless (T-440).
 mod notes_vless;
+// The notes of --hysteria, where UDP passes (T-580).
+mod notes_hysteria;
 pub mod roff;
 pub mod text;
 

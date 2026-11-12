@@ -61,7 +61,9 @@ road). Each has a planted run that must fail, and each did.
 | T-578 | Partial. Merged and tested on chutney (3 passed, 2 plants caught). Next: a test of the command line from end to end on chutney, pkarr's `onion=`, the live run (`tor-live.yml`, `onion: yes`). |
 | T-738 | Open: file hosts as the last carrier of the resumable layer. |
 | T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` passed from Actions (run 43178390705). |
-| T-580 to T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
+| T-580 | Done (2026-11-12): against Hysteria's own server; `hysteria-interop.yml` from Actions. |
+| T-581 | Partial: `proxy --tuic`, `doctor --tuic` and a live run remain; `tuic-interop.yml` from Actions. |
+| T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
 | T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
 | T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |
 | T-746, T-465, T-627 | Tests that failed at random; each `## Done` names the failure that it waits for. |

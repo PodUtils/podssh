@@ -2,7 +2,7 @@
 //! place of the relay, for `ssh` and each command that reaches its server as
 //! `ssh` does, for `proxy`, and for `doctor`, which checks each server; and
 //! of `--trojan` (T-491), Trojan servers of a file, read as `--vless` reads
-//! its own; and of `--tuic` (T-581), TUIC servers of a file, over QUIC where
+//! its own; and of `--tuic` (T-581) and `--hysteria` (T-580), TUIC and Hysteria 2 servers of a file, over QUIC where
 //! UDP passes.
 
 use super::{row, FlagKind, FlagRow};
@@ -73,5 +73,39 @@ pub const TUIC: FlagRow = row(
     "reach the first hop through TUIC servers that you run (sing-box, mihomo, Itsusinn's tuic), in order, in \
      place of the relay, over QUIC where a probe finds that UDP passes: FILE is private, with a tuic:// share link \
      on each line",
+    None,
+);
+
+/// `--hysteria` for `ssh`, `cp`, `each` and the others of `ssh`'s road (T-580).
+pub const HYSTERIA: FlagRow = row(
+    None,
+    "hysteria",
+    Some("FILE"),
+    FlagKind::Supported,
+    "reach the first hop through Hysteria 2 servers that you run (apernet/hysteria), in order, in place of the \
+     relay, where UDP passes: FILE is private, with a hysteria2:// share link on each line; a probe of UDP to \
+     each server's port goes first, and with no answer the road ends at once",
+    None,
+);
+
+/// `--hysteria` for `proxy`.
+pub const PROXY_HYSTERIA: FlagRow = row(
+    None,
+    "hysteria",
+    Some("FILE"),
+    FlagKind::Supported,
+    "reach the target through the Hysteria 2 servers of FILE, in order, in place of the relay, where UDP passes: \
+     hysteria2:// share links in a private file",
+    None,
+);
+
+/// `doctor`.
+pub const DOCTOR_HYSTERIA: FlagRow = row(
+    None,
+    "hysteria",
+    Some("FILE"),
+    FlagKind::Supported,
+    "also check each Hysteria 2 server of FILE: whether UDP reaches its port, and its round trip, then one of \
+     GitHub's published host keys on github.com port 22 through it",
     None,
 );

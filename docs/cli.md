@@ -1550,6 +1550,39 @@ reaches its server as `ssh` does, and `proxy`.
   another `type`. `fp` and `alpn` pass: a Trojan server does not read the
   ClientHello.
 
+## Hysteria 2 servers: `--hysteria FILE`
+
+T-580, the operator's ruling Q82: a Hysteria 2 server that the user runs
+(`apernet/hysteria`) dials the destination over QUIC, and to one with no
+credential it is an HTTP/3 web server. Where UDP passes, `--hysteria FILE`
+makes it the road for `ssh`, each command that reaches its server as `ssh`
+does, and `proxy`; `doctor --hysteria FILE` checks each server.
+
+- FILE is private (as a pair file): a share link on each line,
+  `hysteria2://AUTH@HOST[:PORT]/?sni=&pinSHA256=&insecure=&obfs=salamander&obfs-password=#NAME`
+  or `hy2://`, tried in order; AUTH and Salamander's password never go to
+  argv, a log or a message.
+- A probe first (T-400's packet, of `pod-quic`): one QUIC packet of a
+  reserved version to the server's port, three times within 1.5 s, which a
+  server of QUIC answers with a Version Negotiation. No answer: the road
+  ends at once, with a line that UDP does not reach the server (69), and no
+  QUIC handshake waits its 5 s. No HTTP proxy carries UDP: a server whose
+  host has a proxy of `HTTPS_PROXY` is not tried (69), as the quick
+  tunnel's QUIC; `NO_PROXY` with its host lets UDP go straight to it.
+- QUIC on `pod-quic`'s noq with podssh's provider, TLS 1.3 with the ALPN
+  `h3`, checked for `sni` with podssh's trust (`--ca-file`), or by
+  `pinSHA256`: the server's own certificate alone, by the SHA-256 of its DER.
+  Then HTTP/3's control stream and `POST /auth` (QPACK's static table, the
+  status read in Huffman's code of digits): any status but 233 is a
+  credential that the server did not take (77). Each session is its own
+  connection, its stream the TCP request `0x401` and the server's answer,
+  whose message is said when the server could not reach the target (69).
+- Salamander (`obfs=salamander`) wraps each datagram, the probe's too.
+  Refused by name (78): `insecure=1` with no pin, several ports (port
+  hopping), `obfs=gecko`, `ech`, `hysteria2+realm://`.
+- The code is in `podssh-ws`'s `hysteria/` (feature `quic`, on in each
+  build) until `pod-egress` of PodUtils/podcrates is taken (Rule Q3).
+
 ## Going to the background: `--detach` and `-f`
 
 T-380, after the study of `docs/detach.md`: a run that must outlive its

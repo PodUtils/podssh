@@ -59,6 +59,8 @@ pub struct SshArgs {
     /// `--tuic FILE`: TUIC servers in place of the relay, where UDP passes
     /// (T-581).
     pub tuic: Option<String>,
+    /// `--hysteria FILE`: Hysteria 2 servers in place of the relay (T-580).
+    pub hysteria: Option<String>,
     /// `--wstunnel URL` and `--wstunnel-secret-file FILE`: a wstunnel server
     /// in place of the relay, and what it checks of a client (T-441).
     pub wstunnel: Option<String>,
@@ -208,6 +210,7 @@ pub const ONCE: &[(&str, &str)] = &[
     ("vless", "give one file, with a line for each server"),
     ("trojan", "give one file, with a line for each server"),
     ("tuic", "give one file, with a line for each server"),
+    ("hysteria", "give one file, with a line for each server"),
     ("wstunnel", "give one server"),
     ("wstunnel-secret-file", "give one file"),
     ("chisel", "give one server"),
@@ -344,6 +347,7 @@ impl SshArgs {
             vless: one("vless"),
             trojan: one("trojan"),
             tuic: one("tuic"),
+            hysteria: one("hysteria"),
             wstunnel: one("wstunnel"),
             wstunnel_secret_file: one("wstunnel-secret-file"),
             chisel: one("chisel"),

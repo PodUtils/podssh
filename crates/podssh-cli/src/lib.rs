@@ -241,6 +241,8 @@ pub mod positionals;
 pub mod proxy;
 // `podssh proxy node://NAME`: the pipe of `podssh operator NAME` (T-587).
 pub mod proxy_node;
+// What `proxy` takes beside `--exit` and `--client-key`.
+mod proxy_alone;
 pub mod refuse;
 // `podssh relay pair --code` and `podssh relay join`: pairing by a short code (T-086).
 pub mod relay_cmd;
@@ -305,6 +307,9 @@ pub mod via;
 pub mod trojan;
 // `--tuic FILE`: TUIC servers in place of the relay, where UDP passes (T-581).
 pub mod tuic;
+// `--hysteria FILE`: Hysteria 2 servers in place of the relay, where UDP
+// passes (T-580).
+pub mod hysteria;
 // `--vless FILE`: VLESS servers in place of the relay (T-440).
 pub mod vless;
 // `--wstunnel URL`: a wstunnel server in place of the relay (T-441).

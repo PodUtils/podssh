@@ -266,6 +266,7 @@ pub fn flags(ssh: &SshArgs) -> Vec<String> {
         ("--vless", &ssh.vless),
         ("--trojan", &ssh.trojan),
         ("--tuic", &ssh.tuic),
+        ("--hysteria", &ssh.hysteria),
         ("--wstunnel", &ssh.wstunnel),
         ("--wstunnel-secret-file", &ssh.wstunnel_secret_file),
         ("--chisel", &ssh.chisel),

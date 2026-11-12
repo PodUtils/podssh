@@ -81,7 +81,15 @@ LISTENERS = {
     # connected to the first that answered to read this host's address, and
     # closed; PODSSH_STUN=no and PODSSH_OFFLINE send nothing; its tests' stand-in
     # STUN servers on the loopback.
+    # And the Hysteria 2 road (T-580), which the user asks for with
+    # `--hysteria FILE`, only where no proxy is set for the server's host: its
+    # probe of UDP, a socket of port 0 for each address probed, connected to
+    # it, which sends its packet three times and closes within 1.5 s; then
+    # one socket of port 0 for its one connection, through pod-quic's
+    # endpoint, wrapped in Salamander where the link names it (quic.rs); and
+    # the tests of Salamander's wrapper, on the loopback.
     "UdpSocket": [
+        "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-iroh/src/probe.rs",
         "crates/podssh-iroh/src/endpoint_udp_tests.rs",
         "crates/podssh-relay/src/udp/flow.rs",
@@ -114,8 +122,13 @@ LISTENERS = {
     # (T-639), as above. And the relay role's QUIC (T-667), as above. And the
     # tests of `relay serve`'s bind, then its drop of capabilities (T-629),
     # beside it so that it stays within 500 lines: the loopback's port 0. And
-    # doctor's line nat and its stand-ins (T-641), as above.
+    # doctor's line nat and its stand-ins (T-641), as above. And the Hysteria 2
+    # road's probe, its connection's socket and the tests of Salamander's
+    # wrapper (T-580), as above.
     "bind(": [
+        "crates/podssh-ws/src/hysteria/probe.rs",
+        "crates/podssh-ws/src/hysteria/quic.rs",
+        "crates/podssh-ws/src/hysteria/salamander.rs",
         "crates/podssh-cli/src/doctor/nat.rs",
         "crates/podssh-cli/src/doctor/nat_tests.rs",
         "crates/podssh-cli/src/journal/tests.rs",

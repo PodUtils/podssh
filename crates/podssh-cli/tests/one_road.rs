@@ -63,3 +63,20 @@ fn the_flag_of_vless_wins_over_the_variable_of_wstunnel() {
     assert_eq!(out.status.code(), Some(78), "{err}");
     assert!(!err.contains("two roads"), "{err}");
 }
+
+/// `--tuic` (T-581) and `--hysteria` (T-580), the two roads over QUIC, were
+/// drafted apart too: each refuses the other, in either order, where the
+/// first of them chosen would pass the second's file over unread.
+#[test]
+fn tuic_and_hysteria_name_two_roads() {
+    let runs: [(&[&str], &str); 2] = [
+        (&["ssh", "--tuic", NO_FILE, "--hysteria", NO_FILE, "h.example", "true"], "--hysteria"),
+        (&["ssh", "--hysteria", NO_FILE, "--tuic", NO_FILE, "h.example", "true"], "--hysteria"),
+    ];
+    for (argv, names) in runs {
+        let (rc, err) = podssh(argv);
+        assert_eq!(rc, 64, "{argv:?}: {err}");
+        assert!(err.contains(names) && err.contains("--tuic") && err.contains("two roads"), "{argv:?}: {err}");
+        assert!(!err.contains("PODSSH_OFFLINE") && !err.contains("nonexistent"), "{argv:?}: {err}");
+    }
+}

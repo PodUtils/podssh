@@ -69,8 +69,9 @@ podssh-zerotier = { path = "../podssh-zerotier", optional = true }
 # The type of a relay's URL, for `doctor`'s line; the version that
 # podssh-iroh builds, and its range (T-359).
 iroh = { version = ">=1.4.1, <1.5", default-features = false, features = ["tls-aws-lc-rs"], optional = true }
-# `quic`: the roads over QUIC where UDP passes, `--tuic` (T-581), on the
-# pod-quic and noq that podssh-relay's quick tunnel builds in each build.
+# `quic`: the roads over QUIC where UDP passes, `--tuic` (T-581) and
+# `--hysteria` (T-580), on the pod-quic and noq that podssh-relay's quick
+# tunnel builds in each build; pure Rust.
 podssh-ws = { path = "../podssh-ws", features = ["quic"] }
 # The services of other parties: the facts of doctor's checks, STUN, the
 # DERP map, the zone of OpenTunnel, the ACME directory, the relay of

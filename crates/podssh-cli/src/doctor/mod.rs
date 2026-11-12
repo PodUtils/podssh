@@ -48,6 +48,8 @@ mod forwarder;
 mod host;
 // What a host offers the WebSocket over HTTP/2 (T-321).
 mod http2;
+// The servers of --hysteria, where UDP passes (T-580).
+mod hysteria;
 mod ipv6;
 #[cfg(feature = "iroh")]
 mod iroh;
@@ -116,6 +118,8 @@ pub struct DoctorArgs {
     pub via: crate::via::Flags,
     /// `--vless`: the file whose servers are checked (T-440).
     pub vless: Option<String>,
+    /// `--hysteria`: the file whose servers are checked (T-580).
+    pub hysteria: Option<String>,
     /// `--quick`: this host, the egress and the relay, with the roads that
     /// the run names, and none of the others (T-511).
     pub quick: bool,
@@ -165,6 +169,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         Err(refusal) => return refusal.report("doctor", err),
     };
     let links = match crate::vless::for_doctor(args.vless.as_deref()) {
+        Ok(links) => links,
+        Err(refusal) => return refusal.report("doctor", err),
+    };
+    let quic_links = match crate::hysteria::for_doctor(args.hysteria.as_deref()) {
         Ok(links) => links,
         Err(refusal) => return refusal.report("doctor", err),
     };
@@ -248,6 +256,9 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         if links.is_some() {
             report.unknown("vless", "not attempted: PODSSH_OFFLINE is set");
         }
+        if quic_links.is_some() {
+            report.unknown("hysteria", "not attempted: PODSSH_OFFLINE is set");
+        }
         if exit.is_some() {
             report.unknown("exit", "not attempted: PODSSH_OFFLINE is set");
         }
@@ -274,6 +285,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
                 servers: servers.as_ref(),
                 road: road.as_ref(),
                 links: links.as_ref(),
+                hysteria: quic_links.as_ref(),
                 exit: exit.as_ref(),
                 quick: args.quick,
                 jobs,

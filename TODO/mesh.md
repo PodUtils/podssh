@@ -3591,7 +3591,7 @@ The copies do ask the net (read 2026-11-02). Each reads its operand with its own
 (`crates/podssh-cli/src/cp/operand.rs:114`), and hands the server to `ssh`'s resolution
 (`crates/podssh-cli/src/cp/mod.rs:299`, `crates/podssh-cli/src/sftp/mod.rs:216`,
 `crates/podssh-cli/src/edit/mod.rs:153`), which reads the destination's node before its host
-(`crates/podssh-cli/src/ssh/resolve.rs:142`), and a name alone there in the net
+(`crates/podssh-cli/src/ssh/resolve.rs:83`), and a name alone there in the net
 (`crates/podssh-cli/src/ssh/node.rs:44` says "crate::net::lookup::bare(text)"); the copy's link then reaches `Transport::Node` through the pair
 (`crates/podssh-cli/src/cp/link.rs`, lines 161-162 at `6a62cdc`). So `podssh cp FILE lab:PATH` and `podssh sftp lab`
 already resolve to the member's node. What was missing: a test that proves it, the manual's and
@@ -4922,7 +4922,7 @@ that takes the destination from its client; podssh cannot use it.
   remotes; a channel `chisel` for each tunnel, its extra data `HOST:PORT`, which the server dials
   before it accepts; `ping` requests both ways.
 - The roads of servers that the user names in place of the relay are chained in one place:
-  `crates/podssh-cli/src/ssh/servers.rs:24` says "pub(super) fn or_relay".
+  `crates/podssh-cli/src/ssh/servers.rs:25` says "pub(super) fn or_relay".
 - russh links aws-lc, which rule 4 of `AGENTS.md` (section 5) keeps out of podssh-ws.
 
 ## Approach
@@ -6270,7 +6270,7 @@ keep it for the whole run (`crates/podssh-cli/src/cp/link.rs`, line 161 at `6a62
 `ssh::roads::connect` runs SSH itself over the layered stream, its roads borrowing the run's
 locals (`crates/podssh-cli/src/ssh/roads.rs`, lines 238-246 at `6a62cdc`). So the copies need the race in a task of
 its own, which owns what the roads borrow. Measured: `Transport` is `Clone`
-(`crates/podssh-cli/src/ssh/resolve.rs:23`), and each road's future is `Send` already (the type
+(`crates/podssh-cli/src/ssh/transport_kind.rs:10`), and each road's future is `Send` already (the type
 `Going` with `+ Send` compiled with no change elsewhere). The Approach's item 1 is then: the body
 of `connect` as a function that hands the layered stream to a closure in the place of
 `podssh_ssh::run`; `connect` passes SSH, and a copy's `reach` spawns it with a clone of the
@@ -9745,7 +9745,7 @@ relay v2 node on 443 with an address that its operator publishes is read.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -9786,6 +9786,30 @@ A server that the user names is tried as asked once the probe found UDP; with no
 probe, the road ends at once with its words (69). Unasked, a road over UDP comes after the roads
 over TCP (Q82). Lost: QUIC's own handshake as the probe, which waits 5 s for each address.
 
+2026-11-12 (the draft), the calls of the code:
+
+- **No HTTP proxy carries UDP.** Where a proxy is set for the server's host, the road is not tried
+  (69), and its line names `NO_PROXY`, which lets UDP go straight to that host: rule 2 of
+  `AGENTS.md`, as the quick tunnel's QUIC and the relay role's QUIC are taken only with no proxy
+  set. Lost: the probe and QUIC past the proxy, a second way out that rule 2 does not allow.
+- **The probe waits 1.5 s and sends its packet three times**, where pod-quic's waits 300 ms for
+  one packet to Cloudflare's edge, near each host. Lost: pod-quic's wait, which a server across
+  the world would miss, and one packet, which one lost datagram would turn into "no UDP".
+- **A pin is the server's own certificate alone** (the SHA-256 of its DER, Hysteria's
+  `pinSHA256`), with or without `insecure=1`, and each signature of the handshake checked against
+  its key. Lost: Hysteria's match of any certificate of the chain, which with no chain checked
+  lets anybody send a pinned intermediate; and the roots beside the pin, which refuse the
+  certificate of the server's own that a pin is for.
+- **`insecure=1` with no pin, several ports, `obfs=gecko`, `ech` and a realm are refused by their
+  names** (78): a certificate that nobody checks, and settings that podssh does not follow.
+- **The congestion control is noq's own**, and `Hysteria-CC-RX` says 0 (unknown), so the server
+  uses its own too. Lost: Brutal, which needs a rate that the user knows and sets.
+- **Each session is a QUIC connection of its own**, as each session of `--trojan` is a TLS of its
+  own. Lost, for now: one connection for the sessions of a run (`each`), a change of the road's
+  life that its own entry would carry.
+- **HTTP/3's control stream is opened**, with its SETTINGS, and held for the connection's life, as
+  an HTTP/3 client does (RFC 9114, 6.2.1), so the request is a client's to one who watches.
+
 ## Prove
 
 ```sh
@@ -9808,6 +9832,44 @@ fails.
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
 
+2026-11-12. The Premise holds at each cited line. `pod-egress` is not made yet: podssh pins
+PodUtils/podcrates `v0.28.0`, and `pod-egress` is not among the crates taken (`TODO/PROGRESS.md`,
+State item 7). So the road is in `podssh-ws`'s `hysteria/` (feature `quic`) until `pod-egress` is
+taken, as T-739's VMess is in `podssh-ws`. QUIC (the endpoint over any way of datagrams, the
+connection within its wait, TLS 1.3's configuration) and the probe's packet and its reader are
+`pod-quic`'s, which podssh took; they are used as they are, and nothing of `pod-quic` changes.
+`pod-quic`'s `probe::probe` cannot wrap its packet in Salamander, so the road's probe is its own
+(`hysteria/probe.rs`) over `pod-quic`'s `packet` and `answers`; a probe over any way of datagrams
+in `pod-quic` is asked of podcrates as a COORD issue `(to podcrates)`, with the port of
+`hysteria/` to `pod-egress` once that crate is made. The Prove's command stands.
+
+## Done
+
+Done (2026-11-12). The draft `draft-t580` (`6f6f53b`) merged after T-581's, built and tested.
+
+- `crates/podssh-ws/src/hysteria/` (feature `quic`, beside T-581's `tuic/`, with `pod-quic` at `v0.29.0` and
+  `blake2` 0.11): the `hysteria2://` and `hy2://` links and their refusals by name, the probe of UDP, Salamander,
+  TLS by the roots or a pinned certificate, HTTP/3's `POST /auth` (status 233 alone), the TCP request, the stream.
+  `podssh-cli`: `--hysteria FILE` for `ssh` and the commands of its road, `proxy` and `doctor` (the section
+  `hysteria`), the manual (`man/notes_hysteria.rs`, FILES) and `docs/cli.md`.
+- The meeting with T-581: the flag lists, the dispatch of the servers' roads (in `ssh/servers.rs`, as T-581 put
+  it) and the features merged by hand; `--tuic` and `--hysteria` each refuse the other, where the first chosen
+  passed the second's file over (`tests/one_road.rs`, `tuic_and_hysteria_name_two_roads`: it fails with TUIC's
+  list missing `--hysteria`). `ssh/resolve.rs` past 500 lines: the `Transport` enum moved to
+  `ssh/transport_kind.rs`, re-exported where it was.
+- Against Hysteria's own server, app/v2.13.0 (`hysteria-linux-amd64`, its SHA-256 `907ba8c9...86691` checked on the
+  download): `PODSSH_HYSTERIA_TEST_BIN=.work/hysteria/hysteria cargo test -p podssh-ws --features quic --test
+  hysteria`, 3 passed in 1.9 s: the banner and 300 KB echoed by a root, by a pin and under Salamander; a wrong
+  password, a wrong pin, another Salamander key and an unreachable target refused; a port that drops UDP ends at
+  the probe.
+- Planted: the check of the status 233 removed (`hysteria/quic.rs`), and the test of the wrong password fails (the
+  road takes the session and waits for the target); restored, it passes.
+- `cargo test -p podssh-ws --features quic --lib hysteria`, 14 passed; `--test no_permissive_verifier`, 2 passed;
+  `cargo test -p podssh-cli --lib`, 1122 passed; `--test proxy --test chisel --test one_road`, all passed; clippy
+  of podssh-cli and podssh-ws with `quic` as the gate runs it, and `cargo fmt --check`, clean;
+  `python scripts/check-repo.py` passes (the road's UDP sockets in `scripts/repo_listeners.py`).
+- `hysteria-interop.yml` runs the same from Actions on a push of the road.
+
 # T-581: TUIC version 5 as a client road over QUIC, where a probe found that UDP passes
 
 **Source:** the operator's ruling Q82 (2026-11-02).
@@ -9826,9 +9888,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:29` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:2094-2095` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:2097-2098` says "as the server never answers a command";
-  `docs/carriers.md:2100` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:2095-2096` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:2098-2099` says "as the server never answers a command";
+  `docs/carriers.md:2101` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:56` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -9890,7 +9952,7 @@ exporter's label and context swapped, and the test of the banner fails.
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
 
-2026-11-12. The Premise holds: `docs/decisions.md:29`, `docs/carriers.md:2094-2100` and
+2026-11-12. The Premise holds: `docs/decisions.md:29`, `docs/carriers.md:2095-2101` and
 `crates/podssh-relay/Cargo.toml:56` say what it quotes. `pod-egress` is not taken (`TODO/PROGRESS.md`,
 State, item 7), so the road is in `podssh-ws` (`tuic/`, behind its feature `quic`) until it is, as T-739's
 VMess is; podcrates imports it with the other roads of `pod-egress`. The QUIC that it needs is `pod-quic`'s,
@@ -10571,7 +10633,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
   its owner (`:302-303`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:148`).
+  (`docs/STATUS.md:150`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -12579,7 +12641,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:78`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:79`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 

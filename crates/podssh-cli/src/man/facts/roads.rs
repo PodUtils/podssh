@@ -427,9 +427,9 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_CHISEL"],
         "The chisel server of podssh ssh, of each command that reaches its server as podssh ssh does, and of \
       podssh proxy, as --chisel: https://HOST[:PORT][/PATH], in place of the relay. The flag wins, and so do \
-      --relay-host, --relay-failover, --forwarder, --shadowsocks, --via, --vless, --trojan, --tuic and --wstunnel; \
-      beside PODSSH_RELAY, PODSSH_FORWARDER, PODSSH_VIA or PODSSH_WSTUNNEL, or with a URL that cannot be read, it is \
-      a configuration error (78). An empty value is no value.",
+      --relay-host, --relay-failover, --forwarder, --shadowsocks, --via, --vless, --trojan, --tuic, --hysteria \
+      and --wstunnel; beside PODSSH_RELAY, PODSSH_FORWARDER, PODSSH_VIA or PODSSH_WSTUNNEL, or with a URL that \
+      cannot be read, it is a configuration error (78). An empty value is no value.",
     ),
     (
         &["PODSSH_CHISEL_AUTH_FILE"],

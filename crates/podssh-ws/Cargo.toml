@@ -59,10 +59,12 @@ blake3 = { version = "1.8.7", default-features = false, features = ["std", "pure
 # PBKDF2-HMAC-SHA1 (frp/cfb.rs, with the HMAC and SHA-1 above). The block
 # cipher alone, pure Rust, in the lock already through podssh-ssh.
 aes = { workspace = true }
-# TUIC over QUIC (tuic/, T-581): pod-quic's endpoint, connection and probe
-# of UDP on noq, the quick tunnel's, so the lock gains no crate. Only with the
-# feature `quic`, which the binary turns on.
+# The roads over QUIC (tuic/, T-581; hysteria/, T-580): pod-quic's endpoint,
+# connection and probe of UDP on noq, the quick tunnel's. Only with the
+# feature `quic`, which the binary turns on. BLAKE2b-256 of Hysteria's
+# Salamander, pure Rust, in the lock already (0.11, through argon2).
 pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.29.0", optional = true }
+blake2 = { version = "0.11", default-features = false, optional = true }
 
 # The clocks of a host that slept (wake.rs): CLOCK_BOOTTIME beside
 # CLOCK_MONOTONIC, which Linux alone has. libc compiles no C.
@@ -74,8 +76,9 @@ libc = { workspace = true }
 # (podvm) and a stand-in relay (T-068). Off by default; the binary never
 # enables it, and the gate checks that with `cargo tree`.
 plain-ws = ["pod-ws/plain-ws"]
-# The roads over QUIC where UDP passes (Q82): TUIC (T-581). No C either.
-quic = ["dep:pod-quic"]
+# The roads over QUIC where a probe finds that UDP passes (Q82): TUIC (T-581)
+# and Hysteria 2 (T-580). No C either.
+quic = ["dep:pod-quic", "dep:blake2"]
 
 [dev-dependencies]
 pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.29.0", features = ["screen"] }

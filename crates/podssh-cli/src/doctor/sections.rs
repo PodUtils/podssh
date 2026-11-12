@@ -2,8 +2,8 @@
 //! runs on its own (T-511): which of them run, in the order of the report,
 //! and how many start together. `--quick` keeps this host, the egress and
 //! the relay, what each run of `ssh` and `proxy` needs, with the roads that
-//! the run names (`--forwarder`, `--shadowsocks`, `--via`, `--vless`), and
-//! a line names the sections that it left out.
+//! the run names (`--forwarder`, `--shadowsocks`, `--via`, `--vless`,
+//! `--hysteria`), and a line names the sections that it left out.
 
 use podssh_relay::failover::Mode;
 use podssh_relay::relay::RelayList;
@@ -31,6 +31,8 @@ pub(super) struct Checks<'a> {
     pub(super) road: Option<&'a crate::via::Road>,
     /// The servers of `--vless`, when it names a file.
     pub(super) links: Option<&'a crate::vless::Servers>,
+    /// The servers of `--hysteria`, when it names a file (T-580).
+    pub(super) hysteria: Option<&'a crate::hysteria::Servers>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
@@ -57,6 +59,8 @@ pub(super) enum Kind {
     Shadowsocks,
     Via,
     Vless,
+    /// The servers of `--hysteria`, where UDP passes (T-580).
+    Hysteria,
     /// The exit of `--exit NAME` (T-458).
     Exit,
     /// What the path does to a stream (T-325).
@@ -85,6 +89,7 @@ impl Kind {
             Kind::Shadowsocks => "shadowsocks",
             Kind::Via => "via",
             Kind::Vless => "vless",
+            Kind::Hysteria => "hysteria",
             Kind::Exit => "exit",
             Kind::Stream => "stream",
             #[cfg(feature = "iroh")]
@@ -136,7 +141,13 @@ pub(super) fn kinds(quick: bool, servers: bool, road: bool, links: bool, exit: b
 /// its order; the lines of each section go out as `parts` lets them.
 pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
     let (servers, road, links) = (checks.servers.is_some(), checks.road.is_some(), checks.links.is_some());
-    let kinds = kinds(checks.quick, servers, road, links, checks.exit.is_some(), checks.stream.is_some());
+    let mut kinds = kinds(checks.quick, servers, road, links, checks.exit.is_some(), checks.stream.is_some());
+    // After the roads over TCP that the run names (Q82).
+    if checks.hysteria.is_some() {
+        let tcp = |k: &Kind| matches!(k, Kind::Forwarders | Kind::Shadowsocks | Kind::Via | Kind::Vless);
+        let after = kinds.iter().rposition(tcp).map_or(kinds.len(), |at| at + 1);
+        kinds.insert(after, Kind::Hysteria);
+    }
     let json = report.json;
     let start = |i: usize, seat: Seat| part(kinds[i], seat, json, checks);
     let ended = parts::run(&mut *report.out, kinds.len(), checks.jobs, start).await;
@@ -195,6 +206,11 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Vless => {
             if let Some(servers) = links {
                 super::vless::check(report, servers, trust).await;
+            }
+        }
+        Kind::Hysteria => {
+            if let Some(servers) = checks.hysteria {
+                super::hysteria::check(report, servers, trust).await;
             }
         }
         Kind::Exit => {

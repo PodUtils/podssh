@@ -240,7 +240,7 @@ async fn the_code_is_in_no_line_and_no_debug() {
         let debug = format!("{given:?} {:?} {:?}", Code::parse(&p.code).unwrap(), taken.done);
         for word in secret {
             for line in lines.iter().chain([&debug]) {
-                assert!(!line.contains(word), "{name}: a word of the code in {line:?}");
+                assert!(!holds_word(line, word), "{name}: a word of the code in {line:?}");
             }
         }
     }
@@ -299,4 +299,11 @@ async fn a_peer_of_magic_wormholes_python_library_with_a_wrong_code_fails_both_e
         assert_eq!(hole.confirm(LIMIT).await.err(), Some(Failed::WrongCode), "{name}");
         assert_eq!(peer.after("wrong").as_deref(), Some(""), "{name}: {}", peer.said());
     }
+}
+
+/// Whether `text` holds `word` as a word of its own: a leaked code shows its
+/// words between dashes or spaces, while a word inside another word
+/// ("allow" in "allowlist", or in a key's base64) is no leak.
+fn holds_word(text: &str, word: &str) -> bool {
+    text.split(|c: char| !c.is_ascii_alphabetic()).any(|t| t.eq_ignore_ascii_case(word))
 }

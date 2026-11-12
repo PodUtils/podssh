@@ -145,6 +145,7 @@ pub const PROXY_FLAGS: &[FlagRow] = &[
     super::shadowsocks::PROXY_SHADOWSOCKS,
     super::vless::PROXY_VLESS,
     super::vless::PROXY_TROJAN,
+    super::vless::PROXY_HYSTERIA,
     super::via::VIA, super::via::VIA_AUTH_FILE, super::via::WSTUNNEL, super::via::WSTUNNEL_SECRET_FILE,
     super::via::CHISEL, super::via::CHISEL_AUTH_FILE,
     // The exit of the net (T-431).
@@ -206,6 +207,7 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     super::forwarder::DOCTOR_FORWARDER,
     super::shadowsocks::DOCTOR_SHADOWSOCKS,
     super::vless::DOCTOR_VLESS,
+    super::vless::DOCTOR_HYSTERIA,
     super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE,
     // The exit of the net, and one session from it (T-458).
     row(None, "exit", Some("NAME"), FlagKind::Supported,

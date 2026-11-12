@@ -290,16 +290,12 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
         | Transport::Wstunnel { .. }
         | Transport::Trojan { .. }
         | Transport::Tuic { .. }
+        | Transport::Hysteria { .. }
         | Transport::Chisel { .. } => super::servers::reach(resolved, &first.host, first.port, log).await,
         Transport::Direct => {
             if podssh_relay::open::offline() {
-                return Err(NotReached {
-                    lines: vec![format!(
-                        "{} is set, so podssh does not connect anywhere",
-                        podssh_relay::open::OFFLINE_ENV
-                    )],
-                    code: sysexits::EX_UNAVAILABLE,
-                });
+                let line = format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV);
+                return Err(NotReached { lines: vec![line], code: sysexits::EX_UNAVAILABLE });
             }
             let multipath = multipath_asked(std::env::var(MPTCP_ENV).ok().as_deref())
                 .map_err(|why| NotReached { lines: vec![why], code: sysexits::EX_CONFIG })?;

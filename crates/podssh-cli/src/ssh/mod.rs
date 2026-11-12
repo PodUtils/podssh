@@ -70,6 +70,7 @@ mod recording;
 pub mod resolve;
 mod resolve_env;
 pub mod result;
+mod transport_kind;
 // The race of a node's roads: iroh, the pair's, DERP (T-164, T-379).
 pub(crate) mod road_link;
 pub(crate) mod roads;

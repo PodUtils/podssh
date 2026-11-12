@@ -71,6 +71,7 @@ pub fn or_relay(args: &SshArgs, transport: Transport) -> Result<Transport, Refus
         ("--via", args.via.is_some()),
         ("--vless", args.vless.is_some()),
         ("--trojan", args.trojan.is_some()),
+        ("--hysteria", args.hysteria.is_some()),
         ("--wstunnel", args.wstunnel.is_some()),
         ("--chisel", args.chisel.is_some()),
     ];

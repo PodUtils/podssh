@@ -56,6 +56,7 @@ pub(super) fn flags(args: &SshArgs) -> Result<(), String> {
         (args.vless.is_some(), "--vless"),
         (args.trojan.is_some(), "--trojan"),
         (args.tuic.is_some(), "--tuic"),
+        (args.hysteria.is_some(), "--hysteria"),
         (args.wstunnel.is_some(), "--wstunnel"),
         (args.chisel.is_some(), "--chisel"),
         (args.upgrade, "--upgrade"),

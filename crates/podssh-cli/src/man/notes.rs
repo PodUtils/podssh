@@ -331,6 +331,7 @@ const DOCTOR: &[&str] = &[
      (HTTP/2 or HTTP/1.1) and the time of its CONNECT, then a session to github.com port 22 through it, \
      whose host key must be one that GitHub publishes. A 407 says what the proxy asks for.",
     super::notes_vless::DOCTOR_VLESS,
+    super::notes_hysteria::DOCTOR,
     "With --json, the report is one JSON object on stdout when every check has run: schema (1), podssh, \
      os, arch, checks (each with section, check, status and detail; status is ok, FAIL or unknown), \
      counts (ok, fail, unknown) and diagnosis (each case after the counts; empty when none). A check tried \

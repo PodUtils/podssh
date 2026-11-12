@@ -219,7 +219,7 @@ fn a_new_device_joins_by_a_code_and_holds_the_owner_s_document() {
     assert_eq!(out, format!("lab: joined the net home of the owner {print}\n"));
     assert!(err.contains(&format!("the net home of the owner {print} names this device lab")), "{err}");
     for word in code.split('-').skip(1) {
-        assert!(!out.contains(word) && !err.contains(word), "a word of the code in the device's output");
+        assert!(!holds_word(&out, word) && !holds_word(&err, word), "a word of the code in the device's output");
     }
     assert_eq!(giver.wait(LIMIT), Some(0), "podssh net invite: {}", giver.text());
     let joined = format!("lab: joined the net home with the key {device_print}, serial 2");
@@ -361,10 +361,17 @@ fn each_refusal_before_the_network_says_why() {
         let (rc, out, err) = offline(&device, &args, &set, &format!("{code}\n"));
         assert!(rc == code_of && err.contains(says) && out.is_empty(), "{args:?}: {rc} {err}");
         for word in code.split('-').skip(1) {
-            assert!(!err.contains(word), "{args:?}: a word of the code in {err:?}");
+            assert!(!holds_word(&err, word), "{args:?}: a word of the code in {err:?}");
         }
     }
     let (rc, _, err) = offline(&device, &["net", "join", "--owner", &public], &[], "7-notaword-clockwork\n");
     assert!(rc == 64 && err.contains("word 1 of the code") && !err.contains("notaword"), "{rc} {err}");
     assert_eq!(device.serial(), None, "no refusal kept a net");
+}
+
+/// Whether `text` holds `word` as a word of its own: a leaked code shows its
+/// words between dashes or spaces, while a word inside another word
+/// ("allow" in "allowlist", or in a key's base64) is no leak.
+fn holds_word(text: &str, word: &str) -> bool {
+    text.split(|c: char| !c.is_ascii_alphabetic()).any(|t| t.eq_ignore_ascii_case(word))
 }

@@ -108,7 +108,7 @@ fn the_taker_reads_its_code_from_stdin_and_says_no_word_of_it() {
     assert_eq!(rc, 69, "{err}");
     assert!(err.contains("PODSSH_OFFLINE"), "{err}");
     for word in CODE.split('-').skip(1) {
-        assert!(!err.contains(word) && !out3.contains(word), "a word of the code in {err:?}");
+        assert!(!holds_word(&err, word) && !holds_word(&out3, word), "a word of the code in {err:?}");
     }
     assert!(out.is_empty() && out3.is_empty());
 }
@@ -145,4 +145,11 @@ fn the_part_that_a_join_kept_is_found_by_its_label() {
         no_token(&out);
         no_token(&err);
     }
+}
+
+/// Whether `text` holds `word` as a word of its own: a leaked code shows its
+/// words between dashes or spaces, while a word inside another word
+/// ("allow" in "allowlist", or in a key's base64) is no leak.
+fn holds_word(text: &str, word: &str) -> bool {
+    text.split(|c: char| !c.is_ascii_alphabetic()).any(|t| t.eq_ignore_ascii_case(word))
 }

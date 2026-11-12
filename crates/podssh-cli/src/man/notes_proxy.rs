@@ -64,6 +64,7 @@ pub const PROXY: &[&str] = &[
      tunnel's half-close (the end of the stream, on HTTP/2): the target's bytes come until it closes.",
     super::notes_vless::PROXY_VLESS,
     super::notes_vless::PROXY_TROJAN,
+    super::notes_hysteria::PROXY,
     super::notes_roads::PROXY_WSTUNNEL,
     super::notes_roads::PROXY_CHISEL,
     super::notes_roads::PROXY_CLEARTEXT,

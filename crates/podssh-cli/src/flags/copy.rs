@@ -85,6 +85,7 @@ pub const CP_FLAGS: &[FlagRow] = &[
     super::vless::VLESS,
     super::vless::TROJAN,
     super::vless::TUIC,
+    super::vless::HYSTERIA,
     super::via::VIA, super::via::VIA_AUTH_FILE, super::via::WSTUNNEL, super::via::WSTUNNEL_SECRET_FILE,
     super::via::CHISEL, super::via::CHISEL_AUTH_FILE,
     // A node of a pair (T-296), with the flags of `ssh node://`.

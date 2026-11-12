@@ -2088,7 +2088,8 @@ with TCP and TLS alone.
    HTTP/3 `POST /auth` with `Hysteria-Auth`, a server that accepts it
    answers status 233, and each TCP stream is a bidirectional QUIC stream
    that opens with a request of ID 0x401 and the address as `host:port`.
-   Entries: T-580 (Hysteria 2), T-581 (TUIC), T-582 (MASQUE over HTTP/3).
+   Entries: T-580 (Hysteria 2, `--hysteria FILE`), T-581 (TUIC), T-582
+   (MASQUE over HTTP/3).
 9. **TUIC** (where UDP passes, Q82; read on 2026-11-02 [X1]). Version 5:
    each command is a version, a type and its data, on QUIC's streams and
    datagrams. `Authenticate` is a UUID and a token of 32 bytes that the TLS
