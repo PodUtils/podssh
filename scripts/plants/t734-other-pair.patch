@@ -1,0 +1,11 @@
+--- a/crates/podssh-cli/src/ssh/tox.rs
++++ b/crates/podssh-cli/src/ssh/tox.rs
+@@ -66,7 +66,7 @@
+     async fn linked(&self) -> Result<Road, String> {
+         use podssh_relay::tox::pair;
+         self.log.verbose(&format!("{}: the Tox road through {}", self.shown, self.relay.at));
+-        let node = pair::node_keys(&self.name, &self.token).public();
++        let node = pair::node_keys(&self.name, "planted").public();
+         let dial = crate::tox::dial(self.relay.at);
+         let stream = pair::link(&dial, self.relay.key, node, LIMIT)
+             .await

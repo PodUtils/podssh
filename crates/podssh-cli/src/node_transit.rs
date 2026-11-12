@@ -38,12 +38,13 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
     transit::setting(std::env::var(transit::ENV).ok().as_deref()).map_err(Refusal::config)
 }
 
-/// The variable, and those of croc's relay road (T-694) and ZeroTier's
-/// (T-733), checked before anything connects.
+/// The variable, and those of croc's relay road (T-694), ZeroTier's
+/// (T-733) and the Tox road (T-734), checked before anything connects.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
     crate::node_croc::check()?;
-    crate::zerotier::setting().map(|_| ())
+    crate::zerotier::setting()?;
+    crate::tox::setting().map(|_| ())
 }
 
 /// The relay of the road, when the road is on.
@@ -133,7 +134,7 @@ where
 /// [`Beside`]: the transit relay on (`transit`), a relay member of the net,
 /// or croc's relay road (T-694) or ZeroTier's (T-733).
 pub(crate) fn wanted(transit: bool) -> bool {
-    let last = crate::node_croc::bridge().is_some() || crate::zerotier::relay().is_some();
+    let last = crate::node_croc::bridge().is_some() || crate::zerotier::relay().is_some() || crate::tox::on();
     transit || crate::node_members::wanted() || last
 }
 
@@ -172,8 +173,10 @@ impl Beside<'_> {
             crate::node_croc::road(self.label, &config.pair, stored, self.trust, bridge, croc_say.clone())
         });
         // ZeroTier's road (T-733) after croc's, the last of all.
-        let zerotier = crate::node_zerotier::beside(Some(&config.pair), croc_say);
-        let croc = crate::node_croc::Beside { croc, zerotier };
+        let zerotier = crate::node_zerotier::beside(Some(&config.pair), croc_say.clone());
+        // The Tox road (T-734) after ZeroTier's.
+        let tox = crate::node_tox::beside(Some(&config.pair), croc_say);
+        let croc = crate::node_croc::Beside { croc, zerotier, tox };
         let (host, port, roost) = (tcp.host.clone(), tcp.port, tcp.sshd);
         // A handler for each road at a relay member, under the same keeper.
         let member_handler = {

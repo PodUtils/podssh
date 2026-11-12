@@ -169,6 +169,9 @@ step_lint() {
     # ZeroTier's road (T-733): the CLI's road with its stand-in.
     run "clippy: no warning with the ZeroTier feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-zerotier --features podssh-cli/zerotier-test -- -D warnings $LINTS_ALLOWED
+    # Tox's relay road (T-734): the protocol and the CLI's road with its feature.
+    run "clippy: no warning with the Tox feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/tox -- -D warnings $LINTS_ALLOWED
 }
 
 # The feature `blocking` of podssh-relay (the facade for podvm, T-081) brings

@@ -19,6 +19,8 @@ mod cleanup;
 mod derp_croc;
 mod derp_net;
 mod derp_support;
+#[cfg(feature = "tox")]
+mod derp_tox;
 #[cfg(feature = "zerotier-test")]
 mod derp_zerotier;
 mod ssh_harness;
@@ -82,7 +84,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
     // at n0's server of pkarr, which a node of DERP alone keeps (Q81).
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_IROH_PKARR", "off");
     // Nor ZeroTier's road (T-733), in a build with it, but where a test names its stand-in.
-    cmd.env("PODSSH_ZEROTIER", "no");
+    cmd.env("PODSSH_ZEROTIER", "no").env("PODSSH_TOX", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
     cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_BORE", "no");

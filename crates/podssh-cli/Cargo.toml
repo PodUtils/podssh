@@ -45,6 +45,8 @@ tor = ["dep:podssh-tor"]
 # MPL-2.0 core in C++, linked statically. Off by default until its static
 # musl build is measured; without it, the road is not there.
 zerotier = ["dep:podssh-zerotier"]
+# Tox's TCP relays as a last road of a pair (T-734). No C.
+tox = ["podssh-relay/tox"]
 # The road with the stand-in relay and root on the loopback, for the test of
 # the command line from end to end (`tests/derp_road.rs`); never in a release.
 zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]

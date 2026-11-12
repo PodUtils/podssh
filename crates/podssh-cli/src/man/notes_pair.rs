@@ -207,6 +207,7 @@ pub(super) const NODE: &[&str] = &[
      from it. A node of --derp with a pair waits there too.",
     super::notes_croc::NODE,
     super::notes_zerotier::NODE,
+    super::notes_tox::NODE,
     "A node of a pair has a road for a proxy that refuses the WebSocket upgrade: the Piping Server road, \
      through https://ppng.io, which needs no account, then https://piping.onrender.com where ppng.io fails, \
      or the server of PODSSH_PIPING alone. Once TARGET answered, the \

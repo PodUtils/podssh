@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/tox/wire.rs
++++ b/crates/podssh-relay/src/tox/wire.rs
+@@ -267,7 +267,7 @@
+     // finds it, until a packet of its opens: a ping confirms it at once.
+     let mut ping: [u8; 8] = rand::random();
+     ping[0] |= 1;
+-    sender.ping(ping).await?;
++    let _ = ping;
+     Ok((sender, Receiver { io: read, opener: session(), nonce: theirs }))
+ }
+ 

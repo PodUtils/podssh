@@ -94,17 +94,19 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge
 }
 
 /// The last roads of a pair at the node: croc's relay, then ZeroTier's
-/// network (T-733), each where it is on.
+/// network (T-733), then a Tox relay (T-734), each where it is on.
 pub(crate) struct Beside {
     pub croc: Option<far::Node>,
     pub zerotier: Option<crate::node_zerotier::Road>,
+    pub tox: Option<crate::node_tox::Road>,
 }
 
 /// The roads beside another node road's pair (`--derp`, the Piping Server
 /// road), the last of its roads: none with no pair there, or each road off.
 pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, say: Say) -> Beside {
     let croc = pair.and_then(|(pair, stored)| Some(road(label, pair, stored, trust, bridge()?, say.clone())));
-    Beside { croc, zerotier: crate::node_zerotier::beside(pair.map(|(pair, _)| pair), say) }
+    let zerotier = crate::node_zerotier::beside(pair.map(|(pair, _)| pair), say.clone());
+    Beside { croc, zerotier, tox: crate::node_tox::beside(pair.map(|(pair, _)| pair), say) }
 }
 
 /// `pair_road` with croc's relay road and ZeroTier's of `beside` beside it,
@@ -121,7 +123,8 @@ where
     O: Fn() -> F + Clone + Send + Sync + 'static,
     F: Future<Output = Result<DuplexStream, String>> + Send + 'static,
 {
-    let zerotier = crate::node_zerotier::alongside(pair_road, beside.zerotier, open.clone(), keeper.clone());
+    let tox = crate::node_tox::alongside(pair_road, beside.tox, open.clone(), keeper.clone());
+    let zerotier = crate::node_zerotier::alongside(Box::pin(tox), beside.zerotier, open.clone(), keeper.clone());
     let mut pair_road = Box::pin(zerotier);
     let Some(road) = beside.croc else { return pair_road.await };
     let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);

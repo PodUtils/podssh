@@ -315,8 +315,8 @@ where
     // croc's relay (T-694): never with --no-e2e, nor once the upgrade was refused, as its bridge is a WebSocket.
     let croc =
         last::croc::CrocRoads::new(part.as_ref(), ask.off || refused.load(Ordering::SeqCst), trust, &log, &shown);
-    // ZeroTier's road (T-733), raced after croc's: never with --no-e2e.
-    let last = last.with_zerotier(last::zerotier::ZeroTierRoads::new(part.as_ref(), ask.off, &log, &shown));
+    // ZeroTier's road (T-733), then the Tox road (T-734), raced after croc's: never with --no-e2e.
+    let last = last.with_pair(part.as_ref(), ask.off, &log, &shown);
     let proxy = ProxyChoice::FromEnvironment;
     let config = part.as_ref().map(|part| OperatorConfig {
         relay: &part.relay,

@@ -174,6 +174,9 @@ pub mod node_croc;
 // ZeroTier's road beside a pair's road, the last fallback of Q78 (T-733).
 pub mod node_zerotier;
 pub mod zerotier;
+// Tox's TCP relays beside a pair's road, a last fallback of Q78 (T-734).
+pub mod node_tox;
+pub mod tox;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).
 #[cfg(feature = "zerotier-test")]
 pub use podssh_zerotier::stand_in as zerotier_stand_in;

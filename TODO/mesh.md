@@ -10014,7 +10014,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:290-300`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:291-301`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10368,8 +10368,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:299-300`), and needs the net's role exit, signed by
-  its owner (`:297-298`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:300-301`), and needs the net's role exit, signed by
+  its owner (`:298-299`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:140`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -12379,7 +12379,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:68`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:70`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -12991,10 +12991,29 @@ progress; a FIN carries the length; the relay's pings answered).
   does not find it (measured). `--test tox_relay`: 4 passed, with two clients of one node, each 100 kB
   echoed whole at once (5 of 5 runs); planted, no confirming ping, the node never answers and the test
   fails (the Prove's plant of an unconfirmed connection).
-- Next: the road in the command line (the setting `PODSSH_TOX`, the relays of 443 from `pod-services`, the
-  node beside its other last roads and the client's race, the end-to-end channel and the resumable layer above
-  the stream, the third party's line, Q78), the manual, `tox-bootstrapd` in a workflow, and one short live
-  run through a public node from GitHub Actions.
+- The road in the command line, behind the feature `tox` of podssh-cli: `src/tox.rs` (the setting
+  `PODSSH_TOX`: `no`, or `IP:PORT=KEY` for a relay of one's own, which `PODSSH_LAST_RESORT` leaves on; else
+  the relays of the service `tox-tcp-relay` of `pod-services`, none until it lists them, COORD-028 #196;
+  the relay by the SHA-256 of the pair's name), `src/node_tox.rs` (the node waits there beside its other
+  last roads, each session's stream served by the resumable layer's far end under the node's keeper, as the
+  bore road's visitors are), `src/ssh/tox.rs` (the client's road in the race, after ZeroTier's and before
+  Serveo's, never with --no-e2e; Q78's line before the first byte to a public relay). The manual: the notes
+  of node and ssh (`man/notes_tox.rs`, after ZeroTier's) and the facts of `PODSSH_TOX` and
+  `PODSSH_LAST_RESORT`.
+- `cargo test -p podssh-cli --features tox --test derp_road -- derp_tox`: 1 passed against `tox-bootstrapd`:
+  a `--derp` node whose pair's relay is down, and a client with its DERP road off, meet through the Tox road
+  alone; `podssh ssh node://` ran its command in 1.2 to 1.5 s. `--lib`: 1103 passed (the setting, the pick,
+  the notes). clippy with and without the feature: no warning. The gate lints the feature; the workflow
+  `tox-interop.yml` runs the two tests with Ubuntu's `tox-bootstrapd` on each push of the road.
+- Planted (`scripts/plants/t734-*`, group `host-tox`, `sh scripts/plant-each.sh --here --group host-tox`):
+  a connection that sends nothing after its handshake (the Prove's unconfirmed connection), and a client
+  that makes another pair's node key; 2 caught, 0 missed.
+- The live run through a public node: the job `live` of `tox-interop.yml`, by hand, picks the nodes with
+  their TCP relay on 443 from the Tox project's own list at run time (no host of another party in the
+  source) and runs `derp_tox` through each until one passes. From this cloud session the five nodes of 443
+  could not be reached: its proxy resets a raw connection to them, and with no proxy something on its path
+  answers in the relay's place (the answer does not open under the node's key). UNVERIFIED until the
+  job's first run on Actions.
 
 
 # T-735: Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair

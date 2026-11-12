@@ -1,0 +1,10 @@
+# T-734: the client of Tox's relay road makes the node's key of another
+# pair, so it says hello to a node that is not there; the command line's
+# test from end to end, through tox-bootstrapd, must fail.
+# On the runner, not in the build image: tox-bootstrapd is Ubuntu's.
+ENTRY=T-734
+GROUP=host-tox
+EXPECT='test derp_tox::a_derp_node_with_a_pair_serves_a_client_through_the_tox_road \.\.\. FAILED'
+SETUP='apt-get install -y -q toxcore-utils >/dev/null'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --features tox --test derp_road -- derp_tox'
+LIMIT=1800

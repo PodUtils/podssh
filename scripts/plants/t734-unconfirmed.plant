@@ -1,0 +1,10 @@
+# T-734: a connection to the Tox relay sends no packet after its handshake,
+# so c-toxcore's relay keeps it unconfirmed and passes it no hello; the test
+# of a pair's node that takes two clients on tox-bootstrapd must fail.
+# On the runner, not in the build image: tox-bootstrapd is Ubuntu's.
+ENTRY=T-734
+GROUP=host-tox
+EXPECT='test a_pair_s_node_takes_two_clients_on_the_relay \.\.\. FAILED'
+SETUP='apt-get install -y -q toxcore-utils >/dev/null'
+RUN='cargo test --locked --no-fail-fast -p podssh-relay --features tox --test tox_relay'
+LIMIT=1800

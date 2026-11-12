@@ -1,0 +1,101 @@
+name: tox interop
+
+# Tox's relay road (T-734) against c-toxcore's own relay: Ubuntu's
+# tox-bootstrapd (toxcore-utils, GPL-3.0) with its TCP relay on the
+# loopback, run by the tests themselves. No node of the Tox project is
+# reached. The protocol (crates/podssh-relay/tests/tox_relay.rs): two
+# clients that carry a MiB whole, a route that never connects, a relay of
+# another key refused, and a pair's node that takes two clients; and the
+# command line from end to end (tests/derp_road.rs, the module derp_tox).
+# Each test says "did not run" with no tox-bootstrapd, so the job fails on
+# that word. A planted connection that never confirms itself, and a planted
+# client of another pair, must fail (scripts/plants/t734-*).
+# By hand only, the job `live`: one short session from end to end through a
+# public node of the Tox project on 443, a service of Q78 (a live target of
+# Q91), picked at run time from the project's own list, so that no host of
+# another party is in podssh's source; podssh's list of the relays is
+# pod-services' (COORD-028).
+# Started by hand, and on a push that changes the road; it publishes nothing.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "crates/podssh-relay/src/tox/**"
+      - "crates/podssh-relay/tests/tox_relay.rs"
+      - "crates/podssh-cli/src/tox.rs"
+      - "crates/podssh-cli/src/node_tox.rs"
+      - "crates/podssh-cli/src/ssh/tox.rs"
+      - "crates/podssh-cli/tests/derp_tox/**"
+      - "scripts/plants/t734-*"
+      - ".github/workflows/tox-interop.yml"
+
+permissions:
+  contents: read
+
+# A newer push cancels the run of the older one (the operator, 2026-11-11).
+concurrency:
+  group: tox-interop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: c-toxcore's tox-bootstrapd
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q toxcore-utils
+          command -v tox-bootstrapd
+      - name: the protocol against c-toxcore's relay
+        run: |
+          set -o pipefail
+          timeout 900 cargo test --locked -p podssh-relay --features tox --test tox_relay -- --nocapture 2>&1 | tee "$RUNNER_TEMP/relay.log"
+          grep -q "test result: ok. 4 passed" "$RUNNER_TEMP/relay.log"
+          if grep -q "did not run" "$RUNNER_TEMP/relay.log"; then echo "a test did not run"; exit 1; fi
+      - name: the command line from end to end, through c-toxcore's relay
+        run: |
+          set -o pipefail
+          timeout 1200 cargo test --locked -p podssh-cli --features tox --test derp_road -- --nocapture derp_tox 2>&1 | tee "$RUNNER_TEMP/cli.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/cli.log"
+          if grep -q "did not run" "$RUNNER_TEMP/cli.log"; then echo "the test did not run"; exit 1; fi
+      - name: the planted defects fail
+        run: sudo -E env "PATH=$PATH" sh scripts/plant-each.sh --here --group host-tox
+
+  live:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: one session through a public node of Tox on 443
+        run: |
+          set -eu
+          curl -fsS --max-time 30 https://nodes.tox.chat/json -o "$RUNNER_TEMP/nodes.json"
+          # Each node online with its TCP relay on 443, by an IPv4 address.
+          python3 - "$RUNNER_TEMP/nodes.json" > "$RUNNER_TEMP/relays.txt" <<'PY'
+          import json, sys, ipaddress
+          for n in json.load(open(sys.argv[1]))["nodes"]:
+              try:
+                  ipaddress.IPv4Address(n.get("ipv4", ""))
+              except ValueError:
+                  continue
+              if n.get("status_tcp") and 443 in n.get("tcp_ports", []):
+                  print(f'{n["ipv4"]}:443={n["public_key"]}')
+          PY
+          test -s "$RUNNER_TEMP/relays.txt" || { echo "no node of the list has its TCP relay on 443"; exit 1; }
+          cargo build --locked -q -p podssh-cli --features tox --tests
+          rc=1
+          while read -r relay; do
+            echo "the relay ${relay%%=*}"
+            if PODSSH_TOX_TEST_RELAY="$relay" timeout 300 cargo test --locked -q -p podssh-cli --features tox \
+                --test derp_road -- --nocapture derp_tox; then rc=0; break; fi
+          done < "$RUNNER_TEMP/relays.txt"
+          exit $rc

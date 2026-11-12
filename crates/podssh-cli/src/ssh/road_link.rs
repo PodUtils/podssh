@@ -41,6 +41,10 @@ pub enum Road {
     /// Inc.'s roots and TCP relay (T-733), which a build with the road makes.
     #[cfg_attr(not(all(feature = "zerotier", unix)), allow(dead_code))]
     ZeroTier(podssh_relay::opentunnel::dial::BoxIo),
+    /// A routed connection of a Tox TCP relay (T-734), which a build with
+    /// the road makes.
+    #[cfg_attr(not(feature = "tox"), allow(dead_code))]
+    Tox(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -63,7 +67,7 @@ impl AsyncRead for Road {
             Road::SshHttp(link) => Pin::new(link).poll_read(cx, buf),
             Road::LocalTunnel(link) => Pin::new(link).poll_read(cx, buf),
             Road::Bore(link) => Pin::new(link).poll_read(cx, buf),
-            Road::ZeroTier(link) => Pin::new(link).poll_read(cx, buf),
+            Road::ZeroTier(link) | Road::Tox(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -86,7 +90,7 @@ impl AsyncWrite for Road {
             Road::SshHttp(link) => Pin::new(link).poll_write(cx, buf),
             Road::LocalTunnel(link) => Pin::new(link).poll_write(cx, buf),
             Road::Bore(link) => Pin::new(link).poll_write(cx, buf),
-            Road::ZeroTier(link) => Pin::new(link).poll_write(cx, buf),
+            Road::ZeroTier(link) | Road::Tox(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -107,7 +111,7 @@ impl AsyncWrite for Road {
             Road::SshHttp(link) => Pin::new(link).poll_flush(cx),
             Road::LocalTunnel(link) => Pin::new(link).poll_flush(cx),
             Road::Bore(link) => Pin::new(link).poll_flush(cx),
-            Road::ZeroTier(link) => Pin::new(link).poll_flush(cx),
+            Road::ZeroTier(link) | Road::Tox(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -128,7 +132,7 @@ impl AsyncWrite for Road {
             Road::SshHttp(link) => Pin::new(link).poll_shutdown(cx),
             Road::LocalTunnel(link) => Pin::new(link).poll_shutdown(cx),
             Road::Bore(link) => Pin::new(link).poll_shutdown(cx),
-            Road::ZeroTier(link) => Pin::new(link).poll_shutdown(cx),
+            Road::ZeroTier(link) | Road::Tox(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -151,6 +155,9 @@ pub(crate) enum Kind {
     /// The pair's ZeroTier network, a last fallback of Q78 (T-733).
     #[cfg_attr(not(all(feature = "zerotier", unix)), allow(dead_code))]
     ZeroTier,
+    /// A Tox TCP relay, a last fallback of Q78 (T-734).
+    #[cfg_attr(not(feature = "tox"), allow(dead_code))]
+    Tox,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,
     /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
@@ -186,6 +193,7 @@ impl Kind {
             Kind::Pinggy => "the Pinggy road",
             Kind::Croc => "croc's relay road",
             Kind::ZeroTier => "ZeroTier's road",
+            Kind::Tox => "the Tox road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
             Kind::SshHttp(_, false) => "the localhost.run road",
@@ -222,7 +230,7 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             (0, _) => "first".to_string(),
             (_, Kind::Derp) if unasked.derp => "when each road before it failed (a kept ticket)".to_string(),
             (_, Kind::Transit) => "when each road before it failed (Q65)".to_string(),
-            (_, Kind::Croc | Kind::ZeroTier) => {
+            (_, Kind::Croc | Kind::ZeroTier | Kind::Tox) => {
                 "when each road before it failed (the last fallback of Q78)".to_string()
             }
             (_, Kind::OpenTunnel) if unasked.opentunnel => {
