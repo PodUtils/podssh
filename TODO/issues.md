@@ -280,6 +280,7 @@ and num-bigint 0.5) are T-754.
 | #214 | COORD-040: pod-proxy's stun: MESSAGE-INTEGRITY and FINGERPRINT, for podssh's TURN road T-621 (to podcrates) | closed (2026-11-12: `pod_proxy::stun` in v0.32.0; T-621 uses it) | T-621 |
 | #215 | relay: add a Dev Tunnels forward road (Nemo-010) | open (2026-11-12: filed as T-755, blocked on podcrates) | T-755 |
 | #216 | COORD-041: pod-devtunnel, the client side of Microsoft Dev Tunnels' relay, for podssh's T-755 (#215) (to podcrates) | open (2026-11-12: asked) | T-755 |
+| #217 | COORD-042: podssh took podcrates v0.31.0 at 02650f1 and v0.32.0 at 555fddc (to podcrates) | open (2026-11-12: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
