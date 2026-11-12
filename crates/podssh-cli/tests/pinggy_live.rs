@@ -162,6 +162,28 @@ fn a_node_behind_pinggy_serves_a_client_by_its_tunnel_s_name() {
     eprintln!("client, {source}: {err}");
     assert_eq!(rc, 0, "{err}");
     assert_eq!(out.len(), DOWN, "1 MiB down, whole");
+    // A proxy that ends TLS on the client's side (`PROXY|CA`, as the workflow
+    // runs mitmproxy): a measure, not a road that must carry. The node's pin
+    // is end to end, so the client either carries or refuses by the key's words.
+    if let Some(intercept) = std::env::var("PODSSH_PINGGY_TEST_INTERCEPT").ok().filter(|v| !v.is_empty()) {
+        let (proxy, ca) = intercept.split_once('|').expect("PODSSH_PINGGY_TEST_INTERCEPT is PROXY|CA");
+        let known = format!("UserKnownHostsFile={}", client_home.join("known_hosts").display());
+        let client_key = client_key.to_string_lossy().into_owned();
+        let mut args = vec!["ssh", "-v", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
+        args.extend_from_slice(&["--client-key", &client_key, "--node-key", &expected, "--pinggy-name", &name]);
+        args.extend_from_slice(&["--ca-file", ca, "node://tester@lab", "greet"]);
+        let mut cmd = command(&client_home, &args);
+        cmd.env("HTTPS_PROXY", proxy).env("https_proxy", proxy);
+        let (rc, out, err) = run(&mut cmd);
+        eprintln!("INTERCEPT exit {rc}, {} bytes out; the client said: {err}", out.len());
+        let carried = rc == 0 && String::from_utf8_lossy(&out) == GREETING;
+        let named = rc != 0 && (err.contains("pin") || err.contains("TLS key"));
+        assert!(carried || named, "through a proxy that ends TLS: neither carried nor refused by the key: {err}");
+        eprintln!(
+            "INTERCEPT verdict: {}",
+            if carried { "carried" } else { "refused by the pin of the node's TLS key" }
+        );
+    }
     let _ = std::io::stderr().flush();
     drop(runtime);
 }

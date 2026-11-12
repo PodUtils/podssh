@@ -28,6 +28,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: build the test
         run: cargo test --locked -p podssh-cli --test pinggy_live --no-run
+      # T-548: also the client once through mitmproxy, a proxy that ends TLS
+      # on the client's side with a CA that the client is given (a measure).
+      - name: mitmproxy, a proxy that ends TLS
+        run: |
+          python3 -m venv "$RUNNER_TEMP/mitm"
+          "$RUNNER_TEMP/mitm/bin/pip" install --quiet mitmproxy==12.1.2
+          "$RUNNER_TEMP/mitm/bin/mitmdump" --listen-host 127.0.0.1 -p 8081 --set confdir="$RUNNER_TEMP/mitmconf" \
+            >"$RUNNER_TEMP/mitm.log" 2>&1 &
+          for _ in $(seq 1 30); do [ -s "$RUNNER_TEMP/mitmconf/mitmproxy-ca-cert.pem" ] && break; sleep 1; done
+          test -s "$RUNNER_TEMP/mitmconf/mitmproxy-ca-cert.pem"
+          echo "PODSSH_PINGGY_TEST_INTERCEPT=http://127.0.0.1:8081|$RUNNER_TEMP/mitmconf/mitmproxy-ca-cert.pem" >> "$GITHUB_ENV"
       - name: a short run through Pinggy
         run: |
           timeout 300 cargo test --locked -p podssh-cli --test pinggy_live -- --ignored --nocapture
@@ -35,6 +46,7 @@ jobs:
       - name: a planted stranger fails it
         env:
           PODSSH_PINGGY_TEST_PLANT: stranger
+          PODSSH_PINGGY_TEST_INTERCEPT: ""
         run: |
           rc=0
           timeout 300 cargo test --locked -p podssh-cli --test pinggy_live -- --ignored || rc=$?

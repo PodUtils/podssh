@@ -7848,6 +7848,10 @@ why the net's list does not hold it).
   since the node's note named a variable of the iroh road, which that build does not list. The
   note now names "the server of pkarr that the iroh road names"; `cargo test -p podssh-cli --lib`,
   1,056 passed, and with `--features iroh-test`, `man::` 45 passed.
+- 2026-11-12 (main session), the measure of a proxy that ends TLS on the client's side: `pinggy_live`, with
+  `PODSSH_PINGGY_TEST_INTERCEPT=PROXY|CA`, runs the client once more through such a proxy, given its CA by `--ca-file`,
+  and says the verdict; it must carry, or refuse by the words of the pin of the node's TLS key. `pinggy-live.yml`
+  runs it through mitmproxy 12.1.2 (`mitmdump`, its CA of the run). Result: in the run below.
 
 
 # T-549: Serveo as a last fallback: a node's alias by SSH, and a client's hop through it
