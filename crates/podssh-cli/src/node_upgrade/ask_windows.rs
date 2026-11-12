@@ -8,7 +8,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0};
-use windows_sys::Win32::System::Threading::{CreateEventW, OpenEventW, SetEvent, WaitForSingleObject, EVENT_MODIFY_STATE};
+use windows_sys::Win32::System::Threading::{
+    CreateEventW, OpenEventW, SetEvent, WaitForSingleObject, EVENT_MODIFY_STATE,
+};
 
 /// How often the waiting thread looks whether the node stopped waiting.
 const STEP: Duration = Duration::from_millis(500);

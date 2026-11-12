@@ -218,7 +218,6 @@ pub fn become_binary(binary: &Path, from: &str, handed: Vec<Handed>, parts: &[Pa
     }
 }
 
-
 /// `execve` of `binary`, with this run's words, and the variable: an
 /// error, as a success never returns.
 fn exec(binary: &Path, value: &str) -> String {

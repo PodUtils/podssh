@@ -28,9 +28,9 @@
 
 pub mod mark;
 // What a road keeps of its run for the binary after (T-679).
-pub mod parts;
 #[cfg(windows)]
 mod ask_windows;
+pub mod parts;
 #[cfg(unix)]
 mod pass;
 #[cfg(windows)]

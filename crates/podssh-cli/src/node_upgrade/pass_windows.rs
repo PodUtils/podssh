@@ -64,7 +64,9 @@ fn frame(nonce: u64, bytes: &[u8], infos: &[WSAPROTOCOL_INFOW]) -> Vec<u8> {
     out.extend_from_slice(&(infos.len() as u32).to_le_bytes());
     for info in infos {
         // SAFETY: a plain C struct of INFO bytes, read as bytes.
-        out.extend_from_slice(unsafe { std::slice::from_raw_parts((info as *const WSAPROTOCOL_INFOW).cast::<u8>(), INFO) });
+        out.extend_from_slice(unsafe {
+            std::slice::from_raw_parts((info as *const WSAPROTOCOL_INFOW).cast::<u8>(), INFO)
+        });
     }
     out
 }
@@ -86,7 +88,9 @@ fn unframe(nonce: u64, bytes: &[u8]) -> Result<(Vec<u8>, Vec<WSAPROTOCOL_INFOW>)
         // those that the binary before this one wrote of one.
         let mut info: WSAPROTOCOL_INFOW = unsafe { std::mem::zeroed() };
         // SAFETY: INFO bytes into a struct of INFO bytes.
-        unsafe { std::ptr::copy_nonoverlapping(raw.as_ptr(), (&mut info as *mut WSAPROTOCOL_INFOW).cast::<u8>(), INFO) };
+        unsafe {
+            std::ptr::copy_nonoverlapping(raw.as_ptr(), (&mut info as *mut WSAPROTOCOL_INFOW).cast::<u8>(), INFO)
+        };
         infos.push(info);
     }
     Ok((state, infos))
@@ -131,9 +135,8 @@ fn startup() {
 /// as the runtime's sockets are.
 fn adopt(info: &WSAPROTOCOL_INFOW) -> Result<std::net::TcpStream, String> {
     // SAFETY: a duplicate that WSADuplicateSocketW wrote for this process.
-    let socket = unsafe {
-        WSASocketW(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, info, 0, WSA_FLAG_OVERLAPPED)
-    };
+    let socket =
+        unsafe { WSASocketW(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, info, 0, WSA_FLAG_OVERLAPPED) };
     if socket == INVALID_SOCKET {
         // SAFETY: the error of the call above, on this thread.
         return Err(format!("its socket did not come over (WSA error {})", unsafe { WSAGetLastError() }));
@@ -178,7 +181,12 @@ fn tie(child: &std::process::Child) {
     let size = std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32;
     // SAFETY: the job above, and the limit of its size.
     let set = unsafe {
-        SetInformationJobObject(job, JobObjectExtendedLimitInformation, (&limit as *const JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(), size)
+        SetInformationJobObject(
+            job,
+            JobObjectExtendedLimitInformation,
+            (&limit as *const JOBOBJECT_EXTENDED_LIMIT_INFORMATION).cast(),
+            size,
+        )
     };
     // SAFETY: the job and the child's process handle.
     if set == 0 || unsafe { AssignProcessToJobObject(job, child.as_raw_handle()) } == 0 {
@@ -195,7 +203,12 @@ pub const ROOT_VARIABLE: &str = "PODSSH_HANDOVER_ROOT";
 /// Hand `handed` and the run's `parts` to `binary`, started as this
 /// process's child with this run's words, and wait for it: its code. When
 /// it does not start: the sessions back, as they were, and why.
-pub fn hand_to_child(binary: &Path, from: &str, handed: Vec<Handed>, parts: &[Part]) -> Result<i32, (Vec<Handed>, String)> {
+pub fn hand_to_child(
+    binary: &Path,
+    from: &str,
+    handed: Vec<Handed>,
+    parts: &[Part],
+) -> Result<i32, (Vec<Handed>, String)> {
     let (read, mut write) = match pipe() {
         Ok(ends) => ends,
         Err(why) => return Err((handed, why)),
