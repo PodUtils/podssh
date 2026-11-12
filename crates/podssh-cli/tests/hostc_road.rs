@@ -267,11 +267,9 @@ fn the_binary_s_node_behind_hostc_s_server_carries_a_session_of_ssh_with_the_pai
         cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("SSL_CERT_FILE", &ca);
         cmd
     };
-    // The client's key of the end-to-end channel, let in by the node.
+    // The client's key of the end-to-end channel, made here as a first run
+    // makes it (64 hex digits, not an OpenSSH key), and let in by the node.
     let client_key = client_home.join("client.key").to_string_lossy().into_owned();
-    let keygen = ["keygen", "-q", "-t", "ed25519", "-N", "", "-f", &client_key];
-    let made = with_proxy(command(&client_home, &server, &keygen)).output().expect("keygen runs");
-    assert!(made.status.success(), "{}", String::from_utf8_lossy(&made.stderr));
     let loaded = file::load(&Place::File(PathBuf::from(&client_key)), &mut OsEntropy).expect("the client's key");
     let allow = node_home.join("allow");
     std::fs::write(&allow, format!("{} the test's client\n", loaded.identity.public().fingerprint())).unwrap();
