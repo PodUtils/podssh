@@ -5,7 +5,8 @@
 //! pair's key on a Tox relay (T-734, [`tox`]), the pair's key in Yggdrasil's
 //! network (T-735, [`ygg`]), its key in HyperDHT where UDP passes (T-736,
 //! [`dht`]), its device ID on a relay of Syncthing's (T-571, [`syncthing`]),
-//! its onion service in the Tor network (T-578, [`onion`]), a node's alias at
+//! its onion service in the Tor network (T-578, [`onion`]), its channels at
+//! smee.io's server (T-741, [`smee`]), a node's alias at
 //! Serveo (T-549, `crate::ssh::serveo`), then its
 //! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
 //! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
@@ -49,6 +50,9 @@ pub(crate) mod syncthing;
 // The onion road of node://NAME, a last fallback of Q78 after Syncthing's (T-578).
 #[path = "onion.rs"]
 pub(crate) mod onion;
+// The smee.io road of node://NAME, a last fallback of Q78 after the onion road's (T-741).
+#[path = "smee.rs"]
+pub(crate) mod smee;
 
 // The localtunnel road of node://NAME (T-568).
 #[path = "localtunnel.rs"]
@@ -76,6 +80,8 @@ pub(crate) struct LastRoads {
     syncthing: Option<syncthing::StRoads>,
     /// The node's onion service, of the pair's key (T-578), after it.
     onion: Option<onion::OnionRoads>,
+    /// The pair's channels at smee.io's server (T-741), after it.
+    smee: Option<smee::SmeeRoads>,
     serveo: Option<crate::ssh::serveo::ServeoRoads>,
     sshj: Option<crate::ssh::sshj::SshJRoads>,
     tunnel: Option<super::ssh_http::SshHttpRoads>,
@@ -105,6 +111,7 @@ impl LastRoads {
             dht: None,
             syncthing: None,
             onion: None,
+            smee: None,
             serveo: crate::ssh::serveo::ServeoRoads::new(label, ask, log, shown),
             sshj: crate::ssh::sshj::SshJRoads::new(label, ask, trust, log, shown),
             tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
@@ -129,6 +136,7 @@ impl LastRoads {
             dht: None,
             syncthing: None,
             onion: None,
+            smee: None,
             serveo: None,
             sshj: None,
             tunnel,
@@ -140,8 +148,8 @@ impl LastRoads {
 
     /// With the roads of the pair `part` to the node `label` that are on:
     /// ZeroTier's, then the Tox road, then Yggdrasil's, then HyperDHT's, then
-    /// Syncthing's relay road, then the onion road; none with --no-e2e
-    /// (`off`).
+    /// Syncthing's relay road, then the onion road, then the smee.io road;
+    /// none with --no-e2e (`off`).
     pub(crate) fn with_pair(
         self,
         label: &str,
@@ -157,7 +165,8 @@ impl LastRoads {
         let dht = dht::DhtRoads::new(part, off, log, shown);
         let syncthing = syncthing::StRoads::new(part, off, log, shown);
         let onion = onion::OnionRoads::new(label, part, off, trust, log, shown);
-        LastRoads { zerotier, tox, ygg, dht, syncthing, onion, ..self }
+        let smee = smee::SmeeRoads::new(part, off, trust, log, shown);
+        LastRoads { zerotier, tox, ygg, dht, syncthing, onion, smee, ..self }
     }
 
     /// Whether one of them races.
@@ -191,6 +200,9 @@ impl LastRoads {
         }
         if let Some(onion) = &self.onion {
             onion.push(list, kinds);
+        }
+        if let Some(smee) = &self.smee {
+            smee.push(list, kinds);
         }
         if let Some(serveo) = &self.serveo {
             serveo.push(list, kinds);

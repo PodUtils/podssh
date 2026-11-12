@@ -157,7 +157,9 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let st_on = matches!(crate::strelay::setting()?, crate::strelay::Setting::On(..)) && cfg!(feature = "strelay");
     // The onion road (T-578, Q78), as Syncthing's; a bad PODSSH_ONION is refused here.
     let onion_on = matches!(crate::onion::setting()?, crate::onion::Setting::On(..)) && cfg!(feature = "tor");
-    let pair_last = zerotier_on || tox_on || ygg_on || dht_on || st_on || onion_on;
+    // The smee.io road (T-741, Q78), after the onion road; a bad PODSSH_SMEE is refused here.
+    let smee_on = matches!(crate::smee_road::setting()?, crate::smee_road::Setting::On(..));
+    let pair_last = zerotier_on || tox_on || ygg_on || dht_on || st_on || onion_on || smee_on;
     let zerotier = pair_last && !channel.off && good_pair();
     // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
     let tunnel = super::roads::ssh_http::named(label, channel.off);

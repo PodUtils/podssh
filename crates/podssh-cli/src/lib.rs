@@ -187,6 +187,9 @@ pub mod node_strelay;
 // An onion service of the Tor network beside a pair's road, a last fallback of Q78 (T-578).
 pub mod node_onion;
 pub mod onion;
+// smee.io's channels beside a pair's road, a last fallback of Q78 (T-741).
+pub mod node_smee;
+pub mod smee_road;
 pub mod tox;
 pub mod yggdrasil;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).

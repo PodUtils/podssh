@@ -10367,7 +10367,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:295-305`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:296-306`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10721,10 +10721,10 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:304-305`), and needs the net's role exit, signed by
-  its owner (`:302-303`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:305-306`), and needs the net's role exit, signed by
+  its owner (`:303-304`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:153`).
+  (`docs/STATUS.md:156`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -14046,7 +14046,7 @@ operator's rulings Q78 and Q94.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -14088,6 +14088,50 @@ both. podssh does not use it.
 5. The module sits beside the Piping Server road's. If `pod-piping` has taken that road by then
    (T-684, Rule Q3 of `docs/decisions.md`), the module is written in PodUtils/podcrates.
 
+## Decision
+
+The draft's calls, 2026-11-12, each with what lost:
+
+1. **The channels.** 32 hex digits of an HMAC under the pair's key, with labels of this road's own
+   (`podssh smee v1 ...`), so that no channel is a path of the Piping Server road's: a door, and an
+   up and a down channel for each link, as the Approach says. Each way begins with its mark as
+   frame 0. Lost: one channel for both ways with a field for the sender, which smee.io would send
+   to both ends, so each end would read and drop its own frames (twice the events).
+2. **The hello is posted again each 3 s** until the node's mark comes on the client's down stream,
+   20 s at most: smee.io answers `200` whether a reader is there or not and replays nothing, so a
+   hello that came while the node's door was between two streams is lost. The node opens a link's
+   id once. Lost: an answer channel of the door, one more stream for each client.
+3. **A stream that ends, or gives no event for 75 s, ends the link**, and the layer's next link is
+   its new stream. Lost: opening the stream again inside the link, which would miss the events in
+   between, so the numbers would end the link anyway.
+4. **HTTP/1.1 alone, by ALPN, on the Piping Server road's dial and reader**; a kept connection for
+   the POSTs, one at a time, and one for the stream: two connections for each end, as Q44 allows
+   the split road; the node's door waits while a link runs, so a second client knocks until the
+   first link ends, as the Piping Server road's node does over HTTP/1.1. Lost: HTTP/2, which
+   smee.io offers and which would put the door and each link on one connection, for an h2 reader
+   of server-sent events that the road does not need to carry its first session.
+5. **A frame of 256 KiB, before base64**, within Fastify's default 1 MiB; a POST refused with
+   `413` halves it for the next link, down to 4 KiB. Lost: 64 KiB frames, a quarter of the rate
+   where the rate is a frame for each round trip. Step 1's run measures the bound.
+6. **Its place: after the onion road, before the Serveo road**, among the last fallbacks of the
+   pair's key (`Kind::of_the_pair_last`), so after the Piping Server road and OpenTunnel's, as the
+   Approach says. A node serves it beside the pair's road with the other last roads
+   (`node_croc::Beside`). Lost: before the pair's last roads, ahead of services whose operators
+   run them for that use.
+7. **A proxy that holds an answer is told by the road itself**: a stream with no `ready` within
+   15 s ends the road for the run, with that reason, and it is not tried again. Lost: reading
+   `podssh doctor`'s stream probe (T-325), which runs only when a user asks, and keeps no verdict
+   that the race could read.
+8. **Trust**: the listed server takes the host's trust (`SSL_CERT_FILE`, `CaFile`, podssh's roots),
+   as croc's public bridge does; one that `PODSSH_SMEE` names takes the run's, as the Piping Server
+   road's server does. `PODSSH_LAST_RESORT=no` leaves a named server on, as for Syncthing's relay.
+9. **The tests**: the library's session, a late reader, a client of another pair and the planted
+   defect against a stand-in written from `lib/server.js` (`crates/podssh-cli/tests/smee_stand_in/`)
+   and, in `smee-interop.yml`, against smee.io's own server built by its Dockerfile at `922d925`,
+   directly and through a plain squid. Lost, for now: the Prove's run of the commands
+   (`podssh node NAME TARGET` behind squid and `podssh ssh node://NAME 'echo ok'` with the pair's
+   road down), which needs a TLS front for the server on the loopback; it is the next step.
+
 ## Prove
 
 ```sh
@@ -14100,6 +14144,46 @@ proxy: `podssh node NAME TARGET` behind it and `podssh ssh node://NAME 'echo ok'
 road down, and 1 MiB each way with equal digests. Live, short, through smee.io (Q94), throwaway
 channels. Planted: both ways on one channel name, and each end reads its own frames, which the test
 names.
+
+## Correction
+
+2026-11-12 (a drafting agent). The Premise holds at each cited line (`docs/decisions.md:33`,
+`docs/carriers.md:978` and `:867`, `crates/podssh-relay/src/piping/paths.rs:1`). Two facts change
+the Approach:
+
+- smee.io is no service of `pod-services` at the tag that podssh pins (`v0.30.0`, `613058c`: no file
+  of `PodUtils/podcrates:crates/pod-services/services/` names it), and podssh names no host of another party (the
+  migration's rules of `AGENTS.md`). The road reads its server from `pod-services`, the kind `smee`
+  with an endpoint `server`, and asks podcrates for that service by a COORD issue `(to podcrates)`;
+  until a tag lists it, the road is off unless `PODSSH_SMEE` names a server. The short live run of
+  step 1 goes through that listed server, so it waits for the tag.
+- `pod-piping` has not taken the Piping Server road (`crates/podssh-relay/src/piping/` is
+  podssh's, and no file is frozen: `TODO/PROGRESS.md`, State, item 7), so step 5's module sits in
+  `podssh-relay` beside it: `crates/podssh-relay/src/smee/`, behind the feature `smee`.
+
+The server's protocol was read again at its newest commit, `probot/smee.io` `922d925` (2025-12-02),
+through web.pkgforge.dev's services: `lib/server.js` writes each event of a POST as `id: N` and one
+`data: JSON` line with no `event:` line, its own `ready` and `ping` with one, and answers a POST
+`200` with no body once `bus.emit` returned; `GET /:channel` is a stream only for `Accept` equal to
+`text/event-stream`. The stand-in and the parser follow those bytes.
+
+## Done
+
+Partial (2026-11-12): the draft `draft-t741` (`26b5b4f`) merged, built and tested; the short live run through
+smee.io waits for podssh's take of podcrates v0.32.0, whose `pod-services` has the server (#213), and the run of the
+commands themselves (Decision 9).
+
+- `crates/podssh-relay/src/smee/` (feature `smee`, on the Piping Server road's HTTP/1.1 and dial): the channels'
+  names, server-sent events, the frames, a link of two channels; `crates/podssh-cli/src/smee_road.rs`,
+  `node_smee.rs`, `ssh/smee.rs`, the manual (`man/notes_smee.rs`, `PODSSH_SMEE`).
+- `cargo test -p podssh-relay --features smee --lib smee`: 14 passed. `cargo test -p podssh-cli --test smee_road`: 5
+  passed (the live one says "did not run" without `PODSSH_TEST_SMEE_LIVE`), against the stand-in of smee.io's server:
+  1 MiB each way at 200.8 KiB/s.
+- Planted, each by its patch and run as `scripts/plants/t741-*.plant` names: both ways on one channel
+  (`t741-one-channel`) and a client that reads its own frames (`t741-own-frames`): each caught; reverted.
+- Clippy as the gate runs it, `cargo fmt --check` and `python scripts/check-repo.py`: clean. The header of
+  `smee-interop.yml` said its interop job fails on "did not run": that job checks five passed and a MEASURE line,
+  and the live job alone fails on the words; the header now says so.
 
 # T-742: hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app`
 

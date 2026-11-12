@@ -39,11 +39,10 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** Two wait, each never built, to merge in the index's order (T-582's and T-621's are merged):
+8. **Drafts.** One waits, never built (T-582's, T-621's and T-741's are merged):
 
    | Draft | Branch | Commit | State |
    | --- | --- | --- | --- |
-   | T-741 | `draft-t741` | `26b5b4f` | drafted: smee.io's road in `podssh-relay/src/smee/`; its server waits for `pod-services` |
    | T-742 | `draft-t742` | `74b6e4f` | drafted: hostc's road in `podssh-relay/src/hostc/`; its server waits for `pod-services` |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
@@ -115,7 +114,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 69 open, 21 partial, 10 blocked, 609 done.
+`TODO/INDEX.md` holds 709 entries: 68 open, 22 partial, 10 blocked, 609 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

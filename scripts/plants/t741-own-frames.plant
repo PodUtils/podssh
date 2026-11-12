@@ -1,0 +1,9 @@
+# T-741: a reader of the smee.io road takes its own mark for the far end's,
+# so an end whose two ways share a channel reads its own frames unseen; the
+# test that names that defect must fail. On the runner: the stand-in of
+# smee.io's server needs no server.
+ENTRY=T-741
+GROUP=host-smee
+EXPECT='test both_ways_on_one_channel_read_their_own_frames_and_the_reader_names_it \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-cli --test smee_road'
+LIMIT=1800

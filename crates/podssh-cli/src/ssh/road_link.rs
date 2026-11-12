@@ -61,6 +61,9 @@ pub enum Road {
     /// (T-578), which a build with the Tor road makes.
     #[cfg_attr(not(feature = "tor"), allow(dead_code))]
     Onion(podssh_relay::opentunnel::dial::BoxIo),
+    /// A link of numbered POSTs and a stream of events each way through
+    /// smee.io's server (T-741).
+    Smee(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -88,7 +91,8 @@ impl AsyncRead for Road {
             | Road::Ygg(link)
             | Road::HyperDht(link)
             | Road::Syncthing(link)
-            | Road::Onion(link) => Pin::new(link).poll_read(cx, buf),
+            | Road::Onion(link)
+            | Road::Smee(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -116,7 +120,8 @@ impl AsyncWrite for Road {
             | Road::Ygg(link)
             | Road::HyperDht(link)
             | Road::Syncthing(link)
-            | Road::Onion(link) => Pin::new(link).poll_write(cx, buf),
+            | Road::Onion(link)
+            | Road::Smee(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -142,7 +147,8 @@ impl AsyncWrite for Road {
             | Road::Ygg(link)
             | Road::HyperDht(link)
             | Road::Syncthing(link)
-            | Road::Onion(link) => Pin::new(link).poll_flush(cx),
+            | Road::Onion(link)
+            | Road::Smee(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -168,7 +174,8 @@ impl AsyncWrite for Road {
             | Road::Ygg(link)
             | Road::HyperDht(link)
             | Road::Syncthing(link)
-            | Road::Onion(link) => Pin::new(link).poll_shutdown(cx),
+            | Road::Onion(link)
+            | Road::Smee(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -205,6 +212,8 @@ pub(crate) enum Kind {
     Syncthing,
     /// A node's onion service in the Tor network, a last fallback of Q78 (T-578).
     Onion,
+    /// The pair's channels at smee.io's server, a last fallback of Q78 (T-741).
+    Smee,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,
     /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
@@ -232,7 +241,7 @@ impl Kind {
     /// of Q78: croc's relay and the roads after it.
     fn of_the_pair_last(self) -> bool {
         use Kind::*;
-        matches!(self, Croc | ZeroTier | Tox | Ygg | HyperDht | Syncthing | Onion)
+        matches!(self, Croc | ZeroTier | Tox | Ygg | HyperDht | Syncthing | Onion | Smee)
     }
 
     pub(crate) fn name(self) -> &'static str {
@@ -252,6 +261,7 @@ impl Kind {
             Kind::HyperDht => "HyperDHT's road",
             Kind::Syncthing => "Syncthing's relay road",
             Kind::Onion => "the onion road",
+            Kind::Smee => "the smee.io road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
             Kind::SshHttp(_, false) => "the localhost.run road",
