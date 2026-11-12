@@ -1,70 +1,77 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-11, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-12, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
-- The gate (`build.yml`) is red since the morning of 2026-11-11 on two causes, each repaired and
-  pushed: the test of `doctor --quick` missed T-747's section `burst` (`4ca0adb8`), and the build
-  image lacked Alpine's `g++` and `linux-headers` for ZeroTier's C++ core (`4ca0adb8`, `78220a35`).
-  Read its newest run first. The last green gate is at `bc5107b0` (run 42948403145).
+- Read on 2026-11-12. The gate at `adeae2eb` failed on one cause: `no_permissive_verifier` did not
+  know strelay's verifier (T-571), which pins a relay's device ID. `38070687` repairs it; read the
+  newest run of `build.yml` first. The gate before it, at `0872c2c6` (the take of `pod-relay`), failed
+  on pod-relay's words, which `adeae2eb` repaired.
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- No branch, worktree or stash holds unmerged work.
+- One draft waits: `draft/t739-vmess` (`6d271ec4`), see "Drafts" in `TODO/PROGRESS.md`.
 
 ## The sessions of PodUtils
 
 - podssh and podcrates talk by direct messages (`send_message` to the podcrates session; its id is
   in that session's own messages) and record each take as a COORD issue. podnet, podvm and
   podrunner answer COORD issues; the watcher of `AGENTS.md` finds theirs.
-- Q105 is settled (allowed); T-715 keeps its place behind podssh's own work.
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.28.0"` (COORD-054, PodUtils/podcrates#86).
+podssh pins every podcrates crate at `tag = "v0.28.0"` (COORD-054, PodUtils/podcrates#86; podssh's
+report is COORD-034, #208).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
-  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
-  (2026-11-12). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- Next: the waves of Q101, as podcrates writes each `adoption/podssh/CRATE.patch`.
+  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
+  Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
+- The next tag brings, as podcrates said: the MQTT meeting point (`pod_wormhole::mqtt`, for T-737),
+  forward-url's keyboard-interactive login (serveo), and the drop of `node-xhttp-78-17-39-129` (#207).
 
 ## Open COORD issues
 
-- #177 (COORD-010): open for T-574's live check of the nodes (Q90). The new Trojan node ids arrive
-  after 2026-11-12T03:05Z.
+| Issue | Waits for |
+| --- | --- |
+| #205 (COORD-031) | The MQTT meeting point in pod-wormhole; then T-737 is unblocked |
+| #207 (COORD-033) | The next tag's drop of the last proxy node of Q90's check (T-574) |
+| #209 (COORD-035) | A service `syncthing-relay` with each relay's device ID (T-571) |
+| #192, #193, #194 | Reports of the takes of v0.24.0 to v0.26.0; podcrates recorded later takes, so they may close |
 
 ## The live runs and interop harnesses
 
 Each is a test ignored outside its workflow, and a workflow started by hand (or on a push of its
-road). Each has a planted run that must fail, and each did, for the reason that the entry names.
+road). Each has a planted run that must fail, and each did.
 
-| Road | Test | Workflow | Result |
-| --- | --- | --- | --- |
-| Serveo (T-549, done) | `crates/podssh-cli/tests/serveo_live.rs` | `serveo-live.yml` | passed, run 42953995316 |
-| ssh-j (T-570, done) | `crates/podssh-cli/tests/ssh_j_live.rs` | `ssh-j-live.yml` | passed, run 42954754303 |
-| croc, interop (T-694) | `crates/podssh-relay/tests/croc_interop.rs` | `croc-interop.yml` | passed, run 42957326904 |
-| croc, live (T-694) | `crates/podssh-relay/tests/croc_live.rs` | `croc-live.yml` | passed, run 42957736151 |
-| localhost.run, localtunnel, bore (T-565, T-568, T-569, done) | `crates/podssh-cli/tests/last_roads_live.rs` | `last-roads-live.yml` | passed, run 42967245046 |
-| ZeroTier (T-733) | `crates/podssh-zerotier/tests/live.rs` and the command line's | `zerotier-live.yml` | the library's run passed (43031239655); the command line's fails within the road's 60 s, see below |
+| Road | Workflow | Result |
+| --- | --- | --- |
+| Tox (T-734, done) | `tox-interop.yml` | passed; live through 205.185.115.131:443 |
+| Yggdrasil (T-735, done) | `ygg-interop.yml` | passed; live through a wss:// peer |
+| HyperDHT (T-736, done) | `hyperdht-interop.yml` | passed, run 43152296592 |
+| Syncthing's relays (T-571) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
+| The binary's proxy nodes (T-574) | `proxy-nodes-live.yml` | 8 of 10 nodes passed, run 43157171177 |
+| HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement |
+| ZeroTier (T-733) | `zerotier-live.yml` | the library passed; the command line misses its 60 s |
 
-## Each partial entry, and its next step
+## The next entries, in the work order's order
 
-| Entry | Next step |
+| Entry | State and next step |
 | --- | --- |
-| T-733 | ZeroTier's road. Passing: the library, the command line (feature `zerotier`), the stand-in test, interop with `zerotier-one` both ways, the static musl build. Open: two podssh members take 31 s to more than 90 s to meet through ZeroTier Inc.'s roots and TCP relay, so the command line's live test fails within the road's 60 s. Next: a live run of `zerotier-live.yml` with the per-member trace (`PODSSH_ZT_TRACE=1`) to find where the time goes; then decide whether `zerotier` joins the release features. |
-| T-746, T-465, T-627 | Tests that failed at random; each `## Done` names the failure that it waits for. T-746: the datagram test of `pipe` (`podssh-cli --lib`) failed once in the build image with its echo missing; OpenTunnel's resume test is repaired. |
-| localhost.run | Its live job stalled in 1 MiB down twice on 2026-11-11 (runs 42989086142, 42994885604); rerun `last-roads-live.yml` to tell a slow day from a change. |
-| T-548 | The Prove's containers (T-251) and a proxy that ends TLS on the client's side. |
-| T-574 | The new Trojan node ids (after 2026-11-12T03:05Z), Q90's live check of the nodes, Xray-core in a container, `release-short.sh`'s check. |
-| T-684 | Each next podcrates release that podssh takes; next `pod-relay`. |
-| T-446 | Betas may go out whenever a batch fits; `v1.1.0` waits for the end of the migration (T-684). |
-| Each other partial entry | T-319, T-321, T-450, T-459, T-660, T-662, T-665, T-666, T-670 and T-698: each `## Done` names what waits. |
+| T-571 | Partial. Done but for `pod-services`' list (#209): take it with the next tag, run `strelay-interop.yml`, close. |
+| T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
+| T-578 | Partial. Step 1 (Arti 0.48's onion services) is read, in the entry. Next: the node's service and the client's road, a chutney network of 5 or more relays. |
+| T-738 | Open: file hosts as the last carrier of the resumable layer. |
+| T-739 | Partial. The draft `draft/t739-vmess` holds the KDF, the header, the body and the link, never built. Next: `mod.rs` and `ws.rs` as Trojan's, `Node::Vmess` in `proxy_nodes`, the test against Xray-core v26.10.21 (`scripts/interop-vless.sh` pins its SHA-256; `xray tls cert` makes the server's certificate). |
+| T-580 to T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
+| T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
+| T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |
+| T-746, T-465, T-627 | Tests that failed at random; each `## Done` names the failure that it waits for. |
+| T-684, T-446 | Each next podcrates tag; `v1.1.0` waits for the end of the migration. |
 
 Blocked, each on the owner or on another party, as its `## Blocker` names: T-328, T-376, T-672,
-T-687, T-711, T-719, T-722, T-727, T-729, and T-740 (a working Bare node, podcrates T-200: the hop
-speaks TompHTTP's form and OpenBare's header form; `openbare.xyz`'s edge answers each WebSocket
-with 500). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
+T-687, T-711, T-719, T-722, T-727, T-729, T-737 (#205) and T-740 (a working Bare node, podcrates
+T-200). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
 
 ## How to test
 

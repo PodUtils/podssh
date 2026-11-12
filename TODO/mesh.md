@@ -9529,7 +9529,7 @@ read of that node as its first step and a `## Decision` for a node that fails Q7
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -9589,6 +9589,28 @@ the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+## Done
+
+Partial (step 1, read on 2026-11-12 in arti-client 0.48.0, tor-hsservice 0.48.0 and tor-hsclient 0.48.0):
+- Features: `onion-service-client` (tor-hsclient) and `onion-service-service` (tor-hsservice, keymgr);
+  Rust alone, no C beside SQLite. `restricted-discovery`, `experimental-api` and `ephemeral-keystore` are
+  experimental features of arti-client.
+- The node: `TorClient::launch_onion_service(OnionServiceConfig)` (arti-client `src/client.rs:1989-2036`)
+  gives the running service and a stream of rendezvous requests; `tor_hsservice::handle_rend_requests`
+  turns them into stream requests, each accepted into a `DataStream` in the process (`Connected` comes from
+  tor-cell). `onion_address()` names it; the client waits until `status()` says the descriptor is published.
+- The key: Arti's keystore in its `state_dir` (`keystore/hss/NICK/`), kept and read again at the next
+  launch, so the address stays. podssh's cache must give the node a `state_dir` of its own.
+- The client: `connect(("NAME.onion", port))` with `onion-service-client` alone. A key of restricted
+  discovery goes in its keystore, by API only with `experimental-api`.
+- Restricted discovery: `static_keys` or `key_dirs` of the service's config, behind an experimental
+  feature; tor-hsservice calls it a defence against floods, not access control.
+- chutney: an onion service needs 5 or more authorities, relays and exits (its `hs-v3-arti` network);
+  `scripts/tor-net.sh` starts `basic`. Its `arti.toml` already sets `hsdir_interval` for a test network,
+  which podssh's loader keeps.
+- Next: step 2, the node's service, then step 3, the client's road. The Decision's live run is
+  UNVERIFIED until then.
 
 # T-579: libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session
 
@@ -13476,7 +13498,7 @@ hosts, limits and sources are in `docs/carriers.md`; each is UNVERIFIED by a tes
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -13520,6 +13542,15 @@ Against Xray-core (the version of T-440's tests) in a container serving VMess ov
 sshd's banner with each cipher; a client with a clock 5 minutes off is refused; whether Xray's server still takes
 the MD5 form is recorded, not relied on. A header built by the test from the spec's own bytes (v2fly's page)
 decodes in the test's reader. Planted: the KDF's label changed, and the test against Xray-core fails.
+
+## Done
+
+Partial (2026-11-12): the draft `draft/t739-vmess` (`6d271ec4`, never built) holds `podssh-ws/src/vmess/`: the KDF
+(nested HMAC-SHA-256, read against Xray-core v26.10.21's `aead/kdf.go`), the auth ID, the sealed header and
+the answer's, the body's chunks of the option S, and the `vmess://` link. To do: `mod.rs` and `ws.rs` as
+Trojan's, `Node::Vmess` in `proxy_nodes` and its list reader, and the test against Xray-core
+v26.10.21 (the release `scripts/interop-vless.sh` pins; `xray tls cert` makes the server's certificate).
+Each result is UNVERIFIED until it is built and run.
 
 # T-740: Bare servers as a hop of the WebSocket roads, tried last
 

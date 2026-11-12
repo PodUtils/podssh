@@ -42,11 +42,11 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits:
+8. **Drafts.** One waits:
 
    | Draft | Branch | Commit | State |
    | --- | --- | --- | --- |
-   | none | | | |
+   | T-739 | `draft/t739-vmess` | `6d271ec4` | WIP, never built: the KDF, the header, the body, the link |
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -119,7 +119,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 709 entries: 75 open, 20 partial, 11 blocked, 603 done.
+`TODO/INDEX.md` holds 709 entries: 73 open, 22 partial, 11 blocked, 603 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**709 entries: 75 open, 20 partial, 11 blocked, 603 done.**
+**709 entries: 73 open, 22 partial, 11 blocked, 603 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 46 | 8 | 7 | 269 | 330 |
-| **All** | 75 | 20 | 11 | 603 | 709 |
+| P3 | 44 | 10 | 7 | 269 | 330 |
+| **All** | 73 | 22 | 11 | 603 | 709 |
 
 ## Entries
 
@@ -617,7 +617,7 @@ repository and CI).
 | [T-575](mesh.md) | P3 | S | M10 | feature | open | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | partial | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |
-| [T-578](mesh.md) | P3 | L | M10 | feature | open | Tor's onion services: a node reached by its onion address, through the Tor road |
+| [T-578](mesh.md) | P3 | L | M10 | feature | partial | Tor's onion services: a node reached by its onion address, through the Tor road |
 | [T-579](mesh.md) | P3 | S | M10 | research | done | libp2p's public circuit relays: whether links of 128 KiB and 2 minutes carry a session |
 | [T-580](mesh.md) | P3 | L | M10 | feature | open | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
 | [T-581](mesh.md) | P3 | M | M10 | feature | open | TUIC version 5 as a client road over QUIC, where a probe found that UDP passes |
@@ -769,7 +769,7 @@ repository and CI).
 | [T-736](mesh.md) | P3 | L | M10 | feature | done | HyperDHT as a road by key where UDP passes, after podssh's own |
 | [T-737](mesh.md) | P3 | M | M10 | feature | blocked | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |
-| [T-739](mesh.md) | P3 | M | M10 | feature | open | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
+| [T-739](mesh.md) | P3 | M | M10 | feature | partial | VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes |
 | [T-740](mesh.md) | P3 | S | M10 | feature | blocked | Bare servers as a hop of the WebSocket roads, tried last |
 | [T-741](mesh.md) | P3 | M | M10 | feature | open | smee.io as a last fallback: a link of two channels, a POST for each frame and server-sent events back |
 | [T-742](mesh.md) | P3 | M | M10 | feature | open | hostc as a last fallback of the reverse road: the relay role behind a tunnel of `hostc.app` |
