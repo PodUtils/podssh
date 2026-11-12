@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**708 entries: 80 open, 19 partial, 10 blocked, 599 done.**
+**708 entries: 79 open, 20 partial, 10 blocked, 599 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 25 | 10 | 1 | 263 | 299 |
-| P3 | 51 | 7 | 6 | 265 | 329 |
-| **All** | 80 | 19 | 10 | 599 | 708 |
+| P3 | 50 | 8 | 6 | 265 | 329 |
+| **All** | 79 | 20 | 10 | 599 | 708 |
 
 ## Entries
 
@@ -765,7 +765,7 @@ repository and CI).
 | [T-732](relay.md) | P2 | S | M10 | defect | done | The relay role's byte cap let a fast target carry any amount past it, until the next tick |
 | [T-733](mesh.md) | P3 | L | M10 | feature | done | ZeroTier's TCP relay and an ad-hoc network as a last road of a podssh pair |
 | [T-734](mesh.md) | P3 | M | M10 | feature | partial | Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair |
-| [T-735](mesh.md) | P3 | L | M10 | feature | open | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
+| [T-735](mesh.md) | P3 | L | M10 | feature | partial | Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair |
 | [T-736](mesh.md) | P3 | L | M10 | feature | open | HyperDHT as a road by key where UDP passes, after podssh's own |
 | [T-737](mesh.md) | P3 | M | M10 | feature | open | Public MQTT brokers on 443 as a meeting point of the pairing, after Nostr's and the trackers' |
 | [T-738](mesh.md) | P3 | L | M10 | feature | open | File hosts as the last carrier of the resumable layer: one sealed upload for each piece |

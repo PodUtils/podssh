@@ -1,0 +1,7 @@
+# T-735: a peer's `meta` handshake is taken with its signature unchecked, so
+# a peer that names a key that it does not hold would link; the test of a
+# handshake whose key was changed under its signature must fail.
+ENTRY=T-735
+GROUP=cli-tests
+EXPECT='test ygg::meta::tests::a_handshake_reads_back_and_a_changed_one_does_not \.\.\. FAILED'
+RUN='cargo test --locked --no-fail-fast -p podssh-relay --features yggdrasil --lib -- ygg::meta::tests::a_handshake_reads_back_and_a_changed_one_does_not'

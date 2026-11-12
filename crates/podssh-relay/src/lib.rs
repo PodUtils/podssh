@@ -130,6 +130,8 @@ pub mod pool;
 pub mod serveo;
 #[cfg(feature = "tox")]
 pub mod tox;
+#[cfg(feature = "yggdrasil")]
+pub mod ygg;
 // QUIC to the relay role, raced with the TCP roads (T-667).
 pub mod quic_road;
 // The rank of the relay hosts as measured from this host (T-606).

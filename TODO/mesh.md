@@ -10371,7 +10371,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:300-301`), and needs the net's role exit, signed by
   its owner (`:298-299`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:140`).
+  (`docs/STATUS.md:141`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -13023,7 +13023,7 @@ progress; a FIN carries the length; the relay's pings answered).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -13064,6 +13064,32 @@ online on 2026-11-10. podssh speaks none of Yggdrasil's links or routing.
    manual that the end joins the network for the time of the session.
 5. Tried last, after T-733 and T-734, and only when the host reaches no other road.
 
+## Decision
+
+2026-11-12. podssh takes Ironwood, the router, as the Rust crate `ironwood` of Revertron/Yggdrasil-ng (MPL-2.0, a
+rewrite in Rust by one of Yggdrasil's own developers, on the public network), pinned by git at `c3a3aa6`
+(2026-11-01), behind a feature `yggdrasil` of podssh-relay; podssh ports none of yggdrasil-go (LGPL-3.0) and none
+of Go's Ironwood. Read at `c3a3aa6`: its crate `ironwood` is 10,062 lines with its tests, a library whose API is a
+packet connection addressed by Ed25519 keys (`new_encrypted_packet_conn`, `handle_conn` for one peer's stream,
+`read_from`, `write_to`), with Yggdrasil's sessions (X25519, XSalsa20-Poly1305, the ratchet) inside it. Its crates
+are pure Rust (crypto_box, ed25519-dalek, curve25519-dalek, sha2, murmur3), which the static build takes as it is.
+
+- MPL-2.0 is the licence of ZeroTier's core, which T-733 links already, and of two crates that `deny.toml` lets
+  in by name; it binds the files of `ironwood` alone, which stay unchanged in their own repository, so podssh's
+  own files stay 0BSD. `deny.toml` names `ironwood` the same way.
+- Written in podssh, from the description of the wire, not from yggdrasil-go or Yggdrasil-ng's `yggdrasil`
+  crate: the WebSocket link (`ygg-ws`, through podssh-ws's dial, so `HTTPS_PROXY` and its TLS hold), the `meta`
+  handshake (TLVs of the version, the key and the priority, signed over a BLAKE2b-512 of the key), and the
+  transform of a key to its subnet's key that Ironwood's bloom filters need, so that a lookup through the public
+  network finds the other end. Yggdrasil-ng's `yggdrasil` crate is not taken: it brings a TUN, ring, rcgen, and
+  a TLS stack beside podssh's.
+- A node on a public peer is a router of the network for the time of a session, not a leaf: the manual says
+  so (Approach, item 4). The two ends of a pair use one peer each, picked by the SHA-256 of the pair's name from
+  `pod-services`' list, and route to each other's keys across the network.
+- Lost: a port of yggdrasil-go's link and Go Ironwood (LGPL-3.0 for the first, against podssh's 0BSD, and
+  131 KB of Go with no document of the routing, for the second); a clean-room port of the routing from a
+  description (there is none to port from); and Yggdrasil-ng's whole `yggdrasil` crate (above).
+
 ## Prove
 
 ```sh
@@ -13075,6 +13101,29 @@ yggdrasil-go in the build image, with `Listen: ["ws://..."]`, and two podssh end
 stream of 1 MiB through it with equal digests; then one short live session through a public
 `wss://` peer from GitHub Actions, if the Decision allows it. Plant: a peer whose handshake
 signature is wrong; the test fails if the link goes up.
+
+## Done
+
+Partial, 2026-11-12. The link and the router, behind the feature `yggdrasil` of podssh-relay
+(`crates/podssh-relay/src/ygg/`): the WebSocket of `ygg-ws` through podssh-ws's dial (`wss://` with TLS through
+`HTTPS_PROXY`, `ws://` for a test's own node) as a byte stream; the `meta` handshake, signed and checked; the key's
+transform of the bloom filters; and Ironwood (`ironwood` of Revertron/Yggdrasil-ng at `c3a3aa6`) set as
+Yggdrasil's nodes set it, with one link to a peer that is dialed again, after 1 s doubled to 32 s.
+
+- `cargo test -p podssh-relay --features yggdrasil --lib ygg`: 3 passed: the transform of six keys equals
+  yggdrasil-go v0.5.15's own `address.SubnetForKey(key).GetKey()`; a handshake reads back, and one whose key was
+  changed under its signature is refused; a peer's URL and the upgrade's `ygg-ws`.
+- `PODSSH_YGG_TEST_BIN=... cargo test -p podssh-relay --features yggdrasil --test ygg_network`: 1 passed against
+  yggdrasil-go v0.5.15's own node (built from its tag, `2c7f050f`), its link on `ws://` on the loopback: two of
+  podssh's routers with fresh keys link to it through its WebSocket and handshake, and the first packet from one
+  to the other, by its key, arrives in 2.1 s (Ironwood's lookup across the node), the answer back at once.
+- Planted (`scripts/plants/t735-unsigned.plant`): the handshake's signature unchecked; the test of the changed key
+  fails; 1 caught. clippy with the feature: no warning, and the gate lints it.
+- Next: a pair's road over it (the node's key from the pair's connect token, a stream of podssh's own over the
+  datagrams with its order and resends, the resumable layer and the end-to-end channel above it), the public
+  `wss://` peers of 443 from `pod-services` (asked as a COORD issue), the command line after Tox's road, the
+  manual, a workflow that builds yggdrasil-go at its tag, and one short live session through a public peer.
+
 # T-736: HyperDHT as a road by key where UDP passes, after podssh's own
 
 **Source:** T-542 (2026-11-10).
