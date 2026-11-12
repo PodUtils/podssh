@@ -122,11 +122,14 @@ pub mod opentunnel;
 pub mod pair;
 #[cfg(feature = "pinggy")]
 pub mod pinggy;
+// Tox's TCP relays, a last road of a pair (T-734).
 #[cfg(feature = "piping")]
 pub mod piping;
 pub mod pool;
 #[cfg(feature = "serveo")]
 pub mod serveo;
+#[cfg(feature = "tox")]
+pub mod tox;
 // QUIC to the relay role, raced with the TCP roads (T-667).
 pub mod quic_road;
 // The rank of the relay hosts as measured from this host (T-606).

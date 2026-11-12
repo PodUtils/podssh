@@ -10371,7 +10371,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:299-300`), and needs the net's role exit, signed by
   its owner (`:297-298`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:139`).
+  (`docs/STATUS.md:140`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -12910,7 +12910,7 @@ plant `t733-other-pair` follows the cfg of the road's code. The release run is d
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -12957,6 +12957,38 @@ Test against software that podssh did not write: c-toxcore's own `tox-bootstrapd
 short live session through a public node from GitHub Actions. Plant: an unconfirmed connection that
 sends a data packet before its first decrypted packet; the test fails if the relay's answer is
 trusted.
+
+## Correction
+
+2026-11-12, measured against c-toxcore's own relay (`tox-bootstrapd` of Ubuntu's `toxcore-utils`, its TCP
+relay on a port of the loopback): the handshake is as the specification says (the client's long-term key
+outside, a key for the connection and a base nonce in the box of the long-term keys, the relay's answer the
+same way), and each packet after it is a box of the two keys for the connection, its length in two bytes of
+the network's order and its nonce counted up the same way; but each end sends under the base nonce that it
+chose and opens under the other's, where the specification's words read the other way: the relay drops a
+client that sends under the relay's base nonce. And a routed connection is no reliable stream: the relay
+stops passing one whose sender outruns its reader (a MiB stalled after 100 to 230 kB in half the runs).
+
+## Done
+
+Partial, 2026-11-12. The protocol, behind the feature `tox` of podssh-relay (NaCl's box of `crypto_box`,
+which the DERP road built already; no C): `crates/podssh-relay/src/tox/wire.rs` (the keys, the handshake,
+the packets and their ids, the nonces) and `routed.rs` (a route to a peer's key, the relay's `connected`,
+and one routed connection as a stream: each data packet carries its offset, the receiver says the next
+offset it waits for, at most 32 KiB in flight, and what is in flight goes again after a second with no
+progress; a FIN carries the length; the relay's pings answered).
+
+- `cargo test -p podssh-relay --features tox --test tox_relay`: 3 passed against `tox-bootstrapd`: two
+  clients with fresh keys meet and carry 1 MiB whole (10 of 10 runs, 2.6 to 2.9 s each on the loopback); a
+  route to a key that never comes connects nothing within its limit; a hello to another key of the relay
+  does not pass. Planted: each end sending under the other's base nonce, and the length in little-endian;
+  the test fails for each. `--lib tox`: 2 passed (the nonce's count, the packets' parse).
+- Next: the pair's road at the node and the client (the keys from the pair's connect token, as ZeroTier's
+  road makes its identity; the relay by the SHA-256 of the pair's name among the nodes of 443 that
+  `pod-services` lists, an IP literal each), the end-to-end channel and the resumable layer above the
+  stream, the third party's line (Q78), the manual, `tox-bootstrapd` in a workflow, and one short live run
+  through a public node from GitHub Actions.
+
 
 # T-735: Yggdrasil's `wss://` peers on 443 as a last road of a podssh pair
 
