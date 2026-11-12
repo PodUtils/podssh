@@ -20,13 +20,13 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.30.0"` (COORD-057, PodUtils/podcrates#89; podssh's
-report is COORD-038, #212).
+podssh pins every podcrates crate at `tag = "v0.31.0"` (COORD-058, PodUtils/podcrates#90; podssh's
+answer is on #90).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
   Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- The next tag: nothing that podssh asked for waits in it.
+- The next tag (v0.32.0) brings #213 (smee's and hostc's services) and #214 (pod-proxy's STUN signatures): take it, close both, and let T-621 drop its copies.
 
 ## Open COORD issues
 

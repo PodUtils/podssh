@@ -5693,6 +5693,12 @@ end; and `code::run::Ends` has `brokers` and `resend` (`Ends::new`). It brings t
 -p podssh-ssh --no-fail-fast`: 3454 passed, 0 failed, 87 ignored; `--features pair,code,serve --test pair_code`: 10
 passed.
 
+2026-11-12, podcrates `v0.31.0` (`45b145a`, COORD-058, PodUtils/podcrates#90): each crate moved; no patch and no
+change of API for podssh. `cargo test -p podssh-cli -p podssh-relay -p podssh-ws -p podssh-ssh --no-fail-fast`: 3450
+passed, 0 failed, 87 ignored. podcrates' next tag adds Serveo's `url-skip` of `console.serveo.net`: podssh's Serveo
+road takes a private alias, never a URL of the banner, and the `ssh -R` road takes a name from its marker's line
+alone, so neither changes.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
