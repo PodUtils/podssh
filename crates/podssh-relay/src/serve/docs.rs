@@ -86,6 +86,9 @@ pub fn relays(cfg: &Config, head: &Request) -> Value {
             "udp": "unsupported",
             // The probes' own limits, beside the contract's (T-325).
             "probe": super::probe::limits(),
+            // The HTTP road's own windows and waits (T-319), beside the
+            // contract's: a client that knows no such field reads none.
+            "http": super::http_road::limits(),
         },
     });
     signed_list(&mut doc);
@@ -270,6 +273,8 @@ mod tests {
             (&json!(10000), &json!(180000), &json!(43200000))
         );
         assert_eq!((&l["max_session_bytes"], &l["max_frame_bytes"]), (&json!(67108864), &json!(262144)));
+        assert_eq!(l["http"]["window_batches"], 8, "the HTTP road's limits beside the five (T-319)");
+        assert_eq!(l["http"]["absent_ms"], 60_000);
         assert_eq!(doc["reverse"]["pair_once"], true, "pairs of one upgrade are offered (T-226)");
         assert_eq!((&doc["reverse"]["leg_tokens"], &doc["reverse"]["rotate"]), (&json!(true), &json!(true)), "T-615");
         let body = doc.to_string();

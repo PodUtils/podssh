@@ -28,7 +28,11 @@ pub(super) fn blocks() -> Vec<Block> {
          follows on the first: one POST after another, each with a batch up when one waits and the bytes down in \
          its answer. A session's id goes in its paths, and its key in a header alone. A close of the road other \
          than 1000 is said by podssh ssh as by podssh proxy: the leg that ended it, with its code and reason, \
-         before SSH's own line. PODSSH_HTTP_ROAD turns the \
+         before SSH's own line. The batches and the wait are the road's own, or smaller where podssh doctor \
+         --stream measured a cap on bodies or a quiet end on the path to that host (see FILES). The role's \
+         /relays.json names these limits in limits.http, which a client that does not know it ignores. podssh \
+         doctor's line forward names the road that carried its check: over a WebSocket, or over the HTTP road and \
+         its form, split or serial, with the road in its --json samples. PODSSH_HTTP_ROAD turns the \
          road off, or names one form. The default relay serves no HTTP road.",
         batch = BATCH_MAX / 1024,
         wait = WAIT_MAX.as_secs(),

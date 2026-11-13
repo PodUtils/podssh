@@ -1976,7 +1976,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
   with the relay failed: {why}", and `crates/podssh-ws/src/client.rs` lines 202-203 at `1316e53`
   kept rustls's words. doctor adds a hint for the
   clock's errors only (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 96-105 at `b9e007c`), and its test
-  asserts none for `UnknownIssuer` (`:379`).
+  asserts none for `UnknownIssuer` (`:392`).
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
@@ -2323,7 +2323,7 @@ and each other command print rustls's words alone. An error should tell what to 
 ## Premise
 
 - Read: doctor's hint (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 96-105 at `b9e007c`) and its tests
-  (`:376-379`).
+  (`:389-392`).
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
@@ -2851,10 +2851,10 @@ met.
 
 ## Premise
 
-- Read: each relay host gets a line of its own (`crates/podssh-cli/src/doctor/relay_checks.rs:52-71`),
+- Read: each relay host gets a line of its own (`crates/podssh-cli/src/doctor/relay_checks.rs:53-72`),
   and DNS over HTTPS one line with each resolver's error
   (`crates/podssh-cli/src/doctor/names.rs:141`); the end of the report gives the counts alone
-  (`crates/podssh-cli/src/doctor/report.rs:124-146`).
+  (`crates/podssh-cli/src/doctor/report.rs:132-154`).
 - Read: a failed handshake reaches `doctor` as text: `ConnectError::Tls` holds a String
   (`crates/podssh-ws/src/client.rs` line 115 at `38f424c`), and `HealthError::Connect` the
   error's text (`crates/podssh-relay/src/health.rs` line 69 at `38f424c`). The kind of the I/O
@@ -2901,7 +2901,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:394-398`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:396-400`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3624,7 +3624,7 @@ two requests in two directions.
   (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
   `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:
   keep stream-one's refusal, and say why in `doctor`.
-- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:91-92`).
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:93-94`).
 
 ## Approach
 
@@ -3752,7 +3752,7 @@ of UDP only from the source. The tester accepts either outcome: UDP associate bu
 
 - `crates/podssh-ws/src/trojan/request.rs:12` says "is not spoken" of UDP's command, and the
   request writes CONNECT alone (`crates/podssh-ws/src/trojan/request.rs:13`).
-- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:91-92`)
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:93-94`)
   and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
   2026-11-13).
 

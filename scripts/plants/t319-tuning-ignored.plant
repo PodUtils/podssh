@@ -1,0 +1,7 @@
+# T-319: the HTTP road takes its defaults and not what doctor --stream
+# measured on the path, so a proxy that refuses bodies over 100 KiB refuses
+# each batch; the test of the measured batches must fail.
+ENTRY=T-319
+GROUP=cli-tests
+EXPECT='test what_doctor_stream_measured_sizes_the_road_s_batches \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test http_road_cli -- --test-threads 1 what_doctor_stream_measured_sizes_the_road_s_batches'

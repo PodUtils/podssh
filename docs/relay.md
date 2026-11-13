@@ -1389,6 +1389,14 @@ serial form, one, is its fallback. The default relay serves none of it
   it, and a request of another path that comes on it goes to the role's
   routes. Behind a quick tunnel's node, which passes an answer to the end of
   its connection, each answer closes its connection.
+- `/relays.json` names the road's own limits in `limits.http`, beside the
+  contract's five, a field that a client which does not know it ignores:
+  `paths`, `forms`, `batch_max_bytes` (32768 behind a quick tunnel's node),
+  `window_batches` (8), `hold_ms` (10000, a batch's wait for room before
+  `full`), `down_window_bytes` (2 MiB), `down_max_bytes` (1 MiB),
+  `wait_max_ms` (25000), `absent_ms` (60000, before `1001 client gone`),
+  `kept_ended_ms` (60000, while an ended session still answers `410`) and
+  `sessions_max` (256).
 
 The role's lines say `http open` and `http close CODE` for each session.
 Measured on 2026-11-04 (`crates/podssh-relay/tests/http_road.rs`, 8 passed, and

@@ -132,7 +132,7 @@ Measured on `3ee70dc` (`PODSSH_OFFLINE=1`, stdin from `/dev/null`): `podssh rela
 (`crates/podssh-cli/src/flags.rs` lines 315-316 at `af0a163`), not the `HOSTS` of the other commands (lines
 169-170, 326-327, 337-338). Read: `/trace` needs a forward token in `X-Relay-Token`
 (`docs/relay.md:546-547`). The `health` function of `doctor`
-(`crates/podssh-cli/src/doctor/relay_checks.rs:112-129`) already makes a verified `/health`
+(`crates/podssh-cli/src/doctor/relay_checks.rs:113-130`) already makes a verified `/health`
 request; `PodUtils/podssh:crates/podssh-relay/src/pool.rs:178-204` fetches `/relays.json`. `https_get` sends no
 token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_request` takes headers (lines
 282-303).
@@ -152,7 +152,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 5. `pair` and `revoke`: refuse by name, and name M4 (T-078, T-083).
 6. Flags as for `doctor` (`--relay-host HOSTS`, `--relay-addr`, `--ca-file`), and `--json`
    (T-049). Each request has the 10 s limit of `doctor`
-   (`crates/podssh-cli/src/doctor/relay_checks.rs:29`), and the run has a limit too.
+   (`crates/podssh-cli/src/doctor/relay_checks.rs:30`), and the run has a limit too.
 7. Remove the owner row (`crates/podssh-cli/src/flags.rs` line 442 at `af0a163`); change `DISPATCHED`, `usage_tail`
    (`crates/podssh-cli/src/help.rs`, line 237 at `24f3e2a`), the notes, `docs/relay.md`, lines 296-302 at `24f3e2a`, and
    `docs/STATUS.md`. `dispatch.rs` has 448 lines: put the verb in its own module.
@@ -2844,7 +2844,7 @@ session on 2026-11-03.
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:228-238`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:344-372`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:346-374`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-28`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -3165,7 +3165,7 @@ URL written into each result, and a download target that is no test target of `A
   WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:102-150`), one host after another
   (`crates/podssh-cli/src/ping/mod.rs:167-172`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
-  (`crates/podssh-cli/src/doctor/relay_checks.rs:209-240`); `--quick` keeps the relay's sections and
+  (`crates/podssh-cli/src/doctor/relay_checks.rs:218-254`); `--quick` keeps the relay's sections and
   `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:183-188`).
 - Read: `podssh relay trace` asks the relay to dial a target and gives its own times
   (`crates/podssh-cli/src/relay_diag.rs:182-185`); `relay info` gives the pool
@@ -3835,7 +3835,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3495-3501`.
+  `docs/cli.md:3504-3510`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:167-172`),
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3537`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3546`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -3915,7 +3915,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
   from the cache by `order_now` and `placed_now` with no connection, and `order_words`, the words
   that `doctor/relay_checks.rs` had, with the background rank's; `doctor_line` takes the list alone
   and calls them, so `doctor`'s line `rank` keeps its words
-  (`crates/podssh-cli/src/doctor/relay_checks.rs:55`).
+  (`crates/podssh-cli/src/doctor/relay_checks.rs:56`).
 - `crates/podssh-cli/src/relay_diag_text.rs`: the line of the measures names `podssh relay rank`
   (each host of the pool) first (`crates/podssh-cli/src/relay_diag_text.rs:39-40`); the next line,
   with a pool or none, is "a run from this host takes WORDS; its list: HOSTS"
@@ -4237,8 +4237,8 @@ Read at `2042200`:
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:100`), the resumable layer
   (`crates/podssh-relay/src/serve/layer.rs:185`), the HTTP road
-  (`crates/podssh-relay/src/serve/http_road/mod.rs:142`) and `/trace`
-  (`crates/podssh-relay/src/serve/docs.rs:135`); one change there serves each.
+  (`crates/podssh-relay/src/serve/http_road/mod.rs:163`) and `/trace`
+  (`crates/podssh-relay/src/serve/docs.rs:138`); one change there serves each.
 - podssh has this list already for an exit: `podssh node --exit --routes` takes ranges
   (`crates/podssh-cli/src/node_exit.rs:91`), each a `Range` of `ADDR/BITS` or one address
   (`crates/podssh-cli/src/net/policy_words.rs`, lines 123 at `c3a9b89` and on), and an address that is not public is let

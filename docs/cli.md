@@ -498,7 +498,16 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   `serial` names one form, and another word is refused (78). A close of the
   road other than `1000` (a limit of the role, a target that failed) is said
   by `ssh` as by `proxy`, before SSH's own line: the leg that ended the
-  session with its code and reason, then what may help.
+  session with its code and reason, then what may help. Its batches and its
+  wait are sized by what `doctor --stream` last measured of the path to that
+  host over TLS, a week at most (half the first body that did not pass, two
+  thirds of a quiet end that the path made; `pod-relay`'s
+  `Tuning::measured`), kept in the cache's `http-road-paths.json`
+  (`crates/podssh-cli/src/http_road_path.rs`); `ssh -v` says so, and with no
+  measurement the road's own sizes hold. `doctor`'s line `forward` names the
+  road that carried its check: over a WebSocket, or over the HTTP road and
+  its form, which `--json` gives in that line's `samples`
+  (`crates/podssh-cli/src/doctor/road.rs`).
 - **The WebSocket over HTTP/2, to a relay of the user's** (T-321, GitHub
   #51; RFC 8441; [relay.md](relay.md), "The relay role's HTTP/2"). To a
   relay host that the user named (`--relay-host`, `PODSSH_RELAY`,

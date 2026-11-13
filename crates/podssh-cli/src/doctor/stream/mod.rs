@@ -168,20 +168,43 @@ async fn probes(report: &mut Report<'_>, server: &Server, trust: &Trust, hold: D
         Ok(answer) => report.line("request body", judge::body(&at, over, PIECES, &answer, &own)),
         Err(why) => report.unknown("request body", format!("{at}/anything: {why}")),
     }
-    cap(report, server, trust, &at, &own).await;
+    let capped = cap(report, server, trust, &at, &own).await;
     let quiet = server.target(&format!("/drip?duration={}&numbytes=2&delay=0", hold.as_secs()));
-    match http::get(server, trust, &quiet, hold + MARGIN).await {
+    let quieted = match http::get(server, trust, &quiet, hold + MARGIN).await {
         Ok(answer) => {
             let numbers = judge::quiet_numbers(hold, &answer);
-            measured(report, "quiet stream", judge::quiet(&at, hold, &answer, &own), numbers);
+            measured(report, "quiet stream", judge::quiet(&at, hold, &answer, &own), numbers.clone());
+            Some(numbers)
         }
-        Err(why) => report.unknown("quiet stream", format!("{at}/drip: {why}")),
+        Err(why) => {
+            report.unknown("quiet stream", format!("{at}/drip: {why}"));
+            None
+        }
+    };
+    keep(server, &own, &capped, quieted.as_ref());
+}
+
+/// Keep what the probes measured of a path over TLS, for the HTTP road's
+/// requests to that host (T-319): a session reads it, and never runs the
+/// probes. A quiet end at the server's own limit is no path's, so it is not
+/// kept; a path in cleartext is another path, and keeps none.
+fn keep(server: &Server, own: &judge::Own, cap: &Value, quiet: Option<&Value>) {
+    if !server.tls {
+        return;
     }
+    let mut found = crate::http_road_path::Measured::of_samples(Some(cap), quiet);
+    let near_own = |q: Duration| own.quiet_max.is_some_and(|m| q.as_millis().abs_diff(m.as_millis()) <= 2_000);
+    if found.quiet.is_some_and(near_own) {
+        found.quiet = None;
+    }
+    // Nothing kept is a failure of no check: the road takes its defaults.
+    let _ = crate::http_road_path::record(&server.host, server.port, found);
 }
 
 /// The probe of the cap: bodies twice as big each time, from 64 KiB to the
-/// server's own cap or the probe's most, until one does not pass.
-async fn cap(report: &mut Report<'_>, server: &Server, trust: &Trust, at: &str, own: &judge::Own) {
+/// server's own cap or the probe's most, until one does not pass; its
+/// numbers.
+async fn cap(report: &mut Report<'_>, server: &Server, trust: &Trust, at: &str, own: &judge::Own) -> Value {
     let mut steps = Vec::new();
     for size in judge::sizes(own.body_max) {
         let pieces = [Piece { at: Duration::ZERO, bytes: size as usize }];
@@ -196,7 +219,9 @@ async fn cap(report: &mut Report<'_>, server: &Server, trust: &Trust, at: &str, 
             break;
         }
     }
-    measured(report, "body cap", judge::cap(at, &steps, own), judge::cap_numbers(&steps));
+    let numbers = judge::cap_numbers(&steps);
+    measured(report, "body cap", judge::cap(at, &steps, own), numbers.clone());
+    numbers
 }
 
 /// A line with what its probe measured as numbers, which `--json` gives as

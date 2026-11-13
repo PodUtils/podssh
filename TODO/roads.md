@@ -3307,6 +3307,35 @@ names it as the third exception.
   names it. Lost: the default, which the relay crate's test covers (the split form with no form
   asked).
 
+2026-11-13 (the drafting agent, item 2 of what remains), each call with what lost:
+
+- **`Tuning::measured` is called by podssh, with what `doctor --stream` kept**: the API is in
+  `pod-relay` at the pinned `v0.36.0` (`pod_relay::http_road::Tuning::measured(body_cap, quiet)`), so
+  nothing is asked of PodUtils/podcrates. Lost: a change of `pod-relay`, which Rule Q3 sends there and
+  which the road does not need.
+- **The numbers go from `doctor` to a session through a file of the cache**, `http-road-paths.json`, by
+  `HOST:PORT`, kept a week, the newest 32 (`crates/podssh-cli/src/http_road_path.rs`). Lost: the probes
+  at each session's start, which take minutes (T-325's Decision); a flag or a variable that the user
+  copies from `--json`, which a user who ran `doctor` would have to learn; no age bound, as a host that
+  moved is behind another proxy.
+- **The cap is the first body that did not pass, the quiet limit the cut or a hop's `408`, `502` to
+  `504` or `520` to `524`**, never the server's own (a quiet end within 2 s of its `quiet_max_ms`);
+  a server in cleartext keeps nothing, as its path is another. `quiet_numbers` gains `answered_ms`, when
+  the head came, a field that a reader of `--json` that does not know it ignores. Lost: the last body
+  that passed, which `Tuning::measured` would halve once more; a cut of the cap's probe told from a
+  refusal, as both are bodies that the path did not carry.
+- **`doctor`'s forward check takes the HTTP road as `ssh` does**, after each host failed, where the way
+  refused the upgrade (`crates/podssh-cli/src/doctor/road.rs`), and its line names the road: `HOST, over
+  a WebSocket` (or the words of HTTP/2's and the cleartext road where they say more), or `HOST, over its
+  HTTP road in the FORM form, as the way refused the WebSocket upgrade`; `--json` gives
+  `{"road": "websocket"}` or `{"road": "http", "form": ...}` in the line's `samples`. Lost: a line of its
+  own, which each test that counts the relay section's lines would meet; naming the road only when it
+  is the HTTP road, where Approach item 5 asks for the road that answered.
+- **`/relays.json` names the road's limits in `limits.http`**, read from the constants the role holds
+  (`crates/podssh-relay/src/serve/http_road/mod.rs`, `limits`), beside `limits.probe`. Lost: fields in
+  the open's answer alone, which a client reads only once it opened a session; the client reading
+  `limits.http` before its open, which would be a read beside the session (rule 2 of `AGENTS.md`).
+
 ## Prove
 
 ```sh
@@ -3565,6 +3594,69 @@ cargo test -p podssh-cli --test http_road_cli
 - `cargo clippy --workspace --all-targets`, and podssh-relay's with `serve,quick,plain-ws,piping`: clean.
 - Known, pod-relay's: the client sends no `POST close` when the app drops its stream (podcrates' entry 478, open).
 
+Drafted 2026-11-13 (the drafting agent, `draft-t319c`): item 2 of what remains, podssh's part (the
+Decision of that day).
+
+- The tuning: `crates/podssh-cli/src/http_road_path.rs` (with
+  `crates/podssh-cli/src/http_road_path_tests.rs`) keeps what `doctor --stream` measured at a server
+  over TLS (`crates/podssh-cli/src/doctor/stream/mod.rs`, `keep`), and `crate::http_road::open` gives
+  `Tuning::measured` of it to `client::open`; `ssh -v` names it.
+- `doctor` names the road: `crates/podssh-cli/src/doctor/road.rs`, and `open_github` of
+  `crates/podssh-cli/src/doctor/relay_checks.rs` takes the HTTP road after each host failed;
+  `Report::samples` gives the road in `--json`.
+- The role's `limits.http` (`crates/podssh-relay/src/serve/http_road/mod.rs`,
+  `crates/podssh-relay/src/serve/docs.rs`); `docs/relay.md` ("The relay role's HTTP road"),
+  `docs/cli.md` ("The HTTP road after the relay hosts").
+- The manual: THE RELAY's item of the road, `doctor --stream`'s note, the relay's probes' note, and a row
+  of FILES for `http-road-paths.json` (`crates/podssh-cli/src/man/notes_doctor.rs`, `http_road_file`).
+- The CLI's tests (`crates/podssh-cli/tests/http_road_cli.rs`): `doctor` through the proxy that refuses
+  the upgrade names the HTTP road at the relay host; and a proxy that refuses each body over 100 KiB
+  (`Bench::start_capped`), where `doctor --stream` measures the cap and `ssh` then carries 4 MiB each
+  way in batches of 64 KiB, with no body refused, where batches of the default 256 KiB would each get
+  `413`.
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib http_road
+cargo test -p podssh-cli --lib doctor::road
+cargo test -p podssh-cli --lib doctor::stream
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-relay --features serve --lib serve::http_road
+cargo test -p podssh-relay --features serve,quick --lib serve::http_road
+cargo test -p podssh-relay --features serve --lib serve::docs
+cargo test -p podssh-cli --test http_road_cli
+cargo test -p podssh-cli --test doctor_upgrade
+cargo test -p podssh-cli --test doctor_stream
+```
+
+Merged, built and run by the main session the same day, with two repairs of the draft's tests:
+
+- `--lib http_road`: 11 passed (the five of `crates/podssh-cli/src/http_road_path_tests.rs` and the road's own).
+  Repaired: `a_session_takes_the_kept_measurement_or_the_defaults` wrote its record "2 h ago" from a clock of
+  5,000 s, which overflowed at compile time; its clock is 10,000 s.
+- `--lib doctor::`: 111 passed, `doctor::road`'s 3 among them; `man::`: 60 passed.
+- The role's `serve::` with `serve`: 135 passed (`the_limits_are_the_ones_the_role_holds`, `serve::docs`); with
+  `serve,quick`, `serve::http_road`: 6 passed (`behind_a_node_the_batch_is_the_node_s`).
+- `--test http_road_cli`: 8 passed. Repaired: `doctor_names_the_http_road_where_the_way_refused_the_upgrade`
+  expected the role to refuse GitHub's port 22 by its policy ("not in the ALLOW list"), but `--routes 127.0.0.1`
+  adds the loopback and refuses nothing: the role dials the port, which this host refuses and a runner reaches.
+  The test now holds either outcome: the check carried "over its HTTP road in the split form", or "then the HTTP
+  road at relay-a.test: the relay refused the session: HTTP ..." with the role's answer.
+- `doctor_upgrade`: 2 passed; `doctor_stream`: 9 passed. The relay's `--test http_road`, `http_road_quick`,
+  `http_road_role`: 10, 2 and 4 passed.
+- The plant `t319-tuning-ignored` (`scripts/plants/`, `Tuning::default()` in place of the kept tuning in
+  `crate::http_road::open`), run by hand: `what_doctor_stream_measured_sizes_the_road_s_batches` failed; restored,
+  it passes.
+- `cargo test -p podssh-cli --no-fail-fast`: 2,267 passed, 0 failed. Clippy of both crates (`serve,quick`) and
+  rustfmt: clean.
+- At the merge: `cargo todo remap` of each changed file that entries cite (`docs/relay.md`,
+  `docs/cli.md`, `crates/podssh-cli/src/doctor/relay_checks.rs`, `crates/podssh-cli/src/doctor/stream/mod.rs`,
+  `crates/podssh-cli/src/man/notes_doctor.rs`, `crates/podssh-relay/src/serve/docs.rs`,
+  `crates/podssh-relay/src/serve/http_road/mod.rs` and the others of the diff): the draft moved no
+  citation.
+
+What stays of item 2: nothing of podssh's once the above passes; the HTTP road's own Prove of #55's
+invariant 5 against a path of a real proxy waits for the live runs (item 4, Q88).
 
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)
 
@@ -5692,7 +5784,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:253-258`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:255-260`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -8375,7 +8467,7 @@ puts the fallback in its `ok` column without a probe.
   (`PodUtils/podssh:crates/podssh-relay/src/open.rs:71-93`, `PodUtils/podssh:crates/podssh-relay/src/open.rs:147-155`).
 - Read: `doctor`'s line of the fallback is `ok`, with "not asked here"
   (`crates/podssh-cli/src/doctor/forwarder.rs:30-47`); `doctor` has a mark for what it did not
-  measure (`crates/podssh-cli/src/doctor/report.rs:99-101`).
+  measure (`crates/podssh-cli/src/doctor/report.rs:107-109`).
 - Read: the operator's rulings Q56 and Q65 (`docs/decisions.md`) let the binary try the forwarders,
   and the Wisp demo server last, "when each relay host fails", unasked (T-370, T-438); since T-438
   there are four: mudlet, ssheasy, mudix and wisp (`crates/podssh-cli/src/man/notes_ssh.rs:242-253`).
@@ -9555,7 +9647,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:260`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:262`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:34` (`iroh UDP out`); a bind
@@ -9884,7 +9976,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:173` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:5902`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:5986`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The

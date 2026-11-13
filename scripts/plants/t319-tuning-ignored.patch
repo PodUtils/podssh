@@ -1,0 +1,12 @@
+--- a/crates/podssh-cli/src/http_road.rs
++++ b/crates/podssh-cli/src/http_road.rs
+@@ -79,7 +79,8 @@
+     let road = Road::tls(&podssh_ws::client::way(&proxy), relay, trust, limit);
+     // What `doctor --stream` measured there, else the defaults (#55's
+     // invariant 5: the batch and the wait come from the path's probe).
+-    let (tuning, _) = crate::http_road_path::tuning_for(relay);
++    let (_, _) = crate::http_road_path::tuning_for(relay);
++    let tuning = podssh_relay::http_road::Tuning::default();
+     let mut token = token::obtain(&ctx, false).await.map_err(|e| e.to_string())?;
+     let mut opened = client::open(&road, &target, token.secret(), form, tuning).await;
+     // A cached token that the role no longer takes: minted once more, as

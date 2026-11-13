@@ -328,7 +328,7 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
 2. Verdicts: a refused key is `ok` ("the handshake, the host key and the authentication path
    work through the relay"); another host key is `FAIL`; a transport failure is `FAIL`, with
    the relay's reason (`crates/podssh-ssh/src/relay_stream.rs:51-67`); no relay host is `????`.
-3. Bound each step with the doctor's limit (`crates/podssh-cli/src/doctor/relay_checks.rs:29`),
+3. Bound each step with the doctor's limit (`crates/podssh-cli/src/doctor/relay_checks.rs:30`),
    and the whole check too.
 4. No `-tt` line: with GitHub, authentication fails before a channel, so a pty request cannot
    be tested; the notes say so. No OpenSSH step (Decision).
@@ -355,7 +355,7 @@ sh scripts/test_in_box.sh path/to/static/podssh            # the Podman box: log
 ```
 
 Offline, `--full` adds one `????` line and no `FAIL`. A unit test of the verdict, as
-`crates/podssh-cli/src/doctor/relay_checks.rs:382-398` tests the keys: a refused key gives `ok`,
+`crates/podssh-cli/src/doctor/relay_checks.rs:395-411` tests the keys: a refused key gives `ok`,
 another host key gives `FAIL`. Planted defect: a handshake that accepts any host key; the
 wrong-key test fails.
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6024-6054`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6033-6063`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -1316,7 +1316,7 @@ never named among them.
   tunnel's UDP and its road over TCP, the relay, the forwarders, the roads of the build (iroh,
   Tor), DERP and the pairs (`crates/podssh-cli/src/doctor/mod.rs` lines 218-259 at `38f424c`,
   which this entry moved to `crates/podssh-cli/src/doctor/sections.rs`); the checks of the relay
-  and of the pairs have limits of 10 s (`crates/podssh-cli/src/doctor/relay_checks.rs:29`,
+  and of the pairs have limits of 10 s (`crates/podssh-cli/src/doctor/relay_checks.rs:30`,
   `crates/podssh-cli/src/doctor/pairs.rs:14`).
 - Read: the report prints the sections in a fixed order, which `--json` keeps (T-049).
 - Read: rule 2 of `AGENTS.md`: one outbound connection, with the exceptions of the operator's
@@ -1850,7 +1850,7 @@ both from the schema alone.
 - Read, at `47e1eba`: `crates/podssh-cli/src/flags/relay.rs:184-186` is the `--full` row, with the QUIC
   handshake. `crates/podssh-cli/src/flags/relay.rs:191-193` is the `--quick` row, which names no
   probe of `--full`.
-- `crates/podssh-cli/src/doctor/mod.rs:263-265` guards the whole section of the quick tunnel with
+- `crates/podssh-cli/src/doctor/mod.rs:265-267` guards the whole section of the quick tunnel with
   `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
   `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
 - `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.

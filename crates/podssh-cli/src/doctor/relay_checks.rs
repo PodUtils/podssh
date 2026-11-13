@@ -11,12 +11,13 @@ use podssh_relay::open::Request;
 use podssh_relay::relay::{Relay, RelayList};
 use podssh_relay::token::{self, MintContext, Origin};
 use podssh_ssh::probe::Login;
-use podssh_ssh::relay_stream::{RelayEnd, RelayStatus};
+use podssh_ssh::relay_stream::RelayEnd;
 use podssh_ws::dial::{self, ProxyChoice};
 use podssh_ws::{SessionError, Trust, Verdict};
 
 use super::clock::{format_http_date, parse_http_date};
 use super::diagnosis::{Met, Of};
+use super::road::Carried;
 use super::Report;
 
 /// The relay version podssh was last measured against (docs/relay.md): the
@@ -177,29 +178,37 @@ async fn token_check(report: &mut Report<'_>, at: &Relay, trust: &Trust) -> bool
 }
 
 /// A forward session to GitHub's SSH port, as `podssh ssh` opens one: the
-/// stream, the relay's status, and the host it went through (named with the
-/// hosts that failed before it).
-async fn open_github(
-    relays: &RelayList,
-    trust: &Trust,
-    failover: Mode,
-) -> Result<(tokio::io::DuplexStream, RelayStatus, String), String> {
+/// stream, its road, and the host it went through (named with the hosts
+/// that failed before it); after each host failed, the HTTP road where the
+/// way refused the upgrade (T-319).
+async fn open_github(relays: &RelayList, trust: &Trust, failover: Mode) -> Result<Carried, String> {
     let target = dial::authority(forward_host(), 22);
     let path = podssh_relay::relay::forward_path(forward_host(), 22)?;
     let request = Request { relays, path: &path, trust, target: &target, rounds: 1, failover };
     // Its progress notes repeat what the relay lines above already say.
-    let opened = podssh_relay::open(&request, &mut |_: &str| {})
-        .await
-        .map_err(|failure| format!("{target}: {}", podssh_relay::open::words(&failure, &target).join("; ")))?;
+    let opened = match podssh_relay::open(&request, &mut |_: &str| {}).await {
+        Ok(opened) => opened,
+        Err(failure) => {
+            let words = format!("{target}: {}", podssh_relay::open::words(&failure, &target).join("; "));
+            return match super::road::after_relays(&failure, relays, trust).await {
+                Some(Ok(carried)) => Ok(carried),
+                Some(Err(why)) => Err(format!("{words}; then {why}")),
+                None => Err(words),
+            };
+        }
+    };
     let skipped: Vec<&str> =
         relays.hosts.iter().map(|r| r.host.as_str()).take_while(|h| *h != opened.relay.host).collect();
-    // The road that carried it, the cleartext one (T-326) and HTTP/2's
-    // (T-321) named.
+    // The road that carried it named: a WebSocket, the cleartext one
+    // (T-326) or HTTP/2's (T-321).
     let road = opened.road();
-    let host = format!("{}{road}", opened.relay.host);
-    let via = if skipped.is_empty() { host } else { format!("{host} (after {} failed)", skipped.join(", ")) };
+    let host = opened.relay.host.clone();
     let (stream, status) = podssh_ssh::relay_stream::spawn(opened.session);
-    Ok((stream, status, via))
+    let mut carried = Carried::websocket(stream, status, &host, &road);
+    if !skipped.is_empty() {
+        carried.road.via = format!("{} (after {} failed)", carried.road.via, skipped.join(", "));
+    }
+    Ok(carried)
 }
 
 /// A forward session to GitHub's SSH port. The server must present one of
@@ -208,18 +217,21 @@ async fn open_github(
 /// that passed.
 async fn forward(report: &mut Report<'_>, relays: &RelayList, trust: &Trust, failover: Mode) -> Option<String> {
     let target = dial::authority(forward_host(), 22);
-    let (stream, status, via) = match open_github(relays, trust, failover).await {
+    let carried = match open_github(relays, trust, failover).await {
         Ok(opened) => opened,
         Err(why) => {
             report.fail("forward", why);
             return None;
         }
     };
+    let Carried { stream, road } = carried;
+    let (via, named) = (&road.via, road.samples());
     let key = match podssh_ssh::probe::host_key(stream, TIMEOUT).await {
         Ok(key) => key,
         Err(why) => {
-            let after = after_upgrade(&why, status.get(), status.age());
+            let after = road.after_open(&why);
             report.fail("forward", format!("{target} through {via}: {after}"));
+            report.samples(named);
             return None;
         }
     };
@@ -228,6 +240,7 @@ async fn forward(report: &mut Report<'_>, relays: &RelayList, trust: &Trust, fai
     let shown = format!("{target} through {via}: {kind} host key {fingerprint}");
     if published_keys().contains(&fingerprint.as_str()) {
         report.ok("forward", format!("{shown}, one of GitHub's published keys"));
+        report.samples(named);
         return Some(fingerprint);
     }
     // GitHub may have rotated a key since this list was written: ask it,
@@ -236,6 +249,7 @@ async fn forward(report: &mut Report<'_>, relays: &RelayList, trust: &Trust, fai
     let verdict = judge_unlisted(&shown, &fingerprint, current);
     let passed = matches!(verdict, Verdict::Ok { .. });
     report.line("forward", verdict);
+    report.samples(named);
     passed.then_some(fingerprint)
 }
 
@@ -244,7 +258,7 @@ async fn forward(report: &mut Report<'_>, relays: &RelayList, trust: &Trust, fai
 /// stranger's answer. A stream that ends with no Close is cut by a hop that
 /// drops the upgraded stream; the relay's own end comes with a Close and
 /// its reason. `age` is the time since the 101.
-fn after_upgrade(why: &str, end: Option<RelayEnd>, age: Duration) -> String {
+pub(super) fn after_upgrade(why: &str, end: Option<RelayEnd>, age: Duration) -> String {
     let passed = "the upgrade passed (101, with this request's accept)";
     match end {
         Some(RelayEnd::Failed(e @ (SessionError::Io { .. } | SessionError::ClosedWithoutClose(_)))) => format!(
@@ -266,13 +280,12 @@ fn after_upgrade(why: &str, end: Option<RelayEnd>, age: Duration) -> String {
 /// and the authentication path work end to end, with no account.
 async fn login(report: &mut Report<'_>, relays: &RelayList, trust: &Trust, failover: Mode, host_key: &str) {
     let target = dial::authority(forward_host(), 22);
-    let (stream, status, via) = match open_github(relays, trust, failover).await {
+    let Carried { stream, road } = match open_github(relays, trust, failover).await {
         Ok(opened) => opened,
         Err(why) => return report.fail("login", why),
     };
     let outcome = podssh_ssh::probe::login(stream, "git", &[host_key.to_string()], TIMEOUT * 2).await;
-    let relay = status.get().and_then(|end| end.explain());
-    report.line("login", judge_login(&format!("{target} through {via}"), outcome, relay));
+    report.line("login", judge_login(&format!("{target} through {}", road.via), outcome, road.explain()));
 }
 
 /// The verdict on a login with a key that no account has: a refusal is the

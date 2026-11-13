@@ -69,6 +69,8 @@ mod pairs;
 mod parts;
 mod quick;
 mod relay_checks;
+// The road that carried the forward check: a WebSocket, or the HTTP road (T-319).
+mod road;
 // The lines so far, their text and their JSON.
 mod report;
 mod samples;

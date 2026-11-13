@@ -16,7 +16,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use podssh_relay::http_road::client::{self, End, Ended, Opened, Road, Target};
-use podssh_relay::http_road::{Form, Tuning};
+use podssh_relay::http_road::Form;
 use podssh_relay::open::{Failure, OpenError};
 use podssh_relay::relay::{Relay, RelayList};
 use podssh_relay::token::{self, MintContext, Origin};
@@ -77,8 +77,11 @@ pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option
     let limit = podssh_relay::open::CONNECT_TIMEOUT;
     let ctx = MintContext { relay, trust, ctx: &podssh_relay::context::of(&proxy), timeout: limit };
     let road = Road::tls(&podssh_ws::client::way(&proxy), relay, trust, limit);
+    // What `doctor --stream` measured there, else the defaults (#55's
+    // invariant 5: the batch and the wait come from the path's probe).
+    let (tuning, _) = crate::http_road_path::tuning_for(relay);
     let mut token = token::obtain(&ctx, false).await.map_err(|e| e.to_string())?;
-    let mut opened = client::open(&road, &target, token.secret(), form, Tuning::default()).await;
+    let mut opened = client::open(&road, &target, token.secret(), form, tuning).await;
     // A cached token that the role no longer takes: minted once more, as
     // the WebSocket road does; never for a refusal by policy.
     let stale = matches!(&opened, Err(ConnectError::Refused { status: 403, body })
@@ -86,7 +89,7 @@ pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option
     if stale && token.origin == Origin::Cache {
         podssh_relay::cache::remove(&token::token_key(relay));
         token = token::obtain(&ctx, true).await.map_err(|e| e.to_string())?;
-        opened = client::open(&road, &target, token.secret(), form, Tuning::default()).await;
+        opened = client::open(&road, &target, token.secret(), form, tuning).await;
     }
     drop(token);
     opened.map_err(|e| words(relay, &e))
@@ -155,6 +158,9 @@ pub async fn after_relay(
     };
     let Some(relay) = refused_at(failure, relays) else { return Ok(None) };
     log.info(&announce(&relay));
+    if let (_, Some(line)) = crate::http_road_path::tuning_for(&relay) {
+        log.verbose(&line);
+    }
     match open(&relay, trust, Target { host, port, family }, form).await {
         Ok(opened) => {
             let form = opened.form.name();

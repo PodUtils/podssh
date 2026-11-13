@@ -357,7 +357,15 @@ pub(super) fn quiet_numbers(hold: Duration, answer: &Timed) -> Value {
         End::Cut { at, .. } => Some(ms(*at)),
         _ => None,
     };
-    json!({ "hold_ms": ms(hold), "ended_ms": ended, "status": answer.head.as_ref().map(|(s, _)| *s) })
+    // When the answer's head came: a hop that answers in the server's place
+    // (a 524 at its own limit) ends the stream then (T-319's tuning).
+    let answered = answer.head_at.map(ms);
+    json!({
+        "hold_ms": ms(hold),
+        "ended_ms": ended,
+        "status": answer.head.as_ref().map(|(s, _)| *s),
+        "answered_ms": answered,
+    })
 }
 
 /// How the quiet socket of the default relay ended: `None` when it held,

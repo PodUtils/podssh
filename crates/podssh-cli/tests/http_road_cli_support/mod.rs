@@ -116,12 +116,14 @@ fn role_certificate(dir: &Path) -> (PathBuf, PathBuf, PathBuf) {
     (cert, key, ca_file)
 }
 
-/// What the proxy did: the upgrades that it refused, and the first line of
-/// each request that it carried to the role.
+/// What the proxy did: the upgrades that it refused, the first line of
+/// each request that it carried to the role, and the bodies past its cap.
 #[derive(Debug, Default)]
 pub struct Seen {
     pub upgrades: AtomicUsize,
     pub carried: Mutex<Vec<String>>,
+    /// The bodies refused for the proxy's cap.
+    pub capped: AtomicUsize,
 }
 
 impl Seen {
@@ -144,6 +146,12 @@ pub struct Bench {
 impl Bench {
     /// The role with `extra` flags of `podssh relay serve`, then the proxy.
     pub fn start(tag: &str, extra: &[&str]) -> Bench {
+        Bench::start_capped(tag, extra, None)
+    }
+
+    /// [`Bench::start`] with a proxy that refuses each body larger than
+    /// `cap` with `413`, as a proxy with a cap on bodies does.
+    pub fn start_capped(tag: &str, extra: &[&str], cap: Option<usize>) -> Bench {
         let s = Session::start(tag);
         let (cert, key, role_ca) = role_certificate(&s.home);
         let (port_file, log) = (s.home.join("role-port"), s.home.join("role.log"));
@@ -171,7 +179,7 @@ impl Bench {
         };
         let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(4).enable_all().build().unwrap();
         let seen = Arc::new(Seen::default());
-        let proxy = rt.block_on(Proxy::start(&s.home, handler(role, role_ca, seen.clone())));
+        let proxy = rt.block_on(Proxy::start(&s.home, handler(role, role_ca, seen.clone(), cap)));
         Bench { s, proxy, seen, rt }
     }
 
@@ -210,11 +218,11 @@ impl Bench {
 }
 
 /// The proxy's side of each connection that it ended TLS of.
-fn handler(role: u16, role_ca: PathBuf, seen: Arc<Seen>) -> Handler {
+fn handler(role: u16, role_ca: PathBuf, seen: Arc<Seen>, cap: Option<usize>) -> Handler {
     Arc::new(move |_host: String, stream: Stream| {
         let (role_ca, seen) = (role_ca.clone(), seen.clone());
         Box::pin(async move {
-            let _ = carry(stream, role, &role_ca, &seen).await;
+            let _ = carry(stream, role, &role_ca, &seen, cap).await;
         })
     })
 }
@@ -222,7 +230,7 @@ fn handler(role: u16, role_ca: PathBuf, seen: Arc<Seen>) -> Handler {
 /// One request: refused when it asks for an upgrade; else its body read
 /// whole, then the request on to the role on a connection of its own, and
 /// the role's answer back as it comes, to the role's close.
-async fn carry(mut client: Stream, role: u16, role_ca: &Path, seen: &Seen) -> std::io::Result<()> {
+async fn carry(mut client: Stream, role: u16, role_ca: &Path, seen: &Seen, cap: Option<usize>) -> std::io::Result<()> {
     let head = read_head(&mut client).await?;
     let first = head.lines().next().unwrap_or_default().to_string();
     if header(&head, "Upgrade").is_some() {
@@ -238,6 +246,13 @@ async fn carry(mut client: Stream, role: u16, role_ca: &Path, seen: &Seen) -> st
     let length = header(&head, "Content-Length").and_then(|v| v.parse::<usize>().ok()).unwrap_or(0);
     let mut body = vec![0u8; length];
     client.read_exact(&mut body).await?;
+    // Read whole first, so that the refusal is not lost to a reset.
+    if cap.is_some_and(|cap| length > cap) {
+        seen.capped.fetch_add(1, Ordering::SeqCst);
+        let top = "HTTP/1.1 413 Payload Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+        client.write_all(top.as_bytes()).await?;
+        return client.shutdown().await;
+    }
     let mut forward = format!("{first}\r\n");
     for line in head.split("\r\n").skip(1).filter(|line| !line.is_empty()) {
         let name = line.split(':').next().unwrap_or_default().trim().to_ascii_lowercase();

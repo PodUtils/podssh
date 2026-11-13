@@ -88,6 +88,14 @@ impl<'a> Report<'a> {
         }
     }
 
+    /// The numbers of the last line, which `--json` gives as its
+    /// `samples`: the road of the forward line (T-319).
+    pub(super) fn samples(&mut self, numbers: serde_json::Value) {
+        if let Some(line) = self.lines.last_mut() {
+            line.samples = Some(numbers);
+        }
+    }
+
     pub(crate) fn ok(&mut self, name: &str, detail: impl Into<String>) {
         self.line(name, Verdict::Ok { detail: detail.into() });
     }

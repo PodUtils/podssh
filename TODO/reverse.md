@@ -766,11 +766,11 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:5910`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:5919`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
-   `crates/podssh-cli/src/doctor/relay_checks.rs:52-106` (zuko's doctor checks its ticket and state).
+   `crates/podssh-cli/src/doctor/relay_checks.rs:53-107` (zuko's doctor checks its ticket and state).
 6. Remove `node` and `relay` from `VERB_OWNER`, and add them to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`). New variables go in `VARIABLES`
    (`crates/podssh-cli/src/man/facts.rs:46`), files in FILES (`:321` there), examples in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:660-663`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:252-262`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:360`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:5906-5910`).
+`podssh proxy` sysexits (`docs/cli.md:5915-5919`).
 
 ## Approach
 

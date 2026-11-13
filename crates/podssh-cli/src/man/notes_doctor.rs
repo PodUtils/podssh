@@ -139,7 +139,11 @@ pub(super) const DOCTOR_STREAM: &str = "--stream URL checks this host, then what
      (--relay-host, PODSSH_RELAY or RelayHost), and at the default relay, which serves no probe, a socket of its \
      reverse road alone, for a pair made for the check and stopped after it, held quiet after the relay's \
      hello; an end before the hold is the path's, or the relay's own drop of a node's socket. With --json, \
-     each probe's line has its numbers in samples: the times in ms, the sizes in bytes, the status.";
+     each probe's line has its numbers in samples: the times in ms, the sizes in bytes, the status. For a \
+     server over TLS, the body cap and the quiet stream are kept in the cache for the HTTP road to that host \
+     (HOST:PORT): its batches up are then half the first body that did not pass, and its wait down two thirds \
+     of the quiet end that the path made, never more than the road's own; a quiet end at the server's own \
+     limit is not the path's, and is not kept.";
 
 pub(super) const RELAY_PROBES: &str = "The relay also serves the probes of podssh doctor --stream, with no \
      token, as go-httpbin's /drip and /anything under /v1/probe: GET /v1/probe/drip?duration=S&numbytes=N \
@@ -147,7 +151,21 @@ pub(super) const RELAY_PROBES: &str = "The relay also serves the probes of podss
      most; POST /v1/probe/anything reads a body of its Content-Length, 8 MiB at most (413 past it, 411 with \
      none), drops it, and answers its length and the time, from the head, that each part of it came. At most 16 \
      run together (503 past them). /relays.json names their limits in limits.probe, and behind a node's quick \
-     tunnel the node's own.";
+     tunnel the node's own; and the HTTP road's own in limits.http.";
+
+/// The row of FILES for what doctor --stream kept for the HTTP road (T-319).
+pub(super) fn http_road_file() -> (Vec<String>, String) {
+    use crate::http_road_path::{FILE, MAX_AGE, MOST};
+    let text = format!(
+        "What podssh doctor --stream measured of the path to each server over TLS (T-319), in the cache: by \
+         HOST:PORT, the first body that did not pass, when a quiet answer ended, and when it was measured, as \
+         JSON with mode 0600, at most {MOST} servers, the oldest going first. The HTTP road to that host sizes \
+         its batches and its waits by it for {days} days after the measurement, and podssh ssh -v says so; with \
+         none, the road's own sizes. It holds no secret; a record that does not read is none.",
+        days = MAX_AGE.as_secs() / 86_400,
+    );
+    (vec![FILE.to_string()], text)
+}
 
 #[cfg(test)]
 mod tests {
@@ -156,5 +174,14 @@ mod tests {
     fn quick_and_stream_notes_name_the_other_flag() {
         assert!(super::DOCTOR_QUICK.contains("--quick --full makes no QUIC handshake"));
         assert!(super::DOCTOR_STREAM.contains("--quick, which wins"));
+    }
+
+    /// The row of FILES names the file that the road reads, and its bounds.
+    #[test]
+    fn the_file_of_the_road_s_measurements_is_named_with_its_bounds() {
+        let (names, text) = super::http_road_file();
+        assert_eq!(names, [crate::http_road_path::FILE]);
+        assert!(text.contains("at most 32 servers") && text.contains("for 7 days"), "{text}");
+        assert!(super::RELAY_PROBES.contains("limits.http"));
     }
 }

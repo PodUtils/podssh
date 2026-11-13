@@ -86,6 +86,8 @@ pub mod health;
 pub mod hosts;
 // The HTTP road of proxy and ssh, where the way refused the upgrade (T-319).
 pub mod http_road;
+// What doctor --stream measured of a path, kept for the HTTP road's tuning (T-319).
+pub mod http_road_path;
 // The command that installs a missing program, named and never run (T-590).
 pub mod install_hint;
 // `podssh job`: jobs on a far host, each in its tmux (T-193).

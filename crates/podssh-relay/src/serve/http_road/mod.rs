@@ -54,6 +54,27 @@ fn batch_max() -> usize {
     BATCH_MAX
 }
 
+/// The road's own limits, which `/relays.json` names in `limits.http`
+/// beside the contract's five: the bounds of the open's answer, and the
+/// role's windows and waits, which a client otherwise learns only by
+/// meeting them (a `503 full`, a `1001 client gone`). An older client reads
+/// no such field, so it changes nothing for one.
+pub fn limits() -> serde_json::Value {
+    json!({
+        "paths": [OPEN, crate::http_road::SESSION],
+        "forms": ["split", "serial"],
+        "batch_max_bytes": batch_max(),
+        "window_batches": sessions::WINDOW,
+        "hold_ms": sessions::HOLD.as_millis() as u64,
+        "down_window_bytes": sessions::DOWN_WINDOW,
+        "down_max_bytes": DOWN_MAX,
+        "wait_max_ms": WAIT_MAX.as_millis() as u64,
+        "absent_ms": sessions::ABSENT.as_millis() as u64,
+        "kept_ended_ms": sessions::KEPT_ENDED.as_millis() as u64,
+        "sessions_max": sessions::MOST,
+    })
+}
+
 /// Serve the road's requests on `stream`, `head` the first, `pending` the
 /// bytes after its head; the stream and a request of another path, when one
 /// came on a connection that the road kept.
@@ -203,5 +224,29 @@ mod tests {
         assert!(serves("/v1/http/s/0123456789abcdef0123456789abcdef/down?at=0"));
         assert!(!serves("/v1/httpx") && !serves("/connect/h/22") && !serves("/v1/probe/drip"));
         assert!(super::super::serves("/v1/http/open/github.com/22"), "a quick tunnel's node gives them to the role");
+    }
+
+    /// The limits that `/relays.json` names are the ones that the role
+    /// holds, so that a client that reads them meets no other.
+    #[test]
+    fn the_limits_are_the_ones_the_role_holds() {
+        let l = limits();
+        assert_eq!(l["paths"], json!(["/v1/http/open/", "/v1/http/s/"]));
+        assert_eq!(l["forms"], json!(["split", "serial"]));
+        assert_eq!(l["batch_max_bytes"], json!(BATCH_MAX), "no node in front of a plain role");
+        assert_eq!((&l["window_batches"], &l["hold_ms"]), (&json!(8), &json!(10_000)));
+        assert_eq!((&l["down_window_bytes"], &l["down_max_bytes"]), (&json!(2 << 20), &json!(1 << 20)));
+        assert_eq!((&l["wait_max_ms"], &l["absent_ms"]), (&json!(25_000), &json!(60_000)));
+        assert_eq!((&l["kept_ended_ms"], &l["sessions_max"]), (&json!(60_000), &json!(256)));
+    }
+
+    /// Behind a quick tunnel's node, a batch is the node's bound on a body,
+    /// as the open says.
+    #[cfg(feature = "quick")]
+    #[tokio::test]
+    async fn behind_a_node_the_batch_is_the_node_s() {
+        let behind = super::super::probe::behind_node(async { limits() }).await;
+        assert_eq!(behind["batch_max_bytes"], json!(crate::quick::origin::BODY_MAX));
+        assert_eq!(limits()["batch_max_bytes"], json!(BATCH_MAX), "outside the node's request");
     }
 }
