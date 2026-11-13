@@ -4857,9 +4857,14 @@ own, and the forward road starts at the node.
   too. `--install` keeps both flags. Behind a quick tunnel (`--exit
   --quick-tunnel`, T-459) its visitors go through the exit's routes, and its
   door is the keys of `--allow` or the net's members; `podssh ssh --exit
-  cf://HOST` and the copies reach it by the name that it prints, and
-  `podssh exit`, `proxy --exit` and `pipe --exit` refuse a `cf://` name
-  (64), as their sessions ride a relay's legs.
+  cf://HOST` and the copies reach it by the name that it prints, and so do
+  `podssh exit cf://HOST --listen`, `proxy --exit cf://HOST` and `pipe
+  --exit cf://HOST`: each session is a WebSocket of the tunnel, through
+  `HTTPS_PROXY`, in the resumable layer and the end-to-end channel, a new
+  WebSocket after each lost one (`crates/podssh-cli/src/exit/tunnel.rs`).
+  The tunnel is the exit's one road: `--pair-file`, `--carrier` and a user
+  name are refused with it (64); a far end that greets with no layer is no
+  podssh node (77).
 - **Who.** A member that the net's policy (T-430) lets reach `exit:NODE`,
   `exit:*` or `*`, for a public address; for an address of a range, a rule
   that reaches that address (`ADDR/BITS`). With no policy, each member. A key

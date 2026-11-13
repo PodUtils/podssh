@@ -20,10 +20,15 @@
 //! road, at the node. `ssh`, `proxy` and `pipe` take `--exit NAME` beside
 //! `--carrier` too (T-614), each session a leg of the command's one stream
 //! (`open`), with no stdio: theirs is their own.
+//!
+//! With `cf://HOST` for NAME (T-459), the exit is the node behind that quick
+//! tunnel (`podssh node NAME --exit --quick-tunnel`), and each session goes
+//! over a WebSocket of the tunnel in place of a relay's legs (`tunnel`).
 
 pub mod auto;
 pub mod listen;
 pub mod open;
+pub mod tunnel;
 
 use std::io::Write;
 
@@ -101,9 +106,12 @@ pub fn run_exit(args: &ExitArgs, err: &mut dyn Write) -> i32 {
 /// allowed here.
 fn prepare(args: &ExitArgs) -> Result<(open::To, Address), Refusal> {
     let name = args.name.clone().ok_or("missing NAME: the exit node of your net (podssh node NAME --exit)")?;
-    open::not_a_tunnel(&name)?;
-    crate::pairs::check_label(&name)?;
-    auto::flags(&name, args.pair_file.as_deref(), args.carrier.as_deref())?;
+    // An exit behind a quick tunnel (T-459): its cf://HOST is its one road.
+    let tunnel = tunnel::host_of(&name, args.pair_file.as_deref(), args.carrier.as_deref())?.is_some();
+    if !tunnel {
+        crate::pairs::check_label(&name)?;
+        auto::flags(&name, args.pair_file.as_deref(), args.carrier.as_deref())?;
+    }
     let text = args.listen.as_deref().ok_or("--listen ADDR:PORT is where the proxy listens, as 127.0.0.1:1080")?;
     let at = crate::pipe::address::parse(&format!("tcp-listen:{text}"))
         .map_err(|refusal| Refusal::usage(format!("--listen {text}: {}", refusal.message)))?;
@@ -118,6 +126,7 @@ fn prepare(args: &ExitArgs) -> Result<(open::To, Address), Refusal> {
     }
     match args.carrier.as_deref() {
         Some(text) => carrier(args, text)?,
+        // A pin serves the tunnel's name too, which may not resolve yet.
         None => crate::pins::apply(args.relay_addr.as_deref())?,
     }
     crate::pipe::listen::allowed()?;
@@ -179,6 +188,23 @@ mod tests {
         for bad in ["tcp:127.0.0.1:22", "node:gw", "exec:"] {
             let refusal = prepare(&on(bad)).unwrap_err();
             assert!(refusal.code == 64 && refusal.message.starts_with("--carrier"), "{bad}: {}", refusal.message);
+        }
+    }
+
+    /// `cf://HOST` (T-459): the exit behind a quick tunnel, with no pair and
+    /// no carrier beside it.
+    #[test]
+    fn the_exit_behind_a_quick_tunnel_is_named_by_its_cf_host() {
+        let tunnel = || args(Some("cf://lab.example"), Some("1080"));
+        let (to, _) = prepare(&tunnel()).unwrap();
+        assert_eq!(to.name, "cf://lab.example");
+        for (given, says) in [
+            (ExitArgs { pair_file: Some("x".into()), ..tunnel() }, "has no pair"),
+            (ExitArgs { carrier: Some("exec:cat".into()), ..tunnel() }, "--carrier is another road"),
+            (args(Some("cf://me@lab.example"), Some("1080")), "takes no user name"),
+        ] {
+            let refusal = prepare(&given).unwrap_err();
+            assert!(refusal.code == 64 && refusal.message.contains(says), "{says}: {}", refusal.message);
         }
     }
 

@@ -40,12 +40,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** One is being written, never built (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's and T-738's are
-   merged):
-
-   | Draft | Branch | Commit | State |
-   | --- | --- | --- | --- |
-   | T-459 | `draft-t459` | (in work) | `podssh exit`, `proxy --exit` and `pipe --exit` over an exit behind a quick tunnel |
+8. **Drafts.** None waits (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.

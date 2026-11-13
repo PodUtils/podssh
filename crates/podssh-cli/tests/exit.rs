@@ -169,9 +169,14 @@ fn the_commands_of_an_exit_are_refused_as_the_manual_says_with_no_connection() {
         (words(&["exit", "lab"]), 64, "--listen ADDR:PORT"),
         (words(&["exit", "lab", "--listen", "0.0.0.0:1080"]), 64, "a loopback address alone"),
         (words(&["exit", "--listen", "1080"]), 64, "missing NAME"),
-        // An exit behind a quick tunnel (T-459) is a road of ssh and the
-        // copies, whose client carries the layer over the tunnel.
-        (words(&["exit", "cf://lab.example", "--listen", "1080"]), 64, "an exit behind a quick tunnel"),
+        // An exit behind a quick tunnel (T-459): its cf://HOST is its one
+        // road, in each client, so no pair, no carrier and no user name.
+        (words(&["exit", "cf://lab.example", "--listen", "1080", "--pair-file", "x"]), 64, "has no pair"),
+        (words(&["exit", "cf://me@lab.example", "--listen", "1080"]), 64, "takes no user name"),
+        (words(&["exit", "cf://lab.example", "--listen", "1080", "--carrier", "exec:cat"]), 64, "another road"),
+        (words(&["proxy", "--exit", "cf://lab.example", "--carrier", "exec:cat", "h", "22"]), 64, "another road"),
+        (words(&["proxy", "--exit", "cf://me@lab.example", "h.example", "22"]), 64, "takes no user name"),
+        (words(&["pipe", "--exit", "cf://lab.example", "--pair-file", "x", "-", "relay:h.example:22"]), 64, "no pair"),
         (words(&["ssh", "--exit", "cf://lab.example", "--pair-file", "x", "u@h.example"]), 64, "has no pair"),
         (words(&["ssh", "--exit", "cf://me@lab.example", "u@h.example"]), 64, "takes no user name"),
         (words(&["ssh", "--exit", "cf://lab.example", "cf://other.example"]), 64, "--exit NAME starts the road"),

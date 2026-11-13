@@ -4138,7 +4138,7 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:71`).
   `cf` with the port `//HOST`, which is refused as a port
   (`crates/podssh-cli/src/ssh/hop.rs:58-60`); `jump_hop` refuses a node only (`:68-74`).
 - Read: a `cf://` destination refuses `-J`:
-  `crates/podssh-cli/src/ssh/cloudflare.rs:73` says "a Cloudflare tunnel cannot be reached
+  `crates/podssh-cli/src/ssh/cloudflare.rs:75` says "a Cloudflare tunnel cannot be reached
   through a -J hop yet", and `docs/cli.md:202-203` says so too.
 - Read: the road of a run is chosen for the first hop's host
   (`crates/podssh-cli/src/ssh/resolve.rs:256`), and each later hop runs in a `direct-tcpip`
@@ -4162,7 +4162,7 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:71`).
    SSH channel has no road to Cloudflare's edge.
 2. The road of the run is the `cf://` road when the first hop is one: `cloudflare::transport` for
    that hop, with its refusals of `--direct`, a port, `HostName`, `-4` and `-6` as today
-   (`crates/podssh-cli/src/ssh/cloudflare.rs:69-87`), and no refusal of the hops after it.
+   (`crates/podssh-cli/src/ssh/cloudflare.rs:71-89`), and no refusal of the hops after it.
 3. The first hop's host key is kept under HOST, as for a `cf://` destination; the next hops run in
    its `direct-tcpip` channels, as each hop does today. A node behind the tunnel (a roost with
    `--quick-tunnel`) carries the first hop in the layer, as for a destination.
@@ -4737,7 +4737,7 @@ Endpoint puts a credential in its URL.
   `docs/decisions.md:87` says "in a header or a 0600 file and never in a URL" of the relay's
   tokens. The presigned URL carries an access key id and a signature in its query.
 - Read: the `cf://` road uses podssh-ws's WebSocket client through the proxy
-  (`crates/podssh-cli/src/ssh/cloudflare.rs:244`); an RSA key signs through aws-lc-rs in the
+  (`crates/podssh-cli/src/ssh/cloudflare.rs:256`); an RSA key signs through aws-lc-rs in the
   binary (`deny.toml`, the reason of RUSTSEC-2023-0071); `podssh cp` opens a new session before
   the relay's caps (`docs/relay.md:488-494`), as an hour of EICE would need.
 - Inferred: a proxy that re-terminates TLS passes either road where it passes a WebSocket.
@@ -9979,8 +9979,8 @@ the service token on `cf://` only, and reads it from variables (the secret in th
 ## Premise
 
 - Read: `cf://` reads `PODSSH_CF_ACCESS_CLIENT_ID` and `PODSSH_CF_ACCESS_CLIENT_SECRET` from variables, and a
-  user's token from `PODSSH_CF_ACCESS_TOKEN` or a file (`crates/podssh-cli/src/ssh/cloudflare.rs:35-40`,
-  `:110-120`); the headers are `access.headers()` (`crates/podssh-ws/src/cloudflare.rs:74-85`).
+  user's token from `PODSSH_CF_ACCESS_TOKEN` or a file (`crates/podssh-cli/src/ssh/cloudflare.rs:37-42`,
+  `:112-122`); the headers are `access.headers()` (`crates/podssh-ws/src/cloudflare.rs:74-85`).
 - Read: the relay client sends `X-Relay-Token` and no other credential header
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:183-205`, `crates/podssh-ws/src/handshake.rs:3`); `https_request` takes
   headers (`client.rs:343`).
@@ -10033,7 +10033,7 @@ sign a short-lived user certificate for the user's key, and sshd trusts the Acce
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:39`-`:40`: `cf://` reads a token from
+- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:41`-`:42`: `cf://` reads a token from
   `PODSSH_CF_ACCESS_TOKEN` or its file; it makes no certificate.
 - `crates/podssh-cli/src/ssh/keywords.rs`: `CertificateFile` is read for authentication (T-021, T-027, T-289).
 - The endpoint, the request and the answer of Access's certificate service are not in this repository. Read
@@ -10082,7 +10082,7 @@ can run. The owner wants the Access TCP client in podssh on each system it serve
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:39`-`:40`: a token only, from a variable or file.
+- `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:41`-`:42`: a token only, from a variable or file.
 - `crates/podssh-ws/src/cloudflare.rs:2`: the WebSocket client of an Access TCP rule.
 - `crates/podssh-cli/src/man/facts.rs:125`: the manual says that `cloudflared` prints the token.
 

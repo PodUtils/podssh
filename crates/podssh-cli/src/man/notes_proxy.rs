@@ -103,6 +103,8 @@ pub const PROXY: &[&str] = &[
      end of a stream that exists already, with no relay and no pair (podssh node NAME --exit --carrier stdio): \
      exec:CMD, a program started with no shell, or fd:N (Unix); the net's rule of the exit holds as on each \
      road, and at the end the node hears a Close. stdio, --relay-addr and --ca-file are refused with it (64), \
-     as stdin and stdout carry the pipe's bytes and the stream has no relay.",
+     as stdin and stdout carry the pipe's bytes and the stream has no relay. With --exit cf://HOST, the exit is \
+     the node behind that quick tunnel, over a WebSocket of the tunnel (see podssh exit); --pair-file and \
+     --carrier are refused with it (64).",
     super::notes_grant::PROXY,
 ];

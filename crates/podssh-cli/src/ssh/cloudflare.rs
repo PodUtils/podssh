@@ -13,7 +13,9 @@
 
 mod layer;
 
+use std::future::Future;
 use std::io::Read;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use podssh_relay::session::client;
@@ -215,18 +217,7 @@ pub(super) async fn reach(
     let channel = ask
         .operator(crate::channel::Expect::Pinned(shown.clone()), &say_line)
         .map_err(|why| NotReached { lines: vec![format!("{shown}: {why}")], code: sysexits::EX_CONFIG })?;
-    let (host, trust) = (host.to_string(), trust.clone());
-    let dial = move || {
-        let (host, access, trust) = (host.clone(), access.clone(), trust.clone());
-        async move {
-            match open(&host, &access, &trust).await {
-                Ok(link) => Next::Link(link),
-                // Access refuses again: no new link can come.
-                Err((line, sysexits::EX_NOPERM)) => Next::Stop(line),
-                Err((line, _)) => Next::Retry(line),
-            }
-        }
-    };
+    let dial = redial(host, &access, trust);
     let shared = layer::Shared { offer: opts.keep.offer.clone(), silence: opts.silence.clone() };
     match layer::carry(greeted, dial, channel, shared, shown.clone(), log.clone()).await {
         Ok((stream, done)) => {
@@ -235,6 +226,27 @@ pub(super) async fn reach(
         Err(why) => Err(NotReached { lines: vec![format!("{shown}: {why}")], code: sysexits::EX_UNAVAILABLE }),
     }
 }
+
+/// The link after a lost one, each time the layer asks: a new WebSocket to
+/// `host`'s tunnel. `podssh ssh` and the sessions of an exit behind a quick
+/// tunnel (`crate::exit::tunnel`, T-459) carry their layer so.
+pub(crate) fn redial(host: &str, access: &Access, trust: &Trust) -> impl FnMut() -> Dialled + Send + 'static {
+    let (host, access, trust) = (host.to_string(), access.clone(), trust.clone());
+    move || {
+        let (host, access, trust) = (host.clone(), access.clone(), trust.clone());
+        Box::pin(async move {
+            match open(&host, &access, &trust).await {
+                Ok(link) => Next::Link(link),
+                // Access refuses again: no new link can come.
+                Err((line, sysexits::EX_NOPERM)) => Next::Stop(line),
+                Err((line, _)) => Next::Retry(line),
+            }
+        })
+    }
+}
+
+/// One dial of [`redial`].
+pub(crate) type Dialled = Pin<Box<dyn Future<Output = Next<DuplexStream>> + Send>>;
 
 /// A new WebSocket to the service of `host`'s tunnel, as bytes; else the
 /// line that says why not, and its code. The quick tunnel of a node's

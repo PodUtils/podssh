@@ -175,4 +175,10 @@ pub const EXIT: &[&str] = &[
      auto user@10.1.2.3 reaches a host of a lab whose exit routes 10.1.0.0/16. It takes an address, not a name, as \
      the exit resolves a name itself and may resolve it otherwise; an address that no route holds is refused (78), \
      and so are --pair-file and --carrier beside it (64), as each names one exit. auto is no member's name.",
+    "cf://HOST, in place of NAME here and for podssh proxy and pipe, names the exit behind that quick tunnel \
+     (the quick tunnel of a node that lends its egress, whose line prints HOST): each connection is a WebSocket of the tunnel, \
+     through HTTPS_PROXY, in the resumable layer and the end-to-end channel, and a new WebSocket carries the \
+     session after each lost one, as for podssh ssh --exit cf://HOST. The node's key is pinned under cf://HOST at \
+     its first sight, or named by --node-key; a far end that greets with no layer is no podssh node (77). The \
+     tunnel is its one road: --pair-file, --carrier and a user name are refused with it (64).",
 ];

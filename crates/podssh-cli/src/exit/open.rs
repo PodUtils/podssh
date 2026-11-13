@@ -6,7 +6,10 @@
 //! each client of `podssh exit --listen` open theirs so. Over a carrier
 //! (T-596), a session is a leg of the command's one stream
 //! (`crate::carrier::shared`), with no pair, no relay and no expiry; so for
-//! `proxy --exit` and `pipe --exit` with `--carrier` (T-614).
+//! `proxy --exit` and `pipe --exit` with `--carrier` (T-614). Behind a quick
+//! tunnel (`cf://HOST`, T-459), a session goes over the tunnel's WebSocket
+//! in place of a relay's legs (`super::tunnel`), as `podssh ssh --exit
+//! cf://HOST` carries its own.
 //!
 //! The node's verdict comes before any answer: the channel touches the
 //! plain side of the session only once the node let the operator in and
@@ -27,7 +30,7 @@ use tokio::task::JoinHandle;
 
 use crate::exit_codes::EXIT_SOFTWARE;
 use crate::exitmap::{sysexits, Fault};
-use crate::layered::{carry_through, Line};
+use crate::layered::{carry_through, Carried, Line};
 use crate::pipe::pump::{End, Ending, Verdict};
 use crate::relay_settings::Refusal;
 
@@ -70,29 +73,21 @@ impl To {
     }
 }
 
-/// The road of an exit's session: the pair kept under its name, or the
-/// shared client of a carrier.
+/// The road of an exit's session: the pair kept under its name, the shared
+/// client of a carrier, or the quick tunnel of `cf://HOST` (T-459).
 enum Road {
     Pair { part: podssh_relay::pair::OperatorPart, trust: podssh_ws::Trust },
     Carrier(Arc<crate::carrier::Client>),
-}
-
-/// An exit named by its quick tunnel (`cf://HOST`, T-459) is a road of
-/// `podssh ssh` and the copies, whose client carries the layer over the
-/// tunnel's WebSocket; a session here is carried by a relay's legs.
-pub fn not_a_tunnel(name: &str) -> Result<(), Refusal> {
-    match name.starts_with(crate::ssh::cloudflare::SCHEME) {
-        true => Err(Refusal::usage(format!(
-            "--exit {name}: an exit behind a quick tunnel is reached by podssh ssh, cp, sftp and the other copies; \
-             podssh exit, proxy --exit and pipe --exit reach an exit by its pair, iroh, DERP or a carrier"
-        ))),
-        false => Ok(()),
-    }
+    Tunnel(super::tunnel::Tunnel),
 }
 
 impl Road {
     fn of(to: &To) -> Result<Road, Refusal> {
-        not_a_tunnel(&to.name)?;
+        let (pair_file, carrier, ca_file) = (to.pair_file.as_deref(), to.carrier.as_deref(), to.ca_file.as_deref());
+        if let Some(tunnel) = super::tunnel::Tunnel::of(&to.name, pair_file, carrier, ca_file)? {
+            crate::pairs::online()?;
+            return Ok(Road::Tunnel(tunnel));
+        }
         if let Some(text) = to.carrier.as_deref() {
             return crate::carrier::shared(text).map(Road::Carrier);
         }
@@ -177,36 +172,6 @@ pub async fn open(to: &To, host: &str, port: u16) -> Result<End, Refused> {
     let app = Told { inner: theirs, told: told.clone() };
     let quiet = to.quiet;
     let task = tokio::spawn(async move {
-        let context = podssh_relay::context::process();
-        let (config, expires_ms) = match &road {
-            Road::Pair { part, trust } => {
-                let config = OperatorConfig {
-                    relay: &part.relay,
-                    name: &part.name,
-                    connect_token: part.connect_token(),
-                    trust,
-                    ctx: &context,
-                    timeout: podssh_relay::open::CONNECT_TIMEOUT,
-                    limits: OperatorLimits::default(),
-                    wire: Wire::Tls,
-                };
-                (config, Some(part.expires_ms))
-            }
-            // No pair, so no expiry: the stream lives as long as its ends.
-            Road::Carrier(client) => (client.config(), None),
-        };
-        let (link, leg_end) = tokio::io::duplex(PIPE);
-        let leg = match operator::start(&config, leg_end).await {
-            Ok(leg) => leg,
-            Err(e) => {
-                let refusal = match &road {
-                    Road::Pair { .. } => crate::pairs::connect_refusal(&e, &label),
-                    Road::Carrier(_) => crate::carrier::refusal_of(&e),
-                };
-                tell(&told, Err(Refused::of(refusal, Kind::Failed)));
-                return None;
-            }
-        };
         let shown = format!("exit {label}");
         let say = |line: Line| {
             if let (Line::Always(text), false) = (line, quiet) {
@@ -215,11 +180,22 @@ pub async fn open(to: &To, host: &str, port: u16) -> Result<End, Refused> {
         };
         let pin_shown = shown.clone();
         let pin_say = move |line: String| podssh_ssh::err_line!("podssh: {pin_shown}: {line}");
-        let carried = carry_through(&config, link, leg, app, expires_ms, &say, channel, pin_say).await;
-        // A carrier's closes name the stream, not a relay.
+        let carried = match &road {
+            Road::Tunnel(tunnel) => super::tunnel::carry(tunnel, app, channel, &say, pin_say).await,
+            Road::Pair { .. } | Road::Carrier(_) => by_legs(&road, &label, app, channel, &say, pin_say).await,
+        };
+        let carried = match carried {
+            Ok(carried) => carried,
+            Err(refusal) => {
+                tell(&told, Err(Refused::of(refusal, Kind::Failed)));
+                return None;
+            }
+        };
+        // A carrier's closes name the stream, not a relay; a tunnel has none.
         let judged = match &road {
             Road::Pair { .. } => crate::operator::judged(&label, &carried),
             Road::Carrier(_) => crate::carrier::judged(&carried),
+            Road::Tunnel(_) => super::tunnel::judged(&carried),
         };
         // Told already when the node let the session in; else its end is
         // the verdict.
@@ -251,6 +227,43 @@ pub async fn open(to: &To, host: &str, port: u16) -> Result<End, Refused> {
             Err(Refused { code: sysexits::EX_UNAVAILABLE, line, kind: Kind::Failed })
         }
     }
+}
+
+/// The session over a relay's legs: the pair's, or a carrier's (T-614); or
+/// why its first leg did not open.
+async fn by_legs<A: crate::channel::Bytes + 'static>(
+    road: &Road,
+    label: &str,
+    app: A,
+    channel: Option<crate::channel::Operator>,
+    say: &(dyn Fn(Line) + Sync),
+    pin_say: impl Fn(String) + Send + 'static,
+) -> Result<Carried, Refusal> {
+    let context = podssh_relay::context::process();
+    let (config, expires_ms) = match road {
+        Road::Pair { part, trust } => {
+            let config = OperatorConfig {
+                relay: &part.relay,
+                name: &part.name,
+                connect_token: part.connect_token(),
+                trust,
+                ctx: &context,
+                timeout: podssh_relay::open::CONNECT_TIMEOUT,
+                limits: OperatorLimits::default(),
+                wire: Wire::Tls,
+            };
+            (config, Some(part.expires_ms))
+        }
+        // No pair, so no expiry: the stream lives as long as its ends.
+        Road::Carrier(client) => (client.config(), None),
+        Road::Tunnel(_) => return Err(Refusal { message: "a tunnel has no legs".into(), code: EXIT_SOFTWARE }),
+    };
+    let (link, leg_end) = tokio::io::duplex(PIPE);
+    let leg = operator::start(&config, leg_end).await.map_err(|e| match road {
+        Road::Carrier(_) => crate::carrier::refusal_of(&e),
+        _ => crate::pairs::connect_refusal(&e, label),
+    })?;
+    Ok(carry_through(&config, link, leg, app, expires_ms, say, channel, pin_say).await)
 }
 
 /// The plain side of a session, which tells the verdict at its first touch:

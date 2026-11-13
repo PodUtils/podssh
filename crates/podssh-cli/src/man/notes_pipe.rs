@@ -151,7 +151,9 @@ pub const PIPE: &[&str] = &[
      NAME: the node resolves HOST and dials it from its own host. A pipe with --exit and no relay: address is \
      refused (64). With --carrier ADDR, the exit is the node at the other end of that stream, with no pair \
      (podssh node NAME --exit --carrier stdio), and each relay: session is a session of the one stream; a \
-     node: side beside it is refused (64), as one node is at the other end of a stream.",
+     node: side beside it is refused (64), as one node is at the other end of a stream. With --exit cf://HOST, \
+     the exit is the node behind that quick tunnel, each relay: session a WebSocket of the tunnel (see podssh \
+     exit); --pair-file and --carrier are refused with it (64).",
     // A grant used once for a node: side (T-226).
     super::notes_grant::PIPE,
 ];

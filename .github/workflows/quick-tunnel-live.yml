@@ -374,6 +374,51 @@ jobs:
           [ "$rc" = 0 ] || { echo "FAIL podssh ssh --exit cf://HOST exited $rc"; exit 1; }
           [ "$got" = "through the exit" ] || { echo "FAIL the command's output through the exit: $got"; exit 1; }
           echo "ok    podssh ssh --exit cf://HOST reached the sshd through the exit behind the quick tunnel"
+          # The other clients of the same exit (T-459): podssh exit's local
+          # proxy, by SOCKS5 with the name sent, to a page on the loopback
+          # (inside the lent range); proxy --exit and pipe --exit to the
+          # sshd's banner. Each session is a WebSocket of the tunnel.
+          mkdir -p "$RUNNER_TEMP/site5"
+          echo "page through the exit $GITHUB_RUN_ID" >"$RUNNER_TEMP/site5/word"
+          python3 -m http.server 18085 --bind 127.0.0.1 --directory "$RUNNER_TEMP/site5" >/dev/null 2>&1 &
+          echo $! >"$RUNNER_TEMP/site5.pid"
+          PODSSH_NET="$net/net.doc" target/debug/podssh exit "cf://$host5" --listen 127.0.0.1:0 \
+            --client-key "$net/member.key" 2>"$RUNNER_TEMP/exit5.log" &
+          echo $! >"$RUNNER_TEMP/exit5.pid"
+          port5=
+          for _ in $(seq 1 30); do
+            port5=$(sed -n 's/.*proxy on 127\.0\.0\.1:\([0-9]*\),.*/\1/p' "$RUNNER_TEMP/exit5.log" | head -n 1)
+            [ -n "$port5" ] && break
+            sleep 1
+          done
+          [ -n "$port5" ] || { sed 's/^/exit: /' "$RUNNER_TEMP/exit5.log"; echo "FAIL podssh exit said no port"; exit 1; }
+          set +e
+          page=$(curl -q -sS --max-time 120 --socks5-hostname "127.0.0.1:$port5" "http://127.0.0.1:18085/word")
+          rc=$?
+          set -e
+          sed 's/^/exit: /' "$RUNNER_TEMP/exit5.log" | tail -n 30
+          [ "$rc" = 0 ] || { echo "FAIL curl through podssh exit cf://HOST exited $rc"; exit 1; }
+          [ "$page" = "page through the exit $GITHUB_RUN_ID" ] || { echo "FAIL the page through podssh exit: $page"; exit 1; }
+          echo "ok    podssh exit cf://HOST --listen carried curl's SOCKS5 to a page through the exit"
+          kill -TERM "$(cat "$RUNNER_TEMP/exit5.pid")" 2>/dev/null || true
+          # stdin stays open while the banner comes, then head ends the read.
+          for verb in proxy pipe; do
+            case $verb in
+              proxy) args="proxy --exit cf://$host5 --client-key $net/member.key 127.0.0.1 4022" ;;
+              pipe) args="pipe --exit cf://$host5 --client-key $net/member.key - relay:127.0.0.1:4022" ;;
+            esac
+            set +e
+            # shellcheck disable=SC2086
+            banner=$( (sleep 20) | PODSSH_NET="$net/net.doc" timeout 90 target/debug/podssh $args \
+              2>"$RUNNER_TEMP/${verb}5.log" | head -n 1 | tr -d '\r')
+            set -e
+            sed "s/^/$verb (exit): /" "$RUNNER_TEMP/${verb}5.log" | tail -n 20
+            case $banner in
+              SSH-2.0-*) echo "ok    podssh $verb --exit cf://HOST read the sshd's banner through the exit" ;;
+              *) echo "FAIL podssh $verb --exit cf://HOST read no banner: $banner"; exit 1 ;;
+            esac
+          done
+          kill -TERM "$(cat "$RUNNER_TEMP/site5.pid")" 2>/dev/null || true
           kill -TERM "$(cat "$RUNNER_TEMP/node5.pid")" 2>/dev/null || true
           rm -rf "$net"
 

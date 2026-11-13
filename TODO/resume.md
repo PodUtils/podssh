@@ -4168,7 +4168,7 @@ same setting.
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
 - The warning at `crates/podssh-cli/src/ssh/resolve.rs:336-341` sits inside `if resumable`.
-- `crates/podssh-cli/src/ssh/cloudflare.rs:197` branches on `greeted.layer()`;
+- `crates/podssh-cli/src/ssh/cloudflare.rs:199` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/mod.rs:431` removes the keepalives only when

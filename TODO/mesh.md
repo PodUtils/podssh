@@ -4313,6 +4313,30 @@ no session of its visitors reaches the exit's dial.
    exit's dial, as the other roads do; its visitors' keys come in as the net's members.
 2. `podssh ssh --exit NAME` with a `cf://HOST` of the node, and `podssh exit` over it.
 
+## Decision
+
+Made by the drafting agent of 2026-11-13, each with the alternative that lost:
+
+1. The exit's session over the tunnel is a module of its own, `exit/tunnel.rs`, beside the legs of
+   `open.rs`, and shares with `ssh` the dial after a lost link (`cloudflare::redial`) and the
+   first WebSocket (`cloudflare::open`). Lost: `ssh/cloudflare/layer.rs`'s `carry` made general,
+   which writes to the SSH run's `Log`, feeds its offer of kept shells and its silence, and sets
+   SSH's exit code (`ssh::result::channel_failed`): none of those is an exit's; and a tunnel's
+   WebSocket as a leg of `layered::carry_through`, whose legs are a relay's (`OperatorConfig`, the
+   relay's closes and the pair's expiry).
+2. A session over the tunnel is judged by the channel, then the layer (`tunnel::judged`); a good
+   end gives no line. Lost: `operator::judged`, which says "the relay did not end the session in
+   time" for a road with no leg.
+3. `--relay-addr` (and `PODSSH_RELAY_ADDR`) are applied with `cf://HOST` as before, not refused: a
+   pin serves each dial of podssh-ws (Inferred: `pod-dns` gives the pins to each dialer of
+   `podssh_ws::dial`), so a new tunnel's name that does not resolve yet can be pinned. Lost: a
+   refusal (64), as for `--carrier`.
+4. Cloudflare Access's credentials (`PODSSH_CF_ACCESS_*`) are read for an exit's tunnel too, and a
+   bad one is refused (78) before anything listens, as `ssh cf://` reads them: a named tunnel of
+   the user's may sit behind Access. Lost: none read, as a quick tunnel has no Access.
+5. A far end that greets with no layer is refused with 77 (`EX_NOPERM`), as `ssh --exit cf://`
+   refuses it: cloudflared's own service would take the bytes with no exit and no rule.
+
 ## Prove
 
 ```sh
@@ -4403,6 +4427,47 @@ cf://HOST -p 4022 USER@127.0.0.1` runs a command on the runner's sshd through it
 two defects of the workflow, both repaired: a check of the UDP-dropped node that read old words, and the exit's client
 that dialled the new name before it resolved. What stays, so the entry stays partial: Approach item 2's `podssh
 exit`, `proxy --exit` and `pipe --exit` over a `cf://` name, which ride a relay's legs today.
+
+2026-11-13 (a drafting agent, unbuilt: `DRAFT T-459`). Approach item 2 for the other clients:
+`podssh exit cf://HOST --listen`, `proxy --exit cf://HOST` and `pipe --exit cf://HOST` carry each
+session over a WebSocket of the tunnel, in the resumable layer and the end-to-end channel, as
+`ssh --exit cf://HOST` does.
+
+- `crates/podssh-cli/src/exit/tunnel.rs` (new): `Tunnel::of` (the name, the flags beside it,
+  Access's credentials, the trust), `host_of` (refuses a user name, `--pair-file` and `--carrier`,
+  64), `carry` (the first WebSocket, a far end with no layer refused 77, then `through`), `through`
+  (the layer off the pair, the channel around the application by `channel::around_told`, a signal
+  taken as on a relay's legs, a new link of the dial after each lost one) and `judged` (the
+  channel's verdict first, then the layer's; no leg's close).
+- `crates/podssh-cli/src/exit/open.rs`: `Road::Tunnel`; the legs of a pair or a carrier moved to
+  `by_legs`, with no change of behaviour; `not_a_tunnel` gone. `exit/mod.rs`: `prepare` takes a
+  `cf://HOST` with no label check and no `auto` flags, and applies the pins as before.
+  `crates/podssh-cli/src/ssh/cloudflare.rs`: `redial`, the dial after a lost link, shared by
+  `reach` (`ssh`) and the exit's sessions.
+- Tests: `crates/podssh-cli/src/exit/tunnel_tests.rs` (new), against the node's handler as
+  `node_quick` builds it (the layer, the channel, `Routed` with an exit's dial) with links in
+  memory: a target inside the lent range is read with one dial; a target of no range is refused in
+  the exit's words and never dialled; the refusals of `host_of`. `exit/mod.rs`: a test of
+  `prepare` with `cf://HOST`. `crates/podssh-cli/tests/exit.rs`: the row that expected 64 for
+  `exit cf://HOST` became six refusals that still hold (a pair, a user name, a carrier, for `exit`,
+  `proxy` and `pipe`). A test of the CLI against the stand-in edge was not written: the client
+  dials Cloudflare's edge by the tunnel's name on 443, and podssh-relay's stand-in edge is the
+  node's side (h2), with no visitor's WebSocket server; the edge's side is
+  `crates/podssh-relay/tests/quick_exit.rs`, and the live run below.
+- `.github/workflows/quick-tunnel-live.yml`, step "an exit behind a quick tunnel": after `ssh`,
+  `podssh exit cf://$host5 --listen 127.0.0.1:0`, and curl `--socks5-hostname` through it to a
+  page of `python3 -m http.server` on 127.0.0.1:18085; then `proxy --exit` and `pipe --exit` read
+  the sshd's banner on 4022.
+- The manual (the notes of `exit`, `proxy`, `pipe`, and of `node --exit`), `docs/cli.md` ("The exit
+  of the net") and `docs/mesh.md` section 5.
+
+Results (merged and run by the main session, 2026-11-13, with one repair: the note of `exit` named
+`--quick-tunnel`, a flag that `exit` does not have, which `man::notes` caught): `cargo test -p podssh-cli --lib
+exit::`: 17 passed. `cargo test -p podssh-cli --lib ssh::cloudflare`: 5 passed. `cargo test -p podssh-cli --test exit`:
+7 passed. Clippy (the gate's lints) and rustfmt: clean. `cargo test -p podssh-cli --no-fail-fast`: 2235 passed after
+the repair (and the manual's row of `PODSSH_FILEHOSTS`, which T-738's merge lacked). Planted (`through` with the
+channel left out, `channel: None` into `around_told`): both tests of the tunnel fail; restored, they pass. The live
+step (`quick-tunnel-live.yml`, by hand, `confirm=Q43`): in its run after this merge.
 
 # T-530: OpenTunnel, a blind TLS tunnel with no account, as a carrier of the reverse road
 
@@ -8124,7 +8189,7 @@ with no listener; behind this tunnel it would give the node a road where its egr
 2026-11-10 (the drafting agent), each call with what lost:
 
 - **The client's road is a WebSocket at `/` of the tunnel's name**, as the quick tunnel of a record
-  is taken (`crates/podssh-cli/src/ssh/cloudflare.rs:242`), under the resumable layer and the
+  is taken (`crates/podssh-cli/src/ssh/cloudflare.rs:254`), under the resumable layer and the
   end-to-end channel, in place of Step 3's relay road to `https://DOMAIN`. Lost: a pair at the
   node's own relay role, as a relay of another deployment (Q49), as a client of `node://NAME` holds
   neither a pair nor a token of that role, and a node paired with itself has both ends in one

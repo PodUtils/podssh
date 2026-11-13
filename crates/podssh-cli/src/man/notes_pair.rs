@@ -307,9 +307,9 @@ pub(super) const NODE: &[&str] = &[
      never reaches the exit. TARGET is then optional. It goes on the pair's, the iroh, the DERP, the transit and \
      the Piping Server roads, on a carrier (--carrier), and behind a quick tunnel (--quick-tunnel), whose \
      visitors are the keys of --allow or, with none, the net's members: podssh ssh --exit cf://HOST and the \
-     copies reach it by the tunnel's name, which the node prints; podssh exit, proxy --exit and pipe --exit \
-     reach an exit by its pair, iroh, DERP or a carrier, and refuse a cf:// name (64). --no-e2e, --temporary \
-     and a udp: TARGET are refused with it (64).",
+     copies reach it by the tunnel's name, which the node prints, and so do podssh exit, proxy --exit and pipe \
+     --exit, each session a WebSocket of the tunnel. --no-e2e, --temporary and a udp: TARGET are refused with \
+     it (64).",
     "With --carrier ADDR, the node's one road is a stream that exists already, for a host whose every road out \
      is closed but that grants one channel, such as the exec channel of a platform's own SSH: stdio (or -), \
      the stdin and stdout that such a channel gives the program that it starts; fd:N, a descriptor that the \

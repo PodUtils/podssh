@@ -29,8 +29,11 @@ LISTENERS = {
     # ADDR:PORT`: the bind is the probe, and PODSSH_LISTEN turns it off;
     # its QUIC (T-667) takes the bound listener's address, and its test binds
     # one on the loopback. And the stand-ins of WARP's edge (T-352) and of
-    # ZeroTier's relay (T-733), for tests alone, on the loopback.
+    # ZeroTier's relay (T-733), for tests alone, on the loopback. And the
+    # target that the exit behind a quick tunnel dials in its tests (T-459),
+    # on the loopback, as the node's real dial reaches it.
     "TcpListener": [
+        "crates/podssh-cli/src/exit/tunnel_tests.rs",
         "crates/podssh-cli/src/relay_serve.rs",
         "crates/podssh-cli/src/relay_serve/quic.rs",
         "crates/podssh-cli/src/pipe/listen.rs",
@@ -129,6 +132,7 @@ LISTENERS = {
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above.
     "bind(": [
+        "crates/podssh-cli/src/exit/tunnel_tests.rs",
         "crates/podssh-warp/src/h3/quic.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-ws/src/hysteria/quic.rs",
