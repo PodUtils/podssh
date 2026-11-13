@@ -982,10 +982,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:497`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:498`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:505`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:506`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -2229,7 +2229,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:497`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:498`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -2285,7 +2285,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:460`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:461`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2303,10 +2303,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:496` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:460`, `docs/STATUS.md:480`),
+- `docs/STATUS.md:497` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:461`, `docs/STATUS.md:481`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:458` is `docs/STATUS.md:460`.
+  The Prove's `docs/STATUS.md:459` is `docs/STATUS.md:461`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2352,7 +2352,7 @@ library cannot give a child a tty.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2365,10 +2365,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:497`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:498`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:476`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:477`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2449,6 +2449,77 @@ dropped, and the line discipline's own tests run in PodUtils/podcrates (`cargo t
 `podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:58-87`): it opens `/dev/ptmx`,
 then `/dev/pts/ptmx`, by path, where it called `posix_openpt`; route 1's `ptmx` of a new devpts
 instance can be one more path of that list, and serve grants a `pty-req` on whatever it opens.
+
+2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
+
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:497`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:476`, and the refusals of `unshare`, `mount` and
+  `chroot` `docs/target-environment.md:19`.
+- The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
+  `TIOCGWINSZ`.
+- The fourth Premise is measured on this host in a cage that stands for the target (uid 65534, no
+  capabilities, NoNewPrivs=1, no `/dev/ptmx` and no `/dev/pts`), not in a sandbox: route 1 needs
+  neither a uid map nor `/proc`, but a process of one thread (EINVAL from serve's threads, so a forked
+  helper); route 2a needs `seccomp` with a listener (EBUSY where the sandbox's filter has one),
+  `kcmp` or `pidfd_getfd` or `/proc`, and `process_vm_writev` or `/proc/PID/mem`.
+- The Correction of the same day above is wrong in one point: the `ptmx` of a new instance is not one
+  more path of `PTMX`. The instance is mounted in a helper's namespace, which is gone when the child
+  runs, and `ptsname` names `/dev/pts/N` of the host's instance (absent in the cage, another pty
+  where it exists): the slave comes by `TIOCGPTPEER`, the pair from a forked helper by `SCM_RIGHTS`,
+  and the slave has no path (no `SSH_TTY`).
+- Approach item 3: the child's descriptors 0 to 2 are one `AF_UNIX` stream socket, not pipes (a
+  slave is one file read and written, and `/dev/tty` must be the same file); the kernel answers
+  `FIONREAD` and `TIOCOUTQ` on it; the filter also sends `open`, `openat` and `openat2`, and serve
+  gives a copy of the socket for `/dev/tty` by `SECCOMP_IOCTL_NOTIF_ADDFD` (less reads its keys
+  there, bash opens it); the termios2 family (`TCGETS2` to `TCSETSF2`) is answered too; a descriptor
+  is known by its open file description (`kcmp`), never its number.
+- Approach item 5: a program that opens `/dev/tty` works on route 2a (measured with less and bash).
+  What still fails is in the research document, "What fails on each route 2".
+- The box's seccomp profiles let `unshare`, `mount` and `ptrace` pass (`scripts/box/seccomp.json`),
+  where the real sandboxes refuse the first two: Approach item 6 needs a profile that refuses them.
+
+## Done
+
+Not done. The study, drafted 2026-11-13 on the branch `draft-t248` (no build of podssh): C probes
+under docs/research/serve-tty/ (`cage.c`, `route1.c`, `route2.c` with `route2.h`, `route2b.c`,
+`isatty.c`, `realpty.py`), run by `sh docs/research/serve-tty/run.sh` as root on Linux 6.18.44 (a
+Firecracker VM, Ubuntu 24.04, glibc 2.39), and their results in
+[docs/research/serve-tty.md](../docs/research/serve-tty.md). Measured in the cage:
+
+- Route 1 works: a pair of a new devpts instance from a helper that exits in 0.5 to 5.8 ms; the
+  child, in no namespace of its own, has a controlling terminal, `stty size` `43 132`, and a resize
+  reaches its `trap ... WINCH`. Refused where `unshare` is (EPERM), from a threaded process (EINVAL),
+  and at the uid map with no `/proc` (it works with no map).
+- Route 2a works with `test -t 0`, `stty`, static glibc and musl, Python's SIGWINCH, bash's job
+  control (Ctrl-C ends `sleep 30` with 130, Ctrl-Z stops `sleep 31`, `jobs`, `kill -9 %1`), vim
+  (`:wq` wrote the file), less (keys from `/dev/tty`) and top. It works with `ptrace` refused, with
+  `process_vm_writev` refused (through `/proc/PID/mem`), with no `/proc` (`kcmp`); it fails with
+  neither `process_vm_writev` nor `/proc`, and is refused (EBUSY) under a filter with a listener of
+  its own. A call sent to podssh costs 3.4 to 27 µs, one passed straight 0.13 µs.
+- Route 2b works where `ptrace` is allowed, also under a listener; refused (EPERM) where it is not.
+
+The recommendation (the research document, "Recommendation"): the order real pty, route 1, route 2a,
+route 2b, route 3 (T-111's discipline with no tty), each after its probe, each probe a line of doctor
+(`pty`, `pty devpts`, `pty notify`, `pty ptrace`); route 1 into T-110's `pty::open` as a forked helper
+with `TIOCGPTPEER`; and for T-111, pod-term's discipline driven by the termios that route 2 answers
+(an issue in PodUtils/podcrates, Rule Q3).
+
+Merged 2026-11-13. The main session ran `sh docs/research/serve-tty/run.sh .work/t248` again as root
+on the same kind of host (Linux 6.18.44): each route gave the study's result in each cage (route 1:
+works, EPERM with `unshare` refused, EINVAL from a thread, the map refused with no `/proc`; route 2a:
+works with `ptrace` refused, through `/proc/PID/mem` with `process_vm_writev` refused, NOTTY and "Bad
+address" with neither, EBUSY under a listener; route 2b: works, also under a listener, EPERM with
+`ptrace` refused), static glibc and musl `isatty` true, SIGWINCH at 100x30, Ctrl-C's 130, the file that
+vim wrote, less and top. A call sent to serve cost 25 to 34 µs here (the study: 3.4 to 27 µs); one
+passed straight, 0.12 to 0.13 µs. Route 2b's `open("/dev/tty")` gave a descriptor that is not a tty.
+
+The entries of the implementation are filed: T-775 (route 1 in `pty::open`, the line `pty devpts`),
+T-776 (route 2a with pod-term's discipline, the line `pty notify`, the test `serve_tty`), T-777 (route
+2b, the line `pty ptrace`) and T-778 (the box's profile that refuses `unshare`, `mount`, `setns` and
+`ptrace`); the order of the routes is written in T-775's Decision, as it changes no ruling of
+`docs/decisions.md`; pod-term's mode that follows a termios is asked of podcrates by a COORD issue.
+Left: this entry's Prove, which needs T-775 to T-778, and the doctor lines in both real sandboxes,
+run by the operator's agents.
 
 # T-393: `--install` that always restarts: systemd without a start limit, a cron watchdog, a LaunchAgent; and `ssh -N -R --persist`
 
@@ -2893,3 +2964,142 @@ cargo test -p podssh-ssh --test serve_options -- touch
 
 A login whose sk signature has the flag of presence clear is refused, and taken with `no-touch-required`; a plant
 that skips the check fails the test.
+
+# T-775: `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed
+
+**Source:** T-248's study (2026-11-13, [docs/research/serve-tty.md](../docs/research/serve-tty.md), route 1).
+**Category:** feature
+**Milestone:** M5
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Where the host has no `/dev/ptmx` and no `/dev/pts/ptmx`, T-110's `pty::open` finds no master, and a
+`pty-req` is refused. Where the host allows an unprivileged `unshare(CLONE_NEWUSER | CLONE_NEWNS)`, a new
+devpts instance gives a real pty of the kernel with no device of the host: T-248 measured it in a cage
+that stands for the target (a pair in 0.5 to 5.8 ms, a controlling terminal, `stty size`, SIGWINCH).
+
+## Premise
+
+- T-110's `pty::open` tries the paths of `PTMX` and nothing else (`crates/podssh-ssh/src/server/pty.rs`).
+- The study: a forked helper of one thread (serve's threads make `unshare` fail with EINVAL) mounts
+  devpts `newinstance`, opens its `ptmx`, unlocks it, takes the slave by `TIOCGPTPEER` and sends both by
+  `SCM_RIGHTS`; `ptsname` names no path that the child could open, so there is no `SSH_TTY`.
+
+## Approach
+
+One more source after the paths of `PTMX`: the helper of the study, forked before any thread of its own,
+its pair sent back and the helper reaped within a time limit; the `Pair`'s name says "a devpts instance of
+podssh"; the child gets the slave as with T-110, and no `SSH_TTY`. `podssh doctor` gets the line `pty
+devpts`, each step named with its errno where it fails (`unshare`, `mount`, `ptmx`, `TIOCSPTLCK`,
+`TIOCGPTPEER`). The probe runs again at each `pty-req`, as T-110's does (AGENTS.md section 5, rule 1).
+
+## Decision
+
+The order of the routes is the study's: the real pty, then this one, then T-776, then T-777, then T-111
+(no tty). This route comes first of the new ones because it is the kernel's own tty, with nothing answered
+by podssh. The order is written in each entry, not in `docs/decisions.md`: it changes no ruling there.
+
+## Prove
+
+```sh
+cargo test -p podssh-ssh --test serve_pty -- devpts
+sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh
+```
+
+In a cage with no `/dev/ptmx` and `unshare` allowed, `test -t 0` is true in the child, `stty size` gives
+the request's size, and a `window-change` reaches a `trap ... WINCH`; where `unshare` is refused, the line
+`pty devpts` names EPERM and the request falls to the next route. Planted defect: the slave opened by
+`ptsname` in place of `TIOCGPTPEER`; the test fails.
+
+# T-776: `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens
+
+**Source:** T-248's study (2026-11-13, [docs/research/serve-tty.md](../docs/research/serve-tty.md), route 2a).
+**Category:** feature
+**Milestone:** M5
+**Priority:** P2
+**Effort:** L
+**Status:** open
+
+## Problem
+
+The real sandboxes have no `/dev/ptmx` and refuse `unshare`, so neither T-110 nor T-775 gives a tty there.
+A child whose descriptors 0 to 2 are one `AF_UNIX` stream socket, under a seccomp filter that sends its
+`ioctl` and `open` calls to serve, sees a tty: T-248 measured `test -t 0`, `stty`, static glibc and musl,
+SIGWINCH, bash's job control, vim, less and top this way, at 3.4 to 34 µs a call that is sent to serve.
+
+## Premise
+
+- The study's probe `docs/research/serve-tty/route2.c` with `route2.h`: the calls answered, a descriptor
+  known by `kcmp` (or `pidfd_getfd`, or `/proc`), the answer written by `process_vm_writev` (or
+  `/proc/PID/mem`), `/dev/tty` given by `SECCOMP_IOCTL_NOTIF_ADDFD`; EBUSY where a filter with a listener
+  already stands.
+- The discipline that the answered termios drives is T-111's, in `pod-term` (PodUtils/podcrates): it
+  needs a mode that follows a termios (asked of podcrates by a COORD issue, Rule Q3).
+
+## Approach
+
+The study's "Recommendation": a supervisor task in serve for each such child, the probe `pty notify` as a
+line of `podssh doctor` and at each `pty-req`, the calls of the study answered from one termios state that
+drives pod-term's discipline, SIGINT, SIGQUIT and SIGTSTP to the foreground group that `TIOCSPGRP` set, and
+SIGWINCH on a `window-change`. podssh puts no code into the child, and answers only for the descriptors
+that it gave. What still fails is named in the manual (the study, "What fails on each route 2").
+
+## Decision
+
+After T-775 in the order (T-775's Decision). Taken over `LD_PRELOAD`, which the decisions forbid and which
+does nothing to a static binary.
+
+## Prove
+
+```sh
+cargo test -p podssh-cli --test serve_tty
+sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh
+```
+
+Through `podssh serve --stdio` with no `/dev/ptmx` and `unshare` refused: `test -t 0`, `stty size`, Ctrl-C
+ending `sleep 30` with 130, and vi, less and top with their screens read. Planted defect: `TCGETS`
+answered with an error; `test -t 0` then fails, and the test fails.
+
+# T-777: `podssh serve` answers a child's tty calls by ptrace where user notification is refused
+
+**Source:** T-248's study (2026-11-13, [docs/research/serve-tty.md](../docs/research/serve-tty.md), route 2b).
+**Category:** feature
+**Milestone:** M5
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Where a seccomp filter with a listener already stands (EBUSY), T-776 cannot start, but `ptrace` with a
+`SECCOMP_RET_TRACE` filter can answer the same calls: T-248 measured it under a listener; refused (EPERM)
+where `ptrace` is.
+
+## Premise
+
+- The study's probe `docs/research/serve-tty/route2b.c`; its `open("/dev/tty")` gave a descriptor that is
+  not a tty (measured again 2026-11-13), so a program that reads its keys from `/dev/tty` does not work on
+  this route as probed.
+
+## Approach
+
+The calls and the state of T-776, stopped by `PTRACE_O_TRACESECCOMP` in place of a notification, with the
+probe `pty ptrace` as a line of `podssh doctor` and at each `pty-req`; `/dev/tty` made to work, or named in
+the manual as failing on this route.
+
+## Decision
+
+After T-776 in the order (T-775's Decision): it stops the child at each tty call, and takes `ptrace` from
+the user.
+
+## Prove
+
+```sh
+cargo test -p podssh-cli --test serve_tty -- ptrace
+```
+
+With user notification refused and `ptrace` allowed, `test -t 0` and `stty size` in the child. Planted
+defect: `TIOCGWINSZ` passed to the kernel; `stty size` fails, and the test fails.

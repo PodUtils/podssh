@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**729 entries: 65 open, 27 partial, 10 blocked, 627 done.**
+**733 entries: 68 open, 28 partial, 10 blocked, 627 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 12 | 17 | 1 | 272 | 302 |
-| P3 | 49 | 8 | 6 | 282 | 345 |
-| **All** | 65 | 27 | 10 | 627 | 729 |
+| P2 | 14 | 18 | 1 | 272 | 305 |
+| P3 | 50 | 8 | 6 | 282 | 346 |
+| **All** | 68 | 28 | 10 | 627 | 733 |
 
 ## Entries
 
@@ -320,7 +320,7 @@ repository and CI).
 | [T-245](repo.md) | P2 | S | none | chore | done | The box refuses each bind, but sandbox A allows an AF_UNIX bind |
 | [T-246](repo.md) | P3 | S | none | chore | done | `scripts/dev.sh` excludes each file named `agents.md` from the container copy, with no reason given |
 | [T-247](repo.md) | P3 | S | none | chore | done | `podssh-cli` declares dependencies that it does not use |
-| [T-248](serve.md) | P2 | M | M5 | research | open | A tty for `podssh serve` where `/dev/ptmx` is missing: a new devpts instance, or a tty in user space |
+| [T-248](serve.md) | P2 | M | M5 | research | partial | A tty for `podssh serve` where `/dev/ptmx` is missing: a new devpts instance, or a tty in user space |
 | [T-249](repo.md) | P2 | M | none | chore | done | A cited line that moved still exists, so the checker does not see a stale citation |
 | [T-250](release.md) | P1 | M | M9 | release | done | Publish v1.0.0, the first stable release |
 | [T-251](release.md) | P1 | M | M9 | measurement | done | The check of a release from end to end, with no human |
@@ -805,3 +805,7 @@ repository and CI).
 | [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
 | [T-774](serve.md) | P2 | S | M5 | defect | open | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |
+| [T-775](serve.md) | P2 | M | M5 | feature | open | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |
+| [T-776](serve.md) | P2 | L | M5 | feature | open | `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens |
+| [T-777](serve.md) | P3 | M | M5 | feature | open | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
+| [T-778](repo.md) | P2 | S | M5 | chore | open | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |
