@@ -364,11 +364,7 @@ fn a_redirect_of_a_download_is_made_absolute_on_its_host() {
 
 #[tokio::test]
 async fn a_host_whose_answer_is_a_page_downloads_by_the_page_s_link_read_just_before() {
-    let form = Form {
-        link_prefix: Some("https://up.stand-in.test/dl/".into()),
-        delete: Delete::Never,
-        ..text_form()
-    };
+    let form = Form { link_prefix: Some("https://up.stand-in.test/dl/".into()), delete: Delete::Never, ..text_form() };
     let stand_in = StandIn::new(form);
     let host = host(&stand_in);
     let stored = host.upload(b"behind a page".to_vec()).await.unwrap();

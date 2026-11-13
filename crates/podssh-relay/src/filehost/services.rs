@@ -146,7 +146,11 @@ mod tests {
             assert!(form.upload.starts_with("https://") && !form.serves.is_empty(), "{form:?}");
             assert_eq!(form.fields.len(), service.texts("fields").unwrap().len(), "{id}");
             assert_eq!(form.fetch_post, service.text("fetch-method") == Some("POST"), "{id}");
-            assert_eq!(form.link_prefix.as_deref(), service.text("fetch-link-prefix").filter(|p| !p.is_empty()), "{id}");
+            assert_eq!(
+                form.link_prefix.as_deref(),
+                service.text("fetch-link-prefix").filter(|p| !p.is_empty()),
+                "{id}"
+            );
             assert_eq!(matches!(form.answer, Answer::Json(_)), service.text("answer") == Some("json"), "{id}");
             assert_eq!(form.per_hour.map(i64::from), service.int("uploads-per-hour"), "{id}");
             let deletes = matches!(form.delete, Delete::TokenForm { .. });
