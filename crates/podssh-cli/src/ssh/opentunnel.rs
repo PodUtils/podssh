@@ -7,7 +7,9 @@
 //! link is TLS by the name on port 443, through `HTTPS_PROXY`, with no
 //! upgrade: a proxy that refuses the WebSocket upgrade passes it. TLS proves
 //! the name; the end-to-end channel checks the node's key by the pins of
-//! NAME, or `--node-key`, on whichever road wins.
+//! NAME, or `--node-key`, on whichever road wins. With no name given or kept,
+//! a member of the net races the name of the node's record of pkarr
+//! (T-611, `super::iroh::record`), which is not kept: it is asked again.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -110,12 +112,18 @@ pub(crate) fn dialer(road: &Road, label: &str, trust: &Trust, log: &Arc<Log>, sh
             Err(why) => log.verbose(&format!("{shown}: the OpenTunnel name could not be kept: {why}")),
         }
     }
+    dialer_of(&road.name, trust, log, shown)
+}
+
+/// A dialer of the node at `name`, through the proxy of the environment,
+/// with no name kept: also the one of a name of the node's record (T-611).
+pub(crate) fn dialer_of(name: &Name, trust: &Trust, log: &Arc<Log>, shown: &str) -> Dialer {
     let say: opentunnel::Say = {
         let (log, shown) = (log.clone(), shown.to_string());
         Arc::new(move |line: String| log.verbose(&format!("{shown}: {line}")))
     };
     let visit = dial::tcp(ProxyChoice::FromEnvironment);
-    Dialer::new(road.name.clone(), visit, trust_for(&road.name, trust), say)
+    Dialer::new(name.clone(), visit, trust_for(name, trust), say)
 }
 
 #[cfg(test)]

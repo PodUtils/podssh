@@ -1,0 +1,12 @@
+diff --git a/crates/podssh-iroh/src/pkarr_record.rs b/crates/podssh-iroh/src/pkarr_record.rs
+--- a/crates/podssh-iroh/src/pkarr_record.rs
++++ b/crates/podssh-iroh/src/pkarr_record.rs
+@@ -227,7 +227,7 @@
+                     Err(why) => set_aside.push(why),
+                 },
+                 OPENTUNNEL_KEY if opentunnel.is_none() => match opentunnel_name(value) {
+-                    Ok(name) => opentunnel = Some(name),
++                    Ok(name) => opentunnel = Some(name).filter(|_| false),
+                     Err(why) => set_aside.push(why),
+                 },
+                 DERP_KEY | QUICK_KEY | PINGGY_KEY | TUNNEL_KEY | ONION_KEY | OPENTUNNEL_KEY => {

@@ -253,6 +253,7 @@ pub(crate) fn record_ask(
     _: &str,
     _: bool,
     _: &super::derp::Race,
+    _: &super::opentunnel::Race,
     _: &crate::channel::Ask,
 ) -> Result<Option<RecordAsk>, Refusal> {
     Ok(None)

@@ -307,12 +307,13 @@ pub async fn keep(
                     Err(_) => return,
                 },
                 other = next_other(&mut others) => {
+                    // Each road but the home relay, which the endpoint
+                    // tells: a road added to the record later comes along.
                     told.send_if_modified(|roads| {
-                        let tunnels = roads.pinggy != other.pinggy || roads.tunnel != other.tunnel;
-                        let new = roads.derp != other.derp || roads.quick != other.quick || tunnels;
+                        let other = Roads { relay: roads.relay.clone(), ..other };
+                        let new = *roads != other;
                         if new {
-                            (roads.derp, roads.quick, roads.pinggy) = (other.derp, other.quick, other.pinggy);
-                            roads.tunnel = other.tunnel;
+                            *roads = other;
                         }
                         new
                     });

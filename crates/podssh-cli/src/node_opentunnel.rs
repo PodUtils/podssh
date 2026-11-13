@@ -17,7 +17,9 @@
 //! `PODSSH_OPENTUNNEL=no` turns the road off. stdout stays empty. At SIGUSR2
 //! it hands its sessions to the binary that takes its place, as the pair's
 //! road's node does (T-679, `node_upgrade`), which attaches its kept tunnel
-//! again, under the same name.
+//! again, under the same name. In a build with the iroh road, its record of
+//! pkarr names its name once its tunnel is ready (T-611), as the DERP road's
+//! names its home, for a member of the net whose client never saw the name.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -151,6 +153,8 @@ struct Ready {
     trust: Trust,
     pair: Result<(Pair, bool), String>,
     unasked: Option<String>,
+    /// The server of its record of pkarr, where it keeps one (T-611).
+    record: Option<crate::node_record::Named>,
 }
 
 fn prepare(args: &NodeArgs, unasked: Option<String>) -> Result<Ready, Refusal> {
@@ -172,11 +176,12 @@ fn prepare(args: &NodeArgs, unasked: Option<String>) -> Result<Ready, Refusal> {
     };
     crate::pairs::online()?;
     crate::node_transit::check()?; // PODSSH_TRANSIT (T-436), before anything connects
+    let record = crate::node_record::named()?; // PODSSH_IROH_PKARR (Q81), likewise
     let trust = crate::pairs::trust(args.ca_file.as_deref());
     // The key is made only once each check passed; one for this run only
     // stays across an upgrade in place (T-679).
     let key = crate::node_upgrade::parts::node_key(&place)?;
-    Ok(Ready { label, targets, roost: args.sshd, key, door, service, trust, pair, unasked })
+    Ok(Ready { label, targets, roost: args.sshd, key, door, service, trust, pair, unasked, record })
 }
 
 /// Run the node of the OpenTunnel road; `unasked` is why it serves the road
@@ -225,7 +230,7 @@ fn kept_line(path: Option<&PathBuf>, made: bool) -> String {
 }
 
 async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
-    let Ready { label, targets, roost, key, door, service, trust, pair, unasked } = ready;
+    let Ready { label, targets, roost, key, door, service, trust, pair, unasked, record } = ready;
     // TARGET first: a node that cannot reach it would serve no session.
     let target = match crate::node::probe(&targets, roost).await {
         Ok(versions) => crate::node::serving(&targets, &versions),
@@ -294,6 +299,12 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     if let Some(line) = crate::net::admit::line(&public) {
         let _ = writeln!(err, "podssh node: {label}: {line}");
     }
+    // Its record names its name, for as long as the node runs (T-611).
+    let line = |words: String| {
+        let _ = writeln!(err, "podssh node: {label}: {words}");
+    };
+    let (_record, tell) = crate::node_record::alone(record, &identity, &trust, say.clone(), line);
+    tell.opentunnel(&name);
     // The channel of T-088 on both roads, with this node's key and its door.
     let allow = match door {
         Door::Allow(path) => Some(path),

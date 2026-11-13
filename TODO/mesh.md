@@ -4739,7 +4739,7 @@ Read again on 2026-11-03 at the cited lines and in the code:
 
 - Approach, item 1: "its record names the road once T-445 is done". T-445 is done, but its record
   names three roads, the iroh home relay, the DERP home and the quick tunnel
-  (`crates/podssh-iroh/src/pkarr_record.rs:90` says "pub struct Roads"), and a member's client
+  (`crates/podssh-iroh/src/pkarr_record.rs:104` says "pub struct Roads"), and a member's client
   races those three alone. Naming the OpenTunnel name there is a new kind of road in that record,
   in its reader and in the client's race: T-611.
 - Approach, item 3: the operator's ruling Q76 answered question 3: the unasked fallback, for a node
@@ -11272,7 +11272,7 @@ once T-445 is done".
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -11282,7 +11282,7 @@ way to it: the node's record of pkarr names its other roads alone.
 
 ## Premise
 
-- `crates/podssh-iroh/src/pkarr_record.rs:90` says "pub struct Roads": the iroh home relay, the
+- `crates/podssh-iroh/src/pkarr_record.rs:104` says "pub struct Roads": the iroh home relay, the
   DERP home and the quick tunnel's name, which `crates/podssh-cli/src/node_record.rs` keeps up to
   date (`Tell`, its `derp` and `quick`).
 - `crates/podssh-cli/src/node_opentunnel.rs` knows the node's name once its tunnel is ready.
@@ -11295,6 +11295,40 @@ way to it: the node's record of pkarr names its other roads alone.
    server unless `PODSSH_IROH_PKARR` names another or `off` (Q81).
 3. A member's client races the OpenTunnel road of its record, after the roads of its tickets, as it
    races the record's DERP home (T-445), never with `--no-e2e`.
+
+## Decision
+
+The draft's calls, 2026-11-13:
+
+1. The name's check is the road's own: `podssh_relay::opentunnel::Name::parse`, with a bound of
+   100 bytes (`MAX_OPENTUNNEL`, as `MAX_TUNNEL`), in `pkarr_record.rs`. podssh-iroh already
+   depends on podssh-relay with the feature `pinggy`, which builds `opentunnel`; the draft names
+   `opentunnel` there too. Lost: the same rules written again in podssh-iroh, which could drift
+   from the road's.
+2. The record holds a parsed `Name`, not a `String`: a node cannot put a value that is not a name;
+   only one too long can reach the packet, which refuses it.
+3. A record too long for pkarr goes without the onion service first, then without the OpenTunnel
+   name, then fails. The onion is the last fallback of Q78; a client may hold the OpenTunnel name
+   kept. Lost: dropping the name first.
+4. The record's OpenTunnel road races only where no name is given or kept, as the record's DERP
+   home races only where no ticket is given or kept (T-445): a node keeps its tunnel from one start
+   to the next, so a kept name is the record's name in the usual case, and the two would dial the
+   same name twice. Lost: racing the record's name beside a kept one.
+5. The client does not keep the record's name under NAME: the record is asked again at each race,
+   as the Pinggy address and the onion address of a record are.
+6. Its place is the last of the record's roads, 250 ms after the quick tunnel: the record's roads
+   come after the roads of the tickets, and before the transit relay's.
+7. The node's keeper of a record with an iroh endpoint (`pkarr::keep`) took each road of `Tell` by
+   name and missed the onion; it now takes each road but the home relay, so a road added later
+   comes along (a repair in passing: no node of an iroh endpoint tells the onion or the name yet).
+8. The record shows the name's route to whoever holds the node's key, where before only the node's
+   line and a client's private file held it (its random route keeps scanners of the logs of
+   Certificate Transparency from the tunnel's other names). The route was never the door: anyone
+   may connect to a tunnel's name, and the end-to-end channel with `--allow` or the net is the
+   node's door (T-531); the entry's Approach asks for the name in the record, and Q81 allows a
+   record of public names to such a node; `PODSSH_IROH_PKARR=off` sends none. The main session
+   should weigh whether this reads as Q81's "public names"; if not, it is a question for the
+   operator.
 
 ## Prove
 
@@ -11315,6 +11349,46 @@ waves are in Q101 of `TODO/PROGRESS.md`, and the module map is `PodUtils/podcrat
 Rule Q3 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh
 makes fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which
 podssh takes by the next tag; a test of the moved code then runs there.
+
+2026-11-13, the draft. podssh has not taken `pod-iroh` or `pod-opentunnel`: neither is in the list
+of crates taken (`TODO/PROGRESS.md`, state item 7, at `v0.40.0`), and that item says that no file of
+podssh is frozen now. So `crates/podssh-iroh/src/pkarr_record.rs`, `crates/podssh-relay/src/opentunnel/`
+and the command line's files of this entry are podssh's to change, and the work is done here. The
+Prove's second command needs the feature `iroh-test`, not `iroh`: the server of pkarr on the
+loopback (`podssh_iroh::test_pkarr`) is built with `podssh-iroh/test-relay` alone, as the test of
+the Pinggy address of a record (`crates/podssh-cli/tests/pinggy_record/mod.rs`) found; the test of this entry is the
+module `opentunnel_record` of `crates/podssh-cli/tests/opentunnel_road.rs`, which a build with no
+`iroh-test` leaves out.
+
+## Done
+
+Done 2026-11-13, merged from the draft `ae145e7` of the branch `draft-t611`, built and tested by the main session:
+
+- `crates/podssh-iroh/src/pkarr_record.rs`: `OPENTUNNEL_KEY` (`opentunnel=`), `MAX_OPENTUNNEL`,
+  `opentunnel_name`; `Roads` and `Record` hold the name; the parser reads it, sets a bad one or a
+  second one aside unsaid; a record too long goes without the onion, then without the name.
+- `crates/podssh-iroh/src/pkarr.rs`: the keeper of a record with an iroh endpoint takes each road
+  of its `Tell` but the home relay.
+- `crates/podssh-cli/src/node_record.rs`: `Tell::opentunnel`; `crates/podssh-cli/src/node_opentunnel.rs`
+  reads `PODSSH_IROH_PKARR` before anything connects and tells the record its name once its tunnel
+  is ready.
+- `crates/podssh-cli/src/ssh/iroh/record.rs`: "the OpenTunnel road of its record", the last of the
+  record's roads, where no name is given or kept and `PODSSH_OPENTUNNEL` is not `no`; one dialer for
+  each name (`crate::ssh::opentunnel::dialer_of`).
+- The manual: iroh record in THE RELAY, the notes of `--opentunnel` and `--opentunnel-name`, and the
+  roads of a member's record in the notes of `podssh ssh`.
+- Planted: `scripts/plants/t611-name-not-read.patch`, the parser drops the name (GROUP=cli-tests).
+
+Results:
+
+- `cargo test -p podssh-iroh --lib pkarr`: 17 passed; `--test record_roads`: 2 passed; the crate's suite: 69 passed.
+- `cargo test -p podssh-cli --features iroh-test --test opentunnel_road`: 5 passed in 14.4 s, among them a member's
+  client with no name given that reaches the node of the stand-in server through the name of its record.
+- `cargo test -p podssh-cli --lib`: 1,168 passed; `--features iroh --lib`: 1,172 passed, once the node's note named
+  "its variable" in place of `PODSSH_IROH_PKARR`, which a build with no iroh road has no row of (the manual's test
+  `each_name_in_a_note_exists`); the manual's tests with and without `iroh`: passed.
+- Clippy as the gate runs it, with and without `iroh-test`: clean; rustfmt: clean.
+- The plant `t611-name-not-read` (the parser drops the name): caught (`sh scripts/plant-each.sh --here`).
 
 # T-616: `podssh net invite`: a new device joins the net by a short code
 

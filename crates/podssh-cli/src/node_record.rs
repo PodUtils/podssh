@@ -1,12 +1,14 @@
 //! A node's record of pkarr with each of its roads (T-445). The iroh road's
 //! node keeps its home relay there (T-350), and its DERP home once its DERP
 //! road is online, again each time that home moves ([`keep`]). A node with
-//! no iroh endpoint, the quick tunnel's, the DERP road's, the Pinggy road's
-//! or the tunnel of `ssh -R`'s (T-565) alone, with the onion service beside
-//! its pair (T-578), keeps its roads there too
+//! no iroh endpoint, the quick tunnel's, the DERP road's, the Pinggy road's,
+//! the tunnel of `ssh -R`'s (T-565) or the OpenTunnel road's (T-611) alone,
+//! with the onion service beside its pair (T-578), keeps its roads there too
 //! ([`alone`]): at n0's server unless PODSSH_IROH_PKARR names another or `off`, as the operator's ruling
 //! Q81 widens Q57 to such a node, whose record names only public names (a
-//! Pinggy tunnel's name and its pin are public: the node says them). A build with no iroh road keeps no
+//! Pinggy tunnel's name and its pin are public: the node says them; an
+//! OpenTunnel name is an address, not a credential, as the end-to-end
+//! channel and the node's allowlist are its door). A build with no iroh road keeps no
 //! record, and reads no variable of it.
 
 use std::sync::Arc;
@@ -83,6 +85,16 @@ impl Tell {
             told.send_modify(|roads| roads.onion = Some(address));
         }
     }
+
+    /// The node's name at OpenTunnel is `name` (T-611): the node keeps its
+    /// tunnel, so the name stays from one start to the next. One that a
+    /// client would set aside is not put.
+    pub(crate) fn opentunnel(&self, name: &str) {
+        let Ok(name) = pkarr::record::opentunnel_name(name) else { return };
+        if let Some(told) = &self.told {
+            told.send_modify(|roads| roads.opentunnel = Some(name));
+        }
+    }
 }
 
 #[cfg(not(feature = "iroh"))]
@@ -100,6 +112,8 @@ impl Tell {
     // The onion road tells it in a build with the feature `tor` alone.
     #[cfg_attr(not(feature = "tor"), allow(dead_code))]
     pub(crate) fn onion(&self, _: &str) {}
+
+    pub(crate) fn opentunnel(&self, _: &str) {}
 }
 
 /// The keeper's task, stopped when this is dropped, as the node ends.
@@ -217,6 +231,22 @@ mod tests {
         let address = Address::parse(&format!("rnwxy-12.run.pinggy-free.link#{pin}")).unwrap();
         assert_eq!(tell.pinggy(&address), Ok(()));
         tell.tunnel("a1b2c3d4e5f6.lhr.life");
+        tell.opentunnel("r7k2qmx4.abcdefghijkl.opentunnel.xyz");
+    }
+
+    /// The OpenTunnel road's name goes into the record as a client reads it
+    /// back, in lower case; one that a client would set aside never does
+    /// (T-611).
+    #[cfg(feature = "iroh")]
+    #[test]
+    fn a_tell_puts_the_opentunnel_name_and_never_one_that_a_client_would_set_aside() {
+        let (told, roads) = watch::channel(Roads::default());
+        let tell = Tell { told: Some(told) };
+        tell.opentunnel("not a name");
+        assert!(roads.borrow().opentunnel.is_none());
+        tell.opentunnel("R7K2QMX4.abcdefghijkl.opentunnel.xyz.");
+        let put = roads.borrow().opentunnel.as_ref().map(ToString::to_string);
+        assert_eq!(put.as_deref(), Some("r7k2qmx4.abcdefghijkl.opentunnel.xyz"));
     }
 
     /// Q81: n0's server when nothing names another, none when off.

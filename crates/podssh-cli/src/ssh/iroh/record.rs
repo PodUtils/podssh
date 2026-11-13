@@ -1,8 +1,9 @@
 //! The roads of a node's record (T-445): `podssh ssh node://NAME` to a
 //! member of the net, whose key the net names, asks the member's record of
 //! pkarr and races each road that it names and that no ticket gave: the
-//! iroh road at its home relay, the DERP road at its DERP home, and its
-//! quick tunnel; and its Pinggy address, which the Pinggy road takes in its
+//! iroh road at its home relay, the DERP road at its DERP home, its quick
+//! tunnel, and its OpenTunnel name where no name is given or kept (T-611);
+//! and its Pinggy address, which the Pinggy road takes in its
 //! own place, last (`ssh::pinggy`, T-548), and its tunnel of `ssh -R`,
 //! which localhost.run's road takes so (T-565). The record is asked only once
 //! each road before it failed,
@@ -19,6 +20,7 @@ use iroh::{EndpointAddr, PublicKey};
 use podssh_iroh::pkarr::{self, Finder, Record, Roads};
 use podssh_relay::derp::{servers, Dialer, Server, Ticket};
 use podssh_relay::identity::KeyName;
+use podssh_relay::opentunnel::{Dialer as OpenTunnelDialer, Name as OpenTunnelName};
 use podssh_relay::session::race::{Start, HEAD_START};
 use podssh_ssh::Log;
 use podssh_ws::cloudflare::Access;
@@ -37,6 +39,7 @@ const KEEP: Duration = Duration::from_secs(pkarr::TTL as u64);
 const IROH: &str = "the iroh road of its record";
 const DERP: &str = "the DERP road of its record";
 const QUICK: &str = "the quick tunnel of its record";
+const OPENTUNNEL: &str = "the OpenTunnel road of its record";
 
 /// What the record of a run is asked for, decided before anything connects.
 #[derive(Debug, Clone)]
@@ -49,6 +52,9 @@ pub(crate) struct RecordAsk {
     /// The DERP servers after the record's home, when its DERP road races:
     /// no DERP ticket given, of the net, or kept, and PODSSH_DERP not no.
     derp: Option<Vec<Server>>,
+    /// Whether its OpenTunnel road races: no name given or kept, and
+    /// PODSSH_OPENTUNNEL not no.
+    opentunnel: bool,
     /// This client's key file, of --client-key.
     client_key: Option<String>,
 }
@@ -62,6 +68,7 @@ pub(crate) fn record_ask(
     label: &str,
     iroh_given: bool,
     derp: &crate::ssh::derp::Race,
+    opentunnel: &crate::ssh::opentunnel::Race,
     channel: &crate::channel::Ask,
 ) -> Result<Option<RecordAsk>, Refusal> {
     let Some(member) = crate::net::lookup::member(label).filter(|_| !channel.off) else { return Ok(None) };
@@ -71,12 +78,15 @@ pub(crate) fn record_ask(
     let Some(server) = pkarr::choose(&relays).map_err(Refusal::config)? else { return Ok(None) };
     let iroh = (!iroh_given).then(|| relays.iter().map(ToString::to_string).collect());
     let derp = (derp.fallback && derp.road(label).is_none()).then(|| derp.servers.clone());
-    Ok(Some(RecordAsk { key, server, iroh, derp, client_key: channel.client_key.clone() }))
+    // As the DERP home: a name given or kept is the road of its own place.
+    let opentunnel = opentunnel.fallback && opentunnel.road(label).is_none();
+    Ok(Some(RecordAsk { key, server, iroh, derp, opentunnel, client_key: channel.client_key.clone() }))
 }
 
 /// The roads of the record in one run: the record, once asked; the iroh
 /// road, made from the first record that names a relay; the DERP road's
-/// dialers, one for each DERP home that a record named.
+/// dialers, one for each DERP home that a record named; the OpenTunnel
+/// road's, one for each name.
 pub(crate) struct RecordRoads<'a> {
     ask: &'a RecordAsk,
     trust: &'a Trust,
@@ -85,12 +95,13 @@ pub(crate) struct RecordRoads<'a> {
     looked: tokio::sync::Mutex<Option<(Instant, Result<Record, String>)>>,
     iroh: OnceCell<IrohRoad<'a>>,
     derp: Mutex<Vec<(Ticket, Arc<Dialer>)>>,
+    opentunnel: Mutex<Vec<(OpenTunnelName, Arc<OpenTunnelDialer>)>>,
 }
 
 impl<'a> RecordRoads<'a> {
     pub(crate) fn new(ask: &'a RecordAsk, trust: &'a Trust, log: &'a Arc<Log>, shown: &'a str) -> RecordRoads<'a> {
         let (looked, iroh, derp) = (Default::default(), OnceCell::new(), Mutex::new(Vec::new()));
-        RecordRoads { ask, trust, log, shown, looked, iroh, derp }
+        RecordRoads { ask, trust, log, shown, looked, iroh, derp, opentunnel: Mutex::new(Vec::new()) }
     }
 
     /// The attempts of one race, each with its start and its name: the
@@ -104,6 +115,9 @@ impl<'a> RecordRoads<'a> {
             list.push((Start::After(HEAD_START), Box::pin(self.derp_link()), DERP));
         }
         list.push((Start::After(HEAD_START), Box::pin(self.quick_link()), QUICK));
+        if self.ask.opentunnel {
+            list.push((Start::After(HEAD_START), Box::pin(self.opentunnel_link()), OPENTUNNEL));
+        }
         if let Some(first) = list.first_mut() {
             first.0 = Start::WhenAllFailed;
         }
@@ -129,8 +143,8 @@ impl<'a> RecordRoads<'a> {
             Ok(Some(record)) => {
                 let (relay, derp, quick) = (record.relays.first().cloned(), record.derp.clone(), record.quick.clone());
                 let (pinggy, tunnel) = (record.pinggy.clone(), record.tunnel.clone());
-                let onion = record.onion.clone();
-                let roads = Roads { relay, derp, quick, pinggy, tunnel, onion };
+                let (onion, opentunnel) = (record.onion.clone(), record.opentunnel.clone());
+                let roads = Roads { relay, derp, quick, pinggy, tunnel, onion, opentunnel };
                 self.log.verbose(&format!("{shown}: its record at {host} names {}", roads.said()));
                 for why in &record.set_aside {
                     self.log.verbose(&format!("{shown}: of its record, {why}"));
@@ -190,6 +204,28 @@ impl<'a> RecordRoads<'a> {
         let Some(name) = record.quick else { return Err("its record names no quick tunnel".into()) };
         let opened = crate::ssh::cloudflare::open(&name, &Access::default(), self.trust).await;
         opened.map(Road::Tunnel).map_err(|(line, _)| line)
+    }
+
+    /// A link to the record's OpenTunnel name (T-611): TLS by the name, as
+    /// a name given; the record is signed by the node's key, and the
+    /// end-to-end channel checks that key above the link.
+    async fn opentunnel_link(&self) -> Result<Road, String> {
+        let record = self.record().await?;
+        let Some(name) = record.opentunnel else { return Err("its record names no OpenTunnel name".into()) };
+        let dialer = self.opentunnel_dialer(&name);
+        dialer.link().await.map(Road::OpenTunnel)
+    }
+
+    /// The dialer of `name`: the one made for it, else a new one. An older
+    /// one stays, as a link of it may carry the session.
+    fn opentunnel_dialer(&self, name: &OpenTunnelName) -> Arc<OpenTunnelDialer> {
+        let mut made = self.opentunnel.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some((_, dialer)) = made.iter().find(|(had, _)| had == name) {
+            return dialer.clone();
+        }
+        let dialer = Arc::new(crate::ssh::opentunnel::dialer_of(name, self.trust, self.log, self.shown));
+        made.push((name.clone(), dialer.clone()));
+        dialer
     }
 
     /// The record's Pinggy address, for the Pinggy road (T-548): its pin is
@@ -253,12 +289,13 @@ mod tests {
         crate::ssh::derp::Race { ticket, servers: vec![Server::parse("tc301a.ipn.dev").unwrap()], fallback }
     }
 
-    fn ask(iroh: bool, derp: bool) -> RecordAsk {
+    fn ask(iroh: bool, derp: bool, opentunnel: bool) -> RecordAsk {
         RecordAsk {
             key: iroh::SecretKey::from_bytes(&[5; 32]).public(),
             server: pkarr::Server::parse("https://pkarr.example/pkarr").unwrap(),
             iroh: iroh.then(Vec::new),
             derp: derp.then(|| vec![Server::parse("tc301a.ipn.dev").unwrap()]),
+            opentunnel,
             client_key: None,
         }
     }
@@ -268,19 +305,23 @@ mod tests {
         // No net here: the label is no member, so no record is asked, and
         // the variable is not even read.
         let channel = crate::channel::Ask::default();
-        assert!(record_ask("not-a-member-of-any-net", false, &race(None, true), &channel).unwrap().is_none());
+        let opentunnel = crate::ssh::opentunnel::Race { name: None, fallback: true };
+        let asked = record_ask("not-a-member-of-any-net", false, &race(None, true), &opentunnel, &channel).unwrap();
+        assert!(asked.is_none());
     }
 
     #[test]
     fn the_record_s_first_road_waits_for_each_road_before_it_and_the_next_follow_it() {
         let (log, trust) = (Arc::new(Log::new(podssh_ssh::LogLevel::Quiet)), Trust::Default);
-        for (iroh, derp, names) in [
-            (true, true, vec![IROH, DERP, QUICK]),
-            (false, true, vec![DERP, QUICK]),
-            (true, false, vec![IROH, QUICK]),
-            (false, false, vec![QUICK]),
+        for (iroh, derp, opentunnel, names) in [
+            (true, true, true, vec![IROH, DERP, QUICK, OPENTUNNEL]),
+            (true, true, false, vec![IROH, DERP, QUICK]),
+            (false, true, false, vec![DERP, QUICK]),
+            (true, false, false, vec![IROH, QUICK]),
+            (false, false, true, vec![QUICK, OPENTUNNEL]),
+            (false, false, false, vec![QUICK]),
         ] {
-            let ask = ask(iroh, derp);
+            let ask = ask(iroh, derp, opentunnel);
             let roads = RecordRoads::new(&ask, &trust, &log, "node://lab");
             let list = roads.race();
             let got: Vec<&str> = list.iter().map(|(_, _, name)| *name).collect();

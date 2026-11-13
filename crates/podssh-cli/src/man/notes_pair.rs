@@ -423,8 +423,10 @@ pub(super) const NODE_OPENTUNNEL: &str = "With --opentunnel, the node serves TAR
      key is one; never --plain, --no-e2e, --exit or a udp: TARGET (64). With the pair NAME, or --pair-file, the \
      node serves the pair's road beside it, with one keeper of sessions. A node with no pair, a door, and the \
      DERP road turned off (PODSSH_DERP=no) serves the road unasked, by the operator's ruling Q76, and its first \
-     line says so; PODSSH_OPENTUNNEL=no turns the road off. The service's refusals are named: a token that it \
-     no longer takes (a new tunnel is made, and said), a route that an earlier run holds (tried again), its \
+     line says so; PODSSH_OPENTUNNEL=no turns the road off. In a build with the iroh road, the node puts its \
+     name in its record of pkarr (opentunnel=), signed by its key, once its tunnel is ready, at n0's server \
+     unless its variable names another or off (see iroh record in THE RELAY). The service's refusals are \
+     named: a token that it no longer takes (a new tunnel is made, and said), a route that an earlier run holds (tried again), its \
      limit of 30 tunnels an hour from one address, with its wait.";
 
 /// The OpenTunnel road of a client (T-531).
@@ -434,7 +436,9 @@ pub(super) const SSH_OPENTUNNEL: &str = "node://NAME with --opentunnel-name HOST
      (SSL_CERT_FILE, else the system's stores), with no WebSocket upgrade, so a proxy that refuses the upgrade \
      passes it, and so does one that ends TLS itself, whose CA the host trusts. The name is kept under NAME in the \
      cache (opentunnel-NAME.name), and a later run that gives none dials it only once each road before it \
-     failed, the fallback of the operator's ruling Q76, which PODSSH_OPENTUNNEL=no turns off. The end-to-end \
+     failed, the fallback of the operator's ruling Q76, which PODSSH_OPENTUNNEL=no turns off. With neither, a \
+     member of the net whose key the net names races the name of the node's record of pkarr, among the roads \
+     of its record (not kept: it is asked again). The end-to-end \
      channel checks the node's key by the pins of NAME, or --node-key, so --no-e2e leaves the road out (64 \
      with --opentunnel-name).";
 

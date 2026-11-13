@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 55 open, 30 partial, 16 blocked, 632 done.**
+**733 entries: 54 open, 30 partial, 16 blocked, 633 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 44 | 9 | 10 | 283 | 346 |
-| **All** | 55 | 30 | 16 | 632 | 733 |
+| P3 | 43 | 9 | 10 | 284 | 346 |
+| **All** | 54 | 30 | 16 | 633 | 733 |
 
 ## Entries
 
@@ -650,7 +650,7 @@ repository and CI).
 | [T-608](relay.md) | P3 | S | M10 | feature | done | A rank that podssh makes unasked, in the background of a session, once a day for an egress |
 | [T-609](ssh.md) | P1 | S | none | defect | done | An ECDSA key of P-256 whose scalar OpenSSH writes in 31 bytes is refused: "SshKey: length invalid" |
 | [T-610](relay.md) | P2 | S | M10 | defect | done | `relay info` shows the relay's `rank` and `score_ms`, which change with the edge that answered, as an order |
-| [T-611](mesh.md) | P3 | S | M10 | feature | open | A node's record of pkarr names its OpenTunnel name, and a member's client races it |
+| [T-611](mesh.md) | P3 | S | M10 | feature | done | A node's record of pkarr names its OpenTunnel name, and a member's client races it |
 | [T-612](resume.md) | P2 | S | M10 | feature | done | A client of a node can turn the resumable layer off: `--no-resume` |
 | [T-613](reverse.md) | P3 | S | M10 | feature | done | `operator`, `proxy` and `pipe`'s remote sides take `--timeout` and `PODSSH_TIMEOUT` as other names of `--ConnectTimeout` |
 | [T-614](mesh.md) | P2 | M | M10 | feature | done | `ssh`, `proxy` and `pipe` take `--exit` beside `--carrier`, as `exit --listen` does |

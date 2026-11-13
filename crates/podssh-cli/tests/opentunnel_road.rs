@@ -13,9 +13,13 @@
 //! Planted (`scripts/plants/t531-no-door.patch`): the road starts with no
 //! `--allow`, and the test of its refusal fails. A session goes on across
 //! the node's upgrade in place, as the node attaches its kept tunnel again
-//! (T-679, `upgrade_support`).
+//! (T-679, `upgrade_support`). With the iroh road's test servers, a member
+//! of the net with no name given or kept finds it in the node's record of
+//! pkarr (`opentunnel_record`, T-611).
 
 mod cleanup;
+#[cfg(feature = "iroh-test")]
+mod opentunnel_record;
 #[path = "../../podssh-relay/tests/opentunnel_stand_in/mod.rs"]
 mod opentunnel_stand_in;
 mod ssh_harness;
@@ -228,10 +232,22 @@ impl Lab {
     /// `podssh node lab TARGET` with `extra`, its lines, and its name once
     /// its bridge attached.
     fn node(&self, extra: &[&str], env: &[(&str, &str)]) -> (Node, mpsc::Receiver<String>, String) {
+        let (node, lines, name, _) = self.node_trusting(&self.ca, extra, env);
+        (node, lines, name)
+    }
+
+    /// `podssh node lab TARGET` with `extra`, whose `--ca-file` is `ca`;
+    /// its lines, its name, and the lines up to its bridge's attach.
+    fn node_trusting(
+        &self,
+        ca: &str,
+        extra: &[&str],
+        env: &[(&str, &str)],
+    ) -> (Node, mpsc::Receiver<String>, String, Vec<String>) {
         let (key, allow) = (self.node_home.join("node.key"), self.allow.to_string_lossy().into_owned());
         let key = key.to_string_lossy().into_owned();
         let mut args = vec!["node", "lab", self.target.as_str(), "--allow", allow.as_str(), "--key", key.as_str()];
-        args.extend_from_slice(&["--ca-file", self.ca.as_str()]);
+        args.extend_from_slice(&["--ca-file", ca]);
         args.extend_from_slice(extra);
         let mut cmd = command(&self.node_home, self.proxy, &args);
         cmd.envs(env.iter().copied());
@@ -247,14 +263,19 @@ impl Lab {
         let seen = wait_for(&lines, "attached to OpenTunnel");
         let line = seen.iter().find(|l| l.contains(": name ")).unwrap_or_else(|| panic!("no name: {seen:#?}"));
         let name = line.split(": name ").nth(1).unwrap().split_whitespace().next().unwrap().to_string();
-        (node, lines, name)
+        (node, lines, name, seen)
     }
 
     /// `podssh ssh` from the client's home, with its key and known hosts.
     fn ssh(&self, words: &[&str]) -> Command {
+        self.ssh_trusting(&self.ca, words)
+    }
+
+    /// `podssh ssh` as [`Lab::ssh`], whose `--ca-file` is `ca`.
+    fn ssh_trusting(&self, ca: &str, words: &[&str]) -> Command {
         let known = format!("UserKnownHostsFile={}", self.known);
         let mut args = vec!["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new", "-o", &known];
-        args.extend_from_slice(&["--ca-file", &self.ca, "--client-key", &self.client_key]);
+        args.extend_from_slice(&["--ca-file", ca, "--client-key", &self.client_key]);
         args.extend_from_slice(words);
         command(&self.client_home, self.proxy, &args)
     }

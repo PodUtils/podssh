@@ -3,8 +3,8 @@
 //! of the same signed packet: its DERP home, as the node's DERP ticket, its
 //! quick tunnel's name, its Pinggy address, the tunnel's name and the pin
 //! of the node's TLS key (T-548), and the name of its tunnel of HTTP made by
-//! `ssh -R`, localhost.run's (T-565), and the address of its onion service
-//! (T-578). iroh reads `_iroh` alone (iroh-dns 1.4.1's
+//! `ssh -R`, localhost.run's (T-565), the address of its onion service
+//! (T-578), and its name at OpenTunnel (T-611). iroh reads `_iroh` alone (iroh-dns 1.4.1's
 //! `EndpointInfo::from_pkarr_signed_packet` asks for `txt_records("_iroh")`),
 //! so its tools and n0's DNS pass podssh's names by; a key that iroh does not
 //! know under `_iroh` would make iroh refuse the whole record, which is why
@@ -13,7 +13,8 @@
 //! A client takes of a record only what it takes of a command line: a relay
 //! `https://HOST[:PORT]`, a DERP ticket that names the record's own key, one
 //! label under `trycloudflare.com`, a Pinggy address as `--pinggy-name`
-//! takes it, and a DNS name as `--tunnel-url` takes it. Each other value is set aside, and the record keeps its other
+//! takes it, a DNS name as `--tunnel-url` takes it, and a name as
+//! `--opentunnel-name` takes it. Each other value is set aside, and the record keeps its other
 //! roads. The record is signed by the node's key, which the client already
 //! holds, and each road checks that key again (the QUIC handshake, the
 //! end-to-end channel), so a road that a record names reaches the node or
@@ -29,6 +30,7 @@ use iroh::{PublicKey, RelayUrl, SecretKey};
 use iroh_dns::pkarr::{SignedPacket, Timestamp};
 use iroh_dns::IROH_TXT_NAME;
 use podssh_relay::derp::Ticket;
+use podssh_relay::opentunnel::Name as OpenTunnelName;
 use podssh_relay::pinggy::Address;
 use simple_dns::rdata::{RData, TXT};
 use simple_dns::{Name, Packet, ResourceRecord, CLASS};
@@ -63,6 +65,18 @@ pub const TUNNEL_KEY: &str = "tunnel";
 /// keeps it from strangers who read the record: only the pair's operators
 /// hold the key that finds it.
 pub const ONION_KEY: &str = "onion";
+
+/// The key of the OpenTunnel road (T-611): the node's name there,
+/// `ROUTE.ID.DOMAIN`, as the node's line says it and `--opentunnel-name`
+/// takes it. A node keeps its tunnel from one start to the next, so the name
+/// stays; the record is for a member whose client never saw it.
+pub const OPENTUNNEL_KEY: &str = "opentunnel";
+
+/// The longest OpenTunnel name that a record holds: a name of OpenTunnel's
+/// own is some 40 characters (`r7k2qmx4.abcdefghijkl.opentunnel.xyz`), so
+/// this leaves room for a service that `PODSSH_OPENTUNNEL` names, and keeps
+/// the record within [`MAX_DNS_PACKET`].
+pub const MAX_OPENTUNNEL: usize = 100;
 
 /// The length of the label of an onion address of version 3: 35 bytes in
 /// base32 (a key of 32, a checksum of 2, the version).
@@ -101,13 +115,15 @@ pub struct Roads {
     pub tunnel: Option<String>,
     /// The address of the node's onion service (T-578).
     pub onion: Option<String>,
+    /// The node's name at OpenTunnel (T-611).
+    pub opentunnel: Option<OpenTunnelName>,
 }
 
 impl Roads {
     /// Whether the record would name no road, and so is not put.
     pub fn is_empty(&self) -> bool {
         let others = self.quick.is_none() && self.pinggy.is_none() && self.tunnel.is_none() && self.onion.is_none();
-        self.relay.is_none() && self.derp.is_none() && others
+        self.relay.is_none() && self.derp.is_none() && self.opentunnel.is_none() && others
     }
 
     /// The roads in words, for the node's line: "the home relay URL, the
@@ -128,6 +144,9 @@ impl Roads {
         }
         if let Some(name) = &self.tunnel {
             each.push(format!("the tunnel {name}"));
+        }
+        if let Some(name) = &self.opentunnel {
+            each.push(format!("the OpenTunnel name {name}"));
         }
         if let Some(address) = &self.onion {
             each.push(format!("the onion service {address}"));
@@ -156,6 +175,8 @@ pub struct Record {
     pub tunnel: Option<String>,
     /// The address of the node's onion service, in lower case (T-578).
     pub onion: Option<String>,
+    /// The node's name at OpenTunnel, in lower case (T-611).
+    pub opentunnel: Option<OpenTunnelName>,
     /// When the node signed it, in microseconds since the epoch (pkarr's
     /// sequence number).
     pub signed_at: u64,
@@ -178,6 +199,7 @@ impl Record {
         };
         let node = packet.public_key();
         let (mut derp, mut quick, mut pinggy, mut tunnel, mut onion) = (None, None, None, None, None);
+        let mut opentunnel = None;
         for value in packet.txt_records(PODSSH_TXT_NAME) {
             let Some((key, value)) = value.split_once('=') else {
                 set_aside.push(format!("a {PODSSH_TXT_NAME} value that is not KEY=VALUE"));
@@ -204,7 +226,11 @@ impl Record {
                     Ok(address) => onion = Some(address),
                     Err(why) => set_aside.push(why),
                 },
-                DERP_KEY | QUICK_KEY | PINGGY_KEY | TUNNEL_KEY | ONION_KEY => {
+                OPENTUNNEL_KEY if opentunnel.is_none() => match opentunnel_name(value) {
+                    Ok(name) => opentunnel = Some(name),
+                    Err(why) => set_aside.push(why),
+                },
+                DERP_KEY | QUICK_KEY | PINGGY_KEY | TUNNEL_KEY | ONION_KEY | OPENTUNNEL_KEY => {
                     set_aside.push(format!("a second {key}= of {PODSSH_TXT_NAME}"))
                 }
                 // A road of a later podssh: passed by, as iroh passes ours.
@@ -212,15 +238,15 @@ impl Record {
             }
         }
         let tunnels = quick.is_none() && pinggy.is_none() && tunnel.is_none() && onion.is_none();
-        if relays.is_empty() && derp.is_none() && tunnels {
+        if relays.is_empty() && derp.is_none() && opentunnel.is_none() && tunnels {
             let why = if set_aside.is_empty() { String::new() } else { format!(" ({})", set_aside.join("; ")) };
             return Err(format!(
                 "the record names no road: no https:// relay, no DERP home, no quick tunnel, no Pinggy tunnel, \
-                 no tunnel of ssh -R and no onion service{why}"
+                 no tunnel of ssh -R, no onion service and no OpenTunnel name{why}"
             ));
         }
         let signed_at = packet.timestamp().as_micros();
-        Ok(Record { relays, derp, quick, pinggy, tunnel, onion, signed_at, set_aside })
+        Ok(Record { relays, derp, quick, pinggy, tunnel, onion, opentunnel, signed_at, set_aside })
     }
 
     /// How long ago the node signed it; none for a time after this host's.
@@ -309,19 +335,39 @@ pub fn onion_address(value: &str) -> Result<String, String> {
     }
 }
 
+/// A node's name at OpenTunnel: `ROUTE.ID.DOMAIN` as `--opentunnel-name`
+/// takes it, of [`MAX_OPENTUNNEL`] bytes at most, in lower case. Any domain:
+/// `PODSSH_OPENTUNNEL` may name another service; TLS checks the name, and the
+/// end-to-end channel the node's key, so a stranger at an old name is
+/// refused. Not echoed: a stranger's record may hold anything.
+pub fn opentunnel_name(value: &str) -> Result<OpenTunnelName, String> {
+    let bad =
+        || format!("its OpenTunnel name is not ROUTE.ID.DOMAIN of {MAX_OPENTUNNEL} bytes at most, and is set aside");
+    if value.trim().trim_end_matches('.').len() > MAX_OPENTUNNEL {
+        return Err(bad());
+    }
+    OpenTunnelName::parse(value).map_err(|_| bad())
+}
+
 /// The signed packet of `roads`, under `secret`'s key: iroh's `_iroh`
 /// values for the relay, as iroh-dns writes them, and podssh's `_podssh`
 /// values for the rest, each name in the node's zone, as iroh-dns builds a
 /// packet; a value longer than a DNS string goes in pieces, which a reader
 /// of TXT joins again.
 pub fn packet(secret: &SecretKey, roads: &Roads, ttl: u32) -> Result<SignedPacket, String> {
-    match packet_of(secret, roads, ttl) {
-        // The onion service is the last fallback: a record too long for
-        // pkarr goes without it rather than not at all.
-        Err(why) if roads.onion.is_some() && why.contains("more than pkarr's") => {
-            packet_of(secret, &Roads { onion: None, ..roads.clone() }, ttl)
+    let mut roads = roads.clone();
+    loop {
+        match packet_of(secret, &roads, ttl) {
+            // A record too long for pkarr goes without its last fallbacks
+            // rather than not at all: the onion service first, then the
+            // OpenTunnel name, whose client may hold it kept.
+            Err(why) if why.contains("more than pkarr's") => {
+                if roads.onion.take().is_none() && roads.opentunnel.take().is_none() {
+                    return Err(why);
+                }
+            }
+            made => return made,
         }
-        made => made,
     }
 }
 
@@ -363,6 +409,11 @@ fn packet_of(secret: &SecretKey, roads: &Roads, ttl: u32) -> Result<SignedPacket
         // A node never puts what a client would set aside.
         let address = onion_address(address)?;
         values.push((ours.clone(), format!("{ONION_KEY}={address}")));
+    }
+    if let Some(name) = &roads.opentunnel {
+        // A node never puts what a client would set aside.
+        let name = opentunnel_name(&name.to_string())?;
+        values.push((ours.clone(), format!("{OPENTUNNEL_KEY}={name}")));
     }
     let mut dns = Packet::new_reply(0);
     for (name, value) in &values {

@@ -109,7 +109,7 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     let Dest { label, pair_file, trust, race, derp, opentunnel, channel } = *dest;
     // The member's record of pkarr, for each road that no ticket gave
     // (T-445): a bad variable of it is said before anything connects.
-    let record = super::iroh::record_ask(label, race.is_some(), derp, channel)?;
+    let record = super::iroh::record_ask(label, race.is_some(), derp, opentunnel, channel)?;
     // The DERP road: the ticket given, else the one kept under the label
     // (Q50); never with --no-e2e, as its node's door is the channel.
     let derp = derp.road(label).filter(|_| !channel.off);

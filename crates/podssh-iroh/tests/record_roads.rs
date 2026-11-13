@@ -108,6 +108,8 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
         tunnel: None,
         // The Tor Project's own address, of version 3 (T-578).
         onion: Some("2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion".into()),
+        // A name of OpenTunnel's own, as the node says it (T-611).
+        opentunnel: Some(podssh_relay::opentunnel::Name::parse("r7k2qmx4.abcdefghijkl.opentunnel.xyz").unwrap()),
     };
     // The stand-in reads the PUT with iroh-dns's own check of the signature.
     pkarr::publish(&server, &node, &roads, &trust, &ProxyChoice::Direct, LIMIT).await.expect("the record is put");
@@ -118,6 +120,7 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
     assert_eq!(record.quick.as_deref(), Some(QUICK));
     assert_eq!(record.pinggy, Some(pinggy));
     assert_eq!(record.onion, roads.onion);
+    assert_eq!(record.opentunnel, roads.opentunnel);
     // iroh's own client of pkarr reads the same bytes as a record of a node:
     // its relay, with podssh's names passed by.
     let resolver = iroh::dns::DnsResolver::custom(podssh_iroh::resolve::Podssh);
@@ -126,7 +129,8 @@ async fn a_record_with_each_road_is_put_and_read_back_whole() {
     let info = EndpointInfo::from_pkarr_signed_packet(&packet).expect("iroh's record of a node");
     assert_eq!(info.relay_urls().cloned().collect::<Vec<_>>(), vec![relay]);
     let ours = packet.txt_records(record::PODSSH_TXT_NAME).len();
-    assert_eq!(ours, 4, "the DERP home, the quick tunnel, the Pinggy tunnel and the onion service");
+    let each = "the DERP home, the quick tunnel, the Pinggy tunnel, the onion service and the OpenTunnel name";
+    assert_eq!(ours, 5, "{each}");
 }
 
 /// A link of the client's race, on either road.

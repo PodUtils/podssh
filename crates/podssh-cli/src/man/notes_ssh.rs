@@ -319,7 +319,8 @@ const FIRST: &[&str] = &[
     "node://NAME of a member of the net that the net names by its key, in a build with the iroh road, races \
      the roads of the member's record of pkarr too, after the roads of its tickets: once each of them failed \
      (at once, with none), the record is asked, and kept 30 s, then the iroh road at its home relay, the DERP \
-     road at its DERP home and its quick tunnel, each 250 ms after the one before, for each road that no \
+     road at its DERP home, its quick tunnel and its OpenTunnel name (where no name is given or kept), each \
+     250 ms after the one before, for each road that no \
      ticket gave; never with --no-e2e, as the end-to-end channel checks the member's key on each (see iroh \
      record in THE RELAY). -v says what the record named, and which road carried the session.",
     "node://NAME also races the transit road of its pair (T-436), last, and only once each road before \

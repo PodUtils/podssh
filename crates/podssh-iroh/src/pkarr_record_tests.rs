@@ -42,6 +42,7 @@ fn each_road(secret: &SecretKey) -> Roads {
         pinggy: Some(pinggy(PINGGY_NAME)),
         tunnel: None,
         onion: None,
+        opentunnel: None,
     }
 }
 
@@ -228,12 +229,18 @@ fn a_record_with_each_road_at_its_longest_fits_pkarr_s_bytes() {
         pinggy: Some(pinggy(&name)),
         tunnel: None,
         onion: None,
+        opentunnel: None,
     };
     let packet = packet(&node, &roads, TTL).expect("each road at its longest fits");
     // With the onion service too it would not fit, so it goes without it.
     let onion = Roads { onion: Some(ONION.into()), ..roads.clone() };
     let without = read_back(&node, &super::packet(&node, &onion, TTL).expect("put without the onion")).unwrap();
     assert_eq!((without.onion, without.pinggy.is_some()), (None, true));
+    // With an OpenTunnel name at its longest too, it goes without both.
+    let longest = opentunnel_name(&longest_opentunnel()).expect("a name of MAX_OPENTUNNEL bytes");
+    let both = Roads { opentunnel: Some(longest), ..onion };
+    let without = read_back(&node, &super::packet(&node, &both, TTL).expect("put without both")).unwrap();
+    assert_eq!((without.onion, without.opentunnel, without.pinggy.is_some()), (None, None, true));
     let record = read_back(&node, &packet).unwrap();
     assert_eq!((record.quick, record.pinggy), (Some(quick), roads.pinggy.clone()));
     assert!(packet.encoded_packet().len() <= MAX_DNS_PACKET, "{}", packet.encoded_packet().len());
@@ -301,5 +308,77 @@ fn a_record_of_an_onion_service_names_it_and_sets_a_bad_address_aside() {
     assert!(whole.encoded_packet().len() <= MAX_DNS_PACKET, "{}", whole.encoded_packet().len());
     assert_eq!(read_back(&node, &whole).unwrap().onion.as_deref(), Some(ONION));
     let bad = Roads { onion: Some("www.torproject.org".into()), ..Roads::default() };
+    assert!(packet(&node, &bad, TTL).is_err(), "a node never puts what a client would set aside");
+}
+
+/// A name of OpenTunnel's own, as the live service gave one (T-531).
+const OPENTUNNEL: &str = "r7k2qmx4.abcdefghijkl.opentunnel.xyz";
+
+/// The tunnel's name under a route, of a service that `PODSSH_OPENTUNNEL`
+/// may name: 67 bytes, so that a route fills a name to its longest.
+fn long_tail() -> String {
+    format!(".abcdefghijkl.{}.example.test", "t".repeat(40))
+}
+
+/// An OpenTunnel name of `len` bytes, its route under [`long_tail`].
+fn opentunnel_of(len: usize) -> String {
+    let name = format!("{}{}", "r".repeat(len - long_tail().len()), long_tail());
+    assert_eq!(name.len(), len);
+    name
+}
+
+/// An OpenTunnel name of [`MAX_OPENTUNNEL`] bytes exactly.
+fn longest_opentunnel() -> String {
+    opentunnel_of(MAX_OPENTUNNEL)
+}
+
+/// The OpenTunnel name (T-611): it comes back as the node put it, in lower
+/// case; one that is not ROUTE.ID.DOMAIN, the root route, one too long, or a
+/// second one is set aside unsaid, and a node never puts one.
+#[test]
+fn a_record_of_an_opentunnel_name_names_it_and_sets_a_bad_name_aside() {
+    let node = SecretKey::from_bytes(&[0x4b; 32]);
+    let name = opentunnel_name(&OPENTUNNEL.to_ascii_uppercase()).expect("a name");
+    let roads = Roads { opentunnel: Some(name.clone()), ..Roads::default() };
+    let said = roads.said();
+    assert!(!roads.is_empty() && said.contains(&format!("the OpenTunnel name {OPENTUNNEL}")), "{said}");
+    let record = read_back(&node, &packet(&node, &roads, TTL).unwrap()).expect("a record of one road");
+    assert_eq!((record.opentunnel.map(|n| n.to_string()), record.tunnel), (Some(OPENTUNNEL.to_string()), None));
+    let quick = format!("quick={QUICK}");
+    let too_long = format!("opentunnel={}", opentunnel_of(MAX_OPENTUNNEL + 1));
+    let root = "opentunnel=@.abcdefghijkl.opentunnel.xyz".to_string();
+    for bad in [
+        "opentunnel=SECRET.opentunnel.xyz",
+        "opentunnel=SECRET_route.abcdefghijkl.opentunnel.xyz",
+        "opentunnel=-SECRET.abcdefghijkl.opentunnel.xyz",
+        "opentunnel=https://SECRET.abcdefghijkl.opentunnel.xyz/",
+        root.as_str(),
+        too_long.as_str(),
+    ] {
+        let record = read_back(&node, &planted(&node, &[bad, quick.as_str()])).unwrap();
+        assert_eq!((record.opentunnel, record.quick.as_deref()), (None, Some(QUICK)), "{bad}");
+        assert!(record.set_aside.iter().any(|why| why.contains("OpenTunnel")), "{bad}: {:?}", record.set_aside);
+        assert!(record.set_aside.iter().all(|why| !why.contains("SECRET")), "{:?}", record.set_aside);
+    }
+    // A name of MAX_OPENTUNNEL bytes is read; a record of it alone fits.
+    let longest = Roads { opentunnel: Some(opentunnel_name(&longest_opentunnel()).unwrap()), ..Roads::default() };
+    let record = read_back(&node, &packet(&node, &longest, TTL).unwrap()).unwrap();
+    assert_eq!(record.opentunnel.map(|n| n.to_string()), Some(longest_opentunnel()));
+    let first = format!("opentunnel={OPENTUNNEL}.");
+    let two = read_back(&node, &planted(&node, &[first.as_str(), "opentunnel=other.abcdefghijkl.opentunnel.xyz"]));
+    let two = two.unwrap();
+    assert_eq!(two.opentunnel, Some(name.clone()));
+    assert!(two.set_aside.iter().any(|why| why.contains("a second opentunnel=")), "{:?}", two.set_aside);
+    // A node's roads of today with its OpenTunnel name and its onion service
+    // fit pkarr's bytes, each read back.
+    let each = Roads { opentunnel: Some(name.clone()), onion: Some(ONION.into()), ..each_road(&node) };
+    let whole = packet(&node, &each, TTL).expect("each road, the OpenTunnel name and the onion service fit");
+    assert!(whole.encoded_packet().len() <= MAX_DNS_PACKET, "{}", whole.encoded_packet().len());
+    let record = read_back(&node, &whole).unwrap();
+    assert_eq!((record.opentunnel, record.onion.as_deref()), (Some(name), Some(ONION)));
+    // A name that a client would set aside is never put: the type holds a
+    // parsed name, so only one too long can reach the packet.
+    let over = OpenTunnelName::parse(&opentunnel_of(MAX_OPENTUNNEL + 1)).unwrap();
+    let bad = Roads { opentunnel: Some(over), ..Roads::default() };
     assert!(packet(&node, &bad, TTL).is_err(), "a node never puts what a client would set aside");
 }
