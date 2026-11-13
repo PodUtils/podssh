@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 65 open, 16 partial, 10 blocked, 619 done.**
+**710 entries: 64 open, 16 partial, 10 blocked, 620 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 25 | 6 | 1 | 267 | 299 |
+| P2 | 24 | 6 | 1 | 268 | 299 |
 | P3 | 36 | 8 | 6 | 281 | 331 |
-| **All** | 65 | 16 | 10 | 619 | 710 |
+| **All** | 64 | 16 | 10 | 620 | 710 |
 
 ## Entries
 
@@ -718,7 +718,7 @@ repository and CI).
 | [T-685](repo.md) | P1 | M | M10 | chore | done | The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021 |
 | [T-686](repo.md) | P2 | S | M10 | chore | done | The publish of the crates to crates.io: `.github/workflows/publish.yml`, apart from the release |
 | [T-687](repo.md) | P2 | M | M10 | feature | blocked | The first crates of podssh on crates.io: which crates, under which names, and with what in the place of the vendored patches and the git sources |
-| [T-688](repo.md) | P2 | S | M10 | defect | open | Three tests failed once on CI's macOS runner at `67c0768`: the pipe's end of input on a Unix socket, and two of `doh_wire` timed out resolving |
+| [T-688](repo.md) | P2 | S | M10 | defect | done | Three tests failed once on CI's macOS runner at `67c0768`: the pipe's end of input on a Unix socket, and two of `doh_wire` timed out resolving |
 | [T-689](repo.md) | P2 | S | M10 | defect | done | `cargo test -p podssh-relay --test pair_code` overflows its stack on Rust 1.97 in a debug build |
 | [T-690](repo.md) | P1 | S | M10 | defect | done | Two regressions of the adoption of `pod-proxy`: an upload through a relay that cuts lost each answer, and `podssh ts` got `socks5://` for its SOCKS5 proxy |
 | [T-691](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-06: taiki-e/install-action 2.90.0 and aes 0.9.4 |

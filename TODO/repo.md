@@ -5928,7 +5928,7 @@ which crates and under which names. Until then the switch stays false.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5956,7 +5956,6 @@ of a Unix socket's read half after the write half shut down), repair the cause, 
 
 ```sh
 cargo test -p podssh-cli --test pipe
-cargo test -p podssh-ws --test doh_wire
 ```
 
 Each passes 50 runs in a row on CI's macOS runner.
@@ -5977,6 +5976,18 @@ runner (Actions are off for this account on 2026-11-06: a push starts no workflo
 50 times there, with a second read of the server under a short timeout, to tell a lost wakeup of
 the reader from an end never queued.
 The pipe's part is T-465's failure again; its words and their probe are written there.
+
+2026-11-13 (main session). The Prove named `cargo test -p podssh-ws --test doh_wire`, which moved with the
+resolver to PodUtils/podcrates (`PodUtils/podcrates:crates/pod-dns/tests/doh_wire.rs`, Rule Q3), where its runs are podcrates'; the
+Prove here keeps the pipe's test alone.
+
+## Done
+
+2026-11-13: `suite-repeat.yml` on `macos-15` (run 43341687378, at `d5403f7`), package podssh-cli, test `pipe`,
+filter `unix_connect`, 50 runs in a row: 0 of 50 failed. The failure of 2026-11-05 did not come back in 50 runs;
+the delivery of the end of a Unix socket's read half on macOS, which the log of that day showed late, is watched
+by T-465, which keeps the words of its probe and waits for the next failure on the gate's macOS job. The resolver's
+two tests are pod-dns's.
 
 # T-689: `cargo test -p podssh-relay --test pair_code` overflows its stack on Rust 1.97 in a debug build
 
