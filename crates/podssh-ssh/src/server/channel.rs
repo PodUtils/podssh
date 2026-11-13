@@ -64,6 +64,9 @@ pub(super) struct Open {
     /// The pty granted by a `pty-req` (T-110), from then to the close.
     #[cfg(unix)]
     pub(super) pty: Option<super::pty_child::Granted>,
+    /// A pty request granted with serve as the line discipline (T-111).
+    #[cfg(unix)]
+    pub(super) line: Option<super::line::LineGrant>,
 }
 
 impl Open {
@@ -84,6 +87,8 @@ impl Open {
             closed,
             #[cfg(unix)]
             pty: None,
+            #[cfg(unix)]
+            line: None,
         }
     }
 

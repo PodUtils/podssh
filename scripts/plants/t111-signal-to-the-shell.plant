@@ -1,0 +1,7 @@
+# T-111: serve's line discipline sends Ctrl-C to the shell's pid and not to
+# its process group, so the shell's trap takes it and `sleep 30` runs on;
+# the test of Ctrl-C must fail.
+ENTRY=T-111
+GROUP=cli-tests
+EXPECT='test ctrl_c_ends_the_command_and_not_the_shell \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_line -- ctrl_c'

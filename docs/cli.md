@@ -5726,7 +5726,25 @@ gives up each capability of the process (T-698), before it reads a file.
   namespaces end with the helper, the instance with its descriptors. The
   slave has no path, so the child gets no `SSH_TTY`. A host that refuses
   `unshare` or `mount` refuses this; doctor's line `pty devpts` names the
-  step and its errno. The child then has the slave as descriptors
+  step and its errno.
+- **The line discipline where no pty opens (T-111).** With `--pty auto`
+  (the default), a `pty-req` that neither a master nor a devpts instance
+  serves is granted with serve as the line discipline: pod-term's cooked
+  mode (PodUtils/podcrates), the one of podvm's server. The program runs on
+  pipes in a session of its own; each key goes through the discipline,
+  which echoes and edits the line and sends it to the program's stdin at
+  Enter; Ctrl-C and Ctrl-\ are SIGINT and SIGQUIT to the program's process
+  group; the program's stdout and stderr come as one stream, around the
+  line under edit, each `\n` as `\r\n`; `window-change` gives the
+  discipline its width. The discipline assumes a shell that prints no
+  prompt and survives Ctrl-C: a login shell runs non-interactive, and its
+  first line from serve is `trap : INT QUIT` (a caught signal is the
+  default again in its children, so the command in the foreground ends);
+  serve draws the prompt `$ `. `TERM` is the request's; there is no
+  `SSH_TTY`. A submitted line that starts a program that draws on a tty
+  (`vi`, `less`, `top`, ...) gets a line that says it needs a pty, then
+  runs. `--pty line` takes the discipline with no pty tried (the tests use
+  it on a host that has one); `--pty no` refuses such a request, as before. The child then has the slave as descriptors
   0 to 2 and as its controlling terminal (`setsid`, then `TIOCSCTTY`), so
   Ctrl-C and a shell's job control work by the kernel's line discipline;
   `TERM` is the request's (`xterm-256color` when it is empty) and

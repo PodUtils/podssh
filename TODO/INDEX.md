@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 63 open, 28 partial, 12 blocked, 630 done.**
+**733 entries: 62 open, 29 partial, 12 blocked, 630 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 10 | 18 | 2 | 275 | 305 |
+| P2 | 9 | 19 | 2 | 275 | 305 |
 | P3 | 49 | 8 | 7 | 282 | 346 |
-| **All** | 63 | 28 | 12 | 630 | 733 |
+| **All** | 62 | 29 | 12 | 630 | 733 |
 
 ## Entries
 
@@ -185,7 +185,7 @@ repository and CI).
 | [T-108](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
 | [T-109](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: direct-tcpip into the cage |
 | [T-110](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: a real pty when `/dev/ptmx` exists |
-| [T-111](serve.md) | P2 | L | M5 | feature | open | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
+| [T-111](serve.md) | P2 | L | M5 | feature | partial | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
 | [T-112](serve.md) | P2 | M | M5 | feature | partial | An SFTP server in `podssh serve` |
 | [T-113](serve.md) | P2 | M | M5 | measurement | open | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
 | [T-114](serve.md) | P2 | M | backlog | feature | partial | `podssh serve`: access rules for each key and command |

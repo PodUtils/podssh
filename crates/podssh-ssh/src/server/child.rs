@@ -79,11 +79,25 @@ pub(super) fn spawn(
     if open.pty.is_some() {
         return super::pty_child::spawn(open, id, shell, program, env);
     }
+    if open.line.is_some() {
+        return super::line::spawn(open, id, shell, program, env);
+    }
     let mut cmd = command(shell, &program, env)?;
     cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    // The child leads a session and a process group of its own: a signal
-    // request reaches each process that it starts, and none of them shares
-    // serve's.
+    own_session(&mut cmd);
+    let mut child = cmd.spawn().map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
+    let running = Running::take(open, id, &mut child)?;
+    if let Some(stdin) = child.stdin.take() {
+        open.give_stdin(Box::new(stdin));
+    }
+    tokio::spawn(running.run(child, open.closed.clone()));
+    Ok(())
+}
+
+/// The child leads a session and a process group of its own: a signal
+/// request reaches each process that it starts, and none of them shares
+/// serve's.
+pub(super) fn own_session(cmd: &mut Command) {
     // SAFETY: setsid is async-signal-safe and touches no memory of the
     // parent; it fails only for a group's leader, which a new child is not.
     unsafe {
@@ -94,13 +108,6 @@ pub(super) fn spawn(
             Ok(())
         });
     }
-    let mut child = cmd.spawn().map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
-    let running = Running::take(open, id, &mut child)?;
-    if let Some(stdin) = child.stdin.take() {
-        open.give_stdin(Box::new(stdin));
-    }
-    tokio::spawn(running.run(child, open.closed.clone()));
-    Ok(())
 }
 
 /// The program's side of the channel, once it runs.

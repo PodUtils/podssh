@@ -21,6 +21,8 @@ mod direct;
 pub mod env;
 mod handler;
 pub mod host_key;
+#[cfg(unix)]
+mod line;
 pub mod options;
 #[cfg(unix)]
 pub mod pty;
@@ -106,6 +108,11 @@ pub struct Settings {
     /// masters and no with a test's, so that a test's missing master
     /// still sees the refusal.
     pub devpts: Option<bool>,
+    /// Where a `pty-req` meets no pty: `Auto` makes serve the line
+    /// discipline (T-111) with the default masters, and with a test's
+    /// `ptmx` refuses as before; `Line` always does, with no pty tried;
+    /// `No` refuses (`--pty`).
+    pub pty: PtyMode,
     /// The time limit of each file-system call of the SFTP server (T-112);
     /// None is `sftp::CALL_LIMIT`, as a test gives a shorter one.
     pub sftp_limit: Option<Duration>,
@@ -116,6 +123,31 @@ pub struct Settings {
     /// Where serve says a line for its operator: a key that a line refused,
     /// a request that a key's rules refused. None says nothing.
     pub say: Option<Say>,
+}
+
+/// `--pty`: what a pty request that no pty serves meets (T-111).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PtyMode {
+    /// A real pty, then a devpts instance of serve's own, then serve as the
+    /// line discipline on pipes.
+    #[default]
+    Auto,
+    /// Serve as the line discipline, with no pty tried.
+    Line,
+    /// A real pty or a devpts instance; else the request is refused.
+    No,
+}
+
+impl PtyMode {
+    /// The mode of `--pty`'s value.
+    pub fn parse(value: &str) -> Option<PtyMode> {
+        match value {
+            "auto" => Some(PtyMode::Auto),
+            "line" => Some(PtyMode::Line),
+            "no" => Some(PtyMode::No),
+            _ => None,
+        }
+    }
 }
 
 /// A sink for serve's lines (its stderr, for the CLI).

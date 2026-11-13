@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use clap::ArgMatches;
 use podssh_relay::cache::{self, Others};
-use podssh_ssh::server::{host_key, HostKey, Keys, Say, Settings, StateFiles};
+use podssh_ssh::server::{host_key, HostKey, Keys, PtyMode, Say, Settings, StateFiles};
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
 use crate::relay_settings::Refusal;
@@ -33,6 +33,7 @@ pub struct ServeArgs {
     pub shell: Option<String>,
     pub no_shell: bool,
     pub no_forwarding: bool,
+    pub pty: Option<String>,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -48,6 +49,7 @@ impl ServeArgs {
             shell: matches.get_one::<String>("shell").cloned(),
             no_shell: matches.get_flag("no-shell"),
             no_forwarding: matches.get_flag("no-forwarding"),
+            pty: matches.get_one::<String>("pty").cloned(),
             refused,
         }
     }
@@ -74,6 +76,14 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         );
         return EXIT_USAGE;
     }
+    let pty = match args.pty.as_deref().map(|v| (v, PtyMode::parse(v))) {
+        None => PtyMode::Auto,
+        Some((_, Some(mode))) => mode,
+        Some((value, None)) => {
+            let _ = writeln!(err, "podssh serve: --pty takes auto, line or no, not {value:?}");
+            return EXIT_USAGE;
+        }
+    };
     if args.no_shell && args.shell.is_some() {
         let _ = writeln!(err, "podssh serve: --shell and --no-shell: give one of them");
         return EXIT_USAGE;
@@ -113,6 +123,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         max_forwards: None,
         ptmx: None,
         devpts: None,
+        pty,
         sftp_limit: None,
         peer: peer_of_stdin(),
         // A refusal by a key's rules is said where serve's other lines go.

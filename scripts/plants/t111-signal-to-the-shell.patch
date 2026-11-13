@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/line.rs
++++ b/crates/podssh-ssh/src/server/line.rs
+@@ -235,7 +235,7 @@
+         if group > 0 {
+             // SAFETY: kill has no memory effect; a group that ended gives ESRCH.
+             unsafe {
+-                libc::kill(-group, number);
++                libc::kill(group, number);
+             }
+         }
+     }

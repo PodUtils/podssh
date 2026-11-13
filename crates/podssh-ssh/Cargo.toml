@@ -72,6 +72,9 @@ signature = { version = "3", default-features = false }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }
+# serve's line discipline where no pty opens (T-111): the cooked mode of
+# PodUtils/podcrates' pod-term, the tag of every podcrates crate.
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
 
 [target.'cfg(windows)'.dependencies]
 # Security keys (T-229): the WebAuthn API of Windows (webauthn.dll), loaded

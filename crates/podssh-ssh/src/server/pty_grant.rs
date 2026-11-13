@@ -21,21 +21,31 @@ pub(super) struct Asked<'a> {
 /// once; nothing is kept for the next request.
 #[cfg(unix)]
 pub(super) fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>) -> bool {
-    use super::{pty, pty_child::Granted};
-    if open.started() || open.pty.is_some() {
+    use super::{line::LineGrant, pty, pty_child::Granted, PtyMode};
+    if open.started() || open.pty.is_some() || open.line.is_some() {
         return false;
     }
-    let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
-    let devpts = settings.devpts.unwrap_or(settings.ptmx.is_none());
-    let Ok(pair) = pty::open_with(&paths, devpts) else { return false };
-    let size = pty::size_of(asked.cols, asked.rows, asked.pix_width, asked.pix_height);
-    match Granted::new(pair, asked.term, size, asked.modes) {
-        Ok(granted) => {
-            open.pty = Some(granted);
-            true
+    if settings.pty != PtyMode::Line {
+        let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
+        let devpts = settings.devpts.unwrap_or(settings.ptmx.is_none());
+        if let Ok(pair) = pty::open_with(&paths, devpts) {
+            let size = pty::size_of(asked.cols, asked.rows, asked.pix_width, asked.pix_height);
+            if let Ok(granted) = Granted::new(pair, asked.term, size, asked.modes) {
+                open.pty = Some(granted);
+                return true;
+            }
         }
-        Err(_) => false,
     }
+    // No pty: serve is the line discipline (T-111), where the mode lets it.
+    let line = match settings.pty {
+        PtyMode::Line => true,
+        PtyMode::No => false,
+        PtyMode::Auto => settings.ptmx.is_none(),
+    };
+    if line {
+        open.line = Some(LineGrant::new(asked.term, asked.cols, asked.rows, asked.modes));
+    }
+    line
 }
 
 /// On Windows a pty request fails: serve runs no program there.
@@ -48,6 +58,9 @@ pub(super) fn grant_pty(_: &mut Open, _: &Settings, _: &Asked<'_>) -> bool {
 pub(super) fn resize_pty(open: &Open, cols: u32, rows: u32, pix_width: u32, pix_height: u32) {
     if let Some(granted) = open.pty.as_ref() {
         granted.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
+    }
+    if let Some(line) = open.line.as_ref() {
+        line.resize(cols, rows);
     }
 }
 

@@ -5465,6 +5465,7 @@ dependencies = [
  "pageant",
  "pkcs5",
  "pkcs8 0.11.0",
+ "pod-term",
  "pod-testkit",
  "podssh-ws",
  "proptest",
