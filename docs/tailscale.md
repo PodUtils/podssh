@@ -19,9 +19,11 @@ HTTPS. Build it only with `--features ts`; see [development.md](development.md).
   within the same limit, for the relay's DERP link to come up.
 - The operator adds node keys to the allowlist. This needs a Tailscale admin
   token and a deployment credential for the relay.
-- The live test with two nodes has never passed: T-106 wrote it, with DERP
-  in podssh's own relay role so that it waits for no operator (below), and
-  its runs wait for their merge (UNVERIFIED, 2026-11-13).
+- The live test with two nodes passes in CI: T-106 wrote it, with DERP
+  in podssh's own relay role so that it waits for no operator (below);
+  `ts-headscale.yml` run 43358611740 (2026-11-13) carried 1 MiB each way
+  through the role and 64 KiB through tailcat. The operator's own tailnet
+  waits for a session on the operator's machine.
 - The open work of `podssh ts`: T-106, the runs of that test, and the run on
   the operator's own tailnet ([TODO/ts.md](../TODO/ts.md)).
 
@@ -160,7 +162,8 @@ and DERP servers stay unmeasured (the ruling).
   `crates/podssh-cli/tests/ts_two_nodes.rs` against headscale: node A in the
   test's process, the binary as node B, pinned to the role on the loopback,
   1 MiB each way, then to tailcat's server of `PODSSH_TS_TWO_TAILCAT`, 64 KiB
-  (Q58); `ts-headscale.yml`'s job `two-nodes` runs it. Results: UNVERIFIED.
+  (Q58); `ts-headscale.yml`'s job `two-nodes` runs it. Results: both passed,
+  equal SHA-256 each way (run 43358611740, 2026-11-13).
 
 ## Rules
 

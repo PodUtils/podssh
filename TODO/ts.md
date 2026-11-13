@@ -253,7 +253,7 @@ current node key (`vendor/tailscale-rs/ts_control_serde/src/register.rs:92-97`).
 3. `TsNode::shutdown` logs out first when the node is ephemeral, in 5 s at most. `podssh ts` calls
    it at the end of each form, also after an error (`crates/podssh-cli/src/ts.rs`, lines 232-242 at
    `c17e64f`). Never
-   log out a node that is not ephemeral: its allowlist entry is lost (`docs/tailscale.md:167-168`).
+   log out a node that is not ephemeral: its allowlist entry is lost (`docs/tailscale.md:170-171`).
 4. Update `docs/tailscale.md` and `docs/STATUS.md:864` in the same commit.
 
 ## Decision
@@ -385,7 +385,7 @@ lines 176-207), against the manual (`crates/podssh-cli/src/man/facts.rs:46-57`),
 `docs/target-environment.md:93-96` and `SECURITY.md:175-183`. A URL with no port means 80 in podssh
 (`PodUtils/podssh:crates/podssh-ws/src/proxy.rs:114`) but 8080 in the fork (`vendor/tailscale-rs/ts_http_util/src/proxy.rs`, lines
 39-41 at `0b6f4b8`).
-Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:169-170`).
+Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:172-173`).
 
 ## Approach
 
@@ -399,7 +399,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
    print its credentials. The fork has one proxy for each process
    (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:224-239`), so apply `NO_PROXY` for each host in
    the new function.
-4. Update `crates/podssh-cli/src/flags.rs:366-367`, `docs/tailscale.md:169-170` and
+4. Update `crates/podssh-cli/src/flags.rs:366-367`, `docs/tailscale.md:172-173` and
    `docs/STATUS.md:864` in the same commit.
 
 Added by T-102 (2026-10-10): the checks of each mode before the start already take `--ts-proxy`,
@@ -776,7 +776,7 @@ host or from a sandbox.
 
 Read: the ignored test makes a new state file in the temporary directory and removes it
 (`crates/podssh-cli/tests/ts_behave.rs:228-255`); a new state file is a new node key
-(`docs/tailscale.md:167-168`). Its reason still names M5. On 2026-10-07, registration worked, no map
+(`docs/tailscale.md:170-171`). Its reason still names M5. On 2026-10-07, registration worked, no map
 came in 60 s, and only the operator can add a node key to the allowlist (`docs/tailscale.md:8-24`).
 
 Read: `podssh ts` has no form that accepts a connection (`crates/podssh-cli/src/ts.rs:272-276`), but
@@ -785,7 +785,7 @@ the fork can listen in its own network stack, with no socket of the host
 command line (`vendor/tailscale-rs/examples/tcp_echo/main.rs:24-28`), which podssh must not do. With
 the pin, each region's runner dials the relay
 (`vendor/tailscale-rs/ts_runtime/src/multiderp/uniderp.rs:333-340`), so two `relay` nodes meet there.
-Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:169-170`).
+Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:172-173`).
 
 ## Approach
 
@@ -973,7 +973,13 @@ its keys alone, so a plant that admits each key passed; the new test catches it)
   `PODSSH_TS_LIVE_STATE` (kept), and `PODSSH_TS_LIVE_RELAY` and `PODSSH_TS_LIVE_CONTROL_URL` where set;
   its reason names M10.
 
-What waits: the runs above; then, on the operator's machine (the tailnet's key in `.env/`, by its
+2026-11-13, after the repair of `ts_two_nodes`' timer (made inside the runtime, whose clock it needs; 68e0a07):
+`gh workflow run ts-headscale.yml --ref main -f tailcat=tc301a.ipn.dev`, run 43358611740: both jobs passed. `two-nodes`:
+the role on the loopback, 1048576 bytes each way, equal SHA-256; tailcat's `tc301a.ipn.dev`, 65536 bytes each way,
+equal SHA-256. `live`: `ts-headscale: 16 passed, 0 failed`, among them `ts.role.refused` (1008, exit 77, the role's
+line names the key) and `ts.role.ssh` (OpenSSH over `-W` pinned to `podssh relay serve`, 1 MiB each way).
+
+What waits: on the operator's machine (the tailnet's key in `.env/`, by its
 path alone), the test with `PODSSH_TS_TWO_KEY_FILE` and no control URL, and the repaired status test;
 Approach item 3's run of B from the box of `scripts/test_in_box.sh` and item 4's drop test of 5 min.
 
