@@ -1,0 +1,51 @@
+diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
+index 22de244..1137fdb 100644
+--- a/src/server/encrypted.rs
++++ b/src/server/encrypted.rs
+@@ -1078,6 +1078,19 @@ thread_local! {
+     static SIGNATURE_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+ }
+ 
++/// The flags byte of a security key's signature, which ssh-key keeps
++/// before the counter (u32) at the end of the signature's bytes; None for
++/// any other algorithm (podssh's patch, vendor/patches/russh/).
++fn sk_flags(sig: &Signature) -> Option<u8> {
++    match sig.algorithm() {
++        ssh_key::Algorithm::SkEd25519 | ssh_key::Algorithm::SkEcdsaSha2NistP256 => {
++            let bytes = sig.as_bytes();
++            bytes.len().checked_sub(5).and_then(|at| bytes.get(at)).copied()
++        }
++        _ => None,
++    }
++}
++
+ impl Encrypted {
+     async fn server_read_auth_request_pk<H: Handler + Send>(
+         &mut self,
+@@ -1221,6 +1234,7 @@ impl Encrypted {
+                                     let key = VerifiedPublicKey {
+                                         public_key: key,
+                                         algorithm: &algorithm,
++                                        sk_flags: sk_flags(&sig),
+                                     };
+                                     handler.auth_publickey(user, key).await?
+                                 }
+diff --git a/src/server/mod.rs b/src/server/mod.rs
+index fa279b5..fd1bba7 100644
+--- a/src/server/mod.rs
++++ b/src/server/mod.rs
+@@ -239,6 +239,14 @@ pub struct VerifiedPublicKey<'a> {
+     /// algorithm named in the request (`ssh-rsa`, `rsa-sha2-256`,
+     /// `ssh-ed25519`, ...).
+     pub algorithm: &'a ssh_key::Algorithm,
++    /// The flags byte of a security key's signature
++    /// (`sk-ssh-ed25519@openssh.com`, `sk-ecdsa-sha2-nistp256@openssh.com`,
++    /// OpenSSH's PROTOCOL.u2f), and None for any other key: bit 0 says the
++    /// user touched the key, bit 2 that the key verified the user. The
++    /// signature covers it, so it is the key's own word; russh checks none
++    /// of its bits, and a server that asks for a touch reads them here
++    /// (podssh's patch, vendor/patches/russh/).
++    pub sk_flags: Option<u8>,
+ }
+ 
+ /// Server handler. Each client will have their own handler.

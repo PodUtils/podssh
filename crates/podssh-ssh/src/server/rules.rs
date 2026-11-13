@@ -1,8 +1,10 @@
 //! What the options of a key line allow (T-114): whether the key may log in
-//! now and from where (`expiry-time=`, `from=`), and, once it did, whether
-//! a pty, a forward, or which program a request gets (`no-pty`,
-//! `no-port-forwarding`, `permitopen=`, `command=`). Each refusal is a line
-//! in words that names the option, for the client and for serve's log.
+//! now and from where (`expiry-time=`, `from=`), with which flags of a
+//! security key's signature (`no-touch-required`, `verify-required`, T-774),
+//! and, once it did, whether a pty, a forward, or which program a request
+//! gets (`no-pty`, `no-port-forwarding`, `permitopen=`, `command=`). Each
+//! refusal is a line in words that names the option, for the client and
+//! for serve's log.
 
 use std::net::IpAddr;
 
@@ -12,6 +14,16 @@ use crate::known_hosts::wildcard;
 /// OpenSSH's name of its SFTP server in the process: a forced command of
 /// that name serves SFTP, as sshd does.
 pub const INTERNAL_SFTP: &str = "internal-sftp";
+
+/// The bits of a security key's flags that sshd reads (OpenSSH's `sk-api.h`,
+/// `SSH_SK_USER_PRESENCE_REQD` and `SSH_SK_USER_VERIFICATION_REQD`).
+pub const SK_USER_PRESENCE: u8 = 0x01;
+pub const SK_USER_VERIFIED: u8 = 0x04;
+
+/// Why a security key's signature with no touch is refused.
+const NO_TOUCH: &str =
+    "the security key signed with no touch of the user (its flag of presence is clear), and the line does not say \
+     no-touch-required";
 
 /// What an authentication knows of its client.
 #[derive(Debug, Clone, Copy)]
@@ -76,6 +88,27 @@ impl Rules {
             }
         }
         Ok(())
+    }
+
+    /// Why a verified signature does not log in, or None: for a security
+    /// key (`sk` true), the flags that it signed, as sshd's
+    /// `userauth_pubkey` reads them after the signature. Bit 0 (the
+    /// touch) is needed unless `no-touch-required`; bit 2 (the user
+    /// verified) where `verify-required`. A security key's signature with
+    /// no flags (None) is read as all bits clear, so it never passes for
+    /// one with a touch.
+    pub fn sk_refusal(&self, sk: bool, flags: Option<u8>) -> Option<String> {
+        if !sk {
+            return None;
+        }
+        let flags = flags.unwrap_or(0);
+        if flags & SK_USER_PRESENCE == 0 && !self.no_touch_required {
+            return Some(NO_TOUCH.into());
+        }
+        if flags & SK_USER_VERIFIED == 0 && self.verify_required {
+            return Some("verify-required: the security key did not verify the user (no PIN, no finger)".into());
+        }
+        None
     }
 
     /// Why a pty is refused, or None.

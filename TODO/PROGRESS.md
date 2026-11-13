@@ -46,7 +46,7 @@ Read on 2026-11-13.
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now. Awaited: the tag with pod-term's mode that follows a termios (COORD-055).
-8. **Drafts.** None waits. Merged on 2026-11-13: T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** None waits. Merged on 2026-11-13: T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -86,8 +86,7 @@ item whenever it appears.
    (COORD-055, #232) for T-776. Answer each take with a COORD issue.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
-7. **Then the open work by its order** (below): T-774 (P2 defect: the touch of a security key in
-   serve), T-111 and T-113 (M5), T-085 (M4); then the P3 defects T-772 (M10), T-585 and T-598 (the
+7. **Then the open work by its order** (below): T-111 and T-113 (M5), T-085 (M4); then the P3 defects T-772 (M10), T-585 and T-598 (the
    `none` entries); then M10's P3 entries (T-611, T-695). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
@@ -125,7 +124,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 66 open, 28 partial, 10 blocked, 629 done.
+`TODO/INDEX.md` holds 733 entries: 65 open, 28 partial, 10 blocked, 630 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

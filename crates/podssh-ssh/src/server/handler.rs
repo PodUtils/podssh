@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use russh::keys::Algorithm;
 use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
@@ -224,9 +225,17 @@ impl russh::server::Handler for Served {
     }
 
     // The login name selects nothing: the key alone decides, and its line's
-    // rules hold for the whole connection.
+    // rules hold for the whole connection. A security key's signature must
+    // carry the flags that its line asks for (T-774), as sshd checks them:
+    // the line that admitted the key decides, and no later line is tried.
     async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
         let Some(rules) = self.admit(key.public_key) else { return Ok(Auth::reject()) };
+        let sk = matches!(key.public_key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256);
+        if let Some(why) = rules.sk_refusal(sk, key.sk_flags) {
+            let who = crate::known_hosts::fingerprint(key.public_key);
+            self.settings.say(&format!("key {who} refused: {why}"));
+            return Ok(Auth::reject());
+        }
         self.rules = Some(rules);
         self.who = crate::known_hosts::fingerprint(key.public_key);
         Ok(Auth::Accept)

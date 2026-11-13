@@ -5665,16 +5665,21 @@ gives up each capability of the process (T-698), before it reads a file.
     TCP socket (an inetd, or a socket of systemd, as `sshd -i` takes one);
     on a pipe, which a `ProxyCommand` and the relay give, no `from=`
     matches and the key is refused.
-  - `no-agent-forwarding`, `no-X11-forwarding`, `no-user-rc` and
-    `no-touch-required` change nothing: serve offers no agent, no X11 and
-    no `~/.ssh/rc`, and does not read the flags of a security key's
-    signature.
+  - `no-agent-forwarding`, `no-X11-forwarding` and `no-user-rc` change
+    nothing: serve offers no agent, no X11 and no `~/.ssh/rc`.
+  - A security key (`sk-ssh-ed25519@openssh.com`,
+    `sk-ecdsa-sha2-nistp256@openssh.com`) logs in only with a signature
+    whose flag of presence is set (the user touched the key), as sshd
+    checks it by default (T-774); `no-touch-required` takes one without,
+    and `touch-required` asks for it by name. `verify-required` also asks
+    for the flag that the key verified the user (a PIN or a finger).
+    `restrict` changes neither. A signature that falls short refuses the
+    login, and serve's stderr says which flag was missing.
 
   Refused by name: `environment=` (the names that a client may set are
   `--accept-env`'s), `permitlisten=` (serve listens for no `-R`),
   `tunnel=`, `principals=` and `cert-authority` (serve takes no
-  certificate), `touch-required` and `verify-required` (checks that serve
-  does not make). Of the lines of one key, the first whose `from=` and
+  certificate). Of the lines of one key, the first whose `from=` and
   `expiry-time=` let it in now holds for the connection, as in sshd. A
   key that lines name and refuse at login is said on serve's stderr with
   its fingerprint, the line and the option, as the client hears only

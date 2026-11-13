@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/handler.rs
++++ b/crates/podssh-ssh/src/server/handler.rs
+@@ -231,7 +231,7 @@
+     async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
+         let Some(rules) = self.admit(key.public_key) else { return Ok(Auth::reject()) };
+         let sk = matches!(key.public_key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256);
+-        if let Some(why) = rules.sk_refusal(sk, key.sk_flags) {
++        if let Some(why) = rules.sk_refusal(sk, key.sk_flags).filter(|_| false) {
+             let who = crate::known_hosts::fingerprint(key.public_key);
+             self.settings.say(&format!("key {who} refused: {why}"));
+             return Ok(Auth::reject());

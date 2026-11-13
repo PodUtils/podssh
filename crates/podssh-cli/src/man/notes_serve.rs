@@ -29,12 +29,15 @@ pub const SERVE: &[&str] = &[
      alone: addresses with * and ?, blocks such as 10.0.0.0/8, and ! to refuse; serve looks up no name, so \
      a host name matches nothing. serve knows an address only when its stdin is a TCP socket (as from \
      inetd): on a pipe, as from a ProxyCommand or the relay, no from= matches, and the key is refused. \
-     no-agent-forwarding, no-X11-forwarding, no-user-rc and no-touch-required change nothing (serve offers \
-     none of them). environment=, permitlisten=, tunnel=, principals=, cert-authority, touch-required, \
-     verify-required and any option that serve does not know make the line unused, named. Of the lines \
-     of one key, the first that lets it in now holds. Each refusal by a rule goes to the client (a forward \
-     refused as administratively prohibited, a pty or a command with its line on the channel's stderr) \
-     and to serve's stderr, with the key's fingerprint and the option; a key refused at login is said \
+     no-agent-forwarding, no-X11-forwarding and no-user-rc change nothing (serve offers none of them). A \
+     security key (sk-ssh-ed25519, sk-ecdsa-sha2-nistp256) logs in only with a signature whose flag of \
+     presence is set (the key was touched), as sshd checks it: no-touch-required takes one without, and \
+     verify-required also asks for the flag that the key verified the user (a PIN); restrict changes \
+     neither, and serve's stderr names the flag that was missing. environment=, permitlisten=, tunnel=, \
+     principals=, cert-authority and any option that serve does not know make the line unused, named. Of \
+     the lines of one key, the first that lets it in now holds. Each refusal by a rule goes to the client \
+     (a forward refused as administratively prohibited, a pty or a command with its line on the channel's \
+     stderr) and to serve's stderr, with the key's fingerprint and the option; a key refused at login is said \
      there alone, as the client hears Permission denied.",
     "The host key is --host-key FILE, else serve_host_ed25519_key in the cache (see FILES): made at the \
      first start, an Ed25519 key of mode 0600, and read at each later one, never overwritten; of two \

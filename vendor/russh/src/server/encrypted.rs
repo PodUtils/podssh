@@ -1078,6 +1078,19 @@ thread_local! {
     static SIGNATURE_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
 }
 
+/// The flags byte of a security key's signature, which ssh-key keeps
+/// before the counter (u32) at the end of the signature's bytes; None for
+/// any other algorithm (podssh's patch, vendor/patches/russh/).
+fn sk_flags(sig: &Signature) -> Option<u8> {
+    match sig.algorithm() {
+        ssh_key::Algorithm::SkEd25519 | ssh_key::Algorithm::SkEcdsaSha2NistP256 => {
+            let bytes = sig.as_bytes();
+            bytes.len().checked_sub(5).and_then(|at| bytes.get(at)).copied()
+        }
+        _ => None,
+    }
+}
+
 impl Encrypted {
     async fn server_read_auth_request_pk<H: Handler + Send>(
         &mut self,
@@ -1221,6 +1234,7 @@ impl Encrypted {
                                     let key = VerifiedPublicKey {
                                         public_key: key,
                                         algorithm: &algorithm,
+                                        sk_flags: sk_flags(&sig),
                                     };
                                     handler.auth_publickey(user, key).await?
                                 }

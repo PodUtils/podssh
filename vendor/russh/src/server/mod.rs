@@ -239,6 +239,14 @@ pub struct VerifiedPublicKey<'a> {
     /// algorithm named in the request (`ssh-rsa`, `rsa-sha2-256`,
     /// `ssh-ed25519`, ...).
     pub algorithm: &'a ssh_key::Algorithm,
+    /// The flags byte of a security key's signature
+    /// (`sk-ssh-ed25519@openssh.com`, `sk-ecdsa-sha2-nistp256@openssh.com`,
+    /// OpenSSH's PROTOCOL.u2f), and None for any other key: bit 0 says the
+    /// user touched the key, bit 2 that the key verified the user. The
+    /// signature covers it, so it is the key's own word; russh checks none
+    /// of its bits, and a server that asks for a touch reads them here
+    /// (podssh's patch, vendor/patches/russh/).
+    pub sk_flags: Option<u8>,
 }
 
 /// Server handler. Each client will have their own handler.

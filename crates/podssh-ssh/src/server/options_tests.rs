@@ -3,7 +3,7 @@
 
 use super::*;
 use crate::server::authorized::{parse_line, Admission, Authorized, Line};
-use crate::server::rules::{from_matches, Asked, Context, Plan};
+use crate::server::rules::{from_matches, Asked, Context, Plan, SK_USER_PRESENCE, SK_USER_VERIFIED};
 
 fn rules(field: &str) -> Rules {
     parse(field).unwrap_or_else(|why| panic!("{field}: {why}"))
@@ -35,14 +35,14 @@ fn the_examples_of_sshd_8_read_as_sshd_reads_them() {
     let game = rules(r#"restrict,pty,command="nethack""#);
     assert!(!game.no_pty, "pty after restrict turns it on again");
     assert!(game.no_port_forwarding);
-    assert_eq!(rules("no-touch-required"), Rules::default(), "asks for less than serve checks");
+    let waived = rules("no-touch-required");
+    assert_eq!(waived, Rules { no_touch_required: true, ..Rules::default() }, "takes a signature with no touch");
     let from = rules(r#"from="*.sales.example.net,!pc.sales.example.net""#);
     assert_eq!(from.from.as_deref(), Some("*.sales.example.net,!pc.sales.example.net"));
     // The examples that serve cannot honour refuse the line, named.
     for (field, named) in [
         (r#"permitlisten="localhost:8080",permitlisten="[::1]:22000""#, "permitlisten="),
         (r#"tunnel="0",command="sh /etc/netstart tun0""#, "tunnel="),
-        ("verify-required", "verify-required"),
         (r#"cert-authority,no-touch-required,principals="user_a""#, "cert-authority"),
         (r#"environment="PATH=/bin:/usr/bin""#, "environment="),
     ] {
@@ -99,7 +99,6 @@ fn a_malformed_or_unknown_option_refuses_the_line() {
         r#"permitopen="host:65536""#,
         r#"permitopen="[::1:22""#,
         r#"permitopen=":22""#,
-        "touch-required",
     ] {
         assert!(parse(field).is_err(), "{field} must refuse the line");
     }
@@ -218,4 +217,32 @@ fn a_whole_line_and_the_first_line_that_admits_holds() {
         Admission::Refused(why) => assert!(why[0].starts_with("keys, line 1: expiry-time"), "{why:?}"),
         other => panic!("{other:?}"),
     }
+}
+
+#[test]
+fn the_flags_of_a_security_key_are_read_as_sshd_reads_them() {
+    let (touch, verified) = (SK_USER_PRESENCE, SK_USER_VERIFIED);
+    let plain = Rules::default();
+    assert_eq!(plain.sk_refusal(false, None), None, "a key that is no security key signs no flags");
+    assert_eq!(plain.sk_refusal(true, Some(touch)), None);
+    let why = plain.sk_refusal(true, Some(0)).expect("no touch is refused by default");
+    assert!(why.contains("no touch") && why.contains("no-touch-required"), "{why}");
+    assert!(plain.sk_refusal(true, None).is_some(), "no flags read as none set");
+    assert!(plain.sk_refusal(true, Some(verified)).is_some(), "a PIN is no touch");
+    // touch-required is the default; its negation waives the touch alone.
+    assert_eq!(rules("touch-required"), plain);
+    let waived = rules("no-touch-required");
+    assert_eq!(waived.sk_refusal(true, Some(0)), None);
+    assert!(rules("no-touch-required,touch-required").sk_refusal(true, Some(0)).is_some(), "the last wins");
+    // restrict leaves both, as in sshd.
+    assert!(rules("restrict").sk_refusal(true, Some(0)).is_some());
+    let verify = rules("verify-required");
+    assert!(verify.verify_required);
+    let why = verify.sk_refusal(true, Some(touch)).expect("a touch alone is refused");
+    assert!(why.starts_with("verify-required"), "{why}");
+    assert_eq!(verify.sk_refusal(true, Some(touch | verified)), None);
+    assert!(verify.sk_refusal(true, Some(verified)).is_some(), "a verified user with no touch");
+    assert_eq!(rules("verify-required,no-touch-required").sk_refusal(true, Some(verified)), None);
+    assert!(!rules("verify-required,no-verify-required").verify_required, "the last wins");
+    assert_eq!(rules("VERIFY-REQUIRED"), verify, "in any case");
 }

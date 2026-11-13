@@ -5,7 +5,9 @@
 //! reason and the command runs on pipes; `permitopen=` lets one target
 //! through and refuses another with code 1 and its reason; `restrict`
 //! refuses a pty and a forward; a past `expiry-time=` and a `from=` with no
-//! client address refuse the login, and serve says why. The parser's own
+//! client address refuse the login, and serve says why; a security key's
+//! signature with no touch is refused unless `no-touch-required`, and one
+//! with no verified user where `verify-required` (T-774). The parser's own
 //! tests are the unit tests of `server::options`; the same against
 //! OpenSSH's client: `podssh-cli`'s `tests/serve_options_openssh.rs`.
 
@@ -15,10 +17,13 @@ use std::ffi::OsString;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use aws_lc_rs::signature::{Ed25519KeyPair, KeyPair};
 use podssh_ssh::keygen::{self, KeyKind};
-use podssh_ssh::russh::keys::{PrivateKey, PrivateKeyWithHashAlg};
+use podssh_ssh::russh::keys::agent::AgentIdentity;
+use podssh_ssh::russh::keys::{HashAlg, PrivateKey, PrivateKeyWithHashAlg, PublicKey};
 use podssh_ssh::russh::{self, client, ChannelId, ChannelMsg, ChannelOpenFailure};
 use podssh_ssh::server::{self, Authorized, Say, Settings};
+use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -300,4 +305,120 @@ async fn from_needs_an_address_that_matches() {
     assert!(passed, "an address in the block");
     let (_handle, passed) = login(r#"from="10.0.0.0/8""#, Settings { peer, ..settings(&heard) }).await;
     assert!(!passed, "an address out of it");
+}
+
+/// The application of the test's security key, as `ssh-keygen -t ed25519-sk`
+/// names it by default.
+const APPLICATION: &str = "ssh:";
+const SK_ED25519: &str = "sk-ssh-ed25519@openssh.com";
+/// The flags of a signature (OpenSSH's PROTOCOL.u2f): bit 0 the touch, bit
+/// 2 the user verified.
+const TOUCHED: u8 = 0x01;
+const VERIFIED: u8 = 0x04;
+
+fn put_string(out: &mut Vec<u8>, bytes: &[u8]) {
+    out.extend_from_slice(&u32::try_from(bytes.len()).unwrap().to_be_bytes());
+    out.extend_from_slice(bytes);
+}
+
+/// A security key in software whose signatures carry the flags that the
+/// test chooses: it signs as a FIDO device signs, the SHA-256 of the
+/// application, the flags, the counter and the SHA-256 of the message, so
+/// the server's check of the signature passes whatever the flags say.
+struct SoftSk {
+    pair: Ed25519KeyPair,
+    flags: u8,
+}
+
+impl SoftSk {
+    fn new(flags: u8) -> SoftSk {
+        SoftSk { pair: Ed25519KeyPair::generate().expect("an Ed25519 key"), flags }
+    }
+
+    /// The key as SSH holds it: the type, the point and the application.
+    fn public(&self) -> PublicKey {
+        let mut blob = Vec::new();
+        put_string(&mut blob, SK_ED25519.as_bytes());
+        put_string(&mut blob, self.pair.public_key().as_ref());
+        put_string(&mut blob, APPLICATION.as_bytes());
+        PublicKey::from_bytes(&blob).expect("an sk-ssh-ed25519 key")
+    }
+}
+
+impl russh::Signer for SoftSk {
+    type Error = russh::SendError;
+
+    /// `to_sign`, then its signature as an agent gives it, as podssh's own
+    /// signer of a security key answers.
+    async fn auth_sign(
+        &mut self,
+        _key: &AgentIdentity,
+        _hash_alg: Option<HashAlg>,
+        mut to_sign: Vec<u8>,
+    ) -> Result<Vec<u8>, Self::Error> {
+        let counter: u32 = 7;
+        let mut signed = Sha256::digest(APPLICATION.as_bytes()).to_vec();
+        signed.push(self.flags);
+        signed.extend_from_slice(&counter.to_be_bytes());
+        signed.extend_from_slice(&Sha256::digest(&to_sign));
+        let signature = self.pair.sign(&signed);
+        let mut blob = Vec::new();
+        put_string(&mut blob, SK_ED25519.as_bytes());
+        put_string(&mut blob, signature.as_ref());
+        blob.push(self.flags);
+        blob.extend_from_slice(&counter.to_be_bytes());
+        put_string(&mut to_sign, &blob);
+        Ok(to_sign)
+    }
+}
+
+/// Whether a security key whose signature carries `flags` logs in, where
+/// its one line is `OPTIONS KEY`.
+async fn sk_login(options: &str, flags: u8, heard: &Heard) -> bool {
+    let (near, far) = tokio::io::duplex(1 << 22);
+    let mut sk = SoftSk::new(flags);
+    let public = sk.public();
+    let line = format!("{options} {}", public.to_openssh().unwrap());
+    let mut authorized = Authorized::new();
+    let read = authorized.add_text(&line);
+    assert_eq!((read.added, read.bad.len()), (1, 0), "{line}: {read:?}");
+    tokio::spawn(server::serve_with(far, key(), Arc::new(authorized), Arc::new(settings(heard))));
+    let client = Client { refusals: Arc::default() };
+    let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, client).await.unwrap();
+    let call = handle.authenticate_publickey_with("anyone", public, None, &mut sk);
+    let passed = tokio::time::timeout(LIMIT, call).await.expect("the login ends in time").unwrap().success();
+    drop(handle);
+    passed
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_security_key_that_signs_with_no_touch_is_refused_and_serve_says_why() {
+    let heard = Heard::default();
+    assert!(sk_login("", TOUCHED, &heard).await, "a signature with the touch logs in");
+    assert!(!sk_login("", 0, &heard).await, "a signature with no touch logs in");
+    let said = heard.lock().unwrap().join("\n");
+    assert!(said.contains("refused") && said.contains("no touch"), "{said}");
+    // A line may ask for the touch by name too; that is the default.
+    assert!(!sk_login("touch-required", 0, &heard).await, "touch-required takes no touch");
+    // restrict leaves the touch asked for, as in sshd.
+    assert!(!sk_login("restrict", 0, &heard).await, "restrict waives the touch");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn no_touch_required_takes_a_signature_with_no_touch() {
+    let heard = Heard::default();
+    assert!(sk_login("no-touch-required", 0, &heard).await, "no-touch-required refuses a signature with no touch");
+    assert!(sk_login("no-touch-required", TOUCHED, &heard).await, "and one with the touch");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn verify_required_refuses_a_touch_with_no_verified_user() {
+    let heard = Heard::default();
+    assert!(!sk_login("verify-required", TOUCHED, &heard).await, "verify-required takes a touch alone");
+    let said = heard.lock().unwrap().join("\n");
+    assert!(said.contains("refused") && said.contains("verify-required"), "{said}");
+    assert!(sk_login("verify-required", TOUCHED | VERIFIED, &heard).await, "a touch with the user verified");
+    // The two are apart: no touch with the user verified, as sshd reads them.
+    assert!(!sk_login("verify-required", VERIFIED, &heard).await, "a verified user with no touch");
+    assert!(sk_login("no-touch-required,verify-required", VERIFIED, &heard).await, "with no-touch-required");
 }

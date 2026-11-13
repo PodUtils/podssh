@@ -1,6 +1,6 @@
 --- a/crates/podssh-ssh/src/server/options.rs
 +++ b/crates/podssh-ssh/src/server/options.rs
-@@ -101,7 +101,6 @@
+@@ -108,7 +108,6 @@
          rules.no_port_forwarding = true;
          rules.no_agent_forwarding = true;
          rules.no_x11_forwarding = true;

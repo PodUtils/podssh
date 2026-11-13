@@ -11954,7 +11954,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:2073` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:2074` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -14370,7 +14370,9 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   in 937 ms by its page's signed link, temp.sh in 1,017 ms; litterbox answered 412 and 0x0.st was busy, the two
   that the catalog now has off by default. The live test then took each host of the kind; it now takes those
   that the road takes unasked, as a user with no list meets them, names each left out, and runs another only
-  where `PODSSH_FILEHOSTS` (the workflow's input `hosts`) names it. Next: the live run again, to see 2 of 2.
+  where `PODSSH_FILEHOSTS` (the workflow's input `hosts`) names it. Again from Actions at `9a3d377` (run
+  43495682726): passed, tmpfiles.org 32 KiB up, down and opened in 1,372 ms, temp.sh in 1,385 ms, litterbox and
+  0x0.st named and left out.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.
@@ -14928,7 +14930,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1138` says "a host of T-565's module, T-743", and `docs/carriers.md:1024` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:2073` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:2074` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach

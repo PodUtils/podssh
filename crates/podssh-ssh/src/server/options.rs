@@ -8,8 +8,9 @@
 //! but cannot honour, and a malformed one each make the whole line an
 //! error: the caller never uses the key without the option. Accepted with
 //! no change: `no-agent-forwarding`, `no-X11-forwarding` and `no-user-rc`
-//! (serve offers no agent, no X11 and runs no `~/.ssh/rc`), and
-//! `no-touch-required`, which asks for less than serve checks.
+//! (serve offers no agent, no X11 and runs no `~/.ssh/rc`). The flags of a
+//! security key's signature (`no-touch-required`, `verify-required`, T-774)
+//! are checked at login, as sshd checks them (`Rules::sk_refusal`).
 
 use std::net::IpAddr;
 
@@ -31,6 +32,12 @@ pub struct Rules {
     pub from: Option<String>,
     /// `expiry-time=`: seconds since 1970, after which the key is refused.
     pub expiry: Option<i64>,
+    /// `no-touch-required`: a security key's signature is taken without
+    /// the user's touch (bit 0 of its flags); sshd asks for it otherwise.
+    pub no_touch_required: bool,
+    /// `verify-required`: a security key's signature must say that the key
+    /// verified the user (bit 2 of its flags: a PIN or a finger).
+    pub verify_required: bool,
 }
 
 /// One `permitopen` target: a literal host (`*` for any) and a port (None
@@ -120,16 +127,15 @@ fn one<'a>(at: &'a str, rules: &mut Rules) -> Result<&'a str, String> {
         rules.no_x11_forwarding = !on;
         return Ok(rest);
     }
-    // serve does not read the flags of a security key's signature: a line
-    // that asks for a touch or a PIN asks for a check that serve does not
-    // make, and one that waives it asks for nothing.
+    // The flags of a security key's signature, checked at login as sshd
+    // checks them; `restrict` leaves both, as in sshd.
     if let Some((rest, on)) = flag(at, "touch-required", true) {
-        let why = "touch-required: serve does not check the touch of a security key";
-        return if on { Err(why.into()) } else { Ok(rest) };
+        rules.no_touch_required = !on;
+        return Ok(rest);
     }
     if let Some((rest, on)) = flag(at, "verify-required", true) {
-        let why = "verify-required: serve does not check the PIN of a security key";
-        return if on { Err(why.into()) } else { Ok(rest) };
+        rules.verify_required = on;
+        return Ok(rest);
     }
     if let Some((rest, on)) = flag(at, "pty", true) {
         rules.no_pty = !on;

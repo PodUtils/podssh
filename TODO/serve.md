@@ -112,9 +112,9 @@ on T-698.
   through `[patch.crates-io]` of the workspace (`Cargo.toml:216`). Its server module is still built
   on each target but wasm (`vendor/russh/src/lib_inner.rs:69-70`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
-  `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-243`); a request handler that does not answer
-  still sends no reply (`vendor/russh/src/server/mod.rs:680-685`), and a channel request that russh does
-  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1850-1854`).
+  `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
+  still sends no reply (`vendor/russh/src/server/mod.rs:688-693`), and a channel request that russh does
+  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1864-1868`).
 - "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
   the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
   `crates/podssh-relay/tests/devtunnel.rs:19`).
@@ -273,15 +273,15 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `4c98f8b`:
 
 - russh is 0.65.0, built from `vendor/russh` (T-107's Correction). `env_request`, `shell_request` and
-  `exec_request` are at `vendor/russh/src/server/mod.rs:652-724`, and still answer nothing by
-  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1506-1524`,
+  `exec_request` are at `vendor/russh/src/server/mod.rs:660-732`, and still answer nothing by
+  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1520-1538`,
   into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:120`, 100). Each channel
   request goes to that queue too before the handler sees it, `env` among them
-  (`vendor/russh/src/server/encrypted.rs:1731-1742`): so a channel that nothing reads stalls the
+  (`vendor/russh/src/server/encrypted.rs:1745-1756`): so a channel that nothing reads stalls the
   connection with no data at all, after 100 `env` requests, and the task that reads a channel
   starts at its open, not at its `exec` (Approach item 1).
 - russh's server adjusts a channel's window when the data arrives, not when it is read
-  (`vendor/russh/src/server/encrypted.rs:1495-1505`): no window of a channel apart holds a client
+  (`vendor/russh/src/server/encrypted.rs:1509-1519`): no window of a channel apart holds a client
   back. The bytes for a child's stdin wait in a queue of 128 messages (about 4 MiB) of their own,
   written by a task of their own, which drains the rest after a broken pipe; past that queue the
   connection waits. The window of each channel apart is T-118's.
@@ -619,8 +619,8 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `32bf8af`:
 
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `pty_request` and
-  `window_change_request` are at `vendor/russh/src/server/mod.rs:582-594` and
-  `vendor/russh/src/server/mod.rs:768-778`, and both still answer nothing by default. A
+  `window_change_request` are at `vendor/russh/src/server/mod.rs:590-602` and
+  `vendor/russh/src/server/mod.rs:776-786`, and both still answer nothing by default. A
   `window-change` asks for no reply, so the handler sends none.
 - The client's table of modes was at `crates/podssh-ssh/src/terminal/unix.rs` lines 86-163 at
   `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
@@ -909,7 +909,7 @@ the entry joins the work order by its priority.
   russh-sftp and russh) becomes a direct dependency for the codec's buffer type; the size cost is
   measured on the release binary.
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `subsystem_request` is at
-  `vendor/russh/src/server/mod.rs:737-744`, and its default sends no reply, so the handler answers
+  `vendor/russh/src/server/mod.rs:745-752`, and its default sends no reply, so the handler answers
   each name (success for `sftp`, failure for each other).
 - russh-sftp's `Channel::into_stream` (Approach item 2) does not fit serve: each session channel is
   split at its open, and a task reads it from then on (T-108, `crates/podssh-ssh/src/server/channel.rs`).
@@ -990,10 +990,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:501`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:502`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:509`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:510`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:42-49`).
@@ -1226,7 +1226,8 @@ Merged, built and run by the main session the same day:
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,827 passed, 0 failed.
 
 Found, not repaired here: serve does not check the user-presence flag of a security key's signature, which sshd
-checks by default (Decision): T-774.
+checks by default (Decision): T-774. Since T-774's draft, `touch-required` and `verify-required` no longer refuse
+their line: serve checks the flags at login, as sshd does (T-774's Decision).
 
 Left after the merge: `cargo todo remap` on each cited file that the draft changed
 (`crates/podssh-ssh/src/server/authorized.rs`, `crates/podssh-ssh/src/server/handler.rs`,
@@ -1677,7 +1678,7 @@ Correction):
   1 GiB between the child's stdout and its channel (`t118-read-ahead`).
 - The server opens a window on arrival (`vendor/russh/src/session.rs:305`, `adjust_window_size`, which
   its data path calls), and gives each data message to the kept `Channel` with a send that waits
-  (`vendor/russh/src/server/encrypted.rs:1520`). So Approach item 4 is measured by reading: a child
+  (`vendor/russh/src/server/encrypted.rs:1534`). So Approach item 4 is measured by reading: a child
   that reads nothing fills the pipe (64 KiB), serve's queue of its stdin (128 messages, T-108), and
   russh's queue of the channel (100), then russh's loop waits in that send, inside its handling of a
   packet, and serves no other channel of the connection. The Decision repairs it in russh rather than
@@ -2242,7 +2243,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:501`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:502`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:238-240`).
@@ -2298,7 +2299,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:464`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:465`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2316,10 +2317,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:500` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:464`, `docs/STATUS.md:484`),
+- `docs/STATUS.md:501` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:465`, `docs/STATUS.md:485`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:462` is `docs/STATUS.md:464`.
+  The Prove's `docs/STATUS.md:463` is `docs/STATUS.md:465`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:224`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2378,10 +2379,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-127`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:501`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:502`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:480`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:481`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2465,8 +2466,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:500`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:479`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:501`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:480`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2704,12 +2705,12 @@ Read at `2042200`:
 - The head of this file said "No server code exists yet." (T-107 changes it), and T-107's step 2 asks russh for
   `TODO/serve.md:43-44`, which says "no inactivity cut (russh: 600 s)".
 - russh bounds the client's version line alone with its `inactivity_timeout`:
-  `vendor/russh/src/server/mod.rs:1154` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
+  `vendor/russh/src/server/mod.rs:1162` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
   and the key exchange and the login run in the session that
-  `vendor/russh/src/server/mod.rs:1144` spawns.
+  `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:859-863`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2187-2188` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2188-2189` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
@@ -2946,7 +2947,7 @@ Items 1 to 4 start now. Item 5 waits for podcrates T-102 (`pod-unit`) and its re
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2969,6 +2970,39 @@ or after it by a hook of `vendor/russh` or `vendor/ssh-key`, a patch beside the 
 bit 0 clear unless the key's line says `no-touch-required`, with the reason on serve's stderr; take
 `verify-required` where bit 2 (verified) is set. The options of T-114 then mean what sshd's do.
 
+## Decision
+
+2026-11-13, made with the draft:
+
+- **Where the flags are read: a hook of russh, `VerifiedPublicKey::sk_flags`** (a new patch,
+  `vendor/patches/russh/0010-sk-flags.patch`). russh decodes the signature (`ssh_key::Signature`, whose bytes for
+  an sk algorithm end with the flags byte and the counter, as ssh-key's `Decode` appends them), verifies it over
+  the flags, and then calls `Handler::auth_publickey` with the key and the algorithm alone. The patch puts the
+  flags byte of the signature it just verified into the struct that it passes; the struct is `#[non_exhaustive]`
+  and built by russh alone, so no caller changes, and the flags that serve reads are the ones that the key signed.
+  Lost:
+  - reading the signature blob of the `publickey` request before russh's check: the handler never sees the
+    packet, so it would take a hook of its own all the same, and the flags read there would not yet be proven;
+  - a hook in ssh-key (a `Signature::sk_flags()` or a check in its `Verifier`): ssh-key already keeps the byte
+    where any caller can read it, and a check inside the verifier knows no key line, so it could not honour
+    `no-touch-required`;
+  - refusing every sk key at login until a hook exists: it would refuse what sshd takes.
+- **The line that decides**, as sshd's `userauth_pubkey`: the options of the line that admitted the key (the
+  first that lets it in now, T-114) hold; a signature that falls short of them refuses the login, and no later
+  line of the same key is tried. sshd reads the flags after `user_key_allowed` chose the line, the same way. Lost:
+  trying the next line (a second line with `no-touch-required` would then waive the first's touch, which sshd
+  does not do).
+- **The meaning of each option**, as OpenSSH's `auth-options.c`: `touch-required` is the default (a line may name
+  it; `no-touch-required` waives it, and of two the last holds); `verify-required` asks for bit 2 and
+  `no-verify-required` takes it back; `restrict` changes neither. A security key's signature whose flags could
+  not be read is read as no bit set, so it fails closed. The reason goes to serve's stderr with the key's
+  fingerprint ("refused: the security key signed with no touch ... no-touch-required", or "verify-required:
+  ..."), and the client hears `Permission denied (publickey)`, as for each other refusal at login (T-114).
+- **The test's key** is a security key in software in the test itself (an Ed25519 key of aws-lc-rs that signs
+  the hash of the application, the flags, the counter and the hash of the message, as a FIDO device does), so
+  each flag is chosen; podssh's own `sk::soft` is private to the crate. Against OpenSSH, with a real device, no
+  test is possible here: no device, and OpenSSH's client sets the flags that the device gives.
+
 ## Prove
 
 ```sh
@@ -2977,6 +3011,42 @@ cargo test -p podssh-ssh --test serve_options -- touch
 
 A login whose sk signature has the flag of presence clear is refused, and taken with `no-touch-required`; a plant
 that skips the check fails the test.
+
+## Done
+
+Done 2026-11-13, merged from the draft of the branch `draft-t774`, built and tested by the main session:
+
+- russh: `VerifiedPublicKey::sk_flags`, the flags byte of a verified sk signature
+  (`vendor/patches/russh/0010-sk-flags.patch`, applied to `vendor/russh/src/server/mod.rs` and
+  `vendor/russh/src/server/encrypted.rs`; its row in `vendor/README.md`, and the count in `AGENTS.md`'s map).
+- serve: `Rules::no_touch_required` and `Rules::verify_required` read from the line
+  (`crates/podssh-ssh/src/server/options.rs`; `touch-required` and `verify-required` no longer refuse it);
+  `Rules::sk_refusal` (`crates/podssh-ssh/src/server/rules.rs`); `auth_publickey` refuses a signature that falls
+  short, with the reason on serve's stderr (`crates/podssh-ssh/src/server/handler.rs`).
+- Tests: the unit test `the_flags_of_a_security_key_are_read_as_sshd_reads_them` and the changed examples
+  (`crates/podssh-ssh/src/server/options_tests.rs`); three tests of `crates/podssh-ssh/tests/serve_options.rs`
+  whose names hold `touch`, with a security key in software that signs with chosen flags.
+- The manual's note of serve and `docs/cli.md` ("The options of a key line"); a row of `docs/STATUS.md`; the plant
+  `t774-touch-unchecked`; the hunks of the plants `t114-forced-command-ignored` and `t114-restrict-keeps-pty` moved
+  to their new lines.
+
+Results:
+
+- `cargo test -p podssh-ssh --test serve_options -- touch`: 3 passed (a software key of the test that signs with
+  chosen flags: no touch refused, taken with `no-touch-required`; `verify-required` with bit 2 clear refused).
+- `cargo test -p podssh-ssh --lib server::`: 53 passed.
+- `cargo test -p podssh-ssh --test serve_options --test serve_auth`: 11 and 7 passed.
+- `cargo test -p podssh-cli --test serve_options_openssh` against OpenSSH 9.6p1's client: 5 passed.
+- `cargo test -p podssh-cli --lib man`: 100 passed; `--test man_page --test man_flag_parity --test man_json`:
+  6, 4 and 11 passed.
+- `sh scripts/plant-each.sh --here t774-touch-unchecked`: caught; `t114-forced-command-ignored` and
+  `t114-restrict-keeps-pty` still caught.
+- Clippy as the gate runs it on `x86_64-unknown-linux-gnu` and `-musl`: clean; rustfmt: clean; `cargo check
+  --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli --all-targets`: clean.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,849 passed, none failed.
+
+The citations of each file that the draft changed were moved by `cargo todo remap` at the merge, and the root
+`Cargo.toml`'s comment of russh's patches counts ten.
 
 # T-775: `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed
 

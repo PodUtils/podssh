@@ -1,0 +1,6 @@
+# T-774: podssh serve takes a security key's signature whatever its flags say,
+# so a key that signs with no touch logs in; the test of the touch must fail.
+ENTRY=T-774
+GROUP=cli-tests
+EXPECT='test a_security_key_that_signs_with_no_touch_is_refused_and_serve_says_why \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_options -- a_security_key_that_signs_with_no_touch_is_refused_and_serve_says_why'
