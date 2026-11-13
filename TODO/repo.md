@@ -5810,6 +5810,10 @@ new, and `judged` of `crates/podssh-cli/src/channel.rs` takes it beside `Handsha
 `cargo clippy --workspace --all-targets`: clean; `cargo test --workspace --no-fail-fast`: 3948 passed, 0 failed, 94
 ignored.
 
+2026-11-13, podcrates `v0.39.0` (COORD-077, PodUtils/podcrates#137): each pin moved, no change for podssh.
+`cargo clippy --workspace --all-targets`: clean; `cargo test --workspace --no-fail-fast`: 3982 passed, 0 failed, 94
+ignored.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
