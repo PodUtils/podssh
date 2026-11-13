@@ -1,0 +1,6 @@
+# T-114: the parser's restrict leaves the pty on, so a restricted key gets a
+# pty; the test of restrict must fail.
+ENTRY=T-114
+GROUP=cli-tests
+EXPECT='test restrict_refuses_a_pty_and_a_forward \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_options -- restrict_refuses_a_pty_and_a_forward'

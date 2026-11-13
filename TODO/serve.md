@@ -982,10 +982,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:494`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:495`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:502`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:503`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1043,7 +1043,7 @@ hardened service); GitHub #19 (slingshot: a key for each client).
 **Milestone:** backlog
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1090,10 +1090,52 @@ of commands is easy to pass with shell syntax (`cmd; other`), while
 `environment=` and `permitlisten=` stay refused until a need is recorded: the
 first sets variables that T-108 filters, and the second needs a listener.
 
+2026-11-13, made with the draft:
+
+- **`from=` on a stream with no address.** serve takes the client's address from its stdin alone,
+  where stdin is a TCP socket (`getpeername`, as `sshd -i` under an inetd takes it); on a pipe, which
+  a ProxyCommand and the relay give, it has none, and no `from=` matches: the key is refused, and
+  serve's stderr says why. A pattern is matched as sshd's `match_host_and_ip` with `UseDNS no` (its
+  default): an address with `*` and `?`, a CIDR block, `!` that refuses whatever else matched; a host
+  name matches nothing, as serve looks up no name. Lost: `SSH_CONNECTION` of serve's environment
+  (whoever starts serve sets it: no fact about the client); `from=` that always matches where no
+  address is known (fails open: the key gets in from anywhere); refusing the line at the read (it
+  would also refuse the key where a socket gives an address, and T-124's listener will).
+- **A forced command and the `sftp` subsystem**, as sshd's `do_exec`: the forced command runs in
+  place of the subsystem too, with `SSH_ORIGINAL_COMMAND=internal-sftp` (sshd sets the subsystem's
+  command; serve's SFTP server is in the process, as `internal-sftp` is). A forced `internal-sftp`
+  serves SFTP and refuses a command or a shell ("this key is for SFTP alone", as sshd's
+  `SUBSYSTEM_INT_SFTP_ERROR`); with arguments (`-R`, `-d`) it refuses SFTP too, as serve's SFTP
+  server takes none and would serve more than the line allows. Lost: ignoring the arguments (fails
+  open), running nothing for the subsystem (sshd runs the command).
+- **`SSH_ORIGINAL_COMMAND` belongs to the forced command alone**: a client's `env` request for it is
+  refused whatever `--accept-env` says, and serve's own (serve under another sshd's forced command)
+  never reaches a child. A wrapper decides by that variable; a client that sets it would choose the
+  wrapper's branch.
+- **The flags of a security key.** serve does not read the flags of a security key's signature
+  (russh verifies through ssh-key, whose `make_sk_signed_data` in `vendor/ssh-key/src/signature.rs`
+  signs over them and checks none). So `touch-required` and `verify-required` ask for a check that
+  serve does not make, and refuse the line; `no-touch-required` asks for less, and changes nothing.
+- **Where a refusal is said.** A request that a rule refuses: on the channel (its stderr line, or
+  the reason of a refused forward with code 1) and on serve's stderr with the key's fingerprint and
+  the option. A key that lines name and refuse at login: on serve's stderr alone, with the line and
+  the option; the client hears `Permission denied (publickey)`, as from sshd. Lost: a banner with the
+  reason, which would tell each client that tries a key whether that key is listed.
+- **`--authorized-key` takes a line with options** as a file does; one that serve cannot use is a
+  usage error (64) there, as the command line is the operator's own typing, while a file's line is
+  passed over and said. A refused line never refuses the start: the start needs one key that is used.
+
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_options
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_options --test serve_auth --test serve_exec --test serve_forward --test serve_pty --test serve_sftp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_options_openssh --test serve_openssh --test serve_forward_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_flag_parity --test man_json
+sh scripts/plant-each.sh --here t114-forced-command-ignored
+sh scripts/plant-each.sh --here t114-restrict-keeps-pty
 sh scripts/dev.sh check
 ```
 
@@ -1116,6 +1158,74 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-13. The Premise and the Approach, read again at `97d6fac`:
+
+- T-107 to T-112 are partial, not done: each is merged with its native tests passed, and waits for
+  the build image (T-251) or a later step. The server that this entry needs exists
+  (crates/podssh-ssh/src/server/), so the draft starts on it.
+- Premise item 1 holds: `crates/podssh-ssh/src/server/authorized.rs` counted each line with options
+  and used none of them ("T-114 reads them").
+- Premise item 2 holds at `crates/podssh-ssh/src/known_hosts.rs:274-297`, but `from=` does not reuse
+  `matches`: that function matches host names with no CIDR block (a `from=` pattern may be one) and
+  reads hashed names (a `from=` list has none). The draft matches with the same `wildcard` and a
+  block of its own (`crates/podssh-ssh/src/server/rules.rs`).
+- Premise item 3's citation of `docs/relay.md` moved: those lines now hold the rank of the hosts and
+  the open questions. Its fact holds: on the reverse road the stream comes from the relay, and with
+  `--stdio` it is a pipe, which has no peer address either. Approach item 3 reads: no address, no
+  match; an address where stdin is a TCP socket (Decision), as well as T-124's listener.
+- Approach item 1's "skipped with a log line": at the start, each line that is not used is said on
+  serve's stderr with its number and why (the option named), as T-107 says a line that is no key.
+- Approach item 2 adds `no-user-rc` and `no-touch-required` to the options taken with no change, and
+  item 4 adds `touch-required` and `verify-required` to those refused by name (Decision). sshd(8)
+  also documents them, and a line that has one must not be refused as unknown nor used without it.
+- The Prove: the parser's tests, sshd(8)'s examples among them, are unit tests of the library
+  (`server::options`, `crates/podssh-ssh/src/server/options_tests.rs`), as they test private parts;
+  crates/podssh-ssh/tests/serve_options.rs is russh's client against the effects. "In the gate,
+  OpenSSH" is the CLI crate's test crates/podssh-cli/tests/serve_options_openssh.rs, as T-107 to T-112
+  made theirs, run where the host has OpenSSH's client. Two plants: a forced command ignored (the
+  property that a wrapper of `command=` relies on) and a `restrict` that leaves the pty on (the
+  Prove's own).
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t114` (no build, no test run): the parser of the
+options in crates/podssh-ssh/src/server/options.rs (OpenSSH's `sshauthopt_parse`, its quoting and its
+order; each unknown or unhonoured option refuses the line, named) with its unit tests in
+crates/podssh-ssh/src/server/options_tests.rs; the rules in crates/podssh-ssh/src/server/rules.rs
+(`expiry-time=`, `from=` with CIDR blocks and negation, `no-pty`, `no-port-forwarding`,
+`permitopen=`, the plan of a forced command and of `internal-sftp`); `authorized.rs` keeps each line
+with its rules, and the first line of a key that lets it in holds; the handler takes the rules at the
+login and applies them at each pty, forward, exec, shell and sftp request, each refusal said on the
+channel and on serve's stderr (`Settings::say`); `SSH_ORIGINAL_COMMAND` in `env.rs`; the client's
+address of a TCP socket on stdin in `crates/podssh-cli/src/serve.rs`; the manual's note and the row of
+`SSH_ORIGINAL_COMMAND` in ENVIRONMENT; `docs/cli.md` ("The options of a key line"); a row of
+`docs/STATUS.md`; the tests of the Prove; the plants `t114-forced-command-ignored` and
+`t114-restrict-keeps-pty`. Results:
+
+Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --lib server::`: 48 passed.
+- `cargo test -p podssh-ssh --test serve_options --test serve_auth --test serve_exec --test serve_forward --test
+  serve_pty --test serve_sftp`: 7, 11, 6, 8, 6 and 5 passed.
+- `cargo test -p podssh-cli --test serve_options_openssh --test serve_openssh --test serve_forward_openssh --test
+  serve_stdio --test serve_sftp_openssh` (OpenSSH 9.6's client): 5, 9, 5, 3 and 3 passed.
+- `cargo test -p podssh-cli --lib serve`: 74 passed; the manual's (`--lib man` 99, `man_page` 11, `man_flag_parity`
+  6, `man_json` 4, `flag_table` 9): passed.
+- The plants `t114-forced-command-ignored` and `t114-restrict-keeps-pty`: caught; `t107-accept-each-key` (its hunk
+  moved to `Served::admit`) and `t109-reason-dropped`: caught.
+- Clippy and rustfmt: clean.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,827 passed, 0 failed.
+
+Found, not repaired here: serve does not check the user-presence flag of a security key's signature, which sshd
+checks by default (Decision): T-774.
+
+Left after the merge: `cargo todo remap` on each cited file that the draft changed
+(`crates/podssh-ssh/src/server/authorized.rs`, `crates/podssh-ssh/src/server/handler.rs`,
+`crates/podssh-ssh/src/server/mod.rs`, `crates/podssh-ssh/src/server/env.rs`,
+`crates/podssh-ssh/src/server/direct.rs`, `crates/podssh-cli/src/serve.rs`, `docs/cli.md`,
+`docs/STATUS.md`) and `cargo todo counts` (the status moved by hand in the entry and the index); the
+run in the build image (T-251).
 
 # T-115: `podssh serve`: a TOTP second factor
 
@@ -1894,7 +2004,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:494`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:495`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -1950,7 +2060,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:457`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:458`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -1968,10 +2078,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:493` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:457`, `docs/STATUS.md:477`),
+- `docs/STATUS.md:494` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:458`, `docs/STATUS.md:478`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:455` is `docs/STATUS.md:457`.
+  The Prove's `docs/STATUS.md:456` is `docs/STATUS.md:458`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2030,10 +2140,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:494`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:495`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:473`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:474`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2290,7 +2400,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1839-1840` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1949-1950` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
@@ -2519,3 +2629,42 @@ where the box has no systemd.
 ## Start condition
 
 Items 1 to 4 start now. Item 5 waits for podcrates T-102 (`pod-unit`) and its release.
+
+# T-774: `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default
+
+**Source:** the draft of T-114 (2026-11-13): serve does not read the flags of a security key's signature.
+**Category:** defect
+**Milestone:** M5
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A login with a security key (`sk-ssh-ed25519@openssh.com`, `sk-ecdsa-sha2-nistp256@openssh.com`) signs a flags
+byte; bit 0 says that the user touched the key. sshd refuses a signature without it unless the key's line says
+`no-touch-required`. podssh serve takes the signature with no look at the flags, so a key that signs without a
+touch (malware on the client host with the key plugged in) logs in where sshd would refuse.
+
+## Premise
+
+- russh verifies a security key's signature through ssh-key, whose `make_sk_signed_data`
+  (`vendor/ssh-key/src/signature.rs`) signs over the flags and checks none.
+- T-114's options: `no-touch-required` is taken with no change; `touch-required` and `verify-required` refuse
+  their line (`crates/podssh-ssh/src/server/options.rs`).
+
+## Approach
+
+Read the flags of an sk signature at login (the signature blob of the `publickey` request, before russh's check,
+or after it by a hook of `vendor/russh` or `vendor/ssh-key`, a patch beside the others). Refuse a signature with
+bit 0 clear unless the key's line says `no-touch-required`, with the reason on serve's stderr; take
+`verify-required` where bit 2 (verified) is set. The options of T-114 then mean what sshd's do.
+
+## Prove
+
+```sh
+cargo test -p podssh-ssh --test serve_options -- touch
+```
+
+A login whose sk signature has the flag of presence clear is refused, and taken with `no-touch-required`; a plant
+that skips the check fails the test.

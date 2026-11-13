@@ -48,7 +48,13 @@ fn never(name: &str) -> bool {
         || matches!(name, "PATH" | "HOME" | "SHELL" | "IFS" | "USER" | "LOGNAME")
         // ENV and BASH_ENV name a file that the shell runs.
         || matches!(name, "ENV" | "BASH_ENV")
+        // A forced command's wrapper decides by it (T-114).
+        || name == ORIGINAL
 }
+
+/// The variable that holds a client's command when a key's `command=`
+/// replaced it, as sshd sets it (T-114).
+pub const ORIGINAL: &str = "SSH_ORIGINAL_COMMAND";
 
 /// Why an `env` request is refused, or None when it is taken. `patterns`
 /// are `--accept-env`'s (`*` and `?`, case-sensitive), or the default.
@@ -119,6 +125,17 @@ pub fn with_tty(env: Vec<(OsString, OsString)>, term: &str, tty: &str) -> Vec<(O
     env.into_iter().collect()
 }
 
+/// `env` with [`ORIGINAL`] set to `original`, or with none: serve's own,
+/// when serve itself runs under a forced command, never reaches a child.
+pub fn with_original(env: Vec<(OsString, OsString)>, original: Option<OsString>) -> Vec<(OsString, OsString)> {
+    let mut env: BTreeMap<OsString, OsString> = env.into_iter().collect();
+    env.remove(OsStr::new(ORIGINAL));
+    if let Some(original) = original {
+        env.insert(ORIGINAL.into(), original);
+    }
+    env.into_iter().collect()
+}
+
 /// The working directory of a child: its `HOME` when that is a directory,
 /// else `/`.
 pub fn workdir(env: &[(OsString, OsString)]) -> PathBuf {
@@ -157,7 +174,8 @@ mod tests {
     #[test]
     fn no_pattern_lets_in_what_changes_the_program() {
         let p = vec!["*".to_string()];
-        for name in ["LD_PRELOAD", "LD_LIBRARY_PATH", "PATH", "HOME", "SHELL", "ENV", "BASH_ENV", "IFS", "USER"] {
+        let names = ["LD_PRELOAD", "LD_LIBRARY_PATH", "PATH", "HOME", "SHELL", "ENV", "BASH_ENV", "IFS", "USER"];
+        for name in names.into_iter().chain([ORIGINAL]) {
             assert_eq!(refused(&p, name, "x"), Some("never taken from a client"), "{name}");
         }
         assert_eq!(refused(&p, "PODSSH_RELAY_TOKEN", "x"), Some("a name of podssh's credentials"));
@@ -195,6 +213,15 @@ mod tests {
         assert_eq!(lookup(&env, "TERM"), Some(OsStr::new("vt100")));
         assert_eq!(lookup(&env, "SSH_TTY"), Some(OsStr::new("/dev/pts/7")));
         assert_eq!(env.iter().filter(|(k, _)| k == "TERM").count(), 1);
+    }
+
+    #[test]
+    fn the_original_command_is_the_forced_one_s_alone() {
+        let env = with_original(pairs(&[(ORIGINAL, "serve's own"), ("PATH", "/bin")]), None);
+        assert_eq!(lookup(&env, ORIGINAL), None, "serve's own never reaches a child");
+        let env = with_original(env, Some("ls -l".into()));
+        assert_eq!(lookup(&env, ORIGINAL), Some(OsStr::new("ls -l")));
+        assert_eq!(env.iter().filter(|(k, _)| k == ORIGINAL).count(), 1);
     }
 
     #[test]

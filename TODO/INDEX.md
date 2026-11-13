@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**728 entries: 67 open, 24 partial, 10 blocked, 627 done.**
+**729 entries: 67 open, 25 partial, 10 blocked, 627 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 14 | 14 | 1 | 272 | 301 |
+| P2 | 14 | 15 | 1 | 272 | 302 |
 | P3 | 49 | 8 | 6 | 282 | 345 |
-| **All** | 67 | 24 | 10 | 627 | 728 |
+| **All** | 67 | 25 | 10 | 627 | 729 |
 
 ## Entries
 
@@ -188,7 +188,7 @@ repository and CI).
 | [T-111](serve.md) | P2 | L | M5 | feature | open | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
 | [T-112](serve.md) | P2 | M | M5 | feature | partial | An SFTP server in `podssh serve` |
 | [T-113](serve.md) | P2 | M | M5 | measurement | open | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
-| [T-114](serve.md) | P2 | M | backlog | feature | open | `podssh serve`: access rules for each key and command |
+| [T-114](serve.md) | P2 | M | backlog | feature | partial | `podssh serve`: access rules for each key and command |
 | [T-115](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: a TOTP second factor |
 | [T-116](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: an audit log |
 | [T-117](serve.md) | P2 | S | M5 | feature | open | `podssh serve`: a clean stop, and SIGHUP reads the settings again |
@@ -804,3 +804,4 @@ repository and CI).
 | [T-771](repo.md) | P3 | M | M10 | chore | done | 38 of the 307 planted defects no longer apply to the tree |
 | [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
+| [T-774](serve.md) | P2 | S | M5 | defect | open | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |

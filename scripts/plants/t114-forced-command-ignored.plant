@@ -1,0 +1,6 @@
+# T-114: podssh serve ignores a key's command="...", so the client's own
+# command runs in its place; the test of the forced command must fail.
+ENTRY=T-114
+GROUP=cli-tests
+EXPECT='test a_forced_command_runs_in_place_of_the_asked_one \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_options -- a_forced_command_runs_in_place_of_the_asked_one'

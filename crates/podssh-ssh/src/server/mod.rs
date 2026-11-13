@@ -8,7 +8,8 @@
 //! a master opens at the request (T-110); direct-tcpip dials from this host
 //! (T-109); the `sftp` subsystem is served in the process (T-112). Where no
 //! pty opens (T-111), the request is refused with the reply that the client
-//! waits for.
+//! waits for. The options of each key line (`command=`, `no-pty`,
+//! `permitopen=`, `from=`, `restrict`...) limit what it may do (T-114).
 
 mod authorized;
 mod channel;
@@ -18,16 +19,19 @@ mod direct;
 pub mod env;
 mod handler;
 pub mod host_key;
+pub mod options;
 #[cfg(unix)]
 pub mod pty;
 #[cfg(unix)]
 mod pty_child;
+pub mod rules;
 pub mod sftp;
 #[cfg(unix)]
 pub mod shell;
 
 use std::borrow::Cow;
 use std::ffi::OsString;
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -36,9 +40,11 @@ use russh::keys::PrivateKey;
 use russh::{MethodKind, MethodSet, SshId};
 use tokio::io::{AsyncRead, AsyncWrite};
 
-pub use authorized::{parse_line, Authorized, Line, Read};
+pub use authorized::{parse_line, Admission, Authorized, Line, Read};
 pub use direct::{DIAL_LIMIT, MAX_FORWARDS};
 pub use host_key::{HostKey, StateFiles};
+pub use options::{Permit, Rules};
+pub use rules::Context;
 
 /// How often the server asks a silent client whether it is there, as the
 /// relay's own keepalive does (`docs/relay.md`).
@@ -90,12 +96,36 @@ pub struct Settings {
     /// The time limit of each file-system call of the SFTP server (T-112);
     /// None is `sftp::CALL_LIMIT`, as a test gives a shorter one.
     pub sftp_limit: Option<Duration>,
+    /// The client's address, for the `from=` of a key line (T-114): a TCP
+    /// socket's peer where serve's stream is one; None for a pipe, where
+    /// no `from=` matches.
+    pub peer: Option<IpAddr>,
+    /// Where serve says a line for its operator: a key that a line refused,
+    /// a request that a key's rules refused. None says nothing.
+    pub say: Option<Say>,
+}
+
+/// A sink for serve's lines (its stderr, for the CLI).
+#[derive(Clone)]
+pub struct Say(pub Arc<dyn Fn(&str) + Send + Sync>);
+
+impl std::fmt::Debug for Say {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Say")
+    }
 }
 
 impl Settings {
     /// The environment that each child starts from.
     pub fn base(&self) -> Vec<(OsString, OsString)> {
         self.base_env.clone().unwrap_or_else(|| std::env::vars_os().collect())
+    }
+
+    /// Say `line` where the settings say lines.
+    pub fn say(&self, line: &str) {
+        if let Some(Say(say)) = self.say.as_ref() {
+            say(line);
+        }
     }
 }
 

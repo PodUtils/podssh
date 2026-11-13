@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/rules.rs
++++ b/crates/podssh-ssh/src/server/rules.rs
+@@ -106,7 +106,7 @@
+     /// as the command `internal-sftp`. A forced `internal-sftp` serves SFTP
+     /// alone.
+     pub fn plan(&self, asked: Asked<'_>) -> Plan {
+-        let Some(forced) = self.command.as_deref() else {
++        let Some(forced) = self.command.as_deref().filter(|_| false) else {
+             return match asked {
+                 Asked::Exec(command) => Plan::Command(command.to_vec(), None),
+                 Asked::Shell => Plan::Shell,

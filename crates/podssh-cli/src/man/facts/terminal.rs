@@ -28,6 +28,12 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
       when it runs; else it is passed over, and said (see podssh serve). podssh serve never takes SHELL or \
       BASH_ENV from a client's env request: the shell would run, or read, the file it names.",
     ),
+    (
+        &["SSH_ORIGINAL_COMMAND"],
+        "Set by podssh serve for a command that a key's command=\"...\" runs in place of the client's: the \
+      client's command (internal-sftp for an sftp request; not set for a shell). Never taken from a client's \
+      env request, and serve's own never reaches a child (see podssh serve).",
+    ),
     (&["LESS"], "Options for less. podssh man sets FRX when it starts less and LESS is not set."),
     (
         &["VISUAL", "EDITOR"],

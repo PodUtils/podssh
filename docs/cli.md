@@ -5618,11 +5618,70 @@ gives up each capability of the process (T-698), before it reads a file.
 - **Authentication.** Public keys alone. The keys are each
   `--authorized-key KEY` (a line of `authorized_keys`), and each line of
   each `--authorized-keys FILE`; with neither flag, `~/.ssh/authorized_keys`.
-  A key is compared by its key data: the login name selects nothing. A line
-  with options before its key is not used, and is said, until T-114 reads
-  the options; a line that is no key is passed over. A key file that is a
+  A key is compared by its key data: the login name selects nothing. The
+  options before a key are its rules (below); a line whose options serve
+  cannot all honour, and a line that is no key, are passed over and said
+  with their number and why. A key file that is a
   symbolic link, another user's, or that others can change is refused (78).
   No key at all refuses the start (78), so that no setting lets each key in.
+- **The options of a key line (T-114).** OpenSSH's options
+  (sshd(8), "AUTHORIZED_KEYS FILE FORMAT"), read as `sshauthopt_parse`
+  reads them (`crates/podssh-ssh/src/server/options.rs`): options
+  separated by commas up to the first blank outside double quotes, names
+  in any case, and a value in double quotes where `\"` is a quote and each
+  other byte is itself. **Fail closed:** an option that serve does not
+  know, one that it knows and cannot honour, and a malformed one make the
+  whole line unused, said with the option's name; a key is never used
+  without an option of its line. Honoured:
+  - `command="..."` runs in place of each `exec`, `shell` and `sftp`
+    request, as `SHELL -c`, with the client's command in
+    `SSH_ORIGINAL_COMMAND` (none for a shell; `internal-sftp` for the
+    subsystem, as sshd sets the subsystem's command). A forced
+    `internal-sftp` serves SFTP in the process and refuses a command or a
+    shell; with arguments (`-R`, `-d`...) it refuses SFTP too, as serve's
+    SFTP server takes none and must not serve more than the line says.
+    `SSH_ORIGINAL_COMMAND` is never taken from an `env` request, and
+    serve's own, when serve itself runs under a forced command, never
+    reaches a child.
+  - `no-pty` refuses a `pty-req`, its reason on the channel's stderr; the
+    command then runs on pipes, and OpenSSH ends a session whose `-tt` was
+    refused (`PTY allocation request failed`, 255).
+  - `no-port-forwarding` refuses each `direct-tcpip` with code 1,
+    administratively prohibited, the option named; each
+    `permitopen="host:port"` (a host in brackets for IPv6, `*` for any port
+    or any host) lets in that target alone, compared as OpenSSH compares
+    it: the host as the client wrote it, with no name lookup.
+  - `restrict` turns off the pty and each forward (and the agent, X11 and
+    `~/.ssh/rc`, which serve never offers); a later `pty` or
+    `port-forwarding` turns one on again. Of two flags, the later holds.
+  - `expiry-time="YYYYMMDD[HHMM[SS]]"` (local time, or UTC with `Z`; of
+    two, the earlier) refuses the key after that second.
+  - `from="pattern-list"` lets the key in only from a client address that
+    matches, as sshd's `match_host_and_ip` with `UseDNS no`: an address
+    with `*` and `?`, a CIDR block (`10.0.0.0/8`; one that cannot be read
+    makes the line unused), and `!` before a pattern that refuses whatever
+    else matched; a host name matches nothing, as serve looks up none. See
+    the Decision of T-114: serve knows an address only where its stdin is a
+    TCP socket (an inetd, or a socket of systemd, as `sshd -i` takes one);
+    on a pipe, which a `ProxyCommand` and the relay give, no `from=`
+    matches and the key is refused.
+  - `no-agent-forwarding`, `no-X11-forwarding`, `no-user-rc` and
+    `no-touch-required` change nothing: serve offers no agent, no X11 and
+    no `~/.ssh/rc`, and does not read the flags of a security key's
+    signature.
+
+  Refused by name: `environment=` (the names that a client may set are
+  `--accept-env`'s), `permitlisten=` (serve listens for no `-R`),
+  `tunnel=`, `principals=` and `cert-authority` (serve takes no
+  certificate), `touch-required` and `verify-required` (checks that serve
+  does not make). Of the lines of one key, the first whose `from=` and
+  `expiry-time=` let it in now holds for the connection, as in sshd. A
+  key that lines name and refuse at login is said on serve's stderr with
+  its fingerprint, the line and the option, as the client hears only
+  `Permission denied (publickey)`; a request that a rule refuses is said
+  there too, and on the channel (stderr, or the reason of a refused
+  forward). `--authorized-key` takes a line with options as a file does;
+  one that is not used is a usage error (64).
 - **The host key.** `--host-key FILE`, else `serve_host_ed25519_key` in the
   cache's first usable directory: an Ed25519 key made at the first start
   (mode 0600, a whole file through a hard link), read at each later one, and
@@ -5707,14 +5766,15 @@ gives up each capability of the process (T-698), before it reads a file.
   packet must be the version request, and a second one ends the session,
   as `sftp-server` does; the reason goes to the channel's stderr. `scp` in
   its legacy mode runs `scp` by exec, and exits 127 in a cage that has
-  none. `--no-shell` leaves SFTP served, as SFTP runs no program; the
-  limits of one key are T-114's.
+  none. `--no-shell` leaves SFTP served, as SFTP runs no program; a key's
+  `command=` takes the place of SFTP (above).
 - **Forwards into the cage (T-109).** A `direct-tcpip` channel (OpenSSH's
   `-W`, `-L` and `-J`) is a TCP connection that serve opens from its own
   host to the host and port that the client asked for, any of them, as
   sshd's `AllowTcpForwarding yes` and `PermitOpen any` allow by default:
-  whoever holds an authorized key is the cage's owner, and the limits of
-  one key (`permitopen=`) are T-114's. The dial is podssh's own
+  whoever holds an authorized key is the cage's owner, unless its line's
+  `no-port-forwarding`, `restrict` or `permitopen=` limit it (above). The
+  dial is podssh's own
   (`podssh_ws::dial`), 20 s at most: through the proxy of serve's
   `HTTPS_PROXY`, which resolves the name, with the loopback and the names
   of `NO_PROXY` dialed directly. A dial that fails is refused with code 2,
@@ -5748,7 +5808,7 @@ gives up each capability of the process (T-698), before it reads a file.
   requests (OpenSSH's `SetEnv` and `SendEnv`) whose name matches an
   `--accept-env PATTERN` (`*` and `?`; default `LANG` and `LC_*`, as most
   systems' `AcceptEnv`), never `LD_*`, `PATH`, `HOME`, `SHELL`, `ENV`,
-  `BASH_ENV`, `IFS`, `USER` or `LOGNAME`, nor a credential's name, whatever
+  `BASH_ENV`, `IFS`, `USER`, `LOGNAME` or `SSH_ORIGINAL_COMMAND`, nor a credential's name, whatever
   the pattern; `--accept-env ''` takes none. At most 256 for a channel.
 - **The shell (T-222, GitHub #32).** A cage often has no passwd entry and no
   `/etc/shells`, and podssh never calls `getpwuid`

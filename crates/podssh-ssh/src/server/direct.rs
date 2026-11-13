@@ -73,6 +73,12 @@ pub(super) fn connect_failed(words: &str) -> ChannelOpenFailure {
     ChannelOpenFailure::Other { code: CONNECT_FAILED, reason: bounded(&format!("podssh serve: {words}")) }
 }
 
+/// A refusal of code 1, administratively prohibited, with `words` as its
+/// reason: a key's rule that refuses the forward (T-114).
+pub(super) fn prohibited(words: &str) -> ChannelOpenFailure {
+    ChannelOpenFailure::Other { code: PROHIBITED, reason: bounded(&format!("podssh serve: {words}")) }
+}
+
 /// `words` cut at [`MOST_WORDS`] bytes, on a character's edge.
 fn bounded(words: &str) -> String {
     if words.len() <= MOST_WORDS {
@@ -87,8 +93,9 @@ fn bounded(words: &str) -> String {
 
 /// Whether a forward to `host:port` may be dialed: forwarding not turned
 /// off, and the port a TCP port. Any host, as OpenSSH's sshd allows by
-/// default: whoever holds an authorized key is the cage's owner (the limits
-/// of one key are T-114's). `Ok` is the port.
+/// default: whoever holds an authorized key is the cage's owner, and the
+/// limits of one key are its rules (`Rules::forward_refusal`, T-114). `Ok`
+/// is the port.
 pub(super) fn check(no_forwarding: bool, host: &str, port: u32) -> Result<u16, ChannelOpenFailure> {
     if no_forwarding {
         return Err(ChannelOpenFailure::Other {

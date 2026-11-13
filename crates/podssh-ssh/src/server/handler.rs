@@ -1,6 +1,8 @@
 //! The server's answers (T-107): public-key authentication against the
 //! authorized keys; a command, a shell and the environment on a session
 //! channel (T-108); direct-tcpip (T-109); a pty where one opens (T-110);
+//! the rules of the key that logged in (T-114: `command=`, `no-pty`,
+//! `permitopen=` and the rest, each refusal with its reason on the channel);
 //! and a clean refusal of each request that a later entry serves. russh's
 //! defaults send no reply to a channel request, and a client then waits
 //! (podssh's own for 30 s): each request here is answered, in the order the
@@ -12,9 +14,11 @@ use std::sync::Arc;
 use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
+use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
-use super::{env, Authorized, Settings};
+use super::rules::{Asked as Wanted, Context, Plan};
+use super::{env, Authorized, Rules, Settings};
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -37,12 +41,80 @@ pub struct Served {
     settings: Arc<Settings>,
     channels: HashMap<ChannelId, Open>,
     forwards: Slots,
+    /// The rules of the key that logged in; None before a login, which
+    /// refuses each request.
+    rules: Option<Arc<Rules>>,
+    /// That key's fingerprint, for serve's log.
+    who: String,
 }
 
 impl Served {
     pub(super) fn new(authorized: Arc<Authorized>, settings: Arc<Settings>) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
-        Served { authorized, settings, channels: HashMap::new(), forwards }
+        Served { authorized, settings, channels: HashMap::new(), forwards, rules: None, who: String::new() }
+    }
+
+    /// The rules under which `key` logs in now, or None; a key that lines
+    /// name and refuse is said with each line's reason, as the client hears
+    /// only "Permission denied".
+    fn admit(&self, key: &russh::keys::PublicKey) -> Option<Arc<Rules>> {
+        match self.authorized.admit(key, &Context::now(self.settings.peer)) {
+            Admission::Admitted(rules) => Some(rules),
+            Admission::Unlisted => None,
+            Admission::Refused(reasons) => {
+                let who = crate::known_hosts::fingerprint(key);
+                for why in reasons {
+                    self.settings.say(&format!("key {who} refused: {why}"));
+                }
+                None
+            }
+        }
+    }
+
+    /// The rules in force, or the words of a refusal before a login.
+    fn rules(&self) -> Result<Arc<Rules>, String> {
+        self.rules.clone().ok_or_else(|| "no key logged in".to_string())
+    }
+
+    /// Refuse a request on `channel` for a key's rule: `why` on the
+    /// channel's stderr and in serve's log, then the failure.
+    fn refuse_for(&self, channel: ChannelId, why: &str, session: &mut Session) -> Result<(), russh::Error> {
+        self.settings.say(&format!("key {}: refused: {why}", self.who));
+        if self.channels.contains_key(&channel) {
+            session.extended_data(channel, 1, format!("podssh serve: {why}\n").into_bytes())?;
+        }
+        Self::refuse(channel, session)
+    }
+
+    /// Answer `wanted` on `channel` under the key's rules: run what they
+    /// say, serve SFTP, or refuse with the reason.
+    async fn answer(
+        &mut self,
+        channel: ChannelId,
+        wanted: Wanted<'_>,
+        session: &mut Session,
+    ) -> Result<(), russh::Error> {
+        let plan = match self.rules() {
+            Ok(rules) => rules.plan(wanted),
+            Err(why) => Plan::Refuse(why),
+        };
+        match plan {
+            Plan::Command(command, original) => {
+                self.start(channel, Program::Command(&command), original, session).await
+            }
+            Plan::Shell => self.start(channel, Program::Login, None, session).await,
+            Plan::Sftp => self.sftp(channel, session),
+            // As a program that did not start: the channel runs nothing
+            // else, so it ends here.
+            Plan::Refuse(why) => {
+                self.refuse_for(channel, &why, session)?;
+                if self.channels.get(&channel).is_some_and(|open| !open.started()) {
+                    session.eof(channel)?;
+                    session.close(channel)?;
+                }
+                Ok(())
+            }
+        }
     }
 
     /// Refuse a request on `channel`, with the reply that the client waits
@@ -53,7 +125,14 @@ impl Served {
 
     /// Run `program` on the channel `id`: success once it runs; else its
     /// line on the channel's stderr, then failure, so the client says why.
-    async fn start(&mut self, id: ChannelId, program: Program<'_>, session: &mut Session) -> Result<(), russh::Error> {
+    /// `original` is the client's command where a forced one replaced it.
+    async fn start(
+        &mut self,
+        id: ChannelId,
+        program: Program<'_>,
+        original: Option<Vec<u8>>,
+        session: &mut Session,
+    ) -> Result<(), russh::Error> {
         let settings = self.settings.clone();
         let Some(open) = self.channels.get_mut(&id) else { return Self::refuse(id, session) };
         // A channel runs one program, as RFC 4254 has it.
@@ -63,7 +142,7 @@ impl Served {
         let started = if settings.no_shell {
             Err("--no-shell: this server runs no command and no shell".to_string())
         } else {
-            start_program(open, id, &settings, program).await
+            start_program(open, id, &settings, program, original).await
         };
         match started {
             Ok(()) => session.channel_success(id),
@@ -74,6 +153,26 @@ impl Served {
                 Self::refuse(id, session)?;
                 session.eof(id)?;
                 session.close(id)
+            }
+        }
+    }
+
+    /// Serve SFTP in the process on `channel` (T-112). A channel that runs
+    /// a program, or SFTP already, takes no second one.
+    fn sftp(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), russh::Error> {
+        let Some(open) = self.channels.get_mut(&channel) else { return Self::refuse(channel, session) };
+        if open.started() {
+            return Self::refuse(channel, session);
+        }
+        #[cfg(unix)]
+        let started = super::sftp::start(open, &self.settings);
+        #[cfg(not(unix))]
+        let started: Result<(), String> = Err("not on this system: podssh serve serves SFTP on a Unix host".into());
+        match started {
+            Ok(()) => session.channel_success(channel),
+            Err(line) => {
+                session.extended_data(channel, 1, format!("podssh serve: {line}\n").into_bytes())?;
+                Self::refuse(channel, session)
             }
         }
     }
@@ -88,8 +187,10 @@ async fn start_program(
     id: ChannelId,
     settings: &Settings,
     program: Program<'_>,
+    original: Option<Vec<u8>>,
 ) -> Result<(), String> {
     use super::{child, shell};
+    use std::os::unix::ffi::OsStringExt;
     let base = settings.base();
     let candidates = shell::candidates(settings.shell.as_deref(), env::lookup(&base, "SHELL"));
     let probe_env = env::without_credentials(&base);
@@ -98,11 +199,18 @@ async fn start_program(
         .map_err(|e| format!("the search for a shell failed: {e}"))?
         .map_err(|none| none.to_string())?;
     let child_env = env::child_env(&base, &found.path, &open.env);
+    let child_env = env::with_original(child_env, original.map(std::ffi::OsString::from_vec));
     child::spawn(open, id, &found.path, program, child_env)
 }
 
 #[cfg(not(unix))]
-async fn start_program(_: &mut Open, _: ChannelId, _: &Settings, _: Program<'_>) -> Result<(), String> {
+async fn start_program(
+    _: &mut Open,
+    _: ChannelId,
+    _: &Settings,
+    _: Program<'_>,
+    _: Option<Vec<u8>>,
+) -> Result<(), String> {
     Err("not on this system: podssh serve runs programs on a Unix host".into())
 }
 
@@ -145,14 +253,19 @@ fn resize_pty(_: &Open, _: u32, _: u32, _: u32, _: u32) {}
 impl russh::server::Handler for Served {
     type Error = russh::Error;
 
-    // A key that is not listed is refused before the client signs with it.
+    // A key that is not listed, or that its lines refuse now (from=,
+    // expiry-time=), is refused before the client signs with it.
     async fn auth_publickey_offered(&mut self, _user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
-        Ok(if self.authorized.allows(offer.public_key) { Auth::Accept } else { Auth::reject() })
+        Ok(if self.admit(offer.public_key).is_some() { Auth::Accept } else { Auth::reject() })
     }
 
-    // The login name selects nothing: the key alone decides.
+    // The login name selects nothing: the key alone decides, and its line's
+    // rules hold for the whole connection.
     async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
-        Ok(if self.authorized.allows(key.public_key) { Auth::Accept } else { Auth::reject() })
+        let Some(rules) = self.admit(key.public_key) else { return Ok(Auth::reject()) };
+        self.rules = Some(rules);
+        self.who = crate::known_hosts::fingerprint(key.public_key);
+        Ok(Auth::Accept)
     }
 
     // A session channel opens, and a task reads it from now on: russh
@@ -196,6 +309,16 @@ impl russh::server::Handler for Served {
                 return Ok(());
             }
         };
+        // The key's own limits (no-port-forwarding, permitopen=).
+        let refused = match self.rules() {
+            Ok(rules) => rules.forward_refusal(host, port),
+            Err(why) => Some(why),
+        };
+        if let Some(why) = refused {
+            self.settings.say(&format!("key {}: refused: {why}", self.who));
+            reply.reject(direct::prohibited(&why)).await;
+            return Ok(());
+        }
         let Some(slot) = self.forwards.take() else {
             reply.reject(ChannelOpenFailure::ResourceShortage).await;
             return Ok(());
@@ -241,6 +364,13 @@ impl russh::server::Handler for Served {
         modes: &[(Pty, u32)],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        let refused = match self.rules() {
+            Ok(rules) => rules.pty_refusal(),
+            Err(why) => Some(why),
+        };
+        if let Some(why) = refused {
+            return self.refuse_for(channel, &why, session);
+        }
         let asked = Asked { term, cols, rows, pix_width, pix_height, modes };
         let settings = self.settings.clone();
         let granted = self.channels.get_mut(&channel).is_some_and(|open| grant_pty(open, &settings, &asked));
@@ -308,7 +438,7 @@ impl russh::server::Handler for Served {
     }
 
     async fn shell_request(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), Self::Error> {
-        self.start(channel, Program::Login, session).await
+        self.answer(channel, Wanted::Shell, session).await
     }
 
     async fn exec_request(
@@ -317,7 +447,7 @@ impl russh::server::Handler for Served {
         data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        self.start(channel, Program::Command(data), session).await
+        self.answer(channel, Wanted::Exec(data), session).await
     }
 
     // To the child's process group; the request has no reply.
@@ -328,28 +458,17 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
-    // SFTP in the process (T-112); each other name is refused. A channel
-    // that runs a program, or SFTP already, takes no second one.
+    // SFTP in the process (T-112), or a key's forced command in its place
+    // (T-114); each other name is refused.
     async fn subsystem_request(
         &mut self,
         channel: ChannelId,
         name: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        let Some(open) = self.channels.get_mut(&channel) else { return Self::refuse(channel, session) };
-        if name != "sftp" || open.started() {
+        if name != "sftp" {
             return Self::refuse(channel, session);
         }
-        #[cfg(unix)]
-        let started = super::sftp::start(open, &self.settings);
-        #[cfg(not(unix))]
-        let started: Result<(), String> = Err("not on this system: podssh serve serves SFTP on a Unix host".into());
-        match started {
-            Ok(()) => session.channel_success(channel),
-            Err(line) => {
-                session.extended_data(channel, 1, format!("podssh serve: {line}\n").into_bytes())?;
-                Self::refuse(channel, session)
-            }
-        }
+        self.answer(channel, Wanted::Sftp, session).await
     }
 }

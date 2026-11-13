@@ -5,6 +5,8 @@
 //! command line: the authorized keys, the shell that sessions run (T-222),
 //! the host key in its state file, the drop of each capability of the start
 //! (T-698), then the connection, whose forwards the server dials (T-109).
+//! The options of each key line are its rules (T-114): a line whose options
+//! cannot all be honoured is passed over, and said.
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -12,7 +14,7 @@ use std::sync::Arc;
 
 use clap::ArgMatches;
 use podssh_relay::cache::{self, Others};
-use podssh_ssh::server::{self, host_key, Authorized, HostKey, Line, Settings, StateFiles};
+use podssh_ssh::server::{self, host_key, Authorized, HostKey, Line, Say, Settings, StateFiles};
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
 use crate::relay_settings::Refusal;
@@ -104,6 +106,11 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         max_forwards: None,
         ptmx: None,
         sftp_limit: None,
+        peer: peer_of_stdin(),
+        // A refusal by a key's rules is said where serve's other lines go.
+        say: Some(Say(Arc::new(|line: &str| {
+            let _ = writeln!(std::io::stderr(), "podssh serve: {line}");
+        }))),
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
@@ -148,13 +155,8 @@ fn authorized(args: &ServeArgs, err: &mut dyn Write) -> Result<Authorized, Refus
     let mut authorized = Authorized::new();
     for text in &args.authorized_key {
         match server::parse_line(text) {
-            Line::Key(key) => {
-                authorized.add(*key);
-            }
-            Line::Options => {
-                return Err(Refusal::usage(format!(
-                    "--authorized-key {text:?}: options are not read here; give the key alone"
-                )))
+            Line::Key(key, rules) => {
+                authorized.add_ruled(*key, *rules, "--authorized-key".into());
             }
             Line::Bad(why) => return Err(Refusal::usage(format!("--authorized-key {text:?}: {why}"))),
             Line::Nothing => return Err(Refusal::usage("--authorized-key: give a key, TYPE BASE64 [COMMENT]")),
@@ -173,27 +175,39 @@ fn authorized(args: &ServeArgs, err: &mut dyn Write) -> Result<Authorized, Refus
             Ok(None) => return Err(Refusal::config(format!("{shown}: no such file"))),
             Err(why) => return Err(Refusal::config(why)),
         };
-        let read = authorized.add_text(&text);
-        for n in &read.options {
-            let _ =
-                writeln!(err, "podssh serve: {shown}, line {n}: a key with options, which are not read yet: not used");
-        }
+        let read = authorized.add_text_from(&text, &shown.to_string());
         for (n, why) in &read.bad {
             let _ = writeln!(err, "podssh serve: {shown}, line {n}: {why}: passed over");
         }
-        passed += read.options.len();
+        passed += read.bad.len();
     }
     if authorized.is_empty() {
         let tried: Vec<String> = files.iter().map(|(f, _)| f.display().to_string()).collect();
-        let options =
-            if passed > 0 { format!(" ({passed} with options, which are not read yet)") } else { String::new() };
+        let lines = if passed > 0 { format!(" ({passed} lines passed over, said above)") } else { String::new() };
         return Err(Refusal::config(format!(
-            "no authorized key{options}, so nobody could log in: give --authorized-key KEY or --authorized-keys \
+            "no authorized key{lines}, so nobody could log in: give --authorized-key KEY or --authorized-keys \
              FILE{}",
             if tried.is_empty() { String::new() } else { format!(" (read: {})", tried.join(", ")) }
         )));
     }
     Ok(authorized)
+}
+
+/// The address of the client where stdin is a TCP socket (an inetd or a
+/// socket of systemd, as `sshd -i` takes one), for the `from=` of a key
+/// line; None for a pipe, which a ProxyCommand and the relay give.
+#[cfg(unix)]
+fn peer_of_stdin() -> Option<std::net::IpAddr> {
+    use std::os::fd::FromRawFd;
+    // SAFETY: descriptor 0 is open for the whole run, and ManuallyDrop
+    // never closes it; getpeername on a pipe fails with ENOTSOCK.
+    let stdin = std::mem::ManuallyDrop::new(unsafe { std::net::TcpStream::from_raw_fd(0) });
+    stdin.peer_addr().ok().map(|addr| addr.ip().to_canonical())
+}
+
+#[cfg(not(unix))]
+fn peer_of_stdin() -> Option<std::net::IpAddr> {
+    None
 }
 
 /// `~/.ssh/authorized_keys`, as sshd reads it; none with no home.
@@ -253,12 +267,17 @@ mod tests {
     }
 
     #[test]
-    fn a_key_with_options_or_no_key_is_refused_on_the_command_line() {
+    fn a_key_with_options_is_taken_and_one_it_cannot_honour_is_refused() {
         let key = podssh_ssh::keygen::generate(podssh_ssh::keygen::KeyKind::Ed25519, "t").unwrap();
+        let line = key.public_key().to_openssh().unwrap();
         let mut a = args(true);
-        a.authorized_key = vec![format!("no-pty {}", key.public_key().to_openssh().unwrap())];
+        a.authorized_key = vec![format!("no-pty,command=\"echo hi\" {line}")];
+        let found = authorized(&a, &mut Vec::new()).expect("a key with its rules");
+        assert!(found.allows(key.public_key()));
+        a.authorized_key = vec![format!("tunnel=\"0\" {line}")];
         let refusal = authorized(&a, &mut Vec::new()).expect_err("refused");
         assert_eq!(refusal.code, EXIT_USAGE, "{}", refusal.message);
+        assert!(refusal.message.contains("tunnel="), "the option is named: {}", refusal.message);
         a.authorized_key = vec!["not a key".into()];
         assert_eq!(authorized(&a, &mut Vec::new()).expect_err("refused").code, EXIT_USAGE);
     }

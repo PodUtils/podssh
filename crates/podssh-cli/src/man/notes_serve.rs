@@ -1,6 +1,7 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
-//! T-110; SFTP, T-112), and the row of its host key's file.
+//! T-110; SFTP, T-112; the options of a key line, T-114), and the row of
+//! its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -10,10 +11,30 @@ pub const SERVE: &[&str] = &[
      a refusal (78).",
     "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
      file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
-     nothing. A line with options before its key (command=, from=, restrict) is not used yet, and is said \
-     with its number; a line that is no key is passed over, and said. A file that is a symbolic link, \
-     another user's, or one that others can change is refused (78). With no key at all, the start is \
-     refused (78): no setting lets each key in.",
+     nothing. The options before a key are its rules (below); a line whose options serve cannot all \
+     honour, and a line that is no key, are passed over, and said with their number and why. A file that \
+     is a symbolic link, another user's, or one that others can change is refused (78). With no key at \
+     all, the start is refused (78): no setting lets each key in.",
+    "The options of a key line are OpenSSH's (the format of the authorized_keys file in sshd(8)), read as \
+     sshd reads them: separated by commas, names in any case, a value in double quotes where a backslash before a \
+     quote is a quote. command=\"...\" runs in place of each command, shell and sftp request, as SHELL -c, \
+     with the client's command in SSH_ORIGINAL_COMMAND (not set for a shell; internal-sftp for sftp); \
+     command=\"internal-sftp\" serves SFTP alone, and refuses one with arguments. no-pty refuses a pty \
+     (OpenSSH, with -tt, ends with PTY allocation request failed). no-port-forwarding refuses each forward, \
+     and each permitopen=\"host:port\" (an IPv6 address in brackets; * for any port) lets in that target \
+     alone, the host compared as written, with no lookup. restrict turns off the pty and forwarding, and a \
+     later pty or port-forwarding turns one on again. expiry-time=\"YYYYMMDD[HHMM[SS]]\" (local time, or \
+     UTC with Z) refuses the key after it. from=\"patterns\" lets the key in from a matching address \
+     alone: addresses with * and ?, blocks such as 10.0.0.0/8, and ! to refuse; serve looks up no name, so \
+     a host name matches nothing. serve knows an address only when its stdin is a TCP socket (as from \
+     inetd): on a pipe, as from a ProxyCommand or the relay, no from= matches, and the key is refused. \
+     no-agent-forwarding, no-X11-forwarding, no-user-rc and no-touch-required change nothing (serve offers \
+     none of them). environment=, permitlisten=, tunnel=, principals=, cert-authority, touch-required, \
+     verify-required and any option that serve does not know make the line unused, named. Of the lines \
+     of one key, the first that lets it in now holds. Each refusal by a rule goes to the client (a forward \
+     refused as administratively prohibited, a pty or a command with its line on the channel's stderr) \
+     and to serve's stderr, with the key's fingerprint and the option; a key refused at login is said \
+     there alone, as the client hears Permission denied.",
     "The host key is --host-key FILE, else serve_host_ed25519_key in the cache (see FILES): made at the \
      first start, an Ed25519 key of mode 0600, and read at each later one, never overwritten; of two \
      starts at once, one makes it and the other reads it. Its fingerprint goes to stderr at each start, \
@@ -68,7 +89,8 @@ pub const SERVE: &[&str] = &[
      (serve's, else the uid's number: no passwd entry is read), HOME (/ with none), SHELL and PATH (sshd's \
      /usr/local/bin:/usr/bin:/bin with none). A client's env request (OpenSSH's SetEnv and SendEnv) is \
      taken when its name matches an --accept-env pattern (default LANG and LC_*), never for LD_*, PATH, \
-     HOME, SHELL, ENV, BASH_ENV, IFS, USER or LOGNAME, whatever the pattern; --accept-env '' takes none.",
+     HOME, SHELL, ENV, BASH_ENV, IFS, USER, LOGNAME or SSH_ORIGINAL_COMMAND, whatever the pattern; \
+     --accept-env '' takes none.",
     "The shell is found with no passwd entry and no /etc/shells: --shell PATH alone when it is given; else \
      SHELL, then /bin/sh, /usr/bin/sh, /bin/bash, /usr/bin/bash, /bin/ash and /bin/dash. A candidate \
      passes when it is an absolute path to a regular file that this user may execute, and when a real run \

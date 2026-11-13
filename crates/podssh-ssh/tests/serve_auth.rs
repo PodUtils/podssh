@@ -1,5 +1,6 @@
 //! The server core of `podssh serve` (T-107): the lines of `authorized_keys`
-//! (a key, a comment, options, a bad line), the host key made once in its
+//! (a key, a comment, options, a bad line; the options' effects are
+//! `tests/serve_options.rs`, T-114), the host key made once in its
 //! state file (two starts at once keep one key, mode 0600), and russh's
 //! client against the server over a pipe: the listed key logs in, another
 //! key is refused, and a subsystem other than SFTP is refused with an answer
@@ -47,12 +48,13 @@ fn each_kind_of_line_is_read_as_sshd_reads_it() {
     );
     let mut authorized = Authorized::new();
     let read = authorized.add_text(&text);
-    // The same key twice is one key; the line with options is not used.
-    assert_eq!(read.added, 1, "{read:?}");
-    assert_eq!(read.options, vec![5], "{read:?}");
+    // The same key twice is one key; the line with options is used with
+    // its rules since T-114 (`server::options`'s tests read each option).
+    assert_eq!(read.added, 2, "{read:?}");
+    assert_eq!(read.limited, 1, "{read:?}");
     assert_eq!(read.bad.iter().map(|(n, _)| *n).collect::<Vec<_>>(), vec![6, 7], "{read:?}");
     assert!(authorized.allows(a.public_key()));
-    assert!(!authorized.allows(b.public_key()), "a key after options must wait for T-114");
+    assert!(authorized.allows(b.public_key()), "a key after options that serve honours");
     assert_eq!(server::parse_line("   "), Line::Nothing);
     assert_eq!(server::parse_line("restrict"), Line::Bad("no public key".into()));
 }
