@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**728 entries: 67 open, 25 partial, 10 blocked, 626 done.**
+**728 entries: 67 open, 24 partial, 10 blocked, 627 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 14 | 15 | 1 | 271 | 301 |
+| P2 | 14 | 14 | 1 | 272 | 301 |
 | P3 | 49 | 8 | 6 | 282 | 345 |
-| **All** | 67 | 25 | 10 | 626 | 728 |
+| **All** | 67 | 24 | 10 | 627 | 728 |
 
 ## Entries
 
@@ -285,7 +285,7 @@ repository and CI).
 | [T-210](repo.md) | P2 | S | M9 | release | done | Build provenance for each release binary |
 | [T-211](repo.md) | P2 | S | M9 | release | done | Signed checksums for each release |
 | [T-212](repo.md) | P2 | M | none | chore | done | Parallel CI, with the gate as the one source |
-| [T-213](repo.md) | P2 | M | none | chore | partial | CI runs the box like the target sandbox |
+| [T-213](repo.md) | P2 | M | none | chore | done | CI runs the box like the target sandbox |
 | [T-214](repo.md) | P2 | M | none | chore | done | CI on Windows |
 | [T-215](repo.md) | P2 | M | none | chore | done | rustfmt and clippy in the gate |
 | [T-216](repo.md) | P2 | S | none | chore | done | Advisories and licenses of the dependencies, checked in CI |
