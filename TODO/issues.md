@@ -282,10 +282,11 @@ and num-bigint 0.5) are T-754.
 | #216 | COORD-041: pod-devtunnel, the client side of Microsoft Dev Tunnels' relay, for podssh's T-755 (#215) (to podcrates) | closed 2026-11-12: podcrates v0.33.0 has it, taken at `72d6a3d` | T-755 |
 | #217 | COORD-042: podssh took podcrates v0.31.0 at 02650f1 and v0.32.0 at 555fddc (to podcrates) | closed 2026-11-12: recorded in COORD-064 | T-684 |
 | #218 | COORD-043: podssh took podcrates v0.33.0 at 72d6a3d (to podcrates) | closed 2026-11-12: recorded in COORD-065 | T-684 |
-| #219 | COORD-044: podssh took podcrates v0.34.0 at 287e23b (to podcrates) | open (2026-11-12: posted) | T-684 |
+| #219 | COORD-044: podssh took podcrates v0.34.0 at 287e23b (to podcrates) | closed 2026-11-13: recorded in COORD-069 | T-684 |
 | #220 | COORD-045: a pod-services kind file-host, and a retained board in pod_wormhole::mqtt (to podcrates) | open (2026-11-12: asked; podcrates' T-416 and T-417, COORD-066) | T-738 |
 | #221 | COORD-046: pod-relay's HTTP road: the invariants 6 to 10 of GitHub #55 (to podcrates) | open (2026-11-13: asked; podcrates' T-476, COORD-068) | T-319 |
 | #222 | COORD-047: pod-relay's HTTP road, serial form: an SSH session stalls when the bytes down block the bytes up (to podcrates) | open (2026-11-13: asked, with a tested patch) | T-319 |
+| #223 | COORD-048: podssh took podcrates v0.35.0 at 418e31d (to podcrates) | open (2026-11-13: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
