@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**725 entries: 74 open, 18 partial, 10 blocked, 623 done.**
+**725 entries: 73 open, 18 partial, 10 blocked, 624 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 22 | 8 | 1 | 269 | 300 |
+| P2 | 21 | 8 | 1 | 270 | 300 |
 | P3 | 48 | 8 | 6 | 281 | 343 |
-| **All** | 74 | 18 | 10 | 623 | 725 |
+| **All** | 73 | 18 | 10 | 624 | 725 |
 
 ## Entries
 
@@ -317,7 +317,7 @@ repository and CI).
 | [T-242](ws.md) | P3 | S | backlog | defect | done | The frame decoder accepts a length that is not in the minimal form |
 | [T-243](relay.md) | P2 | S | backlog | feature | done | The user can choose the cache directory, and no directory is fixed in the code |
 | [T-244](repo.md) | P3 | M | none | chore | done | Code comments break `AGENTS.md` rule 6, and some name files and facts that are wrong |
-| [T-245](repo.md) | P2 | S | none | chore | open | The box refuses each bind, but sandbox A allows an AF_UNIX bind |
+| [T-245](repo.md) | P2 | S | none | chore | done | The box refuses each bind, but sandbox A allows an AF_UNIX bind |
 | [T-246](repo.md) | P3 | S | none | chore | done | `scripts/dev.sh` excludes each file named `agents.md` from the container copy, with no reason given |
 | [T-247](repo.md) | P3 | S | none | chore | done | `podssh-cli` declares dependencies that it does not use |
 | [T-248](serve.md) | P2 | M | M5 | research | open | A tty for `podssh serve` where `/dev/ptmx` is missing: a new devpts instance, or a tty in user space |

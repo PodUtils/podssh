@@ -1,0 +1,11 @@
+--- a/scripts/test_in_box.sh
++++ b/scripts/test_in_box.sh
+@@ -75,7 +75,7 @@
+ # The box's commands start under bindjail where the profile refuses a TCP
+ # bind by Landlock; elsewhere the seccomp file says it all.
+ JAIL=
+-[ "$PROFILE" = sandbox-a ] && JAIL="bindjail run"
++: planted: no Landlock rule
+ 
+ IMAGE=localhost/podssh-box:2
+ BASE_IMAGE=$(image_of "$REPO/images/box/Dockerfile") || exit 78

@@ -6,11 +6,19 @@
 #   sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=tt sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_SECCOMP=nolisten sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#   BOX_PROFILE=strict sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #
 # BOX_RUN=tt runs scripts/box/tt-session.sh in place of sandbox-check.sh: an
 # interactive session over -tt (T-004) against OpenSSH in a container next
 # to the box, reached with --direct through the box's proxy, which lets that
 # one target through.
+#
+# BOX_PROFILE (T-245) is sandbox-a, the default, or strict. sandbox-a is
+# sandbox A as measured: a bind of AF_INET refused with EACCES, by Landlock
+# (scripts/box/bindjail.c, built into the image; it needs Linux 6.7 or later,
+# and stops the run where the kernel is older), and a bind of AF_UNIX, a path
+# or the abstract namespace, allowed (scripts/box/seccomp-sandbox-a.json).
+# strict refuses each bind of each family with EACCES (scripts/box/seccomp.json).
 #
 # BOX_SECCOMP=nolisten takes scripts/box/seccomp-nolisten.json in place of
 # seccomp.json: a bind works and each listen is refused with EPERM, the host
@@ -24,8 +32,8 @@
 # The box: an internal network with no route out; one HTTP CONNECT proxy
 # (scripts/box/proxy.py) that allows ports 443, 80 and 8443 to public hosts
 # only, the only way out; a resolver that is listed and never answers; no
-# capabilities and no_new_privs; a seccomp filter that refuses bind and UDP
-# (scripts/box/seccomp.json); no /dev/ptmx; a /dev/tty that opens and never
+# capabilities and no_new_privs; a seccomp filter that refuses UDP, and bind
+# as the profile says; no /dev/ptmx; a /dev/tty that opens and never
 # answers (scripts/box/deadtty.py); uid 0 with no user database entry. It
 # does not reproduce the sandbox's EACCES on connect() to some ports and to
 # loopback (a Landlock-like rule); the probe says so.
@@ -53,11 +61,22 @@ BOX=podssh-box
 TARGET=podssh-box-target
 RUN=${BOX_RUN:-check}
 case $RUN in check | tt) ;; *) echo "test_in_box: BOX_RUN is check or tt, not $RUN" >&2; exit 1 ;; esac
+PROFILE=${BOX_PROFILE:-sandbox-a}
+case $PROFILE in
+    sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
+    strict) SECCOMP=seccomp.json ;;
+    *) echo "test_in_box: BOX_PROFILE is sandbox-a or strict, not $PROFILE" >&2; exit 1 ;;
+esac
 case ${BOX_SECCOMP:-} in
-    "") SECCOMP=seccomp.json ;;
-    nolisten) SECCOMP=seccomp-nolisten.json ;;
+    "") ;;
+    nolisten) SECCOMP=seccomp-nolisten.json PROFILE=nolisten ;;
     *) echo "test_in_box: BOX_SECCOMP is empty or nolisten, not $BOX_SECCOMP" >&2; exit 1 ;;
 esac
+# The box's commands start under bindjail where the profile refuses a TCP
+# bind by Landlock; elsewhere the seccomp file says it all.
+JAIL=
+[ "$PROFILE" = sandbox-a ] && JAIL="bindjail run"
+
 IMAGE=localhost/podssh-box:2
 BASE_IMAGE=$(image_of "$REPO/images/box/Dockerfile") || exit 78
 PROXY_IMAGE=$(image_of "$REPO/images/box-proxy/Dockerfile") || exit 78
@@ -130,7 +149,7 @@ remove() {
 trap 'remove; cd /; rm -rf "$WORK"' EXIT
 remove
 
-echo "== the box image: Alpine with OpenSSH's client (the sandbox had one) and curl (for the probe)"
+echo "== the box image: Alpine with OpenSSH's client (the sandbox had one), curl (for the probe) and bindjail"
 # With a proxy of the host's own (above): its network for apk, and its CA.
 BUILD_NET=
 TRUST=
@@ -144,7 +163,11 @@ if [ -n "$HOST_CA" ]; then
 RUN cat /etc/ssl/certs/podssh-host-ca.crt >>/etc/ssl/certs/ca-certificates.crt
 '
 fi
-printf 'FROM %s\n%sRUN apk add --no-cache openssh-client curl\n' "$BASE_IMAGE" "$TRUST" >"$WORK/Containerfile"
+cp "$HERE/box/bindjail.c" "$WORK/bindjail.c" || die "cannot copy scripts/box/bindjail.c"
+# bindjail is built static in a stage of its own, so that the box gets no
+# compiler.
+printf 'FROM %s AS bindjail\n%sRUN apk add --no-cache build-base linux-headers\nCOPY bindjail.c /bindjail.c\nRUN cc -O2 -Wall -static -o /bindjail /bindjail.c\nFROM %s\n%sRUN apk add --no-cache openssh-client curl\nCOPY --from=bindjail /bindjail /usr/local/bin/bindjail\n' \
+    "$BASE_IMAGE" "$TRUST" "$BASE_IMAGE" "$TRUST" >"$WORK/Containerfile"
 # shellcheck disable=SC2086  # $BUILD_NET is one flag and its value, or none
 timeout 900 podman build $BUILD_NET -q -t "$IMAGE" -f "$(hostpath "$WORK/Containerfile")" "$(hostpath "$WORK")" >"$WORK/build.log" 2>&1
 rc=$?
@@ -271,8 +294,8 @@ timeout 1800 podman run --rm --name "$BOX" --network "$NET" "$@" \
     -e HOME=/state/home -e TERM=xterm \
     -e HTTPS_PROXY="http://$PIP:$PORT" -e https_proxy="http://$PIP:$PORT" \
     -e NO_PROXY="$PIP" -e no_proxy="$PIP" \
-    -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" \
-    "$IMAGE" sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh && sh /scripts/box/probe.sh &&
+    -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" -e BOX_PROFILE="$PROFILE" \
+    "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh && sh /scripts/box/probe.sh &&
         if [ "$BOX_RUN" = tt ]; then sh /scripts/box/tt-session.sh /usr/local/bin/podssh;
         else sh /scripts/sandbox-check.sh /usr/local/bin/podssh; fi'
 rc=$?

@@ -112,7 +112,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 725 entries: 74 open, 18 partial, 10 blocked, 623 done.
+`TODO/INDEX.md` holds 725 entries: 73 open, 18 partial, 10 blocked, 624 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -145,7 +145,7 @@ operator interrupts it.
 6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
    podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks, T-708 to T-731, stay behind
    podssh's own work order, M10 included (the owner's ruling "Priority"; Q105 is settled).
-7. The holds are released (Q92): T-085, T-107 to T-113, T-117, T-118, T-213, T-222, T-245 and
+7. The holds are released (Q92): T-085, T-107 to T-113, T-117, T-118, T-213, T-222 and
    T-248 are open and go by their priority, M5's `podssh serve` among them, after M10's entries of
    their priority; the work parked behind them ("Parked open work") starts as its condition says.
    T-328 (a real export of FinalShell and of Termius) and T-376 (the operator's throwaway cloud

@@ -106,8 +106,8 @@ case $udp in
     *) differs UDP "${udp:-no error}" "Operation not permitted (EPERM)" ;;
 esac
 
-# No listener: bind refused. (The report has no bind probe; the operator
-# reports that binding is not allowed there.) With BOX_SECCOMP=nolisten the
+# No listener of TCP: bind refused with EACCES, by Landlock in the profile
+# sandbox-a and by seccomp in strict (T-245). With BOX_SECCOMP=nolisten the
 # bind works and listen is refused with EPERM (T-358), on purpose.
 bind=$(timeout 3 nc -l -p 18080 </dev/null 2>&1)
 case ${BOX_SECCOMP:-}/$bind in
@@ -116,6 +116,21 @@ case ${BOX_SECCOMP:-}/$bind in
     /*"ermission denied"*) match bind "refused: Permission denied" ;;
     *) differs bind "${bind:-no error within 3 s}" "refused" ;;
 esac
+
+# AF_UNIX: sandbox A bound a path and an abstract name (doctor's lines in
+# the KTM report); the profile strict refuses them, as each bind (T-245).
+# bindjail is the box's own helper, built into its image.
+for kind in unix abstract; do
+    name=/tmp/podssh-probe.sock
+    [ "$kind" = abstract ] && name=podssh-probe
+    unixbind=$(bindjail try "$kind" "$name" 2>&1)
+    case ${BOX_PROFILE:-sandbox-a}/$unixbind in
+        sandbox-a/bound | nolisten/bound) match "bind AF_UNIX $kind" "bound" ;;
+        strict/*"ermission denied"*) match "bind AF_UNIX $kind" "refused: Permission denied (strict)" ;;
+        strict/*) differs "bind AF_UNIX $kind" "${unixbind:-no answer}" "refused (strict)" ;;
+        *) differs "bind AF_UNIX $kind" "${unixbind:-no answer}" "bound" ;;
+    esac
+done
 
 # Loopback: the sandbox refuses connect() with EACCES; here nothing listens.
 note loopback "the sandbox refuses connect() to loopback with EACCES; this box only has no listener there"

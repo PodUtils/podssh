@@ -1,0 +1,8 @@
+# T-245: the box's profile sandbox-a starts with no Landlock rule, so a bind
+# of AF_INET works; the probe must say that the box differs and stop.
+ENTRY=T-245
+GROUP=host-box
+EXPECT='^DIFFERS +bind +box:'
+SETUP='sh scripts/box/build-podssh.sh'
+RUN='sh scripts/test_in_box.sh "$BIN"'
+LIMIT=2400

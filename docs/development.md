@@ -506,7 +506,18 @@ The box has these properties:
   hosts, and refuses other ports and private addresses with the texts of the
   sandbox's proxy.
 - A resolver that does not answer, no capabilities, `no_new_privs`, and a
-  seccomp filter that refuses `bind` and UDP (`scripts/box/seccomp.json`).
+  seccomp filter that refuses UDP.
+- Binds by the profile, `BOX_PROFILE` (T-245). `sandbox-a`, the default, is
+  sandbox A as measured: a bind of AF_INET is refused with EACCES, and one of
+  AF_UNIX, a path or the abstract namespace, works. A seccomp filter cannot
+  read the address behind `bind`'s pointer, so the TCP refusal is Landlock's
+  right to bind TCP (Linux 6.7 or later), set by the box's helper
+  `scripts/box/bindjail.c`, built into the image, before the box's commands
+  start (`scripts/box/seccomp-sandbox-a.json` has no rule of `bind`). On an
+  older kernel the run stops: no silent fall back. `strict` refuses each
+  bind of each family with EACCES (`scripts/box/seccomp.json`), the box of
+  before. `BOX_SECCOMP=nolisten` still gives the host that binds and refuses
+  each listen (T-358).
 - No `/dev/ptmx`, and uid 0 with no name.
 - A `/dev/tty` that opens and never answers, and no controlling terminal,
   as in the target sandbox. `scripts/box/deadtty.py` holds a pty with

@@ -22,7 +22,7 @@ repository.
 | Direct TCP | Each direct `connect()` failed: `EACCES` for ports 53 and 22 and for loopback; dropped with no answer for ports 80, 443 and 8443, also for IP literals. |
 | UDP | `EPERM` |
 | DNS | The system resolver fails for each name (port 53 is refused). The proxy resolves the names that `CONNECT` gives, so a client that uses the proxy needs no DNS. |
-| Listening | The probe did not measure it. The operator reports that binding sockets is not allowed. |
+| Listening | The probe did not measure it. The operator reports that binding sockets is not allowed. In sandbox A (`docs/STATUS.md`, the KTM report), `doctor` found a bind of AF_INET refused with `EACCES` and one of AF_UNIX allowed, a path and the abstract namespace: the box's default profile `sandbox-a` gives both (T-245). |
 | Terminal | No `/dev/ptmx` and no `/dev/pts`. `/dev/tty` opens, but no byte came within 10 s: the read blocked, and the process has no controlling terminal. `TERM=xterm-256color` is set. |
 | Other devices | No `/dev/net/tun`. |
 | Writable | `/tmp`, `/dev/shm`, `$HOME`, the workspace. `/etc/ssl` is read-only. |
