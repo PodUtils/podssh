@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**711 entries: 63 open, 18 partial, 10 blocked, 620 done.**
+**711 entries: 62 open, 18 partial, 10 blocked, 621 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 23 | 8 | 1 | 268 | 300 |
+| P2 | 22 | 8 | 1 | 269 | 300 |
 | P3 | 36 | 8 | 6 | 281 | 331 |
-| **All** | 63 | 18 | 10 | 620 | 711 |
+| **All** | 62 | 18 | 10 | 621 | 711 |
 
 ## Entries
 
@@ -712,7 +712,7 @@ repository and CI).
 | [T-679](reverse.md) | P3 | M | M10 | feature | done | A node of the iroh, DERP, quick tunnel, Piping Server or OpenTunnel road ends its sessions at its upgrade |
 | [T-680](machine.md) | P3 | M | M10 | measurement | done | A cold connect on a long path takes nine round trips, where osewa's takes three |
 | [T-681](machine.md) | P3 | M | M10 | measurement | done | The echo beside a download on cellular, wifi and the slow link is 1.5 to 3.5 times osewa's |
-| [T-682](resume.md) | P2 | M | M10 | defect | open | M6's check of a stall of 3 minutes on the iroh road hung after its resume, once in CI |
+| [T-682](resume.md) | P2 | M | M10 | defect | done | M6's check of a stall of 3 minutes on the iroh road hung after its resume, once in CI |
 | [T-683](repo.md) | P2 | S | M10 | chore | done | The move to PodUtils/podssh: the repository's name in the code, the manual, the workflows and the documents |
 | [T-684](repo.md) | P2 | L | M10 | feature | partial | podcrates: the crates that podssh, podnet and podvm share, in PodUtils/podcrates |
 | [T-685](repo.md) | P1 | M | M10 | chore | done | The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021 |

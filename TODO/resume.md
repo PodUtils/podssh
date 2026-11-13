@@ -4113,7 +4113,7 @@ fails; no `END` again after a resume, and the test of a lost `END` fails; `podss
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4145,6 +4145,15 @@ cargo test -p podssh-cli --features iroh-test --test m6_exit -- --ignored --test
 ```
 
 20 runs in a row on a runner, each within its bound.
+
+## Done
+
+2026-11-13: `suite-repeat.yml` (run 43343098264, at `d5403f7`, `ubuntu-24.04`), package podssh-cli with the feature
+`iroh-test`, test `m6_exit`, the ignored `the_iroh_road_survives_a_stall_of_3_minutes`, 20 runs in a row: 0 of 20
+failed, each within its bound. The hang of the gate of `cbaa806` did not come back; Approach item 1 keeps the node's
+lines in `node.log`, so a failure of the gate's step `m6` now says where the session hung, and that failure would
+open a new entry with them.
+
 
 # T-703: A `cf://HOST` node that greets with the resumable layer warns about the SSH keepalives that the user set
 
