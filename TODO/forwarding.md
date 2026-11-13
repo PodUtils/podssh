@@ -496,7 +496,7 @@ AF_UNIX.
   listens") and `README.md:47-56` state the rule from before the ruling.
   `docs/design.md:1188-1190` already allows a local listener for `pipe` after
   a probe.
-- Read: the Podman box refuses each `bind` (`scripts/box/seccomp.json:5-10`),
+- Read: the Podman box refuses each `bind` (`scripts/box/seccomp.json:11-18`),
   so it tests the refusal.
 - Read: `podssh doctor` binds and closes without `listen()`
   (`crates/podssh-cli/src/doctor/unix.rs` lines 137-164 at `48a8744`,
@@ -677,7 +677,7 @@ OpenSSH shares one connection through a control socket (`-M`, `-S`, `-O`,
 - Read: a control socket is a listener. `AGENTS.md:332-360` forbids it in the
   words from before the ruling. Sandbox A allowed a bind for AF_UNIX
   (T-001); the Podman box refuses each `bind`
-  (`scripts/box/seccomp.json:5-10`).
+  (`scripts/box/seccomp.json:11-18`).
 - Read: the relay's limits apply to the shared connection: all the sessions
   of a master share one 64 MiB and one 12 h (`docs/relay.md:469-475`).
 
@@ -1633,7 +1633,7 @@ server (`remote_socket:host:hostport`), a socket on this host as the target
 (`[bind_address:]port:local_socket`, `remote_socket:local_socket`), and a SOCKS proxy that the
 server listens for and the client serves (`[bind_address:]port`). podssh refuses each by name, so
 a command line of OpenSSH fails with podssh. A server whose host refuses an AF_INET bind and
-allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:498`), can listen on a socket only; and
+allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:499`), can listen on a socket only; and
 the SOCKS form gives a server whose egress is closed a way out through the client.
 
 ## Premise

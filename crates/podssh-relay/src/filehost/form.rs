@@ -52,6 +52,10 @@ pub struct Form {
     pub fetch_segment: Option<String>,
     /// The download is a POST to the URL, not a GET.
     pub fetch_post: bool,
+    /// Where the answer's URL is a page, the start of the file's link in it
+    /// (tmpfiles.org: a signed link of a short life, read before each
+    /// download); see [`page_link`].
+    pub link_prefix: Option<String>,
     pub delete: Delete,
     /// The most bytes of one upload.
     pub most: usize,
@@ -168,6 +172,29 @@ pub fn fetch_url(form: &Form, url: &str) -> String {
         Some((host, path)) => format!("https://{host}/{segment}/{path}"),
         None => format!("https://{rest}/{segment}"),
     }
+}
+
+/// The file's link in `page`, the page at the answer's `url`: the first
+/// link that starts with the form's prefix and ends with the path of `url`
+/// (`https://tmpfiles.org/dl/EXPIRY.SIGNATURE/ID/NAME` for
+/// `https://tmpfiles.org/ID/NAME`). `None` with no prefix, or no such link.
+pub fn page_link(form: &Form, url: &str, page: &[u8]) -> Option<String> {
+    let prefix = form.link_prefix.as_deref().filter(|p| !p.is_empty())?;
+    let path = url.strip_prefix("https://")?.split_once('/').map(|(_, p)| p)?;
+    let path = path.split(['?', '#']).next().filter(|p| !p.is_empty())?;
+    let text = String::from_utf8_lossy(page);
+    let mut rest = text.as_ref();
+    while let Some(at) = rest.find(prefix) {
+        // A link ends where an attribute's quote, a space or a tag ends it.
+        let link = &rest[at..];
+        let end = link.find(|c: char| matches!(c, '"' | '\'' | '<' | '>') || c.is_whitespace()).unwrap_or(link.len());
+        let link = &link[..end];
+        if link.trim_end_matches('/').ends_with(&format!("/{path}")) {
+            return Some(link.to_string());
+        }
+        rest = &rest[at + prefix.len()..];
+    }
+    None
 }
 
 /// The body of the form that deletes `stored`, POSTed to its URL; `None`

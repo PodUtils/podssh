@@ -1,32 +1,200 @@
 {
   "defaultAction": "SCMP_ACT_ALLOW",
-  "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_X86", "SCMP_ARCH_X32", "SCMP_ARCH_AARCH64", "SCMP_ARCH_ARM"],
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_X86",
+    "SCMP_ARCH_X32",
+    "SCMP_ARCH_AARCH64",
+    "SCMP_ARCH_ARM"
+  ],
   "syscalls": [
     {
       "comment": "bind is refused with EACCES: the target sandbox allows no listener",
-      "names": ["bind"],
+      "names": [
+        "bind"
+      ],
       "action": "SCMP_ACT_ERRNO",
       "errnoRet": 13
     },
     {
       "comment": "UDP over IPv4 is refused with EPERM, as measured on the target sandbox",
-      "names": ["socket"],
+      "names": [
+        "socket"
+      ],
       "action": "SCMP_ACT_ERRNO",
       "errnoRet": 1,
       "args": [
-        { "index": 0, "value": 2, "op": "SCMP_CMP_EQ" },
-        { "index": 1, "value": 15, "valueTwo": 2, "op": "SCMP_CMP_MASKED_EQ" }
+        {
+          "index": 0,
+          "value": 2,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 2,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
       ]
     },
     {
       "comment": "UDP over IPv6 is refused with EPERM",
-      "names": ["socket"],
+      "names": [
+        "socket"
+      ],
       "action": "SCMP_ACT_ERRNO",
       "errnoRet": 1,
       "args": [
-        { "index": 0, "value": 10, "op": "SCMP_CMP_EQ" },
-        { "index": 1, "value": 15, "valueTwo": 2, "op": "SCMP_CMP_MASKED_EQ" }
+        {
+          "index": 0,
+          "value": 10,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 2,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
       ]
+    },
+    {
+      "comment": "No new namespace and no mount, with EPERM, as the target sandboxes refuse unshare and mount (T-778): a route to a tty that needs them must not pass here where it fails there",
+      "names": [
+        "unshare",
+        "setns",
+        "mount",
+        "umount2",
+        "pivot_root",
+        "open_tree",
+        "move_mount",
+        "fsopen",
+        "fsmount",
+        "fsconfig",
+        "mount_setattr"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1
+    },
+    {
+      "comment": "clone with CLONE_NEWNS is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 131072,
+          "valueTwo": 131072,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWCGROUP is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 33554432,
+          "valueTwo": 33554432,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWUTS is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 67108864,
+          "valueTwo": 67108864,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWIPC is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 134217728,
+          "valueTwo": 134217728,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWUSER is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 268435456,
+          "valueTwo": 268435456,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWPID is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 536870912,
+          "valueTwo": 536870912,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone with CLONE_NEWNET is refused with EPERM (T-778); a filter reads clone's flags, its first argument on each listed architecture but s390",
+      "names": [
+        "clone"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "args": [
+        {
+          "index": 0,
+          "value": 1073741824,
+          "valueTwo": 1073741824,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ]
+    },
+    {
+      "comment": "clone3 says ENOSYS, as Docker's default profile does: its flags sit behind a pointer that a filter cannot read, and libc then falls back on clone, whose flags the rules above read",
+      "names": [
+        "clone3"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 38
     }
   ]
 }

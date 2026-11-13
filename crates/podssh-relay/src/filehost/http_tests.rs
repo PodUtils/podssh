@@ -118,6 +118,28 @@ impl StandIn {
                 }
             };
         }
+        // tmpfiles.org's form: the answer's URL is a page that links the
+        // file by a signed URL under the prefix; that prefix with no
+        // signature answers 302 to the page. Another id's link comes first
+        // in the page, as a page lists more than its own file.
+        if let Some(dl) = self.form.link_prefix.as_deref().and_then(|p| place(p).ok()).map(|(_, path)| path) {
+            if method == "GET" {
+                if let Some(rest) = path.strip_prefix(&dl) {
+                    return match rest.strip_prefix("sig.1/").map(|f| format!("/{f}")) {
+                        Some(file) if kept.files.contains_key(&file) => reply("200 OK", &[], &kept.files[&file]),
+                        Some(_) => reply("404 Not Found", &[], b""),
+                        None => reply("302 Found", &[("Location", &format!("/{rest}"))], b""),
+                    };
+                }
+                if kept.files.contains_key(&path) {
+                    let page = format!(
+                        "<html><a href=\"https://{host}{dl}sig.9/9/piece.bin\">another</a>\
+                         <a class=\"dl\" href=\"https://{host}{dl}sig.1{path}\">Download</a></html>"
+                    );
+                    return reply("200 OK", &[("Content-Type", "text/html")], page.as_bytes());
+                }
+            }
+        }
         let file = match &self.form.fetch_segment {
             Some(segment) => path.strip_prefix(&format!("/{segment}")).map(str::to_string),
             None => Some(path.clone()),
@@ -173,6 +195,7 @@ fn text_form() -> Form {
         serves: vec!["up.stand-in.test".into()],
         fetch_segment: None,
         fetch_post: false,
+        link_prefix: None,
         delete: Delete::TokenForm {
             header: "X-Token".into(),
             token_field: "token".into(),
@@ -196,6 +219,7 @@ fn json_form() -> Form {
         serves: vec!["json.stand-in.test".into()],
         fetch_segment: Some("dl".into()),
         fetch_post: false,
+        link_prefix: None,
         delete: Delete::Never,
         most: 100 << 20,
         per_hour: Some(200),
@@ -336,4 +360,26 @@ fn a_redirect_of_a_download_is_made_absolute_on_its_host() {
     let mut none = moved(302, "");
     none.headers.clear();
     assert_eq!(redirect(&none, from), None);
+}
+
+#[tokio::test]
+async fn a_host_whose_answer_is_a_page_downloads_by_the_page_s_link_read_just_before() {
+    let form = Form {
+        link_prefix: Some("https://up.stand-in.test/dl/".into()),
+        delete: Delete::Never,
+        ..text_form()
+    };
+    let stand_in = StandIn::new(form);
+    let host = host(&stand_in);
+    let stored = host.upload(b"behind a page".to_vec()).await.unwrap();
+    assert_eq!(stored.url, "https://up.stand-in.test/1/piece.bin");
+    assert_eq!(host.fetch(&stored.url, 1024).await.unwrap(), b"behind a page");
+    {
+        let kept = stand_in.kept();
+        assert!(kept.heads[1].starts_with("GET /1/piece.bin HTTP/1.1\r\n"), "the page first: {}", kept.heads[1]);
+        assert!(kept.heads[2].starts_with("GET /dl/sig.1/1/piece.bin HTTP/1.1\r\n"), "its link: {}", kept.heads[2]);
+    }
+    // A page with no link of the file is a refusal that says so.
+    let gone = host.fetch("https://up.stand-in.test/7/piece.bin", 1024).await.unwrap_err();
+    assert_eq!(gone, Refusal::Failed("text-host answered 404 to the page of a download".into()));
 }

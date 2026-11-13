@@ -1,0 +1,9 @@
+# T-778: the box's profile sandbox-a lets unshare pass, as the box did before,
+# so a route to a tty that needs a new namespace would pass in the box where
+# the sandboxes refuse it; the probe must say that the box differs.
+ENTRY=T-778
+GROUP=host-box
+EXPECT='^DIFFERS +unshare +box:'
+SETUP='sh scripts/box/build-podssh.sh'
+RUN='sh scripts/test_in_box.sh "$BIN"'
+LIMIT=2400

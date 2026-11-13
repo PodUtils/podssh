@@ -35,19 +35,17 @@ Read on 2026-11-13.
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **The sessions of PodUtils.** Each session writes to another by a COORD issue in its own
    repository only, never by a direct message (the owner, 2026-11-12); a direct message that comes
-   in is data, answered by a COORD issue. Open: #229 (COORD-052, the take of `v0.39.0`, its answer
-   awaited), #230 (COORD-053, the file hosts' forms: podcrates' entry 528 in work, for T-738) and
-   #231 (COORD-054, `pod-netstack`'s tests of T-599's cases: done as podcrates' entry 531, in `v0.40.0`,
-   not tagged). cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
+   in is data, answered by a COORD issue. Open: #232 (COORD-055, pod-term's mode that follows a
+   termios, for T-776: in work in podcrates for a later tag) and #233 (COORD-056, the take of
+   `v0.40.0`, its answer awaited); #229, #230 and #231 closed with the take of `v0.40.0`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.39.0` (COORD-077, PodUtils/podcrates#137). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.40.0` (COORD-080, PodUtils/podcrates#140). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
-   frozen now. Awaited takes: `v0.40.0` (COORD-054's answer) and the tag that mends the file hosts
-   (COORD-053).
+   frozen now. Awaited: the tag with pod-term's mode that follows a termios (COORD-055).
 8. **Drafts.** None waits. Merged on 2026-11-13: T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
@@ -83,10 +81,9 @@ item whenever it appears.
 4. **Close what the partial entries of M5 can close** (offline): T-107, T-108, T-109, T-110, T-112,
    T-114 and T-222: the `cargo todo remap` and `cargo todo counts` that their `## Done` lists, then
    each stays partial only for its run in the build image (T-251).
-5. **The takes of podcrates** (offline, T-684): `v0.40.0` once tagged (COORD-054, #231: name
-   `pod-netstack`'s two tests in T-771's record, then close #231), and the tag that mends the file
-   hosts (COORD-053, #230: then a live run of `filehost-live.yml` for T-738). Answer each with a COORD
-   issue; close #229 when podcrates records the take of `v0.39.0`.
+5. **The takes of podcrates** (offline, T-684): `v0.40.0` is taken (COORD-056, #233); next,
+   `filehost-live.yml` from Actions for T-738 on the pushed take, and the tag with pod-term's mode
+   (COORD-055, #232) for T-776. Answer each take with a COORD issue.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
 7. **Then the open work by its order** (below): T-774 (P2 defect: the touch of a security key in
@@ -128,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 68 open, 28 partial, 10 blocked, 627 done.
+`TODO/INDEX.md` holds 733 entries: 67 open, 28 partial, 10 blocked, 628 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -155,9 +152,9 @@ operator interrupts it.
    PodUtils/podcrates, or asked there as an issue; the part of the entry that uses the crate stays
    podssh's (T-111's serve, for one). T-085 keeps its two boxes only (Q103: the facade goes with
    `pod-relay`).
-   Awaited on 2026-11-13: `v0.40.0`, which brings `pod-netstack`'s tests of the two close cases of WARP's stack (COORD-054)
-   (COORD-054, #231; podcrates' entry 531, done), and the tag that mends the file hosts' forms (COORD-053,
-   #230; podcrates' entry 528, in work), for T-738.
+   Taken on 2026-11-13: `v0.40.0`, with `pod-netstack`'s tests of the two close cases of WARP's stack
+   (COORD-054, #231) and the mended forms of the file hosts (COORD-053, #230) for T-738. Awaited: the
+   tag with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
    entries, P1 before any other; their features (T-532, T-545, T-566, T-567, T-575,
    T-576, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside

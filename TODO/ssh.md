@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:808`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:809`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -1348,7 +1348,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: an agent listens. The operator's ruling on Q1 (2026-10-08) allows a
   local listener when the user asks for it and a probe at run time allows
   the bind; AF_UNIX by default. Sandbox A allowed a bind for AF_UNIX (T-001);
-  the Podman box refuses each `bind` (`scripts/box/seccomp.json:5-10`).
+  the Podman box refuses each `bind` (`scripts/box/seccomp.json:11-18`).
 - Measured, offline: `podssh agent` gives `unknown subcommand 'agent'`, exit
   64.
 

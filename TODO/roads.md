@@ -5843,7 +5843,7 @@ code that no command of the default build uses is P2 at most".
   one handshake a run, as its Decision item 5 chose (`TODO/roads.md:2197-2201`). doctor says
   nothing of it in the default build, where the quick tunnel is.
 - Read: the measured cage refuses UDP (`docs/target-environment.md:23`), and the box does too
-  (`scripts/box/seccomp.json:11-30`): there the probe is right. Inferred: it is wrong on a host
+  (`scripts/box/seccomp.json:19-198`): there the probe is right. Inferred: it is wrong on a host
   that allows a UDP socket and drops its datagrams, as a network whose way out is a proxy can.
 - Inferred, not measured: iroh dials a peer that it knows by its key and relay alone
   (`crates/podssh-iroh/src/endpoint.rs:4-5`) over the relay first, and tries direct paths beside
@@ -6520,7 +6520,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:252`).
+  port 443 answers (`docs/STATUS.md:253`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
@@ -9378,6 +9378,12 @@ inside the tunnel is `pod-netstack`'s (PodUtils/podcrates), not smoltcp driven b
 `a_closed_stream_sends_each_queued_byte_then_the_end` and `a_dropped_stream_sends_each_queued_byte_then_the_end`
 (crates/pod-netstack/src/stack/tests/close.rs) and `a_full_tunnel_queue_holds_the_stack` (crates/pod-netstack/src/device/tests.rs);
 neither case of this entry has a test of its own there, which T-771 asks of podcrates.
+
+2026-11-13, podcrates `v0.40.0` taken (COORD-054's answer, its entry 531): each case has its test in
+`pod-netstack`, with a plant: `a_stream_whose_peer_closed_first_sends_each_queued_byte_then_the_end`
+(crates/pod-netstack/src/stack/tests/close.rs, plant `netstack-close-wait-closes-at-once`) and
+`the_packets_held_at_a_full_link_each_go_when_it_drains` (crates/pod-netstack/src/stack/tests/hold.rs, plant
+`netstack-link-drops-at-a-full-queue`), both in PodUtils/podcrates.
 
 # T-622: The HTTP road's one-POST form: one request carries both ways, where the way streams a body
 

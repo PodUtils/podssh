@@ -516,6 +516,13 @@ The box has these properties:
   bind of each family with EACCES (`scripts/box/seccomp.json`), the box of
   before. `BOX_SECCOMP=nolisten` still gives the host that binds and refuses
   each listen (T-358).
+- No new namespace and no mount (T-778), as the target sandboxes refuse
+  `unshare` and `mount`: each profile refuses `unshare`, `setns`, the mount
+  calls and a `clone` with a `CLONE_NEW*` flag with EPERM, and `clone3` with
+  ENOSYS (as Docker's default does: its flags sit behind a pointer, and libc
+  falls back on `clone`). `ptrace` is allowed, as the sandboxes' answer is
+  not measured; `BOX_PTRACE=refused` refuses it too, for the routes to a tty
+  that need it (T-777).
 - No `/dev/ptmx`, and uid 0 with no name.
 - A `/dev/tty` that opens and never answers, and no controlling terminal,
   as in the target sandbox. `scripts/box/deadtty.py` holds a pty with

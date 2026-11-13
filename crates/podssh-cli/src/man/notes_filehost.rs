@@ -9,7 +9,8 @@ pub(super) const NODE: &str = "In a build with the feature filehost (none of a r
      pair's road with the resumable layer and the end-to-end channel (no --plain, no --no-e2e) and a TCP \
      TARGET also waits for the pair's operators through public file hosts, the last of the last fallbacks of \
      the operator's ruling Q78 (T-738), for a proxy that refuses every other road: the hosts of podssh's list \
-     of services whose terms let a program upload unasked, or those that PODSSH_FILEHOSTS names, over HTTPS \
+     of services whose terms let a program upload unasked and that the list has on by default, or those \
+     that PODSSH_FILEHOSTS names, over HTTPS \
      by name on 443 through HTTPS_PROXY, with no account. Its door is a topic of the first public MQTT \
      broker of the list (PODSSH_MQTT), whose name comes from the pair's name and connect token, polled each \
      2 s at first and each 60 s at most; a client's hello there names a link. Each write of a way of at \

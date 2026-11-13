@@ -24,6 +24,11 @@
 # seccomp.json: a bind works and each listen is refused with EPERM, the host
 # that doctor's lines listen AF_INET and listen AF_UNIX tell apart (T-358).
 #
+# Each profile refuses a new namespace and each mount with EPERM, as the
+# target sandboxes refuse unshare and mount (T-778). Whether they refuse
+# ptrace is not measured, so BOX_PTRACE=refused adds that refusal (EPERM)
+# to the profile, for the routes to a tty that need it; the default allows it.
+#
 # The binary is a static Linux build (default:
 # target/x86_64-unknown-linux-musl/release/podssh, or one from the release
 # workflow). Needs podman; on Windows, a running podman machine. Works from
@@ -66,6 +71,10 @@ case $PROFILE in
     sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
     strict) SECCOMP=seccomp.json ;;
     *) echo "test_in_box: BOX_PROFILE is sandbox-a or strict, not $PROFILE" >&2; exit 1 ;;
+esac
+case ${BOX_PTRACE:-allowed} in
+    allowed | refused) ;;
+    *) echo "test_in_box: BOX_PTRACE is allowed or refused, not $BOX_PTRACE" >&2; exit 1 ;;
 esac
 case ${BOX_SECCOMP:-} in
     "") ;;
@@ -126,6 +135,17 @@ hostpath() {
 WORK=$(mktemp -d 2>/dev/null || echo "/tmp/podssh-box-$$")
 { mkdir -p "$WORK" && cd "$WORK"; } || die "cannot use the work directory $WORK"
 trap 'cd /; rm -rf "$WORK"' EXIT
+
+# The profile, with ptrace refused too where BOX_PTRACE=refused: one rule more
+# after the file's last, the file's closing `]` and `}` written again.
+SECCOMP_FILE=$HERE/box/$SECCOMP
+if [ "${BOX_PTRACE:-allowed}" = refused ]; then
+    { sed '$d' "$SECCOMP_FILE" | sed '$d'
+      printf '    ,\n    {\n      "comment": "ptrace is refused with EPERM (BOX_PTRACE=refused)",\n'
+      printf '      "names": ["ptrace"],\n      "action": "SCMP_ACT_ERRNO",\n      "errnoRet": 1\n    }\n  ]\n}\n'
+    } >"$WORK/seccomp-ptrace.json" || die "cannot write the profile with ptrace refused"
+    SECCOMP_FILE=$WORK/seccomp-ptrace.json
+fi
 timeout 60 podman info >/dev/null 2>&1 || die "podman does not answer (on Windows: podman machine start)"
 
 # The box's mounts are resolved on the podman host: the podman machine when
@@ -282,7 +302,7 @@ fi
 timeout 1800 podman run --rm --name "$BOX" --network "$NET" "$@" \
     --dns 1.1.1.1 --dns 8.8.8.8 --dns 9.9.9.9 --dns-option timeout:1 --dns-option attempts:2 \
     --cap-drop all --security-opt no-new-privileges \
-    --security-opt "seccomp=$(hostpath "$HERE/box/$SECCOMP")" \
+    --security-opt "seccomp=$(hostpath "$SECCOMP_FILE")" \
     --security-opt mask=/dev/pts \
     --mount "type=bind,source=$SLAVE,target=/dev/tty" \
     --mount "type=bind,source=$(hostpath "$WORK/empty"),target=/etc/passwd,readonly" \
@@ -294,7 +314,7 @@ timeout 1800 podman run --rm --name "$BOX" --network "$NET" "$@" \
     -e HOME=/state/home -e TERM=xterm \
     -e HTTPS_PROXY="http://$PIP:$PORT" -e https_proxy="http://$PIP:$PORT" \
     -e NO_PROXY="$PIP" -e no_proxy="$PIP" \
-    -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" -e BOX_PROFILE="$PROFILE" \
+    -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" -e BOX_PROFILE="$PROFILE" -e BOX_PTRACE="${BOX_PTRACE:-allowed}" \
     "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh && sh /scripts/box/probe.sh &&
         if [ "$BOX_RUN" = tt ]; then sh /scripts/box/tt-session.sh /usr/local/bin/podssh;
         else sh /scripts/sandbox-check.sh /usr/local/bin/podssh; fi'

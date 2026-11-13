@@ -69,6 +69,25 @@ impl HttpHost {
             Err(_) => Err(Refusal::Failed(format!("{id}: no answer within {} s", REQUEST_LIMIT.as_secs()))),
         }
     }
+
+    /// The file's link in the page at `url`, held to this host as a note's
+    /// URL is: a page that links elsewhere, or not at all, is a refusal.
+    async fn page_link(&self, url: &str) -> Result<String, Refusal> {
+        let id = &self.form.id;
+        let page = self.request("GET", url, &[("Accept", "text/html")], &[], ANSWER_MOST).await?;
+        if let Some(refusal) = busy(&page) {
+            return Err(refusal);
+        }
+        if page.status != 200 {
+            return Err(Refusal::Failed(format!("{id} answered {} to the page of a download", page.status)));
+        }
+        let link = form::page_link(&self.form, url, &page.body)
+            .ok_or_else(|| Refusal::Failed(format!("{id}: the page of a download links no file")))?;
+        if !self.owns(&link) {
+            return Err(Refusal::Failed(format!("{id}: the page of a download links another host")));
+        }
+        Ok(link)
+    }
 }
 
 /// The server and the path of an `https://` URL: the authority as a Piping
@@ -149,11 +168,16 @@ impl Host for HttpHost {
 
     fn fetch<'a>(&'a self, url: &'a str, most: usize) -> Doing<'a, Vec<u8>> {
         Box::pin(async move {
-            let at = form::fetch_url(&self.form, url);
+            let mut at = form::fetch_url(&self.form, url);
             // A note's URL was checked; the URL of the download is too, as a
             // segment of the catalog's is put in it.
             if !self.owns(&at) {
                 return Err(Refusal::Failed(format!("{}: a download of another host", self.form.id)));
+            }
+            // Where the answer's URL is a page, the file is its link, read
+            // just before each download as the link's life is short.
+            if self.form.link_prefix.is_some() {
+                at = self.page_link(&at).await?;
             }
             let method = if self.form.fetch_post { "POST" } else { "GET" };
             let mut answer = self.request(method, &at, &[("Accept", "*/*")], &[], most).await?;

@@ -132,6 +132,24 @@ for kind in unix abstract; do
     esac
 done
 
+# No new namespace and no mount: the sandboxes refuse unshare and mount
+# (docs/target-environment.md), so a route to a tty that needs them must fail
+# here as there (T-778). ptrace is refused only with BOX_PTRACE=refused: the
+# sandboxes' answer to it is not measured.
+for call in unshare clone mount; do
+    got=$(bindjail sys "$call" 2>&1)
+    case $got in
+        *"not permitted"*) match "$call" "refused: Operation not permitted" ;;
+        *) differs "$call" "${got:-no answer}" "refused with EPERM" ;;
+    esac
+done
+got=$(bindjail sys ptrace 2>&1)
+case ${BOX_PTRACE:-allowed}/$got in
+    refused/*"not permitted"*) match ptrace "refused: Operation not permitted (BOX_PTRACE=refused)" ;;
+    refused/*) differs ptrace "${got:-no answer}" "refused with EPERM (BOX_PTRACE=refused)" ;;
+    *) note ptrace "${got:-no answer}; the sandboxes' answer is not measured (BOX_PTRACE=refused refuses it)" ;;
+esac
+
 # Loopback: the sandbox refuses connect() with EACCES; here nothing listens.
 note loopback "the sandbox refuses connect() to loopback with EACCES; this box only has no listener there"
 

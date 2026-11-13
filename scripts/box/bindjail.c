@@ -11,8 +11,11 @@
  *   bindjail try unix PATH           one bind of a socket at PATH
  *   bindjail try abstract NAME       one bind in the abstract namespace
  *   bindjail try tcp PORT            one bind of 127.0.0.1:PORT
+ *   bindjail sys unshare|clone|mount|ptrace
+ *                                    one call that the sandboxes refuse (T-778)
  *
- * try prints "bound" or the error's text, and exits 0 or 1.
+ * try prints "bound" or the error's text, and exits 0 or 1; sys prints
+ * "allowed" or the error's text, and exits 0 or 1.
  */
 #define _GNU_SOURCE
 #include <errno.h>
@@ -23,10 +26,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sched.h>
+#include <signal.h>
+#include <sys/mount.h>
 #include <sys/prctl.h>
+#include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 static long abi(void) {
@@ -104,6 +112,58 @@ static int try_bind(const char *kind, const char *what) {
     return 0;
 }
 
+/* Each call runs in a child, which exits with its errno (0: allowed), so
+ * a call that works changes nothing of the box: the namespace or the
+ * tracer goes with the child. */
+static int try_sys(const char *what) {
+    int which;
+    if (strcmp(what, "unshare") == 0) which = 0;
+    else if (strcmp(what, "clone") == 0) which = 1;
+    else if (strcmp(what, "mount") == 0) which = 2;
+    else if (strcmp(what, "ptrace") == 0) which = 3;
+    else {
+        fprintf(stderr, "bindjail: sys takes unshare, clone, mount or ptrace, not %s\n", what);
+        return 64;
+    }
+    char mnt[] = "/tmp/bindjail-mount-XXXXXX";
+    if (which == 2 && mkdtemp(mnt) == NULL) { printf("mkdtemp: %s\n", strerror(errno)); return 1; }
+    fflush(stdout);
+    pid_t pid = fork();
+    if (pid < 0) { printf("fork: %s\n", strerror(errno)); return 1; }
+    if (pid == 0) {
+        long rc = 0;
+        if (which == 0) {
+            rc = unshare(CLONE_NEWUSER | CLONE_NEWNS);
+        } else if (which == 1) {
+            /* clone itself, not clone3: the flags that the filter reads. */
+            rc = syscall(SYS_clone, CLONE_NEWUSER | SIGCHLD, NULL, NULL, NULL, 0);
+            if (rc == 0) _exit(0);
+            if (rc > 0) { waitpid((pid_t)rc, NULL, 0); rc = 0; }
+        } else if (which == 2) {
+            /* On an empty directory of its own, undone at once: where the
+             * call is allowed (a host's root), a mount on a used place would
+             * hide it from each process of the host. */
+            if (mount("none", mnt, "tmpfs", 0, NULL) == 0) {
+                umount2(mnt, MNT_DETACH);
+            } else {
+                rc = -1;
+            }
+        } else {
+            rc = ptrace(PTRACE_TRACEME, 0, NULL, NULL);
+        }
+        _exit(rc < 0 ? (errno & 0xff ? errno & 0xff : 255) : 0);
+    }
+    int status = 0;
+    int waited = waitpid(pid, &status, 0);
+    if (which == 2) rmdir(mnt);
+    if (waited < 0) { printf("waitpid: %s\n", strerror(errno)); return 1; }
+    if (!WIFEXITED(status)) { printf("the child ended by signal %d\n", WTERMSIG(status)); return 1; }
+    int err = WEXITSTATUS(status);
+    if (err == 0) { printf("allowed\n"); return 0; }
+    printf("%s\n", strerror(err));
+    return 1;
+}
+
 int main(int argc, char **argv) {
     if (argc >= 3 && strcmp(argv[1], "run") == 0) {
         int rc = deny_tcp_bind();
@@ -117,6 +177,8 @@ int main(int argc, char **argv) {
         return 0;
     }
     if (argc == 4 && strcmp(argv[1], "try") == 0) return try_bind(argv[2], argv[3]);
-    fprintf(stderr, "usage: bindjail run CMD [ARG...] | abi | try unix PATH | try abstract NAME | try tcp PORT\n");
+    if (argc == 3 && strcmp(argv[1], "sys") == 0) return try_sys(argv[2]);
+    fprintf(stderr, "usage: bindjail run CMD [ARG...] | abi | try unix PATH | try abstract NAME | try tcp PORT"
+                    " | sys unshare|clone|mount|ptrace\n");
     return 64;
 }

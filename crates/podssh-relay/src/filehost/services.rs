@@ -54,6 +54,7 @@ pub fn form_of(service: &pod_services::Service) -> Result<Form, String> {
         serves: texts("serves")?.into_iter().map(|h| h.to_ascii_lowercase()).collect(),
         fetch_segment: service.text("fetch-segment").filter(|s| !s.is_empty()).map(str::to_string),
         fetch_post,
+        link_prefix: service.text("fetch-link-prefix").filter(|p| !p.is_empty()).map(str::to_string),
         delete,
         most: usize::try_from(most).unwrap_or(usize::MAX),
         per_hour: service.int("uploads-per-hour").and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0),
@@ -95,11 +96,15 @@ pub fn pointer(text: &str) -> Option<Vec<String>> {
 }
 
 /// Whether the catalog takes `service` with no word of the user: it has a
-/// rank, and its terms do not refuse automated uploads. The others are
-/// taken only when [`super::ENV`] names them, which is the user's consent
-/// that such a host's operator asks for.
+/// rank, its terms do not refuse automated uploads, and the catalog does not
+/// say that it is off by default (`on-by-default` false: a host that refused
+/// the networks it was measured from). The others are taken only when
+/// [`super::ENV`] names them, which is the user's consent that such a host's
+/// operator asks for.
 pub fn unasked(service: &pod_services::Service) -> bool {
-    service.rank().is_some() && service.bool("automated-uploads-refused") != Some(true)
+    service.rank().is_some()
+        && service.bool("automated-uploads-refused") != Some(true)
+        && service.bool("on-by-default") != Some(false)
 }
 
 /// The ids of the file hosts, in the catalog's order: each one, and those
@@ -141,6 +146,7 @@ mod tests {
             assert!(form.upload.starts_with("https://") && !form.serves.is_empty(), "{form:?}");
             assert_eq!(form.fields.len(), service.texts("fields").unwrap().len(), "{id}");
             assert_eq!(form.fetch_post, service.text("fetch-method") == Some("POST"), "{id}");
+            assert_eq!(form.link_prefix.as_deref(), service.text("fetch-link-prefix").filter(|p| !p.is_empty()), "{id}");
             assert_eq!(matches!(form.answer, Answer::Json(_)), service.text("answer") == Some("json"), "{id}");
             assert_eq!(form.per_hour.map(i64::from), service.int("uploads-per-hour"), "{id}");
             let deletes = matches!(form.delete, Delete::TokenForm { .. });
@@ -149,11 +155,13 @@ mod tests {
                 assert_eq!(Some(format!("/{}", keys.join("/"))).as_deref(), service.text("answer-pointer"));
             }
         }
-        // A host whose terms refuse automated uploads, or with no rank, is
-        // never taken unasked.
+        // A host whose terms refuse automated uploads, with no rank, or off
+        // by default, is never taken unasked.
         for id in &every {
             let service = pod_services::get(id).unwrap();
-            let refused = service.bool("automated-uploads-refused") == Some(true) || service.rank().is_none();
+            let refused = service.bool("automated-uploads-refused") == Some(true)
+                || service.rank().is_none()
+                || service.bool("on-by-default") == Some(false);
             assert_eq!(unasked_ids.contains(id), !refused, "{id}");
         }
         assert!(!unasked_ids.is_empty(), "at least one host is taken unasked");

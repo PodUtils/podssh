@@ -10902,7 +10902,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:306-307`), and needs the net's role exit, signed by
   its owner (`:304-305`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:164`).
+  (`docs/STATUS.md:165`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -11954,7 +11954,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:2068` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:2073` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -14357,6 +14357,16 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   HTML page (2,792 bytes); litterbox answers 412 to the upload; 0x0.st is busy at once. The forms are
   `pod-services`' (PodUtils/podcrates): asked as COORD-053 (#230). The entry waits for that tag's forms, then the
   live run again.
+  2026-11-13, podcrates `v0.40.0` taken (its entries 528 and 529, the answer to COORD-053): the road reads the
+  two new facts. `fetch-link-prefix` (tmpfiles.org): the answer's URL is a page, and each download first reads
+  it and takes the first link that starts with the prefix and ends with the answer's path (a signed link of
+  a short life), held to the host as a note's URL is (`filehost::form::page_link`, `HttpHost::page_link`).
+  `on-by-default` false (litterbox, 0x0.st): such a host is taken only where `PODSSH_FILEHOSTS` names it, as
+  one whose terms refuse automated uploads (`filehost::services::unasked`); the manual's note says so.
+  `cargo test -p podssh-relay --features filehost --lib -- filehost`: 39 passed, among them the stand-in
+  host of tmpfiles.org's form (the page, then its signed link; a page with no link refused) and the reader
+  of the page's link; planted, the page read skipped: the stand-in's test fails. Clippy with the feature:
+  clean. Next: `filehost-live.yml` from Actions on the pushed commit.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.
@@ -14914,7 +14924,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1138` says "a host of T-565's module, T-743", and `docs/carriers.md:1024` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:2068` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:2073` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach

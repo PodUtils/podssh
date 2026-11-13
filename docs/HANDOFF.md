@@ -22,24 +22,23 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.39.0"` (COORD-077, PodUtils/podcrates#137; podssh's answer is
-COORD-052, #229). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.40.0"` (COORD-080, PodUtils/podcrates#140; podssh's answer is
+COORD-056, #233). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
   and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- Awaited takes: `v0.40.0`, not tagged on 2026-11-13, brings `pod-netstack`'s two tests of T-599's
-  cases (podcrates' entry 531 at `4fc66f2`, the answer to COORD-054, #231); T-771's record names them at the
-  take. The next tag after podcrates' entry 528 mends the forms of the file hosts (COORD-053, #230),
-  for T-738.
+- `v0.40.0` (taken 2026-11-13) brought the forms of the file hosts (COORD-053, #230, closed; T-738 reads
+  `fetch-link-prefix` and `on-by-default`) and `pod-netstack`'s tests of T-599's cases (COORD-054, #231,
+  closed; T-599 and T-771 name them). Awaited: pod-term's mode that follows a termios (COORD-055, #232, for
+  T-776), in a later tag.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #229 (COORD-052) | podcrates to record podssh's take of `v0.39.0` (`5228b65`); close it when its answer comes |
-| #230 (COORD-053) | podcrates' entry 528 (in work): the file hosts' forms, in a tag, for T-738 |
-| #231 (COORD-054) | the tag `v0.40.0` (podcrates' entry 531 is done at `4fc66f2`): take it, name its tests in T-771, close |
+| #232 (COORD-055) | pod-term's mode that follows a termios, for T-776 (podcrates' entry 539, in work for a later tag) |
+| #233 (COORD-056) | podcrates to record podssh's take of `v0.40.0`; close it when its answer comes |
 
 ## The live runs and interop harnesses
 

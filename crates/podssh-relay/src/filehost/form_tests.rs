@@ -12,6 +12,7 @@ fn text_form() -> Form {
         serves: vec!["up.stand-in.test".into()],
         fetch_segment: None,
         fetch_post: false,
+        link_prefix: None,
         delete: Delete::TokenForm {
             header: "X-Token".into(),
             token_field: "token".into(),
@@ -35,6 +36,7 @@ fn json_form() -> Form {
         serves: vec!["json.stand-in.test".into()],
         fetch_segment: Some("dl".into()),
         fetch_post: false,
+        link_prefix: None,
         delete: Delete::Never,
         most: 100 << 20,
         per_hour: Some(200),
@@ -118,4 +120,18 @@ fn a_delete_is_a_form_of_the_token_where_the_host_gave_one() {
     assert_eq!(String::from_utf8_lossy(&body), want);
     assert_eq!(delete_body(&text_form(), "B1", &Stored { token: None, ..stored.clone() }), None);
     assert_eq!(delete_body(&json_form(), "B1", &stored), None, "a host that deletes nothing");
+}
+
+#[test]
+fn a_page_s_link_is_the_first_under_the_prefix_that_ends_with_the_answer_s_path() {
+    let form = Form { link_prefix: Some("https://tmpfiles.org/dl/".into()), ..text_form() };
+    let url = "https://tmpfiles.org/123/piece.bin";
+    let page = br#"<a href="https://tmpfiles.org/dl/1.a/9/piece.bin">x</a> <a href='https://tmpfiles.org/dl/2.b/123/piece.bin'>y</a>"#;
+    assert_eq!(page_link(&form, url, page).as_deref(), Some("https://tmpfiles.org/dl/2.b/123/piece.bin"));
+    // A link that only starts with the path's end is not the file's.
+    let near = br#"<a href="https://tmpfiles.org/dl/1.a/0123/piece.bin">"#;
+    assert_eq!(page_link(&form, url, near), None);
+    assert_eq!(page_link(&form, url, b"<html>no link</html>"), None);
+    // A form with no prefix reads no page.
+    assert_eq!(page_link(&text_form(), url, page), None);
 }

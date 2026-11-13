@@ -458,7 +458,7 @@ Read:
 3. On a run by hand, make the list of the commits since the last tag as an
    artifact, so that it can be read before a tag.
 4. Link each "Fixes #N" of a commit to its issue in the list.
-5. docs/development.md, "Release builds" (`docs/development.md:871-1005`): the
+5. docs/development.md, "Release builds" (`docs/development.md:878-1012`): the
    body is the notes file and the generated list.
 
 No new shell script: each step is a step of the workflow.
@@ -1154,18 +1154,18 @@ sees it.
 
 Read:
 
-- `docs/STATUS.md:470-484`: the box, measured by hand on 2026-10-08.
-- `scripts/test_in_box.sh:275-278`: the box runs `probe.sh`, then
+- `docs/STATUS.md:471-485`: the box, measured by hand on 2026-10-08.
+- `scripts/test_in_box.sh:295-298`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
   not fail on it (T-006). So today the box exits 0 when podssh fails in it.
-- `scripts/box/probe.sh:163-168` exits 1 when the box differs from the sandbox
-  in a required property (17 properties, `docs/STATUS.md:477`).
+- `scripts/box/probe.sh:181-186` exits 1 when the box differs from the sandbox
+  in a required property (17 properties, `docs/STATUS.md:478`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
-- The box uses `--disable-dns` (`scripts/test_in_box.sh:179`) and a mask on
-  `/dev/pts` (`scripts/test_in_box.sh:286`). Nobody measured the Podman of a
+- The box uses `--disable-dns` (`scripts/test_in_box.sh:199`) and a mask on
+  `/dev/pts` (`scripts/test_in_box.sh:306`). Nobody measured the Podman of a
   GitHub runner with them.
 - The box reaches the live relay and `github.com` through its proxy.
 
@@ -1188,7 +1188,7 @@ Read:
    that CI runs the box.
 
 Pitfall: the live path can drop a session (179 of 180 short sessions,
-`docs/STATUS.md:507`). Run a failure again by hand and record it. Never retry
+`docs/STATUS.md:508`). Run a failure again by hand and record it. Never retry
 inside the job.
 
 ## Decision
@@ -1206,7 +1206,7 @@ test "$(grep -c '^match ' box.log)" -eq 17                  # the box was faithf
 
 The run passed, with the job `box`, and its log has 17 `match` lines.
 Planted defect: run the job by hand with the seccomp option removed (an input
-of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:478`,
+of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:479`,
 and the job must fail.
 
 ## Correction
@@ -1272,7 +1272,7 @@ Read:
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
   run by hand.
-  `docs/STATUS.md:242`: `scripts/interop-conpty.py` passes 14 of 14 against a
+  `docs/STATUS.md:243`: `scripts/interop-conpty.py` passes 14 of 14 against a
   Tailscale SSH server, by hand.
 - `scripts/interop-conpty.py:219-275` needs a server with a POSIX shell,
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
@@ -1290,7 +1290,7 @@ Read:
    deletes (see Decision). Run the script with `--direct`; 14 of 14 must pass.
 3. With T-199: score the output with the Windows part of the baseline.
 4. The plant: a podssh that does not restore the mode of the console must
-   fail the three restore checks (as measured by hand, `docs/STATUS.md:242`).
+   fail the three restore checks (as measured by hand, `docs/STATUS.md:243`).
    Run it once in CI, and record it.
 5. docs/STATUS.md cites the CI run for the rows of Windows;
    docs/development.md names the job.
@@ -2051,7 +2051,7 @@ Read, in the tree as it is now:
   build must fail at `/nonexistent`; the control, with `CC` alone, must not
   stop there.
 - `docs/development.md:332-334` states the rule with `CXX`, and
-  `docs/STATUS.md:921` records the measurement. Rule 4 of
+  `docs/STATUS.md:922` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
 - `.github/workflows/build.yml:147-155` runs the plant on each push.
@@ -2082,7 +2082,7 @@ the same script in its step "the no-C rule is load-bearing".
 (CXX=/nonexistent)"). Measured with `sh scripts/dev.sh plant` in
 `rust:1-alpine`: the C plant failed twice for the right reason, the C++ plant
 failed at `CXX=/nonexistent`, the control with `CC` alone was not stopped
-there, and the clean tree built (`docs/STATUS.md:921`). The CI run of
+there, and the clean tree built (`docs/STATUS.md:922`). The CI run of
 `eacd94e`, which contains `a378863`, passed, with its step "the no-C rule is
 load-bearing".
 
@@ -2473,9 +2473,9 @@ refuses it. Today it shows only the second.
 
 Read:
 
-- `scripts/box/seccomp.json:5-10`: `bind` fails with EACCES for each socket,
+- `scripts/box/seccomp.json:11-18`: `bind` fails with EACCES for each socket,
   whatever its family.
-- `docs/STATUS.md:498`: in sandbox A, `bind` is refused for AF_INET and
+- `docs/STATUS.md:499`: in sandbox A, `bind` is refused for AF_INET and
   allowed for AF_UNIX. In the KTM report (read there), `doctor` printed
   `Permission denied (os error 13)` for AF_INET, and "bound" for an AF_UNIX
   path and for the abstract namespace.
@@ -4967,8 +4967,8 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
   `docs/design.md` gave "A reverse node and operator" first of what podssh "does not yet have",
   and said that "the real sandbox is not run yet"; `docs/irc.md` said "No command uses the IRC
   client yet", with T-097 and T-098 as its known defects; `docs/STATUS.md` said "Over IRC too
-  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:161`, `:169`), two runs
-  in real sandboxes (T-001; `docs/STATUS.md:489-498`), and `podssh chat --irc` (T-252, done, as
+  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:162`, `:170`), two runs
+  in real sandboxes (T-001; `docs/STATUS.md:490-499`), and `podssh chat --irc` (T-252, done, as
   T-097 and T-098 are). Of the same kind: `docs/design.md`'s summary and the head of its section
   4, and the row of `podssh-terminal` in `docs/architecture.md`. The triage's commit corrected
   each in place.
@@ -4995,7 +4995,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 3. A status written beside an id in those documents (`T-NNN, partial`, `(T-NNN, open)`) agrees
    with the index, unless its paragraph reads at a date or at a commit, as the record's readings
    do (`TODO/RULES.md:148-153`): "T-099, partial" of 2026-10-10 is such a reading
-   (`docs/STATUS.md:878`).
+   (`docs/STATUS.md:879`).
 4. `TODO/RULES.md` says it, beside the rules of citations.
 
 ## Decision
@@ -5180,7 +5180,7 @@ names no version and no way to a newer release. Docs.
 - Read: the page's head says that it "gives the measured state of podssh" (line 3 of
   `docs/STATUS.md` at `38f424c`), with no word of `main` or of a release; the README sends a
   reader to it for the measured state (lines 24-25 of `README.md` at `38f424c`).
-- Read: the exit's row (`docs/STATUS.md:164`) says "drafted and merged 2026-11-02" and **Works**.
+- Read: the exit's row (`docs/STATUS.md:165`) says "drafted and merged 2026-11-02" and **Works**.
   Measured: its commit `0b07025` is not in `v1.0.0` (`git merge-base --is-ancestor 0b07025
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
@@ -6271,7 +6271,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
   at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
-- `docs/STATUS.md:245`: only the console and the MSYS2 sshd are measured on Windows.
+- `docs/STATUS.md:246`: only the console and the MSYS2 sshd are measured on Windows.
 
 ## Approach
 
@@ -6429,7 +6429,10 @@ Merged by the main session the same day:
   its remade patch named `transit::DEFAULT_URL`, which is the function `transit::default_url()` now; mended, it is
   caught. `t319-seq-ignored` was caught on the digests, `t321-connection-unshared` caught, `t629-drop-after-runtime`
   caught here as root. `t740-bare-connect-binary` runs in `bare-interop.yml`.
-- The two cases of T-599 as tests of `pod-netstack`: asked as COORD-054 (#231).
+- The two cases of T-599 as tests of `pod-netstack`: asked as COORD-054 (#231), and in podcrates `v0.40.0`
+  (taken 2026-11-13): `a_stream_whose_peer_closed_first_sends_each_queued_byte_then_the_end` and
+  `the_packets_held_at_a_full_link_each_go_when_it_drains`, with the plants `netstack-close-wait-closes-at-once`
+  and `netstack-link-drops-at-a-full-queue` there (T-599's record names them).
 
 # T-778: The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do
 
@@ -6438,7 +6441,7 @@ Merged by the main session the same day:
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6467,3 +6470,26 @@ BOX_PROFILE=sandbox-a sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl
 
 The properties of the refusals read as `match`. Planted defect: `unshare` allowed in the profile; the
 property fails.
+
+## Done
+
+Done 2026-11-13. Each profile of the box (`scripts/box/seccomp.json`, `seccomp-sandbox-a.json`,
+`seccomp-nolisten.json`) refuses `unshare`, `setns` and the mount calls (`mount`, `umount2`, `pivot_root`,
+`open_tree`, `move_mount`, `fsopen`, `fsmount`, `fsconfig`, `mount_setattr`) with EPERM, a `clone` with any
+`CLONE_NEW*` flag with EPERM (one rule for each flag, as seccomp's masked test is of equality), and `clone3`
+with ENOSYS, as Docker's default does, so libc falls back on `clone`. `BOX_PTRACE=refused` writes the profile
+again with `ptrace` refused (EPERM) in the run's work directory. `scripts/box/bindjail.c` has `sys
+unshare|clone|mount|ptrace`, each call in a child, the mount on an empty directory of its own and undone at
+once (a mount on `/tmp` by root on a host, in the first try, hid that host's `/tmp` until it was unmounted).
+`probe.sh` reads `unshare`, `clone` and `mount` as required properties, and `ptrace` as a note, or a property
+with `BOX_PTRACE=refused`; the gate's box job requires 22 properties (`.github/workflows/build.yml`);
+`docs/development.md` names the refusals. The plant `t778-unshare-allowed`.
+
+- `sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh` (the binary of
+  `scripts/box/build-podssh.sh`): exit 0, 22 `match` lines (`unshare`, `clone` and `mount` refused:
+  Operation not permitted; `ptrace` allowed, a note), sandbox-check 14 ok, 0 FAIL.
+- `BOX_PTRACE=refused`: exit 0, 23 `match` lines, `ptrace` refused; `BOX_PROFILE=strict`: exit 0, 22.
+- The plant `t778-unshare-allowed` applied: exit 1, `DIFFERS unshare box: allowed; sandbox: refused with
+  EPERM`.
+- On the host as root, outside any filter: `bindjail sys` says `allowed` for each of the four, and leaves no
+  mount and no directory.

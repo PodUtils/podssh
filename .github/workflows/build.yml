@@ -472,8 +472,9 @@ jobs:
       CARGO_BUILD_JOBS: 4
       BIN: target/x86_64-unknown-linux-musl/release/podssh
       # identity, privileges, /dev/ptmx, /dev/tty, DNS, direct TCP, UDP, bind,
-      # bind AF_UNIX unix and abstract, proxy, and the proxy's 8 answers.
-      PROPERTIES: 19
+      # bind AF_UNIX unix and abstract, unshare, clone, mount (T-778), proxy,
+      # and the proxy's 8 answers.
+      PROPERTIES: 22
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: podssh, static, in the build image
