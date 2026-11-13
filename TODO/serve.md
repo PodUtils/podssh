@@ -822,6 +822,10 @@ through `podman exec -i`; with no `/dev/ptmx` and `unshare` refused there, serve
 itself (`--pty auto`), with the box's busybox `sh`: `AFTER-130` after Ctrl-C, and exit 9, in 12 s (11 s of them
 the script's own pauses), within the Prove's 15 s.
 
+The gate of `dfebaf0` (Linux, `gate (ssh)`) failed once in `the_prompt_the_echo_and_a_line_s_output_in_cr_lf`: the
+shell's two `echo`s came in two reads, and the discipline drew the prompt again between them, so the test's one
+needle `one\r\ntwo\r\n` never matched; it looks for each line on its own now. 5 runs in 5 passed.
+
 Left: the Prove's `sh scripts/dev.sh check` (the build image, T-251; CI's gate runs the same at each push).
 
 # T-112: An SFTP server in `podssh serve`
@@ -2769,7 +2773,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2247-2248` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2251-2252` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".

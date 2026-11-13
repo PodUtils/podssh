@@ -133,10 +133,12 @@ async fn the_prompt_the_echo_and_a_line_s_output_in_cr_lf() {
     // The shell joins the quotes: the needle is in the output alone, never
     // in the echo of the line.
     channel.data(&b"echo o''ne; echo t''wo\r"[..]).await.unwrap();
-    read_until(&mut channel, &mut seen, "one\r\ntwo\r\n").await;
+    // Two writes of the shell may come apart, with the prompt drawn again
+    // between them: each line is looked for on its own.
+    read_until(&mut channel, &mut seen, "two\r\n").await;
     let text = seen.text();
     assert!(text.contains("echo o''ne; echo t''wo"), "each key echoed: {text:?}");
-    assert!(text.contains("one\r\ntwo\r\n"), "the output's lines in CR LF: {text:?}");
+    assert!(text.contains("one\r\n") && text.contains("two\r\n"), "the output's lines in CR LF: {text:?}");
     assert!(!text.replace("\r\n", "").contains('\n'), "no lone LF reaches the client: {text:?}");
     channel.data(&b"exit 9\r"[..]).await.unwrap();
     read_to_close(&mut channel, &mut seen).await;
