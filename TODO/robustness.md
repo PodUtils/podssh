@@ -2251,3 +2251,45 @@ bytes back, and whether its read, its write or its shutdown failed) in the failu
 failure is rare (once in the gate's runs since `a834dbed`); the test's echo now names what each connection saw,
 so the next failure on the gate's windows job says which side reset. Next: that failure's message.
 
+
+# T-756: `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite
+
+**Source:** the main session's run of `cargo test --workspace --no-fail-fast` at the take of podcrates v0.35.0,
+2026-11-13 (3941 passed, 1 failed).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+`two_sessions_of_2_mib_each_way_cross_a_carrier_whole` (`crates/podssh-relay/tests/reverse_carrier.rs`) failed once
+in the whole suite: session b ended with `1000 the node's local side does not read`. Alone it passed 20 runs of 20.
+
+## Premise
+
+- pod-relay's node (`reverse/route.rs`, `offer`, at podcrates `v0.35.0`) closes a session whose waiting bytes pass
+  its handler's `queue_bytes`, 1 MiB for a handler with no flow control of its own (`reverse/node.rs`,
+  `QUEUE_BYTES`), as the relay has no flow control for one session.
+- The test's `Echo` handler echoed through a duplex of 256 KiB in a task of its own, so a session of 2 MiB passed
+  1 MiB of waiting bytes whenever that task lagged, as on a host busy with the whole suite.
+
+## Approach
+
+Give the test's local side room for each byte of a session, so that the result is the carrier's and not the
+scheduler's; then watch the gate for the next failure.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features pair,quick,derp,serve,piping --test reverse_carrier
+```
+
+## Done
+
+Partial, 2026-11-13: the echo's duplex is 4 MiB, more than a session carries. `--test reverse_carrier`: 7 passed;
+30 runs of `two_sessions` with a busy loop on each core: 0 failed, and 0 failed with the old duplex too, so the
+load of a suite (many test binaries, not busy loops) is not reproduced here; the cause is read from the code above.
+The entry stays partial until the gate has run the suite a few times with no recurrence.

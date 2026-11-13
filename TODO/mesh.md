@@ -14139,6 +14139,8 @@ with no change to its code but rustfmt's of one test file.
 - The two asks went to podcrates as COORD-045 (#220), the text below; the entry waits for a tag with them.
   podcrates took both (COORD-066, PodUtils/podcrates#105): its T-416, the kind `file-host` with the four services in
   this order, and its T-417, `pod_wormhole::mqtt::Board` (`put`, `take`, `clear`), for its next tag.
+  Both are in podcrates `v0.35.0` (COORD-069), taken at the commit after `cc316b3`: the HTTP host over the kind and the
+  board over `mqtt::Board` are this entry's next step.
 
 The text of that COORD issue:
 

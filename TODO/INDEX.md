@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**710 entries: 64 open, 16 partial, 10 blocked, 620 done.**
+**711 entries: 64 open, 17 partial, 10 blocked, 620 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 24 | 6 | 1 | 268 | 299 |
+| P2 | 24 | 7 | 1 | 268 | 300 |
 | P3 | 36 | 8 | 6 | 281 | 331 |
-| **All** | 64 | 16 | 10 | 620 | 710 |
+| **All** | 64 | 17 | 10 | 620 | 711 |
 
 ## Entries
 
@@ -786,3 +786,4 @@ repository and CI).
 | [T-753](robustness.md) | P2 | M | M10 | defect | partial | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
 | [T-755](ws.md) | P3 | L | none | feature | partial | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
+| [T-756](robustness.md) | P2 | S | M10 | defect | partial | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |

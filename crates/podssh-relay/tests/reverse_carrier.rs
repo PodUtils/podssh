@@ -50,7 +50,10 @@ impl Handler for Echo {
 
     fn open(&self, _id: SessionId) -> Opening<DuplexStream> {
         Box::pin(async {
-            let (ours, theirs) = tokio::io::duplex(256 * 1024);
+            // Room for each byte of a session: the node closes one whose
+            // local side lets more than its queue wait, and a loaded host
+            // may hold the echo's task back; this test is the carrier's.
+            let (ours, theirs) = tokio::io::duplex(4 * 1024 * 1024);
             tokio::spawn(async move {
                 let (mut r, mut w) = tokio::io::split(theirs);
                 let _ = tokio::io::copy(&mut r, &mut w).await;

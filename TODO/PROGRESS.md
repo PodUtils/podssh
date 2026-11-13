@@ -34,7 +34,7 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.34.0` (COORD-065, PodUtils/podcrates#104). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.35.0` (COORD-069, PodUtils/podcrates#127). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
@@ -59,7 +59,7 @@ item whenever it appears.
 1. **Confirm the gate green** (live: read `build.yml`). Why: it is red since the morning, and its
    two repairs are pushed but unconfirmed. Done when each job of `build.yml` passes at the newest
    commit of `main`; else read the failed job's log, repair, push, and read again.
-2. **Watch the tests that fail at random: T-746, T-465, T-627, and T-753** (Windows, `node_carrier`, 2026-11-12) (live: the gate runs of tonight).
+2. **Watch the tests that fail at random: T-746, T-465, T-627, T-753** (Windows, `node_carrier`, 2026-11-12) **and T-756** (`reverse_carrier` under the suite's load, 2026-11-13) (live: the gate runs of tonight).
    Why: each is partial, waiting for its next failure, and comes before any other work. Done when
    a failure is repaired and its entry closed, or the night ends with none.
 3. **ZeroTier's road is done** (2026-11-11): live through the roots and the relay at `b738a6ff`,
@@ -111,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 64 open, 16 partial, 10 blocked, 620 done.
+`TODO/INDEX.md` holds 711 entries: 64 open, 17 partial, 10 blocked, 620 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -123,7 +123,7 @@ operator interrupts it.
 
 **The rules of the order**, first to last:
 
-1. A red gate, then a test that fails at random (T-465, T-627, T-746), before any other work.
+1. A red gate, then a test that fails at random (T-465, T-627, T-746, T-753, T-756), before any other work.
 2. A `partial` entry before a new one.
 3. The migration's takes (T-684), as the podcrates session hands each crate over (Rule Q3 of
    `docs/decisions.md`: from the import, podssh changes that code for fixes only; after podssh takes

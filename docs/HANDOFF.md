@@ -20,8 +20,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.34.0"` (COORD-065, PodUtils/podcrates#104; podssh's
-answer is COORD-044).
+podssh pins every podcrates crate at `tag = "v0.35.0"` (COORD-069, PodUtils/podcrates#127; podssh's
+answer is COORD-048).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.

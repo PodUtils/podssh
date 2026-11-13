@@ -5721,6 +5721,12 @@ net's member is now written in as given (`net/doc.rs`; `a_member_named_by_the_di
 change of an API that podssh uses (the TCP carrier of `pod-link`, podnet's `ip.rs` settings and WARP's closed sessions are
 podnet's). `cargo test --workspace --no-fail-fast`: 3929 passed, 0 failed, 94 ignored.
 
+2026-11-13, podcrates `v0.35.0` (`311c6bb`, COORD-069, PodUtils/podcrates#127): each crate moved; no patch for podssh. New
+for podssh: the kind `file-host` (`tmpfiles-org`, `litterbox`, `temp-sh`, `null-pointer-0x0`) and
+`pod_wormhole::mqtt::Board` (`put`, `take`, `clear`), T-738's two asks (COORD-045). `Packet::Publish`'s new field `retain`
+touches no code of podssh. `cargo test --workspace --no-fail-fast`: 3941 passed, 1 failed, 95 ignored: the failure,
+`reverse_carrier`'s two sessions closed as stalled under the suite's load, is T-756, repaired in the test.
+
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
