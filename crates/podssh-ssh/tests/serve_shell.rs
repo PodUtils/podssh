@@ -55,11 +55,15 @@ fn each_failure_is_named_and_the_good_shell_wins() {
     file(&d.join("dash"), b"this is no shell\n", 0o644);
     file(&d.join("data"), b"this is no program\n", 0o755);
     std::os::unix::fs::symlink(d.join("missing"), d.join("link")).unwrap();
-    std::os::unix::fs::symlink(host_shell(), d.join("good")).unwrap();
-    let list: Vec<Candidate> = ["sh", "dash", "data", "link", "good"].iter().map(|n| candidate(&d.join(n))).collect();
+    // Named sh: busybox, Alpine's /bin/sh, picks its applet by the name it
+    // runs as, and runs nothing for another name.
+    std::fs::create_dir(d.join("good")).unwrap();
+    std::os::unix::fs::symlink(host_shell(), d.join("good").join("sh")).unwrap();
+    let names = ["sh", "dash", "data", "link", "good/sh"];
+    let list: Vec<Candidate> = names.iter().map(|n| candidate(&d.join(n))).collect();
 
     let found = shell::find(&list, &env()).expect("the good shell runs");
-    assert_eq!(found.path, d.join("good"));
+    assert_eq!(found.path, d.join("good").join("sh"));
     let why: Vec<(&str, &str)> = found
         .failed
         .iter()

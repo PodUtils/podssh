@@ -1787,6 +1787,9 @@ code 78), `docs/cli.md`, the row of `docs/STATUS.md` with T-108, the tests of th
 - `cargo test -p podssh-cli --test serve_openssh` (the missing shell, and `/dev/shm` where it is noexec): passed
   with the others (7).
 - The plant `t222-exists-test`: caught (`each_failure_is_named_and_the_good_shell_wins` failed).
+- The gate's job `ssh` (Alpine's build image, run of `33b22e5`) failed `each_failure_is_named_and_the_good_shell_wins`:
+  its good shell was a link named `good` to `/bin/sh`, busybox there, which picks its applet by the name it runs as
+  and ran nothing (127). The link is now named `sh`, in a directory of its own; the search was right to refuse it.
 - `target/debug/podssh serve --stdio --authorized-keys ak --shell /nonexistent`: exit 78, "no shell runs here:
   --shell /nonexistent: no such file: --shell names the one shell, and no other is tried".
 
