@@ -15,12 +15,12 @@ Read on 2026-11-11.
    `v1.0.1` (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete
    (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
    stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
-3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321,
-   T-106 and T-459; the work is in item 4, the public carriers and the last fallbacks; ZeroTier's
+3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321 and
+   T-106; the work is in item 4, the public carriers and the last fallbacks; ZeroTier's
    road is done and in the release's features. See "Work order".
 4. **Partial entries** (18; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
-   migration, T-684; the release of M10, T-446; and T-319, T-321, T-459,
+   migration, T-684; the release of M10, T-446; and T-319, T-321,
    T-660, T-665, T-666, T-670 and T-755 (its live run
    waits for a tester's tunnel).
 5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
@@ -40,7 +40,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
+8. **Drafts.** One is being written, T-319's (`draft-t319`: the CLI's test through a proxy that ends TLS); merged: (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -111,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 65 open, 17 partial, 10 blocked, 618 done.
+`TODO/INDEX.md` holds 710 entries: 65 open, 16 partial, 10 blocked, 619 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -169,7 +169,7 @@ parts are named so that the open ones read in their place):
    the tokens of one leg, the hosts of the relay members, and the rotation at a node's next pair,
    are done): T-106.
 3. Exit, routes, share and funnel (the exit, `doctor --exit`, the net's routes and `podssh share`
-   are done): T-459 (the funnel and a member that relays between two members are done; the status
+   are done; the exit behind a quick tunnel is done; the funnel and a member that relays between two members are done; the status
    of the net, `ping` of a node and doctor's sections are done).
 4. The public carriers of Q65 (the Piping Server road from end to end is done; the transit road's misses of 2026-11-06 are done, from a run of `transit-live.yml`; the protocols of Q66 are done), XHTTP over HTTP/1.1 (Q67, done), then
    what the research of more services (done) filed: the protocols of servers that a user runs

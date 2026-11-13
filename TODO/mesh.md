@@ -4292,7 +4292,7 @@ Waits: a run against the live relay and an exit with a public egress, from a run
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4467,7 +4467,12 @@ exit::`: 17 passed. `cargo test -p podssh-cli --lib ssh::cloudflare`: 5 passed. 
 7 passed. Clippy (the gate's lints) and rustfmt: clean. `cargo test -p podssh-cli --no-fail-fast`: 2235 passed after
 the repair (and the manual's row of `PODSSH_FILEHOSTS`, which T-738's merge lacked). Planted (`through` with the
 channel left out, `channel: None` into `around_told`): both tests of the tunnel fail; restored, they pass. The live
-step (`quick-tunnel-live.yml`, by hand, `confirm=Q43`): in its run after this merge.
+step (`quick-tunnel-live.yml`, by hand, `confirm=Q43`), run 43341567258 at `d5403f7`: passed: `podssh ssh --exit
+cf://HOST` reached the sshd, `podssh exit cf://HOST --listen` carried curl's SOCKS5 to a page of the runner, and `podssh
+proxy --exit cf://HOST` and `podssh pipe --exit cf://HOST` read the sshd's banner, each through the exit behind the
+quick tunnel.
+
+Done, 2026-11-13: each verb of the exit reaches an exit behind a quick tunnel, natively and live.
 
 # T-530: OpenTunnel, a blind TLS tunnel with no account, as a carrier of the reverse road
 

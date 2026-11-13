@@ -3362,7 +3362,7 @@ moved code then runs there.
 2026-11-13 (main session). The protocol of the road is `pod_relay::http_road` since podssh took `pod-relay`
 (podcrates v0.27.0; `crates/podssh-relay/src/http_road.rs` is a re-export). So, by Rule Q3, the parts of what
 remains that change the protocol or the role's server are podcrates': the invariants 6 to 10 of the addition of
-2026-11-11 (asked as COORD-046, #221), the quick tunnel's node as a server of the road (item 1, whose server is the
+2026-11-11 (asked as COORD-046, #221; podcrates' T-476, COORD-068, for its next tag), the quick tunnel's node as a server of the road (item 1, whose server is the
 role's), and the numbers of `doctor --stream` in `Tuning::measured` (item 2). podssh's parts stay here: the CLI's
 test through a proxy that ends TLS and `ssh`'s line for a close other than `1000` (item 3), `doctor` naming the road
 that answered, and the live runs (item 4, Q88).
