@@ -3563,7 +3563,7 @@ cargo test -p podssh-cli --test http_road_cli
 - `http_road_quick`: 2 passed.
 - `http_road_cli`, with the serial form's `ssh`: 6 passed, none ignored (43 s).
 - `cargo clippy --workspace --all-targets`, and podssh-relay's with `serve,quick,plain-ws,piping`: clean.
-- Known, pod-relay's: the client sends no `POST close` when the app drops its stream (podcrates T-478, open).
+- Known, pod-relay's: the client sends no `POST close` when the app drops its stream (podcrates' entry 478, open).
 
 
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)

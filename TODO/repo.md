@@ -5728,7 +5728,7 @@ touches no code of podssh. `cargo test --workspace --no-fail-fast`: 3941 passed,
 `reverse_carrier`'s two sessions closed as stalled under the suite's load, is T-756, repaired in the test.
 
 2026-11-13, podcrates `v0.36.0` (`408fb13`, COORD-071, PodUtils/podcrates#129): each crate moved; no patch for podssh,
-but a change of the HTTP road's wire (podcrates T-476 and T-477, for COORD-046, #221, and COORD-047, #222), so the
+but a change of the HTTP road's wire (podcrates' entries 476 and 477, for COORD-046, #221, and COORD-047, #222), so the
 client and podssh's server of the road move together. The role's server (`serve/http_road/`) now holds its batches up
 in `pod_relay::http_road::window::Up` and sends what the client requires: `X-Seq: N` on each answer that stores a
 batch, first or again (`up`'s `204`; `x`'s `200` or `204`); `503` with `X-Refuse: full` and `Retry-After: 1` after
@@ -5737,7 +5737,7 @@ allowed` on each `403` of the open; `400` for `fin=1` with no `total=`, and a to
 ends the session `1002 count mismatch`; `X-Total`, the bytes down of the session, on each `410` of `1000`. The ignored
 test of the serial form of `podssh ssh` (`podssh_ssh_carries_20_mib_each_way_over_the_serial_form`) runs again; a new
 test of the role's side, `crates/podssh-relay/tests/http_road_role.rs` (4 tests), drives the server request by request.
-Known: the client sends no `POST close` when the app drops its stream (podcrates T-478, open). `cargo test -p
+Known: the client sends no `POST close` when the app drops its stream (podcrates' entry 478, open). `cargo test -p
 podssh-relay --features serve,plain-ws --test http_road --test http_road_role`: 10 and 4 passed, a plant caught.
 `--features quick,serve,plain-ws --test http_road_quick`: 2 passed. `cargo test -p podssh-cli --test http_road_cli`:
 6 passed, the serial form's `ssh` among them.
