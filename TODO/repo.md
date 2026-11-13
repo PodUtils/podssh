@@ -1154,14 +1154,14 @@ sees it.
 
 Read:
 
-- `docs/STATUS.md:459-473`: the box, measured by hand on 2026-10-08.
+- `docs/STATUS.md:460-474`: the box, measured by hand on 2026-10-08.
 - `scripts/test_in_box.sh:275-278`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
   not fail on it (T-006). So today the box exits 0 when podssh fails in it.
 - `scripts/box/probe.sh:163-168` exits 1 when the box differs from the sandbox
-  in a required property (17 properties, `docs/STATUS.md:466`).
+  in a required property (17 properties, `docs/STATUS.md:467`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:179`) and a mask on
@@ -1188,7 +1188,7 @@ Read:
    that CI runs the box.
 
 Pitfall: the live path can drop a session (179 of 180 short sessions,
-`docs/STATUS.md:496`). Run a failure again by hand and record it. Never retry
+`docs/STATUS.md:497`). Run a failure again by hand and record it. Never retry
 inside the job.
 
 ## Decision
@@ -1206,7 +1206,7 @@ test "$(grep -c '^match ' box.log)" -eq 17                  # the box was faithf
 
 The run passed, with the job `box`, and its log has 17 `match` lines.
 Planted defect: run the job by hand with the seccomp option removed (an input
-of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:467`,
+of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:468`,
 and the job must fail.
 
 ## Correction
@@ -1250,7 +1250,7 @@ Read:
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
   run by hand.
-  `docs/STATUS.md:231`: `scripts/interop-conpty.py` passes 14 of 14 against a
+  `docs/STATUS.md:232`: `scripts/interop-conpty.py` passes 14 of 14 against a
   Tailscale SSH server, by hand.
 - `scripts/interop-conpty.py:219-275` needs a server with a POSIX shell,
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
@@ -1268,7 +1268,7 @@ Read:
    deletes (see Decision). Run the script with `--direct`; 14 of 14 must pass.
 3. With T-199: score the output with the Windows part of the baseline.
 4. The plant: a podssh that does not restore the mode of the console must
-   fail the three restore checks (as measured by hand, `docs/STATUS.md:231`).
+   fail the three restore checks (as measured by hand, `docs/STATUS.md:232`).
    Run it once in CI, and record it.
 5. docs/STATUS.md cites the CI run for the rows of Windows;
    docs/development.md names the job.
@@ -2029,7 +2029,7 @@ Read, in the tree as it is now:
   build must fail at `/nonexistent`; the control, with `CC` alone, must not
   stop there.
 - `docs/development.md:332-334` states the rule with `CXX`, and
-  `docs/STATUS.md:910` records the measurement. Rule 4 of
+  `docs/STATUS.md:911` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
 - `.github/workflows/build.yml:147-155` runs the plant on each push.
@@ -2060,7 +2060,7 @@ the same script in its step "the no-C rule is load-bearing".
 (CXX=/nonexistent)"). Measured with `sh scripts/dev.sh plant` in
 `rust:1-alpine`: the C plant failed twice for the right reason, the C++ plant
 failed at `CXX=/nonexistent`, the control with `CC` alone was not stopped
-there, and the clean tree built (`docs/STATUS.md:910`). The CI run of
+there, and the clean tree built (`docs/STATUS.md:911`). The CI run of
 `eacd94e`, which contains `a378863`, passed, with its step "the no-C rule is
 load-bearing".
 
@@ -2453,7 +2453,7 @@ Read:
 
 - `scripts/box/seccomp.json:5-10`: `bind` fails with EACCES for each socket,
   whatever its family.
-- `docs/STATUS.md:487`: in sandbox A, `bind` is refused for AF_INET and
+- `docs/STATUS.md:488`: in sandbox A, `bind` is refused for AF_INET and
   allowed for AF_UNIX. In the KTM report (read there), `doctor` printed
   `Permission denied (os error 13)` for AF_INET, and "bound" for an AF_UNIX
   path and for the abstract namespace.
@@ -4945,8 +4945,8 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
   `docs/design.md` gave "A reverse node and operator" first of what podssh "does not yet have",
   and said that "the real sandbox is not run yet"; `docs/irc.md` said "No command uses the IRC
   client yet", with T-097 and T-098 as its known defects; `docs/STATUS.md` said "Over IRC too
-  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:158`, `:166`), two runs
-  in real sandboxes (T-001; `docs/STATUS.md:478-487`), and `podssh chat --irc` (T-252, done, as
+  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:159`, `:167`), two runs
+  in real sandboxes (T-001; `docs/STATUS.md:479-488`), and `podssh chat --irc` (T-252, done, as
   T-097 and T-098 are). Of the same kind: `docs/design.md`'s summary and the head of its section
   4, and the row of `podssh-terminal` in `docs/architecture.md`. The triage's commit corrected
   each in place.
@@ -4973,7 +4973,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 3. A status written beside an id in those documents (`T-NNN, partial`, `(T-NNN, open)`) agrees
    with the index, unless its paragraph reads at a date or at a commit, as the record's readings
    do (`TODO/RULES.md:148-153`): "T-099, partial" of 2026-10-10 is such a reading
-   (`docs/STATUS.md:867`).
+   (`docs/STATUS.md:868`).
 4. `TODO/RULES.md` says it, beside the rules of citations.
 
 ## Decision
@@ -5158,7 +5158,7 @@ names no version and no way to a newer release. Docs.
 - Read: the page's head says that it "gives the measured state of podssh" (line 3 of
   `docs/STATUS.md` at `38f424c`), with no word of `main` or of a release; the README sends a
   reader to it for the measured state (lines 24-25 of `README.md` at `38f424c`).
-- Read: the exit's row (`docs/STATUS.md:161`) says "drafted and merged 2026-11-02" and **Works**.
+- Read: the exit's row (`docs/STATUS.md:162`) says "drafted and merged 2026-11-02" and **Works**.
   Measured: its commit `0b07025` is not in `v1.0.0` (`git merge-base --is-ancestor 0b07025
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
@@ -6240,7 +6240,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
   at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
-- `docs/STATUS.md:234`: only the console and the MSYS2 sshd are measured on Windows.
+- `docs/STATUS.md:235`: only the console and the MSYS2 sshd are measured on Windows.
 
 ## Approach
 
@@ -6321,3 +6321,38 @@ num-bigint 0.5.1 for croc's road. `cargo test -p podssh-tor`: each target passed
 --features tor`: no error; `cargo test -p podssh-relay --features croc --lib croc`: 19 passed (the curve SIEC and
 the PAKE on num-bigint 0.5); `cargo test -p podssh-ssh`: each target passed. cargo-deny is not on this host:
 deny's job runs it in CI on the push.
+
+# T-771: 38 of the 307 planted defects no longer apply to the tree
+
+**Source:** the main session, 2026-11-13, at the merge of T-321's CLI test: `git apply --check` of each
+`scripts/plants/*.patch` on `main`.
+**Category:** chore
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A plant whose patch no longer applies proves nothing: `scripts/plant-each.sh` reports it STALE, and its check
+goes untested. 38 plants are stale: `t173-kept-offer-ignored`, `t173-ssh-contract-road`, `t255-joins-during-stop`, `t319-seq-ignored`, `t321-connection-unshared`, `t321-protocol-unoffered`, `t321-refusal-fallen-back`, `t326-reset-unnamed`, `t326-tls-failure-unread`, `t360-record-row`, `t433-share-unlocked`, `t435-carrier-off-asked`, `t449-derp-registered-late`, `t454-edge-visitor-dropped`, `t511-quick-derp`, `t533-taken-over-unsaid`, `t551-copy-race-skipped`, `t560-probe-skipped`, `t561-peers-ignored`, `t562-one-route`, `t595-proxy-carrier-dropped`, `t595-ssh-carrier-skipped`, `t599-fin-before-the-bytes`, `t599-unread-left`, `t608-two-probes-at-once`, `t614-ssh-exit-carrier-refused`, `t617-relay-written-always`, `t629-drop-after-runtime`, `t643-no-header`, `t644-sshd-unread`, `t645-version-before-key`, `t647-halt-after-the-token`, `t647-halt-not-final`, `t661-no-drain`, `t667-token-unchecked`, `t670-packet-unasked`, `t679-derp-own-keeper`, `t740-bare-connect-binary`.
+
+## Premise
+
+- Many plant code that moved to PodUtils/podcrates (T-684): `t321-connection-unshared` patches
+  the pool of `podssh-ws`'s road of HTTP/2 (a file of its own then), which is `pod-ws`'s now; others patch lines that later work changed.
+- `plants.yml` and the planted runs wait for the release check (T-251, Q88), so nothing ran them since.
+
+## Approach
+
+For each stale plant: where its code is podssh's, make the patch again against the tree; where its code moved to
+podcrates, plant the same defect in podssh's glue where one exists (as `t321-road-never-offered` does for the
+HTTP/2 road), else remove the plant and name the podcrates test that holds the property in its entry.
+
+## Prove
+
+```sh
+for p in scripts/plants/*.patch; do git apply --check "$p" || echo "STALE $p"; done
+```
+
+No line STALE; each plant made again is caught by `sh scripts/plant-each.sh --here NAME`.

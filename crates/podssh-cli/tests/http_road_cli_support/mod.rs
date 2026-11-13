@@ -91,8 +91,9 @@ fn serial() -> rcgen::SerialNumber {
 
 /// The role's CA and its leaf for NAME, written in `dir`: the files of
 /// `--cert` and `--key`, and the CA that the proxy trusts on its way to the
-/// role. podssh never sees this CA: it trusts the proxy's alone.
-fn role_certificate(dir: &Path) -> (PathBuf, PathBuf, PathBuf) {
+/// role. podssh never sees this CA: it trusts the proxy's alone; a test
+/// with no proxy in front (`h2_each_cli`) gives podssh this CA itself.
+pub fn role_certificate(dir: &Path) -> (PathBuf, PathBuf, PathBuf) {
     let (ca_key, leaf_key) = (Key::new(), Key::new());
     let mut ca = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
     ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);

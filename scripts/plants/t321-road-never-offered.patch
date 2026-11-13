@@ -1,0 +1,12 @@
+--- a/crates/podssh-relay/src/context.rs
++++ b/crates/podssh-relay/src/context.rs
+@@ -91,7 +91,8 @@
+         rank_by_file: given.rank,
+         rank_auto_by_file: given.rank_auto,
+         rank_pace: var(crate::rank_auto::PACE_ENV),
+-        h2: var(crate::h2_road::H2_ENV),
++        // Planted: the road is never offered, so each session takes an upgrade of its own.
++        h2: Some("no".to_string()),
+         quic: var(crate::quic_road::QUIC_ENV),
+         cleartext: var(crate::cleartext::CLEARTEXT_ENV),
+         names: Names::podssh(),

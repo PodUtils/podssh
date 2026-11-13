@@ -1,0 +1,7 @@
+# T-321: podssh's settings never offer the HTTP/2 road, so each session of
+# `podssh each` takes an upgrade of HTTP/1.1 on a connection of its own; the
+# CLI's test of eight sessions on one TLS connection must fail.
+ENTRY=T-321
+GROUP=cli-tests
+EXPECT='each_over_8_hosts_through_the_role_shares_one_tls_connection_with_equal_digests \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test h2_each_cli -- --test-threads 1 each_over_8_hosts'

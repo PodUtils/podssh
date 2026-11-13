@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**725 entries: 72 open, 19 partial, 10 blocked, 624 done.**
+**726 entries: 73 open, 19 partial, 10 blocked, 624 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 20 | 9 | 1 | 270 | 300 |
-| P3 | 48 | 8 | 6 | 281 | 343 |
-| **All** | 72 | 19 | 10 | 624 | 725 |
+| P3 | 49 | 8 | 6 | 281 | 344 |
+| **All** | 73 | 19 | 10 | 624 | 726 |
 
 ## Entries
 
@@ -801,3 +801,4 @@ repository and CI).
 | [T-768](relay.md) | P3 | S | backlog | feature | open | One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed |
 | [T-769](robustness.md) | P1 | S | M10 | defect | done | The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes |
 | [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |
+| [T-771](repo.md) | P3 | M | M10 | chore | open | 38 of the 307 planted defects no longer apply to the tree |

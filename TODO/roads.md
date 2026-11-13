@@ -3991,6 +3991,40 @@ What remains of the entry, for its next part:
 3. Live, on a GitHub runner where `podssh relay serve` runs: `podssh doctor` names `h2` and the
    setting, and `podssh ssh` runs on the road (Q88: it waits until podssh is stable).
 
+Drafted 2026-11-13 (the drafting agent), item 2: `crates/podssh-cli/tests/h2_each_cli.rs`. `podssh
+relay serve` with its defaults (`--http2 yes`) on the loopback, its leaf of the run's CA
+(`http_road_cli_support::role_certificate`, now `pub`); in front of it a counter of TCP connections
+of the test's own, which carries each byte and counts what each connection carried, so that the
+role takes no hook; OpenSSH's sshd (`live_harness::sshd::start_with`) on 8 ports of the loopback,
+one host of the fan-out each. `podssh each -v --output-dir DIR` over the 8 hosts runs `cat` of one
+file of 4 MiB; each host's `.out` has the file's length and digest. The one connection: one
+connection of the counter carried each host's bytes (32 MiB down at least) and each other less
+than 1 MiB each way (a mint); `-v` says of each of the 8 sessions "over HTTP/2 (RFC 8441)", with
+"a connection that it opened" once at most and "that it shares" for the others; the role's events
+on its stdout say `upgrade` 8 times and `h2`. The layer is off (`PODSSH_RELAY_LAYER=no`), as a
+named role offers it and its links keep their own upgrade; `PODSSH_H2` is unset (its `auto`). With
+no sshd, or no user name, the test says "did not run"; it is Unix's alone (`cat` at the far end).
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test h2_each_cli
+cargo test -p podssh-cli --test http_road_cli
+```
+
+Merged, built and run by the main session the same day:
+
+- `--test h2_each_cli`: passed here, against this host's sshd (10 s; nothing said "did not run"): 8 sessions of
+  4 MiB, equal digests, one connection carrying their bulk, the words of the road and the role's events. Its two
+  points to check at the merge held: `each`'s `-v` lines reach stderr with `--output-dir`, and the mint's
+  connection stays under the bound.
+- `--test http_road_cli`, whose support module's function is now `pub`: 8 passed.
+- The draft's plant `t321-connection-unshared` no longer applies: it patches the pool of the road, which moved
+  to `pod-ws` (PodUtils/podcrates), and this session's sessions take `pod_relay::h2_road` with the pool of
+  `pod-relay`'s context, so a plant in podssh's glue (`podssh-ws`'s `h2_road`, a pool for each session) was
+  MISSED (the glue's `connect` serves only tests); a local patch of each podcrates crate to plant in `pod-relay`
+  did not build (two copies of a crate). The plant made instead, `t321-road-never-offered` (podssh's settings
+  never offer the road), is caught: the test fails. The stale plants are T-771.
+
 # T-329: Carry the patch of iroh-relay to iroh 1.4.1 (Azathothas/podssh#53)
 
 **Source:** Azathothas/podssh#53 (Dependabot, 2026-10-30): the group of 11
@@ -6480,7 +6514,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:241`).
+  port 443 answers (`docs/STATUS.md:242`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
@@ -9976,7 +10010,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:173` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:5986`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:6014`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The
