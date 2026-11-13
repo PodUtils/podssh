@@ -18,8 +18,7 @@ use std::sync::Arc;
 
 use russh::server::{Handle, Msg};
 use russh::{Channel, ChannelMsg, ChannelReadHalf, ChannelWriteHalf};
-use tokio::io::AsyncWriteExt;
-use tokio::process::ChildStdin;
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::sync::{mpsc, oneshot, watch};
 
 /// The client's messages that wait for the child's stdin: with russh's
@@ -28,6 +27,9 @@ pub const INPUT_QUEUE: usize = 128;
 
 /// What the client may send before its program starts, kept for it.
 pub const EARLY_INPUT: usize = 1 << 20;
+
+/// Where the client's data goes: the child's stdin, or a pty's master.
+pub(super) type Input = Box<dyn AsyncWrite + Send + Unpin>;
 
 /// What a channel asks to run: a command (`exec`), or the login shell
 /// (`shell`).
@@ -43,14 +45,17 @@ pub(super) struct Open {
     /// The connection's handle, for `exit-signal`, which the channel's half
     /// does not send. Both go through one queue, so their order holds.
     pub(super) handle: Handle,
-    /// Where the child's stdin goes to the reading task.
-    stdin: Option<oneshot::Sender<ChildStdin>>,
+    /// Where the child's input goes to the reading task.
+    stdin: Option<oneshot::Sender<Input>>,
     /// The `env` requests taken, in order.
     pub(super) env: Vec<(String, String)>,
     /// The child's process group, 0 while none runs.
     pub(super) group: Arc<AtomicI32>,
     /// True once the client closed the channel, or the connection ended.
     pub(super) closed: watch::Receiver<bool>,
+    /// The pty granted by a `pty-req` (T-110), from then to the close.
+    #[cfg(unix)]
+    pub(super) pty: Option<super::pty_child::Granted>,
 }
 
 impl Open {
@@ -67,6 +72,8 @@ impl Open {
             env: Vec::new(),
             group: Arc::new(AtomicI32::new(0)),
             closed,
+            #[cfg(unix)]
+            pty: None,
         }
     }
 
@@ -75,8 +82,8 @@ impl Open {
         self.write.is_none()
     }
 
-    /// Give the child's stdin to the reading task, with what came early.
-    pub(super) fn give_stdin(&mut self, stdin: ChildStdin) {
+    /// Give the child's input to the reading task, with what came early.
+    pub(super) fn give_stdin(&mut self, stdin: Input) {
         if let Some(to) = self.stdin.take() {
             let _ = to.send(stdin);
         }
@@ -103,11 +110,7 @@ impl Open {
 /// The task of a channel: its data to the child's stdin once there is one
 /// (kept until then, up to [`EARLY_INPUT`]), its EOF as the end of that
 /// stdin, and its close as the end of the task.
-async fn read_channel(
-    mut read: ChannelReadHalf,
-    mut stdin: oneshot::Receiver<ChildStdin>,
-    closed: watch::Sender<bool>,
-) {
+async fn read_channel(mut read: ChannelReadHalf, mut stdin: oneshot::Receiver<Input>, closed: watch::Sender<bool>) {
     // The bytes of russh's messages, kept as they came.
     let mut early = Vec::new();
     let mut early_len = 0usize;
@@ -154,10 +157,11 @@ async fn read_channel(
     let _ = closed.send(true);
 }
 
-/// Write the queue to the child's stdin, then close it. After a write that
-/// fails (the child closed its stdin, or ended), the rest is read and
-/// dropped, so that the channel's task never waits on it.
-async fn feed<B: AsRef<[u8]>>(mut pipe: ChildStdin, mut queue: mpsc::Receiver<B>) {
+/// Write the queue to the child's input, then close it (a pty's master
+/// stays open for its output). After a write that fails (the child closed
+/// its stdin, or ended), the rest is read and dropped, so that the
+/// channel's task never waits on it.
+async fn feed<B: AsRef<[u8]>>(mut pipe: Input, mut queue: mpsc::Receiver<B>) {
     while let Some(bytes) = queue.recv().await {
         if pipe.write_all(bytes.as_ref()).await.is_err() {
             drop(pipe);

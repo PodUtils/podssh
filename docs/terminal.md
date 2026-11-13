@@ -100,6 +100,12 @@ the manual read; a test holds the manual's note to it.
 - Put a limit on the wait for the reply, and treat no reply as a refusal.
   Never keep the answer for the next session.
 - A client refuses a `pty-req` that comes from the server.
+- The server side (`podssh serve`, T-110) grants a `pty-req` only where a
+  master opens at that request (`/dev/ptmx`, then `/dev/pts/ptmx`), and
+  keeps nothing for the next one. A zero size is 80x24 there, an empty
+  `TERM` is `xterm-256color`, and the modes are read through the client's
+  own table, the other way. Where none opens, the reply is FAILURE, and
+  T-111 is the line discipline for that case.
 
 ## `TERM`
 

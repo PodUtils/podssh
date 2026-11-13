@@ -1,10 +1,10 @@
 //! The server's answers (T-107): public-key authentication against the
 //! authorized keys; a command, a shell and the environment on a session
-//! channel (T-108); direct-tcpip (T-109); and a clean refusal of each
-//! request that a later entry serves. russh's defaults send no reply to a channel request, and a client
-//! then waits (podssh's own for 30 s): each request here is answered, in
-//! the order the requests came, as the handler answers each before russh
-//! reads the next.
+//! channel (T-108); direct-tcpip (T-109); a pty where one opens (T-110);
+//! and a clean refusal of each request that a later entry serves. russh's
+//! defaults send no reply to a channel request, and a client then waits
+//! (podssh's own for 30 s): each request here is answered, in the order the
+//! requests came, as the handler answers each before russh reads the next.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,6 +19,17 @@ use super::{env, Authorized, Settings};
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
 pub const MAX_SESSIONS: usize = 64;
+
+/// What a `pty-req` asked for.
+#[cfg_attr(not(unix), allow(dead_code))]
+struct Asked<'a> {
+    term: &'a str,
+    cols: u32,
+    rows: u32,
+    pix_width: u32,
+    pix_height: u32,
+    modes: &'a [(Pty, u32)],
+}
 
 /// One connection's handler.
 pub struct Served {
@@ -94,6 +105,42 @@ async fn start_program(
 async fn start_program(_: &mut Open, _: ChannelId, _: &Settings, _: Program<'_>) -> Result<(), String> {
     Err("not on this system: podssh serve runs programs on a Unix host".into())
 }
+
+/// Grant a pty to `open` when a master opens now, before its program and
+/// once; nothing is kept for the next request.
+#[cfg(unix)]
+fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>) -> bool {
+    use super::{pty, pty_child::Granted};
+    if open.started() || open.pty.is_some() {
+        return false;
+    }
+    let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
+    let Ok(pair) = pty::open_from(&paths) else { return false };
+    let size = pty::size_of(asked.cols, asked.rows, asked.pix_width, asked.pix_height);
+    match Granted::new(pair, asked.term, size, asked.modes) {
+        Ok(granted) => {
+            open.pty = Some(granted);
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// On Windows a pty request fails: serve runs no program there.
+#[cfg(not(unix))]
+fn grant_pty(_: &mut Open, _: &Settings, _: &Asked<'_>) -> bool {
+    false
+}
+
+#[cfg(unix)]
+fn resize_pty(open: &Open, cols: u32, rows: u32, pix_width: u32, pix_height: u32) {
+    if let Some(granted) = open.pty.as_ref() {
+        granted.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
+    }
+}
+
+#[cfg(not(unix))]
+fn resize_pty(_: &Open, _: u32, _: u32, _: u32, _: u32) {}
 
 impl russh::server::Handler for Served {
     type Error = russh::Error;
@@ -181,19 +228,43 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
-    // A pty is T-110's and T-111's.
+    // A pty where a master opens now (T-110); else refused, and the
+    // command runs on pipes (T-111 is the line discipline for that case).
     async fn pty_request(
         &mut self,
         channel: ChannelId,
-        _term: &str,
-        _cols: u32,
-        _rows: u32,
-        _pix_width: u32,
-        _pix_height: u32,
-        _modes: &[(Pty, u32)],
+        term: &str,
+        cols: u32,
+        rows: u32,
+        pix_width: u32,
+        pix_height: u32,
+        modes: &[(Pty, u32)],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        Self::refuse(channel, session)
+        let asked = Asked { term, cols, rows, pix_width, pix_height, modes };
+        let settings = self.settings.clone();
+        let granted = self.channels.get_mut(&channel).is_some_and(|open| grant_pty(open, &settings, &asked));
+        if granted {
+            session.channel_success(channel)
+        } else {
+            Self::refuse(channel, session)
+        }
+    }
+
+    // A new size for the pty; the request has no reply.
+    async fn window_change_request(
+        &mut self,
+        channel: ChannelId,
+        cols: u32,
+        rows: u32,
+        pix_width: u32,
+        pix_height: u32,
+        _session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        if let Some(open) = self.channels.get(&channel) {
+            resize_pty(open, cols, rows, pix_width, pix_height);
+        }
+        Ok(())
     }
 
     async fn x11_request(

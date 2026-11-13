@@ -1,0 +1,7 @@
+# T-110: podssh serve grants a pty but never sets its size (no TIOCSWINSZ at
+# the request), so the child's terminal stays 0 by 0; the test of the
+# granted pty must fail.
+ENTRY=T-110
+GROUP=cli-tests
+EXPECT='test a_pty_is_granted_and_the_command_sees_a_terminal \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_pty -- a_pty_is_granted_and_the_command_sees_a_terminal'

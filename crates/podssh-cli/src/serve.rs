@@ -102,6 +102,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         base_env: None,
         no_forwarding: args.no_forwarding,
         max_forwards: None,
+        ptmx: None,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

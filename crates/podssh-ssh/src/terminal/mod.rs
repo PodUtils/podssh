@@ -13,6 +13,8 @@ use std::sync::OnceLock;
 #[cfg(unix)]
 pub mod ctty;
 #[cfg(unix)]
+pub mod modes;
+#[cfg(unix)]
 mod unix;
 #[cfg(unix)]
 use unix as platform;

@@ -110,6 +110,15 @@ pub fn child_env(base: &[(OsString, OsString)], shell: &Path, taken: &[(String, 
     env.into_iter().collect()
 }
 
+/// `env` with the variables of a pty (T-110): `TERM` the request's, and
+/// `SSH_TTY` the slave's path, as sshd sets them; each replaces serve's own.
+pub fn with_tty(env: Vec<(OsString, OsString)>, term: &str, tty: &str) -> Vec<(OsString, OsString)> {
+    let mut env: BTreeMap<OsString, OsString> = env.into_iter().collect();
+    env.insert("TERM".into(), term.into());
+    env.insert("SSH_TTY".into(), tty.into());
+    env.into_iter().collect()
+}
+
 /// The working directory of a child: its `HOME` when that is a directory,
 /// else `/`.
 pub fn workdir(env: &[(OsString, OsString)]) -> PathBuf {
@@ -178,6 +187,14 @@ mod tests {
         assert_eq!(get("HOME").as_deref(), Some("/"));
         assert_eq!(get("SHELL").as_deref(), Some("/bin/sh"));
         assert_eq!(get("LANG").as_deref(), Some("C.UTF-8"));
+    }
+
+    #[test]
+    fn a_pty_sets_term_and_ssh_tty_over_serves_own() {
+        let env = with_tty(pairs(&[("TERM", "dumb"), ("PATH", "/bin")]), "vt100", "/dev/pts/7");
+        assert_eq!(lookup(&env, "TERM"), Some(OsStr::new("vt100")));
+        assert_eq!(lookup(&env, "SSH_TTY"), Some(OsStr::new("/dev/pts/7")));
+        assert_eq!(env.iter().filter(|(k, _)| k == "TERM").count(), 1);
     }
 
     #[test]

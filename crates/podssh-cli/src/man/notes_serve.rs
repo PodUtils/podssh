@@ -1,5 +1,6 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
-//! environment, T-108; the shell, T-222; direct-tcpip, T-109), and the row
+//! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
+//! T-110), and the row
 //! of its host key's file.
 
 pub const SERVE: &[&str] = &[
@@ -25,8 +26,19 @@ pub const SERVE: &[&str] = &[
      directory, else /; a signal request goes to its process group. When it ends, its pipes are read \
      to their end, for 2 s of silence at most (30 s in all), as a job that it put in the background can \
      hold them; then exit-status, or exit-signal with the signal's name and the core flag, always before \
-     EOF and close. A pty request is refused (the command runs without one; OpenSSH says PTY allocation \
-     request failed); a subsystem such as SFTP, X11 or a Unix socket's forward is refused with its answer.",
+     EOF and close. A subsystem such as SFTP, X11 or a Unix socket's forward is refused with its answer.",
+    "A pty request (OpenSSH's -t and -tt) is granted where a pty opens at that moment: serve tries \
+     /dev/ptmx, then /dev/pts/ptmx, at each request, and keeps nothing for the next one. The command or \
+     the shell then has the pty's slave as its stdin, stdout and stderr and as its controlling terminal, \
+     in a session of its own, so Ctrl-C and the job control of a shell work as under sshd; TERM is the \
+     request's (xterm-256color when it is empty), and the variable of the slave's path is set as sshd \
+     sets it. The size is the request's (80x24 when it is zero) and follows each window change; the \
+     request's terminal modes are set where termios has them, and a mode that it lacks or that the \
+     kernel refuses is passed over. On a pty, stdout and stderr come as one stream of data, and the \
+     client's EOF ends its input alone. Where no pty opens (a cage with no /dev/ptmx), the request is \
+     refused with its answer, and a command runs on pipes (OpenSSH, with -tt, ends with PTY allocation \
+     request failed); podssh doctor's line pty says which of the two a client meets. On Windows the \
+     request is refused.",
     "A client's forward (direct-tcpip: OpenSSH's -W, -L and -J) is a TCP connection that serve opens from \
      its own host to the host and port asked, any of them, as sshd allows by default: a name is resolved \
      there, or given to the proxy of serve's HTTPS_PROXY, and the loopback and the names of NO_PROXY go \

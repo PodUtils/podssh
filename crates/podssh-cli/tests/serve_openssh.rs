@@ -3,8 +3,9 @@
 //! ProxyCommand. The exit statuses 3, 0, 1 and 127; a command killed by
 //! TERM; stdout and stderr apart; 5,000,000 bytes up and back whole;
 //! `SetEnv LANG=C.UTF-8` arrives and `SetEnv LD_PRELOAD=x` does not; a
-//! credential in serve's environment is not in the child's; `-tt` gets its
-//! pty refused and the command runs. The shell (T-222): a `--shell` that is
+//! credential in serve's environment is not in the child's; `-tt` gets a
+//! pty where a master opens here (T-110: a terminal, 80x24, TERM, Ctrl-C),
+//! else its refusal. The shell (T-222): a `--shell` that is
 //! missing, or a copy of `/bin/sh` on a noexec mount, refuses the start
 //! with 78 and names why. Unix's, as `serve_stdio.rs`; a host with no
 //! OpenSSH client says that the test did not run.
@@ -84,13 +85,65 @@ fn setenv_takes_the_locale_and_never_a_preload_or_a_credential() {
     assert!(!env.contains("PODSSH_RELAY_TOKEN") && !env.contains("planted-token-of-serve"), "{env}");
 }
 
-/// The pty is refused with an answer. OpenSSH's client makes that refusal
-/// fatal where the pty was forced (`-tt`; `client_status_confirm` closes
-/// the channel), so its session ends with 255 after its own line and the
-/// command never runs; serve's run of a command without a pty is
-/// `serve_exec`'s `a_pty_request_is_refused_and_the_command_runs_without_one`.
+/// Whether `podssh serve` would grant a pty here: its own probe (T-110).
+fn pty_here() -> bool {
+    podssh_ssh::server::pty::open().is_ok()
+}
+
+/// A pty forced by `-tt` is granted where a master opens (T-110): the
+/// command sees a terminal, the zero size of a client whose stdin is no
+/// terminal is 80x24, and TERM is the client's.
+#[test]
+fn a_forced_pty_is_granted_where_a_master_opens() {
+    if !pty_here() {
+        eprintln!("did not run: no pty opens here; a_forced_pty_is_refused_with_an_answer runs instead");
+        return;
+    }
+    let Some(dir) = home("ptyok") else { return };
+    let command = r#"tty; stty size; echo "TERM=$TERM"; test -t 0 && echo stdin-tty"#;
+    let mut cmd = openssh_with(&dir.0, &dir.0.join("id"), "accept-new", "", &["-tt"], &[command]);
+    cmd.env("TERM", "vt220").stdout(Stdio::piped());
+    let (code, out, err) = run(cmd, None);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(!err.contains("PTY allocation request failed"), "{err}");
+    let out = String::from_utf8_lossy(&out);
+    let lines: Vec<&str> = out.lines().map(|l| l.trim_end_matches('\r')).collect();
+    assert!(lines.first().is_some_and(|l| l.starts_with("/dev/")), "tty names a slave: {out:?}");
+    assert!(lines.contains(&"24 80"), "a zero size is 80x24: {out:?}");
+    assert!(lines.contains(&"TERM=vt220"), "{out:?}");
+    assert!(lines.contains(&"stdin-tty"), "{out:?}");
+}
+
+/// Ctrl-C through OpenSSH's `-tt` reaches the command by the pty's own line
+/// discipline: no signal request is sent.
+#[test]
+fn ctrl_c_through_a_forced_pty_ends_the_command() {
+    if !pty_here() {
+        eprintln!("did not run: no pty opens here");
+        return;
+    }
+    let Some(dir) = home("ptyintr") else { return };
+    let cmd = openssh_with(&dir.0, &dir.0.join("id"), "accept-new", "", &["-tt"], &["sleep 25"]);
+    let started = std::time::Instant::now();
+    let (code, _, err) = run(cmd, Some(b"\x03".to_vec()));
+    assert!(started.elapsed() < std::time::Duration::from_secs(20), "Ctrl-C ended it, not the sleep: {err}");
+    // OpenSSH exits 255 for exit-signal; a shell that waited says 130.
+    assert!(matches!(code, Some(130 | 255)), "{code:?}: {err}");
+}
+
+/// Where no master opens, the pty is refused with an answer. OpenSSH's
+/// client makes that refusal fatal where the pty was forced (`-tt`;
+/// `client_status_confirm` closes the channel), so its session ends with
+/// 255 after its own line and the command never runs; serve's run of a
+/// command without a pty is `serve_exec`'s
+/// `a_pty_request_is_refused_and_the_command_runs_without_one`, which names a
+/// missing master on any host.
 #[test]
 fn a_forced_pty_is_refused_with_an_answer() {
+    if pty_here() {
+        eprintln!("did not run: a pty opens here; a_forced_pty_is_granted_where_a_master_opens runs instead");
+        return;
+    }
     let Some(dir) = home("pty") else { return };
     let mut cmd = openssh_with(&dir.0, &dir.0.join("id"), "accept-new", "", &["-tt"], &["test -t 0 || echo no-tty"]);
     cmd.stdout(Stdio::piped());

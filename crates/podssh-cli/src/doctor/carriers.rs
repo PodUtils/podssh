@@ -126,15 +126,19 @@ pub(super) async fn check(report: &mut Report<'_>, trust: &Trust) {
         transit_line(report, url, trust).await;
     }
     if let Ok(Some(urls)) = &plan.mailboxes {
+        let mut asked = Vec::new();
         for url in urls {
-            mailbox_line(report, url, trust).await;
+            asked.push(mailbox_line(url, trust).await);
         }
+        list_lines(report, asked);
     }
     // Each server of the road, as a node may wait at any (T-497).
     if let Ok(Some(servers)) = &plan.piping {
+        let mut asked = Vec::new();
         for server in servers {
-            piping_line(report, server, trust).await;
+            asked.push(piping_line(server, trust).await);
         }
+        list_lines(report, asked);
     }
     if let Ok(croc::Setting::On(bridge)) = &plan.croc {
         croc_line(report, bridge, trust).await;
@@ -190,12 +194,42 @@ async fn transit_line(report: &mut Report<'_>, url: &WsUrl, trust: &Trust) {
     }
 }
 
+/// What one member of a list of public servers said: its label, and its
+/// line's verdict.
+enum Asked {
+    Ok(String, String),
+    Failed(String, String),
+    Unknown(String, String),
+}
+
+/// The lines of a list of public servers of one road, in order. The road
+/// takes the first that answers, so where one answered, another that did
+/// not is no failure of this host (a public server can be down or slow to
+/// wake): its line is unknown, and names the one that answered. With none
+/// that answered, each failure stays one.
+fn list_lines(report: &mut Report<'_>, asked: Vec<Asked>) {
+    let answered = asked.iter().find_map(|a| match a {
+        Asked::Ok(label, _) => Some(label.clone()),
+        _ => None,
+    });
+    for one in asked {
+        match (one, &answered) {
+            (Asked::Ok(label, detail), _) => report.ok(&label, detail),
+            (Asked::Failed(label, detail), Some(other)) => {
+                report.unknown(&label, format!("{detail}; {other} answered, and the road takes either"))
+            }
+            (Asked::Failed(label, detail), None) => report.fail(&label, detail),
+            (Asked::Unknown(label, why), _) => report.unknown(&label, why),
+        }
+    }
+}
+
 /// A mailbox's welcome, bound to podssh's application, then left at once.
-async fn mailbox_line(report: &mut Report<'_>, url: &WsUrl, trust: &Trust) {
+async fn mailbox_line(url: &WsUrl, trust: &Trust) -> Asked {
     let label = format!("mailbox {}", url.shown());
     let mut bytes = [0u8; 5];
     if OsEntropy.fill(&mut bytes).is_err() {
-        return report.unknown(&label, "not asked: this host gave no random side");
+        return Asked::Unknown(label, "not asked: this host gave no random side".into());
     }
     let side: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
     let started = Instant::now();
@@ -205,36 +239,61 @@ async fn mailbox_line(report: &mut Report<'_>, url: &WsUrl, trust: &Trust) {
             let ms = started.elapsed().as_millis();
             let motd = mailbox.motd.as_ref().map(|motd| format!("; it says: {motd}")).unwrap_or_default();
             let _ = tokio::time::timeout(Duration::from_secs(2), mailbox.end()).await;
-            report.ok(&label, format!("welcomed in {ms} ms, certificate verified; no nameplate claimed{motd}"));
+            Asked::Ok(label, format!("welcomed in {ms} ms, certificate verified; no nameplate claimed{motd}"))
         }
-        Ok(Err(failed)) => report.fail(&label, failed.to_string()),
-        Err(_) => report.fail(&label, format!("no welcome within {} s", WAIT.as_secs())),
+        Ok(Err(failed)) => Asked::Failed(label, failed.to_string()),
+        Err(_) => Asked::Failed(label, format!("no welcome within {} s", WAIT.as_secs())),
     }
 }
 
 /// The Piping Server's `/version`, which waits for no sender.
-async fn piping_line(report: &mut Report<'_>, server: &Server, trust: &Trust) {
+async fn piping_line(server: &Server, trust: &Trust) -> Asked {
     let label = format!("Piping Server {server}");
     let http = crate::piping_road::http(server, trust);
     let started = Instant::now();
     // The dial has its own bound for TCP and for TLS: the whole probe, this one.
     let asked = tokio::time::timeout(WAIT, http.get_all(&server.path("version"), Some(WAIT), VERSION_MOST)).await;
-    match asked {
+    let line = match asked {
         Ok(Ok(body)) => {
             let ms = started.elapsed().as_millis();
             let version = podssh_ws::text::one_line(&String::from_utf8_lossy(&body));
             let proto = http.proto().map(|proto| format!(" over {proto}")).unwrap_or_default();
-            report.ok(&label, format!("/version answered {version:?}{proto} in {ms} ms, certificate verified"));
+            Asked::Ok(label, format!("/version answered {version:?}{proto} in {ms} ms, certificate verified"))
         }
-        Ok(Err(failed)) => report.fail(&label, failed.to_string()),
-        Err(_) => report.fail(&label, format!("no answer within {} s", WAIT.as_secs())),
-    }
+        Ok(Err(failed)) => Asked::Failed(label, failed.to_string()),
+        Err(_) => Asked::Failed(label, format!("no answer within {} s", WAIT.as_secs())),
+    };
     http.close().await;
+    line
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn lines_of(asked: Vec<Asked>) -> String {
+        let mut out = Vec::new();
+        let mut report = Report::new(&mut out);
+        list_lines(&mut report, asked);
+        let _ = report.finish();
+        String::from_utf8(out).unwrap()
+    }
+
+    /// One server that answered makes another's silence no failure of the
+    /// host, and its line names the one that answered; with none that
+    /// answered, each failure stays one.
+    #[test]
+    fn a_member_that_did_not_answer_fails_only_where_none_did() {
+        let failed = |n: &str| Asked::Failed(format!("Piping Server {n}"), "no answer within 10 s".into());
+        let ok = |n: &str| Asked::Ok(format!("Piping Server {n}"), "answered".into());
+        let text = lines_of(vec![ok("a"), failed("b")]);
+        assert!(text.contains("1 ok, 0 FAIL, 1 ????"), "{text}");
+        assert!(text.contains("no answer within 10 s; Piping Server a answered, and the road takes either"), "{text}");
+        let text = lines_of(vec![failed("a"), ok("b")]);
+        assert!(text.contains("1 ok, 0 FAIL, 1 ????"), "the order does not matter: {text}");
+        let text = lines_of(vec![failed("a"), failed("b")]);
+        assert!(text.contains("0 ok, 2 FAIL, 0 ????"), "{text}");
+    }
 
     /// With no variable each carrier of Q65 is asked: Least Authority's
     /// transit relay, the two public mailboxes in order, and ppng.io. A

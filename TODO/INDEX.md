@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**728 entries: 69 open, 23 partial, 10 blocked, 626 done.**
+**728 entries: 68 open, 24 partial, 10 blocked, 626 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 16 | 13 | 1 | 271 | 301 |
+| P2 | 15 | 14 | 1 | 271 | 301 |
 | P3 | 49 | 8 | 6 | 282 | 345 |
-| **All** | 69 | 23 | 10 | 626 | 728 |
+| **All** | 68 | 24 | 10 | 626 | 728 |
 
 ## Entries
 
@@ -184,7 +184,7 @@ repository and CI).
 | [T-107](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: the russh server, its host key in a state file, and authorized keys |
 | [T-108](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
 | [T-109](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: direct-tcpip into the cage |
-| [T-110](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: a real pty when `/dev/ptmx` exists |
+| [T-110](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: a real pty when `/dev/ptmx` exists |
 | [T-111](serve.md) | P2 | L | M5 | feature | open | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
 | [T-112](serve.md) | P2 | M | M5 | feature | open | An SFTP server in `podssh serve` |
 | [T-113](serve.md) | P2 | M | M5 | measurement | open | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |

@@ -1,6 +1,6 @@
 //! The program of a session channel of `podssh serve` (T-108): a command as
-//! `SHELL -c COMMAND`, or the shell as a login shell, on three pipes, in a
-//! session of its own, run as the user that runs serve; its output to the
+//! `SHELL -c COMMAND`, or the shell as a login shell, on three pipes (or on
+//! a pty, T-110: `pty_child.rs`), in a session of its own, run as the user that runs serve; its output to the
 //! channel, then its end: `exit-status` or `exit-signal`, EOF, close.
 //!
 //! Starting the user's shell is what the client asked for (rule 3 of
@@ -55,9 +55,20 @@ fn argv(shell: &Path, program: &Program<'_>) -> Result<(OsString, Vec<OsString>)
     }
 }
 
+/// The command of `program` with `shell` in `env`, in its working
+/// directory; its standard files and its session are the caller's.
+pub(super) fn command(shell: &Path, program: &Program<'_>, env: Vec<(OsString, OsString)>) -> Result<Command, String> {
+    let (arg0, args) = argv(shell, program)?;
+    let mut cmd = Command::new(shell);
+    cmd.arg0(arg0).args(args).env_clear().envs(env.iter().map(|(k, v)| (k, v)));
+    cmd.current_dir(super::env::workdir(&env));
+    Ok(cmd)
+}
+
 /// Start `program` with `shell` in `env` for the channel `open`, and the
-/// task that serves it to its end. `Err` is the line for the client's
-/// stderr; the request then fails, and the channel can ask again.
+/// task that serves it to its end: on the pty granted to the channel when
+/// there is one (T-110), else on three pipes. `Err` is the line for the
+/// client's stderr; the request then fails.
 pub(super) fn spawn(
     open: &mut Open,
     id: ChannelId,
@@ -65,10 +76,10 @@ pub(super) fn spawn(
     program: Program<'_>,
     env: Vec<(OsString, OsString)>,
 ) -> Result<(), String> {
-    let (arg0, args) = argv(shell, &program)?;
-    let mut cmd = Command::new(shell);
-    cmd.arg0(arg0).args(args).env_clear().envs(env.iter().map(|(k, v)| (k, v)));
-    cmd.current_dir(super::env::workdir(&env));
+    if open.pty.is_some() {
+        return super::pty_child::spawn(open, id, shell, program, env);
+    }
+    let mut cmd = command(shell, &program, env)?;
     cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
     // The child leads a session and a process group of its own: a signal
     // request reaches each process that it starts, and none of them shares
@@ -84,41 +95,59 @@ pub(super) fn spawn(
         });
     }
     let mut child = cmd.spawn().map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
-    let Some(write) = open.write.take() else {
-        // A channel runs one program; the handler asks before it starts one.
-        let _ = child.start_kill();
-        return Err("a program runs on this channel already".into());
-    };
-    if let Some(pid) = child.id() {
-        open.group.store(pid as i32, Ordering::SeqCst);
-    }
+    let running = Running::take(open, id, &mut child)?;
     if let Some(stdin) = child.stdin.take() {
-        open.give_stdin(stdin);
+        open.give_stdin(Box::new(stdin));
     }
-    let running = Running { write, handle: open.handle.clone(), id, group: open.group.clone() };
     tokio::spawn(running.run(child, open.closed.clone()));
     Ok(())
 }
 
 /// The program's side of the channel, once it runs.
-struct Running {
-    write: ChannelWriteHalf<Msg>,
+pub(super) struct Running {
+    pub(super) write: ChannelWriteHalf<Msg>,
     handle: Handle,
     id: ChannelId,
     group: Arc<AtomicI32>,
 }
 
 impl Running {
-    /// Pump stdout as data and stderr as extended data 1 while the child
-    /// runs; after it ends, read the pipes to their end within [`QUIET`] and
-    /// [`AFTER_EXIT`]; then its status, EOF and close, in that order. A
-    /// client that closes the channel first ends the pumps: the child then
-    /// meets closed pipes, as under sshd.
-    async fn run(self, mut child: Child, mut closed: watch::Receiver<bool>) {
+    /// Take the channel's writing half for `child`, and note its process
+    /// group for the signal requests.
+    pub(super) fn take(open: &mut Open, id: ChannelId, child: &mut Child) -> Result<Running, String> {
+        let Some(write) = open.write.take() else {
+            // A channel runs one program; the handler asks before it starts one.
+            let _ = child.start_kill();
+            return Err("a program runs on this channel already".into());
+        };
+        if let Some(pid) = child.id() {
+            open.group.store(pid as i32, Ordering::SeqCst);
+        }
+        Ok(Running { write, handle: open.handle.clone(), id, group: open.group.clone() })
+    }
+
+    /// Pump stdout as data and stderr as extended data 1, then
+    /// [`Running::finish`].
+    async fn run(self, mut child: Child, closed: watch::Receiver<bool>) {
         let (exited_tx, exited) = watch::channel(false);
         let out = child.stdout.take().map(|p| tokio::spawn(pump(p, self.write.make_writer(), exited.clone())));
         let err = child.stderr.take().map(|p| tokio::spawn(pump(p, self.write.make_writer_ext(Some(1)), exited)));
-        let mut pumps: Vec<_> = [out, err].into_iter().flatten().collect();
+        let pumps: Vec<_> = [out, err].into_iter().flatten().collect();
+        self.finish(child, pumps, exited_tx, closed).await;
+    }
+
+    /// While the child runs, its `pumps` copy its output; after it ends
+    /// (told on `exited`), they read to the end within [`QUIET`] and
+    /// [`AFTER_EXIT`]; then its status, EOF and close, in that order. A
+    /// client that closes the channel first ends the pumps: the child then
+    /// meets closed pipes, or a hung-up pty, as under sshd.
+    pub(super) async fn finish(
+        self,
+        mut child: Child,
+        mut pumps: Vec<tokio::task::JoinHandle<()>>,
+        exited: watch::Sender<bool>,
+        mut closed: watch::Receiver<bool>,
+    ) {
         let aborts: Vec<_> = pumps.iter().map(|p| p.abort_handle()).collect();
         let abort = || aborts.iter().for_each(|a| a.abort());
         let status = tokio::select! {
@@ -130,7 +159,7 @@ impl Running {
             }
         };
         self.group.store(0, Ordering::SeqCst);
-        let _ = exited_tx.send(true);
+        let _ = exited.send(true);
         tokio::select! {
             () = drained_all(&mut pumps) => {}
             () = turned(&mut closed) => {
@@ -184,7 +213,11 @@ async fn drained_all(pumps: &mut [tokio::task::JoinHandle<()>]) {
 /// Copy `pipe` to `to` until its end; after `exited` turns true, until a
 /// silence of [`QUIET`] or [`AFTER_EXIT`] in all. A write that fails (the
 /// channel is gone) ends it, and the dropped pipe tells the child.
-async fn pump(mut pipe: impl AsyncRead + Unpin, mut to: impl AsyncWrite + Unpin, mut exited: watch::Receiver<bool>) {
+pub(super) async fn pump(
+    mut pipe: impl AsyncRead + Unpin,
+    mut to: impl AsyncWrite + Unpin,
+    mut exited: watch::Receiver<bool>,
+) {
     let mut buf = vec![0u8; CHUNK];
     let mut cut: Option<Instant> = None;
     loop {

@@ -2,8 +2,8 @@
 //! a pipe: the exit status, stdout and stderr apart, and the end in its
 //! order (`exit-status` or `exit-signal` before EOF and close); a signal
 //! request to the command; stdin back whole; the environment filter, and no
-//! credential of serve's in the child's; a pty refused with the command run
-//! without one; a missing shell named on the channel's stderr (T-222); a
+//! credential of serve's in the child's; a pty refused where no master
+//! opens, with the command run without one; a missing shell named on the channel's stderr (T-222); a
 //! background job that holds the pipes does not hold the end. The same
 //! against OpenSSH's client: `podssh-cli`'s `tests/serve_openssh.rs`.
 
@@ -247,9 +247,13 @@ async fn accept_env_lets_in_its_names_and_never_ld() {
     assert!(!env.contains("/planted"), "{env}");
 }
 
+/// Where no master opens (here one that is missing, as on a host with no
+/// `/dev/ptmx`), the pty is refused and the command runs on pipes (T-110);
+/// a granted pty is `serve_pty`'s.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_pty_request_is_refused_and_the_command_runs_without_one() {
-    let handle = connect(settings()).await;
+    let no_master = Settings { ptmx: Some(vec!["/nonexistent/podssh-ptmx".into()]), ..settings() };
+    let handle = connect(no_master).await;
     let mut channel = handle.channel_open_session().await.unwrap();
     channel.request_pty(true, "xterm", 80, 24, 0, 0, &[]).await.unwrap();
     channel.exec(true, "test -t 0 || echo no-tty").await.unwrap();

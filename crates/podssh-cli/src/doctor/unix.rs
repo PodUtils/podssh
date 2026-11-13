@@ -92,66 +92,19 @@ fn passwd_entry(uid: libc::uid_t) -> io::Result<Option<(String, String)>> {
     }
 }
 
-/// Whether a pty can be had: the master from `/dev/ptmx`, then its slave.
-/// The line, and the fact that `--tier` reads (never a failure: a remote
-/// pty needs nothing here).
+/// Whether a pty can be had: a master from `/dev/ptmx` (or devpts' own),
+/// then its slave. The probe is `podssh serve`'s own (T-110), so the line
+/// says what a `pty-req` to serve would meet. The line, and the fact that
+/// `--tier` reads (never a failure: a remote pty needs nothing here).
 pub(super) fn pty() -> (Verdict, Pty) {
+    use podssh_ssh::server::pty::{self, NoPty};
     let remote = "a remote pty (podssh ssh -t) needs nothing here";
-    // SAFETY: posix_openpt takes flags only.
-    let master = unsafe { libc::posix_openpt(libc::O_RDWR | libc::O_NOCTTY) };
-    if master < 0 {
-        let why = format!("/dev/ptmx: {}", io::Error::last_os_error());
-        return (ok(format!("none: {why}; {remote}")), Pty::Closed(why));
+    match pty::open() {
+        // Both ends close here.
+        Ok(pair) => (ok(format!("a pty can be allocated here ({})", pair.name)), Pty::Allocates(pair.name)),
+        Err(NoPty::Master(why)) => (ok(format!("none: {why}; {remote}")), Pty::Closed(why)),
+        Err(NoPty::Slave(why)) => (ok(format!("{why}; {remote}")), Pty::Closed(why)),
     }
-    let slave = open_slave(master);
-    // SAFETY: `master` was opened above and is closed once.
-    unsafe { libc::close(master) };
-    match slave {
-        Ok(name) => (ok(format!("a pty can be allocated here ({name})")), Pty::Allocates(name)),
-        Err(e) => (ok(format!("/dev/ptmx opens, but no pty comes of it: {e}; {remote}")), Pty::Closed(e)),
-    }
-}
-
-fn open_slave(master: libc::c_int) -> Result<String, String> {
-    // SAFETY: `master` is an open pty master for both calls.
-    if unsafe { libc::grantpt(master) } != 0 {
-        return Err(format!("grantpt: {}", io::Error::last_os_error()));
-    }
-    if unsafe { libc::unlockpt(master) } != 0 {
-        return Err(format!("unlockpt: {}", io::Error::last_os_error()));
-    }
-    let name = pts_name(master).map_err(|e| format!("ptsname: {e}"))?;
-    let path = CString::new(name.clone()).map_err(|_| "ptsname gave a name with a NUL in it".to_string())?;
-    // SAFETY: `path` is NUL-terminated; the descriptor is closed at once.
-    let fd = unsafe { libc::open(path.as_ptr(), libc::O_RDWR | libc::O_NOCTTY) };
-    if fd < 0 {
-        return Err(format!("{name}: {}", io::Error::last_os_error()));
-    }
-    unsafe { libc::close(fd) };
-    Ok(name)
-}
-
-#[cfg(target_os = "linux")]
-fn pts_name(master: libc::c_int) -> io::Result<String> {
-    let mut buf = [0 as libc::c_char; 128];
-    // SAFETY: the buffer's length is passed with it.
-    let rc = unsafe { libc::ptsname_r(master, buf.as_mut_ptr(), buf.len()) };
-    if rc != 0 {
-        return Err(io::Error::from_raw_os_error(rc));
-    }
-    // SAFETY: ptsname_r NUL-terminates within the buffer on success.
-    Ok(unsafe { CStr::from_ptr(buf.as_ptr()) }.to_string_lossy().into_owned())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn pts_name(master: libc::c_int) -> io::Result<String> {
-    // SAFETY: the host checks run on one thread, so ptsname's static buffer
-    // is not shared; it is copied out at once.
-    let p = unsafe { libc::ptsname(master) };
-    if p.is_null() {
-        return Err(io::Error::last_os_error());
-    }
-    Ok(unsafe { CStr::from_ptr(p) }.to_string_lossy().into_owned())
 }
 
 /// Bind a TCP socket to 127.0.0.1 port 0, listen once with a backlog of 1,

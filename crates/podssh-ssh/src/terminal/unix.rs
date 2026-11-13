@@ -94,72 +94,8 @@ pub fn pty_modes_of(fd: libc::c_int) -> Vec<(Pty, u32)> {
     if unsafe { libc::tcgetattr(fd, &mut t) } != 0 {
         return Vec::new();
     }
-    // A disabled special character is 0 in termios and 255 on the wire.
-    let cc = |i: usize| match t.c_cc[i] as u32 {
-        0 => 255,
-        v => v,
-    };
-    let mut m = vec![
-        (Pty::VINTR, cc(libc::VINTR)),
-        (Pty::VQUIT, cc(libc::VQUIT)),
-        (Pty::VERASE, cc(libc::VERASE)),
-        (Pty::VKILL, cc(libc::VKILL)),
-        (Pty::VEOF, cc(libc::VEOF)),
-        (Pty::VEOL, cc(libc::VEOL)),
-        (Pty::VEOL2, cc(libc::VEOL2)),
-        (Pty::VSTART, cc(libc::VSTART)),
-        (Pty::VSTOP, cc(libc::VSTOP)),
-        (Pty::VSUSP, cc(libc::VSUSP)),
-        (Pty::VREPRINT, cc(libc::VREPRINT)),
-        (Pty::VWERASE, cc(libc::VWERASE)),
-        (Pty::VLNEXT, cc(libc::VLNEXT)),
-        (Pty::VDISCARD, cc(libc::VDISCARD)),
-    ];
-    let flag = |set: libc::tcflag_t, bit: libc::tcflag_t| u32::from(set & bit != 0);
-    m.extend([
-        (Pty::IGNPAR, flag(t.c_iflag, libc::IGNPAR)),
-        (Pty::PARMRK, flag(t.c_iflag, libc::PARMRK)),
-        (Pty::INPCK, flag(t.c_iflag, libc::INPCK)),
-        (Pty::ISTRIP, flag(t.c_iflag, libc::ISTRIP)),
-        (Pty::INLCR, flag(t.c_iflag, libc::INLCR)),
-        (Pty::IGNCR, flag(t.c_iflag, libc::IGNCR)),
-        (Pty::ICRNL, flag(t.c_iflag, libc::ICRNL)),
-        (Pty::IXON, flag(t.c_iflag, libc::IXON)),
-        (Pty::IXANY, flag(t.c_iflag, libc::IXANY)),
-        (Pty::IXOFF, flag(t.c_iflag, libc::IXOFF)),
-        (Pty::IMAXBEL, flag(t.c_iflag, libc::IMAXBEL)),
-        (Pty::ISIG, flag(t.c_lflag, libc::ISIG)),
-        (Pty::ICANON, flag(t.c_lflag, libc::ICANON)),
-        (Pty::ECHO, flag(t.c_lflag, libc::ECHO)),
-        (Pty::ECHOE, flag(t.c_lflag, libc::ECHOE)),
-        (Pty::ECHOK, flag(t.c_lflag, libc::ECHOK)),
-        (Pty::ECHONL, flag(t.c_lflag, libc::ECHONL)),
-        (Pty::NOFLSH, flag(t.c_lflag, libc::NOFLSH)),
-        (Pty::TOSTOP, flag(t.c_lflag, libc::TOSTOP)),
-        (Pty::IEXTEN, flag(t.c_lflag, libc::IEXTEN)),
-        (Pty::ECHOCTL, flag(t.c_lflag, libc::ECHOCTL)),
-        (Pty::ECHOKE, flag(t.c_lflag, libc::ECHOKE)),
-        (Pty::PENDIN, flag(t.c_lflag, libc::PENDIN)),
-        (Pty::OPOST, flag(t.c_oflag, libc::OPOST)),
-        (Pty::ONLCR, flag(t.c_oflag, libc::ONLCR)),
-        (Pty::OCRNL, flag(t.c_oflag, libc::OCRNL)),
-        (Pty::ONOCR, flag(t.c_oflag, libc::ONOCR)),
-        (Pty::ONLRET, flag(t.c_oflag, libc::ONLRET)),
-        (Pty::CS7, u32::from(t.c_cflag & libc::CSIZE == libc::CS7)),
-        (Pty::CS8, u32::from(t.c_cflag & libc::CSIZE == libc::CS8)),
-        (Pty::PARENB, flag(t.c_cflag, libc::PARENB)),
-        (Pty::PARODD, flag(t.c_cflag, libc::PARODD)),
-        (Pty::TTY_OP_ISPEED, 38400),
-        (Pty::TTY_OP_OSPEED, 38400),
-    ]);
-    #[cfg(target_os = "linux")]
-    m.extend([
-        (Pty::IUCLC, flag(t.c_iflag, libc::IUCLC)),
-        (Pty::IUTF8, flag(t.c_iflag, libc::IUTF8)),
-        (Pty::XCASE, flag(t.c_lflag, libc::XCASE)),
-        (Pty::OLCUC, flag(t.c_oflag, libc::OLCUC)),
-    ]);
-    m
+    // One table, read the other way by `podssh serve` (T-110).
+    super::modes::encode(&t)
 }
 
 /// Ask on the controlling terminal (`/dev/tty`), which works even when stdin

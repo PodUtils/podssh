@@ -4,10 +4,10 @@
 //!
 //! It never listens: the stream is the caller's (stdin and stdout for
 //! `--stdio`, as `sshd -i`; a node's session later). A command and a shell
-//! run on pipes (T-108), with the shell that T-222 finds; direct-tcpip
-//! dials from this host (T-109); a pty and SFTP come with T-110 to T-112,
-//! and until then each such request is refused with the reply that the
-//! client waits for.
+//! run on pipes (T-108), with the shell that T-222 finds, or on a pty where
+//! a master opens at the request (T-110); direct-tcpip dials from this host
+//! (T-109). Where no pty opens (T-111), and for SFTP (T-112), the request is
+//! refused with the reply that the client waits for.
 
 mod authorized;
 mod channel;
@@ -17,6 +17,10 @@ mod direct;
 pub mod env;
 mod handler;
 pub mod host_key;
+#[cfg(unix)]
+pub mod pty;
+#[cfg(unix)]
+mod pty_child;
 #[cfg(unix)]
 pub mod shell;
 
@@ -78,6 +82,9 @@ pub struct Settings {
     /// The most forwards open at once on one connection; None is
     /// [`MAX_FORWARDS`], as a test gives a smaller bound.
     pub max_forwards: Option<usize>,
+    /// The masters that a `pty-req` tries; None is `pty::PTMX`, as a test
+    /// names a missing one to see the refusal on a host that has a pty.
+    pub ptmx: Option<Vec<PathBuf>>,
 }
 
 impl Settings {

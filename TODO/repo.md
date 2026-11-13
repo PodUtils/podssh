@@ -1154,14 +1154,14 @@ sees it.
 
 Read:
 
-- `docs/STATUS.md:463-477`: the box, measured by hand on 2026-10-08.
+- `docs/STATUS.md:464-478`: the box, measured by hand on 2026-10-08.
 - `scripts/test_in_box.sh:275-278`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
   not fail on it (T-006). So today the box exits 0 when podssh fails in it.
 - `scripts/box/probe.sh:163-168` exits 1 when the box differs from the sandbox
-  in a required property (17 properties, `docs/STATUS.md:470`).
+  in a required property (17 properties, `docs/STATUS.md:471`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:179`) and a mask on
@@ -1188,7 +1188,7 @@ Read:
    that CI runs the box.
 
 Pitfall: the live path can drop a session (179 of 180 short sessions,
-`docs/STATUS.md:500`). Run a failure again by hand and record it. Never retry
+`docs/STATUS.md:501`). Run a failure again by hand and record it. Never retry
 inside the job.
 
 ## Decision
@@ -1206,7 +1206,7 @@ test "$(grep -c '^match ' box.log)" -eq 17                  # the box was faithf
 
 The run passed, with the job `box`, and its log has 17 `match` lines.
 Planted defect: run the job by hand with the seccomp option removed (an input
-of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:471`,
+of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:472`,
 and the job must fail.
 
 ## Correction
@@ -1235,8 +1235,14 @@ for that is a test that fails at random, repaired first.
 
 Partial, 2026-11-13: the job `box` of `build.yml` (needs `plan`, for each push of code; the binary from the build
 image, `sh scripts/test_in_box.sh` as root within 45 min, the log printed and kept as the artifact `box-log`, and
-the job fails unless the probe printed 19 `match` lines and the box exited 0); `all` needs it. What waits: the
-job's first runs on the push.
+the job fails unless the probe printed 19 `match` lines and the box exited 0); `all` needs it. Its first run (gate of
+`e47d508`): 19 of 19 `match` lines, sandbox-check 14 ok, exit 0. Its second (gate of `043bc6d`) failed as the known
+risk said: doctor's check of the public Piping Server `piping.onrender.com` got no answer within 10 s, while
+`ppng.io` answered in 340 ms. Repaired in doctor: the servers of one road (the Piping Servers, the mailboxes) are
+written together, and where one answered, another's silence is unknown (`????`, its line naming the one that
+answered), not a failure of the host; with none that answered, each stays a failure
+(`doctor::carriers::tests::a_member_that_did_not_answer_fails_only_where_none_did`). What waits: the job's next
+runs.
 # T-214: CI on Windows
 
 **Source:** the triage of GitHub #27 (2026-10-08). Windows is a released
@@ -1265,7 +1271,7 @@ Read:
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
   run by hand.
-  `docs/STATUS.md:235`: `scripts/interop-conpty.py` passes 14 of 14 against a
+  `docs/STATUS.md:236`: `scripts/interop-conpty.py` passes 14 of 14 against a
   Tailscale SSH server, by hand.
 - `scripts/interop-conpty.py:219-275` needs a server with a POSIX shell,
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
@@ -1283,7 +1289,7 @@ Read:
    deletes (see Decision). Run the script with `--direct`; 14 of 14 must pass.
 3. With T-199: score the output with the Windows part of the baseline.
 4. The plant: a podssh that does not restore the mode of the console must
-   fail the three restore checks (as measured by hand, `docs/STATUS.md:235`).
+   fail the three restore checks (as measured by hand, `docs/STATUS.md:236`).
    Run it once in CI, and record it.
 5. docs/STATUS.md cites the CI run for the rows of Windows;
    docs/development.md names the job.
@@ -2044,7 +2050,7 @@ Read, in the tree as it is now:
   build must fail at `/nonexistent`; the control, with `CC` alone, must not
   stop there.
 - `docs/development.md:332-334` states the rule with `CXX`, and
-  `docs/STATUS.md:914` records the measurement. Rule 4 of
+  `docs/STATUS.md:915` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
 - `.github/workflows/build.yml:147-155` runs the plant on each push.
@@ -2075,7 +2081,7 @@ the same script in its step "the no-C rule is load-bearing".
 (CXX=/nonexistent)"). Measured with `sh scripts/dev.sh plant` in
 `rust:1-alpine`: the C plant failed twice for the right reason, the C++ plant
 failed at `CXX=/nonexistent`, the control with `CC` alone was not stopped
-there, and the clean tree built (`docs/STATUS.md:914`). The CI run of
+there, and the clean tree built (`docs/STATUS.md:915`). The CI run of
 `eacd94e`, which contains `a378863`, passed, with its step "the no-C rule is
 load-bearing".
 
@@ -2468,7 +2474,7 @@ Read:
 
 - `scripts/box/seccomp.json:5-10`: `bind` fails with EACCES for each socket,
   whatever its family.
-- `docs/STATUS.md:491`: in sandbox A, `bind` is refused for AF_INET and
+- `docs/STATUS.md:492`: in sandbox A, `bind` is refused for AF_INET and
   allowed for AF_UNIX. In the KTM report (read there), `doctor` printed
   `Permission denied (os error 13)` for AF_INET, and "bound" for an AF_UNIX
   path and for the abstract namespace.
@@ -4961,7 +4967,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
   and said that "the real sandbox is not run yet"; `docs/irc.md` said "No command uses the IRC
   client yet", with T-097 and T-098 as its known defects; `docs/STATUS.md` said "Over IRC too
   (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:160`, `:168`), two runs
-  in real sandboxes (T-001; `docs/STATUS.md:482-491`), and `podssh chat --irc` (T-252, done, as
+  in real sandboxes (T-001; `docs/STATUS.md:483-492`), and `podssh chat --irc` (T-252, done, as
   T-097 and T-098 are). Of the same kind: `docs/design.md`'s summary and the head of its section
   4, and the row of `podssh-terminal` in `docs/architecture.md`. The triage's commit corrected
   each in place.
@@ -4988,7 +4994,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 3. A status written beside an id in those documents (`T-NNN, partial`, `(T-NNN, open)`) agrees
    with the index, unless its paragraph reads at a date or at a commit, as the record's readings
    do (`TODO/RULES.md:148-153`): "T-099, partial" of 2026-10-10 is such a reading
-   (`docs/STATUS.md:871`).
+   (`docs/STATUS.md:872`).
 4. `TODO/RULES.md` says it, beside the rules of citations.
 
 ## Decision
@@ -6264,7 +6270,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
   at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
-- `docs/STATUS.md:238`: only the console and the MSYS2 sshd are measured on Windows.
+- `docs/STATUS.md:239`: only the console and the MSYS2 sshd are measured on Windows.
 
 ## Approach
 

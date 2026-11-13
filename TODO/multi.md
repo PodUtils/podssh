@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:5992-5995`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6022-6025`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-78`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:6208-6317`); they cannot define a group.
+  (`docs/cli.md:6238-6347`); they cannot define a group.
 
 ## Approach
 
@@ -919,9 +919,9 @@ short numbered list helps a person; a script must still get the usage error.
    patterns, no negations), in the order of the files. With no names, keep
    exit 64.
 3. Read a number, or a text that filters the list, with `read_line`
-   (`crates/podssh-ssh/src/terminal/mod.rs:26`). Empty input or Ctrl-D exits
+   (`crates/podssh-ssh/src/terminal/mod.rs:28`). Empty input or Ctrl-D exits
    64. The prompt has the limit of a terminal that nobody watches
-   (`crates/podssh-ssh/src/terminal/mod.rs:82-93`).
+   (`crates/podssh-ssh/src/terminal/mod.rs:84-95`).
 4. The chosen name takes the normal path, as if the user typed it.
 5. In the same commit: the notes of ssh, `docs/cli.md`, `docs/STATUS.md`.
    This entry depends on T-043.
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:470`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:5992-5995`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6022-6025`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,13 +1814,13 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:447-491`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:5992-5995`), which is not a failure of podssh.
+  status (`docs/cli.md:6022-6025`), which is not a failure of podssh.
 
 ## Approach
 
 1. A variable `PODSSH_ERROR_PROGRAM`: one program, with no shell and no
    arguments, as `SSH_ASKPASS`. Add it to `VARIABLES`
-   (`crates/podssh-cli/src/man/facts.rs:46-303`).
+   (`crates/podssh-cli/src/man/facts.rs:46-272`).
 2. When: only when podssh itself fails: a usage error (64), a configuration
    error (78), 69, 70, 77, or 255 for a failure of podssh. Never after a
    success, and never for the status of a remote command or of an `exec:`

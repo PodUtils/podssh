@@ -516,7 +516,7 @@ Left after the merge: `cargo todo remap` on each cited file that the draft chang
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -531,29 +531,29 @@ it there.
   and gives `window_change_request` each new size; both expect an answer
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 531-541 and 717-726).
 - Read: the client sends its termios as RFC 4254 modes
-  (`crates/podssh-ssh/src/terminal/unix.rs:86-163`). That table is the one to
+  (`crates/podssh-ssh/src/terminal/unix.rs` lines 86-163 at `32bf8af`). That table is the one to
   read in reverse on the server; a second table would drift.
 - Read: doctor already opens a pty to test the host
-  (`crates/podssh-cli/src/doctor/unix.rs:95-154`). The client continues
+  (`crates/podssh-cli/src/doctor/unix.rs` lines 95-154 at `32bf8af`). The client continues
   without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:88-103`).
 - Read: the measured sandbox has no `/dev/ptmx` and no `/dev/pts`
   (`docs/target-environment.md:26`); there, T-111 applies.
 
 ## Approach
 
-1. Move the pty code of `crates/podssh-cli/src/doctor/unix.rs:95-154` into
+1. Move the pty code of `crates/podssh-cli/src/doctor/unix.rs` (lines 95-154 at `32bf8af`) into
    the server module, with `O_CLOEXEC`, and let doctor call it. Try
    `/dev/ptmx`, then `/dev/pts/ptmx`, at each `pty-req`; never keep the
    result for the next session. Failure: T-111, or failure until T-111 exists.
 2. Apply the request's modes to the slave: move the table of
-   `crates/podssh-ssh/src/terminal/unix.rs:86-163` to a shared module and
+   `crates/podssh-ssh/src/terminal/unix.rs` (lines 86-163 at `32bf8af`) to a shared module and
    read it both ways. Skip a mode that the kernel refuses.
 3. Size: `TIOCSWINSZ` on the master from `pty-req` and each `window-change`.
    A zero size becomes 80x24 (`docs/terminal.md:95-96`).
 4. The child: `setsid`, `ioctl(TIOCSCTTY)`, the slave on descriptors 0 to 2,
    then exec, in `pre_exec`. The parent closes its copy of the slave, or the
    master never sees the end. `TERM` from the request (empty:
-   `xterm-256color`, as `crates/podssh-ssh/src/terminal/mod.rs:113-118`);
+   `xterm-256color`, as `crates/podssh-ssh/src/terminal/mod.rs:115-120`);
    `SSH_TTY` names the slave.
 5. I/O: the master is read without blocking through tokio's `AsyncFd`; output
    goes through the channel's writer (T-118). `EIO` after the child is gone
@@ -564,24 +564,119 @@ it there.
 7. Unix only: on Windows a `pty-req` gets failure. Same commit: the serve
    notes, `docs/terminal.md` (the server side), `docs/STATUS.md`.
 
+## Decision
+
+The probe is the open of a master at each `pty-req`, and nothing else: a pair that opens is the pty
+granted. Lost: a probe once at serve's start (a cage gains or loses its device while serve runs, and
+the Approach asks for no cache), and a check of `/dev/ptmx`'s existence alone (a device that exists can
+refuse its open, `EACCES` under a seccomp or a mount without it, or give no slave).
+
+`Settings::ptmx`, the list of masters to try, is the test's way to see the refusal on a host that has a
+pty; the command line has no flag for it. Lost: a flag `--no-pty` (no user has asked; T-114's
+`no-pty` of a key is the place for it), and an environment variable (the manual's tables would gain
+one that only a test reads).
+
+On a pty, the client's EOF ends the writing alone and the master stays open, as OpenSSH's sshd keeps
+the pty open at a channel's EOF; a pty has no half-close, and a `^D` sent in the client's place would
+change what the program reads. A mode that the kernel refuses: the whole set is tried first, then each
+mode alone, and each one refused is passed over, as the Approach asks.
+
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_pty
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_pty --test serve_exec
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib -- server:: terminal::modes
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib -- doctor:: man
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_json
+sh scripts/plant-each.sh --here t110-no-window-size
 sh scripts/dev.sh check
 ```
 
-The test file crates/podssh-ssh/tests/serve_pty.rs applies modes and sizes to
-a real pty and reads them back. In the gate, the pty driver
-`scripts/interop-pty.py` gets a mode that runs OpenSSH's `ssh -t` against
-`podssh serve --stdio`: size, resize, Ctrl-C, `vi`, `less`, `top`, an exit
-status and `~.`. The `-tt` cases of `scripts/interop.sh:424-452` run against
-serve too. A planted serve that skips `TIOCSWINSZ` fails the size check.
+crates/podssh-ssh/tests/serve_pty.rs, with russh's client over a pipe, where a pty opens on the
+host ("did not run" where none does): a `pty-req` granted, then `exec`; `tty` names a slave under
+`/dev`, `SSH_TTY` the same, `TERM` the request's; `stty size` gives the asked 30 by 100, 24 by 80
+for a zero size, and 40 by 120 after a `window-change`; a second `pty-req` on one channel is refused;
+the request's modes (ECHO off, VERASE 8, VINTR 3) read back from `stty -a`; Ctrl-C written to the
+pty ends `sleep 25` by SIGINT within 20 s; stdout and stderr come as one stream, with the pty's CR
+LF; 20,000 lines come whole before `exit-status`, EOF and close, after the client's EOF.
+crates/podssh-ssh/tests/serve_exec.rs keeps the refusal on any host: a master that is missing
+(`Settings::ptmx`) refuses the pty, and the command runs on pipes. The unit tests: the table of the
+modes read both ways (`terminal::modes`), the probe and the size and modes on a real pair
+(`server::pty`), `TERM` and `SSH_TTY` over serve's own (`server::env`). Against OpenSSH's client with
+`podssh serve --stdio` as its ProxyCommand, crates/podssh-cli/tests/serve_openssh.rs: where a pty
+opens, `ssh -tt` gets a terminal, 80x24 (OpenSSH sends a zero size with no local terminal), the
+client's `TERM`, and Ctrl-C ends `sleep 25`; where none opens, the refusal and 255. The plant
+`t110-no-window-size` (no `TIOCSWINSZ` at the request) fails the size check. In the build image
+(T-251): `scripts/interop-pty.py` with a mode for `podssh serve --stdio` (resize, `vi`, `less`, `top`,
+`~.`) and the `-tt` cases of `scripts/interop.sh:424-452` against serve.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The Premise, read again at `32bf8af`:
+
+- russh is 0.65.0 from `vendor/russh` (T-107's Correction): `pty_request` and
+  `window_change_request` are at `vendor/russh/src/server/mod.rs:571-583` and
+  `vendor/russh/src/server/mod.rs:757-767`, and both still answer nothing by default. A
+  `window-change` asks for no reply, so the handler sends none.
+- The client's table of modes was at `crates/podssh-ssh/src/terminal/unix.rs` lines 86-163 at
+  `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
+  client encodes its termios with and the server applies to the slave, and the client's
+  `pty_modes_of` calls it. The doctor's probe was at `crates/podssh-cli/src/doctor/unix.rs` lines
+  95-154 at `32bf8af`; it is now `podssh_ssh::server::pty` (`crates/podssh-ssh/src/server/pty.rs:58-87`),
+  and the doctor's line `pty` calls it with the same words. The probe opens each master by path
+  (`/dev/ptmx`, then `/dev/pts/ptmx`) where doctor called `posix_openpt`, which opens `/dev/ptmx` alone.
+- The client's answer to a refused pty moved: since T-664 it may read the answer after the session's
+  request (`crates/podssh-ssh/src/session.rs:94-103`); it still runs without a pty after a refusal.
+- `TERM`'s default is `crates/podssh-ssh/src/terminal/mod.rs:115-120` now.
+- Approach item 1's "Failure: T-111, or failure until T-111 exists": until T-111 the refusal stays, as
+  T-108 made it; this entry does not do T-111.
+- The Prove's crates/podssh-ssh/tests/serve_pty.rs drives a real pty through the server with russh's
+  client (as T-108's serve_exec.rs does), and OpenSSH's `-tt` runs in crates/podssh-cli/tests/serve_openssh.rs,
+  where the test of T-108 that held the refusal now holds the grant where a pty opens; the refusal
+  through OpenSSH runs where none opens, and on each host in serve_exec.rs with a missing master.
+  `scripts/interop-pty.py`'s mode for serve (`vi`, `less`, `top`, `~.`) needs the build image (T-251).
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t110` (no build, no test run): the probe and the
+pty in crates/podssh-ssh/src/server/pty.rs (the masters tried by path, the slave, the size with a zero
+one as 80x24, the modes through the shared table with each refused mode passed over, `TERM`'s
+default); the child on the pty in crates/podssh-ssh/src/server/pty_child.rs (`Granted`, the slave on
+descriptors 0 to 2 with `setsid` and `TIOCSCTTY`, the master read and written through tokio's
+`AsyncFd`, `EIO` as the end); the table of modes in crates/podssh-ssh/src/terminal/modes.rs, read both
+ways, with the client's `pty_modes_of` on it; `child.rs` split into the command, the spawn on pipes
+and `Running::finish`, which both spawns share; the channel's input as any writer (`channel.rs`);
+`pty_request` and `window_change_request` in the handler; `Settings::ptmx`; `env::with_tty`;
+`podssh doctor`'s line `pty` on the same probe; the manual's note (crates/podssh-cli/src/man/notes_serve.rs),
+`docs/cli.md` ("A pty (T-110)"), `docs/terminal.md` (the server side of `pty-req`), a row of
+`docs/STATUS.md`, the tests of the Prove and the plant `t110-no-window-size`. Results:
+
+Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --test serve_pty --test serve_exec`: 6 and 11 passed, three runs, once
+  `ctrl_c_on_the_pty_interrupts_the_command` presses Ctrl-C again each second until the channel closes: under the
+  suite's load the first Ctrl-C landed while bash had forked the sleep and not yet exec'd it, when the child still
+  runs bash's handler, and bash waited the 25 s of the sleep before it ended by INT (a race of the test's shell; run
+  alone it passed in 0.05 s).
+- `cargo test -p podssh-ssh --lib`: 377 passed.
+- `cargo test -p podssh-cli --test serve_openssh --test serve_stdio --test serve_forward_openssh` (OpenSSH 9.6's
+  client, a pty granted here): 9, 3 and 5 passed.
+- `cargo test -p podssh-cli --lib -- doctor:: man`: passed once `SSH_TTY`, which serve sets now, has its line in
+  ENVIRONMENT, beside TERM; that row took `facts.rs` past 500 lines, so the rows of the terminal, the pager, the
+  editor and the shell are `crates/podssh-cli/src/man/facts/terminal.rs`. `flag_table`, `man_flag_parity`,
+  `man_json`, `man_page`: passed.
+- The plant `t110-no-window-size`: caught (`a_pty_is_granted_and_the_command_sees_a_terminal`).
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,773 passed, 0 failed. Clippy clean; rustfmt reflowed
+  `channel.rs` and `terminal/modes.rs`. The build on Windows: the gate's job `windows`.
+
+Left after the merge: `cargo todo counts` (the status moved by hand in the entry and the index) and
+`cargo todo check`, as the citations were moved by a line diff of the draft, not by `cargo todo remap`;
+the run in the build image (T-251): `scripts/interop-pty.py` against serve and the `-tt` cases of
+`scripts/interop.sh`.
 
 # T-111: `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group
 
@@ -604,14 +699,14 @@ command, and the session must end.
 ## Premise
 
 - Read: `PodUtils/podssh:crates/podssh-terminal` holds podbox's echo, editing and history
-  rules (`docs/terminal.md:172-210`), and reports Ctrl-C and Ctrl-\ as
+  rules (`docs/terminal.md:178-216`), and reports Ctrl-C and Ctrl-\ as
   `Event::Signal` (`PodUtils/podssh:crates/podssh-terminal/src/echo.rs:421-423`). No command
   uses it, and it has the defects T-125 to T-129, which come first.
 - Read, at `cb94460`: the crate refuses to add `\r` before `\n`
   (`PodUtils/podssh:crates/podssh-terminal/src/echo.rs` lines 31-37,
   `PodUtils/podssh:crates/podssh-terminal/src/passthrough.rs:56-74`). Here the child writes
   to a pipe and the client's terminal is raw: the case where a lone `\n`
-  must become `\r\n` (`docs/terminal.md:265-268`).
+  must become `\r\n` (`docs/terminal.md:271-274`).
 - Read: a signal to the group also stops a shell that does not catch it
   (`PodUtils/podssh:crates/podssh-terminal/src/session.rs:36-46`). Not measured yet: which
   shell mode survives.
@@ -767,12 +862,12 @@ out with matching digests.
 
 - Read: `podssh serve` runs in the sandbox as a node (T-107 on the runner of
   T-079), and the operator connects through the relay (T-084).
-- Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:251-255`).
+- Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:491`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:492`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:499`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:500`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1606,7 +1701,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:157-280`).
+  (`crates/podssh-cli/src/doctor/unix.rs:110-233`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -1681,7 +1776,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:491`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:492`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -1707,7 +1802,7 @@ no reason (`docs/target-environment.md:88-89`).
    (`crates/podssh-cli/src/doctor/host.rs:12-28`) from the same function.
 6. T-108 runs the result. Never call `getpwuid`. Same commit: `--shell` in
    `crates/podssh-cli/src/flags.rs`, `SHELL` in
-   `crates/podssh-cli/src/man/facts.rs:46-303`, `docs/cli.md`.
+   `crates/podssh-cli/src/man/facts.rs:46-272`, `docs/cli.md`.
 
 ## Decision
 
@@ -1737,7 +1832,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:454`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:455`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -1755,10 +1850,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:490` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:454`, `docs/STATUS.md:474`),
+- `docs/STATUS.md:491` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:455`, `docs/STATUS.md:475`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:452` is `docs/STATUS.md:454`.
+  The Prove's `docs/STATUS.md:453` is `docs/STATUS.md:455`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -1817,10 +1912,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:491`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:492`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:470`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:471`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -1896,6 +1991,11 @@ entry reads `pod-term`, and a path under `PodUtils/podssh:crates/podssh-terminal
 terminal code is done in PodUtils/podcrates (or asked as an issue there), and podssh takes it by the
 next tag. The Prove's `cargo test -p podssh-terminal` named a package that is gone; its line is
 dropped, and the line discipline's own tests run in PodUtils/podcrates (`cargo test -p pod-term`).
+
+2026-11-13 (T-110's draft). `podssh doctor`'s line `pty` is now `podssh serve`'s own probe,
+`podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:58-87`): it opens `/dev/ptmx`,
+then `/dev/pts/ptmx`, by path, where it called `posix_openpt`; route 1's `ptmx` of a new devpts
+instance can be one more path of that list, and serve grants a `pty-req` on whatever it opens.
 
 # T-393: `--install` that always restarts: systemd without a start limit, a cron watchdog, a LaunchAgent; and `ssh -N -R --persist`
 
@@ -2072,7 +2172,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1626-1627` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1721-1722` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

@@ -187,7 +187,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:374-375`,
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1154`).
 6. Add the key files to FILES in the manual
    (`crates/podssh-cli/src/man/data.rs:165-498`), and each new variable to
-   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-303`).
+   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-272`).
 
 ## Decision
 
@@ -511,9 +511,9 @@ in iroh's source at the pinned version.
    not in the list.
 6. `doctor`, with the feature, reports the `/ping` of each relay and the home
    relay.
-7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-303`),
+7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-272`),
    the flag to the flag table, and the default to the relay section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:329-484`). The tests compare
+   manual (`crates/podssh-cli/src/man/facts.rs:299-454`). The tests compare
    `VARIABLES` with the source in both directions
    (`crates/podssh-cli/src/man/facts.rs:44-45`), so a variable that only the
    feature reads is in the manual only with the feature.
@@ -6520,7 +6520,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:245`).
+  port 443 answers (`docs/STATUS.md:246`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not

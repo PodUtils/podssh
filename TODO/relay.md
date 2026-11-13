@@ -284,7 +284,7 @@ nothing, and a host that does not start TLS, each cost the 20 s limit before the
 4. Print one note for each moved host: "trying HOST last: it failed N s ago (REASON)".
 5. Ignore a record with a time in the future (a clock that moved).
 6. `doctor` and `status` (T-051) show the records. State the window in THE RELAY section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:359-372`) and in `docs/relay.md:107-152`.
+   manual (`crates/podssh-cli/src/man/facts.rs:329-342`) and in `docs/relay.md:107-152`.
 7. This is retry policy across runs. T-220 shortens the wait inside one run; the two work
    together.
 
@@ -796,7 +796,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-292`, 323-343) and to `ONCE`
    (`crates/podssh-cli/src/ssh/args.rs:203-251`); the variable to VARIABLES and the modes to THE
-   RELAY (`crates/podssh-cli/src/man/facts.rs:46-303`, 170-183); both to `docs/relay.md:107-152`.
+   RELAY (`crates/podssh-cli/src/man/facts.rs:46-272`, 170-183); both to `docs/relay.md:107-152`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
 
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:416`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:417`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -4650,7 +4650,7 @@ Read at `2042200`:
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
-- `TODO/serve.md:1628-1629` plans the same choice for `podssh serve --listen` (T-124, step 5).
+- `TODO/serve.md:1723-1724` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
 ## Approach
 

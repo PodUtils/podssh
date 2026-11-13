@@ -41,7 +41,7 @@ Read on 2026-11-11.
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** None waits; merged: (T-738's third, T-108 with T-222, T-321's CLI test of `podssh each`, T-319's item 2, T-107's, the take of podcrates v0.37.0 and pod-warp, the take of podcrates v0.36.0, the triage of #224 and #225, T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
+8. **Drafts.** T-110 waits on the branch `draft-t110` (one commit, "DRAFT T-110"; not built); merged: (T-738's third, T-108 with T-222, T-321's CLI test of `podssh each`, T-319's item 2, T-107's, the take of podcrates v0.37.0 and pod-warp, the take of podcrates v0.36.0, the triage of #224 and #225, T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -112,7 +112,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 728 entries: 69 open, 23 partial, 10 blocked, 626 done.
+`TODO/INDEX.md` holds 728 entries: 68 open, 24 partial, 10 blocked, 626 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

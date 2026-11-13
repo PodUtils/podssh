@@ -5642,11 +5642,40 @@ gives up each capability of the process (T-698), before it reads a file.
   channel from its open, as russh holds the whole connection while 100 of
   a channel's messages wait unread; the bytes for a child's stdin wait in a
   queue of their own (about 4 MiB), and the window of each channel apart is
-  T-118's. A pty request is refused, and the command runs without one
-  (T-110, T-111); a subsystem (SFTP, T-112), X11 and a forward to a Unix
+  T-118's. A pty request is granted where a pty opens (below); a
+  subsystem (SFTP, T-112), X11 and a forward to a Unix
   socket (`direct-streamlocal@openssh.com`) are refused with their answer,
   so that a client says so at once instead of waiting (russh's defaults
   answer none).
+- **A pty (T-110).** A `pty-req` (OpenSSH's `-t` and `-tt`) is granted
+  where a master opens at that request: `/dev/ptmx`, then `/dev/pts/ptmx`
+  (a container with a devpts instance of its own may have it alone), with
+  `grantpt`, `unlockpt` and the slave opened; nothing is kept for the next
+  request, as a cage can gain or lose its pty device while serve runs, and
+  `podssh doctor`'s line `pty` asks the same probe
+  (`podssh_ssh::server::pty`). The child then has the slave as descriptors
+  0 to 2 and as its controlling terminal (`setsid`, then `TIOCSCTTY`), so
+  Ctrl-C and a shell's job control work by the kernel's line discipline;
+  `TERM` is the request's (`xterm-256color` when it is empty) and
+  `SSH_TTY` the slave's path, as sshd sets them. The size is the
+  request's, 80x24 when it is zero (OpenSSH's `-tt` with no local terminal
+  sends zero), set with `TIOCSWINSZ` on the master at the request and at
+  each `window-change`. The request's terminal modes are set on the slave
+  through the table that the client reads its own terminal with
+  (`crates/podssh-ssh/src/terminal/modes.rs`, one table read both ways); a
+  mode that it lacks, or that the kernel refuses, is passed over. The
+  master is read without blocking (tokio's `AsyncFd`): its output is the
+  channel's data, stdout and stderr in one stream as on any pty, and a read
+  that fails with `EIO` (each slave closed) is the end of it; the end then
+  comes as for pipes, within the same 2 s and 30 s. The client's data goes
+  to the master, and its EOF ends that writing alone (a pty has no
+  half-close, as under sshd). A connection that ends closes the master, and
+  the kernel hangs up the child's session. Where no master opens (the
+  measured cage has no `/dev/ptmx`, `docs/target-environment.md`), the
+  request is refused with its answer and a command runs on pipes; OpenSSH
+  makes that refusal fatal under `-tt` (`PTY allocation request failed`,
+  255); T-111 is the line discipline for that case. On Windows a pty
+  request is refused.
 - **Forwards into the cage (T-109).** A `direct-tcpip` channel (OpenSSH's
   `-W`, `-L` and `-J`) is a TCP connection that serve opens from its own
   host to the host and port that the client asked for, any of them, as
@@ -5681,7 +5710,8 @@ gives up each capability of the process (T-698), before it reads a file.
   does not end in `_FILE`). Set on it: `USER` and `LOGNAME` (serve's, else
   the uid's number: no passwd entry is read), `HOME` (`/` with none),
   `SHELL`, and `PATH` when serve has none (sshd's
-  `/usr/local/bin:/usr/bin:/bin`); no `TERM` without a pty. Then the `env`
+  `/usr/local/bin:/usr/bin:/bin`); on a pty, `TERM` and `SSH_TTY` (above),
+  over serve's own. Then the `env`
   requests (OpenSSH's `SetEnv` and `SendEnv`) whose name matches an
   `--accept-env PATTERN` (`*` and `?`; default `LANG` and `LC_*`, as most
   systems' `AcceptEnv`), never `LD_*`, `PATH`, `HOME`, `SHELL`, `ENV`,
