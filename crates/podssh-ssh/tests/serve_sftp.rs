@@ -8,6 +8,8 @@
 
 #![cfg(unix)]
 
+mod cleanup;
+
 use std::ffi::OsString;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -33,6 +35,7 @@ fn scratch(tag: &str) -> PathBuf {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
     let dir = std::env::temp_dir().join(format!("podssh-serve-sftp-{tag}-{}-{nanos}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
+    cleanup::at_test_end(&dir);
     dir.canonicalize().unwrap()
 }
 

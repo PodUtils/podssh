@@ -960,6 +960,14 @@ Left after the merge: `cargo todo remap` on each cited file that the draft chang
 `crates/podssh-ssh/src/server/channel.rs`, `crates/podssh-ssh/Cargo.toml`, `docs/cli.md`,
 `docs/STATUS.md`) and `cargo todo counts`; the run in the build image (T-251).
 
+2026-11-13, after the gate of `f335255` failed on three jobs: the server's `sftp` module was built on
+Windows (its Unix calls; now `#[cfg(unix)]`, as the handler's refusal there already was), `libc::time_t`
+is deprecated on musl (the time now cast to the field's own type), and the tests of the server left
+their scratch directories in the temporary directory (each now removed as its test's thread ends).
+`cargo check --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli --all-targets`: clean; clippy on
+`x86_64-unknown-linux-musl` as the gate runs it: clean; `cargo test -p podssh-ssh --test serve_sftp`
+and `--lib -- sftp`: 5 and 30 passed, no `podssh-*` left in `/tmp`.
+
 # T-113: M5 exit: a usable shell and 200 MiB each way from a sealed sandbox
 
 **Source:** `docs/ROADMAP.md:201-205` (the exit criteria of M5).
@@ -2696,7 +2704,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1144` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:859-863`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2174-2175` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2182-2183` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

@@ -140,7 +140,9 @@ fn times(attrs: &FileAttributes) -> [libc::timespec; 2] {
         // Zeroed first: a target's timespec can have padding fields.
         // SAFETY: timespec is plain integers, for which zero is valid.
         let mut spec: libc::timespec = unsafe { std::mem::zeroed() };
-        spec.tv_sec = t.map_or(0, |t| t as libc::time_t);
+        // The field's own type, not `libc::time_t`, which libc deprecates on
+        // musl while that type changes width.
+        spec.tv_sec = t.map_or(0, |t| t as _);
         spec.tv_nsec = if t.is_some() { 0 } else { libc::UTIME_OMIT };
         spec
     };

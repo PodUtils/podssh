@@ -34,10 +34,26 @@ fn reply_id(reply: &Packet) -> u32 {
 /// A bound on each wait of a test.
 const WAIT: Duration = Duration::from_secs(10);
 
+/// The directories that this test's thread made, removed as the thread
+/// ends (libtest gives each test a thread), so that runs leave nothing in
+/// the temporary directory, also when a test fails.
+struct Made(std::cell::RefCell<Vec<PathBuf>>);
+
+impl Drop for Made {
+    fn drop(&mut self) {
+        for dir in self.0.borrow().iter() {
+            let _ = std::fs::remove_dir_all(dir);
+        }
+    }
+}
+
+thread_local!(static MADE: Made = const { Made(std::cell::RefCell::new(Vec::new())) });
+
 fn scratch(tag: &str) -> PathBuf {
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
     let dir = std::env::temp_dir().join(format!("podssh-sftp-server-{tag}-{}-{nanos}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
+    MADE.with(|made| made.0.borrow_mut().push(dir.clone()));
     dir.canonicalize().unwrap()
 }
 

@@ -105,7 +105,9 @@ pub fn reload(sources: &Sources, keys: &Keys, err: &mut dyn Write) {
     let _ = writeln!(err, "podssh serve: {line}");
 }
 
-/// What a signal asks of the server.
+/// What a signal asks of the server. Only Unix's signals are caught, so
+/// another system never builds one.
+#[cfg_attr(not(unix), allow(dead_code))]
 enum Asked {
     Stop,
     Reload,

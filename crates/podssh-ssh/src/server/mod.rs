@@ -28,6 +28,7 @@ pub mod pty;
 mod pty_child;
 mod pty_grant;
 pub mod rules;
+#[cfg(unix)]
 pub mod sftp;
 #[cfg(unix)]
 pub mod shell;
