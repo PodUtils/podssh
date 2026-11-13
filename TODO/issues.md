@@ -297,6 +297,7 @@ and num-bigint 0.5) are T-754.
 | #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | closed (2026-11-13: the tests in podcrates `v0.40.0`, named in T-599 and T-771) | T-771 |
 | #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-13: posted) | T-776 |
 | #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | open (2026-11-13: posted) | T-684 |
+| #234 | COORD-057: pod-warp: name the certificate that the front door showed when its key is not the pinned one (to podcrates) | open (2026-11-13: posted) | T-585 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

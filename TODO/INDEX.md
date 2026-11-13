@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 59 open, 29 partial, 13 blocked, 632 done.**
+**733 entries: 58 open, 29 partial, 14 blocked, 632 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 48 | 8 | 7 | 283 | 346 |
-| **All** | 59 | 29 | 13 | 632 | 733 |
+| P3 | 47 | 8 | 8 | 283 | 346 |
+| **All** | 58 | 29 | 14 | 632 | 733 |
 
 ## Entries
 
@@ -624,7 +624,7 @@ repository and CI).
 | [T-582](mesh.md) | P3 | L | M10 | feature | done | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
 | [T-583](ssh.md) | P3 | S | none | feature | open | The warning before the relay's idle cut with `--persist` and `--upgrade` |
 | [T-584](release.md) | P1 | M | none | release | done | Publish `v1.0.1`, the repairs of the testers' defects |
-| [T-585](roads.md) | P3 | S | none | defect | open | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
+| [T-585](roads.md) | P3 | S | none | defect | blocked | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
 | [T-586](resume.md) | P1 | M | none | defect | done | A node holds each session whose OpenSSH client ended its `operator`, so 16 short logins in 10 minutes fill its budget and it refuses each new one |
 | [T-587](reverse.md) | P2 | S | none | feature | done | `podssh proxy` takes no `node://NAME`, and its help never names `operator`, the ProxyCommand form of a node |
 | [T-588](ssh.md) | P1 | M | none | defect | done | `ssh node://` waits ConnectTimeout for an SSH handshake that OpenSSH through `operator` finishes on the same node, and says nothing of what came |

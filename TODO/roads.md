@@ -9045,7 +9045,7 @@ reads of T-399); a new registration tries `PODSSH_WARP_API`, then the API's two 
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -9079,6 +9079,12 @@ cargo test -p podssh-warp --features stand-in
 
 Planted: the proxy's words on the direct road: the test fails.
 
+## Blocker
+
+The road is `pod-warp`'s (PodUtils/podcrates), which podssh took on 2026-11-13; `crates/podssh-warp` is glue
+alone (`src/lib.rs`), and the road's tests are `pod-warp`'s. PodUtils/podcrates is asked for the line and its test
+as COORD-057 (#234); podssh takes them by that tag, then closes this entry.
+
 ## Correction
 
 2026-11-03: `warp-live.yml` at `3bb42ea` (run 41563996906, its first attempt) met the same
@@ -9099,6 +9105,14 @@ PodUtils/podcrates") applies: from the import podssh makes fixes only, and once 
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there. Where `pod-warp` is built from podnet's `src/warp/`, check the same
 defect there: a repair of `podssh-warp` alone would be lost at the import.
+
+2026-11-13, read at podcrates `v0.40.0`: the defect as written is gone with the road's rewrite in `pod-warp`. A key
+of the front door that is not the pinned one reads the device record again (`pod-warp`'s `open.rs`,
+`open_after_mismatch`), and a second mismatch ends with "TLS handshake with the MASQUE front door DOOR: MASQUE peer
+key does not match the pinned key" (`tls.rs`, `PIN_MISMATCH`), which names no proxy. podssh's part maps that
+failure to exit 69 (crates/podssh-cli/src/ssh/cloud/warp/road.rs, `code`). Step 1's words (the certificate that the
+door showed, WARP's side or a proxy, and a later try that tells them apart) and step 2's test are `pod-warp`'s to
+write: asked as COORD-057 (#234).
 
 # T-590: A roost on a host with no sshd says `Connection refused`, not that no sshd is installed, and `doctor` has no line for a roost
 
