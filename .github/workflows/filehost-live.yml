@@ -3,7 +3,7 @@ name: filehost live
 # The file hosts' road (T-738) through the public file hosts of
 # pod-services (its kind `file-host`: tmpfiles.org, Litterbox, temp.sh and
 # 0x0.st), the last of the last fallbacks of the operator's ruling Q78; a
-# short run that Q91 allows for the services of Q78: one piece of 1 KiB
+# short run that Q91 allows for the services of Q78: one piece of 32 KiB
 # through each host, sealed under throwaway keys of the run, downloaded,
 # opened, and deleted where the host deletes; never more
 # (crates/podssh-relay/tests/filehost_live.rs). The broker of the notes is
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: build the test
         run: cargo test --locked -p podssh-relay --features filehost --test filehost_live --no-run
-      - name: one piece of 1 KiB through each host
+      - name: one piece of 32 KiB through each host
         run: |
           set -o pipefail
           timeout 1200 cargo test --locked -p podssh-relay --features filehost --test filehost_live -- --nocapture 2>&1 | tee "$RUNNER_TEMP/live.log"

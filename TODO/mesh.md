@@ -14347,6 +14347,9 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   says, for each host, each step with its time, and for a download that does not open its status, type and length,
   so that the next run names the cause; then each host's form in `pod-services` is mended by a COORD issue
   (to podcrates), or the host is left out of the road's default list.
+  Done the same day: since T-773 a write of 1 KiB rides inline in its note and reaches no host, so the live test
+  sends 32 KiB, and first runs each host's own steps (upload, download, delete), each timed within 120 s, saying the
+  length and first bytes of a download that is not what went.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.
