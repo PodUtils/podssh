@@ -2,9 +2,10 @@
 //! (a key, a comment, options, a bad line), the host key made once in its
 //! state file (two starts at once keep one key, mode 0600), and russh's
 //! client against the server over a pipe: the listed key logs in, another
-//! key is refused, and a subsystem is refused with an answer instead of a
-//! wait (exec runs since T-108: `tests/serve_exec.rs`; direct-tcpip since
-//! T-109: `tests/serve_forward.rs`).
+//! key is refused, and a subsystem other than SFTP is refused with an answer
+//! instead of a wait (exec runs since T-108: `tests/serve_exec.rs`;
+//! direct-tcpip since T-109: `tests/serve_forward.rs`; SFTP since T-112:
+//! `tests/serve_sftp.rs`).
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -187,7 +188,7 @@ async fn a_subsystem_is_refused_with_an_answer() {
     let (ok, handle) = tokio::time::timeout(LIMIT, connect(&listed, &listed)).await.expect("in time");
     assert!(ok);
     let mut channel = handle.channel_open_session().await.expect("a session channel opens");
-    channel.request_subsystem(true, "sftp").await.expect("sent");
+    channel.request_subsystem(true, "podssh-no-such-subsystem").await.expect("sent");
     let answer = tokio::time::timeout(LIMIT, async {
         loop {
             match channel.wait().await {
@@ -199,5 +200,5 @@ async fn a_subsystem_is_refused_with_an_answer() {
     })
     .await
     .expect("an answer, not a wait");
-    assert!(answer, "SFTP waits for T-112 and must be refused");
+    assert!(answer, "a subsystem other than sftp must be refused");
 }

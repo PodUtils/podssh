@@ -1,7 +1,6 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
-//! T-110), and the row
-//! of its host key's file.
+//! T-110; SFTP, T-112), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -26,7 +25,7 @@ pub const SERVE: &[&str] = &[
      directory, else /; a signal request goes to its process group. When it ends, its pipes are read \
      to their end, for 2 s of silence at most (30 s in all), as a job that it put in the background can \
      hold them; then exit-status, or exit-signal with the signal's name and the core flag, always before \
-     EOF and close. A subsystem such as SFTP, X11 or a Unix socket's forward is refused with its answer.",
+     EOF and close. X11, a Unix socket's forward and each subsystem but sftp are refused with their answer.",
     "A pty request (OpenSSH's -t and -tt) is granted where a pty opens at that moment: serve tries \
      /dev/ptmx, then /dev/pts/ptmx, at each request, and keeps nothing for the next one. The command or \
      the shell then has the pty's slave as its stdin, stdout and stderr and as its controlling terminal, \
@@ -39,6 +38,20 @@ pub const SERVE: &[&str] = &[
      refused with its answer, and a command runs on pipes (OpenSSH, with -tt, ends with PTY allocation \
      request failed); podssh doctor's line pty says which of the two a client meets. On Windows the \
      request is refused.",
+    "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it, so \
+     that OpenSSH's sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has \
+     no sftp-server, scp or rsync. The files are reached as the user that runs serve, with no chroot: what \
+     that user may read and write, a client may. A path is taken as the client gives it, and a relative \
+     one starts at HOME (/ with none). Served: open, read, write, close, stat, lstat, fstat, setstat, \
+     fsetstat, opendir, readdir, remove, rename (never over a name that exists), mkdir, rmdir, realpath, \
+     readlink and symlink, and the extensions posix-rename@openssh.com (a rename over a name), \
+     fsync@openssh.com and limits@openssh.com. A failure is its status code with the path and the \
+     system's words (no such file, permission denied, failure). Each call on the file system has 20 s: \
+     past it the reply is a failure that says so, the handle that it used is closed, and the session goes \
+     on, so a FIFO with no writer or a dead mount cannot stop it; a session that left 8 such calls ends. \
+     At most 256 handles are open in a session, a read is 255 KiB at most and a request 256 KiB. A \
+     listing names owners by number, as serve reads no passwd entry. scp in its legacy mode runs scp by \
+     exec, and exits 127 in a cage that has none. --no-shell leaves SFTP served, as it runs no program.",
     "A client's forward (direct-tcpip: OpenSSH's -W, -L and -J) is a TCP connection that serve opens from \
      its own host to the host and port asked, any of them, as sshd allows by default: a name is resolved \
      there, or given to the proxy of serve's HTTPS_PROXY, and the loopback and the names of NO_PROXY go \

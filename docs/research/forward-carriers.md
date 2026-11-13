@@ -338,7 +338,7 @@ in the entry); "new" that the record does not hold it.
 | 21 | localtunnel: 16 MiB at 1.80 MiB/s; curl's fetch with no `Bypass-Tunnel-Reminder` got the file. | `docs/carriers.md:1875`, T-568's Premise and its plant. | contradicts; Correction in T-568 |
 | 22 | tunnl.gg: a fetch cut at 520,192 bytes. | `docs/carriers.md:1864-1868`; T-567. | new (one sample); Correction in T-567 |
 | 23 | `cloudflared`'s quick tunnel: `530` 3 s after its URL. | podssh's own quick tunnel (T-300), `docs/carriers.md:749-781`. | one sample of another program; no entry |
-| 24 | hostc: 4.05 MiB/s; Tunnelmole, Sandhole's public server: no URL in one run. | None (Sandhole as a project of GitHub #18, the source of T-123: `TODO/serve.md:1607`). | new; T-624 |
+| 24 | hostc: 4.05 MiB/s; Tunnelmole, Sandhole's public server: no URL in one run. | None (Sandhole as a project of GitHub #18, the source of T-123: `TODO/serve.md:1725`). | new; T-624 |
 | 25 | libp2p's public bootstrap nodes refuse reservations. | T-579; `docs/carriers.md:1268-1269`. | new for T-579's step 1; Correction in T-579 |
 | 26 | Nym, cjdns, I2P: peer addressing only. | None; Q77 gives each overlay network a research entry. | new; T-626 (the reverse road needs no dial) |
 | 27 | Non-443 services: croc, NATS and MQTT, bore's control port. | `docs/carriers.md:1319-1322`, `docs/carriers.md:1438-1447`, `docs/carriers.md:1478`; T-541. | confirms |

@@ -781,7 +781,7 @@ crate" is no rule now), and the Prove's tests of the discipline itself run in Po
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -823,24 +823,142 @@ default since OpenSSH 9.0), need an SFTP subsystem on the server.
 6. `scp -O` (the old protocol) runs `scp -t` by exec and needs an `scp`
    program in the cage. Say that it fails with 127 there.
 
+## Decision
+
+Recommendations, followed by the draft of 2026-11-13; no ruling of `docs/decisions.md` touches them.
+
+- **The wire is russh-sftp's packets, the loop is podssh's.** The server decodes and encodes with
+  russh-sftp 3.0.1's `Packet` (the crate of the client, T-133), and reads the stream, answers and ends
+  in its own loop (`crates/podssh-ssh/src/server/sftp/mod.rs`). Lost: the crate's own server loop
+  (`russh_sftp::server::run`), which spawns a task of its own, goes on reading after a read that failed
+  with anything but an end of file (a loop of warnings with no end), never closes the channel, and
+  answers a packet past its limit with no way to find the next one; a codec of podssh's own, which would
+  be a second copy of the client's.
+- **Each call on the file system runs on a thread of the session's own, within 20 s.** A call past its
+  limit is left on its thread, the reply says so, the handle that it used is closed, and the next call
+  runs on a new thread; a session that left 8 ends, so that a client cannot make threads without
+  bound. Lost: tokio's blocking pool, whose runtime waits at its end for each blocking task, so that a
+  FIFO with no writer would hold serve's exit; a thread for each call, which costs a thread for each
+  read of a large copy. 20 s is under the 30 s that podssh's client waits for a reply that carries no
+  data (`crates/podssh-ssh/src/sftp/mod.rs`, `METADATA_WAIT`), so that the client reads the reason, not
+  its own time limit; a test gives a shorter one (`Settings::sftp_limit`).
+- **The extensions are `posix-rename@openssh.com` and `fsync@openssh.com`, which the Approach names,
+  and `limits@openssh.com`.** The third costs a reply of 32 bytes and lets each client read and write
+  255 KiB at a time instead of the 32 KiB that it takes without it (OpenSSH's `sftp` and podssh's own).
+  Lost for now: `statvfs@openssh.com`, `hardlink@openssh.com`, `copy-data` and `expand-path@openssh.com`,
+  which no client of the Prove needs; a client that asks gets "unsupported" with the name.
+  `users-groups-by-id@openssh.com` and the owners' names in a listing need the passwd database, which
+  serve never reads (`docs/cli.md`, the shell of `podssh serve`): a listing names owners by number.
+- **Version 3's rename never goes over a name that exists**, as the draft says: an lstat of the new name,
+  then rename(2). Lost: `sftp-server`'s link and unlink for a regular file, as a hard link fails on some
+  file systems and in some cages, and its fallback has the same window between the check and the rename.
+- **`--no-shell` leaves SFTP served.** The flag says that serve runs no command and no shell, and SFTP
+  runs no program; the limits of one key (`restrict`, a forced command) are T-114's. Lost: a refusal of
+  SFTP under `--no-shell`, which no user asked for and which would leave a cage that runs no shell with
+  no way to move a file.
+- **Requests are answered one at a time, in their order**, as `sftp-server` answers them; a client's
+  requests in flight wait in the channel's queue. Windows refuses the subsystem with a line, as
+  `podssh serve` serves on a Unix host only.
+
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_sftp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::sftp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_sftp --test serve_auth --test serve_exec
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_sftp_openssh --test serve_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t112-write-drops-last-byte
 sh scripts/dev.sh check
 ```
 
-The test file crates/podssh-ssh/tests/serve_sftp.rs checks the paths, the
-handle limit and the time limit: a FIFO with no writer fails within the
-limit. In the gate, scripts/interop-serve.sh runs OpenSSH's `sftp -b` through
-`podssh serve --stdio`: a 5,000,000-byte put and get with equal SHA-256
-digests, then mkdir, rename, rm and ls; `scp` up and down with equal digests.
-A planted write handler that drops the last byte fails the digest check.
+The unit tests of `crates/podssh-ssh/src/server/sftp/` write and read the packets as bytes over a
+pipe: the version reply (3, with the three extensions, to a client that asks for 6); a request before
+the version request, and a second one, end the session; an unknown type and a packet that does not
+parse are answered with their id (unsupported, bad message) and the session goes on; a length past
+256 KiB ends it; a missing file is "no such file" with its name and the system's words; a relative path
+and `realpath` of `.`, of an empty path and of a file to be made start at HOME; a read of 1 MiB is cut
+to 255 KiB and a read at the end is EOF; 256 handles, then a failure that names the bound, and a close
+makes room; a FIFO with no writer fails within its limit and an lstat of it follows; symlink takes the
+target first; rename keeps an existing name and `posix-rename@openssh.com` replaces it; `limits` names
+the four bounds; and a session of podssh's own client (a megabyte up and back, fsync, mkdir, rename,
+a listing of `.`, `..` and the file, setstat, remove, rmdir); the worker leaves a stuck call and serves
+the next on a new thread. crates/podssh-ssh/tests/serve_sftp.rs runs podssh's client over russh's
+client and a pipe of 4 MiB to `serve_with` (T-772): 5,000,000 bytes up, on disk under HOME and back with
+equal SHA-256 digests; mkdir with its mode, posix-rename, a link, a listing with its `ls -l` line,
+setstat of the times, remove and rmdir; the codes of a missing name (2), a directory that is not empty
+(4) and, not as root, a file of mode 000 (3); the bound of handles; a FIFO within a limit of 1 s, and
+the session goes on. serve_auth.rs's `a_subsystem_is_refused_with_an_answer` asks for another name than
+`sftp`. Against OpenSSH, crates/podssh-cli/tests/serve_sftp_openssh.rs ("did not run" where a host has no
+`sftp` or `scp`): `sftp -b` with `podssh serve --stdio` as its ProxyCommand puts and gets 5,000,000
+bytes with equal digests, then mkdir, rename, `ls -l` (the server's line), rm and rmdir, and nothing is
+left under serve's HOME; `rmdir absent` exits 1 with "No such file"; `scp` up and down with equal
+digests. The plant `t112-write-drops-last-byte` (a write that drops its last byte and answers OK) fails
+the test of the whole file.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The Premise, read again at `32bf8af`:
+
+- `Cargo.lock` has russh-sftp 3.0.1 since T-133 (`crates/podssh-ssh/Cargo.toml:32`), and podssh has
+  an SFTP client (`crates/podssh-ssh/src/sftp/mod.rs`). So Approach item 1 adds no crate: the server
+  takes the client's russh-sftp for its packets, and `bytes` (at the version that the tree builds for
+  russh-sftp and russh) becomes a direct dependency for the codec's buffer type; the size cost is
+  measured on the release binary.
+- russh is 0.65.0 from `vendor/russh` (T-107's Correction): `subsystem_request` is at
+  `vendor/russh/src/server/mod.rs:726-733`, and its default sends no reply, so the handler answers
+  each name (success for `sftp`, failure for each other).
+- russh-sftp's `Channel::into_stream` (Approach item 2) does not fit serve: each session channel is
+  split at its open, and a task reads it from then on (T-108, `crates/podssh-ssh/src/server/channel.rs`).
+  The task gives its data to a writer that a program or the SFTP server takes: a child's stdin, or one
+  end of a pipe in the process whose other end the server reads; the replies go out through the
+  channel's writing half, and the server sends EOF and close when the client's EOF ends its input.
+- The client side (`scripts/interop.sh:366-375`) holds as read: `-s sftp` gets `SSH_FXP_VERSION`
+  from OpenSSH's `sftp-server`.
+- russh-sftp reads each path as text: a request whose path is not UTF-8 is a bad message, and a name
+  in a listing that is not UTF-8 has U+FFFD in place of each bad byte, as the client's module says.
+- The Prove's scripts/interop-serve.sh is a test of the CLI crate, crates/podssh-cli/tests/serve_sftp_openssh.rs,
+  as T-107 to T-109 made theirs; `scp -O` (Approach item 6) is in the manual's note, not in a test, as
+  the test host has `scp` and the cage's 127 needs a cage without one.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t112` (no build, no test run): the server in
+crates/podssh-ssh/src/server/sftp/ (the loop and its bounds in mod.rs, the answers and the handles in
+answer.rs, the file-system calls in fs.rs, the session's thread in worker.rs, the unit tests in
+tests.rs); `subsystem_request` in the handler; the reading task's writer made general
+(`crates/podssh-ssh/src/server/channel.rs`); `sftp_limit` in `Settings`; `bytes` in
+crates/podssh-ssh/Cargo.toml and `Cargo.lock`; the manual's note (crates/podssh-cli/src/man/notes_serve.rs),
+`docs/cli.md` ("SFTP (T-112)"), a row of `docs/STATUS.md`, the tests of the Prove, the plant
+`t112-write-drops-last-byte`, and serve_auth.rs's test of a refused subsystem moved to another name.
+Results:
+
+Merged, built and run by the main session the same day, beside T-110's pty (drafted from the same base; both
+generalised the channel's input, kept as T-110's `Input` with `give_input` for SFTP), with three repairs:
+
+- `cargo test -p podssh-ssh --lib server::`: 34 passed, once the unit tests read a reply's id themselves:
+  russh-sftp's `Packet::get_request_id` reads requests alone and gives 0 for each reply, so each test that asked
+  for its id failed though the server's replies carried it.
+- `cargo test -p podssh-ssh --test serve_sftp --test serve_auth --test serve_exec --test serve_pty`: 5, 7, 11 and 6
+  passed. Repaired: `the_open_handles_are_bounded` took only the server's refusal of the 257th handle, but podssh's
+  own client reads the bound of `limits@openssh.com` and refuses it first; either refusal is the bound held.
+- `cargo test -p podssh-cli --test serve_sftp_openssh` (OpenSSH 9.6's `sftp -b` and `scp`): 3 passed, after a
+  defect of the server: it closed the sftp channel with no `exit-status`, so OpenSSH's ssh said `Exit status -1`
+  and scp exited 1 after a whole copy. The session now sends 0 at a clean end and 1 at an end on an error, as
+  sftp-server's exit does under sshd. `serve_openssh`, `serve_stdio`, `serve_forward_openssh`: 9, 3 and 5 passed.
+- The tables and the manual: `flag_table` 9, `man_flag_parity` 6, `man_json` 4, `man_page` 11, `--lib man` 100.
+- The plant `t112-write-drops-last-byte`: caught; `t110-no-window-size` and `t107-accept-each-key`: caught.
+- Clippy: `Worker::limit` unused (removed) and a mode of 0 written `0o0`; then clean, and rustfmt clean.
+- The size of the release binary: not measured here (no release build); russh-sftp was in the binary already
+  (T-133), so the server adds its own code alone.
+
+Left after the merge: `cargo todo remap` on each cited file that the draft changed
+(`crates/podssh-ssh/src/server/handler.rs`, `crates/podssh-ssh/src/server/mod.rs`,
+`crates/podssh-ssh/src/server/channel.rs`, `crates/podssh-ssh/Cargo.toml`, `docs/cli.md`,
+`docs/STATUS.md`) and `cargo todo counts`; the run in the build image (T-251).
 
 # T-113: M5 exit: a usable shell and 200 MiB each way from a sealed sandbox
 
@@ -864,10 +982,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:492`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:493`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:500`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:501`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1776,7 +1894,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:492`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:493`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -1832,7 +1950,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:455`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:456`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -1850,10 +1968,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:491` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:455`, `docs/STATUS.md:475`),
+- `docs/STATUS.md:492` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:456`, `docs/STATUS.md:476`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:453` is `docs/STATUS.md:455`.
+  The Prove's `docs/STATUS.md:454` is `docs/STATUS.md:456`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -1912,10 +2030,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:492`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:493`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:471`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:472`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2172,7 +2290,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1721-1722` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1839-1840` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

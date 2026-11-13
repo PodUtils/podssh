@@ -1,0 +1,7 @@
+# T-112: the SFTP server of podssh serve writes each request's data but its
+# last byte, and still answers OK; the test of a whole file must fail on its
+# digest.
+ENTRY=T-112
+GROUP=cli-tests
+EXPECT='test a_file_goes_up_and_comes_back_whole \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_sftp -- a_file_goes_up_and_comes_back_whole'

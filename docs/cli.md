@@ -5643,7 +5643,7 @@ gives up each capability of the process (T-698), before it reads a file.
   a channel's messages wait unread; the bytes for a child's stdin wait in a
   queue of their own (about 4 MiB), and the window of each channel apart is
   T-118's. A pty request is granted where a pty opens (below); a
-  subsystem (SFTP, T-112), X11 and a forward to a Unix
+  subsystem other than `sftp` (below), X11 and a forward to a Unix
   socket (`direct-streamlocal@openssh.com`) are refused with their answer,
   so that a client says so at once instead of waiting (russh's defaults
   answer none).
@@ -5676,6 +5676,39 @@ gives up each capability of the process (T-698), before it reads a file.
   makes that refusal fatal under `-tt` (`PTY allocation request failed`,
   255); T-111 is the line discipline for that case. On Windows a pty
   request is refused.
+- **SFTP (T-112).** The `sftp` subsystem is served in the process
+  (`crates/podssh-ssh/src/server/sftp/`): SFTP version 3 as OpenSSH's
+  `sftp-server` speaks it, on russh-sftp's packets (the crate of podssh's
+  own client, T-133), so that OpenSSH's `sftp`, its `scp` (SFTP is its
+  mode since OpenSSH 9.0) and `podssh cp` reach a cage with no
+  `sftp-server`, `scp` or `rsync`. The files are reached as the user that
+  runs serve, with no chroot (a cage has none): what that user may read
+  and write, a client may. A path is taken as the client gives it; a
+  relative one starts at `HOME` (`/` with none), as `sftp-server` starts
+  there. Served: open, read, write, close, stat, lstat, fstat, setstat,
+  fsetstat, opendir, readdir (`.` and `..` first, 100 names a reply, each
+  with `sftp-server`'s `ls -l` line, owners by number as serve reads no
+  passwd entry), remove, rename (version 3's: never over a name that
+  exists), mkdir, rmdir, realpath (its last part may be missing), readlink
+  and symlink (the target first, in OpenSSH's order); and the extensions
+  `posix-rename@openssh.com` (a rename over a name, which `podssh cp`
+  needs), `fsync@openssh.com` and `limits@openssh.com`. Another extension
+  or packet type is answered as unsupported, with its id. A failure is its
+  status code, as `sftp-server` maps each errno (no such file, permission
+  denied, bad message, failure), with the step, the path and the system's
+  words (`open absent.txt: No such file or directory`). Each call on the
+  file system runs on the session's own thread with 20 s: past it the
+  reply is a failure that says so, the handle that it used is closed, and
+  the session goes on with a new thread, so that a FIFO with no writer or
+  a dead mount cannot stop it; a session that left 8 such calls ends. At
+  most 256 handles are open in a session, a read is 255 KiB at most, and a
+  request 256 KiB (a longer one ends the session, as its end cannot be
+  found); requests are answered one at a time, in their order. The first
+  packet must be the version request, and a second one ends the session,
+  as `sftp-server` does; the reason goes to the channel's stderr. `scp` in
+  its legacy mode runs `scp` by exec, and exits 127 in a cage that has
+  none. `--no-shell` leaves SFTP served, as SFTP runs no program; the
+  limits of one key are T-114's.
 - **Forwards into the cage (T-109).** A `direct-tcpip` channel (OpenSSH's
   `-W`, `-L` and `-J`) is a TCP connection that serve opens from its own
   host to the host and port that the client asked for, any of them, as

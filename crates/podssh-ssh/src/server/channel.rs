@@ -28,7 +28,8 @@ pub const INPUT_QUEUE: usize = 128;
 /// What the client may send before its program starts, kept for it.
 pub const EARLY_INPUT: usize = 1 << 20;
 
-/// Where the client's data goes: the child's stdin, or a pty's master.
+/// Where the client's data goes: the child's stdin, a pty's master, or the
+/// SFTP server's input (T-112).
 pub(super) type Input = Box<dyn AsyncWrite + Send + Unpin>;
 
 /// What a channel asks to run: a command (`exec`), or the login shell
@@ -83,10 +84,15 @@ impl Open {
     }
 
     /// Give the child's input to the reading task, with what came early.
-    pub(super) fn give_stdin(&mut self, stdin: Input) {
+    pub(super) fn give_stdin(&mut self, input: Input) {
         if let Some(to) = self.stdin.take() {
-            let _ = to.send(stdin);
+            let _ = to.send(input);
         }
+    }
+
+    /// Give the reading task where the channel's data goes, as for a child.
+    pub(super) fn give_input(&mut self, input: Input) {
+        self.give_stdin(input);
     }
 
     /// A `signal` request (RFC 4254, section 6.9): to the child's whole

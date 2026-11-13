@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/sftp/fs.rs
++++ b/crates/podssh-ssh/src/server/sftp/fs.rs
+@@ -125,7 +125,7 @@
+ }
+ 
+ /// Each byte of `data` at `offset`.
+ pub(super) fn write_at(file: &File, offset: u64, data: &[u8]) -> io::Result<()> {
+-    file.write_all_at(data, offset)
++    file.write_all_at(&data[..data.len().saturating_sub(1)], offset)
+ }
+ 

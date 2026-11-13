@@ -30,6 +30,10 @@ rand = { workspace = true }
 # SFTP version 3 (T-133): pure Rust, Apache-2.0, a limit on each request, and
 # requests in flight together. Its one optional feature (async-trait) is off.
 russh-sftp = { version = "3.0.1", default-features = false }
+# The buffer type of russh-sftp's codec, which the SFTP server of `podssh
+# serve` reads and writes (T-112). The version that russh-sftp and russh
+# pull in, so nothing new is compiled.
+bytes = "1.12.1"
 # The channels of -L and -D open at the same time (T-038): the version that
 # russh pulls in, so nothing new is compiled.
 futures-util = { version = "0.3", default-features = false, features = ["alloc"] }

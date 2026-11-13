@@ -6,8 +6,9 @@
 //! `--stdio`, as `sshd -i`; a node's session later). A command and a shell
 //! run on pipes (T-108), with the shell that T-222 finds, or on a pty where
 //! a master opens at the request (T-110); direct-tcpip dials from this host
-//! (T-109). Where no pty opens (T-111), and for SFTP (T-112), the request is
-//! refused with the reply that the client waits for.
+//! (T-109); the `sftp` subsystem is served in the process (T-112). Where no
+//! pty opens (T-111), the request is refused with the reply that the client
+//! waits for.
 
 mod authorized;
 mod channel;
@@ -21,6 +22,7 @@ pub mod host_key;
 pub mod pty;
 #[cfg(unix)]
 mod pty_child;
+pub mod sftp;
 #[cfg(unix)]
 pub mod shell;
 
@@ -85,6 +87,9 @@ pub struct Settings {
     /// The masters that a `pty-req` tries; None is `pty::PTMX`, as a test
     /// names a missing one to see the refusal on a host that has a pty.
     pub ptmx: Option<Vec<PathBuf>>,
+    /// The time limit of each file-system call of the SFTP server (T-112);
+    /// None is `sftp::CALL_LIMIT`, as a test gives a shorter one.
+    pub sftp_limit: Option<Duration>,
 }
 
 impl Settings {

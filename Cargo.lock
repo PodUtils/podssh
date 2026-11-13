@@ -5453,6 +5453,7 @@ dependencies = [
  "aes 0.9.4",
  "aws-lc-rs",
  "base64 0.23.1",
+ "bytes",
  "cbc",
  "chrono",
  "crypto-bigint 0.7.11",

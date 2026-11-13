@@ -194,7 +194,7 @@ impl Running {
 /// Wait until `flag` is true. A sender gone is an end too. The value is
 /// copied out at once, as a borrow of a watch held across a wait would make
 /// the task's future unsendable.
-async fn turned(flag: &mut watch::Receiver<bool>) {
+pub(super) async fn turned(flag: &mut watch::Receiver<bool>) {
     loop {
         let on = *flag.borrow_and_update();
         if on || flag.changed().await.is_err() {

@@ -328,13 +328,28 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
-    // SFTP is T-112's.
+    // SFTP in the process (T-112); each other name is refused. A channel
+    // that runs a program, or SFTP already, takes no second one.
     async fn subsystem_request(
         &mut self,
         channel: ChannelId,
-        _name: &str,
+        name: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        Self::refuse(channel, session)
+        let Some(open) = self.channels.get_mut(&channel) else { return Self::refuse(channel, session) };
+        if name != "sftp" || open.started() {
+            return Self::refuse(channel, session);
+        }
+        #[cfg(unix)]
+        let started = super::sftp::start(open, &self.settings);
+        #[cfg(not(unix))]
+        let started: Result<(), String> = Err("not on this system: podssh serve serves SFTP on a Unix host".into());
+        match started {
+            Ok(()) => session.channel_success(channel),
+            Err(line) => {
+                session.extended_data(channel, 1, format!("podssh serve: {line}\n").into_bytes())?;
+                Self::refuse(channel, session)
+            }
+        }
     }
 }
