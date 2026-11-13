@@ -4683,7 +4683,7 @@ wins the rest back.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4767,8 +4767,16 @@ Partial, 2026-11-04, merged from its draft (`8d72e03`).
   podssh-ssh --test sftp_pipeline --test sftp_client`: 8 and 7 passed; `cargo test -p podssh-cli
   --lib -- ssh::window cp::chunks`: 5 passed; `--test copy_pipeline`: 4 passed, its case of `-R 64
   -B 64K` now 64 requests in flight on the direct road. Plant `t662-one-cap`: caught.
-- Waits, so the entry is partial: a copy through T-660's shaped stand-in of 100 ms and 100 Mbit/s
-  against the window of before.
+- 2026-11-13 (main session), the copy through a shaped link of 100 ms and 100 Mbit/s: `podssh cp --direct` of 32 MiB
+  up and down to OpenSSH's sshd on the loopback, through `scripts/fake-proxy.py --shape link:50:12500000:2500000:0:1`
+  as `HTTPS_PROXY`, three runs, a release build of `ca48c3f`. Today's window: up 7.35, 7.36 and 7.36 MiB/s, down 6.72,
+  6.19 and 6.70 MiB/s. The window of before (the same build, each road made to keep `Road::Other`'s cap by a switch
+  of the measure's alone, not committed): up 3.34, 3.34 and 3.35 MiB/s, down 2.85, 2.90 and 2.90 MiB/s. So 2.2 times
+  up and 2.3 times down, more than twice, as the Prove asks; the same build without the switch gave today's rates
+  again (up 7.32 to 7.36, down 6.18 to 6.69), and each copy's bytes came back equal. The link carries 11.9 MiB/s, so
+  the rest is the round trip's.
+
+Done, 2026-11-13.
 
 # T-664: A faster cold connect: TLS tickets kept across runs, a key's signature sent with no query first, and fewer waits before the first command
 

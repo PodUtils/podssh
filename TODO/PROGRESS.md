@@ -21,7 +21,7 @@ Read on 2026-11-11.
 4. **Partial entries** (18; each `## Done` names its next step): the
    tests that failed at random, each waiting for its next failure: T-465, T-627 and T-746; the
    migration, T-684; the release of M10, T-446; and T-319, T-321, T-459,
-   T-660, T-662, T-665, T-666, T-670 and T-755 (its live run
+   T-660, T-665, T-666, T-670 and T-755 (its live run
    waits for a tester's tunnel).
 5. **Blocked entries** (10; each `## Blocker` names who must act): T-328 and T-376 (the
    operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
@@ -116,7 +116,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 710 entries: 65 open, 18 partial, 10 blocked, 617 done.
+`TODO/INDEX.md` holds 710 entries: 65 open, 17 partial, 10 blocked, 618 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -143,7 +143,7 @@ operator interrupts it.
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
-   rest of M10, in this order: T-660, T-662, T-670, T-665 and T-666 (each waits for a run that its
+   rest of M10, in this order: T-660, T-670, T-665 and T-666 (each waits for a run that its
    `## Done` names), their follow-up and what the netem run found (done); then the open
    entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
 6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
