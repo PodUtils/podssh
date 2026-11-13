@@ -12,9 +12,12 @@
 //!   host, the URL, the delete token) is sealed too, as a board's topics are
 //!   public. No host lets the uploader name a path, so the far end learns
 //!   each URL from the board, not by derivation.
-//! - The reader polls the board for piece N's topic, fetches the piece,
-//!   opens it, deletes it where the host allows, and clears the topic
-//!   ([`carrier`]).
+//! - A write that fits a note ([`Carrier::room`]) rides sealed in its note,
+//!   with no host (T-773): the handshakes above the road move at the
+//!   board's speed, not at a host's pace.
+//! - The reader polls the board for write N's topic, opens the note, and
+//!   for a hosted piece fetches it, opens it and deletes it where the host
+//!   allows; then it clears the topic ([`carrier`]).
 //! - The bounds ([`pace`]): one outbound connection of the road at a time,
 //!   an upload rate under each host's published one, pieces of at most
 //!   [`PIECE_MOST`], a User-Agent that names podssh ([`USER_AGENT`]); a host
@@ -26,8 +29,9 @@
 //!   and a client run the layer over its links ([`road`]).
 //!
 //! The road is slow: an upload, a note, a poll and a download for each
-//! piece, some seconds each way at best. It carries a command's output and
-//! files, never a keystroke's echo in time. Above it run the resumable layer
+//! piece, some seconds each way at best, and a note and a poll for each
+//! small write. It carries a command's output and files, never a
+//! keystroke's echo in time. Above it run the resumable layer
 //! and the end-to-end channel, as over each other road.
 
 pub mod board;
@@ -42,6 +46,8 @@ pub mod pace;
 pub mod road;
 pub mod services;
 
+#[cfg(test)]
+mod carrier_inline_tests;
 #[cfg(test)]
 mod carrier_tests;
 #[cfg(test)]

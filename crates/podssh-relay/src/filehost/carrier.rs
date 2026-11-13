@@ -1,9 +1,13 @@
-//! The carrier of one pair: a piece goes up as one sealed upload to a host,
-//! and its note (the host, the URL, the delete token), sealed, goes to the
-//! board under the piece's topic; the far end polls the topic, fetches the
-//! piece, opens it, deletes it where the host lets it, and clears the topic.
-//! Each request is made under the road's gate, one at a time, and each
-//! upload at its host's pace ([`super::pace`]).
+//! The carrier of one pair: a write of at most [`Carrier::room`] bytes rides
+//! sealed in its note on the board, with no host; a larger one goes up as
+//! one sealed upload to a host, and its note (the host, the URL, the delete
+//! token), sealed, goes to the board under the piece's topic. The far end
+//! polls the topic, opens the note, and for a hosted piece fetches it,
+//! opens it and deletes it where the host lets it; then it clears the
+//! topic. Each request is made under the road's gate, one at a time, and
+//! each upload at its host's pace ([`super::pace`]); a note takes no turn
+//! of a host's pace, so a handshake's small messages move at the board's
+//! speed and the bulk at the hosts'. A write's number orders both kinds.
 //!
 //! A note opens only under the pair's key, at its own topic, so a stranger
 //! on a public board can neither read one nor plant one that is taken; a
@@ -15,6 +19,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::{json, Value};
+use tokio::sync::Notify;
 use tokio::time::Instant;
 
 use super::board::Board;
@@ -32,6 +37,10 @@ pub const POLL_MOST: Duration = Duration::from_secs(15);
 /// for as long as it runs, so its idle polls are what the road asks of a
 /// public board most, and a client's first link waits this long at worst.
 pub const DOOR_POLL_MOST: Duration = Duration::from_secs(60);
+/// The most bytes of a note that holds its write: under the board's own
+/// most, so that a public board carries a handshake's and a typist's small
+/// writes, never a stream; a larger write goes to a host at its pace.
+pub const INLINE_MOST: usize = 16 * 1024;
 /// How many times a note is put again when the board fails.
 const PUT_TRIES: u32 = 3;
 /// How many times a piece whose note was read is fetched again: a host may
@@ -74,6 +83,12 @@ impl Carrier {
         &self.keys
     }
 
+    /// The most bytes of a write that rides in its note: the board's
+    /// message, at most [`INLINE_MOST`], less the seal.
+    pub fn room(&self) -> usize {
+        self.board.most().min(INLINE_MOST).saturating_sub(OVERHEAD)
+    }
+
     /// Wait until a host may take an upload of `size` bytes; at once when
     /// none takes it, as [`Carrier::send`] then says why.
     pub async fn ready(&self, size: usize) {
@@ -83,16 +98,22 @@ impl Carrier {
         }
     }
 
-    /// Piece `n` of `way` of `link`: sealed, uploaded to the first host that
-    /// takes it, and its note put on the board.
+    /// Write `n` of `way` of `link`: sealed in its note when it fits
+    /// [`Carrier::room`], else sealed, uploaded to the first host that takes
+    /// it, and its note put on the board.
     pub async fn send(&self, way: Way, link: &LinkId, n: u64, piece: &[u8]) -> Result<(), String> {
         if piece.len() > PIECE_MOST {
             return Err(format!("a piece of {} bytes is over {PIECE_MOST}", piece.len()));
         }
-        let sealed = self.keys.seal(Kind::Piece, way, link, n, piece, &mut OsEntropy).map_err(|e| e.to_string())?;
-        let (host, stored) = self.upload(sealed).await?;
-        let note = json!({ "h": host.name(), "u": stored.url, "t": stored.token }).to_string();
-        let note = self.keys.seal(Kind::Note, way, link, n, note.as_bytes(), &mut OsEntropy);
+        let note = if piece.len() <= self.room() {
+            // No host and no host's pace: the board alone carries it.
+            self.keys.seal(Kind::Inline, way, link, n, piece, &mut OsEntropy)
+        } else {
+            let sealed = self.keys.seal(Kind::Piece, way, link, n, piece, &mut OsEntropy);
+            let (host, stored) = self.upload(sealed.map_err(|e| e.to_string())?).await?;
+            let note = json!({ "h": host.name(), "u": stored.url, "t": stored.token }).to_string();
+            self.keys.seal(Kind::Note, way, link, n, note.as_bytes(), &mut OsEntropy)
+        };
         let note = note.map_err(|e| e.to_string())?;
         let (most, board) = (self.board.most(), self.board.name());
         if note.len() > most {
@@ -164,9 +185,24 @@ impl Carrier {
         }
     }
 
-    /// Piece `n` of `way` of `link`, polled for within `wait`: fetched,
-    /// opened, deleted where its host lets the reader, and its topic cleared.
+    /// Write `n` of `way` of `link`, polled for within `wait`: opened from
+    /// its note, or fetched, opened and deleted where its host lets the
+    /// reader; then its topic cleared.
     pub async fn receive(&self, way: Way, link: &LinkId, n: u64, wait: Duration) -> Result<Vec<u8>, String> {
+        self.receive_nudged(way, link, n, wait, None).await
+    }
+
+    /// [`Carrier::receive`], whose polls come faster after each `nudge`:
+    /// the link nudges when its own end wrote, as the far end's answer is
+    /// then near, and a handshake's round trip must end within its limit.
+    pub async fn receive_nudged(
+        &self,
+        way: Way,
+        link: &LinkId,
+        n: u64,
+        wait: Duration,
+        nudge: Option<&Notify>,
+    ) -> Result<Vec<u8>, String> {
         let topic = self.keys.topic(way, link, n);
         let deadline = Instant::now() + wait;
         let mut pause = POLL_FIRST;
@@ -177,7 +213,12 @@ impl Carrier {
             };
             // A board that failed once is asked again at the next poll.
             if let Ok(Some(sealed)) = taken {
-                if let Some(piece) = self.read_note(way, link, n, &sealed).await? {
+                let inline = self.keys.open(Kind::Inline, way, link, n, &sealed);
+                let piece = match inline {
+                    Some(bytes) => Some(bytes),
+                    None => self.read_note(way, link, n, &sealed).await?,
+                };
+                if let Some(piece) = piece {
                     let _one = self.gate.hold().await;
                     let _ = self.board.clear(&topic).await;
                     return Ok(piece);
@@ -186,8 +227,8 @@ impl Carrier {
             if Instant::now() >= deadline {
                 return Err(format!("no piece {n} within {} s", wait.as_secs()));
             }
-            tokio::time::sleep(pause.min(deadline.saturating_duration_since(Instant::now()))).await;
-            pause = (pause * 2).min(POLL_MOST);
+            let nudged = nap(pause.min(deadline.saturating_duration_since(Instant::now())), nudge).await;
+            pause = if nudged { POLL_FIRST } else { (pause * 2).min(POLL_MOST) };
         }
     }
 
@@ -229,12 +270,42 @@ impl Carrier {
         Ok(Some(piece))
     }
 
-    /// Put a client's hello for `link` at the node's door.
-    pub async fn knock(&self, link: &LinkId) -> Result<(), String> {
+    /// Put a client's hello for `link` at the node's door; its sealed bytes,
+    /// for [`Carrier::knocked`].
+    pub async fn knock(&self, link: &LinkId) -> Result<Vec<u8>, String> {
         let hello = self.keys.seal(Kind::Hello, Way::Up, &DOOR_LINK, 0, &link.0, &mut OsEntropy);
         let hello = hello.map_err(|e| e.to_string())?;
         let _one = self.gate.hold().await;
-        self.board.put(&self.keys.door(), hello).await.map_err(|why| format!("{}: {why}", self.board.name()))
+        let put = self.board.put(&self.keys.door(), hello.clone()).await;
+        put.map_err(|why| format!("{}: {why}", self.board.name()))?;
+        Ok(hello)
+    }
+
+    /// Wait, within `wait`, until the door no longer holds `hello`: the node
+    /// took it (or another client's hello took its place, which the layer's
+    /// handshake then finds). So the layer's handshake, and its limit,
+    /// start once the node reads the link, not while its door sleeps.
+    pub async fn knocked(&self, hello: &[u8], wait: Duration) -> Result<(), String> {
+        let door = self.keys.door();
+        let deadline = Instant::now() + wait;
+        let mut pause = POLL_FIRST;
+        loop {
+            let taken = {
+                let _one = self.gate.hold().await;
+                self.board.take(&door).await
+            };
+            // A board that failed once is asked again at the next poll.
+            if let Ok(kept) = taken {
+                if kept.as_deref() != Some(hello) {
+                    return Ok(());
+                }
+            }
+            if Instant::now() >= deadline {
+                return Err(format!("the node took no hello within {} s", wait.as_secs()));
+            }
+            tokio::time::sleep(pause.min(deadline.saturating_duration_since(Instant::now()))).await;
+            pause = (pause * 2).min(POLL_MOST);
+        }
     }
 
     /// The link of the next client's hello at the door, within `wait`; a
@@ -264,6 +335,22 @@ impl Carrier {
             }
             tokio::time::sleep(pause.min(deadline.saturating_duration_since(Instant::now()))).await;
             pause = (pause * 2).min(DOOR_POLL_MOST);
+        }
+    }
+}
+
+/// Sleep `pause`, or less when `nudge` comes: then the next poll is
+/// [`POLL_FIRST`] after it. True when nudged.
+async fn nap(pause: Duration, nudge: Option<&Notify>) -> bool {
+    let Some(nudge) = nudge else {
+        tokio::time::sleep(pause).await;
+        return false;
+    };
+    tokio::select! {
+        () = tokio::time::sleep(pause) => false,
+        () = nudge.notified() => {
+            tokio::time::sleep(POLL_FIRST.min(pause)).await;
+            true
         }
     }
 }

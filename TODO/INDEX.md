@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**728 entries: 72 open, 22 partial, 10 blocked, 624 done.**
+**728 entries: 71 open, 22 partial, 10 blocked, 625 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 18 | 12 | 1 | 270 | 301 |
+| P2 | 17 | 12 | 1 | 271 | 301 |
 | P3 | 50 | 8 | 6 | 281 | 345 |
-| **All** | 72 | 22 | 10 | 624 | 728 |
+| **All** | 71 | 22 | 10 | 625 | 728 |
 
 ## Entries
 
@@ -803,4 +803,4 @@ repository and CI).
 | [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |
 | [T-771](repo.md) | P3 | M | M10 | chore | open | 38 of the 307 planted defects no longer apply to the tree |
 | [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
-| [T-773](mesh.md) | P2 | M | M10 | defect | open | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
+| [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |

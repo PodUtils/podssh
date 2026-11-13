@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/filehost/carrier.rs
++++ b/crates/podssh-relay/src/filehost/carrier.rs
+@@ -105,7 +105,7 @@
+         if piece.len() > PIECE_MOST {
+             return Err(format!("a piece of {} bytes is over {PIECE_MOST}", piece.len()));
+         }
+-        let note = if piece.len() <= self.room() {
++        let note = if piece.is_empty() {
+             // No host and no host's pace: the board alone carries it.
+             self.keys.seal(Kind::Inline, way, link, n, piece, &mut OsEntropy)
+         } else {

@@ -15116,7 +15116,7 @@ with 255 after 665 s.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -15139,11 +15139,78 @@ the note itself, with no upload; only a larger write goes to a host. The handsha
 an interactive session's keys then move at the board's speed, and the bulk at the hosts'. Else, as a second road:
 ask PodUtils/podcrates (COORD) for a handshake limit that a carrier can raise.
 
+## Decision
+
+2026-11-13 (the draft, DRAFT T-773).
+
+- **The room of a write in its note: 16 KiB (`INLINE_MOST`) less the seal's 28 bytes, 16,356 bytes**, and never
+  more than the board's own message less the seal (`Carrier::room` takes the smaller: `pod_wormhole::mqtt`'s
+  `PAYLOAD_MOST` is 64,000 bytes at podcrates `v0.38.0`, shiftr.io's 64 KB). A note that holds its write is sealed
+  as a kind of its own (`Kind::Inline`, the byte `i` in the associated data), so it opens neither as a host's note
+  nor as a piece, and needs no field of its own: its whole room is the write's. Lost: the board's whole 63,972
+  bytes, which would put a stream of the bulk on a free public broker at no pace (the hosts are paced, the board is
+  not), where a handshake's messages and a typist's frames are a few hundred bytes to a few KiB; 4 KiB (ntfy.sh's
+  message, T-496), too tight for the post-quantum key exchange of SSH and the channel's first frames together.
+- **The small writes that queue behind a piece are joined into one write: yes.** A way sends its writes one at a
+  time, in the order of their numbers, so the bytes that the layer writes while a piece waits for its host's pace
+  wait in the link's pipe and go together as the next write: one note when they fit its room, else one piece. A
+  write never overtakes the piece before it: the far end reads write N before N+1 whatever its kind, so a note put
+  early would wait on the board and save nothing. Lost: notes beside a waiting piece (a second request of the way
+  at once, and the same latency at the reader).
+- **The link decides by what it gathered at once.** After its first byte it gathers what the layer writes at once
+  (each read within `GATHER`, 200 ms), up to one byte past the room, with no wait for a host: a gather that stops
+  within the room is a note, sent at once; one that fills it is a piece, which then waits for its host's pace and
+  takes what came in the meantime, up to 4 MiB. An empty write (the end of a way) is a note.
+- **Two changes beside, for the 30 s of each handshake**, as a note alone still waits for the reader's poll (up
+  to 15 s) and, on a first link, for the node's door (up to 60 s): a link's reader polls again `POLL_FIRST` (2 s)
+  after each write of its own end (`Carrier::receive_nudged`), as the far end's answer is then near, and its
+  pauses grow again from there; and a client's link starts only once the node took its hello off the door
+  (`Carrier::knocked`, within `DOOR_WAIT`), so the layer's handshake and its limit start when the node reads the
+  link. Lost: a shorter door poll at each node (what an idle node asks of a public board most), and the COORD to
+  podcrates for a handshake limit that a carrier raises (the Approach's second road), not needed if this passes.
+
 ## Prove
 
 ```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features filehost --lib filehost::
 PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto \
-  cargo test -p podssh-cli --features filehost --test carrier_filehost -- --include-ignored
+  cargo test -p podssh-cli --features filehost --test carrier_filehost -- --nocapture
+cargo test -p podssh-cli --lib man::
+sh scripts/plant-each.sh --here t773-no-inline-note
 ```
 
-The session test passes with its `#[ignore]` removed.
+The session test passes with its `#[ignore]` removed; the unit tests of the carrier pass, and fail on the plant.
+
+## Done
+
+Partial (2026-11-13): drafted (DRAFT T-773), not built, not run.
+
+- `crates/podssh-relay/src/filehost/carrier.rs`: `INLINE_MOST`, `Carrier::room`; `send` seals a write that fits
+  the room as a note of the kind `Inline` and puts it on the board with no host, else uploads it as before;
+  `receive` opens a note of that kind first, else reads a host's note; `receive_nudged` and `nap` (the polls after
+  a write of the same end); `knock` gives the sealed hello, and `knocked` waits until the door no longer holds it.
+  `keys.rs`: the kind `Inline`. `link.rs`: the gather up to one byte past the room, a note at once, a piece at its
+  host's pace; the reader nudged by the writer; `dial` waits for the node to take its hello.
+- The unit tests: `crates/podssh-relay/src/filehost/carrier_inline_tests.rs` (a write of the whole room rides in
+  its note and no host sees it, one byte more goes to a host; the number orders a mix of notes and pieces at the
+  carrier and through a link; a host of one upload an hour delays no note, and the next piece waits for it; two
+  round trips of small writes through a link each within 30 s while the host waits, and a small write after a
+  piece; a client's link waits until the node takes its hello). In `carrier_tests.rs`, the pieces of the busy
+  host's test and the spoiled piece are 32 KiB, over a note's room, so they still go to hosts. `keys.rs` and
+  `mqtt.rs`: a note of the kind opens as no other, and the largest fits the broker's message.
+- `crates/podssh-cli/tests/carrier_filehost.rs`: the session test is no longer ignored; the first host turns busy
+  past one upload (`BUSY_AFTER`), as the session's pieces are now its bulk alone, a few each way; the asserts that
+  the first host turned busy and the next took pieces stay.
+- The plant `scripts/plants/t773-no-inline-note.plant` (group `resume`): `send` puts only an empty write in a
+  note, every other on a host; caught by `a_write_that_fits_a_note_rides_in_it_and_no_host_sees_it`.
+- The manual (`crates/podssh-cli/src/man/notes_filehost.rs`, `crates/podssh-cli/src/man/facts/turn.rs`) and
+  `docs/carriers.md` (T-738's reading of the board) say that a small write rides in its note.
+- Merged, built and run by the main session the same day: `cargo test -p podssh-relay --features filehost --lib
+  filehost::`, 37 passed; the relay's `--lib` with `filehost`, 149; `--test filehost_board` against Mosquitto, 2.
+  `PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto cargo test -p podssh-cli --features filehost --test
+  carrier_filehost`: 2 passed, its `#[ignore]` gone: `podssh ssh node://tester@lab cat` moved 256 KiB each way
+  through the stand-ins of tmpfiles.org and 0x0.st at the catalog's pace and Mosquitto in 177 s, equal digests,
+  where before the change it failed with 255 after 665 s. The plant `t773-no-inline-note`: caught
+  (`a_write_that_fits_a_note_rides_in_it_and_no_host_sees_it`). `--lib man::`: 60 passed; clippy with
+  `podssh-relay/filehost,podssh-cli/filehost` and rustfmt: clean.

@@ -10,9 +10,10 @@
 //! form of the catalog), and Mosquitto behind TLS for the broker of the
 //! catalog's kind `mqtt-broker`.
 //!
-//! 256 KiB go up and come back with equal digests; the first host answers
-//! 429 past three uploads, and the next host of the list takes the next
-//! pieces; a host that deletes by token (0x0's form) is asked to delete what
+//! 256 KiB go up and come back with equal digests; the handshakes ride in
+//! their notes on the broker (T-773), and the bulk goes to the hosts: the
+//! first host answers 429 past one upload, and the next host of the list
+//! takes the next pieces; a host that deletes by token (0x0's form) is asked to delete what
 //! was read, with the right token; no host holds a run of the plaintext;
 //! the Q78 lines name the third parties. A bad `PODSSH_FILEHOSTS` is refused
 //! with 78 at each end before anything connects. The test says "did not
@@ -48,12 +49,15 @@ use sha2::{Digest, Sha256};
 /// The first host, which turns busy, and the next, which deletes by token.
 const FIRST: &str = "tmpfiles-org";
 const NEXT: &str = "null-pointer-0x0";
-const BUSY_AFTER: usize = 3;
+/// One upload: the small writes ride in notes, so the session's pieces are
+/// the bulk alone, a few each way, and the second must find the first host
+/// busy.
+const BUSY_AFTER: usize = 1;
 /// A start, a refusal: each within this.
 const LIMIT: Duration = Duration::from_secs(60);
-/// The session: each piece waits for its host's pace (23 s and 30 s here,
-/// as the catalog publishes), and a round trip of SSH's handshake is a
-/// piece each way.
+/// The session: each piece of the bulk waits for its host's pace (23 s and
+/// 30 s here, as the catalog publishes); the handshakes' small writes ride
+/// in their notes, a poll of the broker each way.
 const SESSION_LIMIT: Duration = Duration::from_secs(25 * 60);
 const SIZE: usize = 256 * 1024;
 
@@ -345,7 +349,6 @@ impl Lab {
 }
 
 #[test]
-#[ignore = "the hosts' pace (an upload each 23 to 30 s) carries no end-to-end handshake within its 30 s: T-773"]
 fn a_session_of_ssh_goes_through_the_file_hosts_and_the_broker_with_equal_digests() {
     let Some(lab) = Lab::new("session") else { return };
     let (_node, started) = lab.node();

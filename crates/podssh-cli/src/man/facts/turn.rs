@@ -19,9 +19,10 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_FILEHOSTS"],
         "The file hosts' road of a pair (T-738), the last of the last fallbacks of the operator's ruling Q78, in \
-      a build with the feature filehost (none of a release yet): each piece of a link of the resumable layer \
-      one sealed upload to a public file host of podssh's list of services, its URL a sealed note at the public \
-      MQTT broker of PODSSH_MQTT, one request at a time (see the notes of node and ssh). no turns it off; yes, \
+      a build with the feature filehost (none of a release yet): each small write of a link of the resumable \
+      layer a sealed note at the public MQTT broker of PODSSH_MQTT, and each larger piece one sealed upload to \
+      a public file host of podssh's list of services, its URL a sealed note there, one request at a time (see \
+      the notes of node and ssh). no turns it off; yes, \
       or unset, takes the hosts of the list whose terms let a program upload unasked, in the list's order; a \
       list of the services' ids, by commas, takes those alone, in that order (naming a host whose terms ask \
       for its user's consent gives it), and an id that the list does not hold is a configuration error (78). \

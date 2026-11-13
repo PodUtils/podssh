@@ -1,0 +1,7 @@
+# T-773: the file-host road sends each write but an empty one to a host,
+# as before T-773, so a handshake's small writes wait for a host's pace;
+# the test of a write that fits a note, which no host may see, must fail.
+ENTRY=T-773
+GROUP=resume
+EXPECT='test filehost::carrier_inline_tests::a_write_that_fits_a_note_rides_in_it_and_no_host_sees_it \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features filehost --lib -- filehost::carrier_inline_tests::a_write_that_fits_a_note_rides_in_it_and_no_host_sees_it'

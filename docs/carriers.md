@@ -583,7 +583,7 @@ to none. The sources are in "Sources", under "T-738".
   login [R738-12]; whether the public instance takes its public login there was not read.
   `pod_wormhole::mqtt` (podcrates v0.33.0) writes each `PUBLISH` with no retain and subscribes to
   the topic of a code alone, so the board needs a retained publish, a read of one topic and a
-  clear from it: asked of podcrates (T-738's Done).
+  clear from it: asked of podcrates (T-738's Done). The board carries the small writes too (T-773): a write of at most 16 KiB less its seal (under the 64,000 bytes of `pod_wormhole`'s board) rides sealed in its note, with no host and no turn of a host's pace, so the handshakes above the road end within their 30 s; only a larger write is a piece on a host. A write's number orders notes and pieces alike, and a client's link starts once the node took its hello.
 
 ## The reverse road
 

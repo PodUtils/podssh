@@ -66,7 +66,7 @@ mod tests {
 
     /// Each topic of the road is one that the board takes (letters and
     /// digits, 42 at most), and a note of the largest URL and token that a
-    /// host gives fits a message.
+    /// host gives fits a message, as does the largest write in its note.
     #[test]
     fn the_road_s_topics_and_notes_fit_the_mqtt_board() {
         let keys = Keys::from_bytes([7; 32]);
@@ -80,5 +80,9 @@ mod tests {
         assert_eq!(sealed.len(), note.len() + OVERHEAD);
         assert!(check_payload(&sealed).is_ok());
         assert!(sealed.len() < super::mqtt::PAYLOAD_MOST);
+        // A note that holds its write fits too: the cap is under the board's.
+        let inline = vec![0u8; super::super::carrier::INLINE_MOST - OVERHEAD];
+        let sealed = keys.seal(Kind::Inline, Way::Up, &LinkId([1; 16]), 0, &inline, &mut OsEntropy).unwrap();
+        assert!(check_payload(&sealed).is_ok());
     }
 }

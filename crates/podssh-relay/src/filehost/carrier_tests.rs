@@ -1,7 +1,8 @@
 //! The carrier and its links against the in-process stand-ins: a client and
 //! a node move their bytes each way, one request of the road at a time; a
 //! host keeps ciphertext alone; a busy host hands the next piece to the
-//! next one; a stranger's notes and hellos open nothing.
+//! next one; a stranger's notes and hellos open nothing. The writes that
+//! ride in their notes are in `carrier_inline_tests`.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -22,17 +23,17 @@ use crate::session::OsEntropy;
 const TOKEN: &str = "0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqr";
 const LINK: LinkId = LinkId([5; 16]);
 
-fn keys() -> Arc<Keys> {
+pub(super) fn keys() -> Arc<Keys> {
     Arc::new(Keys::of_pair("relay-pair-name", TOKEN))
 }
 
-fn sayer(lines: &Arc<Mutex<Vec<String>>>) -> Say {
+pub(super) fn sayer(lines: &Arc<Mutex<Vec<String>>>) -> Say {
     let lines = lines.clone();
     Arc::new(move |line| lines.lock().unwrap().push(line))
 }
 
 /// `len` bytes that no two calls of another `seed` share.
-fn pattern(len: usize, seed: u32) -> Vec<u8> {
+pub(super) fn pattern(len: usize, seed: u32) -> Vec<u8> {
     let mut state = seed.wrapping_mul(2_654_435_761).wrapping_add(1);
     (0..len)
         .map(|_| {
@@ -42,20 +43,20 @@ fn pattern(len: usize, seed: u32) -> Vec<u8> {
         .collect()
 }
 
-fn digest(bytes: &[u8]) -> Vec<u8> {
+pub(super) fn digest(bytes: &[u8]) -> Vec<u8> {
     Sha256::digest(bytes).to_vec()
 }
 
-struct Ends {
-    client: Arc<Carrier>,
-    node: Arc<Carrier>,
-    board: Arc<StandInBoard>,
-    lines: Arc<Mutex<Vec<String>>>,
+pub(super) struct Ends {
+    pub client: Arc<Carrier>,
+    pub node: Arc<Carrier>,
+    pub board: Arc<StandInBoard>,
+    pub lines: Arc<Mutex<Vec<String>>>,
 }
 
 /// A client and a node of one pair over `hosts` and one board, under one
 /// gate, as two carriers of one process share it.
-fn ends(hosts: Vec<Arc<dyn Host>>, counter: &Counter) -> Ends {
+pub(super) fn ends(hosts: Vec<Arc<dyn Host>>, counter: &Counter) -> Ends {
     let board = Arc::new(StandInBoard::new(counter.clone()));
     let lines = Arc::new(Mutex::new(Vec::new()));
     let gate = Gate::default();
@@ -80,7 +81,7 @@ async fn exchange(link: &mut link::Link, bytes: &[u8]) -> Vec<u8> {
     got
 }
 
-async fn linked(ends: &Ends) -> (link::Link, link::Link) {
+pub(super) async fn linked(ends: &Ends) -> (link::Link, link::Link) {
     let accepting = tokio::spawn(link::accept(ends.node.clone()));
     let client = link::dial(ends.client.clone()).await.unwrap();
     let node = accepting.await.unwrap().unwrap();
@@ -138,7 +139,8 @@ async fn a_busy_host_rests_and_the_next_host_serves_the_next_piece() {
     let busy = Arc::new(StandInHost::new("busy.stand-in.test", None, counter.clone()).busy_from(1));
     let next = Arc::new(StandInHost::new("next.stand-in.test", None, counter.clone()));
     let ends = ends(vec![busy.clone(), next.clone()], &counter);
-    let pieces: Vec<Vec<u8>> = (0..3).map(|n| pattern(1024, 10 + n)).collect();
+    // Each over a note's room, so that each goes to a host.
+    let pieces: Vec<Vec<u8>> = (0..3).map(|n| pattern(32 * 1024, 10 + n)).collect();
     for (n, piece) in pieces.iter().enumerate() {
         ends.client.send(Way::Up, &LINK, n as u64, piece).await.unwrap();
     }
@@ -170,8 +172,9 @@ async fn a_strangers_note_or_one_of_another_host_is_passed_over_and_a_changed_pi
     // The right note comes after them, and is read.
     ends.client.send(Way::Up, &LINK, 0, b"piece zero").await.unwrap();
     assert_eq!(ends.node.receive(Way::Up, &LINK, 0, Duration::from_secs(10)).await.unwrap(), b"piece zero");
-    // A host that changes a byte is caught.
-    ends.client.send(Way::Up, &LINK, 1, b"piece one").await.unwrap();
+    // A host that changes a byte of a piece over a note's room is caught.
+    let large = pattern(32 * 1024, 4);
+    ends.client.send(Way::Up, &LINK, 1, &large).await.unwrap();
     host.spoil();
     let spoiled = ends.node.receive(Way::Up, &LINK, 1, Duration::from_secs(10)).await.unwrap_err();
     assert!(spoiled.contains("does not open"), "{spoiled}");

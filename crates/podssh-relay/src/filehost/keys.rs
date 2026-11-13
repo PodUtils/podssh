@@ -1,12 +1,13 @@
 //! The keys, the topics and the seals of the road, from the pair's secret.
 //! A board's topics are public and a file host serves each upload to anyone
 //! with its URL, so nothing that leaves an end is in clear: each piece, each
-//! note of a piece's URL and each hello is AES-256-GCM under a key of the
-//! pair, with a random nonce, and with what it is (its kind, its way, its
-//! link and its number) as associated data, so that a host or a board that
-//! swaps two of them, or plays one back in another place, is caught when
-//! it is opened. A topic is a MAC of the same key: it names neither the
-//! pair nor the token, and only the pair's two ends can find it.
+//! note of a piece's URL, each note that holds a small write itself and
+//! each hello is AES-256-GCM under a key of the pair, with a random nonce,
+//! and with what it is (its kind, its way, its link and its number) as
+//! associated data, so that a host or a board that swaps two of them, or
+//! plays one back in another place, is caught when it is opened. A topic
+//! is a MAC of the same key: it names neither the pair nor the token, and
+//! only the pair's two ends can find it.
 //!
 //! The end-to-end channel runs above the resumable layer and is not up when
 //! a link opens, so the seal here is the pair's, as the paths of the Piping
@@ -94,6 +95,9 @@ pub enum Kind {
     Note,
     /// A client's hello at the node's door: the id of a new link.
     Hello,
+    /// A note that holds its write itself: the layer's bytes, with no
+    /// host.
+    Inline,
 }
 
 impl Kind {
@@ -102,6 +106,7 @@ impl Kind {
             Kind::Piece => b'p',
             Kind::Note => b'n',
             Kind::Hello => b'h',
+            Kind::Inline => b'i',
         }
     }
 }
@@ -266,6 +271,10 @@ mod tests {
         assert!(!sealed.windows(plain.len()).any(|w| w == plain), "no plaintext in the seal");
         assert_eq!(keys().open(Kind::Piece, Way::Up, &LINK, 3, &sealed).as_deref(), Some(&plain[..]));
         assert!(keys().open(Kind::Note, Way::Up, &LINK, 3, &sealed).is_none(), "another kind");
+        let inline = keys().seal(Kind::Inline, Way::Up, &LINK, 3, plain, &mut OsEntropy).unwrap();
+        assert!(keys().open(Kind::Note, Way::Up, &LINK, 3, &inline).is_none(), "an inline note is no host's note");
+        assert!(keys().open(Kind::Piece, Way::Up, &LINK, 3, &inline).is_none(), "nor a piece");
+        assert_eq!(keys().open(Kind::Inline, Way::Up, &LINK, 3, &inline).as_deref(), Some(&plain[..]));
         assert!(keys().open(Kind::Piece, Way::Down, &LINK, 3, &sealed).is_none(), "another way");
         assert!(keys().open(Kind::Piece, Way::Up, &LinkId([8; 16]), 3, &sealed).is_none(), "another link");
         assert!(keys().open(Kind::Piece, Way::Up, &LINK, 4, &sealed).is_none(), "another number");
