@@ -28,6 +28,10 @@ use crate::session::OsEntropy;
 /// slows while nothing comes, so that an idle link asks the board little.
 pub const POLL_FIRST: Duration = Duration::from_secs(2);
 pub const POLL_MOST: Duration = Duration::from_secs(15);
+/// The longest pause between two polls of a node's door: a node waits there
+/// for as long as it runs, so its idle polls are what the road asks of a
+/// public board most, and a client's first link waits this long at worst.
+pub const DOOR_POLL_MOST: Duration = Duration::from_secs(60);
 /// How many times a note is put again when the board fails.
 const PUT_TRIES: u32 = 3;
 /// How many times a piece whose note was read is fetched again: a host may
@@ -259,7 +263,7 @@ impl Carrier {
                 return Err(format!("no client's hello within {} s", wait.as_secs()));
             }
             tokio::time::sleep(pause.min(deadline.saturating_duration_since(Instant::now()))).await;
-            pause = (pause * 2).min(POLL_MOST);
+            pause = (pause * 2).min(DOOR_POLL_MOST);
         }
     }
 }

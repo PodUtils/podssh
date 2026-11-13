@@ -40,7 +40,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** One is being written: T-738's next step (`draft-t738b`: the HTTP host over the kind `file-host` and the board over `mqtt::Board`); merged: (T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
+8. **Drafts.** One waits for its merge: the take of podcrates v0.36.0 (`draft-take36`, `a085ebe`: the HTTP road's server keeps the invariants 6 to 10); merged: (T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.

@@ -182,6 +182,10 @@ step_lint() {
     # Syncthing's relays as a last road (T-571): the library and the CLI's road.
     run "clippy: no warning with the Syncthing relay feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/strelay -- -D warnings $LINTS_ALLOWED
+    # The file hosts' road (T-738): the module is in each build; the CLI's
+    # switch turns the road on.
+    run "clippy: no warning with the file hosts' feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-relay --features podssh-cli/filehost -- -D warnings $LINTS_ALLOWED
     # The Dev Tunnels road (T-755): the glue over pod-devtunnel with the
     # crate's stand-in, and the CLI's road with its feature.
     run "clippy: no warning with the Dev Tunnels feature" \

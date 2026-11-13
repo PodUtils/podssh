@@ -5,7 +5,9 @@ name: mqtt interop
 # from Ubuntu's package, with a websockets listener on the loopback that the
 # test starts itself: crates/podssh-relay/tests/pair_mqtt.rs. Two ends whose
 # one mailbox is dead pair through the broker; a taker of another code finds
-# no giver. Each test says "did not run" with no mosquitto, so the job fails
+# no giver; and the board of the file hosts' road (T-738,
+# crates/podssh-relay/tests/filehost_board.rs). Each test says "did not run"
+# with no mosquitto, so the job fails
 # on that word. By hand only, the job `live`: one short pairing of two podssh
 # ends through the public broker of pod-services (shiftr.io's, a service of
 # Q77 and Q78), with no mailbox. Started by hand, and on a push that changes
@@ -23,6 +25,8 @@ on:
     paths:
       - "crates/podssh-relay/src/code/**"
       - "crates/podssh-relay/tests/pair_mqtt.rs"
+      - "crates/podssh-relay/src/filehost/**"
+      - "crates/podssh-relay/tests/filehost_board.rs"
       - "crates/podssh-cli/src/relay_code.rs"
       - ".github/workflows/mqtt-interop.yml"
 
@@ -56,6 +60,12 @@ jobs:
           timeout 900 cargo test --locked -p podssh-relay --features pair,code --test pair_mqtt -- --nocapture 2>&1 | tee "$RUNNER_TEMP/mqtt.log"
           grep -q "test result: ok. 3 passed" "$RUNNER_TEMP/mqtt.log"
           if grep -q "did not run" "$RUNNER_TEMP/mqtt.log"; then echo "a test did not run"; exit 1; fi
+      - name: the file hosts' board through the broker (T-738)
+        run: |
+          set -o pipefail
+          timeout 1200 cargo test --locked -p podssh-relay --features filehost --test filehost_board -- --nocapture 2>&1 | tee "$RUNNER_TEMP/board.log"
+          grep -q "test result: ok. 2 passed" "$RUNNER_TEMP/board.log"
+          if grep -q "did not run" "$RUNNER_TEMP/board.log"; then echo "a test did not run"; exit 1; fi
 
   live:
     if: github.event_name == 'workflow_dispatch' && inputs.live == 'yes'

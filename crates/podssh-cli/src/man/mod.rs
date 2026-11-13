@@ -32,6 +32,8 @@ mod notes_hyperdht;
 mod notes_onion;
 // The smee.io road, a last fallback of Q78 after the onion road (T-741).
 mod notes_smee;
+// The file hosts' road, the last of the last fallbacks of Q78 (T-738).
+mod notes_filehost;
 mod notes_strelay;
 mod notes_tox;
 mod notes_ygg;

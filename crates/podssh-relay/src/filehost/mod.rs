@@ -20,6 +20,10 @@
 //!   [`PIECE_MOST`], a User-Agent that names podssh ([`USER_AGENT`]); a host
 //!   that answers 429 rests, and the next host takes the piece.
 //! - [`third_party_line`] is said before the first upload to each host.
+//! - The hosts are `pod-services`' services of the kind `file-host`, read
+//!   into forms ([`services`]) and reached over HTTPS ([`http`]); the board
+//!   is a public MQTT broker of the kind `mqtt-broker` ([`mqtt`]); a node
+//!   and a client run the layer over its links ([`road`]).
 //!
 //! The road is slow: an upload, a note, a poll and a download for each
 //! piece, some seconds each way at best. It carries a command's output and
@@ -30,9 +34,13 @@ pub mod board;
 pub mod carrier;
 pub mod form;
 pub mod host;
+pub mod http;
 pub mod keys;
 pub mod link;
+pub mod mqtt;
 pub mod pace;
+pub mod road;
+pub mod services;
 
 #[cfg(test)]
 mod carrier_tests;
@@ -92,6 +100,19 @@ fn says_no(value: Option<&str>) -> Option<bool> {
 /// refused by name: an id is no secret, and a typo should not pass for a
 /// choice.
 pub fn choose<'a>(value: Option<&str>, last: Option<&str>, listed: &[&'a str]) -> Result<Choice<'a>, String> {
+    choose_of(value, last, listed, listed)
+}
+
+/// [`choose`], where yes or unset takes `unasked` alone (the hosts whose
+/// terms let a program upload with no word of its user), and a list may
+/// name each host of `listed`: naming a host is the user's consent that its
+/// operator asks for.
+pub fn choose_of<'a>(
+    value: Option<&str>,
+    last: Option<&str>,
+    listed: &[&'a str],
+    unasked: &[&'a str],
+) -> Result<Choice<'a>, String> {
     if says_no(value) == Some(true) {
         return Ok(Choice::Off(ENV));
     }
@@ -99,7 +120,7 @@ pub fn choose<'a>(value: Option<&str>, last: Option<&str>, listed: &[&'a str]) -
         return Ok(Choice::Off(LAST_RESORT));
     }
     let chosen: Vec<&'a str> = match says_no(value) {
-        Some(_) => listed.to_vec(),
+        Some(_) => unasked.to_vec(),
         None => {
             let mut chosen = Vec::new();
             for id in value.unwrap_or_default().split(',').map(str::trim).filter(|id| !id.is_empty()) {
@@ -155,6 +176,16 @@ mod tests {
         assert!(refused.starts_with("PODSSH_FILEHOSTS: ") && refused.contains("elsewhere"), "{refused}");
         assert_eq!(choose(None, None, &[]), Ok(Choice::Off("pod-services")), "no host listed");
         assert_eq!(choose(Some(" , "), None, LISTED), Ok(Choice::Off("pod-services")), "an empty list");
+    }
+
+    #[test]
+    fn a_host_that_is_not_taken_unasked_comes_only_when_named() {
+        let unasked = &LISTED[..2];
+        assert_eq!(choose_of(None, None, LISTED, unasked), Ok(Choice::On(unasked.to_vec())));
+        assert_eq!(choose_of(Some("yes"), None, LISTED, unasked), Ok(Choice::On(unasked.to_vec())));
+        assert_eq!(choose_of(Some("host-c"), None, LISTED, unasked), Ok(Choice::On(vec!["host-c"])), "named");
+        assert_eq!(choose_of(None, None, LISTED, &[]), Ok(Choice::Off("pod-services")));
+        assert_eq!(choose_of(Some("host-c"), Some("no"), LISTED, unasked), Ok(Choice::Off(LAST_RESORT)));
     }
 
     #[test]

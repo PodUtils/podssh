@@ -1,4 +1,4 @@
-//! The variables of the TURN road (T-621), and of the file hosts' carrier
+//! The variables of the TURN road (T-621), and of the file hosts' road
 //! (T-738), apart from `roads.rs` for its length.
 
 /// `PODSSH_TURN` and its credential file.
@@ -18,10 +18,13 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (
         &["PODSSH_FILEHOSTS"],
-        "The file hosts' carrier of the resumable layer (T-738), the last of the last fallbacks of the operator's \
-      ruling Q78, in a build of podssh-relay with its feature filehost alone; no binary of a release carries it \
-      yet: no turns it off; yes, or unset, takes each host of podssh's list of services in its order; a list of \
-      the services' ids takes those alone, and an id that the list does not hold is a configuration error (78). \
-      PODSSH_LAST_RESORT=no turns it off too.",
+        "The file hosts' road of a pair (T-738), the last of the last fallbacks of the operator's ruling Q78, in \
+      a build with the feature filehost (none of a release yet): each piece of a link of the resumable layer \
+      one sealed upload to a public file host of podssh's list of services, its URL a sealed note at the public \
+      MQTT broker of PODSSH_MQTT, one request at a time (see the notes of node and ssh). no turns it off; yes, \
+      or unset, takes the hosts of the list whose terms let a program upload unasked, in the list's order; a \
+      list of the services' ids, by commas, takes those alone, in that order (naming a host whose terms ask \
+      for its user's consent gives it), and an id that the list does not hold is a configuration error (78). \
+      PODSSH_LAST_RESORT=no, or PODSSH_MQTT=no (no board), turns it off too.",
     ),
 ];

@@ -97,7 +97,8 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, bridge
 /// network (T-733), then a Tox relay (T-734), then Yggdrasil's network
 /// (T-735), then HyperDHT where UDP passes (T-736), then a relay of
 /// Syncthing's (T-571), then an onion service of the Tor network (T-578),
-/// then the pair's channels at smee.io's server (T-741), each where it is on.
+/// then the pair's channels at smee.io's server (T-741), then public file
+/// hosts with a public MQTT broker (T-738), each where it is on.
 pub(crate) struct Beside {
     pub croc: Option<far::Node>,
     pub zerotier: Option<crate::node_zerotier::Road>,
@@ -107,6 +108,7 @@ pub(crate) struct Beside {
     pub syncthing: Option<crate::node_strelay::Road>,
     pub onion: Option<crate::node_onion::Road>,
     pub smee: Option<crate::node_smee::Road>,
+    pub filehost: Option<crate::node_filehost::Road>,
 }
 
 /// The roads beside another node road's pair (`--derp`, the Piping Server
@@ -119,8 +121,9 @@ pub(crate) fn beside(label: &str, pair: Option<(&Pair, bool)>, trust: &Trust, sa
     let dht = crate::node_hyperdht::beside(pair.map(|(pair, _)| pair), say.clone());
     let syncthing = crate::node_strelay::beside(pair.map(|(pair, _)| pair), say.clone());
     let onion = crate::node_onion::beside(label, pair.map(|(pair, _)| pair), say.clone());
-    let smee = crate::node_smee::beside(pair.map(|(pair, _)| pair), trust, say);
-    Beside { croc, zerotier, tox, ygg, dht, syncthing, onion, smee }
+    let smee = crate::node_smee::beside(pair.map(|(pair, _)| pair), trust, say.clone());
+    let filehost = crate::node_filehost::beside(pair.map(|(pair, _)| pair), say);
+    Beside { croc, zerotier, tox, ygg, dht, syncthing, onion, smee, filehost }
 }
 
 impl Beside {
@@ -145,7 +148,8 @@ where
     O: Fn() -> F + Clone + Send + Sync + 'static,
     F: Future<Output = Result<DuplexStream, String>> + Send + 'static,
 {
-    let smee = crate::node_smee::alongside(pair_road, beside.smee, open.clone(), keeper.clone());
+    let filehost = crate::node_filehost::alongside(pair_road, beside.filehost, open.clone(), keeper.clone());
+    let smee = crate::node_smee::alongside(Box::pin(filehost), beside.smee, open.clone(), keeper.clone());
     let onion = crate::node_onion::alongside(Box::pin(smee), beside.onion, open.clone(), keeper.clone());
     let syncthing = crate::node_strelay::alongside(Box::pin(onion), beside.syncthing, open.clone(), keeper.clone());
     let dht = crate::node_hyperdht::alongside(Box::pin(syncthing), beside.dht, open.clone(), keeper.clone());

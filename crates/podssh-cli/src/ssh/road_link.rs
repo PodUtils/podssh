@@ -64,6 +64,9 @@ pub enum Road {
     /// A link of numbered POSTs and a stream of events each way through
     /// smee.io's server (T-741).
     Smee(podssh_relay::opentunnel::dial::BoxIo),
+    /// A link of sealed uploads to public file hosts, their URLs as notes at
+    /// a public MQTT broker (T-738), which a build with the road makes.
+    FileHost(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -92,7 +95,8 @@ impl AsyncRead for Road {
             | Road::HyperDht(link)
             | Road::Syncthing(link)
             | Road::Onion(link)
-            | Road::Smee(link) => Pin::new(link).poll_read(cx, buf),
+            | Road::Smee(link)
+            | Road::FileHost(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -121,7 +125,8 @@ impl AsyncWrite for Road {
             | Road::HyperDht(link)
             | Road::Syncthing(link)
             | Road::Onion(link)
-            | Road::Smee(link) => Pin::new(link).poll_write(cx, buf),
+            | Road::Smee(link)
+            | Road::FileHost(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -148,7 +153,8 @@ impl AsyncWrite for Road {
             | Road::HyperDht(link)
             | Road::Syncthing(link)
             | Road::Onion(link)
-            | Road::Smee(link) => Pin::new(link).poll_flush(cx),
+            | Road::Smee(link)
+            | Road::FileHost(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -175,7 +181,8 @@ impl AsyncWrite for Road {
             | Road::HyperDht(link)
             | Road::Syncthing(link)
             | Road::Onion(link)
-            | Road::Smee(link) => Pin::new(link).poll_shutdown(cx),
+            | Road::Smee(link)
+            | Road::FileHost(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -214,6 +221,9 @@ pub(crate) enum Kind {
     Onion,
     /// The pair's channels at smee.io's server, a last fallback of Q78 (T-741).
     Smee,
+    /// Public file hosts and an MQTT broker, the last of the last fallbacks of
+    /// Q78 (T-738).
+    FileHost,
     /// A node's alias at Serveo, a last fallback of Q78 (T-549).
     Serveo,
     /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
@@ -241,7 +251,7 @@ impl Kind {
     /// of Q78: croc's relay and the roads after it.
     fn of_the_pair_last(self) -> bool {
         use Kind::*;
-        matches!(self, Croc | ZeroTier | Tox | Ygg | HyperDht | Syncthing | Onion | Smee)
+        matches!(self, Croc | ZeroTier | Tox | Ygg | HyperDht | Syncthing | Onion | Smee | FileHost)
     }
 
     pub(crate) fn name(self) -> &'static str {
@@ -262,6 +272,7 @@ impl Kind {
             Kind::Syncthing => "Syncthing's relay road",
             Kind::Onion => "the onion road",
             Kind::Smee => "the smee.io road",
+            Kind::FileHost => "the file-host road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
             Kind::SshHttp(_, false) => "the localhost.run road",

@@ -194,6 +194,9 @@ pub mod onion;
 // smee.io's channels beside a pair's road, a last fallback of Q78 (T-741).
 pub mod node_smee;
 pub mod smee_road;
+// Public file hosts beside a pair's road, the last of the last fallbacks of Q78 (T-738).
+pub mod filehost_road;
+pub mod node_filehost;
 pub mod tox;
 pub mod yggdrasil;
 // The stand-in relay and root of the road's test (`tests/derp_road.rs`).

@@ -51,7 +51,8 @@ impl fmt::Display for Refusal {
 
 /// A public file host.
 pub trait Host: Send + Sync {
-    /// Its name, as `pod-services` gives it and the line shows it.
+    /// Its name, as the line shows it and a note names it: the host of its
+    /// upload, which `pod-services` gives.
     fn name(&self) -> &str;
     /// The most bytes of one upload.
     fn most(&self) -> usize;

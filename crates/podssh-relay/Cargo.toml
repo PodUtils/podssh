@@ -209,10 +209,11 @@ code = ["pair", "dep:pod-wormhole", "pod-relay/code"]
 croc = ["dep:num-bigint", "dep:aes-gcm"]
 # File hosts as the last carrier of the resumable layer (T-738): each piece
 # one sealed upload (AES-256-GCM, the croc road's crate), its URL sealed on a
-# board; the hosts are pod-services' and the code works over a trait. Off by
-# default until the hosts' kind is in pod-services and its live run passed.
-# No C either.
-filehost = ["dep:aes-gcm"]
+# board; the hosts are pod-services' kind `file-host`, reached with the
+# smee.io road's HTTP/1.1 dial, and the board is a public MQTT broker of
+# pod-wormhole's (`code`). The binary builds it; podssh-cli's own feature
+# `filehost` turns the road on. No C either.
+filehost = ["smee", "code", "dep:aes-gcm"]
 # The Dev Tunnels forward road (T-755): a `direct-tcpip` channel to a port of
 # a tunnel's host through Microsoft's relay on 443. Off by default, as a
 # trial until its live run; it brings ring with pod-devtunnel's russh.

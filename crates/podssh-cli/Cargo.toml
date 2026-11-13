@@ -62,6 +62,11 @@ yggdrasil = ["podssh-relay/yggdrasil"]
 hyperdht = ["podssh-relay/hyperdht"]
 # Syncthing's relays on 443 as a last road of a pair (T-571). No C.
 strelay = ["podssh-relay/strelay"]
+# Public file hosts with a public MQTT broker as the last of the last roads
+# of a pair (T-738, Q78). podssh-relay's module is in each build (feature
+# `filehost` there, pure Rust, aes-gcm as croc's); this switch turns the road
+# on. Off by default until its live run through each host passed. No C.
+filehost = []
 # The road with the stand-in relay and root on the loopback, for the test of
 # the command line from end to end (`tests/derp_road.rs`); never in a release.
 zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]
@@ -123,7 +128,7 @@ rustls = { workspace = true }
 # (T-741), a last fallback of Q78, pure Rust over the Piping Server road's
 # HTTP/1.1, in each build. `hostc`: the hostc road of `podssh node` (T-742),
 # a last fallback of Q78 over the `ssh -R` road's HTTP visitors.
-podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel", "hostc", "bore", "smee"] }
+podssh-relay = { path = "../podssh-relay", features = ["pair", "quick", "quic", "derp", "serve", "piping", "opentunnel", "pinggy", "serveo", "grant", "code", "croc", "ssh-http", "localtunnel", "hostc", "bore", "smee", "filehost"] }
 # The native SSH client. It needs a C compiler (russh with aws-lc-rs); the
 # operator accepted that for the binary on 2026-10-08.
 podssh-ssh = { path = "../podssh-ssh" }

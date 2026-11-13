@@ -12,7 +12,9 @@
 //! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
 //! localtunnel's server (T-568, [`localtunnel`]), then its port at bore.pub
 //! (T-569, [`bore`]), then the tunnel's name of `ssh -R` through a Bare node
-//! (T-740, [`bare`]), the last of all. The road that a host with 443 alone
+//! (T-740, [`bare`]), then the pair's pieces as sealed uploads to public
+//! file hosts with their URLs at a public MQTT broker (T-738, [`filehost`]),
+//! the last of all, as the slowest. The road that a host with 443 alone
 //! can serve comes before the roads of raw TCP to another port, and bore's
 //! raw port, which more cages refuse, comes last. Each starts as its own `push` says. The order is the node's
 //! too: a node that would serve none of the roads before them unasked serves
@@ -62,9 +64,13 @@ pub(crate) mod localtunnel;
 #[path = "bore.rs"]
 pub(crate) mod bore;
 
-// The tunnel's name through a Bare node, the last of all (T-740).
+// The tunnel's name through a Bare node (T-740).
 #[path = "road_bare.rs"]
 pub(crate) mod bare;
+
+// The file hosts' road of node://NAME, the last of all (T-738).
+#[path = "filehost.rs"]
+pub(crate) mod filehost;
 
 /// The last fallbacks of one run, each where it races.
 pub(crate) struct LastRoads {
@@ -89,6 +95,8 @@ pub(crate) struct LastRoads {
     bore: Option<bore::BoreRoads>,
     /// The Bare node of the hop of the tunnel's name, where the hop is on.
     bare: Option<podssh_ws::url::WsUrl>,
+    /// The pair's pieces at public file hosts (T-738), the last of all.
+    filehost: Option<filehost::FileHostRoads>,
 }
 
 impl LastRoads {
@@ -119,6 +127,7 @@ impl LastRoads {
             bore: bore::BoreRoads::new(label, ask, trust, log, shown),
             // A bad PODSSH_BARE is refused before the race (`race` of the road).
             bare: bare::node().ok().flatten(),
+            filehost: None,
         }
     }
 
@@ -143,13 +152,15 @@ impl LastRoads {
             localtunnel: None,
             bore: None,
             bare: None,
+            filehost: None,
         }
     }
 
     /// With the roads of the pair `part` to the node `label` that are on:
     /// ZeroTier's, then the Tox road, then Yggdrasil's, then HyperDHT's, then
-    /// Syncthing's relay road, then the onion road, then the smee.io road;
-    /// none with --no-e2e (`off`).
+    /// Syncthing's relay road, then the onion road, then the smee.io road,
+    /// and the file hosts' road after each other road; none with --no-e2e
+    /// (`off`).
     pub(crate) fn with_pair(
         self,
         label: &str,
@@ -166,7 +177,8 @@ impl LastRoads {
         let syncthing = syncthing::StRoads::new(part, off, log, shown);
         let onion = onion::OnionRoads::new(label, part, off, trust, log, shown);
         let smee = smee::SmeeRoads::new(part, off, trust, log, shown);
-        LastRoads { zerotier, tox, ygg, dht, syncthing, onion, smee, ..self }
+        let filehost = filehost::FileHostRoads::new(part, off, log, shown);
+        LastRoads { zerotier, tox, ygg, dht, syncthing, onion, smee, filehost, ..self }
     }
 
     /// Whether one of them races.
@@ -221,6 +233,9 @@ impl LastRoads {
         }
         if let (Some(tunnel), Some(node)) = (&self.tunnel, &self.bare) {
             tunnel.push_bare(node, list, kinds, record);
+        }
+        if let Some(filehost) = &self.filehost {
+            filehost.push(list, kinds);
         }
     }
 }

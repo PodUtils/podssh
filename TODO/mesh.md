@@ -10540,7 +10540,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:296-306`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:297-307`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -10894,8 +10894,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:305-306`), and needs the net's role exit, signed by
-  its owner (`:303-304`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:306-307`), and needs the net's role exit, signed by
+  its owner (`:304-305`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:158`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -13002,7 +13002,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:88`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:93`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -14065,6 +14065,49 @@ for a command's output and for files, never for a keystroke.
   publish there is no board. Lost: an HTTP host and a board written here now, against Rule Q3 for the board and
   with the hosts' facts typed into this repository against rule 5 of the migration.
 
+2026-11-13 (the second draft, DRAFT T-738: the HTTP host, the MQTT board and the roads).
+
+- **The HTTP host is one request on a connection of its own, `Connection: close`**, through the smee.io road's
+  HTTP/1.1 dial (TCP through `HTTPS_PROXY`, TLS with podssh-ws's provider and the host's trust store) and
+  `pod_proxy::http::exchange` with the road's own User-Agent. Lost: a kept connection to each host (it would stay
+  open beside the board's and the other host's turns, two connections of the road); HTTP/2 (one request at a time
+  gains nothing from it, and the smee.io road's dial already offers HTTP/1.1 alone); the relay's
+  `podssh_ws::http::exchange` (its User-Agent is podssh's plain one, and 0x0.st's operator asks for one that names
+  the program's use).
+- **The host's name is the host of its upload URL**, which the third party's line shows and a note names. Lost:
+  the catalog's id (a word the user did not type and does not know as a host); the party (a sentence, not a name).
+- **Unasked, the road takes the hosts that the catalog ranks and whose terms do not refuse automated uploads;
+  `PODSSH_FILEHOSTS` may name any host of the kind**, which is the consent of its user that 0x0.st's operator
+  asks of a program (pod-services: no rank, `automated-uploads-refused`, call C220). Lost: each host of the kind
+  unasked (against the terms that the catalog read, where Q78's "whatever their terms" is the operator's ruling
+  of a last fallback, but a host that asks for its user's consent can have it at no cost); leaving 0x0.st out of
+  the road (a user who reads its terms and names it loses a host).
+- **A delete of more fields than one empty field is no delete**; the piece waits for its shortest life. Lost: a
+  form of any number of fields (no host of the catalog has one, and a guess would send a field the host does not
+  read).
+- **The board is the first broker of `pod-services`' kind `mqtt-broker`, as `crate::code::brokers` gives them
+  (`PODSSH_MQTT`, `PODSSH_LAST_RESORT`), the same at both ends.** A take waits 3 s for the topic's retained note.
+  Lost: a failover across brokers (a note put at one broker is not at the next, so both ends would ask each broker
+  at each poll, a connection for each); a board of each broker in turn by the hour (both ends' clocks would have
+  to agree).
+- **A node's door is polled each 2 s at first, doubling to 60 s at most** (`DOOR_POLL_MOST`), where a link's
+  topics keep the 15 s of `POLL_MOST`. Lost: 15 s at the door too (four times the polls of an idle node at a
+  public broker, for as long as the node runs, for a client's first link that waits 45 s less).
+- **The client's road is the last of all**, after the Bare hop, and the node's after the smee.io road, beside the
+  pair's road as each last road of a pair is served. Lost: right after the smee.io road, before the Serveo road
+  (the slowest road would be taken before roads of a link in time); a node's road only after each other failed
+  (a node does not learn that a client's other roads fail).
+- **The CLI's feature `filehost` is a switch; podssh-relay's module is in each build**, as `smee` and `code`,
+  which it takes, are. Lost: the module behind the CLI's feature too (each type of the race and of the node's
+  roads behind a `cfg`, as Syncthing's road needs for a crate of its own; this module adds no crate).
+- **The CLI's test `carrier_filehost` of the Prove waits**: the binary takes its hosts and its board from
+  `pod-services` alone, so a test of the binary needs a way to name a stand-in host and a stand-in broker. The
+  draft tests the module's host against an in-process stand-in of a host's HTTP, the board against Mosquitto, and a
+  link of the road through Mosquitto (`tests/filehost_board.rs`). Lost: a variable that names a host's form or a
+  broker's URL in the binary (a host of the user's own, which no request asked for, and a second form of the
+  catalog's facts); a feature of stand-ins in the binary's test build (the next step, if the main session wants
+  the test of the binary before the live run).
+
 ## Prove
 
 ```sh
@@ -14179,6 +14222,47 @@ a board. Two asks:
 podssh takes both by a tag, as for `mqtt-broker` (T-737).
 state: open at 2026-11-12 (UTC)
 ```
+
+Partial (2026-11-13): the second draft (DRAFT T-738), on podcrates `v0.35.0`'s kind `file-host` and
+`pod_wormhole::mqtt::Board`, merged, built and run by the main session the same day with one repair (a header's
+temporary borrowed past its statement in `http.rs`'s delete).
+
+- `crates/podssh-relay/src/filehost/services.rs`: each service of the kind `file-host` read into a `Form` (the
+  JSON pointer `answer-pointer`, `fetch-segment`, `fetch-method`, the token-form delete); the hosts taken unasked
+  (a rank, terms that do not refuse automated uploads), and `choose_of` in `mod.rs`: unset or yes takes those, a
+  list names any host of the kind.
+- `http.rs`: `HttpHost`, the `Host` over a form: the upload as `form.rs`'s multipart, the answer's URL and token,
+  the download by GET or POST under its segment, the delete by its token form, 429 and 503 as busy with
+  `Retry-After`; one request on a connection of its own through the smee.io road's dial, the road's User-Agent,
+  120 s at most each. Tests (`http_tests.rs`, an in-process stand-in of a host's HTTP over an in-memory pipe, no
+  listener): the request's head and fields, 256 KiB up and back whole, a delete by its token, a body over the most
+  refused, a JSON host's segment, a download by POST, a 429's wait, a URL of no https host refused before a
+  connection, and a piece of 256 KiB through the carrier over the HTTP host with no plaintext at the host.
+  Planted: another User-Agent, and the upload's test fails; restored, it passes.
+- `mqtt.rs`: `MqttBoard`, the `Board` over `pod_wormhole::mqtt::Board` at the first broker of
+  `crate::code::brokers`; a take waits 3 s. Its unit test: each topic of the road is one that the board takes,
+  and the largest note fits a message. `tests/filehost_board.rs` against Mosquitto (in `mqtt-interop.yml`): a note
+  kept for a later connection, replaced, cleared, a note of 60,000 bytes; and a client and a node that meet at the
+  broker's door and move 64 KiB each way through a host in memory: 2 passed against this host's Mosquitto
+  (`PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto`), in 9.1 s.
+- `road.rs`: the client's link (`dial`) and the node's `serve_kept`, the layer's far end for each link under the
+  node's keeper; `carrier.rs`: `DOOR_POLL_MOST`, 60 s.
+- The CLI: `filehost_road.rs` (`PODSSH_FILEHOSTS`, the carrier of a pair, the board's line of Q78),
+  `node_filehost.rs` (the node's road after the smee.io road, in `node_croc::Beside` and `node_transit`),
+  `ssh/filehost.rs` (the client's road after the Bare hop, the last of all, `Kind::FileHost`,
+  `Road::FileHost`), `ssh/node_roads.rs` (a bad `PODSSH_FILEHOSTS` refused before the race); the feature
+  `filehost` of podssh-cli, off by default, a switch; podssh-relay's feature `filehost` now takes `smee` and
+  `code`, and the CLI builds it. The manual: `PODSSH_FILEHOSTS` (`man/facts/turn.rs`), `PODSSH_LAST_RESORT`'s
+  list, and the notes of node and ssh (`man/notes_filehost.rs`). The gate's clippy with `podssh-cli/filehost`.
+- To check when it builds: `cargo test -p podssh-relay --features filehost --lib filehost` (19 before, and the new
+  tests), `cargo test -p podssh-cli --lib filehost` and `--lib man`, clippy of the gate's new line, and
+  `cargo test -p podssh-relay --features filehost --test filehost_board` with `PODSSH_MOSQUITTO_TEST_BIN`.
+  Results: `--lib filehost`, 30 passed; the CLI's `--lib`, 1147 passed, and with `--features filehost`, `filehost`
+  4 passed; clippy as the gate runs it, in the default build and with `podssh-cli/filehost,podssh-relay/filehost`:
+  no warning.
+- Not done, and why: the CLI's test `carrier_filehost` of the Prove (a stand-in host and broker that the binary
+  can be pointed at; the Decision), the run against `mia/0x0`, and the live run of one piece of 1 KiB through each
+  host from Actions.
 
 # T-739: VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes
 

@@ -246,7 +246,8 @@ impl Ctx {
 
     /// What A's echo got for one connection, within 30 s.
     fn echoed(&self, echo: &mut Echo) -> Echoed {
-        let got = self.rt.block_on(tokio::time::timeout(Duration::from_secs(30), echo.ended.recv()));
+        // The timer is made inside the runtime, which its clock needs.
+        let got = self.rt.block_on(async { tokio::time::timeout(Duration::from_secs(30), echo.ended.recv()).await });
         got.expect("A's echo ended within 30 s").expect("A's echo told its end").expect("A's echo got the stream whole")
     }
 
