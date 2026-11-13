@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**711 entries: 64 open, 17 partial, 10 blocked, 620 done.**
+**711 entries: 63 open, 18 partial, 10 blocked, 620 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
-| P2 | 24 | 7 | 1 | 268 | 300 |
+| P2 | 23 | 8 | 1 | 268 | 300 |
 | P3 | 36 | 8 | 6 | 281 | 331 |
-| **All** | 64 | 17 | 10 | 620 | 711 |
+| **All** | 63 | 18 | 10 | 620 | 711 |
 
 ## Entries
 
@@ -180,7 +180,7 @@ repository and CI).
 | [T-103](ts.md) | P2 | M | M8 | defect | done | The DERP dial of the Tailscale fork does not use the proxy |
 | [T-104](ts.md) | P2 | M | M8 | feature | done | `podssh ts` connects again after a drop |
 | [T-105](ts.md) | P2 | M | M8 | defect | done | The fork shows the relay's `1008 not authorized` as a missing network map |
-| [T-106](ts.md) | P2 | M | M10 | measurement | open | The live test of `podssh ts` with two nodes |
+| [T-106](ts.md) | P2 | M | M10 | measurement | partial | The live test of `podssh ts` with two nodes |
 | [T-107](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: the russh server, its host key in a state file, and authorized keys |
 | [T-108](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
 | [T-109](serve.md) | P2 | S | M5 | feature | open | `podssh serve`: direct-tcpip into the cage |

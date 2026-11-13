@@ -14,6 +14,9 @@ podssh-ws = { path = "../podssh-ws" }
 pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.35.0" }
 tokio.workspace = true
 zeroize.workspace = true
+# The digest of what the echo of the live test with two nodes got (T-106,
+# `echo.rs`): the workspace's, which podssh-cli builds already.
+sha2 = { workspace = true }
 tailscale = { path = "../../vendor/tailscale-rs" }
 ts_runtime = { path = "../../vendor/tailscale-rs/ts_runtime" }
 ts_http_util = { path = "../../vendor/tailscale-rs/ts_http_util" }

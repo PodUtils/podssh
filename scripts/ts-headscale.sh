@@ -29,8 +29,11 @@
 # `podssh ssh --direct -tt` and OpenSSH's `ssh -v -tt` (T-026); the relay's
 # refusal of a fresh key through scripts/fake-proxy.py and through the
 # peer's SOCKS5 (T-103, T-105, T-281: the live relay, the operator's own); a
-# DERP link dropped and back while a session goes on (T-104); and no key in
-# any output (T-241).
+# DERP link dropped and back while a session goes on (T-104); relay mode
+# pinned to podssh's own relay role, `podssh relay serve --derp-keys`, the
+# only DERP server of a second headscale: a key that it does not list
+# refused, then 1 MiB each way through OpenSSH over -W (T-106,
+# scripts/ts-headscale-role.sh); and no key in any output (T-241).
 #
 # Each check prints a line of scripts/interop-lib.sh. The exit code is 0 when
 # each passed, 1 when one failed, and 3 when none failed but a run could not
@@ -39,7 +42,8 @@
 # fails, the status run fails, the harness says so and exits 1.
 #
 # Needs podman or docker, openssl, curl, python3, OpenSSH's ssh, timeout and
-# sha256sum; the ports PODSSH_HS_PORT (45380) to PODSSH_HS_PORT+5 of the
+# sha256sum; the ports PODSSH_HS_PORT (45380) to PODSSH_HS_PORT+5, and
+# PODSSH_HS_PORT+10 to PODSSH_HS_PORT+16 for the stage of the role, of the
 # loopback free.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -48,6 +52,8 @@ REPO=$(cd "$HERE/.." && pwd)
 . "$HERE/interop-lib.sh"
 # shellcheck source=scripts/ts-headscale-lib.sh
 . "$HERE/ts-headscale-lib.sh"
+# shellcheck source=scripts/ts-headscale-role.sh
+. "$HERE/ts-headscale-role.sh"
 
 PORT=${PODSSH_HS_PORT:-45380}
 SOCKS=$((PORT + 4))
@@ -77,10 +83,11 @@ FPROXY=
 cleanup() {
     [ -n "$SSERVER" ] && kill "$SSERVER" 2>/dev/null
     [ -n "$FPROXY" ] && kill "$FPROXY" 2>/dev/null
-    timeout 60 "$ENGINE" rm -f "$HS_NAME" "$TARGET_NAME" "$PEER_NAME" >/dev/null 2>&1
+    timeout 60 "$ENGINE" rm -f "$HS_NAME" "$TARGET_NAME" "$PEER_NAME" podssh-hs-role podssh-hs-role-target \
+        >/dev/null 2>&1
     # TS_HS_KEEP=1 keeps the outputs to read; the keys go in any case.
     if [ -n "${TS_HS_KEEP:-}" ]; then
-        rm -rf "$W/keys"
+        rm -rf "$W/keys" "$W/role/keys"
         echo "ts-headscale: the outputs are kept in $W"
     else
         rm -rf "$W"
@@ -157,11 +164,12 @@ prefix() {
 }
 
 # ossh RUN MODE REMOTE: OpenSSH's ssh to root on the target through
-# `podssh ts -W` in MODE (tcp or relay, pinned to headscale's DERP server),
-# at most 300 s; stdin $W/in/RUN.in or nothing; podssh's lines in .err.
+# `podssh ts -W` in MODE (tcp or relay, pinned to headscale's DERP server, or
+# to OSSH_RELAY where the stage of the role sets it), at most 300 s; stdin
+# $W/in/RUN.in or nothing; podssh's lines in .err.
 ossh() {
     _mode="--ts-mode tcp"
-    [ "$2" = relay ] && _mode="--ts-mode relay --ts-relay 127.0.0.1:$PORT"
+    [ "$2" = relay ] && _mode="--ts-mode relay --ts-relay ${OSSH_RELAY:-127.0.0.1:$PORT}"
     _in=/dev/null
     [ -f "$W/in/$1.in" ] && _in=$W/in/$1.in
     _pc="$BIN ts --ts-control-url $URL --ts-auth-key-file $PKEY --ts-state $W/state/pipe-$2.json"
@@ -415,10 +423,27 @@ else
     bad ts.relay.drop "exit $rc" "$W/out/relay-drop.err"
 fi
 
+echo "== relay mode pinned to podssh's relay role, the only DERP server of a second headscale (T-106)"
+role_stage
+read -r refused_rc <"$W/role-refused.rc" || refused_rc=1
+read -r role_rc <"$W/role-ssh.rc" || role_rc=1
+if [ "$refused_rc" = 0 ]; then
+    ok ts.role.refused "a node key that the role does not list: 1008, exit 77, and the role's line names it"
+else
+    bad ts.role.refused "the stage of the role did not reach its refusal" "$W/role/out/role.log"
+fi
+if [ "$role_rc" = 0 ]; then
+    ok ts.role.ssh "OpenSSH over -W in relay mode pinned to podssh relay serve: 1 MiB each way, equal digests"
+else
+    bad ts.role.ssh "the digests, an exit of ssh, or the stage before it" "$W/role/out/role-ssh-up.err"
+fi
+
 echo "== no pre-auth key in any output (T-241)"
 leaked=
-for f in "$W"/out/*; do
-    if grep -F -q -f "$PKEY" "$f" || grep -F -q -f "$EKEY" "$f"; then
+for f in "$W"/out/* "$W"/role/out/*; do
+    [ -f "$f" ] || continue
+    if grep -F -q -f "$PKEY" "$f" || grep -F -q -f "$EKEY" "$f" ||
+        { [ -s "$W/role/keys/a.key" ] && grep -F -q -f "$W/role/keys/a.key" "$f"; }; then
         leaked="$leaked ${f##*/}"
     fi
 done

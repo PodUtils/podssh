@@ -105,6 +105,9 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
     // A name published to a pair's node, by its ClientHello (T-649).
     row(None, "publish", Some("NAME=PAIR"), FlagKind::Supported,
         "serve: send each TLS connection whose ClientHello names NAME, a DNS name, to the node of PAIR, a pair of this relay (its name p-..., which the pair's file holds), before any handshake and with its bytes untouched, so that the node's own TLS answers it with its own certificate (podssh node --publish-tls); repeatable; the relay reads the name, never the bytes; a CA's validation of NAME (acme-tls/1) goes to the node too; NAME is never the name of --acme", None),
+    // DERP over a WebSocket for the node keys of a file (T-106).
+    row(None, "derp-keys", Some("FILE"), FlagKind::Supported,
+        "serve: serve DERP at /derp, over a WebSocket of the subprotocol derp, as Tailscale's derper does, for the node keys in FILE, one a line (nodekey:HEX, as the status of tailscale and of podssh's ts_echo example write them; # starts a comment), read again at each login; a node key that is not in it is closed with 1008 not authorized, as the operator's relay closes it; so that podssh ts --ts-mode relay --ts-relay HOST:PORT pins this relay. The packets are WireGuard's, sealed end to end: the relay sees keys, sizes and times", None),
     // The signed list of deployments of /relays.json (T-346).
     row(None, "deployment", Some("NAME=HOSTS"), FlagKind::Supported,
         "serve: a deployment that /relays.json names in its signed list, NAME=HOST[:PORT][,HOST[:PORT]...], repeatable, in order; a client that trusts the list's key (PODSSH_RELAY_KEYS, RelayKeys, a member of its net with the role relay) tries those hosts after its default list, each with a token of its own", None),

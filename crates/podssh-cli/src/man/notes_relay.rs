@@ -341,6 +341,17 @@ pub const RELAY: &[&str] = &[
      that SSH goes to that sshd.",
     // A name published to a pair's node by its ClientHello (T-649).
     super::notes_publish::RELAY,
+    // DERP for the node keys of a file (T-106).
+    "--derp-keys FILE serves DERP at /derp (T-106), over a WebSocket of the subprotocol derp, as Tailscale's \
+     derper serves it to the keys that it verifies: a node of podssh ts in its relay mode, pinned to this \
+     relay by the flag of podssh ts that names a DERP server, takes it in the place of the operator's Tailscale relay, and two nodes whose keys FILE lists meet here. \
+     FILE holds one node key a line, nodekey:HEX (# starts a comment); it is read at the start, where a line \
+     that is no key stops it (64), and again at each login, so that a key added takes no restart. A key that \
+     it does not list is closed with 1008 not authorized, which podssh ts reads as the refusal of its node key \
+     (77). Each packet goes to the key that it names, 32 of them waiting for a receiver at most; /derp/probe \
+     and /derp/latency-check answer an empty 200. The packets are WireGuard's, sealed end to end: the relay \
+     sees keys, sizes and times. Each login and each end is a line on stdout, with the key's first 8 hex \
+     digits.",
     "The relay's TLS offers h2 before http/1.1 (T-321, RFC 8441): a client that chooses it gets SETTINGS that \
      offer extended CONNECT and 16 streams at once, each with a window of 1 MiB in one of 16 MiB for the \
      connection, so that the sessions of a client's process are streams of one connection. A CONNECT whose \

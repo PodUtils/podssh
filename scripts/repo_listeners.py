@@ -178,7 +178,13 @@ LISTENERS = {
     # connection inside the network: a socket of smoltcp in the process, on
     # WARP's stack, no socket of the system; and the node of the pair's road,
     # which waits the same way at its 6plane address.
+    # And the echo of the live test with two nodes of `podssh ts` (T-106),
+    # node A, which its example and its test start: a socket of the fork's
+    # smoltcp on the node's own tailnet stack, in the process, no socket of
+    # the system; nothing outside the tailnet reaches it, and no command of
+    # the binary starts it.
     "listen(": [
+        "crates/podssh-ts/src/echo.rs",
         "crates/podssh-cli/src/pipe/listen_win.rs",
         "crates/podssh-cli/src/doctor/unix.rs",
         "crates/podssh-warp/src/stand_in.rs",

@@ -160,7 +160,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 ## Decision
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
-(`crates/podssh-cli/src/flags/relay.rs:9-120`), and bound each request in the code, as `doctor`
+(`crates/podssh-cli/src/flags/relay.rs:9-123`), and bound each request in the code, as `doctor`
 does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:371-392` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:406`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:407`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -3166,7 +3166,7 @@ URL written into each result, and a download target that is no test target of `A
   (`crates/podssh-cli/src/ping/mod.rs:167-172`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
   (`crates/podssh-cli/src/doctor/relay_checks.rs:209-240`); `--quick` keeps the relay's sections and
-  `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:180-185`).
+  `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:183-188`).
 - Read: `podssh relay trace` asks the relay to dial a target and gives its own times
   (`crates/podssh-cli/src/relay_diag.rs:182-185`); `relay info` gives the pool
   (`crates/podssh-cli/src/relay_diag.rs:133-135`).
@@ -4084,12 +4084,12 @@ so a fault in any of them runs with more than the role needs. Nothing after the 
 
 Read at `2042200`:
 
-- `crates/podssh-cli/src/relay_serve.rs:198` says "let listener = std::net::TcpListener::bind(listen)",
-  and `:130` reads its address; the runtime and its two workers come later, in
-  `crates/podssh-cli/src/relay_serve.rs:245`, which says "worker_threads(2)". Between the two the
+- `crates/podssh-cli/src/relay_serve.rs:202` says "let listener = std::net::TcpListener::bind(listen)",
+  and `:134` reads its address; the runtime and its two workers come later, in
+  `crates/podssh-cli/src/relay_serve.rs:249`, which says "worker_threads(2)". Between the two the
   process has one thread, so a drop there holds for each thread made after it. The issue's line
   numbers are of an older tree; the order is as it says.
-- The listener is the user's (Q1): `crates/podssh-cli/src/relay_serve.rs:112` says
+- The listener is the user's (Q1): `crates/podssh-cli/src/relay_serve.rs:114` says
   "crate::pipe::listen::allowed()?;" before the bind.
 - No source of the workspace calls `prctl` or `capset` (searched for `capset`, `NO_NEW_PRIVS` and
   `CAPBSET`), so no step drops a privilege today.
@@ -4232,7 +4232,7 @@ Read at `2042200`:
 - `crates/podssh-relay/src/serve/policy.rs:107-109` hands a name to the host's proxy unresolved only with
   `private`, so a role without `--allow-private` checks each address that it dials.
 - The flag: `crates/podssh-cli/src/flags/relay.rs:66` (the row `allow-private`),
-  `crates/podssh-cli/src/relay_serve.rs:161` says "private: s.allow_private", and the role behind a
+  `crates/podssh-cli/src/relay_serve.rs:165` says "private: s.allow_private", and the role behind a
   quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:112`.
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:100`), the resumable layer
@@ -4360,14 +4360,14 @@ Read at `2042200`:
 
 - One counter for both ways: `crates/podssh-relay/src/serve/forward.rs:250` says
   "let moved = Arc::new(AtomicU64::new(0));", and `:340` ends the session at the cap;
-  `crates/podssh-relay/src/serve/mod.rs:87` says "Payload bytes, both ways together." The counter
+  `crates/podssh-relay/src/serve/mod.rs:92` says "Payload bytes, both ways together." The counter
   dies with its session.
 - A token names no key: `crates/podssh-relay/src/serve/tokens.rs:61` MACs the expiry alone under the
   run's secret, which `:52` draws at each start, so a restart ends each token
   (`docs/relay.md:92` says "a token is the contract's form under a secret of the run"). A ledger keyed
   by the token, as the issue first proposes, would count a principal that the next mint or restart
   replaces; the issue's own Risks say so.
-- The key is known at the mint: `crates/podssh-relay/src/serve/mod.rs:388-392` takes the key that
+- The key is known at the mint: `crates/podssh-relay/src/serve/mod.rs:396-400` takes the key that
   proved itself, and drops it after its line.
 - The role keeps one private file already, by an atomic writer (`crates/podssh-relay/src/serve/reverse/pairs.rs:455`)
   and a SHA-256 of each token (`:452`).
@@ -4643,10 +4643,10 @@ Read at `2042200`:
   takes nothing.
 - So an SSH client, whose version line begins `SSH-`, meets the cleartext road, which reads an HTTP
   head (`crates/podssh-relay/src/serve/cleartext.rs:60`) under the role's 30 s
-  (`crates/podssh-relay/src/serve/mod.rs:72`): the client waits for a banner that never comes, then is
+  (`crates/podssh-relay/src/serve/mod.rs:77`): the client waits for a banner that never comes, then is
   cut (Inferred from the code; not measured). With `--cleartext no` it meets TLS, which fails at once.
 - The node's check of a standard sshd peeks for the version line in the same way
-  (`PodUtils/podssh:crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:28`); the word is the node's
+  (`PodUtils/podssh:crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:30`); the word is the node's
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
@@ -4737,7 +4737,7 @@ listener given no sshd, and OpenSSH's login through the role's port fails.
 
 2026-11-05 (the drafting agent of T-644). Two citations of the Premise name other lines, at
 `2042200` as at this draft. The role's 30 s for a request's head is `HEAD_WAIT`:
-`crates/podssh-relay/src/serve/mod.rs:75` says "const HEAD_WAIT". The policy refuses the loopback
+`crates/podssh-relay/src/serve/mod.rs:80` says "const HEAD_WAIT". The policy refuses the loopback
 as an address that is not public:
 `crates/podssh-relay/src/serve/policy.rs:145` says "self.unlisted(&wanted)", and
 `crates/podssh-relay/src/serve/policy.rs:193` says "ip.is_loopback()". What the Premise says of them
@@ -4754,7 +4754,7 @@ holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
   `TCP_NODELAY` and says its end; another start goes to the cleartext road, or to TLS with
   `--cleartext no`. An sshd that does not answer gets the client one line
   (`crates/podssh-relay/src/serve/sshd.rs:119`). The binary: `--sshd ADDR:PORT`
-  (`crates/podssh-cli/src/flags/relay.rs:103`), read at `crates/podssh-cli/src/relay_serve.rs:114`
+  (`crates/podssh-cli/src/flags/relay.rs:103`), read at `crates/podssh-cli/src/relay_serve.rs:116`
   (an address, else 64) and named in the first line; with another subcommand, 64. The manual (the
   row and a note of `relay serve`), `docs/relay.md` ("SSH on the relay role's port"),
   `docs/cli.md`, `docs/mesh.md` and `SECURITY.md` say it. The gate runs `relay_serve_sshd` in its
@@ -4804,14 +4804,14 @@ the start with a path that was never one.
 
 Read at `2042200`:
 
-- `crates/podssh-cli/src/relay_serve.rs:182-195` reads `keys:` and makes the rest a path, with no
+- `crates/podssh-cli/src/relay_serve.rs:186-199` reads `keys:` and makes the rest a path, with no
   other form; `crates/podssh-cli/src/relay_serve.rs` at `fed191c`, lines 292-299, reads it at the start, and a file that
   does not read stops it (78). The role behind a quick tunnel reads the same words
   (`crates/podssh-cli/src/node_quick_relay.rs:75`).
 - The list is read again for each request: `crates/podssh-relay/src/serve/keys.rs` at `fed191c`, line 80, and
   `crates/podssh-relay/src/serve/keys.rs:87` says "this relay cannot read its list of keys";
   `docs/relay.md` at `fed191c`, line 849, says "read again for each request".
-- `crates/podssh-relay/src/serve/mod.rs:121` holds the list as a path; the net's members are a source
+- `crates/podssh-relay/src/serve/mod.rs:126` holds the list as a path; the net's members are a source
   that the binary gives (`crates/podssh-relay/src/serve/keys.rs:33`), which `--mint net` reads from the
   owner's signed document (T-455): a list that comes from elsewhere and is signed exists already.
 - A list fetched over HTTPS exists for Shadowsocks: a cap of 1 MiB
@@ -5248,12 +5248,12 @@ patch and rebuild the binary.
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/mod.rs:98` (`impl Default for Limits`) holds the six values: 10 s,
+- `crates/podssh-relay/src/serve/mod.rs:103` (`impl Default for Limits`) holds the six values: 10 s,
   180 s, 12 h, 64 MiB, 25 s and 15 s.
-- The CLI plumbs one of them: `crates/podssh-cli/src/relay_serve.rs:62` (the settings row),
-  `crates/podssh-cli/src/relay_serve.rs:113` (`get("keepalive")`),
-  `crates/podssh-cli/src/relay_serve.rs:107` (the parser, 1 to 3600 s) and
-  `crates/podssh-cli/src/relay_serve.rs:162` (`Limits { keepalive, ..Limits::default() }`).
+- The CLI plumbs one of them: `crates/podssh-cli/src/relay_serve.rs:64` (the settings row),
+  `crates/podssh-cli/src/relay_serve.rs:115` (`get("keepalive")`),
+  `crates/podssh-cli/src/relay_serve.rs:109` (the parser, 1 to 3600 s) and
+  `crates/podssh-cli/src/relay_serve.rs:166` (`Limits { keepalive, ..Limits::default() }`).
 - `/relays.json` is written from `cfg.limits`: `crates/podssh-relay/src/serve/docs.rs:77` writes
   `connect_timeout_ms`, `idle_timeout_ms`, `max_session_ms` and `max_session_bytes`. It does not
   write the keepalive.
@@ -5271,7 +5271,7 @@ patch and rebuild the binary.
 1. Add `--idle SECONDS` (1 to 86400), `--session-hours H` (1 to 168), `--max-session-mib M`
    (1 to 4096) and `--connect SECONDS` (1 to 120). Each has a settings row, a parser beside the
    `--keepalive` one, and a place in the `Limits` literal at
-   `crates/podssh-cli/src/relay_serve.rs:162`. A bad value is a usage refusal (exit 64), as
+   `crates/podssh-cli/src/relay_serve.rs:166`. A bad value is a usage refusal (exit 64), as
    `--keepalive`'s is.
 2. The defaults are the `pod-services` facts that `crates/podssh-relay/src/relay.rs` reads, not
    the literals of `Limits::default()`, so that the role and the clients have one source. Move
@@ -5605,7 +5605,7 @@ all. One client can hold thousands of connections (30 s each before TLS begins);
 
 - The review: the accept loop of `crates/podssh-cli/src/relay_serve.rs` (`let Ok((tcp, peer)) = accepted else
   { continue };`, then a spawn), with no count and no pause (lines 448-454 at `4489df2`; the loop is at
-  `crates/podssh-cli/src/relay_serve.rs:354` since the change).
+  `crates/podssh-cli/src/relay_serve.rs:358` since the change).
 - The review: `crates/podssh-relay/src/serve/brake.rs:61-89` (`Who`) already groups an IPv4 address and an
   IPv6 /64; `crates/podssh-cli/src/relay_serve/limits.rs:1-11` has no bound of connections.
 

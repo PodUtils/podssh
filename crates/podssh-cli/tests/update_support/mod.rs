@@ -342,6 +342,38 @@ pub fn acceptor(dir: &Path, names: &[&str]) -> (tokio_rustls::TlsAcceptor, PathB
     (tokio_rustls::TlsAcceptor::from(Arc::new(tls)), ca_file)
 }
 
+/// The PEM files of a server that reads its own, as `podssh relay serve
+/// --cert --key` does (the DERP route of `tests/ts_two_nodes.rs`, T-106): a
+/// leaf for `names` of a CA of the test's own, its P-256 key as SEC1's `EC
+/// PRIVATE KEY`, and the CA, written in `dir` as `leaf.pem`, `leaf.key` and
+/// `ca.pem`, in that order.
+pub fn pem_files(dir: &Path, names: &[&str]) -> (PathBuf, PathBuf, PathBuf) {
+    let (ca_key, leaf_key) = (Key::new(), Key::new());
+    let ca_params = ca("test-relay-ca");
+    let ca_cert = ca_params.self_signed(&ca_key).unwrap();
+    let names: Vec<String> = names.iter().map(|n| n.to_string()).collect();
+    let mut leaf = rcgen::CertificateParams::new(names).unwrap();
+    leaf.serial_number = Some(serial());
+    let leaf = leaf.signed_by(&leaf_key, &rcgen::Issuer::new(ca_params, &ca_key)).unwrap();
+    // SEC1 with its curve named, as `openssl ecparam` writes it.
+    let mut body = vec![0x02, 0x01, 0x01, 0x04, 0x20];
+    body.extend_from_slice(leaf_key.signing.to_bytes().as_slice());
+    body.extend_from_slice(&hex_bytes("a00a06082a8648ce3d030107"));
+    let mut der = vec![0x30, body.len() as u8];
+    der.extend_from_slice(&body);
+    let key_pem = pem(&der).replace("CERTIFICATE", "EC PRIVATE KEY");
+    let files = (dir.join("leaf.pem"), dir.join("leaf.key"), dir.join("ca.pem"));
+    std::fs::write(&files.0, pem(leaf.der())).unwrap();
+    std::fs::write(&files.1, key_pem).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&files.1, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    std::fs::write(&files.2, pem(ca_cert.der())).unwrap();
+    files
+}
+
 /// One request and its answer.
 async fn answer<S>(
     mut tls: S,

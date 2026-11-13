@@ -56,6 +56,8 @@ pub struct ServeArgs {
     pub sshd: Option<String>,
     /// Each name published to a pair's node, `NAME=PAIR` (T-649).
     pub publish: Vec<String>,
+    /// The file of the node keys that DERP at `/derp` admits (T-106).
+    pub derp_keys: Option<String>,
 }
 
 impl ServeArgs {
@@ -98,6 +100,7 @@ impl ServeArgs {
             list_stale: get("list-stale"),
             sshd: get("sshd"),
             publish: publish::args(matches),
+            derp_keys: get("derp-keys"),
         }
     }
 

@@ -198,7 +198,7 @@ measured: the debug binary has no `ts`).
 4. Change the tests that use `chat` for the gate
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
-   that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:220-226`).
+   that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:221-227`).
 5. Same commit: `docs/STATUS.md`. `docs/cli.md:5942` needs no change.
 
 ## Decision
@@ -632,7 +632,7 @@ is used, an empty value is unset, and `30x` from the variable is 78 and names
 `PODSSH_TIMEOUT`. The second checks ENVIRONMENT against the source in both
 directions. The third runs the binary of a `ts` build: with
 `PODSSH_TIMEOUT=30s`, `podssh ts` passes the gate and stops at the missing key
-file (77, as `crates/podssh-cli/tests/ts_behave.rs:56-64`); without it, 64.
+file (77, as `crates/podssh-cli/tests/ts_behave.rs:57-65`); without it, 64.
 Plant: drop the variable from the reader; the third test gets 64.
 
 ## Correction
@@ -2509,7 +2509,7 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:481`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:482`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
 status lost: the report and its JSON have three (`docs/cli.md:2932-2935`). The issue's grade by a
@@ -2585,7 +2585,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:481`), so whether it listens is not known. The box refuses each bind
+  (`docs/STATUS.md:482`), so whether it listens is not known. The box refuses each bind
   (`scripts/box/seccomp.json:5-10`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket

@@ -40,7 +40,7 @@ Read on 2026-11-11.
    (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** Two are being written: T-319's (`draft-t319`: the CLI's test through a proxy that ends TLS) and T-106's (`draft-t106`: two `podssh ts` nodes through podssh's relay role); merged: (T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
+8. **Drafts.** One is being written: T-738's next step (`draft-t738b`: the HTTP host over the kind `file-host` and the board over `mqtt::Board`); merged: (T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -111,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 711 entries: 64 open, 17 partial, 10 blocked, 620 done.
+`TODO/INDEX.md` holds 711 entries: 63 open, 18 partial, 10 blocked, 620 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

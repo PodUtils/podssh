@@ -16,10 +16,12 @@
 //! the file that keeps the counts are `relay_serve/quota.rs`'s (T-636); a
 //! list of keys at an `https://` URL, `relay_serve/keys_url.rs`'s (T-646);
 //! an SSH client of the listener to the owner's sshd, `relay_serve/sshd.rs`'s (T-644);
-//! a name published to a pair's node by its ClientHello, `relay_serve/publish.rs`'s (T-649).
+//! a name published to a pair's node by its ClientHello, `relay_serve/publish.rs`'s (T-649);
+//! DERP for the node keys of a file, `relay_serve/derp.rs`'s (T-106).
 
 mod args;
 mod certs;
+mod derp;
 pub(crate) mod keys_url;
 mod limits;
 mod list;
@@ -114,6 +116,8 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let owner_sshd = sshd::of(s.sshd.as_deref())?;
     // The names published to nodes, never the one of --acme (T-649).
     let published = publish::of(&s.publish, &source)?;
+    // DERP for a node of `podssh ts`, for the keys of a file (T-106).
+    let derp = derp::of(s.derp_keys.as_deref())?;
     let limits = limits::of(s)?;
     // The resumable sessions of the forward road (T-173).
     let (sessions, resumable) = resumes::of(s)?;
@@ -178,7 +182,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let dropped = dropped.unwrap_or_default();
     let shown = format!(
         "the relay's forward and reverse roads (contract {}) at {bound}, minting for \
-         {who}{came}{metered}{inside}{kept}{through}{clear}{ssh}{named}{listed}{resumable}{h2}{over_udp}{dropped}; {}",
+         {who}{came}{metered}{inside}{kept}{through}{clear}{ssh}{named}{derp}{listed}{resumable}{h2}{over_udp}{dropped}; {}",
         serve::CONTRACT,
         certs.shown
     );

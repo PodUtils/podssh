@@ -6,15 +6,24 @@ name: ts headscale
 # (the operator's own) through a proxy and through the peer's SOCKS5; a
 # cloud session's egress shows the relay with a certificate of its own
 # issuer, which the fork's roots do not hold, so they run here, where the
-# relay's own certificate comes. Started by hand only; it publishes nothing,
-# and its pre-auth keys are made by headscale in the run and go with the
-# runner.
+# relay's own certificate comes. Its stage of the role pins relay mode to
+# `podssh relay serve --derp-keys`, the only DERP server of a second
+# headscale (T-106). The job two-nodes runs the live test with two nodes
+# (T-106, scripts/ts-two-nodes.sh): node A in the test's process and the
+# binary as node B, pinned to podssh's relay role on the loopback, and to
+# tailcat's server of the input tailcat where one is named (Q58: short).
+# Started by hand only; it publishes nothing, and its pre-auth keys are made
+# by headscale in the run and go with the runner.
 
 on:
   workflow_dispatch:
     inputs:
       plant:
         description: "unknown-key: a pre-auth key that headscale does not know, which must fail the run"
+        required: false
+        default: ""
+      tailcat:
+        description: "a server of tailcat's fleet for the second part of the test with two nodes, such as tc301a.ipn.dev; empty: that part does not run"
         required: false
         default: ""
 
@@ -47,3 +56,23 @@ jobs:
             exit 0
           fi
           [ "$rc" = 0 ] || { echo "the harness exited $rc"; exit 1; }
+
+  two-nodes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: the test with two nodes, built
+        run: cargo test --locked -p podssh-cli --features ts --test ts_two_nodes --no-run
+      - name: headscale, and the test with two nodes against it
+        env:
+          PODSSH_ENGINE: docker
+          PODSSH_TS_TWO_TAILCAT: ${{ inputs.tailcat }}
+        run: |
+          set -u
+          # Each exit code is read directly; the shell's -e would stop at it.
+          rc=0
+          sh scripts/ts-two-nodes.sh || rc=$?
+          [ "$rc" = 0 ] || { echo "the test with two nodes exited $rc"; exit 1; }

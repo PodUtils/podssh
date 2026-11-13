@@ -19,9 +19,11 @@ HTTPS. Build it only with `--features ts`; see [development.md](development.md).
   within the same limit, for the relay's DERP link to come up.
 - The operator adds node keys to the allowlist. This needs a Tailscale admin
   token and a deployment credential for the relay.
-- The live test with two nodes has never passed.
-- The open work of `podssh ts`: T-106, the live test with two nodes, which
-  waits for the relay's operator ([TODO/ts.md](../TODO/ts.md)).
+- The live test with two nodes has never passed: T-106 wrote it, with DERP
+  in podssh's own relay role so that it waits for no operator (below), and
+  its runs wait for their merge (UNVERIFIED, 2026-11-13).
+- The open work of `podssh ts`: T-106, the runs of that test, and the run on
+  the operator's own tailnet ([TODO/ts.md](../TODO/ts.md)).
 
 ## The choice of a mode, and the end of a run (T-102, 2026-10-10)
 
@@ -131,12 +133,34 @@ Its runs, each a line of `scripts/interop-lib.sh` with an id of
 | `ts.exit7` | `exit 7` typed into a login shell through `podssh ssh --direct -tt` and OpenSSH's `ssh -v -tt`: podssh's code is OpenSSH's when the server sent an `exit-status`, else 255 | T-026 |
 | `ts.live.refused`, `ts.live.proxy`, `ts.live.socks5` | a fresh node in `relay` mode to the live relay, through `scripts/fake-proxy.py` and through the peer's SOCKS5: registered with headscale, refused with 1008, exit 77; the proxy saw the check's CONNECT and the node's own; `env` where this host has no route to the relay | T-103, T-105, T-281 |
 | `ts.relay.drop` | headscale stopped for 45 s during a session in `relay` mode: the DERP link drops and comes back, said on stderr, and 1 MiB arrives whole | T-104 |
+| `ts.role.refused`, `ts.role.ssh` | a second headscale whose only DERP server is `podssh relay serve --derp-keys` (`scripts/ts-headscale-role.sh`), its target's tailscaled on it by `Upgrade: DERP`: a fresh key of podssh, which the role's file does not list, refused with 1008 (77) and named on the role's line; listed, OpenSSH over `-W` in relay mode pinned to the role, 1 MiB each way with equal digests | T-106 |
 | `ts.key` | neither pre-auth key in any output of the run | T-241 |
 
 `TS_HS_PLANT=unknown-key` gives podssh a pre-auth key that headscale does not
 know: the registration fails, `ts.tcp.status` fails, and the harness says so
 and exits 1. Results: `docs/STATUS.md` (T-334). Tailscale's own control plane
 and DERP servers stay unmeasured (the ruling).
+
+## Two nodes, and DERP in podssh's relay role (T-106)
+
+- `podssh relay serve --derp-keys FILE` serves DERP at `/derp`, as derper
+  serves it with `--verify-clients`: over a WebSocket of the subprotocol
+  `derp`, which `relay` mode dials, and over the HTTP upgrade `Upgrade:
+  DERP`, which tailscaled dials. FILE lists node keys, `nodekey:HEX`, one a
+  line, and is read again at each login; another key is closed with 1008
+  "not authorized", the close of the operator's relay, and the role's line
+  names the whole key, which is public, so that its owner can list it. So
+  `--ts-relay HOST:PORT` pins a DERP server whose admission is the user's
+  own (Q63), where the operator's relay admits only what its operator
+  listed.
+- `crates/podssh-ts/examples/ts_echo.rs`: node A of the test, an echo on
+  the tailnet stack of the node (no socket of the host), its key from a file
+  by its path; `--node-key` prints the node key of a state file, made when
+  missing, for an allowlist. `scripts/ts-two-nodes.sh` runs
+  `crates/podssh-cli/tests/ts_two_nodes.rs` against headscale: node A in the
+  test's process, the binary as node B, pinned to the role on the loopback,
+  1 MiB each way, then to tailcat's server of `PODSSH_TS_TWO_TAILCAT`, 64 KiB
+  (Q58); `ts-headscale.yml`'s job `two-nodes` runs it. Results: UNVERIFIED.
 
 ## Rules
 

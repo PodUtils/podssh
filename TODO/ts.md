@@ -82,7 +82,7 @@ The new file crates/podssh-ts/tests/netmap_wait.rs gives the limit a future that
 wait. Plant: await with no limit; an outer `tokio::time::timeout` must then fail the test. An
 offline test cannot reach the fork's queue: with a silent control server, the start itself waits
 (`vendor/tailscale-rs/ts_runtime/src/control_runner.rs:136-158`). The second command is the feature
-suite (226 passed, `docs/STATUS.md:879`). The third is live, with a `ts` build, while no map comes
+suite (226 passed, `docs/STATUS.md:880`). The third is live, with a `ts` build, while no map comes
 (`docs/tailscale.md:10-11`): it must print `exit=78` after about 20 s, not `exit=124`.
 
 ## Correction
@@ -90,7 +90,7 @@ suite (226 passed, `docs/STATUS.md:879`). The third is live, with a `ts` build, 
 2026-10-10: the claim of step 2 holds. A reply that the fork sends after a wait gave up goes
 nowhere: kameo 0.21.1's `ReplySender::send` discards the result of its send (`let _ =
 self.tx.send(...)`, in `src/reply.rs` of the crate). The count of the feature suite is now
-424 passed, 0 failed, 24 ignored before this entry (`docs/STATUS.md:879` said 226 at T-060). The
+424 passed, 0 failed, 24 ignored before this entry (`docs/STATUS.md:880` said 226 at T-060). The
 live command needs a tailnet auth key file, and no document names one: the key is in `.env/`,
 which a session may not read. Which file a session may pass to `--ts-auth-key-file` is the
 operator's question Q40 (`TODO/PROGRESS.md`).
@@ -156,7 +156,7 @@ The relay closes a half-closed forward session after 15 s with no bytes from the
    stream. Name the 15 s as a constant: the value of the relay's rule.
 3. Report exact counts in both directions (`crates/podssh-ts/src/pipe.rs`, lines 34-49 at `1ee321d`). A closed stdout is
    a clean end with exit 0 (`crates/podssh-cli/src/ts.rs`, lines 391-408 at `1ee321d`).
-4. Rewrite the two tests, and update `docs/STATUS.md:863` in the same commit.
+4. Rewrite the two tests, and update `docs/STATUS.md:864` in the same commit.
 
 ## Decision
 
@@ -253,8 +253,8 @@ current node key (`vendor/tailscale-rs/ts_control_serde/src/register.rs:92-97`).
 3. `TsNode::shutdown` logs out first when the node is ephemeral, in 5 s at most. `podssh ts` calls
    it at the end of each form, also after an error (`crates/podssh-cli/src/ts.rs`, lines 232-242 at
    `c17e64f`). Never
-   log out a node that is not ephemeral: its allowlist entry is lost (`docs/tailscale.md:143-144`).
-4. Update `docs/tailscale.md` and `docs/STATUS.md:863` in the same commit.
+   log out a node that is not ephemeral: its allowlist entry is lost (`docs/tailscale.md:167-168`).
+4. Update `docs/tailscale.md` and `docs/STATUS.md:864` in the same commit.
 
 ## Decision
 
@@ -385,7 +385,7 @@ lines 176-207), against the manual (`crates/podssh-cli/src/man/facts.rs:46-57`),
 `docs/target-environment.md:93-96` and `SECURITY.md:175-183`. A URL with no port means 80 in podssh
 (`PodUtils/podssh:crates/podssh-ws/src/proxy.rs:114`) but 8080 in the fork (`vendor/tailscale-rs/ts_http_util/src/proxy.rs`, lines
 39-41 at `0b6f4b8`).
-Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:145-146`).
+Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:169-170`).
 
 ## Approach
 
@@ -399,8 +399,8 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
    print its credentials. The fork has one proxy for each process
    (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:224-239`), so apply `NO_PROXY` for each host in
    the new function.
-4. Update `crates/podssh-cli/src/flags.rs:366-367`, `docs/tailscale.md:145-146` and
-   `docs/STATUS.md:863` in the same commit.
+4. Update `crates/podssh-cli/src/flags.rs:366-367`, `docs/tailscale.md:169-170` and
+   `docs/STATUS.md:864` in the same commit.
 
 Added by T-102 (2026-10-10): the checks of each mode before the start already take `--ts-proxy`,
 else the environment's proxy (`crates/podssh-cli/src/ts/probe.rs`); give the fork the same choice.
@@ -549,7 +549,7 @@ checks allowed (`crates/podssh-ws/src/client.rs:39-40`, `docs/relay.md:387-389`)
 4. Ping every 10 s; three silent intervals mean a dead link, after the relay answered one ping.
 5. Restart `ControlRunner` with the same backoff and no count limit. podssh-cli prints one stderr
    line for each drop and each new connection. Add the patch and its row, and update
-   `docs/tailscale.md`, `docs/STATUS.md:863` and `crates/podssh-cli/src/man/notes.rs:408-440`.
+   `docs/tailscale.md`, `docs/STATUS.md:864` and `crates/podssh-cli/src/man/notes.rs:408-440`.
 
 ## Decision
 
@@ -688,7 +688,7 @@ the relay. So a refused node can still print a status line and exit 0. This wide
    first, and `relay` mode prints a status line only with a connected home region.
 4. In podssh-cli, map it through `classify_1008` to exit 77 (`crates/podssh-cli/src/ts.rs`, lines 314-326 at `d345b14`),
    and remove the old comment at `crates/podssh-cli/src/ts.rs`, lines 332-335 at `d345b14`.
-5. Add the patch and its row, and update `docs/tailscale.md`, lines 12-14 at `d345b14` and `docs/STATUS.md:863`.
+5. Add the patch and its row, and update `docs/tailscale.md`, lines 12-14 at `d345b14` and `docs/STATUS.md:864`.
 
 Added by T-104 (2026-10-10): step 1 is done, in patch 0019: `WsIo` puts a typed `WsClose { code,
 reason }` in its `io::Error`, and `ts_derp::Error::ws_close` finds it, with a unit test of the close
@@ -763,7 +763,7 @@ Read here on `3ee70dc`.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -776,7 +776,7 @@ host or from a sandbox.
 
 Read: the ignored test makes a new state file in the temporary directory and removes it
 (`crates/podssh-cli/tests/ts_behave.rs:228-255`); a new state file is a new node key
-(`docs/tailscale.md:143-144`). Its reason still names M5. On 2026-10-07, registration worked, no map
+(`docs/tailscale.md:167-168`). Its reason still names M5. On 2026-10-07, registration worked, no map
 came in 60 s, and only the operator can add a node key to the allowlist (`docs/tailscale.md:8-24`).
 
 Read: `podssh ts` has no form that accepts a connection (`crates/podssh-cli/src/ts.rs:272-276`), but
@@ -785,7 +785,7 @@ the fork can listen in its own network stack, with no socket of the host
 command line (`vendor/tailscale-rs/examples/tcp_echo/main.rs:24-28`), which podssh must not do. With
 the pin, each region's runner dials the relay
 (`vendor/tailscale-rs/ts_runtime/src/multiderp/uniderp.rs:333-340`), so two `relay` nodes meet there.
-Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:145-146`).
+Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` (`docs/tailscale.md:169-170`).
 
 ## Approach
 
@@ -802,6 +802,53 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
    and the state stays. Name M8 in its reason.
 6. Record each result with its date in `docs/STATUS.md:209`, `docs/tailscale.md:8-24` and
    `crates/podssh-cli/src/man/notes.rs:408-440`.
+
+## Decision
+
+2026-11-13 (the drafting agent).
+
+1. **The DERP server is a route of podssh's relay role, `podssh relay serve --derp-keys FILE`**
+   (`crates/podssh-relay/src/serve/derp.rs`, `derp_hub.rs`), not a stand-in of the test. The new
+   Approach names "podssh's relay role ... where it carries DERP", and the role had no DERP route
+   (see the Correction of 2026-11-13). Lost: the stand-in DERP server of the tests
+   (`crates/podssh-relay/tests/derp_stand_in`), which is podssh's own code on both sides of no real
+   user's path, and shows nothing that the user can run; and a test against headscale's DERP alone,
+   which T-334 already runs.
+2. **Its admission is a file of node keys, read again at each login**, the operator's relay's rule
+   in the owner's hands: a key not in it is closed with 1008 "not authorized", the close that
+   `podssh ts` already reads as a refusal (77, T-105). Lost: admitting each key (an open DERP server
+   as tailcat's, which the owner did not ask for and which a role on a public address would lend to
+   anyone); the net's members (their keys are podssh identities, not Tailscale node keys); a file read
+   once (a key added would need a restart).
+3. **The role's refusal names the whole node key**, which is public, so that an owner lists a key
+   from the line; `ts-headscale.sh` lists podssh's key so. The status line keeps its 8 hex digits.
+   Lost: a flag of `podssh ts` that prints the whole key (a new output of the CLI for one test).
+4. **Both of derper's forms of the connection**: the WebSocket of `relay` mode and the HTTP upgrade
+   `Upgrade: DERP`, which tailscaled dials. The script's target is tailscaled, whose client dials
+   DERP over a WebSocket, as remembered of tailscale's `derp/derphttp`, only in a browser's build or
+   one with a debug tag (UNVERIFIED, not read at its source here); with the upgrade the role is a
+   DERP server for stock clients too. Lost: the WebSocket alone, with a knob of tailscaled that its
+   Linux image may not have.
+5. **The DERP server lives in a `OnceLock` of the process**, set by `--derp-keys`, beside the
+   role's `Config`. Lost: a field of `Config`, which 20 places build, each test of the role among
+   them, for a route that one process serves once.
+6. **Node A is in the test's process, on `podssh_ts::echo`** (a socket of the fork's smoltcp, no
+   socket of the host), and the example `ts_echo` runs the same echo by hand on the operator's
+   machine. Lost: the example as node A of the test (an integration test of `podssh-cli` cannot name
+   an example of `podssh-ts`, so it would be built and found by path).
+7. **The node keys come from the state files before either node runs** (`podssh_ts::keys::node_key`,
+   which makes a missing file as `--ts-state` does), so the role's file lists the two at its start,
+   and Approach item 2's kept state files are `PODSSH_TS_TWO_STATE_DIR`'s. A third node, whose fresh
+   key the file does not list, must be refused (77), the role's control.
+8. **The stage of the role in `ts-headscale.sh` is a second headscale** whose only DERP server is the
+   role (`scripts/ts-headscale-role.sh`, a subshell with ports and names of its own), as a target of
+   tailscaled must reach the role for OpenSSH over `-W` pinned to it: pinned, podssh dials the role
+   for each region, and a target at headscale's own DERP server would never get its packets. Lost:
+   the first headscale's map changed for each run (the T-334 runs pin headscale's server).
+9. **The test with two nodes runs from `scripts/ts-two-nodes.sh`**, headscale and its key as T-334's
+   lib makes them, and from the job `two-nodes` of `ts-headscale.yml`; it is no harness of
+   `interop-baseline.txt`, as its exit is the test's. Lost: a hook in `ts-headscale.sh`, which stands
+   at 459 lines of 500.
 
 ## Prove
 
@@ -851,7 +898,7 @@ server that `relay` mode pins need not be the operator's Tailscale relay, the de
 podssh's own relay role, where it carries DERP for its user's keys (the route of a member that
 relays for two others, T-434), and Tailscale's tailcat fleet (Q58, short runs). T-334's harness
 already runs two nodes in `relay` mode through headscale's DERP over a WebSocket
-(`scripts/ts-headscale.sh:242-252`), so podssh's part of the function is shown; what this entry
+(`scripts/ts-headscale.sh:250-260`), so podssh's part of the function is shown; what this entry
 adds is a real tailnet and a DERP server off the loopback.
 
 The new Approach, in place of the one above:
@@ -889,6 +936,46 @@ with the two kept state files and the real tailnet, the first command and the re
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+2026-11-13 (the drafting agent). The new Approach's item 2 names "`podssh relay serve` with its DERP
+route": no route of the role served DERP (`crates/podssh-relay/src/serve/mod.rs`, the match of
+`serve_from`; T-434 is a member's leg of podssh's own reverse road, not DERP). The route is this
+entry's work now (Decision 1 to 5). The original Prove's `scripts/ts-two-nodes.sh` returns as the
+runner of the test against headscale (Decision 9).
+
+## Done
+
+2026-11-13 (a drafting agent's `e64225f`, merged, built and run by the main session the same day, with two repairs: the
+note of `relay` named the flags of `podssh ts`, which `man::notes` refused; and no test held that the file admits
+its keys alone, so a plant that admits each key passed; the new test catches it). Drafted:
+
+- The role's DERP route: `crates/podssh-relay/src/serve/derp.rs`, `derp_hub.rs`, `derp_tests.rs`
+  (the file of keys, the frames, both 101s, the hub's forwarding and its newest connection of a key);
+  `podssh relay serve --derp-keys FILE` (`crates/podssh-cli/src/relay_serve/derp.rs`, the flag's row,
+  the manual's paragraph). `cargo test -p podssh-relay --features serve,derp --lib serve::derp`: 9 passed
+  (`the_file_admits_its_keys_alone_and_a_key_added_without_a_restart` added; planted, a hub that admits each key: it
+  fails; restored, it passes).
+- `podssh_ts::echo`, `podssh_ts::keys`, and `crates/podssh-ts/examples/ts_echo.rs` (node A by hand,
+  its key from a file by its path). Built, with clippy (`--all-targets -p podssh-cli -p podssh-ts -p podssh-relay
+  --features podssh-cli/ts`): no warning.
+- `crates/podssh-cli/tests/ts_two_nodes.rs` (ignored, feature `ts`, Unix): through
+  `sh scripts/ts-two-nodes.sh`, relay mode pinned to the role on the loopback, 1 MiB each way with
+  equal SHA-256; a key that the role does not list, 77; with `PODSSH_TS_TWO_TAILCAT=tc301a.ipn.dev`, 64 KiB each
+  way. Without its variables it says "did not run"; its runs are `ts-headscale.yml`'s job `two-nodes`, below.
+- `scripts/ts-headscale.sh` with its stage of the role (`scripts/ts-headscale-role.sh`):
+  `ts.role.refused` and `ts.role.ssh` (OpenSSH over `-W` pinned to `podssh relay serve`, 1 MiB each
+  way); the harness's floor is 13 (`scripts/interop-baseline.txt`; `cargo todo interop`: 790 ids of 61 harnesses
+  meet it).
+- `ts-headscale.yml`: its job `two-nodes`, and the input `tailcat`. Its run after the merge is below.
+- `cargo test -p podssh-relay --features pair,quick,derp,serve,piping`: 390 passed; `cargo test -p podssh-cli --lib`:
+  1143 passed; `--test relay_serve`: 30 passed.
+- Approach item 5: `ts_live_status_prints_the_node_line` reads `PODSSH_TS_LIVE_KEY_FILE`,
+  `PODSSH_TS_LIVE_STATE` (kept), and `PODSSH_TS_LIVE_RELAY` and `PODSSH_TS_LIVE_CONTROL_URL` where set;
+  its reason names M10.
+
+What waits: the runs above; then, on the operator's machine (the tailnet's key in `.env/`, by its
+path alone), the test with `PODSSH_TS_TWO_KEY_FILE` and no control URL, and the repaired status test;
+Approach item 3's run of B from the box of `scripts/test_in_box.sh` and item 4's drop test of 5 min.
 
 # T-240: `podssh ts --jsonl` writes no JSON
 

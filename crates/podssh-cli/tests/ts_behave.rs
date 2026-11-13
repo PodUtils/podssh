@@ -8,7 +8,8 @@
 //!
 //! Shapes that would attempt a live start (valid key + state) are absent
 //! here: they would dial the control plane from a unit test. The live proof
-//! is the ignored M5 test at the bottom, naming its blocker.
+//! is the ignored M10 test at the bottom (T-106), which runs where its
+//! variables name a key and a kept state file.
 //!
 //! Only built with the `ts` feature; `ts_not_built.rs` covers the default
 //! build, where `ts` parses and refuses.
@@ -225,33 +226,41 @@ fn ts_without_timeout_in_a_pipe_is_usage_64() {
     assert!(err.contains("--timeout"), "{err}");
 }
 
-/// M5 live acceptance: a real node prints its one status line.
+/// The live status (M10, T-106): a real node prints its one status line.
 ///
-/// Ignored: needs a live tailnet (auth key at `.env/TS_KEY.txt` plus the
-/// relay allowlist sync — operator action with the Tailscale admin token and
-/// the wrangler credential, neither present here). Un-ignoring without both
-/// proves nothing: an unlisted key reads `1008 "not authorized"`, which is
-/// the relay working, not the node.
+/// Ignored: it needs a tailnet's auth key, which a test never holds in the
+/// repository. Its paths come from variables that only this test reads:
+/// `PODSSH_TS_LIVE_KEY_FILE`, the key's file, which goes to podssh by its
+/// path alone; `PODSSH_TS_LIVE_STATE`, a state file that stays across runs,
+/// so that the node key, and its entry in a relay's allowlist, stay too;
+/// and, where they are set, `PODSSH_TS_LIVE_RELAY` (`HOST[:PORT]`, a DERP
+/// server that admits the key, such as `podssh relay serve --derp-keys`)
+/// and `PODSSH_TS_LIVE_CONTROL_URL`. With no key or no state file named, it
+/// says that it did not run. The operator's relay refuses a key that is not
+/// in its allowlist with `1008 "not authorized"` (77): the relay working,
+/// not the node.
 #[test]
-#[ignore = "M5: needs live tailnet admission (auth key + allowlist sync)"]
+#[ignore = "M10 (T-106): live; needs a tailnet's key and a kept state file, named by PODSSH_TS_LIVE_KEY_FILE and PODSSH_TS_LIVE_STATE"]
 fn ts_live_status_prints_the_node_line() {
-    let key = std::path::PathBuf::from(".env/TS_KEY.txt");
-    let state = std::env::temp_dir().join("podssh-ts-m5-state.json");
-    let argv = vec![
-        "ts".to_string(),
-        "--ts-mode".to_string(),
-        "relay".to_string(),
-        "--ts-auth-key-file".to_string(),
-        key.to_string_lossy().into_owned(),
-        "--ts-state".to_string(),
-        state.to_string_lossy().into_owned(),
-        "--timeout".to_string(),
-        "120s".to_string(),
-    ];
-    let (rc, out, err) = run_case(&argv.iter().map(|s| s.as_str()).collect::<Vec<_>>());
-    std::fs::remove_file(&state).ok();
+    let named = |name: &str| std::env::var(name).ok().map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
+    let (Some(key), Some(state)) = (named("PODSSH_TS_LIVE_KEY_FILE"), named("PODSSH_TS_LIVE_STATE")) else {
+        eprintln!("ts_live_status: did not run: PODSSH_TS_LIVE_KEY_FILE and PODSSH_TS_LIVE_STATE name no files");
+        return;
+    };
+    let (relay, control) = (named("PODSSH_TS_LIVE_RELAY"), named("PODSSH_TS_LIVE_CONTROL_URL"));
+    let mut argv = vec!["ts", "--ts-mode", "relay", "--ts-auth-key-file", key.as_str(), "--ts-state", state.as_str()];
+    argv.extend(["--timeout", "120s"]);
+    if let Some(relay) = relay.as_deref() {
+        argv.extend(["--ts-relay", relay]);
+    }
+    if let Some(url) = control.as_deref() {
+        argv.extend(["--ts-control-url", url]);
+    }
+    // The state file stays: a new one is a new node key, and a new device.
+    let (rc, out, err) = run_case(&argv);
     assert_eq!(rc, 0, "{err}");
     assert!(out.starts_with("node "), "{out}");
+    assert!(std::path::Path::new(&state).exists(), "the state file stays");
 }
 
 /// `PODSSH_TIMEOUT` passes the gate of `ts` (GitHub #12): with it, `ts` stops

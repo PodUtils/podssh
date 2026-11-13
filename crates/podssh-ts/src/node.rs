@@ -178,6 +178,12 @@ impl TsNode {
         }
     }
 
+    /// The fork's device, for the echo of the live test with two nodes (T-106, `echo.rs`), which
+    /// waits on a socket of its stack.
+    pub(crate) fn device(&self) -> &tailscale::Device {
+        &self.device
+    }
+
     /// Open a TCP stream to a tailnet peer through the in-process netstack.
     pub async fn tcp_connect(&self, remote: SocketAddr) -> Result<tailscale::netstack::TcpStream, NodeError> {
         self.device.tcp_connect(remote).await.map_err(|e| NodeError::Fork(e.to_string()))

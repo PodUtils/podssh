@@ -8,6 +8,8 @@ pub mod chain;
 pub mod classify;
 pub mod config;
 pub mod control;
+pub mod echo;
+pub mod keys;
 pub mod node;
 pub mod pipe;
 pub mod secret;

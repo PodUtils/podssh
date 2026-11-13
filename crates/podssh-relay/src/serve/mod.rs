@@ -24,12 +24,17 @@
 //! `quic`, T-667). What each key carried, and its budget for a day, are
 //! counted for each session of the forward road ([`usage`], T-636). A name
 //! that the owner publishes goes to its pair's node by the ClientHello, before
-//! the role's own TLS ([`published`], [`sni`], T-649).
+//! the role's own TLS ([`published`], [`sni`], T-649). With a file of node
+//! keys, it serves DERP at `/derp` for them, which a node of `podssh ts` in
+//! `relay` mode pins (`derp`, T-106).
 
 #[cfg(feature = "quick")]
 pub mod behind;
 pub mod brake;
 pub mod cleartext;
+// DERP over a WebSocket for the node keys of its owner's file (T-106).
+#[cfg(feature = "derp")]
+pub mod derp;
 pub mod docs;
 pub mod egress;
 pub mod forward;
@@ -269,6 +274,9 @@ where
         // A leg for a member of the net, by the node's key (T-434).
         (_, p) if leg::serves(p) => leg::request(stream, head, pending, cfg, sni).await,
         (_, p) if reverse::serves(p) => reverse::request(stream, head, pending, cfg, sni).await,
+        // DERP for a node of `podssh ts`, where its owner named the keys (T-106).
+        #[cfg(feature = "derp")]
+        (_, p) if derp::serves(p) => derp::request(stream, head, pending, cfg).await,
         (_, p) => answer(&mut stream, request::refusal(404, &format!("{p}: not found"), &[])).await,
     }
 }
