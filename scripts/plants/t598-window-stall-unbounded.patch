@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/io.rs
++++ b/crates/podssh-ssh/src/io.rs
+@@ -390,7 +390,7 @@
+             _ = tick.tick() => {
+                 if writer.writable_packet_size().await > 0 {
+                     shut_since = None;
+-                } else if shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
++                } else if false && shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
+                     log.error(&format!(
+                         "a write made no progress for {} s: the channel's window stayed shut, as the far end reads nothing",
+                         WINDOW_STALL.as_secs()

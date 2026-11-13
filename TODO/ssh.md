@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:829`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:830`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -1175,7 +1175,7 @@ M1, and the NOPASSWD check fails.
 (`crates/podssh-ssh/src/session.rs:132-147`, the question at
 `crates/podssh-ssh/src/session.rs:268-277`), and the pump filters the output,
 asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:178-192`,
-`crates/podssh-ssh/src/io.rs:405-412`). The flags at
+`crates/podssh-ssh/src/io.rs:426-433`). The flags at
 `crates/podssh-cli/src/flags.rs:222-227`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
@@ -4400,7 +4400,7 @@ progress" (the gate's step `release` at `3bb42ea`, run 41563940463).
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4444,6 +4444,25 @@ progress", as on the gate's runners. Planted: the new limit removed: it fails at
 PodUtils/podcrates (Q101, wave 1, the next to be taken). Until podssh takes it, the repair stays a
 fix of podssh's file, and podcrates ports it once it has imported the module (Rule Q3,
 `docs/decisions.md`); after, the repair is made in PodUtils/podcrates.
+
+## Done
+
+Partial, 2026-11-13. Measured on this host (a cloud container): `podssh ssh --direct` with 4 MiB on its stdin to
+`sleep 600` on `podssh serve` (whose channel's window opens only as the child reads, T-118) waited with the
+window at 0 and no write of the socket waiting, as the Premise guessed: the writes stop at the window, above the
+socket, and the stream's limit (`pod-proxy`'s `write_limit`, taken) never arms. Approach item 2:
+`crates/podssh-ssh/src/io.rs`, `send`: while a send waits, a tick each second reads the window
+(`writable_packet_size`); 60 s with it at 0 (`WINDOW_STALL`, the write limit's) ends the session with 255 and "a
+write made no progress for 60 s: the channel's window stayed shut, as the far end reads nothing"; any opening of
+the window resets the clock, so a slow road whose window opens now and then goes on. `docs/design.md`'s row of a
+stuck write says so.
+
+- `cargo test -p podssh-cli --test stuck_window` (the test serves one TCP connection with `podssh serve --stdio`):
+  1 passed in 60.3 s, exit 255 and "no progress"; by hand through socat, exit 255 after 61 s.
+- The plant `t598-window-stall-unbounded` (the clock never ends the wait): caught.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,858 passed, none failed.
+
+Left: the Prove's `INTEROP_ONLY=faults` run in the build image on this host (T-251).
 
 # T-609: An ECDSA key of P-256 whose scalar OpenSSH writes in 31 bytes is refused: "SshKey: length invalid"
 

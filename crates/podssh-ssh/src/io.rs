@@ -370,6 +370,12 @@ async fn send(
 ) -> Result<bool, End> {
     let send = writer.data_bytes(data);
     tokio::pin!(send);
+    // A far end that reads nothing leaves the window shut: where the host's
+    // buffers take each byte that the window let go, no write of the socket
+    // waits, and the stream's own limit never arms (T-598). The window shut
+    // for WINDOW_STALL, with bytes to send, ends the session the same way.
+    let mut tick = tokio::time::interval(Duration::from_secs(1));
+    let mut shut_since: Option<tokio::time::Instant> = None;
     loop {
         tokio::select! {
             sent = &mut send => return Ok(sent.is_ok()),
@@ -381,9 +387,24 @@ async fn send(
                 }
                 None => return Err(link_ended(*status, out.eof)),
             },
+            _ = tick.tick() => {
+                if writer.writable_packet_size().await > 0 {
+                    shut_since = None;
+                } else if shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
+                    log.error(&format!(
+                        "a write made no progress for {} s: the channel's window stayed shut, as the far end reads nothing",
+                        WINDOW_STALL.as_secs()
+                    ));
+                    return Err(End::Lost);
+                }
+            }
         }
     }
 }
+
+/// How long the channel's window may stay shut while bytes wait to go: the
+/// write limit's 60 s (T-227, T-598).
+pub const WINDOW_STALL: Duration = Duration::from_secs(60);
 
 /// What ZMODEM has for the terminal and for the server between the
 /// server's messages: its words after a key or a wait, and a sender's next

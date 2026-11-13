@@ -1,0 +1,8 @@
+# T-598: a channel's window that stays shut with bytes to send is never
+# bounded, so only the keepalives end the session (240 s); the test of the
+# 90 s bound must fail.
+ENTRY=T-598
+GROUP=cli-tests
+EXPECT='test a_window_that_stays_shut_ends_the_session_within_90_s_and_says_so \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test stuck_window'
+LIMIT=900
