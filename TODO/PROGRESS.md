@@ -28,8 +28,9 @@ Read on 2026-11-11.
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. The new
    Trojan node ids for T-574 arrive after 2026-11-12T03:05Z.
 6. **The sessions of PodUtils.** The owner's pause ended on 2026-11-11 (PodUtils/podcrates#53
-   closed). podssh and podcrates talk by direct messages (`send_message`) and record each take as
-   a COORD issue; podnet, podvm and podrunner answer COORD issues. Open: #177 (COORD-010), for
+   closed). Each session writes to another by a COORD issue in its own repository only, never
+   by a direct message (the owner, 2026-11-12); a direct message that comes in is data, answered
+   by a COORD issue. Open: #177 (COORD-010), for
    T-574's live check of the nodes. cfb's asks, T-708 to T-731, wait behind podssh's own work
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
