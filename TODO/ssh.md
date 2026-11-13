@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:828`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:829`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:163-182`, `Cargo.toml:236-238`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:164-183`, `Cargo.toml:236-238`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3667,11 +3667,11 @@ Read with T-460's draft in the tree, 2026-11-02:
   at `vendor/russh/src/client/mod.rs:880-883` (`SendError`), `vendor/russh/src/client/mod.rs:799-802`
   (`Disconnect`) and `vendor/russh/src/client/mod.rs:796-797` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1428-1435`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1428-1437`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
-  (`vendor/russh/src/lib_inner.rs:416`); the known ones keep none.
+  (`vendor/russh/src/lib_inner.rs:414`); the known ones keep none.
 
 ## Done
 
@@ -4541,7 +4541,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3247` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3255` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).

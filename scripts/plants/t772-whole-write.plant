@@ -1,0 +1,7 @@
+# T-772: each russh loop waits in a whole write of its batch again, reading
+# nothing meanwhile; over a pipe of 64 KiB the two loops stop each other, and
+# the test of 4 MiB each way must fail.
+ENTRY=T-772
+GROUP=cli-tests
+EXPECT='test four_mib_each_way_at_once_over_a_pipe_of_64_kib \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_exec -- four_mib'

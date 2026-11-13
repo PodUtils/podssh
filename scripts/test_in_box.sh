@@ -6,6 +6,7 @@
 #   sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=tt sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=reverse sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#   BOX_RUN=line sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_SECCOMP=nolisten sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_PROFILE=strict sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #
@@ -14,6 +15,11 @@
 # pair) and serves example.com:80 as its node; the box then runs
 # scripts/box/reverse-session.sh: two operators at once through the relay,
 # from one box to the node in the other. The pair is stopped at the end.
+#
+# BOX_RUN=line (T-111) keeps the box running after its probe, and runs
+# scripts/box/line-session.sh on this host: OpenSSH's ssh -tt into podssh
+# serve --stdio in the box, through podman exec -i, where serve is its own
+# line discipline (no /dev/ptmx, unshare refused).
 #
 # BOX_RUN=tt runs scripts/box/tt-session.sh in place of sandbox-check.sh: an
 # interactive session over -tt (T-004) against OpenSSH in a container next
@@ -72,7 +78,7 @@ PROXY=podssh-box-proxy
 BOX=podssh-box
 TARGET=podssh-box-target
 RUN=${BOX_RUN:-check}
-case $RUN in check | tt | reverse) ;; *) echo "test_in_box: BOX_RUN is check, tt or reverse, not $RUN" >&2; exit 1 ;; esac
+case $RUN in check | tt | reverse | line) ;; *) echo "test_in_box: BOX_RUN is check, tt, reverse or line, not $RUN" >&2; exit 1 ;; esac
 PROFILE=${BOX_PROFILE:-sandbox-a}
 case $PROFILE in
     sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
@@ -349,12 +355,32 @@ if [ "$RUN" = reverse ]; then
         die "the node's box did not start"
     set -- --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer"
 fi
+if [ "$RUN" = line ]; then
+    # The box waits for the host's client; its probe comes first, as for each run.
+    run_box "$BOX" -d "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh &&
+        sh /scripts/box/probe.sh > /tmp/probe.log 2>&1; echo $? > /tmp/probe.rc; exec sleep 900' >/dev/null ||
+        die "the box did not start"
+    i=0
+    until podman exec "$BOX" test -s /tmp/probe.rc 2>/dev/null || [ "$i" -ge 120 ]; do
+        sleep 1
+        i=$((i + 1))
+    done
+    podman exec "$BOX" cat /tmp/probe.log
+    if [ "$(podman exec "$BOX" cat /tmp/probe.rc 2>/dev/null)" = 0 ]; then
+        sh "$HERE/box/line-session.sh" "$BOX" "$WORK"
+        rc=$?
+    else
+        echo "the box does not match the sandbox: podssh is not measured in it"
+        rc=1
+    fi
+else
 run_box "$BOX" "$@" \
     "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh && sh /scripts/box/probe.sh &&
         if [ "$BOX_RUN" = tt ]; then sh /scripts/box/tt-session.sh /usr/local/bin/podssh;
         elif [ "$BOX_RUN" = reverse ]; then sh /scripts/box/reverse-session.sh;
         else sh /scripts/sandbox-check.sh /usr/local/bin/podssh; fi'
 rc=$?
+fi
 
 if [ "$RUN" = reverse ]; then
     # The pair is stopped at the end, where it was made (its stop token is

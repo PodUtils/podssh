@@ -1428,6 +1428,8 @@ impl Session {
         self.receiver.close();
         self.priority_receiver.close();
         self.inbound_channel_receiver.close();
+        // What waits goes before the end, within a bound (podssh's patch, T-772).
+        let _ = tokio::time::timeout(crate::FINAL_WRITE, self.common.packet_writer.flush_into(&mut stream_write)).await;
         map_err!(stream_write.shutdown().await)?;
         match result {
             Ok(v) => {
@@ -1495,12 +1497,22 @@ impl Session {
             // Keep reading the network for window adjustments, but leave
             // application output in its bounded receivers while a channel is
             // window-blocked.
-            let can_receive_outbound = !self.kex.active() && !self.common.has_any_pending_data();
+            // Application output waits in its receivers while the stream
+            // holds a bound of unwritten bytes; the read goes on beside the
+            // write, up to a larger bound (podssh's patch, T-772).
+            let can_receive_outbound = !self.kex.active()
+                && !self.common.has_any_pending_data()
+                && self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
+            let can_read = self.common.packet_writer.unwritten() < crate::OUTPUT_MOST;
+            let wants_write = self.common.packet_writer.wants_write();
             let rekey_timer =
                 crate::future_or_pending(self.rekey_time_remaining(), tokio::time::sleep);
             pin!(rekey_timer);
             tokio::select! {
-                r = &mut reading => {
+                r = self.common.packet_writer.write_some(stream_write), if wants_write => {
+                    r.map_err(crate::Error::from)?;
+                }
+                r = &mut reading, if can_read => {
                     let (stream_read, mut buffer, mut opening_cipher) = match r {
                         Ok((_, stream_read, buffer, opening_cipher)) => (stream_read, buffer, opening_cipher),
                         Err(e) => return Err(e.into())
@@ -1609,12 +1621,8 @@ impl Session {
             };
 
             self.flush()?;
-            crate::flush_or_timeout(
-                &mut self.common.packet_writer,
-                stream_write,
-                inactivity_timer.as_mut(),
-            )
-            .await?;
+            // What the stream takes now; the rest in the select! above.
+            self.common.packet_writer.write_now(stream_write).map_err(crate::Error::from)?;
 
             if let Some(ref mut enc) = self.common.encrypted
                 && let EncryptedState::InitCompression = enc.state

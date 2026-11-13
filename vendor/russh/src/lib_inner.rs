@@ -1,15 +1,13 @@
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display, Formatter};
 use std::future::{Future, Pending};
-use std::pin::Pin;
 
 use futures::future::Either as EitherFuture;
-use log::{debug, warn};
+use log::warn;
 use parsing::ChannelOpenConfirmation;
 pub use russh_cryptovec::CryptoVec;
 use ssh_encoding::{Decode, Encode};
 use thiserror::Error;
-use tokio::io::AsyncWrite;
 
 #[cfg(test)]
 mod tests;
@@ -530,19 +528,18 @@ impl ChannelParams {
     }
 }
 
-pub(crate) async fn flush_or_timeout<W: AsyncWrite + Unpin>(
-    writer: &mut sshbuffer::PacketWriter,
-    stream: &mut W,
-    inactivity_timer: Pin<&mut impl Future<Output = ()>>,
-) -> Result<(), Error> {
-    tokio::select! {
-        r = writer.flush_into(stream) => Ok(r?),
-        _ = inactivity_timer => {
-            debug!("timeout while writing");
-            Err(Error::InactivityTimeout)
-        }
-    }
-}
+/// The bytes that may wait for the stream before a session loop takes no
+/// more of its application's messages (podssh's patch, T-772).
+pub(crate) const OUTPUT_ROOM: usize = 1 << 20;
+
+/// The bytes that may wait for the stream before a session loop stops
+/// reading too, so that a peer that reads nothing holds no more of its
+/// memory (podssh's patch, T-772).
+pub(crate) const OUTPUT_MOST: usize = 16 << 20;
+
+/// The bound of the last write of a session loop, before its shutdown
+/// (podssh's patch, T-772).
+pub(crate) const FINAL_WRITE: std::time::Duration = std::time::Duration::from_secs(10);
 
 /// Returns `f(val)` if `val` it is [Some], or a forever pending [Future] if it is [None].
 pub(crate) fn future_or_pending<R, F: Future<Output = R>, T>(

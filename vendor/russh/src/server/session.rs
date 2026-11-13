@@ -701,7 +701,8 @@ impl Session {
             // Leave application messages in the bounded receiver once a peer's
             // channel window is exhausted. Network reads remain active so a
             // window adjustment can release the queued data.
-            if !self.kex.active() && !self.common.has_any_pending_data() {
+            let room = self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
+            if !self.kex.active() && !self.common.has_any_pending_data() && room {
                 let mut drained = 0;
                 while drained < MAX_MESSAGES_PER_BATCH {
                     // Only Empty/Disconnected end the drain; both mean "nothing
@@ -721,12 +722,9 @@ impl Session {
                 }
                 if drained > 0 {
                     self.flush()?;
-                    crate::flush_or_timeout(
-                        &mut self.common.packet_writer,
-                        &mut stream_write,
-                        inactivity_timer.as_mut(),
-                    )
-                    .await?;
+                    // What the stream takes now; the rest goes in the
+                    // select!, beside the read (podssh's patch, T-772).
+                    self.common.packet_writer.write_now(&mut stream_write).map_err(crate::Error::from)?;
                 }
                 // A drained Disconnect sets this; don't block in `select!` after.
                 if self.common.disconnected {
@@ -737,8 +735,16 @@ impl Session {
             let rekey_timer = future_or_pending(self.rekey_time_remaining(), tokio::time::sleep);
             pin!(rekey_timer);
 
+            // Read while output waits, up to a bound past which the peer
+            // must read first (podssh's patch, T-772).
+            let room = self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
+            let can_read = self.common.packet_writer.unwritten() < crate::OUTPUT_MOST;
+            let wants_write = self.common.packet_writer.wants_write();
             tokio::select! {
-                r = &mut reading => {
+                r = self.common.packet_writer.write_some(&mut stream_write), if wants_write => {
+                    r.map_err(crate::Error::from)?;
+                }
+                r = &mut reading, if can_read => {
                     let (stream_read, mut buffer, mut opening_cipher) = match r {
                         Ok((_, stream_read, buffer, opening_cipher)) => (stream_read, buffer, opening_cipher),
                         Err(e) => return Err(e.into())
@@ -811,7 +817,7 @@ impl Session {
                         }
                     }
                 }
-                msg = self.receiver.recv(), if !self.kex.active() && !self.common.has_any_pending_data() => {
+                msg = self.receiver.recv(), if !self.kex.active() && !self.common.has_any_pending_data() && room => {
                     // Channel open replies must be dispatched before any
                     // channel traffic queued after them: `msg` may be data for
                     // a channel whose confirmation is still sitting in the
@@ -831,12 +837,7 @@ impl Session {
             }
             self.flush()?;
 
-            crate::flush_or_timeout(
-                &mut self.common.packet_writer,
-                &mut stream_write,
-                inactivity_timer.as_mut(),
-            )
-            .await?;
+            self.common.packet_writer.write_now(&mut stream_write).map_err(crate::Error::from)?;
 
             if self.common.received_data {
                 // Reset the number of failed keepalive attempts. We don't
@@ -864,6 +865,13 @@ impl Session {
             }
         }
         debug!("disconnected");
+        // What waits goes before the end, within a bound, as a peer that
+        // reads nothing must not hold it (podssh's patch, T-772).
+        let _ = tokio::time::timeout(
+            crate::FINAL_WRITE,
+            self.common.packet_writer.flush_into(&mut stream_write),
+        )
+        .await;
         // Shutdown
         map_err!(stream_write.shutdown().await)?;
         loop {

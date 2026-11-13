@@ -110,7 +110,7 @@ on T-698.
 
 - russh is 0.65.0, not 0.64.1, and the tree builds it from `vendor/russh` with podssh's patches,
   through `[patch.crates-io]` of the workspace (`Cargo.toml:216`). Its server module is still built
-  on each target but wasm (`vendor/russh/src/lib_inner.rs:69-70`). `auth_publickey` now takes a
+  on each target but wasm (`vendor/russh/src/lib_inner.rs:67-68`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
   still sends no reply (`vendor/russh/src/server/mod.rs:688-693`), and a channel request that russh does
@@ -288,7 +288,7 @@ the entry joins the work order by its priority.
 - `exit-signal` is not a method of russh's `ChannelWriteHalf`; the connection's `Handle` sends it
   (`vendor/russh/src/server/session.rs:440-461`) through the same queue as the channel's writers,
   so the order of Approach item 6 holds. `Sig` has no `PartialEq`, and its own `name` and
-  `from_name` are private (`vendor/russh/src/lib_inner.rs:353-389`): `crates/podssh-ssh/src/signals.rs:26-64`
+  `from_name` are private (`vendor/russh/src/lib_inner.rs:351-387`): `crates/podssh-ssh/src/signals.rs:26-64`
   becomes one table read both ways (`number` and `from_number`); a number with no name is sent as
   OpenSSH's `SIG@openssh.com`.
 - The Decision's `TERM`: with no pty there is none, as under sshd; T-110 sets it from `pty-req`.
@@ -447,9 +447,9 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `1b5008e`:
 
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction). A `ChannelOpenHandle` that is dropped
-  still refuses with `AdministrativelyProhibited` (`vendor/russh/src/lib_inner.rs:610-619`), and
+  still refuses with `AdministrativelyProhibited` (`vendor/russh/src/lib_inner.rs:607-616`), and
   `ChannelOpenFailure::Other { code, reason }` sends its own code and words
-  (`vendor/russh/src/lib_inner.rs:433-453`; the reply at `vendor/russh/src/server/session.rs:1119-1150`):
+  (`vendor/russh/src/lib_inner.rs:431-451`; the reply at `vendor/russh/src/server/session.rs:1127-1158`):
   so a refusal of code 2 with the dial's words is `Other { code: 2, .. }`, as `ConnectFailed` carries
   the fixed words "Connect failed". russh's client maps code 2 back to `ConnectFailed` and gives the
   words to its handler's `channel_open_failure` alone (`vendor/russh/src/client/encrypted.rs:582-612`),
@@ -815,9 +815,14 @@ the manual (`notes_serve.rs`, the flag's row) and `docs/cli.md` say so.
   x86_64-pc-windows-gnu`: clean; rustfmt: clean.
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,856 passed, none failed.
 
-Left: the Prove's `sh scripts/dev.sh check` (the build image, T-251; CI's gate runs the same), and its
-box step (a new step of `scripts/test_in_box.sh` that drives `podssh serve --stdio` in the box with
-`podman exec -i` from OpenSSH on the host).
+The box's step, 2026-11-13: `BOX_RUN=line sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh`
+(the binary of `scripts/box/build-podssh.sh`), exit 0: the box keeps running after its probe, and
+`scripts/box/line-session.sh` on the host runs OpenSSH 9.6p1's `ssh -tt` into `podssh serve --stdio` in the box
+through `podman exec -i`; with no `/dev/ptmx` and `unshare` refused there, serve took the line discipline by
+itself (`--pty auto`), with the box's busybox `sh`: `AFTER-130` after Ctrl-C, and exit 9, in 12 s (11 s of them
+the script's own pauses), within the Prove's 15 s.
+
+Left: the Prove's `sh scripts/dev.sh check` (the build image, T-251; CI's gate runs the same at each push).
 
 # T-112: An SFTP server in `podssh serve`
 
@@ -1036,13 +1041,13 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:519`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:520`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:527`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:528`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
-  `connect()` (`scripts/test_in_box.sh:49-56`).
+  `connect()` (`scripts/test_in_box.sh:55-62`).
 
 ## Approach
 
@@ -1720,7 +1725,7 @@ for each channel that a key's rules let open; a forward that the rules refuse ne
 Correction):
 
 - Data past a peer's window still waits in each channel's `pending_data`
-  (`vendor/russh/src/lib_inner.rs:512`), and the server's loop takes no message from a `Handle` while
+  (`vendor/russh/src/lib_inner.rs:510`), and the server's loop takes no message from a `Handle` while
   any channel holds some (`vendor/russh/src/server/session.rs:704` and `vendor/russh/src/server/session.rs:814`).
   But serve's output never puts data there: each output goes through a channel's writer, which waits
   for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
@@ -2297,7 +2302,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:519`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:520`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:238-240`).
@@ -2353,7 +2358,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:466`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:467`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2371,10 +2376,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:518` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:466`, `docs/STATUS.md:486`),
+- `docs/STATUS.md:519` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:467`, `docs/STATUS.md:487`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:464` is `docs/STATUS.md:466`.
+  The Prove's `docs/STATUS.md:465` is `docs/STATUS.md:467`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:224`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2433,10 +2438,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-127`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:519`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:520`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:482`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:483`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2520,8 +2525,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:518`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:481`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:519`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:482`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2763,11 +2768,11 @@ Read at `2042200`:
   and the key exchange and the login run in the session that
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
-  (`vendor/russh/src/server/session.rs:859-863`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2242-2243` says "a cap on connections at
+  (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2247-2248` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
-  `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
+  `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".
 
 ## Approach
 

@@ -857,7 +857,7 @@ Read:
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
-  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:812-832`, 14 of 14 since T-236).
+  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:813-833`, 14 of 14 since T-236).
 - The time limits that latency meets today: the SSH handshake, 60 s
   (`crates/podssh-ssh/src/options.rs:390`, enforced at
   `crates/podssh-ssh/src/run.rs:402-405`); a reply, 30 s
@@ -991,7 +991,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
 - `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:68-70`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
-  (`docs/STATUS.md:236`, `docs/STATUS.md:242`).
+  (`docs/STATUS.md:237`, `docs/STATUS.md:243`).
 - A correction to the framing of #34: for a signal, podssh differs from
   OpenSSH on purpose. `docs/cli.md:6196-6197` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
@@ -2409,7 +2409,7 @@ way through the same server.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2439,3 +2439,22 @@ cargo test -p podssh-ssh --test serve_exec
 ```
 
 With the pipe at 64 KiB, `stdin_comes_back_whole` passes.
+
+## Done
+
+Done 2026-11-13. The cause, read in `vendor/russh`: after each step, the server's loop
+(`src/server/session.rs`) and the client's (`src/client/mod.rs`) awaited `flush_or_timeout`, the whole write of
+the batch, and polled no read meanwhile; with both ends russh and a pipe smaller than both batches, each waited in
+its write for the other's read. podssh's patch `vendor/patches/russh/0011-write-beside-read.patch`: the loop writes
+what the stream takes at once (`PacketWriter::write_now`), keeps the rest behind an offset, and writes it in its
+`select!` beside the read (`write_some`, then the stream's flush); it takes no new application message while 1 MiB
+waits, and stops reading too past 16 MiB, so a peer that reads nothing holds bounded memory; the last write before a
+shutdown has 10 s. Its row in `vendor/README.md`; eleven patches in AGENTS.md and the root `Cargo.toml`.
+
+- `cargo test -p podssh-ssh --test serve_exec` with the pipe at 64 KiB (`tokio::io::duplex(1 << 16)`): 12 passed,
+  `stdin_comes_back_whole` among them, and the new `four_mib_each_way_at_once_over_a_pipe_of_64_kib` (4 MiB each
+  way at once through `cat`, russh at both ends).
+- The plant `t772-whole-write` (`write_now` waits for the whole write again): caught.
+- Clippy as the gate runs it on the workspace: clean; check-repo: pass.
+- `cargo test --workspace --no-fail-fast`: 4,107 passed, none failed.
+

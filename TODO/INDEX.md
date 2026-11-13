@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 60 open, 29 partial, 13 blocked, 631 done.**
+**733 entries: 59 open, 29 partial, 13 blocked, 632 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 49 | 8 | 7 | 282 | 346 |
-| **All** | 60 | 29 | 13 | 631 | 733 |
+| P3 | 48 | 8 | 7 | 283 | 346 |
+| **All** | 59 | 29 | 13 | 632 | 733 |
 
 ## Entries
 
@@ -802,7 +802,7 @@ repository and CI).
 | [T-769](robustness.md) | P1 | S | M10 | defect | done | The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes |
 | [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |
 | [T-771](repo.md) | P3 | M | M10 | chore | done | 38 of the 307 planted defects no longer apply to the tree |
-| [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
+| [T-772](robustness.md) | P3 | M | M10 | defect | done | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
 | [T-774](serve.md) | P2 | S | M5 | defect | done | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |
 | [T-775](serve.md) | P2 | M | M5 | feature | done | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |

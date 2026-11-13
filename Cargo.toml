@@ -213,7 +213,7 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
-# russh 0.65.0 as published, with ten patches of podssh's
+# russh 0.65.0 as published, with eleven patches of podssh's
 # (`vendor/patches/russh/`, `vendor/README.md` says what each does). Three
 # of them, for example. T-460: the data of a reply
 # to a global request that the request needs none of is dropped, where russh

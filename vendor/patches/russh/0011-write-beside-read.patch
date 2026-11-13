@@ -1,0 +1,307 @@
+diff --git a/src/client/mod.rs b/src/client/mod.rs
+index 4fa2afe..2184ae2 100644
+--- a/src/client/mod.rs
++++ b/src/client/mod.rs
+@@ -1428,6 +1428,8 @@ impl Session {
+         self.receiver.close();
+         self.priority_receiver.close();
+         self.inbound_channel_receiver.close();
++        // What waits goes before the end, within a bound (podssh's patch, T-772).
++        let _ = tokio::time::timeout(crate::FINAL_WRITE, self.common.packet_writer.flush_into(&mut stream_write)).await;
+         map_err!(stream_write.shutdown().await)?;
+         match result {
+             Ok(v) => {
+@@ -1495,12 +1497,22 @@ impl Session {
+             // Keep reading the network for window adjustments, but leave
+             // application output in its bounded receivers while a channel is
+             // window-blocked.
+-            let can_receive_outbound = !self.kex.active() && !self.common.has_any_pending_data();
++            // Application output waits in its receivers while the stream
++            // holds a bound of unwritten bytes; the read goes on beside the
++            // write, up to a larger bound (podssh's patch, T-772).
++            let can_receive_outbound = !self.kex.active()
++                && !self.common.has_any_pending_data()
++                && self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
++            let can_read = self.common.packet_writer.unwritten() < crate::OUTPUT_MOST;
++            let wants_write = self.common.packet_writer.wants_write();
+             let rekey_timer =
+                 crate::future_or_pending(self.rekey_time_remaining(), tokio::time::sleep);
+             pin!(rekey_timer);
+             tokio::select! {
+-                r = &mut reading => {
++                r = self.common.packet_writer.write_some(stream_write), if wants_write => {
++                    r.map_err(crate::Error::from)?;
++                }
++                r = &mut reading, if can_read => {
+                     let (stream_read, mut buffer, mut opening_cipher) = match r {
+                         Ok((_, stream_read, buffer, opening_cipher)) => (stream_read, buffer, opening_cipher),
+                         Err(e) => return Err(e.into())
+@@ -1609,12 +1621,8 @@ impl Session {
+             };
+ 
+             self.flush()?;
+-            crate::flush_or_timeout(
+-                &mut self.common.packet_writer,
+-                stream_write,
+-                inactivity_timer.as_mut(),
+-            )
+-            .await?;
++            // What the stream takes now; the rest in the select! above.
++            self.common.packet_writer.write_now(stream_write).map_err(crate::Error::from)?;
+ 
+             if let Some(ref mut enc) = self.common.encrypted
+                 && let EncryptedState::InitCompression = enc.state
+diff --git a/src/lib_inner.rs b/src/lib_inner.rs
+index 5bb73a1..e94a45d 100644
+--- a/src/lib_inner.rs
++++ b/src/lib_inner.rs
+@@ -1,15 +1,13 @@
+ use std::convert::TryFrom;
+ use std::fmt::{Debug, Display, Formatter};
+ use std::future::{Future, Pending};
+-use std::pin::Pin;
+ 
+ use futures::future::Either as EitherFuture;
+-use log::{debug, warn};
++use log::warn;
+ use parsing::ChannelOpenConfirmation;
+ pub use russh_cryptovec::CryptoVec;
+ use ssh_encoding::{Decode, Encode};
+ use thiserror::Error;
+-use tokio::io::AsyncWrite;
+ 
+ #[cfg(test)]
+ mod tests;
+@@ -530,19 +528,18 @@ impl ChannelParams {
+     }
+ }
+ 
+-pub(crate) async fn flush_or_timeout<W: AsyncWrite + Unpin>(
+-    writer: &mut sshbuffer::PacketWriter,
+-    stream: &mut W,
+-    inactivity_timer: Pin<&mut impl Future<Output = ()>>,
+-) -> Result<(), Error> {
+-    tokio::select! {
+-        r = writer.flush_into(stream) => Ok(r?),
+-        _ = inactivity_timer => {
+-            debug!("timeout while writing");
+-            Err(Error::InactivityTimeout)
+-        }
+-    }
+-}
++/// The bytes that may wait for the stream before a session loop takes no
++/// more of its application's messages (podssh's patch, T-772).
++pub(crate) const OUTPUT_ROOM: usize = 1 << 20;
++
++/// The bytes that may wait for the stream before a session loop stops
++/// reading too, so that a peer that reads nothing holds no more of its
++/// memory (podssh's patch, T-772).
++pub(crate) const OUTPUT_MOST: usize = 16 << 20;
++
++/// The bound of the last write of a session loop, before its shutdown
++/// (podssh's patch, T-772).
++pub(crate) const FINAL_WRITE: std::time::Duration = std::time::Duration::from_secs(10);
+ 
+ /// Returns `f(val)` if `val` it is [Some], or a forever pending [Future] if it is [None].
+ pub(crate) fn future_or_pending<R, F: Future<Output = R>, T>(
+diff --git a/src/server/session.rs b/src/server/session.rs
+index 6f838db..aa03435 100644
+--- a/src/server/session.rs
++++ b/src/server/session.rs
+@@ -701,7 +701,8 @@ impl Session {
+             // Leave application messages in the bounded receiver once a peer's
+             // channel window is exhausted. Network reads remain active so a
+             // window adjustment can release the queued data.
+-            if !self.kex.active() && !self.common.has_any_pending_data() {
++            let room = self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
++            if !self.kex.active() && !self.common.has_any_pending_data() && room {
+                 let mut drained = 0;
+                 while drained < MAX_MESSAGES_PER_BATCH {
+                     // Only Empty/Disconnected end the drain; both mean "nothing
+@@ -721,12 +722,9 @@ impl Session {
+                 }
+                 if drained > 0 {
+                     self.flush()?;
+-                    crate::flush_or_timeout(
+-                        &mut self.common.packet_writer,
+-                        &mut stream_write,
+-                        inactivity_timer.as_mut(),
+-                    )
+-                    .await?;
++                    // What the stream takes now; the rest goes in the
++                    // select!, beside the read (podssh's patch, T-772).
++                    self.common.packet_writer.write_now(&mut stream_write).map_err(crate::Error::from)?;
+                 }
+                 // A drained Disconnect sets this; don't block in `select!` after.
+                 if self.common.disconnected {
+@@ -737,8 +735,16 @@ impl Session {
+             let rekey_timer = future_or_pending(self.rekey_time_remaining(), tokio::time::sleep);
+             pin!(rekey_timer);
+ 
++            // Read while output waits, up to a bound past which the peer
++            // must read first (podssh's patch, T-772).
++            let room = self.common.packet_writer.unwritten() < crate::OUTPUT_ROOM;
++            let can_read = self.common.packet_writer.unwritten() < crate::OUTPUT_MOST;
++            let wants_write = self.common.packet_writer.wants_write();
+             tokio::select! {
+-                r = &mut reading => {
++                r = self.common.packet_writer.write_some(&mut stream_write), if wants_write => {
++                    r.map_err(crate::Error::from)?;
++                }
++                r = &mut reading, if can_read => {
+                     let (stream_read, mut buffer, mut opening_cipher) = match r {
+                         Ok((_, stream_read, buffer, opening_cipher)) => (stream_read, buffer, opening_cipher),
+                         Err(e) => return Err(e.into())
+@@ -811,7 +817,7 @@ impl Session {
+                         }
+                     }
+                 }
+-                msg = self.receiver.recv(), if !self.kex.active() && !self.common.has_any_pending_data() => {
++                msg = self.receiver.recv(), if !self.kex.active() && !self.common.has_any_pending_data() && room => {
+                     // Channel open replies must be dispatched before any
+                     // channel traffic queued after them: `msg` may be data for
+                     // a channel whose confirmation is still sitting in the
+@@ -831,12 +837,7 @@ impl Session {
+             }
+             self.flush()?;
+ 
+-            crate::flush_or_timeout(
+-                &mut self.common.packet_writer,
+-                &mut stream_write,
+-                inactivity_timer.as_mut(),
+-            )
+-            .await?;
++            self.common.packet_writer.write_now(&mut stream_write).map_err(crate::Error::from)?;
+ 
+             if self.common.received_data {
+                 // Reset the number of failed keepalive attempts. We don't
+@@ -864,6 +865,13 @@ impl Session {
+             }
+         }
+         debug!("disconnected");
++        // What waits goes before the end, within a bound, as a peer that
++        // reads nothing must not hold it (podssh's patch, T-772).
++        let _ = tokio::time::timeout(
++            crate::FINAL_WRITE,
++            self.common.packet_writer.flush_into(&mut stream_write),
++        )
++        .await;
+         // Shutdown
+         map_err!(stream_write.shutdown().await)?;
+         loop {
+diff --git a/src/sshbuffer.rs b/src/sshbuffer.rs
+index 4a5bd81..349049f 100644
+--- a/src/sshbuffer.rs
++++ b/src/sshbuffer.rs
+@@ -397,6 +397,11 @@ pub(crate) struct PacketWriter {
+     compress: Compress,
+     packet_buffer: Vec<u8>,
+     write_buffer: SSHBuffer,
++    /// The bytes at the front of the buffer that a write took already, so
++    /// that a loop can read while the rest waits (podssh's patch).
++    sent: usize,
++    /// False after a write, until the stream's flush completed.
++    flushed: bool,
+ }
+ 
+ impl Debug for PacketWriter {
+@@ -418,7 +423,10 @@ impl PacketWriter {
+     /// The bytes written so far, taken out; the sequence numbers stay.
+     /// podssh's patch (vendor/patches/russh/).
+     pub fn take_output(&mut self) -> Vec<u8> {
+-        std::mem::take(&mut self.write_buffer.buffer).to_vec()
++        let sent = std::mem::take(&mut self.sent);
++        let mut out = std::mem::take(&mut self.write_buffer.buffer);
++        out.drain(..sent);
++        out
+     }
+ 
+     pub fn clear() -> Self {
+@@ -431,6 +439,8 @@ impl PacketWriter {
+             compress,
+             packet_buffer: Vec::new(),
+             write_buffer: SSHBuffer::new(),
++            sent: 0,
++            flushed: true,
+         }
+     }
+ 
+@@ -619,10 +629,76 @@ impl PacketWriter {
+     }
+ 
+     pub async fn flush_into<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
+-        if !self.write_buffer.buffer.is_empty() {
+-            w.write_all(&self.write_buffer.buffer).await?;
++        if self.unwritten() > 0 {
++            w.write_all(&self.write_buffer.buffer[self.sent..]).await?;
++            self.write_buffer.buffer.clear();
++            self.sent = 0;
++            self.flushed = false;
++        }
++        if !self.flushed {
+             w.flush().await?;
++            self.flushed = true;
++        }
++        Ok(())
++    }
++
++    /// The bytes that wait for the stream (podssh's patch).
++    pub fn unwritten(&self) -> usize {
++        self.write_buffer.buffer.len() - self.sent
++    }
++
++    /// Whether bytes, or a flush, wait for the stream: the loop then writes
++    /// in its `select!` while it reads (podssh's patch).
++    pub fn wants_write(&self) -> bool {
++        self.unwritten() > 0 || !self.flushed
++    }
++
++    fn advance(&mut self, n: usize) {
++        self.sent += n;
++        self.flushed = false;
++        if self.sent >= self.write_buffer.buffer.len() {
+             self.write_buffer.buffer.clear();
++            self.sent = 0;
++        }
++    }
++
++    /// Write what the stream takes now, and wait for nothing: where both
++    /// ends of a pipe smaller than their batches wait in a whole write,
++    /// neither reads, and both stop (podssh's patch, T-772). The rest goes in
++    /// the loop's `select!` by [`PacketWriter::write_some`].
++    pub fn write_now<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
++        use futures::FutureExt;
++        while self.unwritten() > 0 {
++            match w.write(&self.write_buffer.buffer[self.sent..]).now_or_never() {
++                Some(Ok(0)) => return Err(std::io::ErrorKind::WriteZero.into()),
++                Some(Ok(n)) => self.advance(n),
++                Some(Err(e)) => return Err(e),
++                None => return Ok(()),
++            }
++        }
++        if !self.flushed {
++            match w.flush().now_or_never() {
++                Some(Ok(())) => self.flushed = true,
++                Some(Err(e)) => return Err(e),
++                None => {}
++            }
++        }
++        Ok(())
++    }
++
++    /// One write of what waits, or its flush: cancel-safe, for a branch of
++    /// `select!` beside the read (podssh's patch).
++    pub async fn write_some<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
++        if self.unwritten() > 0 {
++            let n = w.write(&self.write_buffer.buffer[self.sent..]).await?;
++            if n == 0 {
++                return Err(std::io::ErrorKind::WriteZero.into());
++            }
++            self.advance(n);
++        }
++        if self.unwritten() == 0 && !self.flushed {
++            w.flush().await?;
++            self.flushed = true;
+         }
+         Ok(())
+     }

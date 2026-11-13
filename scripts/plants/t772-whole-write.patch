@@ -1,0 +1,14 @@
+--- a/vendor/russh/src/sshbuffer.rs
++++ b/vendor/russh/src/sshbuffer.rs
+@@ -668,6 +668,11 @@
+     /// the loop's `select!` by [`PacketWriter::write_some`].
+     pub fn write_now<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
+         use futures::FutureExt;
++        if self.unwritten() > 0 {
++            futures::executor::block_on(w.write_all(&self.write_buffer.buffer[self.sent..]))?;
++            let all = self.unwritten();
++            self.advance(all);
++        }
+         while self.unwritten() > 0 {
+             match w.write(&self.write_buffer.buffer[self.sent..]).now_or_never() {
+                 Some(Ok(0)) => return Err(std::io::ErrorKind::WriteZero.into()),

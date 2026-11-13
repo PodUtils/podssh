@@ -397,6 +397,11 @@ pub(crate) struct PacketWriter {
     compress: Compress,
     packet_buffer: Vec<u8>,
     write_buffer: SSHBuffer,
+    /// The bytes at the front of the buffer that a write took already, so
+    /// that a loop can read while the rest waits (podssh's patch).
+    sent: usize,
+    /// False after a write, until the stream's flush completed.
+    flushed: bool,
 }
 
 impl Debug for PacketWriter {
@@ -418,7 +423,10 @@ impl PacketWriter {
     /// The bytes written so far, taken out; the sequence numbers stay.
     /// podssh's patch (vendor/patches/russh/).
     pub fn take_output(&mut self) -> Vec<u8> {
-        std::mem::take(&mut self.write_buffer.buffer).to_vec()
+        let sent = std::mem::take(&mut self.sent);
+        let mut out = std::mem::take(&mut self.write_buffer.buffer);
+        out.drain(..sent);
+        out
     }
 
     pub fn clear() -> Self {
@@ -431,6 +439,8 @@ impl PacketWriter {
             compress,
             packet_buffer: Vec::new(),
             write_buffer: SSHBuffer::new(),
+            sent: 0,
+            flushed: true,
         }
     }
 
@@ -619,10 +629,76 @@ impl PacketWriter {
     }
 
     pub async fn flush_into<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
-        if !self.write_buffer.buffer.is_empty() {
-            w.write_all(&self.write_buffer.buffer).await?;
-            w.flush().await?;
+        if self.unwritten() > 0 {
+            w.write_all(&self.write_buffer.buffer[self.sent..]).await?;
             self.write_buffer.buffer.clear();
+            self.sent = 0;
+            self.flushed = false;
+        }
+        if !self.flushed {
+            w.flush().await?;
+            self.flushed = true;
+        }
+        Ok(())
+    }
+
+    /// The bytes that wait for the stream (podssh's patch).
+    pub fn unwritten(&self) -> usize {
+        self.write_buffer.buffer.len() - self.sent
+    }
+
+    /// Whether bytes, or a flush, wait for the stream: the loop then writes
+    /// in its `select!` while it reads (podssh's patch).
+    pub fn wants_write(&self) -> bool {
+        self.unwritten() > 0 || !self.flushed
+    }
+
+    fn advance(&mut self, n: usize) {
+        self.sent += n;
+        self.flushed = false;
+        if self.sent >= self.write_buffer.buffer.len() {
+            self.write_buffer.buffer.clear();
+            self.sent = 0;
+        }
+    }
+
+    /// Write what the stream takes now, and wait for nothing: where both
+    /// ends of a pipe smaller than their batches wait in a whole write,
+    /// neither reads, and both stop (podssh's patch, T-772). The rest goes in
+    /// the loop's `select!` by [`PacketWriter::write_some`].
+    pub fn write_now<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
+        use futures::FutureExt;
+        while self.unwritten() > 0 {
+            match w.write(&self.write_buffer.buffer[self.sent..]).now_or_never() {
+                Some(Ok(0)) => return Err(std::io::ErrorKind::WriteZero.into()),
+                Some(Ok(n)) => self.advance(n),
+                Some(Err(e)) => return Err(e),
+                None => return Ok(()),
+            }
+        }
+        if !self.flushed {
+            match w.flush().now_or_never() {
+                Some(Ok(())) => self.flushed = true,
+                Some(Err(e)) => return Err(e),
+                None => {}
+            }
+        }
+        Ok(())
+    }
+
+    /// One write of what waits, or its flush: cancel-safe, for a branch of
+    /// `select!` beside the read (podssh's patch).
+    pub async fn write_some<W: AsyncWrite + Unpin>(&mut self, w: &mut W) -> std::io::Result<()> {
+        if self.unwritten() > 0 {
+            let n = w.write(&self.write_buffer.buffer[self.sent..]).await?;
+            if n == 0 {
+                return Err(std::io::ErrorKind::WriteZero.into());
+            }
+            self.advance(n);
+        }
+        if self.unwritten() == 0 && !self.flushed {
+            w.flush().await?;
+            self.flushed = true;
         }
         Ok(())
     }

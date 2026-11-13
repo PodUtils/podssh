@@ -52,9 +52,9 @@ impl client::Handler for Trusting {
 
 /// A logged-in connection to a new server with `settings`.
 async fn connect(settings: Settings) -> client::Handle<Trusting> {
-    // Room for a batch of each end: two russh loops on a pipe of 64 KiB
-    // stop each other (T-772).
-    let (near, far) = tokio::io::duplex(1 << 22);
+    // A pipe of 64 KiB, smaller than a batch of either russh loop: each
+    // writes what the pipe takes and reads beside its write (T-772).
+    let (near, far) = tokio::io::duplex(1 << 16);
     let login = key();
     let mut authorized = Authorized::new();
     authorized.add(login.public_key().key_data().clone());
@@ -207,6 +207,41 @@ async fn stdin_comes_back_whole() {
     .expect("cat ends in time");
     let _write = writer.await.unwrap();
     assert_eq!(status, Some(0));
+    assert_eq!(back.len(), sent.len());
+    assert!(back == sent, "the bytes came back changed");
+}
+
+/// 4 MiB each way at once through `cat`, over the pipe of 64 KiB with russh
+/// at both ends: neither loop waits in a whole write while the other does
+/// (T-772).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn four_mib_each_way_at_once_over_a_pipe_of_64_kib() {
+    let handle = connect(settings()).await;
+    let channel = handle.channel_open_session().await.unwrap();
+    channel.exec(true, "cat").await.unwrap();
+    let sent: Vec<u8> = (0..4u32 << 20).map(|i| (i.wrapping_mul(2_654_435_761) >> 24) as u8).collect();
+    let (mut read, write) = channel.split();
+    let body = sent.clone();
+    let writer = tokio::spawn(async move {
+        for chunk in body.chunks(256 * 1024) {
+            write.data(chunk).await.unwrap();
+        }
+        write.eof().await.unwrap();
+        write
+    });
+    let mut back = Vec::with_capacity(sent.len());
+    tokio::time::timeout(LIMIT, async {
+        while let Some(message) = read.wait().await {
+            match message {
+                ChannelMsg::Data { data } => back.extend_from_slice(&data),
+                ChannelMsg::Close => break,
+                _ => {}
+            }
+        }
+    })
+    .await
+    .unwrap_or_else(|_| panic!("cat gave {} of {} bytes in time", back.len(), sent.len()));
+    let _write = writer.await.unwrap();
     assert_eq!(back.len(), sent.len());
     assert!(back == sent, "the bytes came back changed");
 }
