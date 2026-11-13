@@ -343,7 +343,7 @@ build image (T-251).
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -386,25 +386,127 @@ Pitfalls: `direct-streamlocal@openssh.com` (AF_UNIX) stays refused here; T-040
 is the client side. A host name that `check_name` refuses
 (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:345-354`) gets that reason, not a generic one.
 
+## Decision
+
+Recommendation, followed by the draft of 2026-11-13: a forward dials any host and port that the
+client asks for, as OpenSSH's sshd does by default (`AllowTcpForwarding yes`, `PermitOpen any`), and
+`--no-forwarding` refuses each one. Whoever holds an authorized key is the cage's owner, and with
+`exec` could dial the same target with any tool of the cage; the limits of one key (`permitopen=`,
+`no-port-forwarding`, `restrict`) are T-114's, and the check sits in one function
+(`server::direct::check`) for it to extend. No ruling of `docs/decisions.md` limits what a server in
+the cage may dial: rule 2 of `AGENTS.md` is about podssh's own way out, and this dial is the payload
+that the user asked for on each channel, as the relay role's dials of its clients' targets are
+(`crates/podssh-relay/src/serve/sshd.rs:11-16`). The dial is podssh's own
+(`crates/podssh-ws/src/dial.rs:86-88`), so it takes the cage's proxy where one is set, and the
+loopback and `NO_PROXY` go directly.
+
+Lost: the loopback alone (a cage's services are often on another host of its network, a database
+or the next hop of `-J`, and a key with `exec` passes such a limit anyway); the relay role's policy
+of targets, which refuses the loopback (its clients are not its owner, and the loopback is where a
+cage's own services are); a list of targets on the command line (`--permit-open`), which T-114's
+`permitopen=` gives for each key, and which no user has asked for.
+
+Bounds: 20 s for each dial (the Approach), and 256 forwards open at once on one connection, past
+which one more is refused with `ResourceShortage`: a browser through `-L` opens tens of connections
+at once, and 256 keeps each descriptor of a cage from one client.
+
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_forward
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_forward --test serve_auth
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::direct
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_forward_openssh --test serve_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t109-reason-dropped
 sh scripts/dev.sh check
 ```
 
-The test file crates/podssh-ssh/tests/serve_forward.rs checks the reason text
-of a refused dial and the forward limit. In the gate, scripts/interop-serve.sh
-gives OpenSSH a `Host serve` block whose `ProxyCommand` runs
-`podssh serve --stdio`: `ssh -W 127.0.0.1:2203 serve` reads Dropbear's banner;
-`ssh -J serve -p 2201 podtest@127.0.0.1 'exit 5'` exits 5 through OpenSSH's
-sshd; `ssh -W 127.0.0.1:1 serve` exits 255 and shows "Connection refused". A
-planted rejection with no reason fails that last check.
+crates/podssh-ssh/tests/serve_forward.rs, with russh's client over a pipe: a forward to an echo
+listener of the test carries 1,000,000 bytes both ways, equal, and the target sees the client's EOF
+as a half-close; a target that ends first gives its bytes, then EOF, the other way stays open for
+the client's bytes, and the close follows the client's EOF; a dial to a port where nothing listens
+is refused with code 2 and words that name the target and the system's reason; a port of 0 or past
+65535 and a name that is no host name are refused with code 2 and why; `--no-forwarding` refuses
+with code 1 and names the flag; past the bound of open forwards, `ResourceShortage`, and the place
+comes back when a forward ends. Against OpenSSH's client with `podssh serve --stdio` as its
+ProxyCommand, crates/podssh-cli/tests/serve_forward_openssh.rs (the gate's tests, where the image has
+OpenSSH; "did not run" where a host has none): `ssh -W 127.0.0.1:PORT` to an echo carries 1,000,000
+bytes each way, equal, and exits 0; `-W` to a closed port exits 255 with `connect failed: podssh
+serve: ... Connection refused`; `--no-forwarding` gives `administratively prohibited` and its name,
+and a command still runs; `-N -L` carries 200,000 bytes through OpenSSH's own listener; `-J` reaches a
+second `podssh serve --stdio` behind a listener of the test and exits 5 with its `exit 5`. The plant
+`t109-reason-dropped` (a failed dial refused with russh's fixed `Connect failed`) fails the test of
+the refused dial.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The Premise, read again at `1b5008e`:
+
+- russh is 0.65.0 from `vendor/russh` (T-107's Correction). A `ChannelOpenHandle` that is dropped
+  still refuses with `AdministrativelyProhibited` (`vendor/russh/src/lib_inner.rs:610-619`), and
+  `ChannelOpenFailure::Other { code, reason }` sends its own code and words
+  (`vendor/russh/src/lib_inner.rs:433-453`; the reply at `vendor/russh/src/server/session.rs:1096-1127`):
+  so a refusal of code 2 with the dial's words is `Other { code: 2, .. }`, as `ConnectFailed` carries
+  the fixed words "Connect failed". russh's client maps code 2 back to `ConnectFailed` and gives the
+  words to its handler's `channel_open_failure` alone (`vendor/russh/src/client/encrypted.rs:582-612`),
+  after it woke the opener: the test waits for them there.
+- The dialer is no longer in `crates/podssh-ws/src/dial.rs` at the cited lines: `dial` is a thin call
+  of `pod-proxy`'s `Dialer` (`crates/podssh-ws/src/dial.rs:86-88`, `PodUtils/podcrates:crates/pod-proxy/src/dial.rs`),
+  which reads the proxy variables at each dial, sends a loopback target directly
+  (`crates/podssh-ws/src/dial.rs:73-81`, `Rules::loopback_direct` of pod-proxy) and checks the name
+  first. `check_name` is `pod-proxy`'s (`PodUtils/podcrates:crates/pod-proxy/src/host.rs`), re-exported
+  at `crates/podssh-ws/src/dial.rs:21`; its refusal is a `DialError::InvalidTarget`, whose words
+  ("invalid destination: ... is not a host name") reach the client as any dial's do. A dial's words
+  are `DialError`'s own: "could not connect to HOST:PORT: Connection refused (os error 111)", the
+  proxy's "refused CONNECT HOST:PORT: STATUS REASON", or "timed out after 20s".
+- `crates/podssh-ssh/src/forward.rs:39-110` is the client's `-W` on stdin and stdout, not a copy
+  with half-close to reuse: the server's copy is its own (`crates/podssh-ssh/src/server/direct.rs`),
+  as it must tell the client's EOF from its close, which russh's channel stream reads alike; it ends
+  the TCP connection when the client closes the channel, as `agent_forward::splice` ends its socket.
+- Approach item 5's `crates/podssh-cli/src/flags.rs` is `crates/podssh-cli/src/flags/serve.rs` since
+  T-107. `podssh serve` has no relay or node road (T-107's Done), so `--stdio` is the one way in.
+- The Prove's scripts/interop-serve.sh is a test of the CLI crate, crates/podssh-cli/tests/serve_forward_openssh.rs,
+  as T-107 and T-108 made theirs. It has no Dropbear and no OpenSSH sshd on fixed ports to reach,
+  so `-W` reads an echo listener of the test, and `-J` reaches a second `podssh serve --stdio` behind a
+  listener of the test, with OpenSSH's client at both hops; the Prove names it.
+- T-108 left a test that waited for this entry: crates/podssh-ssh/tests/serve_auth.rs's
+  `a_subsystem_and_direct_tcpip_are_refused_with_an_answer` is now `a_subsystem_is_refused_with_an_answer`,
+  the subsystem still refused (T-112), and direct-tcpip's answers are `serve_forward`'s. The plant
+  `t107-accept-each-key` has its hunk moved to the handler's new lines.
+- russh's server adjusts a channel's window when the data arrives (T-108's Correction): the bytes
+  for a target that reads slowly wait in the channel's queue of 100 messages, then the whole
+  connection waits, as for a child's stdin; the window of each channel apart is T-118's.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t109` (no build, no test run): the forward in
+crates/podssh-ssh/src/server/direct.rs (the check of the policy and the port, the bound on open
+forwards, the dial on a task of its own with `podssh_ws::dial::dial` and 20 s, the refusal of code 2
+with the dial's words, the copy both ways with half-close), `channel_open_direct_tcpip` in the
+handler, `no_forwarding` and `max_forwards` in `Settings`; `--no-forwarding` in
+crates/podssh-cli/src/flags/serve.rs and `serve.rs`; the manual's note (crates/podssh-cli/src/man/notes_serve.rs),
+`docs/cli.md` ("Forwards into the cage"), a row of `docs/STATUS.md`, the tests of the Prove, the plant
+`t109-reason-dropped`, and the change of T-108's test in serve_auth.rs (Correction). Results:
+
+Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --test serve_forward --test serve_auth`: 6 and 7 passed.
+- `cargo test -p podssh-ssh --lib server::direct`: 4 passed.
+- `cargo test -p podssh-cli --test serve_forward_openssh --test serve_openssh --test serve_stdio` (OpenSSH 9.6's
+  client: `-W`, `-N -L`, `-J` to a second serve, the refusals): 5, 7 and 3 passed.
+- The tables and the manual: `flag_table` 9, `man_flag_parity` 6, `man_json` 4, `--lib man::` 60 passed.
+- The plant `t109-reason-dropped`: caught; `t107-accept-each-key` and `t108-whole-environment`, their hunks moved:
+  caught.
+- Clippy: `fetch_update` of the forward's count is `try_update` on Rust 1.99; then clean, and rustfmt clean.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,756 passed, 0 failed.
+
+Left after the merge: `cargo todo remap` on each cited file that the draft changed
+(`crates/podssh-ssh/src/server/handler.rs`, `crates/podssh-ssh/src/server/mod.rs`, `docs/cli.md`,
+`docs/STATUS.md`, the CLI's files) and `cargo todo counts`; the run in the build image (T-251).
 
 # T-110: `podssh serve`: a real pty when `/dev/ptmx` exists
 
@@ -667,10 +769,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:251-255`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:489`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:490`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:497`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:498`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1579,7 +1681,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:489`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:490`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -1635,7 +1737,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:452`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:453`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -1653,10 +1755,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:488` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:452`, `docs/STATUS.md:472`),
+- `docs/STATUS.md:489` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:453`, `docs/STATUS.md:473`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:450` is `docs/STATUS.md:452`.
+  The Prove's `docs/STATUS.md:451` is `docs/STATUS.md:453`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -1712,10 +1814,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:489`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:490`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:468`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:469`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -1967,7 +2069,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1524-1525` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1626-1627` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

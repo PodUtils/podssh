@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:414`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:415`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -4650,7 +4650,7 @@ Read at `2042200`:
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
-- `TODO/serve.md:1526-1527` plans the same choice for `podssh serve --listen` (T-124, step 5).
+- `TODO/serve.md:1628-1629` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
 ## Approach
 

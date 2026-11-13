@@ -1,7 +1,7 @@
 //! The server's answers (T-107): public-key authentication against the
 //! authorized keys; a command, a shell and the environment on a session
-//! channel (T-108); and a clean refusal of each request that a later entry
-//! serves. russh's defaults send no reply to a channel request, and a client
+//! channel (T-108); direct-tcpip (T-109); and a clean refusal of each
+//! request that a later entry serves. russh's defaults send no reply to a channel request, and a client
 //! then waits (podssh's own for 30 s): each request here is answered, in
 //! the order the requests came, as the handler answers each before russh
 //! reads the next.
@@ -13,6 +13,7 @@ use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, Verif
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
 use super::channel::{Open, Program};
+use super::direct::{self, Slots};
 use super::{env, Authorized, Settings};
 
 /// The most session channels open at once on one connection, as OpenSSH's
@@ -24,11 +25,13 @@ pub struct Served {
     authorized: Arc<Authorized>,
     settings: Arc<Settings>,
     channels: HashMap<ChannelId, Open>,
+    forwards: Slots,
 }
 
 impl Served {
     pub(super) fn new(authorized: Arc<Authorized>, settings: Arc<Settings>) -> Served {
-        Served { authorized, settings, channels: HashMap::new() }
+        let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
+        Served { authorized, settings, channels: HashMap::new(), forwards }
     }
 
     /// Refuse a request on `channel`, with the reply that the client waits
@@ -127,18 +130,30 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
-    // direct-tcpip is T-109's.
+    // A TCP connection from this host (T-109): checked here, dialed on a
+    // task of its own, so the answer to the open comes with the dial's.
     async fn channel_open_direct_tcpip(
         &mut self,
-        _channel: Channel<Msg>,
-        _host: &str,
-        _port: u32,
+        channel: Channel<Msg>,
+        host: &str,
+        port: u32,
         _from: &str,
         _from_port: u32,
         reply: ChannelOpenHandle,
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
-        reply.reject(ChannelOpenFailure::AdministrativelyProhibited).await;
+        let port = match direct::check(self.settings.no_forwarding, host, port) {
+            Ok(port) => port,
+            Err(refusal) => {
+                reply.reject(refusal).await;
+                return Ok(());
+            }
+        };
+        let Some(slot) = self.forwards.take() else {
+            reply.reject(ChannelOpenFailure::ResourceShortage).await;
+            return Ok(());
+        };
+        direct::open(channel, host.to_string(), port, reply, slot);
         Ok(())
     }
 
@@ -154,6 +169,7 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
+    // A Unix socket in the cage stays refused: T-040 is the client's side.
     async fn channel_open_direct_streamlocal(
         &mut self,
         _channel: Channel<Msg>,

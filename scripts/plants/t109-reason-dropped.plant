@@ -1,0 +1,7 @@
+# T-109: podssh serve refuses a forward whose dial failed with russh's fixed
+# "Connect failed", the dial's reason dropped; the test of the refused dial
+# must fail.
+ENTRY=T-109
+GROUP=cli-tests
+EXPECT='test a_refused_dial_reaches_the_client_with_its_reason \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_forward -- a_refused_dial_reaches_the_client_with_its_reason'

@@ -1,6 +1,6 @@
 //! The flag rows of `serve` (T-107): podssh's own SSH server, over stdin
 //! and stdout, its host key, and the keys that may log in; what a session
-//! runs (T-108) and its shell (T-222).
+//! runs (T-108) and its shell (T-222); whether a client may forward (T-109).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -21,4 +21,6 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "the shell of each session and command, the only one tried: a start where it does not run is refused (default: SHELL, then /bin/sh, /usr/bin/sh, /bin/bash, /usr/bin/bash, /bin/ash, /bin/dash)", None),
     row(None, "no-shell", None, FlagKind::Supported,
         "run no command and no shell: each such request is refused, and no shell is looked for", None),
+    row(None, "no-forwarding", None, FlagKind::Supported,
+        "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
 ];

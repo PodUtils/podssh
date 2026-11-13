@@ -4,7 +4,7 @@
 //! `AGENTS.md`). The server is `podssh_ssh::server`; this file is the
 //! command line: the authorized keys, the shell that sessions run (T-222),
 //! the host key in its state file, the drop of each capability of the start
-//! (T-698), then the connection.
+//! (T-698), then the connection, whose forwards the server dials (T-109).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -27,6 +27,7 @@ pub struct ServeArgs {
     pub accept_env: Vec<String>,
     pub shell: Option<String>,
     pub no_shell: bool,
+    pub no_forwarding: bool,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -41,6 +42,7 @@ impl ServeArgs {
             accept_env: many("accept-env"),
             shell: matches.get_one::<String>("shell").cloned(),
             no_shell: matches.get_flag("no-shell"),
+            no_forwarding: matches.get_flag("no-forwarding"),
             refused,
         }
     }
@@ -98,6 +100,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         shell: args.shell.as_ref().map(PathBuf::from),
         no_shell: args.no_shell,
         base_env: None,
+        no_forwarding: args.no_forwarding,
+        max_forwards: None,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

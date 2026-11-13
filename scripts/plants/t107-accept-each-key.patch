@@ -1,6 +1,6 @@
 --- a/crates/podssh-ssh/src/server/handler.rs
 +++ b/crates/podssh-ssh/src/server/handler.rs
-@@ -93,12 +93,12 @@
+@@ -100,12 +100,12 @@
  
      // A key that is not listed is refused before the client signs with it.
      async fn auth_publickey_offered(&mut self, _user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {

@@ -1,5 +1,6 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
-//! environment, T-108; the shell, T-222), and the row of its host key's file.
+//! environment, T-108; the shell, T-222; direct-tcpip, T-109), and the row
+//! of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -25,7 +26,17 @@ pub const SERVE: &[&str] = &[
      to their end, for 2 s of silence at most (30 s in all), as a job that it put in the background can \
      hold them; then exit-status, or exit-signal with the signal's name and the core flag, always before \
      EOF and close. A pty request is refused (the command runs without one; OpenSSH says PTY allocation \
-     request failed); a subsystem such as SFTP, a forward or X11 is refused with its answer.",
+     request failed); a subsystem such as SFTP, X11 or a Unix socket's forward is refused with its answer.",
+    "A client's forward (direct-tcpip: OpenSSH's -W, -L and -J) is a TCP connection that serve opens from \
+     its own host to the host and port asked, any of them, as sshd allows by default: a name is resolved \
+     there, or given to the proxy of serve's HTTPS_PROXY, and the loopback and the names of NO_PROXY go \
+     directly, as podssh's own dials go. The dial has 20 s. One that fails is refused as connect failed, \
+     with its reason in words, the system's error or the proxy's status and reason (OpenSSH: open failed: \
+     connect failed: podssh serve: could not connect to 127.0.0.1:1: Connection refused); a port of 0 or \
+     past 65535 too. The bytes go both ways, an end of one way keeps the other open, and the TCP \
+     connection ends with its channel. At most 256 forwards are open at once on one connection, and one \
+     more is refused as a resource shortage. --no-forwarding refuses each forward, administratively \
+     prohibited, with the flag named.",
     "The environment of a child is serve's own, as the cage gave it (PATH, HTTPS_PROXY and the rest stay), \
      without podssh's credentials (PODSSH_RELAY_TOKEN, the secrets of Cloudflare Access, and each variable \
      of podssh whose name holds TOKEN, SECRET, PASSWORD or PASSPHRASE, but those that name a file), plus USER and LOGNAME \

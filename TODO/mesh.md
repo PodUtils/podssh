@@ -11954,7 +11954,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:1410` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:1512` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -14341,8 +14341,12 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   817 ms; tmpfiles.org took the upload and answered its download 302; litterbox.catbox.moe and 0x0.st reached no end
   within 300 s (0x0.st said busy, and the piece went to the next host). Repaired for tmpfiles.org's answer: a download
   that its host sends elsewhere on itself is followed once (a path alone is made absolute on that host), and a
-  redirect that is not followed names its URL (`filehost::http::redirect`, tested). Next: the live run again, for the
-  redirect's target and for the two hosts that gave no end.
+  redirect that is not followed names its URL (`filehost::http::redirect`, tested). Second live run, 43423754657: temp.sh in 980 ms; tmpfiles.org's
+  redirect was followed and what came is not the piece ("piece 0 does not open: the host changed it", a page in
+  its place, it seems); litterbox and 0x0.st again no end within 300 s (0x0.st busy at once). Next: the live test
+  says, for each host, each step with its time, and for a download that does not open its status, type and length,
+  so that the next run names the cause; then each host's form in `pod-services` is mended by a COORD issue
+  (to podcrates), or the host is left out of the road's default list.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.
@@ -14900,7 +14904,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1138` says "a host of T-565's module, T-743", and `docs/carriers.md:1024` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:1410` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:1512` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach

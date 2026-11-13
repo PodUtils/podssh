@@ -4,14 +4,16 @@
 //!
 //! It never listens: the stream is the caller's (stdin and stdout for
 //! `--stdio`, as `sshd -i`; a node's session later). A command and a shell
-//! run on pipes (T-108), with the shell that T-222 finds; a pty, SFTP and
-//! direct-tcpip come with T-109 to T-112, and until then each such request
-//! is refused with the reply that the client waits for.
+//! run on pipes (T-108), with the shell that T-222 finds; direct-tcpip
+//! dials from this host (T-109); a pty and SFTP come with T-110 to T-112,
+//! and until then each such request is refused with the reply that the
+//! client waits for.
 
 mod authorized;
 mod channel;
 #[cfg(unix)]
 mod child;
+mod direct;
 pub mod env;
 mod handler;
 pub mod host_key;
@@ -29,6 +31,7 @@ use russh::{MethodKind, MethodSet, SshId};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 pub use authorized::{parse_line, Authorized, Line, Read};
+pub use direct::{DIAL_LIMIT, MAX_FORWARDS};
 pub use host_key::{HostKey, StateFiles};
 
 /// How often the server asks a silent client whether it is there, as the
@@ -57,7 +60,8 @@ pub fn config(host_key: PrivateKey) -> russh::server::Config {
 }
 
 /// What a session may run (T-108, T-222): the `env` requests let in, the
-/// shell, and the environment that each child starts from.
+/// shell, and the environment that each child starts from; and whether a
+/// client may forward (T-109).
 #[derive(Debug, Clone, Default)]
 pub struct Settings {
     /// `--accept-env`'s patterns; none takes [`env::DEFAULT_ACCEPT`].
@@ -69,6 +73,11 @@ pub struct Settings {
     /// The environment of each child before its own variables; None reads
     /// this process's at each start, as a test gives one of its own.
     pub base_env: Option<Vec<(OsString, OsString)>>,
+    /// `--no-forwarding`: each direct-tcpip channel is refused.
+    pub no_forwarding: bool,
+    /// The most forwards open at once on one connection; None is
+    /// [`MAX_FORWARDS`], as a test gives a smaller bound.
+    pub max_forwards: Option<usize>,
 }
 
 impl Settings {

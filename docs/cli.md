@@ -5643,9 +5643,35 @@ gives up each capability of the process (T-698), before it reads a file.
   a channel's messages wait unread; the bytes for a child's stdin wait in a
   queue of their own (about 4 MiB), and the window of each channel apart is
   T-118's. A pty request is refused, and the command runs without one
-  (T-110, T-111); a subsystem (SFTP, T-112), direct-tcpip (T-109) and X11
-  are refused with their answer, so that a client says so at once instead
-  of waiting (russh's defaults answer none).
+  (T-110, T-111); a subsystem (SFTP, T-112), X11 and a forward to a Unix
+  socket (`direct-streamlocal@openssh.com`) are refused with their answer,
+  so that a client says so at once instead of waiting (russh's defaults
+  answer none).
+- **Forwards into the cage (T-109).** A `direct-tcpip` channel (OpenSSH's
+  `-W`, `-L` and `-J`) is a TCP connection that serve opens from its own
+  host to the host and port that the client asked for, any of them, as
+  sshd's `AllowTcpForwarding yes` and `PermitOpen any` allow by default:
+  whoever holds an authorized key is the cage's owner, and the limits of
+  one key (`permitopen=`) are T-114's. The dial is podssh's own
+  (`podssh_ws::dial`), 20 s at most: through the proxy of serve's
+  `HTTPS_PROXY`, which resolves the name, with the loopback and the names
+  of `NO_PROXY` dialed directly. A dial that fails is refused with code 2,
+  connect failed, and its reason in words: the system's error (`Connection
+  refused`; `Permission denied` where the cage refuses a `connect()`), or
+  the proxy's status and reason; OpenSSH prints `open failed: connect
+  failed: podssh serve: ...`. A port of 0 or past 65535, and a name that
+  is no host name, are refused the same way. Each dial runs on a task of
+  its own, so the connection's other channels go on while it waits. The
+  bytes go both
+  ways; the target's end is the channel's EOF, the client's EOF the
+  target's half-close, the channel closes once both ended or a side
+  failed, and a client that closes the channel ends the TCP connection
+  with it. At most 256 forwards are open at once on one connection; one
+  more is refused with code 4, resource shortage. The bytes for a target
+  are written as they come: russh holds 100 of a channel's messages
+  before the whole connection waits, and the window of each channel apart
+  is T-118's. `--no-forwarding` refuses each forward with code 1,
+  administratively prohibited, its reason naming the flag.
 - **The environment (T-108).** A child gets serve's own environment, as the
   cage gave it: `PATH`, `HTTPS_PROXY` and a library path are what no login
   database gives again, and a fresh environment, as sshd builds one, would
