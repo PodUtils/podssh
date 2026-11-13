@@ -40,9 +40,7 @@ cargo test -p podssh-ws --features plain-ws --test plain_loopback   # plain ws:/
 cargo test -p podssh-ws --features plain-ws --test cloudflare_access # the road of cloudflared (T-264)
 cargo build -p podssh-cli --features warp                        # with WARP's road (T-352)
 cargo test -p podssh-warp -p podssh-cli --features podssh-cli/warp --lib   # its tests
-cargo test -p podssh-warp --test small_frames                    # its tunnel under volume (T-398)
-cargo test -p podssh-warp --features stand-in --test road        # the probe of an open tunnel (T-560)
-cargo test -p podssh-relay --features warp-stand-in --test quick_edge_warp # the edge inside it (T-374)
+cargo test -p podssh-relay --features warp --test quick_edge_warp # the edge inside it (T-374)
 ```
 
 - A `cargo build` or `cargo test` at the root uses `default-members`. These
@@ -648,12 +646,11 @@ gh workflow run fuzz.yml -f seconds=300                       # in CI
    which cargo-fuzz sets: `podssh_ws::fuzz_exchange` and
    `podssh_ssh::known_hosts::fuzz_parse_line`. Their crates declare the cfg
    (`[lints.rust]`), so that clippy takes it.
-7. The readers of the quick tunnel's Cap'n Proto and of WARP's capsules
-   (`capnp_message`, `quick_connect_request`, `quick_control` and
-   `warp_capsule`, T-403) run under `-malloc_limit_mb=64`: one allocation
-   of 64 MiB from an input of some KiB is a defect, as a list of 2^23
-   structs of no size was. `fuzz/Cargo.toml` names `podssh-warp`, which
-   the default build of `podssh-cli` leaves out.
+7. The readers of the quick tunnel's Cap'n Proto (`capnp_message`,
+   `quick_connect_request` and `quick_control`, T-403) run under
+   `-malloc_limit_mb=64`: one allocation of 64 MiB from an input of some
+   KiB is a defect, as a list of 2^23 structs of no size was. WARP's
+   capsules are `pod-warp`'s, and podcrates fuzzes them.
 
 ## Live tests
 

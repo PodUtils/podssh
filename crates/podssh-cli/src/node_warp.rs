@@ -40,20 +40,18 @@ impl WarpRoad {
         }
         if self.warp.is_none() {
             use crate::ssh::cloud::warp::road;
-            let trust = crate::pairs::trust(None);
             let told = |line: &str| podssh_ssh::err_line!("podssh node: {line}");
-            let mut device = road::device(&trust, &told, &|_: &str| {})
-                .await
-                .map_err(|(line, _)| format!("WARP's tunnel: {line}"))?;
+            let mut device =
+                road::device(&told, &|_: &str| {}).await.map_err(|(line, _)| format!("WARP's tunnel: {line}"))?;
             // A new key of the endpoint, which WARP's API gives, is kept in
             // the device's record (T-399).
-            let opened = road::tunnel(&mut device, &trust, &|_: &str| {}).await;
-            let warp = opened.map_err(|f| format!("WARP's tunnel: {f}"))?;
+            let opened = road::tunnel(&mut device, &|_: &str| {}).await;
+            let warp = opened.map_err(|f| format!("WARP's tunnel: {}", f.chain()))?;
             say(format!("WARP's tunnel opened, to {}", warp.via()));
             self.warp = Some(warp);
         }
         let Some(warp) = self.warp.as_ref() else { return Err("WARP's tunnel did not open".into()) };
-        let tls = podssh_relay::quick::edge_warp::connect(warp, found, &edge::trust()?).await?;
+        let tls = podssh_relay::quick::edge_warp::connect(warp.net(), found, &edge::trust()?).await?;
         Ok(Box::new(tls))
     }
 

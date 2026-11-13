@@ -59,8 +59,7 @@ pub fn control_stream() -> Vec<u8> {
 }
 
 /// An integer of QPACK with an `n`-bit prefix (RFC 7541, section 5.1), its
-/// first byte's high bits `flags`. Public for WARP's connect-ip over HTTP/3
-/// (podssh-warp's `h3`), which encodes its request with the same code.
+/// first byte's high bits `flags`.
 pub fn put_int(out: &mut Vec<u8>, n: u8, flags: u8, v: usize) {
     let max = (1usize << n) - 1;
     if v < max {

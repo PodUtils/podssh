@@ -21,8 +21,7 @@ const FORBIDDEN: [&str; 3] = ["ServerCertVerifier for", "set_certificate_verifie
 
 /// Each pinning verifier's file, and the comparison with the pinned key that
 /// the file must hold for its allowance to stand.
-const PINNED: [(&str, &str); 4] = [
-    ("podssh-warp/src/tls.rs", "== Some(self.point.as_slice())"),
+const PINNED: [(&str, &str); 3] = [
     ("podssh-relay/src/pinggy/tls.rs", "Some(seen) if seen == self.pin =>"),
     ("podssh-relay/src/strelay/cert.rs", "if device_id(end_entity.as_ref()) == self.id {"),
     ("podssh-ws/src/hysteria/tls.rs", "if seen == self.pin {"),

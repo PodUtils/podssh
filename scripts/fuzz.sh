@@ -94,7 +94,7 @@ for target in "$@"; do
     # allocation of 64 MiB from an input of some KiB is a defect, as a list
     # of 2^23 elements of no size was. Each other target: the RSS limit's.
     case $target in
-    capnp_message | quick_connect_request | quick_control | warp_capsule) malloc_limit=64 ;;
+    capnp_message | quick_connect_request | quick_control) malloc_limit=64 ;;
     *) malloc_limit=512 ;;
     esac
     timeout $((RUN_FOR + 300)) cargo +"$NIGHTLY" fuzz run -s "$SANITIZER" --target "$TARGET" "$target" -- \

@@ -120,15 +120,15 @@ async fn inside_warp(found: &edge::Edge, why: String) -> String {
     };
     // A front door's new key is read from WARP's API and kept, as a run of
     // the road keeps it (T-399), so that doctor does not take it for a proxy.
-    let warp = match road::tunnel(&mut device, &crate::pairs::trust(None), &|_: &str| {}).await {
+    let warp = match road::tunnel(&mut device, &|_: &str| {}).await {
         Ok(warp) => warp,
-        Err(fault) => return format!("{why}; WARP's tunnel: {fault}"),
+        Err(failure) => return format!("{why}; WARP's tunnel: {}", failure.chain()),
     };
     let trust = match edge::trust() {
         Ok(trust) => trust,
         Err(e) => return format!("{why}; the edge's roots: {e}"),
     };
-    match podssh_relay::quick::edge_warp::connect(&warp, found, &trust).await {
+    match podssh_relay::quick::edge_warp::connect(warp.net(), found, &trust).await {
         Ok(_) => format!(
             "{why}; inside WARP's tunnel ({}) the edge answered TLS, so podssh node --quick-tunnel takes HTTP/2 \
              inside it",

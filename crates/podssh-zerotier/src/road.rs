@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::Duration;
 
-use podssh_warp::stream::Stream;
+use pod_netstack::{NetStack, TcpStream as Stream};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::sync::mpsc;
 
@@ -83,7 +83,7 @@ async fn held(
     let member = Member::start(state, wire, Some(road.nwid))?;
     let stack = member.stack.as_ref().ok_or("the member joined no network")?;
     let at = node_at(road);
-    let mut listener = stack.listen(at)?;
+    let mut listener = stack.listen(at).await.map_err(|e| format!("[{}]:{}: {e}", at.ip(), at.port()))?;
     say(format!("ZeroTier's road: the node waits at [{}]:{} on the network {:016x}", at.ip(), at.port(), road.nwid));
     loop {
         tokio::select! {
@@ -93,9 +93,9 @@ async fn held(
                         return Ok("the node ended".into());
                     }
                 }
-                Err(why) => return Ok(why),
+                Err(why) => return Ok(why.to_string()),
             },
-            () = stack.closed() => return Ok(stack.ended().unwrap_or_else(|| "the wire ended".into())),
+            () = member.closed() => return Ok(member.ended().unwrap_or_else(|| "the wire ended".into())),
         }
     }
 }
@@ -123,23 +123,24 @@ pub async fn link(road: &PairRoad, dial: &Dial, limit: Duration, state: Arc<Mute
     let wire = dial().await?;
     state.lock().unwrap_or_else(|e| e.into_inner()).planet = road.planet.clone();
     let member = Member::start(state, wire, Some(road.nwid))?;
-    let stack = member.stack.as_ref().ok_or("the member joined no network")?;
-    let stream = connect(stack, node_at(road), limit).await?;
+    let stream = connect(&member, node_at(road), limit).await?;
     Ok(Link { stream, _member: member })
 }
 
-/// A TCP connection to `to` on `stack`, within `limit`, in short tries, each
-/// with a fresh SYN: the first SYNs are lost while the core finds the far
-/// member through the roots, and one try's own backoff would send its next
-/// SYN 30 s and more later (a live run linked at 31.8 s, the SYN of second 31).
-pub async fn connect(stack: &podssh_warp::stack::Stack, to: SocketAddr, limit: Duration) -> Result<Stream, String> {
+/// A TCP connection to `to` on the stack of `member`, within `limit`, in
+/// short tries, each with a fresh SYN: the first SYNs are lost while the
+/// core finds the far member through the roots, and one try's own backoff
+/// would send its next SYN 30 s and more later (a live run linked at 31.8 s,
+/// the SYN of second 31).
+pub async fn connect(member: &Member, to: SocketAddr, limit: Duration) -> Result<Stream, String> {
+    let stack = member.stack.as_ref().ok_or("the member joined no network")?;
     let deadline = tokio::time::Instant::now() + limit;
     loop {
         let (began, left) =
             (tokio::time::Instant::now(), deadline.saturating_duration_since(tokio::time::Instant::now()));
-        match stack.connect(to, left.min(TRY)).await {
+        match try_once(stack, to, left.min(TRY)).await {
             Ok(stream) => return Ok(stream),
-            Err(why) if stack.ended().is_some() => return Err(why),
+            Err(why) if member.ended().is_some() => return Err(why),
             Err(_) if left > TRY => {
                 // A try that failed at once (a reset) waits out its second.
                 tokio::time::sleep(Duration::from_secs(1).saturating_sub(began.elapsed())).await;
@@ -151,6 +152,22 @@ pub async fn connect(stack: &podssh_warp::stack::Stack, to: SocketAddr, limit: D
 
 /// The bound of one try of a client's connection to the node.
 const TRY: Duration = Duration::from_secs(4);
+
+/// One try: a SYN to `to`, and its handshake within `limit`. A try that
+/// runs out is aborted: a drop closes gracefully, and the stack would then
+/// finish its handshake later and give the node a connection that ends at
+/// once.
+async fn try_once(stack: &NetStack, to: SocketAddr, limit: Duration) -> Result<Stream, String> {
+    let mut stream = stack.connect(to).await.map_err(|e| format!("{to}: {e}"))?;
+    match tokio::time::timeout(limit, stream.established()).await {
+        Ok(Ok(())) => Ok(stream),
+        Ok(Err(e)) => Err(format!("{to}: {e}")),
+        Err(_) => {
+            stream.abort();
+            Err(format!("{to}: no answer within {} s", limit.as_secs()))
+        }
+    }
+}
 
 impl AsyncRead for Link {
     fn poll_read(mut self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<std::io::Result<()>> {

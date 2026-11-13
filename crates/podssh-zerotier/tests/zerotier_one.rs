@@ -41,7 +41,7 @@ async fn zerotier_one_and_a_member_carry_tcp_both_ways() {
     let mine = SocketAddr::new(IpAddr::V6(sixplane(nwid, member.address)), PORT);
 
     // zerotier-one's side reaches this member: an echo here.
-    let mut listener = stack.listen(mine).unwrap();
+    let mut listener = stack.listen(mine).await.unwrap();
     let echo = tokio::spawn(async move {
         let mut conn = listener.accept().await.expect("zerotier-one's host connects");
         let mut buf = vec![0u8; 4096];
@@ -56,7 +56,7 @@ async fn zerotier_one_and_a_member_carry_tcp_both_ways() {
 
     // This member reaches zerotier-one's host, whose echo waits at its 6plane address.
     let theirs = SocketAddr::new(IpAddr::V6(sixplane(nwid, node)), PORT);
-    let mut conn = podssh_zerotier::road::connect(stack, theirs, Duration::from_secs(120))
+    let mut conn = podssh_zerotier::road::connect(&member, theirs, Duration::from_secs(120))
         .await
         .expect("a connection to zerotier-one's host");
     conn.write_all(b"podssh to zerotier-one").await.unwrap();

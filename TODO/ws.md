@@ -1,8 +1,8 @@
 This file holds the work on `podssh-ws`, the crate that reaches the relay: TCP and proxies, TLS
 with podssh's own pure-Rust provider, and the WebSocket client. W10, W13 and W14 are rows of the
 former defects page (`git show 3ee70dc:docs/defects.md`); the features come from the
-`podssh-ws` item of ROADMAP M4 and `docs/design.md:621-625`, and from GitHub issues. The crate
-must build with no C compiler (`scripts/gate.sh:194-210`).
+`podssh-ws` item of ROADMAP M4 and `docs/design.md:624-628`, and from GitHub issues. The crate
+must build with no C compiler (`scripts/gate.sh:193-209`).
 
 # T-063: W10: the frame decoder does not check a received control frame
 
@@ -295,7 +295,7 @@ The scan passes on the tree, and the example still builds. Planted defect: add a
 
 # T-066: A `rustls::ClientConfig` that the caller supplies, for podbox
 
-**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:583-584` and 102-104. Read here
+**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:586-587` and 102-104. Read here
 on `3ee70dc`.
 **Category:** feature
 **Milestone:** M4
@@ -336,7 +336,7 @@ HTTP/1.1 only (`docs/relay.md:627`). The `tls12` feature of `rustls` is on in th
 5. `podssh-ws` must not depend on `ring`, also not in its tests: the gate builds the tests with
    no C compiler. The tests make the caller's configuration with podssh's own provider.
 6. The default stays `Trust`, so the binary does not change.
-7. Change `docs/design.md:621-625` and `docs/architecture.md` in the same commit.
+7. Change `docs/design.md:624-628` and `docs/architecture.md` in the same commit.
 
 ## Decision
 
@@ -396,7 +396,7 @@ unknown, and the test fails.
 # T-067: TLS 1.2, for intercepting proxies
 
 **Source:** `docs/STATUS.md` (Components, `podssh-ws`: "No TLS 1.2 (some intercepting proxies
-need it)"); `docs/design.md:583-584`. podssh has not measured such a proxy.
+need it)"); `docs/design.md:586-587`. podssh has not measured such a proxy.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P2
@@ -503,7 +503,7 @@ that speaks only TLS 1.2 carrying an OpenSSH session.
 
 # T-068: Plain `ws://` to loopback, for tests only
 
-**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:622-623`.
+**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:625-626`.
 **Category:** feature
 **Milestone:** M4
 **Priority:** P3
@@ -537,7 +537,7 @@ is possible. `podssh-relay` gives the TLS type back (`Opened`,
 4. The runners of `podssh-relay` (T-079, T-081) must take any stream type, so that podbox's
    tests can use them.
 5. The binary never enables the feature; a check in the gate proves it.
-6. Change `docs/design.md:622-623` in the same commit.
+6. Change `docs/design.md:625-626` in the same commit.
 
 ## Decision
 
@@ -597,7 +597,7 @@ The test target `plain_loopback` of `podssh-ws` moved to `pod-ws` of PodUtils/po
 
 # T-069: Typed session errors in `podssh-ws`
 
-**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:623-624`.
+**Source:** the `podssh-ws` item of ROADMAP M4; `docs/design.md:626-627`.
 **Category:** feature
 **Milestone:** M4
 **Priority:** P2
@@ -1980,9 +1980,9 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
-  (`crates/podssh-relay/Cargo.toml:236-237`), a crate with no C; `rustls-native-certs` 0.8.4,
+  (`crates/podssh-relay/Cargo.toml:230-231`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
-  (`Cargo.lock:6300-6301`).
+  (`Cargo.lock:6336-6337`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
   system's store of Linux (`docs/target-environment.md:61-67`).
 - Inferred: on macOS, `/etc/ssl/cert.pem` lacks a root that an administrator added to a keychain;
@@ -2327,7 +2327,7 @@ and each other command print rustls's words alone. An error should tell what to 
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
-- Read: rustls 0.23.46 (`Cargo.lock:6250-6251`) has the errors `Expired`, `ExpiredContext`,
+- Read: rustls 0.23.46 (`Cargo.lock:6286-6287`) has the errors `Expired`, `ExpiredContext`,
   `NotValidYet` and `NotValidYetContext`, and writes the two with a context as "certificate
   expired: verification time" and "certificate not valid yet: verification time" (its
   `src/error.rs`, read in cargo's registry); doctor's match of the text ("expired", "not valid
@@ -3617,9 +3617,9 @@ two requests in two directions.
 ## Premise
 
 - The split is a stream of two halves (`crates/podssh-ws/src/vless/split.rs:1-4`).
-- `docs/STATUS.md:281` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
+- `docs/STATUS.md:282` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
   front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
-  with 78. That refusal is older than T-456: `docs/STATUS.md:1004` records packet-up and stream-up
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1005` records packet-up and stream-up
   over HTTP/1.1 on two connections, and stream-one alone refused
   (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
   `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:

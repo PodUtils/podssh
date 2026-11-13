@@ -396,7 +396,7 @@ declares `libc` (`crates/podssh-probe/Cargo.toml` line 11 at `f8a94ca`), which n
 `crates/podssh-probe/src/facts.rs` lines 3-6 at `f8a94ca` name a "startup assertion" that no command runs;
 `crates/podssh-probe/src/relay_facts.rs` lines 261-289 at `f8a94ca` are that unused startup part. CI runs
 `scripts/check-relay-spec.py` live, with three plants (`.github/workflows/build.yml:237-267`).
-The gate runs the crate's tests with no C compiler (`scripts/gate.sh:194-210`). The build image
+The gate runs the crate's tests with no C compiler (`scripts/gate.sh:193-209`). The build image
 has no Python (`crates/podssh-probe/src/facts.rs:14-19`), so the crate is the only form of the
 check that the container gate can run.
 
@@ -783,7 +783,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    a slow target also starts the next host. Measure the open times through a proxy in the box,
    and record D in `docs/STATUS.md`.
 3. Send a Close to each attempt that is not kept, at once. The relay then frees the target
-   socket within 15 s (`docs/design.md:695-697`, `docs/relay.md:555`); the target still sees one
+   socket within 15 s (`docs/design.md:698-700`, `docs/relay.md:555`); the target still sees one
    short connection, because the relay dials it before the upgrade.
 4. One mint at a time for each relay deployment (single flight, keyed as T-057 keys the cache),
    against the brake of `docs/relay.md:476`. When the minting attempt is the silent one, the next
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:411`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:412`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -4936,7 +4936,7 @@ Read at `2042200`:
   (`crates/podssh-relay/tests/opentunnel_stand_in/parse.rs:110` for the record's length, `:120` for the
   name), and routing by a name's label in OpenTunnel's road (`crates/podssh-relay/src/opentunnel/wire.rs:206`).
 - A node that ends a visitor's TLS with a name of its own exists for OpenTunnel (T-530):
-  `crates/podssh-relay/Cargo.toml:147` says "the key and the CSR of its" name come from the binary.
+  `crates/podssh-relay/Cargo.toml:143` says "the key and the CSR of its" name come from the binary.
 - Publishing a local HTTP service at a public name is T-180 (`podssh funnel`, TLS at the quick tunnel's
   edge); this entry is the role's form, with TLS at the node.
 
@@ -5503,7 +5503,7 @@ Podcrates T-120 takes the document at its import; podssh writes it first.
 - `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`: the forward contract, as the default relay
   gives it.
 - `docs/reverse.md`, `docs/design.md` (section 5): the reverse and layer frames, in prose.
-- `docs/design.md:1302`: a test vector exists for iroh's tickets only.
+- `docs/design.md:1305`: a test vector exists for iroh's tickets only.
 
 ## Approach
 

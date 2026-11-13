@@ -291,8 +291,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
 - **`warp://[user@]HOST[:PORT]` is a port of any host inside WARP's tunnel
   (T-352), in a build with the feature `warp`.** Cloudflare's own network
   reaches HOST, with no relay and no account: the road that usque speaks
-  over HTTP/2 (`crates/podssh-warp/src/lib.rs`). podssh dials Cloudflare's endpoint
-  162.159.198.2:443, else the API's peers (below), or `PODSSH_WARP_ENDPOINT`,
+  over HTTP/2, `pod-warp` of podcrates (`crates/podssh-warp/src/lib.rs`). podssh dials Cloudflare's endpoint
+  162.159.198.2:443, else the other door of the device's record, or `PODSSH_WARP_ENDPOINT`,
   through `HTTPS_PROXY` when
   one is set, by its address, as the names of MASQUE have no A record; TLS
   1.3 with ALPN `h2`, the name `consumer-masque.cloudflareclient.com`, the

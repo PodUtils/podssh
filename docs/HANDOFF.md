@@ -20,12 +20,12 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.36.0"` (COORD-071, PodUtils/podcrates#129; podssh's
-answer is COORD-049).
+podssh pins every podcrates crate at `tag = "v0.37.0"` (COORD-074, PodUtils/podcrates#134), and takes
+`pod-warp` there (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
-  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`.
-  Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
+  `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
+  and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
 - v0.33.0 brings `pod-devtunnel` (podcrates T-378), which unblocks T-755 (#216, drafted on `draft-t755`), and
   `pod-turn`, whose STUN codec `pod_proxy::stun` re-exports for the TURN road.
 

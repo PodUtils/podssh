@@ -1,18 +1,18 @@
 //! A member of ZeroTier's road (T-733): a node of the core driven by one
-//! task of this process, with TCP over its ad-hoc network on WARP's stack of
-//! smoltcp (`podssh_warp::stack`). The network carries IPv6 alone, each
+//! task of this process, with TCP over its ad-hoc network on the userspace
+//! stack of `pod-netstack` (smoltcp). The network carries IPv6 alone, each
 //! member at its 6plane address, which holds the member's ZeroTier address;
 //! so a packet's frame goes to the MAC of the address in its destination,
 //! and no neighbour discovery is needed. The wire is two channels, which the
 //! caller carries: the TCP relay (`crate::relay`), or a test's memory. A
 //! root of a planet runs as a member of no network.
 
-use std::net::{IpAddr, Ipv6Addr, SocketAddr};
-use std::sync::{Arc, Mutex};
+use std::net::{Ipv6Addr, SocketAddr};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
-use podssh_warp::stack::{Link, Stack, Why};
-use tokio::sync::mpsc;
+use pod_netstack::{NetStack, PacketQueue, StackConfig, Subnet};
+use tokio::sync::{mpsc, Notify};
 
 use crate::node::{mac_of, Host, Node};
 use crate::state;
@@ -20,8 +20,6 @@ use crate::state;
 /// A datagram of the wire: whom it is to, or from, and its bytes.
 pub type Datagram = (SocketAddr, Vec<u8>);
 
-/// The packets that wait in each direction.
-const QUEUE: usize = 1024;
 /// The longest that the task sleeps between the core's timers.
 const MOST_SLEEP: Duration = Duration::from_millis(500);
 
@@ -58,7 +56,8 @@ fn address_of(ip: &Ipv6Addr) -> u64 {
 
 struct Glue {
     wire: mpsc::Sender<Datagram>,
-    packets: Option<mpsc::Sender<Vec<u8>>>,
+    /// The queue into the stack, once the member has its address.
+    packets: Option<Arc<OnceLock<PacketQueue>>>,
     state: Arc<Mutex<State>>,
     trace: Arc<crate::trace::Trace>,
 }
@@ -71,8 +70,9 @@ impl Host for Glue {
     }
     fn frame(&mut self, _: u64, _: u64, _: u64, ether_type: u16, data: &[u8]) {
         self.trace.frame_in();
-        if let (0x86dd, Some(packets)) = (ether_type, &self.packets) {
-            let _ = packets.try_send(data.to_vec());
+        // A full queue drops, as a link does; TCP sends again.
+        if let (0x86dd, Some(packets)) = (ether_type, self.packets.as_ref().and_then(|p| p.get())) {
+            let _ = packets.push(data.to_vec());
         }
     }
     fn put(&mut self, kind: i32, data: Option<&[u8]>) {
@@ -97,10 +97,51 @@ fn now_ms() -> i64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 
+/// Why a member's node ended, once it has, and a wake of each waiter.
+#[derive(Clone, Default)]
+struct Ended(Arc<(OnceLock<String>, Notify)>);
+
+impl Ended {
+    /// Set the cause (the first stays), and wake each waiter.
+    fn set(&self, why: &str) {
+        let _ = self.0 .0.set(why.to_string());
+        self.0 .1.notify_waiters();
+    }
+
+    fn get(&self) -> Option<String> {
+        self.0 .0.get().cloned()
+    }
+
+    async fn wait(&self) {
+        loop {
+            let notified = self.0 .1.notified();
+            tokio::pin!(notified);
+            // Register first: an end between the check and the wait is not
+            // lost.
+            notified.as_mut().enable();
+            if self.get().is_some() {
+                return;
+            }
+            notified.await;
+        }
+    }
+}
+
+/// The address plan of a member's stack on `nwid`: the 6plane prefix of
+/// the network (40 bits: `fc` and the network's 32 bits), so that each
+/// member's address is on the link, and `ours`, the member's address.
+fn stack_config(nwid: u64, ours: Ipv6Addr) -> StackConfig {
+    let mut prefix = sixplane(nwid, 0).octets();
+    prefix[5..].fill(0);
+    let subnet = Subnet { v6: Ipv6Addr::from(prefix), v6_prefix: 40, ..Subnet::default() };
+    StackConfig { subnet, local_v6: ours, ..StackConfig::default() }
+}
+
 /// A member running: its address, and its stack on `network` if it joined one.
 pub struct Member {
     pub address: u64,
-    pub stack: Option<Stack>,
+    pub stack: Option<NetStack>,
+    ended: Ended,
     task: tokio::task::AbortHandle,
 }
 
@@ -111,21 +152,39 @@ impl Drop for Member {
 }
 
 impl Member {
+    /// Why the member's node ended, once it has.
+    pub fn ended(&self) -> Option<String> {
+        self.ended.get()
+    }
+
+    /// Wait for the end of the member's node.
+    pub async fn closed(&self) {
+        self.ended.wait().await
+    }
+
     /// Start a member with `state` on `wire`, joined to `network` if given,
     /// on the runtime of the caller.
     pub fn start(state: Arc<Mutex<State>>, wire: Wire, network: Option<u64>) -> Result<Member, String> {
-        let (packets_in, inbound) = mpsc::channel(QUEUE);
-        let (out, mut packets_out) = mpsc::channel::<Vec<u8>>(QUEUE);
         let trace = crate::trace::Trace::from_env();
-        let glue = Glue { wire: wire.out, packets: network.map(|_| packets_in), state, trace: trace.clone() };
+        let into_stack: Arc<OnceLock<PacketQueue>> = Arc::default();
+        let packets = network.map(|_| into_stack.clone());
+        let glue = Glue { wire: wire.out, packets, state, trace: trace.clone() };
         let mut node = Node::new(Box::new(glue), now_ms())?;
         if let Some(nwid) = network {
             node.join(nwid)?;
         }
         let address = node.address();
         trace.start(address);
-        let why = Why::default();
-        let (mut wire_in, ended) = (wire.inbound, why.clone());
+        // The stack's link: the frames of the network go into its queue in,
+        // and each packet of its queue out goes to the network as a frame.
+        let stack = network.map(|nwid| NetStack::over_link(stack_config(nwid, sixplane(nwid, address))));
+        let from_stack = stack.as_ref().map(|stack| {
+            let _ = into_stack.set(stack.link_in());
+            stack.link_out()
+        });
+        let reset = stack.as_ref().map(NetStack::resetter);
+        let ended = Ended::default();
+        let (mut wire_in, end) = (wire.inbound, ended.clone());
         let task = tokio::spawn(async move {
             let mut running = true;
             while running {
@@ -139,7 +198,7 @@ impl Member {
                         }
                         None => running = false,
                     },
-                    packet = packets_out.recv(), if network.is_some() => match (packet, network) {
+                    packet = next_out(&from_stack) => match (packet, network) {
                         (Some(packet), Some(nwid)) => {
                             if let Some(dest) = destination(&packet) {
                                 trace.frame_out();
@@ -152,16 +211,21 @@ impl Member {
                     () = tokio::time::sleep(sleep) => running = node.background(now_ms()).is_ok(),
                 }
             }
-            ended.set("ZeroTier's node ended");
-        });
-        let stack = match network {
-            Some(nwid) => {
-                let link = Link { out, inbound, why, tasks: Vec::new(), flow: Arc::default() };
-                Some(Stack::start(&[IpAddr::V6(sixplane(nwid, address))], link)?)
+            // Each connection on the stack ends with the node's cause.
+            if let Some(reset) = reset {
+                reset.reset("ZeroTier's node ended");
             }
-            None => None,
-        };
-        Ok(Member { address, stack, task: task.abort_handle() })
+            end.set("ZeroTier's node ended");
+        });
+        Ok(Member { address, stack, ended, task: task.abort_handle() })
+    }
+}
+
+/// The next packet of the stack's queue out; with no stack, never.
+async fn next_out(queue: &Option<PacketQueue>) -> Option<Vec<u8>> {
+    match queue {
+        Some(queue) => Some(queue.recv().await),
+        None => std::future::pending().await,
     }
 }
 

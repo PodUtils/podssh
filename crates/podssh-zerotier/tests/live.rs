@@ -42,7 +42,7 @@ async fn two_members_meet_through_zerotier_s_roots_and_relay_and_carry_64_kib() 
     let b = member(if planted { OTHER } else { NWID }).await;
     let at = SocketAddr::new(IpAddr::V6(sixplane(NWID, b.address)), 4096);
     if !planted {
-        let mut listener = b.stack.as_ref().unwrap().listen(at).unwrap();
+        let mut listener = b.stack.as_ref().unwrap().listen(at).await.unwrap();
         tokio::spawn(async move {
             let mut conn = listener.accept().await.unwrap();
             let mut buf = vec![0u8; 65536];
@@ -51,9 +51,8 @@ async fn two_members_meet_through_zerotier_s_roots_and_relay_and_carry_64_kib() 
             tokio::time::sleep(Duration::from_secs(10)).await;
         });
     }
-    let stack = a.stack.as_ref().unwrap();
     let began = std::time::Instant::now();
-    let mut conn = road_connect(stack, at, Duration::from_secs(90)).await.expect("a connection through the relay");
+    let mut conn = road_connect(&a, at, Duration::from_secs(90)).await.expect("a connection through the relay");
     let sent: Vec<u8> = (0..65536u32).map(|i| (i % 251) as u8).collect();
     conn.write_all(&sent).await.unwrap();
     let mut got = vec![0u8; 65536];

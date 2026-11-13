@@ -10214,7 +10214,7 @@ does not speak HTTP/3 (Q82).
 ## Premise
 
 - `docs/decisions.md:30` says "Q82: roads over UDP where UDP passes".
-- `crates/podssh-warp/src/lib.rs:1` says "WARP's MASQUE road over HTTP/2 (T-352): Cloudflare's
+- crates/podssh-warp/src/lib.rs:1 at `286e98d3` says "WARP's MASQUE road over HTTP/2 (T-352): Cloudflare's
   own"; `docs/carriers.md:85` says "connect-ip over HTTP/2 to 162.159.198.2:443".
 - `docs/carriers.md:96-97` says "The mode with no IP stack works over QUIC only", and
   `docs/carriers.md:364-365` says "masque-go speaks it over HTTP/3 alone, which needs UDP".
@@ -10281,6 +10281,11 @@ banner through it, and 1 MiB each way. Live, short, through WARP's endpoint over
 Actions (Q52, Q59). Planted: a datagram's context ID dropped, and the test of the banner fails.
 
 ## Correction
+
+2026-11-13: the test target connect_ip_h3 of podssh-warp left with the
+code of the road, which `pod-warp` of PodUtils/podcrates holds; a server of
+connect-ip of the user's own waits for the crate to speak RFC 9484 to one,
+and its test against connect-ip-go goes with it there.
 
 2026-11-05. The code of this entry (`podssh-warp`, which retires for podnet's WARP code) goes to
 `pod-warp` of PodUtils/podcrates (T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module

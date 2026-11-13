@@ -1,15 +1,9 @@
 name: masque h3 interop
 
-# T-582: MASQUE's connect-ip over HTTP/3 (the operator's ruling Q82).
-#
-# interop: against connect-ip-go's integration proxy (Diniboy1123's fork,
-# which usque takes; MIT), a server that podssh did not write, fetched at
-# the commit that usque's go.mod names and built in images/derper's Go by
-# scripts/masque-h3/interop.sh, which runs crates/podssh-warp's test
-# connect_ip_h3 through it: sshd's banner of a host behind the proxy, and
-# 1 MiB each way through an echo there. The test says "did not run" with no
-# proxy, so the job fails on that word. Started by hand, and on a push that
-# changes the road; it publishes nothing.
+# T-582: MASQUE's connect-ip over HTTP/3 (the operator's ruling Q82), on
+# pod-warp's road (PodUtils/podcrates). The interop against connect-ip-go's
+# integration proxy, a server of the user's own, waits for pod-warp to
+# speak RFC 9484 to such a server (PodUtils/podcrates T-481).
 #
 # live: by hand alone, with confirm=Q52 (the operator's leave for WARP,
 # Q52, Q59): podssh with the feature warp registers one throwaway device
@@ -23,18 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: "Q52: the operator's leave for the live job against WARP (empty: interop alone)"
-        required: false
+        description: "Q52: the operator's leave for the live job against WARP"
+        required: true
         default: ""
-  push:
-    branches: [main]
-    paths:
-      - "crates/podssh-warp/src/h3/**"
-      - "crates/podssh-warp/src/road_h3.rs"
-      - "crates/podssh-warp/tests/connect_ip_h3.rs"
-      - "scripts/masque-h3/interop.sh"
-      - "scripts/masque-h3/**"
-      - ".github/workflows/masque-h3-interop.yml"
 
 permissions:
   contents: read
@@ -45,24 +30,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  interop:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      CARGO_BUILD_JOBS: "4"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: the road's own tests
-        run: cargo test --locked -p podssh-warp --features h3 --lib h3
-      - name: the road against connect-ip-go's proxy
-        run: |
-          set -o pipefail
-          timeout 2400 sh scripts/masque-h3/interop.sh 2>&1 | tee "$RUNNER_TEMP/masque-h3.log"
-          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/masque-h3.log"
-          if grep -q "did not run" "$RUNNER_TEMP/masque-h3.log"; then echo "a test did not run"; exit 1; fi
-
   live:
     if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'Q52'
     runs-on: ubuntu-24.04

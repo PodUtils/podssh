@@ -101,7 +101,7 @@ fn a_start_as_root_drops_the_bounding_set_then_empties_each_set() {
 }
 
 #[test]
-fn the_words_of_a_drop_at_the_start_name_no_bind() {
+fn the_words_of_a_drop_at_the_start_name_no_listener() {
     let mut fake = Fake::root();
     let outcome = drop_with(&mut fake, 0).unwrap();
     let line = words_at(&outcome, None, &Ok(1), 0, Moment::AtStart).expect("a line");

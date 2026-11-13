@@ -153,12 +153,11 @@ step_lint() {
     # the road, its end-to-end test included.
     run "clippy: no warning with the iroh feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-iroh --features podssh-cli/iroh-test -- -D warnings $LINTS_ALLOWED
-    # WARP's road (T-352): the CLI's road with its feature, and the crate's
-    # stand-in, which another crate's tests take; the quick tunnel's edge
-    # inside it (T-374).
+    # WARP's road (T-352): the CLI's road with its feature, over pod-warp
+    # through podssh-warp; the quick tunnel's edge inside it (T-374).
     run "clippy: no warning with the WARP feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-warp -p podssh-relay \
-            --features podssh-cli/warp,podssh-warp/stand-in,podssh-relay/warp-stand-in -- -D warnings $LINTS_ALLOWED
+            --features podssh-cli/warp,podssh-relay/warp -- -D warnings $LINTS_ALLOWED
     # The relay role's tests on plain ws:// (T-427), which no other feature
     # set builds, and behind a quick tunnel (T-428).
     run "clippy: no warning in the relay role's tests" \
@@ -214,7 +213,7 @@ step_libs() {
     tests "library crates: tests" \
         env PODSSH_TEST_TMUX=/usr/bin/tmux \
         cargo test --locked --no-fail-fast $LIBS -p podssh-warp \
-            --features podssh-relay/blocking,podssh-relay/quick,podssh-relay/quic,podssh-relay/derp,podssh-relay/piping,podssh-relay/opentunnel,podssh-relay/code,podssh-relay/warp-stand-in
+            --features podssh-relay/blocking,podssh-relay/quick,podssh-relay/quic,podssh-relay/derp,podssh-relay/piping,podssh-relay/opentunnel,podssh-relay/code,podssh-relay/warp
 
     # The plain ws:// to the loopback (T-068) is behind the feature `plain-ws`,
     # which the binary must never enable; its own test went to pod-ws with the

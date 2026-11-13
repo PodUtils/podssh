@@ -142,7 +142,10 @@ record again (`GET /reg/ID` with its token), keeps a new key that it gives,
 and tries it, once more a second later; a key that the API never gave is
 never taken, and a certificate for which the API gives the same key stays a
 proxy's for the run. MEASURED 2026-11-01 (T-399): `cargo test -p podssh-warp
---features stand-in --lib tests::rotated_key`, 5 passed.
+--features stand-in --lib tests::rotated_key`, 5 passed. These measures read
+podssh's own tunnel, before `pod-warp` of podcrates took its place: the
+tunnel, the stack, the pin and the doors are the crate's, with its tests,
+and `crates/podssh-warp` is podssh's glue over it.
 
 **The race (T-164, built 2026-10-10).** `podssh ssh node://NAME
 --iroh-ticket TICKET` races the iroh road to the node's ticket and the

@@ -9,3 +9,10 @@ todo = "run -q -p podssh-todo --"
 # declares the newest stable Rust of the day (T-685).
 [resolver]
 incompatible-rust-versions = "fallback"
+
+# The userspace stack of pod-netstack (WARP's road through pod-warp, and
+# ZeroTier's road) owns more addresses than smoltcp's default of two: its
+# own, the gateways and the address of each listener. Cargo reads no
+# configuration of a dependency, so each binary sets it here.
+[env]
+SMOLTCP_IFACE_MAX_ADDR_COUNT = "8"

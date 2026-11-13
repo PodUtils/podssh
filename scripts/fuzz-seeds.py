@@ -32,20 +32,6 @@ FRAMES = [
     bytes([0x82, 0x7F, 0, 0, 0, 0, 0, 0x01, 0, 0]) + bytes(64),
 ]
 
-# connect-ip-go's TestH2DatagramStreamSendDatagram (a capsule of type 0, the
-# packet 45 00 00 14) and TestH2DatagramStreamReceiveDatagram (a capsule of
-# type 7, "ignore", then a packet), and RFC 9000's examples of its
-# variable-length integers (Appendix A.1), as podssh-warp's tests hold them.
-CAPSULES = [
-    bytes([0x00, 0x04, 0x45, 0x00, 0x00, 0x14]),
-    bytes([0x07, 0x06]) + b"ignore" + bytes([0x00, 0x04, 0x60, 0x00, 0x00, 0x00]),
-    bytes([0xC2, 0x19, 0x7C, 0x5E, 0xFF, 0x14, 0xE8, 0x8C]),
-    bytes([0x9D, 0x7F, 0x3E, 0x7D]),
-    bytes([0x7B, 0xBD]),
-    bytes([0x25]),
-    bytes([0x40, 0x25]),
-]
-
 
 def put(target, seed):
     """Write `seed` under its digest, as libFuzzer names a corpus file."""
@@ -84,13 +70,9 @@ def main():
         if message.name.startswith("rpc-"):
             # The first byte of an input of quick_control is where it is cut.
             put("quick_control", bytes([min(len(frame) // 2, 255)]) + frame)
-    # The first byte of an input of warp_capsule is where it is cut.
-    for capsule in CAPSULES:
-        put("warp_capsule", bytes([3]) + capsule)
-    put("warp_capsule", bytes([5]) + b"".join(CAPSULES[:2]))
     print(
         f"fuzz-seeds.py: {len(FRAMES)} frames, {len(lines)} IRC lines, {len(hosts)} relay hosts, "
-        f"{len(answers)} DNS answers, {len(messages)} messages of Cap'n Proto, {len(CAPSULES)} capsules"
+        f"{len(answers)} DNS answers, {len(messages)} messages of Cap'n Proto"
     )
 
 

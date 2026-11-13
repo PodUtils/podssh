@@ -22,14 +22,12 @@ LISTENERS = {
     # turns them off. And the stand-in server of pkarr on the loopback
     # (T-350), beside iroh's test relay: the tests' own, behind the feature
     # test-relay, which no release builds.
-    # And the stand-in of WARP's edge (T-352), for the tests of this crate
-    # and of podssh-relay (T-374), on the loopback: podssh-warp's feature
-    # `stand-in`, which no binary enables. And the relay as a role of podssh
+    # And the relay as a role of podssh
     # (T-169, Q63), which the user asks for with `podssh relay serve --listen
     # ADDR:PORT`: the bind is the probe, and PODSSH_LISTEN turns it off;
     # its QUIC (T-667) takes the bound listener's address, and its test binds
-    # one on the loopback. And the stand-ins of WARP's edge (T-352) and of
-    # ZeroTier's relay (T-733), for tests alone, on the loopback. And the
+    # one on the loopback. And the stand-in of ZeroTier's relay (T-733),
+    # for tests alone, on the loopback. And the
     # target that the exit behind a quick tunnel dials in its tests (T-459),
     # on the loopback, as the node's real dial reaches it.
     "TcpListener": [
@@ -40,7 +38,6 @@ LISTENERS = {
         "crates/podssh-ssh/src/remote_tests.rs",
         "crates/podssh-cli/src/ssh/local_bind.rs",
         "crates/podssh-iroh/src/test_pkarr.rs",
-        "crates/podssh-warp/src/stand_in.rs",
         "crates/podssh-zerotier/src/stand_in.rs",
     ],
     # The control socket of `podssh ssh -M` (T-039), which the user asks for:
@@ -90,11 +87,8 @@ LISTENERS = {
     # it, which sends its packet three times and closes within 1.5 s; then
     # one socket of port 0 for its one connection, through pod-quic's
     # endpoint, wrapped in Salamander where the link names it (quic.rs); and
-    # the tests of Salamander's wrapper, on the loopback. And WARP's road over
-    # HTTP/3 (T-582), tried only where a probe found that UDP passes: one
-    # socket of port 0 for its one QUIC connection to the endpoint (quic.rs).
+    # the tests of Salamander's wrapper, on the loopback.
     "UdpSocket": [
-        "crates/podssh-warp/src/h3/quic.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-iroh/src/probe.rs",
         "crates/podssh-iroh/src/endpoint_udp_tests.rs",
@@ -133,7 +127,6 @@ LISTENERS = {
     # wrapper (T-580), as above.
     "bind(": [
         "crates/podssh-cli/src/exit/tunnel_tests.rs",
-        "crates/podssh-warp/src/h3/quic.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-ws/src/hysteria/quic.rs",
         "crates/podssh-ws/src/hysteria/salamander.rs",
@@ -165,18 +158,14 @@ LISTENERS = {
         "crates/podssh-ssh/src/agent_forward_tests.rs",
         "crates/podssh-cli/src/ssh/local_bind.rs",
         "crates/podssh-ssh/src/mux/tests.rs",
-        "crates/podssh-warp/src/stand_in.rs",
         "crates/podssh-zerotier/src/stand_in.rs",
     ],
-    # And the stand-in of WARP's edge, as above, whose far end waits for
-    # connections inside its tunnel: sockets of smoltcp in the process, no
-    # socket of the system (T-352).
     # And the Tor road's TCP provider (T-353): Arti's trait asks each
     # provider for a listen method, and podssh's refuses each call with an
     # error, binding nothing.
     # And a member of ZeroTier's road (T-733), whose test waits for a
     # connection inside the network: a socket of smoltcp in the process, on
-    # WARP's stack, no socket of the system; and the node of the pair's road,
+    # pod-netstack's stack, no socket of the system; and the node of the pair's road,
     # which waits the same way at its 6plane address.
     # And the echo of the live test with two nodes of `podssh ts` (T-106),
     # node A, which its example and its test start: a socket of the fork's
@@ -187,9 +176,7 @@ LISTENERS = {
         "crates/podssh-ts/src/echo.rs",
         "crates/podssh-cli/src/pipe/listen_win.rs",
         "crates/podssh-cli/src/doctor/unix.rs",
-        "crates/podssh-warp/src/stand_in.rs",
         "crates/podssh-zerotier/src/stand_in.rs",
-        "crates/podssh-warp/src/inside.rs",
         "crates/podssh-tor/src/runtime.rs",
         "crates/podssh-zerotier/src/member_tests.rs",
         "crates/podssh-zerotier/src/road.rs",

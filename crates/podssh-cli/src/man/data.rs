@@ -298,13 +298,12 @@ pub fn files() -> Vec<(Vec<String>, String)> {
             ),
         ),
         (
-            vec![crate::ssh::cloud::warp::DEVICE_FILE.to_string()],
-            "The device of WARP's road (warp://, in a build with the feature warp), in the cache, as JSON: its id \
-             and its token at WARP's API, its P-256 key, the endpoint's key that the road pins, and its \
-             addresses inside the tunnel. Written once, as the device registers, with mode 0600, and read at \
-             each run; written again when the endpoint shows a new key that WARP's API gives, read from the \
-             API with the device's token. A record that cannot be read is a configuration error (78), never a \
-             new registration: remove it to register again."
+            vec![crate::ssh::cloud::warp::DEVICE_FILE.to_string(), crate::ssh::cloud::warp::DOOR_FILE.to_string()],
+            "WARP's road (warp://, in a build with the feature warp), in the cache: the device, pod-warp's identity \
+             file of mode 0600, JSON with its record of WARP's API, its certificate and its P-256 key, written once \
+             as it registers and again when WARP's API gives the front door a new key; and the door that opened and \
+             the API's base that answered last, which a run tries first. A record that cannot be read is a \
+             configuration error (78), never a new registration: remove it to register again."
                 .to_string(),
         ),
         (

@@ -1,51 +1,98 @@
-//! The quick tunnel's edge inside WARP's tunnel (T-374), on the loopback: a
-//! stand-in of WARP's edge (podssh-warp's, T-352: rustls's server, h2's
-//! server, smoltcp at its far end) carries the node's TCP stream to the
-//! edge's port 7844 at an address that only its tunnel reaches; there a
-//! stand-in of the quick tunnel's edge, whose TLS names `h2.cftunnel.com`
-//! under a CA of the test, is the client of HTTP/2, as cloudflared's edge
-//! is (`quick_harness`). The node registers, and a visitor's WebSocket
-//! passes both ways. Planted: a stream sent past the tunnel finds no edge
-//! at that address, and the edge's stand-in sees no connection.
-#![cfg(feature = "warp-stand-in")]
+//! The quick tunnel's edge inside WARP's tunnel (T-374), on the loopback:
+//! the road's dial (pod-warp's `WarpNet` in a run, a dial of the test here,
+//! as pod-warp's own tests prove the tunnel) carries the node's TCP stream
+//! to the edge's port 7844 at an address that only its tunnel reaches;
+//! there a stand-in of the quick tunnel's edge, whose TLS names
+//! `h2.cftunnel.com` under a CA of the test, is the client of HTTP/2, as
+//! cloudflared's edge is (`quick_harness`). The node registers, and a
+//! visitor's WebSocket passes both ways. Planted: a stream sent past the
+//! dial finds no edge at that address, and the edge's stand-in sees no
+//! connection.
+#![cfg(feature = "warp")]
 
 mod quick_harness;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use bytes::Bytes;
+use pod_core::{BoxFuture, Class, Connected, Dial, Failure, Stage, Target};
 use podssh_relay::quick::edge::{self, Edge};
 use podssh_relay::quick::edge_warp;
 use podssh_relay::quick::serve::Step;
-use podssh_warp::key::DeviceKey;
-use podssh_warp::stand_in::{Route, StandIn};
 use podssh_ws::frame::{self, Frame, Role};
-use podssh_ws::{ProxyChoice, Trust};
+use podssh_ws::Trust;
 use quick_harness::{echo, node_with, read_frame, register, visitor, LIMIT};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc;
 
-/// The edge's address inside the stand-in's tunnel: TEST-NET-2, which no
-/// network of this host routes.
+/// The edge's address inside the tunnel: TEST-NET-2, which no network of
+/// this host routes.
 fn inside() -> SocketAddr {
     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 7)), edge::port())
 }
 
-/// A P-256 key of podssh-warp's, for rcgen's certificates.
-struct Signer(DeviceKey, Vec<u8>);
+/// The tunnel of the test: [`inside`] goes to `outside` on the loopback,
+/// and no other target is reached; it counts the streams that it carried.
+struct Tunnel {
+    outside: Option<SocketAddr>,
+    carried: AtomicUsize,
+}
 
-impl Signer {
-    fn new() -> Signer {
-        let key = DeviceKey::generate().unwrap();
-        let point = key.point();
-        Signer(key, point)
+impl Dial for Tunnel {
+    fn label(&self) -> String {
+        "WARP of the test".into()
+    }
+
+    fn dial<'a>(
+        &'a self,
+        target: &'a Target,
+        _deadline: tokio::time::Instant,
+    ) -> BoxFuture<'a, Result<Connected, Failure>> {
+        Box::pin(async move {
+            let to = match (target, self.outside) {
+                (Target::Addr(at), Some(outside)) if *at == inside() => outside,
+                _ => {
+                    return Err(Failure::new(
+                        Stage::Warp,
+                        Class::Unavailable,
+                        format!("no route to {target} inside the tunnel"),
+                    ))
+                }
+            };
+            let tcp = TcpStream::connect(to).await.map_err(|e| Failure::io(Stage::Connect, e))?;
+            self.carried.fetch_add(1, Ordering::SeqCst);
+            Ok(Connected::new(Box::new(tcp)))
+        })
     }
 }
 
-impl rcgen::PublicKeyData for Signer {
+/// A P-256 key, for rcgen's certificates and for rustls's handshake.
+struct Key {
+    signing: Arc<p256::ecdsa::SigningKey>,
+    public: Vec<u8>,
+}
+
+impl Key {
+    fn new() -> Key {
+        use p256::elliptic_curve::Generate;
+        let signing = p256::ecdsa::SigningKey::generate();
+        let public = signing.verifying_key().to_sec1_point(false).as_bytes().to_vec();
+        Key { signing: Arc::new(signing), public }
+    }
+}
+
+/// An ECDSA signature in DER, as X.509 and TLS carry it.
+fn sign(key: &p256::ecdsa::SigningKey, message: &[u8]) -> Vec<u8> {
+    use p256::ecdsa::signature::Signer;
+    let signature: p256::ecdsa::Signature = key.sign(message);
+    signature.to_der().as_bytes().to_vec()
+}
+
+impl rcgen::PublicKeyData for Key {
     fn der_bytes(&self) -> &[u8] {
-        &self.1
+        &self.public
     }
 
     fn algorithm(&self) -> &'static rcgen::SignatureAlgorithm {
@@ -53,9 +100,34 @@ impl rcgen::PublicKeyData for Signer {
     }
 }
 
-impl rcgen::SigningKey for Signer {
+impl rcgen::SigningKey for Key {
     fn sign(&self, message: &[u8]) -> Result<Vec<u8>, rcgen::Error> {
-        Ok(self.0.sign(message))
+        Ok(sign(&self.signing, message))
+    }
+}
+
+/// The edge's TLS key, for rustls.
+#[derive(Debug)]
+struct TlsKey(Arc<p256::ecdsa::SigningKey>);
+
+impl rustls::sign::SigningKey for TlsKey {
+    fn choose_scheme(&self, offered: &[rustls::SignatureScheme]) -> Option<Box<dyn rustls::sign::Signer>> {
+        let scheme = rustls::SignatureScheme::ECDSA_NISTP256_SHA256;
+        offered.contains(&scheme).then(|| Box::new(TlsKey(self.0.clone())) as Box<dyn rustls::sign::Signer>)
+    }
+
+    fn algorithm(&self) -> rustls::SignatureAlgorithm {
+        rustls::SignatureAlgorithm::ECDSA
+    }
+}
+
+impl rustls::sign::Signer for TlsKey {
+    fn sign(&self, message: &[u8]) -> Result<Vec<u8>, rustls::Error> {
+        Ok(sign(&self.0, message))
+    }
+
+    fn scheme(&self) -> rustls::SignatureScheme {
+        rustls::SignatureScheme::ECDSA_NISTP256_SHA256
     }
 }
 
@@ -65,7 +137,7 @@ impl rcgen::SigningKey for Signer {
 type Accepted = mpsc::UnboundedReceiver<tokio_rustls::server::TlsStream<TcpStream>>;
 
 async fn quick_edge() -> (SocketAddr, Accepted, Trust) {
-    let (ca_key, leaf_key) = (Signer::new(), Signer::new());
+    let (ca_key, leaf_key) = (Key::new(), Key::new());
     let mut ca = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
     ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
     ca.distinguished_name.push(rcgen::DnType::CommonName, "podssh-test-edge-ca");
@@ -76,7 +148,7 @@ async fn quick_edge() -> (SocketAddr, Accepted, Trust) {
     let mut leaf = rcgen::CertificateParams::new(vec![edge::server_name().to_string()]).unwrap();
     leaf.serial_number = Some(rcgen::SerialNumber::from_slice(&rand::random::<[u8; 16]>()));
     let leaf = leaf.signed_by(&leaf_key, &issuer).unwrap();
-    let certified = rustls::sign::CertifiedKey::new(vec![leaf.der().clone()], leaf_key.0.signer());
+    let certified = rustls::sign::CertifiedKey::new(vec![leaf.der().clone()], Arc::new(TlsKey(leaf_key.signing)));
     let config = rustls::ServerConfig::builder_with_provider(Arc::new(podssh_ws::crypto::provider()))
         .with_protocol_versions(&[&rustls::version::TLS13])
         .unwrap()
@@ -103,20 +175,15 @@ async fn quick_edge() -> (SocketAddr, Accepted, Trust) {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_node_registers_through_warp_s_tunnel_and_a_visitor_passes() {
     let (edge_addr, mut conns, trust) = quick_edge().await;
-    let key = DeviceKey::generate().unwrap();
-    let route = Route { inside: inside(), outside: edge_addr };
-    let warp_edge = StandIn::start(vec![key.point()], vec![route]).await.unwrap();
-    let warp = podssh_warp::Warp::open(&warp_edge.device(key), &ProxyChoice::Direct, LIMIT)
-        .await
-        .expect("WARP's tunnel to the stand-in opens");
+    let tunnel = Tunnel { outside: Some(edge_addr), carried: AtomicUsize::new(0) };
     // The edge by its address inside the tunnel, as its SRV record names
     // regions that the tunnel reaches.
     let found = Edge { regions: vec![inside().ip().to_string()], port: edge::port(), fixed: None };
-    let tls = tokio::time::timeout(LIMIT, edge_warp::connect(&warp, &found, &trust))
+    let tls = tokio::time::timeout(LIMIT, edge_warp::connect(&tunnel, &found, &trust))
         .await
         .expect("in time")
         .expect("the edge's TLS inside WARP's tunnel");
-    assert_eq!(warp_edge.carried(), 1, "the stream to the edge went through WARP's stand-in");
+    assert_eq!(tunnel.carried.load(Ordering::SeqCst), 1, "the stream to the edge went through the tunnel");
     let (mut steps, stop, served) = node_with(tls, echo);
 
     // The edge's end: the client of HTTP/2, on the connection that came
@@ -143,14 +210,12 @@ async fn a_node_registers_through_warp_s_tunnel_and_a_visitor_passes() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_edge_that_the_tunnel_does_not_reach_is_named() {
     let (_, _conns, trust) = quick_edge().await;
-    let key = DeviceKey::generate().unwrap();
-    let warp_edge = StandIn::start(vec![key.point()], vec![]).await.unwrap();
-    let warp = podssh_warp::Warp::open(&warp_edge.device(key), &ProxyChoice::Direct, LIMIT).await.unwrap();
+    let tunnel = Tunnel { outside: None, carried: AtomicUsize::new(0) };
     let found = Edge { regions: vec![inside().ip().to_string()], port: edge::port(), fixed: None };
-    let why = match edge_warp::connect(&warp, &found, &trust).await {
+    let why = match edge_warp::connect(&tunnel, &found, &trust).await {
         Ok(_) => panic!("an edge where the tunnel reaches none"),
         Err(why) => why,
     };
     assert!(why.contains("inside WARP's tunnel") && why.contains("198.51.100.7:7844"), "{why}");
-    assert_eq!(warp_edge.carried(), 0);
+    assert_eq!(tunnel.carried.load(Ordering::SeqCst), 0);
 }

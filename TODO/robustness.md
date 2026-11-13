@@ -354,7 +354,7 @@ Read:
 
 1. A model of a VT terminal for the tests: the `vt100` crate (pure Rust, over
    `vte`) as a dev-dependency. The gate's library test step runs under
-   `CC=/nonexistent` and `CXX=/nonexistent` (`scripts/gate.sh:208-211`), so it
+   `CC=/nonexistent` and `CXX=/nonexistent` (`scripts/gate.sh:207-210`), so it
    shows that no C or C++ comes with it.
 2. A helper: bytes in, screen out (rows, cursor, attributes). Each case
    compares screens, not bytes.
@@ -564,7 +564,7 @@ Read, the bounds today:
    `crates/podssh-ssh/src/run.rs:26-29` does since T-024, and the result of
    T-062 when it exists.
 3. Tests in the process, with a peer over `tokio::io::duplex`, so no network
-   (`docs/development.md:583-586`): a proxy head that never ends stops at
+   (`docs/development.md:581-584`): a proxy head that never ends stops at
    16 KiB, and an upgrade head too; fragments past 16 MiB give the error, not
    more memory; a pool body over 256 KiB is refused; a cache file over 64 KiB
    is ignored.
@@ -703,7 +703,7 @@ the gate must show it.
 
 1. `proptest` as a dev-dependency of podssh-ws, podssh-relay and podssh-ssh.
    The gate's library test step runs under `CC=/nonexistent` and
-   `CXX=/nonexistent` (`scripts/gate.sh:208-211`), so it shows that no C comes
+   `CXX=/nonexistent` (`scripts/gate.sh:207-210`), so it shows that no C comes
    with it. Commit the regression files of proptest as seeds.
 2. One test file for each crate (tests/properties.rs), with these properties:
    - frames: for each opcode, FIN, role, mask and payload up to 262144 bytes,
@@ -831,7 +831,7 @@ The test target `properties` of `podssh-ws` moved to `pod-ws` of PodUtils/podcra
 
 # T-203: The fault-injection harness: latency, jitter, bandwidth, a new address
 
-**Source:** `docs/design.md:762-764` (layers 2 and 3 need the harness
+**Source:** `docs/design.md:765-767` (layers 2 and 3 need the harness
 extended), and the exit criteria of M6 (`docs/ROADMAP.md`, M6; T-156).
 **Category:** chore
 **Milestone:** M6
@@ -857,7 +857,7 @@ Read:
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
-  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:780-800`, 14 of 14 since T-236).
+  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:781-801`, 14 of 14 since T-236).
 - The time limits that latency meets today: the SSH handshake, 60 s
   (`crates/podssh-ssh/src/options.rs:390`, enforced at
   `crates/podssh-ssh/src/run.rs:402-405`); a reply, 30 s
@@ -885,7 +885,7 @@ Read:
    session back from 127.0.0.2, and a stall of 3 minutes, each with the digest
    of a running transfer intact. T-156 uses these checks as its measurement.
 5. Update docs/development.md (item 8 of the gate, item 9 since T-156,
-   `docs/development.md:376-388`) and the faults table of docs/STATUS.md.
+   `docs/development.md:374-386`) and the faults table of docs/STATUS.md.
 
 Pitfall: each check must show that its fault was injected (see Prove).
 

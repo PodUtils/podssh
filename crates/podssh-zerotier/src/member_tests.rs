@@ -3,7 +3,7 @@
 //! member's stack to a listener of the other's, carries 64 KiB each way.
 
 use std::collections::HashMap;
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -49,7 +49,7 @@ async fn a_tcp_connection_over_the_ad_hoc_network_carries_64_kib_each_way() {
     let a = member(&routes, "10.0.0.2:9993", with_planet(), Some(NWID));
     let b = member(&routes, "10.0.0.3:9993", with_planet(), Some(NWID));
     let at = SocketAddr::new(IpAddr::V6(sixplane(NWID, b.address)), 22);
-    let mut listener = b.stack.as_ref().unwrap().listen(at).unwrap();
+    let mut listener = b.stack.as_ref().unwrap().listen(at).await.unwrap();
     tokio::spawn(async move {
         let mut conn = listener.accept().await.unwrap();
         let mut buf = vec![0u8; 65536];
@@ -58,8 +58,8 @@ async fn a_tcp_connection_over_the_ad_hoc_network_carries_64_kib_each_way() {
         conn.flush().await.unwrap();
         tokio::time::sleep(Duration::from_secs(5)).await;
     });
-    let stack = a.stack.as_ref().unwrap();
-    let mut conn = stack.connect(at, Duration::from_secs(30)).await.expect("a connection over the network");
+    let connected = crate::road::connect(&a, at, Duration::from_secs(30)).await;
+    let mut conn = connected.expect("a connection over the network");
     let sent: Vec<u8> = (0..65536u32).map(|i| (i % 251) as u8).collect();
     conn.write_all(&sent).await.unwrap();
     let mut got = vec![0u8; 65536];

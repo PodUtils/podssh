@@ -35,10 +35,10 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.36.0` (COORD-071, PodUtils/podcrates#129). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.37.0` (COORD-074, PodUtils/podcrates#134). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
-   (2026-11-12); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
+   (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
 8. **Drafts.** Three are being written (2026-11-13): T-319's item 2 (`draft-t319c`), T-321's CLI test of `podssh each` on one TLS connection (`draft-t321b`) and T-738's CLI test `carrier_filehost` (`draft-t738c`); merged: (the take of podcrates v0.36.0, the triage of #224 and #225, T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).

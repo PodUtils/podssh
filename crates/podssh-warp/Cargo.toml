@@ -1,6 +1,6 @@
 [package]
 name = "podssh-warp"
-description = "WARP's MASQUE road over HTTP/2: the registration, TLS with a client certificate and a pinned key, connect-ip's capsules, and TCP inside on smoltcp. No C compiler needed."
+description = "WARP's road over pod-warp: podssh's way out, its proxy and TLS for the API and the session, and a stream to HOST:PORT inside the tunnel."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,66 +8,15 @@ license.workspace = true
 publish.workspace = true
 
 # A feature crate (T-352, the operator's ruling Q52): podssh-cli takes it
-# with its feature `warp`, and podssh-relay with its feature `warp` for the
-# quick tunnel's edge (T-374). Pure Rust, as the library crates are: the
-# gate builds it with no C compiler.
+# with its feature `warp`. The road itself is pod-warp's (PodUtils/podcrates):
+# the registration, the identity file, MASQUE over HTTP/2 and HTTP/3, the
+# check of the data path and the stack inside the tunnel. This crate gives
+# it podssh's way out and podssh's resolver.
 [dependencies]
 podssh-ws = { path = "../podssh-ws" }
-# The services of other parties: WARP's API, its front door and its
-# versions, the trace of 1.1.1.1.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
+pod-warp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.37.0" }
 tokio = { workspace = true }
-rustls = { workspace = true }
-tokio-rustls = { workspace = true }
-rustls-pki-types = { workspace = true }
-# connect-ip's stream over HTTP/2: the versions that podssh-ws builds for
-# DNS over HTTPS and podssh-relay for the quick tunnel.
-h2 = "0.4.19"
-http = "1.5"
-bytes = "1.12"
-# TCP inside the tunnel, in the process: no TUN device, no privilege. The
-# version in the lock already, through the vendored tailscale-rs. No default
-# features: no raw sockets, no TUN, no Ethernet, no DHCP; `async` gives each
-# socket the wakers that the streams wait on.
-smoltcp = { version = "0.14", default-features = false, features = [
-  "std", "async", "medium-ip", "proto-ipv4", "proto-ipv6", "socket-tcp",
-] }
-# The device's key, its signatures and its certificate: P-256, as the edge
-# asks for, in pure Rust.
-p256 = { workspace = true }
-# The device's record and the API's answers.
-serde = { workspace = true }
-serde_json = { workspace = true }
-base64 = { workspace = true }
-zeroize = { workspace = true }
-# connect-ip over HTTP/3 where UDP passes (T-582, feature `h3`): QUIC on
-# noq through pod-quic, the version that podssh-ws's roads over QUIC take.
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0", optional = true }
-
-[features]
-# The stand-in of WARP's edge and of its API, for the tests of another crate
-# (podssh-relay's `quick_edge_warp`, T-374). It listens on the loopback, so a
-# binary never enables it.
-stand-in = ["inside"]
-# Connections that come in inside a link (`inside.rs`): sockets of smoltcp in
-# this process, no socket of the system; the member of ZeroTier's road takes
-# them (T-733).
-inside = []
-# MASQUE over HTTP/3 (T-582): the tunnel where a probe found that UDP
-# passes, with QPACK's and the pin's code of podssh-ws's Hysteria road.
-h3 = ["dep:pod-quic", "podssh-ws/quic"]
-
-# The interop test against connect-ip-go's server (T-582's Prove).
-[[test]]
-name = "connect_ip_h3"
-required-features = ["h3"]
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
-# The stand-in API's certificate, for 127.0.0.1 under a CA of the test,
-# signed with a P-256 key of podssh's own, with no crypto feature and no C:
-# as podssh-relay's tests make theirs.
-rcgen = { version = "0.14", default-features = false }
-# A reader of certificates that podssh did not write, for the client's own
-# certificate: the version that podssh-cli builds, with no feature.
-x509-parser = { version = "0.18", default-features = false }

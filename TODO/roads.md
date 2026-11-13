@@ -7,7 +7,7 @@ HTTP and of HTTP/2 to the relay.
 
 # T-162: The iroh road behind the cargo feature `iroh`
 
-**Source:** ROADMAP M6 (the iroh road); `docs/design.md:1193-1466`;
+**Source:** ROADMAP M6 (the iroh road); `docs/design.md:1196-1469`;
 `docs/decisions.md` (2026-10-08: iroh is a road that the user must select);
 GitHub #18 (Nemo-010, 2026-10-08: the iroh-ssh, zuko, GPU-Share and quic-ssh
 reports).
@@ -25,13 +25,13 @@ and it keeps a connection across address changes. podssh has no iroh code.
 
 ## Premise
 
-Read, not measured (`docs/design.md:1200-1223`): iroh 1.1 or later (advisories
+Read, not measured (`docs/design.md:1203-1226`): iroh 1.1 or later (advisories
 up to 1.0.3), MIT or Apache-2.0, MSRV 1.91, the aws-lc-rs backend, about 190
 to 245 crates. In the target sandbox it runs only with no UDP transport (or a
 UDP bind after a probe), podssh's proxy in `proxy_url(...)`, the `Minimal`
 preset with no pkarr or DNS, peers dialled by ticket, and a home relay whose
 `/ping` passes the proxy. The operator accepted netlink sockets and extra
-connections for this road (`docs/design.md:1455-1458`). The sandbox refuses UDP
+connections for this road (`docs/design.md:1458-1461`). The sandbox refuses UDP
 (`docs/target-environment.md:23`). Measured on `3ee70dc`: `--iroh` is an
 unknown flag (exit 64), and `Cargo.lock` has no iroh crate.
 
@@ -46,7 +46,7 @@ unknown flag (exit 64), and `Cargo.lock` has no iroh crate.
    relays of T-165. `proxy_url(...)` gets what `proxy_from_env` selects
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:98-123`), so `ALL_PROXY` and `NO_PROXY` act
    as on the other roads; iroh's own selection ignores both
-   (`docs/design.md:1221`).
+   (`docs/design.md:1224`).
 3. UDP: `clear_ip_transports()` by default. Add the UDP transport only after a
    probe that binds a UDP socket to port 0 and closes it, as `bind_inet`
    probes TCP (`crates/podssh-cli/src/doctor/unix.rs` lines 137-166 at `48a8744`).
@@ -141,8 +141,8 @@ that uses iroh's own proxy selection fails with `ALL_PROXY` set.
 
 # T-163: iroh tickets and node keys
 
-**Source:** ROADMAP M6 (dialled by ticket); `docs/design.md:1222` and
-`docs/design.md:1423-1424`; GitHub #18 (Nemo-010, 2026-10-08: zuko's ticket
+**Source:** ROADMAP M6 (dialled by ticket); `docs/design.md:1225` and
+`docs/design.md:1426-1427`; GitHub #18 (Nemo-010, 2026-10-08: zuko's ticket
 handoff; iroh-ssh's persistent and ephemeral keys).
 **Category:** feature
 **Milestone:** M6
@@ -158,8 +158,8 @@ no form for a ticket, no place for the keys, and no rule for who may connect.
 ## Premise
 
 Read: with the `Minimal` preset nothing is discovered, so a ticket gives the
-key and the relay URL (`docs/design.md:1222`). The key is the identity, and
-access is by an allowlist of keys or a relay token (`docs/design.md:1423-1424`).
+key and the relay URL (`docs/design.md:1225`). The key is the identity, and
+access is by an allowlist of keys or a relay token (`docs/design.md:1426-1427`).
 Read in the reports, not verified here: iroh-ssh warns when a server's key is
 ephemeral (`rustonbsd/iroh-ssh:src/ssh.rs`); zuko hands over a ticket out of
 band (`adonm/zuko:docs/protocol.md`). Read: `podssh ts` keeps its node key in
@@ -184,9 +184,9 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:374-375`,
    its allowlist file (one key on each line), and logs a refused key by its
    fingerprint. T-087 extends this.
 5. The node prints its ticket and its fingerprint on stderr when it starts.
-   `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1151`).
+   `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1154`).
 6. Add the key files to FILES in the manual
-   (`crates/podssh-cli/src/man/data.rs:164-498`), and each new variable to
+   (`crates/podssh-cli/src/man/data.rs:164-497`), and each new variable to
    `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-301`).
 
 ## Decision
@@ -194,7 +194,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:374-375`,
 Recommendation: a ticket is an address, and the node's allowlist of client
 keys gives access. A ticket can then go on a command line or into
 `ssh_config` with no risk. The alternative, a bearer ticket (tailcat's address
-is one: `docs/design.md:1127-1128`), lost: each process on the host can read a
+is one: `docs/design.md:1130-1131`), lost: each process on the host can read a
 command line, and the rules forbid credentials there.
 
 2026-10-10, the shape of the command line and the files:
@@ -327,7 +327,7 @@ allowlist. A planted node that accepts each key fails it.
 # T-164: Race the iroh road and the reverse road
 
 **Source:** `docs/design.md:45-53` (when two roads are possible, podssh races
-them) and `docs/design.md:705-709` (to add: a race between roads); ROADMAP M6
+them) and `docs/design.md:708-712` (to add: a race between roads); ROADMAP M6
 (raced with the reverse road); GitHub #18 (Nemo-010, 2026-10-08: quic-ssh's
 QUIC with a fallback over TCP); GitHub #21 (parsync: an optional fast path
 with a fallback, `AlpinDale/parsync:src/rdma.rs`).
@@ -349,7 +349,7 @@ limit of iroh to each connection.
 Read: for a podssh node, the iroh road is first and the reverse road with the
 resumable layer is second, raced (`docs/design.md:48-53`). The first real
 sandbox can block what iroh needs, so the fallback is necessary
-(`docs/design.md:1460-1466`). The user must select iroh (`docs/decisions.md`,
+(`docs/design.md:1463-1469`). The user must select iroh (`docs/decisions.md`,
 2026-10-08). Each road has one attempt for each host, with a time limit
 (`docs/design.md:76-83`). The relay opener tries one host at a time
 (`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`), and no code races two roads.
@@ -489,9 +489,9 @@ forward road has one default relay name in library code
 (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:12-13`) and a seed pool
 (`PodUtils/podssh:crates/podssh-relay/src/pool.rs:25-34`); the same shape fits the iroh
 relays. n0's free relays are for development, with a rate limit that is not
-published (`docs/design.md:1440-1442`). At least three projects run the iroh
+published (`docs/design.md:1443-1445`). At least three projects run the iroh
 relay protocol on Workers and Durable Objects (read, not verified:
-`docs/design.md:1446-1448`). The URLs of n0's relays for iroh 1.x must be read
+`docs/design.md:1449-1451`). The URLs of n0's relays for iroh 1.x must be read
 in iroh's source at the pinned version.
 
 ## Approach
@@ -624,7 +624,7 @@ other build.
 # T-166: A roost: a podssh next to a standard sshd
 
 **Source:** `docs/design.md:52` (a standard sshd behind a podssh `roost`) and
-`docs/design.md:724-727`; the `roost` of pigeons (`docs/design.md:1450-1453`);
+`docs/design.md:727-730`; the `roost` of pigeons (`docs/design.md:1453-1456`);
 GitHub #18 (Nemo-010, 2026-10-08: iroh-ssh reaches sshd by node id, and
 refuses early when no sshd answers).
 **Category:** feature
@@ -642,7 +642,7 @@ way to run that podssh.
 ## Premise
 
 Read: the far end of the layer can be a podssh next to a standard sshd, which
-then owns the TCP connection to sshd (`docs/design.md:724-727`). `podssh node`
+then owns the TCP connection to sshd (`docs/design.md:727-730`). `podssh node`
 does not exist yet (T-083). Measured on `3ee70dc`: `podssh node x` exits 70
 (not implemented), and `podssh node x y` exits 64, because the parser takes
 a NAME only (`crates/podssh-cli/src/positionals.rs` line 42 at `af0a163`). Read in the report,
@@ -816,7 +816,7 @@ hand takes several steps on two hosts.
 ## Premise
 
 Read: to a standard sshd, the forward road is the only road, and it has no
-resumption (`docs/design.md:51`, `docs/design.md:728-745`). A podssh on the
+resumption (`docs/design.md:51`, `docs/design.md:731-748`). A podssh on the
 server can be a roost (T-166). podssh starts another program only when the
 user names it or a probe finds it (`AGENTS.md`, section 5, rule 3); this
 entry keeps that rule for the server too. Inferred: an SSH connection cannot
@@ -1433,14 +1433,14 @@ that the section names.
 
 2026-10-12: two parts of the Premise are more precise in cloudflared's source at `bf4f502`. A
 quick tunnel uses QUIC alone unless the user names `--protocol http2`: cloudflared sets `quic`
-for it, and a protocol that the user names has no fallback (`docs/design.md:323-327`). And the
+for it, and a protocol that the user names has no fallback (`docs/design.md:326-330`). And the
 client in a cage is the road of T-264, `crates/podssh-ws/src/cloudflare.rs`, whose upgrade is
 cloudflared's; the cited `PodUtils/podssh:crates/podssh-ws/src/client.rs:181-205` is the relay's upgrade, with
 its token header.
 
 ## Done
 
-2026-10-12. The answers are in `docs/design.md:197-547`, section 2, "A quick tunnel that podssh
+2026-10-12. The answers are in `docs/design.md:200-550`, section 2, "A quick tunnel that podssh
 makes itself", each READ with its source (a document of Cloudflare with its date, or a file and
 lines of cloudflared at `bf4f502`), and each claim with no evidence marked not verified.
 - The answer: a quick tunnel needs no account; its connector reaches the edge on port 7844 only,
@@ -1584,7 +1584,7 @@ VARIABLES and the notes of `ssh`, `docs/cli.md` and `docs/design.md` (section 2)
 
 # T-299: The quick tunnel's edge, measured: its ports through a proxy and the relay, and a captured registration
 
-**Source:** T-170 (`docs/design.md:197-547`): the ports and the transports of a quick tunnel are
+**Source:** T-170 (`docs/design.md:200-550`): the ports and the transports of a quick tunnel are
 read, not measured.
 **Category:** measurement
 **Milestone:** backlog
@@ -1602,9 +1602,9 @@ the tests of T-300 need.
 ## Premise
 
 - Read (T-170): the edge is `region1.v2.argotunnel.com` and `region2.v2.argotunnel.com` on port
-  7844, for TCP and UDP; port 443 serves optional things only (`docs/design.md:271-288`).
-  cloudflared asks for a tunnel, and dials the edge, with no proxy (`docs/design.md:230-247`,
-  `docs/design.md:294-308`).
+  7844, for TCP and UDP; port 443 serves optional things only (`docs/design.md:274-291`).
+  cloudflared asks for a tunnel, and dials the edge, with no proxy (`docs/design.md:233-250`,
+  `docs/design.md:297-311`).
 - Read: the box's proxy, as the measured one, allows `CONNECT` to ports 443, 80 and 8443 only
   (`scripts/box/proxy.py:47`, `docs/target-environment.md:21`), and lets one more target through
   by its name with `--allow` (`scripts/box/proxy.py:14-16`).
@@ -1839,7 +1839,7 @@ public repository is public, and the bytes hold the tunnel's secret.
 
 # T-300: `podssh node` publishes a quick tunnel over HTTP/2, with no `cloudflared`
 
-**Source:** T-170 (`docs/design.md:197-547`); the operator's ruling of 2026-10-08: podssh makes a
+**Source:** T-170 (`docs/design.md:200-550`); the operator's ruling of 2026-10-08: podssh makes a
 quick tunnel itself (`docs/decisions.md`).
 **Category:** feature
 **Milestone:** backlog
@@ -1855,12 +1855,12 @@ a name: it runs no `cloudflared`.
 
 ## Premise
 
-- Read (T-170, `docs/design.md:197-547`): the request for a tunnel and its reply; the SRV lookup of
+- Read (T-170, `docs/design.md:200-550`): the request for a tunnel and its reply; the SRV lookup of
   the edge; TLS to `h2.cftunnel.com` with no ALPN; cloudflared as the HTTP/2 server on the
   connection that it dialed; the control stream and its Cap'n Proto registration; the one header
   of each answer (`serialized_headers`); and a WebSocket that passes to the origin unchanged.
 - Read: `h2` 0.4.19 is in `Cargo.lock`, through hyper; the crates `capnp` and `capnp-rpc` are
-  Rust, and their code generator needs the C++ tool `capnp` (`docs/design.md:371-430`).
+  Rust, and their code generator needs the C++ tool `capnp` (`docs/design.md:374-433`).
 - Read: podssh's DNS over HTTPS asks for A and AAAA records only
   (`crates/podssh-ws/src/resolve.rs`, line 125 at `927eb24`).
 - Read: the client exists: `cf://HOST` opens cloudflared's WebSocket through `HTTPS_PROXY`
@@ -2143,7 +2143,7 @@ Partial, 2026-10-30. Done so far, each checked, nothing live yet:
 
 # T-301: The quick tunnel over QUIC, where a probe finds UDP
 
-**Source:** T-170 (`docs/design.md:197-547`): cloudflared makes a quick tunnel over QUIC unless the
+**Source:** T-170 (`docs/design.md:200-550`): cloudflared makes a quick tunnel over QUIC unless the
 user names HTTP/2.
 **Category:** feature
 **Milestone:** backlog
@@ -2162,7 +2162,7 @@ functions.
 - Read (T-170): QUIC to port 7844 with the name `quic.cftunnel.com` and the ALPN `argotunnel`; the
   first stream, which the connector opens, is the control stream; each stream of the edge starts
   with six bytes and a version, then a Cap'n Proto `ConnectRequest`, and is answered with a
-  `ConnectResponse` (`docs/design.md:310-329`).
+  `ConnectResponse` (`docs/design.md:313-332`).
 - Read: the iroh road binds UDP only after its own probe (`docs/design.md`, section 7), and its
   QUIC stack is in the build with the feature `iroh` only.
 - Read: the measured cage refuses UDP (`docs/target-environment.md:23`).
@@ -2330,7 +2330,7 @@ measured there.
 # T-171: The functions of Mosh that M6 and T-160 do not give, made in podssh itself
 
 **Source:** GitHub #22 (Nemo-010, 2026-10-08: SSHub selects a Mosh transport
-for each host); `docs/design.md:759-760`; the operator's ruling of
+for each host); `docs/design.md:762-763`; the operator's ruling of
 2026-10-08: no road depends on a program of another project, and podssh
 makes the useful functions itself (`docs/decisions.md`).
 **Category:** research
@@ -2349,7 +2349,7 @@ functions that are still missing.
 ## Premise
 
 Read: an interactive echo for high latency, as Mosh has, is a later option on
-top of layer 2 (`docs/design.md:759-760`). The measured sandbox refuses UDP
+top of layer 2 (`docs/design.md:762-763`). The measured sandbox refuses UDP
 (`docs/target-environment.md:23`), and the relay carries no UDP
 (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:222`). Not
 verified here (from the published description of Mosh): it roams to a new
@@ -2412,13 +2412,13 @@ names.
 The layer runs under SSH, so a node in front of a standard sshd carries SSH's ciphertext, and
 cannot see the pty's bytes; the functions of the screen (an echo's acknowledgement, frames of the
 screen) need `podssh serve` (T-110), and a notice drawn on the screen needs the client's model of
-T-160 (`docs/design.md:777-784`). And the iroh road (Approach, item 2) gives a direct UDP path,
+T-160 (`docs/design.md:780-787`). And the iroh road (Approach, item 2) gives a direct UDP path,
 but carries a session as one QUIC stream, so a lost packet still holds the bytes after it; only
 datagrams (T-304) remove that.
 
 ## Done
 
-2026-10-12. The map is in `docs/design.md:766-823`, section 5, "The functions of Mosh, and where
+2026-10-12. The map is in `docs/design.md:769-826`, section 5, "The functions of Mosh, and where
 podssh gives each": a table of 13 functions, each with Mosh's way (the paper's section, or a file
 and lines of Mosh at `decd9b7`) and podssh's entry; and four functions that podssh does not need,
 each with the reason (scrollback, forwarding, UTF-8 only, a UDP port on the server).
@@ -2559,7 +2559,7 @@ The test target `mptcp` of `podssh-ws` moved to `pod-proxy` of PodUtils/podcrate
 # T-173: Resumption in the relay for a standard sshd
 
 **Source:** ROADMAP M8 (not now; look at it again after M6);
-`docs/design.md:728-745` (layer 3) and `docs/design.md:1582-1585` (question 1 of
+`docs/design.md:731-748` (layer 3) and `docs/design.md:1585-1588` (question 1 of
 section 8).
 **Category:** feature
 **Milestone:** M10
@@ -2576,13 +2576,13 @@ client connects again.
 ## Premise
 
 Read: when the WebSocket closes, the relay closes the TCP connection to the
-target within 15 s, and it has no resumption (`docs/design.md:695-698`). The
+target within 15 s, and it has no resumption (`docs/design.md:698-701`). The
 option is a Durable Object that owns the target socket across reconnections,
 a resume token in the `101` response, and offset framing as a protocol
 version that the client selects. It is a project of the relay's operator, and
-it costs Durable Object time for the whole session (`docs/design.md:741-745`).
+it costs Durable Object time for the whole session (`docs/design.md:744-748`).
 The recommendation is "not now; look at it again after M6"
-(`docs/design.md:1582-1585`). The relay is in another repository.
+(`docs/design.md:1585-1588`). The relay is in another repository.
 
 ## Approach
 
@@ -2751,7 +2751,7 @@ read, moved here as `cargo todo check` refuses a Blocker on an open entry:
 
 Lifted on 2026-11-02 by Q63: see below.
 
-The Premise holds for the default deployment (`docs/design.md:695-698`). By Q63 (2026-11-02,
+The Premise holds for the default deployment (`docs/design.md:698-701`). By Q63 (2026-11-02,
 `docs/decisions.md`; docs/mesh.md, section 4) the relay is a role of podssh itself, so this
 entry is podssh's work, and the proposal of Approach item 1 needs no other project: in podssh's
 relay role (T-169) the relay's side of the forward road is podssh's code, and the far end of the
@@ -3597,7 +3597,7 @@ Read and verified at the cited lines (2026-10-30):
   or TCP alone, and `:110`). RFC 8441 section 5 runs the frames of RFC 6455 on the HTTP/2
   stream "as if it were the TCP connection", and drops `Sec-WebSocket-Key`
   and `Sec-WebSocket-Accept`.
-- `docs/design.md:373` says "0.4.19 is in": `h2` comes through hyper. Its
+- `docs/design.md:376` says "0.4.19 is in": `h2` comes through hyper. Its
   client reads the server's setting (`is_extended_connect_protocol_enabled`,
   `hyperium/h2:src/client.rs`), its server's builder offers it
   (`enable_connect_protocol`, `hyperium/h2:src/server.rs`), and
@@ -4104,8 +4104,8 @@ roots must be exactly three, and a refusal of the edge does not say which releas
 - Read: the module pins cloudflared 2026.10.6 at commit 35b379a
   (`crates/podssh-relay/src/quick/mod.rs:4-7`); the registration names that release's features
   (`crates/podssh-relay/src/quick/register.rs:24-30`); cloudflared's main deprecates and filters
-  them since its commit 77a79bf, in no release when it was read (`docs/design.md:339-347`; the
-  audit cited `:341-347`).
+  them since its commit 77a79bf, in no release when it was read (`docs/design.md:342-350`; the
+  audit cited `:344-350`).
 - Read: two fixed regions, port 7844 and the TLS name `h2.cftunnel.com`
   (`crates/podssh-relay/src/quick/edge.rs:22-29`); the roots must give 3 anchors and no invalid
   one (`:66-70`); the API's host is fixed (`crates/podssh-relay/src/quick/api.rs:28`). The node
@@ -4120,7 +4120,7 @@ roots must be exactly three, and a refusal of the edge does not say which releas
   (https://api.github.com/repos/cloudflare/cloudflared/releases): 2026.10.7 came on 2026-10-30, a
   day after 2026.10.6; 2026.10.3 to 2026.10.7 came in ten days.
 - Read: cloudflared finds the edge by the SRV record `_v2-origintunneld._tcp.argotunnel.com`
-  (`docs/design.md:271-277`), and podssh's DNS over HTTPS asks for A and AAAA only
+  (`docs/design.md:274-280`), and podssh's DNS over HTTPS asks for A and AAAA only
   (`crates/podssh-ws/src/resolve.rs`, line 125 at `927eb24`).
 - Read: the edge's trust is podssh's default roots, `podssh-ca.pem` next to the binary among them,
   and cloudflared's three (`crates/podssh-relay/src/quick/edge.rs:61-72`;
@@ -4270,11 +4270,11 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:71`).
 - Read: the `cf://` road opens the WebSocket of `cloudflared access tcp` through `HTTPS_PROXY`,
   and a node behind it greets with the resumable layer first
   (`crates/podssh-cli/src/ssh/cloudflare.rs:1-12`); a roost is a node in front of a standard
-  sshd (`docs/design.md:164-167`).
+  sshd (`docs/design.md:167-170`).
 - Read in the study
   (https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/use-cases/ssh/ssh-cloudflared-authentication/):
   SSH through a tunnel is a documented use. A quick tunnel is for testing, with no uptime
-  guarantee (`docs/design.md:249-253`).
+  guarantee (`docs/design.md:252-256`).
 - Inferred: a proxy that re-terminates TLS passes it when podssh trusts the proxy's CA and the
   proxy passes the upgrade; a proxy that refuses the upgrade stops it, as it stops the relay.
 
@@ -4387,7 +4387,7 @@ that says why.
   is 1.91 or later was not read (T-343 checks it in the job). The notices of the licenses are
   made for the default features (`.github/workflows/release.yml:494`); `cargo deny` checks the
   licenses and the sources with each feature (`.github/workflows/deny.yml:49-51`).
-- Read: `docs/design.md:1210-1211` says "about 190 to 245 crates, and several megabytes" of iroh.
+- Read: `docs/design.md:1213-1214` says "about 190 to 245 crates, and several megabytes" of iroh.
 
 ## Approach
 
@@ -4486,7 +4486,7 @@ adapter under the layer and the tests against derper make it L.
   (`PodUtils/podssh:crates/podssh-relay/src/e2e/mod.rs:1-17`; `PodUtils/podssh:crates/podssh-relay/src/e2e/channel.rs:1-4`), and
   the layer resumes on any link that reads and writes
   (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:144-157`).
-- Read: a gap of the layer's offsets ends a link (`docs/design.md:873-876`): a carrier of packets
+- Read: a gap of the layer's offsets ends a link (`docs/design.md:876-879`): a carrier of packets
   that may drop needs a layer under it that sends again.
 - Read: the vendored fork's client speaks DERP over a WebSocket
   (`vendor/tailscale-rs/ts_derp/src/client.rs:31-39`), seals with `crypto_box`
@@ -4666,7 +4666,7 @@ podssh's own, which makes it M.
 
 - Read: the endpoint has no address lookup: a peer is dialled by its key and its relay
   (`crates/podssh-iroh/src/endpoint.rs:4-7`, `:338-339`), as the design chose for a host with no
-  DNS (`docs/design.md:1222`, `:1232`).
+  DNS (`docs/design.md:1225`, `:1235`).
 - Read: the node's key is Ed25519 and stays across its pairs, and the operator pins it by label
   (`docs/reverse.md:606-610`).
 - Read in the study (https://docs.iroh.computer/connecting/dns-address-lookup): an endpoint
@@ -5109,7 +5109,7 @@ The draft's calls, 2026-10-31:
    tunnel names its host; `HostKeyAlias` takes a key kept under HOST.
 3. The registration's headers: those of "WARP for Android", as usque sends them (its
    `internal/consts.go`), with its API version `v0a4471` and client `a-6.35-4471`, in one place
-   (`crates/podssh-warp/src/register.rs`). Lost: podssh's own `User-Agent`, which no reading
+   (crates/podssh-warp/src/register.rs at `286e98d3`). Lost: podssh's own `User-Agent`, which no reading
    shows the API to take, where each refused try counts against a rate limit; the tester's
    `v0a5641`, read with no matching client version.
 4. The Terms: a registration only with `PODSSH_WARP_ACCEPT_TERMS=yes`, and the record of the
@@ -7187,12 +7187,12 @@ in use.
 
 ## Premise
 
-- Read: the client's windows are 4 and 8 MiB (`crates/podssh-warp/src/tunnel.rs:28`), with no
+- Read: the client's windows are 4 and 8 MiB (crates/podssh-warp/src/tunnel.rs:28 at `286e98d3`), with no
   explicit budget of frames; the study read h2 0.4.20's automatic budget as half the connection's
   window, 4 MiB, which a front door's frames of 60 bytes reach after about 70,000 frames (inferred,
   not measured).
 - Read: the stack's task sends each outbound packet with `out.send(...).await` before it reads the
-  next inbound one (`crates/podssh-warp/src/stack.rs`, line 314 at `ea2bd4f`): while an upload
+  next inbound one (crates/podssh-warp/src/stack.rs at `286e98d3`, line 314 at `ea2bd4f`): while an upload
   waits for the window, nothing inbound is read, and small frames pile up inside h2.
 - Read: WARP's live test reads a banner of 64 bytes (`.github/workflows/warp-live.yml`).
 
@@ -7237,6 +7237,10 @@ Live: `warp-live.yml` dispatched on the commit; 16 MiB each way, the digests equ
 
 ## Correction
 
+2026-11-13: the test target small_frames of podssh-warp left with the
+tunnel, which `pod-warp` of PodUtils/podcrates holds; the crate's tests of
+its session hold the budget of small frames.
+
 The study's count of frames was the budget over each frame's size; h2 counts 256 bytes less each
 frame's size, read in h2 0.4.20's source (`hyperium/h2:src/proto/streams/counts.rs`, its
 `record_data_frame` and `release_data_frame`; `hyperium/h2:src/proto/connection.rs`,
@@ -7255,11 +7259,11 @@ the same day; the live copies run in Actions after the push (`docs/STATUS.md`).
 - The client: `tunnel::client_builder` gives HTTP/2's client its windows and `FRAME_BUDGET`, and
   `tunnel::open` takes it; a constant assertion holds the budget above a window of frames of 60
   bytes. The stand-in edge's server takes the same budget, so that a test's volume never ends its
-  side (`crates/podssh-warp/src/tunnel.rs`, `crates/podssh-warp/src/stand_in.rs`).
-- The driver (`crates/podssh-warp/src/stack.rs`): each poll hands the tunnel the packets that it
+  side (crates/podssh-warp/src/tunnel.rs at `286e98d3`, crates/podssh-warp/src/stand_in.rs at `286e98d3`).
+- The driver (crates/podssh-warp/src/stack.rs at `286e98d3`): each poll hands the tunnel the packets that it
   takes with no wait (`hand_over`), and the rest stay in smoltcp's queue out; then one wait over
   room in the tunnel, a packet in, a stream's word and TCP's timer. smoltcp's device takes a packet
-  in only while its queue out has room (`crates/podssh-warp/src/phy.rs`).
+  in only while its queue out has room (crates/podssh-warp/src/phy.rs at `286e98d3`).
 - The live copy: `warp-live.yml` puts 16 MiB each way, with their digests, through WARP's tunnel
   to a node of the live relay in front of an OpenSSH server on the runner's loopback; the box's
   proxy carries the client's connections inside the tunnel (`scripts/box/proxy.py --carry`, which
@@ -7311,10 +7315,10 @@ has no road.
 ## Premise
 
 - Read: a key other than the pinned one is a refusal that names the issuer
-  (`crates/podssh-warp/src/tls.rs:61`), reported as interception (`crates/podssh-warp/src/road.rs:114`)
-  and remembered for the run (`crates/podssh-warp/src/road.rs`, line 130 at `ea2bd4f`).
+  (crates/podssh-warp/src/tls.rs:61 at `286e98d3`), reported as interception (crates/podssh-warp/src/road.rs:114 at `286e98d3`)
+  and remembered for the run (crates/podssh-warp/src/road.rs at `286e98d3`, line 130 at `ea2bd4f`).
 - Read: the device's record is read once, at registration; no request reads it again
-  (`crates/podssh-warp/src/register.rs`, 2026-11-01).
+  (crates/podssh-warp/src/register.rs at `286e98d3`, 2026-11-01).
 
 ## Approach
 
@@ -7368,13 +7372,13 @@ opens. The planted defect: no new read, and the road is refused.
 
 The Approach's test, a refused certificate that "chains to a public root", never holds for the
 front door: its certificate's chain is signed by no public root (GitHub #63's first comment, read
-in T-352's Premise; `crates/podssh-warp/src/tls.rs` says so), as a proxy's ends at the proxy's own
+in T-352's Premise; crates/podssh-warp/src/tls.rs at `286e98d3` says so), as a proxy's ends at the proxy's own
 CA. A chain cannot tell the two apart, and the record would never be read again. WARP's API can: a
 key that it gives now is the front door's, and a key that it never gave is not WARP's (the Decision,
 item 1).
 
 The Prove named an integration test, `--test rotated_key`; the stand-in of the API that it needs is
-the tests' own (`crates/podssh-warp/src/tests/api.rs`, on rcgen, a dev-dependency), so the test is
+the tests' own (crates/podssh-warp/src/tests/api.rs at `286e98d3`, on rcgen, a dev-dependency), so the test is
 a module of the crate's tests, `tests::rotated_key`, which needs no feature.
 
 ## Done
@@ -8294,7 +8298,7 @@ fails at random.
 
 ## Premise
 
-- Read: `Warp::open_reading` (`crates/podssh-warp/src/road.rs`) reads the device's record again
+- Read: `Warp::open_reading` (crates/podssh-warp/src/road.rs at `286e98d3`) reads the device's record again
   when the endpoint shows another key, and tries a new key twice, a second apart (T-399); when the
   API gives the same key it gives up at once, though its own words say that a new connection may
   reach another server of the front door.
@@ -8319,10 +8323,10 @@ Planted, no retry for the same key; `quick-tunnel-live.yml` with Q43.
 
 2026-11-01, here (the live run follows the push):
 
-- `crates/podssh-warp/src/road.rs`: the same key is tried once more a second later; its refusal
+- crates/podssh-warp/src/road.rs at `286e98d3`: the same key is tried once more a second later; its refusal
   says "WARP's API, asked again, gives the same key, which a new connection a second later did not
   show either".
-- `crates/podssh-warp/src/tests/rotated_key.rs`:
+- crates/podssh-warp/src/tests/rotated_key.rs at `286e98d3`:
   `the_record_s_key_is_tried_once_more_when_the_api_gives_it_again` (a stray key, then the
   record's: the tunnel opens at the second handshake, after a second, one GET).
 - `cargo test -p podssh-warp --features stand-in --lib tests::rotated_key`: 6 passed (the proxy's
@@ -8522,9 +8526,9 @@ never passed a byte.
 
 ## Premise
 
-- `crates/podssh-warp/src/road.rs`, line 5 at `1769d79`, said "The probe (T-352's Approach, step
+- crates/podssh-warp/src/road.rs at `286e98d3`, line 5 at `1769d79`, said "The probe (T-352's Approach, step
   2) is the opening itself: the CONNECT"; this entry's draft rewrote that comment.
-- `crates/podssh-warp/src/road.rs:204` says "pub async fn open(device: &Device, proxy: &ProxyChoice, limit: Duration) -> Result<Warp, Fault> {";
+- crates/podssh-warp/src/road.rs:204 at `286e98d3` says "pub async fn open(device: &Device, proxy: &ProxyChoice, limit: Duration) -> Result<Warp, Fault> {";
   at `1769d79` it returned once TLS and the stack were up, with no byte through the tunnel.
 
 ## Approach
@@ -8578,23 +8582,29 @@ The stand-in edge that takes TLS and then drops each packet gives `Fault::Silent
 ceiling; the stand-in that carries gives a road. Planted: the probe skipped, and the silent edge's
 test fails.
 
+## Correction
+
+2026-11-13: the test target road of podssh-warp left with the road, which
+`pod-warp` of PodUtils/podcrates holds: its check of the data path proves a
+new session, and `PODSSH_WARP_PROBE=no` turns it off.
+
 ## Done
 
 Drafted 2026-11-02 by an agent, which built nothing; merged and measured by the main session on
 2026-11-03.
 
-- `crates/podssh-warp/src/probe.rs` (new): the probe's targets (`1.1.1.1:443`, and IPv6's
+- crates/podssh-warp/src/probe.rs at `286e98d3` (new): the probe's targets (`1.1.1.1:443`, and IPv6's
   resolver), its ceiling of 3 s for each try, two tries 700 ms apart, and its verdict: carried (a
   connection or a reset), silent (why each try failed), or the tunnel's end. `Warp::over`
-  (`crates/podssh-warp/src/road.rs`) runs it before a road is returned; `Fault::Silent` and its
+  (crates/podssh-warp/src/road.rs at `286e98d3`) runs it before a road is returned; `Fault::Silent` and its
   line, "the tunnel opened and carried nothing", which names the road, the target and the
   tries; `Warp::probed`. A silent front door does not go into the run's memory of proxies that
   re-terminate TLS, and the road writes no record of failed hosts (the relay's is
   `crates/podssh-relay/src/failures.rs`), so step 2's "does not mark the host" holds.
-- `crates/podssh-warp/src/device.rs`: `Device::probe`, set from the device's addresses, and
-  `Device::probing`; the record holds neither. `crates/podssh-warp/src/stream.rs`: the words of a
+- crates/podssh-warp/src/device.rs at `286e98d3`: `Device::probe`, set from the device's addresses, and
+  `Device::probing`; the record holds neither. crates/podssh-warp/src/stream.rs at `286e98d3`: the words of a
   reset, which the probe reads.
-- `crates/podssh-warp/src/stand_in.rs`: the far end answers the probe; `StandIn::silence` and
+- crates/podssh-warp/src/stand_in.rs at `286e98d3`: the far end answers the probe; `StandIn::silence` and
   `StandIn::probes`.
 - The CLI (`crates/podssh-cli/src/ssh/cloud/warp.rs`, `crates/podssh-cli/src/ssh/cloud/warp/road.rs`):
   `PODSSH_WARP_PROBE`, read before a record is read or a device registered (78 for another
@@ -8602,7 +8612,7 @@ Drafted 2026-11-02 by an agent, which built nothing; merged and measured by the 
 - The manual (the variable, and the note of `warp://`), `docs/cli.md`, `docs/carriers.md` (item
   4), `docs/development.md`, the row of `docs/STATUS.md`; `warp-live.yml`'s first step asks for
   the line of an answered probe.
-- `crates/podssh-warp/tests/road.rs` (new): a silent front door is named within the ceiling, after
+- crates/podssh-warp/tests/road.rs at `286e98d3` (new): a silent front door is named within the ceiling, after
   two tries; one that carries gives a road whose probe was answered, which is no stream of the
   user's; a reset is an answer; a run that skips the probe takes the silent tunnel and its first
   stream meets the silence; a silent front door is tried again in the run.
@@ -8643,9 +8653,9 @@ device's record shows an endpoint that podssh chose, not the service.
 ## Premise
 
 - `PodUtils/podssh:crates/podssh-warp/src/lib.rs:69` says "pub const ENDPOINT_H2", the address 162.159.198.2:443.
-- `crates/podssh-warp/src/register.rs:264` says "[0];", the first peer of the answer alone.
+- crates/podssh-warp/src/register.rs:264 at `286e98d3` says "[0];", the first peer of the answer alone.
 - `PodUtils/podssh:crates/podssh-warp/src/register.rs:319` says "let endpoint = crate::ENDPOINT_H2.parse()": the record takes the constant.
-- `crates/podssh-warp/src/device.rs:71` says "pub endpoint: SocketAddr,": one address.
+- crates/podssh-warp/src/device.rs:71 at `286e98d3` says "pub endpoint: SocketAddr,": one address.
 
 ## Approach
 
@@ -8719,23 +8729,23 @@ and HTTP/2 alone.
 2026-11-02, drafted by an agent that does not build; merged and run by the main session on
 2026-11-03.
 
-- `crates/podssh-warp/src/register.rs`: `peers`, each peer's `endpoint.v4` then `.v6` on port
+- crates/podssh-warp/src/register.rs at `286e98d3`: `peers`, each peer's `endpoint.v4` then `.v6` on port
   443 (`crate::PORT_H2`), into `Answer::peers`; a registration gives the device the API's peers.
-- `crates/podssh-warp/src/device.rs`: `Device::peers`, `reached` (both in the record), `only` (the
+- crates/podssh-warp/src/device.rs at `286e98d3`: `Device::peers`, `reached` (both in the record), `only` (the
   run's), `with_peers`, `endpoints`; `Device::at` sets the run's one endpoint and leaves the
-  record's. `crates/podssh-warp/src/endpoints.rs` (new): the dial's ceiling of each, which
+  record's. crates/podssh-warp/src/endpoints.rs at `286e98d3` (new): the dial's ceiling of each, which
   faults go on, and the road's line when each failed.
-- `crates/podssh-warp/src/road.rs`: `Warp::open` and `Warp::open_reading` try each endpoint in
+- crates/podssh-warp/src/road.rs at `286e98d3`: `Warp::open` and `Warp::open_reading` try each endpoint in
   turn; `open_reading` keeps the one that opened in `device.reached`, or forgets it, unless the
   run named its one endpoint, and takes the peers of a record read again.
-  `crates/podssh-warp/src/tunnel.rs`: `open` at an endpoint, with a ceiling for its dial.
+  crates/podssh-warp/src/tunnel.rs at `286e98d3`: `open` at an endpoint, with a ceiling for its dial.
 - The CLI (`crates/podssh-cli/src/ssh/cloud/warp/road.rs`): the record in the cache keeps the
   peers and the endpoint that opened, with a new key of T-399; `-v` names the endpoints in turn
   and the one that opened (`crates/podssh-cli/src/ssh/cloud/warp.rs`).
 - The manual (`PODSSH_WARP_ENDPOINT`, the note of `warp://`), `docs/cli.md`, `docs/carriers.md`
   (item 4), the row of `docs/STATUS.md`. `scripts/box/proxy.py`: `--deny HOST:PORT`.
   `warp-live.yml`: a step through a proxy that refuses 162.159.198.2:443.
-- Tests: `crates/podssh-warp/src/tests/peers.rs` (new), the record's endpoint refusing and the peer
+- Tests: crates/podssh-warp/src/tests/peers.rs at `286e98d3` (new), the record's endpoint refusing and the peer
   after it opening and kept, tried first the next time; each endpoint failing, each named, the
   kept one forgotten; the run's one endpoint tried alone; a device that the edge refuses not
   taken to the next endpoint. `register.rs`'s peers of an answer; `device.rs`'s record with
@@ -8765,7 +8775,7 @@ and HTTP/2 alone.
   IPv4 peer, and now reads the record's peers first and, with none, proves the turn and the line;
   and a proxy's 502, 503 or 504 had the hint of a proxy that allows listed names alone, and now
   says that the proxy's own way out failed, with "it may have no IPv6 route" for an IPv6 peer
-  (`crates/podssh-warp/src/road.rs`, `fault`; its test `a_refused_address_names_the_proxy_and_
+  (crates/podssh-warp/src/road.rs at `286e98d3`, `fault`; its test `a_refused_address_names_the_proxy_and_
   the_case`). The repaired step at `cde307f` (run 41597035711, 2026-11-03): the record's peers
   `162.159.198.2:443` and `[2606:4700:103::2]:443`, each tried in turn and named, the IPv6 one
   with "could not reach [2606:4700:103::2]:443 (502 Bad Gateway): its own way out to that
@@ -8854,14 +8864,14 @@ reads of T-399); a new registration tries `PODSSH_WARP_API`, then the API's two 
 2026-11-02, drafted by an agent that does not build; merged and run by the main session on
 2026-11-03.
 
-- `crates/podssh-warp/src/routes.rs` (new): a route to the API, read from `https://HOST[:PORT]`
-  or from `HOST[:PORT]` as the record writes it. `crates/podssh-warp/src/register.rs`:
+- crates/podssh-warp/src/routes.rs at `286e98d3` (new): a route to the API, read from `https://HOST[:PORT]`
+  or from `HOST[:PORT]` as the record writes it. crates/podssh-warp/src/register.rs at `286e98d3`:
   `API_SECOND` and `API_HOSTS`; `Api::routes`, `Api::first`; each request by the routes in turn,
   a route that is not reached giving way to the next, the failure's line naming each
   ("WARP's API was not reached by any of its routes: ROUTE: why; then ROUTE: why"); the
   enrolment by the route that registered; `read_record` gives the route that answered.
-- `crates/podssh-warp/src/device.rs`: `Device::api`, in the record, and `Device::by`.
-  `crates/podssh-warp/src/road.rs`: a record read again keeps its route.
+- crates/podssh-warp/src/device.rs at `286e98d3`: `Device::api`, in the record, and `Device::by`.
+  crates/podssh-warp/src/road.rs at `286e98d3`: a record read again keeps its route.
 - The CLI (`crates/podssh-cli/src/ssh/cloud/warp.rs`, `crates/podssh-cli/src/ssh/cloud/warp/road.rs`):
   `PODSSH_WARP_API`, then the record's route, then the API's names; the record in the cache keeps
   the route; `-v` names the route that registered.
@@ -8869,7 +8879,7 @@ reads of T-399); a new registration tries `PODSSH_WARP_API`, then the API's two 
   `docs/cli.md`, `docs/carriers.md` (item 4), the row of `docs/STATUS.md`; `warp-live.yml`, a
   step that registers a throwaway device through `api.devices.cloudflare.com` alone, in a cache
   of its own that it removes.
-- Tests: `crates/podssh-warp/src/tests/api_routes.rs` (new), a first route that is not reached
+- Tests: crates/podssh-warp/src/tests/api_routes.rs at `286e98d3` (new), a first route that is not reached
   handing the registration and the enrolment to the second, kept in the record and taken by a
   read again; each route that is not reached named; a refusal by the first going to no other;
   the order of Cloudflare's names and of a route put first. `routes.rs`'s forms of a route and
@@ -8911,7 +8921,7 @@ blames a proxy that the road did not use, so a user looks for a proxy that is no
 ## Premise
 
 - The road's dial with `ProxyChoice::Direct` and the proxy's dial both end in the same words when
-  the endpoint's certificate is not WARP's key (read in `crates/podssh-warp/src/road.rs`, the
+  the endpoint's certificate is not WARP's key (read in crates/podssh-warp/src/road.rs at `286e98d3`, the
   fault of a certificate that is not the pin).
 - The run's first attempt also had WARP's API answer 500 to the device's record, read again:
   WARP's side was failing then.
@@ -9150,8 +9160,8 @@ road until a measurement says otherwise.
 
 ## Premise
 
-- `crates/podssh-warp/src/tests/edge.rs:36` writes 1 MiB, shuts the writer and reads to the end
-  within `LIMIT * 3` (`crates/podssh-warp/src/tests/mod.rs:25`, 20 s).
+- crates/podssh-warp/src/tests/edge.rs:36 at `286e98d3` writes 1 MiB, shuts the writer and reads to the end
+  within `LIMIT * 3` (crates/podssh-warp/src/tests/mod.rs:25 at `286e98d3`, 20 s).
 - T-398 made the tunnel read while a packet waits and take small frames up to its whole window
   (`66044bd`); a lost wakeup between the stack's queue and the HTTP/2 stream's window would stall
   the transfer with no error, as seen.
@@ -9178,7 +9188,7 @@ stall comes back within the loop.
 ## Correction
 
 2026-11-03: the lost wakeup is in the stack's driver, not between smoltcp and HTTP/2's window. The
-device's `receive` (`crates/podssh-warp/src/phy.rs`) refuses a packet in while 64 packets wait to
+device's `receive` (crates/podssh-warp/src/phy.rs at `286e98d3`) refuses a packet in while 64 packets wait to
 go out (`MAX_OUT`), so that nothing grows while the tunnel takes nothing; the driver then hands the
 queue out to the tunnel's channel, which holds 256 (`PACKETS`), and with each packet handed over it
 slept for smoltcp's next timer (`poll_delay`), which knows nothing of the packets still waiting in.
@@ -9193,16 +9203,16 @@ the repair removed, not the stall itself, as the new test makes it come every ti
 - Reproduced: `tests::edge::a_session_passes_both_ways_inside_the_tunnel`, 8 loops of 25 at once on
   this cloud session's 4 CPUs: 1 of 200 failed, "the echo in time: Elapsed(())" after 60.8 s, as
   on the runner.
-- `crates/podssh-warp/src/stack.rs`, `drive`: after the queue out is handed over whole, packets in
+- crates/podssh-warp/src/stack.rs at `286e98d3`, `drive`: after the queue out is handed over whole, packets in
   that smoltcp left are polled at once (after a yield), in place of a sleep.
-- `crates/podssh-warp/src/tests/driver.rs` (new):
+- crates/podssh-warp/src/tests/driver.rs at `286e98d3` (new):
   `packets_left_while_the_queue_out_was_full_are_read_once_it_has_room`, 200 SYNs to a closed port
   in the stack's channel before its first poll, each answered with a RST, one packet out for each
   in: each RST within 5 s (0.01 s here); before the repair, 64 came, and the rest waited a minute.
 - Planted (`sh scripts/plant-each.sh --here t599-unread-left`, the repair turned off): caught, the
   new test failed. `cargo test -p podssh-warp --features stand-in`: 69 passed in the lib, 5 in
   `road`, 3 in the rest; clippy `--all-targets -D warnings`: clean.
-- The second cause, found by counts at the test's timeout (`crates/podssh-warp/src/flow.rs`, the
+- The second cause, found by counts at the test's timeout (crates/podssh-warp/src/flow.rs at `286e98d3`, the
   pumps' packets each way and HTTP/2's window, and each stack's connections, which the test prints
   then): 2 of 2,400 runs failed with the counts of each side equal, nothing in either device's
   queues, the client's connection in FIN-WAIT-2 with nothing to read and the edge's in LAST-ACK
@@ -9211,12 +9221,12 @@ the repair removed, not the stall itself, as the new test makes it come every ti
   ACK, returning before it reads the window from it and before it arms its probe of a closed window
   (`src/socket/tcp.rs`, its state `LastAck`): the client's window updates were dropped, and the
   bytes waited for a probe whose backed-off wait passed the test's minute.
-- Repaired in `crates/podssh-warp/src/stack.rs` and `stream.rs`: a connection in CLOSE-WAIT with
+- Repaired in crates/podssh-warp/src/stack.rs at `286e98d3` and `stream.rs`: a connection in CLOSE-WAIT with
   bytes not yet acknowledged sends no FIN (`fin_waits`): `poll_shutdown` waits for the
   acknowledgement, and a drop leaves the close to the driver, which closes it once the bytes went
   (the reaper, run before the next timer so that the FIN is due at once). LAST-ACK then holds the
   FIN alone.
-- `crates/podssh-warp/src/tests/close.rs` (new): two stacks joined by channels, a far end that
+- crates/podssh-warp/src/tests/close.rs at `286e98d3` (new): two stacks joined by channels, a far end that
   writes 384 KiB to a client that reads none, the client's FIN, then the far end's shutdown
   (`a_shutdown_in_close_wait_sends_its_fin_after_the_bytes_held_back`) or drop
   (`a_drop_in_close_wait_...`): the shutdown waits, and each byte and the end come within 2 s of
@@ -9555,7 +9565,7 @@ Read at `2042200`:
 - No code of podssh speaks STUN (searched); the TURN road would bring a STUN codec (T-621, its step 2).
 - The measured sandbox refuses UDP: `docs/target-environment.md:23` says "EPERM", so there the line is
   unknown.
-- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:93` for `UdpSocket`),
+- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:91` for `UdpSocket`),
   which `scripts/check-repo.py:287` reads.
 
 ## Approach
@@ -9687,9 +9697,9 @@ refusing port did not.
 
 ## Premise
 
-- `crates/podssh-warp/src/tests/mod.rs` at `9794df1`, line 29, said "pub(crate) async fn
+- crates/podssh-warp/src/tests/mod.rs at `286e98d3` at `9794df1`, line 29, said "pub(crate) async fn
   refusing() -> SocketAddr {", with no call of `crate::road::forget`.
-- `crates/podssh-warp/src/stand_in.rs:210` says "crate::road::forget(addr);".
+- crates/podssh-warp/src/stand_in.rs:210 at `286e98d3` says "crate::road::forget(addr);".
 
 ## Approach
 
@@ -9873,7 +9883,7 @@ reachable one way and not the other. No record says which rule the shared reader
   for the sshd that shares the relay role's port (T-644).
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
-- `docs/design.md:170` documents the roost's rule, and no document says what the direct road
+- `docs/design.md:173` documents the roost's rule, and no document says what the direct road
   follows. T-363's Decision item 7 (`TODO/roads.md:5902`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at

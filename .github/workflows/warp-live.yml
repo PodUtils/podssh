@@ -11,12 +11,13 @@ name: warp live
 # port 22 is reached only inside WARP's tunnel; OpenSSH's ssh to GitHub
 # with podssh proxy as its ProxyCommand, to the refusal of a client with no
 # key; and the box's proxy with names alone, which refuses the endpoint's
-# address and is named. The first run's -v says that the probe inside the
-# tunnel, a connection to 1.1.1.1:443, was answered (T-560); a proxy that
-# refuses 162.159.198.2:443 sends the road on to the peers that WARP's API
-# gave, and the record keeps the one that opened (T-561); and a second
+# address and is named. The first run's -v says that the check inside the
+# tunnel, a question to WARP's resolver, was answered (T-560); a proxy that
+# refuses 162.159.198.2:443 sends the road on to the other door of the
+# record, and the door file keeps the one that opened (T-561); and a second
 # throwaway device registers through api.devices.cloudflare.com alone, in a
-# cache of its own, removed at once (T-562, Q59). Then 16 MiB each way inside the tunnel (T-398), with
+# cache of its own, removed at once, and the door file keeps that base
+# (T-562, Q59). Then 16 MiB each way inside the tunnel (T-398), with
 # their digests: a node of the live relay in front of an OpenSSH server on
 # the loopback, and podssh ssh to it through the box's proxy, which carries
 # each CONNECT through podssh proxy warp:// (--carry), so the client's bytes
@@ -83,7 +84,7 @@ jobs:
           grep -q "Permission denied (publickey)" "$RUNNER_TEMP/ssh.log" || { echo "FAIL no refusal of GitHub's ($rc)"; exit 1; }
           [ "$rc" = 255 ] || { echo "FAIL exit $rc, not 255"; exit 1; }
           # T-560: the tunnel was proven by a packet through it, not by TLS alone.
-          grep -q "a packet went inside WARP's tunnel to 1.1.1.1:443" "$RUNNER_TEMP/ssh.log" \
+          grep -q "a packet went inside WARP's tunnel and its answer came back" "$RUNNER_TEMP/ssh.log" \
             || { echo "FAIL the probe inside the tunnel was not answered"; exit 1; }
           echo "ok    the probe inside WARP's tunnel was answered"
           # The far end is GitHub itself: its published Ed25519 key.
@@ -132,8 +133,8 @@ jobs:
           esac
 
       # T-561: a proxy that refuses the endpoint of HTTP/2, as a network that
-      # drops one prefix: the road goes on to the peers that WARP's API gave,
-      # and the record keeps the one that opened.
+      # drops one prefix: the road goes on to the other door of the record
+      # (its IPv6 address), and the door file keeps the one that opened.
       - name: the API's own peer, through a proxy that refuses 162.159.198.2:443
         run: |
           python3 scripts/box/proxy.py --listen 127.0.0.1:3131 --deny 162.159.198.2:443 >"$RUNNER_TEMP/deny.log" 2>&1 &
@@ -147,28 +148,21 @@ jobs:
           echo "podssh proxy exited $rc"
           sed 's/^/proxy: /' "$RUNNER_TEMP/deny.log"
           grep -q "^403 CONNECT 162.159.198.2:443" "$RUNNER_TEMP/deny.log" || { echo "FAIL the proxy refused nothing"; exit 1; }
-          # The API's peers, as the record keeps them. On 2026-11-03 it gave no
-          # IPv4 peer but 162.159.198.2 and one IPv6 peer, which a runner with
-          # no IPv6 cannot reach (run 41596110186): the road then names each
-          # endpoint in turn, and that is what this step can prove.
-          others=$(python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("record: peers", r.get("peers"), file=sys.stderr); print(len([p for p in r.get("peers") or [] if not p.startswith("[") and p != "162.159.198.2:443"]))' \
-            "$PODSSH_CACHE_DIR/warp-device.json")
-          if [ "$others" = 0 ]; then
-            grep -q "each of WARP's [0-9]* endpoints failed, in turn" "$RUNNER_TEMP/peer.log" || { echo "FAIL the endpoints were not named in turn"; exit 1; }
-            grep -q "CONNECT \[" "$RUNNER_TEMP/deny.log" || { echo "FAIL the IPv6 peer was not dialled"; exit 1; }
-            echo "ok    the API gave no other IPv4 peer: each endpoint was tried in turn, and named"
-            pkill -f "proxy.py --listen 127.0.0.1:3131" || true
-            exit 0
-          fi
-          grep -q "^200 CONNECT " "$RUNNER_TEMP/deny.log" || { echo "FAIL no peer of the API was dialled"; exit 1; }
+          # The other door of the record is its IPv6 address, which a runner
+          # with no IPv6 cannot reach (run 41596110186): the road then names
+          # both doors, and that is what this step can prove.
+          grep -q "CONNECT \[" "$RUNNER_TEMP/deny.log" || { echo "FAIL the IPv6 door was not dialled"; exit 1; }
           banner=$(head -c 64 "$RUNNER_TEMP/peer.out" | tr -d '\r' | head -n 1)
           case $banner in
-            SSH-2.0-*) echo "ok    the banner of github.com:22 came through the API's own peer" ;;
-            *) echo "FAIL no SSH banner through the API's peer"; exit 1 ;;
+            SSH-2.0-*)
+              echo "ok    the banner of github.com:22 came through the other door"
+              python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("door file:", d.get("door")); sys.exit(0 if d.get("door") and d["door"] != "162.159.198.2:443" else 1)' \
+                "$PODSSH_CACHE_DIR/warp-door.json" || { echo "FAIL the door file does not keep the door that opened"; exit 1; }
+              echo "ok    the door file keeps the door that opened" ;;
+            *)
+              grep -q "the other address of the front door failed too" "$RUNNER_TEMP/peer.log" || { echo "FAIL the doors were not named in turn"; exit 1; }
+              echo "ok    the other door was not reached from this runner: both doors were tried in turn, and named" ;;
           esac
-          python3 -c 'import json,sys; r=json.load(open(sys.argv[1])); print("record: peers", r.get("peers"), "reached", r.get("reached")); sys.exit(0 if r.get("reached") and r["reached"] != "162.159.198.2:443" else 1)' \
-            "$PODSSH_CACHE_DIR/warp-device.json" || { echo "FAIL the record does not keep the peer that opened"; exit 1; }
-          echo "ok    the record keeps the peer that opened"
           pkill -f "proxy.py --listen 127.0.0.1:3131" || true
 
       # T-562: one throwaway device (Q59) registered through the API's second
@@ -186,11 +180,11 @@ jobs:
           sed 's/^/podssh: /' "$RUNNER_TEMP/second.log"
           echo "podssh proxy exited $rc"
           grep -q "registering a device" "$RUNNER_TEMP/second.log" || { echo "FAIL no registration"; rm -rf "$second"; exit 1; }
-          api=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("api"))' "$second/warp-device.json" 2>/dev/null)
-          echo "record: api $api"
+          api=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("api"))' "$second/warp-door.json" 2>/dev/null)
+          echo "door file: api $api"
           banner=$(head -c 64 "$RUNNER_TEMP/second.out" | tr -d '\r' | head -n 1)
           rm -rf "$second"
-          [ "$api" = "api.devices.cloudflare.com" ] || { echo "FAIL the record's route is not the second name"; exit 1; }
+          [ "$api" = "https://api.devices.cloudflare.com" ] || { echo "FAIL the door file's base is not the second name"; exit 1; }
           case $banner in
             SSH-2.0-*) echo "ok    a device registered through api.devices.cloudflare.com, and its tunnel carried GitHub's banner" ;;
             *) echo "FAIL no SSH banner through the device of the second name"; exit 1 ;;
