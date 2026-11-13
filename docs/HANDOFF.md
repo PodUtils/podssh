@@ -1,16 +1,18 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-12, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-13, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
-- The gate is green at `562751d` (run 43219698199). A push cancels the older gate, so read a commit's gate
-  before the next push.
+- The gate is green at `09d2e59` (2026-11-13, run 43442847142). The gates of `c08ad94` and
+  `97d6fac` were cancelled by the next push; the gate of `a5b4204` (run 43459290806) was running when
+  this page was read. A push cancels the older gate, so read a commit's gate before the next push.
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- Four drafts wait, on GitHub as `draft/t582`, `draft/t621`, `draft/t741` and `draft/t742` (see "Drafts" in
-  `TODO/PROGRESS.md`).
+- Drafts that wait for their merge (see "Drafts" in `TODO/PROGRESS.md`): T-117's (`10c87a2`) and
+  T-118's (`692cc1a`) on the branch `draft-t117`, T-248's (`5aa7229`) on `draft-t248`. The main
+  session was merging T-117's.
 
 ## The sessions of PodUtils
 
@@ -21,19 +23,23 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 ## Each podcrates take
 
 podssh pins every podcrates crate at `tag = "v0.39.0"` (COORD-077, PodUtils/podcrates#137; podssh's answer is
-COORD-052). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+COORD-052, #229). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
   and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
-- v0.33.0 brings `pod-devtunnel` (podcrates T-378), which unblocks T-755 (#216, drafted on `draft-t755`), and
-  `pod-turn`, whose STUN codec `pod_proxy::stun` re-exports for the TURN road.
+- Awaited takes: `v0.40.0`, not tagged on 2026-11-13, brings `pod-netstack`'s two tests of T-599's
+  cases (podcrates' entry 531 at `4fc66f2`, the answer to COORD-054, #231); T-771's record names them at the
+  take. The next tag after podcrates' entry 528 mends the forms of the file hosts (COORD-053, #230),
+  for T-738.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #216 (COORD-041) | `pod-devtunnel` (podcrates T-378), for T-755 (#215) |
+| #229 (COORD-052) | podcrates to record podssh's take of `v0.39.0` (`5228b65`); close it when its answer comes |
+| #230 (COORD-053) | podcrates' entry 528 (in work): the file hosts' forms, in a tag, for T-738 |
+| #231 (COORD-054) | the tag `v0.40.0` (podcrates' entry 531 is done at `4fc66f2`): take it, name its tests in T-771, close |
 
 ## The live runs and interop harnesses
 
@@ -46,29 +52,30 @@ road). Each has a planted run that must fail, and each did.
 | Yggdrasil (T-735, done) | `ygg-interop.yml` | passed; live through a wss:// peer |
 | HyperDHT (T-736, done) | `hyperdht-interop.yml` | passed, run 43152296592 |
 | VMess's AEAD form (T-739, done) | `vmess-interop.yml` | passed, run 43178390705, against Xray-core v26.10.21 |
-| Syncthing's relays (T-571) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
-| The binary's proxy nodes (T-574) | `proxy-nodes-live.yml` | 8 of 10 nodes passed, run 43157171177 |
-| The proxy lists' round against Xray-core (T-574) | `proxy-lists-interop.yml` | drafted; UNVERIFIED |
-| HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement |
-| ZeroTier (T-733) | `zerotier-live.yml` | the library passed; the command line misses its 60 s |
+| Syncthing's relays (T-571, done) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
+| The binary's proxy nodes (T-574, done) | `proxy-nodes-live.yml` | 8 of 8 nodes passed, run 43305389601, after #207 dropped two |
+| The proxy lists' round against Xray-core (T-574, done) | `proxy-lists-interop.yml` | passed (`9c9b706`) |
+| HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement; day 1 down |
+| ZeroTier (T-733, done) | `zerotier-live.yml` | live through ZeroTier Inc.'s roots and relay |
+| The file hosts (T-738) | `filehost-live.yml` | run 43430909173: temp.sh works; the other three fail (COORD-053, #230) |
 
 ## The next entries, in the work order's order
 
 | Entry | State and next step |
 | --- | --- |
-| T-571 | Done (2026-11-12): live through the list's relay. |
-| T-737 | Done (2026-11-12): live through shiftr.io's broker. |
-| T-576 | Partial. Read the `VERDICT` of `httprelay-probe.yml` on three days; never answered: close with that; else step 2. A cloud session cannot measure it: its agent proxy fails the demo's certificate. |
-| T-578 | Partial. On chutney from end to end (1.3 s) and live on Tor's own network. Next: the node's `onion=` in pkarr's record, then `docs/carriers.md`'s verdict. |
-| T-738 | Open: file hosts as the last carrier of the resumable layer. |
-| T-739 | Done (2026-11-12): against Xray-core v26.10.21 on the loopback; `vmess-interop.yml` passed from Actions (run 43178390705). |
-| T-580 | Done (2026-11-12): against Hysteria's own server; `hysteria-interop.yml` from Actions. |
-| T-581 | Done (2026-11-12): `--tuic` for ssh, proxy and doctor; `tuic-interop.yml` from Actions. |
-| T-582, then the rest | As `TODO/PROGRESS.md`, item 12, orders them. |
-| T-753 | Waits for the next failure of the Windows test (50 runs in 50 passed). |
-| T-733 | A live run of `zerotier-live.yml` with `PODSSH_ZT_TRACE=1` to find where the members' 31 s to 90 s go. |
-| T-746, T-465, T-627 | Tests that failed at random; each `## Done` names the failure that it waits for. |
-| T-684, T-446 | Each next podcrates tag; `v1.1.0` waits for the end of the migration. |
+| T-465, T-627, T-746, T-753, T-756 | Tests that failed at random; each `## Done` names the failure that it waits for. First whenever one fails. |
+| T-117, T-118, T-248 | Their drafts wait for the merge (T-117's in progress). |
+| T-107, T-108, T-109, T-110, T-112, T-114, T-222 | Partial: merged; each waits for `cargo todo remap` of the files its `## Done` lists (where it says so) and its run in the build image (T-251). |
+| T-684 | The take of `v0.40.0` once tagged (COORD-054), and of the tag that mends the file hosts (COORD-053). |
+| T-738 | Partial: waits for podcrates' entry 528 (COORD-053, #230), then a live run of `filehost-live.yml`. |
+| T-576 | Partial: the daily `VERDICT` of 2026-11-13 and 2026-11-14; never answered: close with that; else step 2. |
+| T-319, T-321 | Partial: what stays is a real proxy's path and Apache's `H2WebSockets` in the build image, and their live runs (Q88). |
+| T-106 | Partial: the tailnet's test on the operator's machine, the box's run of B and the drop test of 5 min. |
+| T-625, T-665 | Partial: wait for the throughput host's Actions secrets (an operator action). |
+| T-660, T-666, T-670 | Partial: the matrix rows that their `## Done` names (iroh, DERP, the node's road on the slow link, osewa's binary on a runner). |
+| T-755 | Partial: its live run waits for a tester's tunnel (#215). |
+| T-774, T-111, T-113, T-085 | Open, P2: the security key's touch in serve, the line discipline with no `/dev/ptmx`, M5's exit, M4's exit. |
+| T-446 | The next beta when podssh is nearly complete; `v1.1.0` after the migration. |
 
 Blocked, each on the owner or on another party, as its `## Blocker` names: T-328, T-376, T-672,
 T-687, T-711, T-719, T-722, T-727, T-729 and T-740 (a working Bare node, podcrates

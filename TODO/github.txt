@@ -173,7 +173,7 @@
 165 issue closed
 166 issue closed
 167 issue closed
-168 issue open
+168 issue closed
 169 issue closed
 170 issue closed
 171 issue closed

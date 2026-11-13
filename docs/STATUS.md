@@ -6,7 +6,7 @@ measured it.
 
 ## Where things stand
 
-Read on 2026-11-11; the rows below are the measurements.
+Read on 2026-11-13; the rows below are the measurements.
 
 - **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05); the newest stable is `v1.0.1`
   (2026-11-03). `v1.1.0`, the release of M10, waits for the move of the shared crates to
@@ -15,14 +15,14 @@ Read on 2026-11-11; the rows below are the measurements.
   `scp`, `sftp`, `edit`), `proxy` and `pipe`, the reverse road (`node`, `operator`, `relay`) with
   the resumable layer, `podssh relay serve` (the relay as a role of podssh), the net of a user's own
   nodes (`net`, exit, routes, `share`, `funnel`), `doctor`, `keygen`, `man`, `chat`, `mcp` and
-  `update`; each with its rows below. `podssh serve` is the open milestone M5.
+  `update`; each with its rows below. `podssh serve --stdio` is in work, milestone M5 (T-107 to T-114).
 - **The roads.** Beside the relay: `--direct`, iroh, WARP, Tor, Tailscale's DERP, the HTTP and
   HTTP/2 roads in part (T-319, T-321), the quick tunnel, and the public carriers and last fallbacks of M10 (Piping Server,
   Wisp, OpenTunnel, croc, Serveo, ssh-j, localhost.run, localtunnel, bore and others), and ZeroTier's
   road, live through ZeroTier Inc.'s roots and relay and in the release's features on Unix (T-733).
-- **The gate.** Red on 2026-11-11 on two causes, both repaired and pushed: the test of
-  `doctor --quick` and the build image's C++ tools for ZeroTier (`TODO/PROGRESS.md`, State, item
-  1). The last green gate is at `bc5107b0`.
+- **The gate.** Green at `09d2e59` (2026-11-13, run 43442847142); the gates of the later pushes
+  were cancelled by the next push or run (`TODO/PROGRESS.md`, State, item 1). The red jobs of
+  2026-11-13 are repaired: `ssh` at `33b22e5` by `32bf8af`, `box` at `043bc6d` by `97d6fac` (T-213).
 - **Where the work is:** [TODO/PROGRESS.md](../TODO/PROGRESS.md) (the queue and the order) and
   [HANDOFF.md](HANDOFF.md) (the next step of each partial entry).
 

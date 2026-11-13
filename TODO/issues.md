@@ -141,9 +141,9 @@ and num-bigint 0.5) are T-754.
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
-| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
+| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open (2026-11-13: commented where it stands, T-321 partial: Apache's `H2WebSockets` and the live run wait until stable, Q88) | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
 | #54 | `doctor` measures what the proxy does to a stream | closed | T-324 (the three failures of the upgrade, and samples with their loss; the commit "doctor samples each probe of TCP, and names three failures of the upgrade"); T-325 (buffering, a cap on bodies, an idle limit) is M10's, served by podssh's own relay role (Q63) |
-| #55 | The split road's wire protocol | open | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
+| #55 | The split road's wire protocol | open (2026-11-13: commented where it stands, T-319 partial: invariant 5 against a real proxy waits for the live runs, Q88) | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
 | #56 | A cleartext road on port 443, probed | closed 2026-11-09, T-326 done (`fddabaa3`) | T-326 (the operator allowed it with a token for one session, Q45, and it is M10's since Q63, served by podssh's own relay role) |
 | #59 | The forward road without the operator's relay: ways with no account to reach a `host:port` (research) | closed 2026-11-11, each road of its ranking done | Each road of its ranking, in the paragraph below |
 | #60 | A relay template: a WebSocket forwarder that takes the destination from the URL | closed 2026-11-01, each entry done | T-369 (a forwarder that the user names); T-370 (the public forwarders in the binary, and a fallback to them, by the operator's ruling Q56) |
@@ -237,7 +237,7 @@ and num-bigint 0.5) are T-754.
 | #165 | Forwarder roads re-derive the half-close discipline per road | closed 2026-11-09 (`cdb46f81`), its entry done | T-699 |
 | #166 | `doctor`: one verdict of the host's capabilities that names what each restriction closes | closed 2026-11-09, its entry done | T-706 (M5, beside T-248) |
 | #167 | `sftp` prints no near-cap line before a budget stop, and the reverse node discards the close reason | closed | T-700 (sftp), T-701 (the node) |
-| #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | open | T-698 (the drop; T-107 depends on it); the bound of the accept path is T-631 (#129) |
+| #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | closed 2026-11-13 as stale: T-698 done (`565accd`), serve calls the drop (T-107); T-631 stays open, parked until T-124 | T-698 (the drop; T-107 depends on it); the bound of the accept path is T-631 (#129) |
 | #169 | `relay serve`: the contract's limits are fixed constants; only `--keepalive` is configurable | closed 2026-11-09, its entry done | T-704, T-732 (a defect of the byte cap, found by its test) |
 | #170 | `ssh`: the direct road's banner check and the roost's sshd check give opposite verdicts on the same bytes | closed 2026-11-09, its entry done | T-702 |
 | #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | closed 2026-11-09 (`cbb31bc0`), its entry done | T-697 |
@@ -293,8 +293,8 @@ and num-bigint 0.5) are T-754.
 | #227 | COORD-050: podssh took podcrates v0.37.0 and pod-warp at 812c61c (to podcrates) | closed 2026-11-13 (followed by COORD-051) | T-684 |
 | #228 | COORD-051: podssh took podcrates v0.38.0 at e47d508 (to podcrates) | closed 2026-11-13 (followed by COORD-052) | T-684 |
 | #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | open (2026-11-13: posted) | T-684 |
-| #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | open (2026-11-13: asked; podcrates' entry 528 takes it) | T-738 |
-| #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | open (2026-11-13: asked) | T-771 |
+| #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | open (2026-11-13: podcrates' entry 528 in work; podssh takes its next tag; the body's state amended) | T-738 |
+| #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | open (2026-11-13: answered, podcrates' entry 531 at `4fc66f2`, in `v0.40.0`, not tagged; podssh names its tests in T-771 at the take; the body's state amended) | T-771 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
