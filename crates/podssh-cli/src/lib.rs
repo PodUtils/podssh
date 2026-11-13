@@ -289,6 +289,8 @@ mod relay_status;
 pub mod retired;
 // `podssh serve --stdio`: podssh's own SSH server (T-107).
 pub mod serve;
+// The shell that `podssh serve` runs, checked at its start (T-222).
+mod serve_shell;
 // `podssh session`: a session that outlives each call of an agent (T-186).
 pub mod session;
 // `podssh run`: copy a project, then run a command in it (T-192).

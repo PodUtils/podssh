@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/env.rs
++++ b/crates/podssh-ssh/src/server/env.rs
+@@ -94,7 +94,7 @@
+ /// runs, `PATH` (sshd's default with none); then the requests that were
+ /// taken, each checked by [`refused`] when it came.
+ pub fn child_env(base: &[(OsString, OsString)], shell: &Path, taken: &[(String, String)]) -> Vec<(OsString, OsString)> {
+-    let mut env: BTreeMap<OsString, OsString> = without_credentials(base).into_iter().collect();
++    let mut env: BTreeMap<OsString, OsString> = base.iter().cloned().collect();
+     let user = lookup(base, "USER").or_else(|| lookup(base, "LOGNAME")).map(OsStr::to_os_string).unwrap_or_else(uid);
+     env.insert("USER".into(), user.clone());
+     env.insert("LOGNAME".into(), user);

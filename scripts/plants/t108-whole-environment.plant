@@ -1,0 +1,6 @@
+# T-108: podssh serve gives a child its own whole environment, podssh's
+# credentials with it; the test of the child's environment must fail.
+ENTRY=T-108
+GROUP=cli-tests
+EXPECT='test the_child_gets_no_credential_and_only_the_accepted_names \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_exec -- the_child_gets_no_credential_and_only_the_accepted_names'

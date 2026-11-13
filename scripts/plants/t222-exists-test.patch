@@ -1,0 +1,17 @@
+--- a/crates/podssh-ssh/src/server/shell.rs
++++ b/crates/podssh-ssh/src/server/shell.rs
+@@ -139,13 +139,7 @@
+         }
+         Err(e) => return Err(format!("cannot be looked at: {e}")),
+     };
+-    if meta.is_dir() {
+-        return Err("a directory".into());
+-    }
+-    if !meta.is_file() {
+-        return Err("not a regular file".into());
+-    }
+-    if executable(path) {
++    if path.exists() || executable(path) {
+         return Ok(());
+     }
+     let mode = meta.permissions().mode() & 0o7777;

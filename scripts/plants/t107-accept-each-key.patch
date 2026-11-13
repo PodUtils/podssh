@@ -1,6 +1,6 @@
 --- a/crates/podssh-ssh/src/server/handler.rs
 +++ b/crates/podssh-ssh/src/server/handler.rs
-@@ -28,12 +28,12 @@ impl russh::server::Handler for Served {
+@@ -93,12 +93,12 @@
  
      // A key that is not listed is refused before the client signs with it.
      async fn auth_publickey_offered(&mut self, _user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
@@ -14,4 +14,4 @@
 +        Ok(if self.authorized.allows(key.public_key) || !self.authorized.is_empty() { Auth::Accept } else { Auth::reject() })
      }
  
-     // A session channel opens; each request on it is refused below until
+     // A session channel opens, and a task reads it from now on: russh

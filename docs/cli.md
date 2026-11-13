@@ -2893,6 +2893,11 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   control socket of `-M`, `podssh agent` and `podssh session`). A refusal is
   `ok`: no road needs a listener. With `PODSSH_LISTEN=no` no listen is
   tried, and the line says so. Proxy credentials and tokens are never shown.
+- The line `shell` (Unix, T-222) names the shell that `podssh serve` would
+  run, found as serve finds it (`SHELL`, then `/bin/sh` and the list after
+  it, each checked and run with `-c 'exit 0'`), and each candidate passed
+  over with its reason. No shell is `ok` too, a fact: serve then starts with
+  `--no-shell` alone.
 - `sshd` (T-590, GitHub #116), in the section `this host`: where this host
   has the sshd of a roost, looked for as the roost looks (above), and one
   dial of `127.0.0.1:22`, the roost's default TARGET, with its version line
@@ -5624,14 +5629,60 @@ gives up each capability of the process (T-698), before it reads a file.
   never overwritten. Of two starts at once, one makes it and the other reads
   it. Its fingerprint goes to stderr; a key in a temporary directory is
   warned of, as a reboot would give each client a new host key.
-- **What it serves.** The login alone, in this version: each request for a
-  shell, a command, a pty, the environment, a subsystem, a forward or X11
-  is answered with a refusal, so that a client says so at once instead of
-  waiting (russh's defaults answer none). Exec and a shell are T-108,
-  direct-tcpip T-109, a pty T-110 and T-111, SFTP T-112.
+- **A command and a shell (T-108).** A command (`exec`) runs as
+  `SHELL -c COMMAND`, and a shell request runs the shell as a login shell
+  (argv[0] `-sh`), as the user that runs serve, on three pipes: stdout is
+  the channel's data, stderr its extended data 1. Each child leads a
+  session of its own (`setsid`), in `HOME` when it is a directory, else `/`;
+  a `signal` request goes to its process group. When the child ends, its
+  pipes are read to their end, for 2 s of silence at most and 30 s in all,
+  as a job that it put in the background can hold them open (OpenSSH's
+  sshd waits for it). Then `exit-status`, or `exit-signal` with the signal's
+  name and the core flag, always before EOF and close. A task reads each
+  channel from its open, as russh holds the whole connection while 100 of
+  a channel's messages wait unread; the bytes for a child's stdin wait in a
+  queue of their own (about 4 MiB), and the window of each channel apart is
+  T-118's. A pty request is refused, and the command runs without one
+  (T-110, T-111); a subsystem (SFTP, T-112), direct-tcpip (T-109) and X11
+  are refused with their answer, so that a client says so at once instead
+  of waiting (russh's defaults answer none).
+- **The environment (T-108).** A child gets serve's own environment, as the
+  cage gave it: `PATH`, `HTTPS_PROXY` and a library path are what no login
+  database gives again, and a fresh environment, as sshd builds one, would
+  leave the shell with no way out. Taken from it: podssh's credentials
+  (`PODSSH_RELAY_TOKEN`, the secrets of `PODSSH_CF_ACCESS_`, and each
+  `PODSSH_` name with `TOKEN`, `SECRET`, `PASSWORD` or `PASSPHRASE` that
+  does not end in `_FILE`). Set on it: `USER` and `LOGNAME` (serve's, else
+  the uid's number: no passwd entry is read), `HOME` (`/` with none),
+  `SHELL`, and `PATH` when serve has none (sshd's
+  `/usr/local/bin:/usr/bin:/bin`); no `TERM` without a pty. Then the `env`
+  requests (OpenSSH's `SetEnv` and `SendEnv`) whose name matches an
+  `--accept-env PATTERN` (`*` and `?`; default `LANG` and `LC_*`, as most
+  systems' `AcceptEnv`), never `LD_*`, `PATH`, `HOME`, `SHELL`, `ENV`,
+  `BASH_ENV`, `IFS`, `USER` or `LOGNAME`, nor a credential's name, whatever
+  the pattern; `--accept-env ''` takes none. At most 256 for a channel.
+- **The shell (T-222, GitHub #32).** A cage often has no passwd entry and no
+  `/etc/shells`, and podssh never calls `getpwuid`
+  (`docs/target-environment.md`). `--shell PATH` is the only shell when it
+  is given: one that does not run refuses the start (78), as no other is
+  tried in the operator's place. Else `SHELL`, then `/bin/sh`,
+  `/usr/bin/sh`, `/bin/bash`, `/usr/bin/bash`, `/bin/ash` and `/bin/dash`.
+  A candidate passes when it is an absolute path to a regular file that
+  this user may execute (`faccessat(X_OK, AT_EACCESS)`; `exists()` takes a
+  directory), and when a real run of `-c 'exit 0'` ends with 0 within 5 s:
+  a noexec mount, a data file with its mode bits set and a missing loader
+  pass the first checks, and glibc's `execvp` runs a file that the kernel
+  refuses (ENOEXEC) as a script of `/bin/sh`, so only the run's status
+  tells. The search runs at the start and again at each session, with no
+  cache. At the start a candidate passed over is said with its reason
+  (`SHELL=/x: not executable (noexec mount); /bin/bash: no such file`), and
+  no shell at all refuses the start (78) unless `--no-shell` says that the
+  server runs no command and no shell. In a session, the same line goes to
+  the channel's stderr and the request fails. `podssh doctor`'s line
+  `shell` names the same choice.
 - **Exit codes.** 0 when the client left; 255 when the connection failed;
-  64 without `--stdio`, or with a terminal on stdin; 78 as above; 70 on
-  Windows.
+  64 without `--stdio`, with a terminal on stdin, or with `--shell` and
+  `--no-shell`; 78 as above; 70 on Windows.
 
 ## `podssh session`
 

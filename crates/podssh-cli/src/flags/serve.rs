@@ -1,5 +1,6 @@
 //! The flag rows of `serve` (T-107): podssh's own SSH server, over stdin
-//! and stdout, its host key, and the keys that may log in.
+//! and stdout, its host key, and the keys that may log in; what a session
+//! runs (T-108) and its shell (T-222).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -14,4 +15,10 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "a public key that may log in, as a line of authorized_keys: TYPE BASE64 [COMMENT]; may be repeated", None),
     row(None, "authorized-keys", Some("FILE"), FlagKind::Supported,
         "a file of authorized_keys lines; may be repeated (default, with no key flag: ~/.ssh/authorized_keys)", None),
+    row(None, "accept-env", Some("PATTERN"), FlagKind::Supported,
+        "the names of a client's env requests that a session takes, with * and ?; may be repeated (default: LANG and LC_*); never LD_*, PATH, HOME, SHELL, ENV, BASH_ENV or IFS", None),
+    row(None, "shell", Some("PATH"), FlagKind::Supported,
+        "the shell of each session and command, the only one tried: a start where it does not run is refused (default: SHELL, then /bin/sh, /usr/bin/sh, /bin/bash, /usr/bin/bash, /bin/ash, /bin/dash)", None),
+    row(None, "no-shell", None, FlagKind::Supported,
+        "run no command and no shell: each such request is refused, and no shell is looked for", None),
 ];

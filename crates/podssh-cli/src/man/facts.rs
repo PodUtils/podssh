@@ -240,9 +240,11 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
     ),
     (&["PAGER"], "The pager of podssh man on a terminal. Empty, or cat, writes the manual with no pager."),
     (
-        &["SHELL"],
+        &["SHELL", "BASH_ENV"],
         "The shell of LocalCommand with PermitLocalCommand=yes: SHELL -c COMMAND; empty or not set, /bin/sh \
-      when it is there, else podssh ssh exits 78.",
+      when it is there, else podssh ssh exits 78. podssh serve: the first shell it tries after --shell, \
+      when it runs; else it is passed over, and said (see podssh serve). podssh serve never takes SHELL or \
+      BASH_ENV from a client's env request: the shell would run, or read, the file it names.",
     ),
     (&["LESS"], "Options for less. podssh man sets FRX when it starts less and LESS is not set."),
     (

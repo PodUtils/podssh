@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**726 entries: 72 open, 20 partial, 10 blocked, 624 done.**
+**727 entries: 71 open, 22 partial, 10 blocked, 624 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 19 | 10 | 1 | 270 | 300 |
-| P3 | 49 | 8 | 6 | 281 | 344 |
-| **All** | 72 | 20 | 10 | 624 | 726 |
+| P2 | 17 | 12 | 1 | 270 | 300 |
+| P3 | 50 | 8 | 6 | 281 | 345 |
+| **All** | 71 | 22 | 10 | 624 | 727 |
 
 ## Entries
 
@@ -182,7 +182,7 @@ repository and CI).
 | [T-105](ts.md) | P2 | M | M8 | defect | done | The fork shows the relay's `1008 not authorized` as a missing network map |
 | [T-106](ts.md) | P2 | M | M10 | measurement | partial | The live test of `podssh ts` with two nodes |
 | [T-107](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: the russh server, its host key in a state file, and authorized keys |
-| [T-108](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
+| [T-108](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
 | [T-109](serve.md) | P2 | S | M5 | feature | open | `podssh serve`: direct-tcpip into the cage |
 | [T-110](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: a real pty when `/dev/ptmx` exists |
 | [T-111](serve.md) | P2 | L | M5 | feature | open | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
@@ -294,7 +294,7 @@ repository and CI).
 | [T-219](repo.md) | P2 | S | none | chore | done | The no-C gate also stops C++ |
 | [T-220](relay.md) | P2 | M | backlog | feature | done | A silent first relay host costs a full dial before the next host is tried (GitHub #30) |
 | [T-221](resume.md) | P3 | M | backlog | feature | done | Replayed output after dropped bytes starts at a boundary of the terminal grammar (GitHub #31) |
-| [T-222](serve.md) | P2 | S | M5 | feature | open | `podssh serve` finds a shell with no passwd entry and no `/etc/shells`, and names each candidate that failed (GitHub #32) |
+| [T-222](serve.md) | P2 | S | M5 | feature | partial | `podssh serve` finds a shell with no passwd entry and no `/etc/shells`, and names each candidate that failed (GitHub #32) |
 | [T-223](repo.md) | P3 | S | none | defect | done | `scripts/check-repo.py` passes when it finds nothing to check (GitHub #33) |
 | [T-224](repo.md) | P2 | S | none | chore | done | The gate finds a listener in the source: a scan with an allow-list (GitHub #33) |
 | [T-225](robustness.md) | P3 | M | backlog | chore | done | The interop gate takes each expected exit code from stock OpenSSH, beside the literal (GitHub #34) |
@@ -802,3 +802,4 @@ repository and CI).
 | [T-769](robustness.md) | P1 | S | M10 | defect | done | The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes |
 | [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |
 | [T-771](repo.md) | P3 | M | M10 | chore | open | 38 of the 307 planted defects no longer apply to the tree |
+| [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |

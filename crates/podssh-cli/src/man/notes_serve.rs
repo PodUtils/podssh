@@ -1,4 +1,5 @@
-//! The notes of `podssh serve` (T-107), and the row of its host key's file.
+//! The notes of `podssh serve` (T-107; a command, a shell and the
+//! environment, T-108; the shell, T-222), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -17,11 +18,33 @@ pub const SERVE: &[&str] = &[
      starts at once, one makes it and the other reads it. Its fingerprint goes to stderr at each start, \
      with a warning when the file is in a temporary directory, which a reboot can empty: each client would \
      then meet a new host key. A key file with a passphrase is refused (78).",
-    "This version serves the login alone: a request for a shell, a command, a pty, the environment, a \
-     subsystem such as SFTP, a forward or X11 is refused with its answer, so a client says so at once \
-     (OpenSSH: exec request failed) instead of waiting; -N stays connected. The connection ends when the \
-     client leaves: exit 0, else 255 when it failed. Without --stdio the run is a usage error (64); on \
-     Windows it exits 70.",
+    "A command (exec) runs as SHELL -c COMMAND, and a shell request runs the shell as a login shell \
+     (its argv[0] the shell's name after a dash), as the user that runs serve, on three pipes: stdout comes as data and stderr as \
+     extended data, apart. Each child leads a session of its own (setsid), in HOME when it is a \
+     directory, else /; a signal request goes to its process group. When it ends, its pipes are read \
+     to their end, for 2 s of silence at most (30 s in all), as a job that it put in the background can \
+     hold them; then exit-status, or exit-signal with the signal's name and the core flag, always before \
+     EOF and close. A pty request is refused (the command runs without one; OpenSSH says PTY allocation \
+     request failed); a subsystem such as SFTP, a forward or X11 is refused with its answer.",
+    "The environment of a child is serve's own, as the cage gave it (PATH, HTTPS_PROXY and the rest stay), \
+     without podssh's credentials (PODSSH_RELAY_TOKEN, the secrets of Cloudflare Access, and each variable \
+     of podssh whose name holds TOKEN, SECRET, PASSWORD or PASSPHRASE, but those that name a file), plus USER and LOGNAME \
+     (serve's, else the uid's number: no passwd entry is read), HOME (/ with none), SHELL and PATH (sshd's \
+     /usr/local/bin:/usr/bin:/bin with none). A client's env request (OpenSSH's SetEnv and SendEnv) is \
+     taken when its name matches an --accept-env pattern (default LANG and LC_*), never for LD_*, PATH, \
+     HOME, SHELL, ENV, BASH_ENV, IFS, USER or LOGNAME, whatever the pattern; --accept-env '' takes none.",
+    "The shell is found with no passwd entry and no /etc/shells: --shell PATH alone when it is given; else \
+     SHELL, then /bin/sh, /usr/bin/sh, /bin/bash, /usr/bin/bash, /bin/ash and /bin/dash. A candidate \
+     passes when it is an absolute path to a regular file that this user may execute, and when a real run \
+     of -c 'exit 0' ends with 0 within 5 s: a noexec mount, a data file with its mode bits set or a missing \
+     loader fail there. The search runs at the start and again at each session, with no cache. At the \
+     start, a candidate passed over is said with its reason (not executable (noexec mount), for one), \
+     and no shell at all refuses the start (78), as does a --shell that does not run; --no-shell skips \
+     the search, and refuses each command and shell. In a session, the same line goes to the channel's \
+     stderr, and the request fails (OpenSSH: exec request failed). podssh doctor's line shell names the \
+     shell that serve would run, and each candidate passed over.",
+    "The connection ends when the client leaves: exit 0, else 255 when it failed. Without --stdio the run \
+     is a usage error (64), and so are --shell with --no-shell; on Windows it exits 70.",
 ];
 
 /// The host key's file, for FILES.

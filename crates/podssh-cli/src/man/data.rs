@@ -121,7 +121,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              TARGET that sends lines and no version line of SSH 2, which is another service. podssh node: this host \
              refuses UDP for a udp: TARGET. podssh each --interactive: the emergency stop cannot be armed. \
              podssh session start and serve: PODSSH_LISTEN is no, or no directory takes the session's \
-             socket. podssh serve: no authorized key, or a key file or the host key that cannot be used.",
+             socket. podssh serve: no authorized key, or a key file or the host key that cannot be used, or no \
+             shell that runs (T-222).",
         ),
         row(
             podssh_ssh::EXIT_FAILURE,

@@ -2,8 +2,8 @@
 //! (a key, a comment, options, a bad line), the host key made once in its
 //! state file (two starts at once keep one key, mode 0600), and russh's
 //! client against the server over a pipe: the listed key logs in, another
-//! key is refused, and exec and direct-tcpip are refused with an answer
-//! instead of a wait.
+//! key is refused, and a subsystem and direct-tcpip are refused with an
+//! answer instead of a wait (exec runs since T-108: `tests/serve_exec.rs`).
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -181,12 +181,12 @@ async fn the_listed_key_logs_in_and_another_is_refused() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn exec_and_direct_tcpip_are_refused_with_an_answer() {
+async fn a_subsystem_and_direct_tcpip_are_refused_with_an_answer() {
     let listed = key();
     let (ok, handle) = tokio::time::timeout(LIMIT, connect(&listed, &listed)).await.expect("in time");
     assert!(ok);
     let mut channel = handle.channel_open_session().await.expect("a session channel opens");
-    channel.exec(true, "true").await.expect("sent");
+    channel.request_subsystem(true, "sftp").await.expect("sent");
     let answer = tokio::time::timeout(LIMIT, async {
         loop {
             match channel.wait().await {
@@ -198,7 +198,7 @@ async fn exec_and_direct_tcpip_are_refused_with_an_answer() {
     })
     .await
     .expect("an answer, not a wait");
-    assert!(answer, "exec waits for T-108 and must be refused");
+    assert!(answer, "SFTP waits for T-112 and must be refused");
     let opened = tokio::time::timeout(LIMIT, handle.channel_open_direct_tcpip("127.0.0.1", 22, "127.0.0.1", 1))
         .await
         .expect("an answer, not a wait");

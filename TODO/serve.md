@@ -173,6 +173,14 @@ Merged, built and run by the main session the same day:
 Left: `podssh serve NAME` on a node's road (Approach item 5); the merge runs
 `cargo todo remap` on each cited file that the draft changed.
 
+2026-11-13, with the draft of T-108 (branch `draft-t108`): a command runs since T-108, so the two
+checks of this entry that a command is refused changed with it. In crates/podssh-ssh/tests/serve_auth.rs
+the test `exec_and_direct_tcpip_are_refused_with_an_answer` is now
+`a_subsystem_and_direct_tcpip_are_refused_with_an_answer` (SFTP waits for T-112); in
+crates/podssh-cli/tests/serve_stdio.rs the strict client's `true` now exits 0 with no `exec request
+failed`, and the helpers that it shares with T-108's test moved to crates/podssh-cli/tests/serve_kit/mod.rs.
+The plant `t107-accept-each-key` has its context moved to the handler as T-108 left it.
+
 # T-108: `podssh serve`: exec, a shell and the environment, as the sandbox's user
 
 **Source:** `docs/ROADMAP.md:180-185` ("It supplies exec"),
@@ -181,7 +189,7 @@ Left: `podssh serve NAME` on a node's road (Approach item 5); the merge runs
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -197,7 +205,7 @@ and stderr apart, and an environment that a cage can give.
   and waits when 100 wait unread (`Eugeny/russh:russh/src/server/encrypted.rs`,
   lines 1350-1356): an unread channel stops the whole connection.
 - Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-76`;
-  `crates/podssh-ssh/src/signals.rs:26-64` maps names to numbers only;
+  `crates/podssh-ssh/src/signals.rs:70-79` maps names to numbers only;
   `tokio` with `process` is a dependency (`crates/podssh-ssh/Cargo.toml:19`).
 
 ## Approach
@@ -219,7 +227,7 @@ and stderr apart, and an environment that a cage can give.
 6. The end: `exit-status`, or `exit-signal` with the SSH name and the core
    flag, then EOF and close. Invariant: one of the two always comes before
    the close (T-026 is the client side). Add the number-to-name direction
-   to `crates/podssh-ssh/src/signals.rs:26-64`: one table, both ways.
+   to `crates/podssh-ssh/src/signals.rs:70-79`: one table, both ways.
 7. A `signal` request (RFC 4254, section 6.9): `kill(-pgid, number)`. Same
    commit: `docs/cli.md` (the environment rules), the serve notes,
    `docs/STATUS.md`.
@@ -235,22 +243,98 @@ A fresh environment, as sshd builds one, lost: the shell would have no proxy.
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_exec
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_exec --test serve_auth
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib -- server:: signals::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t108-whole-environment
 sh scripts/dev.sh check
 ```
 
-crates/podssh-ssh/tests/serve_exec.rs checks the environment filter and the
-order of exit-status, EOF and close. In the gate, scripts/interop-serve.sh
-drives OpenSSH's `ssh` through `podssh serve --stdio`: exit statuses 3, 0, 1
-and 127; a command killed by TERM; stdout and stderr apart; 5,000,000 bytes
-up and back with one digest; `SetEnv LANG=C.UTF-8` arrives, `SetEnv LD_PRELOAD=x`
-does not. With `PODSSH_RELAY_TOKEN` set for serve, the child's `env` lacks
-it; a planted serve that passes its whole environment fails that check.
+crates/podssh-ssh/tests/serve_exec.rs, with russh's client over a pipe, checks the order of the end
+(each byte, then `exit-status` or `exit-signal`, then EOF, then close), stdout and stderr apart,
+the statuses 3, 0, 1 and 127, a command killed by TERM and one ended by a `signal` request, 1 MB
+through `cat`, the environment filter (`LANG` taken, `LD_PRELOAD` and `TZ` refused by default, `*`
+still refusing `LD_LIBRARY_PATH` and `BASH_ENV`), a pty refused with the command run without one, a
+login shell's argv[0], and a job in the background that holds the pipes but not the end. Against
+OpenSSH's `ssh` with `podssh serve --stdio` as its ProxyCommand, crates/podssh-cli/tests/serve_openssh.rs
+(the gate's tests, where the image has OpenSSH; "did not run" where a host has none): exit statuses 3, 0, 1
+and 127; a command killed by TERM (OpenSSH's 255); stdout and stderr apart; 5,000,000 bytes up and
+back whole; `SetEnv LANG=C.UTF-8` arrives, `SetEnv LD_PRELOAD=x` does not. With `PODSSH_RELAY_TOKEN`
+set for serve, the child's `env` lacks it; the plant `t108-whole-environment`, a serve that passes
+its whole environment, fails that check.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The Premise, read again at `4c98f8b`:
+
+- russh is 0.65.0, built from `vendor/russh` (T-107's Correction). `env_request`, `shell_request` and
+  `exec_request` are at `vendor/russh/src/server/mod.rs:641-713`, and still answer nothing by
+  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1500-1518`,
+  into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:120`, 100). Each channel
+  request goes to that queue too before the handler sees it, `env` among them
+  (`vendor/russh/src/server/encrypted.rs:1725-1736`): so a channel that nothing reads stalls the
+  connection with no data at all, after 100 `env` requests, and the task that reads a channel
+  starts at its open, not at its `exec` (Approach item 1).
+- russh's server adjusts a channel's window when the data arrives, not when it is read
+  (`vendor/russh/src/server/encrypted.rs:1491-1499`): no window of a channel apart holds a client
+  back. The bytes for a child's stdin wait in a queue of 128 messages (about 4 MiB) of their own,
+  written by a task of their own, which drains the rest after a broken pipe; past that queue the
+  connection waits. The window of each channel apart is T-118's.
+- `exit-signal` is not a method of russh's `ChannelWriteHalf`; the connection's `Handle` sends it
+  (`vendor/russh/src/server/session.rs:434-455`) through the same queue as the channel's writers,
+  so the order of Approach item 6 holds. `Sig` has no `PartialEq`, and its own `name` and
+  `from_name` are private (`vendor/russh/src/lib_inner.rs:353-389`): `crates/podssh-ssh/src/signals.rs:26-64`
+  becomes one table read both ways (`number` and `from_number`); a number with no name is sent as
+  OpenSSH's `SIG@openssh.com`.
+- The Decision's `TERM`: with no pty there is none, as under sshd; T-110 sets it from `pty-req`.
+- podssh's credentials by name: `PODSSH_RELAY_TOKEN`, `PODSSH_CF_ACCESS_TOKEN`,
+  `PODSSH_CF_ACCESS_CLIENT_ID` and `PODSSH_CF_ACCESS_CLIENT_SECRET`, and each `PODSSH_` name with
+  `TOKEN`, `SECRET`, `PASSWORD` or `PASSPHRASE` that does not end in `_FILE` (a path is no secret).
+  `USER` and `LOGNAME` join the names that no pattern lets in, as the login's own.
+- The Prove's scripts/interop-serve.sh is a test of the CLI crate, crates/podssh-cli/tests/serve_openssh.rs,
+  as T-107's Correction made serve_stdio.rs of it; the Prove names it.
+- Approach item 5's "within a stated limit": after the child ends, each pipe is read until 2 s
+  pass with no byte, 30 s at most in all. OpenSSH's sshd waits for the job instead.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t108` (no build, no test run), with T-222: the
+session channel in crates/podssh-ssh/src/server/ (`channel.rs`: the task that reads each channel from
+its open, the stdin queue, the `signal` request; `child.rs`: the program on three pipes with
+`setsid`, the pumps and the end; `env.rs`: the filter and the child's environment), the requests in
+`handler.rs`, `Settings` and `serve_with` in `mod.rs`, `signals::from_number`; `--accept-env` and
+`--no-shell` in crates/podssh-cli/src/flags/serve.rs and `serve.rs`; the manual (crates/podssh-cli/src/man/notes_serve.rs,
+the exit code 78), `docs/cli.md` ("`podssh serve`"), a row of `docs/STATUS.md`, the tests of the Prove
+and the plant `t108-whole-environment`. Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --test serve_exec --test serve_auth`: 11 and 7 passed, after two repairs.
+  `a_shell_that_does_not_run_is_named_on_stderr_and_fails_the_request` waited for a close that never came: a
+  channel whose program did not start now gets its line, the failure, EOF and close (a second program on a channel
+  that runs one is still refused alone). `stdin_comes_back_whole` stopped after 80 KiB every time: the test joined
+  russh's client and the server by a pipe of 64 KiB, where the two russh loops stop each other; through 4 MiB it
+  passes, OpenSSH moved 5,000,000 bytes each way through the server, and the stop is T-772.
+- `cargo test -p podssh-ssh --lib server::`: 8 passed; `signals::`: 2.
+- `cargo test -p podssh-cli --test serve_openssh --test serve_stdio` (OpenSSH 9.6's client): 7 and 3 passed. Repaired:
+  the test of a pty expected OpenSSH to run the command after the refusal of a pty forced by `-tt`, but OpenSSH makes
+  that refusal fatal (its `client_status_confirm` closes the channel; exit 255 after "PTY allocation request
+  failed"): `a_forced_pty_is_refused_with_an_answer` holds that, and `serve_exec`'s
+  `a_pty_request_is_refused_and_the_command_runs_without_one` the run without a pty.
+- The tables and the manual: `flag_table` 9, `man_flag_parity` 6, `man_json` 4, `--lib man::` 60 passed, after the
+  note's words: `-sh`, the patterns `PODSSH_*` and `*_FILE` and `SHELL=/x` read as names, so the note says them in
+  words, and `BASH_ENV` has its line in ENVIRONMENT beside SHELL (the code names `ENV` and `BASH_ENV` outright, as
+  the check of each documented variable reads them).
+- The plant `t108-whole-environment`: caught; `t107-accept-each-key`, made again: caught.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,741 passed, 0 failed. Clippy and rustfmt clean. The
+  build on Windows: the gate's job `windows`.
+
+Left after the merge: `cargo todo remap` on each cited file that the draft changed (`docs/cli.md`,
+`docs/STATUS.md`, `crates/podssh-ssh/src/signals.rs`, the handler, the CLI's files); the run in the
+build image (T-251).
 
 # T-109: `podssh serve`: direct-tcpip into the cage
 
@@ -583,10 +667,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:251-255`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:488`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:489`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:496`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:497`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1479,7 +1563,7 @@ of 2026-10-08 (code at `3ee70dc`).
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1495,10 +1579,10 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:488`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:489`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:213-215`).
+  (`crates/podssh-cli/src/doctor/host.rs:229-231`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -1518,10 +1602,10 @@ no reason (`docs/target-environment.md:88-89`).
    same image (`docs/target-environment.md:116-118`). Probe at the start of
    serve too (see Decision).
 5. doctor gets a `shell` line in its host checks
-   (`crates/podssh-cli/src/doctor/host.rs:11-27`) from the same function.
+   (`crates/podssh-cli/src/doctor/host.rs:12-28`) from the same function.
 6. T-108 runs the result. Never call `getpwuid`. Same commit: `--shell` in
    `crates/podssh-cli/src/flags.rs`, `SHELL` in
-   `crates/podssh-cli/src/man/facts.rs:46-301`, `docs/cli.md`.
+   `crates/podssh-cli/src/man/facts.rs:46-303`, `docs/cli.md`.
 
 ## Decision
 
@@ -1537,22 +1621,72 @@ Starting with a warning lost: that is the login that ends at once.
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_shell
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib -- server::shell
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_shell
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_openssh -- shell
+sh scripts/plant-each.sh --here t222-exists-test
 sh scripts/dev.sh check
 "$BIN" serve --stdio --authorized-keys ak --shell /nonexistent </dev/null 2>err; test $? -eq 78
 grep -q '/nonexistent: no such file' err
 ```
 
 crates/podssh-ssh/tests/serve_shell.rs gives the function a directory `sh`,
-a data file `dash` (mode 0644), a data file with mode 0755 (the spawn fails),
-a link to a missing file and a good shell: each failure is named, and the
-good shell wins. A planted `exists()` test fails the directory case. In the
-gate, a copy of `/bin/sh` in `/dev/shm` (noexec: `docs/STATUS.md:450`) is
-refused as `--shell`. The static binary (`$BIN`) refuses a missing named shell.
+a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
+run fails), a link to a missing file and a good shell: each failure is
+named, and the good shell wins. A planted `exists()` test fails the
+directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
+(noexec: `docs/STATUS.md:452`) is refused as `--shell`, in serve_shell.rs
+and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
+"did not run" where `/dev/shm` is not noexec. The binary refuses a missing
+named shell with 78, and OpenSSH's client meets the same line. The static
+binary (`$BIN`) refuses a missing named shell.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The Premise, read again at `4c98f8b`:
+
+- "No source in `crates/` reads `SHELL`" no longer holds:
+  `crates/podssh-cli/src/ssh/local_command.rs:20` reads it for `LocalCommand` on the client, with
+  `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
+  crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
+  `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
+- `docs/STATUS.md:488` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:452`, `docs/STATUS.md:472`),
+  and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
+  The Prove's `docs/STATUS.md:450` is `docs/STATUS.md:452`.
+- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
+- Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
+  `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
+  start of a data file of mode 0755 can succeed, and only its status tells. Each candidate is
+  therefore run once, `CANDIDATE -c 'exit 0'`, with its standard files on pipes (a cage may have
+  no `/dev/null`), within 5 s, and passes with status 0; then the session's own spawn runs it. The
+  search runs on a blocking thread of the session's runtime, as it waits for the run.
+- Approach item 1's later field of T-078's pairing record is not in this draft: `--shell` alone.
+- The line at the start is said only when a candidate was passed over: a ProxyCommand's stderr is
+  the client's terminal, and the host key's line is there at each start already. doctor's line
+  `shell` is `ok` with no shell too, a fact as no pty is: serve then runs with `--no-shell` alone.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t108` (no build, no test run), with T-108: the
+search in crates/podssh-ssh/src/server/shell.rs (the candidates, the checks with
+`faccessat(X_OK, AT_EACCESS)` and `statvfs`'s noexec flag, the run of `-c 'exit 0'`, the line of the
+failures), its call at each session's start in the handler, the check at serve's start in
+crates/podssh-cli/src/serve_shell.rs (78), `--shell` and `--no-shell`, doctor's line `shell`
+(`crates/podssh-cli/src/doctor/host.rs`), the manual (`SHELL` in ENVIRONMENT, the notes of serve, exit
+code 78), `docs/cli.md`, the row of `docs/STATUS.md` with T-108, the tests of the Prove and the plant
+`t222-exists-test`. Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --test serve_shell`: 4 passed.
+- `cargo test -p podssh-ssh --lib server::`: 8 passed; `cargo test -p podssh-cli --lib serve_shell`: 2 passed.
+- `cargo test -p podssh-cli --test serve_openssh` (the missing shell, and `/dev/shm` where it is noexec): passed
+  with the others (7).
+- The plant `t222-exists-test`: caught (`each_failure_is_named_and_the_good_shell_wins` failed).
+- `target/debug/podssh serve --stdio --authorized-keys ak --shell /nonexistent`: exit 78, "no shell runs here:
+  --shell /nonexistent: no such file: --shell names the one shell, and no other is tried".
 
 # T-248: A tty for `podssh serve` where `/dev/ptmx` is missing: a new devpts instance, or a tty in user space
 
@@ -1578,10 +1712,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:488`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:489`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:467`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:468`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -1833,7 +1967,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1440-1441` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1524-1525` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

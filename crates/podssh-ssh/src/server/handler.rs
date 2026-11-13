@@ -1,26 +1,95 @@
 //! The server's answers (T-107): public-key authentication against the
-//! authorized keys, and a clean refusal of each request that a later entry
+//! authorized keys; a command, a shell and the environment on a session
+//! channel (T-108); and a clean refusal of each request that a later entry
 //! serves. russh's defaults send no reply to a channel request, and a client
-//! then waits (podssh's own for 30 s): each request here is answered.
+//! then waits (podssh's own for 30 s): each request here is answered, in
+//! the order the requests came, as the handler answers each before russh
+//! reads the next.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
-use russh::{Channel, ChannelId, ChannelOpenFailure, Pty};
+use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
-use super::Authorized;
+use super::channel::{Open, Program};
+use super::{env, Authorized, Settings};
+
+/// The most session channels open at once on one connection, as OpenSSH's
+/// `MaxSessions` bounds them.
+pub const MAX_SESSIONS: usize = 64;
 
 /// One connection's handler.
 pub struct Served {
-    pub(super) authorized: Arc<Authorized>,
+    authorized: Arc<Authorized>,
+    settings: Arc<Settings>,
+    channels: HashMap<ChannelId, Open>,
 }
 
 impl Served {
+    pub(super) fn new(authorized: Arc<Authorized>, settings: Arc<Settings>) -> Served {
+        Served { authorized, settings, channels: HashMap::new() }
+    }
+
     /// Refuse a request on `channel`, with the reply that the client waits
     /// for when it asked for one.
     fn refuse(channel: ChannelId, session: &mut Session) -> Result<(), russh::Error> {
         session.channel_failure(channel)
     }
+
+    /// Run `program` on the channel `id`: success once it runs; else its
+    /// line on the channel's stderr, then failure, so the client says why.
+    async fn start(&mut self, id: ChannelId, program: Program<'_>, session: &mut Session) -> Result<(), russh::Error> {
+        let settings = self.settings.clone();
+        let Some(open) = self.channels.get_mut(&id) else { return Self::refuse(id, session) };
+        // A channel runs one program, as RFC 4254 has it.
+        if open.started() {
+            return Self::refuse(id, session);
+        }
+        let started = if settings.no_shell {
+            Err("--no-shell: this server runs no command and no shell".to_string())
+        } else {
+            start_program(open, id, &settings, program).await
+        };
+        match started {
+            Ok(()) => session.channel_success(id),
+            // A channel whose program did not start can run nothing else,
+            // so it ends here: the client waits for no close of its own.
+            Err(line) => {
+                session.extended_data(id, 1, format!("podssh serve: {line}\n").into_bytes())?;
+                Self::refuse(id, session)?;
+                session.eof(id)?;
+                session.close(id)
+            }
+        }
+    }
+}
+
+/// Find the shell (T-222), at each start and with no cache, then start the
+/// program with it. The search runs programs and waits for them, so it
+/// runs on a blocking thread.
+#[cfg(unix)]
+async fn start_program(
+    open: &mut Open,
+    id: ChannelId,
+    settings: &Settings,
+    program: Program<'_>,
+) -> Result<(), String> {
+    use super::{child, shell};
+    let base = settings.base();
+    let candidates = shell::candidates(settings.shell.as_deref(), env::lookup(&base, "SHELL"));
+    let probe_env = env::without_credentials(&base);
+    let found = tokio::task::spawn_blocking(move || shell::find(&candidates, &probe_env))
+        .await
+        .map_err(|e| format!("the search for a shell failed: {e}"))?
+        .map_err(|none| none.to_string())?;
+    let child_env = env::child_env(&base, &found.path, &open.env);
+    child::spawn(open, id, &found.path, program, child_env)
+}
+
+#[cfg(not(unix))]
+async fn start_program(_: &mut Open, _: ChannelId, _: &Settings, _: Program<'_>) -> Result<(), String> {
+    Err("not on this system: podssh serve runs programs on a Unix host".into())
 }
 
 impl russh::server::Handler for Served {
@@ -36,16 +105,25 @@ impl russh::server::Handler for Served {
         Ok(if self.authorized.allows(key.public_key) { Auth::Accept } else { Auth::reject() })
     }
 
-    // A session channel opens; each request on it is refused below until
-    // T-108 serves exec and a shell. The channel's own stream is not kept:
-    // nothing reads it here, and a full one would hold the connection.
+    // A session channel opens, and a task reads it from now on: russh
+    // holds the whole connection while a channel's messages wait unread.
     async fn channel_open_session(
         &mut self,
-        _channel: Channel<Msg>,
+        channel: Channel<Msg>,
         reply: ChannelOpenHandle,
-        _session: &mut Session,
+        session: &mut Session,
     ) -> Result<(), Self::Error> {
+        if self.channels.len() >= MAX_SESSIONS {
+            reply.reject(ChannelOpenFailure::ResourceShortage).await;
+            return Ok(());
+        }
+        self.channels.insert(channel.id(), Open::new(channel, session.handle()));
         reply.accept().await;
+        Ok(())
+    }
+
+    async fn channel_close(&mut self, channel: ChannelId, _session: &mut Session) -> Result<(), Self::Error> {
+        self.channels.remove(&channel);
         Ok(())
     }
 
@@ -114,29 +192,53 @@ impl russh::server::Handler for Served {
         Self::refuse(channel, session)
     }
 
-    // The environment is T-108's.
+    // A variable for the program to come: only a name that --accept-env
+    // lets in, never one that changes what runs, and before the start.
     async fn env_request(
         &mut self,
         channel: ChannelId,
-        _name: &str,
-        _value: &str,
+        name: &str,
+        value: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        Self::refuse(channel, session)
+        let patterns = env::patterns(&self.settings.accept_env);
+        let taken = match self.channels.get_mut(&channel) {
+            Some(open)
+                if !open.started()
+                    && open.env.len() < env::MAX_REQUESTS
+                    && env::refused(&patterns, name, value).is_none() =>
+            {
+                open.env.push((name.to_string(), value.to_string()));
+                true
+            }
+            _ => false,
+        };
+        if taken {
+            session.channel_success(channel)
+        } else {
+            Self::refuse(channel, session)
+        }
     }
 
-    // A shell and exec are T-108's.
     async fn shell_request(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), Self::Error> {
-        Self::refuse(channel, session)
+        self.start(channel, Program::Login, session).await
     }
 
     async fn exec_request(
         &mut self,
         channel: ChannelId,
-        _data: &[u8],
+        data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        Self::refuse(channel, session)
+        self.start(channel, Program::Command(data), session).await
+    }
+
+    // To the child's process group; the request has no reply.
+    async fn signal(&mut self, channel: ChannelId, signal: Sig, _session: &mut Session) -> Result<(), Self::Error> {
+        if let Some(open) = self.channels.get(&channel) {
+            open.signal(&signal);
+        }
+        Ok(())
     }
 
     // SFTP is T-112's.

@@ -284,7 +284,7 @@ nothing, and a host that does not start TLS, each cost the 20 s limit before the
 4. Print one note for each moved host: "trying HOST last: it failed N s ago (REASON)".
 5. Ignore a record with a time in the future (a clock that moved).
 6. `doctor` and `status` (T-051) show the records. State the window in THE RELAY section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:357-370`) and in `docs/relay.md:107-152`.
+   manual (`crates/podssh-cli/src/man/facts.rs:359-372`) and in `docs/relay.md:107-152`.
 7. This is retry policy across runs. T-220 shortens the wait inside one run; the two work
    together.
 
@@ -796,7 +796,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-292`, 323-343) and to `ONCE`
    (`crates/podssh-cli/src/ssh/args.rs:203-251`); the variable to VARIABLES and the modes to THE
-   RELAY (`crates/podssh-cli/src/man/facts.rs:46-301`, 170-183); both to `docs/relay.md:107-152`.
+   RELAY (`crates/podssh-cli/src/man/facts.rs:46-303`, 170-183); both to `docs/relay.md:107-152`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
 
@@ -896,7 +896,7 @@ paths only: lines 286-299 at `22c3b88`), then `std::env::temp_dir()` with the us
 working directory (lines 72-74 there). A store falls through each directory that refuses it
 (lines 151-160 there). No variable or
 flag names a directory. `doctor` probes the same list and names the first that can be written
-(`crates/podssh-cli/src/doctor/host.rs:121-176`). VARIABLES and FILES give the list
+(`crates/podssh-cli/src/doctor/host.rs:137-192`). VARIABLES and FILES give the list
 (`crates/podssh-cli/src/man/facts.rs`, line 112 at `4dd52f8`, and the cache's text of FILES in
 `crates/podssh-cli/src/man/data.rs`), a test fixes its shape (lines 365-377 at `22c3b88`), and
 the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at `4dd52f8`).
@@ -919,7 +919,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
    it; the settings file of T-048 can set it. The session log (T-056) and the failure records
    (T-059) use the same chain.
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:212-226`,
-   `crates/podssh-cli/src/man/data.rs:171-179`), the test of lines 365-377 at `22c3b88`, the comment
+   `crates/podssh-cli/src/man/data.rs:172-180`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
    notes (`crates/podssh-cli/src/man/notes.rs:257-347`).
 
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:413`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:414`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -3835,7 +3835,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3504-3510`.
+  `docs/cli.md:3509-3515`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:167-172`),
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3546`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3551`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -4650,7 +4650,7 @@ Read at `2042200`:
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
-- `TODO/serve.md:1442-1443` plans the same choice for `podssh serve --listen` (T-124, step 5).
+- `TODO/serve.md:1526-1527` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
 ## Approach
 

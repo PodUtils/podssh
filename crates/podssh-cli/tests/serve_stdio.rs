@@ -3,107 +3,21 @@
 //! listening. An authorized key logs in and `-N` stays up; another key gets
 //! `Permission denied (publickey)`; a second start keeps the host key, which
 //! the first one made in the cache with mode 0600, so a strict client takes
-//! it; a command is refused at once, never waited for. With no key at all,
-//! the start is refused with 78. Unix's: OpenSSH for Windows takes no
+//! it, and its command runs (T-108, whole in `serve_openssh.rs`). With no
+//! key at all, the start is refused with 78. Unix's: OpenSSH for Windows takes no
 //! command line of a shell for a ProxyCommand. A host with no OpenSSH client
 //! says that the test did not run.
 
 #![cfg(unix)]
 
-use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
+mod serve_kit;
+
+use std::io::{BufRead, BufReader};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-const BIN: &str = env!("CARGO_BIN_EXE_podssh");
-const LIMIT: Duration = Duration::from_secs(60);
-
-/// A scratch directory, removed at the end of the test.
-struct Scratch(PathBuf);
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn scratch(tag: &str) -> Scratch {
-    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
-    let dir = std::env::temp_dir().join(format!("podssh-serve-{tag}-{}-{nanos}", std::process::id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    Scratch(dir)
-}
-
-/// podssh's environment: its home and its cache in the scratch directory.
-fn podssh_env(cmd: &mut Command, home: &Path) {
-    cmd.env("HOME", home).env("PODSSH_CACHE_DIR", home.join("cache")).env("XDG_CACHE_HOME", home.join("cache"));
-    cmd.env_remove("XDG_RUNTIME_DIR");
-}
-
-fn have_openssh() -> bool {
-    Command::new("ssh").arg("-V").stdin(Stdio::null()).output().is_ok_and(|o| o.status.success())
-}
-
-/// A throwaway Ed25519 key at `path`, made by podssh's own keygen.
-fn keygen(home: &Path, path: &Path) {
-    let mut cmd = Command::new(BIN);
-    cmd.args(["keygen", "-q", "-t", "ed25519", "-N", "", "-f"]).arg(path).stdin(Stdio::null());
-    podssh_env(&mut cmd, home);
-    let out = cmd.output().expect("podssh keygen runs");
-    assert!(out.status.success(), "podssh keygen: {}", String::from_utf8_lossy(&out.stderr));
-}
-
-/// OpenSSH's client with `podssh serve --stdio` as its ProxyCommand,
-/// logging in with `key`, the host key kept in the scratch `known_hosts`.
-fn openssh(home: &Path, key: &Path, strict: &str, remote: &[&str]) -> Command {
-    let proxy = format!("'{BIN}' serve --stdio --authorized-keys '{}'", home.join("id.pub").display());
-    let mut cmd = Command::new("ssh");
-    cmd.args(["-F", "/dev/null", "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "LogLevel=VERBOSE"])
-        .arg("-o")
-        .arg(format!("UserKnownHostsFile={}", home.join("known_hosts").display()))
-        .arg("-o")
-        .arg(format!("StrictHostKeyChecking={strict}"))
-        .args(["-o", "HostKeyAlias=podssh-serve-test", "-o", "ConnectTimeout=30"])
-        .arg("-i")
-        .arg(key)
-        .arg("-o")
-        .arg(format!("ProxyCommand={proxy}"))
-        .arg("anyone@box")
-        .args(remote)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::piped());
-    // The ProxyCommand's variables are podssh's: its home and its cache.
-    podssh_env(&mut cmd, home);
-    cmd
-}
-
-/// `cmd`'s exit code and stderr, within [`LIMIT`]; a run past it is killed,
-/// and fails the test.
-fn finish(mut cmd: Command) -> (Option<i32>, String) {
-    let mut child = cmd.spawn().expect("ssh runs");
-    let mut pipe = child.stderr.take().expect("stderr");
-    let (tx, rx) = mpsc::channel();
-    std::thread::spawn(move || {
-        let mut text = String::new();
-        let _ = pipe.read_to_string(&mut text);
-        let _ = tx.send(text);
-    });
-    let deadline = Instant::now() + LIMIT;
-    let status = loop {
-        if let Some(status) = child.try_wait().expect("wait") {
-            break status;
-        }
-        if Instant::now() > deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            panic!("{cmd:?} did not end within {LIMIT:?}");
-        }
-        std::thread::sleep(Duration::from_millis(50));
-    };
-    (status.code(), rx.recv_timeout(LIMIT).unwrap_or_default())
-}
+use serve_kit::{finish, have_openssh, keygen, openssh, podssh_env, scratch, BIN, LIMIT};
 
 /// Kills a child that a test left running.
 struct Killed(Child);
@@ -207,13 +121,13 @@ fn openssh_logs_in_with_an_authorized_key_and_keeps_the_host_key() {
     assert_eq!(code, Some(255), "{err}");
     assert!(err.contains("Permission denied (publickey)"), "{err}");
 
-    // A later start keeps the host key: a strict client takes it. A command
-    // waits for T-108: it is refused at once, with OpenSSH's 255.
+    // A later start keeps the host key: a strict client takes it, and its
+    // command runs (T-108).
     let (code, err) = finish(openssh(&home, &key, "yes", &["true"]));
     assert!(!err.contains("Host key verification failed") && !err.contains("CHANGED"), "{err}");
     assert!(err.contains("Authenticated to"), "{err}");
-    assert!(err.contains("exec request failed"), "{err}");
-    assert_eq!(code, Some(255), "{err}");
+    assert!(!err.contains("exec request failed"), "{err}");
+    assert_eq!(code, Some(0), "{err}");
 }
 
 #[test]

@@ -3,15 +3,24 @@
 //! public-key authentication against the authorized keys.
 //!
 //! It never listens: the stream is the caller's (stdin and stdout for
-//! `--stdio`, as `sshd -i`; a node's session later). Exec, a shell, a pty,
-//! SFTP and direct-tcpip come with T-108 to T-112; until then each such
-//! request is refused with the reply that the client waits for.
+//! `--stdio`, as `sshd -i`; a node's session later). A command and a shell
+//! run on pipes (T-108), with the shell that T-222 finds; a pty, SFTP and
+//! direct-tcpip come with T-109 to T-112, and until then each such request
+//! is refused with the reply that the client waits for.
 
 mod authorized;
+mod channel;
+#[cfg(unix)]
+mod child;
+pub mod env;
 mod handler;
 pub mod host_key;
+#[cfg(unix)]
+pub mod shell;
 
 use std::borrow::Cow;
+use std::ffi::OsString;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -47,9 +56,45 @@ pub fn config(host_key: PrivateKey) -> russh::server::Config {
     }
 }
 
-/// Serve one SSH connection over `stream` until the client leaves. `Err`
-/// is why the connection failed, in words for a line of the caller.
+/// What a session may run (T-108, T-222): the `env` requests let in, the
+/// shell, and the environment that each child starts from.
+#[derive(Debug, Clone, Default)]
+pub struct Settings {
+    /// `--accept-env`'s patterns; none takes [`env::DEFAULT_ACCEPT`].
+    pub accept_env: Vec<String>,
+    /// `--shell`: the one shell, strict; none searches (T-222).
+    pub shell: Option<PathBuf>,
+    /// `--no-shell`: no command and no shell run.
+    pub no_shell: bool,
+    /// The environment of each child before its own variables; None reads
+    /// this process's at each start, as a test gives one of its own.
+    pub base_env: Option<Vec<(OsString, OsString)>>,
+}
+
+impl Settings {
+    /// The environment that each child starts from.
+    pub fn base(&self) -> Vec<(OsString, OsString)> {
+        self.base_env.clone().unwrap_or_else(|| std::env::vars_os().collect())
+    }
+}
+
+/// Serve one SSH connection over `stream` until the client leaves, with
+/// the default [`Settings`]. `Err` is why the connection failed, in words
+/// for a line of the caller.
 pub async fn serve<S>(stream: S, host_key: PrivateKey, authorized: Arc<Authorized>) -> Result<(), String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    serve_with(stream, host_key, authorized, Arc::new(Settings::default())).await
+}
+
+/// [`serve`] with the settings of the command line.
+pub async fn serve_with<S>(
+    stream: S,
+    host_key: PrivateKey,
+    authorized: Arc<Authorized>,
+    settings: Arc<Settings>,
+) -> Result<(), String>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -59,7 +104,7 @@ where
         return Err("no authorized key: nobody could log in".into());
     }
     let config = Arc::new(config(host_key));
-    let served = handler::Served { authorized };
+    let served = handler::Served::new(authorized, settings);
     let running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
     match running.await {
         Ok(()) => Ok(()),

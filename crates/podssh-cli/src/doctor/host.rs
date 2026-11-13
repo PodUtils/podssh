@@ -1,5 +1,6 @@
 //! Checks of the host itself, with no network: where podssh can record host
-//! keys and cache tokens, where programs can run, `/proc`, the terminal, and
+//! keys and cache tokens, where programs can run, the shell of `podssh
+//! serve`, `/proc`, the terminal, and
 //! the sshd of a roost (`sshd.rs`). The probes that need libc (user
 //! database, pty, bind) are in `unix.rs`.
 
@@ -33,11 +34,26 @@ pub(super) fn check(report: &mut Report<'_>) -> Facts {
         report.line("listen AF_INET", super::unix::bind_inet());
         report.line("listen AF_UNIX", super::unix::bind_unix());
         exec::check(report, &mut facts.floor);
+        shell(report);
     }
     terminal(report);
     // A dial of the loopback, which no proxy and no offline setting touch.
     super::sshd::check(report);
     facts
+}
+
+/// The shell that `podssh serve` would run (T-222), found as serve finds it,
+/// each candidate passed over named. None is a fact, as no pty is: serve
+/// then starts with `--no-shell` alone.
+#[cfg(unix)]
+fn shell(report: &mut Report<'_>) {
+    use podssh_ssh::server::{env, shell};
+    let base: Vec<_> = std::env::vars_os().collect();
+    let candidates = shell::candidates(None, env::lookup(&base, "SHELL"));
+    match shell::find(&candidates, &env::without_credentials(&base)) {
+        Ok(found) => report.ok("shell", found.passed_over().unwrap_or_else(|| found.path.display().to_string())),
+        Err(none) => report.ok("shell", format!("{none}: podssh serve starts with --no-shell alone")),
+    }
 }
 
 /// Whether this thread holds the capability that binds a port below 1024,

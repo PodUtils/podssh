@@ -1,0 +1,6 @@
+# T-222: podssh serve takes a shell that exists, a directory or a file with
+# no x bit among them; the test of the candidates must fail.
+ENTRY=T-222
+GROUP=cli-tests
+EXPECT='test each_failure_is_named_and_the_good_shell_wins \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_shell -- each_failure_is_named_and_the_good_shell_wins'

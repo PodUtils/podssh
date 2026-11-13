@@ -2,8 +2,9 @@
 //! for one connection on stdin and stdout, as `sshd -i`, so that OpenSSH's
 //! client reaches it through a ProxyCommand and nothing listens (rule 2 of
 //! `AGENTS.md`). The server is `podssh_ssh::server`; this file is the
-//! command line: the authorized keys, the host key in its state file, the
-//! drop of each capability of the start (T-698), then the connection.
+//! command line: the authorized keys, the shell that sessions run (T-222),
+//! the host key in its state file, the drop of each capability of the start
+//! (T-698), then the connection.
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -11,7 +12,7 @@ use std::sync::Arc;
 
 use clap::ArgMatches;
 use podssh_relay::cache::{self, Others};
-use podssh_ssh::server::{self, host_key, Authorized, HostKey, Line, StateFiles};
+use podssh_ssh::server::{self, host_key, Authorized, HostKey, Line, Settings, StateFiles};
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
 use crate::relay_settings::Refusal;
@@ -23,6 +24,9 @@ pub struct ServeArgs {
     pub host_key: Option<String>,
     pub authorized_key: Vec<String>,
     pub authorized_keys: Vec<String>,
+    pub accept_env: Vec<String>,
+    pub shell: Option<String>,
+    pub no_shell: bool,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -34,6 +38,9 @@ impl ServeArgs {
             host_key: matches.get_one::<String>("host-key").cloned(),
             authorized_key: many("authorized-key"),
             authorized_keys: many("authorized-keys"),
+            accept_env: many("accept-env"),
+            shell: matches.get_one::<String>("shell").cloned(),
+            no_shell: matches.get_flag("no-shell"),
             refused,
         }
     }
@@ -60,6 +67,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         );
         return EXIT_USAGE;
     }
+    if args.no_shell && args.shell.is_some() {
+        let _ = writeln!(err, "podssh serve: --shell and --no-shell: give one of them");
+        return EXIT_USAGE;
+    }
     if std::io::stdin().is_terminal() {
         let _ = writeln!(
             err,
@@ -82,6 +93,16 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(authorized) => Arc::new(authorized),
         Err(refusal) => return refused(err, refusal),
     };
+    let settings = Settings {
+        accept_env: args.accept_env.clone(),
+        shell: args.shell.as_ref().map(PathBuf::from),
+        no_shell: args.no_shell,
+        base_env: None,
+    };
+    // Before the host key, so a start that cannot serve makes none.
+    if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
+        return refused(err, refusal);
+    }
     let found = match args.host_key.as_deref() {
         Some(file) => host_key::at(Path::new(file), &FILES),
         None => host_key::in_first(&cache::read_dirs(), &cache::candidate_dirs(), &FILES),
@@ -99,7 +120,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         }
     };
     let stream = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
-    match runtime.block_on(server::serve(stream, key, authorized)) {
+    match runtime.block_on(server::serve_with(stream, key, authorized, Arc::new(settings))) {
         Ok(()) => 0,
         Err(why) => {
             let _ = writeln!(err, "podssh serve: {why}");
