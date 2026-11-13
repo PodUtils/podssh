@@ -154,7 +154,7 @@ async fn carried(road: Road, tell: oneshot::Sender<Begun>) {
             let begun = if let Some(line) = super::unserved(&relays, &missed, &at) {
                 log.info(&line);
                 Begun::Contract
-            } else if missed.is_final() {
+            } else if missed.is_final() && !super::way_refused(&missed) {
                 let code = missed.failure().map_or(sysexits::EX_UNAVAILABLE, |f| crate::proxy::sysexit(f.last()));
                 Begun::Failed(NotReached { lines, code })
             } else {

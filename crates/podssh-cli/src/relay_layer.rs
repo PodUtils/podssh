@@ -317,6 +317,17 @@ pub(crate) fn unserved(relays: &RelayList, missed: &Missed, at: &str) -> Option<
     Some(format!("{at} no longer serves the resumable layer (404): {WITHOUT}"))
 }
 
+/// Whether the way, not the relay, refused the upgrade: the contract's road
+/// meets the same refusal, and then the HTTP road (T-319) may carry the
+/// session, so that refusal ends nothing here.
+pub(crate) fn way_refused(missed: &Missed) -> bool {
+    let attempts = missed.failure().map(|failure| failure.attempts.as_slice()).unwrap_or_default();
+    attempts.iter().any(|(_, e)| {
+        matches!(e, podssh_relay::open::OpenError::Connect { error, .. }
+            if podssh_relay::piping::probe::upgrade_refused(error))
+    })
+}
+
 /// One line of the opener on stderr.
 fn say(err: &mut dyn Write, note: &str) {
     let _ = writeln!(err, "podssh: {note}");
@@ -327,7 +338,7 @@ fn say(err: &mut dyn Write, note: &str) {
 /// the session to the contract's road, which may try another host.
 fn refused(missed: &Missed, dialer: &Dialer, at: &str, err: &mut dyn Write) -> Option<i32> {
     let lines = missed.lines(dialer.target());
-    if missed.is_final() {
+    if missed.is_final() && !way_refused(missed) {
         for line in &lines {
             let _ = writeln!(err, "podssh: {line}");
         }

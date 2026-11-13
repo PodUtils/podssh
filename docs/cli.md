@@ -495,7 +495,10 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   refuses too, or which send the target to another; when it fails, its line
   says why, and they follow. A relay with no such road (the default relay's
   deployment) is named as one. `PODSSH_HTTP_ROAD=no` turns it off, `split` or
-  `serial` names one form, and another word is refused (78).
+  `serial` names one form, and another word is refused (78). A close of the
+  road other than `1000` (a limit of the role, a target that failed) is said
+  by `ssh` as by `proxy`, before SSH's own line: the leg that ended the
+  session with its code and reason, then what may help.
 - **The WebSocket over HTTP/2, to a relay of the user's** (T-321, GitHub
   #51; RFC 8441; [relay.md](relay.md), "The relay role's HTTP/2"). To a
   relay host that the user named (`--relay-host`, `PODSSH_RELAY`,

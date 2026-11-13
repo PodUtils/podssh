@@ -370,7 +370,7 @@ against 27.6 for ssh (RESULTS.md, not on the paper page).
 | DPI posture | Port 7322, self-signed certificate, ALPN readable in QUIC Initial | Standard TLS to 443 to a CDN name; Tor, WARP and meek fallbacks; iroh's QUIC is as readable as osewa's | **podssh ahead** on its TCP roads |
 | Predictive echo | Yes, auto above 30 ms | T-160 (open, held behind `podssh serve`, Q32) | **osewa ahead** (not network) |
 | Latest screen and catch-up | Yes | T-161, T-303 (open, held) | **osewa ahead** (not network) |
-| UDP per-network verdict cache | Open question 3 in QUIC.md | Decided against (`TODO/roads.md:5613-5615`) | **Both lack** (by choice) |
+| UDP per-network verdict cache | Open question 3 in QUIC.md | Decided against (`TODO/roads.md:5688-5690`) | **Both lack** (by choice) |
 | QUIC datagrams | Off by choice | T-304 (open) | **Both lack** |
 | Measuring what users feel | Echo, connect and bulk on 2 real paths; a lab that cannot be reproduced | Failover, faults and throughput on the loopback or through a container's proxy; **no echo, no connect latency, no WAN direct** | **osewa ahead** in kind; **podssh ahead** in rigour where it does measure (plants, raw commands, baselines) |
 

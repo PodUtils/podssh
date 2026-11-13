@@ -1,7 +1,8 @@
 //! The stream of a cloud's road that says why the road ended (T-351), once,
 //! before SSH reads the end of its stream: SSH alone can only say that the
 //! connection closed, where IAP or the endpoint said why. The road's task
-//! records its end before the stream ends, so the line comes first.
+//! records its end before the stream ends, so the line comes first. The HTTP
+//! road's close (T-319) says its lines so too: the close, then what may help.
 
 use std::pin::Pin;
 use std::sync::Arc;
@@ -13,7 +14,7 @@ use tokio::io::{AsyncRead, AsyncWrite, DuplexStream, ReadBuf};
 /// The stream to SSH, and the road's word on its end.
 pub struct Told {
     inner: DuplexStream,
-    why: Box<dyn Fn() -> Option<String> + Send>,
+    why: Box<dyn Fn() -> Vec<String> + Send>,
     log: Arc<Log>,
     told: bool,
 }
@@ -21,13 +22,19 @@ pub struct Told {
 impl Told {
     /// `inner`, whose end `why` explains: `None` for an ordinary end.
     pub fn new(inner: DuplexStream, why: impl Fn() -> Option<String> + Send + 'static, log: Arc<Log>) -> Told {
+        Told::lines(inner, move || why().into_iter().collect(), log)
+    }
+
+    /// [`Told::new`] for an end that takes more than one line: none for an
+    /// ordinary end.
+    pub fn lines(inner: DuplexStream, why: impl Fn() -> Vec<String> + Send + 'static, log: Arc<Log>) -> Told {
         Told { inner, why: Box::new(why), log, told: false }
     }
 
     fn tell(&mut self) {
         if !self.told {
             self.told = true;
-            if let Some(line) = (self.why)() {
+            for line in (self.why)() {
                 self.log.error(&line);
             }
         }

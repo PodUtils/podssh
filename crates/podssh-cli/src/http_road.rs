@@ -7,7 +7,8 @@
 //! relay serve`): the split form first, on two connections, then the serial
 //! form on one (Q44). The token is the WebSocket road's, minted once more
 //! when the role no longer takes a cached one. `PODSSH_HTTP_ROAD` turns the
-//! road off, or names one form.
+//! road off, or names one form. A close of the road other than `1000` is
+//! said by `ssh` as by `proxy`: SSH alone sees only the end of its stream.
 
 use std::future::Future;
 use std::io::Write;
@@ -23,6 +24,7 @@ use podssh_ws::{ConnectError, ProxyChoice, Trust};
 
 use crate::exitmap::sysexits::{EX_CONFIG, EX_UNAVAILABLE};
 use crate::pipe::pump::{End as PipeEnd, Ending, Verdict};
+use crate::ssh::cloud::told::Told;
 
 /// The variable that turns the road off, or names one form.
 pub const ENV: &str = "PODSSH_HTTP_ROAD";
@@ -199,13 +201,37 @@ fn verdict(end: Option<End>, target: &str) -> Verdict {
             if code == 1000 {
                 return None;
             }
-            let leg = podssh_ws::session::forward_close(Some(code), &reason);
-            let mut lines = vec![format!("{}: {code} {reason}", leg.what(target, "podssh"))];
-            lines.extend(podssh_ws::session::Remedy::remedy(leg, &reason).map(str::to_string));
-            Some((EX_UNAVAILABLE, lines))
+            Some((EX_UNAVAILABLE, close_lines(code, &reason, target)))
         }
         Some(End::Failed(why)) => Some((EX_UNAVAILABLE, vec![why])),
     }
+}
+
+/// A close of the road other than `1000`: the leg that ended it with its
+/// code and reason, as the WebSocket road names them, then what may help.
+fn close_lines(code: u16, reason: &str, target: &str) -> Vec<String> {
+    let leg = podssh_ws::session::forward_close(Some(code), reason);
+    let mut lines = vec![format!("{}: {code} {reason}", leg.what(target, "podssh"))];
+    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(str::to_string));
+    lines
+}
+
+/// What `ssh` says of the road's end: `proxy`'s lines, and nothing for a
+/// clean end or none yet, which SSH's own words explain.
+pub fn ssh_lines(end: Option<End>, target: &str) -> Vec<String> {
+    match end {
+        None | Some(End::Closed { code: 1000, .. }) => Vec::new(),
+        Some(End::Closed { code, reason }) => close_lines(code, &reason, target),
+        Some(End::Failed(why)) => vec![why],
+    }
+}
+
+/// The stream of an open road to SSH, which says the road's end once,
+/// before SSH reads the end of its stream: the road records its end before
+/// its pipe ends, so the line names the cause first.
+pub fn ssh_stream(opened: Opened, target: String, log: Arc<podssh_ssh::Log>) -> Told {
+    let Opened { stream, ended, .. } = opened;
+    Told::lines(stream, move || ssh_lines(ended.get(), &target), log)
 }
 
 #[cfg(test)]
@@ -263,5 +289,39 @@ mod tests {
         let relay = Relay { host: "relay.test".into(), port: 443 };
         let none = words(&relay, &ConnectError::Refused { status: 404, body: "not found".into() });
         assert!(none.contains("serves no HTTP road") && none.contains("404"), "{none}");
+    }
+
+    /// `ssh` says what `proxy` says of a close other than `1000`, and
+    /// nothing of a clean end, which SSH explains.
+    #[test]
+    fn ssh_says_a_close_of_the_road_as_proxy_does() {
+        let closed = |code, reason: &str| Some(End::Closed { code, reason: reason.into() });
+        assert!(ssh_lines(None, "h:22").is_empty());
+        assert!(ssh_lines(closed(1000, "target closed"), "h:22").is_empty());
+        for (code, reason) in [(1009, "session byte cap"), (1001, "idle timeout"), (1011, "connect failed")] {
+            let said = ssh_lines(closed(code, reason), "h:22");
+            let (_, proxy) = verdict(closed(code, reason), "h:22").expect("a verdict");
+            assert_eq!(said, proxy, "{code} {reason}");
+            assert!(said[0].ends_with(&format!(": {code} {reason}")), "{said:?}");
+        }
+        assert_eq!(ssh_lines(Some(End::Failed("no answer".into())), "h:22"), ["no answer"]);
+    }
+
+    /// The line comes once, at the end of the stream, after the road set
+    /// its end; the bytes before it pass as they are.
+    #[tokio::test]
+    async fn the_stream_to_ssh_ends_after_the_road_s_end_is_known() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let (ours, mut theirs) = tokio::io::duplex(64);
+        let ended = Arc::new(Ended::default());
+        let opened = Opened { stream: ours, ended: ended.clone(), form: Form::Split };
+        let log = Arc::new(podssh_ssh::Log::new(podssh_ssh::LogLevel::Quiet));
+        let mut told = ssh_stream(opened, "h:22".into(), log);
+        theirs.write_all(b"SSH-2.0-x\r\n").await.unwrap();
+        ended.set_once(End::Closed { code: 1009, reason: "session byte cap".into() });
+        drop(theirs);
+        let mut got = Vec::new();
+        told.read_to_end(&mut got).await.unwrap();
+        assert_eq!(got, b"SSH-2.0-x\r\n");
     }
 }

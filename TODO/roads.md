@@ -3270,6 +3270,43 @@ names it as the third exception.
   `serial`, that form; `no`, none. Lost: a flag, as the variable reaches each command of `ssh`'s
   road at once, as `PODSSH_DIRECT` does.
 
+2026-11-13 (the drafting agent, item 3 of what remains), each call with what lost:
+
+- **`ssh` says the road's close through its stream**: `crate::http_road::ssh_stream` wraps the
+  road's pipe in the stream that the cloud roads' tunnels say their end by
+  (`ssh/cloud/told.rs`, now with more than one line), once, before SSH reads the end of its stream,
+  as the road records its end before its pipe ends. Lost: a `RelayStatus` for the road, whose end
+  the failure lines of `run_outcome` would name as the WebSocket road's, as a status also turns on
+  the relay's idle warning and its cap's warning (each reads payload that the road does not count),
+  the background rank and the retry on the next host; a field of `Reached`, which some thirty roads
+  build.
+- **The words are `proxy`'s own**: one function (`close_lines`) gives the leg with the code and
+  reason, then what may help, to both commands. Lost: `RelayEnd::explain`'s "the relay closed the
+  connection (code N)", which names the relay where the forward road's table names the leg.
+- **`--result-file` gets no relay close from the road**: its record is kept per session task, and
+  the line is said inside a read of SSH's task. Lost: `outcome::relay_end` from that read, whose
+  record may not be the session's.
+- **The CLI's test re-originates TLS to the role**: the proxy (`cloud_support`'s, with a handler
+  of the test) ends TLS for `relay-a.test` with its own CA, the one podssh gets with `--ca-file`,
+  refuses each upgrade with a page of its own, holds each request's body, and carries each request
+  to the role on a TLS connection of its own (the role's CA, made by rcgen as `serve_certs` makes
+  it), one request on each connection, the answer passed as it comes. Lost: plain TCP to the role,
+  whose cleartext road takes tokens of one session (T-326) where a proxy that ends TLS speaks TLS;
+  answers held to their end, which the relay crate's `http_road` tests already hold;
+  `throughput_harness`'s `Cell::podssh_relay`, which needs openssl and pins the relay's name to the
+  loopback with `--relay-addr`, where this run must reach it through the proxy alone.
+- **The target of `ssh` is the test's SSH server** (`ssh_harness`, its `echo`): no root and no
+  OpenSSH, so it runs on each host of the gate. Lost: OpenSSH's sshd as the target, which needs a
+  user's key set up for it and is skipped where the host has none; OpenSSH's client to sshd over
+  the road stays to do (Done).
+- **The close other than `1000` is the role's byte cap** (`--max-session-mib 1`, `1009 session byte
+  cap`), and the test compares `ssh`'s line with `proxy`'s, each target's authority taken out.
+  Lost: the idle cut, whose shortest setting is a second of waiting and says nothing more.
+- **Each run names its form**: `PODSSH_HTTP_ROAD=split` or `serial`, and the proxy's list of the
+  requests it carried shows the form (`/up?` and `/down?`, or `/x?` and no `/up?`); `ssh -v` also
+  names it. Lost: the default, which the relay crate's test covers (the split form with no form
+  asked).
+
 ## Prove
 
 ```sh
@@ -3449,6 +3486,56 @@ full window is a refusal; (8) a refusal is a frame with its reason (`full`, `unk
 (9) the close of a direction carries its count, and a mismatch fails the session; (10) a retry log on disk is
 keyed by (session, `seq`). Its test: a stand-in that drops every third acknowledgement still ends a 20 MiB
 session with equal digests, at most one resend for each lost acknowledgement; with (6) removed it fails.
+
+Drafted 2026-11-13 (the drafting agent, `draft-t319`): item 3 of what remains, podssh's part since the
+Correction of 2026-11-13. Merged, built and run by the main session the same day, with two repairs and
+one defect found:
+
+- The test's role took `--allow-private`, and the role needs `--routes 127.0.0.1` alone to dial the loopback
+  (the two flags refuse each other).
+- A defect of podssh's: a session that the relay role's resumable layer takes first (`relay_layer.rs`, for
+  `proxy`, and `relay_layer/ssh.rs`, for `ssh`) ended the run on the way's refusal of the upgrade, as a refusal
+  that the contract's road would get again, so the HTTP road never ran there. Such a refusal now leaves the
+  session to the contract's road, whose failure takes the HTTP road (`relay_layer::way_refused`). Without it,
+  each of the four tests of 20 MiB fails with exit 77.
+- A defect of pod-relay's: `ssh` over the serial form stalls (no end in 240 s), as its client writes the bytes
+  down in the task that reads the bytes up, while SSH's client writes its window adjustments before it reads
+  more. A patch of the crates on this host (the bytes down from a task of their own) made the test pass in 25 s.
+  Asked of podcrates as COORD-047 (#222), with the patch; until its tag the test is ignored, naming the issue.
+
+- `crates/podssh-cli/tests/http_road_cli.rs` with `http_road_cli_support/`: `podssh relay serve` on the
+  loopback (`--mint anyone --allow-private`, a certificate of the run's CA for `relay-a.test`), and
+  `cloud_support`'s proxy as `https_proxy`, which ends TLS for that name with its own CA (podssh's
+  `--ca-file`), refuses each upgrade with a page of its own, and carries each other request to the
+  role over TLS, one request on each connection, its body held. `podssh proxy` to an echo, and
+  `podssh ssh -v` to the test's SSH server's `echo`, each move 20 MiB each way with equal digests,
+  in the split form and in the serial form (`PODSSH_HTTP_ROAD`); the proxy's requests show the form.
+- `ssh`'s line for a close other than `1000`: `crate::http_road::ssh_stream` says the road's end as
+  `proxy` says it (`close_lines`, shared), once, before SSH's own line (`ssh/cloud/told.rs` takes
+  more than one line now); `ssh/transport.rs` wraps the road's stream in it. A test of the CLI: a
+  role capped at 1 MiB ends `proxy`'s and `ssh`'s sessions with `1009 session byte cap`, and the two
+  lines are the same but for the target; unit tests: `ssh_lines` against `verdict`, and the stream.
+- The manual (THE RELAY's item on the HTTP road) and `docs/cli.md` ("The HTTP road after the relay
+  hosts") say it.
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib http_road
+cargo test -p podssh-cli --lib ssh::cloud::told
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test http_road_cli
+```
+
+- `--lib http_road`: 5 passed.
+- `--lib ssh::cloud::told`: passed.
+- `--lib man::`: passed.
+- `--test http_road_cli`: 5 passed, 1 ignored (the serial form's `ssh`, COORD-047), in 37 s: `proxy` in each form
+  (17 s and 26 s alone), `ssh` in the split form (23 s), and the close 1009 said alike.
+- Planted, `ssh_stream` saying nothing (the stream as before): the test of the close fails with "no
+  line names the close 1009": caught on this host; restored, it passes.
+
+What remains of item 3: OpenSSH's client to OpenSSH's sshd over the road (`podssh proxy` as its
+`ProxyCommand`), where the host has sshd.
 
 
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)
@@ -9759,7 +9846,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:170` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:5827`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:5902`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The

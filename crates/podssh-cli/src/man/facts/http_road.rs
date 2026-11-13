@@ -23,7 +23,9 @@ pub(super) fn blocks() -> Vec<Block> {
          goes again, as it was, until an answer comes, for {retry} s at most: a batch's number and an offset make it \
          one that may come twice. When the second connection does not answer within {limit} s, the serial form \
          follows on the first: one POST after another, each with a batch up when one waits and the bytes down in \
-         its answer. A session's id goes in its paths, and its key in a header alone. PODSSH_HTTP_ROAD turns the \
+         its answer. A session's id goes in its paths, and its key in a header alone. A close of the road other \
+         than 1000 is said by podssh ssh as by podssh proxy: the leg that ended it, with its code and reason, \
+         before SSH's own line. PODSSH_HTTP_ROAD turns the \
          road off, or names one form. The default relay serves no HTTP road.",
         batch = BATCH_MAX / 1024,
         wait = WAIT_MAX.as_secs(),

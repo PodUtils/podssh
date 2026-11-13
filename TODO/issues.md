@@ -285,6 +285,7 @@ and num-bigint 0.5) are T-754.
 | #219 | COORD-044: podssh took podcrates v0.34.0 at 287e23b (to podcrates) | open (2026-11-12: posted) | T-684 |
 | #220 | COORD-045: a pod-services kind file-host, and a retained board in pod_wormhole::mqtt (to podcrates) | open (2026-11-12: asked; podcrates' T-416 and T-417, COORD-066) | T-738 |
 | #221 | COORD-046: pod-relay's HTTP road: the invariants 6 to 10 of GitHub #55 (to podcrates) | open (2026-11-13: asked; podcrates' T-476, COORD-068) | T-319 |
+| #222 | COORD-047: pod-relay's HTTP road, serial form: an SSH session stalls when the bytes down block the bytes up (to podcrates) | open (2026-11-13: asked, with a tested patch) | T-319 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

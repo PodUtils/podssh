@@ -242,7 +242,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                     let at = (first.host.as_str(), first.port);
                     match crate::http_road::after_relay(&failure, relays, trust, at, *family, log).await {
                         Ok(Some(opened)) => {
-                            let stream = Box::new(opened.stream);
+                            let stream = Box::new(crate::http_road::ssh_stream(opened, target.clone(), log.clone()));
                             return Ok(Reached { stream, relay: None, direct_proxy: None, layer: None });
                         }
                         Ok(None) => {}
