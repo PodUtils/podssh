@@ -14,12 +14,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use podssh_ws::dial::{self, ProxyChoice};
-use russh::server::{ChannelOpenHandle, Msg};
+use russh::server::{ChannelOpenHandle, Handle, Msg};
 use russh::{Channel, ChannelMsg, ChannelOpenFailure, ChannelReadHalf};
 use tokio::io::AsyncWriteExt;
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::TcpStream;
 use tokio::sync::oneshot;
+
+use super::channel::Window;
 
 /// How long a dial may take, a proxy's answer included.
 pub const DIAL_LIMIT: Duration = Duration::from_secs(20);
@@ -111,14 +113,23 @@ pub(super) fn check(no_forwarding: bool, host: &str, port: u32) -> Result<u16, C
 
 /// Dial `host:port` on a task of its own, then accept the channel and carry
 /// it, or refuse it with the dial's error in words. `slot` is held until
-/// the forward ends.
-pub(super) fn open(channel: Channel<Msg>, host: String, port: u16, reply: ChannelOpenHandle, slot: Slot) {
+/// the forward ends. `handle` opens the channel's window as the target
+/// takes the bytes (T-118).
+pub(super) fn open(
+    channel: Channel<Msg>,
+    host: String,
+    port: u16,
+    reply: ChannelOpenHandle,
+    slot: Slot,
+    handle: Handle,
+) {
     tokio::spawn(async move {
         let _slot = slot;
         match dial::dial(&host, port, &ProxyChoice::FromEnvironment, DIAL_LIMIT).await {
             Ok(tcp) => {
                 reply.accept().await;
-                carry(channel, tcp).await;
+                let window = Window { handle, id: channel.id() };
+                carry(channel, tcp, window).await;
             }
             Err(e) => reply.reject(connect_failed(&e.to_string())).await,
         }
@@ -134,9 +145,15 @@ enum Up {
     Failed,
 }
 
-/// The client's side: its data to the target, its EOF as TCP's half-close
-/// (said on `eof`), until it closes the channel.
-async fn client_side(mut read: ChannelReadHalf, mut to_far: OwnedWriteHalf, eof: oneshot::Sender<()>) -> Up {
+/// The client's side: its data to the target, each chunk given back to the
+/// window once the target took it, its EOF as TCP's half-close (said on
+/// `eof`), until it closes the channel.
+async fn client_side(
+    mut read: ChannelReadHalf,
+    mut to_far: OwnedWriteHalf,
+    eof: oneshot::Sender<()>,
+    window: Window,
+) -> Up {
     let mut eof = Some(eof);
     while let Some(message) = read.wait().await {
         match message {
@@ -144,7 +161,9 @@ async fn client_side(mut read: ChannelReadHalf, mut to_far: OwnedWriteHalf, eof:
                 if to_far.write_all(&data).await.is_err() {
                     return Up::Failed;
                 }
+                window.grant(data.len());
             }
+            ChannelMsg::ExtendedData { data, .. } => window.grant(data.len()),
             ChannelMsg::Eof => {
                 let _ = to_far.shutdown().await;
                 if let Some(eof) = eof.take() {
@@ -164,16 +183,16 @@ async fn client_side(mut read: ChannelReadHalf, mut to_far: OwnedWriteHalf, eof:
 /// ended, or when a side fails. A client that closes the channel ends the
 /// TCP connection with it, so no connection outlives its channel.
 ///
-/// The bytes for the target are written as they come: russh keeps 100 of a
-/// channel's messages unread before the whole connection waits, and the
-/// window of each channel apart is T-118's.
-pub(super) async fn carry(channel: Channel<Msg>, tcp: TcpStream) {
+/// The bytes for the target are written as they come, and the channel's
+/// window opens as the target takes them (T-118): a target that reads
+/// slowly holds this forward alone.
+pub(super) async fn carry(channel: Channel<Msg>, tcp: TcpStream, window: Window) {
     // Each keystroke of a forwarded session goes at once.
     let _ = tcp.set_nodelay(true);
     let (read, write) = channel.split();
     let (mut from_far, to_far) = tcp.into_split();
     let (eof_tx, mut eof_rx) = oneshot::channel();
-    let mut up = tokio::spawn(client_side(read, to_far, eof_tx));
+    let mut up = tokio::spawn(client_side(read, to_far, eof_tx, window));
     let mut writer = write.make_writer();
     let down = async move { tokio::io::copy(&mut from_far, &mut writer).await.is_ok() };
     tokio::pin!(down);

@@ -543,6 +543,17 @@ pub trait Handler: Sized {
         current
     }
 
+    /// Whether `channel`'s window opens only as its reader takes the data,
+    /// through [`Handle::grant_window`], asked at each of its data messages
+    /// (podssh's patch, vendor/patches/russh/). The default, false, keeps
+    /// russh's rule: the window opens again as the data arrives, read or
+    /// not, so a reader that is slower than the client is held only by the
+    /// channel's queue, and past it the whole connection waits.
+    #[allow(unused_variables)]
+    fn window_on_read(&mut self, channel: ChannelId) -> bool {
+        false
+    }
+
     /// The client requests a pseudo-terminal with the given
     /// specifications.
     ///

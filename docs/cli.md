@@ -5700,8 +5700,8 @@ gives up each capability of the process (T-698), before it reads a file.
   name and the core flag, always before EOF and close. A task reads each
   channel from its open, as russh holds the whole connection while 100 of
   a channel's messages wait unread; the bytes for a child's stdin wait in a
-  queue of their own (about 4 MiB), and the window of each channel apart is
-  T-118's. A pty request is granted where a pty opens (below); a
+  queue of their own, and the channel's window opens as the child takes
+  them (T-118, below). A pty request is granted where a pty opens (below); a
   subsystem other than `sftp` (below), X11 and a forward to a Unix
   socket (`direct-streamlocal@openssh.com`) are refused with their answer,
   so that a client says so at once instead of waiting (russh's defaults
@@ -5790,9 +5790,9 @@ gives up each capability of the process (T-698), before it reads a file.
   failed, and a client that closes the channel ends the TCP connection
   with it. At most 256 forwards are open at once on one connection; one
   more is refused with code 4, resource shortage. The bytes for a target
-  are written as they come: russh holds 100 of a channel's messages
-  before the whole connection waits, and the window of each channel apart
-  is T-118's. `--no-forwarding` refuses each forward with code 1,
+  are written as they come, and the channel's window opens as the target
+  takes them (T-118, below): a target that reads slowly holds its forward
+  alone. `--no-forwarding` refuses each forward with code 1,
   administratively prohibited, its reason naming the flag.
 - **The environment (T-108).** A child gets serve's own environment, as the
   cage gave it: `PATH`, `HTTPS_PROXY` and a library path are what no login
@@ -5829,6 +5829,28 @@ gives up each capability of the process (T-698), before it reads a file.
   server runs no command and no shell. In a session, the same line goes to
   the channel's stderr and the request fails. `podssh doctor`'s line
   `shell` names the same choice.
+- **A slow client, a slow child (T-118).** The output of a child (its
+  pipes, or a pty's master) is read 32 KiB at a time, and read again only
+  once that chunk went out through the channel's writer, which waits for
+  the client's window: a client that reads nothing stops the reads, the
+  pipe or the pty fills, and the kernel holds the child in its write (`yes`
+  waits). So serve holds one read buffer past the client's window for each
+  output, and its memory does not grow with a client that stalls; the
+  session goes on when the client reads again. A client that is gone, or
+  that closes the channel, ends it: the pipes or the master close, and the
+  child's group is hung up (T-117). The input goes the other way: each
+  channel that serve takes, a session or a forward, opens its window (512
+  KiB, podssh's own) as its reader takes the bytes, not as they arrive
+  (podssh's patch of russh, `vendor/patches/russh/0009-server-window-on-read.patch`):
+  a chunk is granted back once it is written to the child's stdin, the
+  pty, the SFTP server or the target, or once it is dropped (a child that
+  closed its stdin, as sshd discards it). So a client sends at most one
+  window ahead of its reader, the bytes that wait in serve for one channel
+  are at most that window, and a child that reads nothing holds its own
+  channel alone, never the connection's other channels. russh's server
+  opened the window on arrival, and its loop then waited on a channel's
+  full queue, holding each channel of the connection. A channel's upload
+  then runs at most one window each round trip, as sshd's (2 MiB) does.
 - **The stop, and SIGHUP (T-117).** SIGTERM or SIGINT stops serve
   cleanly (`crates/podssh-ssh/src/server/stop.rs`): no new session,
   forward or request is taken (beside each key's rules, T-114), the client gets a disconnect with the reason `podssh

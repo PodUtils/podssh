@@ -1,0 +1,16 @@
+--- a/crates/podssh-ssh/src/server/child.rs
++++ b/crates/podssh-ssh/src/server/child.rs
+@@ -130,7 +130,12 @@
+     /// [`Running::finish`].
+     async fn run(self, mut child: Child, closed: watch::Receiver<bool>) {
+         let (exited_tx, exited) = watch::channel(false);
+-        let out = child.stdout.take().map(|p| tokio::spawn(pump(p, self.write.make_writer(), exited.clone())));
++        let out = child.stdout.take().map(|p| {
++            let (near, mut far) = tokio::io::duplex(1 << 30);
++            let mut to = self.write.make_writer();
++            tokio::spawn(async move { let _ = tokio::io::copy(&mut far, &mut to).await; });
++            tokio::spawn(pump(p, near, exited.clone()))
++        });
+         let err = child.stderr.take().map(|p| tokio::spawn(pump(p, self.write.make_writer_ext(Some(1)), exited)));
+         let pumps: Vec<_> = [out, err].into_iter().flatten().collect();
+         self.finish(child, pumps, exited_tx, closed).await;

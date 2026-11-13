@@ -1,0 +1,7 @@
+# T-118: podssh serve reads a child's stdout ahead of what the client takes,
+# into a buffer of 1 GiB between the pipe and the channel, so a client that
+# reads nothing lets the memory grow; the test of the memory bound must fail.
+ENTRY=T-118
+GROUP=cli-tests
+EXPECT='test yes_on_pipes_with_a_client_that_reads_nothing_holds_the_memory \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_pressure -- yes_on_pipes_with_a_client_that_reads_nothing_holds_the_memory'

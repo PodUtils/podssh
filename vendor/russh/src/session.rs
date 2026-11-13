@@ -350,6 +350,37 @@ impl Encrypted {
         Ok(false)
     }
 
+    /// Count `data` against `channel`'s window and adjust nothing: the window
+    /// of a channel that its reader opens with `grant_window` (podssh's
+    /// patch, vendor/patches/russh/). Data past the window is ignored for
+    /// the count, as `adjust_window_size_below` ignores it.
+    pub fn take_window(&mut self, channel: ChannelId, data: &[u8]) {
+        if let Some(channel) = self.channels.get_mut(&channel) {
+            if data.len() as u32 <= channel.sender_window_size {
+                channel.sender_window_size -= data.len() as u32;
+            }
+        }
+    }
+
+    /// Open `channel`'s window by `bytes`, as its reader took them (podssh's
+    /// patch, vendor/patches/russh/). A channel that is gone is passed over,
+    /// and the window never grows past u32::MAX (RFC 4254, section 5.2).
+    pub fn grant_window(&mut self, channel: ChannelId, bytes: u32) -> Result<(), crate::Error> {
+        if let Some(channel) = self.channels.get_mut(&channel) {
+            let bytes = bytes.min(u32::MAX - channel.sender_window_size);
+            if bytes == 0 {
+                return Ok(());
+            }
+            push_packet!(self.write, {
+                self.write.push(msg::CHANNEL_WINDOW_ADJUST);
+                channel.recipient_channel.encode(&mut self.write)?;
+                bytes.encode(&mut self.write)?;
+            });
+            channel.sender_window_size += bytes;
+        }
+        Ok(())
+    }
+
     fn flush_channel(
         write: &mut Vec<u8>,
         channel: &mut ChannelParams,

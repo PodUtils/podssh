@@ -1,7 +1,8 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
-//! SIGHUP, T-117), and the row of its host key's file.
+//! SIGHUP, T-117; a slow client, T-118), and the row of its host key's
+//! file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -101,6 +102,12 @@ pub const SERVE: &[&str] = &[
      the search, and refuses each command and shell. In a session, the same line goes to the channel's \
      stderr, and the request fails (OpenSSH: exec request failed). podssh doctor's line shell names the \
      shell that serve would run, and each candidate passed over.",
+    "A client that reads slowly slows the child: its output is read 32 KiB at a time, and read again only \
+     once that went out within the client's window, so a client that stops reading leaves the pipe or the \
+     pty full and the child waiting in its write, and serve's memory does not grow; the session goes on \
+     when the client reads again. The other way, each channel's window (512 KiB) opens as the child, the \
+     SFTP server or a forward's target takes the bytes, so a child that reads nothing of its stdin holds \
+     its own channel alone, never the other channels of the connection.",
     "SIGTERM or SIGINT stops serve cleanly: it takes no new session or forward, sends the client a \
      disconnect with the reason podssh serve is stopping (OpenSSH prints it), and hangs up the process \
      group of each command, shell and pty child (SIGHUP, then SIGCONT, as the kernel does when a terminal \

@@ -1,0 +1,134 @@
+diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
+index c4daede..22de244 100644
+--- a/src/server/encrypted.rs
++++ b/src/server/encrypted.rs
+@@ -1488,10 +1488,16 @@ impl Session {
+                 let data = map_err!(Bytes::decode(r))?;
+                 map_err!(ensure_end(r))?;
+                 let target = self.target_window_size;
++                // A window that its reader opens (podssh's patch,
++                // vendor/patches/russh/): counted here, opened by
++                // `Handle::grant_window`.
++                let on_read = handler.window_on_read(channel_num);
+ 
+                 #[allow(clippy::collapsible_if)]
+                 if let Some(ref mut enc) = self.common.encrypted {
+-                    if enc.adjust_window_size(channel_num, &data, target)? {
++                    if on_read {
++                        enc.take_window(channel_num, &data);
++                    } else if enc.adjust_window_size(channel_num, &data, target)? {
+                         let window = handler.adjust_window(channel_num, self.target_window_size);
+                         if window > 0 {
+                             self.target_window_size = window
+diff --git a/src/server/mod.rs b/src/server/mod.rs
+index 3b4ab69..fa279b5 100644
+--- a/src/server/mod.rs
++++ b/src/server/mod.rs
+@@ -543,6 +543,17 @@ pub trait Handler: Sized {
+         current
+     }
+ 
++    /// Whether `channel`'s window opens only as its reader takes the data,
++    /// through [`Handle::grant_window`], asked at each of its data messages
++    /// (podssh's patch, vendor/patches/russh/). The default, false, keeps
++    /// russh's rule: the window opens again as the data arrives, read or
++    /// not, so a reader that is slower than the client is held only by the
++    /// channel's queue, and past it the whole connection waits.
++    #[allow(unused_variables)]
++    fn window_on_read(&mut self, channel: ChannelId) -> bool {
++        false
++    }
++
+     /// The client requests a pseudo-terminal with the given
+     /// specifications.
+     ///
+diff --git a/src/server/session.rs b/src/server/session.rs
+index 423e64d..6f838db 100644
+--- a/src/server/session.rs
++++ b/src/server/session.rs
+@@ -84,6 +84,12 @@ pub enum Msg {
+         language_tag: String,
+     },
+     Channel(ChannelId, ChannelMsg),
++    /// Open a channel's window by the bytes its reader took (podssh's
++    /// patch, vendor/patches/russh/).
++    GrantWindow {
++        id: ChannelId,
++        bytes: u32,
++    },
+     ChannelOpenReply {
+         pending: PendingChannelOpen,
+         result: Result<(), ChannelOpenFailure>,
+@@ -453,6 +459,18 @@ impl Handle {
+             .map_err(|_| ())
+     }
+ 
++    /// Open `id`'s window by `bytes`, the data that its reader took, for a
++    /// channel whose handler's `window_on_read` is true (podssh's patch,
++    /// vendor/patches/russh/). It goes on the queue of the session's own
++    /// replies, which neither a full queue of data nor a peer's closed
++    /// window holds back, so a channel's window opens while another
++    /// channel's output waits. `Err` when the session ended.
++    pub fn grant_window(&self, id: ChannelId, bytes: u32) -> Result<(), ()> {
++        self.priority_sender
++            .send(Msg::GrantWindow { id, bytes })
++            .map_err(|_| ())
++    }
++
+     /// Allows a server to disconnect a client session
+     pub async fn disconnect(
+         &self,
+@@ -620,6 +638,11 @@ impl Session {
+             Msg::ChannelOpenReply { pending, result } => {
+                 self.finalize_channel_open_reply(pending, result)?;
+             }
++            Msg::GrantWindow { id, bytes } => {
++                if let Some(enc) = self.common.encrypted.as_mut() {
++                    enc.grant_window(id, bytes)?;
++                }
++            }
+             other => {
+                 // should be unreachable, since the receiver only gets
+                 // messages from methods implemented within russh
+diff --git a/src/session.rs b/src/session.rs
+index 1bf832c..dde6ad9 100644
+--- a/src/session.rs
++++ b/src/session.rs
+@@ -350,6 +350,37 @@ impl Encrypted {
+         Ok(false)
+     }
+ 
++    /// Count `data` against `channel`'s window and adjust nothing: the window
++    /// of a channel that its reader opens with `grant_window` (podssh's
++    /// patch, vendor/patches/russh/). Data past the window is ignored for
++    /// the count, as `adjust_window_size_below` ignores it.
++    pub fn take_window(&mut self, channel: ChannelId, data: &[u8]) {
++        if let Some(channel) = self.channels.get_mut(&channel) {
++            if data.len() as u32 <= channel.sender_window_size {
++                channel.sender_window_size -= data.len() as u32;
++            }
++        }
++    }
++
++    /// Open `channel`'s window by `bytes`, as its reader took them (podssh's
++    /// patch, vendor/patches/russh/). A channel that is gone is passed over,
++    /// and the window never grows past u32::MAX (RFC 4254, section 5.2).
++    pub fn grant_window(&mut self, channel: ChannelId, bytes: u32) -> Result<(), crate::Error> {
++        if let Some(channel) = self.channels.get_mut(&channel) {
++            let bytes = bytes.min(u32::MAX - channel.sender_window_size);
++            if bytes == 0 {
++                return Ok(());
++            }
++            push_packet!(self.write, {
++                self.write.push(msg::CHANNEL_WINDOW_ADJUST);
++                channel.recipient_channel.encode(&mut self.write)?;
++                bytes.encode(&mut self.write)?;
++            });
++            channel.sender_window_size += bytes;
++        }
++        Ok(())
++    }
++
+     fn flush_channel(
+         write: &mut Vec<u8>,
+         channel: &mut ChannelParams,

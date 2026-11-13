@@ -113,8 +113,8 @@ on T-698.
   on each target but wasm (`vendor/russh/src/lib_inner.rs:69-70`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-243`); a request handler that does not answer
-  still sends no reply (`vendor/russh/src/server/mod.rs:669-674`), and a channel request that russh does
-  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1844-1848`).
+  still sends no reply (`vendor/russh/src/server/mod.rs:680-685`), and a channel request that russh does
+  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1850-1854`).
 - "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
   the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
   `crates/podssh-relay/tests/devtunnel.rs:19`).
@@ -273,20 +273,20 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `4c98f8b`:
 
 - russh is 0.65.0, built from `vendor/russh` (T-107's Correction). `env_request`, `shell_request` and
-  `exec_request` are at `vendor/russh/src/server/mod.rs:641-713`, and still answer nothing by
-  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1500-1518`,
+  `exec_request` are at `vendor/russh/src/server/mod.rs:652-724`, and still answer nothing by
+  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1506-1524`,
   into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:120`, 100). Each channel
   request goes to that queue too before the handler sees it, `env` among them
-  (`vendor/russh/src/server/encrypted.rs:1725-1736`): so a channel that nothing reads stalls the
+  (`vendor/russh/src/server/encrypted.rs:1731-1742`): so a channel that nothing reads stalls the
   connection with no data at all, after 100 `env` requests, and the task that reads a channel
   starts at its open, not at its `exec` (Approach item 1).
 - russh's server adjusts a channel's window when the data arrives, not when it is read
-  (`vendor/russh/src/server/encrypted.rs:1491-1499`): no window of a channel apart holds a client
+  (`vendor/russh/src/server/encrypted.rs:1495-1505`): no window of a channel apart holds a client
   back. The bytes for a child's stdin wait in a queue of 128 messages (about 4 MiB) of their own,
   written by a task of their own, which drains the rest after a broken pipe; past that queue the
   connection waits. The window of each channel apart is T-118's.
 - `exit-signal` is not a method of russh's `ChannelWriteHalf`; the connection's `Handle` sends it
-  (`vendor/russh/src/server/session.rs:434-455`) through the same queue as the channel's writers,
+  (`vendor/russh/src/server/session.rs:440-461`) through the same queue as the channel's writers,
   so the order of Approach item 6 holds. `Sig` has no `PartialEq`, and its own `name` and
   `from_name` are private (`vendor/russh/src/lib_inner.rs:353-389`): `crates/podssh-ssh/src/signals.rs:26-64`
   becomes one table read both ways (`number` and `from_number`); a number with no name is sent as
@@ -449,7 +449,7 @@ the entry joins the work order by its priority.
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction). A `ChannelOpenHandle` that is dropped
   still refuses with `AdministrativelyProhibited` (`vendor/russh/src/lib_inner.rs:610-619`), and
   `ChannelOpenFailure::Other { code, reason }` sends its own code and words
-  (`vendor/russh/src/lib_inner.rs:433-453`; the reply at `vendor/russh/src/server/session.rs:1096-1127`):
+  (`vendor/russh/src/lib_inner.rs:433-453`; the reply at `vendor/russh/src/server/session.rs:1119-1150`):
   so a refusal of code 2 with the dial's words is `Other { code: 2, .. }`, as `ConnectFailed` carries
   the fixed words "Connect failed". russh's client maps code 2 back to `ConnectFailed` and gives the
   words to its handler's `channel_open_failure` alone (`vendor/russh/src/client/encrypted.rs:582-612`),
@@ -619,8 +619,8 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `32bf8af`:
 
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `pty_request` and
-  `window_change_request` are at `vendor/russh/src/server/mod.rs:571-583` and
-  `vendor/russh/src/server/mod.rs:757-767`, and both still answer nothing by default. A
+  `window_change_request` are at `vendor/russh/src/server/mod.rs:582-594` and
+  `vendor/russh/src/server/mod.rs:768-778`, and both still answer nothing by default. A
   `window-change` asks for no reply, so the handler sends none.
 - The client's table of modes was at `crates/podssh-ssh/src/terminal/unix.rs` lines 86-163 at
   `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
@@ -909,7 +909,7 @@ the entry joins the work order by its priority.
   russh-sftp and russh) becomes a direct dependency for the codec's buffer type; the size cost is
   measured on the release binary.
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `subsystem_request` is at
-  `vendor/russh/src/server/mod.rs:726-733`, and its default sends no reply, so the handler answers
+  `vendor/russh/src/server/mod.rs:737-744`, and its default sends no reply, so the handler answers
   each name (success for `sftp`, failure for each other).
 - russh-sftp's `Channel::into_stream` (Approach item 2) does not fit serve: each session channel is
   split at its open, and a task reads it from then on (T-108, `crates/podssh-ssh/src/server/channel.rs`).
@@ -982,10 +982,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:496`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:497`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:504`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:505`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1544,7 +1544,7 @@ queue; detach on a failed write).
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1589,25 +1589,136 @@ must slow the child down, and a client that is gone must end the session.
    and close only that channel past the cap.
 5. State the bounds in the serve notes and in `docs/STATUS.md`.
 
+## Decision
+
+2026-11-13, made with the draft. Approach item 4's measure is answered by reading (Correction): a
+child that never reads stalls each channel of its connection. In the place of an entry and a close
+of that channel past a cap, **a patch of russh opens a channel's window as its reader takes the
+bytes** (`vendor/patches/russh/0009-server-window-on-read.patch`): `server::Handler::window_on_read`
+tells russh to count a channel's data and adjust nothing, and `Handle::grant_window` opens the window
+by the bytes that serve wrote to the child, the pty, the SFTP server or the target, or dropped. serve
+answers true for each channel that it takes (sessions and forwards).
+
+- Lost: closing the channel past a cap. A child that reads slowly but reads (`cat > file` on a slow
+  disk, a shell busy while the user pastes, an SFTP upload to a slow mount) would lose its channel and
+  its data, and the connection would still wait while the cap fills. SSH's window is the protocol's
+  own flow control for this case; sshd adjusts its window as its child takes the bytes.
+- Lost: an entry left for russh with no change here. The repository patches russh where podssh needs
+  it (vendor/README.md), and this patch is small: two methods of the session's `Encrypted`, one of the
+  handler, one of the `Handle`, one message.
+- The grant goes on russh's queue of the session's own replies (`priority_sender`), not its bounded
+  queue of data, which russh does not read while a channel's output waits for the client's window: so
+  a client that stalls one channel's output never holds another channel's window.
+- The window stays podssh's own (512 KiB, `crate::run::WINDOW`): the bytes that wait in serve for one
+  channel are at most that, and an upload to one child runs at most one window each round trip. sshd's
+  2 MiB would give more speed on a long path for four times the memory of each channel; measuring the
+  rate is left to the merge (the 5,000,000 bytes of `serve_openssh.rs`, timed before and after).
+- A failed write of output (Approach item 3) ends its pump; the hangup of the child's group is the one
+  that T-117 sends when the channel closes or the connection ends (T-117's Decision), so a killed
+  client ends `yes` by SIGHUP as well as by its broken pipe.
+
 ## Prove
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_pressure
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_pressure_openssh --test serve_lifecycle_openssh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_exec --test serve_pty --test serve_sftp --test serve_forward --test serve_auth --test serve_lifecycle
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_openssh --test serve_sftp_openssh --test serve_forward_openssh --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t118-window-on-arrival t118-read-ahead
 sh scripts/dev.sh check
 ```
 
-The test file crates/podssh-ssh/tests/serve_pressure.rs runs `yes` on a pty
-with a client that reads nothing for 20 s: serve's resident memory (`VmRSS`
-in `/proc/self/status`) grows by less than 8 MiB, and the session then
-continues. In the gate, OpenSSH's client runs `yes` through
-`podssh serve --stdio` with a reader that stops for 20 s: the same bound
-holds, and a killed client ends `yes` within 5 s. A planted `Session::data`
-loop fails the memory bound.
+The test file crates/podssh-ssh/tests/serve_pressure.rs runs `yes` on pipes and on a pty
+with a client that reads nothing for 20 s: the resident memory of the test's process (`VmRSS`
+in `/proc/self/status`, the client's buffers with serve's, from before the command starts, the client
+holding 8 messages of a channel) grows by less than 8 MiB, the session then
+continues, and a closed channel ends `yes` within 5 s. A child that reads none of the client's 32 MiB
+holds no other channel: a command beside it on the same connection runs to its end within 10 s.
+Against OpenSSH's client (crates/podssh-cli/tests/serve_pressure_openssh.rs, Linux, where the host has one),
+`yes` runs through `podssh serve --stdio` with a reader that stops for 20 s: serve's own memory (its
+`/proc/PID/status`) grows by less than 8 MiB, the output goes on, and a killed client ends `yes` and
+serve within 5 s. The plant `t118-window-on-arrival` (russh's own window, opened on arrival) fails the
+test of the channel beside; the plant `t118-read-ahead` (a buffer of 1 GiB between a child's stdout and
+its channel) fails the memory bound. The tests of T-107 to T-112 and T-117 run again over the new
+window, and the 5,000,000 bytes each way of `serve_openssh.rs` with it.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The draft rebased onto `a5b4204` with T-117's (T-114 on main): the window on read holds
+for each channel that a key's rules let open; a forward that the rules refuse never gets one.
+
+2026-11-13. The Premise, read again at the draft's tree (russh 0.65.0 from `vendor/russh`, T-107's
+Correction):
+
+- Data past a peer's window still waits in each channel's `pending_data`
+  (`vendor/russh/src/lib_inner.rs:512`), and the server's loop takes no message from a `Handle` while
+  any channel holds some (`vendor/russh/src/server/session.rs:704` and `vendor/russh/src/server/session.rs:814`).
+  But serve's output never puts data there: each output goes through a channel's writer, which waits
+  for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
+  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:223`) reads 32 KiB, and reads
+  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:250`). Approach items 1 and 2
+  were done by T-108 and T-110; this entry proves them. A `Handle::data` loop is held too: russh's
+  loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
+  would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
+  1 GiB between the child's stdout and its channel (`t118-read-ahead`).
+- The server opens a window on arrival (`vendor/russh/src/session.rs:305`, `adjust_window_size`, which
+  its data path calls), and gives each data message to the kept `Channel` with a send that waits
+  (`vendor/russh/src/server/encrypted.rs:1520`). So Approach item 4 is measured by reading: a child
+  that reads nothing fills the pipe (64 KiB), serve's queue of its stdin (128 messages, T-108), and
+  russh's queue of the channel (100), then russh's loop waits in that send, inside its handling of a
+  packet, and serves no other channel of the connection. The Decision repairs it in russh rather than
+  closing the channel.
+- Approach item 3: a write of output that fails ends its pump, and the dropped pipe ends a writer
+  with EPIPE; the pty's master closes with its channel. The hangup of the group is T-117's
+  (its Decision): sent when the channel closes or the connection ends.
+- The relay's comment (`crates/podssh-ssh/src/run.rs:26-30`) holds as T-024 corrected it; the window
+  of serve's channels is that `WINDOW`.
+- "In the gate" is the CLI crate's test crates/podssh-cli/tests/serve_pressure_openssh.rs, as T-107 to
+  T-112 made theirs, run where the host has OpenSSH's client; it reads serve's memory in its own
+  `/proc/PID/status` (serve runs in the background of a shell that writes its pid). The in-memory
+  test reads the test's own process, so it counts the client's buffers with serve's: it gives the
+  client 8 messages of a channel, and measures from before the command starts.
+
+## Done
+
+Partial: merged 2026-11-13 from the draft of the branch `draft-t117`: the patch of russh
+`vendor/patches/russh/0009-server-window-on-read.patch`, applied to `vendor/russh`
+(`server::Handler::window_on_read`, `Handle::grant_window`, `Msg::GrantWindow`, `Encrypted::take_window`
+and `Encrypted::grant_window`) with its row in `vendor/README.md` and the count in `AGENTS.md`; the
+handler's `window_on_read` (true); the grants of each channel's reader in
+`crates/podssh-ssh/src/server/channel.rs` (`Window`, the feeder, the bytes dropped or never read)
+and of each forward in `crates/podssh-ssh/src/server/direct.rs`; the manual's note
+(crates/podssh-cli/src/man/notes_serve.rs), `docs/cli.md` ("A slow client, a slow child"), a row of
+`docs/STATUS.md`, the tests of the Prove, the helpers of serve's pid and memory in
+crates/podssh-cli/tests/serve_kit/mod.rs (T-117's test moved onto them), the plants
+`t118-window-on-arrival` and `t118-read-ahead`, and the plant `t109-reason-dropped` with its context
+moved to the forward's new lines. Results:
+
+- `cargo test -p podssh-ssh --test serve_pressure`: 3 passed (47.3 s).
+- `cargo test -p podssh-cli --test serve_pressure_openssh --test serve_lifecycle_openssh` against
+  OpenSSH 9.6p1's client: 1 passed (20.2 s) and 1 passed.
+- The tests of T-107 to T-112 and T-117 over the new window: `cargo test -p podssh-ssh --test
+  serve_lifecycle --test serve_options --test serve_auth --test serve_exec --test serve_pty --test
+  serve_sftp --test serve_forward`, each passed; against OpenSSH, `serve_openssh` 9, `serve_options_openssh`
+  5, `serve_sftp_openssh` 3, `serve_forward_openssh` 5 and `serve_stdio` 3 passed.
+- The rate of the 5,000,000 bytes of `serve_openssh.rs`, three runs each: 0.28 to 0.34 s with the
+  window on read, 0.28 to 0.32 s with the window on arrival (the plant `t118-window-on-arrival` applied):
+  no cost that this test sees.
+- `cargo test -p podssh-ssh --lib`: 412 passed; `cargo test -p podssh-cli --lib -- serve man`: 173
+  passed; `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,843 passed, none failed.
+- The plants `t118-window-on-arrival` and `t118-read-ahead` caught (`sh scripts/plant-each.sh --here`),
+  and `t117-stop-without-hangup` and `t114-forced-command-ignored` still caught after the merge.
+- The build of `vendor/russh` with the patch; rustfmt clean; clippy as the gate runs it (`-D warnings
+  -A clippy::collapsible_if`) clean on both crates after one needless `mut` of the test was dropped.
+
+The citations of the changed files were moved by `cargo todo remap` at the merge. Left: the Prove's
+`sh scripts/dev.sh check`, the run in the build image (T-251); CI's gate runs the same at each push.
 
 # T-119: `podssh serve`: the MOTD and `~/.hushlogin`
 
@@ -2118,7 +2229,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:496`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:497`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -2174,7 +2285,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:459`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:460`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2192,10 +2303,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:495` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:459`, `docs/STATUS.md:479`),
+- `docs/STATUS.md:496` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:460`, `docs/STATUS.md:480`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:457` is `docs/STATUS.md:459`.
+  The Prove's `docs/STATUS.md:458` is `docs/STATUS.md:460`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2254,10 +2365,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:496`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:497`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:475`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:476`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2509,14 +2620,14 @@ Read at `2042200`:
 - The head of this file said "No server code exists yet." (T-107 changes it), and T-107's step 2 asks russh for
   `TODO/serve.md:43-44`, which says "no inactivity cut (russh: 600 s)".
 - russh bounds the client's version line alone with its `inactivity_timeout`:
-  `vendor/russh/src/server/mod.rs:1143` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
+  `vendor/russh/src/server/mod.rs:1154` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
   and the key exchange and the login run in the session that
-  `vendor/russh/src/server/mod.rs:1133` spawns.
+  `vendor/russh/src/server/mod.rs:1144` spawns.
 - In the session, the inactivity timer starts again at each event
-  (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2063-2064` says "a cap on connections at
+  (`vendor/russh/src/server/session.rs:859-863`): a cut for silence, not a deadline.
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2174-2175` says "a cap on connections at
   once and on connections that have not authenticated".
-- What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
+- What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
 
 ## Approach

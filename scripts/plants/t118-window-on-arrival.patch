@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/handler.rs
++++ b/crates/podssh-ssh/src/server/handler.rs
+@@ -191,7 +191,7 @@
+     // as its reader takes the bytes, and grants them back (T-118): a child
+     // or a target that reads slowly holds its own channel alone, never the
+     // connection, and serve holds no more than a window for it.
+     fn window_on_read(&mut self, _channel: ChannelId) -> bool {
+-        true
++        false
+     }
+ 

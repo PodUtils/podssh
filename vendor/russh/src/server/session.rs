@@ -84,6 +84,12 @@ pub enum Msg {
         language_tag: String,
     },
     Channel(ChannelId, ChannelMsg),
+    /// Open a channel's window by the bytes its reader took (podssh's
+    /// patch, vendor/patches/russh/).
+    GrantWindow {
+        id: ChannelId,
+        bytes: u32,
+    },
     ChannelOpenReply {
         pending: PendingChannelOpen,
         result: Result<(), ChannelOpenFailure>,
@@ -453,6 +459,18 @@ impl Handle {
             .map_err(|_| ())
     }
 
+    /// Open `id`'s window by `bytes`, the data that its reader took, for a
+    /// channel whose handler's `window_on_read` is true (podssh's patch,
+    /// vendor/patches/russh/). It goes on the queue of the session's own
+    /// replies, which neither a full queue of data nor a peer's closed
+    /// window holds back, so a channel's window opens while another
+    /// channel's output waits. `Err` when the session ended.
+    pub fn grant_window(&self, id: ChannelId, bytes: u32) -> Result<(), ()> {
+        self.priority_sender
+            .send(Msg::GrantWindow { id, bytes })
+            .map_err(|_| ())
+    }
+
     /// Allows a server to disconnect a client session
     pub async fn disconnect(
         &self,
@@ -619,6 +637,11 @@ impl Session {
             }
             Msg::ChannelOpenReply { pending, result } => {
                 self.finalize_channel_open_reply(pending, result)?;
+            }
+            Msg::GrantWindow { id, bytes } => {
+                if let Some(enc) = self.common.encrypted.as_mut() {
+                    enc.grant_window(id, bytes)?;
+                }
             }
             other => {
                 // should be unreachable, since the receiver only gets

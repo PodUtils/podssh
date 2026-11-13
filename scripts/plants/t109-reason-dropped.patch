@@ -1,8 +1,8 @@
 --- a/crates/podssh-ssh/src/server/direct.rs
 +++ b/crates/podssh-ssh/src/server/direct.rs
-@@ -113,7 +113,7 @@
-                 reply.accept().await;
-                 carry(channel, tcp).await;
+@@ -124,7 +124,7 @@
+                 let window = Window { handle, id: channel.id() };
+                 carry(channel, tcp, window).await;
              }
 -            Err(e) => reply.reject(connect_failed(&e.to_string())).await,
 +            Err(_) => reply.reject(ChannelOpenFailure::ConnectFailed).await,

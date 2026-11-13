@@ -260,6 +260,14 @@ impl russh::server::Handler for Served {
         Ok(())
     }
 
+    // Each channel that serve takes (a session, a forward) opens its window
+    // as its reader takes the bytes, and grants them back (T-118): a child
+    // or a target that reads slowly holds its own channel alone, never the
+    // connection, and serve holds no more than a window for it.
+    fn window_on_read(&mut self, _channel: ChannelId) -> bool {
+        true
+    }
+
     // A TCP connection from this host (T-109): checked here, dialed on a
     // task of its own, so the answer to the open comes with the dial's.
     async fn channel_open_direct_tcpip(
@@ -270,7 +278,7 @@ impl russh::server::Handler for Served {
         _from: &str,
         _from_port: u32,
         reply: ChannelOpenHandle,
-        _session: &mut Session,
+        session: &mut Session,
     ) -> Result<(), Self::Error> {
         let port = match direct::check(self.settings.no_forwarding, host, port) {
             Ok(port) => port,
@@ -293,7 +301,7 @@ impl russh::server::Handler for Served {
             reply.reject(ChannelOpenFailure::ResourceShortage).await;
             return Ok(());
         };
-        direct::open(channel, host.to_string(), port, reply, slot);
+        direct::open(channel, host.to_string(), port, reply, slot, session.handle());
         Ok(())
     }
 

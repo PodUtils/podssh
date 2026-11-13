@@ -48,9 +48,8 @@ Read on 2026-11-13.
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now. Awaited takes: `v0.40.0` (COORD-054's answer) and the tag that mends the file hosts
    (COORD-053).
-8. **Drafts.** Waiting for their merge, not built: T-118's (`692cc1a`) on the branch `draft-t117`, and
-   T-248's (`5aa7229`, the measured routes to a tty with no `/dev/ptmx`) on `draft-t248`. Merged on
-   2026-11-13: T-117's, T-114's, T-112's,
+8. **Drafts.** Waiting for its merge: T-248's (`5aa7229`, the measured routes to a tty with no
+   `/dev/ptmx`) on `draft-t248`. Merged on 2026-11-13: T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
    pod-warp.
@@ -77,8 +76,8 @@ item whenever it appears.
    of tonight). Each is partial, waiting for its next failure, and comes before any other work. Done
    when a failure is repaired and its entry closed, or the night ends with none; T-756 closes once
    the gate ran the suite a few times with no recurrence.
-3. **Merge the drafts, one at a time** (offline): T-117 (in progress), then T-118 (`692cc1a` on
-   `draft-t117`), then T-248 (`5aa7229` on `draft-t248`). Each built, tested and its plants run, then
+3. **Merge the drafts, one at a time** (offline): T-248 (`5aa7229` on `draft-t248`; T-117 and T-118
+   are merged). Each built, tested and its plants run, then
    closed or left partial as its Prove says.
 4. **Close what the partial entries of M5 can close** (offline): T-107, T-108, T-109, T-110, T-112,
    T-114 and T-222: the `cargo todo remap` and `cargo todo counts` that their `## Done` lists, then
@@ -128,7 +127,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 729 entries: 66 open, 26 partial, 10 blocked, 627 done.
+`TODO/INDEX.md` holds 729 entries: 65 open, 27 partial, 10 blocked, 627 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

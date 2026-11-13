@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**729 entries: 66 open, 26 partial, 10 blocked, 627 done.**
+**729 entries: 65 open, 27 partial, 10 blocked, 627 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 13 | 16 | 1 | 272 | 302 |
+| P2 | 12 | 17 | 1 | 272 | 302 |
 | P3 | 49 | 8 | 6 | 282 | 345 |
-| **All** | 66 | 26 | 10 | 627 | 729 |
+| **All** | 65 | 27 | 10 | 627 | 729 |
 
 ## Entries
 
@@ -192,7 +192,7 @@ repository and CI).
 | [T-115](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: a TOTP second factor |
 | [T-116](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: an audit log |
 | [T-117](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: a clean stop, and SIGHUP reads the settings again |
-| [T-118](serve.md) | P2 | S | M5 | feature | open | `podssh serve`: a slow client cannot stall a pty or fill the memory |
+| [T-118](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: a slow client cannot stall a pty or fill the memory |
 | [T-119](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: the MOTD and `~/.hushlogin` |
 | [T-120](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: shell integration marks, when asked |
 | [T-121](serve.md) | P3 | M | backlog | feature | done | Install `podssh serve` or `podssh node` as a service with no privileges |

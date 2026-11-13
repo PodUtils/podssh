@@ -146,3 +146,67 @@ pub fn run(mut cmd: Command, input: Option<Vec<u8>>) -> (Option<i32>, Vec<u8>, S
     let out = out_rx.recv_timeout(LIMIT).unwrap_or_default();
     (status.code(), out, err_rx.recv_timeout(LIMIT).unwrap_or_default())
 }
+
+/// A ProxyCommand that runs serve in the background of a shell, so that
+/// a test learns serve's pid (`serve.pid`) and its exit code
+/// (`serve.status`); serve keeps the shell's stdin, the client's pipe
+/// (T-117, T-118).
+// A command of `&` gets /dev/null as its stdin before its own redirections
+// (POSIX, with no job control), so the client's pipe goes by descriptor 3.
+// OpenSSH sends its ProxyCommand SIGHUP as it ends: the shell ignores it
+// once serve runs (serve keeps its own), and lives to write the status.
+pub fn wrapped_serve(home: &Path) -> String {
+    let script = home.join("serve.sh");
+    let text = format!(
+        "#!/bin/sh\nexec 3<&0\n{} <&3 3<&- &\necho $! > '{}'\ntrap '' HUP\nwait $!\necho $? > '{}'\n",
+        serve_command(home, ""),
+        home.join("serve.pid").display(),
+        home.join("serve.status").display()
+    );
+    std::fs::write(&script, text).unwrap();
+    format!("sh '{}'", script.display())
+}
+
+/// The number in `file`, once it is there and whole, within [`LIMIT`].
+pub fn number_in(file: &Path) -> i32 {
+    let deadline = Instant::now() + LIMIT;
+    loop {
+        if let Some(n) = std::fs::read_to_string(file).ok().and_then(|t| t.trim().parse().ok()) {
+            return n;
+        }
+        assert!(Instant::now() < deadline, "{} did not come", file.display());
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Whether `pid` runs: a zombie that no one reaped yet runs no more.
+#[cfg(unix)]
+pub fn runs(pid: i32) -> bool {
+    if Path::new("/proc/self/stat").exists() {
+        return std::fs::read_to_string(format!("/proc/{pid}/stat")).is_ok_and(|s| {
+            s.rsplit_once(')').and_then(|(_, rest)| rest.split_whitespace().next()).is_some_and(|st| st != "Z")
+        });
+    }
+    // SAFETY: kill with 0 sends nothing; it only asks.
+    unsafe { libc::kill(pid, 0) == 0 }
+}
+
+/// Wait until `pid` runs no more, within `limit`; whether it ended.
+#[cfg(unix)]
+pub fn ends_within(pid: i32, limit: Duration) -> bool {
+    let deadline = Instant::now() + limit;
+    while runs(pid) {
+        if Instant::now() > deadline {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    true
+}
+
+/// The resident memory of `pid` in KiB, where `/proc` tells it.
+pub fn resident_kib(pid: i32) -> Option<u64> {
+    let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
+    let line = status.lines().find(|l| l.starts_with("VmRSS:"))?;
+    line.split_whitespace().nth(1)?.parse().ok()
+}

@@ -1,0 +1,8 @@
+# T-118: podssh serve leaves russh's window as russh opens it, on the arrival
+# of the data and not on its read, so a child that reads nothing fills its
+# queue and then holds the whole connection; the test of a second channel
+# beside it must fail.
+ENTRY=T-118
+GROUP=cli-tests
+EXPECT='test a_child_that_reads_nothing_holds_no_other_channel \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_pressure -- a_child_that_reads_nothing_holds_no_other_channel'

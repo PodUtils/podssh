@@ -1488,10 +1488,16 @@ impl Session {
                 let data = map_err!(Bytes::decode(r))?;
                 map_err!(ensure_end(r))?;
                 let target = self.target_window_size;
+                // A window that its reader opens (podssh's patch,
+                // vendor/patches/russh/): counted here, opened by
+                // `Handle::grant_window`.
+                let on_read = handler.window_on_read(channel_num);
 
                 #[allow(clippy::collapsible_if)]
                 if let Some(ref mut enc) = self.common.encrypted {
-                    if enc.adjust_window_size(channel_num, &data, target)? {
+                    if on_read {
+                        enc.take_window(channel_num, &data);
+                    } else if enc.adjust_window_size(channel_num, &data, target)? {
                         let window = handler.adjust_window(channel_num, self.target_window_size);
                         if window > 0 {
                             self.target_window_size = window
