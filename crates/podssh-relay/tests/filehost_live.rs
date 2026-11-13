@@ -12,7 +12,9 @@
 //! fails when one host fails, and names it.
 //!
 //! It runs only with `PODSSH_TEST_FILEHOST_LIVE=yes`; `PODSSH_FILEHOSTS`
-//! names the hosts (ids of the catalog, by commas), else each of the kind.
+//! names the hosts (ids of the catalog, by commas), else the hosts that the
+//! road takes unasked, as a user with no list meets them; each host left
+//! out is named, with why, and runs only where the list names it.
 //!
 //!     PODSSH_TEST_FILEHOST_LIVE=yes cargo test -p podssh-relay --features filehost --test filehost_live -- --nocapture
 
@@ -133,11 +135,16 @@ async fn one_piece_of_32_kib_goes_through_each_file_host() {
         println!("did not run: PODSSH_TEST_FILEHOST_LIVE is not yes (filehost-live.yml sets it)");
         return;
     }
-    let (every, _) = services::ids();
+    let (every, unasked) = services::ids();
     let named = std::env::var("PODSSH_FILEHOSTS").ok().filter(|v| !v.trim().is_empty());
     let ids: Vec<String> = match named {
         Some(list) => list.split(',').map(|id| id.trim().to_string()).filter(|id| !id.is_empty()).collect(),
-        None => every.iter().map(|id| id.to_string()).collect(),
+        None => {
+            for id in every.iter().filter(|id| !unasked.contains(id)) {
+                println!("{id}: left out, as the road takes it only where PODSSH_FILEHOSTS names it");
+            }
+            unasked.iter().map(|id| id.to_string()).collect()
+        }
     };
     assert!(!ids.is_empty(), "no host to run through");
     let mut failed = Vec::new();

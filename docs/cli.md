@@ -5712,7 +5712,16 @@ gives up each capability of the process (T-698), before it reads a file.
   `grantpt`, `unlockpt` and the slave opened; nothing is kept for the next
   request, as a cage can gain or lose its pty device while serve runs, and
   `podssh doctor`'s line `pty` asks the same probe
-  (`podssh_ssh::server::pty`). The child then has the slave as descriptors
+  (`podssh_ssh::server::pty`). On Linux, where neither master opens, a pty
+  of a devpts instance of podssh's own (T-775): a helper forked for the
+  request (serve's threads make `unshare` fail) makes a user and a mount
+  namespace, mounts devpts with `newinstance` on `/dev/pts`, `/dev` or
+  `/tmp` in that namespace alone, opens its `ptmx`, unlocks it, takes the
+  slave by `TIOCGPTPEER`, and sends both back by `SCM_RIGHTS`; the
+  namespaces end with the helper, the instance with its descriptors. The
+  slave has no path, so the child gets no `SSH_TTY`. A host that refuses
+  `unshare` or `mount` refuses this; doctor's line `pty devpts` names the
+  step and its errno. The child then has the slave as descriptors
   0 to 2 and as its controlling terminal (`setsid`, then `TIOCSCTTY`), so
   Ctrl-C and a shell's job control work by the kernel's line discipline;
   `TERM` is the request's (`xterm-256color` when it is empty) and

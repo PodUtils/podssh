@@ -31,6 +31,15 @@ pub(super) fn check(report: &mut Report<'_>) -> Facts {
         let (line, pty) = super::unix::pty();
         report.line("pty", line);
         facts.pty = pty;
+        // serve's pty of its own where the host has none (T-775).
+        #[cfg(target_os = "linux")]
+        {
+            let (line, made) = super::unix::pty_devpts();
+            report.line("pty devpts", line);
+            if made && !matches!(facts.pty, super::tier::Pty::Allocates(_)) {
+                facts.pty = super::tier::Pty::Allocates(podssh_ssh::server::pty_devpts::NAME.to_string());
+            }
+        }
         report.line("listen AF_INET", super::unix::bind_inet());
         report.line("listen AF_UNIX", super::unix::bind_unix());
         exec::check(report, &mut facts.floor);

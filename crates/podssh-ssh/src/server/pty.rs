@@ -33,8 +33,11 @@ pub const DEFAULT_TERM: &str = "xterm-256color";
 pub struct Pair {
     pub master: OwnedFd,
     pub slave: OwnedFd,
-    /// The slave's path, as `tty` prints it.
+    /// The slave's path, as `tty` prints it; or, where `path` is false, what
+    /// the pair is (a devpts instance of podssh's own, T-775).
     pub name: String,
+    /// Whether `name` is a path that the child could open (`SSH_TTY`).
+    pub path: bool,
 }
 
 /// Why no pty came: each path tried, with its reason.
@@ -54,9 +57,40 @@ impl fmt::Display for NoPty {
     }
 }
 
-/// The probe: a pair from the first of [`PTMX`] that gives one.
+/// The probe: a pair from the first of [`PTMX`] that gives one, then from a
+/// devpts instance of podssh's own where the host lets it make one (T-775).
 pub fn open() -> Result<Pair, NoPty> {
-    open_from(PTMX)
+    open_with(PTMX, true)
+}
+
+/// A pair from the first of `paths`, then, with `devpts`, from a new devpts
+/// instance; the reasons of each, in that order, where none gives one.
+pub fn open_with<P: AsRef<Path>>(paths: &[P], devpts: bool) -> Result<Pair, NoPty> {
+    let failed = match open_from(paths) {
+        Ok(pair) => return Ok(pair),
+        Err(failed) => failed,
+    };
+    if !devpts {
+        return Err(failed);
+    }
+    match devpts_pair() {
+        Ok(pair) => Ok(pair),
+        Err(why) => Err(match failed {
+            NoPty::Master(first) => NoPty::Master(format!("{first}; a devpts instance: {why}")),
+            NoPty::Slave(first) => NoPty::Slave(format!("{first}; a devpts instance: {why}")),
+        }),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn devpts_pair() -> Result<Pair, String> {
+    super::pty_devpts::open()
+}
+
+/// devpts' instances are Linux's.
+#[cfg(not(target_os = "linux"))]
+fn devpts_pair() -> Result<Pair, String> {
+    Err("not on this system: a devpts instance is Linux's".into())
 }
 
 /// A pair from the first of `paths` that gives one.
@@ -75,7 +109,7 @@ pub fn open_from<P: AsRef<Path>>(paths: &[P]) -> Result<Pair, NoPty> {
         };
         opened = true;
         match slave_of(&master) {
-            Ok((slave, name)) => return Ok(Pair { master, slave, name }),
+            Ok((slave, name)) => return Ok(Pair { master, slave, name, path: true }),
             Err(e) => whys.push(format!("{} opens, but no pty comes of it: {e}", path.display())),
         }
     }

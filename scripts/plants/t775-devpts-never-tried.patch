@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/pty.rs
++++ b/crates/podssh-ssh/src/server/pty.rs
+@@ -70,7 +70,7 @@
+         Ok(pair) => return Ok(pair),
+         Err(failed) => failed,
+     };
+-    if !devpts {
++    if true {
+         return Err(failed);
+     }
+     match devpts_pair() {

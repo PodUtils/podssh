@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 67 open, 28 partial, 10 blocked, 628 done.**
+**733 entries: 66 open, 28 partial, 10 blocked, 629 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 13 | 18 | 1 | 273 | 305 |
+| P2 | 12 | 18 | 1 | 274 | 305 |
 | P3 | 50 | 8 | 6 | 282 | 346 |
-| **All** | 67 | 28 | 10 | 628 | 733 |
+| **All** | 66 | 28 | 10 | 629 | 733 |
 
 ## Entries
 
@@ -805,7 +805,7 @@ repository and CI).
 | [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
 | [T-774](serve.md) | P2 | S | M5 | defect | open | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |
-| [T-775](serve.md) | P2 | M | M5 | feature | open | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |
+| [T-775](serve.md) | P2 | M | M5 | feature | done | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |
 | [T-776](serve.md) | P2 | L | M5 | feature | open | `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens |
 | [T-777](serve.md) | P3 | M | M5 | feature | open | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
 | [T-778](repo.md) | P2 | S | M5 | chore | done | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |

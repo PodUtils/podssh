@@ -33,6 +33,8 @@ pub(super) struct Granted {
     /// The slave, held until the child has its copies.
     slave: Option<OwnedFd>,
     name: String,
+    /// Whether `name` is the slave's path, for `SSH_TTY`.
+    path: bool,
     term: String,
 }
 
@@ -40,7 +42,7 @@ impl Granted {
     /// Take the probe's `pair` for a request of `term`, `size` and `modes`.
     /// `Err` is why the pty cannot serve, and the request is refused.
     pub(super) fn new(pair: Pair, term: &str, size: Size, modes: &[(Pty, u32)]) -> Result<Granted, String> {
-        let Pair { master, slave, name } = pair;
+        let Pair { master, slave, name, path } = pair;
         // A mode that the kernel refuses is passed over, as sshd does.
         pty::set_modes(slave.as_raw_fd(), modes).map_err(|e| format!("{name}: its modes: {e}"))?;
         pty::set_size(master.as_raw_fd(), size).map_err(|e| format!("{name}: its size: {e}"))?;
@@ -48,7 +50,7 @@ impl Granted {
         // SAFETY: the AsyncFd owns the master, which stays open and the same
         // until the AsyncFd drops it.
         let master = unsafe { AsyncFd::register(master) }.map_err(|e| format!("{name}: {}", e.into_parts().1))?;
-        Ok(Granted { master: Arc::new(master), slave: Some(slave), name, term: pty::term_of(term) })
+        Ok(Granted { master: Arc::new(master), slave: Some(slave), name, path, term: pty::term_of(term) })
     }
 
     /// A new size (`window-change`); the kernel tells the child's
@@ -81,7 +83,7 @@ pub(super) fn spawn(
 ) -> Result<(), String> {
     let Some(granted) = open.pty.as_mut() else { return Err("no pty on this channel".into()) };
     let Some(slave) = granted.slave.take() else { return Err("a program ran on this pty already".into()) };
-    let env = super::env::with_tty(env, &granted.term, &granted.name);
+    let env = super::env::with_tty(env, &granted.term, granted.path.then_some(granted.name.as_str()));
     let mut cmd = command(shell, &program, env)?;
     let copy = |what: &str| slave.try_clone().map_err(|e| format!("{}: {what}: {e}", granted.name));
     cmd.stdin(Stdio::from(copy("stdin")?)).stdout(Stdio::from(copy("stdout")?)).stderr(Stdio::from(copy("stderr")?));

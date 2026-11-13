@@ -626,7 +626,7 @@ the entry joins the work order by its priority.
   `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
   client encodes its termios with and the server applies to the slave, and the client's
   `pty_modes_of` calls it. The doctor's probe was at `crates/podssh-cli/src/doctor/unix.rs` lines
-  95-154 at `32bf8af`; it is now `podssh_ssh::server::pty` (`crates/podssh-ssh/src/server/pty.rs:58-87`),
+  95-154 at `32bf8af`; it is now `podssh_ssh::server::pty` (`crates/podssh-ssh/src/server/pty.rs:62-121`),
   and the doctor's line `pty` calls it with the same words. The probe opens each master by path
   (`/dev/ptmx`, then `/dev/pts/ptmx`) where doctor called `posix_openpt`, which opens `/dev/ptmx` alone.
 - The client's answer to a refused pty moved: since T-664 it may read the answer after the session's
@@ -990,10 +990,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:500`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:501`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:508`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:509`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:42-49`).
@@ -2167,7 +2167,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:110-233`).
+  (`crates/podssh-cli/src/doctor/unix.rs:124-247`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -2242,10 +2242,10 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:500`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:501`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:229-231`).
+  (`crates/podssh-cli/src/doctor/host.rs:238-240`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -2298,7 +2298,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:463`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:464`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2316,11 +2316,11 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:499` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:463`, `docs/STATUS.md:483`),
+- `docs/STATUS.md:500` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:464`, `docs/STATUS.md:484`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:461` is `docs/STATUS.md:463`.
-- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
+  The Prove's `docs/STATUS.md:462` is `docs/STATUS.md:464`.
+- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:224`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
   start of a data file of mode 0755 can succeed, and only its status tells. Each candidate is
@@ -2377,11 +2377,11 @@ criterion of M5 (T-113) needs them.
 ## Premise
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
-  (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:500`), and the target has no `/dev/pts`
+  (`crates/podssh-cli/src/doctor/unix.rs:95-127`). Both real sandboxes have no
+  `/dev/ptmx` (`docs/STATUS.md:501`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:479`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:480`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2459,14 +2459,14 @@ next tag. The Prove's `cargo test -p podssh-terminal` named a package that is go
 dropped, and the line discipline's own tests run in PodUtils/podcrates (`cargo test -p pod-term`).
 
 2026-11-13 (T-110's draft). `podssh doctor`'s line `pty` is now `podssh serve`'s own probe,
-`podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:58-87`): it opens `/dev/ptmx`,
+`podssh_ssh::server::pty::open` (`crates/podssh-ssh/src/server/pty.rs:62-121`): it opens `/dev/ptmx`,
 then `/dev/pts/ptmx`, by path, where it called `posix_openpt`; route 1's `ptmx` of a new devpts
 instance can be one more path of that list, and serve grants a `pty-req` on whatever it opens.
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:499`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:478`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:500`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:479`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2985,7 +2985,7 @@ that skips the check fails the test.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3026,6 +3026,37 @@ In a cage with no `/dev/ptmx` and `unshare` allowed, `test -t 0` is true in the 
 the request's size, and a `window-change` reaches a `trap ... WINCH`; where `unshare` is refused, the line
 `pty devpts` names EPERM and the request falls to the next route. Planted defect: the slave opened by
 `ptsname` in place of `TIOCGPTPEER`; the test fails.
+
+
+## Done
+
+Done 2026-11-13. `crates/podssh-ssh/src/server/pty_devpts.rs` (Linux): a helper forked for each
+request makes a user and a mount namespace, makes `/` private, mounts devpts `newinstance` on `/dev/pts`,
+`/dev` or `/tmp` (the first that takes it), opens its `ptmx`, unlocks it (`TIOCSPTLCK`), takes the slave
+by `TIOCGPTPEER`, and sends both by `SCM_RIGHTS` over a `SOCK_SEQPACKET` pair, or the step that failed
+with its errno; the parent waits 2 s at most, then kills and reaps the helper. After the fork the helper
+makes only system calls, on values made before it. `pty::open_with(paths, devpts)` tries the host's
+masters, then the instance; a test's `Settings::ptmx` keeps its meaning (`Settings::devpts`: None tries
+the instance with the default masters only). The pair says it has no path (`Pair::path`), and
+`env::with_tty` then sets no `SSH_TTY` and drops serve's own. `podssh doctor` has the line `pty devpts`,
+and the fact of `--tier` counts a pty of either; the manual (`notes_serve.rs`) and `docs/cli.md` say so.
+Decision on the plant: the Prove's "slave by `ptsname`" opens the new instance's slave inside the helper's
+namespace, so it would pass; the plant is the route never tried (`t775-devpts-never-tried`).
+
+- `cargo test -p podssh-ssh --test serve_pty -- devpts` as root on this host (Linux 6.18.44): passed, a
+  pty of 132x43 with `test -t 0` true, no `SSH_TTY`, and a `window-change` that reached the child's
+  `trap ... WINCH` (`30 100`); the same binary in T-248's cage with `unshare` refused (`cage -n`): passed
+  on its other branch, the request refused (`unshare: Operation not permitted`) and the command on pipes.
+- `cargo test -p podssh-ssh --test serve_pty --test serve_exec`: 7 and 11 passed; `--lib -- pty_devpts
+  env:: pty::`: 10 passed (the instance's pair a tty, its size set).
+- `podssh doctor` here: `pty devpts  a pty of a devpts instance of podssh's own can be made here`;
+  `cargo test -p podssh-cli --lib -- doctor man`: 213 passed; `--test doctor --test man_page --test
+  man_flag_parity --test man_json`: 13, 6, 4 and 11 passed.
+- The plant `t775-devpts-never-tried`: caught (`sh scripts/plant-each.sh --here`).
+- clippy as the gate runs it, on `x86_64-unknown-linux-gnu` and `-musl`: clean; `cargo check --target
+  x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli --all-targets`: clean; rustfmt clean.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,845 passed, none failed.
+- The box (`sh scripts/test_in_box.sh`, `unshare` refused since T-778): exit 0, 22 properties, sandbox-check 14 ok; doctor there: `pty devpts  none: unshare: Operation not permitted (os error 1); podssh serve gives no pty of its own here`.
 
 # T-776: `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens
 

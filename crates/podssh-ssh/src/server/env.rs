@@ -118,10 +118,15 @@ pub fn child_env(base: &[(OsString, OsString)], shell: &Path, taken: &[(String, 
 
 /// `env` with the variables of a pty (T-110): `TERM` the request's, and
 /// `SSH_TTY` the slave's path, as sshd sets them; each replaces serve's own.
-pub fn with_tty(env: Vec<(OsString, OsString)>, term: &str, tty: &str) -> Vec<(OsString, OsString)> {
+/// A slave with no path (a devpts instance of podssh's, T-775) has no
+/// `SSH_TTY`, and serve's own does not pass for it.
+pub fn with_tty(env: Vec<(OsString, OsString)>, term: &str, tty: Option<&str>) -> Vec<(OsString, OsString)> {
     let mut env: BTreeMap<OsString, OsString> = env.into_iter().collect();
     env.insert("TERM".into(), term.into());
-    env.insert("SSH_TTY".into(), tty.into());
+    match tty {
+        Some(tty) => env.insert("SSH_TTY".into(), tty.into()),
+        None => env.remove(std::ffi::OsStr::new("SSH_TTY")),
+    };
     env.into_iter().collect()
 }
 
@@ -209,10 +214,13 @@ mod tests {
 
     #[test]
     fn a_pty_sets_term_and_ssh_tty_over_serves_own() {
-        let env = with_tty(pairs(&[("TERM", "dumb"), ("PATH", "/bin")]), "vt100", "/dev/pts/7");
+        let env = with_tty(pairs(&[("TERM", "dumb"), ("PATH", "/bin")]), "vt100", Some("/dev/pts/7"));
         assert_eq!(lookup(&env, "TERM"), Some(OsStr::new("vt100")));
         assert_eq!(lookup(&env, "SSH_TTY"), Some(OsStr::new("/dev/pts/7")));
         assert_eq!(env.iter().filter(|(k, _)| k == "TERM").count(), 1);
+        // A slave with no path: no SSH_TTY, not even serve's own.
+        let env = with_tty(pairs(&[("SSH_TTY", "/dev/pts/serve")]), "vt100", None);
+        assert_eq!(lookup(&env, "SSH_TTY"), None);
     }
 
     #[test]

@@ -292,10 +292,11 @@ and num-bigint 0.5) are T-754.
 | #226 | COORD-049: podssh took podcrates v0.36.0 at 99b9642 (to podcrates) | closed 2026-11-13 (followed by COORD-050) | T-684 |
 | #227 | COORD-050: podssh took podcrates v0.37.0 and pod-warp at 812c61c (to podcrates) | closed 2026-11-13 (followed by COORD-051) | T-684 |
 | #228 | COORD-051: podssh took podcrates v0.38.0 at e47d508 (to podcrates) | closed 2026-11-13 (followed by COORD-052) | T-684 |
-| #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | open (2026-11-13: posted) | T-684 |
-| #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | open (2026-11-13: podcrates' entry 528 in work; podssh takes its next tag; the body's state amended) | T-738 |
-| #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | open (2026-11-13: answered, podcrates' entry 531 at `4fc66f2`, in `v0.40.0`, not tagged; podssh names its tests in T-771 at the take; the body's state amended) | T-771 |
+| #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | closed (2026-11-13: superseded by the take of `v0.40.0`, COORD-056, #233) | T-684 |
+| #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | closed (2026-11-13: the forms in podcrates `v0.40.0`, taken at `61658e4`; the road reads them) | T-738 |
+| #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | closed (2026-11-13: the tests in podcrates `v0.40.0`, named in T-599 and T-771) | T-771 |
 | #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-13: posted) | T-776 |
+| #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | open (2026-11-13: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

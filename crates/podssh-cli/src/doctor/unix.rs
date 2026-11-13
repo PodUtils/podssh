@@ -99,11 +99,25 @@ fn passwd_entry(uid: libc::uid_t) -> io::Result<Option<(String, String)>> {
 pub(super) fn pty() -> (Verdict, Pty) {
     use podssh_ssh::server::pty::{self, NoPty};
     let remote = "a remote pty (podssh ssh -t) needs nothing here";
-    match pty::open() {
+    // The host's own masters; a devpts instance of podssh's is the line
+    // `pty devpts`.
+    match pty::open_from(pty::PTMX) {
         // Both ends close here.
         Ok(pair) => (ok(format!("a pty can be allocated here ({})", pair.name)), Pty::Allocates(pair.name)),
         Err(NoPty::Master(why)) => (ok(format!("none: {why}; {remote}")), Pty::Closed(why)),
         Err(NoPty::Slave(why)) => (ok(format!("{why}; {remote}")), Pty::Closed(why)),
+    }
+}
+
+/// Whether `podssh serve` can make a pty of a devpts instance of its own
+/// where no master of the host's opens (T-775): serve's own probe, a helper
+/// that ends at once. A fact, never a failure; the pair, if any, closes here.
+#[cfg(target_os = "linux")]
+pub(super) fn pty_devpts() -> (Verdict, bool) {
+    use podssh_ssh::server::pty_devpts;
+    match pty_devpts::open() {
+        Ok(_) => (ok("a pty of a devpts instance of podssh's own can be made here (podssh serve's, where no /dev/ptmx opens)"), true),
+        Err(why) => (ok(format!("none: {why}; podssh serve gives no pty of its own here")), false),
     }
 }
 
@@ -258,6 +272,8 @@ mod tests {
 
     #[test]
     fn the_probes_report_facts_and_never_fail() {
+        #[cfg(target_os = "linux")]
+        assert!(!matches!(pty_devpts().0, Verdict::Failed { .. }));
         for (name, v) in [("user", user().0), ("pty", pty().0), ("inet", bind_inet()), ("unix", bind_unix())] {
             assert!(!matches!(v, Verdict::Failed { .. }), "{name}: {v:?}");
             assert!(!detail(&v).is_empty(), "{name}");

@@ -26,7 +26,8 @@ pub(super) fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>)
         return false;
     }
     let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
-    let Ok(pair) = pty::open_from(&paths) else { return false };
+    let devpts = settings.devpts.unwrap_or(settings.ptmx.is_none());
+    let Ok(pair) = pty::open_with(&paths, devpts) else { return false };
     let size = pty::size_of(asked.cols, asked.rows, asked.pix_width, asked.pix_height);
     match Granted::new(pair, asked.term, size, asked.modes) {
         Ok(granted) => {

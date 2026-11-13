@@ -14366,7 +14366,11 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   `cargo test -p podssh-relay --features filehost --lib -- filehost`: 39 passed, among them the stand-in
   host of tmpfiles.org's form (the page, then its signed link; a page with no link refused) and the reader
   of the page's link; planted, the page read skipped: the stand-in's test fails. Clippy with the feature:
-  clean. Next: `filehost-live.yml` from Actions on the pushed commit.
+  clean. `filehost-live.yml` from Actions at `61658e4` (run 43487448710): tmpfiles.org 32 KiB up, down and opened
+  in 937 ms by its page's signed link, temp.sh in 1,017 ms; litterbox answered 412 and 0x0.st was busy, the two
+  that the catalog now has off by default. The live test then took each host of the kind; it now takes those
+  that the road takes unasked, as a user with no list meets them, names each left out, and runs another only
+  where `PODSSH_FILEHOSTS` (the workflow's input `hosts`) names it. Next: the live run again, to see 2 of 2.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.

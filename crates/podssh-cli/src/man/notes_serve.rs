@@ -56,10 +56,13 @@ pub const SERVE: &[&str] = &[
      sets it. The size is the request's (80x24 when it is zero) and follows each window change; the \
      request's terminal modes are set where termios has them, and a mode that it lacks or that the \
      kernel refuses is passed over. On a pty, stdout and stderr come as one stream of data, and the \
-     client's EOF ends its input alone. Where no pty opens (a cage with no /dev/ptmx), the request is \
-     refused with its answer, and a command runs on pipes (OpenSSH, with -tt, ends with PTY allocation \
-     request failed); podssh doctor's line pty says which of the two a client meets. On Windows the \
-     request is refused.",
+     client's EOF ends its input alone. On Linux, where neither master opens, serve makes a pty of its \
+     own: a helper process makes a user and a mount namespace, mounts a new devpts instance, and gives \
+     back its master and its slave, which has no path, so the variable of the slave's path is not set; \
+     a host that refuses unshare or mount refuses this too (podssh doctor's line pty devpts). Where no \
+     pty opens (a cage with no /dev/ptmx), the request is refused with its answer, and a command runs on \
+     pipes (OpenSSH, with -tt, ends with PTY allocation request failed); podssh doctor's lines pty and \
+     pty devpts say which of the two a client meets. On Windows the request is refused.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it, so \
      that OpenSSH's sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has \
      no sftp-server, scp or rsync. The files are reached as the user that runs serve, with no chroot: what \

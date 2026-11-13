@@ -112,6 +112,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         no_forwarding: args.no_forwarding,
         max_forwards: None,
         ptmx: None,
+        devpts: None,
         sftp_limit: None,
         peer: peer_of_stdin(),
         // A refusal by a key's rules is said where serve's other lines go.

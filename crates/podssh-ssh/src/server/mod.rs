@@ -26,6 +26,8 @@ pub mod options;
 pub mod pty;
 #[cfg(unix)]
 mod pty_child;
+#[cfg(target_os = "linux")]
+pub mod pty_devpts;
 mod pty_grant;
 pub mod rules;
 #[cfg(unix)]
@@ -99,6 +101,11 @@ pub struct Settings {
     /// The masters that a `pty-req` tries; None is `pty::PTMX`, as a test
     /// names a missing one to see the refusal on a host that has a pty.
     pub ptmx: Option<Vec<PathBuf>>,
+    /// Whether a `pty-req` that no master of `ptmx` serves tries a devpts
+    /// instance of podssh's own (T-775); None is yes with the default
+    /// masters and no with a test's, so that a test's missing master
+    /// still sees the refusal.
+    pub devpts: Option<bool>,
     /// The time limit of each file-system call of the SFTP server (T-112);
     /// None is `sftp::CALL_LIMIT`, as a test gives a shorter one.
     pub sftp_limit: Option<Duration>,

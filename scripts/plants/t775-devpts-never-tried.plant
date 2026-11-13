@@ -1,0 +1,7 @@
+# T-775: a pty-req that no master of the host's serves never tries a devpts
+# instance of podssh's own; where the host lets serve make one, the test of
+# route 1 must fail (as root, as the build image runs it).
+ENTRY=T-775
+GROUP=cli-tests
+EXPECT='test devpts_with_no_master_a_pty_of_its_own_instance_serves_the_request \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_pty -- devpts'

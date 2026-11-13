@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       hosts:
-        description: "ids of pod-services' file hosts, by commas; empty: each of the kind"
+        description: "ids of pod-services' file hosts, by commas; empty: those that the road takes unasked"
         required: false
         default: ""
 

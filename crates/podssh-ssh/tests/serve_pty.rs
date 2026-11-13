@@ -49,6 +49,11 @@ impl client::Handler for Trusting {
 
 /// A logged-in connection to a new server, with this host's PATH.
 async fn connect() -> client::Handle<Trusting> {
+    connect_with(|settings| settings).await
+}
+
+/// As [`connect`], with the server's settings changed by `change`.
+async fn connect_with(change: impl FnOnce(Settings) -> Settings) -> client::Handle<Trusting> {
     // Room for a batch of each end: two russh loops on a pipe of 64 KiB
     // stop each other (T-772).
     let (near, far) = tokio::io::duplex(1 << 22);
@@ -56,7 +61,7 @@ async fn connect() -> client::Handle<Trusting> {
     let mut authorized = Authorized::new();
     authorized.add(login.public_key().key_data().clone());
     let path = std::env::var_os("PATH").unwrap_or_else(|| "/usr/bin:/bin".into());
-    let settings = Settings { base_env: Some(vec![("PATH".into(), path)]), ..Settings::default() };
+    let settings = change(Settings { base_env: Some(vec![("PATH".into(), path)]), ..Settings::default() });
     tokio::spawn(server::serve_with(far, key(), Arc::new(authorized), Arc::new(settings)));
     let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, Trusting).await.unwrap();
     let login = PrivateKeyWithHashAlg::new(Arc::new(login), None);
@@ -278,4 +283,41 @@ async fn each_byte_comes_before_the_end_and_eof_cuts_nothing() {
     assert_eq!(seen.lines().iter().filter(|l| *l == "podssh").count(), 20000, "{} bytes", seen.out.len());
     assert_eq!(seen.status, Some(0), "{seen:?}");
     ended_in_order(&seen);
+}
+
+/// Route 1 (T-775): with no master of the host's, a devpts instance of
+/// podssh's own serves the request where the host lets serve make one: a
+/// terminal of the request's size, no `SSH_TTY` (its slave has no path),
+/// and a window change that reaches the child's trap. Where the host
+/// refuses the instance, the request is refused, as before.
+#[cfg(target_os = "linux")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn devpts_with_no_master_a_pty_of_its_own_instance_serves_the_request() {
+    let here = podssh_ssh::server::pty_devpts::open();
+    if let Err(why) = &here {
+        eprintln!("did not run: no devpts instance here ({why}); the refusal is tested");
+    }
+    let handle = connect_with(|s| Settings { ptmx: Some(vec![]), devpts: Some(true), ..s }).await;
+    let mut channel = handle.channel_open_session().await.unwrap();
+    channel.request_pty(true, "vt100", 132, 43, 0, 0, &[]).await.unwrap();
+    let mut seen = Seen::default();
+    if here.is_err() {
+        channel.exec(true, "test -t 0 && echo ISATTY; echo pipes").await.unwrap();
+        read_to_close(&mut channel, &mut seen).await;
+        assert_eq!(seen.replies, vec![false, true], "no instance: the pty refused, the command on pipes: {seen:?}");
+        assert_eq!(seen.lines(), vec!["pipes".to_string()], "{seen:?}");
+        return;
+    }
+    let command = r#"test -t 0 && echo ISATTY; stty size; echo "SSH_TTY=${SSH_TTY-unset}"; trap 'stty size; exit 0' WINCH; echo ready; while :; do sleep 1; done"#;
+    channel.exec(true, command).await.unwrap();
+    read_until(&mut channel, &mut seen, "ready").await;
+    assert_eq!(seen.replies.first(), Some(&true), "the pty is granted: {seen:?}");
+    let lines = seen.lines();
+    assert!(lines.iter().any(|l| l == "ISATTY"), "the child has a terminal: {seen:?}");
+    assert!(lines.iter().any(|l| l == "43 132"), "the request's size: {seen:?}");
+    assert!(lines.iter().any(|l| l == "SSH_TTY=unset"), "no path, no SSH_TTY: {seen:?}");
+    channel.window_change(100, 30, 0, 0).await.unwrap();
+    read_to_close(&mut channel, &mut seen).await;
+    assert!(seen.lines().iter().any(|l| l == "30 100"), "the trap saw the new size: {seen:?}");
+    assert_eq!(seen.status, Some(0), "{seen:?}");
 }
