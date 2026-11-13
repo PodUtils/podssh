@@ -293,6 +293,7 @@ and num-bigint 0.5) are T-754.
 | #227 | COORD-050: podssh took podcrates v0.37.0 and pod-warp at 812c61c (to podcrates) | closed 2026-11-13 (followed by COORD-051) | T-684 |
 | #228 | COORD-051: podssh took podcrates v0.38.0 at e47d508 (to podcrates) | closed 2026-11-13 (followed by COORD-052) | T-684 |
 | #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | open (2026-11-13: posted) | T-684 |
+| #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | open (2026-11-13: asked) | T-738 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
