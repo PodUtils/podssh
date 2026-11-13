@@ -2429,7 +2429,7 @@ Approach item 5) could stop the same way.
 ## Approach
 
 Reproduce with the pipe of 64 KiB and russh's trace at both ends; find which loop writes without reading (russh's
-session loop in `vendor/russh`, whose patches are podssh's), and make it read while a write waits, as T-477 did
+session loop in `vendor/russh`, whose patches are podssh's), and make it read while a write waits, as podcrates' entry 477 did
 for pod-relay's serial form. A test: 4 MiB each way through `cat` over a pipe of 64 KiB, russh at both ends.
 
 ## Prove
