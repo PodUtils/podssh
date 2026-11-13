@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 57 open, 30 partial, 14 blocked, 632 done.**
+**733 entries: 55 open, 30 partial, 16 blocked, 632 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 46 | 9 | 8 | 283 | 346 |
-| **All** | 57 | 30 | 14 | 632 | 733 |
+| P3 | 44 | 9 | 10 | 283 | 346 |
+| **All** | 55 | 30 | 16 | 632 | 733 |
 
 ## Entries
 
@@ -592,7 +592,7 @@ repository and CI).
 | [T-542](mesh.md) | P3 | M | M10 | research | done | HyperDHT: whether Holepunch's DHT and its relays reach a podssh end by its key |
 | [T-543](mesh.md) | P3 | S | M10 | research | done | Cabal: whether it adds a carrier or a meeting point beyond HyperDHT |
 | [T-544](mesh.md) | P3 | S | M10 | research | done | Hyphanet: whether a podssh end can use it with no node of its own |
-| [T-545](mesh.md) | P3 | M | M10 | feature | open | Nostr's ephemeral events as a meeting point of the pairing by a short code |
+| [T-545](mesh.md) | P3 | M | M10 | feature | blocked | Nostr's ephemeral events as a meeting point of the pairing by a short code |
 | [T-546](mesh.md) | P3 | S | M10 | research | done | Trackers as meeting points: whether a BitTorrent or WebTorrent tracker passes the pairing's messages |
 | [T-547](mesh.md) | P3 | M | M10 | research | done | The pub/sub networks and the public MQTT brokers, as carriers or meeting points |
 | [T-548](mesh.md) | P2 | L | M10 | feature | done | Pinggy as a last fallback of the reverse road: SSH inside TLS on 443, and a TLS tunnel that ends at the node |
@@ -725,7 +725,7 @@ repository and CI).
 | [T-692](robustness.md) | P1 | S | none | defect | done | Two background probes of the relay rank met the relay 439 ms apart on Windows, under a gap of 1.2 s |
 | [T-693](mesh.md) | P3 | S | M10 | feature | done | `--trojan` against trojan-gfw's and trojan-go's own servers |
 | [T-694](mesh.md) | P3 | M | M10 | feature | done | croc's relay through `wss://getcroc.com/ws` as a road and a meeting point of a podssh pair |
-| [T-695](mesh.md) | P3 | M | M10 | feature | open | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
+| [T-695](mesh.md) | P3 | M | M10 | feature | blocked | WebTorrent's trackers as a meeting point of the pairing, after Nostr's |
 | [T-696](robustness.md) | P1 | S | none | defect | done | A change of a node's shares that waited behind other changes, each of which ended, was refused after 5 s on Windows |
 | [T-697](reverse.md) | P2 | S | M10 | defect | done | `podssh ssh node://NAME` and `--exit NAME` refuse `--relay-host`, `--relay-failover` and `PODSSH_RELAY`, as `podssh proxy node://NAME` does |
 | [T-698](serve.md) | P2 | S | M5 | feature | done | `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share |

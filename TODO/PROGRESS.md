@@ -86,7 +86,8 @@ item whenever it appears.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
-   `none` entries); then M10's P3 entries (T-611, T-695). Each with its Prove, one entry at a time.
+   `none` entries); then M10's P3 entries: T-611 (a draft in work); T-545 and T-695 are blocked on
+   podcrates' meeting points of the pairing (COORD-058, #235). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
    image (Q88), T-660, T-666 and T-670's runs of the matrix.
@@ -123,7 +124,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 57 open, 30 partial, 14 blocked, 632 done.
+`TODO/INDEX.md` holds 733 entries: 55 open, 30 partial, 16 blocked, 632 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

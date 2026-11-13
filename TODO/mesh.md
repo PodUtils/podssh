@@ -7258,7 +7258,7 @@ feature entry is filed. Not read: the opennet seed nodes' file (its path in `jav
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -7312,6 +7312,13 @@ one code pair through it; a wrong code fails both sides and ends the code; a str
 the same tag changes nothing; the tag holds no word of the code; the signatures pass the test
 vectors of BIP-340. Live, a short run through one public relay (T-548's Decision). Planted: the tag derived
 from the whole code, and the test of the tag fails.
+
+## Blocker
+
+The meeting points of the pairing are `pod-wormhole`'s, and their services `pod-services`', both of
+PodUtils/podcrates, which podssh took (work on a taken crate is done there): T-737's MQTT brokers went the same way.
+podcrates is asked for the transport, its services and its place in `pod-relay`'s runs of a code as COORD-058
+(#235); podssh's part is its glue, its manual and a live run, once it takes that tag.
 
 ## Start condition
 
@@ -12950,7 +12957,7 @@ the vectors, the stand-in tests, croc's own software (`croc-interop.yml`), the l
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -12985,6 +12992,13 @@ cargo test -p podssh-relay tracker
 
 Against `webtorrent/bittorrent-tracker`'s own server (a pinned release) in a harness; then one
 short live pairing through a public tracker from GitHub Actions.
+
+## Blocker
+
+The meeting points of the pairing are `pod-wormhole`'s, and their services `pod-services`', both of
+PodUtils/podcrates, which podssh took (work on a taken crate is done there): T-737's MQTT brokers went the same way.
+podcrates is asked for the transport, its services and its place in `pod-relay`'s runs of a code as COORD-058
+(#235); podssh's part is its glue, its manual and a live run, once it takes that tag.
 
 # T-711: One switch `PODSSH_PUBLIC` over each third-party service, and `status --json` gives the set
 

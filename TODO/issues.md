@@ -298,6 +298,7 @@ and num-bigint 0.5) are T-754.
 | #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-13: posted) | T-776 |
 | #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | open (2026-11-13: posted) | T-684 |
 | #234 | COORD-057: pod-warp: name the certificate that the front door showed when its key is not the pinned one (to podcrates) | open (2026-11-13: posted) | T-585 |
+| #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | open (2026-11-13: posted) | T-545, T-695 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
