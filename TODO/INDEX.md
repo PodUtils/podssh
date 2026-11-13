@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**723 entries: 74 open, 18 partial, 10 blocked, 621 done.**
+**725 entries: 74 open, 18 partial, 10 blocked, 623 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 4 | 2 | 3 | 70 | 79 |
+| P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 22 | 8 | 1 | 269 | 300 |
 | P3 | 48 | 8 | 6 | 281 | 343 |
-| **All** | 74 | 18 | 10 | 621 | 723 |
+| **All** | 74 | 18 | 10 | 623 | 725 |
 
 ## Entries
 
@@ -799,3 +799,5 @@ repository and CI).
 | [T-766](relay.md) | P3 | M | backlog | feature | open | The delegated handshake, client side: podssh verifies the temporary credential against the same chain and name |
 | [T-767](relay.md) | P3 | M | backlog | feature | open | `relay serve --cover` takes the unauthenticated documents off the public listener, and a test lists each public route |
 | [T-768](relay.md) | P3 | S | backlog | feature | open | One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed |
+| [T-769](robustness.md) | P1 | S | M10 | defect | done | The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes |
+| [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |

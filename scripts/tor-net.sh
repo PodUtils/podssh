@@ -17,7 +17,15 @@
 #
 #   sh scripts/tor-net.sh start DIR [ADDRESS]           # prints the path of arti.toml
 #   sh scripts/tor-net.sh start-bridges DIR [ADDRESS]   # prints the path of the bridge lines
+#   sh scripts/tor-net.sh wait-onion DIR [SECONDS]     # waits until onion services can run
 #   sh scripts/tor-net.sh stop DIR
+#
+# wait-onion waits until the network's consensus holds both shared random
+# values, the previous and the current one (about 9 minutes after start,
+# two runs of the protocol at chutney's 20 s votes). Before that, Arti's
+# service knows only one ring of HSDirs, so it is never "Running", and a
+# service started then stays in Bootstrapping for good; the tests of onion
+# services run after it. SECONDS bounds the wait, 1200 by default.
 #
 # The relays listen on ADDRESS, 127.0.0.1 by default. podssh sends no
 # loopback address through a proxy, so a test of the proxy's road gives
@@ -42,11 +50,11 @@ what=${1:-}
 dir=${2:-}
 address=${3:-127.0.0.1}
 case $what in
-    start | start-bridges | stop) ;;
+    start | start-bridges | wait-onion | stop) ;;
     *) what= ;;
 esac
 if [ -z "$dir" ] || [ -z "$what" ]; then
-    echo "usage: tor-net.sh start DIR [ADDRESS] | start-bridges DIR [ADDRESS] | stop DIR (got '$*')" >&2
+    echo "usage: tor-net.sh start DIR [ADDRESS] | start-bridges DIR [ADDRESS] | wait-onion DIR [SECONDS] | stop DIR (got '$*')" >&2
     exit 64
 fi
 mkdir -p "$dir" || exit 73
@@ -60,6 +68,28 @@ if [ "$what" = stop ]; then
         echo "tor-net: stopped ($?)" >&2
     fi
     exit 0
+fi
+
+if [ "$what" = wait-onion ]; then
+    bound=${3:-1200}
+    case $bound in
+        "" | *[!0-9]*) echo "tor-net: wait-onion takes SECONDS, not '$bound'" >&2; exit 64 ;;
+    esac
+    # Each authority keeps the newest consensus; the first one found serves.
+    waited=0
+    while [ "$waited" -lt "$bound" ]; do
+        for consensus in "$data"/nodes/*a/cached-microdesc-consensus; do
+            if grep -qs '^shared-rand-previous-value ' "$consensus" &&
+                grep -qs '^shared-rand-current-value ' "$consensus"; then
+                echo "tor-net: both shared random values after ${waited} s of waiting" >&2
+                exit 0
+            fi
+        done
+        sleep 10
+        waited=$((waited + 10))
+    done
+    echo "tor-net: no consensus with both shared random values within $bound s" >&2
+    exit 75
 fi
 
 tor=$(command -v tor) || { echo "tor-net: no tor in PATH" >&2; exit 69; }

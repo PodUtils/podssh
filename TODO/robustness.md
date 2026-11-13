@@ -564,7 +564,7 @@ Read, the bounds today:
    `crates/podssh-ssh/src/run.rs:26-29` does since T-024, and the result of
    T-062 when it exists.
 3. Tests in the process, with a peer over `tokio::io::duplex`, so no network
-   (`docs/development.md:568-571`): a proxy head that never ends stops at
+   (`docs/development.md:572-575`): a proxy head that never ends stops at
    16 KiB, and an upgrade head too; fragments past 16 MiB give the error, not
    more memory; a pool body over 256 KiB is refused; a cache file over 64 KiB
    is ignored.
@@ -857,14 +857,14 @@ Read:
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
-  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:776-796`, 14 of 14 since T-236).
+  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:778-798`, 14 of 14 since T-236).
 - The time limits that latency meets today: the SSH handshake, 60 s
   (`crates/podssh-ssh/src/options.rs:390`, enforced at
   `crates/podssh-ssh/src/run.rs:402-405`); a reply, 30 s
   (`crates/podssh-ssh/src/session.rs:22`); a write, 60 s, and liveness, three
   times 10 s (`crates/podssh-ws/src/client.rs:39-43`).
 - The gate's container gets no added capability
-  (`.github/workflows/build.yml:98-109`).
+  (`.github/workflows/build.yml:112-123`).
 
 ## Approach
 
@@ -885,7 +885,7 @@ Read:
    session back from 127.0.0.2, and a stall of 3 minutes, each with the digest
    of a running transfer intact. T-156 uses these checks as its measurement.
 5. Update docs/development.md (item 8 of the gate, item 9 since T-156,
-   `docs/development.md:372-384`) and the faults table of docs/STATUS.md.
+   `docs/development.md:376-388`) and the faults table of docs/STATUS.md.
 
 Pitfall: each check must show that its fault was injected (see Prove).
 
@@ -991,7 +991,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
 - `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:68-70`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
-  (`docs/STATUS.md:217`, `docs/STATUS.md:223`).
+  (`docs/STATUS.md:219`, `docs/STATUS.md:225`).
 - A correction to the framing of #34: for a signal, podssh differs from
   OpenSSH on purpose. `docs/cli.md:5875-5876` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
@@ -2293,3 +2293,108 @@ Partial, 2026-11-13: the echo's duplex is 4 MiB, more than a session carries. `-
 30 runs of `two_sessions` with a busy loop on each core: 0 failed, and 0 failed with the old duplex too, so the
 load of a suite (many test binaries, not busy loops) is not reproduced here; the cause is read from the code above.
 The entry stays partial until the gate has run the suite a few times with no recurrence.
+
+# T-769: The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes
+
+**Source:** the main session, 2026-11-13: the gate's job `tor-net` failed on `main` (dispatched run 43362726574,
+and the push of cc316b3), as it had twice on 2026-11-12 (02:49 and 10:15 to 11:01 UTC), between runs that passed.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`a_node_s_onion_service_carries_a_mebibyte_each_way_and_hides_from_a_stranger`
+(`crates/podssh-tor/tests/onion_service.rs`) waited its 600 s for the descriptor and failed with "not published
+within 600 s (Bootstrapping)"; in the runs that pass it is published in 0 s.
+
+## Premise
+
+- The job starts chutney's network, then runs `private_network`, `tor_private` and `onion_service`
+  (`.github/workflows/build.yml:421-431`); the time between the start and the onion test is the build's, shorter
+  with a warm cache.
+- Arti 0.48 calls a service `Running` only once its descriptor went to both rings of HSDirs, the current time
+  period's and the second one (`upload_result_state` in `tor-hsservice` 0.48.0, `src/publish/reactor.rs`); until
+  then, and while its uploads are rate-limited, it is `Bootstrapping`. `OnionService::published` waits for
+  `is_fully_reachable` (`crates/podssh-tor/src/onion.rs:197-222`).
+
+## Approach
+
+Reproduce it on this host with `scripts/tor-net.sh` and Arti's debug log, find what a young network lacks, and
+make the harness wait for it before the onion tests: in CI's job and in the commands of `docs/development.md`.
+
+## Prove
+
+```sh
+toml=$(sh scripts/tor-net.sh start .work/tor-net "$(hostname -I | awk '{print $1}')")
+sh scripts/tor-net.sh wait-onion .work/tor-net
+PODSSH_TEST_TOR_NETWORK=$toml cargo test -p podssh-tor --test onion_service -- --nocapture
+sh scripts/tor-net.sh stop .work/tor-net
+```
+
+## Done
+
+2026-11-13. Found on this host, with Arti's debug log (`RUST_LOG=tor_hsservice=debug`, a subscriber added for the
+run alone): on a network started at 05:43:02 UTC the restricted service uploaded its descriptor to 8 of 8 HSDirs
+for the time period 3738642 (8 minutes long) at once, and for 3738643 at 05:48:58, but each new consensus (every
+20 s) rate-limited its next upload, and it never reported both rings in one result: `Bootstrapping` for the whole
+600 s, then the failure. The consensus held `shared-rand-current-value` alone at 05:50:51 and both values at 05:52:07
+(about 9 minutes, two runs of the protocol at chutney's 20 s votes); run then, the three tests passed in 7.6 s. On
+the network of the first failure, 19 minutes old, they passed in 8.1 s. A service started before the second value
+does not recover.
+
+- `scripts/tor-net.sh wait-onion DIR [SECONDS]`: waits, 1200 s at most, until an authority's
+  `cached-microdesc-consensus` holds both shared random values; exit 0, else 75 (64 for a bound that is no
+  number). Tried: on the network above, 0 s and exit 0; on a directory with no network, 20 s and 75; `x`, 64.
+- CI's job `tor-net` runs it after `tor_private` and before `onion_service` and `derp_onion`; `docs/development.md`
+  gives it in the commands by hand, with the reason.
+- The run of the job at the push of this change is the check in CI; the test is unchanged.
+
+# T-770: A push of the record cancelled the gate of a push of code, which then was never built
+
+**Source:** the main session, 2026-11-13: `scripts/gate-base.sh` found that the last whole gate that passed on
+`main` was at 02650f1, 45 commits back, though each push since had a run of `build.yml` that passed.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`build.yml` cancels the run of an older push (its `concurrency`), and its plan skips each job that builds when the
+push changes only documents and the record, judged from the push's parent (`github.event.before`). A push of code
+followed within the gate's time by a push of the record therefore had its gate cancelled, and the next run built
+nothing: the take of podcrates v0.36.0 (99b9642) and 44 commits before it reached `main` with only the
+repository checks.
+
+## Premise
+
+- `.github/workflows/build.yml:19-24`: a newer push cancels the older one's gate.
+- The plan's step "what the push changes" diffs `github.event.before` to `HEAD`.
+
+## Approach
+
+The plan diffs from the commit of the last run of `build.yml` on the branch whose job `gate (...)` passed
+(`scripts/gate-base.sh`, through the API with the run's token and `actions: read`), not from the push's parent;
+a push of the record after unbuilt code then builds it. No such run found, or a diff that cannot be read: build.
+
+## Prove
+
+```sh
+sh scripts/gate-base.sh PodUtils/podssh main
+```
+
+It prints the commit of the last whole gate that passed; then a push of the record after a push of code shows
+"builds: true" in the plan's log.
+
+## Done
+
+2026-11-13. `scripts/gate-base.sh OWNER/REPO [BRANCH]`: the newest of 30 successful runs of `build.yml` on the branch
+whose job `gate (...)` passed (a skipped job is no pass), else nothing; run here, it printed 02650f1 in 11 s. The
+plan's step "what the push changes" diffs from it, with `actions: read` and the run's token, and builds when none
+is found or the diff cannot be read; a dispatch and a pull request build as before. The run at the push of this
+change, whose last whole gate is 02650f1, must show "builds: true"; a later push of the record after a gate passed
+shows "builds: false".

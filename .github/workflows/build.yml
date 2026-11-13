@@ -31,6 +31,10 @@ jobs:
     name: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    # actions: read for the runs of this workflow (scripts/gate-base.sh).
+    permissions:
+      contents: read
+      actions: read
     outputs:
       image: ${{ steps.image.outputs.image }}
       steps: ${{ steps.steps.outputs.steps }}
@@ -39,19 +43,29 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Whether the push changes more than documents and the record (docs/,
-      # TODO/, a Markdown file): if not, the jobs that build are skipped. A
-      # pull request, a dispatch, or a diff that cannot be read builds.
+      # TODO/, a Markdown file) since the last whole gate that passed on its
+      # branch: if not, the jobs that build are skipped. The diff is not from
+      # the push's parent, since a push of the record cancels the gate of a
+      # push of code before it, which would then never be built. A pull
+      # request, a dispatch, no gate found, or a diff that cannot be read
+      # builds.
       - name: what the push changes
         id: code
         env:
-          BEFORE: ${{ github.event.before }}
           EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -u
           code=true
-          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] &&
-             git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then
-            changed=$(git diff --name-only "$BEFORE" HEAD) || changed=x
+          base=""
+          if [ "$EVENT" = push ]; then
+            base=$(sh scripts/gate-base.sh "$REPO" "$BRANCH") || base=""
+          fi
+          echo "the last whole gate that passed: ${base:-none}"
+          if [ -n "$base" ] && git fetch -q --depth=1 origin "$base" 2>/dev/null; then
+            changed=$(git diff --name-only "$base" HEAD) || changed=x
             others=$(printf '%s\n' "$changed" | grep -v -E '^(docs/|TODO/)|\.md$' | grep -c . || true)
             [ -n "$changed" ] && [ "$others" = 0 ] && code=false
           fi
@@ -409,7 +423,9 @@ jobs:
           set -eu
           cargo test --locked -p podssh-tor --test private_network
           cargo test --locked -p podssh-cli --features tor --test tor_private
-          # T-578: a node's onion service there, each relay an HSDir.
+          # T-578: a node's onion service there, each relay an HSDir, once
+          # the consensus holds both shared random values (tor-net.sh).
+          sh scripts/tor-net.sh wait-onion "$RUNNER_TEMP/tor-net" 1200
           cargo test --locked -p podssh-tor --test onion_service -- --nocapture
           # T-578: podssh ssh node:// through the onion road alone, from end to end.
           cargo test --locked -p podssh-cli --features tor --test derp_road -- --nocapture derp_onion
