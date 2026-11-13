@@ -77,7 +77,6 @@ fn podssh_ssh_carries_20_mib_each_way_over_the_split_form() {
 }
 
 #[test]
-#[ignore = "pod-relay's serial form stalls SSH's flow: COORD-047 (#222); it runs again at the take of its fix"]
 fn podssh_ssh_carries_20_mib_each_way_over_the_serial_form() {
     ssh_carries_20_mib_each_way("serial", 34);
 }

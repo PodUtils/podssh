@@ -3537,6 +3537,34 @@ cargo test -p podssh-cli --test http_road_cli
 What remains of item 3: OpenSSH's client to OpenSSH's sshd over the road (`podssh proxy` as its
 `ProxyCommand`), where the host has sshd.
 
+2026-11-13, the take of podcrates `v0.36.0` (`408fb13`, COORD-071): the invariants 6 to 10 (COORD-046, #221)
+and the serial form's own writer of the bytes down (COORD-047, #222). The client of the road is pod-relay's; its
+new wire needs the role's server to move with it, so the server (`serve/http_road/`) now keeps the invariants
+with `pod_relay::http_road::window::Up`: the window holds 8 batches by their numbers and counts their bytes; a
+batch sent again gets the same `204` with `X-Seq: N` (on `up`, and on `x`'s `200` or `204`), never silence; an
+acknowledgement goes only once the batch is in the window that the target's writer reads; a window still full after
+10 s answers `503` with `X-Refuse: full` and `Retry-After: 1`, and does not move; the `404` of a session says
+`X-Refuse: unknown session`, and each `403` of the open `X-Refuse: not allowed`; `fin=1` with no `total=` is `400`,
+and a total that differs from the bytes stored ends the session `1002 count mismatch`; each `410` of `1000` carries
+`X-Total`, the bytes down of the session. The test of the role's side, `crates/podssh-relay/tests/http_road_role.rs`
+(a batch sent again, a full window, a total that differs, an exchange and each refusal), drives the server request
+by request, as pod-relay's own tests drive only the client against a stand-in. The ignored test of `ssh` over the
+serial form runs again (its `#[ignore]` naming COORD-047 is gone).
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve,plain-ws --test http_road --test http_road_role
+cargo test -p podssh-relay --features quick,serve,plain-ws --test http_road_quick
+cargo test -p podssh-cli --test http_road_cli
+```
+
+- `http_road`: 10 passed. `http_road_role`: 4 passed; a plant that takes a total that differs as a clean end
+  is caught (`a_total_that_differs_from_the_bytes_stored_fails_the_session`).
+- `http_road_quick`: 2 passed.
+- `http_road_cli`, with the serial form's `ssh`: 6 passed, none ignored (43 s).
+- `cargo clippy --workspace --all-targets`, and podssh-relay's with `serve,quick,plain-ws,piping`: clean.
+- Known, pod-relay's: the client sends no `POST close` when the app drops its stream (podcrates T-478, open).
+
 
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)
 

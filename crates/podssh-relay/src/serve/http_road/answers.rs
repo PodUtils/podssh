@@ -4,6 +4,13 @@
 //! both in one whole answer for the serial form; the end. Each answer says
 //! the batches that the target took (`X-Ack`), and a refusal's words start
 //! with the road's word, as each error of the relay starts with its path's.
+//!
+//! The answers keep the invariants 6 to 10 of the wire, which `pod-relay`'s
+//! client holds the role to: the answer that stores a batch, first or
+//! again, names it (`X-Seq`); a refusal of the role names its reason
+//! (`X-Refuse`: `full`, `unknown session`, `not allowed`); the last batch
+//! carries the bytes up (`total=`); a clean end carries the bytes down
+//! (`X-Total`).
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -12,7 +19,8 @@ use podssh_ws::http::request::Request;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use super::sessions::{Ready, Session, Stored};
-use crate::http_road::{close_value, Query, ACK, CLOSE, DOWN_MAX, OFFSET, WAIT_MAX};
+use crate::http_road::window::Refusal;
+use crate::http_road::{close_value, Query, ACK, CLOSE, DOWN_MAX, OFFSET, REFUSE, SEQ, TOTAL, WAIT_MAX};
 
 /// How long a body's next bytes may take.
 const BODY_WAIT: Duration = Duration::from_secs(30);
@@ -69,17 +77,33 @@ pub fn refuse(status: u16, words: &str, headers: &[(&str, String)], keep: bool) 
     whole(status, headers, body.as_bytes(), "text/plain; charset=utf-8", keep)
 }
 
-/// `410` for a session that ended, with its code and reason in `X-Close`.
+/// A refusal of the role, `reason`'s status with its word in `X-Refuse`, so
+/// that the client tells it from a hop's trouble: `full` asks for the same
+/// request later, the others stop the session.
+pub fn refusal(reason: Refusal, words: &str, headers: &[(&str, String)], keep: bool) -> Vec<u8> {
+    let mut all = headers.to_vec();
+    all.push((REFUSE, reason.word().to_string()));
+    refuse(reason.status(), words, &all, keep)
+}
+
+/// `410` for a session that ended, with its code and reason in `X-Close`;
+/// a clean end with the bytes down of the whole session in `X-Total`, which
+/// the client fails when they are not the bytes that came.
 fn gone(session: &Session, at: Option<u64>, keep: bool) -> Vec<u8> {
     let (code, why) = session.ended().unwrap_or((1000, String::new()));
     let mut headers = vec![(CLOSE, close_value(code, &why)), (ACK, session.acked().to_string())];
     headers.extend(at.map(|at| (OFFSET, at.to_string())));
+    if code == 1000 {
+        headers.push((TOTAL, session.down_total().to_string()));
+    }
     refuse(410, &format!("http: the session ended: {code} {why}"), &headers, keep)
 }
 
-/// `204`: nothing down yet.
-fn nothing(session: &Session, at: u64, keep: bool) -> Vec<u8> {
-    whole(204, &[(OFFSET, at.to_string()), (ACK, session.acked().to_string())], &[], "", keep)
+/// `204`: nothing down yet, with `more` headers.
+fn nothing(session: &Session, at: u64, more: &[(&str, String)], keep: bool) -> Vec<u8> {
+    let mut headers = vec![(OFFSET, at.to_string()), (ACK, session.acked().to_string())];
+    headers.extend_from_slice(more);
+    whole(204, &headers, &[], "", keep)
 }
 
 /// Write `reply`: `Some(keep)` once it went, `None` when the client is gone.
@@ -123,24 +147,37 @@ pub async fn body<S: AsyncRead + Unpin>(
     Ok((pending, rest))
 }
 
-/// The answer to a batch that was not stored, or `None` once it was.
-fn not_stored(session: &Session, stored: Stored, seq: u64, keep: bool) -> Option<Vec<u8>> {
-    let acked = || (ACK, session.acked().to_string());
-    match stored {
-        Stored::Taken => None,
-        Stored::Full => {
-            let why = "http: the target has not taken the batches before it";
-            Some(refuse(503, why, &[acked(), ("Retry-After", "1".to_string())], keep))
-        }
-        Stored::Conflict(next) => {
-            let why = format!("http: the batch {seq} came, where the next is {next}");
-            Some(refuse(409, &why, &[acked()], keep))
-        }
-        Stored::Ended => Some(gone(session, None, keep)),
+/// The total of a last batch: none for another batch, and `Err` with the
+/// refusal for a last batch that names none (invariant 9).
+fn total_of(q: &Query, keep: bool) -> Result<Option<u64>, Vec<u8>> {
+    match (q.fin, q.total) {
+        (false, _) => Ok(None),
+        (true, Some(total)) => Ok(Some(total)),
+        (true, None) => Err(refuse(400, "http: a last batch takes total=BYTES", &[], keep)),
     }
 }
 
-/// `POST .../up?seq=N[&fin=1]`: one batch, stored once.
+/// The batch `seq` into the window: the number that the answer names in
+/// `X-Seq`, or the answer to a batch that was not stored.
+async fn stored(session: &Session, seq: u64, batch: Vec<u8>, q: &Query, keep: bool) -> Result<u64, Vec<u8>> {
+    let total = total_of(q, keep)?;
+    let acked = || (ACK, session.acked().to_string());
+    match session.store(seq, batch, total).await {
+        Stored::Acked(n) => Ok(n),
+        Stored::Full => {
+            let why = "http: the target has not taken the batches before it";
+            Err(refusal(Refusal::Full, why, &[acked(), ("Retry-After", "1".to_string())], keep))
+        }
+        Stored::Conflict(next) => {
+            let why = format!("http: the batch {seq} came, where the next is {next}");
+            Err(refuse(409, &why, &[acked()], keep))
+        }
+        Stored::Ended => Err(gone(session, None, keep)),
+    }
+}
+
+/// `POST .../up?seq=N[&fin=1&total=BYTES]`: one batch, stored once, and
+/// acknowledged by its number each time it comes.
 pub async fn up<S>(stream: &mut S, session: &Arc<Session>, q: Query, batch: Vec<u8>, keep: bool) -> Option<bool>
 where
     S: AsyncWrite + Unpin,
@@ -148,9 +185,10 @@ where
     let Some(seq) = q.seq else {
         return write(stream, refuse(400, "http: a batch takes seq=N", &[], keep), keep).await;
     };
-    let stored = session.store(seq, batch, q.fin).await;
-    let reply = not_stored(session, stored, seq, keep)
-        .unwrap_or_else(|| whole(204, &[(ACK, session.acked().to_string())], &[], "", keep));
+    let reply = match stored(session, seq, batch, &q, keep).await {
+        Ok(n) => whole(204, &[(SEQ, n.to_string()), (ACK, session.acked().to_string())], &[], "", keep),
+        Err(reply) => reply,
+    };
     write(stream, reply, keep).await
 }
 
@@ -173,7 +211,7 @@ where
     let wait = Duration::from_millis(q.wait_ms.unwrap_or(0)).min(WAIT_MAX);
     match session.ready(at, wait, Some(generation)).await {
         Ready::Bytes => {}
-        Ready::Nothing => return write(stream, nothing(session, at, keep), keep).await,
+        Ready::Nothing => return write(stream, nothing(session, at, &[], keep), keep).await,
         Ready::Done => {
             session.end(1000, "target closed");
             return write(stream, gone(session, Some(at), keep), keep).await;
@@ -221,21 +259,22 @@ fn chunk(bytes: &[u8]) -> Vec<u8> {
     out
 }
 
-/// `POST .../x?[seq=N&]at=OFFSET&wait=MS[&fin=1]`, the serial form: the
-/// batch, when one came, then the bytes down from OFFSET in a whole answer.
-/// An exchange that carried a batch does not wait for bytes down, so that
-/// the next batch goes at once.
+/// `POST .../x?[seq=N&]at=OFFSET&wait=MS[&fin=1&total=BYTES]`, the serial
+/// form: the batch, when one came, then the bytes down from OFFSET in a
+/// whole answer, which names the batch in `X-Seq`. An exchange that carried
+/// a batch does not wait for bytes down, so that the next batch goes at
+/// once.
 pub async fn exchange<S>(stream: &mut S, session: &Arc<Session>, q: Query, batch: Vec<u8>, keep: bool) -> Option<bool>
 where
     S: AsyncWrite + Unpin,
 {
+    // The batch's number, for each answer with bytes down or none.
+    let mut seq_header = Vec::new();
     match q.seq {
-        Some(seq) => {
-            let stored = session.store(seq, batch, q.fin).await;
-            if let Some(reply) = not_stored(session, stored, seq, keep) {
-                return write(stream, reply, keep).await;
-            }
-        }
+        Some(seq) => match stored(session, seq, batch, &q, keep).await {
+            Ok(n) => seq_header.push((SEQ, n.to_string())),
+            Err(reply) => return write(stream, reply, keep).await,
+        },
         None if !batch.is_empty() => {
             return write(stream, refuse(400, "http: a batch takes seq=N", &[], keep), keep).await;
         }
@@ -253,10 +292,11 @@ where
         Ready::Bytes => {
             let bytes = session.take_from(at, DOWN_MAX);
             session.progress();
-            let headers = [(OFFSET, at.to_string()), (ACK, session.acked().to_string())];
+            let mut headers = vec![(OFFSET, at.to_string()), (ACK, session.acked().to_string())];
+            headers.extend_from_slice(&seq_header);
             whole(200, &headers, &bytes, "application/octet-stream", keep)
         }
-        Ready::Nothing => nothing(session, at, keep),
+        Ready::Nothing => nothing(session, at, &seq_header, keep),
         Ready::Done => {
             session.end(1000, "target closed");
             gone(session, Some(at), keep)

@@ -1,9 +1,10 @@
 //! The sessions of the HTTP road that the role holds: each one's batches up
-//! that wait for its target, the target's bytes that no request has
-//! acknowledged, and its limits, which are the forward road's (`docs/relay.md`,
-//! "Limits that users see"). One table of the process holds them, by an id
-//! that the role draws, and each belongs to the role that opened it: another
-//! role of the same process does not find it.
+//! that wait for its target, in `pod-relay`'s window (`window::Up`), which
+//! keeps the invariants 6 to 10 of the wire in one place; the target's bytes
+//! that no request has acknowledged; and its limits, which are the forward
+//! road's (`docs/relay.md`, "Limits that users see"). One table of the
+//! process holds them, by an id that the role draws, and each belongs to the
+//! role that opened it: another role of the same process does not find it.
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
@@ -17,13 +18,14 @@ use tokio::time::Instant;
 
 use super::super::usage::Meter;
 use super::super::Config;
+use crate::http_road::window::{self, Up};
 
 /// The batches up that the role holds for a target that has not taken them.
 pub const WINDOW: usize = 8;
 /// The target's bytes that the role holds until a request acknowledges
 /// them; the target is read no further until one does.
 pub const DOWN_WINDOW: usize = 2 << 20;
-/// How long a batch waits for room in the window before its `503`.
+/// How long a batch waits for room in the window before its refusal `full`.
 pub const HOLD: Duration = Duration::from_secs(10);
 /// A session with no request for this long ends: its client is gone.
 pub const ABSENT: Duration = Duration::from_secs(60);
@@ -42,14 +44,12 @@ fn table() -> MutexGuard<'static, HashMap<String, Arc<Session>>> {
 
 /// What a session holds, behind its lock.
 pub struct State {
-    /// The number of the next batch that the role takes.
-    pub next_up: u64,
-    /// The batches stored that the target has not taken, in order.
-    pub queue: VecDeque<Vec<u8>>,
+    /// The batches stored that the target has not taken, by their numbers,
+    /// and the count of their bytes; after the last, the target's
+    /// half-close.
+    pub up: Up,
     /// The batches that the target took: `X-Ack`.
     pub written: u64,
-    /// The last batch came: after it, the target's half-close.
-    pub fin: bool,
     /// The offset of the first byte of `down`.
     pub base: u64,
     pub down: VecDeque<u8>,
@@ -96,12 +96,15 @@ pub enum Ready {
 /// What became of a batch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Stored {
-    /// Stored now, or before: the same number is the same batch.
-    Taken,
-    /// No room within [`HOLD`].
+    /// In the window, stored now or before: the acknowledgement of this
+    /// number (`X-Seq`), the same for the same batch sent again.
+    Acked(u64),
+    /// No room within [`HOLD`]: the refusal `full`, and nothing moved.
     Full,
-    /// Not the next number: the one that is.
+    /// Not the next number, or a batch after the last: the one that is.
     Conflict(u64),
+    /// The session ended, before or by this batch: a last batch whose total
+    /// differs from the bytes stored ends it `1002`.
     Ended,
 }
 
@@ -113,10 +116,8 @@ impl Session {
         let key = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(random(32)?);
         let now = Instant::now();
         let state = State {
-            next_up: 0,
-            queue: VecDeque::new(),
+            up: Up::new(WINDOW),
             written: 0,
-            fin: false,
             base: 0,
             down: VecDeque::new(),
             target_ended: false,
@@ -181,6 +182,12 @@ impl Session {
     /// The batches that the target took.
     pub fn acked(&self) -> u64 {
         self.with(|st| st.written)
+    }
+
+    /// The target's bytes that the role took for the client: `X-Total` at
+    /// a clean end, which the client holds to the bytes that came.
+    pub fn down_total(&self) -> u64 {
+        self.with(|st| st.base + st.down.len() as u64)
     }
 
     /// An answer down begins: the newest, which ends each older one.
@@ -261,34 +268,40 @@ impl Session {
         }
     }
 
-    /// The batch `seq`, stored once: a number taken before is the same
-    /// batch, and the next one waits up to [`HOLD`] for room in the window.
-    pub async fn store(&self, seq: u64, batch: Vec<u8>, fin: bool) -> Stored {
+    /// The batch `seq`, the last when `total` is given, stored once: a
+    /// number taken before is the same batch, acknowledged again, and the
+    /// next one waits up to [`HOLD`] for room in the window. The window
+    /// decides each answer; a total that differs ends the session.
+    pub async fn store(&self, seq: u64, batch: Vec<u8>, total: Option<u64>) -> Stored {
         let deadline = Instant::now() + HOLD;
-        let mut batch = Some(batch);
         loop {
             let notified = self.changed.notified();
+            // A full window drops the batch that it was given and does not
+            // move: each try gives it a copy, made outside the lock, so the
+            // same batch can go in once there is room.
+            let copy = batch.clone();
             let now = self.with(|st| {
                 if st.ended.is_some() {
-                    return Some(Stored::Ended);
+                    return Some(Ok(Stored::Ended));
                 }
-                if seq < st.next_up {
-                    return Some(Stored::Taken);
+                match st.up.store(seq, copy, total) {
+                    window::Stored::Taken(n) | window::Stored::Again(n) => Some(Ok(Stored::Acked(n))),
+                    window::Stored::Full => None,
+                    window::Stored::Conflict(next) => Some(Ok(Stored::Conflict(next))),
+                    window::Stored::Mismatch { said, stored } => Some(Err((said, stored))),
                 }
-                if seq > st.next_up || st.fin {
-                    return Some(Stored::Conflict(st.next_up));
-                }
-                if st.queue.len() >= WINDOW {
-                    return None;
-                }
-                st.queue.push_back(batch.take().unwrap_or_default());
-                st.next_up += 1;
-                st.fin = fin;
-                Some(Stored::Taken)
             });
-            if let Some(stored) = now {
-                self.changed.notify_waiters();
-                return stored;
+            match now {
+                Some(Ok(stored)) => {
+                    self.changed.notify_waiters();
+                    return stored;
+                }
+                // Bytes lost or doubled on the way: no clean end can follow.
+                Some(Err((said, stored))) => {
+                    self.end(1002, format!("count mismatch: {said} bytes up said, {stored} stored"));
+                    return Stored::Ended;
+                }
+                None => {}
             }
             if tokio::time::timeout_at(deadline, notified).await.is_err() {
                 return Stored::Full;

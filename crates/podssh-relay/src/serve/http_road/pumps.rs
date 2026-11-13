@@ -40,9 +40,10 @@ async fn write_up(session: Arc<Session>, mut to: OwnedWriteHalf) {
         let step = session.with(|st| {
             if st.ended.is_some() {
                 Step::Stop
-            } else if let Some(batch) = st.queue.pop_front() {
+            } else if let Some(batch) = st.up.take() {
+                // In number order: the window holds each batch by its number.
                 Step::Write(batch)
-            } else if st.fin {
+            } else if st.up.fin() {
                 Step::Finish
             } else {
                 Step::Wait

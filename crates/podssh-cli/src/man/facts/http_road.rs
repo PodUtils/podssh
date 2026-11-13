@@ -21,7 +21,10 @@ pub(super) fn blocks() -> Vec<Block> {
          {down} MiB down that the client has not acknowledged, and an answer down ends a moment after nothing more \
          came, or at {answer} MiB, so that a hop that holds an answer to its end holds a short one. Each request \
          goes again, as it was, until an answer comes, for {retry} s at most: a batch's number and an offset make it \
-         one that may come twice. When the second connection does not answer within {limit} s, the serial form \
+         one that may come twice. The role names the batch that each answer stores, and the reason of each \
+         refusal (full, unknown session, not allowed); the last batch carries the count of the bytes up, and the \
+         target's end the count of the bytes down, and a count that differs fails the session. When the second \
+         connection does not answer within {limit} s, the serial form \
          follows on the first: one POST after another, each with a batch up when one waits and the bytes down in \
          its answer. A session's id goes in its paths, and its key in a header alone. A close of the road other \
          than 1000 is said by podssh ssh as by podssh proxy: the leg that ended it, with its code and reason, \

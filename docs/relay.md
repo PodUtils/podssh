@@ -1342,15 +1342,21 @@ serial form, one, is its fallback. The default relay serves none of it
   sessions of a process at once at most, then `503` with `Retry-After`.
 - Each later request names the session by its id in the path, and proves
   it by its key in `X-Session-Key`, never in a URL. A wrong key and an
-  unknown id get the same `404 http: no such session`.
-- `POST /v1/http/s/ID/up?seq=N[&fin=1]`: one batch, `batch_max` bytes at
-  most (256 KiB; 32 KiB behind a quick tunnel's node, which takes a body
-  whole), numbered from 0. `204` once the role stored it; a number taken
-  before is the same batch, answered alike and stored once; another number
-  than the next is `409`. The role holds 8 batches that the target has not
-  taken, and a batch past them waits 10 s for room, then gets `503` with
-  `Retry-After: 1`. `X-Ack` in each answer is the batches that the target
-  took. After the batch of `fin=1` the target gets TCP's half-close.
+  unknown id get the same `404 http: no such session`, with `X-Refuse:
+  unknown session`.
+- `POST /v1/http/s/ID/up?seq=N[&fin=1&total=BYTES]`: one batch,
+  `batch_max` bytes at most (256 KiB; 32 KiB behind a quick tunnel's node,
+  which takes a body whole), numbered from 0. `204` with `X-Seq: N` once
+  the role stored it, never before; a number taken before is the same
+  batch, answered alike (`204`, `X-Seq: N`) and stored once; another number
+  than the next, or a batch after the last, is `409`. The role holds 8
+  batches that the target has not taken (`pod-relay`'s `window::Up`), and a
+  batch past them waits 10 s for room, then gets `503` with `X-Refuse:
+  full` and `Retry-After: 1`, and the window does not move. `X-Ack` in each
+  answer is the batches that the target took. The batch of `fin=1` carries
+  `total`, the bytes up of the whole session (`400` without it); a total
+  that differs from the bytes stored ends the session `1002 count
+  mismatch`. After the last batch the target gets TCP's half-close.
 - `GET /v1/http/s/ID/down?at=OFFSET&wait=MS`: the target's bytes from
   OFFSET, which says that each byte before it came, so the role forgets
   them; it holds 2 MiB that no request acknowledged, and reads the target
@@ -1361,15 +1367,22 @@ serial form, one, is its fallback. The default relay serves none of it
   short one; with none within the wait (25 s at most), a whole `204`. A
   newer request down ends an older one. An offset before what came, or past
   what the role sent, is `409`.
-- `POST /v1/http/s/ID/x?[seq=N&]at=OFFSET&wait=MS[&fin=1]`, the serial
-  form: the batch, as `up` takes it, when `seq` is given, then the bytes
-  down from OFFSET in a whole answer of their length; an exchange that
-  carried a batch waits for no byte down.
+- `POST /v1/http/s/ID/x?[seq=N&]at=OFFSET&wait=MS[&fin=1&total=BYTES]`,
+  the serial form: the batch, as `up` takes it, when `seq` is given, then
+  the bytes down from OFFSET in a whole answer of their length, with
+  `X-Seq: N`; an exchange that carried a batch waits for no byte down.
+  While its caller has not read the bytes down, the client sends its
+  batches by `up` on the same connection.
 - `POST /v1/http/s/ID/close` ends the session (`1000 client closed`).
 - Once the session ended, each request gets `410` with `X-Close: CODE
   REASON`, the close codes and reasons of the forward road ("Errors and
   close codes"), for 60 s, then `404`. The target's end is `1000 target
-  closed`, once a request down acknowledged each of its bytes. The limits are
+  closed`, once a request down acknowledged each of its bytes; a `1000`
+  carries `X-Total`, the bytes down of the whole session, which the client
+  fails when they are not the bytes that came.
+- A refusal of the role names its reason in `X-Refuse` (GitHub #221, the
+  invariants 6 to 10): `full` (`503`), `unknown session` (`404`), `not
+  allowed` (`403`: the token, its budget, the policy). The limits are
   the forward road's: 180 s with no payload, 12 h, 64 MiB both ways; and a
   session with no request for 60 s ends with `1001 client gone`.
 - A connection carries one request after another while its client keeps

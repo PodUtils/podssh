@@ -23,8 +23,9 @@ use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use super::egress::{self, Missed};
 use super::policy::shown;
 use super::{forward, tokens, Config};
+use crate::http_road::window::Refusal;
 use crate::http_road::{query, route, Kind, Route, BATCH_MAX, DOWN_MAX, KEY, OPEN, PREFIX, WAIT_MAX};
-use answers::{refuse, whole, write};
+use answers::{refusal, refuse, whole, write};
 use sessions::Session;
 
 /// How long a kept connection waits for its next request.
@@ -88,7 +89,10 @@ where
             None => write(&mut stream, refuse(404, &format!("{path}: not found"), &[], keep), keep).await,
             Some(Route::Open) => open(&mut stream, &head, &cfg, keep).await,
             Some(Route::Session(id, kind)) => match sessions::find(&id, head.header(KEY), &cfg) {
-                None => write(&mut stream, refuse(404, "http: no such session", &[], keep), keep).await,
+                None => {
+                    let reply = refusal(Refusal::UnknownSession, "http: no such session", &[], keep);
+                    write(&mut stream, reply, keep).await
+                }
                 Some(session) => {
                     let q = query(&head.target);
                     match kind {
@@ -123,12 +127,16 @@ where
 {
     let token_ok = head.header("x-relay-token").is_some_and(|t| cfg.tokens.check(t, tokens::now_ms()));
     if !token_ok {
-        return write(stream, refuse(403, "http: missing or wrong token", &[], keep), keep).await;
+        let reply = refusal(Refusal::NotAllowed, "http: missing or wrong token", &[], keep);
+        return write(stream, reply, keep).await;
     }
     // The token's key, and its budget, before anything is dialed (T-636).
     let meter = match super::usage::meter_of(cfg, head) {
         Ok(meter) => meter,
-        Err(why) => return write(stream, refuse(403, &format!("http: {why}"), &[], keep), keep).await,
+        Err(why) => {
+            let reply = refusal(Refusal::NotAllowed, &format!("http: {why}"), &[], keep);
+            return write(stream, reply, keep).await;
+        }
     };
     let Some(asked) = forward::asked(&head.target.replacen(OPEN, "/connect/", 1)) else {
         let path = head.target.split('?').next().unwrap_or_default();
@@ -145,7 +153,13 @@ where
             if let Some(line) = refused.logged() {
                 cfg.event(&line);
             }
-            return write(stream, refuse(refused.status(), &refused.answer(), &[], keep), keep).await;
+            // The policy's refusal is the role's `not allowed`; another
+            // status (a target that cannot be reached) keeps its own words.
+            let reply = match refused.status() {
+                403 => refusal(Refusal::NotAllowed, &refused.answer(), &[], keep),
+                status => refuse(status, &refused.answer(), &[], keep),
+            };
+            return write(stream, reply, keep).await;
         }
     };
     // As the forward road dials: through the host's proxy when one is set,

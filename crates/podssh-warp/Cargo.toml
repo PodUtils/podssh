@@ -15,7 +15,7 @@ publish.workspace = true
 podssh-ws = { path = "../podssh-ws" }
 # The services of other parties: WARP's API, its front door and its
 # versions, the trace of 1.1.1.1.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.35.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0" }
 tokio = { workspace = true }
 rustls = { workspace = true }
 tokio-rustls = { workspace = true }
@@ -42,7 +42,7 @@ base64 = { workspace = true }
 zeroize = { workspace = true }
 # connect-ip over HTTP/3 where UDP passes (T-582, feature `h3`): QUIC on
 # noq through pod-quic, the version that podssh-ws's roads over QUIC take.
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.35.0", optional = true }
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.36.0", optional = true }
 
 [features]
 # The stand-in of WARP's edge and of its API, for the tests of another crate
