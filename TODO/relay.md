@@ -5657,3 +5657,313 @@ ticks of CPU in 3 s and said that it pauses. Planted (`scripts/plants/t748-no-ac
 and the role used 292 ticks in 3 s, the whole core; the test failed. clippy (serve's features) and rustfmt
 clean; `-p podssh-relay --features serve --lib serve` 136, `-p podssh-cli --lib` 1,083, `--test relay_serve` 30,
 each in a namespace with the loopback alone.
+
+# T-764: `relay serve` serves a static cover site for each cover name, and an unknown name gets the site's own 404
+
+**Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "A static site per
+published name" and its rules COVER-1 to COVER-3. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The relay role answers each name as itself: a visitor who opens it in a browser gets JSON or the
+role's 404, and `/health` names the service and the version. The tester asks that a name that the
+owner publishes as a cover answer as an ordinary site, from a static tree, and that no
+unauthenticated response name PodUtils, the version or the contract.
+
+## Premise
+
+- One listener reads the name before any handshake (`crates/podssh-relay/src/serve/sni.rs:1-9`)
+  and routes it (`crates/podssh-relay/src/serve/listener.rs:1-12`); a name of `--publish
+  NAME=PAIR` goes to its pair's node, whose own TLS answers it
+  (`crates/podssh-relay/src/serve/published.rs:1-13`).
+- The role's router answers its contract's paths and a 404 of its own for the others
+  (`crates/podssh-relay/src/serve/mod.rs:254-281`); no source file of `crates/podssh-relay/src/serve/` serves a static
+  tree (searched 2026-11-13).
+- `/health` names the service and the version
+  (`crates/podssh-relay/src/serve/docs.rs:24-29`; docs/relay.md's "podssh's own relay",
+  `docs/relay.md:63-66`).
+
+## Approach
+
+1. `podssh relay serve --cover NAME=DIR`: a name whose TLS the role ends (its own `--acme` name,
+   or a name of its certificate) and whose requests with no token go to DIR's files: `index.html`,
+   assets with their types, `robots.txt`, the site's own 404 page for an unknown path, a `Server`
+   header of a common server, no header or body that names podssh (COVER-2, COVER-3).
+2. An unknown name on the listener gets the cover's 404 where a cover is set (COVER-1).
+3. Which requests reach the role behind a cover is T-767's (the surfaces), and the delegated
+   handshake T-765's; this entry is the site.
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later; the role's documented
+contract works without it), and `blocked` (the author's mark is a start condition).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve --lib serve
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes
+```
+
+`curl` (through the test's root) of the cover name gets the page with a valid chain; `/health`
+on it gets the site's 404; no body of an unauthenticated path holds "podssh", "PodUtils" or the
+version. Planted: the role's own 404 on the cover, and the test fails.
+
+## Start condition
+
+GitHub #225's author lifts [DEFERRED], or the owner orders it.
+
+# T-765: The delegated handshake, server side: a temporary credential under the name's own chain for an authenticated client
+
+**Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Delegated handshake, server
+side" and its rules DELEG-1 to DELEG-3. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+Behind a cover site (T-764), the tunnel and the site share one name. The tester asks that the
+server hold a certificate only for a name it owns, and that it answer an authenticated client
+with a temporary credential that validates against the same chain and name (as TLS's delegated
+credentials, RFC 9345, do), while any other connection gets the site. The tester rules that this
+belongs in `pod-tls`, not in a road.
+
+## Premise
+
+- The role's TLS server is `pod-tls`'s (`crates/podssh-ws/src/tls_server.rs:1-12`), a crate that
+  podssh took (`TODO/PROGRESS.md`, state item 7), whose work is done in PodUtils/podcrates (Rule
+  Q3, `docs/decisions.md`).
+- The role takes its certificate from `--cert` and `--key` or from ACME
+  (`crates/podssh-cli/src/flags/relay.rs:54-59`), proven by TLS-ALPN-01 on the listener
+  (`crates/podssh-relay/src/serve/listener.rs:76`).
+- A published name's key is the node's, never the role's
+  (`crates/podssh-relay/src/serve/published.rs:5-8`), as DELEG-1 asks.
+- No source file of the workspace issues a delegated credential (searched 2026-11-13 for
+  "delegated").
+
+## Approach
+
+1. Research first, in this entry's notes: RFC 9345 in rustls (none as of the reading) and in
+   the servers and browsers that speak it; what "authenticated" means before the handshake
+   (a value in the ClientHello that only a holder of the relay's key could make, as REALITY's
+   clients do), and the replay of it (T-758).
+2. Ask PodUtils/podcrates by a COORD issue `(to podcrates)` for the server side in `pod-tls`:
+   a credential with a short validity signed by the name's leaf key, served to an authenticated
+   ClientHello, the plain chain to any other.
+3. podssh's role takes the tag and serves the cover to each other connection (DELEG-2).
+
+## Decision
+
+2026-11-13. The issue's two rows of the delegated handshake are two entries, this one and T-766,
+as the table has them: the server side is the larger change, and each side has its own test; lost:
+one entry for both, of more than a week's work (RULES: no XL). The issue's title is marked
+"[DEFERRED]": so P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10, and `blocked` (the author's mark is a start condition). The
+code belongs in `pod-tls` of PodUtils/podcrates (DELEG-3, Rule Q3), asked by a COORD issue when
+the work starts.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes
+```
+
+An unauthenticated probe of the name gets a valid chain and the cover's page; an authenticated
+client gets the tunnel; a capture of both shows one certificate. Planted: a credential of another
+issuer or validity window, and the client's test fails (T-766).
+
+## Start condition
+
+GitHub #225's author lifts [DEFERRED], or the owner orders it.
+
+# T-766: The delegated handshake, client side: podssh verifies the temporary credential against the same chain and name
+
+**Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Delegated handshake, client
+side" and its gate ("a test fails when the temporary credential has a different issuer or
+validity window"). Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A client of the delegated handshake (T-765) must ask for it in a way that only an authenticated
+client can, and accept the credential only when it chains to the name's certificate within its
+validity; else it must refuse, never fall back to trusting it.
+
+## Premise
+
+- podssh's client TLS is `pod-tls`'s, with one verifier, rustls's `WebPkiServerVerifier`, and no
+  way to turn checks off (`crates/podssh-ws/src/tls.rs:1-13`); `pod-tls` is taken (Rule Q3,
+  `docs/decisions.md`).
+- No client of the workspace asks for a delegated credential (searched 2026-11-13).
+
+## Approach
+
+1. Ask PodUtils/podcrates, in the same COORD issue as T-765, for the client side in `pod-tls`:
+   the authenticated ClientHello, and a check of the credential's signature by the leaf, its
+   validity (at most RFC 9345's 7 days, and within the leaf's), and its name, after the chain's
+   own check.
+2. podssh offers it only for a relay host that the user marked as a cover (a setting), and says
+   in `doctor` whether the host answered with a credential.
+
+## Decision
+
+2026-11-13. A separate entry from T-765, as the issue's table has two rows (see T-765's
+Decision). The issue's title is marked "[DEFERRED]": so P3, `backlog`, `open`, and the entry is in
+"Parked open work" of `TODO/PROGRESS.md`. Lost: P2 in M10, and `blocked` (the author's mark is a
+start condition). The code belongs in `pod-tls` of PodUtils/podcrates (Rule Q3), asked by a COORD
+issue when the work starts.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib tls
+```
+
+A credential of another issuer, one past its window and one of another name are each refused,
+and the session does not start. Planted: the window not checked, and the test of the lapsed
+credential fails.
+
+## Start condition
+
+GitHub #225's author lifts [DEFERRED], or the owner orders it.
+
+# T-767: `relay serve --cover` takes the unauthenticated documents off the public listener, and a test lists each public route
+
+**Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Unauthenticated surfaces
+removed" and its rules SURF-1 to SURF-3; its section "Relations" (PodUtils/podnet#168, the
+surface half). Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The role answers `/health`, `/relays.json`, `/trace`, `/llms-full.txt` and `/v1/probe/*` to anyone.
+Each tells an observer what the server is. The tester asks that they leave the public listener for
+a local socket, that the token mint be the only public endpoint (a `POST` with a body), and that a
+test fail when a new unauthenticated route appears without an entry in an allow-list.
+
+## Premise
+
+- The router: `crates/podssh-relay/src/serve/mod.rs:254-281`; the list of the role's own paths,
+  `crates/podssh-relay/src/serve/mod.rs:205-208`.
+- The probes need no token (`crates/podssh-relay/src/serve/probe.rs:11`).
+- These documents are the relay contract's, which podssh's clients read from any relay host:
+  `docs/relay.md:63-66` and the section "Diagnostics" (`docs/relay.md:718-722`); `podssh relay
+  spec`, `relay status`, `relay info` and `relay trace` ask them, and `doctor --stream` asks the
+  probes.
+- The role has no local control socket: no file of `crates/podssh-relay/src/serve/` binds a
+  `UnixListener` (searched 2026-11-13).
+
+## Approach
+
+1. The surfaces leave the public listener only with `--cover` (T-764): a role that answers as
+   itself keeps its contract. Under `--cover`, the documents and the probes are served on a unix
+   socket of the owner's (mode 0600), which `podssh relay status --socket PATH` reads; on the
+   public listener they get the cover's 404 (SURF-1).
+2. Under `--cover`, `/v1/mint` takes only a `POST` with a body (SURF-2); a key's signed mint
+   (T-448) is already a POST with a body.
+3. A test enumerates the router's public routes (a table that the router and the test share)
+   and fails on a route that is not in the allow-list (SURF-3), with or without `--cover`.
+
+## Decision
+
+2026-11-13. The surfaces leave the public listener only under `--cover`. Lost: removing them for
+every role, as SURF-1 reads, since they are the relay contract that podssh's own clients read
+from each relay host (the rank, `relay spec`, `doctor --stream`); a role with no cover gains
+nothing by hiding them, as its name is a relay's. A change of the contract itself would be the
+operator's. The issue's title is marked "[DEFERRED]": so P3, `backlog`, `open`, and the entry is
+in "Parked open work" of `TODO/PROGRESS.md`. Lost: P2 in M10, and `blocked` (the author's mark is a
+start condition).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve --lib serve
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes --test relay_serve_contract
+```
+
+Under `--cover`, each document's path on the public listener gets the cover's 404 and the socket
+answers it; without, the contract's tests pass unchanged. Planted: a new route added to the router
+alone, and the enumeration test fails.
+
+## Start condition
+
+GitHub #225's author lifts [DEFERRED], or the owner orders it.
+
+# T-768: One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed
+
+**Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Certificate hygiene per
+deployment" and its rules CERT-1 and CERT-2. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+Two deployments that present one wildcard certificate are linked by it. The tester asks for one
+name per relay, from a public CA, renewed automatically, no wildcard shared across deployments;
+and that a name whose node is gone fail closed.
+
+## Premise
+
+- `--acme NAME` gives one name from a public CA, renewed in the role; `--cert FILE` takes any chain
+  (`crates/podssh-cli/src/flags/relay.rs:54-59`), with no check of a wildcard.
+- A published name is refused with a wildcard (`crates/podssh-relay/src/serve/published.rs:67`).
+- CERT-2 holds for a published name: a pair that ended, or none of that name, closes the
+  connection, and no TLS of the role answers for it
+  (`crates/podssh-relay/src/serve/reverse/publish.rs:48-55`).
+
+## Approach
+
+1. `relay serve --cert` with a chain whose leaf names a wildcard, or more than one name, says so
+   on its first line (a warning, not a refusal: the owner may have one name's wildcard), and
+   `--cover` (T-764) refuses it.
+2. The manual's section of `relay serve` says why one name per deployment, and that `--acme` is
+   the way to it.
+3. A test of CERT-2 at the listener: a published name whose pair ended gets a closed connection,
+   never the role's certificate.
+
+## Decision
+
+2026-11-13. A warning, not a refusal, without `--cover`. Lost: a refusal of each wildcard, which
+would break owners who use one name's wildcard for one deployment. The issue's title is marked
+"[DEFERRED]": so P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10, and `blocked` (the author's mark is a start condition).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve --lib serve
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_publish
+```
+
+A wildcard leaf gets the warning, and under `--cover` the refusal; a lapsed published name gets no
+certificate. Planted: the check of the leaf's names skipped, and the test fails.
+
+## Start condition
+
+GitHub #225's author lifts [DEFERRED], or the owner orders it.

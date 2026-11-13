@@ -287,6 +287,8 @@ and num-bigint 0.5) are T-754.
 | #221 | COORD-046: pod-relay's HTTP road: the invariants 6 to 10 of GitHub #55 (to podcrates) | open (2026-11-13: asked; podcrates' T-476, COORD-068) | T-319 |
 | #222 | COORD-047: pod-relay's HTTP road, serial form: an SSH session stalls when the bytes down block the bytes up (to podcrates) | open (2026-11-13: asked, with a tested patch) | T-319 |
 | #223 | COORD-048: podssh took podcrates v0.35.0 at 418e31d (to podcrates) | open (2026-11-13: posted) | T-684 |
+| #224 | [DEFERRED] Make the WebSocket and HTTP/2 roads indistinguishable from what they claim | open (2026-11-13: filed as T-757 to T-763, parked: [DEFERRED]) | T-757, T-758, T-759, T-760, T-761, T-762, T-763 (the rows of its table, one entry each; a `:protocol` other than `websocket` is T-499's road, CONNECT-3) |
+| #225 | [DEFERRED] Serve a cover site and delegate the handshake with a temporary credential | open (2026-11-13: filed as T-764 to T-768, parked: [DEFERRED]) | T-764, T-765, T-766, T-767, T-768 (the rows of its table, one entry each) |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

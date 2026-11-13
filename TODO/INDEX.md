@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**711 entries: 62 open, 18 partial, 10 blocked, 621 done.**
+**723 entries: 74 open, 18 partial, 10 blocked, 621 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 70 | 79 |
 | P2 | 22 | 8 | 1 | 269 | 300 |
-| P3 | 36 | 8 | 6 | 281 | 331 |
-| **All** | 62 | 18 | 10 | 621 | 711 |
+| P3 | 48 | 8 | 6 | 281 | 343 |
+| **All** | 74 | 18 | 10 | 621 | 723 |
 
 ## Entries
 
@@ -787,3 +787,15 @@ repository and CI).
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
 | [T-755](ws.md) | P3 | L | none | feature | partial | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
 | [T-756](robustness.md) | P2 | S | M10 | defect | partial | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |
+| [T-757](ws.md) | P3 | M | backlog | feature | open | VLESS's first write coalesced to one write of 3,333 bytes, padded when short |
+| [T-758](ws.md) | P3 | M | backlog | feature | open | A replay window for early data: each 0-RTT nonce kept 10 minutes, a repeat refused and the session at 1-RTT |
+| [T-759](ws.md) | P3 | S | backlog | feature | open | XHTTP's split behind a proxy that buffers responses, its two-request shape asserted, and `doctor`'s word on stream-one over HTTP/1.1 |
+| [T-760](ws.md) | P3 | M | backlog | feature | open | Conformance vectors of Shadowsocks, Trojan and VMess in `pod-testkit`, run the same way for each road |
+| [T-761](ws.md) | P3 | S | backlog | feature | open | Trojan's UDP associate: `doctor` states the refusal |
+| [T-762](ws.md) | P3 | M | backlog | feature | open | The HTTP/2 road's extended CONNECT behind a proxy that refuses `Upgrade`, its fallback within 1 s |
+| [T-763](ws.md) | P3 | L | backlog | feature | open | The HTTP/2 client's shape as a browser's: SETTINGS and their order, header order, PRIORITY and padding, as data |
+| [T-764](relay.md) | P3 | M | backlog | feature | open | `relay serve` serves a static cover site for each cover name, and an unknown name gets the site's own 404 |
+| [T-765](relay.md) | P3 | L | backlog | feature | open | The delegated handshake, server side: a temporary credential under the name's own chain for an authenticated client |
+| [T-766](relay.md) | P3 | M | backlog | feature | open | The delegated handshake, client side: podssh verifies the temporary credential against the same chain and name |
+| [T-767](relay.md) | P3 | M | backlog | feature | open | `relay serve --cover` takes the unauthenticated documents off the public listener, and a test lists each public route |
+| [T-768](relay.md) | P3 | S | backlog | feature | open | One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed |

@@ -111,7 +111,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 711 entries: 62 open, 18 partial, 10 blocked, 621 done.
+`TODO/INDEX.md` holds 723 entries: 74 open, 18 partial, 10 blocked, 621 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -228,6 +228,18 @@ it can start.
 | T-567 | T-565 is done: the module for a tunnel of HTTP made by `ssh -R` exists |
 | T-575 | T-497 is done: the road has public servers in order |
 | T-622 | T-319 is done: the HTTP road's split and serial forms exist |
+| T-757 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-758 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-759 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-760 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-761 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-762 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-763 | GitHub #224's author lifts [DEFERRED], or the owner orders it |
+| T-764 | GitHub #225's author lifts [DEFERRED], or the owner orders it |
+| T-765 | GitHub #225's author lifts [DEFERRED], or the owner orders it |
+| T-766 | GitHub #225's author lifts [DEFERRED], or the owner orders it |
+| T-767 | GitHub #225's author lifts [DEFERRED], or the owner orders it |
+| T-768 | GitHub #225's author lifts [DEFERRED], or the owner orders it |
 
 ## Questions for the operator
 

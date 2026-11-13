@@ -3463,3 +3463,452 @@ session with no change to its code. Written:
   2780 passed, 0 failed.
 - Waits, so the entry stays partial: the live run with a tester's tunnel from Actions, where a tester gives one
   (asked on #215).
+
+# T-757: VLESS's first write coalesced to one write of 3,333 bytes, padded when short
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "VLESS first-write coalescing"
+and its rules COALESCE-1 to COALESCE-3. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A VLESS session's first bytes go out as they come: the request in the first message, then
+whatever the session writes. The size of that first write, and the writes after it, tell an
+observer what the stream carries. The tester asks for one first write of a fixed size, 3,333
+bytes, padded where the session had less, done once.
+
+## Premise
+
+- The request rides the first binary message of the WebSocket form:
+  `crates/podssh-ws/src/vless/ws.rs:8` says "No early data goes in", and
+  `crates/podssh-ws/src/vless/ws.rs:52` sends `first` as one message, with no coalescing of the
+  session's bytes after it.
+- The server answers with the target's first bytes (`crates/podssh-ws/src/vless/header.rs:7-9`),
+  and a pipe waits `EARLY_WAIT` for an end (`crates/podssh-ws/src/vless/mod.rs:41-43`).
+- The issue reads that vless/link.rs records a 3,333-byte first-write target that no code
+  reaches. That does not hold on `fb78681`: `crates/podssh-ws/src/vless/link.rs` is the share
+  link's reader, and no source file of the workspace holds 3333 as a size (searched 2026-11-13).
+  The target is the issue's number, not podssh's.
+- VLESS's code is podssh's own (`crates/podssh-ws/src/vless/`), not a crate of PodUtils/podcrates.
+
+## Approach
+
+1. The first write of a session: VLESS's request and the session's first bytes gathered for at
+   most a short wait, then written as one message of exactly 3,333 bytes of payload where the
+   protocol allows padding (the XHTTP forms carry padding already,
+   `crates/podssh-ws/src/vless/xhttp.rs:4-6`); a short first write is padded and the session
+   records that it was short (COALESCE-2).
+2. Coalesce once (COALESCE-3): a flag on the session, and a test that a second coalesce cannot
+   happen.
+3. On a slow link the one write is bounded by the pacing of the degraded profile (COALESCE-1).
+4. Where Xray-core's VLESS has no room for padding in the WebSocket form, say so in the entry's
+   Correction and pad only the forms that carry it.
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later, and nothing of podssh's
+documented behaviour is wrong without it); a `blocked` status (nobody outside has to act; the
+author's mark is a start condition, not a blocker).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --test vless
+cargo test -p podssh-ws --lib vless
+```
+
+A capture at the stand-in's side shows one first message of 3,333 bytes; a session whose first
+bytes are 10 shows one padded message and its record of a short write; against Xray-core
+(`scripts/interop-vless.sh`) each session still carries. Planted: a second coalesce, and the test
+of once fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-758: A replay window for early data: each 0-RTT nonce kept 10 minutes, a repeat refused and the session at 1-RTT
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "0-RTT replay window" and
+its rules REPLAY-1 and REPLAY-2; its section "Relations" (PodUtils/podnet#472 owns the record
+layer). Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Early data that a server accepts without a record of what it saw can be replayed. The tester
+asks that each early-data nonce be kept for 10 minutes and a repeat refused, with the session
+falling back to 1-RTT inside itself rather than opening a second one.
+
+## Premise
+
+- podssh sends no early data today: the client's TLS is `pod-tls` of PodUtils/podcrates
+  (`crates/podssh-ws/src/tls.rs:1-4`), and no file of `crates/podssh-ws/src/` holds early data or
+  0-RTT (searched 2026-11-13); TLS resumes, across runs, only once T-672 is unblocked.
+- The relay role's TLS server is `pod-tls`'s too (`crates/podssh-ws/src/tls_server.rs:12`).
+- The VLESS road's WebSocket form puts no early data in a header
+  (`crates/podssh-ws/src/vless/ws.rs:8`).
+- `pod-tls` is a crate that podssh took (`TODO/PROGRESS.md`, state item 7), so its work is done in
+  PodUtils/podcrates (Rule Q3, `docs/decisions.md`); the record layer and its replay window are
+  PodUtils/podnet#472's, which the issue names as the one implementation to share.
+
+## Approach
+
+1. When the entry starts, ask PodUtils/podcrates by a COORD issue `(to podcrates)` for the
+   replay window in `pod-tls` (or the shared record layer of PodUtils/podnet#472): a map of each
+   accepted early-data nonce for 10 minutes, bounded in size, and a refusal of a repeat that
+   leaves the handshake at 1-RTT on the same connection (REPLAY-2).
+2. podssh takes the tag, and no road of podssh's enables early data without the window: a test
+   asserts that a configuration with early data has the window.
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later; podssh sends no early data,
+so nothing replays now); a `blocked` status (the author's mark is a start condition). The code
+belongs in PodUtils/podcrates (Rule Q3), asked by a COORD issue when the work starts; lost: a
+window in `podssh-ws` beside `pod-tls`, a second implementation that the issue's Relations
+rule out.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib tls
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_contract
+```
+
+In podcrates's tests: a nonce sent twice within 10 minutes is refused the second time and the
+session completes at 1-RTT; at 10 minutes and one second it is new. Planted: the map not
+consulted, and the repeat is accepted; the test fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-759: XHTTP's split behind a proxy that buffers responses, its two-request shape asserted, and `doctor`'s word on stream-one over HTTP/1.1
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "XHTTP split under a
+buffering proxy" and its rules XHTTP-1 to XHTTP-3. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+XHTTP's split modes carry a session on two requests: the download as one response, the upload
+as POSTs. A proxy that buffers a response until it ends would hold the download forever, and no
+test runs the split behind one. The tests check the bytes that arrive, not that the session was
+two requests in two directions.
+
+## Premise
+
+- The split is a stream of two halves (`crates/podssh-ws/src/vless/split.rs:1-4`).
+- `docs/STATUS.md:277` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
+  front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1000` records packet-up and stream-up
+  over HTTP/1.1 on two connections, and stream-one alone refused
+  (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
+  `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:
+  keep stream-one's refusal, and say why in `doctor`.
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:91-92`).
+
+## Approach
+
+1. A stand-in proxy in the test that buffers each response whole before it passes it on (as some
+   corporate proxies do), in front of the stand-in of `crates/podssh-ws/tests/vless.rs`; the
+   split modes' behaviour behind it is measured: packet-up should pass (each download is a short
+   response), stream-up and stream-one stall. The road's line names the buffering where it can
+   tell, and `auto` moves to packet-up.
+2. The stand-in counts requests and their methods: the test asserts one GET down and POSTs up
+   (XHTTP-2), not only the echo.
+3. `doctor --vless` says, for a link of stream-one over HTTP/1.1, the reason of
+   `crates/podssh-ws/src/vless/h1_modes.rs:29-30` (XHTTP-3).
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later; the documented modes work
+against the servers of record); a `blocked` status (the author's mark is a start condition).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --test vless
+cargo test -p podssh-cli --lib doctor
+```
+
+Behind the buffering stand-in, packet-up carries 1 MiB each way, and the request count shows two
+directions; stream-up names the buffering and does not stall past its bound. Planted: the shape's
+assertion against a stand-in that merges the halves, and the test fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-760: Conformance vectors of Shadowsocks, Trojan and VMess in `pod-testkit`, run the same way for each road
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Conformance vectors for
+Shadowsocks, Trojan, VMess" and its rules VEC-1 to VEC-5. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The tester asks that each encrypted road's codec be held to bytes that another implementation
+made (VEC-5: our client against our server proves only that the two agree), and that the vectors
+live in one place, `pod-testkit`, so that each road is tested the same way.
+
+## Premise
+
+The issue reads that none of the three is tested against a published vector. On `fb78681` more
+is there than that, but not in one place:
+
+- Shadowsocks' AEAD form: known answers that Python's `hashlib` and the `cryptography` package
+  computed, and a codec written from the specification in the test
+  (`crates/podssh-ws/tests/shadowsocks.rs:1-9`); the encoder takes a fixed salt for vectors
+  (`crates/podssh-ws/src/shadowsocks/codec.rs:144`). SIP022 has no TCP vectors in its
+  specification (`crates/podssh-ws/tests/shadowsocks_2022.rs:11-12`).
+- Trojan: stand-ins on the loopback, and the runs against trojan-gfw, trojan-go and Xray-core in
+  `scripts/interop-trojan.sh` (`crates/podssh-ws/tests/trojan.rs:12-13`).
+- VMess's AEAD form against Xray-core (`crates/podssh-ws/tests/vmess.rs:1-9`). An `aid` above 0
+  (the MD5 form, `alterId`) is refused by name (`crates/podssh-ws/src/vmess/link.rs:64-66`).
+- `pod-testkit` is a crate that podssh took (`TODO/PROGRESS.md`, state item 7); its work is
+  done in PodUtils/podcrates (Rule Q3, `docs/decisions.md`). PodUtils/podnet#471 scopes
+  Shadowsocks and Trojan as services at a peer, with the published vectors as its acceptance.
+
+## Approach
+
+1. Ask PodUtils/podcrates by a COORD issue `(to podcrates)` for a module of vectors in
+   `pod-testkit`: SIP004's subkey (HKDF-SHA1 over the master key and the salt) and a first chunk
+   for `chacha20-poly1305` and `aes-256-gcm` (VEC-1), from a reference implementation's run
+   (shadowsocks-rust or the Python package) with the source named; a VMess request captured from
+   Xray-core's client with a fixed ID, time and nonce (VEC-2); and a runner that takes a road's
+   codec and a vector.
+2. podssh moves its known answers there and runs them through the runner for each road;
+   `alterId`: the fixture of `aid` 0 matches, and a link of `aid` above 0 stays refused by name
+   (VEC-3).
+3. The Trojan interop of `scripts/interop-trojan.sh` stays the reference server's test (VEC-2),
+   now named in CI's list of what each road is held to.
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later; each road already meets a
+server that podssh did not write); a `blocked` status (the author's mark is a start condition).
+The shared vectors belong in `pod-testkit` of PodUtils/podcrates (Rule Q3), asked by a COORD
+issue when the work starts.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --test shadowsocks --test vmess --test trojan
+```
+
+The vectors of `pod-testkit` pass for each method; a byte changed in a vector fails its road's
+test. Planted: the HKDF's info string changed in podssh's codec, and the SIP004 vector fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-761: Trojan's UDP associate: `doctor` states the refusal
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Trojan UDP associate" and
+its rule VEC-6. Read here on `fb78681`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+podssh's Trojan road speaks CONNECT alone. A user who asks what a Trojan server can carry learns
+of UDP only from the source. The tester accepts either outcome: UDP associate built, or a line of
+`doctor` that states the refusal.
+
+## Premise
+
+- `crates/podssh-ws/src/trojan/request.rs:12` says "is not spoken" of UDP's command, and the
+  request writes CONNECT alone (`crates/podssh-ws/src/trojan/request.rs:13`).
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:91-92`)
+  and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
+  2026-11-13).
+
+## Approach
+
+1. `doctor` gets a line for a Trojan server (beside `--vless`'s): its TLS, its answer to a
+   CONNECT, and "UDP associate: not spoken by podssh", with why.
+2. The manual's note of the Trojan road says the same.
+
+## Decision
+
+2026-11-13. Of VEC-6's two outcomes, the line of `doctor`: it is the issue's own accepted outcome
+and a day's work. Lost: the implementation of UDP associate (`0x03` and the UDP framing of
+trojan-gfw), as no user of podssh asked for UDP through a Trojan server; it becomes its own
+entry when one does. The issue's title is marked "[DEFERRED]": so P3, `backlog`, `open`, and the
+entry is in "Parked open work" of `TODO/PROGRESS.md`. Lost: P2 in M10, and `blocked` (the
+author's mark is a start condition).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib doctor
+cargo test -p podssh-ws --test trojan
+```
+
+`doctor` against the Trojan stand-in prints the line of UDP. Planted: the line removed, and the
+test fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-762: The HTTP/2 road's extended CONNECT behind a proxy that refuses `Upgrade`, its fallback within 1 s
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "HTTP/2 extended CONNECT"
+and its rules CONNECT-1 to CONNECT-4. Read here on `fb78681`, and PodUtils/podcrates at
+`45b145a`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The HTTP/2 road exists, with its fallback to HTTP/1.1's upgrade, but no test drives it through a
+middlebox that strips `Upgrade` from HTTP/1.1 (where only the h2 road can carry a session), nor
+through one that strips the `:protocol` pseudo-header (where the fallback must be chosen fast,
+not after a stall).
+
+## Premise
+
+- `crates/podssh-ws/src/h2_road/mod.rs:1-4` says the road is `pod-ws`'s of PodUtils/podcrates,
+  re-exported (`crates/podssh-ws/src/h2_road/mod.rs:8-11`). `pod-ws` is taken (`TODO/PROGRESS.md`,
+  state item 7), so its work is done in PodUtils/podcrates (Rule Q3, `docs/decisions.md`).
+- Read at `45b145a`: PodUtils/podcrates:crates/pod-ws/tests/h2_road.rs tests eight sessions on
+  one TLS connection, a server that offers no extended CONNECT, one whose TLS chooses http/1.1,
+  a 403 on the CONNECT and a lost connection; none behind a proxy that refuses `Upgrade`, and
+  none with a fallback bound in time.
+- `crates/podssh-relay/tests/relay_serve_h2.rs:1-12`: eight sessions on one TLS connection at
+  podssh's relay role (CONNECT-4 is met there; the issue's gate keeps it).
+- The issue's CONNECT-3: `:protocol websocket` carries RFC 6455 frames; a raw byte stream over
+  extended CONNECT is another road. IETF's connect-tcp is that road, parked as T-499.
+
+## Approach
+
+1. Ask PodUtils/podcrates by a COORD issue `(to podcrates)` for two cases in `pod-ws`'s tests: a
+   stand-in proxy in front of the h2 server that refuses an HTTP/1.1 `Upgrade` (400 or a stripped
+   header), where the h2 road carries the session; and one whose CONNECT answers without the
+   setting honoured (the pseudo-header stripped, a 400 on the stream), where the fallback is
+   chosen within 1 s (CONNECT-2).
+2. podssh takes the tag and runs the same two through its relay role's road
+   (`relay_serve_h2`), with the assertion of two sessions on one connection kept.
+3. No non-WebSocket `:protocol` here (CONNECT-3): that is T-499.
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later), and `blocked` (the author's
+mark is a start condition). The row's second half, a `:protocol` other than `websocket`, is not
+filed again: CONNECT-3 itself calls it a second road, which T-499 holds. The tests belong in
+`pod-ws` of PodUtils/podcrates (Rule Q3), asked by a COORD issue when the work starts.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2
+```
+
+Behind the stand-in that refuses `Upgrade`, a session completes over h2; with `:protocol`
+stripped, the HTTP/1.1 fallback starts within 1 s. Planted: the fallback's wait set to 30 s, and
+the test fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
+
+# T-763: The HTTP/2 client's shape as a browser's: SETTINGS and their order, header order, PRIORITY and padding, as data
+
+**Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Browser HTTP/2 shape" and
+its rules H2-1 and H2-2. Read here on `fb78681`, and PodUtils/podcrates at `45b145a`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+An HTTP/2 client is told apart by its first frames: which SETTINGS it sends, in which order and
+with which values, the order of its pseudo-headers and headers, its PRIORITY frames and its
+padding. podssh's h2 road sends the `h2` crate's defaults with its own windows, which no browser
+sends. The tester asks for a browser's shape, kept as data, and that a road advertise only what
+its vectors cover.
+
+## Premise
+
+- The road is `pod-ws`'s (`crates/podssh-ws/src/h2_road/mod.rs:8-11`), a crate that podssh took
+  (`TODO/PROGRESS.md`, state item 7; Rule Q3, `docs/decisions.md`).
+- Read at `45b145a`: PodUtils/podcrates:crates/pod-ws/src/h2_road/dial.rs sets the initial
+  windows and turns push off (line 78 at `45b145a`), and nothing else of the shape.
+- `crates/podssh-cli/src/doctor/http2.rs:1-8`: `doctor`'s line of the road reads what a host
+  offers, not what podssh sends.
+
+## Approach
+
+1. Record a reference: a current Chrome's and Firefox's first frames to a test server
+   (SETTINGS ids, values and order; WINDOW_UPDATE; the order of pseudo-headers and headers;
+   PRIORITY; padding), as a data file with its date and the browser's version.
+2. Ask PodUtils/podcrates by a COORD issue `(to podcrates)` for a shape that `pod-ws` takes as
+   data, with what the `h2` crate cannot set named (it fixes some of the order); where it cannot
+   be met, the entry's Correction says which fields.
+3. podssh picks a shape by a setting, and `doctor` names it (H2-2: advertise only what is
+   covered).
+
+## Decision
+
+2026-11-13. The issue's title is marked "[DEFERRED]": its author asks that the work be recorded
+and done later. So: P3, `backlog`, `open`, and the entry is in "Parked open work" of
+`TODO/PROGRESS.md`. Lost: P2 in M10 (the author asked for it later), and `blocked` (the author's
+mark is a start condition). The frames are `pod-ws`'s, so the work is asked of PodUtils/podcrates
+by a COORD issue when it starts (Rule Q3).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2
+```
+
+A capture of the first frames matches the recorded reference field by field, and a session still
+carries. Planted: one SETTINGS value changed in the shape, and the comparison fails.
+
+## Start condition
+
+GitHub #224's author lifts [DEFERRED], or the owner orders it.
