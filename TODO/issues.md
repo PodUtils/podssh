@@ -295,6 +295,7 @@ and num-bigint 0.5) are T-754.
 | #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | open (2026-11-13: posted) | T-684 |
 | #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | open (2026-11-13: podcrates' entry 528 in work; podssh takes its next tag; the body's state amended) | T-738 |
 | #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | open (2026-11-13: answered, podcrates' entry 531 at `4fc66f2`, in `v0.40.0`, not tagged; podssh names its tests in T-771 at the take; the body's state amended) | T-771 |
+| #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-13: posted) | T-776 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

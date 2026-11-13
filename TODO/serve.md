@@ -2517,7 +2517,7 @@ The entries of the implementation are filed: T-775 (route 1 in `pty::open`, the 
 T-776 (route 2a with pod-term's discipline, the line `pty notify`, the test `serve_tty`), T-777 (route
 2b, the line `pty ptrace`) and T-778 (the box's profile that refuses `unshare`, `mount`, `setns` and
 `ptrace`); the order of the routes is written in T-775's Decision, as it changes no ruling of
-`docs/decisions.md`; pod-term's mode that follows a termios is asked of podcrates by a COORD issue.
+`docs/decisions.md`; pod-term's mode that follows a termios is asked of podcrates as COORD-055 (#232).
 Left: this entry's Prove, which needs T-775 to T-778, and the doctor lines in both real sandboxes,
 run by the operator's agents.
 
