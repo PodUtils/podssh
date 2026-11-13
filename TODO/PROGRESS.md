@@ -74,10 +74,9 @@ item whenever it appears.
    of tonight). Each is partial, waiting for its next failure, and comes before any other work. Done
    when a failure is repaired and its entry closed, or the night ends with none; T-756 closes once
    the gate ran the suite a few times with no recurrence.
-3. **The serve entries that T-248 filed** (offline): T-778 (the box's profile), then T-775 (route 1),
-   T-776 (route 2a, after podcrates' answer on pod-term's mode) and T-777; drafts of them may run
-   beside the merges. Each built, tested and its plants run, then
-   closed or left partial as its Prove says.
+3. **The serve entries that T-248 filed** (offline): T-778 and T-775 are done (2026-11-13); T-776
+   (route 2a) and T-777 (route 2b) are blocked on pod-term's mode that follows a termios (COORD-055,
+   #232), and open again at the tag that brings it.
 4. **Close what the partial entries of M5 can close** (offline): T-107, T-108, T-109, T-110, T-112,
    T-114 and T-222: the `cargo todo remap` and `cargo todo counts` that their `## Done` lists, then
    each stays partial only for its run in the build image (T-251).
@@ -124,7 +123,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 65 open, 28 partial, 10 blocked, 630 done.
+`TODO/INDEX.md` holds 733 entries: 63 open, 28 partial, 12 blocked, 630 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

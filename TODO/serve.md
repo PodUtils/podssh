@@ -3135,7 +3135,7 @@ namespace, so it would pass; the plant is the route never tried (`t775-devpts-ne
 **Milestone:** M5
 **Priority:** P2
 **Effort:** L
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -3177,6 +3177,12 @@ Through `podssh serve --stdio` with no `/dev/ptmx` and `unshare` refused: `test 
 ending `sleep 30` with 130, and vi, less and top with their screens read. Planted defect: `TCGETS`
 answered with an error; `test -t 0` then fails, and the test fails.
 
+## Blocker
+
+PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055,
+#232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): its supervisor answers the tty calls from a termios state that drives that mode. podssh takes it by
+that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
+
 # T-777: `podssh serve` answers a child's tty calls by ptrace where user notification is refused
 
 **Source:** T-248's study (2026-11-13, [docs/research/serve-tty.md](../docs/research/serve-tty.md), route 2b).
@@ -3184,7 +3190,7 @@ answered with an error; `test -t 0` then fails, and the test fails.
 **Milestone:** M5
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -3217,3 +3223,10 @@ cargo test -p podssh-cli --test serve_tty -- ptrace
 
 With user notification refused and `ptrace` allowed, `test -t 0` and `stty size` in the child. Planted
 defect: `TIOCGWINSZ` passed to the kernel; `stty size` fails, and the test fails.
+
+## Blocker
+
+PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055,
+#232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): it answers the same calls from the same state as T-776, whose mode is that one. podssh takes it by
+that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
+
