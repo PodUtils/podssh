@@ -14336,7 +14336,13 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   The refusals at the node: `a_bad_podssh_filehosts_is_refused_with_78_at_each_end_before_anything_connects`
   passed; without the feature, the target builds with 0 tests; `filehost_live` says "did not run"; clippy with
   `podssh-cli/filehost,podssh-relay/filehost`: clean once the stand-in's type of two lists was named;
-  `cargo test -p podssh-cli --no-fail-fast`: 2,278 passed, 0 failed. `filehost_live` from Actions: after the push.
+  `cargo test -p podssh-cli --no-fail-fast`: 2,278 passed, 0 failed. `filehost_live` from Actions
+  (`filehost-live.yml`, run 43418881497, one sealed piece of 1 KiB through each host): temp.sh up, down and opened in
+  817 ms; tmpfiles.org took the upload and answered its download 302; litterbox.catbox.moe and 0x0.st reached no end
+  within 300 s (0x0.st said busy, and the piece went to the next host). Repaired for tmpfiles.org's answer: a download
+  that its host sends elsewhere on itself is followed once (a path alone is made absolute on that host), and a
+  redirect that is not followed names its URL (`filehost::http::redirect`, tested). Next: the live run again, for the
+  redirect's target and for the two hosts that gave no end.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.

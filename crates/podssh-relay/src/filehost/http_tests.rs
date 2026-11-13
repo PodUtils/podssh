@@ -309,3 +309,31 @@ async fn the_carrier_moves_a_piece_through_the_http_host() {
     assert_eq!(got, piece);
     assert!(stand_in.kept().files.is_empty(), "deleted once read");
 }
+
+fn moved(status: u16, location: &str) -> pod_proxy::http::Response {
+    pod_proxy::http::Response {
+        status,
+        reason: String::new(),
+        headers: vec![("location".into(), location.into())],
+        body: Vec::new(),
+        url: String::new(),
+    }
+}
+
+/// A download that a host sends elsewhere on itself: a path alone is on
+/// the host that sent it; a full URL stays as it is, for `owns` to judge;
+/// another status, or no Location, is no redirect.
+#[test]
+fn a_redirect_of_a_download_is_made_absolute_on_its_host() {
+    let from = "https://files.example/dl/abc/piece";
+    assert_eq!(
+        redirect(&moved(302, "/dl/abc/piece?x=1"), from).as_deref(),
+        Some("https://files.example/dl/abc/piece?x=1")
+    );
+    assert_eq!(redirect(&moved(301, "https://files.example/abc"), from).as_deref(), Some("https://files.example/abc"));
+    assert_eq!(redirect(&moved(307, "//elsewhere.example/x"), from).as_deref(), Some("//elsewhere.example/x"));
+    assert_eq!(redirect(&moved(200, "/x"), from), None);
+    let mut none = moved(302, "");
+    none.headers.clear();
+    assert_eq!(redirect(&none, from), None);
+}

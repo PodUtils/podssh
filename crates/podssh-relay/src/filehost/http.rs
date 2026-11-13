@@ -89,6 +89,23 @@ pub fn place(url: &str) -> Result<(Server, String), String> {
     Ok((server, path))
 }
 
+/// Where a redirect of `answer` points, made absolute against its host:
+/// none for another status, or with no `Location`.
+fn redirect(answer: &pod_proxy::http::Response, from: &str) -> Option<String> {
+    if !matches!(answer.status, 301 | 302 | 303 | 307 | 308) {
+        return None;
+    }
+    let to = answer.header("location")?.trim();
+    // A path alone is on the host that sent it.
+    match (to.strip_prefix('/'), from.strip_prefix("https://")) {
+        (Some(path), Some(rest)) if !to.starts_with("//") => {
+            let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+            Some(format!("https://{authority}/{path}"))
+        }
+        _ => Some(to.to_string()),
+    }
+}
+
 /// The wait that a 429 or a 503 asks for, in its `Retry-After` seconds.
 fn busy(answer: &pod_proxy::http::Response) -> Option<Refusal> {
     if answer.status != 429 && answer.status != 503 {
@@ -139,13 +156,27 @@ impl Host for HttpHost {
                 return Err(Refusal::Failed(format!("{}: a download of another host", self.form.id)));
             }
             let method = if self.form.fetch_post { "POST" } else { "GET" };
-            let answer = self.request(method, &at, &[("Accept", "*/*")], &[], most).await?;
+            let mut answer = self.request(method, &at, &[("Accept", "*/*")], &[], most).await?;
+            // A host may send its download elsewhere on itself: followed
+            // once, and only to a URL of that host, as a note's URL is held.
+            if let Some(next) = redirect(&answer, &at) {
+                if !self.owns(&next) {
+                    return Err(Refusal::Failed(format!(
+                        "{} answered {} to a download, to {next}: not this host",
+                        self.form.id, answer.status
+                    )));
+                }
+                answer = self.request("GET", &next, &[("Accept", "*/*")], &[], most).await?;
+            }
             if let Some(refusal) = busy(&answer) {
                 return Err(refusal);
             }
-            match answer.status {
-                200 => Ok(answer.body),
-                status => Err(Refusal::Failed(format!("{} answered {status} to a download", self.form.id))),
+            match (answer.status, redirect(&answer, &at)) {
+                (200, _) => Ok(answer.body),
+                (status, Some(to)) => {
+                    Err(Refusal::Failed(format!("{} answered {status} to a download, to {to}", self.form.id)))
+                }
+                (status, None) => Err(Refusal::Failed(format!("{} answered {status} to a download", self.form.id))),
             }
         })
     }
