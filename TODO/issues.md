@@ -291,7 +291,8 @@ and num-bigint 0.5) are T-754.
 | #225 | [DEFERRED] Serve a cover site and delegate the handshake with a temporary credential | open (2026-11-13: filed as T-764 to T-768, parked: [DEFERRED]) | T-764, T-765, T-766, T-767, T-768 (the rows of its table, one entry each) |
 | #226 | COORD-049: podssh took podcrates v0.36.0 at 99b9642 (to podcrates) | closed 2026-11-13 (followed by COORD-050) | T-684 |
 | #227 | COORD-050: podssh took podcrates v0.37.0 and pod-warp at 812c61c (to podcrates) | closed 2026-11-13 (followed by COORD-051) | T-684 |
-| #228 | COORD-051: podssh took podcrates v0.38.0 at e47d508 (to podcrates) | open (2026-11-13: posted) | T-684 |
+| #228 | COORD-051: podssh took podcrates v0.38.0 at e47d508 (to podcrates) | closed 2026-11-13 (followed by COORD-052) | T-684 |
+| #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | open (2026-11-13: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
