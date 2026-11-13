@@ -2509,7 +2509,7 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:498`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:499`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
 status lost: the report and its JSON have three (`docs/cli.md:2946-2949`). The issue's grade by a
@@ -2585,8 +2585,8 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:498`), so whether it listens is not known. The box refuses each bind
-  (`scripts/box/seccomp.json:5-10`): it has no case of a bind allowed and a listen refused.
+  (`docs/STATUS.md:499`), so whether it listens is not known. The box refuses each bind
+  (`scripts/box/seccomp.json:11-18`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket
   bound. Inferred: each call and each family is a gate of its own, so one line cannot stand for
@@ -3962,3 +3962,10 @@ another met the last one's slot; the pause before each round is that finding's r
 2026-11-11: the gate's runs after this entry failed in `--test doctor_jobs` on each platform (build run 43011838227 and
 the four before it): the test of `--quick` listed its sections without `burst`, which this entry puts in `--quick` too.
 The test's list now holds it: `cargo test -p podssh-cli --test doctor_jobs`, 3 passed.
+
+2026-11-13: the gate of `d4966a3` failed once on macOS in `a_relay_that_resets_past_three_open_is_a_limit_of_three_with_jobs_1_or_not`:
+the three over the limit were `closed`, not `reset`. The stand-in reset each such connection at its accept, which
+races the client's hello: macOS answers that write with EPIPE (pod-proxy's `Cut::Closed`), Linux with ECONNRESET.
+A gateway resets after it read the hello, and the stand-in now does so, so the client's read meets the RST on each
+system; the test's words are unchanged. `cargo test -p podssh-cli --test doctor_burst`: 4 passed, 3 runs in 3 on Linux.
+

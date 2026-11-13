@@ -58,10 +58,19 @@ fn scratch(tag: &str) -> PathBuf {
     dir
 }
 
-/// A reset: the connection closed with no linger, as a gateway's RST.
+/// A reset: the connection closed with no linger, as a gateway's RST, after
+/// the client's first bytes, as a gateway resets once it read the hello. A
+/// reset before them races the client's write: macOS then answers that
+/// write with EPIPE, a close, where Linux says reset; after them, the
+/// client's read meets the RST on each system.
 fn reset(tcp: tokio::net::TcpStream) {
-    let _ = tcp.set_zero_linger();
-    drop(tcp);
+    tokio::spawn(async move {
+        let mut tcp = tcp;
+        let mut hello = [0u8; 4096];
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), tcp.read(&mut hello)).await;
+        let _ = tcp.set_zero_linger();
+        drop(tcp);
+    });
 }
 
 /// The relay on the runtime `runtime`: its port.

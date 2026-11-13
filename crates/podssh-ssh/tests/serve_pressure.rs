@@ -96,18 +96,23 @@ async fn first_line(channel: &mut Channel<client::Msg>) -> (i32, usize) {
     .expect("the first line in time")
 }
 
-/// The bytes of data that come within `time`.
-async fn read_for(channel: &mut Channel<client::Msg>, time: Duration) -> usize {
+/// The data of `channel` until `want` bytes came, or `limit` passed: the
+/// bytes and the time they took. A bound on bytes, not on a rate, as a slow
+/// runner's debug build moves a pty's output at a quarter of a fast one's.
+async fn read_until(channel: &mut Channel<client::Msg>, want: usize, limit: Duration) -> (usize, Duration) {
+    let started = Instant::now();
     let mut got = 0;
-    let _ = tokio::time::timeout(time, async {
-        while let Some(message) = channel.wait().await {
-            if let ChannelMsg::Data { data } = message {
-                got += data.len();
+    let _ = tokio::time::timeout(limit, async {
+        while got < want {
+            match channel.wait().await {
+                Some(ChannelMsg::Data { data }) => got += data.len(),
+                Some(_) => {}
+                None => break,
             }
         }
     })
     .await;
-    got
+    (got, started.elapsed())
 }
 
 fn runs(pid: i32) -> bool {
@@ -141,8 +146,10 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
     let grew = most.saturating_sub(before);
     assert!(grew < BOUND_KIB, "the memory grew by {grew} KiB while the client read nothing (pty: {on_pty})");
     assert!(runs(pid), "yes waits on its full output, it is not ended");
-    let more = read_for(&mut channel, Duration::from_secs(2)).await;
-    assert!(more > 1 << 20, "the session goes on after the stall: {more} bytes in 2 s");
+    // More than two windows (512 KiB each) must come: the window opened
+    // again after the stall, more than once.
+    let (more, took) = read_until(&mut channel, 1 << 20, Duration::from_secs(30)).await;
+    assert!(more >= 1 << 20, "the session goes on after the stall: {more} bytes in {took:?}");
     channel.close().await.unwrap();
     let deadline = Instant::now() + Duration::from_secs(5);
     while runs(pid) && Instant::now() < deadline {

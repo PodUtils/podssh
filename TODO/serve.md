@@ -990,13 +990,13 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:498`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:499`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:506`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:507`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
-  `connect()` (`scripts/test_in_box.sh:32-39`).
+  `connect()` (`scripts/test_in_box.sh:37-44`).
 
 ## Approach
 
@@ -1728,6 +1728,11 @@ moved to the forward's new lines. Results:
 The citations of the changed files were moved by `cargo todo remap` at the merge. Left: the Prove's
 `sh scripts/dev.sh check`, the run in the build image (T-251); CI's gate runs the same at each push.
 
+2026-11-13, after the gate of `d4966a3` (Linux, `gate (ssh)`): `yes_on_a_pty_with_a_client_that_reads_nothing_holds_the_memory`
+asked for 1 MiB within 2 s after the stall, and that runner's debug build gave 383,937 bytes: a rate, not the
+property. The test now reads until 1 MiB, more than two windows, within 30 s, and says the time it took.
+`cargo test -p podssh-ssh --test serve_pressure`: 3 passed.
+
 # T-119: `podssh serve`: the MOTD and `~/.hushlogin`
 
 **Source:** GitHub #19 (menhera-org/ssh-obi: the MOTD before the login shell,
@@ -2237,7 +2242,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:498`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:499`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -2293,7 +2298,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:461`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:462`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2311,10 +2316,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:497` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:461`, `docs/STATUS.md:481`),
+- `docs/STATUS.md:498` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:462`, `docs/STATUS.md:482`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:459` is `docs/STATUS.md:461`.
+  The Prove's `docs/STATUS.md:460` is `docs/STATUS.md:462`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2373,10 +2378,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:498`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:499`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:477`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:478`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2460,8 +2465,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:497`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:476`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:498`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:477`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2704,7 +2709,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1144` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:859-863`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2182-2183` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2187-2188` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".
