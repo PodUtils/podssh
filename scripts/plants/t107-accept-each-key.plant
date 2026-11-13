@@ -1,0 +1,6 @@
+# T-107: podssh serve accepts each key once any key is authorized, so that a
+# key that is not listed logs in; the test of the server core must fail.
+ENTRY=T-107
+GROUP=cli-tests
+EXPECT='test the_listed_key_logs_in_and_another_is_refused \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_auth -- the_listed_key_logs_in_and_another_is_refused'

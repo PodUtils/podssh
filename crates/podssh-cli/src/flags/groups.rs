@@ -12,6 +12,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ("Keys", &["keygen", "agent"]),
     ("Check this host and the path", &["doctor", "status", "ping", "health"]),
     ("The reverse road", &["node", "operator", "net", "exit", "share", "funnel"]),
+    ("An SSH server here", &["serve"]),
     ("Runs in the background", &["detached"]),
     ("Messages", &["chat"]),
     ("Recordings", &["play"]),

@@ -23,6 +23,7 @@ use super::notes_funnel::FUNNEL;
 use super::notes_proxy::PROXY;
 use super::notes_relay::RELAY;
 use super::notes_run::RUN;
+use super::notes_serve::SERVE;
 use super::notes_session::SESSION;
 use super::notes_share::SHARE;
 // ssh's own notes, then those of its roads to a server of the user's (T-441).
@@ -60,6 +61,7 @@ pub fn for_verb(name: &str) -> &'static [&'static str] {
         "update" => UPDATE,
         "config" => CONFIG,
         "mcp" => MCP,
+        "serve" => SERVE,
         "session" => SESSION,
         "detached" => DETACHED,
         "keygen" => KEYGEN,

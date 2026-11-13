@@ -29,6 +29,9 @@
 //!   after a probe of the way to it ([`sk`]).
 //! - the key that each host took last, signed in the first request of the
 //!   next login ([`accepted`]).
+//! - the server of `podssh serve`: russh's server over a stream it is
+//!   given, its host key in a state file, and the authorized keys
+//!   ([`server`]).
 
 // The key that each host took last, kept across runs (T-664).
 pub mod accepted;
@@ -94,6 +97,8 @@ pub use rsa_key::throwaway_login_key;
 pub mod run;
 // podssh's last messages, for the report of a failure (T-195).
 pub mod said;
+// The server of `podssh serve`, over a stream that it is given (T-107).
+pub mod server;
 pub mod session;
 pub mod sftp;
 pub mod signals;

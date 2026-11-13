@@ -202,6 +202,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Mcp(args) if refusals("mcp", &args.refused, s.err) => EXIT_USAGE,
         // The protocol is on the process's own stdin and stdout.
         Parsed::Mcp(args) => crate::mcp::run(args, s.err),
+        Parsed::Serve(args) if refusals("serve", &args.refused, s.err) => EXIT_USAGE,
+        // SSH is on the process's own stdin and stdout; its lines on stderr.
+        Parsed::Serve(args) => crate::serve::run(args, s.err),
         Parsed::Session(args) if refusals("session", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Session(args) => crate::session::run(args, s.out, s.err),
         Parsed::Detached(args) if refusals("detached", &args.refused, s.err) => EXIT_USAGE,

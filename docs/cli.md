@@ -5591,6 +5591,39 @@ the entry; nothing is written into a client's file. Another CLIENT is 64.
 `tests/mcp_client_config.rs` starts each printed entry and reads its
 `tools/list`.
 
+## `podssh serve`
+
+`podssh serve --stdio` (T-107, milestone M5) is podssh's own SSH server
+(russh's server, in `crates/podssh-ssh/src/server/`) for one connection on
+stdin and stdout, as `sshd -i`. Nothing listens: OpenSSH's client, or
+`podssh ssh`, reaches it through its `ProxyCommand`, so the gate tests it
+with OpenSSH and no port (`crates/podssh-cli/tests/serve_stdio.rs`). It runs
+as the user that started it and needs no passwd entry; at its start it
+gives up each capability of the process (T-698), before it reads a file.
+
+- **Authentication.** Public keys alone. The keys are each
+  `--authorized-key KEY` (a line of `authorized_keys`), and each line of
+  each `--authorized-keys FILE`; with neither flag, `~/.ssh/authorized_keys`.
+  A key is compared by its key data: the login name selects nothing. A line
+  with options before its key is not used, and is said, until T-114 reads
+  the options; a line that is no key is passed over. A key file that is a
+  symbolic link, another user's, or that others can change is refused (78).
+  No key at all refuses the start (78), so that no setting lets each key in.
+- **The host key.** `--host-key FILE`, else `serve_host_ed25519_key` in the
+  cache's first usable directory: an Ed25519 key made at the first start
+  (mode 0600, a whole file through a hard link), read at each later one, and
+  never overwritten. Of two starts at once, one makes it and the other reads
+  it. Its fingerprint goes to stderr; a key in a temporary directory is
+  warned of, as a reboot would give each client a new host key.
+- **What it serves.** The login alone, in this version: each request for a
+  shell, a command, a pty, the environment, a subsystem, a forward or X11
+  is answered with a refusal, so that a client says so at once instead of
+  waiting (russh's defaults answer none). Exec and a shell are T-108,
+  direct-tcpip T-109, a pty T-110 and T-111, SFTP T-112.
+- **Exit codes.** 0 when the client left; 255 when the connection failed;
+  64 without `--stdio`, or with a terminal on stdin; 78 as above; 70 on
+  Windows.
+
 ## `podssh session`
 
 `podssh session` (T-186) keeps one SSH session with a pty between the calls

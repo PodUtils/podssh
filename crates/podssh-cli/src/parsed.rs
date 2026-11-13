@@ -152,6 +152,8 @@ pub enum Parsed {
     Config(Box<crate::config_import::ConfigArgs>),
     /// `podssh mcp` (T-055).
     Mcp(Box<crate::mcp::McpArgs>),
+    /// `podssh serve --stdio` (T-107).
+    Serve(Box<crate::serve::ServeArgs>),
     /// `podssh session SUBCOMMAND NAME ...` (T-186).
     Session(Box<crate::session::SessionArgs>),
     /// `podssh detached SUBCOMMAND [NAME]` (T-392).
@@ -269,6 +271,7 @@ impl Parsed {
             Parsed::Run(args) => !args.refused.is_empty(),
             Parsed::Config(args) => !args.refused.is_empty(),
             Parsed::Mcp(args) => !args.refused.is_empty(),
+            Parsed::Serve(args) => !args.refused.is_empty(),
             Parsed::Session(args) => !args.refused.is_empty(),
             Parsed::Detached(args) => !args.refused.is_empty(),
             Parsed::Net(args) => !args.refused.is_empty(),

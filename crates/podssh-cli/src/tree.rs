@@ -35,10 +35,12 @@ fn counted(long: &str) -> bool {
 
 /// Value flags a user may give more than once, each value kept, in order.
 fn appended(long: &str) -> bool {
-    matches!(
-        long,
-        "option" | "identity-file" | "allow-host" | "allow-dir" | "sftp-option" | "exclude" | "deployment" | "publish"
-    )
+    #[rustfmt::skip]
+    const EACH: &[&str] = &[
+        "option", "identity-file", "allow-host", "allow-dir", "sftp-option", "exclude", "deployment", "publish",
+        "authorized-key", "authorized-keys",
+    ];
+    EACH.contains(&long)
 }
 
 /// Value flags whose value may start with `-`, as getopt takes the next
@@ -353,6 +355,10 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             client_config: matches.get_one::<String>("client-config").cloned(),
             refused,
         }));
+    }
+
+    if verb.name == "serve" {
+        return Parsed::Serve(Box::new(crate::serve::ServeArgs::from_matches(&matches, refused)));
     }
 
     if verb.name == "play" {

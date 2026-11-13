@@ -259,6 +259,8 @@ pub fn add(cmd: Command, name: &str) -> Command {
         "doctor" => cmd,
         // `mcp` reads its messages on stdin, and takes no word.
         "mcp" => cmd,
+        // `serve --stdio` speaks SSH on stdin, and takes no word.
+        "serve" => cmd,
         // `ts` takes its three forms: bare (status), `[user@]host` (a session)
         // and `-W` (a byte pipe).
         "ts" => cmd

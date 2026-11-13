@@ -161,7 +161,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
 (`crates/podssh-cli/src/flags/relay.rs:9-123`), and bound each request in the code, as `doctor`
-does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:371-392` stops
+does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:374-395` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
 
@@ -921,7 +921,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:212-226`,
    `crates/podssh-cli/src/man/data.rs:171-179`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
-   notes (`crates/podssh-cli/src/man/notes.rs:255-345`).
+   notes (`crates/podssh-cli/src/man/notes.rs:257-347`).
 
 ## Decision
 
@@ -1312,7 +1312,7 @@ with no reason. Each drop read as the end of the TCP stream with no Close frame
 had drops, so the traffic does not cause them.
 
 Read: on the forward path, keepalives every 60 s kept one session for 602 s
-(`docs/STATUS.md:410`). That is one run, before 2026-10-09.
+(`docs/STATUS.md:411`). That is one run, before 2026-10-09.
 
 ## Approach
 
@@ -4650,7 +4650,7 @@ Read at `2042200`:
   (`crates/podssh-cli/src/flags/node.rs:129`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
   sshd of this host is no target of `/connect/`.
-- `TODO/serve.md:1364-1365` plans the same choice for `podssh serve --listen` (T-124, step 5).
+- `TODO/serve.md:1442-1443` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
 ## Approach
 

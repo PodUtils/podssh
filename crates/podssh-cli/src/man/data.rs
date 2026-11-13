@@ -121,7 +121,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              TARGET that sends lines and no version line of SSH 2, which is another service. podssh node: this host \
              refuses UDP for a udp: TARGET. podssh each --interactive: the emergency stop cannot be armed. \
              podssh session start and serve: PODSSH_LISTEN is no, or no directory takes the session's \
-             socket.",
+             socket. podssh serve: no authorized key, or a key file or the host key that cannot be used.",
         ),
         row(
             podssh_ssh::EXIT_FAILURE,
@@ -492,9 +492,7 @@ pub fn files() -> Vec<(Vec<String>, String)> {
                 .to_string(),
         ),
     ];
-    rows.push(super::notes_roads::chisel_file());
-    rows.push(super::notes_hysteria::file());
-    rows.push(super::notes_turn::file());
-    rows.push(super::notes_devtunnel::file());
+    rows.extend([super::notes_roads::chisel_file(), super::notes_hysteria::file(), super::notes_turn::file()]);
+    rows.extend([super::notes_devtunnel::file(), super::notes_serve::file()]);
     rows
 }

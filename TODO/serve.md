@@ -1,7 +1,7 @@
 This file holds the work for `podssh serve`: the SSH server in the process for
 a host whose only egress is the relay (milestone M5, `docs/ROADMAP.md:175-205`),
-and the server features in the backlog. No server code exists yet. T-107
-decides where it goes, and each later entry builds on it. T-222 finds the
+and the server features in the backlog. T-107 puts the server's core in
+crates/podssh-ssh/src/server/, and each later entry builds on it. T-222 finds the
 shell that T-108 runs.
 
 # T-107: `podssh serve`: the russh server, its host key in a state file, and authorized keys
@@ -12,7 +12,7 @@ shell that T-108 runs.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -50,9 +50,9 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:374-446` and
-   `crates/podssh-cli/src/positionals.rs:8-275`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:348-422`, the manual, `docs/cli.md`,
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:378-452` and
+   `crates/podssh-cli/src/positionals.rs:8-277`, an arm beside
+   `crates/podssh-cli/src/dispatch.rs:351-425`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -71,16 +71,27 @@ makes the helpers public. `podssh-cli` lost: it is the command line.
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_auth
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_stdio
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test flag_table --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t107-accept-each-key
 sh scripts/dev.sh check
 HOME=/nonexistent timeout 20 "$BIN" serve --stdio </dev/null; test $? -eq 78
 ```
 
 crates/podssh-ssh/tests/serve_auth.rs reads key lines (good, bad, options);
-two starts at once keep one host key. The gate runs scripts/interop-serve.sh:
+eight starts at once keep one host key, of mode 0600; russh's client over
+a pipe logs in with the listed key, is refused with another, and gets an
+answer, a refusal, to exec and to direct-tcpip. crates/podssh-cli/tests/serve_stdio.rs:
 OpenSSH's `ssh -N` with `ProxyCommand='podssh serve --stdio ...'` stays up
 with an authorized key, and gets `Permission denied (publickey)` with
-another; a restart keeps the host key. A planted `auth_publickey` that
-accepts each key fails. With no key, the static binary (`$BIN`) exits 78.
+another; a restart keeps the host key (a strict client takes it), and a
+command is refused at once (`exec request failed`, 255); on Linux each
+thread of the server holds no capability after the start; with no key the
+start exits 78 and makes no host key. The plant `t107-accept-each-key` (an
+`auth_publickey` that accepts each key) fails the test of the server core.
+With no key, the static binary (`$BIN`) exits 78.
 
 ## Correction
 
@@ -94,6 +105,73 @@ where a capability was held and a step failed. The Prove gains one check: after 
 both entry points and as root, each thread of `/proc/self/task` reports no capability. T-698's
 shared module is done (2026-11-12); the call and its check are this entry's step 6, so nothing waits
 on T-698.
+
+2026-11-13. The Premise, read again at `f6c8ba7`:
+
+- russh is 0.65.0, not 0.64.1, and the tree builds it from `vendor/russh` with podssh's patches,
+  through `[patch.crates-io]` of the workspace (`Cargo.toml:216`). Its server module is still built
+  on each target but wasm (`vendor/russh/src/lib_inner.rs:69-70`). `auth_publickey` now takes a
+  `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
+  `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-243`); a request handler that does not answer
+  still sends no reply (`vendor/russh/src/server/mod.rs:669-674`), and a channel request that russh does
+  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1844-1848`).
+- "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
+  the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
+  `crates/podssh-relay/tests/devtunnel.rs:19`).
+- The lines moved: `keygen::generate` is at `crates/podssh-ssh/src/keygen.rs:76`. The verbs'
+  table, `crates/podssh-cli/src/flags.rs`, was one file of 500 lines, so `Availability` and
+  `VERB_OWNER` moved to `crates/podssh-cli/src/flags/availability.rs` beside it.
+- `keygen::write_pair` does not keep Approach item 3's invariant: it writes `FILE.pub` too, and a
+  second start that reads between its create and its write reads half a key. The host key is made
+  with `podssh_relay::cache::create_private` (`crates/podssh-relay/src/cache/own.rs:67`): a whole
+  private file through a hard link, never over one that is there, so of two starts one makes it and
+  the other reads it. `podssh-ssh` does not depend on `podssh-relay`, so the caller passes the
+  functions (`StateFiles`), as it passes `KeyFiles` to keygen. No `.pub` file is written: the
+  fingerprint goes to stderr at each start.
+- Approach item 5's script of the interop tests (`interop-serve.sh`, never written) is a test of the CLI crate instead,
+  `crates/podssh-cli/tests/serve_stdio.rs`, as the other runs of OpenSSH's client against podssh
+  are (`crates/podssh-cli/tests/node_carrier.rs:228-233`): the gate's tests run it where the
+  image has OpenSSH, and it says that it did not run where a host has none. The Prove names it.
+- Approach item 5's `podssh serve NAME` on the node runner of T-079, which is done, is not in this
+  draft: `--stdio` alone. The form `serve NAME` stays an open step of this entry, after the merge
+  of this draft.
+- The Correction of 2026-11-09 names a `--listen` entry point: that is T-124's flag, so this entry
+  makes the drop at the start of `--stdio` alone, before a file is read and before the runtime makes
+  its threads; T-124 makes it after its bind.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t107` (no build, no test run): the server core in
+crates/podssh-ssh/src/server/ (`mod.rs`, `authorized.rs`, `host_key.rs`, `handler.rs`), the verb in
+crates/podssh-cli/src/serve.rs with its flags (crates/podssh-cli/src/flags/serve.rs), its arms in the
+parser and the dispatch, its notes and the file of its host key in the manual
+(crates/podssh-cli/src/man/notes_serve.rs), `docs/cli.md` ("`podssh serve`"), a row of
+`docs/STATUS.md`, the tests of the Prove and the plant `t107-accept-each-key`. Results:
+
+Merged, built and run by the main session the same day:
+
+- `cargo test -p podssh-ssh --test serve_auth`: 7 passed.
+- `cargo test -p podssh-cli --test serve_stdio` (OpenSSH's client, `/usr/bin/ssh`): 3 passed.
+- `cargo test -p podssh-cli --lib serve`: 72 passed (the filter takes more than serve's own); `--lib harden`: 14.
+- The tests of the tables and the manual: `flag_table` 9, `man_flag_parity` 6, `man_json` 4 passed; the CLI's
+  `--lib` 1,152 passed.
+- The plant `t107-accept-each-key` (`sh scripts/plant-each.sh --here`): caught,
+  `the_listed_key_logs_in_and_another_is_refused ... FAILED`.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,694 passed, 0 failed. Clippy (`--all-targets -D
+  warnings`): three findings of the draft repaired (`std::slice::from_ref`, `expect_err`); rustfmt clean. The build
+  image waits (T-251).
+- `HOME=/nonexistent target/debug/podssh serve --stdio </dev/null`: exit 78, the line naming the keys it read;
+  `serve` with no `--stdio`: 64.
+- A defect of the draft, repaired at the merge: the first line was the relay role's tail of its own line, "podssh
+  serve: , the capabilities of its start dropped after the bind, ... a user of its own with the file capability
+  cap_net_bind_service binds the port", for a verb that binds nothing. `harden::give_up_at` takes the moment of
+  the drop (`Moment::AtStart`), whose words say "dropped at the start, before any file is read" and "run it as a
+  user of its own"; the test `the_words_of_a_drop_at_the_start_name_no_bind` holds them. A failed drop's refusal
+  still says "after the bind" and "the role": `apply` does not know the moment, and that refusal comes only where a
+  drop fails.
+
+Left: `podssh serve NAME` on a node's road (Approach item 5); the merge runs
+`cargo todo remap` on each cited file that the draft changed.
 
 # T-108: `podssh serve`: exec, a shell and the environment, as the sandbox's user
 
@@ -505,10 +583,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:251-255`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:485`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:486`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:493`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:494`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1413,11 +1491,11 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:374-446`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:378-452`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:485`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:486`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:213-215`).
@@ -1468,7 +1546,7 @@ crates/podssh-ssh/tests/serve_shell.rs gives the function a directory `sh`,
 a data file `dash` (mode 0644), a data file with mode 0755 (the spawn fails),
 a link to a missing file and a good shell: each failure is named, and the
 good shell wins. A planted `exists()` test fails the directory case. In the
-gate, a copy of `/bin/sh` in `/dev/shm` (noexec: `docs/STATUS.md:447`) is
+gate, a copy of `/bin/sh` in `/dev/shm` (noexec: `docs/STATUS.md:448`) is
 refused as `--shell`. The static binary (`$BIN`) refuses a missing named shell.
 
 ## Correction
@@ -1500,10 +1578,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:485`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:486`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:464`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:465`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -1747,7 +1825,7 @@ long as it likes; a few of them fill a cap on connections.
 
 Read at `2042200`:
 
-- `TODO/serve.md:3` says "No server code exists yet.", and T-107's step 2 asks russh for
+- The head of this file said "No server code exists yet." (T-107 changes it), and T-107's step 2 asks russh for
   `TODO/serve.md:43-44`, which says "no inactivity cut (russh: 600 s)".
 - russh bounds the client's version line alone with its `inactivity_timeout`:
   `vendor/russh/src/server/mod.rs:1143` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
@@ -1755,7 +1833,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1362-1363` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1440-1441` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

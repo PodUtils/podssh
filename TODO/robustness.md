@@ -40,7 +40,7 @@ reasons (`crates/podssh-ws/src/close.rs:20`); PEM bundles
 (`crates/podssh-ssh/src/escape.rs:94`); IRC lines and frames
 (`crates/podssh-core/src/irc/encode.rs:88`,
 `crates/podssh-core/src/irc/framing.rs:110`); the command line
-(`crates/podssh-cli/src/tree.rs:126`). No fuzz target exists. libFuzzer is
+(`crates/podssh-cli/src/tree.rs:128`). No fuzz target exists. libFuzzer is
 C++, and the message of commit `a378863` says that `rust:1-alpine` has no C++
 compiler.
 
@@ -857,7 +857,7 @@ Read:
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
-  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:779-799`, 14 of 14 since T-236).
+  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:780-800`, 14 of 14 since T-236).
 - The time limits that latency meets today: the SSH handshake, 60 s
   (`crates/podssh-ssh/src/options.rs:390`, enforced at
   `crates/podssh-ssh/src/run.rs:402-405`); a reply, 30 s
@@ -991,9 +991,9 @@ Read, each claim of GitHub #34 at the lines as they are now:
 - `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:68-70`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
-  (`docs/STATUS.md:220`, `docs/STATUS.md:226`).
+  (`docs/STATUS.md:221`, `docs/STATUS.md:227`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:5875-5876` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:5908-5909` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:5875-5876`). A difference that the table does not name fails,
+   `docs/cli.md:5908-5909`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:5875-5876` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:5908-5909` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed

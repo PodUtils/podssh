@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**725 entries: 73 open, 18 partial, 10 blocked, 624 done.**
+**725 entries: 72 open, 19 partial, 10 blocked, 624 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 21 | 8 | 1 | 270 | 300 |
+| P2 | 20 | 9 | 1 | 270 | 300 |
 | P3 | 48 | 8 | 6 | 281 | 343 |
-| **All** | 73 | 18 | 10 | 624 | 725 |
+| **All** | 72 | 19 | 10 | 624 | 725 |
 
 ## Entries
 
@@ -181,7 +181,7 @@ repository and CI).
 | [T-104](ts.md) | P2 | M | M8 | feature | done | `podssh ts` connects again after a drop |
 | [T-105](ts.md) | P2 | M | M8 | defect | done | The fork shows the relay's `1008 not authorized` as a missing network map |
 | [T-106](ts.md) | P2 | M | M10 | measurement | partial | The live test of `podssh ts` with two nodes |
-| [T-107](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: the russh server, its host key in a state file, and authorized keys |
+| [T-107](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: the russh server, its host key in a state file, and authorized keys |
 | [T-108](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: exec, a shell and the environment, as the sandbox's user |
 | [T-109](serve.md) | P2 | S | M5 | feature | open | `podssh serve`: direct-tcpip into the cage |
 | [T-110](serve.md) | P2 | M | M5 | feature | open | `podssh serve`: a real pty when `/dev/ptmx` exists |

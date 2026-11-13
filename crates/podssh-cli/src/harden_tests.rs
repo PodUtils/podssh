@@ -101,6 +101,16 @@ fn a_start_as_root_drops_the_bounding_set_then_empties_each_set() {
 }
 
 #[test]
+fn the_words_of_a_drop_at_the_start_name_no_bind() {
+    let mut fake = Fake::root();
+    let outcome = drop_with(&mut fake, 0).unwrap();
+    let line = words_at(&outcome, None, &Ok(1), 0, Moment::AtStart).expect("a line");
+    assert!(line.contains("dropped at the start, before any file is read, on its one thread"), "{line}");
+    assert!(line.ends_with("run it as a user of its own"), "{line}");
+    assert!(!line.contains("bind"), "podssh serve --stdio binds nothing: {line}");
+}
+
+#[test]
 fn a_file_capability_without_cap_setpcap_keeps_the_bounding_set_and_says_so() {
     let mut fake = Fake::with(Some(Sets { effective: BIND, permitted: BIND, inheritable: 0 }));
     let outcome = drop_with(&mut fake, 0).unwrap();

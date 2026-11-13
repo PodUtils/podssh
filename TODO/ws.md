@@ -3306,7 +3306,7 @@ and a local Unix socket of frames. podssh has the roads and the layer, and no co
 
 ## Premise
 
-- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:167-217` lists them, and
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:167-220` lists them, and
   AGENTS.md section 1 names none).
 - Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
   contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.
@@ -3617,9 +3617,9 @@ two requests in two directions.
 ## Premise
 
 - The split is a stream of two halves (`crates/podssh-ws/src/vless/split.rs:1-4`).
-- `docs/STATUS.md:280` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
+- `docs/STATUS.md:281` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
   front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
-  with 78. That refusal is older than T-456: `docs/STATUS.md:1003` records packet-up and stream-up
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1004` records packet-up and stream-up
   over HTTP/1.1 on two connections, and stream-one alone refused
   (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
   `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:

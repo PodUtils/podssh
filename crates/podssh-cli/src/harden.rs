@@ -193,10 +193,36 @@ pub fn drop_with(calls: &mut dyn Calls, keep: u64) -> Result<Outcome, Refusal> {
     Ok(Outcome { found, steps, notes })
 }
 
+/// When the drop comes: the relay role's after its bind, `podssh serve
+/// --stdio`'s at its start, which binds nothing. The words and the advice
+/// for uid 0 differ.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Moment {
+    AfterBind,
+    AtStart,
+}
+
 /// The words of the first line after a drop: none where no thread held a
 /// capability. `threads` is how many threads were read again, or why none
-/// could be; `uid` the effective one, which stays.
+/// could be; `uid` the effective one, which stays. The relay role's words;
+/// the drop itself takes [`words_at`].
+#[cfg(test)]
 pub fn words(here: &Outcome, first: Option<&Outcome>, threads: &Result<usize, String>, uid: u32) -> Option<String> {
+    words_at(here, first, threads, uid, Moment::AfterBind)
+}
+
+/// [`words`] for the drop at `moment`.
+pub fn words_at(
+    here: &Outcome,
+    first: Option<&Outcome>,
+    threads: &Result<usize, String>,
+    uid: u32,
+    moment: Moment,
+) -> Option<String> {
+    let when = match moment {
+        Moment::AfterBind => "after the bind",
+        Moment::AtStart => "at the start, before any file is read",
+    };
     let outcomes = std::iter::once(here).chain(first);
     let held = outcomes.clone().any(|o| o.found.holds());
     let unread = outcomes.clone().find_map(|o| o.found.sets.as_ref().err().cloned());
@@ -214,10 +240,10 @@ pub fn words(here: &Outcome, first: Option<&Outcome>, threads: &Result<usize, St
                 Err(_) => "on this thread and the first".to_string(),
             };
             let bset = if bounding { ", and its bounding set" } else { "; its bounding set stays, as no CAP_SETPCAP" };
-            format!(", the capabilities of its start dropped after the bind, {each}{bset}")
+            format!(", the capabilities of its start dropped {when}, {each}{bset}")
         }
         (false, Some(why)) => {
-            format!(", the capabilities of its start not read ({why}), each asked to go after the bind")
+            format!(", the capabilities of its start not read ({why}), each asked to go {when}")
         }
         (false, None) => return None,
     };
@@ -225,10 +251,15 @@ pub fn words(here: &Outcome, first: Option<&Outcome>, threads: &Result<usize, St
         line.push_str(&format!(" ({})", notes.join("; ")));
     }
     if held && uid == 0 {
-        line.push_str(
-            "; it stays uid 0, which may still write each file that root owns: a user of its own with the file \
-             capability cap_net_bind_service binds the port with none of root's",
-        );
+        line.push_str(match moment {
+            Moment::AfterBind => {
+                "; it stays uid 0, which may still write each file that root owns: a user of its own with the file \
+                 capability cap_net_bind_service binds the port with none of root's"
+            }
+            Moment::AtStart => {
+                "; it stays uid 0, which may still write each file that root owns: run it as a user of its own"
+            }
+        });
     }
     Some(line)
 }
@@ -256,6 +287,12 @@ pub fn status_sets(text: &str) -> Option<Sets> {
 /// caller keeps, empty for the relay role.
 #[cfg(target_os = "linux")]
 pub fn give_up(keep: &[u32]) -> Result<Option<String>, Refusal> {
+    give_up_at(keep, Moment::AfterBind)
+}
+
+/// [`give_up`] at `moment`, whose words the first line takes.
+#[cfg(target_os = "linux")]
+pub fn give_up_at(keep: &[u32], moment: Moment) -> Result<Option<String>, Refusal> {
     use crate::harden_sys::{self, Sys};
     let keep = mask(keep);
     let here = drop_with(&mut Sys, keep)?;
@@ -281,13 +318,19 @@ pub fn give_up(keep: &[u32]) -> Result<Option<String>, Refusal> {
     }
     DROPPED.store(held, Ordering::Relaxed);
     let threads = threads.map(|(n, _)| n);
-    Ok(words(&here, first.as_ref(), &threads, harden_sys::euid()))
+    Ok(words_at(&here, first.as_ref(), &threads, harden_sys::euid(), moment))
 }
 
 /// No capability sets here: nothing to drop, and nothing said.
 #[cfg(not(target_os = "linux"))]
 pub fn give_up(keep: &[u32]) -> Result<Option<String>, Refusal> {
-    let _ = (FIRST_WAIT, keep);
+    give_up_at(keep, Moment::AfterBind)
+}
+
+/// No capability sets here, at any moment.
+#[cfg(not(target_os = "linux"))]
+pub fn give_up_at(keep: &[u32], moment: Moment) -> Result<Option<String>, Refusal> {
+    let _ = (FIRST_WAIT, keep, moment);
     Ok(None)
 }
 

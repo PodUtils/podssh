@@ -64,6 +64,8 @@ mod notes_pinggy;
 mod notes_pipe;
 mod notes_play;
 mod notes_proxy;
+// `podssh serve`, and its host key's file (T-107).
+mod notes_serve;
 // The Serveo road, a last fallback of Q78, before the ssh-j road (T-549).
 mod notes_serveo;
 // ssh's note on the public services that podssh tries last (T-533).

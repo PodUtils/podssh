@@ -294,6 +294,7 @@ pub const SSH_FLAGS: &[FlagRow] = &[
 // `cp`, `mv` and their aliases: their table is in `flags/copy.rs`.
 mod agent;
 mod attach;
+mod availability;
 mod chat;
 mod config;
 mod containers;
@@ -323,6 +324,7 @@ mod funnel;
 mod relay;
 mod run;
 mod scp;
+mod serve;
 mod session;
 mod shadowsocks;
 mod share;
@@ -333,6 +335,7 @@ mod update;
 mod via;
 mod vless;
 pub use agent::AGENT_FLAGS;
+pub use availability::{availability, Availability, VERB_OWNER};
 pub use chat::CHAT_FLAGS;
 pub use config::CONFIG_FLAGS;
 pub use containers::CONTAINERS_FLAGS;
@@ -355,6 +358,7 @@ pub use play::PLAY_FLAGS;
 pub use relay::{DOCTOR_FLAGS, PROXY_FLAGS, RELAY_FLAGS, STATUS_FLAGS};
 pub use run::RUN_FLAGS;
 pub use scp::{SCP_FLAGS, SFTP_FLAGS};
+pub use serve::SERVE_FLAGS;
 pub use session::SESSION_FLAGS;
 pub use share::SHARE_FLAGS;
 pub use ts::TS_FLAGS;
@@ -441,44 +445,13 @@ pub const VERBS: &[Verb] = &[
         about: "the commands as tools for an agent: a Model Context Protocol server on stdin and stdout" },
     Verb { name: "session", aliases: &["session"], flags: SESSION_FLAGS,
         about: "a session that outlives each call, for an agent: start it, send keys, wait until the output stops, read the screen" },
+    Verb { name: "serve", aliases: &["serve"], flags: SERVE_FLAGS,
+        about: "an SSH server here: one connection on stdin and stdout, as sshd -i, with a host key kept and authorized keys" },
     Verb { name: "detached", aliases: &["detached"], flags: DETACHED_FLAGS,
         about: "the runs that --detach and -f sent into the background, by their names: list them, the state of one, stop one" },
     Verb { name: "update", aliases: &["update"], flags: UPDATE_FLAGS,
         about: "this binary from the newest release, its signature and its sum checked first; only when asked" },
 ];
-
-/// Every verb that dispatch refuses as "not implemented yet", with the roadmap
-/// milestone (docs/ROADMAP.md) that builds it. The milestone is for
-/// maintainers; users only see that the verb is not implemented.
-///
-/// A verb with its own dispatch arm (`ssh`, `proxy`, `doctor`, `keygen`,
-/// `man`, `ts`) is handled before this table is consulted. When a verb gets
-/// its own arm, remove its row here and add it to `DISPATCHED` in
-/// `tests/flag_table.rs`; dispatch treats a verb with neither an arm nor a row
-/// as an internal error, never as success. Each verb has its arm now; the
-/// table stays for a verb that parses before it works.
-pub const VERB_OWNER: &[(&str, &str)] = &[];
-
-/// Whether a verb does something in this binary. `--help` and the manual
-/// both show it, so neither can offer a command that only refuses.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Availability {
-    Works,
-    /// Parses, and refuses with exit 70 (a row of [`VERB_OWNER`]).
-    NotYet,
-    /// Needs a cargo feature this binary was built without (`ts`).
-    NotInBuild,
-}
-
-pub fn availability(verb: &Verb) -> Availability {
-    if verb.name == "ts" && !cfg!(feature = "ts") {
-        Availability::NotInBuild
-    } else if VERB_OWNER.iter().any(|(name, _)| *name == verb.name) {
-        Availability::NotYet
-    } else {
-        Availability::Works
-    }
-}
 
 /// The options read before any verb (`tree::parse`), for `--help` and the
 /// manual.
