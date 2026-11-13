@@ -1,7 +1,8 @@
 # T-319: the relay role's HTTP road reads no batch's number, so a batch that
 # the client sends again, after the stand-in proxy lost the answer to it, is
 # written to the target twice; the echo then holds bytes twice, and the
-# digests differ.
+# digests differ. The window is pod-relay's (T-684); the glue gives it the
+# batch's number, and the plant gives it the next one in its place (T-771).
 ENTRY=T-319
 GROUP=resume
 EXPECT='each byte came back once'

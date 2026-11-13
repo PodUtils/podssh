@@ -963,7 +963,7 @@ cargo test -p podssh-cli --test node_live -- --ignored ssh_to_a_node
 22. `operator.rs` runs the binary with no stored pair (78, naming `podssh relay pair`), and checks
 that stdout stays empty. The binary line must exit 255, name `podssh relay pair lab`, and open no
 connection. The live test runs `podssh ssh node://lab 'exit 3'` through a node whose TARGET is
-`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:228`), and expects 3. Plant: read `node:`
+`railway.new:22` (an anonymous SSH service, `docs/STATUS.md:229`), and expects 3. Plant: read `node:`
 with no slashes as a node; `node_destinations` must fail.
 
 ## Done
@@ -4107,6 +4107,9 @@ moved to `pod-e2e` with its name; run `cargo test -p pod-e2e --test e2e_net` the
   clean.
 - The crates whole at the merge onto T-644: the relay crate with each serve feature and `quic`, 922
   passed; podssh-ws 487; the CLI 1,950; 0 failed.
+
+2026-11-13 (T-771, a draft): `t643-no-header` is removed, as the request is `pod-ws`'s:
+`a_reverse_socket_states_its_dialect_and_a_forward_one_none` (PodUtils/podcrates, crates/pod-ws/src/handshake.rs) holds it.
 
 # T-647: A pair of the relay role is served or ended; no halt that keeps its name and its node's socket
 

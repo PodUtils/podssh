@@ -1,11 +1,12 @@
---- a/crates/podssh-warp/src/register.rs
-+++ b/crates/podssh-warp/src/register.rs
-@@ -260,7 +260,7 @@
- /// answered comes with the answer; the failure names each route and why.
- async fn exchange(api: &Api, ask: &Ask<'_>) -> Result<(Answer, Route), Fault> {
-     let mut failed = Vec::new();
--    for route in &api.routes {
-+    for route in api.routes.iter().take(1) {
-         match exchange_at(api, route, ask).await {
-             Ok(answer) => return Ok((answer, route.clone())),
-             Err(Fault::Unreachable(why)) => failed.push(format!("{route}: {why}")),
+--- a/crates/podssh-warp/src/lib.rs
++++ b/crates/podssh-warp/src/lib.rs
+@@ -70,7 +70,8 @@
+             bases.push(base.clone());
+         }
+     }
+-    let api = api.with_bases(bases);
++    // Planted: each request goes by its first route alone.
++    let api = api.with_bases(bases.into_iter().take(1).collect());
+     match team {
+         Some(team) => api.with_team(team),
+         None => api,

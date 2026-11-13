@@ -1,11 +1,11 @@
 --- a/crates/podssh-cli/src/proxy_node.rs
 +++ b/crates/podssh-cli/src/proxy_node.rs
-@@ -153,7 +153,7 @@
+@@ -164,7 +164,7 @@
          timeout: args.timeout.clone(),
          // The node at the other end of a stream, as `operator --carrier`
          // reaches it (T-595); its checks are operator's.
 -        carrier: args.node.carrier.clone(),
 +        carrier: args.node.carrier.clone().filter(|_| false),
+         // A grant used once, as `operator --grant` takes it (T-226).
+         grant: args.node.grant.clone(),
          refused: Vec::new(),
-     })
- }

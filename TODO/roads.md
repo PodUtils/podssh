@@ -4025,6 +4025,12 @@ Merged, built and run by the main session the same day:
   did not build (two copies of a crate). The plant made instead, `t321-road-never-offered` (podssh's settings
   never offer the road), is caught: the test fails. The stale plants are T-771.
 
+2026-11-13 (T-771, a draft): `t321-protocol-unoffered` and `t321-refusal-fallen-back` are removed, as the
+SETTINGS and a refusal on HTTP/2 are read in `pod-ws` alone: `a_server_that_offers_no_extended_connect_gets_the_upgrade_on_a_new_connection`
+and `a_403_on_the_connect_ends_the_session_with_the_relay_s_refusal` (PodUtils/podcrates, crates/pod-ws/tests/h2_road.rs) hold them.
+`t321-connection-unshared` is planted again in podssh's glue: a context of the relay client made new at each call
+(`crates/podssh-relay/src/context.rs`), so no session shares the pool; its run is the CLI's `h2_each_cli`.
+
 # T-329: Carry the patch of iroh-relay to iroh 1.4.1 (Azathothas/podssh#53)
 
 **Source:** Azathothas/podssh#53 (Dependabot, 2026-10-30): the group of 11
@@ -6514,7 +6520,7 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,
   and then a reset: `TODO/ws.md:1196` says "gets 200, then a reset". A proxy that waits for TLS
   carries no SSH on port 443; T-372 wraps SSH in TLS for it. Through the relay, GitHub's SSH on
-  port 443 answers (`docs/STATUS.md:244`).
+  port 443 answers (`docs/STATUS.md:245`).
 - Read: `doctor` asks the proxy for the relay and for `github.com` only
   (`crates/podssh-cli/src/doctor/net.rs:202-263`).
 - Read in GitHub #61 (a tester's measurement of 2026-10-31, from a host with direct egress; not
@@ -8907,6 +8913,10 @@ and HTTP/2 alone.
   with "could not reach [2606:4700:103::2]:443 (502 Bad Gateway): its own way out to that
   address failed, and it may have no IPv6 route"; the step passed, and so did the run.
 
+2026-11-13 (T-771, a draft): `t561-peers-ignored` is removed, as the doors in turn are `pod-warp`'s:
+`the_doors_of_the_record_go_in_order` (PodUtils/podcrates, crates/pod-warp/tests/net.rs) and `the_order_of_the_front_door_addresses`
+and `the_door_file` (crates/pod-warp/src/door.rs) hold it.
+
 # T-562: WARP's registration dials one name of the API, with no second route
 
 **Source:** GitHub #109 (a tester, 2026-11-02).
@@ -9362,6 +9372,12 @@ the repair removed, not the stall itself, as the new test makes it come every ti
   rest; clippy `--all-targets -D warnings`: clean. The echo test, 12 loops of 200 at once on 4
   CPUs, on the repaired binary: 0 of 2,400 failed, where the binary before the repair failed 2
   of 2,400 with the counts, and 4 of about 1,000 before them.
+
+2026-11-13 (T-771, a draft): `t599-fin-before-the-bytes` and `t599-unread-left` are removed, as the stack
+inside the tunnel is `pod-netstack`'s (PodUtils/podcrates), not smoltcp driven by podssh. The nearest tests there are
+`a_closed_stream_sends_each_queued_byte_then_the_end` and `a_dropped_stream_sends_each_queued_byte_then_the_end`
+(crates/pod-netstack/src/stack/tests/close.rs) and `a_full_tunnel_queue_holds_the_stack` (crates/pod-netstack/src/device/tests.rs);
+neither case of this entry has a test of its own there, which T-771 asks of podcrates.
 
 # T-622: The HTTP road's one-POST form: one request carries both ways, where the way streams a body
 
@@ -10010,7 +10026,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:173` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:6014`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:6020`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The

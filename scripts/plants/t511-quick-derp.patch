@@ -1,13 +1,13 @@
 --- a/crates/podssh-cli/src/doctor/sections.rs
 +++ b/crates/podssh-cli/src/doctor/sections.rs
-@@ -102,8 +102,9 @@
+@@ -144,8 +144,9 @@
          kinds.push(Kind::Iroh);
          #[cfg(feature = "tor")]
          kinds.push(Kind::Tor);
--        kinds.extend([Kind::OpenTunnel, Kind::Derp, Kind::Pairs]);
-+        kinds.extend([Kind::OpenTunnel, Kind::Pairs]);
+-        kinds.extend([Kind::OpenTunnel, Kind::Derp, Kind::Carriers, Kind::Pairs, Kind::Net]);
++        kinds.extend([Kind::OpenTunnel, Kind::Carriers, Kind::Pairs, Kind::Net]);
      }
 +    kinds.push(Kind::Derp);
-     kinds
- }
- 
+     if stream {
+         kinds.push(Kind::Stream);
+     }

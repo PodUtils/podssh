@@ -1,9 +1,9 @@
 --- a/crates/podssh-relay/src/serve/reverse/mod.rs
 +++ b/crates/podssh-relay/src/serve/reverse/mod.rs
-@@ -144,12 +144,6 @@ where
-         }
-         ("renew", "POST") => renew(&mut stream, name, &cfg).await,
+@@ -166,12 +166,6 @@
          ("rotate", "POST") => rotate(&mut stream, name, &sent, &cfg).await,
+         ("halt", "POST") => halt::serve_halt(&mut stream, name, &sent, &cfg).await,
+         ("resume", "POST") => halt::serve_resume(&mut stream, name, &cfg).await,
 -        // A planned stop closes each socket: one that would join now would
 -        // be cut with no Close, so it waits for the role that comes back.
 -        ("node" | "connect", _) if cfg.pairs.stopping() => {

@@ -1,6 +1,6 @@
 --- a/crates/podssh-ssh/src/run_config.rs
 +++ b/crates/podssh-ssh/src/run_config.rs
-@@ -72,9 +72,6 @@
+@@ -73,9 +73,6 @@
          keepalive_max: opts.keepalive_max,
          inactivity_timeout: None,
          window_size: WINDOW,
@@ -9,4 +9,4 @@
 -        maximum_packet_size: crate::pace::PACKET,
          nodelay: true,
          preferred,
-         ..Config::default()
+         first_kex_follows,

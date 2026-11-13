@@ -1,6 +1,6 @@
 --- a/crates/podssh-cli/src/relay_layer.rs
 +++ b/crates/podssh-cli/src/relay_layer.rs
-@@ -106,7 +106,7 @@
+@@ -121,7 +121,7 @@
      };
      // Unset: a kept offer, else a read for a host that the user named; the
      // default deployment's offer comes with its pool's refresh alone.
@@ -8,4 +8,4 @@
 +    let kept: Option<offer::Offer> = None;
      let read = match kept {
          Some(offered) => Ok(offered),
-         None if loud || relays.explicit => {
+         None if loud => {

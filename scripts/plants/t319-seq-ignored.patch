@@ -1,15 +1,14 @@
 --- a/crates/podssh-relay/src/serve/http_road/sessions.rs
 +++ b/crates/podssh-relay/src/serve/http_road/sessions.rs
-@@ -262,10 +262,8 @@
+@@ -284,8 +284,9 @@
                  if st.ended.is_some() {
-                     return Some(Stored::Ended);
+                     return Some(Ok(Stored::Ended));
                  }
--                if seq < st.next_up {
--                    return Some(Stored::Taken);
--                }
--                if seq > st.next_up || st.fin {
+-                match st.up.store(seq, copy, total) {
+-                    window::Stored::Taken(n) | window::Stored::Again(n) => Some(Ok(Stored::Acked(n))),
 +                // Planted: the batch's number is not read.
-+                if st.fin {
-                     return Some(Stored::Conflict(st.next_up));
-                 }
-                 if st.queue.len() >= WINDOW {
++                match st.up.store(st.up.next(), copy, total) {
++                    window::Stored::Taken(_) | window::Stored::Again(_) => Some(Ok(Stored::Acked(seq))),
+                     window::Stored::Full => None,
+                     window::Stored::Conflict(next) => Some(Ok(Stored::Conflict(next))),
+                     window::Stored::Mismatch { said, stored } => Some(Err((said, stored))),

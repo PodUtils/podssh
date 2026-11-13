@@ -1154,14 +1154,14 @@ sees it.
 
 Read:
 
-- `docs/STATUS.md:462-476`: the box, measured by hand on 2026-10-08.
+- `docs/STATUS.md:463-477`: the box, measured by hand on 2026-10-08.
 - `scripts/test_in_box.sh:275-278`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
   not fail on it (T-006). So today the box exits 0 when podssh fails in it.
 - `scripts/box/probe.sh:163-168` exits 1 when the box differs from the sandbox
-  in a required property (17 properties, `docs/STATUS.md:469`).
+  in a required property (17 properties, `docs/STATUS.md:470`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
 - The box uses `--disable-dns` (`scripts/test_in_box.sh:179`) and a mask on
@@ -1188,7 +1188,7 @@ Read:
    that CI runs the box.
 
 Pitfall: the live path can drop a session (179 of 180 short sessions,
-`docs/STATUS.md:499`). Run a failure again by hand and record it. Never retry
+`docs/STATUS.md:500`). Run a failure again by hand and record it. Never retry
 inside the job.
 
 ## Decision
@@ -1206,7 +1206,7 @@ test "$(grep -c '^match ' box.log)" -eq 17                  # the box was faithf
 
 The run passed, with the job `box`, and its log has 17 `match` lines.
 Planted defect: run the job by hand with the seccomp option removed (an input
-of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:470`,
+of `workflow_dispatch`); the probe must exit 1, as in `docs/STATUS.md:471`,
 and the job must fail.
 
 ## Correction
@@ -1265,7 +1265,7 @@ Read:
   test.
 - `docs/STATUS.md` line 230 at `9966ed4`: the default tests pass on Windows,
   run by hand.
-  `docs/STATUS.md:234`: `scripts/interop-conpty.py` passes 14 of 14 against a
+  `docs/STATUS.md:235`: `scripts/interop-conpty.py` passes 14 of 14 against a
   Tailscale SSH server, by hand.
 - `scripts/interop-conpty.py:219-275` needs a server with a POSIX shell,
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
@@ -1283,7 +1283,7 @@ Read:
    deletes (see Decision). Run the script with `--direct`; 14 of 14 must pass.
 3. With T-199: score the output with the Windows part of the baseline.
 4. The plant: a podssh that does not restore the mode of the console must
-   fail the three restore checks (as measured by hand, `docs/STATUS.md:234`).
+   fail the three restore checks (as measured by hand, `docs/STATUS.md:235`).
    Run it once in CI, and record it.
 5. docs/STATUS.md cites the CI run for the rows of Windows;
    docs/development.md names the job.
@@ -2044,7 +2044,7 @@ Read, in the tree as it is now:
   build must fail at `/nonexistent`; the control, with `CC` alone, must not
   stop there.
 - `docs/development.md:332-334` states the rule with `CXX`, and
-  `docs/STATUS.md:913` records the measurement. Rule 4 of
+  `docs/STATUS.md:914` records the measurement. Rule 4 of
   `docs/architecture.md` named `CC=/nonexistent` only; it was repaired in the
   same change as the record.
 - `.github/workflows/build.yml:147-155` runs the plant on each push.
@@ -2075,7 +2075,7 @@ the same script in its step "the no-C rule is load-bearing".
 (CXX=/nonexistent)"). Measured with `sh scripts/dev.sh plant` in
 `rust:1-alpine`: the C plant failed twice for the right reason, the C++ plant
 failed at `CXX=/nonexistent`, the control with `CC` alone was not stopped
-there, and the clean tree built (`docs/STATUS.md:913`). The CI run of
+there, and the clean tree built (`docs/STATUS.md:914`). The CI run of
 `eacd94e`, which contains `a378863`, passed, with its step "the no-C rule is
 load-bearing".
 
@@ -2468,7 +2468,7 @@ Read:
 
 - `scripts/box/seccomp.json:5-10`: `bind` fails with EACCES for each socket,
   whatever its family.
-- `docs/STATUS.md:490`: in sandbox A, `bind` is refused for AF_INET and
+- `docs/STATUS.md:491`: in sandbox A, `bind` is refused for AF_INET and
   allowed for AF_UNIX. In the KTM report (read there), `doctor` printed
   `Permission denied (os error 13)` for AF_INET, and "bound" for an AF_UNIX
   path and for the abstract namespace.
@@ -4960,8 +4960,8 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
   `docs/design.md` gave "A reverse node and operator" first of what podssh "does not yet have",
   and said that "the real sandbox is not run yet"; `docs/irc.md` said "No command uses the IRC
   client yet", with T-097 and T-098 as its known defects; `docs/STATUS.md` said "Over IRC too
-  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:159`, `:167`), two runs
-  in real sandboxes (T-001; `docs/STATUS.md:481-490`), and `podssh chat --irc` (T-252, done, as
+  (T-252, partial)". Each part is built: the reverse road (`docs/STATUS.md:160`, `:168`), two runs
+  in real sandboxes (T-001; `docs/STATUS.md:482-491`), and `podssh chat --irc` (T-252, done, as
   T-097 and T-098 are). Of the same kind: `docs/design.md`'s summary and the head of its section
   4, and the row of `podssh-terminal` in `docs/architecture.md`. The triage's commit corrected
   each in place.
@@ -4988,7 +4988,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 3. A status written beside an id in those documents (`T-NNN, partial`, `(T-NNN, open)`) agrees
    with the index, unless its paragraph reads at a date or at a commit, as the record's readings
    do (`TODO/RULES.md:148-153`): "T-099, partial" of 2026-10-10 is such a reading
-   (`docs/STATUS.md:870`).
+   (`docs/STATUS.md:871`).
 4. `TODO/RULES.md` says it, beside the rules of citations.
 
 ## Decision
@@ -5173,7 +5173,7 @@ names no version and no way to a newer release. Docs.
 - Read: the page's head says that it "gives the measured state of podssh" (line 3 of
   `docs/STATUS.md` at `38f424c`), with no word of `main` or of a release; the README sends a
   reader to it for the measured state (lines 24-25 of `README.md` at `38f424c`).
-- Read: the exit's row (`docs/STATUS.md:162`) says "drafted and merged 2026-11-02" and **Works**.
+- Read: the exit's row (`docs/STATUS.md:163`) says "drafted and merged 2026-11-02" and **Works**.
   Measured: its commit `0b07025` is not in `v1.0.0` (`git merge-base --is-ancestor 0b07025
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
@@ -6264,7 +6264,7 @@ test runs each operator command there (`ssh`, `each`, `run`, `job`, `session`, `
 - `scripts/release-short.sh`: the check of a release's binary; it runs on Linux.
 - T-383 (done): `--detach` measured on Windows and macOS. T-678 (open): a node on Windows ends its sessions
   at its upgrade. T-214, T-218, T-282, T-288, T-294 are the Windows work already done.
-- `docs/STATUS.md:237`: only the console and the MSYS2 sshd are measured on Windows.
+- `docs/STATUS.md:238`: only the console and the MSYS2 sshd are measured on Windows.
 
 ## Approach
 
@@ -6354,7 +6354,7 @@ deny's job runs it in CI on the push.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6380,3 +6380,46 @@ for p in scripts/plants/*.patch; do git apply --check "$p" || echo "STALE $p"; d
 ```
 
 No line STALE; each plant made again is caught by `sh scripts/plant-each.sh --here NAME`.
+
+## Done
+
+Partial, 2026-11-13 (a draft; nothing built or run): each of the 38 read against the tree and against
+PodUtils/podcrates at `v0.39.0` (the tag that podssh pins), and each patch made again with `diff -u` against a copy
+of the file. `git apply --check` of each patch of `scripts/plants/` at the draft's base: none fails. 24 remade where
+the code is still podssh's, 5 planted again in podssh's glue where the glue decides the property, 9 removed where
+the property is a crate's of podcrates alone and podssh's glue decides nothing of it.
+
+| Plant | What was done |
+| --- | --- |
+| `t173-kept-offer-ignored`, `t173-ssh-contract-road`, `t255-joins-during-stop`, `t360-record-row`, `t433-share-unlocked`, `t435-carrier-off-asked`, `t533-taken-over-unsaid`, `t551-copy-race-skipped`, `t595-proxy-carrier-dropped`, `t595-ssh-carrier-skipped`, `t614-ssh-exit-carrier-refused`, `t617-relay-written-always`, `t647-halt-after-the-token`, `t647-halt-not-final`, `t661-no-drain`, `t670-packet-unasked`, `t679-derp-own-keeper`, `t740-bare-connect-binary` | Remade: the same lines, moved by later work; the same defect, EXPECT and RUN. `t740-bare-connect-binary` has no `.plant`: `.github/workflows/bare-interop.yml` applies it. |
+| `t449-derp-registered-late` | Remade: the stand-in now counts the login before its answer, so the late registration goes after the answer's failure path, before the writer. |
+| `t454-edge-visitor-dropped` | Remade: `connect` of `crates/podssh-relay/src/serve/behind.rs` now wraps the role in its probe; the visitor dropped there. |
+| `t511-quick-derp` | Remade: the section of DERP leaves the list of a whole run and goes after it, so `--quick` runs it. |
+| `t608-two-probes-at-once` | Remade: the second probe spawned before the leg, as before. |
+| `t629-drop-after-runtime` | Remade: the bind's closure binds QUIC's socket too and keeps it; only the drop moves after the runtime. |
+| `t644-sshd-unread` | Remade: `Door` has the field `published` now. |
+| `t319-seq-ignored` | Planted in glue: the window is `pod-relay`'s (`window::Up`); `crates/podssh-relay/src/serve/http_road/sessions.rs` gives it the window's next number in place of the batch's, and acknowledges the batch's. EXPECT and RUN kept (the filter matches the renamed test `each_byte_comes_once_where_a_proxy_loses_answers_of_batches_and_cuts_answers_down`). |
+| `t321-connection-unshared` | Planted in glue: the pool is `pod-ws`'s, held by `pod-relay`'s context; `crates/podssh-relay/src/context.rs` makes a new context at each call in place of a clone of the process's base. GROUP `cli-tests`, RUN the CLI's `h2_each_cli`, EXPECT "one connection was opened for the sessions at most". |
+| `t326-reset-unnamed` | Planted in glue: the probe is `pod-ws`'s; `crates/podssh-ws/src/cleartext/mod.rs` reads its cut as a silence. GROUP `cli-tests`, RUN `doctor_cleartext`'s `a_path_that_resets_cleartext`, EXPECT "the line names the reset", SETUP Python and openssl, LIMIT 2400 (as `t326-doctor-reset-unnamed`, which plants at doctor's words). |
+| `t560-probe-skipped` | Planted in glue: the check of the data path is `pod-warp`'s; `crates/podssh-warp/src/lib.rs` (`settings`) drops it whatever `PODSSH_WARP_PROBE` says. RUN and EXPECT: the lib test `tests::the_settings_follow_the_run`. |
+| `t562-one-route` | Planted in glue: the routes in turn are `pod-warp`'s; `crates/podssh-warp/src/lib.rs` (`api`) gives the API its first base alone. RUN and EXPECT: the lib test `tests::the_bases_of_a_run_go_first`. |
+| `t321-protocol-unoffered` | Removed: the SETTINGS are read in `pod-ws` alone. Held by `a_server_that_offers_no_extended_connect_gets_the_upgrade_on_a_new_connection` (PodUtils/podcrates, crates/pod-ws/tests/h2_road.rs). |
+| `t321-refusal-fallen-back` | Removed: a refusal on HTTP/2 is read in `pod-ws` (and `pod-relay` for podssh's sessions); podssh's `h2_road::connect` serves tests only, so a plant there proves nothing of a session. Held by `a_403_on_the_connect_ends_the_session_with_the_relay_s_refusal` (crates/pod-ws/tests/h2_road.rs); podssh's `a_wrong_token_gets_the_role_s_refusal_on_the_road` runs the same code against the role. |
+| `t326-tls-failure-unread` | Removed: `tls_failed` is `pod-ws`'s, and `pod-relay`'s `may_help` reads it. Held by `the_tls_road_fails_at_the_proxy_and_the_cleartext_road_carries_the_session` (crates/pod-ws/tests/cleartext_road.rs); end to end by podssh's `podssh_ssh_opens_its_session_in_cleartext_after_its_tls_failed`. |
+| `t561-peers-ignored` | Removed: the doors in turn are `pod-warp`'s. Held by `the_doors_of_the_record_go_in_order` (crates/pod-warp/tests/net.rs) and `the_order_of_the_front_door_addresses` and `the_door_file` (crates/pod-warp/src/door.rs). |
+| `t599-fin-before-the-bytes`, `t599-unread-left` | Removed: the stack inside WARP's tunnel is `pod-netstack`'s now, not smoltcp driven by podssh. Nearest: `a_closed_stream_sends_each_queued_byte_then_the_end` and `a_dropped_stream_sends_each_queued_byte_then_the_end` (crates/pod-netstack/src/stack/tests/close.rs), `a_full_tunnel_queue_holds_the_stack` and `queue_wakes_a_waiter` (crates/pod-netstack/src/device/tests.rs); neither case of T-599 (a far end that closed first; packets left while the queue out was full) has a test of its own there. |
+| `t643-no-header` | Removed: the request is `pod-ws`'s. Held by `a_reverse_socket_states_its_dialect_and_a_forward_one_none` (crates/pod-ws/src/handshake.rs). |
+| `t645-version-before-key` | Removed: the server's side is `pod-ws`'s. Held by `a_request_with_no_key_opens_raw_bytes_where_its_caller_asks` (crates/pod-ws/src/server.rs). |
+| `t667-token-unchecked` | Removed: the key of the tokens is `pod-quic`'s (`TokenKey`). Held by `a_token_opens_only_as_it_was_sealed` (crates/pod-quic/src/keys.rs). |
+
+Each removal is named in its entry's `## Done` too (T-321, T-326, T-561, T-599, T-643, T-645, T-667).
+
+Merged by the main session the same day:
+
+- `git apply --check` of each of the 302 patches: none stale. `cargo todo check` and `python scripts/check-repo.py`:
+  pass.
+- `sh scripts/plant-each.sh --here` the 28 with a `.plant`: 27 caught at first, `t435-carrier-off-asked` MISSED, as
+  its remade patch named `transit::DEFAULT_URL`, which is the function `transit::default_url()` now; mended, it is
+  caught. `t319-seq-ignored` was caught on the digests, `t321-connection-unshared` caught, `t629-drop-after-runtime`
+  caught here as root. `t740-bare-connect-binary` runs in `bare-interop.yml`.
+- The two cases of T-599 as tests of `pod-netstack`: asked as COORD-054 (#231).

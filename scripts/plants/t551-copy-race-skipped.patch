@@ -1,7 +1,7 @@
 --- a/crates/podssh-cli/src/ssh/node_roads.rs
 +++ b/crates/podssh-cli/src/ssh/node_roads.rs
-@@ -173,7 +173,7 @@ pub(crate) async fn reach(transport: &Transport, log: &Arc<Log>) -> Result<Reached, NotReached> {
-     let refused = |refusal: Refusal| NotReached { lines: vec![refusal.message], code: refusal.code };
+@@ -260,7 +260,7 @@
+     }
      let mut chosen = chosen(&dest).map_err(refused)?;
      let Dest { label, pair_file, trust, race, channel, .. } = dest;
 -    if !chosen.races(&dest) {

@@ -1,11 +1,13 @@
---- a/crates/podssh-ws/src/cleartext/probe.rs
-+++ b/crates/podssh-ws/src/cleartext/probe.rs
-@@ -117,7 +117,7 @@ pub async fn probe(host: &str, port: u16, proxy: &ProxyChoice, wait: Duration) -
-     );
-     match tokio::time::timeout(wait, ask(&mut tcp, request.as_bytes())).await {
-         Err(_) => Heard::Silent(wait),
--        Ok(Err(e)) => Heard::Cut(Cut::of(e.kind())),
-+        Ok(Err(_)) => Heard::Silent(wait),
-         Ok(Ok(first)) if first.is_empty() => Heard::Cut(Cut::Closed),
-         Ok(Ok(first)) => read(&mut tcp, first, wait).await,
-     }
+--- a/crates/podssh-ws/src/cleartext/mod.rs
++++ b/crates/podssh-ws/src/cleartext/mod.rs
+@@ -23,5 +23,9 @@
+ /// Ask `host:port` for [`PROBE_PATH`] in cleartext, through `proxy`, each
+ /// wait within `wait`: what came back.
+ pub async fn probe(host: &str, port: u16, proxy: &ProxyChoice, wait: Duration) -> Heard {
+-    pod_ws::cleartext::probe(&crate::client::way(proxy), host, port, wait).await
++    // Planted: a reset of the request read as a silence.
++    match pod_ws::cleartext::probe(&crate::client::way(proxy), host, port, wait).await {
++        Heard::Cut(_) => Heard::Silent(wait),
++        heard => heard,
++    }
+ }

@@ -1,7 +1,12 @@
-# T-326: the probe of GitHub #56 reads a reset of its request as a silence,
-# so a proxy that cuts cleartext is not named as one; the test of a proxy
-# that resets cleartext then hears no reset.
+# T-326: podssh's glue of the probe of GitHub #56 reads a reset of its
+# request as a silence, so a proxy that cuts cleartext is not named as one;
+# doctor's line cleartext through a stand-in proxy that resets cleartext then
+# names no reset. The probe itself is pod-ws's (T-684, T-771).
 ENTRY=T-326
-GROUP=resume
-EXPECT='no answer within 20 s'
-RUN='cargo test --locked -p podssh-ws --test cleartext_road -- a_proxy_that_resets_cleartext'
+GROUP=cli-tests
+EXPECT='the line names the reset'
+# The role's harness asks for Python and openssl: with neither the test did
+# not run.
+SETUP='if command -v apk >/dev/null; then apk add --no-cache python3 openssl >/dev/null; fi'
+RUN='cargo test --locked -p podssh-cli --test doctor_cleartext -- a_path_that_resets_cleartext'
+LIMIT=2400

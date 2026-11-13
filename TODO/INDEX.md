@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**728 entries: 70 open, 23 partial, 10 blocked, 625 done.**
+**728 entries: 69 open, 23 partial, 10 blocked, 626 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 16 | 13 | 1 | 271 | 301 |
-| P3 | 50 | 8 | 6 | 281 | 345 |
-| **All** | 70 | 23 | 10 | 625 | 728 |
+| P3 | 49 | 8 | 6 | 282 | 345 |
+| **All** | 69 | 23 | 10 | 626 | 728 |
 
 ## Entries
 
@@ -801,6 +801,6 @@ repository and CI).
 | [T-768](relay.md) | P3 | S | backlog | feature | open | One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed |
 | [T-769](robustness.md) | P1 | S | M10 | defect | done | The gate's onion test failed when it ran on a private Tor network younger than about 9 minutes |
 | [T-770](robustness.md) | P1 | S | M10 | defect | done | A push of the record cancelled the gate of a push of code, which then was never built |
-| [T-771](repo.md) | P3 | M | M10 | chore | open | 38 of the 307 planted defects no longer apply to the tree |
+| [T-771](repo.md) | P3 | M | M10 | chore | done | 38 of the 307 planted defects no longer apply to the tree |
 | [T-772](robustness.md) | P3 | M | M10 | defect | open | Two russh session loops over a pipe of 64 KiB stop each other with bytes in flight |
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |

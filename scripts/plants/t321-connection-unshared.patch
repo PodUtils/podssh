@@ -1,12 +1,13 @@
---- a/crates/podssh-ws/src/h2_road/pool.rs
-+++ b/crates/podssh-ws/src/h2_road/pool.rs
-@@ -222,7 +222,8 @@ pub(super) async fn place(config: &WsClientConfig) -> Result<Got, ConnectError>
-     }
-     state.lacks = None;
-     state.conns.retain(|c| !c.retired());
--    if let Some(conn) = state.conns.iter().find(|c| c.room()) {
-+    // Planted: a connection that is kept takes no other session.
-+    if let Some(conn) = state.conns.iter().find(|c| c.room() && c.unused() && !c.room()) {
-         let (place, shared) = conn.take();
-         return Ok(Got::Place { conn: conn.clone(), place, shared });
-     }
+--- a/crates/podssh-relay/src/context.rs
++++ b/crates/podssh-relay/src/context.rs
+@@ -46,8 +46,8 @@
+ /// as the environment gives them now, and the resolver that the dialer takes
+ /// now (`--relay-addr` makes it again).
+ pub fn of(proxy: &ProxyChoice) -> Context {
+-    let mut ctx = base()
+-        .clone()
++    // Planted: a context of its own for each call, so that no session shares the pool of HTTP/2.
++    let mut ctx = Context::new(podssh_ws::client::way(proxy), cache())
+         .with_way(podssh_ws::client::way(proxy))
+         .with_proxy_of(proxy_of(proxy))
+         .with_resolver(podssh_ws::resolve::resolver())

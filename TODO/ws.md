@@ -1949,6 +1949,12 @@ sh scripts/plant-each.sh --here t326-cleartext-first t326-once-twice t326-long-t
   no intercepting proxy, and the road to `podssh relay serve` on the runner with OpenSSH's sshd as the
   target.
 
+2026-11-13 (T-771, a draft): `t326-tls-failure-unread` is removed, as `tls_failed` is `pod-ws`'s and `pod-relay`
+reads it: `the_tls_road_fails_at_the_proxy_and_the_cleartext_road_carries_the_session` (PodUtils/podcrates,
+crates/pod-ws/tests/cleartext_road.rs) holds it, and podssh's `podssh_ssh_opens_its_session_in_cleartext_after_its_tls_failed`
+end to end. `t326-reset-unnamed` is planted again in podssh's glue of the probe (`crates/podssh-ws/src/cleartext/mod.rs`),
+caught by doctor's test of a path that resets cleartext.
+
 # T-340: On Windows and macOS podssh reads no store of the system, and `UnknownIssuer` comes with no hint
 
 **Source:** the audit of hardcoded assumptions of 2026-10-31, finding 5.
@@ -3617,9 +3623,9 @@ two requests in two directions.
 ## Premise
 
 - The split is a stream of two halves (`crates/podssh-ws/src/vless/split.rs:1-4`).
-- `docs/STATUS.md:285` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
+- `docs/STATUS.md:286` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
   front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
-  with 78. That refusal is older than T-456: `docs/STATUS.md:1009` records packet-up and stream-up
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1010` records packet-up and stream-up
   over HTTP/1.1 on two connections, and stream-one alone refused
   (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
   `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:

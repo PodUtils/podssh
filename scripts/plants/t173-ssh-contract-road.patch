@@ -1,8 +1,8 @@
 --- a/crates/podssh-cli/src/relay_layer/ssh.rs
 +++ b/crates/podssh-cli/src/relay_layer/ssh.rs
-@@ -77,7 +77,7 @@ pub(crate) async fn reach(
+@@ -79,7 +79,7 @@
          Err(refusal) => return Some(Err(NotReached { lines: vec![refusal.message], code: refusal.code })),
-     }
+     };
      // --no-resume (T-612): a session that ends with its link.
 -    if crate::no_resume::asked() {
 +    if crate::no_resume::asked() || std::env::var_os("PATH").is_some() {

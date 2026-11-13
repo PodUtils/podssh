@@ -10902,7 +10902,7 @@ roads, and a carrier must be one of them.
   (`crates/podssh-cli/src/man/notes_pair.rs:306-307`), and needs the net's role exit, signed by
   its owner (`:304-305`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
-  (`docs/STATUS.md:162`).
+  (`docs/STATUS.md:163`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
   of the exit runs there with `--carrier exec:...`, and the closed host runs the client,
   `podssh exit NAME --listen 127.0.0.1:1080 --carrier stdio`.
@@ -12448,6 +12448,9 @@ A session through the role over QUIC on the loopback; with UDP refused, the race
   before the merge). The test of `relay info`'s refusal names `--quic` among the role's flags.
 - Waits: a wide-area path, a NAT that rebinds, `podssh relay serve --quic yes` from the binary, and
   the live run (Q88); `cargo todo remap` of the files that this draft moved, at the merge.
+
+2026-11-13 (T-771, a draft): `t667-token-unchecked` is removed, as the key of the tokens is `pod-quic`'s
+(`TokenKey`): `a_token_opens_only_as_it_was_sealed` (PodUtils/podcrates, crates/pod-quic/src/keys.rs) holds it.
 
 # T-638: A node's admission has no question to a person, no cover while a device is present, and no line of who came in by which door
 

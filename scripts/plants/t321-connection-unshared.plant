@@ -1,7 +1,10 @@
-# T-321: a connection of the HTTP/2 road that is kept takes no other
-# session, so each session opens a TLS connection of its own; the test of
-# eight sessions on one connection must fail.
+# T-321: podssh's context of the relay client is made new at each call in
+# place of a clone of the process's one base, so the sessions of `podssh
+# each` share no pool of HTTP/2 and each opens a TLS connection of its own;
+# the CLI's test of eight sessions on one TLS connection must fail. The pool
+# itself is pod-ws's and pod-relay's (T-684); podssh's glue decides that one
+# context's state serves the process (T-771).
 ENTRY=T-321
-GROUP=resume
-EXPECT='one TLS connection for the eight sessions'
-RUN='cargo test --locked -p podssh-ws --test h2_road -- eight_sessions_share_one_tls_connection'
+GROUP=cli-tests
+EXPECT='one connection was opened for the sessions at most'
+RUN='cargo test --locked -p podssh-cli --test h2_each_cli -- --test-threads 1 each_over_8_hosts'

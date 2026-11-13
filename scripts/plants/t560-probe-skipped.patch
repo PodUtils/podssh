@@ -1,11 +1,14 @@
---- a/crates/podssh-warp/src/road.rs
-+++ b/crates/podssh-warp/src/road.rs
-@@ -341,7 +341,7 @@
-     ) -> Result<Warp, Fault> {
-         let stack = Stack::start(&device.addresses(), link).map_err(Fault::Local)?;
-         let mut warp = Warp { stack, endpoint, proxy, probed: None };
--        let Some(to) = device.probe else { return Ok(warp) };
-+        let Some(to) = device.probe.filter(|_| false) else { return Ok(warp) };
-         match crate::probe::run(&warp.stack, to, limit).await {
-             Verdict::Carried => {
-                 warp.probed = Some(to);
+--- a/crates/podssh-warp/src/lib.rs
++++ b/crates/podssh-warp/src/lib.rs
+@@ -91,9 +91,8 @@
+     if let Some(at) = road.endpoint {
+         settings.door = Door::Pinned(Target::Addr(at));
+     }
+-    if !road.probe {
+-        settings.net.check = None;
+-    }
++    // Planted: the check of a tunnel that has just opened is skipped.
++    settings.net.check = None;
+     settings.report = report;
+     settings
+ }

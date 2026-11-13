@@ -1,6 +1,6 @@
 --- a/crates/podssh-cli/src/ssh/node.rs
 +++ b/crates/podssh-cli/src/ssh/node.rs
-@@ -160,7 +160,7 @@
+@@ -197,7 +197,7 @@
          return None;
      };
      // A carrier is the node's one road: no other races it (T-595).
@@ -8,4 +8,4 @@
 +    if let Some(text) = carrier.as_ref().filter(|_| false) {
          return Some(Box::pin(super::carried::connect(label, text, channel, opts, log)).await);
      }
-     // The member's record of pkarr, for each road that no ticket gave
+     // A plain service of a real frpc is the node's one road (T-498).
