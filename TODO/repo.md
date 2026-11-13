@@ -1140,7 +1140,7 @@ test in a box replica.
 **Milestone:** none
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1222,6 +1222,21 @@ so the job of this entry must have both; nobody measured a runner for them.
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. Since T-245 the box's default profile, `sandbox-a`, has 19 required properties (`bind AF_UNIX unix`
+and `bind AF_UNIX abstract` beside the 17), so the job counts 19 `match` lines. `box.yml` (by hand, each run of
+the box) already builds the binary in the build image (`scripts/box/build-podssh.sh`) and runs the box with
+rootful Podman, so the gate's job takes its steps; the planted defect of the Prove is the plant
+`t245-landlock-dropped` (group `host-box`), whose probe exits 1. A known risk: one run of three here failed on
+`doctor`'s check of the public Piping Server `piping.onrender.com` (no answer within 10 s); a failure of the job
+for that is a test that fails at random, repaired first.
+
+## Done
+
+Partial, 2026-11-13: the job `box` of `build.yml` (needs `plan`, for each push of code; the binary from the build
+image, `sh scripts/test_in_box.sh` as root within 45 min, the log printed and kept as the artifact `box-log`, and
+the job fails unless the probe printed 19 `match` lines and the box exited 0); `all` needs it. What waits: the
+job's first runs on the push.
 # T-214: CI on Windows
 
 **Source:** the triage of GitHub #27 (2026-10-08). Windows is a released
@@ -4605,7 +4620,7 @@ the curves' 0.14 once needed a newer Rust than the library crates allowed.
 
 - Read: the root `Cargo.toml` asks for `p256` 0.13 and `p384` 0.13 for
   podssh-ws's provider; `deny.toml` ignores RUSTSEC-2026-0387 for the
-  crypto-bigint 0.5.5 that they bring (`TODO/repo.md:3889-3892` says why:
+  crypto-bigint 0.5.5 that they bring (`TODO/repo.md:3904-3907` says why:
   the curves' 0.14 needed Rust 1.87, above the library crates' 1.85 then).
   T-333 raised the library crates to 1.89 (the operator's ruling of Q48).
 - Read: #68 moves `p384` alone; `p256` stays at 0.13 in the PR, so the copy
@@ -5789,6 +5804,11 @@ ZeroTier's `--lib`, `no_permissive_verifier`, rustfmt, and podcrates' checks of 
 Its last two lines, the static build with zig of the release's features and `scripts/check-static.sh`, need zig,
 which this host lacks: the gate's job `release` builds that binary. `cargo test --workspace --no-fail-fast`:
 3933 passed, 0 failed, 94 ignored (the tests of the moved WARP code are podcrates' now).
+
+2026-11-13, podcrates `v0.38.0` (COORD-076, PodUtils/podcrates#136): each pin moved; `pod_e2e::Error::NoSuite` is
+new, and `judged` of `crates/podssh-cli/src/channel.rs` takes it beside `Handshake`, as the trial patch has it.
+`cargo clippy --workspace --all-targets`: clean; `cargo test --workspace --no-fail-fast`: 3948 passed, 0 failed, 94
+ignored.
 
 Next: the waves of Q101.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

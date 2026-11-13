@@ -1964,7 +1964,7 @@ Nothing watches the expiry of the relay's domain, on which each road but `--dire
   `:314`, `:363` and `:467`; three of these run in a matrix of two). The audit counted seven
   jobs; the matrices give eight.
 - Read: a beta needs the job `all` of the gate (`docs/decisions.md:69`). Citations of an older
-  document of the relay were once off by 35 (`TODO/repo.md:2320-2323`).
+  document of the relay were once off by 35 (`TODO/repo.md:2335-2338`).
 - Read: no workflow checks the relay on a schedule: `relay-live.yml` runs by hand
   (`.github/workflows/relay-live.yml:14-23`), and `build.yml` on a push, a pull request or by hand
   (`.github/workflows/build.yml:10-14`).

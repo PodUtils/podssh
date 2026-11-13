@@ -269,7 +269,7 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Timeout(_) => (Fault::RelayUnreachable, e.to_string()),
         // podssh's hint of the switch at both ends (pod-e2e's words name none).
         e2e::Error::NotChannel(_) => (Fault::SessionFault, format!("{e}; --no-e2e turns it off at this end")),
-        e2e::Error::Handshake(_) | e2e::Error::Tampered | e2e::Error::Malformed(_) => {
+        e2e::Error::Handshake(_) | e2e::Error::Tampered | e2e::Error::Malformed(_) | e2e::Error::NoSuite(_) => {
             (Fault::SessionFault, e.to_string())
         }
         e2e::Error::Cut | e2e::Error::Io(_) => return None,

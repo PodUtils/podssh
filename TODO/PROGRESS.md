@@ -35,13 +35,13 @@ Read on 2026-11-11.
    order, M10 included (the owner's ruling "Priority"); Q105 is settled, so T-715 keeps its place
    among them.
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.37.0` (COORD-074, PodUtils/podcrates#134). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.38.0` (COORD-076, PodUtils/podcrates#136). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** One waits for its merge (2026-11-13): T-738's CLI test `carrier_filehost` (`draft-t738c`, `c35c686`); merged: (T-321's CLI test of `podssh each`, T-319's item 2, T-107's, the take of podcrates v0.37.0 and pod-warp, the take of podcrates v0.36.0, the triage of #224 and #225, T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
+8. **Drafts.** Two wait for their merge (2026-11-13): T-738's CLI test `carrier_filehost` (`draft-t738c`, `c35c686`) and T-108 with T-222, `podssh serve`'s exec, shell and its search (`draft-t108`, `60e0819`); merged: (T-321's CLI test of `podssh each`, T-319's item 2, T-107's, the take of podcrates v0.37.0 and pod-warp, the take of podcrates v0.36.0, the triage of #224 and #225, T-738's second, T-319's, T-106's, T-582's, T-621's, T-741's, T-742's, T-755's, T-574's, T-738's and T-459's are merged).
 
    The old `draft/*` branches on GitHub are each in `main`; this session's git proxy refuses
    deletes, so the owner deletes them by hand.
@@ -112,7 +112,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 726 entries: 73 open, 19 partial, 10 blocked, 624 done.
+`TODO/INDEX.md` holds 726 entries: 72 open, 20 partial, 10 blocked, 624 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

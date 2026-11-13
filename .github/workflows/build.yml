@@ -457,10 +457,52 @@ jobs:
   # The one status to require: each job above passed. A job that was
   # skipped or cancelled is not a pass, but where the push changed only
   # documents and the record, and the plan skipped the jobs that build.
+  # T-213: podssh in the box like the target sandbox (scripts/test_in_box.sh,
+  # its default profile sandbox-a), on each push of code: a change that
+  # breaks podssh there fails the gate. A box that differs from the sandbox
+  # is no result: the probe's `match` lines are counted, one for each
+  # required property.
+  box:
+    name: box
+    needs: plan
+    if: needs.plan.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: 4
+      BIN: target/x86_64-unknown-linux-musl/release/podssh
+      # identity, privileges, /dev/ptmx, /dev/tty, DNS, direct TCP, UDP, bind,
+      # bind AF_UNIX unix and abstract, proxy, and the proxy's 8 answers.
+      PROPERTIES: 19
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: podssh, static, in the build image
+        run: sh scripts/box/build-podssh.sh
+      - name: the box
+        run: |
+          set -u
+          podman version || { echo "no podman on this runner"; exit 1; }
+          # Rootful Podman, as box.yml runs it: the runner's rootless Podman
+          # left the box's /dev/tty its own, not the dead pty bound there.
+          rc=0
+          sudo -E env "PATH=$PATH" timeout 2700 sh scripts/test_in_box.sh "$BIN" > box.log 2>&1 || rc=$?
+          cat box.log
+          matched=$(grep -c '^match ' box.log || true)
+          echo "the probe: $matched match lines of $PROPERTIES; the box: exit $rc"
+          [ "$matched" = "$PROPERTIES" ] || { echo "the box is not the sandbox: no result"; exit 1; }
+          [ "$rc" = 0 ] || exit 1
+      - name: the box's log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: box-log
+          path: box.log
+          if-no-files-found: ignore
+
   all:
     name: all
     if: always()
-    needs: [plan, gate, plant, checks, windows, macos, tor-net]
+    needs: [plan, gate, plant, checks, windows, macos, tor-net, box]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
