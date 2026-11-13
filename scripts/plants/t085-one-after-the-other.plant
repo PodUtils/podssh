@@ -1,0 +1,8 @@
+# T-085: the second operator starts after the first ends; the check that the
+# two sessions overlapped must fail.
+ENTRY=T-085
+GROUP=host-box
+EXPECT='^FAIL +the two sessions did not overlap'
+SETUP='sh scripts/box/build-podssh.sh'
+RUN='sh scripts/reverse-in-boxes.sh "$BIN"'
+LIMIT=2400

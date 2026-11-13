@@ -168,9 +168,13 @@ podssh. M3 had no release of its own; the first stable release was
 **Exit criteria** (T-085)
 
 - Two sessions at the same time through the live relay, from a sandbox whose
-  only egress is a CONNECT proxy, to a node in another such sandbox.
-- The blocking facade for podvm passes a test with two clients here. podvm
-  pins it later, as an operator action ([decisions.md](decisions.md)).
+  only egress is a CONNECT proxy, to a node in another such sandbox: met in
+  two boxes like the target sandbox, 2026-11-13 (`scripts/reverse-in-boxes.sh`,
+  [STATUS.md](STATUS.md), "The reverse road, measured"); the run from the
+  operator's real sandbox follows a release.
+- The blocking facade for podvm passes a test with two clients: moved with the
+  facade to `pod-relay` of PodUtils/podcrates, whose tag podvm takes (Q103,
+  [decisions.md](decisions.md)).
 
 ## M5: `podssh serve`, into the cage
 

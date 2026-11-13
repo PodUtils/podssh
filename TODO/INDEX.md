@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 62 open, 29 partial, 12 blocked, 630 done.**
+**733 entries: 60 open, 29 partial, 13 blocked, 631 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 9 | 19 | 2 | 275 | 305 |
+| P2 | 7 | 19 | 3 | 276 | 305 |
 | P3 | 49 | 8 | 7 | 282 | 346 |
-| **All** | 62 | 29 | 12 | 630 | 733 |
+| **All** | 60 | 29 | 13 | 631 | 733 |
 
 ## Entries
 
@@ -159,7 +159,7 @@ repository and CI).
 | [T-082](reverse.md) | P2 | M | M4 | chore | done | Move the codecs of `podssh-transport` into `podssh-relay` |
 | [T-083](reverse.md) | P2 | M | M4 | feature | done | `podssh node NAME TARGET` |
 | [T-084](reverse.md) | P2 | M | M4 | feature | done | `podssh operator NAME` and `podssh ssh NODE` |
-| [T-085](reverse.md) | P2 | M | M4 | measurement | open | M4 exit: two sessions at once into a node in another sandbox, and the facade for podbox |
+| [T-085](reverse.md) | P2 | M | M4 | measurement | done | M4 exit: two sessions at once into a node in another sandbox, and the facade for podbox |
 | [T-086](reverse.md) | P3 | M | M10 | feature | done | Pairing by a short one-time code, given out of band |
 | [T-087](reverse.md) | P2 | M | backlog | feature | done | Node identity and access: a node key, an allowlist, an expected fingerprint, revocation |
 | [T-088](reverse.md) | P2 | L | backlog | feature | done | End-to-end encryption between two podssh ends |
@@ -187,7 +187,7 @@ repository and CI).
 | [T-110](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: a real pty when `/dev/ptmx` exists |
 | [T-111](serve.md) | P2 | L | M5 | feature | partial | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
 | [T-112](serve.md) | P2 | M | M5 | feature | partial | An SFTP server in `podssh serve` |
-| [T-113](serve.md) | P2 | M | M5 | measurement | open | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
+| [T-113](serve.md) | P2 | M | M5 | measurement | blocked | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
 | [T-114](serve.md) | P2 | M | backlog | feature | partial | `podssh serve`: access rules for each key and command |
 | [T-115](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: a TOTP second factor |
 | [T-116](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: an audit log |

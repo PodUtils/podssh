@@ -7275,7 +7275,7 @@ events become a meeting point of the pairing, tried unasked after podssh's own.
   `nostr` crate needs a C library.
 - `docs/carriers.md:958` says "Each relay has its own operator and its own policy", and
   `docs/carriers.md:959` says "which its NIP-11 document gives".
-- `TODO/reverse.md:1218` says "The meeting point: magic-wormhole's mailbox": T-086's exchange
+- `TODO/reverse.md:1240` says "The meeting point: magic-wormhole's mailbox": T-086's exchange
   runs over a mailbox that stores and forwards the messages of two sides.
 
 ## Approach
@@ -11954,7 +11954,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:2120` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:2128` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -12482,7 +12482,7 @@ Read at `2042200`:
   issuer must be let in by the same door for the same ask
   (`PodUtils/podssh:crates/podssh-relay/src/grant/door.rs:63-65`), as `PodUtils/podssh:crates/podssh-relay/src/grant/door.rs:22` says
   "reach itself, so that a grant never reaches more than its issuer."; that is T-226's Decision 4
-  (`TODO/reverse.md:1959` says "The issuers are the node's own key, and a key of").
+  (`TODO/reverse.md:1981` says "The issuers are the node's own key, and a key of").
 - The issue reads the role's forward token as too wide for a member: it names no target
   (`crates/podssh-relay/src/serve/tokens.rs:61`), as the contract's token does; the node's door, end to
   end, is what admits (Q4, `docs/decisions.md:87`).
@@ -14930,7 +14930,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1138` says "a host of T-565's module, T-743", and `docs/carriers.md:1024` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:2120` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:2128` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach

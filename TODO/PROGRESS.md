@@ -85,7 +85,7 @@ item whenever it appears.
    (COORD-055, #232) for T-776. Answer each take with a COORD issue.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
-7. **Then the open work by its order** (below): T-111 and T-113 (M5), T-085 (M4); then the P3 defects T-772 (M10), T-585 and T-598 (the
+7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then the P3 defects T-772 (M10), T-585 and T-598 (the
    `none` entries); then M10's P3 entries (T-611, T-695). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
@@ -123,7 +123,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 62 open, 29 partial, 12 blocked, 630 done.
+`TODO/INDEX.md` holds 733 entries: 60 open, 29 partial, 13 blocked, 631 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -148,8 +148,8 @@ operator interrupts it.
    the crate, the work is done in PodUtils/podcrates). Where a `## Correction` of 2026-11-05 says
    that the code of an entry is in a crate that podssh has taken, that change is made in
    PodUtils/podcrates, or asked there as an issue; the part of the entry that uses the crate stays
-   podssh's (T-111's serve, for one). T-085 keeps its two boxes only (Q103: the facade goes with
-   `pod-relay`).
+   podssh's (T-111's serve, for one). M4's exit kept its two boxes only, and is done (Q103: the
+   facade went with `pod-relay`).
    Taken on 2026-11-13: `v0.40.0`, with `pod-netstack`'s tests of the two close cases of WARP's stack
    (COORD-054, #231) and the mended forms of the file hosts (COORD-053, #230) for T-738. Awaited: the
    tag with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
@@ -165,13 +165,13 @@ operator interrupts it.
 6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
    podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks, T-708 to T-731, stay behind
    podssh's own work order, M10 included (the owner's ruling "Priority"; Q105 is settled).
-7. The holds are released (Q92): T-085, T-107 to T-113, T-117, T-118, T-222 and
+7. The holds are released (Q92): T-107 to T-113, T-117, T-118, T-222 and
    T-248 are open and go by their priority, M5's `podssh serve` among them, after M10's entries of
    their priority; the work parked behind them ("Parked open work") starts as its condition says.
    T-328 (a real export of FinalShell and of Termius) and T-376 (the operator's throwaway cloud
    accounts for the live run of the roads of iap:// and eice://) wait for inputs that only the
    operator has. T-672 (TLS tickets kept across runs) waits for a release of rustls that lets a
-   client write one. M4's T-085 (the exit measurement) goes with the holds.
+   client write one. M4's exit measurement is done (2026-11-13).
 8. The next beta goes out when podssh is nearly complete (T-446; the operator, 2026-11-11).
 
 **M10**, the mesh and the relay in podssh (Q63 to Q66, `docs/mesh.md`), in this order (the done

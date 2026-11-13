@@ -1,11 +1,11 @@
 The work of milestone M7, `podssh pipe` and `--persist`, and the backlog of
 streams that `pipe` can carry: desktop streams and Telnet, a published HTTP
 service, serial devices and USB/IP. The design is `docs/design.md:1126-1194`;
-the milestone is `docs/ROADMAP.md:234-243`.
+the milestone is `docs/ROADMAP.md:238-247`.
 
 # T-174: `podssh pipe A B` with local addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:236-240`), `docs/design.md:1143-1194`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1143-1194`;
 GitHub #26 (Nemo-010, 2026-10-08). Measured here on `3ee70dc`.
 **Category:** feature
 **Milestone:** M7
@@ -33,7 +33,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
   `crates/podssh-ts/src/pipe.rs`; the new pump must not repeat it.
 - Read: `exec:` starts the user's own program. The operator accepted it on
   2026-10-08 (`docs/decisions.md`). On sandbox A, `/tmp` and `$HOME`
-  do not run programs (`docs/STATUS.md:502`).
+  do not run programs (`docs/STATUS.md:518`).
 
 ## Approach
 
@@ -136,7 +136,7 @@ pump of `podssh proxy` stays until T-175 moves it onto this one.
 
 # T-175: `podssh pipe` with remote addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:236-240`), `docs/design.md:1150-1154`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1150-1154`;
 GitHub #26 (Nemo-010, 2026-10-08); the RustConn report in GitHub #24 (one
 address model across roads; read in the report, not verified here).
 **Category:** feature
@@ -289,7 +289,7 @@ of `ssh`'s: `-i`, `-o`, `-v`, `-q`, the relay's, `--direct`, `--pair-file`,
 
 # T-176: `podssh pipe` with `unix-connect:PATH`
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:236-240`); GitHub #26 ("a name for
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`); GitHub #26 ("a name for
 AF_UNIX streams"), from the USBoverSSH report in GitHub #25
 (`ImKKingshuk/USBoverSSH:usboverssh/src/tunnel.rs`; read in the report, not
 verified here).
@@ -315,7 +315,7 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:186-195`,
   `crates/podssh-cli/src/doctor/unix.rs:209-214`).
-- Read: sandbox A allows an AF_UNIX bind (`docs/STATUS.md:502`); a connect
+- Read: sandbox A allows an AF_UNIX bind (`docs/STATUS.md:518`); a connect
   was not measured. The attempt is the probe, and its errno is the message.
 
 ## Approach
@@ -389,7 +389,7 @@ ROADMAP M7 is done; T-040 gives the remote form.
 
 # T-177: `podssh pipe` with a local listener after a probe
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:239-240`), `docs/design.md:1188-1194`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:243-244`), `docs/design.md:1188-1194`;
 GitHub #26 (a local-only mode, as the `--local` of bunflared; read in the
 report, not verified here); sandbox A of T-001.
 **Category:** feature
@@ -415,7 +415,7 @@ shows that an AF_UNIX or loopback bind works (`docs/design.md:1188-1190`).
   `AGENTS.md:332-360`, `docs/architecture.md:284-301`,
   `docs/target-environment.md:99-103`, `SECURITY.md:263-298`, `README.md:47-56`.
 - Read: sandbox A refuses an AF_INET bind and allows an AF_UNIX bind
-  (`docs/STATUS.md:502`). The box refuses each `bind`, AF_UNIX too
+  (`docs/STATUS.md:518`). The box refuses each `bind`, AF_UNIX too
   (`scripts/box/seccomp.json:11-18`), so it gives the refused case.
 - Read: doctor binds, closes, and never listens
   (`crates/podssh-cli/src/doctor/unix.rs` lines 137-231 at `48a8744`). A bind that works does
@@ -559,7 +559,7 @@ only the code of Windows builds a `SOCKADDR_UN`, in one function that
 
 # T-178: `--persist`: connect again and attach `tmux` again
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:241-243`), `docs/design.md:731-748`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:245-247`), `docs/design.md:731-748`;
 GitHub #19 (a lasting terminal through `tmux`, from the slingshot report:
 `ado11231/slingshot:crates/slingshot-agent/src/jobs.rs`; read in the
 report, not verified here).
@@ -587,7 +587,7 @@ running on the server (`docs/design.md:734-738`).
   each session (`crates/podssh-ssh/src/session.rs:164-223`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
   (`docs/relay.md:553-559`). Sandbox A measured the cap at 67,107,943 bytes,
-  and one close `1011` in 180 short sessions (`docs/STATUS.md:510-511`).
+  and one close `1011` in 180 short sessions (`docs/STATUS.md:526-527`).
 - Read: tmux is never assumed (`docs/target-environment.md:116-118`).
 
 ## Approach
@@ -730,7 +730,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 - Read: 64 MiB for each session, both directions together
   (`docs/relay.md:475`), then Close 1009 (`docs/relay.md:557`); public
   targets only (`docs/relay.md:477`). Through the proxy of sandbox A: 0.5 to
-  0.7 MB/s (`docs/STATUS.md:509`).
+  0.7 MB/s (`docs/STATUS.md:525`).
 - Not measured: no RDP, VNC or Telnet client ran through podssh. Each claim
   about a client below is to verify.
 
@@ -787,8 +787,8 @@ were found by their manuals (read on 2026-10-12, not run here): SSVNC's
 TigerVNC's `vncviewer` takes a Unix socket's path (its synopsis,
 `vncviewer [options] [unix socket]`). The second still needs a listener,
 but an AF_UNIX one, which sandbox A allows where it refuses AF_INET
-(`docs/STATUS.md:499`); there OpenSSH's form a fails before it binds, as
-`ssh` finds no entry for the user (`docs/STATUS.md:504`).
+(`docs/STATUS.md:515`); there OpenSSH's form a fails before it binds, as
+`ssh` finds no entry for the user (`docs/STATUS.md:520`).
 
 ## Done
 
@@ -1298,10 +1298,10 @@ The calls made where the Approach left a choice:
   `torvalds/linux:tools/usb/usbip/src/usbip_attach.c`), so the device's
   traffic passes podssh for as long as the pipe's session lasts; the
   README says so. `usbip` dials TCP only, so a host that refuses an
-  AF_INET bind, as sandbox A does (`docs/STATUS.md:499`), cannot run the
+  AF_INET bind, as sandbox A does (`docs/STATUS.md:515`), cannot run the
   recipe, nor can one without the modules.
 - The row states the limit by the throughput measured through sandbox A's
-  proxy (`docs/STATUS.md:506`): 64 MiB is about 2 minutes of reads at
+  proxy (`docs/STATUS.md:522`): 64 MiB is about 2 minutes of reads at
   0.5 to 0.7 MB/s.
 
 What waits:

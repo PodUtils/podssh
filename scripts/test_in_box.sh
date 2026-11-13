@@ -5,8 +5,15 @@
 #
 #   sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=tt sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#   BOX_RUN=reverse sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_SECCOMP=nolisten sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_PROFILE=strict sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#
+# BOX_RUN=reverse (T-085, M4's exit; scripts/reverse-in-boxes.sh) starts a
+# second box like the first, which makes a pair on the relay (podssh relay
+# pair) and serves example.com:80 as its node; the box then runs
+# scripts/box/reverse-session.sh: two operators at once through the relay,
+# from one box to the node in the other. The pair is stopped at the end.
 #
 # BOX_RUN=tt runs scripts/box/tt-session.sh in place of sandbox-check.sh: an
 # interactive session over -tt (T-004) against OpenSSH in a container next
@@ -65,7 +72,7 @@ PROXY=podssh-box-proxy
 BOX=podssh-box
 TARGET=podssh-box-target
 RUN=${BOX_RUN:-check}
-case $RUN in check | tt) ;; *) echo "test_in_box: BOX_RUN is check or tt, not $RUN" >&2; exit 1 ;; esac
+case $RUN in check | tt | reverse) ;; *) echo "test_in_box: BOX_RUN is check, tt or reverse, not $RUN" >&2; exit 1 ;; esac
 PROFILE=${BOX_PROFILE:-sandbox-a}
 case $PROFILE in
     sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
@@ -161,7 +168,7 @@ TTY_STARTED=0
 
 remove() {
     [ -z "$FWD_PID" ] || kill "$FWD_PID" 2>/dev/null
-    podman rm -f "$BOX" "$PROXY" "$TARGET" >/dev/null 2>&1
+    podman rm -f "$BOX" "$BOX-node" "$PROXY" "$TARGET" >/dev/null 2>&1
     podman network rm -f "$NET" >/dev/null 2>&1
     # The holder stops within a second after its path file goes.
     [ "$TTY_STARTED" = 0 ] || on_host "rm -f $TTYFILE $TTYFILE.py" </dev/null >/dev/null 2>&1
@@ -283,42 +290,86 @@ esac
 echo "== in the box"
 # The host's proxy reads TLS, so podssh in the box trusts its CA too: a
 # difference from the sandbox, said here.
-set --
 # Podman's default AppArmor profile, with no-new-privileges and no
 # capabilities, refused the box's own kill of its child on GitHub's runner
 # (Ubuntu's kernel 7.0, measured 2026-11-01: "can't kill pid 2: Permission
 # denied"), so a read of the dead /dev/tty outlived its bound and the box
 # waited for the pty's holder (T-415). The sandbox's record names no such
 # profile, and no property that the box stands for depends on it.
+APPARMOR=
 if [ "$(timeout 60 podman info --format '{{.Host.Security.AppArmorEnabled}}' 2>/dev/null)" = true ]; then
     echo "AppArmor is on here: the box runs with no AppArmor profile, so that it can signal its own processes"
-    set -- --security-opt apparmor=unconfined
+    APPARMOR=yes
 fi
-if [ -n "$HOST_CA" ]; then
-    echo "podssh in the box trusts the CA of the host's proxy too (SSL_CERT_FILE)"
-    set -- "$@" --mount "type=bind,source=$(hostpath "$HOST_CA"),target=/etc/podssh-host-ca.crt,readonly" \
-        -e SSL_CERT_FILE=/etc/podssh-host-ca.crt
+[ -z "$HOST_CA" ] || echo "podssh in the box trusts the CA of the host's proxy too (SSL_CERT_FILE)"
+
+# A box of the run, NAME, with the options that make it the sandbox; the
+# caller's own options, the image and the command follow. Each box of a run
+# has the same, so the node's box of BOX_RUN=reverse is the sandbox too.
+run_box() {
+    name=$1
+    shift
+    if [ -n "$HOST_CA" ]; then
+        set -- --mount "type=bind,source=$(hostpath "$HOST_CA"),target=/etc/podssh-host-ca.crt,readonly" \
+            -e SSL_CERT_FILE=/etc/podssh-host-ca.crt "$@"
+    fi
+    [ -z "$APPARMOR" ] || set -- --security-opt apparmor=unconfined "$@"
+    timeout 1800 podman run --rm --name "$name" --network "$NET" \
+        --dns 1.1.1.1 --dns 8.8.8.8 --dns 9.9.9.9 --dns-option timeout:1 --dns-option attempts:2 \
+        --cap-drop all --security-opt no-new-privileges \
+        --security-opt "seccomp=$(hostpath "$SECCOMP_FILE")" \
+        --security-opt mask=/dev/pts \
+        --mount "type=bind,source=$SLAVE,target=/dev/tty" \
+        --mount "type=bind,source=$(hostpath "$WORK/empty"),target=/etc/passwd,readonly" \
+        --mount "type=bind,source=$(hostpath "$WORK/empty"),target=/etc/group,readonly" \
+        --mount "type=bind,source=$(hostpath "$BIN"),target=/in/podssh,readonly" \
+        --mount "type=bind,source=$(hostpath "$HERE"),target=/scripts,readonly" \
+        --mount "type=bind,source=$(hostpath "$WORK/tt"),target=/tt,readonly" \
+        --tmpfs /state/home:rw,exec,mode=1777 \
+        -e HOME=/state/home -e TERM=xterm \
+        -e HTTPS_PROXY="http://$PIP:$PORT" -e https_proxy="http://$PIP:$PORT" \
+        -e NO_PROXY="$PIP" -e no_proxy="$PIP" \
+        -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" -e BOX_PROFILE="$PROFILE" -e BOX_PTRACE="${BOX_PTRACE:-allowed}" \
+        "$@"
+}
+
+# BOX_RUN=reverse: the node's box, which hands the operator's part of its
+# pair to the other through a directory of the host, as a user would by a
+# channel that they trust. The node runs in the background of a box that
+# outlives it: it ends once its pair is stopped, and a box that ended with
+# it would kill the stop's own exec.
+set --
+if [ "$RUN" = reverse ]; then
+    mkdir -p "$WORK/xfer" && chmod 777 "$WORK/xfer" || die "cannot make the directory of the pair"
+    echo "== the node's box: podssh relay pair m4, then podssh node m4 example.com:80"
+    run_box "$BOX-node" -d --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer" \
+        "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh &&
+            podssh relay pair m4 --operator-file /xfer/operator.tmp && mv /xfer/operator.tmp /xfer/operator.pair &&
+            { podssh node m4 example.com:80 >/xfer/node.log 2>&1 & } && exec sleep 3600' >/dev/null ||
+        die "the node's box did not start"
+    set -- --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer"
 fi
-timeout 1800 podman run --rm --name "$BOX" --network "$NET" "$@" \
-    --dns 1.1.1.1 --dns 8.8.8.8 --dns 9.9.9.9 --dns-option timeout:1 --dns-option attempts:2 \
-    --cap-drop all --security-opt no-new-privileges \
-    --security-opt "seccomp=$(hostpath "$SECCOMP_FILE")" \
-    --security-opt mask=/dev/pts \
-    --mount "type=bind,source=$SLAVE,target=/dev/tty" \
-    --mount "type=bind,source=$(hostpath "$WORK/empty"),target=/etc/passwd,readonly" \
-    --mount "type=bind,source=$(hostpath "$WORK/empty"),target=/etc/group,readonly" \
-    --mount "type=bind,source=$(hostpath "$BIN"),target=/in/podssh,readonly" \
-    --mount "type=bind,source=$(hostpath "$HERE"),target=/scripts,readonly" \
-    --mount "type=bind,source=$(hostpath "$WORK/tt"),target=/tt,readonly" \
-    --tmpfs /state/home:rw,exec,mode=1777 \
-    -e HOME=/state/home -e TERM=xterm \
-    -e HTTPS_PROXY="http://$PIP:$PORT" -e https_proxy="http://$PIP:$PORT" \
-    -e NO_PROXY="$PIP" -e no_proxy="$PIP" \
-    -e BOX_RUN="$RUN" -e BOX_SECCOMP="${BOX_SECCOMP:-}" -e BOX_PROFILE="$PROFILE" -e BOX_PTRACE="${BOX_PTRACE:-allowed}" \
+run_box "$BOX" "$@" \
     "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh && sh /scripts/box/probe.sh &&
         if [ "$BOX_RUN" = tt ]; then sh /scripts/box/tt-session.sh /usr/local/bin/podssh;
+        elif [ "$BOX_RUN" = reverse ]; then sh /scripts/box/reverse-session.sh;
         else sh /scripts/sandbox-check.sh /usr/local/bin/podssh; fi'
 rc=$?
+
+if [ "$RUN" = reverse ]; then
+    # The pair is stopped at the end, where it was made (its stop token is
+    # in the node's box alone).
+    stopped=$(timeout 120 podman exec "$BOX-node" podssh relay revoke m4 2>&1)
+    stop_rc=$?
+    if [ "$stop_rc" = 0 ]; then
+        echo "ok    the pair was stopped: podssh relay revoke m4: $stopped"
+    else
+        echo "FAIL  the pair was not stopped (exit $stop_rc): $stopped"
+        rc=1
+    fi
+    echo "== the node's log"
+    { podman logs "$BOX-node" 2>&1; cat "$WORK/xfer/node.log" 2>/dev/null; } | tail -30
+fi
 
 echo
 echo "== the proxy's log: every connection it was asked for"

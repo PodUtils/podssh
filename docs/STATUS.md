@@ -493,6 +493,22 @@ gate's static x86_64 binary of `4bf0c26` (CI run 37783671123), 2026-10-08:
 | An interactive session over `-tt` from the box (T-004; `BOX_RUN=tt sh scripts/test_in_box.sh`), the gate's binary of `2c39778`, 2026-10-09 | Written through a pipe to OpenSSH next to the box, with `--direct` through the box's proxy: exit 7, `vi` saved a file, `less` and `top` drew, Ctrl-C stopped `sleep 30` (20 s in all). railway.new now refuses an anonymous visitor (exit 13), so it was not the server. |
 | The box from the pinned images (T-206; `alpine:3.20` and `python:3.12-alpine` by the digests of `.github/images/`), the gate's binary of `b082b83`, 2026-10-09 | Each property of the probe matches; `podssh doctor --full` 30 ok, 0 FAIL; `scripts/sandbox-check.sh` 7 ok, 0 FAIL, 1 skip; exit 0. |
 
+## The reverse road, measured
+
+M4's exit (T-085), 2026-11-13: `sh scripts/reverse-in-boxes.sh target/x86_64-unknown-linux-musl/release/podssh`
+(`BOX_RUN=reverse` of `scripts/test_in_box.sh`; the binary of `scripts/box/build-podssh.sh`), exit 0. Two
+boxes like the target sandbox, on one network, each with the profile `sandbox-a` and the box's CONNECT
+proxy as its only way out. The node's box makes the pair (`podssh relay pair m4 --operator-file`) on the
+live relay and serves `example.com:80` (`podssh node m4 example.com:80`); the operator's part goes to the
+other box through a directory of the host. That box starts two `podssh operator --pair-file ... m4` at the
+same second, each sending one HTTP request and holding its input 4 s: both exit 0 (a clean end: the relay's
+close 1000), both bodies whole and alike (SHA-256 `8dade617...`), the two sessions from second 1794604214 to
+1794604219 each; then `podssh relay revoke m4` in the node's box stops the pair (`m4: stopped; its node was
+online`), and the node ends with "the pair was stopped on the relay". The plant `t085-one-after-the-other`
+(the second operator after the first): `FAIL the two sessions did not overlap`, exit 1. The run from the
+operator's real sandbox follows a release, as the operator's action; the blocking facade's test of two
+clients is `pod-relay`'s (Q103).
+
 ## In the operator's real sandboxes, measured
 
 On 2026-10-08, the operator's agents ran `sh scripts/sandbox-check.sh`, a

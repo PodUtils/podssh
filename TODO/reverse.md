@@ -413,7 +413,7 @@ operator's outcome holds all 200 bytes.
 
 # T-081: A blocking facade of `podssh-relay`, for podbox
 
-**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-152`, `:180-181`); `docs/design.md:619-632`. Read here
+**Source:** ROADMAP M4 (`docs/ROADMAP.md:150-152`, `:184-185`); `docs/design.md:619-632`. Read here
 on `3ee70dc`.
 **Category:** feature
 **Milestone:** M4
@@ -1004,7 +1004,7 @@ with no slashes as a node; `node_destinations` must fail.
 **Milestone:** M4
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1071,6 +1071,28 @@ one box to a node in another, is podssh's and stands. Whether the second half st
 `pod-relay`'s record is Q103 of `TODO/PROGRESS.md`.
 
 2026-11-06. Q103 is ruled (`docs/decisions.md`): podvm takes the blocking facade from `pod-relay` of PodUtils/podcrates by a tag; the test of two clients at once goes with the facade into `pod-relay`. This entry keeps only its two boxes.
+
+## Done
+
+Done 2026-11-13. `scripts/reverse-in-boxes.sh` runs `scripts/test_in_box.sh` with `BOX_RUN=reverse`: a
+second box of the same image, profile, proxy and network (the box's options are one function now,
+`run_box`, for both), which makes the pair on the live relay and serves `example.com:80` as the node
+`m4`, in the background of a box that outlives it; the operator's part reaches the other box through a
+directory of the host; that box runs `scripts/box/reverse-session.sh` (two operators at once, a request
+each, the input held 4 s, the replies, their digests and times); the pair is stopped at the end by
+`podssh relay revoke m4` in the node's box. The plant `t085-one-after-the-other`.
+
+- `sh scripts/reverse-in-boxes.sh target/x86_64-unknown-linux-musl/release/podssh`: exit 0, three runs:
+  both sessions exit 0 with alike bodies (SHA-256 `8dade617...`) over the same 4 to 5 s, and the pair
+  stopped (`m4: stopped; its node was online`); [docs/STATUS.md](../docs/STATUS.md), "The reverse road,
+  measured".
+- The first version ran the node as the box's first process: it ends once its pair is stopped, and the box
+  that ended with it killed the stop's own `podman exec` (exit 137, in one run of three); the node runs in
+  the background now, and the stop's exit and words are printed.
+- The plant `t085-one-after-the-other`, applied: exit 1, `FAIL the two sessions did not overlap`.
+- Approach item 4, the run from the operator's real sandbox, follows a release as the operator's action; item
+  5 went to `pod-relay` (Q103); item 6: the section of STATUS and `docs/ROADMAP.md`'s exit criteria of M4.
+
 
 # T-086: Pairing by a short one-time code, given out of band
 
@@ -1349,7 +1371,7 @@ over a trusted channel (`:137-138`); the node chooses what to expose (`:245-246`
 
 Read: `podssh ssh` checks host keys with `known_hosts`, and never records one under the relay's name
 (`SECURITY.md:117-121`, `:252-262`). `podssh serve` keeps its host key in a state file and takes
-authorized keys from a flag or a file (`docs/ROADMAP.md:180-185`, T-107).
+authorized keys from a flag or a file (`docs/ROADMAP.md:184-189`, T-107).
 
 Read in the reports (not verified here): iroh-ssh warns about an ephemeral node key
 (`rustonbsd/iroh-ssh:src/ssh.rs`); GPU-Share keeps an Ed25519 identity in a state directory and a
@@ -4819,7 +4841,7 @@ dropped in the same way.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
   `crates/podssh-cli/src/ssh/mod.rs:182` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
-- `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2688`; Q90 confirmed it).
+- `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 
 ## Approach
 

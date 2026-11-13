@@ -1,0 +1,16 @@
+--- a/scripts/box/reverse-session.sh
++++ b/scripts/box/reverse-session.sh
+@@ -32,11 +32,8 @@
+     date +%s >"/state/home/end.$n"
+ }
+ 
+-session 1 &
+-one=$!
+-session 2 &
+-two=$!
+-wait "$one" "$two"
++session 1
++session 2
+ 
+ failed=0
+ for n in 1 2; do

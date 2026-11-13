@@ -5,7 +5,7 @@ of the forwards of a session.
 
 # T-035: `-R`: remote forwarding, each connection made out through the proxy
 
-**Source:** `docs/ROADMAP.md:255-256` (M8) and `docs/cli.md`, lines 153-158 at `a9299c4`; the
+**Source:** `docs/ROADMAP.md:259-260` (M8) and `docs/cli.md`, lines 153-158 at `a9299c4`; the
 VLOD-ZDOV/quic-ssh report in GitHub #22 (item 7) and the cubic-vm/cubic
 report in GitHub #23 (item 7). Read and measured here on `3ee70dc`.
 **Category:** feature
@@ -1633,7 +1633,7 @@ server (`remote_socket:host:hostport`), a socket on this host as the target
 (`[bind_address:]port:local_socket`, `remote_socket:local_socket`), and a SOCKS proxy that the
 server listens for and the client serves (`[bind_address:]port`). podssh refuses each by name, so
 a command line of OpenSSH fails with podssh. A server whose host refuses an AF_INET bind and
-allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:502`), can listen on a socket only; and
+allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:518`), can listen on a socket only; and
 the SOCKS form gives a server whose egress is closed a way out through the client.
 
 ## Premise
