@@ -289,7 +289,8 @@ and num-bigint 0.5) are T-754.
 | #223 | COORD-048: podssh took podcrates v0.35.0 at 418e31d (to podcrates) | closed 2026-11-13 (followed by COORD-049) | T-684 |
 | #224 | [DEFERRED] Make the WebSocket and HTTP/2 roads indistinguishable from what they claim | open (2026-11-13: filed as T-757 to T-763, parked: [DEFERRED]) | T-757, T-758, T-759, T-760, T-761, T-762, T-763 (the rows of its table, one entry each; a `:protocol` other than `websocket` is T-499's road, CONNECT-3) |
 | #225 | [DEFERRED] Serve a cover site and delegate the handshake with a temporary credential | open (2026-11-13: filed as T-764 to T-768, parked: [DEFERRED]) | T-764, T-765, T-766, T-767, T-768 (the rows of its table, one entry each) |
-| #226 | COORD-049: podssh took podcrates v0.36.0 at 99b9642 (to podcrates) | open (2026-11-13: posted) | T-684 |
+| #226 | COORD-049: podssh took podcrates v0.36.0 at 99b9642 (to podcrates) | closed 2026-11-13 (followed by COORD-050) | T-684 |
+| #227 | COORD-050: podssh took podcrates v0.37.0 and pod-warp at 812c61c (to podcrates) | open (2026-11-13: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
