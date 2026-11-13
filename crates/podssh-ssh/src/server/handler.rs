@@ -17,27 +17,20 @@ use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
+use super::pty_grant::{grant_pty, resize_pty, Asked};
 use super::rules::{Asked as Wanted, Context, Plan};
-use super::{env, Authorized, Rules, Settings};
+use super::stop::{Control, Keys, Stage};
+use super::{env, Rules, Settings};
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
 pub const MAX_SESSIONS: usize = 64;
 
-/// What a `pty-req` asked for.
-#[cfg_attr(not(unix), allow(dead_code))]
-struct Asked<'a> {
-    term: &'a str,
-    cols: u32,
-    rows: u32,
-    pix_width: u32,
-    pix_height: u32,
-    modes: &'a [(Pty, u32)],
-}
-
 /// One connection's handler.
 pub struct Served {
-    authorized: Arc<Authorized>,
+    /// The server's keys, read at each attempt: a reload is seen by the
+    /// next login (T-117); a login keeps the rules it got.
+    authorized: Keys,
     settings: Arc<Settings>,
     channels: HashMap<ChannelId, Open>,
     forwards: Slots,
@@ -46,12 +39,15 @@ pub struct Served {
     rules: Option<Arc<Rules>>,
     /// That key's fingerprint, for serve's log.
     who: String,
+    /// The server's stop (T-117): no new session or request once it stops.
+    control: Control,
 }
 
 impl Served {
-    pub(super) fn new(authorized: Arc<Authorized>, settings: Arc<Settings>) -> Served {
+    pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
-        Served { authorized, settings, channels: HashMap::new(), forwards, rules: None, who: String::new() }
+        let (rules, who) = (None, String::new());
+        Served { authorized, settings, channels: HashMap::new(), forwards, rules, who, control }
     }
 
     /// The rules under which `key` logs in now, or None; a key that lines
@@ -71,8 +67,12 @@ impl Served {
         }
     }
 
-    /// The rules in force, or the words of a refusal before a login.
+    /// The rules in force, or the words of a refusal: before a login, or
+    /// once the server stops (T-117), which takes no new request.
     fn rules(&self) -> Result<Arc<Rules>, String> {
+        if self.control.stage() != Stage::Serving {
+            return Err(super::stop::STOPPING.to_string());
+        }
         self.rules.clone().ok_or_else(|| "no key logged in".to_string())
     }
 
@@ -214,42 +214,6 @@ async fn start_program(
     Err("not on this system: podssh serve runs programs on a Unix host".into())
 }
 
-/// Grant a pty to `open` when a master opens now, before its program and
-/// once; nothing is kept for the next request.
-#[cfg(unix)]
-fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>) -> bool {
-    use super::{pty, pty_child::Granted};
-    if open.started() || open.pty.is_some() {
-        return false;
-    }
-    let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
-    let Ok(pair) = pty::open_from(&paths) else { return false };
-    let size = pty::size_of(asked.cols, asked.rows, asked.pix_width, asked.pix_height);
-    match Granted::new(pair, asked.term, size, asked.modes) {
-        Ok(granted) => {
-            open.pty = Some(granted);
-            true
-        }
-        Err(_) => false,
-    }
-}
-
-/// On Windows a pty request fails: serve runs no program there.
-#[cfg(not(unix))]
-fn grant_pty(_: &mut Open, _: &Settings, _: &Asked<'_>) -> bool {
-    false
-}
-
-#[cfg(unix)]
-fn resize_pty(open: &Open, cols: u32, rows: u32, pix_width: u32, pix_height: u32) {
-    if let Some(granted) = open.pty.as_ref() {
-        granted.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
-    }
-}
-
-#[cfg(not(unix))]
-fn resize_pty(_: &Open, _: u32, _: u32, _: u32, _: u32) {}
-
 impl russh::server::Handler for Served {
     type Error = russh::Error;
 
@@ -280,7 +244,13 @@ impl russh::server::Handler for Served {
             reply.reject(ChannelOpenFailure::ResourceShortage).await;
             return Ok(());
         }
-        self.channels.insert(channel.id(), Open::new(channel, session.handle()));
+        // A server that stops takes no new session (T-117).
+        if self.control.stage() != Stage::Serving {
+            reply.reject(ChannelOpenFailure::AdministrativelyProhibited).await;
+            return Ok(());
+        }
+        let group = self.control.groups.slot();
+        self.channels.insert(channel.id(), Open::new(channel, session.handle(), group));
         reply.accept().await;
         Ok(())
     }

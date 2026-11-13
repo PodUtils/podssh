@@ -1,0 +1,7 @@
+# T-117: podssh serve stops with no SIGHUP to the children's groups (neither at
+# the stop nor when their channel closes), so a child runs on until the grace
+# ends and the kill comes; the test of the stop must fail.
+ENTRY=T-117
+GROUP=cli-tests
+EXPECT='test a_stop_says_why_and_hangs_up_each_child \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_lifecycle -- a_stop_says_why_and_hangs_up_each_child'

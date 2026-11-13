@@ -139,8 +139,11 @@ impl Running {
     /// While the child runs, its `pumps` copy its output; after it ends
     /// (told on `exited`), they read to the end within [`QUIET`] and
     /// [`AFTER_EXIT`]; then its status, EOF and close, in that order. A
-    /// client that closes the channel first ends the pumps: the child then
-    /// meets closed pipes, or a hung-up pty, as under sshd.
+    /// client that closes the channel first, or a connection that ends, ends
+    /// the pumps and hangs up the child's group (T-117, T-118): the child
+    /// meets closed pipes or a hung-up pty, and a SIGHUP, so that nothing of
+    /// a session that is gone runs on in the cage unless it asked to
+    /// (`nohup`). Its slot holds the group until it ends, for a stop.
     pub(super) async fn finish(
         self,
         mut child: Child,
@@ -154,7 +157,11 @@ impl Running {
             status = child.wait() => status,
             () = turned(&mut closed) => {
                 abort();
-                // tokio reaps the child when it ends; nothing waits here.
+                let group = self.group.load(Ordering::SeqCst);
+                super::stop::HANGUP.iter().for_each(|signal| super::stop::to_group(group, *signal));
+                // Waited for, so that its slot is free when it ends.
+                let _ = child.wait().await;
+                self.group.store(0, Ordering::SeqCst);
                 return;
             }
         };

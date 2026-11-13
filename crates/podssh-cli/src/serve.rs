@@ -4,7 +4,9 @@
 //! `AGENTS.md`). The server is `podssh_ssh::server`; this file is the
 //! command line: the authorized keys, the shell that sessions run (T-222),
 //! the host key in its state file, the drop of each capability of the start
-//! (T-698), then the connection, whose forwards the server dials (T-109).
+//! (T-698), then the connection, whose forwards the server dials (T-109),
+//! until the client leaves or a signal stops it; SIGHUP reads the keys
+//! again (T-117, `serve_keys.rs`).
 //! The options of each key line are its rules (T-114): a line whose options
 //! cannot all be honoured is passed over, and said.
 
@@ -14,10 +16,11 @@ use std::sync::Arc;
 
 use clap::ArgMatches;
 use podssh_relay::cache::{self, Others};
-use podssh_ssh::server::{self, host_key, Authorized, HostKey, Line, Say, Settings, StateFiles};
+use podssh_ssh::server::{host_key, HostKey, Keys, Say, Settings, StateFiles};
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
 use crate::relay_settings::Refusal;
+use crate::serve_keys::{self, Sources};
 
 /// Every value `podssh serve` accepts, as typed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -93,8 +96,12 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(None) => {}
         Err(refusal) => return refused(err, refusal),
     }
-    let authorized = match authorized(args, err) {
-        Ok(authorized) => Arc::new(authorized),
+    let sources = match Sources::of(&args.authorized_key, &args.authorized_keys, default_file()) {
+        Ok(sources) => sources,
+        Err(refusal) => return refused(err, refusal),
+    };
+    let keys = match sources.read(err) {
+        Ok(authorized) => Keys::new(authorized),
         Err(refusal) => return refused(err, refusal),
     };
     let settings = Settings {
@@ -133,7 +140,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         }
     };
     let stream = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
-    match runtime.block_on(server::serve_with(stream, key, authorized, Arc::new(settings))) {
+    let serving = serve_keys::serve_until_stopped(stream, key, keys, Arc::new(settings), &sources, err);
+    match runtime.block_on(serving) {
         Ok(()) => 0,
         Err(why) => {
             let _ = writeln!(err, "podssh serve: {why}");
@@ -148,49 +156,11 @@ fn refused(err: &mut dyn Write, refusal: Refusal) -> i32 {
 }
 
 /// The keys that may log in: each `--authorized-key`, each line of each
-/// `--authorized-keys` file, else of `~/.ssh/authorized_keys`. None at all
-/// refuses the start (78): a server that nobody can log in to is a setup
-/// that went wrong.
-fn authorized(args: &ServeArgs, err: &mut dyn Write) -> Result<Authorized, Refusal> {
-    let mut authorized = Authorized::new();
-    for text in &args.authorized_key {
-        match server::parse_line(text) {
-            Line::Key(key, rules) => {
-                authorized.add_ruled(*key, *rules, "--authorized-key".into());
-            }
-            Line::Bad(why) => return Err(Refusal::usage(format!("--authorized-key {text:?}: {why}"))),
-            Line::Nothing => return Err(Refusal::usage("--authorized-key: give a key, TYPE BASE64 [COMMENT]")),
-        }
-    }
-    let mut files: Vec<(PathBuf, bool)> = args.authorized_keys.iter().map(|f| (PathBuf::from(f), true)).collect();
-    if args.authorized_key.is_empty() && files.is_empty() {
-        files.extend(default_file().map(|f| (f, false)));
-    }
-    let mut passed = 0;
-    for (file, named) in &files {
-        let shown = file.display();
-        let text = match cache::read_own(file, Others::Read) {
-            Ok(Some(text)) => text,
-            Ok(None) if !*named => continue,
-            Ok(None) => return Err(Refusal::config(format!("{shown}: no such file"))),
-            Err(why) => return Err(Refusal::config(why)),
-        };
-        let read = authorized.add_text_from(&text, &shown.to_string());
-        for (n, why) in &read.bad {
-            let _ = writeln!(err, "podssh serve: {shown}, line {n}: {why}: passed over");
-        }
-        passed += read.bad.len();
-    }
-    if authorized.is_empty() {
-        let tried: Vec<String> = files.iter().map(|(f, _)| f.display().to_string()).collect();
-        let lines = if passed > 0 { format!(" ({passed} lines passed over, said above)") } else { String::new() };
-        return Err(Refusal::config(format!(
-            "no authorized key{lines}, so nobody could log in: give --authorized-key KEY or --authorized-keys \
-             FILE{}",
-            if tried.is_empty() { String::new() } else { format!(" (read: {})", tried.join(", ")) }
-        )));
-    }
-    Ok(authorized)
+/// `--authorized-keys` file, else of `~/.ssh/authorized_keys`, each with
+/// its rules (T-114). None at all refuses the start (78).
+#[cfg(test)]
+fn authorized(args: &ServeArgs, err: &mut dyn Write) -> Result<podssh_ssh::server::Authorized, Refusal> {
+    Sources::of(&args.authorized_key, &args.authorized_keys, default_file())?.read(err)
 }
 
 /// The address of the client where stdin is a TCP socket (an inetd or a

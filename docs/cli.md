@@ -5829,9 +5829,34 @@ gives up each capability of the process (T-698), before it reads a file.
   server runs no command and no shell. In a session, the same line goes to
   the channel's stderr and the request fails. `podssh doctor`'s line
   `shell` names the same choice.
-- **Exit codes.** 0 when the client left; 255 when the connection failed;
-  64 without `--stdio`, with a terminal on stdin, or with `--shell` and
-  `--no-shell`; 78 as above; 70 on Windows.
+- **The stop, and SIGHUP (T-117).** SIGTERM or SIGINT stops serve
+  cleanly (`crates/podssh-ssh/src/server/stop.rs`): no new session,
+  forward or request is taken (beside each key's rules, T-114), the client gets a disconnect with the reason `podssh
+  serve is stopping` (OpenSSH prints `Received disconnect ... podssh serve
+  is stopping`), and the process group of each child, on pipes or a pty,
+  is hung up: SIGHUP, then SIGCONT, as the kernel does when a terminal goes
+  away. A group that still runs 5 s later is killed (SIGKILL), and a second
+  SIGTERM or SIGINT kills at once; serve then exits 0. The disconnect waits
+  1 s at most, as a client that reads nothing holds the session's queue,
+  and the stop does not wait on it. A client that closes a channel whose
+  child still runs, or a connection that ends, hangs up that child the same
+  way, with no kill after it: OpenSSH's sshd leaves a child on pipes
+  running, but a cage has nobody to clean up after a client that is gone,
+  and `nohup` still keeps a job that asks for it. SIGHUP reads the
+  authorized keys again (`crates/podssh-cli/src/serve_keys.rs`): each
+  `--authorized-keys` file, or `~/.ssh/authorized_keys`; each
+  `--authorized-key` stays. Each line is read as at the start, its
+  options its rules (T-114): a line that is not used is passed over and
+  said. The set is one, shared by each connection and replaced whole: the
+  next login meets it, and a session that logged in goes on under the rules
+  it logged in with, which its connection holds. A file that is gone or
+  cannot be read, or a set with no key, keeps the set before, with one line
+  on stderr that says why (`podssh serve: SIGHUP: FILE: no such file; the
+  set before stays, 1 keys`), as a reload must not lock each new login out.
+  serve reads no settings file: its other settings are the command line's.
+- **Exit codes.** 0 when the client left, and after a stop; 255 when the
+  connection failed; 64 without `--stdio`, with a terminal on stdin, or
+  with `--shell` and `--no-shell`; 78 as above; 70 on Windows.
 
 ## `podssh session`
 

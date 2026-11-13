@@ -1,7 +1,7 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
-//! T-110; SFTP, T-112; the options of a key line, T-114), and the row of
-//! its host key's file.
+//! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
+//! SIGHUP, T-117), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -101,8 +101,21 @@ pub const SERVE: &[&str] = &[
      the search, and refuses each command and shell. In a session, the same line goes to the channel's \
      stderr, and the request fails (OpenSSH: exec request failed). podssh doctor's line shell names the \
      shell that serve would run, and each candidate passed over.",
-    "The connection ends when the client leaves: exit 0, else 255 when it failed. Without --stdio the run \
-     is a usage error (64), and so are --shell with --no-shell; on Windows it exits 70.",
+    "SIGTERM or SIGINT stops serve cleanly: it takes no new session or forward, sends the client a \
+     disconnect with the reason podssh serve is stopping (OpenSSH prints it), and hangs up the process \
+     group of each command, shell and pty child (SIGHUP, then SIGCONT, as the kernel does when a terminal \
+     goes away). A group that still runs 5 s later is killed with SIGKILL; a second SIGTERM or SIGINT \
+     kills at once. Then serve exits 0. A client that closes its channel, or a connection that ends, \
+     hangs up that channel's child the same way, so nothing of a session that is gone runs on unless it \
+     asked to (nohup).",
+    "SIGHUP reads the authorized keys again: each --authorized-keys file, or ~/.ssh/authorized_keys; each \
+     --authorized-key stays. Each line is read as at the start, its options its rules: a line that is \
+     not used is passed over and said. The next login meets the new set; a session that logged in goes \
+     on, under the rules it logged in with. A file that is gone or cannot be read, or no key at all, \
+     keeps the set before, and one line on stderr says why; a reload that took says how many lines are \
+     used now. The other settings are the command line's, and a restart changes them.",
+    "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0. Without \
+     --stdio the run is a usage error (64), and so are --shell with --no-shell; on Windows it exits 70.",
 ];
 
 /// The host key's file, for FILES.

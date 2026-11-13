@@ -982,10 +982,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:495`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:496`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:101`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:503`). 200 MiB each way
+  (`docs/relay.md:557`; measured: `docs/STATUS.md:504`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:32-39`).
@@ -1371,7 +1371,7 @@ lifecycle); GitHub #22 (Petyok/SSHub: hot reload).
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1402,25 +1402,139 @@ a restart ends each session on it (`docs/design.md:698-701`).
 4. Same commit: the exit codes and messages in the serve section of the
    manual, `docs/cli.md`.
 
+## Decision
+
+2026-11-13, made with the draft (see Correction for what the Approach reads as in `--stdio`):
+
+- **A channel that closes while its child runs hangs the child up** (SIGHUP, then SIGCONT), as a
+  stop does, with no kill after it. OpenSSH's sshd leaves a child on pipes running when its client
+  goes; a cage has nobody to clean up after a client that is gone, and T-118's Approach item 3 asks
+  for the hangup on the client's end. `nohup` still keeps a job that asks for it. Lost: sshd's way,
+  which leaves `sleep 100` behind each killed `ssh`; a kill after a grace, which would kill a
+  `nohup` job too.
+- **A reload reads each line as the start does** (T-114's `Authorized`, rules per line): a line that is
+  not used, no key or options that serve cannot all honour, is passed over and said, and each other
+  line keeps its rules. A file that is gone or cannot be read, or a set with no key, keeps the set
+  before, with one line: a reload must not lock each new login out. A session that logged in keeps
+  the rules it logged in with: its handler holds them from its login. The invariant "a reload never
+  gives access that the new files do not give" holds for each line that is read: the set in use is
+  that of one reading of the files. Lost: refusing the whole reload at a bad line (the draft before
+  T-114 did so), which would drop the rules of each good line of the file with the bad one, and differ
+  from the start's reading; an empty set, which locks each new login out.
+- **The disconnect waits 1 s at most, on a task of its own.** russh takes a `Handle` message only
+  while no channel holds data past its window (Premise of T-118), so a client that reads nothing
+  would hold the reason back; the stop does not wait on it, and the hangup goes at once.
+- **SIGINT is SIGTERM**, as the Approach has it, and a second of either kills at once.
+- **The stop sits beside T-114's rules.** Once stopping, the handler's `rules()` gives the refusal
+  `podssh serve is stopping` in the place of a key's rules, so each request that T-114 checks (exec,
+  shell, subsystem, pty, direct-tcpip) is refused with that reason; a new session channel is refused
+  at its open.
+- **The keys are one set shared by each connection** (`podssh_ssh::server::Keys`), and the stop one
+  `Control` shared by each connection, so that the node form and T-124's listener take both as
+  they are.
+
 ## Prove
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_lifecycle
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::stop
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_keys
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_lifecycle_openssh --test serve_openssh --test serve_stdio --test serve_options_openssh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_exec --test serve_pty --test serve_auth --test serve_forward --test serve_sftp --test serve_options
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_flag_parity --test man_json
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+sh scripts/plant-each.sh --here t117-stop-without-hangup
 sh scripts/dev.sh check
 ```
 
-The test file crates/podssh-ssh/tests/serve_lifecycle.rs serves two streams
-in memory from one server: a reload adds a key for the second stream and
-keeps the first session; a broken file keeps the old keys. In the gate,
-OpenSSH's client runs `sleep 100` through `podssh serve --stdio`; a SIGTERM to
-serve ends the client within 5 s with the reason, and `pgrep -f 'sleep 100'`
-then finds nothing. A planted stop with no SIGHUP to the group fails that
-last check.
+The test file crates/podssh-ssh/tests/serve_lifecycle.rs serves several streams
+in memory from one server: a reload adds a key for a new stream and
+keeps the first session, and a set with no key replaces nothing; a stop sends the
+reason, hangs up two children before the grace and ends serve with `Ok`; a child that
+ignores SIGHUP is killed after the grace, and at once on a second stop; a closed channel
+hangs up its child. The unit tests of crates/podssh-cli/src/serve_keys.rs read the files: a new key
+taken, a removed one dropped, a line that is not used passed over and said, a missing file keeping the set before with one line,
+a key of the command line kept. Against OpenSSH's client
+(crates/podssh-cli/tests/serve_lifecycle_openssh.rs, where the host has one), `sleep 100` runs through
+`podssh serve --stdio`; a SIGHUP keeps it; a SIGTERM to serve ends the client within 5 s with the
+reason, serve exits 0, and the child is gone. The plant `t117-stop-without-hangup` (no SIGHUP to a
+group, at the stop or at a close) fails the in-memory test of the stop, as the child then lives
+until the kill after the grace.
 
 ## Correction
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-13. The draft rebased onto `a5b4204` (T-114 on main): `Keys` holds T-114's `Authorized`
+and answers `admit`; the reload reads as the start does (Decision); the pty's glue of the handler moved
+to crates/podssh-ssh/src/server/pty_grant.rs, so that `handler.rs` stays under 500 lines with the stop.
+
+2026-11-13. The Premise, read again at `97d6fac`:
+
+- The client's handling holds: `crates/podssh-ssh/src/terminal/termination.rs:26-93` ends a
+  session on SIGTERM and SIGHUP. The server had none: a SIGTERM killed `podssh serve` by its default,
+  and each child on pipes ran on (`sleep 100` after its client was gone).
+- russh is 0.65.0 from `vendor/russh` (T-107's Correction); `Handle::disconnect` is in
+  `vendor/russh/src/server/session.rs`, and it goes through the session's bounded queue, which the
+  session reads only while no channel holds data past its window (the Premise of T-118): the stop
+  sends it on a task of its own with 1 s (Decision).
+- "The node mode (`podssh serve NAME`, after T-079) serves many": that form is not built (T-107's
+  Done, left), and `podssh serve` serves one connection on stdin and stdout; a listener is T-124's.
+  So in `--stdio` the Approach reads: item 1's "take no new session" refuses a session channel and a
+  forward opened after the stop, and there is no relay to leave; item 2's reload is seen by a login
+  that comes after it (a connection that has not logged in yet), and the server core keeps one set of
+  keys and one stop for each of its connections (`Keys`, `Control`), so the node form and T-124 take
+  them; the test of two streams from one server runs in memory, as the Prove has it.
+- Item 2's "the settings files": serve reads no settings file; its settings are its command line.
+  A reload reads the authorized keys files, each `--authorized-keys`, or `~/.ssh/authorized_keys`
+  when no flag names a key; `--authorized-key` is the command line's and stays.
+- The Prove's `pgrep -f 'sleep 100'` would find any other `sleep 100` of the host: the test has the
+  command write its own pid first, and reads `/proc` for it (a zombie counts as gone); "in the gate"
+  is the CLI crate's test crates/podssh-cli/tests/serve_lifecycle_openssh.rs, as T-107 to T-112 made theirs,
+  run where the host has OpenSSH's client.
+
+## Done
+
+Not done. Drafted 2026-11-13 on the branch `draft-t117` (no build, no test run): the stop and the
+shared keys in crates/podssh-ssh/src/server/stop.rs (`Keys`, `Control`, `Stage`, the groups of the
+children, `wind_down`: the disconnect, the hangup, the grace of 5 s, the kill); `serve_under` in
+`crates/podssh-ssh/src/server/mod.rs` (`serve_with` calls it); the handler reads the keys at each
+attempt and takes no session or forward once stopping; each channel's group in the stop's list
+(`channel.rs`); a child whose channel closes is hung up and reaped (`child.rs`); the keys' sources,
+the reload and the signals in crates/podssh-cli/src/serve_keys.rs, called by `serve.rs`; the manual's
+notes (crates/podssh-cli/src/man/notes_serve.rs), `docs/cli.md` ("The stop, and SIGHUP"), a row of
+`docs/STATUS.md`, the tests of the Prove, `openssh_proxy` and `serve_command` in
+crates/podssh-cli/tests/serve_kit/mod.rs, and the plant `t117-stop-without-hangup`. Results:
+
+Merged, built and run by the main session the same day (its rebase on T-114 by the drafting agent), with two
+repairs:
+
+- `cargo test -p podssh-ssh --test serve_lifecycle --test serve_options --test serve_auth --test serve_exec --test
+  serve_pty --test serve_sftp --test serve_forward`: 5, 7, 11, 6, 8, 6 and 5 passed.
+- `cargo test -p podssh-cli --lib serve` (`serve_keys` among them): 77 passed.
+- The manual: the SIGHUP paragraph of `notes_serve.rs` had lost its closing quote in the rebase, so the crate did
+  not build; restored. `--lib man` 100, `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9: passed.
+- `cargo test -p podssh-cli --test serve_lifecycle_openssh` (OpenSSH 9.6): passed twice, after two repairs of its
+  ProxyCommand wrapper. A command of `&` in sh gets /dev/null as its stdin before its own redirections (POSIX, no
+  job control), so `serve <&0 &` read /dev/null and the session ended at once ("the SSH connection failed:
+  Disconnected"); the client's pipe now goes by descriptor 3. And OpenSSH sends its ProxyCommand SIGHUP as it
+  ends, which killed the wrapper's shell before it wrote serve's status; the shell now ignores SIGHUP once serve
+  runs. `serve_options_openssh`, `serve_openssh`, `serve_stdio`, `serve_sftp_openssh`, `serve_forward_openssh`: 5,
+  9, 3, 3 and 5 passed.
+- Seen at the merge: where serve is itself the ProxyCommand, OpenSSH's SIGHUP at the end of the session reaches
+  serve, which reads its keys again and says so on stderr as the connection ends; harmless, as nothing follows.
+- The plant `t117-stop-without-hangup`: caught; `t114-forced-command-ignored` and `t107-accept-each-key`: caught.
+- Clippy: clean; rustfmt reflowed `pty_grant.rs`.
+- `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,839 passed, 0 failed.
+
+Left after the merge: `cargo todo remap` on each cited file that the draft changed
+(`crates/podssh-ssh/src/server/handler.rs`, `crates/podssh-ssh/src/server/mod.rs`,
+`crates/podssh-ssh/src/server/channel.rs`, `crates/podssh-ssh/src/server/child.rs`,
+`crates/podssh-cli/src/man/notes_serve.rs`,
+`crates/podssh-cli/src/serve.rs`, `docs/cli.md`, `docs/STATUS.md`) and `cargo todo counts` (the status
+moved by hand in the entry and the index); the run in the build image (T-251).
 
 # T-118: `podssh serve`: a slow client cannot stall a pty or fill the memory
 
@@ -2004,7 +2118,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:495`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:496`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:229-231`).
@@ -2060,7 +2174,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:458`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:459`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2078,10 +2192,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:494` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:458`, `docs/STATUS.md:478`),
+- `docs/STATUS.md:495` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:459`, `docs/STATUS.md:479`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:456` is `docs/STATUS.md:458`.
+  The Prove's `docs/STATUS.md:457` is `docs/STATUS.md:459`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:215`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2140,10 +2254,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-113`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:495`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:496`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:474`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:475`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2400,7 +2514,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1133` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:836-840`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:1949-1950` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2063-2064` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:457` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:317` says "TooManyConnections = 12,".

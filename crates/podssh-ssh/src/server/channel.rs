@@ -60,8 +60,9 @@ pub(super) struct Open {
 }
 
 impl Open {
-    /// Split the channel, and start the task that reads it.
-    pub(super) fn new(channel: Channel<Msg>, handle: Handle) -> Open {
+    /// Split the channel, and start the task that reads it. `group` is the
+    /// slot of the server's stop for this channel's child (T-117).
+    pub(super) fn new(channel: Channel<Msg>, handle: Handle, group: Arc<AtomicI32>) -> Open {
         let (read, write) = channel.split();
         let (stdin_tx, stdin_rx) = oneshot::channel();
         let (closed_tx, closed) = watch::channel(false);
@@ -71,7 +72,7 @@ impl Open {
             handle,
             stdin: Some(stdin_tx),
             env: Vec::new(),
-            group: Arc::new(AtomicI32::new(0)),
+            group,
             closed,
             #[cfg(unix)]
             pty: None,

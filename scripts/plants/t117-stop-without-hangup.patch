@@ -1,0 +1,11 @@
+--- a/crates/podssh-ssh/src/server/stop.rs
++++ b/crates/podssh-ssh/src/server/stop.rs
+@@ -159,7 +159,7 @@
+ /// The hangup of a group: SIGHUP, then SIGCONT so that a stopped job
+ /// hears it, as the kernel sends both when a terminal goes away.
+ #[cfg(unix)]
+-pub(super) const HANGUP: &[i32] = &[libc::SIGHUP, libc::SIGCONT];
++pub(super) const HANGUP: &[i32] = &[];
+ #[cfg(not(unix))]
+ pub(super) const HANGUP: &[i32] = &[];
+ 

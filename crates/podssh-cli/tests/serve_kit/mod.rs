@@ -55,7 +55,18 @@ pub fn keygen(home: &Path, path: &Path) {
 /// `known_hosts`; `ssh` takes `options` before the destination and `remote`
 /// after it.
 pub fn openssh_with(home: &Path, key: &Path, strict: &str, serve: &str, options: &[&str], remote: &[&str]) -> Command {
-    let proxy = format!("'{BIN}' serve --stdio --authorized-keys '{}'{serve}", home.join("id.pub").display());
+    openssh_proxy(home, key, strict, &serve_command(home, serve), options, remote)
+}
+
+/// The command line of `podssh serve --stdio` with the scratch key listed,
+/// and `serve` after it.
+pub fn serve_command(home: &Path, serve: &str) -> String {
+    format!("'{BIN}' serve --stdio --authorized-keys '{}'{serve}", home.join("id.pub").display())
+}
+
+/// [`openssh_with`] with `proxy` whole as the ProxyCommand, as a test that
+/// wraps serve to learn its pid (T-117).
+pub fn openssh_proxy(home: &Path, key: &Path, strict: &str, proxy: &str, options: &[&str], remote: &[&str]) -> Command {
     let mut cmd = Command::new("ssh");
     cmd.args(["-F", "/dev/null", "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "LogLevel=VERBOSE"])
         .arg("-o")

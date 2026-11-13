@@ -11954,7 +11954,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:1835` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:1949` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -14914,7 +14914,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:34` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1138` says "a host of T-565's module, T-743", and `docs/carriers.md:1024` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:1835` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:1949` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach

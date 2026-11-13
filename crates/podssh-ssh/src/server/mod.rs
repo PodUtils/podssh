@@ -10,6 +10,8 @@
 //! pty opens (T-111), the request is refused with the reply that the client
 //! waits for. The options of each key line (`command=`, `no-pty`,
 //! `permitopen=`, `from=`, `restrict`...) limit what it may do (T-114).
+//! A stop says why to each client and hangs up each child, and the keys
+//! can be read again while it serves (T-117, `stop.rs`).
 
 mod authorized;
 mod channel;
@@ -24,10 +26,12 @@ pub mod options;
 pub mod pty;
 #[cfg(unix)]
 mod pty_child;
+mod pty_grant;
 pub mod rules;
 pub mod sftp;
 #[cfg(unix)]
 pub mod shell;
+pub mod stop;
 
 use std::borrow::Cow;
 use std::ffi::OsString;
@@ -45,6 +49,7 @@ pub use direct::{DIAL_LIMIT, MAX_FORWARDS};
 pub use host_key::{HostKey, StateFiles};
 pub use options::{Permit, Rules};
 pub use rules::Context;
+pub use stop::{Control, Keys, Stage};
 
 /// How often the server asks a silent client whether it is there, as the
 /// relay's own keepalive does (`docs/relay.md`).
@@ -149,15 +154,44 @@ pub async fn serve_with<S>(
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
+    serve_under(stream, host_key, Keys::from(authorized), settings, Control::new()).await
+}
+
+/// [`serve_with`] under the caller's `control` (T-117): its stop ends the
+/// connection with a reason and hangs up each child, and `keys` is the set
+/// that a reload replaces, shared with each other connection of the server.
+/// A stop is a clean end: `Ok`.
+pub async fn serve_under<S>(
+    stream: S,
+    host_key: PrivateKey,
+    keys: Keys,
+    settings: Arc<Settings>,
+    control: Control,
+) -> Result<(), String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     // No key, no login: the caller refuses the start first, and this holds
     // it for each other caller.
-    if authorized.is_empty() {
+    if keys.is_empty() {
         return Err("no authorized key: nobody could log in".into());
     }
+    let mut stage = control.watch();
+    if *stage.borrow() != Stage::Serving {
+        return Ok(());
+    }
     let config = Arc::new(config(host_key));
-    let served = handler::Served::new(authorized, settings);
-    let running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
-    match running.await {
+    let served = handler::Served::new(keys, settings, control.clone());
+    let mut running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
+    let handle = running.handle();
+    let result = tokio::select! {
+        result = &mut running => result,
+        () = stop::reached(&mut stage, Stage::Stopping) => {
+            stop::wind_down(handle, &control, running).await;
+            return Ok(());
+        }
+    };
+    match result {
         Ok(()) => Ok(()),
         // The client's own end of the connection.
         Err(russh::Error::Disconnect | russh::Error::HUP) => Ok(()),
