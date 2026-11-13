@@ -14113,11 +14113,42 @@ for a command's output and for files, never for a keystroke.
   catalog's facts); a feature of stand-ins in the binary's test build (the next step, if the main session wants
   the test of the binary before the live run).
 
+2026-11-13 (the third draft, DRAFT T-738: the test of the binary and the live run).
+
+- **The binary is pointed at the stand-ins by its proxy, with no hook of its own.** Both ends name the catalog's
+  hosts and broker, as a user's binary does; the test's `HTTPS_PROXY` is a proxy of CONNECT that takes each of
+  those names on 443 to a stand-in of the loopback (`127.0.0.1` targets to themselves, each other name refused
+  403), and `SSL_CERT_FILE` is the test's CA, whose one certificate names each of them. The stand-in host speaks
+  the form that `pod-services` gives each host (its fields, its answer, its download's segment and method, its
+  delete), and the broker is Mosquitto behind TLS of the same CA. Lost: a variable of the binary that names a
+  host's form or a broker's URL (the first draft's loss stands: a second form of the catalog's facts); a feature
+  `filehost-test` of stand-ins in the binary (a build that is not the one that ships, for a test whose stand-ins
+  the proxy already reaches); a hook of the pace (the test waits for each host's published pace instead, 23 s
+  and 30 s, so the session takes minutes; the pace is part of what ships).
+- **The test's two hosts are `tmpfiles-org` (JSON, a segment `dl`) and `null-pointer-0x0` (text, a delete by
+  token)**, named by `PODSSH_FILEHOSTS`, the first answering 429 past three uploads, so one session shows the
+  answer's two forms, the segment, the delete and the failover. Lost: all four (temp.sh's download by POST and
+  Litterbox's other serving host are in the unit tests of `http_tests.rs`, and each host more is a pace more).
+- **The node is a `--derp` node with a pair whose relay is down**, as `tests/derp_road.rs`' croc road beside a
+  pair is: the DERP road keeps the node up, the client's DERP road is off, and its pair's road fails at once, so
+  the race gives the session to the file hosts' road. Lost: a node of the pair's road alone (its road ends the
+  node when its relay is down).
+- **A bad `PODSSH_FILEHOSTS` is refused at the node too** (`node_transit::check`, with `PODSSH_SMEE`'s): a
+  node read a bad value as off with no word, so a typo dropped a road that its user named. Found while drafting.
+- **The live run is a test of the library, not of the binary**: one piece of 1 KiB through each host, sealed,
+  uploaded, its note on a board in memory, read, downloaded, opened and deleted where the host deletes
+  (`tests/filehost_live.rs`), by hand in `filehost-live.yml`. The broker's live run is T-737's (`mqtt-interop.yml`,
+  job `live`). Lost: a node and a client through the public hosts and broker (an SSH session is some ten pieces
+  each way, past "one piece of 1 KiB" of the Prove). The hosts are services of Q78 ("file hosts such as 0x0.st"),
+  and Q91 lets a short run reach "the services of Q77 and Q78": the row of `AGENTS.md`'s targets, "The services of
+  Q77 and Q78 (T-548)", covers them. 0x0.st's operator asks a program for its user's consent: the run takes it by
+  the dispatch of the operator's workflow, and the input `hosts` leaves a host out.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-cli --test carrier_filehost
+PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto cargo test -p podssh-cli --features filehost --test carrier_filehost
 ```
 
 Against a stand-in host of 0x0's own software (`mia/0x0`, which podssh did not write) and a stand-in meeting
@@ -14268,6 +14299,51 @@ temporary borrowed past its statement in `http.rs`'s delete).
 - Not done, and why: the CLI's test `carrier_filehost` of the Prove (a stand-in host and broker that the binary
   can be pointed at; the Decision), the run against `mia/0x0`, and the live run of one piece of 1 KiB through each
   host from Actions.
+
+Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
+
+- `crates/podssh-cli/tests/carrier_filehost.rs` (feature `filehost`): a `--derp` node and `podssh ssh
+  node://tester@lab cat` of a pair whose relay is down, each other road off, through the test's proxy and CA; the
+  stand-ins in `crates/podssh-cli/tests/filehost_stand_in/` (`mod.rs`: the hosts by their forms, the proxy of
+  CONNECT, the TLS front, Mosquitto; `http.rs`: HTTP/1.1 and multipart). Asserted: 256 KiB up and back with equal
+  digests, "the file-host road answered first", the lines of Q78 at both ends, three uploads to tmpfiles-org then
+  429 and the next pieces at 0x0, each host's pieces read, each piece that 0x0 lost deleted by the reader with its
+  own token, no page read for a file, no file read twice, no run of 64 bytes of the plaintext at a host; and a
+  bad `PODSSH_FILEHOSTS` refused with 78 at the node and at the client before a connection.
+- `crates/podssh-cli/src/node_transit.rs`: `check` refuses a bad `PODSSH_SMEE` and `PODSSH_FILEHOSTS` at the
+  node (the Decision).
+- `.github/workflows/mqtt-interop.yml`: a step that runs `carrier_filehost` with the job's Mosquitto (75 minutes
+  for the job), and its paths.
+- `crates/podssh-relay/tests/filehost_live.rs` and `.github/workflows/filehost-live.yml` (by hand only, input
+  `hosts`): one piece of 1 KiB through each host of the kind.
+- To check when it builds:
+
+  ```sh
+  export CARGO_BUILD_JOBS=4
+  PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto \
+    cargo test -p podssh-cli --features filehost --test carrier_filehost -- --nocapture
+  cargo test -p podssh-cli --test carrier_filehost        # without the feature: 0 tests, it builds
+  cargo test -p podssh-relay --features filehost --test filehost_live   # says "did not run"
+  cargo clippy -p podssh-cli --features filehost --all-targets -- -D warnings
+  # by hand, from Actions: filehost-live.yml (Q78, Q91: short)
+  ```
+
+  Results at the merge, by the main session the same day: the session through the stand-ins (Mosquitto 2.0's
+  `websockets` listener took the catalog's login `public` with no password file) failed with 255 after 665 s: the
+  road answered first, in 12.6 s, but each handshake of the end-to-end channel ended at its 30 s, as each piece waits
+  for its host's pace; that defect of the road is T-773, and the test is ignored, naming it. Repaired in the test:
+  the node's lines were read until the road's own, before the broker's line of Q78 that the test then looked for.
+  The refusals at the node: `a_bad_podssh_filehosts_is_refused_with_78_at_each_end_before_anything_connects`
+  passed; without the feature, the target builds with 0 tests; `filehost_live` says "did not run"; clippy with
+  `podssh-cli/filehost,podssh-relay/filehost`: clean once the stand-in's type of two lists was named;
+  `cargo test -p podssh-cli --no-fail-fast`: 2,278 passed, 0 failed. `filehost_live` from Actions: after the push.
+- What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
+  shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
+  client's stderr, a defect of the road to repair, not of the test. It did: T-773.
+- Not done, and why: the run against `mia/0x0` (0x0's own software, of the Prove), which waits for a container of
+  it in a workflow; the planted defect of the Prove (a piece uploaded unsealed) stays in the unit tests of the
+  carrier, as the end-to-end channel and SSH above the road hide the plaintext from a host in the test of the
+  binary.
 
 # T-739: VMess's AEAD form over a WebSocket and TLS: the third line form of the public proxy nodes
 
@@ -15024,3 +15100,44 @@ each once (255); then within the hold, three runs of `tag:builders` each start o
 order's test FAILED. clippy and rustfmt clean.
 
 
+
+# T-773: The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s
+
+**Source:** the main session, 2026-11-13, at the merge of T-738's CLI test `carrier_filehost`: `podssh ssh
+node://tester@lab cat` through stand-ins of tmpfiles.org and 0x0.st at their catalog's pace and Mosquitto failed
+with 255 after 665 s.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The road answered first (in 12.6 s), then each try ended with "the node's answer to the channel's handshake did
+not come within 30 s" or "the handshake took more than 30 s". Each piece is one upload, and a host takes one each
+23 to 30 s (`per_hour` of the catalog), so the handshake's few messages each way need minutes; the limits are 30 s
+for each road (`pod_e2e::HANDSHAKE_LIMIT`, and `pod_session`'s client `HANDSHAKE_LIMIT`, constants of
+PodUtils/podcrates). The library's test `filehost_board` passed because its hosts in memory keep no pace.
+
+## Premise
+
+- `crates/podssh-relay/src/filehost/carrier.rs`: each write is a sealed piece, uploaded, its URL a sealed note on
+  the board; the board (MQTT, retained) is immediate, the hosts paced.
+- `crates/podssh-cli/tests/carrier_filehost.rs`: the session test is ignored, naming this entry.
+
+## Approach
+
+A write of at most a note's room (the board's message size less the note's own fields; a few KiB) rides sealed in
+the note itself, with no upload; only a larger write goes to a host. The handshake, the channel's small frames and
+an interactive session's keys then move at the board's speed, and the bulk at the hosts'. Else, as a second road:
+ask PodUtils/podcrates (COORD) for a handshake limit that a carrier can raise.
+
+## Prove
+
+```sh
+PODSSH_MOSQUITTO_TEST_BIN=/usr/sbin/mosquitto \
+  cargo test -p podssh-cli --features filehost --test carrier_filehost -- --include-ignored
+```
+
+The session test passes with its `#[ignore]` removed.

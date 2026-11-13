@@ -5,8 +5,11 @@ name: mqtt interop
 # from Ubuntu's package, with a websockets listener on the loopback that the
 # test starts itself: crates/podssh-relay/tests/pair_mqtt.rs. Two ends whose
 # one mailbox is dead pair through the broker; a taker of another code finds
-# no giver; and the board of the file hosts' road (T-738,
-# crates/podssh-relay/tests/filehost_board.rs). Each test says "did not run"
+# no giver; the board of the file hosts' road (T-738,
+# crates/podssh-relay/tests/filehost_board.rs); and that road through the
+# binary, a node and a client of `--features filehost` whose proxy takes the
+# catalog's hosts and broker to stand-ins and to this Mosquitto
+# (crates/podssh-cli/tests/carrier_filehost.rs). Each test says "did not run"
 # with no mosquitto, so the job fails
 # on that word. By hand only, the job `live`: one short pairing of two podssh
 # ends through the public broker of pod-services (shiftr.io's, a service of
@@ -27,6 +30,11 @@ on:
       - "crates/podssh-relay/tests/pair_mqtt.rs"
       - "crates/podssh-relay/src/filehost/**"
       - "crates/podssh-relay/tests/filehost_board.rs"
+      - "crates/podssh-cli/src/filehost_road.rs"
+      - "crates/podssh-cli/src/node_filehost.rs"
+      - "crates/podssh-cli/src/ssh/filehost.rs"
+      - "crates/podssh-cli/tests/carrier_filehost.rs"
+      - "crates/podssh-cli/tests/filehost_stand_in/**"
       - "crates/podssh-cli/src/relay_code.rs"
       - ".github/workflows/mqtt-interop.yml"
 
@@ -41,7 +49,8 @@ concurrency:
 jobs:
   interop:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The binary's run through the file hosts waits for each host's pace.
+    timeout-minutes: 75
     env:
       CARGO_BUILD_JOBS: "4"
     steps:
@@ -66,6 +75,12 @@ jobs:
           timeout 1200 cargo test --locked -p podssh-relay --features filehost --test filehost_board -- --nocapture 2>&1 | tee "$RUNNER_TEMP/board.log"
           grep -q "test result: ok. 2 passed" "$RUNNER_TEMP/board.log"
           if grep -q "did not run" "$RUNNER_TEMP/board.log"; then echo "a test did not run"; exit 1; fi
+      - name: the file hosts' road through the binary (T-738)
+        run: |
+          set -o pipefail
+          timeout 2400 cargo test --locked -p podssh-cli --features filehost --test carrier_filehost -- --nocapture 2>&1 | tee "$RUNNER_TEMP/carrier.log"
+          grep -q "test result: ok. 2 passed" "$RUNNER_TEMP/carrier.log"
+          if grep -q "did not run" "$RUNNER_TEMP/carrier.log"; then echo "a test did not run"; exit 1; fi
 
   live:
     if: github.event_name == 'workflow_dispatch' && inputs.live == 'yes'

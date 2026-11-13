@@ -40,8 +40,10 @@ pub(crate) fn setting() -> Result<Setting, Refusal> {
 
 /// The variable, and those of croc's relay road (T-694), ZeroTier's
 /// (T-733), the Tox road (T-734), Yggdrasil's (T-735), HyperDHT's (T-736),
-/// Syncthing's relays' (T-571) and the onion road's (T-578), checked before
-/// anything connects.
+/// Syncthing's relays' (T-571), the onion road's (T-578), the smee.io
+/// road's (T-741) and the file hosts' road's (T-738), checked before
+/// anything connects: a node whose road reads a bad value as off would
+/// drop a road that its user named by a typo, with no word.
 pub(crate) fn check() -> Result<(), Refusal> {
     setting()?;
     crate::node_croc::check()?;
@@ -50,6 +52,8 @@ pub(crate) fn check() -> Result<(), Refusal> {
     crate::yggdrasil::setting()?;
     crate::hyperdht::setting()?;
     crate::strelay::setting()?;
+    crate::smee_road::setting()?;
+    crate::filehost_road::setting()?;
     crate::onion::setting().map(|_| ())
 }
 

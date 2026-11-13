@@ -1,0 +1,46 @@
+name: filehost live
+
+# The file hosts' road (T-738) through the public file hosts of
+# pod-services (its kind `file-host`: tmpfiles.org, Litterbox, temp.sh and
+# 0x0.st), the last of the last fallbacks of the operator's ruling Q78; a
+# short run that Q91 allows for the services of Q78: one piece of 1 KiB
+# through each host, sealed under throwaway keys of the run, downloaded,
+# opened, and deleted where the host deletes; never more
+# (crates/podssh-relay/tests/filehost_live.rs). The broker of the notes is
+# T-737's live run (mqtt-interop.yml, its job `live`). No credential goes to
+# them: an upload has no account. Started by hand alone; it publishes
+# nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      hosts:
+        description: "ids of pod-services' file hosts, by commas; empty: each of the kind"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: filehost-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: "4"
+      PODSSH_TEST_FILEHOST_LIVE: "yes"
+      PODSSH_FILEHOSTS: ${{ inputs.hosts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: build the test
+        run: cargo test --locked -p podssh-relay --features filehost --test filehost_live --no-run
+      - name: one piece of 1 KiB through each host
+        run: |
+          set -o pipefail
+          timeout 1200 cargo test --locked -p podssh-relay --features filehost --test filehost_live -- --nocapture 2>&1 | tee "$RUNNER_TEMP/live.log"
+          grep -q "test result: ok. 1 passed" "$RUNNER_TEMP/live.log"
+          if grep -q "did not run" "$RUNNER_TEMP/live.log"; then echo "the test did not run"; exit 1; fi
