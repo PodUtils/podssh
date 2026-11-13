@@ -585,6 +585,61 @@ to none. The sources are in "Sources", under "T-738".
   the topic of a code alone, so the board needs a retained publish, a read of one topic and a
   clear from it: asked of podcrates (T-738's Done). The board carries the small writes too (T-773): a write of at most 16 KiB less its seal (under the 64,000 bytes of `pod_wormhole`'s board) rides sealed in its note, with no host and no turn of a host's pace, so the handshakes above the road end within their 30 s; only a larger write is a piece on a host. A write's number orders notes and pieces alike, and a client's link starts once the node took its hello.
 
+### The verdict of T-566 (read on 2026-11-13)
+
+Each source below was read on 2026-11-13 through the services of web.pkgforge.dev (forge, domain
+and archive), and none by a connection of podssh to srv.us. Its server is open source, so the
+facts are read in its Go code at a named commit, not inferred from a page. The sources are in
+"Sources", under "T-566". Q78 makes it a last fallback, whatever its terms.
+
+**T-566: srv.us. Passes, as a word of T-565's module whose name a client derives from the node's
+key, with no meeting point.**
+
+- **The name, exactly** [R566-1]. `endpointURLs` of `backend/main.go` hashes, with SHA-256, the key
+  of the login in SSH's wire form (`ssh.PublicKey.Marshal()`: for Ed25519 the string `ssh-ed25519`
+  and the string of the 32 bytes, each after its length in 4 bytes), one zero byte, and the port
+  of the remote forward in decimal (`strconv.Itoa`); it keeps the first 16 bytes and writes them in
+  RFC 4648's base32, in lower case with no padding (`base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567")`),
+  26 characters, under the domain that the server runs as (`-domain`, `srv.us` by default): so
+  `-R 1:...` of a key is `https://LABEL.srv.us/` for as long as the key and the port are the same.
+  The bind address is not hashed. With a user whose GitHub or GitLab login holds the key, it adds
+  `USER.gh.srv.us` and `USER-P.gl.srv.us`, after asking `https://github.com/USER.keys` and
+  `https://gitlab.com/USER.keys`; the user `nomatch` skips both lookups [R566-1][R566-3].
+- **The vectors.** The repository holds no test of the function, and the README's sample
+  (`qp556ma755ktlag5b2xyt334ae`) names no key: the archived key of that login (the Wayback
+  Machine's capture of 2022-05-17 of `github.com/pcarrier.keys`) and the key of today give other
+  labels, so the sample's key is unknown [R566-4]. podssh's vectors were computed by the steps above,
+  read from the source, with Python's `hashlib` and `base64`, on RFC 8032's test keys 1 and 2
+  [R566-2]; `crates/podssh-relay/src/ssh_http/srv_us.rs` holds them.
+- **The login** [R566-1]. `PublicKeyCallback` lets in any key; `golang.org/x/crypto` v0.41.0 of its
+  `go.mod` lets the login pass only once the key signed, and is past the fix of CVE-2024-45337,
+  where a server that remembers the last key offered could be given a key that never signed. So a
+  stranger cannot take a node's name; and the end-to-end channel refuses one all the same. No
+  password and no keyboard-interactive: a client needs a key, and podssh's node logs in with its
+  own (its public key is in its record and the net already). The server logs "IPs & ports, SSH
+  usernames & keys, connections, tunnels, and byte counts for up to 1 day" [R566-3].
+- **The order of a session** [R566-1]. A forward's line (`P: https://NAME/, ...`) goes to the
+  session's channel before the forward's reply, through a channel that only an open session reads:
+  a client that waits for the reply before it opens a session waits for ever. A session that asked
+  for no forward within 1 s is closed with status 1. So the node opens its session, then asks the
+  forward at once, as OpenSSH does without waiting. The server sends `keepalive@openssh.com` each
+  5 s and ends a connection after 10 s with no answer.
+- **The edge** [R566-1]. The HTTPS port reads the ClientHello, ends TLS for a name under its domain
+  with its own certificate of Let's Encrypt (ALPN `http/1.1` alone), and then copies the bytes of
+  the connection to a `forwarded-tcpip` channel both ways, with no reading of HTTP: so a WebSocket
+  upgrade and a streamed body pass whole, as any other protocol ("Non-HTTP protocols work too"
+  [R566-3]). A name with no tunnel gets `503 No tunnel available.`. Several tunnels of one name
+  share its visitors at random, with no check of health. No limit of size, rate or time is in the
+  code; the README says that heavy use "may require financial contribution to avoid throttling".
+- **The host** [R566-5]. `srv.us` resolves to one address of Hetzner (A and AAAA), and each name
+  under it is a CNAME of `srv.us`: no CDN. It has been held since 2004-06-02, at NameCheap, until
+  2027-06-01; no filter category. Its SSH is on port 22 alone (`-ssh-port`); the HTTPS port speaks
+  no SSH.
+- **The verdict.** A word of T-565's module: the user `nomatch`, the node's own key, the forward of
+  port 1, the session before the forward, the marker `1: https://`. The client derives the name
+  from the node's whole key (a fingerprint does not do), so the road needs no record, as the ssh-j
+  road. Last of the module's words, as its edge was not measured live.
+
 ## The reverse road
 
 podssh already protects a session on a carrier that it does not trust
@@ -2780,6 +2835,22 @@ T-738 (read on 2026-11-12 through the services of web.pkgforge.dev; nothing was 
 - [R738-11] https://fileshot.io/vs/temp-sh, in a search result (a secondary source, not taken)
 - [R738-12] https://www.shiftr.io/docs/broker/mqtt-interface and
   https://www.shiftr.io/docs/broker/http-interface
+
+T-566 (read on 2026-11-13 through the services of web.pkgforge.dev: forge, domain and archive;
+podssh connected to no host of srv.us):
+
+- [R566-1] `xmit-dev/srv.us:backend/main.go` and `backend/go.mod` at `c153c354fbb622dfa786e73e8f767e50449ba8d1`
+  (0BSD; GitHub's API answers `pcarrier/srv.us` with it, and the README links `xmit-co/srv.us`), through
+  https://forge.web.pkgforge.dev/github/repos/xmit-dev/srv.us/contents/backend/main.go
+- [R566-2] podssh's vectors, computed on 2026-11-13 by the steps of [R566-1] with Python's
+  `hashlib.sha256` and `base64.b32encode`, on the public keys of RFC 8032, section 7.1, tests 1
+  and 2 (https://www.rfc-editor.org/rfc/rfc8032#section-7.1)
+- [R566-3] `xmit-dev/srv.us:README.md` and `non-http.md` at the same commit
+- [R566-4] https://archive.web.pkgforge.dev/capture/20220517230203/https://github.com/pcarrier.keys
+  and https://forge.web.pkgforge.dev/github/users/pcarrier/keys: neither key gives the README's
+  sample, so it is no vector
+- [R566-5] https://domain.web.pkgforge.dev/dns/srv.us, `/dns/zzrmnvgfo2simj7f57nztj24qq.srv.us`,
+  `/rdap/srv.us` and `/category/srv.us`
 
 Read on 2026-11-10 through the services of web.pkgforge.dev (read, fetch, domain, ip and search),
 for T-623, T-624 and T-626. No host of these services was connected to; each fact is from a

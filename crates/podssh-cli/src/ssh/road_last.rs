@@ -9,7 +9,8 @@
 //! smee.io's server (T-741, [`smee`]), a node's alias at
 //! Serveo (T-549, `crate::ssh::serveo`), then its
 //! name at ssh-j.com (T-570, `crate::ssh::sshj`), then its tunnel of HTTP
-//! made by `ssh -R` (T-565, `super::ssh_http`), then its name at
+//! made by `ssh -R` (T-565, `super::ssh_http`), then its tunnel at srv.us,
+//! whose name its key gives (T-566, [`srv_us`]), then its name at
 //! localtunnel's server (T-568, [`localtunnel`]), then its port at bore.pub
 //! (T-569, [`bore`]), then the tunnel's name of `ssh -R` through a Bare node
 //! (T-740, [`bare`]), then the pair's pieces as sealed uploads to public
@@ -56,6 +57,10 @@ pub(crate) mod onion;
 #[path = "smee.rs"]
 pub(crate) mod smee;
 
+// The srv.us road of node://NAME, its name of the node's key (T-566).
+#[path = "road_srv_us.rs"]
+pub(crate) mod srv_us;
+
 // The localtunnel road of node://NAME (T-568).
 #[path = "localtunnel.rs"]
 pub(crate) mod localtunnel;
@@ -91,6 +96,8 @@ pub(crate) struct LastRoads {
     serveo: Option<crate::ssh::serveo::ServeoRoads>,
     sshj: Option<crate::ssh::sshj::SshJRoads>,
     tunnel: Option<super::ssh_http::SshHttpRoads>,
+    /// The node's tunnel at srv.us, its name of the node's key (T-566).
+    srv_us: Option<srv_us::SrvUsRoads>,
     localtunnel: Option<localtunnel::LocalTunnelRoads>,
     bore: Option<bore::BoreRoads>,
     /// The Bare node of the hop of the tunnel's name, where the hop is on.
@@ -123,6 +130,7 @@ impl LastRoads {
             serveo: crate::ssh::serveo::ServeoRoads::new(label, ask, log, shown),
             sshj: crate::ssh::sshj::SshJRoads::new(label, ask, trust, log, shown),
             tunnel: super::ssh_http::SshHttpRoads::new(label, ask.off, record, trust, log, shown),
+            srv_us: srv_us::SrvUsRoads::new(label, ask, trust, log, shown),
             localtunnel: localtunnel::LocalTunnelRoads::new(label, ask, trust, log, shown),
             bore: bore::BoreRoads::new(label, ask, trust, log, shown),
             // A bad PODSSH_BARE is refused before the race (`race` of the road).
@@ -149,6 +157,7 @@ impl LastRoads {
             serveo: None,
             sshj: None,
             tunnel,
+            srv_us: None,
             localtunnel: None,
             bore: None,
             bare: None,
@@ -183,7 +192,7 @@ impl LastRoads {
 
     /// Whether one of them races.
     pub(crate) fn any(&self) -> bool {
-        let named = self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some();
+        let named = self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some() || self.srv_us.is_some();
         named || self.localtunnel.is_some() || self.bore.is_some()
     }
 
@@ -224,6 +233,9 @@ impl LastRoads {
         }
         if let Some(tunnel) = &self.tunnel {
             tunnel.push(list, kinds, record);
+        }
+        if let Some(srv_us) = &self.srv_us {
+            srv_us.push(list, kinds);
         }
         if let Some(localtunnel) = &self.localtunnel {
             localtunnel.push(list, kinds);

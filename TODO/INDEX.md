@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 54 open, 30 partial, 16 blocked, 633 done.**
+**733 entries: 53 open, 31 partial, 16 blocked, 633 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 43 | 9 | 10 | 284 | 346 |
-| **All** | 54 | 30 | 16 | 633 | 733 |
+| P3 | 42 | 10 | 10 | 284 | 346 |
+| **All** | 53 | 31 | 16 | 633 | 733 |
 
 ## Entries
 
@@ -605,7 +605,7 @@ repository and CI).
 | [T-563](relay.md) | P2 | S | none | defect | done | The relay's record forgets a host that opens, and one road's failure moves the host on each road |
 | [T-564](robustness.md) | P3 | S | none | feature | done | podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE` |
 | [T-565](mesh.md) | P3 | M | M10 | feature | done | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
-| [T-566](mesh.md) | P3 | S | M10 | feature | open | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
+| [T-566](mesh.md) | P3 | S | M10 | feature | partial | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
 | [T-567](mesh.md) | P3 | S | M10 | feature | open | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
 | [T-568](mesh.md) | P3 | M | M10 | feature | done | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
 | [T-569](mesh.md) | P3 | M | M10 | feature | done | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |

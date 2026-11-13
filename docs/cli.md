@@ -4546,6 +4546,21 @@ commands. The rules behind them:
   after localhost.run's; a client takes the word whose `tunnel-zone` holds
   the name, for its switch and its line. `PODSSH_SANDHOLE=no` or
   `PODSSH_LAST_RESORT=no` turns it off.
+- **`node --srv-us` serves the same road at srv.us** (T-566), after
+  Sandhole's: `srv.us` where `pod-services` names it (the service `srv-us`),
+  or the server of `PODSSH_SRV_US`. The leg is raw SSH on port 22 as the
+  user `nomatch` (so srv.us asks neither GitHub nor GitLab about the key),
+  logged in with the node's own key (`podssh_ssh::seeded_login_key`), with
+  the session opened before the remote forward of port 1: srv.us writes the
+  forward's line on the session before it answers the forward. srv.us names
+  the tunnel by SHA-256 of the key's wire form, a zero byte and the port, the
+  first 16 bytes in base32 (`podssh_relay::ssh_http::srv_us`), under its own
+  domain; the node says when the line names another. A client that holds
+  the node's whole key (`--node-key` in hex, the net's, or the pins of NAME)
+  derives the name and races it last, after the names given, kept or of the
+  record, with no record at all (`ssh/road_srv_us.rs`); a fingerprint alone
+  derives nothing. srv.us sees the node's public key and logs it for a day.
+  `PODSSH_SRV_US=no` or `PODSSH_LAST_RESORT=no` turns it off.
 - **The Bare hop is the last road of `ssh node://NAME`** (T-740): the
   tunnel's name of the road of `ssh -R` (localhost.run's or Sandhole's),
   reached through a Bare v3 node (`podssh_ws::bare`), once each road

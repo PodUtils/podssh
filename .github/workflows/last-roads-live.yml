@@ -2,7 +2,8 @@ name: last roads live
 
 # The last roads of all (Q78) through their own public servers, named by
 # pod-services: localhost.run (T-565), Sandhole's demo (T-743),
-# localtunnel.me (T-568), bore.pub (T-569), and the Bare node of the last hop
+# localtunnel.me (T-568), bore.pub (T-569), srv.us (T-566), and the Bare node
+# of the last hop
 # (T-740), whose client's proxy passes that node alone; short runs that Q91 allows: for each, one node with a throwaway
 # key, one client, `greet` and 1 MiB down, each other road off, and the node
 # stopped at the end, which gives its tunnel up. A planted run makes the
@@ -33,6 +34,7 @@ jobs:
           - behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_session
           - a_node_behind_localtunnel_serves_a_client_that_names_its_key
           - a_node_at_its_bore_port_serves_a_client_that_names_its_key
+          - a_node_at_srv_us_serves_a_client_that_derives_its_name_from_its_key
     env:
       CARGO_BUILD_JOBS: "4"
     steps:

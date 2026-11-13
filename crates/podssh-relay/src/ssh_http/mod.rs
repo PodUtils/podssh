@@ -25,18 +25,32 @@
 //! channel checks the node's key: the service sees the times, the sizes and
 //! the layer's bytes, which the channel keeps from it.
 //!
-//! A service of the shape is a [`Word`]: its user, its forward, its ports
-//! and the word of its line that names a tunnel. localhost.run is the first
-//! (T-565); srv.us (T-566), tunnl.gg (T-567) and Sandhole's public server
-//! (T-743) are more words of the same module. Each server comes from
+//! A service of the shape is a [`Word`]: its user, its login, its forward,
+//! its ports and the word of its line that names a tunnel. localhost.run is
+//! the first (T-565); Sandhole's public server (T-743), srv.us (T-566, whose
+//! name is a function of the login's key, [`srv_us`]) and tunnl.gg (T-567)
+//! are more words of the same module. Each server comes from
 //! `pod-services` alone, or from the word's variable: podssh names no host
 //! of a third party in its own code. The SSH client of the node's leg is the
 //! binary's.
 
 pub mod name;
+pub mod srv_us;
 pub mod visit;
 
 pub use crate::pinggy::LAST_RESORT;
+
+/// How a word's leg logs in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Login {
+    /// With no account: none, an empty password, keyboard-interactive, then
+    /// a key made for the login alone, never the node's.
+    NoAccount,
+    /// With the node's own key: the service derives the tunnel's name from
+    /// the key of the login, so a client that holds the node's key knows the
+    /// name with no meeting point (srv.us, T-566).
+    NodeKey,
+}
 
 /// A service of the shape: what differs between hosts that speak it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,8 +63,10 @@ pub struct Word {
     pub env: &'static str,
     /// The flag of `podssh node` that asks for it.
     pub flag: &'static str,
-    /// The SSH user of a login with no account.
+    /// The SSH user of the login.
     pub user: &'static str,
+    /// How the login proves itself.
+    pub login: Login,
     /// The remote forward that the service reads: its address and its port.
     pub forward: (&'static str, u32),
     /// The SSH ports where a value names none, in the order tried.
@@ -61,6 +77,9 @@ pub struct Word {
     /// `NAME.demo.sandhole.com.br`: only the server's own name is then its
     /// own, else each name under it is (`admin.localhost.run`).
     pub tunnels_under_host: bool,
+    /// Whether the session opens before the forward is asked: srv.us
+    /// answers a forward only once a session can carry its line.
+    pub session_first: bool,
 }
 
 /// localhost.run's word. The user `nokey`: "For free tunnels, skip the key
@@ -76,10 +95,12 @@ pub const LOCALHOST_RUN: Word = Word {
     env: "PODSSH_LOCALHOST_RUN",
     flag: "--localhost-run",
     user: "nokey",
+    login: Login::NoAccount,
     forward: ("localhost", 80),
     ports: &[22],
     marker: "tunneled",
     tunnels_under_host: false,
+    session_first: false,
 };
 
 /// Sandhole's public server (T-743): it lets any key in as a user and
@@ -95,14 +116,44 @@ pub const SANDHOLE: Word = Word {
     env: "PODSSH_SANDHOLE",
     flag: "--sandhole",
     user: "tunnel",
+    login: Login::NoAccount,
     forward: ("localhost", 80),
     ports: &[443, 22],
     marker: "starting https",
     tunnels_under_host: true,
+    session_first: false,
 };
 
-/// Each word of the module, in the order that a node tries them unasked.
-pub const WORDS: &[Word] = &[LOCALHOST_RUN, SANDHOLE];
+/// srv.us (T-566; its Go server, `backend/main.go` of xmit-dev/srv.us at
+/// c153c354, 0BSD, read 2026-11-13): it lets in any key that signs, and
+/// names the tunnel of a forward of port P `NAME.srv.us`, NAME a function
+/// of the key and P alone ([`srv_us`]), so the node logs in with its own
+/// key and a client derives the name from the key it pins. The user
+/// `nomatch` keeps the server from asking GitHub and GitLab whether a login
+/// of that name holds the key (its README); no local user's name goes to
+/// it. The forward is port 1, as its README's `ssh srv.us -R
+/// 1:localhost:3000`; its line is `1: https://NAME.srv.us/`. Its server
+/// answers a forward only after a session is open (the forward's reply
+/// waits on the line it writes there), and closes a session that asked
+/// for no forward within a second, so the session opens first and the
+/// forward follows at once. SSH on port 22 alone: its port 443 reads TLS.
+pub const SRV_US: Word = Word {
+    id: "srv-us",
+    name: "srv.us",
+    env: "PODSSH_SRV_US",
+    flag: "--srv-us",
+    user: "nomatch",
+    login: Login::NodeKey,
+    forward: ("localhost", srv_us::FORWARD_PORT),
+    ports: &[22],
+    marker: "1: https://",
+    tunnels_under_host: true,
+    session_first: true,
+};
+
+/// Each word of the module, in the order that a node tries them unasked:
+/// the ones measured live first (T-565, T-743), then srv.us.
+pub const WORDS: &[Word] = &[LOCALHOST_RUN, SANDHOLE, SRV_US];
 
 /// The word whose service holds `name` under its tunnels' zone (the fact
 /// `tunnel-zone` of `pod-services`), else localhost.run's, whose zone
@@ -314,6 +365,16 @@ mod tests {
         let sandhole = Service::hosted(SANDHOLE).expect("pod-services names Sandhole");
         assert_eq!((sandhole.host.as_str(), sandhole.ports.as_slice()), ("demo.sandhole.com.br", &[443, 22][..]));
         assert!(sandhole.host_key.as_deref().is_some_and(|key| key.starts_with("SHA256:")), "pinned");
+    }
+
+    #[test]
+    fn the_words_go_in_their_order_and_srv_us_logs_in_by_the_node_s_key() {
+        let ids: Vec<&str> = WORDS.iter().map(|word| word.id).collect();
+        assert_eq!(ids, ["localhost-run", "sandhole", "srv-us"], "srv.us last (Q78)");
+        assert_eq!((SRV_US.login, SRV_US.session_first, SRV_US.forward.1), (Login::NodeKey, true, 1));
+        let off = setting_with(SRV_US, Some("no"), None, None);
+        assert_eq!(off, Ok(Setting::Off(SRV_US.env)));
+        assert_eq!(SRV_US.env, "PODSSH_SRV_US");
     }
 
     #[test]

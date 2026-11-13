@@ -20,12 +20,18 @@
 //! a stranger at the name. As Sandhole's demo (T-743, `StandIn::sandhole`):
 //! a login needs a key, any key, and the shell's one line is `Starting
 //! HTTPS on https://NAME for address localhost`, the name under the
-//! server's own, which is then the zone itself (`docs/carriers.md`).
+//! server's own, which is then the zone itself (`docs/carriers.md`). As
+//! srv.us (T-566, `StandIn::srv_us`, written from its `backend/main.go`): a
+//! key that signs, any; the forward answered only once a session is open,
+//! of any port, its name the key's and the port's by srv.us's steps
+//! ([`srv_us_label`]), and its line `P: https://NAME/` on the session.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
+
+use sha2::{Digest, Sha256};
 
 use podssh_ssh::russh::server::{self, Auth, ChannelOpenHandle, Handle, Msg, Session};
 use podssh_ssh::russh::{self, Channel, ChannelId};
@@ -68,6 +74,29 @@ pub struct StandIn {
     pub sandhole: AtomicBool,
     /// The fingerprint of each key that logged in.
     keys: Mutex<Vec<String>>,
+    /// srv.us's shape: the node's key, the forward after a session.
+    pub srv_us: AtomicBool,
+}
+
+/// srv.us's label of a tunnel, by the steps of its `endpointURLs`: SHA-256
+/// of the key's wire form, a zero byte and the port in decimal; its first
+/// 16 bytes in base32, lower case, no padding. Apart from podssh's own
+/// derivation, so that a defect of one is not the other's.
+pub fn srv_us_label(ed25519: &[u8; 32], port: u32) -> String {
+    let mut wire = Vec::new();
+    for part in [&b"ssh-ed25519"[..], &ed25519[..]] {
+        wire.extend_from_slice(&(part.len() as u32).to_be_bytes());
+        wire.extend_from_slice(part);
+    }
+    let digest = Sha256::new().chain_update(&wire).chain_update([0u8]).chain_update(port.to_string()).finalize();
+    let alphabet = b"abcdefghijklmnopqrstuvwxyz234567";
+    let bits: Vec<bool> = digest[..16].iter().flat_map(|b| (0..8).rev().map(move |i| (b >> i) & 1 == 1)).collect();
+    bits.chunks(5)
+        .map(|chunk| {
+            let value = (0..5).fold(0usize, |acc, i| (acc << 1) | usize::from(chunk.get(i).copied().unwrap_or(false)));
+            alphabet[value] as char
+        })
+        .collect()
 }
 
 impl StandIn {
@@ -128,7 +157,7 @@ impl StandIn {
         let me = self.clone();
         tokio::spawn(async move {
             while let Ok((tcp, _)) = ssh.accept().await {
-                let far = Far { stand_in: me.clone(), tunnel: None };
+                let far = Far { stand_in: me.clone(), tunnel: None, key: None, session: None };
                 let config = config.clone();
                 tokio::spawn(async move {
                     if let Ok(session) = server::run_stream(config, tcp, far).await {
@@ -200,18 +229,36 @@ impl StandIn {
     }
 }
 
-/// One connection of a node, and the name of its tunnel once it has one.
+/// One connection of a node, and the name of its tunnel once it has one;
+/// the key that it logged in with, and its session, as srv.us reads them.
 struct Far {
     stand_in: Arc<StandIn>,
     tunnel: Option<String>,
+    key: Option<[u8; 32]>,
+    session: Option<ChannelId>,
+}
+
+impl Far {
+    /// Whether a login needs a key: Sandhole's and srv.us's shapes.
+    fn keyed(&self) -> bool {
+        self.stand_in.sandhole.load(Ordering::SeqCst) || self.stand_in.srv_us.load(Ordering::SeqCst)
+    }
+
+    /// The session's channel of the tunnel, where a new name is said.
+    fn held_shell(&self, channel: ChannelId) {
+        let name = self.tunnel.clone().unwrap_or_default();
+        if let Some(held) = lock(&self.stand_in.tunnels).get_mut(&name) {
+            held.shell = Some(channel);
+        }
+    }
 }
 
 impl server::Handler for Far {
     type Error = russh::Error;
 
     async fn auth_none(&mut self, user: &str) -> Result<Auth, Self::Error> {
-        if self.stand_in.sandhole.load(Ordering::SeqCst) {
-            // Sandhole: any key, but a key.
+        if self.keyed() {
+            // Sandhole and srv.us: any key, but a key.
             let methods = russh::MethodSet::from(&[russh::MethodKind::PublicKey][..]);
             return Ok(Auth::Reject { proceed_with_methods: Some(methods), partial_success: false });
         }
@@ -229,15 +276,16 @@ impl server::Handler for Far {
         _user: &str,
         _key: server::PublicKeyOffer<'_>,
     ) -> Result<Auth, Self::Error> {
-        Ok(if self.stand_in.sandhole.load(Ordering::SeqCst) { Auth::Accept } else { Auth::reject() })
+        Ok(if self.keyed() { Auth::Accept } else { Auth::reject() })
     }
 
     async fn auth_publickey(&mut self, user: &str, key: server::VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
-        if !self.stand_in.sandhole.load(Ordering::SeqCst) {
+        if !self.keyed() {
             return Ok(Auth::reject());
         }
         lock(&self.stand_in.users).push(user.to_string());
         lock(&self.stand_in.keys).push(key.public_key.fingerprint(russh::keys::HashAlg::Sha256).to_string());
+        self.key = key.public_key.key_data().ed25519().map(|ed| ed.0);
         Ok(Auth::Accept)
     }
 
@@ -247,13 +295,22 @@ impl server::Handler for Far {
         port: &mut u32,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        // "bindport — 80 or 443"; 80 ends TLS at the edge.
-        if *port != 80 {
+        let srv_us = self.stand_in.srv_us.load(Ordering::SeqCst);
+        // "bindport — 80 or 443"; 80 ends TLS at the edge. srv.us takes any
+        // port, and answers only with a session open.
+        if (*port != 80 && !srv_us) || (srv_us && (self.session.is_none() || self.key.is_none())) {
             return Ok(false);
         }
         lock(&self.stand_in.forwards).push((address.to_string(), *port));
         let n = self.stand_in.made.fetch_add(1, Ordering::SeqCst) + 1;
-        let name = format!("t{n}.{ZONE}");
+        let name = match (srv_us, self.key) {
+            (true, Some(key)) => format!("{}.{ZONE}", srv_us_label(&key, *port)),
+            _ => format!("t{n}.{ZONE}"),
+        };
+        if let (true, Some(channel)) = (srv_us, self.session) {
+            // srv.us's line, on the session that is open.
+            session.data(channel, format!("{port}: https://{name}/\r\n").into_bytes())?;
+        }
         let held = Held { handle: session.handle(), forward: (address.to_string(), *port), shell: None };
         lock(&self.stand_in.tunnels).insert(name.clone(), held);
         self.tunnel = Some(name);
@@ -262,10 +319,11 @@ impl server::Handler for Far {
 
     async fn channel_open_session(
         &mut self,
-        _channel: Channel<Msg>,
+        channel: Channel<Msg>,
         reply: ChannelOpenHandle,
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
+        self.session = Some(channel.id());
         reply.accept().await;
         Ok(())
     }
@@ -273,8 +331,10 @@ impl server::Handler for Far {
     async fn shell_request(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), Self::Error> {
         session.channel_success(channel)?;
         let name = self.tunnel.clone().unwrap_or_default();
-        if let Some(held) = lock(&self.stand_in.tunnels).get_mut(&name) {
-            held.shell = Some(channel);
+        self.held_shell(channel);
+        if self.stand_in.srv_us.load(Ordering::SeqCst) {
+            // srv.us said its line when the forward came, and says no more.
+            return Ok(());
         }
         let text = match self.stand_in.sandhole.load(Ordering::SeqCst) {
             true => format!("Starting HTTPS on https://{name} for address localhost\r\n"),

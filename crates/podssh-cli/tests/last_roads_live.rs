@@ -11,7 +11,8 @@
 //! and the run must fail: the check is not vacuous. Sandhole's demo (T-743)
 //! too; and the Bare hop (T-740): the client's proxy of the test passes the
 //! Bare node of `pod-services` alone, so the tunnel's name of localhost.run
-//! is reached through that node, the last road of all.
+//! is reached through that node, the last road of all. srv.us (T-566),
+//! whose name the client derives from the node's whole key.
 
 mod cleanup;
 mod ssh_harness;
@@ -31,12 +32,13 @@ const LIMIT: Duration = Duration::from_secs(120);
 const DOWN: usize = 1 << 20;
 
 /// Each last road's switch, which a run turns off but for its own.
-const LAST_ROADS: [&str; 7] = [
+const LAST_ROADS: [&str; 8] = [
     "PODSSH_PINGGY",
     "PODSSH_SSH_J",
     "PODSSH_SERVEO",
     "PODSSH_LOCALHOST_RUN",
     "PODSSH_SANDHOLE",
+    "PODSSH_SRV_US",
     "PODSSH_LOCALTUNNEL",
     "PODSSH_BORE",
 ];
@@ -105,7 +107,7 @@ impl Drop for Node {
 /// `url_of` takes the address that a client gives from the ready line, as
 /// `--tunnel-url` names one, where the road needs it.
 fn live(road: &str, flag: &str, ready: &str, answered: &str, url_of: Option<fn(&str) -> String>) {
-    live_via(road, flag, ready, answered, url_of, None)
+    live_via(road, flag, ready, answered, url_of, None, false)
 }
 
 /// A proxy of the client's on the loopback that passes a CONNECT to
@@ -151,6 +153,7 @@ fn live_via(
     answered: &str,
     url_of: Option<fn(&str) -> String>,
     only: Option<String>,
+    whole: bool,
 ) {
     let home =
         std::env::temp_dir().join(format!("podssh-last-live-{}-{}", flag.trim_start_matches('-'), std::process::id()));
@@ -175,7 +178,19 @@ fn live_via(
 
     let target = format!("127.0.0.1:{port}");
     let allow_text = allow.to_string_lossy().into_owned();
-    let words = ["node", "lab", &target, flag, "--allow", &allow_text, "--ephemeral-key"];
+    // `whole`: the node's key in a file of the run, so that the client names
+    // the whole key, from which srv.us's name derives (T-566).
+    let node_file = node_home.join("node.key");
+    let node_whole = whole.then(|| {
+        let made = file::load(&Place::File(node_file.clone()), &mut OsEntropy).expect("the node's key");
+        made.identity.public()
+    });
+    let node_file_text = node_file.to_string_lossy().into_owned();
+    let mut words = vec!["node", "lab", target.as_str(), flag, "--allow", allow_text.as_str()];
+    match whole {
+        true => words.extend_from_slice(&["--key", node_file_text.as_str()]),
+        false => words.push("--ephemeral-key"),
+    }
     let mut node = command(&node_home, road, &words);
     let mut child = node.stdin(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();
     let stderr = child.stderr.take().unwrap();
@@ -199,12 +214,21 @@ fn live_via(
             at = Some(line);
         }
     }
-    let url = url_of.map(|url_of| url_of(&at.unwrap()));
-    let node_key = node_key.expect("the node's key line");
+    let at = at.unwrap();
+    let url = url_of.map(|url_of| url_of(&at));
+    let mut node_key = node_key.expect("the node's key line");
+    if let Some(public) = node_whole {
+        // srv.us named the tunnel as the client derives it from the key.
+        let zone = podssh_relay::ssh_http::Service::hosted(podssh_relay::ssh_http::SRV_US).expect("srv.us").host;
+        let derived = podssh_relay::ssh_http::srv_us::name(&public, &zone);
+        assert!(at.contains(&format!("tunnel https://{derived} ")), "srv.us's name is the key's: {at}");
+        node_key = public.hex();
+    }
 
     // The planted run names another node's key: the client must refuse.
     let planted = std::env::var("PODSSH_LAST_TEST_PLANT").ok().as_deref() == Some("stranger");
-    let stranger = file::load(&Place::Ephemeral, &mut OsEntropy).unwrap().identity.public().fingerprint().to_string();
+    let stranger_key = file::load(&Place::Ephemeral, &mut OsEntropy).unwrap().identity.public();
+    let stranger = if whole { stranger_key.hex() } else { stranger_key.fingerprint() };
     let expected = if planted { stranger } else { node_key };
     let proxy = only.map(proxy_of);
     let ssh = |words: &[&str]| {
@@ -273,5 +297,14 @@ fn behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_sessi
     let node = pod_services::of_kind("bare-node").next().expect("pod-services names a Bare node");
     let host = node.endpoint("bare").expect("its endpoint").host().to_string();
     let road = ("PODSSH_LOCALHOST_RUN", "--localhost-run", ": tunnel https://");
-    live_via(road.0, road.1, road.2, "the Bare hop", Some(tunnel_url), Some(host));
+    live_via(road.0, road.1, road.2, "the Bare hop", Some(tunnel_url), Some(host), false);
+}
+
+/// srv.us (T-566): the client names the node's whole key and no URL, and
+/// derives the tunnel's name; the planted stranger's whole key derives
+/// another name, where no node is.
+#[test]
+#[ignore = "a live run through srv.us: last-roads-live.yml"]
+fn a_node_at_srv_us_serves_a_client_that_derives_its_name_from_its_key() {
+    live_via("PODSSH_SRV_US", "--srv-us", ": tunnel https://", "the srv.us road", None, None, true);
 }

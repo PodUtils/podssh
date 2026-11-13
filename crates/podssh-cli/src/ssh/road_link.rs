@@ -229,9 +229,12 @@ pub(crate) enum Kind {
     /// A node's name at ssh-j.com, a last fallback of Q78 (T-570).
     SshJ,
     /// A node's tunnel of HTTP made by `ssh -R`, the last of the fallbacks of
-    /// Q78 (T-565), whether its name was given in this run, and whether the
-    /// name known before the race is Sandhole's (T-743).
-    SshHttp(bool, bool),
+    /// Q78 (T-565), whether its name was given in this run, and the id of the
+    /// word whose zone holds the name known before the race (Sandhole's,
+    /// T-743; srv.us's, T-566; else localhost.run's).
+    SshHttp(bool, &'static str),
+    /// The node's tunnel at srv.us, whose name its key gives (T-566).
+    SrvUs,
     /// A node's name at localtunnel's server, the last of the fallbacks of Q78 (T-568).
     LocalTunnel,
     /// A port of a node's key at bore.pub, the last of the fallbacks of Q78 (T-569).
@@ -275,8 +278,9 @@ impl Kind {
             Kind::FileHost => "the file-host road",
             Kind::Serveo => "the Serveo road",
             Kind::SshJ => "the ssh-j road",
-            Kind::SshHttp(_, false) => "the localhost.run road",
-            Kind::SshHttp(_, true) => "the Sandhole road",
+            Kind::SshHttp(_, "sandhole") => "the Sandhole road",
+            Kind::SshHttp(_, "srv-us") | Kind::SrvUs => "the srv.us road",
+            Kind::SshHttp(_, _) => "the localhost.run road",
             Kind::LocalTunnel => "the localtunnel road",
             Kind::Bore => "the bore road",
             Kind::Bare => "the Bare hop",
@@ -327,7 +331,7 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             (_, Kind::Serveo) => {
                 "when each road before it failed (the alias of the node's key, the last fallback of Q78)".to_string()
             }
-            (_, Kind::SshJ | Kind::LocalTunnel | Kind::Bore) => {
+            (_, Kind::SshJ | Kind::SrvUs | Kind::LocalTunnel | Kind::Bore) => {
                 "when each road before it failed (the node's key, the last fallback of Q78)".to_string()
             }
             (_, Kind::Bare) => {

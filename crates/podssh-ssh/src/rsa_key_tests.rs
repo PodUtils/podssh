@@ -227,3 +227,17 @@ async fn rsa_key_is_not_offered_for_sha1_or_at_1024_bits() {
     assert!(!passed && offered == 0, "{log}");
     assert!(log.contains("RSA key of 1024 bits"), "{log}");
 }
+
+/// The key of a seed is that seed's Ed25519 key: RFC 8032's first test,
+/// whose public key srv.us's name of T-566 hashes in its tests too.
+#[test]
+fn a_seeded_login_key_is_the_ed25519_key_of_its_seed() {
+    let hex = |text: &str| -> Vec<u8> {
+        (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap()).collect()
+    };
+    let seed: [u8; 32] = hex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60").try_into().unwrap();
+    let key = seeded_login_key(&seed).expect("an Ed25519 key");
+    let public = key.public_key().key_data().ed25519().expect("Ed25519").0;
+    assert_eq!(public.to_vec(), hex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"));
+    assert_eq!(key.hash_alg(), None);
+}

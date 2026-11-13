@@ -1,4 +1,5 @@
-//! The serving of `podssh node --localhost-run` (T-565), apart from
+//! The serving of `podssh node --localhost-run` (T-565), and of the other
+//! words of its module (`--sandhole`, `--srv-us`), apart from
 //! `node_ssh_http` for the length of that file, in the shape of the ssh-j
 //! road's (`node_sshj_serve`): TARGET probed first, when there is one; then
 //! one tunnel at a time, opened again after its end (a lost connection, the
@@ -135,7 +136,7 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     // The first tunnel before any line of serving: unasked, a node that
     // cannot reach the service ends soon, as it would with no road.
     let (queue, first_rx) = mpsc::channel(WAITING);
-    let opening = ssh_http_leg::open(&service, &proxy, queue, &say);
+    let opening = ssh_http_leg::open(&service, &proxy, queue, &say, &identity);
     let opened = match unasked {
         Some(_) => tokio::time::timeout(UNASKED_LIMIT, opening)
             .await
@@ -225,6 +226,8 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let keeper = crate::node_upgrade::channel_keeper(&channel, settings().resume_deadline);
     far::sweep(&keeper);
     crate::node_upgrade::lines(say.clone());
+    // The key of a leg that logs in by it (srv.us, T-566), for each tunnel.
+    let leg_key = identity.clone();
     let name = Arc::new(Mutex::new(first.tunnel.name.clone()));
     let behind = Behind { role: relay.clone(), name, alone: targets.is_empty() };
     let (stop, stopped) = watch::channel(false);
@@ -268,7 +271,7 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
             }
             let (queue, rx) = mpsc::channel(WAITING);
             let opened = tokio::select! {
-                opened = ssh_http_leg::open(&service, &proxy, queue, &say) => opened,
+                opened = ssh_http_leg::open(&service, &proxy, queue, &say, &leg_key) => opened,
                 () = until_stopped(stopped.clone()) => return,
             };
             match opened {

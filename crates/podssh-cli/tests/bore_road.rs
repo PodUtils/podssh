@@ -67,6 +67,7 @@ fn command(home: &Path, proxy: u16, server: &str, args: &[&str]) -> Command {
     // Nor the last roads before this one (Q78): localhost.run (T-565), localtunnel (T-568).
     cmd.env("PODSSH_LOCALHOST_RUN", "no")
         .env("PODSSH_SANDHOLE", "no")
+        .env("PODSSH_SRV_US", "no")
         .env("PODSSH_LOCALTUNNEL", "no")
         .env("PODSSH_HOSTC", "no")
         .env("PODSSH_SMEE", "no");

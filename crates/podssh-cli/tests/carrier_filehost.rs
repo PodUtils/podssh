@@ -111,6 +111,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
         "PODSSH_ONION",
         "PODSSH_LOCALHOST_RUN",
         "PODSSH_SANDHOLE",
+        "PODSSH_SRV_US",
         "PODSSH_LOCALTUNNEL",
         "PODSSH_HOSTC",
         "PODSSH_SMEE",

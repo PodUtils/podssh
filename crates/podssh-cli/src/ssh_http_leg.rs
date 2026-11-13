@@ -5,17 +5,19 @@
 //! documents name no SSH inside TLS (read 2026-11-10), so a proxy that
 //! passes TLS alone leaves this road out. The handshake, the check of the
 //! host key and the login with no account are the Pinggy road's
-//! (`pinggy_leg`), as the word's user; one remote forward, the word's, whose
-//! `forwarded-tcpip` channels Pinggy's handler hands on as visitors. The
-//! session channel takes a shell with no terminal, as `ssh -T` does, whose
-//! lines name the tunnel, then each new name, for as long as the session
-//! lives (`podssh_relay::ssh_http::name`): the service logs a line for each
-//! request there too, so the text is read to its end, line by line, and
-//! never kept whole.
+//! (`pinggy_leg`), as the word's user; a word whose name is the login key's
+//! (srv.us, T-566) logs in with the node's own key instead. One remote
+//! forward, the word's, whose `forwarded-tcpip` channels Pinggy's handler
+//! hands on as visitors. The session channel takes a shell with no
+//! terminal, as `ssh -T` does, whose lines name the tunnel, then each new name,
+//! for as long as the session lives (`podssh_relay::ssh_http::name`): the
+//! service logs a line for each request there too, so the text is read to
+//! its end, line by line, and never kept whole.
 
+use podssh_relay::identity::Identity;
 use podssh_relay::pinggy::far::Visitor;
 use podssh_relay::pinggy::Say;
-use podssh_relay::ssh_http::{name, Service};
+use podssh_relay::ssh_http::{name, srv_us, Login, Service};
 use podssh_ssh::russh::client::{self, Msg};
 use podssh_ssh::russh::{self, Channel, ChannelMsg};
 use podssh_ws::ProxyChoice;
@@ -30,13 +32,14 @@ pub(crate) struct Opened {
     pub names: watch::Receiver<Option<String>>,
 }
 
-/// A tunnel at `service`, through `proxy`; each visitor goes to `visitors`.
-/// Else why there is none.
+/// A tunnel at `service`, through `proxy`, for the node of `node`; each
+/// visitor goes to `visitors`. Else why there is none.
 pub(crate) async fn open(
     service: &Service,
     proxy: &ProxyChoice,
     visitors: mpsc::Sender<Visitor>,
     say: &Say,
+    node: &Identity,
 ) -> Result<Opened, String> {
     let mut failed = Vec::new();
     for &port in &service.ports {
@@ -58,26 +61,70 @@ pub(crate) async fn open(
             }
         };
         let user = service.word.user;
-        pinggy_leg::login(&mut handle, user).await.map_err(|why| format!("{service} on port {port}: {why}"))?;
-        say(format!("the leg to {service} is raw SSH on port {port}, as {user}, a user with no account"));
+        let how = login(&mut handle, service, node).await.map_err(|why| format!("{service} on port {port}: {why}"))?;
+        say(format!("the leg to {service} is raw SSH on port {port}, as {user}, {how}"));
         if service.host_key.is_none() {
             say(format!("{service}'s host key {key} is taken unpinned: the end-to-end channel keeps the bytes"));
         }
         let host_key = (key, service.host_key.is_some());
-        return forwarded(handle, host_key, service).await;
+        let opened = forwarded(handle, host_key, service).await?;
+        if service.word.login == Login::NodeKey {
+            derived_or_said(&opened.tunnel.name, service, node, say);
+        }
+        return Ok(opened);
     }
     Err(format!("{service}: {}", failed.join("; ")))
+}
+
+/// The login of the word's kind; what it was, for the node's line.
+async fn login(handle: &mut client::Handle<Leg>, service: &Service, node: &Identity) -> Result<&'static str, String> {
+    let user = service.word.user;
+    match service.word.login {
+        Login::NoAccount => pinggy_leg::login(handle, user).await.map(|()| "a user with no account"),
+        Login::NodeKey => {
+            let key = podssh_ssh::seeded_login_key(&node.seed()).map_err(|e| format!("the login: {e}"))?;
+            match handle.authenticate_publickey(user, key).await {
+                Ok(done) if done.success() => Ok("by the node's own key, of which the service derives the name"),
+                Ok(_) => Err("the login: the service refused the node's key".into()),
+                Err(e) => Err(format!("the login: {e}")),
+            }
+        }
+    }
+}
+
+/// srv.us's name is a function of the node's key (T-566): a client derives
+/// it, so a name that the server gave otherwise is said, and the record and
+/// the cache carry it all the same.
+fn derived_or_said(named: &str, service: &Service, node: &Identity, say: &Say) {
+    let derived = srv_us::name(&node.public(), &service.host);
+    if named != derived {
+        say(format!(
+            "{service} named the tunnel {named}, not {derived}, which a client derives from the node's key: a \
+             client finds it by the record or --tunnel-url alone"
+        ));
+    }
 }
 
 /// The word's forward on `handle`, and the session whose lines name it.
 async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), service: &Service) -> Result<Opened, String> {
     let (address, port) = service.word.forward;
+    // srv.us answers the forward only once a session can carry its line.
+    let mut first = None;
+    if service.word.session_first {
+        match handle.channel_open_session().await {
+            Ok(session) => first = Some(session),
+            Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
+        }
+    }
     if let Err(e) = handle.tcpip_forward(address, port).await {
         return give_up(handle, format!("{service} refused the tunnel's forward of port {port}: {e}")).await;
     }
-    let session = match handle.channel_open_session().await {
-        Ok(session) => session,
-        Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
+    let session = match first {
+        Some(session) => session,
+        None => match handle.channel_open_session().await {
+            Ok(session) => session,
+            Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
+        },
     };
     if let Err(e) = session.request_shell(false).await {
         return give_up(handle, format!("{service}: a shell: {e}")).await;

@@ -278,7 +278,7 @@ quiet_env() {
     env -u SSH_AUTH_SOCK -u NO_PROXY -u no_proxy -u ALL_PROXY -u all_proxy -u SSL_CERT_FILE \
         HTTPS_PROXY="http://127.0.0.1:$HOP_PORT" PODSSH_SSH_CONFIG=none PODSSH_SETTINGS=none \
         PODSSH_TRANSIT=no PODSSH_PIPING=no PODSSH_IROH_PKARR=off PODSSH_OPENTUNNEL=no PODSSH_PINGGY=no \
-        PODSSH_SERVEO=no PODSSH_SSH_J=no PODSSH_CROC=no PODSSH_LOCALHOST_RUN=no PODSSH_SANDHOLE=no PODSSH_LOCALTUNNEL=no PODSSH_BORE=no PODSSH_DERP=no "$@"
+        PODSSH_SERVEO=no PODSSH_SSH_J=no PODSSH_CROC=no PODSSH_LOCALHOST_RUN=no PODSSH_SANDHOLE=no PODSSH_SRV_US=no PODSSH_LOCALTUNNEL=no PODSSH_BORE=no PODSSH_DERP=no "$@"
 }
 # node_up NAME HOME FILE: a podssh node in front of sshd, once frps took its
 # service; its lines in $W/node-NAME.err. env runs in this shell's child
@@ -288,7 +288,7 @@ node_up() {
     env -u SSH_AUTH_SOCK -u NO_PROXY -u no_proxy -u ALL_PROXY -u all_proxy -u SSL_CERT_FILE \
         HTTPS_PROXY="http://127.0.0.1:$HOP_PORT" PODSSH_SSH_CONFIG=none PODSSH_SETTINGS=none \
         PODSSH_TRANSIT=no PODSSH_PIPING=no PODSSH_IROH_PKARR=off PODSSH_OPENTUNNEL=no PODSSH_PINGGY=no \
-        PODSSH_SERVEO=no PODSSH_SSH_J=no PODSSH_CROC=no PODSSH_LOCALHOST_RUN=no PODSSH_SANDHOLE=no PODSSH_LOCALTUNNEL=no PODSSH_BORE=no PODSSH_DERP=no \
+        PODSSH_SERVEO=no PODSSH_SSH_J=no PODSSH_CROC=no PODSSH_LOCALHOST_RUN=no PODSSH_SANDHOLE=no PODSSH_SRV_US=no PODSSH_LOCALTUNNEL=no PODSSH_BORE=no PODSSH_DERP=no \
         HOME="$2" XDG_CACHE_HOME="$2/cache" timeout 900 "$BIN" node "$1" "127.0.0.1:$SSHD_PORT" \
         --frp "$3" --allow "$W/allow" --key "$2/node.key" --ca-file "$W/ca.pem" \
         </dev/null >"$W/node-$1.out" 2>"$W/node-$1.err" &

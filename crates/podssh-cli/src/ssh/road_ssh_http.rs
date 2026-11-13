@@ -15,7 +15,9 @@
 //! on whichever road wins; so `--no-e2e` leaves the road out. Its failure
 //! names `wss://NAME/`, never `cf://` or Cloudflare Access: the edge is the
 //! service's, not Cloudflare's. A name under Sandhole's tunnels' zone is
-//! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold. A
+//! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold; so
+//! for srv.us's (T-566, `PODSSH_SRV_US`). srv.us's name needs no word at
+//! all: the road of `road_srv_us` derives it from the node's key. A
 //! name of hostc's tunnels is hostc's (T-742): a node of the hostc road
 //! names its tunnel so, and the same link reaches it; `PODSSH_HOSTC` and
 //! hostc's line hold for it.
@@ -41,8 +43,9 @@ use crate::ssh::args::SshArgs;
 use crate::ssh::road_link::{Kind, Road};
 use crate::ssh::roads::Going;
 
-/// The word of a name: Sandhole's for a name under its tunnels' zone, else
-/// localhost.run's (T-743), whose switch and line the link takes.
+/// The word of a name: the one whose tunnels' zone holds it (Sandhole's,
+/// T-743; srv.us's, T-566), else localhost.run's, whose switch and line the
+/// link takes.
 fn word_of(name: &str) -> Word {
     ssh_http::word_of_name(name)
 }
@@ -234,8 +237,8 @@ impl SshHttpRoads {
         let start = if self.asked() { Start::After(HEAD_START) } else { Start::WhenAllFailed };
         list.push((start, Box::pin(self.link(record))));
         let known = self.given.as_ref().or(self.kept.as_ref());
-        let sandhole = known.is_some_and(|name| word_of(name).id == ssh_http::SANDHOLE.id);
-        kinds.push(Kind::SshHttp(self.asked(), sandhole));
+        let word = known.map_or(ssh_http::LOCALHOST_RUN, |name| word_of(name));
+        kinds.push(Kind::SshHttp(self.asked(), word.id));
     }
 
     /// The name of a link: the one given; else the record's, read again at

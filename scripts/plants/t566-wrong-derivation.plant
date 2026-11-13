@@ -1,0 +1,8 @@
+# T-566: srv.us's name derived with no zero byte between the key's wire form
+# and the port, so it is not srv.us's own derivation; the test of the vectors
+# taken from srv.us's steps must fail (and the client's derived name of the
+# stand-in test with it).
+ENTRY=T-566
+GROUP=cli-tests
+EXPECT='test ssh_http::srv_us::tests::the_name_is_srv_us_s_own_derivation_on_vectors_of_its_steps \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features ssh-http --lib ssh_http::srv_us'

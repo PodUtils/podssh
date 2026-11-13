@@ -4233,7 +4233,7 @@ Read at `2042200`:
   `private`, so a role without `--allow-private` checks each address that it dials.
 - The flag: `crates/podssh-cli/src/flags/relay.rs:66` (the row `allow-private`),
   `crates/podssh-cli/src/relay_serve.rs:165` says "private: s.allow_private", and the role behind a
-  quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:112`.
+  quick tunnel the same in `crates/podssh-cli/src/node_quick_relay.rs:114`.
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:100`), the resumable layer
   (`crates/podssh-relay/src/serve/layer.rs:185`), the HTTP road
@@ -4807,7 +4807,7 @@ Read at `2042200`:
 - `crates/podssh-cli/src/relay_serve.rs:186-199` reads `keys:` and makes the rest a path, with no
   other form; `crates/podssh-cli/src/relay_serve.rs` at `fed191c`, lines 292-299, reads it at the start, and a file that
   does not read stops it (78). The role behind a quick tunnel reads the same words
-  (`crates/podssh-cli/src/node_quick_relay.rs:75`).
+  (`crates/podssh-cli/src/node_quick_relay.rs:77`).
 - The list is read again for each request: `crates/podssh-relay/src/serve/keys.rs` at `fed191c`, line 80, and
   `crates/podssh-relay/src/serve/keys.rs:87` says "this relay cannot read its list of keys";
   `docs/relay.md` at `fed191c`, line 849, says "read again for each request".

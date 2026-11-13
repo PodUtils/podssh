@@ -164,8 +164,10 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         matches!(crate::filehost_road::setting()?, crate::filehost_road::Setting::On(..)) && cfg!(feature = "filehost");
     let pair_last = zerotier_on || tox_on || ygg_on || dht_on || st_on || onion_on || smee_on || filehost_on;
     let zerotier = pair_last && !channel.off && good_pair();
-    // localhost.run's road (T-565): a name given or kept, never with --no-e2e.
-    let tunnel = super::roads::ssh_http::named(label, channel.off);
+    // localhost.run's road (T-565): a name given or kept, never with --no-e2e;
+    // or srv.us's (T-566), whose name the node's whole key gives.
+    let srv_us = super::roads::last::srv_us::named(label, channel);
+    let tunnel = super::roads::ssh_http::named(label, channel.off) || srv_us;
     Ok(Chosen {
         record,
         derp,

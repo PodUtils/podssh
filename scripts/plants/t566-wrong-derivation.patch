@@ -1,0 +1,11 @@
+--- a/crates/podssh-relay/src/ssh_http/srv_us.rs
++++ b/crates/podssh-relay/src/ssh_http/srv_us.rs
+@@ -65,7 +65,7 @@
+ /// The label of the tunnel of `key`'s forward of `port`: 26 characters.
+ pub fn label(key: &PublicKey, port: u32) -> String {
+     let digest =
+-        Sha256::new().chain_update(wire(key)).chain_update([0u8]).chain_update(port.to_string().as_bytes()).finalize();
++        Sha256::new().chain_update(wire(key)).chain_update(port.to_string().as_bytes()).finalize();
+     base32(&digest[..16])
+ }
+ 

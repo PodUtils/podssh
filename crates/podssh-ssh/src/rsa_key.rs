@@ -38,6 +38,17 @@ pub fn throwaway_login_key() -> Result<PrivateKeyWithHashAlg, String> {
     russh_key(key, None).map_err(|_| "an Ed25519 key came back as RSA".to_string())
 }
 
+/// The Ed25519 key of `seed`, ready for russh to sign a login with: a
+/// service that names the tunnel by the key of the login (srv.us, T-566)
+/// gets the node's own key this way, so that a client that pins it knows
+/// the name. The seed is the node's identity's; the key lives no longer
+/// than the login.
+pub fn seeded_login_key(seed: &[u8; 32]) -> Result<PrivateKeyWithHashAlg, String> {
+    let pair = russh::keys::ssh_key::private::Ed25519Keypair::from_seed(seed);
+    let key = PrivateKey::new(KeypairData::Ed25519(pair), "").map_err(|e| e.to_string())?;
+    russh_key(key, None).map_err(|_| "an Ed25519 key came back as RSA".to_string())
+}
+
 /// Whether an agent's request adds an RSA key (`SSH_AGENTC_ADD_IDENTITY`,
 /// 17, or with constraints, 25). russh's agent server would sign with it
 /// through the `rsa` crate, so `podssh agent` refuses it.

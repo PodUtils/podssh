@@ -1,5 +1,6 @@
-//! The variables of the TURN road (T-621), and of the file hosts' road
-//! (T-738), apart from `roads.rs` for its length.
+//! The variables of the TURN road (T-621), of the file hosts' road
+//! (T-738), and of the srv.us road (T-566), apart from `roads.rs` for its
+//! length.
 
 /// `PODSSH_TURN` and its credential file.
 pub(super) const VARIABLES: &[(&[&str], &str)] = &[
@@ -27,5 +28,17 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
       list of the services' ids, by commas, takes those alone, in that order (naming a host whose terms ask \
       for its user's consent gives it), and an id that the list does not hold is a configuration error (78). \
       PODSSH_LAST_RESORT=no, or PODSSH_MQTT=no (no board), turns it off too.",
+    ),
+    (
+        &["PODSSH_SRV_US"],
+        "The srv.us road (T-566), a last fallback of the operator's ruling Q78: the localhost.run road's shape \
+          at srv.us, SSH on port 22 as nomatch, logged in with the node's own key, and the forward of port 1, of \
+          podssh node --srv-us and podssh ssh node://NAME, where srv.us derives the tunnel's name from that key, \
+          so a client that holds the node's whole key derives it too and races the road last, with no record; a \
+          node with no other road serves it unasked after the Sandhole road. srv.us sees the node's public key. \
+          no: no such road, and the flags are refused (64); HOST[:PORT]: that server of the same shape, whose \
+          host key nobody names, its tunnels named under HOST; unset, empty or yes: srv.us where podssh's list of \
+          services names it, else no server, and --srv-us is a configuration error (78). Another word is a \
+          configuration error (78), which does not echo the value.",
     ),
 ];
