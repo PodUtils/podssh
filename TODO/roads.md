@@ -3359,6 +3359,14 @@ PodUtils/podcrates") applies: from the import podssh makes fixes only, and once 
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
 
+2026-11-13 (main session). The protocol of the road is `pod_relay::http_road` since podssh took `pod-relay`
+(podcrates v0.27.0; `crates/podssh-relay/src/http_road.rs` is a re-export). So, by Rule Q3, the parts of what
+remains that change the protocol or the role's server are podcrates': the invariants 6 to 10 of the addition of
+2026-11-11 (asked as COORD-046, #221), the quick tunnel's node as a server of the road (item 1, whose server is the
+role's), and the numbers of `doctor --stream` in `Tuning::measured` (item 2). podssh's parts stay here: the CLI's
+test through a proxy that ends TLS and `ssh`'s line for a close other than `1000` (item 3), `doctor` naming the road
+that answered, and the live runs (item 4, Q88).
+
 ## Done
 
 Drafted 2026-11-04 (the drafting agent, `3739bcf`): its first part, the role's side and the
@@ -9751,7 +9759,7 @@ reachable one way and not the other. No record says which rule the shared reader
 - Callers of the shared reader: `crates/podssh-cli/src/ssh/transport/after.rs:114` (10 s),
   `crates/podssh-cli/src/doctor/net.rs:198` (5 s) and `crates/podssh-cli/src/doctor/hop.rs:84`.
 - `docs/design.md:170` documents the roost's rule, and no document says what the direct road
-  follows. T-363's Decision item 7 (`TODO/roads.md:5819`) chose one read and rejected a peek,
+  follows. T-363's Decision item 7 (`TODO/roads.md:5827`) chose one read and rejected a peek,
   because a proxy's stream offers none.
 - Not a defect: the issue's split example `SSH-2.0-` then `OpenSSH_9.9` passes today at
   `crates/podssh-cli/src/ssh/banner.rs:26`, because the first read starts a line with `SSH-`. The
