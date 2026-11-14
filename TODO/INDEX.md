@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 49 open, 31 partial, 18 blocked, 635 done.**
+**733 entries: 48 open, 32 partial, 18 blocked, 635 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 38 | 10 | 12 | 286 | 346 |
-| **All** | 49 | 31 | 18 | 635 | 733 |
+| P3 | 37 | 11 | 12 | 286 | 346 |
+| **All** | 48 | 32 | 18 | 635 | 733 |
 
 ## Entries
 
@@ -661,7 +661,7 @@ repository and CI).
 | [T-619](relay.md) | P3 | S | M10 | docs | done | The note to the relay's operator asks nothing of `/relays.json`'s rank, which changes with the edge that answered |
 | [T-620](reverse.md) | P3 | S | M10 | defect | done | The stop token's rotation and the renewal follow the node's next pair at expiry |
 | [T-621](mesh.md) | P3 | M | M10 | feature | done | TURN with RFC 6062: a TURN server that the user runs, as a road with no relay |
-| [T-622](roads.md) | P3 | M | M10 | feature | open | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
+| [T-622](roads.md) | P3 | M | M10 | feature | partial | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
 | [T-623](mesh.md) | P3 | S | M10 | research | done | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
 | [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
 | [T-625](mesh.md) | P3 | S | M10 | measurement | partial | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |

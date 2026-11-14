@@ -9408,7 +9408,7 @@ the same day: `docs/research/forward-carriers.md`, sections 3.1, 3.2 and 6.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -9486,6 +9486,40 @@ Q101 of `TODO/PROGRESS.md`, and the module map is `PodUtils/podcrates:docs/desig
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
+
+2026-11-14. podssh took `pod-relay` (`v0.40.0`), and the client of the road (items 2 to 5 of the
+Approach) is its `http_road` now: COORD-062 (GitHub #239) asks podcrates for it. The role's side
+(items 1 and 3) stays podssh's (`crates/podssh-relay/src/serve/http_road/`). The Prove's test is
+`--test http_road_one`, not `--test http_road`: curl is the client of the form until `pod-relay`
+speaks it. The planted defect at the role is a role that holds the body to its last chunk; the bound
+on the mark is the client's, and its plant goes with the client.
+
+## Done
+
+Partial, 2026-11-14: item 1 over HTTP/1.1. `crates/podssh-relay/src/serve/http_road/one.rs`: `POST
+/v1/http/one/HOST/PORT` with `Transfer-Encoding: chunked` (`411` else), the open's checks through
+`dial` (extracted from the open in `mod.rs`, so the two forms check alike, and the bound of 256
+sessions counts both); `200` at once with the mark `podssh-http-one 1` as the answer's first chunk;
+each chunk up to the target as it comes, the last chunk a half-close; the target's bytes down in
+chunks as they come, its end the last chunk; idle, time and byte limits, each a cut with no last
+chunk. `limits.http` names the path and the form `one`. The stand-in of `http_road_harness` holds a
+chunked body to its last chunk, and with `stream_bodies` passes bodies and answers as they come.
+`docs/relay.md` and the manual's item "The HTTP road" say so.
+
+- `cargo test -p podssh-relay --features serve,plain-ws --test http_road_one`: 4 passed, three runs
+  in three. curl (software that podssh did not write) carries 20 MiB each way to an echo with equal
+  digests, straight to the role and through the hop that streams, in one request; a client that
+  writes one chunk and waits gets the mark and the echo within 2 s through the hop that streams, and
+  nothing through the hop that holds the body, then the whole answer once the body ends; a missing
+  token is `403`, a body with a length `411`.
+- `--lib http_road`: 9 passed (the form's unit tests: chunks up, a cut or a broken frame, the cap,
+  chunks down); `--test http_road`, `http_road_role`, `http_road_quick`: 9, 4 and 2 passed; the
+  relay's lib with `serve,plain-ws,quick`: 239 passed. Clippy as the gate runs it: clean.
+- Planted (`scripts/plants/t622-body-held.plant`, the role holds the body to its last chunk): caught.
+
+Left: item 3 at the role (the form over HTTP/2, one stream, which `serve/http2/stream.rs` now sends
+back to HTTP/1.1); then the client, once a tag of podcrates brings it (COORD-062), with its test
+against the role here and its plant (the bound on the mark removed).
 
 # T-665: QUIC on the iroh road, tuned and measured on a wide-area path
 

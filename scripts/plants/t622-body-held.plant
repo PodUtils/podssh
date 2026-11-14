@@ -1,0 +1,8 @@
+# T-622: the role holds the one-POST form's body to its last chunk before
+# it writes any of it to the target, as a hop that holds bodies does, so
+# that nothing comes back while the body is open: the test of the mark and
+# the echo while the body is open must fail.
+ENTRY=T-622
+GROUP=resume
+EXPECT='test the_mark_comes_at_once_unless_a_hop_holds_the_body \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features serve,plain-ws --test http_road_one -- the_mark_comes_at_once_unless_a_hop_holds_the_body'

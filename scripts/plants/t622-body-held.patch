@@ -1,0 +1,29 @@
+diff --git a/crates/podssh-relay/src/serve/http_road/one.rs b/crates/podssh-relay/src/serve/http_road/one.rs
+index 66db279..d7a4cfe 100644
+--- a/crates/podssh-relay/src/serve/http_road/one.rs
++++ b/crates/podssh-relay/src/serve/http_road/one.rs
+@@ -136,6 +136,7 @@ where
+     W: AsyncWrite + Unpin,
+ {
+     let mut buf = vec![0u8; READ];
++    let mut held = Vec::new();
+     loop {
+         let size = line(&mut body).await?;
+         let hex = size.split(';').next().unwrap_or_default().trim();
+@@ -143,6 +144,7 @@ where
+         if left == 0 {
+             // The trailer, to its empty line; then no more is read.
+             while !line(&mut body).await?.is_empty() {}
++            let _ = to.write_all(&held).await;
+             let _ = to.shutdown().await;
+             return Ok(());
+         }
+@@ -154,7 +156,7 @@ where
+             }
+             left -= n as u64;
+             let take = moved.take(n, cap);
+-            to.write_all(&buf[..take]).await.map_err(|e| format!("write failed: {e}"))?;
++            held.extend_from_slice(&buf[..take]);
+             meter.up(take);
+             if take < n {
+                 return Err("session byte cap".into());

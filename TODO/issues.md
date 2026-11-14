@@ -302,6 +302,7 @@ and num-bigint 0.5) are T-754.
 | #236 | COORD-059: pod-services: srv.us and tunnl.gg as services of the kind ssh-tunnel (to podcrates) | open (2026-11-14: answered, podcrates' entry 552 in work) | T-566, T-567 |
 | #237 | COORD-060: pod-wormhole: an ntfy topic as a meeting point of the pairing where a proxy refuses the WebSocket upgrade (to podcrates) | open (2026-11-14: posted) | T-496 |
 | #238 | COORD-061: pod-services: serv00's public Piping Server as the third of kind piping (to podcrates) | open (2026-11-14: posted) | T-575 |
+| #239 | COORD-062: pod-relay: the client of the HTTP road's one-POST form (to podcrates) | open (2026-11-14: posted) | T-622 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

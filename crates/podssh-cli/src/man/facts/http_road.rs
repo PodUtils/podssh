@@ -33,7 +33,11 @@ pub(super) fn blocks() -> Vec<Block> {
          /relays.json names these limits in limits.http, which a client that does not know it ignores. podssh \
          doctor's line forward names the road that carried its check: over a WebSocket, or over the HTTP road and \
          its form, split or serial, with the road in its --json samples. PODSSH_HTTP_ROAD turns the \
-         road off, or names one form. The default relay serves no HTTP road.",
+         road off, or names one form. podssh relay serve also serves a third form, for a way whose hops pass a \
+         body as it comes: one POST of HTTP/1.1 whose body in chunks is the way up and whose answer, after a mark \
+         that comes at once, is the way down, on one connection; a client whose mark does not come knows that a hop \
+         holds the body. podssh's own client speaks the split and serial forms. The default relay serves no HTTP \
+         road.",
         batch = BATCH_MAX / 1024,
         wait = WAIT_MAX.as_secs(),
         window = sessions::WINDOW,

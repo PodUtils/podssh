@@ -10,6 +10,7 @@
 //! connection, and the open names the node's bound on a batch.
 
 pub mod answers;
+pub mod one;
 pub mod pumps;
 pub mod sessions;
 
@@ -61,8 +62,8 @@ fn batch_max() -> usize {
 /// no such field, so it changes nothing for one.
 pub fn limits() -> serde_json::Value {
     json!({
-        "paths": [OPEN, crate::http_road::SESSION],
-        "forms": ["split", "serial"],
+        "paths": [OPEN, crate::http_road::SESSION, one::ONE],
+        "forms": ["split", "serial", "one"],
         "batch_max_bytes": batch_max(),
         "window_batches": sessions::WINDOW,
         "hold_ms": sessions::HOLD.as_millis() as u64,
@@ -92,6 +93,11 @@ where
     loop {
         let keep = may_keep && head.minor == 1 && !head.has_token("connection", "close");
         let path = head.target.split('?').next().unwrap_or_default().to_string();
+        // The one-POST form takes the connection: its body is the way up.
+        if one::serves(&path) {
+            one::serve(stream, head, pending, cfg).await;
+            return None;
+        }
         let asked = route(&path);
         let max = match asked {
             Some(Route::Session(_, Kind::Up | Kind::Exchange)) => batch_max(),
@@ -146,56 +152,10 @@ async fn open<S>(stream: &mut S, head: &Request, cfg: &Arc<Config>, keep: bool) 
 where
     S: AsyncWrite + Unpin,
 {
-    let token_ok = head.header("x-relay-token").is_some_and(|t| cfg.tokens.check(t, tokens::now_ms()));
-    if !token_ok {
-        let reply = refusal(Refusal::NotAllowed, "http: missing or wrong token", &[], keep);
-        return write(stream, reply, keep).await;
-    }
-    // The token's key, and its budget, before anything is dialed (T-636).
-    let meter = match super::usage::meter_of(cfg, head) {
-        Ok(meter) => meter,
-        Err(why) => {
-            let reply = refusal(Refusal::NotAllowed, &format!("http: {why}"), &[], keep);
-            return write(stream, reply, keep).await;
-        }
+    let (tcp, meter) = match dial(stream, head, cfg, OPEN, keep).await {
+        Ok(dialed) => dialed,
+        Err(kept) => return kept,
     };
-    let Some(asked) = forward::asked(&head.target.replacen(OPEN, "/connect/", 1)) else {
-        let path = head.target.split('?').next().unwrap_or_default();
-        return write(stream, refuse(400, &format!("{path}: the path is {OPEN}HOST/PORT"), &[], keep), keep).await;
-    };
-    if sessions::live() >= sessions::MOST {
-        let why = format!("http: {} sessions at once at most", sessions::MOST);
-        return write(stream, refuse(503, &why, &[("Retry-After", "5".to_string())], keep), keep).await;
-    }
-    let target = shown(&asked.host, asked.port);
-    let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
-        Ok(plan) => plan,
-        Err(refused) => {
-            if let Some(line) = refused.logged() {
-                cfg.event(&line);
-            }
-            // The policy's refusal is the role's `not allowed`; another
-            // status (a target that cannot be reached) keeps its own words.
-            let reply = match refused.status() {
-                403 => refusal(Refusal::NotAllowed, &refused.answer(), &[], keep),
-                status => refuse(status, &refused.answer(), &[], keep),
-            };
-            return write(stream, reply, keep).await;
-        }
-    };
-    // As the forward road dials: through the host's proxy when one is set,
-    // the owner told of the proxy's fault, and the unsent bytes bounded.
-    let tcp = match egress::dial(&asked.host, &plan, &cfg.egress, &cfg.policy.ipv6, cfg.limits.connect).await {
-        Ok((tcp, _)) => tcp,
-        Err(Missed { said, line }) => {
-            if let Some(line) = line {
-                cfg.event(&format!("proxy: {line}"));
-            }
-            let why = format!("relay: cannot reach {target}: {said}");
-            return write(stream, refuse(502, &why, &[], keep), keep).await;
-        }
-    };
-    super::sockets::bound_unsent(&tcp);
     let (session, key) = match Session::open(cfg.clone(), meter) {
         Ok(opened) => opened,
         Err(why) => return write(stream, refuse(503, &format!("http: {why}"), &[], keep), keep).await,
@@ -212,6 +172,76 @@ where
         "forms": ["split", "serial"],
     });
     write(stream, whole(200, &[], doc.to_string().as_bytes(), "application/json", keep), keep).await
+}
+
+/// The checks of a new session of the road, of either form, at the path
+/// `path` (its prefix before `HOST/PORT`): the token and its budget, the
+/// target by the policy, the bound on sessions at once; then the target
+/// dialed as the forward road dials it. A refusal is written, and `Err`
+/// holds what its write gave.
+async fn dial<S>(
+    stream: &mut S,
+    head: &Request,
+    cfg: &Arc<Config>,
+    path: &str,
+    keep: bool,
+) -> Result<(tokio::net::TcpStream, super::usage::Meter), Option<bool>>
+where
+    S: AsyncWrite + Unpin,
+{
+    let token_ok = head.header("x-relay-token").is_some_and(|t| cfg.tokens.check(t, tokens::now_ms()));
+    if !token_ok {
+        let reply = refusal(Refusal::NotAllowed, "http: missing or wrong token", &[], keep);
+        return Err(write(stream, reply, keep).await);
+    }
+    // The token's key, and its budget, before anything is dialed (T-636).
+    let meter = match super::usage::meter_of(cfg, head) {
+        Ok(meter) => meter,
+        Err(why) => {
+            let reply = refusal(Refusal::NotAllowed, &format!("http: {why}"), &[], keep);
+            return Err(write(stream, reply, keep).await);
+        }
+    };
+    let Some(asked) = forward::asked(&head.target.replacen(path, "/connect/", 1)) else {
+        let shown_path = head.target.split('?').next().unwrap_or_default();
+        return Err(
+            write(stream, refuse(400, &format!("{shown_path}: the path is {path}HOST/PORT"), &[], keep), keep).await
+        );
+    };
+    if sessions::live() + one::live() >= sessions::MOST {
+        let why = format!("http: {} sessions at once at most", sessions::MOST);
+        return Err(write(stream, refuse(503, &why, &[("Retry-After", "5".to_string())], keep), keep).await);
+    }
+    let target = shown(&asked.host, asked.port);
+    let plan = match cfg.policy.plan(&asked.host, asked.port, asked.family, &cfg.egress).await {
+        Ok(plan) => plan,
+        Err(refused) => {
+            if let Some(line) = refused.logged() {
+                cfg.event(&line);
+            }
+            // The policy's refusal is the role's `not allowed`; another
+            // status (a target that cannot be reached) keeps its own words.
+            let reply = match refused.status() {
+                403 => refusal(Refusal::NotAllowed, &refused.answer(), &[], keep),
+                status => refuse(status, &refused.answer(), &[], keep),
+            };
+            return Err(write(stream, reply, keep).await);
+        }
+    };
+    // As the forward road dials: through the host's proxy when one is set,
+    // the owner told of the proxy's fault, and the unsent bytes bounded.
+    let tcp = match egress::dial(&asked.host, &plan, &cfg.egress, &cfg.policy.ipv6, cfg.limits.connect).await {
+        Ok((tcp, _)) => tcp,
+        Err(Missed { said, line }) => {
+            if let Some(line) = line {
+                cfg.event(&format!("proxy: {line}"));
+            }
+            let why = format!("relay: cannot reach {target}: {said}");
+            return Err(write(stream, refuse(502, &why, &[], keep), keep).await);
+        }
+    };
+    super::sockets::bound_unsent(&tcp);
+    Ok((tcp, meter))
 }
 
 #[cfg(test)]
@@ -231,8 +261,8 @@ mod tests {
     #[test]
     fn the_limits_are_the_ones_the_role_holds() {
         let l = limits();
-        assert_eq!(l["paths"], json!(["/v1/http/open/", "/v1/http/s/"]));
-        assert_eq!(l["forms"], json!(["split", "serial"]));
+        assert_eq!(l["paths"], json!(["/v1/http/open/", "/v1/http/s/", "/v1/http/one/"]));
+        assert_eq!(l["forms"], json!(["split", "serial", "one"]));
         assert_eq!(l["batch_max_bytes"], json!(BATCH_MAX), "no node in front of a plain role");
         assert_eq!((&l["window_batches"], &l["hold_ms"]), (&json!(8), &json!(10_000)));
         assert_eq!((&l["down_window_bytes"], &l["down_max_bytes"]), (&json!(2 << 20), &json!(1 << 20)));

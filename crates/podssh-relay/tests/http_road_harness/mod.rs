@@ -8,7 +8,9 @@
 //! before it passes it; it carries one request on each connection, as many
 //! such proxies do. Asked to, it loses the answer of each Nth batch after
 //! the role took the batch, so that the client sends the same batch again,
-//! and cuts each Nth answer with bytes down in its middle.
+//! and cuts each Nth answer with bytes down in its middle. A body in chunks
+//! it holds to its last chunk; asked to, it passes each body and each
+//! answer on as they come, as a hop that streams (T-622).
 
 #![allow(dead_code)]
 
@@ -161,6 +163,9 @@ pub struct Faults {
     pub lose_batches: Option<usize>,
     /// Each Nth answer with bytes down cut in its middle.
     pub cut_answers: Option<usize>,
+    /// Each request's body, and its answer, passed on as they come, as a
+    /// hop that streams does (T-622); an upgrade is still refused.
+    pub stream_bodies: bool,
 }
 
 /// What the stand-in did.
@@ -234,6 +239,34 @@ async fn carry(mut client: TcpStream, upstream: u16, faults: Faults, counts: Arc
         counts.upgrades.fetch_add(1, Ordering::SeqCst);
         let top = format!("HTTP/1.1 403 Forbidden\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", REFUSAL.len());
         let _ = client.write_all(format!("{top}{REFUSAL}").as_bytes()).await;
+        return;
+    }
+    if faults.stream_bodies {
+        let Ok(mut server) = TcpStream::connect(("127.0.0.1", upstream)).await else { return };
+        if server.write_all(&buf[..end]).await.is_err() || server.write_all(&body).await.is_err() {
+            return;
+        }
+        let _ = tokio::io::copy_bidirectional(&mut client, &mut server).await;
+        return;
+    }
+    let chunked = header("transfer-encoding").is_some_and(|v| v == "chunked");
+    if chunked {
+        // A body in chunks, held to its last chunk, then sent on as it came.
+        while !body.ends_with(b"0\r\n\r\n") {
+            let mut chunk = vec![0u8; 64 * 1024];
+            match client.read(&mut chunk).await {
+                Ok(0) | Err(_) => return,
+                Ok(n) => body.extend_from_slice(&chunk[..n]),
+            }
+        }
+        let Ok(mut server) = TcpStream::connect(("127.0.0.1", upstream)).await else { return };
+        if server.write_all(&buf[..end]).await.is_err() || server.write_all(&body).await.is_err() {
+            return;
+        }
+        let mut answer = Vec::new();
+        let _ = server.read_to_end(&mut answer).await;
+        let _ = client.write_all(&answer).await;
+        let _ = client.shutdown().await;
         return;
     }
     // The whole body, held, of its length.

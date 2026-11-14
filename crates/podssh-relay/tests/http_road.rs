@@ -88,7 +88,7 @@ async fn each_byte_comes_once_where_a_proxy_loses_answers_of_batches_and_cuts_an
     for (form, seed) in [(Form::Split, 5), (Form::Serial, 6)] {
         let (role, token) = role().await;
         let target = echo_target(b"").await;
-        let faults = Faults { hold_answers: true, lose_batches: Some(3), cut_answers: Some(3) };
+        let faults = Faults { hold_answers: true, lose_batches: Some(3), cut_answers: Some(3), ..Faults::default() };
         let proxy = Proxy::start(role.relay.port, faults).await;
         let opened = open(&road(proxy.port, "127.0.0.1"), target, &token, Some(form)).await;
         assert_eq!(each_way(opened, b"", 4 * MIB, seed).await, target_closed(), "{form:?}");

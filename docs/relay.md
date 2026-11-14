@@ -1374,6 +1374,23 @@ serial form, one, is its fallback. The default relay serves none of it
   While its caller has not read the bytes down, the client sends its
   batches by `up` on the same connection.
 - `POST /v1/http/s/ID/close` ends the session (`1000 client closed`).
+- `POST /v1/http/one/HOST/PORT[?family=4|6]`, the one-POST form (T-622),
+  for a way whose hops pass a request's body as it comes: a request of
+  HTTP/1.1 with `Transfer-Encoding: chunked` (`411` else), with the open's
+  checks, refusals and bound on sessions at once (the two forms count
+  together). `200` at once, its answer in chunks, whose first bytes are the
+  mark `podssh-http-one 1` and a newline; then each chunk up goes to the
+  target as it comes, and the target's bytes come down in chunks as they
+  come, on that one connection, with no session id. The body's last chunk
+  is TCP's half-close to the target; the target's end is the answer's last
+  chunk. The limits are a session's, and one that is met ends the
+  connection with no last chunk, which the client reads as a cut. A hop
+  that holds the body to its end holds the mark too: a client that waits
+  for the mark with a bound, then takes the split form, needs no probe of
+  the way. Behind a quick tunnel's node, which takes a body whole, the
+  mark does not come. podssh's client of the form is `pod-relay`'s
+  (PodUtils/podcrates); until a tag of it speaks the form, curl does
+  (`crates/podssh-relay/tests/http_road_one.rs`).
 - Once the session ended, each request gets `410` with `X-Close: CODE
   REASON`, the close codes and reasons of the forward road ("Errors and
   close codes"), for 60 s, then `404`. The target's end is `1000 target
@@ -1391,7 +1408,7 @@ serial form, one, is its fallback. The default relay serves none of it
   its connection, each answer closes its connection.
 - `/relays.json` names the road's own limits in `limits.http`, beside the
   contract's five, a field that a client which does not know it ignores:
-  `paths`, `forms`, `batch_max_bytes` (32768 behind a quick tunnel's node),
+  `paths`, `forms` (`split`, `serial` and `one`), `batch_max_bytes` (32768 behind a quick tunnel's node),
   `window_batches` (8), `hold_ms` (10000, a batch's wait for room before
   `full`), `down_window_bytes` (2 MiB), `down_max_bytes` (1 MiB),
   `wait_max_ms` (25000), `absent_ms` (60000, before `1001 client gone`),
