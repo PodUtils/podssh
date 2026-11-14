@@ -6295,6 +6295,10 @@ PodUtils/podcrates") applies: from the import podssh makes fixes only, and once 
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
 
+2026-11-14: the start condition still does not hold: read through read.web.pkgforge.dev at
+datatracker.ietf.org, draft-ietf-httpbis-connect-tcp is at draft 18 (2026-11-02), an Internet-Draft of the
+Standards Track with no RFC number. The entry stays parked.
+
 # T-550: The quick tunnel's node takes its net's members as its door, with no `--allow`
 
 **Source:** the merge of T-452 (2026-11-02), its drafting agent's note.
