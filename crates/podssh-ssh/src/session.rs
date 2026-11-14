@@ -214,6 +214,8 @@ pub async fn attach(
         expect,
         notice,
         asked,
+        // Where the road tells no silence, nothing resumes its link (T-598).
+        window_stall: !opts.silence.told_by_road(),
     };
     // With no remote pty, Ctrl-C sends `signal INT` to a command or a shell
     // (T-293); a subsystem gets none, as sshd refuses it for one.

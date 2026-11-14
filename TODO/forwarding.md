@@ -999,7 +999,7 @@ count each chunk twice, and the unit test fails.
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:42` and
 `crates/podssh-ssh/src/forward.rs:53`; `~#` at
-`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:260`,
+`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:264`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:264`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
   1000 down through a forward's copy, counted once, with one connection; one

@@ -542,7 +542,7 @@ at `crates/podssh-cli/src/ssh/transport.rs:225`, and the relay's close reason is
    ("connect", "host-key", "auth", "relay"); `bytes` (stdin, stdout, stderr); `duration_ms`;
    `relay` (host, close code and reason), or null with `--direct`.
 2. Count the bytes in one place: make the output sink of `io::pump` a parameter
-   (`crates/podssh-ssh/src/io.rs:171-181`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:78-95`). T-055 needs the same change.
+   (`crates/podssh-ssh/src/io.rs:175-185`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:78-95`). T-055 needs the same change.
 3. stdout and stderr stay byte for byte as now; the command's output never goes into the JSON.
 4. Write the file on each path, also after a failure before the session: at the end of
    `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:297-301`). Mode 0600. Refuse `-`: stdout is data.
@@ -609,7 +609,7 @@ the bytes at `crates/podssh-ssh/src/outcome.rs:200-211`, the end at
 `crates/podssh-ssh/src/outcome.rs:221-239`, a run through a control master
 at `crates/podssh-ssh/src/outcome.rs:241-252`, and the cause of a failure
 at `crates/podssh-ssh/src/outcome.rs:254-275`. The bytes are counted where
-they pass: stdin at `crates/podssh-ssh/src/io.rs:230`, stdout and stderr at
+they pass: stdin at `crates/podssh-ssh/src/io.rs:234`, stdout and stderr at
 `crates/podssh-ssh/src/io/msg.rs:93`, `-W` at
 `crates/podssh-ssh/src/forward.rs:66` and
 `crates/podssh-ssh/src/forward.rs:83`. The status and the signal at

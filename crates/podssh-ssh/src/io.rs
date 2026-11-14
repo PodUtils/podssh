@@ -129,6 +129,10 @@ pub struct Through {
     pub notice: Option<crate::notice::Notice>,
     /// SSH's own question, where the road asks none (T-332).
     pub asked: Option<Arc<crate::notice::Asked>>,
+    /// Whether a channel's window shut for [`WINDOW_STALL`] ends the session
+    /// (T-598): on a road that resumes no link (`--direct`); the resumable
+    /// layer's own silence resumes the link, and a stall there is survived.
+    pub window_stall: bool,
 }
 
 impl Through {
@@ -374,6 +378,7 @@ async fn send(
     // buffers take each byte that the window let go, no write of the socket
     // waits, and the stream's own limit never arms (T-598). The window shut
     // for WINDOW_STALL, with bytes to send, ends the session the same way.
+    let bounded = through.window_stall;
     let mut tick = tokio::time::interval(Duration::from_secs(1));
     let mut shut_since: Option<tokio::time::Instant> = None;
     loop {
@@ -387,7 +392,7 @@ async fn send(
                 }
                 None => return Err(link_ended(*status, out.eof)),
             },
-            _ = tick.tick() => {
+            _ = tick.tick(), if bounded => {
                 if writer.writable_packet_size().await > 0 {
                     shut_since = None;
                 } else if shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {

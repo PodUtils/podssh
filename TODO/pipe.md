@@ -584,7 +584,7 @@ running on the server (`docs/design.md:734-738`).
   an error at `crates/podssh-ssh/src/session.rs:42`. An exit status, a
   close with no status, and `~.` are other ends
   (`crates/podssh-ssh/src/session.rs:39-41`). Raw mode is entered once for
-  each session (`crates/podssh-ssh/src/session.rs:164-223`).
+  each session (`crates/podssh-ssh/src/session.rs:164-225`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
   (`docs/relay.md:553-559`). Sandbox A measured the cap at 67,107,943 bytes,
   and one close `1011` in 180 short sessions (`docs/STATUS.md:529-530`).

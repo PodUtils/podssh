@@ -388,7 +388,7 @@ Read:
   (`crates/podssh-ssh/src/io.rs`, line 226 at `8cf2587`,
   `crates/podssh-ssh/src/session.rs:19-20`,
   `crates/podssh-ssh/src/session.rs:41`). A channel that ends with no Close
-  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:293`,
+  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:297`,
   `crates/podssh-ssh/src/session.rs:42`).
 - A closed stdout (EPIPE) gives the status so far, or 0 when none came
   (`crates/podssh-ssh/src/io.rs`, lines 200-204 at `8cf2587`).
@@ -1125,7 +1125,7 @@ acceptable.
    it, before M2, and once.
 5. Put the filter in a new module, crates/podssh-ssh/src/elevate.rs. Hook it
    into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-76`) and the stdin
-   branch (`crates/podssh-ssh/src/io.rs:210-277`), and keep `io.rs` under 500
+   branch (`crates/podssh-ssh/src/io.rs:214-281`), and keep `io.rs` under 500
    lines.
 6. Pitfalls: with a NOPASSWD rule, M1 never comes, so no password is sent;
    `-k` makes `sudo` ask also with cached credentials; the remote login shell
@@ -1173,9 +1173,9 @@ M1, and the NOPASSWD check fails.
 2026-10-11. The markers, the command and the filter in
 `crates/podssh-ssh/src/elevate.rs:1-395`. The session wraps the command
 (`crates/podssh-ssh/src/session.rs:132-147`, the question at
-`crates/podssh-ssh/src/session.rs:268-277`), and the pump filters the output,
-asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:178-192`,
-`crates/podssh-ssh/src/io.rs:426-433`). The flags at
+`crates/podssh-ssh/src/session.rs:270-279`), and the pump filters the output,
+asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:182-196`,
+`crates/podssh-ssh/src/io.rs:431-438`). The flags at
 `crates/podssh-cli/src/flags.rs:222-227`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
@@ -1219,7 +1219,7 @@ and no player.
 
 - Read: each output of a session passes `handle_msg`
   (`crates/podssh-ssh/src/io/msg.rs:11-34`), and each window change passes the
-  resize branch (`crates/podssh-ssh/src/io.rs:314-319`). The size at the start
+  resize branch (`crates/podssh-ssh/src/io.rs:318-323`). The size at the start
   is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:82`).
   `podssh-ssh` has no JSON dependency
   (`crates/podssh-ssh/Cargo.toml:14-30`).
@@ -1282,7 +1282,7 @@ byte boundary, and the UTF-8 test fails.
 2026-10-11. The recorder in `crates/podssh-ssh/src/record.rs:1-153`, which a
 session starts with the size of its start
 (`crates/podssh-ssh/src/session.rs:184-191`) and its output passes through
-(`crates/podssh-ssh/src/io.rs:113-168`). The flag at
+(`crates/podssh-ssh/src/io.rs:113-172`). The flag at
 `crates/podssh-cli/src/flags.rs:224-225`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
 `crates/podssh-cli/src/play.rs:1-86`, its flags in
@@ -2440,7 +2440,7 @@ user sees a session that hangs.
 Measured: a hung run of the control held no TCP connection (the relay
 host's reset had come through), and `-vv` printed nothing after the login.
 Read at `b62d657`: the session's loop awaited each send of stdin's bytes on
-the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:229-241`),
+the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:233-245`),
 and a send waits for the channel's window; while it waited, the loop read
 none of the channel's messages, which carry the end. And in the relay
 stream, the task that sends stopped reading the pipe when a send failed,
@@ -2474,7 +2474,7 @@ hang. Plant: the relay stream's receiving task with no stop fails its test.
 ## Done
 
 2026-10-10. The session's loop reads the channel's messages while a send
-waits for the window (`crates/podssh-ssh/src/io.rs:229-241`), and in the
+waits for the window (`crates/podssh-ssh/src/io.rs:233-245`), and in the
 relay stream each task's end with the link stops the other
 (`crates/podssh-ssh/src/relay_stream.rs:195-292`).
 - T-156's control of a stopped relay host (the forward road, 20 MiB up and
@@ -2947,7 +2947,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
   (`crates/podssh-cli/src/ssh/resolve.rs:340-343`) that #83's comment reads. T-332's question on
-  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:239`), which the same reply ends.
+  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:243`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:208`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
   error has no words of podssh's (`crates/podssh-ssh/src/run.rs:478`), so #83 read russh's.
@@ -3899,7 +3899,7 @@ asked.
   channel and keeps the pty open, so su waits, and podssh with it.
 - Read: with no way to ask, podssh says so, ends the input and keeps the deadline
   (`crates/podssh-ssh/src/elevate.rs:325-332`); at 30 s its line says that the command "neither
-  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:308-312`), though it asked.
+  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:312-316`), though it asked.
 - Read: the tests run `--su` with a right and a wrong password, and with no helper that fails
   (`crates/podssh-cli/tests/ssh_sudo.rs:202-264`).
 - Read (L-11): `--sudo` under a `NOPASSWD` rule sends no password, by design
@@ -4461,6 +4461,14 @@ stuck write says so.
   1 passed in 60.3 s, exit 255 and "no progress"; by hand through socat, exit 255 after 61 s.
 - The plant `t598-window-stall-unbounded` (the clock never ends the wait): caught.
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,858 passed, none failed.
+
+The gate of `b1debd6` (`gate (m6)`) then failed: the resumable layer's tests of a stall of 3 minutes
+(`the_layer_survives_a_stall_of_3_minutes`, `iroh::the_iroh_road_survives_a_stall_of_3_minutes`) ended at the new
+bound, where the layer is meant to resume the link after the stall. The bound now holds only on a road whose link
+nothing resumes, the one that tells no silence (`--direct`; `io::Through::window_stall`, from
+`opts.silence.told_by_road()`, as SSH's own question of T-332 is chosen): `cargo test -p podssh-cli --features
+podssh-cli/iroh-test --test m6_exit -- --ignored --test-threads 1 stall_of_3`, 3 passed in 468 s; `--test
+stuck_window`, 1 passed in 60.3 s.
 
 Left: the Prove's `INTEROP_ONLY=faults` run in the build image on this host (T-251).
 

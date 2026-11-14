@@ -688,7 +688,7 @@ passes a sequence, a user can expect podssh to act on it. No page lists both.
 - Read: in a session with a pty, the client acts only on the escape
   character at the start of a line: `~.`, `~R`, `~?` and `~~`
   (`crates/podssh-ssh/src/escape.rs:1-25`, `crates/podssh-ssh/src/escape.rs:94-138`).
-  Each other byte goes to the channel (`crates/podssh-ssh/src/io.rs:218-241`).
+  Each other byte goes to the channel (`crates/podssh-ssh/src/io.rs:222-245`).
 - Read: the line discipline acts on the arrows, Home, End and its control
   keys, and refuses other sequences (`docs/terminal.md:218-255`). T-128 and
   T-129 change that list.

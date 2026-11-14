@@ -1852,7 +1852,7 @@ which needs support in the terminal client.
 
 - Read: `podssh ssh` writes the remote output to stdout as it comes
   (`crates/podssh-ssh/src/io/msg.rs:11-30`) and passes the local keys through
-  the escape filter (`crates/podssh-ssh/src/io.rs:218-277`). Nothing looks
+  the escape filter (`crates/podssh-ssh/src/io.rs:222-281`). Nothing looks
   for a ZMODEM header.
 - Not verified here: ZMODEM escapes its control bytes, so it crosses a pty;
   whether a ZMODEM crate in pure Rust exists and is maintained.
