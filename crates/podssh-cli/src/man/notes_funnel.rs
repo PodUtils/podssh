@@ -35,8 +35,8 @@ pub const FUNNEL: &[&str] = &[
      at this host; OpenTunnel sees the names, the times and the sizes.\" Each visitor's connection comes over \
      the funnel's bridge, a WebSocket through HTTPS_PROXY, so it leaves a cage of an HTTPS proxy with no WARP. \
      The funnel offers HTTP/1.1 alone; each request goes to TARGET as above, and its answer as TARGET framed it, \
-     with Connection: close; a WebSocket passes through. The name is public, as a quick tunnel's is, so there is \
-     no --allow. By the operator's ruling Q76, a funnel with no token file that the quick tunnel cannot carry \
+     with Connection: close; a WebSocket passes through. The name is public, as a quick tunnel's is: each \
+     visitor who knows it comes in. By the operator's ruling Q76, a funnel with no token file that the quick tunnel cannot carry \
      (no answer of its API, or no road to port 7844 of the edge) takes this road unasked, says why, and tries \
      for 20 s at most; PODSSH_OPENTUNNEL=no turns that off. --opentunnel takes neither --tunnel-token-file nor \
      --warp (64). Two funnels of one host at once share the tunnel's name, which one bridge holds: the second \
