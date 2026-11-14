@@ -248,4 +248,4 @@
 240 issue closed
 241 issue closed
 242 issue open
-243 issue open
+243 issue closed

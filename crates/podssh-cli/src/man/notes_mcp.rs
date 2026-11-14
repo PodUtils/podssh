@@ -18,6 +18,14 @@ pub const MCP: &[&str] = &[
      none. Name each host, or the fewest patterns that hold them; !PATTERN excludes, and a pattern with \
      USER@ needs a destination that names that user. The host is matched as the call names it, before the \
      HostName of your configuration.",
+    "For an agent that watches and must not change (T-731): --read-only offers no tool that changes a host, \
+     no job_start, job_stop, cp_put or session_ tool, and refuses a call of one by name; ssh_exec is then \
+     offered only with --allow-command. --allow-command PATTERN, repeated, names what ssh_exec may run: a \
+     pattern is words, the program as typed and * for one word of any text, and a command matches when its \
+     words are as many and each the pattern's. A command with a character that the remote shell reads as \
+     more than a word's text (; | & $ ` < > ( ) \\ quotes, a newline, ~ # ! = %, and the globs * ? [ ] { }) is \
+     refused, as the shell would run more than the pattern says. The patterns are named in ssh_exec's \
+     description, and a pattern whose program is * is refused (64).",
     "Each call runs podssh ssh as a child, with BatchMode=yes (no prompt, ever), \
      StrictHostKeyChecking=yes (a host whose key known_hosts does not hold is refused, unless \
      host_key_fingerprint names its key, as --host-key-fingerprint), no pty, no escape character, no \

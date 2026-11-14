@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6432-6462`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6439-6469`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -766,23 +766,23 @@ session path; the test that parses each stdout line fails.
 
 ## Done
 
-2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:79-147`, its
-lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:154-240`,
-the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:244-270`, a
-call at `crates/podssh-cli/src/mcp/mod.rs:273-305`. The messages in
+2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:84-169`, its
+lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:176-262`,
+the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:266-292`, a
+call at `crates/podssh-cli/src/mcp/mod.rs:295-327`. The messages in
 `crates/podssh-cli/src/mcp/protocol.rs:70-103`, the two eras at
 `crates/podssh-cli/src/mcp/protocol.rs:113-168` and
 `crates/podssh-cli/src/mcp/protocol.rs:188-220`, the answers at
 `crates/podssh-cli/src/mcp/protocol.rs:232-245`. The tools at
-`crates/podssh-cli/src/mcp/tools.rs:50-137`, the command line of a call at
-`crates/podssh-cli/src/mcp/tools.rs:196-261`, with the options of each
-session at `crates/podssh-cli/src/mcp/tools.rs:166-184`, and its result at
-`crates/podssh-cli/src/mcp/tools.rs:306-348`. The child of a call at
+`crates/podssh-cli/src/mcp/tools.rs:55-155`, the command line of a call at
+`crates/podssh-cli/src/mcp/tools.rs:214-284`, with the options of each
+session at `crates/podssh-cli/src/mcp/tools.rs:184-202`, and its result at
+`crates/podssh-cli/src/mcp/tools.rs:329-371`. The child of a call at
 `crates/podssh-cli/src/mcp/child.rs:63-122`, its streams at
 `crates/podssh-cli/src/mcp/child.rs:125-157`. The patterns of
 `--allow-host` at `crates/podssh-cli/src/mcp/allow.rs:36-124`. The flags in
 `crates/podssh-cli/src/flags/mcp.rs`, the risk and the rest in the manual
-(`crates/podssh-cli/src/man/notes_mcp.rs:4-52`), and `docs/cli.md`.
+(`crates/podssh-cli/src/man/notes_mcp.rs:4-60`), and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/mcp.rs`, 4 tests, over the stdin and the
 stdout of `podssh mcp`, reads each line of stdout as one JSON-RPC answer:
@@ -1139,7 +1139,7 @@ Read, at `1769d79`, before this entry's work:
 - Read: the tools are `ssh_exec` (only when a host is allowed), `status`, `doctor` and `man`
   (`crates/podssh-cli/src/mcp/tools.rs`, lines 35-73 at `1769d79`); each call runs this binary
   again as a child (`crates/podssh-cli/src/mcp/mod.rs`, lines 6-11 at `1769d79`), whose command
-  line `plan` makes (`crates/podssh-cli/src/mcp/tools.rs:193-241`).
+  line `plan` makes (`crates/podssh-cli/src/mcp/tools.rs:211-263`).
 - Read: `ssh_exec` checks its destination against `--allow-host`
   (`crates/podssh-cli/src/mcp/tools.rs`, lines 170-173 at `1769d79`), and forces no prompt, a
   known host key, no forwarding and no shared connection, before the user's `-F`
@@ -1857,8 +1857,8 @@ both from the schema alone.
 - `crates/podssh-cli/src/man/notes_doctor.rs:122-142` (`DOCTOR_STREAM`) says that `--full` runs the
   stream section. `crates/podssh-cli/src/man/notes_doctor.rs:17-22` (`DOCTOR_QUICK`) lists what
   `--quick` leaves out and names no probe of `--full`.
-- `crates/podssh-cli/src/mcp/tools.rs:78` repeats the QUIC handshake. Line 79 offers `quick`.
-  `crates/podssh-cli/src/mcp/tools.rs:209-218` builds `--full --quick` when both are true.
+- `crates/podssh-cli/src/mcp/tools.rs:86` repeats the QUIC handshake. Line 79 offers `quick`.
+  `crates/podssh-cli/src/mcp/tools.rs:231-240` builds `--full --quick` when both are true.
 - `crates/podssh-cli/src/doctor/sections.rs:315-320` already names the quick tunnel's edge among the
   sections that `--quick` leaves out.
 - T-511's Decision (`TODO/machine.md:1368-1373`) records that `--quick` leaves the edge out.
@@ -1867,7 +1867,7 @@ both from the schema alone.
 
 1. Add one clause to the `--full` row of `crates/podssh-cli/src/flags/relay.rs`: the QUIC handshake
    and the stream probes do not run with `--quick`. Name `--full` in the `--quick` row.
-2. Make the same change in the `full` description at `crates/podssh-cli/src/mcp/tools.rs:78`.
+2. Make the same change in the `full` description at `crates/podssh-cli/src/mcp/tools.rs:86`.
 3. Make the same change in `DOCTOR_QUICK` and `DOCTOR_STREAM` of
    `crates/podssh-cli/src/man/notes_doctor.rs`.
 4. Do not change the behaviour, and add no line on stderr. Run `cargo todo remap` for each file
@@ -2054,7 +2054,7 @@ Plant: edit a flag's text in `llms-full.txt` by hand; the repository check fails
 **Milestone:** none
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2083,6 +2083,15 @@ and the `session_` tools change state. There is no read-only mode and no list of
    `--read-only` and no `--allow-command`, `ssh_exec` is not listed.
 3. List the patterns in the tool's description, as the hosts are. Write the rules in `man mcp`.
 
+## Decision
+
+2026-11-14: the characters that `--allow-command` refuses in a command go past the entry's list: quotes, `~`,
+`#`, `!`, `=`, `%` and the globs (`*`, `?`, `[`, `]`, `{`, `}`) too, as each makes the remote shell read other
+words than those that the pattern matched (a quoted blank joins two words, a glob gives many). A pattern holds
+none of them but a word `*`. Lost: the entry's list alone (`cat /etc/*` would pass `cat *` and print each
+file); a pattern of regular expressions (harder to read in a tool's description, and an agent's text would
+meet the user's regex).
+
 ## Prove
 
 ```sh
@@ -2093,6 +2102,26 @@ cargo test -p podssh-cli --test mcp -- read_only
 
 Plants: let `uptime; id` pass with the pattern `uptime`; a `cp_put` call by name in read-only mode succeeds.
 Each fails its test.
+
+## Done
+
+Done, 2026-11-14: `podssh mcp --read-only` and `--allow-command PATTERN` (repeat), `crates/podssh-cli/src/mcp/`:
+`commands.rs` (new: the patterns, the match of words, the refusal of what the shell reads), `tools.rs` (the list
+withholds `job_start`, `job_stop`, `cp_put` and the `session_` tools with `--read-only`, and `ssh_exec` with it
+and no pattern; `plan` refuses a call of one by name; `ssh_exec` checks the command against the patterns and
+names them in its description), `mod.rs` (the lines on stderr, 64 for a pattern that is not one),
+`client_config.rs` (the flags in a client's entry), the flag rows (`flags/mcp.rs`, `tree.rs`), the manual
+(`notes_mcp.rs`) and `docs/cli.md`.
+
+- `cargo test -p podssh-cli --lib mcp::`: passed, among them `allow_command_matches_whole_words_and_star_is_one_word`,
+  `allow_command_refuses_what_the_remote_shell_would_read_as_more`, `allow_command_patterns_name_a_program_in_plain_words`,
+  `read_only_lists_and_runs_no_tool_that_changes_a_host` and `allow_command_gates_ssh_exec`; `--lib`: 1,181 passed.
+- `cargo test -p podssh-cli --test mcp`: 7 passed, among them `read_only_with_allow_command_runs_only_what_a_pattern_allows`
+  (through the binary and the test's SSH server: the list, `exit 3` runs, `exit 3; id` and `true` are refused,
+  `cp_put` by name is an unknown tool, `--read-only` alone lists no `ssh_exec`, `* x` is 64). `mcp_tools`,
+  `mcp_client_config`, `man_page`, `man_json`, `flag_table`, `man_flag_parity`: passed.
+- Plants, each caught: `t731-shell-passes` (`uptime; id` passes `uptime`) and `t731-read-only-call-runs`
+  (`cp_put` by name runs with `--read-only`).
 
 # T-751: `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it
 
@@ -2110,7 +2139,7 @@ the right flags; a hand-written one can name a flag that does not start the stdi
 
 ## Premise
 
-- The review: `crates/podssh-cli/src/flags/mcp.rs:9-22` (`MCP_FLAGS`) has no option to print it;
+- The review: `crates/podssh-cli/src/flags/mcp.rs:9-26` (`MCP_FLAGS`) has no option to print it;
   `crates/podssh-cli/src/mcp/mod.rs` reads `std::env::current_exe()` already.
 - The review: `crates/podssh-cli/tests/mcp_harness/mod.rs` starts `podssh mcp` as a client does.
 

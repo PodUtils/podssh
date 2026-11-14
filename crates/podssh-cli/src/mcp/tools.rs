@@ -13,6 +13,7 @@ use serde_json::{json, Map, Value};
 
 use super::allow::Allow;
 use super::child::{text, Captured, Plan, Ran};
+use super::commands::Commands;
 use super::dirs::Dirs;
 use super::sessions::Started;
 use super::{copy, sessions, verbs};
@@ -40,6 +41,10 @@ pub struct Settings {
     pub dirs: Dirs,
     /// `--allow-session`: the session_ tools are offered.
     pub allow_session: bool,
+    /// `--read-only`: no tool that changes a host is offered or run (T-731).
+    pub read_only: bool,
+    /// The patterns of `--allow-command`, which gate `ssh_exec`.
+    pub commands: Commands,
     /// The sessions that this server started, which it stops as it ends.
     pub started: Started,
 }
@@ -50,7 +55,9 @@ pub struct Settings {
 pub fn list(settings: &Settings) -> Vec<Value> {
     let mut tools = Vec::new();
     if !settings.allow.is_empty() {
-        tools.push(ssh_exec(&settings.allow));
+        if !(settings.read_only && settings.commands.is_empty()) {
+            tools.push(ssh_exec(settings));
+        }
         tools.extend(verbs::list(&settings.allow));
         if !settings.dirs.is_empty() {
             tools.extend(copy::list(settings));
@@ -59,6 +66,7 @@ pub fn list(settings: &Settings) -> Vec<Value> {
             tools.extend(sessions::list(&settings.allow));
         }
     }
+    tools.retain(|tool| !(settings.read_only && changes(tool["name"].as_str().unwrap_or_default())));
     tools.push(json!({
         "name": "status",
         "title": "The state of this host",
@@ -94,7 +102,17 @@ pub fn list(settings: &Settings) -> Vec<Value> {
     tools
 }
 
-fn ssh_exec(allow: &Allow) -> Value {
+/// Whether the tool `name` changes a host, which `--read-only` withholds.
+pub(super) fn changes(name: &str) -> bool {
+    matches!(name, "job_start" | "job_stop" | "cp_put") || name.starts_with("session_")
+}
+
+fn ssh_exec(settings: &Settings) -> Value {
+    let allow = &settings.allow;
+    let commands = match settings.commands.is_empty() {
+        true => String::new(),
+        false => format!(" Allowed commands, each word as typed, * one word: {}.", settings.commands.shown()),
+    };
     json!({
         "name": "ssh_exec",
         "title": "Run a command over SSH",
@@ -102,7 +120,7 @@ fn ssh_exec(allow: &Allow) -> Value {
             "Run one command on an allowed host with podssh ssh, with no terminal, no prompt and no forwarding; \
              the result has podssh's exit code, the command's status or signal, its stdout and stderr (at most \
              1 MiB each; output that is not UTF-8 comes as base64), and whether the limit passed. A host whose key \
-             known_hosts does not hold is refused unless host_key_fingerprint names it. Allowed hosts: {}.",
+             known_hosts does not hold is refused unless host_key_fingerprint names it. Allowed hosts: {}.{commands}",
             allow.shown()
         ),
         "inputSchema": object_needing(json!({
@@ -195,6 +213,10 @@ pub(super) fn destination(settings: &Settings, arguments: &Map<String, Value>) -
 /// the agent can read and correct.
 pub fn plan(settings: &Settings, name: &str, arguments: &Map<String, Value>, file: &str) -> Result<Plan, String> {
     let words = |list: &[&str]| list.iter().map(OsString::from).collect::<Vec<_>>();
+    // The list withholds these; a call by name is refused here too.
+    if settings.read_only && (changes(name) || (name == "ssh_exec" && settings.commands.is_empty())) {
+        return Err(format!("{name}: this server runs with --read-only, which offers no tool that changes a host"));
+    }
     match name {
         "ssh_exec" => ssh_plan(settings, arguments, file),
         "status" => {
@@ -247,6 +269,7 @@ fn ssh_plan(settings: &Settings, arguments: &Map<String, Value>, file: &str) -> 
     if command.contains('\0') {
         return Err("command: a NUL character".into());
     }
+    settings.commands.check(&command)?;
     let stdin = string(arguments, "stdin")?.unwrap_or_default();
     let limit = limit(arguments, SSH_LIMIT)?;
     // No pty and no escape character, beside what each child of a host gets.

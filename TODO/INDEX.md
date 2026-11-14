@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**738 entries: 46 open, 30 partial, 14 blocked, 648 done.**
+**738 entries: 45 open, 30 partial, 14 blocked, 649 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 3 | 3 | 3 | 74 | 83 |
 | P2 | 7 | 19 | 2 | 279 | 307 |
-| P3 | 36 | 8 | 9 | 294 | 347 |
-| **All** | 46 | 30 | 14 | 648 | 738 |
+| P3 | 35 | 8 | 9 | 295 | 347 |
+| **All** | 45 | 30 | 14 | 649 | 738 |
 
 ## Entries
 
@@ -761,7 +761,7 @@ repository and CI).
 | [T-728](repo.md) | P1 | L | M10 | measurement | open | Windows (x86_64, aarch64) and macOS smoke tests of each operator command, and `ProxyCommand` with Windows OpenSSH |
 | [T-729](roads.md) | P1 | M | M10 | feature | blocked | The Access TCP client on `cf://`: the login of a user, on Windows, macOS and Linux |
 | [T-730](machine.md) | P3 | S | none | feature | open | `llms.txt`, `llms-full.txt` and `--help --json` |
-| [T-731](machine.md) | P3 | M | none | feature | open | `podssh mcp` for fleet work: a read-only mode and a command allowlist |
+| [T-731](machine.md) | P3 | M | none | feature | done | `podssh mcp` for fleet work: a read-only mode and a command allowlist |
 | [T-732](relay.md) | P2 | S | M10 | defect | done | The relay role's byte cap let a fast target carry any amount past it, until the next tick |
 | [T-733](mesh.md) | P3 | L | M10 | feature | done | ZeroTier's TCP relay and an ad-hoc network as a last road of a podssh pair |
 | [T-734](mesh.md) | P3 | M | M10 | feature | done | Tox's TCP relays on 443 as a last road and a meeting point of a podssh pair |

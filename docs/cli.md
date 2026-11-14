@@ -5604,6 +5604,13 @@ The tools:
   `session_wait` (`idle_seconds`, `match`, `wait_seconds`; `ended_by` is
   `idle`, `match` or `limit`), `session_capture` (`raw` at will) and
   `session_stop`.
+- **`--read-only`** and **`--allow-command PATTERN`** (T-731, cfb's A-X-20), for an agent that
+  watches a fleet and must not change it: `--read-only` lists no tool that changes a host (`job_start`,
+  `job_stop`, `cp_put`, the `session_` tools) and refuses a call of one by name; `ssh_exec` then needs
+  `--allow-command`. A pattern is words, the program as typed and `*` for one word; a command matches
+  when its words are as many and each the pattern's, and one with a character that the remote shell
+  reads as more (`;`, `|`, `&`, `$`, a backtick, quotes, redirections, globs, `\`, a newline) is
+  refused, as the shell would run more than the pattern says (`crates/podssh-cli/src/mcp/commands.rs`).
 
 **The local side has a gate of its own.** `--allow-host` lets an agent reach
 a host, not read the files of this one: no tool read or wrote one before

@@ -179,3 +179,47 @@ fn doctor_schema_says_quick_wins_over_full() {
         assert!(text.contains("QUIC handshake") && text.contains("stream probes"), "{key}: {text}");
     }
 }
+
+/// `--read-only` (T-731): no tool that changes a host is listed, and a call
+/// of one by name is refused; `ssh_exec` only with `--allow-command`.
+#[test]
+fn read_only_lists_and_runs_no_tool_that_changes_a_host() {
+    let dir = std::env::temp_dir().display().to_string();
+    let dirs = super::super::dirs::Dirs::new(&[dir], &[]).unwrap();
+    let all = Settings { dirs, allow_session: true, ..settings(&["web*"]) };
+    let read_only = Settings { read_only: true, ..all.clone() };
+    let offered = names(&read_only);
+    assert_eq!(offered, ["health", "job_list", "job_log", "job_wait", "cp_get", "status", "doctor", "man"]);
+    // cp_put writes its content beside the call's result file.
+    let scratch = std::env::temp_dir().join(format!("podssh-mcp-read-only-{}", std::process::id()));
+    podssh_relay::cache::private_dir(&scratch).unwrap();
+    let file = scratch.join("result").display().to_string();
+    let call = |s: &Settings, name: &str, arguments: Value| plan(s, name, &args(arguments), &file);
+    for name in ["job_start", "job_stop", "cp_put", "session_start", "ssh_exec"] {
+        let refused = call(&read_only, name, json!({ "destination": "web1", "command": "uptime" }));
+        assert!(refused.unwrap_err().contains("--read-only"), "{name}");
+    }
+    let put = json!({ "destination": "web1", "path": "x", "content": "eA==" });
+    assert!(call(&all, "cp_put", put).is_ok(), "with no --read-only, cp_put runs");
+    // With patterns, ssh_exec comes back, gated by them.
+    let commands = Commands::new(&["uptime".to_string()]).unwrap();
+    let watched = Settings { commands, ..read_only };
+    assert_eq!(names(&watched)[0], "ssh_exec");
+    assert!(list(&watched)[0]["description"].as_str().unwrap().contains("'uptime'"));
+    assert!(call(&watched, "ssh_exec", json!({ "destination": "web1", "command": "uptime" })).is_ok());
+    assert!(call(&watched, "job_start", json!({ "destination": "web1", "command": "uptime" })).is_err());
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// `--allow-command` (T-731) gates `ssh_exec`, with or without `--read-only`.
+#[test]
+fn allow_command_gates_ssh_exec() {
+    let commands = Commands::new(&["uptime".to_string(), "systemctl status *".to_string()]).unwrap();
+    let s = Settings { commands, ..settings(&["web*"]) };
+    let exec = |command: &str| plan(&s, "ssh_exec", &args(json!({ "destination": "web1", "command": command })), "r");
+    assert!(exec("uptime").is_ok());
+    assert!(exec("systemctl status nginx").is_ok());
+    assert!(exec("uptime; id").unwrap_err().contains("read by the remote shell"));
+    assert!(exec("reboot").unwrap_err().contains("no pattern"));
+    assert!(names(&s).contains(&"job_start".to_string()), "no --read-only: the job tools stay");
+}

@@ -1,0 +1,12 @@
+diff --git a/crates/podssh-cli/src/mcp/commands.rs b/crates/podssh-cli/src/mcp/commands.rs
+--- a/crates/podssh-cli/src/mcp/commands.rs
++++ b/crates/podssh-cli/src/mcp/commands.rs
+@@ -59,7 +59,7 @@
+         if self.patterns.is_empty() {
+             return Ok(());
+         }
+-        if let Some(c) = command.chars().find(|c| SHELL.contains(c) || (c.is_control() && *c != '\t')) {
++        if let Some(c) = command.chars().find(|c| c.is_control() && *c != '\t' && *c != '\n') {
+             return Err(format!(
+                 "command: {c:?} is read by the remote shell, so the command could run more than a pattern of \
+                  --allow-command says; the patterns: {}",

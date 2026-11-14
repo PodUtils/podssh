@@ -1,0 +1,6 @@
+# T-731: --read-only lists no tool that changes a host, but a call of one by
+# name (cp_put, job_start) runs.
+ENTRY=T-731
+GROUP=cli-lib
+EXPECT='test mcp::tools::tests::read_only_lists_and_runs_no_tool_that_changes_a_host \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --lib -- mcp::tools::tests::read_only_lists_and_runs_no_tool_that_changes_a_host'

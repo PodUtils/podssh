@@ -242,3 +242,49 @@ fn ssh_exec_gives_the_status_and_the_streams_of_a_command() {
     assert_eq!(code, Some(0));
     assert!(took < Duration::from_secs(15), "{took:?}");
 }
+
+/// `--read-only` and `--allow-command` (T-731): the tools that change a host
+/// are not listed and a call of one by name is refused; `ssh_exec` runs what
+/// a pattern allows and refuses a command that the shell would read as more;
+/// a pattern that is not one is a usage error.
+#[test]
+fn read_only_with_allow_command_runs_only_what_a_pattern_allows() {
+    let dir = scratch("read-only");
+    let allowed = dir.join("allowed");
+    std::fs::create_dir_all(&allowed).unwrap();
+    let (_runtime, config, fingerprint) = server(&dir);
+    let config = config.to_str().unwrap();
+    let flags = ["--allow-host", "127.0.0.1", "-F", config, "--direct", "--allow-dir", allowed.to_str().unwrap()];
+    let mut args = flags.to_vec();
+    args.extend(["--allow-session", "--read-only", "--allow-command", "exit *"]);
+    let mut mcp = Mcp::start(&dir, &args);
+    mcp.initialize();
+    let names = mcp.tool_names();
+    assert_eq!(names, ["ssh_exec", "health", "job_list", "job_log", "job_wait", "cp_get", "status", "doctor", "man"]);
+    let exec = |mcp: &mut Mcp, command: &str| {
+        let arguments =
+            json!({ "destination": "u@127.0.0.1", "host_key_fingerprint": fingerprint, "command": command });
+        mcp.call("ssh_exec", arguments)
+    };
+    let r = exec(&mut mcp, "exit 3");
+    assert_eq!(r["structuredContent"]["status"], json!(3), "{r}");
+    for command in ["exit 3; id", "true"] {
+        let r = exec(&mut mcp, command);
+        assert_eq!(r["isError"], json!(true), "{command}: {r}");
+        assert!(r.to_string().contains("--allow-command"), "{command}: {r}");
+    }
+    let r =
+        mcp.ask("tools/call", json!({ "name": "cp_put", "arguments": { "destination": "u@127.0.0.1", "path": "x" } }));
+    assert!(r["error"]["message"].as_str().unwrap_or_default().contains("Unknown tool"), "{r}");
+    mcp.close();
+    // With --read-only and no pattern, no ssh_exec.
+    let mut plain = flags.to_vec();
+    plain.push("--read-only");
+    let mut mcp = Mcp::start(&dir, &plain);
+    mcp.initialize();
+    assert!(!mcp.tool_names().iter().any(|n| n == "ssh_exec"));
+    mcp.close();
+    // A pattern whose program is * is no pattern.
+    let out = podssh(&dir).args(["mcp", "--allow-command", "* x"]).stdin(Stdio::null()).output().unwrap();
+    assert_eq!(out.status.code(), Some(64), "{}", String::from_utf8_lossy(&out.stderr));
+}

@@ -16,6 +16,7 @@
 
 mod allow;
 mod child;
+mod commands;
 // The client's entry for the flags typed (T-751).
 pub mod client_config;
 mod copy;
@@ -64,6 +65,10 @@ pub struct McpArgs {
     pub allow_dir: Vec<String>,
     /// `--allow-session`: the session_ tools.
     pub allow_session: bool,
+    /// `--read-only`: no tool that changes a host (T-731).
+    pub read_only: bool,
+    /// `--allow-command PATTERN`, each one: what `ssh_exec` may run.
+    pub allow_command: Vec<String>,
     /// `-F FILE`: the `ssh_config` of each session.
     pub config: Option<String>,
     /// `--direct`: each session over TCP.
@@ -82,6 +87,13 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
     }
     let allow = match Allow::new(&args.allow_host) {
         Ok(allow) => allow,
+        Err(why) => {
+            let _ = writeln!(err, "podssh mcp: {why}");
+            return EX_USAGE;
+        }
+    };
+    let commands = match commands::Commands::new(&args.allow_command) {
+        Ok(commands) => commands,
         Err(why) => {
             let _ = writeln!(err, "podssh mcp: {why}");
             return EX_USAGE;
@@ -117,6 +129,8 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
         scratch: scratch.clone(),
         dirs,
         allow_session: args.allow_session,
+        read_only: args.read_only,
+        commands,
         started: Default::default(),
     };
     let _ = match settings.allow.is_empty() {
@@ -129,8 +143,16 @@ pub fn run(args: &McpArgs, err: &mut dyn Write) -> i32 {
     if !settings.allow.is_empty() && !settings.dirs.is_empty() {
         let _ = writeln!(err, "podssh mcp: cp_put may read and cp_get may write in {}", settings.dirs.shown());
     }
-    if !settings.allow.is_empty() && settings.allow_session {
+    if !settings.allow.is_empty() && settings.allow_session && !settings.read_only {
         let _ = writeln!(err, "podssh mcp: the session_ tools may start sessions; each stops as the server ends");
+    }
+    if settings.read_only {
+        let _ = writeln!(err, "podssh mcp: --read-only: no job_start, job_stop, cp_put or session_ tool");
+    }
+    if !settings.commands.is_empty() {
+        let _ = writeln!(err, "podssh mcp: ssh_exec may run {}", settings.commands.shown());
+    } else if settings.read_only {
+        let _ = writeln!(err, "podssh mcp: --read-only and no --allow-command: no ssh_exec");
     }
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(runtime) => runtime,

@@ -39,6 +39,12 @@ pub fn arguments(args: &McpArgs, dirs: &[std::path::PathBuf], config: Option<&Pa
     if args.allow_session {
         out.push("--allow-session".into());
     }
+    if args.read_only {
+        out.push("--read-only".into());
+    }
+    for pattern in &args.allow_command {
+        out.extend(["--allow-command".to_string(), pattern.clone()]);
+    }
     if let Some(file) = config {
         out.extend(["-F".to_string(), file.display().to_string()]);
     }

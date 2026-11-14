@@ -38,7 +38,7 @@ fn appended(long: &str) -> bool {
     #[rustfmt::skip]
     const EACH: &[&str] = &[
         "option", "identity-file", "allow-host", "allow-dir", "sftp-option", "exclude", "deployment", "publish",
-        "authorized-key", "authorized-keys", "accept-env",
+        "authorized-key", "authorized-keys", "accept-env", "allow-command",
     ];
     EACH.contains(&long)
 }
@@ -350,6 +350,11 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             allow_host: matches.get_many::<String>("allow-host").map(|v| v.cloned().collect()).unwrap_or_default(),
             allow_dir: matches.get_many::<String>("allow-dir").map(|v| v.cloned().collect()).unwrap_or_default(),
             allow_session: matches.get_flag("allow-session"),
+            read_only: matches.get_flag("read-only"),
+            allow_command: matches
+                .get_many::<String>("allow-command")
+                .map(|v| v.cloned().collect())
+                .unwrap_or_default(),
             config: matches.get_one::<String>("config").cloned(),
             direct: matches.get_flag("direct"),
             client_config: matches.get_one::<String>("client-config").cloned(),

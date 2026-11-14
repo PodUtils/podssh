@@ -1,0 +1,6 @@
+# T-731: --allow-command checks the words alone, so `uptime; id` passes the
+# pattern `uptime`, and the remote shell would run id too.
+ENTRY=T-731
+GROUP=cli-lib
+EXPECT='test mcp::commands::tests::allow_command_refuses_what_the_remote_shell_would_read_as_more \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --lib -- mcp::commands::tests::allow_command_refuses_what_the_remote_shell_would_read_as_more'
