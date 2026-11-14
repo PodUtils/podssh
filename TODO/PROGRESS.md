@@ -86,7 +86,7 @@ item whenever it appears.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
-   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services; T-545 and T-695 are blocked on
+   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-545 and T-695 are blocked on
    podcrates' meeting points of the pairing (COORD-058, #235). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
