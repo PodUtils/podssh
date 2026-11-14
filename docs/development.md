@@ -247,8 +247,8 @@ the index must list linux/amd64 and linux/arm64, which the release builds),
 write it into the Dockerfile, and run the gate.
 
 `scripts/gate.sh` is the gate. CI runs the same file in the same image. Its
-steps, in order: `lint`, `libs`, `record`, `ssh`, `ts`, `iroh`, `tor`, `m6`
-and `release`; `sh scripts/gate.sh --list` prints them. With no argument, the
+steps, in order: `lint`, `libs`, `record`, `ssh`, `ts`, `iroh`, `tor`, `gsr`,
+`m6` and `release`; `sh scripts/gate.sh --list` prints them. With no argument, the
 gate runs each step; with names, those steps, in the order given. CI runs
 each step in a job of its own, at the same time: its job `plan` reads the
 list, so CI cannot miss a step that the gate has. `python
@@ -260,7 +260,9 @@ sh scripts/dev.sh run -- 'sh /work/scripts/gate.sh ssh'
 ```
 
 `lint` checks the format and clippy's lints (see "Checks"). `tor` runs the
-tests of `podssh-tor` and of the CLI with the feature `tor`. The gate has no
+tests of `podssh-tor` and of the CLI with the feature `tor`; `gsr` those of
+`podssh-gsr` and of the CLI with the feature `gsr` (T-707), whose OpenSSL
+`openssl-src` builds from source with perl and make. The gate has no
 step at a minimum Rust and no build with no C compiler since 2026-11-05
 (T-685): each crate may use C, zig and the newest stable Rust, and the one
 rule of the build, a statically compiled binary, is checked in the step

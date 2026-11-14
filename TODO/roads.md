@@ -163,7 +163,7 @@ access is by an allowlist of keys or a relay token (`docs/design.md:1426-1427`).
 Read in the reports, not verified here: iroh-ssh warns when a server's key is
 ephemeral (`rustonbsd/iroh-ssh:src/ssh.rs`); zuko hands over a ticket out of
 band (`adonm/zuko:docs/protocol.md`). Read: `podssh ts` keeps its node key in
-the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:374-375`,
+the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:375-376`,
 `crates/podssh-cli/src/ts.rs:182`). Credentials never go on argv
 (`AGENTS.md`, section 4).
 
@@ -186,7 +186,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:374-375`,
 5. The node prints its ticket and its fingerprint on stderr when it starts.
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1154`).
 6. Add the key files to FILES in the manual
-   (`crates/podssh-cli/src/man/data.rs:165-498`), and each new variable to
+   (`crates/podssh-cli/src/man/data.rs:165-499`), and each new variable to
    `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-272`).
 
 ## Decision
@@ -373,7 +373,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`).
 
 ## Decision
 
@@ -513,7 +513,7 @@ in iroh's source at the pinned version.
    relay.
 7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-272`),
    the flag to the flag table, and the default to the relay section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:299-454`). The tests compare
+   manual (`crates/podssh-cli/src/man/facts.rs:300-455`). The tests compare
    `VARIABLES` with the source in both directions
    (`crates/podssh-cli/src/man/facts.rs:44-45`), so a variable that only the
    feature reads is in the manual only with the feature.
@@ -4242,9 +4242,9 @@ roots must be exactly three, and a refusal of the edge does not say which releas
   (`crates/podssh-relay/src/quick/edge.rs:22-29`); the roots must give 3 anchors and no invalid
   one (`:66-70`); the API's host is fixed (`crates/podssh-relay/src/quick/api.rs:28`). The node
   registers as `podssh` and the package's version (`crates/podssh-cli/src/node_quick.rs:348-349`),
-  `1.0.0-beta.2` today (`Cargo.toml:50`).
+  `1.0.0-beta.2` today (`Cargo.toml:51`).
 - Read: the three roots end on 2029-08-15, 2029-08-15 and 2029-11-01
-  (`PodUtils/podssh:crates/podssh-relay/src/quick/cloudflare-roots.pem:6`, `:26`, `:53`).
+  (`PodUtils/podssh:crates/podssh-relay/src/quick/cloudflare-roots.pem:6`, `:27`, `:54`).
 - Read: cloudflared's README says "Cloudflare currently supports versions of cloudflared that are
   within one year of the most recent release", and that breaking changes "may be introduced" for
   older ones (`cloudflare/cloudflared:README.md`, read in a clone).
@@ -5824,7 +5824,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:255-260`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:258-263`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -7129,7 +7129,7 @@ ask, and nothing does so.
 
 - Read: the node of the iroh road serves the pair's road beside it, with one keeper for both
   (`crates/podssh-cli/src/node_iroh.rs:384-385`), and `podssh node` sends `--iroh` there
-  (`crates/podssh-cli/src/node.rs:119-121`).
+  (`crates/podssh-cli/src/node.rs:123-125`).
 - Read: `podssh ssh` resolves its destination into an enum of transports
   (`crates/podssh-cli/src/ssh/transport_kind.rs:10-72`), in a file of 488 of its 500 lines.
 - Read: the race of T-164 orders two roads (`PodUtils/podssh:crates/podssh-relay/src/session/race.rs:59-61`), and
@@ -9787,7 +9787,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:262`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:265`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:34` (`iroh UDP out`); a bind
@@ -10338,8 +10338,8 @@ held.
 
 ## Done
 
-Drafted 2026-11-14 (DRAFT, not built; each result below is UNVERIFIED until the main session builds and
-runs it). The road is podssh's glue over `pod-gsr` of PodUtils/podcrates at `v0.43.0`, with no SRP, no
+Partial, 2026-11-14: merged from the draft `c2c0097` (branch `worktree-agent-abafcd8551b077904`), built and
+tested by the main session (the results after the list). The road is podssh's glue over `pod-gsr` of PodUtils/podcrates at `v0.43.0`, with no SRP, no
 derivation and no host of the network in podssh:
 
 - `crates/podssh-gsr` (a member, not a default member, as OpenSSL is built from source): podssh's dial
@@ -10348,27 +10348,27 @@ derivation and no host of the network in podssh:
   secret that nobody holds on the shard of the user's, one control round trip (status 2 of a `CONNECT`)
   and an idle registration held 20 s. Its test `tests/stand_in.rs` runs a stand-in of the relay on the
   loopback: one secret moves 256 KiB both ways; two secrets that the stand-in pairs anyway give no
-  connection (the planted defect of the Prove). UNVERIFIED.
+  connection (the planted defect of the Prove).
 - The feature `gsr` of podssh-cli (`dep:podssh-gsr`). `crates/podssh-cli/src/gsr.rs`: the secret from the
   private file of `--gsr-secret-file` or `PODSSH_GSR_SECRET_FILE` (`podssh_relay::cache::read_private`),
   its first line, never in a word of a refusal (78), a `Debug` that names no byte; the refusal of a build
-  without the road (70). UNVERIFIED.
+  without the road (70).
 - The node: `podssh node NAME TARGET --gsr` (`node_gsr.rs`, `node_gsr_serve.rs`), the road alone as the
   bore road is: TARGET probed, one registration (`Role::Listen`) at a time, made again at once after a
   pairing, after a pause up to 30 s after a failure; a first registration that fails within 10 s ends
   the node (69); each client a visitor of the resumable layer's far end
   (`podssh_relay::pinggy::far::serve`) under the node's keeper, with the end-to-end channel and its door
   (`--allow` or the net); `--no-e2e`, `--plain`, `--exit`, `udp:`, `--spares` and each other road's flag
-  are 64. `--install` carries `--gsr` and the file's path; `--carrier` refuses `--gsr`. UNVERIFIED.
+  are 64. `--install` carries `--gsr` and the file's path; `--carrier` refuses `--gsr`.
 - The client: `Kind::Gsr` and `Road::Gsr` (`crates/podssh-cli/src/ssh/road_link.rs`), `GsrRoads`
   (`crates/podssh-cli/src/ssh/gsr.rs`) in the last roads (`crates/podssh-cli/src/ssh/road_last.rs`),
   raced once each road before it failed, before the file hosts' road; a node with the secret alone races
   (`crates/podssh-cli/src/ssh/node_roads.rs`); never with `--no-e2e`; a line names the relay as a third
-  party. `podssh ssh --gsr-secret-file FILE` is read before anything connects. UNVERIFIED.
+  party. `podssh ssh --gsr-secret-file FILE` is read before anything connects.
 - `doctor`: the section `gsr` in a build with the feature: `gsr tls` (both SRP contexts, OpenSSL's
   version); with `PODSSH_GSR_SECRET_FILE`, the relay's host of its shard and one round trip by a probe
   secret; with `--full`, `gsr idle`, whether a registration with the pings alone lives 20 s, past the
-  proxy's 15 s cut. UNVERIFIED.
+  proxy's 15 s cut.
 - The manual (`crates/podssh-cli/src/flags/gsr.rs`, `crates/podssh-cli/src/man/notes_gsr.rs`) and
   `docs/cli.md` ("The GSRN road").
 
@@ -10378,11 +10378,24 @@ throwaway secret in .work/.
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-gsr                               # UNVERIFIED
-cargo test -p podssh-cli --lib gsr                     # UNVERIFIED (70 without the feature)
-cargo test -p podssh-cli --features gsr --lib gsr      # UNVERIFIED
+cargo test -p podssh-gsr
+cargo test -p podssh-cli --lib gsr
+cargo test -p podssh-cli --features gsr --lib gsr
 ```
 
+Merged and measured, 2026-11-14:
+
+- `cargo build -p podssh-cli` and `cargo build -p podssh-cli --features gsr` (OpenSSL 3.6.3 from source): clean.
+- `cargo test -p podssh-gsr`: 4 passed, and its stand-in relay's 2 (one secret moves 256 KiB both ways; two
+  secrets that the stand-in pairs give no connection). `cargo test -p podssh-cli --lib`: 1,188 passed, and
+  with `--features gsr` 1,187 (the refusal of a build without the road is the build's own test).
+  `man_page`, `man_json`, `flag_table`, `man_flag_parity`, `node`, `doctor`: passed. At the merge, the
+  description of `node --gsr` named the flag of the secret's file, whose spelling `help`'s test found inside
+  it (`no_flag_runs_into_its_description`): reworded. Clippy with the feature: no new warning.
+- The gate's new step `gsr` (`scripts/gate.sh`, `docs/development.md`) runs these in CI's image.
+- Left: the short live test against gs-netcat both ways, which waits for the operator to name the GSRN relay
+  among the test targets of `AGENTS.md` (a question in `TODO/PROGRESS.md`); `sh scripts/check-static.sh` on a
+  static build with the feature, with the release check (T-251).
 # T-718: Access service-token headers from files on each WebSocket road
 
 **Source:** PodUtils/podcrates#35, cfb's ask A-C-04 (COORD-014, PodUtils/podcrates#38)

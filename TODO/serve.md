@@ -50,7 +50,7 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:378-452` and
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:379-453` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:351-425`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
@@ -109,7 +109,7 @@ on T-698.
 2026-11-13. The Premise, read again at `f6c8ba7`:
 
 - russh is 0.65.0, not 0.64.1, and the tree builds it from `vendor/russh` with podssh's patches,
-  through `[patch.crates-io]` of the workspace (`Cargo.toml:216`). Its server module is still built
+  through `[patch.crates-io]` of the workspace (`Cargo.toml:217`). Its server module is still built
   on each target but wasm (`vendor/russh/src/lib_inner.rs:67-68`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
@@ -1424,7 +1424,7 @@ syslog and no `/var`. A record must not leak secrets or session data.
 
 - Read: podssh's log goes to stderr or to a file
   (`crates/podssh-ssh/src/log.rs:46-62`), as lines with no structure.
-- Read: `serde_json` is a workspace dependency (`Cargo.toml:123`), but not a
+- Read: `serde_json` is a workspace dependency (`Cargo.toml:124`), but not a
   dependency of `podssh-ssh` yet.
 - Read in the report of GitHub #25, not verified here: USBoverSSH writes an
   audit log of connection events.
@@ -2338,7 +2338,7 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:378-452`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:379-453`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
@@ -2655,10 +2655,10 @@ logon after a reboot; and a reverse tunnel of `podssh ssh -N -R --persist` canno
 ## Premise
 
 - Read: `Restart=on-failure`, `RestartSec=10`, no `StartLimitIntervalSec`
-  (`crates/podssh-cli/src/node_install/text.rs:150`).
+  (`crates/podssh-cli/src/node_install/text.rs:153`).
 - Read: the cron line is `@reboot` alone (`crates/podssh-cli/src/node_install/unix.rs:137`).
 - Read: the Windows task restarts each minute, 999 times, at a logon
-  (`crates/podssh-cli/src/node_install/text.rs:295`).
+  (`crates/podssh-cli/src/node_install/text.rs:298`).
 
 ## Approach
 
@@ -2998,7 +2998,7 @@ without a user manager gets a cron line. The unit has no hardening.
   (`crates/podssh-cli/src/node_install/unix.rs:19-27`); the units go to `~/.config/systemd/user`
   (`unix.rs:29-36`).
 - Read: the unit has `Restart=always` and no `User=`, `NoNewPrivileges` or `ProtectSystem`
-  (`crates/podssh-cli/src/node_install/text.rs:131-159`).
+  (`crates/podssh-cli/src/node_install/text.rs:134-162`).
 - Read: no token is in a unit now. The variables go to a private file beside the pair, and a secret is
   never carried (`crates/podssh-cli/src/node_install/env.rs:36`, `:7-9`). Keep that.
 - Read: T-593 made the cache follow `HOME` into another user's home; a system unit of a named user must name

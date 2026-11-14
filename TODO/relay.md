@@ -284,7 +284,7 @@ nothing, and a host that does not start TLS, each cost the 20 s limit before the
 4. Print one note for each moved host: "trying HOST last: it failed N s ago (REASON)".
 5. Ignore a record with a time in the future (a clock that moved).
 6. `doctor` and `status` (T-051) show the records. State the window in THE RELAY section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:329-342`) and in `docs/relay.md:107-152`.
+   manual (`crates/podssh-cli/src/man/facts.rs:330-343`) and in `docs/relay.md:107-152`.
 7. This is retry policy across runs. T-220 shortens the wait inside one run; the two work
    together.
 
@@ -795,7 +795,7 @@ listener" (lines 86-88 at `22c3b88`), and the ruling on Q10 allows more than one
    name the host that was kept. tokio's `select!` and `JoinSet` need no new crate and no C.
 7. Add the flag to `SSH_FLAGS`, `PROXY_FLAGS` and `DOCTOR_FLAGS`
    (`crates/podssh-cli/src/flags.rs:116-292`, 323-343) and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:203-251`); the variable to VARIABLES and the modes to THE
+   (`crates/podssh-cli/src/ssh/args.rs:206-255`); the variable to VARIABLES and the modes to THE
    RELAY (`crates/podssh-cli/src/man/facts.rs:46-272`, 170-183); both to `docs/relay.md:107-152`.
 8. T-059 orders the hosts across runs; this entry shortens the wait in one run. GitHub #25 asks
    for a circuit breaker: retry policy, not overlap.
@@ -921,7 +921,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:212-226`,
    `crates/podssh-cli/src/man/data.rs:172-180`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
-   notes (`crates/podssh-cli/src/man/notes.rs:257-347`).
+   notes (`crates/podssh-cli/src/man/notes.rs:257-348`).
 
 ## Decision
 
@@ -2844,7 +2844,7 @@ session on 2026-11-03.
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:228-238`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:346-374`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:349-377`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-28`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -4098,7 +4098,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:201` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:209` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
   78 is this host not set up for the mode.

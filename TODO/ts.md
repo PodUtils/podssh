@@ -399,7 +399,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
    print its credentials. The fork has one proxy for each process
    (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:224-239`), so apply `NO_PROXY` for each host in
    the new function.
-4. Update `crates/podssh-cli/src/flags.rs:370-371`, `docs/tailscale.md:172-173` and
+4. Update `crates/podssh-cli/src/flags.rs:371-372`, `docs/tailscale.md:172-173` and
    `docs/STATUS.md:903` in the same commit.
 
 Added by T-102 (2026-10-10): the checks of each mode before the start already take `--ts-proxy`,
@@ -549,7 +549,7 @@ checks allowed (`crates/podssh-ws/src/client.rs:39-40`, `docs/relay.md:387-389`)
 4. Ping every 10 s; three silent intervals mean a dead link, after the relay answered one ping.
 5. Restart `ControlRunner` with the same backoff and no count limit. podssh-cli prints one stderr
    line for each drop and each new connection. Add the patch and its row, and update
-   `docs/tailscale.md`, `docs/STATUS.md:903` and `crates/podssh-cli/src/man/notes.rs:410-442`.
+   `docs/tailscale.md`, `docs/STATUS.md:903` and `crates/podssh-cli/src/man/notes.rs:411-443`.
 
 ## Decision
 
@@ -801,7 +801,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
 5. Repair the ignored test: the key and state paths come from variables that only the test reads,
    and the state stays. Name M8 in its reason.
 6. Record each result with its date in `docs/STATUS.md:229`, `docs/tailscale.md:8-24` and
-   `crates/podssh-cli/src/man/notes.rs:410-442`.
+   `crates/podssh-cli/src/man/notes.rs:411-443`.
 
 ## Decision
 
@@ -1014,7 +1014,7 @@ Read: the row is at `crates/podssh-cli/src/flags.rs`, lines 293-294 at `efee2fc`
 (`crates/podssh-cli/src/ts.rs`, lines 314-316 at `efee2fc`, `crates/podssh-ts/src/status.rs:17-21`), and `-W` writes the
 stream (`crates/podssh-cli/src/ts.rs`, lines 391-393 at `efee2fc`). `proxy --jsonl` is refused at parse, with the reason
 (`crates/podssh-cli/src/tree.rs`, lines 179-187 at `efee2fc`, `crates/podssh-cli/src/non_interactive.rs`, lines 309-320 at `efee2fc`).
-`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:148`).
+`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:156`).
 
 ## Approach
 
@@ -1105,7 +1105,7 @@ its control runner, for each registration (`vendor/tailscale-rs/ts_runtime/src/l
 `vendor/tailscale-rs/ts_runtime/src/control_runner.rs`, line 54 at `160773e`, `vendor/tailscale-rs/ts_runtime/src/control_runner.rs`, line 108 at `160773e`).
 
 Read: the relay token is a `Zeroizing<String>` (`PodUtils/podssh:crates/podssh-relay/src/token.rs:30`), and
-`zeroize` is a workspace dependency (`Cargo.toml:198`), but podssh-ts does not use it
+`zeroize` is a workspace dependency (`Cargo.toml:199`), but podssh-ts does not use it
 (`crates/podssh-ts/Cargo.toml`, lines 10-14 at `160773e`). The fork already depends on it
 (`vendor/tailscale-rs/Cargo.toml:106`). The comment at `crates/podssh-ts/src/secret.rs`, lines 3-5 at `160773e` names a
 model file that no longer exists.

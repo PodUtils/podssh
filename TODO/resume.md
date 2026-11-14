@@ -354,7 +354,7 @@ the node then exits (docs/reverse.md, line 19 at `fb228e9`).
    `/v1/connect/<name>`. If none does, "each relay host" means each address of
    the control host (pins, resolver, DNS over HTTPS). Write it in
    `docs/relay.md`, with `docs/reverse.md` and the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:299-454`).
+   (`crates/podssh-cli/src/man/facts.rs:300-455`).
 6. A node keeps the replay buffer of each session (T-152): with the relay's
    limit of 64 sessions and 4 MiB each, 256 MiB. Bound the node's whole
    replay memory (a session past the bound gets `REFUSE` busy, code 6), and
@@ -801,7 +801,7 @@ no `GREETING`, and that the default node greets.
 as they are, with no resumable layer: the node's handler is then the TCP
 handler alone, which dials TARGET at `open`
 (`crates/podssh-cli/src/node.rs`, lines 152-163 at `8e31960`). The node's first line names its
-mode (`crates/podssh-cli/src/node.rs:345`). `--plain` with `--iroh` is
+mode (`crates/podssh-cli/src/node.rs:349`). `--plain` with `--iroh` is
 refused with 64 (`crates/podssh-cli/src/node_flags.rs:116-118`, moved from `node.rs` by T-531): the iroh road
 always runs the layer. The flag's row, the manual's note of `node`,
 `docs/reverse.md` and `docs/cli.md`.
@@ -858,8 +858,8 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 4. On the resumable road, do not print the warning of
    `crates/podssh-cli/src/ssh/resolve.rs:334-344` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
-   (`crates/podssh-cli/src/man/facts.rs:379-394`,
-   `crates/podssh-cli/src/man/facts.rs:414-423`), the note at
+   (`crates/podssh-cli/src/man/facts.rs:380-395`,
+   `crates/podssh-cli/src/man/facts.rs:415-424`), the note at
    `crates/podssh-cli/src/man/notes_ssh_more.rs:104`, `docs/relay.md`, `README.md`.
 
 ## Decision
@@ -989,7 +989,7 @@ node's side (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:133-13
 6. When the client knows the expiry of the pair (from the node's ticket,
    T-163), it warns 1 h before; at the expiry the session ends with the reason.
 7. `-v` prints one line for each move. Docs: `docs/relay.md` ("Limits that
-   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:299-454`).
+   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:300-455`).
 
 ## Decision
 
@@ -3507,7 +3507,7 @@ Read while drafting, 2026-11-03:
   Close included; a session cut then is a clean end of a session that the node took, exit 0. A
   signal before the node took the session ends the wait at once, with the session's fault (70).
 - `ssh node://` takes SIGHUP and SIGTERM alone: its Ctrl-C is the remote command's. The same on
-  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:228`, moved from
+  the road that races the node's roads (`crates/podssh-cli/src/ssh/node_roads.rs:234`, moved from
   `crates/podssh-cli/src/ssh/roads.rs` by T-551).
 - The plant of the signals is two plants, one for each test, as a plant runs one check:
   `t586-hangup-not-taken` (the operator's test) and `t586-hangup-not-taken-openssh` (the
@@ -4180,7 +4180,7 @@ same setting.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:199` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:233` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
-- The guard at `crates/podssh-cli/src/ssh/mod.rs:431` removes the keepalives only when
+- The guard at `crates/podssh-cli/src/ssh/mod.rs:435` removes the keepalives only when
   `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:421` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
@@ -4189,7 +4189,7 @@ same setting.
 
 ## Approach
 
-1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:431`, add the case `reached.layer.is_some()` with
+1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:435`, add the case `reached.layer.is_some()` with
    `!resolved.alive_default` and a keepalive interval that is set. Print the warning of
    `resolve.rs:389-391` there, once, from one shared constant.
 2. Keep the user's interval. Do not add `Transport::Cloudflare` to `resolve.rs:375`: a far end that

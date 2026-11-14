@@ -206,7 +206,7 @@ No glob code exists in podssh. `known_hosts::wildcard`
    stands, and `Match final all` applies after the last line and fills only unset values, as
    measured. Each other `Match` stays refused by name until T-045.
 6. Check each included file as T-043 checks the user file: its owner and its mode.
-7. Change `docs/cli.md:6537-6658`, FILES (`crates/podssh-cli/src/man/data.rs:165-498`) and the
+7. Change `docs/cli.md:6537-6658`, FILES (`crates/podssh-cli/src/man/data.rs:165-499`) and the
    `ssh` notes in the same commit.
 
 ## Prove
@@ -454,7 +454,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
 
 1. Make the `-G` row Supported, with no `instead`; `crates/podssh-cli/tests/flag_table.rs:60-80`
    requires that pair. The reviewed set of short flags does not change.
-2. In `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:103-302`), after `resolve` (lines 36-42 at `e8bbd4d`): with
+2. In `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:103-306`), after `resolve` (lines 36-42 at `e8bbd4d`): with
    `-G`, print the settings and exit 0. Open nothing: no relay, no token, no pool refresh.
 3. Print from `Resolved` and its `Options`, not from `Settings`, so the defaults are shown.
 4. Print only keywords of OpenSSH that podssh applies
@@ -464,7 +464,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
    `serveraliveinterval 60` (the relay's idle cut, `docs/relay.md:473`) and `connecttimeout 60`.
 6. It does not wait for T-043: with no file, `-G` shows the effect of `-o`. After T-043 and
    T-044, `-v` names the files that were read, on stderr.
-7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`) and `docs/cli.md:48-963`
+7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`) and `docs/cli.md:48-963`
    in the same commit.
 
 ## Decision
@@ -541,8 +541,8 @@ work.
 
 ## Premise
 
-Read: podssh has no import and no `config` command (`crates/podssh-cli/src/flags.rs:382-452`).
-`serde_json` is a dependency of the binary (`crates/podssh-cli/Cargo.toml:148`), so a JSON
+Read: podssh has no import and no `config` command (`crates/podssh-cli/src/flags.rs:383-453`).
+`serde_json` is a dependency of the binary (`crates/podssh-cli/Cargo.toml:156`), so a JSON
 export needs no new crate. XML and YAML need a parser that the binary does not have. The export
 formats of the other clients were not read here. Each step below starts from a real export of
 that client: bytes captured from the real program (`AGENTS.md`, section 6, rule 2).
@@ -564,7 +564,7 @@ that client: bytes captured from the real program (`AGENTS.md`, section 6, rule 
    a comment line. Never drop it silently.
 6. The output must read with the reader of T-043 and with OpenSSH.
 7. Add the verb to the tables: `VERBS`, and `VERB_OWNER` or a dispatch arm
-   (`crates/podssh-cli/src/flags.rs:380-460`), the arguments, `usage_tail`
+   (`crates/podssh-cli/src/flags.rs:381-461`), the arguments, `usage_tail`
    (`crates/podssh-cli/src/help.rs:248-275`), the manual's notes and examples, and
    `DISPATCHED` (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 
@@ -624,7 +624,7 @@ output. Planted defect: copy the password field into a comment; the secret test 
 `crates/podssh-cli/src/config_import/mod.rs:171-175` and the options of
 `ansible_ssh_common_args` at
 `crates/podssh-cli/src/config_import/mod.rs:177-230`; the verb in the
-tables at `crates/podssh-cli/src/flags.rs:442-443`,
+tables at `crates/podssh-cli/src/flags.rs:443-444`,
 `crates/podssh-cli/src/positionals.rs:241-246`,
 `crates/podssh-cli/src/tree.rs:340-346` and
 `crates/podssh-cli/src/dispatch.rs:200-201`.
@@ -673,9 +673,9 @@ command, or edits a shell profile. No file states them once.
 Read: each command resolves the same settings in its own copy. Relay hosts (`--relay-host`,
 then `PODSSH_RELAY`, then the default and the pool: `PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`)
 go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-92`), called in
-`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:162-165` and
+`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:165-168` and
 `crates/podssh-cli/src/proxy.rs:274-277`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
-`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:209-228` and
+`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:212-231` and
 `crates/podssh-cli/src/proxy.rs`, lines 100-104 at `99743e6`. The pins of the flag and of the variable add up
 (`crates/podssh-cli/src/pins.rs:15-40`). The token cache uses the user's
 cache directory first, after the directory of `PODSSH_CACHE_DIR` (T-243;
@@ -765,8 +765,8 @@ of a bad file at `crates/podssh-cli/src/pins.rs:13-40`, the CA file at
 `crates/podssh-cli/src/ssh/resolve.rs:95-99`; `status` at
 `crates/podssh-cli/src/status.rs:65` and
 `crates/podssh-cli/src/status.rs:80`, `doctor` at
-`crates/podssh-cli/src/doctor/mod.rs:226` and
-`crates/podssh-cli/src/doctor/mod.rs:249`.
+`crates/podssh-cli/src/doctor/mod.rs:229` and
+`crates/podssh-cli/src/doctor/mod.rs:252`.
 - `cargo test -p podssh-cli --test settings`: 4 passed here, and 5 in the
   build image (`sh scripts/dev.sh run`), with the test of Unix: `status`
   takes the file's relay hosts, `PODSSH_RELAY` beats it and
@@ -1597,7 +1597,7 @@ user asked for is gone with no sign, and an audit finds it.
   because they change nothing that podssh does" (`crates/podssh-cli/src/man/model.rs:268-272`).
 - Read: each one is a note (`crates/podssh-cli/src/ssh/options.rs:272`), "-o NAME has no effect in
   podssh" (`crates/podssh-cli/src/ssh/resolve.rs:335`), said at `-v` alone
-  (`crates/podssh-cli/src/ssh/mod.rs:278-280`): "-o" also for the line of a file, with no file and
+  (`crates/podssh-cli/src/ssh/mod.rs:282-284`): "-o" also for the line of a file, with no file and
   no line.
 - Read, against L-39: the two notes of each run come from Debian 13's `/etc/ssh/ssh_config`, whose
   `Host *` sets `HashKnownHosts` and `GSSAPIAuthentication` (T-044's Correction), and which podssh

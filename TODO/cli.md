@@ -395,7 +395,7 @@ rest. For a verb, clap reads each word before `--help` is answered
 3. Keep the verb level as it is: `podssh ssh --help host` prints the help of
    `ssh`, after clap has checked each word.
 4. If the top-level help text changes (`TOP_OPTIONS`,
-   `crates/podssh-cli/src/flags.rs:458-461`), update its test
+   `crates/podssh-cli/src/flags.rs:459-462`), update its test
    `no_top_level_option_runs_into_its_description`
    (`crates/podssh-cli/src/help.rs:327-342`). Same commit: `docs/cli.md:56-60`,
    `docs/STATUS.md`.
@@ -493,7 +493,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    `[OPTIONS] [--] [user@]host [COMMAND...]` for `ssh` and
    `[OPTIONS] [--] HOST PORT` for `proxy`; `--help` and the synopsis of the
    manual (`crates/podssh-cli/src/man/model.rs:186-190`) read it.
-2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160` and `crates/podssh-cli/src/man/notes.rs:75-255`)
+2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160` and `crates/podssh-cli/src/man/notes.rs:75-255`)
    and an example (`crates/podssh-cli/src/man/examples.rs:8-316`). Pitfall: the
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
@@ -583,7 +583,7 @@ Measured offline: `PODSSH_TIMEOUT=5s podssh mv` and
 Read: the `--timeout` rows are those of `cp` and `mv`
 (`crates/podssh-cli/src/flags/copy.rs:63-64`), `chat`
 (`crates/podssh-cli/src/flags.rs`, lines 274-275 at `7aa955a`), `ts`
-(`crates/podssh-cli/src/flags.rs:386-387`) and `relay`
+(`crates/podssh-cli/src/flags.rs:387-388`) and `relay`
 (`crates/podssh-cli/src/flags.rs` lines 317-318 at `af0a163`). Each but `ts` exits 70
 (`crates/podssh-cli/src/flags.rs` lines 436-443 at `af0a163`), and `ts` needs its feature. So the
 variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
@@ -689,7 +689,7 @@ node, operator, chat, cp, mv, man, relay, status, doctor, keygen, ts. Seven
 lines say "(not implemented yet)" and `ts` says "(not in this build)".
 `podssh man --no-pager` shows the same order under "Commands".
 
-Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:378-452`), has no
+Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:379-453`), has no
 group. Four places render it: `top_level_help`
 (`crates/podssh-cli/src/help.rs`, lines 132-146), the start of the manual
 (`crates/podssh-cli/src/man/model.rs`, lines 120-126), `unknown_verb`
@@ -699,7 +699,7 @@ group. Four places render it: `top_level_help`
 ## Approach
 
 1. Add the group to the table in `crates/podssh-cli/src/flags.rs`: a field of
-   `Verb` (`crates/podssh-cli/src/flags.rs:367-378`), or one list of groups. A
+   `Verb` (`crates/podssh-cli/src/flags.rs:368-379`), or one list of groups. A
    new test in `crates/podssh-cli/tests/flag_table.rs` asserts that each verb
    is in exactly one group, as `every_verb_has_an_owner_so_no_verb_can_be_a_silent_stub`
    does for owners (`crates/podssh-cli/tests/flag_table.rs:104`).
@@ -758,7 +758,7 @@ problem of one long list stands; the mix of working and missing commands is gone
 
 ## Done
 
-2026-10-11. `GROUPS` in `crates/podssh-cli/src/flags.rs:448-467`; `--help`
+2026-10-11. `GROUPS` in `crates/podssh-cli/src/flags.rs:449-468`; `--help`
 (`crates/podssh-cli/src/help.rs:157-184`) and the manual's "Commands"
 (`crates/podssh-cli/src/man/model.rs:120-131`) print the commands in their groups.
 - `cargo test -p podssh-cli --test flag_table -- each_verb_is_in_one_group`: 1 passed. Planted:
@@ -986,10 +986,10 @@ Read then: each value flag but `-i` and `-o` was `ArgAction::Set`.
    `crates/podssh-cli/src/tree.rs:73-83`).
 2. `SshArgs::from_matches` picks the value as OpenSSH does: the first `-p` and
    `-l`, the last `-e`, `-E` and `-F`, and the first value of each `-o`
-   keyword (`crates/podssh-cli/src/ssh/args.rs:270-417`).
+   keyword (`crates/podssh-cli/src/ssh/args.rs:274-422`).
 3. `ONCE` and `repeated` refuse a second `-J`, `-W`, `--relay-host`,
    `--relay-addr` or `--ca-file` with exit 64 before anything connects
-   (`crates/podssh-cli/src/ssh/args.rs:199-265`, called at
+   (`crates/podssh-cli/src/ssh/args.rs:202-269`, called at
    `crates/podssh-cli/src/tree.rs:476-480`).
 4. `docs/cli.md:953-958` and a note of the manual
    (`crates/podssh-cli/src/man/notes_ssh_more.rs:83-85`) state the rule.
@@ -3081,8 +3081,8 @@ node at its next line, often "online again" after a reconnect. A server then has
 
 ## Premise
 
-- Read: `panic = "abort"` in the release profile (`Cargo.toml:213`).
-- Read: the node's lines are `eprintln!` (`crates/podssh-cli/src/node.rs:352`,
+- Read: `panic = "abort"` in the release profile (`Cargo.toml:214`).
+- Read: the node's lines are `eprintln!` (`crates/podssh-cli/src/node.rs:356`,
   `crates/podssh-cli/src/node_derp.rs:332`, `crates/podssh-cli/src/node_iroh.rs:342`), as are 40
   more sites in `crates/podssh-cli/src` and 4 in `crates/podssh-ssh/src` (2026-11-01, a search for
   `eprintln!`, `println!`, `eprint!` and `print!`).
@@ -3379,7 +3379,7 @@ each check of T-390 and T-392, and serves nothing.
 ## Premise
 
 - Read: neither T-380 nor a unit of T-121 has a watchdog; a unit restarts only a process that ended
-  (`crates/podssh-cli/src/node_install/text.rs:150`).
+  (`crates/podssh-cli/src/node_install/text.rs:153`).
 
 ## Approach
 
@@ -3429,7 +3429,7 @@ T-390 is done: a supervisor exists.
 
 Read on 2026-11-01: the line that the Premise cites in `crates/podssh-cli/src/node_install/text.rs`
 is the unit's `ExecStart`; its `Restart=always`, which restarts only a process that ended, is at
-`crates/podssh-cli/src/node_install/text.rs:152`, and the unit has no `WatchdogSec`. The Premise
+`crates/podssh-cli/src/node_install/text.rs:155`, and the unit has no `WatchdogSec`. The Premise
 holds.
 
 ## Done
@@ -3600,7 +3600,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   (`crates/podssh-cli/src/man/data.rs:90-92`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
-  about of `job` does not say (`crates/podssh-cli/src/flags.rs:391-392`).
+  about of `job` does not say (`crates/podssh-cli/src/flags.rs:392-393`).
 - Read (L-25): a file that is a link is refused with "is a symbolic link, which podssh does not
   follow here" (`crates/podssh-relay/src/cache/own.rs`, lines 37-38 at `38f424c`);
   `--allow <(...)` gives such a link (`/dev/fd/63`), and the line does not say that a regular
@@ -3644,7 +3644,7 @@ Planted: none; each sentence is text, which the manual's tests read.
 
 Read at `38f424c` (2026-11-03): the notes of `proxy` are in `crates/podssh-cli/src/man/notes_proxy.rs`
 since T-431, and the premise's line of `crates/podssh-cli/src/man/notes.rs` holds the notes of
-`mv`; the about of `job` is at `crates/podssh-cli/src/flags.rs:384-385`. The manual's notes of
+`mv`; the about of `job` is at `crates/podssh-cli/src/flags.rs:385-386`. The manual's notes of
 `job` already gave the 8 hex digits and the 75 of `fetch` (`crates/podssh-cli/src/man/notes_job.rs:6`,
 `:57`): the gap was `job --help` alone. `crates/podssh-cli/src/help.rs` had 496 lines, so the
 notes under a verb's options went to a file of their own, `crates/podssh-cli/src/help/notes.rs`.

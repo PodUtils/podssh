@@ -70,7 +70,7 @@ pair (`crates/podssh-relay/src/cache.rs` lines 126-153 and 221-240 at `9811e0d`)
 8. Use the control host only (`tcp.ssh.relay.ajam.dev`, or one host that the user names). No failover
    to pool hosts until a measurement shows that they serve `/v1/*`.
 9. In the same commit: `docs/relay.md` (lines 192-214 at `3632dcb`), `docs/reverse.md` (lines 46-53 at
-   `3632dcb`), and the FILES section of the manual (`crates/podssh-cli/src/man/facts.rs:293`).
+   `3632dcb`), and the FILES section of the manual (`crates/podssh-cli/src/man/facts.rs:294`).
 
 ## Decision
 
@@ -773,7 +773,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    `crates/podssh-cli/src/doctor/relay_checks.rs:53-107` (zuko's doctor checks its ticket and state).
 6. Remove `node` and `relay` from `VERB_OWNER`, and add them to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`). New variables go in `VARIABLES`
-   (`crates/podssh-cli/src/man/facts.rs:46`), files in FILES (`:293` there), examples in
+   (`crates/podssh-cli/src/man/facts.rs:46`), files in FILES (`:294` there), examples in
    `crates/podssh-cli/src/man/examples.rs:8-309`; update `docs/cli.md`, `docs/reverse.md` and
    `docs/STATUS.md` (lines 48-50 at `af0a163`).
 7. Pitfalls: `podssh man relay` shows the command; the topic THE RELAY has its own key since
@@ -1016,9 +1016,9 @@ facade later, as an operator action (the operator's ruling of 2026-10-08).
 ## Premise
 
 Read: the box like the target sandbox has one CONNECT proxy for ports 443, 80 and 8443 as its only
-way out, refuses `bind` and UDP, and has no `/dev/ptmx` (`docs/development.md:486-546`,
+way out, refuses `bind` and UDP, and has no `/dev/ptmx` (`docs/development.md:488-548`,
 `scripts/test_in_box.sh`). It allows `connect()` to loopback, which the real sandbox refuses
-(`docs/development.md:545-546`, `docs/target-environment.md:22`).
+(`docs/development.md:547-548`, `docs/target-environment.md:22`).
 
 Read: in such a sandbox nothing can listen (`docs/target-environment.md:25`, `:99-102`), so a node
 there has no local TCP service to offer before `podssh serve` (M5). Its TARGET must be a host that
@@ -1765,10 +1765,10 @@ operator's at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:33-64` and
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:114-122`. The routes of a node,
 their check and their dial in `PodUtils/podssh:crates/podssh-relay/src/reverse/routes.rs:1-178`.
-The command line: the targets at `crates/podssh-cli/src/node.rs:239-275`,
-`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:277-292`, the dial of each
+The command line: the targets at `crates/podssh-cli/src/node.rs:243-279`,
+`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:281-296`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
-`crates/podssh-cli/src/node.rs:292-300`; the channel's glue at
+`crates/podssh-cli/src/node.rs:296-304`; the channel's glue at
 `crates/podssh-cli/src/channel.rs:370-379` and
 `crates/podssh-cli/src/channel.rs:424-443`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
@@ -2231,7 +2231,7 @@ session through a node loses a link that it need not lose.
 - Measured: CI's step `m6` at `a220c13` failed in that test with `relay close 1011: node
   unavailable`; the step had passed at each push since T-156.
 - Read: `podssh node` prints its `serving` line after its probe of TARGET, before its socket to
-  the relay opens (`crates/podssh-cli/src/node.rs:335-340`), and the tests waited for that line
+  the relay opens (`crates/podssh-cli/src/node.rs:339-344`), and the tests waited for that line
   (`crates/podssh-cli/tests/m6_exit.rs:99`, `crates/podssh-cli/tests/node_plain.rs:41`,
   `crates/podssh-cli/tests/pipe_remote.rs:194`).
 - Measured, native, 2026-10-10: on a host at 42 % of its CPU, the control lost a link in each of
@@ -2312,8 +2312,8 @@ podssh knew in advance, and said nowhere.
 
 ## Premise
 
-- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:121`).
-- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:366`, `repair:
+- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:124`).
+- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:370`, `repair:
   None`).
 
 ## Approach
@@ -2679,9 +2679,9 @@ documents works; the form that a user expects is missing.
   (`crates/podssh-ws/src/names.rs:41`). The issue's prefix `podssh ssh:` is not this code's,
   which writes `podssh proxy:` (`crates/podssh-cli/src/proxy.rs:161`); not reproduced.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
-  (`crates/podssh-cli/src/man/notes_pair.rs:335-337`), and `pipe` takes `node:NAME`
+  (`crates/podssh-cli/src/man/notes_pair.rs:336-338`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
-  byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:396`), with no word of a node.
+  byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:397`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
   `iap://`, `eice://`, `warp://` and `tor://` (`crates/podssh-cli/src/proxy.rs:142-157`).
 
@@ -4839,7 +4839,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:182` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:186` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 

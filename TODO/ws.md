@@ -2907,7 +2907,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:396-400`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:399-403`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3126,7 +3126,7 @@ Read at `2042200`:
   this runs for the target", and DNS over HTTPS is the fifth step, after the system's resolver
   (`crates/podssh-ws/src/resolve.rs:10`). So the issue's "ride the query that the name already causes"
   holds for few runs: in the target host, behind its proxy, no query is made at all.
-- TLS has podssh's own provider and no other: `Cargo.toml:83` says "default-features = false and NO
+- TLS has podssh's own provider and no other: `Cargo.toml:84` says "default-features = false and NO
   crypto provider feature."; its parts (`PodUtils/podssh:crates/podssh-ws/src/crypto/`) hold no HPKE, which rustls's ECH
   needs, and aws-lc's is C, which `podssh-ws` may not hold (rule 4 of `AGENTS.md`).
 - The resolvers are compiled in (`crates/podssh-ws/src/resolve.rs:66`), and are asked through the proxy
@@ -3630,7 +3630,7 @@ two requests in two directions.
   (`crates/podssh-ws/src/vless/h1_modes.rs:12`, its reason at
   `crates/podssh-ws/src/vless/h1_modes.rs:29-30`). The issue's "keep the 78 refusal" reads as:
   keep stream-one's refusal, and say why in `doctor`.
-- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:93-94`).
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:96-97`).
 
 ## Approach
 
@@ -3758,7 +3758,7 @@ of UDP only from the source. The tester accepts either outcome: UDP associate bu
 
 - `crates/podssh-ws/src/trojan/request.rs:12` says "is not spoken" of UDP's command, and the
   request writes CONNECT alone (`crates/podssh-ws/src/trojan/request.rs:13`).
-- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:93-94`)
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:96-97`)
   and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
   2026-11-13).
 

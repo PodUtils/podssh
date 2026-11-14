@@ -26,7 +26,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 
 - Measured: `PODSSH_OFFLINE=1 podssh pipe stdio relay:example.org:80` exits
   64 with `podssh: unknown subcommand 'pipe'.` The verb table has no `pipe`
-  row (`crates/podssh-cli/src/flags.rs:382-452`).
+  row (`crates/podssh-cli/src/flags.rs:383-453`).
 - Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:111-251`. At the end
   of input it stops sending and keeps receiving
   (`crates/podssh-cli/src/proxy.rs:8-11`). T-101 is the opposite defect in
@@ -37,7 +37,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 
 ## Approach
 
-1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:382-452`, two
+1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:383-453`, two
    required positionals (`crates/podssh-cli/src/positionals.rs:7-281`), a
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-243`), a
    dispatch arm, and `pipe` in `DISPATCHED`
@@ -63,7 +63,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    ENOSYS), two pipes; Windows uses pipes. stderr is shared. When the other
    side ends, the child gets the end of input, and podssh waits for it as a
    shell waits. Add the `process` feature of tokio to podssh-cli
-   (`Cargo.toml:79-81` lacks it; `crates/podssh-ssh/Cargo.toml:19` has it).
+   (`Cargo.toml:80-82` lacks it; `crates/podssh-ssh/Cargo.toml:19` has it).
 6. The exit status: the child's, and 128 + N for a signal; with two children,
    B's. A program that is not found gives 127, one that cannot run 126, as a
    shell gives. With no child, a clean end gives 0.
@@ -612,7 +612,7 @@ running on the server (`docs/design.md:734-738`).
    cached token. A prompt with no terminal ends the loop
    (`docs/cli.md:6452-6454`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
-   (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`), `docs/design.md:734-738`,
+   (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-160`), `docs/design.md:734-738`,
    `docs/STATUS.md`, and tmux in the interop image
    (`scripts/interop.sh:24-25`). T-025 shares the classes of close codes;
    T-153 replaces this loop when both ends run podssh.

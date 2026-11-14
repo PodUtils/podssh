@@ -964,7 +964,7 @@ filed as it is, with no port, as OpenSSH files it (the Correction).
   a run in the build image stalled on the download of the crates, and the
   checks' plant waits for T-251.
 - `docs/cli.md:137-146` and the manual's note of host keys
-  (`crates/podssh-cli/src/man/notes_ssh.rs:351-362`) say how each hop is checked,
+  (`crates/podssh-cli/src/man/notes_ssh.rs:352-363`) say how each hop is checked,
   and which settings hold for each hop.
 - `cargo test -p podssh-ssh`: 141 passed; `cargo test -p podssh-cli`:
   563 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1007,7 +1007,7 @@ and no other.
 
 1. Add the long flag `--host-key-fingerprint SHA256:B64[,SHA256:B64...]` to
    `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-292`), and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:203-251`). Refuse a malformed value with
+   (`crates/podssh-cli/src/ssh/args.rs:206-255`). Refuse a malformed value with
    exit 64 before anything connects.
 2. Carry it in `Options` (`crates/podssh-ssh/src/options.rs:195-332`) and
    `Policy` (`crates/podssh-ssh/src/hostkey.rs:19-39`), for the destination
@@ -1241,7 +1241,7 @@ and no player.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
    suggestion step would mix them (`docs/cli.md:2205-2214`). Add it to `VERBS`
-   (`crates/podssh-cli/src/flags.rs:382-452`), to
+   (`crates/podssh-cli/src/flags.rs:383-453`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 5. Refuse a file whose header is not version 2. Skip unknown event types.
@@ -1373,7 +1373,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 6. When the probe fails, refuse with the reason and the other ways: key
    files with `-i`, and the helper of T-228.
 7. In the same commit: the verb in `VERBS`
-   (`crates/podssh-cli/src/flags.rs:382-452`), in
+   (`crates/podssh-cli/src/flags.rs:383-453`), in
    `crates/podssh-cli/src/positionals.rs` and in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`); `docs/cli.md`;
    "Nothing listens" in `SECURITY.md:274-309`; `docs/STATUS.md`.
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:164-183`, `Cargo.toml:236-238`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:164-183`, `Cargo.toml:237-239`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3093,7 +3093,7 @@ same day. The WIP `818f7fe` (branch `worktree-agent-t460-ssh`) is carried onto
   bytes)"). The rest the draft named for the main
   session: `cargo todo interop`; `cargo todo remap` of
   `Cargo.toml`, `docs/development.md`, `vendor/README.md`, `AGENTS.md`, `docs/cli.md` and
-  `docs/STATUS.md` (the draft moved their citations by hand, `Cargo.toml:210` among them);
+  `docs/STATUS.md` (the draft moved their citations by hand, `Cargo.toml:211` among them);
   and TruffleHog: the test keys of russh 0.65.0 are where 0.64.1 held them, so after the commit
   on `main` add to `.github/secrets-allow.txt`, with that commit's first 12 digits for COMMIT
   (and the draft branch's commit, if it is pushed):
@@ -4166,9 +4166,9 @@ would still say why the pause comes.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/mod.rs:351-353` says "if let Some(kept) = resolved.persist.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:355-357` says "if let Some(kept) = resolved.persist.clone() {",
   and returns from `persist::run` before the watch of the relay's road starts.
-- `crates/podssh-cli/src/ssh/mod.rs:357-358` says "if let Some(upgrade) = resolved.upgrade.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:361-362` says "if let Some(upgrade) = resolved.upgrade.clone() {",
   and so does `upgrade::run`.
 - Read at `7e457b4`: `docs/cli.md` said "with `--persist`, which attaches again after the cut, and
   `--upgrade`, not before T-583" (this entry changed that line).
@@ -4352,7 +4352,7 @@ Read on 2026-11-03 by the drafting agent, at `e176606` (the tree of `3bb42ea` wi
   (`crates/podssh-cli/tests/node_live.rs:188-192`), so no test met the question. Not reproduced
   here: the run of item 1 confirms it.
 - On `main`, `ssh node://NAME` with a good pair goes through the race of the roads
-  (`crates/podssh-cli/src/ssh/node_roads.rs:202-208`, moved from `ssh/mod.rs` by T-531 and to `node_roads.rs` by T-551), not through `node::connect`, as the transit road is
+  (`crates/podssh-cli/src/ssh/node_roads.rs:208-214`, moved from `ssh/mod.rs` by T-531 and to `node_roads.rs` by T-551), not through `node::connect`, as the transit road is
   on by default (`crates/podssh-relay/src/transit/mod.rs:61`) since T-436; at `35a0d19`, the
   tester's build, it went through `node::connect`. The record is in the login of `podssh-ssh`,
   which both roads share, and both count what their layer carries.

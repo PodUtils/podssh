@@ -125,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 738 entries: 45 open, 30 partial, 14 blocked, 649 done.
+`TODO/INDEX.md` holds 738 entries: 44 open, 31 partial, 14 blocked, 649 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -268,7 +268,14 @@ it can start.
 
 ## Questions for the operator
 
-No question is open. Below are the questions asked so far and how they were settled, each
+**Q106 (2026-11-14), open: may a session test against the GSRN relay of gsocket?** T-707 (the GSRN road,
+partial) is built and tested against a stand-in of the relay; its Prove asks a short live test against
+`gs-netcat`, both ways, with a throwaway secret in `.work/`. The relay (the data file `hackerschoice-gsr` of
+`pod-services`) is not among the test targets of `AGENTS.md`. Recommendation: allow it as Q91 allowed the
+others, "Any" (Actions and the own host), short: one session each way and one idle registration of 20 s, a
+throwaway secret. Until then T-707 waits for this alone; no other entry waits for it.
+
+Questions asked so far and how they were settled, each
 ruling in `docs/decisions.md`. The operator ruled on the questions of the triage (Q1 to
 Q12) and of the unattended session (Q13 to Q28) on 2026-10-08. A new question goes here, with its
 number, the entries that it blocks (status `blocked`) and a recommendation; the session then

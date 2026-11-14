@@ -11006,7 +11006,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:297-307`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:298-308`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -11360,8 +11360,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:306-307`), and needs the net's role exit, signed by
-  its owner (`:304-305`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:307-308`), and needs the net's role exit, signed by
+  its owner (`:305-306`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:165`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -13552,7 +13552,7 @@ output that lists what is on.
 - Read: `podssh status` is JSON already (`crates/podssh-cli/src/status.rs:73-99`); it has `offline` and no
   public set.
 - Read: the lists of other parties' hosts moved to `pod-services` (v0.7.0 is taken,
-  `crates/podssh-cli/Cargo.toml:93`); no host is named in this entry or in the new code.
+  `crates/podssh-cli/Cargo.toml:101`); no host is named in this entry or in the new code.
 - Not read: the party field of a service in `pod-services`. Podcrates T-112 adds the party filter and the
   effective set as JSON.
 
@@ -13717,7 +13717,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `crates/podssh-relay/src/derp/conn.rs:9`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.
-- `Cargo.toml:42`, `vendor/iroh-relay`: iroh's relay is a client only here.
+- `Cargo.toml:43`, `vendor/iroh-relay`: iroh's relay is a client only here.
 
 ## Approach
 

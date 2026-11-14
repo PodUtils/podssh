@@ -183,7 +183,7 @@ leave a short or wrong file under the destination's name.
 ## Approach
 
 1. `CpArgs` in a new module crates/podssh-cli/src/cp/, read as `SshArgs` is
-   (`crates/podssh-cli/src/ssh/args.rs:270-417`). An operand is remote when a
+   (`crates/podssh-cli/src/ssh/args.rs:274-422`). An operand is remote when a
    `:` comes before any `/`; on Windows, `C:\x` is local. Fewer than two
    operands, or none remote, exit 64.
 2. Build an `SshArgs` (host, `-P` as the port, `-i`, `-o`) for
@@ -670,7 +670,7 @@ old writer can race the new one.
 5. Only the relay transport counts: `--direct` has no cap. With `-J`, the
    one relay session carries the whole chain.
 6. A "Session limits" item in the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:300-454`), from the constants;
+   (`crates/podssh-cli/src/man/facts.rs:301-455`), from the constants;
    `docs/relay.md` and `docs/cli.md`. T-155 does the same for the
    resumable layer of M6; this entry needs no M6 work.
 
@@ -755,7 +755,7 @@ relay's limits, and logs in as the first session did".
 
 **Source:** ROADMAP M5 ("Across hosts, `mv` is copy, verify, delete; podssh
 says first that it is not atomic"); the description of `mv` in
-`crates/podssh-cli/src/flags.rs:418-419`.
+`crates/podssh-cli/src/flags.rs:419-420`.
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -773,7 +773,7 @@ user must know this before the move starts.
 
 - Measured on `3ee70dc`, offline: `podssh mv --timeout 30s a b` exits 70
   (`'mv' is not implemented yet; nothing was done.`).
-- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:418-419`),
+- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:419-420`),
   so the operands and options of T-134 apply.
 - Measured (T-133's offline probe): `posix-rename@openssh.com` replaces in
   one step; `SSH_FXP_RENAME` refuses an existing target.
@@ -2018,7 +2018,7 @@ host, and the copy back then destroys that change with no word.
 
 ## Approach
 
-1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:382-452`),
+1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:383-453`),
    with the connection flags that T-134 gives `cp`. It needs a terminal on
    stdin and stdout; else exit 64.
 2. Download with T-134 into a new directory of mode 0700 in the cache
@@ -2914,7 +2914,7 @@ the names, with no word.
 - Read: `ls` takes `-1afhlnrSt` and keeps `l`, `n` and `a` alone
   (`crates/podssh-cli/src/sftp/commands.rs`, lines 201-205 at `582b1bf`): `-n` is `-l`, and `-f`,
   `-h`, `-r`, `-S` and `-t` do nothing. `docs/cli.md` (line 1916 at `582b1bf`) names `ls [-la]`.
-- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:417`); the
+- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:418`); the
   issue names it the README's.
 - Read: `Sftp::read_dir` keeps the name and the attributes of each entry, and drops the long name
   that the server sends with each (`crates/podssh-ssh/src/sftp/mod.rs`, lines 71-78 and 426-441
@@ -3972,7 +3972,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 
 ## Premise
 
-- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:434`. It takes a
+- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:438`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
 - Read: `crates/podssh-cli/src/sftp/run.rs:130` hands `self.link.meter` to `bysftp::down` and `up`;

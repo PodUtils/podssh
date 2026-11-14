@@ -8,7 +8,7 @@ use super::{row, FlagKind, FlagRow};
 /// `node --gsr`.
 #[rustfmt::skip]
 pub const NODE_GSR: FlagRow = row(None, "gsr", None, FlagKind::Supported,
-    "serve TARGET over the GSRN road, the relay of gsocket with no account (where podssh's list of services names it): one TCP connection to the relay's port 443, directly or through the proxy's CONNECT, at the address that a shared secret gives, from the private file of --gsr-secret-file or env PODSSH_GSR_SECRET_FILE; a client with the same secret races the road last; TLS with SRP of that secret keeps the bytes from the relay, a third party that nobody vouches for; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door; a build with the feature gsr", None);
+    "serve TARGET over the GSRN road, the relay of gsocket with no account (where podssh's list of services names it): one TCP connection to the relay's port 443, directly or through the proxy's CONNECT, at the address that a shared secret gives, from the private file that the flag of the secret's file, or env PODSSH_GSR_SECRET_FILE, names; a client with the same secret races the road last; TLS with SRP of that secret keeps the bytes from the relay, a third party that nobody vouches for; the road alone, with no pair's road beside it; needs the end-to-end channel, and --allow or a key that the net held here names, whose members are then the door; a build with the feature gsr", None);
 
 /// `node --gsr-secret-file FILE`.
 #[rustfmt::skip]
