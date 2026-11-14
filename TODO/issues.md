@@ -295,11 +295,11 @@ and num-bigint 0.5) are T-754.
 | #229 | COORD-052: podssh took podcrates v0.39.0 at 5228b65 (to podcrates) | closed (2026-11-13: superseded by the take of `v0.40.0`, COORD-056, #233) | T-684 |
 | #230 | COORD-053: pod-services' file hosts: three of four fail live from Actions (to podcrates) | closed (2026-11-13: the forms in podcrates `v0.40.0`, taken at `61658e4`; the road reads them) | T-738 |
 | #231 | COORD-054: pod-netstack: tests for the two close cases of podssh's T-599 (to podcrates) | closed (2026-11-13: the tests in podcrates `v0.40.0`, named in T-599 and T-771) | T-771 |
-| #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-13: posted) | T-776 |
-| #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | open (2026-11-13: posted) | T-684 |
-| #234 | COORD-057: pod-warp: name the certificate that the front door showed when its key is not the pinned one (to podcrates) | open (2026-11-13: posted) | T-585 |
-| #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | open (2026-11-13: posted) | T-545, T-695 |
-| #236 | COORD-059: pod-services: srv.us and tunnl.gg as services of the kind ssh-tunnel (to podcrates) | open (2026-11-14: posted) | T-566, T-567 |
+| #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | open (2026-11-14: in `v0.41.0`, in release; podssh takes it for T-776) | T-776 |
+| #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | closed (2026-11-14: podcrates recorded the take of `v0.40.0` on PodUtils/podcrates#140) | T-684 |
+| #234 | COORD-057: pod-warp: name the certificate that the front door showed when its key is not the pinned one (to podcrates) | open (2026-11-14: answered, podcrates' entry 549 in work, in the tag after `v0.41.0`) | T-585 |
+| #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | open (2026-11-14: answered, podcrates' entries 550 and 551) | T-545, T-695 |
+| #236 | COORD-059: pod-services: srv.us and tunnl.gg as services of the kind ssh-tunnel (to podcrates) | open (2026-11-14: answered, podcrates' entry 552 in work) | T-566, T-567 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
