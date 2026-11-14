@@ -1,15 +1,13 @@
 # T-576, step 1: whether HTTP Relay's demo server answers, short (T-548's
 # Decision, Q91): its /health, and one POST met by a GET on a random
-# /link/ channel. Once a day for the three days that the entry asks for,
-# and by hand. A cloud session cannot measure it: its agent proxy fails the
+# /link/ channel. By hand: the three days that the entry asked for are
+# measured, and the demo never answered. A cloud session cannot measure it: its agent proxy fails the
 # demo's certificate. The run passes either way; its verdict line is the
 # measurement, and the record reads it.
 name: httprelay-probe
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 14 * * *"
 
 permissions:
   contents: read

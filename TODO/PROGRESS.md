@@ -19,14 +19,14 @@ Read on 2026-11-13.
    (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
    stays a beta until the owner calls it stable, and nothing goes to crates.io (T-687).
 3. **The milestone** is M10 (Q63, `docs/mesh.md`). Its items 0 to 3 are done but for T-319, T-321 and
-   T-106; of item 4, T-576, T-625 and T-738 are partial and T-740 blocked. M5's `podssh serve` is in
+   T-106; of item 4, T-625 and T-738 are partial and T-740 blocked. M5's `podssh serve` is in
    work since the holds ended (Q92): `podssh serve --stdio` runs commands, shells, a pty, direct-tcpip,
    SFTP and the options of a key line on `main`. See "Work order".
-4. **Partial entries** (25; each `## Done` names its next step): the tests that failed at random, each
+4. **Partial entries** (24; each `## Done` names its next step): the tests that failed at random, each
    waiting for its next failure: T-465, T-627, T-746, T-753 and T-756; M5's server, merged and each
    waiting for its run in the build image (T-251): T-107, T-108, T-109, T-110, T-112, T-114 and
    T-222; the migration, T-684; the release of M10, T-446; T-738 (podcrates' entry 528, COORD-053);
-   T-576 (the daily probe's days 2 and 3); T-319 and T-321 (a real proxy's path and Apache in the
+   T-319 and T-321 (a real proxy's path and Apache in the
    build image, live: Q88); T-106 (the operator's tailnet); T-625 and T-665 (the throughput host's
    secrets, "Operator actions"); T-660, T-666 and T-670 (their rows of the matrix); and T-755 (its
    live run waits for a tester's tunnel, #215).
@@ -83,8 +83,7 @@ item whenever it appears.
 5. **The takes of podcrates** (offline, T-684): `v0.40.0` is taken (COORD-056, #233); next,
    `filehost-live.yml` from Actions for T-738 on the pushed take, and the tag with pod-term's mode
    (COORD-055, #232) for T-776. Answer each take with a COORD issue.
-6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
-   close it as never answered, or go on to step 2.
+6. **T-576** (done, 2026-11-14): the demo of HTTP Relay never answered on three days.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
    `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-532 (done); T-545, T-695 and T-496 are blocked on
    podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237). podcrates' `v0.41.0`, in
@@ -125,7 +124,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 50 open, 32 partial, 17 blocked, 634 done.
+`TODO/INDEX.md` holds 733 entries: 50 open, 31 partial, 17 blocked, 635 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -141,7 +140,7 @@ operator interrupts it.
 2. A `partial` entry before a new one, and a draft's merge in the order of "Drafts" (State, item 8).
    Each partial entry and what it waits for (2026-11-13): T-107, T-108, T-109, T-110, T-112, T-114
    and T-222, the remap their `## Done` lists and the run in the build image (the release check); T-738,
-   podcrates' entry 528 (COORD-053); T-576, the daily probe's days 2 and 3; T-319 and T-321, a real
+   podcrates' entry 528 (COORD-053); T-319 and T-321, a real
    proxy's path, Apache in the build image and the live runs (Q88); T-106, the operator's tailnet;
    T-625 and T-665, the throughput host's secrets; T-660, T-666 and T-670, their runs of the matrix;
    T-755, a tester's tunnel; T-684, each next tag; T-446, the end of the migration.
@@ -157,7 +156,7 @@ operator interrupts it.
    tag with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
    entries, P1 before any other; their features (T-545, T-566, T-567, T-575,
-   T-576, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
+   which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
 5. The entries that the studies of osewa filed (Q99, `docs/research/osewa.md`) go ahead of the
@@ -209,7 +208,7 @@ parts are named so that the open ones read in their place):
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
    peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (done),
    and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567,
-   T-575 and T-576, the onion services (done), and what the research of 2026-11-10 filed: file hosts as the last
+   T-575 and HTTP Relay's demo (done), the onion services (done), and what the research of 2026-11-10 filed: file hosts as the last
    carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566, T-567 and
    T-575 parked); and the roads over UDP (done: MASQUE over HTTP/3, Hysteria 2's and TUIC's). These are features of a tester's
    report and of the sweep, done after the defects (Q85). Then what the archive of forward

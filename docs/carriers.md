@@ -1349,7 +1349,10 @@ Ruled out:
   its own page says "Streaming ✖": each request is a whole message [S10]. Its
   public server is a demo, whose `/health` answered 503 on 2026-11-02, and
   its last release is 2.0.1 (2022-04-11) [S10]. Out: Piping Server streams,
-  and T-497 gives it a second server.
+  and T-497 gives it a second server. Measured again from GitHub's runners
+  on 2026-11-12, 2026-11-13 and 2026-11-14 (T-576): 503 to `/health`, to a
+  POST and to a GET of one `/link/` channel each day. The binary does not
+  name it.
 - **The iroh relays of chatmail's servers** (read on 2026-11-02 for T-442):
   Delta Chat's mail servers run an iroh relay for its realtime channels;
   one deployment's design names iroh-relay v0.35, where podssh's iroh is
