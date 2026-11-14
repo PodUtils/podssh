@@ -14915,6 +14915,8 @@ Partial (2026-11-13): the third draft (DRAFT T-738), not built, not run.
   where `PODSSH_FILEHOSTS` (the workflow's input `hosts`) names it. Again from Actions at `9a3d377` (run
   43495682726): passed, tmpfiles.org 32 KiB up, down and opened in 1,372 ms, temp.sh in 1,385 ms, litterbox and
   0x0.st named and left out.
+  Again on the take of podcrates `v0.42.0`, from Actions at `7e457b4` (run 43562322579, 2026-11-14): passed, the
+  two hosts taken unasked 32 KiB up, down and opened in 814 ms and 858 ms.
 - What may show first, for the merge: a bound of the client's handshake, or of the layer's silence, that is
   shorter than a piece's round trip at the hosts' pace (some 23 s to 60 s); the test then fails with the
   client's stderr, a defect of the road to repair, not of the test. It did: T-773.

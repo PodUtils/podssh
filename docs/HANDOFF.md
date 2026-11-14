@@ -22,8 +22,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.42.0"` (COORD-085, PodUtils/podcrates#145; podssh's answer is
-COORD-064). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.43.0"` (COORD-089, PodUtils/podcrates#149; podssh's answer is
+COORD-066). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
@@ -38,12 +38,16 @@ COORD-064). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
   where one was on the way (COORD-057, #234; T-585), `srv-us` and `tunnl-gg` (COORD-059, #236; T-566 and
   T-567, whose live runs are next), `serv00-piping` (COORD-061, #238; T-575), and `pod-relay`'s client of the
   one-POST form, `Form::One` (COORD-062, #239; T-622); `http_road::Route::One` takes an arm in the role.
+- `v0.43.0` (taken 2026-11-14) carries no change of podssh's crates (pod-wg for podnet, pod-actions-* for
+  podrunner, pod-rootfs, pod-enter and pod-hostprobe for podvm): the bump of the tag only. The next tag carries
+  COORD-065 (#242, pod-session's spare links that back off; T-781).
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #241 (COORD-064) | podcrates to record podssh's take of `v0.42.0`; close it when its answer comes |
+| #242 (COORD-065) | podcrates: pod-session's spare links back off after a spare that moved no byte (T-781) |
+| COORD-066 | podcrates to record podssh's take of `v0.43.0`; close it when its answer comes |
 
 ## The live runs and interop harnesses
 

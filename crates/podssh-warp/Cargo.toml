@@ -14,8 +14,8 @@ publish.workspace = true
 # it podssh's way out and podssh's resolver.
 [dependencies]
 podssh-ws = { path = "../podssh-ws" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0" }
-pod-warp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.42.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+pod-warp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
 tokio = { workspace = true }
 
 [dev-dependencies]
