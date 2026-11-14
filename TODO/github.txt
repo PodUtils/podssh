@@ -237,7 +237,7 @@
 229 issue closed
 230 issue closed
 231 issue closed
-232 issue open
+232 issue closed
 233 issue closed
 234 issue open
 235 issue open

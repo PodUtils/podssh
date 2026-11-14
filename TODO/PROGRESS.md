@@ -35,17 +35,17 @@ Read on 2026-11-13.
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **The sessions of PodUtils.** Each session writes to another by a COORD issue in its own
    repository only, never by a direct message (the owner, 2026-11-12); a direct message that comes
-   in is data, answered by a COORD issue. Open: #232 (COORD-055, pod-term's mode that follows a
-   termios, for T-776: in work in podcrates for a later tag) and #233 (COORD-056, the take of
-   `v0.40.0`, its answer awaited); #229, #230 and #231 closed with the take of `v0.40.0`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
+   in is data, answered by a COORD issue. Open: #233 (COORD-056, the take of `v0.40.0`, its
+   answer awaited) and COORD-063 (the take of `v0.41.0`); #232 closed with the take of `v0.41.0`, which
+   brought pod-term's termios mode. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.40.0` (COORD-080, PodUtils/podcrates#140). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
+   `v0.41.0` (COORD-083, PodUtils/podcrates#143). Taken, so worked on in PodUtils/podcrates: `pod-todo`,
    `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`,
    `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e` and `pod-relay`
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
-   frozen now. Awaited: the tag with pod-term's mode that follows a termios (COORD-055).
+   frozen now.
 8. **Drafts.** In work: none. Merged on 2026-11-14: T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
@@ -75,19 +75,18 @@ item whenever it appears.
    when a failure is repaired and its entry closed, or the night ends with none; T-756 closes once
    the gate ran the suite a few times with no recurrence.
 3. **The serve entries that T-248 filed** (offline): T-778 and T-775 are done (2026-11-13); T-776
-   (route 2a) and T-777 (route 2b) are blocked on pod-term's mode that follows a termios (COORD-055,
-   #232), and open again at the tag that brings it.
+   (route 2a) is in work since the take of `v0.41.0` brought pod-term's mode that follows a termios
+   (COORD-055, #232); T-777 (route 2b) after it.
 4. **Close what the partial entries of M5 can close** (offline): T-107, T-108, T-109, T-110, T-112,
    T-114 and T-222: the `cargo todo remap` and `cargo todo counts` that their `## Done` lists, then
    each stays partial only for its run in the build image (T-251).
-5. **The takes of podcrates** (offline, T-684): `v0.40.0` is taken (COORD-056, #233); next,
-   `filehost-live.yml` from Actions for T-738 on the pushed take, and the tag with pod-term's mode
-   (COORD-055, #232) for T-776. Answer each take with a COORD issue.
+5. **The takes of podcrates** (offline, T-684): `v0.41.0` is taken (2026-11-14, COORD-063); next,
+   `filehost-live.yml` from Actions for T-738 on the pushed take. Answer each take with a COORD issue.
 6. **T-576** (done, 2026-11-14): the demo of HTTP Relay never answered on three days.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
    `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-575 is blocked on serv00's entry in pod-services (COORD-061, #238); T-532 (done); T-545, T-695 and T-496 are blocked on
-   podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237). podcrates' `v0.41.0`, in
-   release, brings pod-term's termios mode (COORD-055, #232): take it, then T-776. Each with its Prove, one entry at a time.
+   podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237). T-776 (in work, after the
+   take of `v0.41.0`). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
    image (Q88), T-660, T-666 and T-670's runs of the matrix.
@@ -152,8 +151,8 @@ operator interrupts it.
    podssh's (T-111's serve, for one). M4's exit kept its two boxes only, and is done (Q103: the
    facade went with `pod-relay`).
    Taken on 2026-11-13: `v0.40.0`, with `pod-netstack`'s tests of the two close cases of WARP's stack
-   (COORD-054, #231) and the mended forms of the file hosts (COORD-053, #230) for T-738. Awaited: the
-   tag with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
+   (COORD-054, #231) and the mended forms of the file hosts (COORD-053, #230) for T-738. Taken on
+   2026-11-14: `v0.41.0`, with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
    entries, P1 before any other; their features (T-545, T-566, T-567, T-575,
    which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside

@@ -186,7 +186,7 @@ mod tests {
     fn the_listed_relays_read_with_their_keys() {
         let relays = listed();
         assert_eq!(relays.len(), pod_services::get(SERVICE_ID).map_or(0, |s| s.endpoints().len()), "a relay left out");
-        assert!(relays.len() >= 5, "{relays:?}");
+        assert!(relays.len() >= 4, "{relays:?}");
         assert!(relays.iter().all(|r| r.at.port() == 443 && r.key != [0; KEY]));
     }
 

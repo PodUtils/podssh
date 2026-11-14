@@ -22,22 +22,23 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.40.0"` (COORD-080, PodUtils/podcrates#140; podssh's answer is
-COORD-056, #233). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.41.0"` (COORD-083, PodUtils/podcrates#143; podssh's answer is
+COORD-063). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
   and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
 - `v0.40.0` (taken 2026-11-13) brought the forms of the file hosts (COORD-053, #230, closed; T-738 reads
   `fetch-link-prefix` and `on-by-default`) and `pod-netstack`'s tests of T-599's cases (COORD-054, #231,
-  closed; T-599 and T-771 name them). Awaited: pod-term's mode that follows a termios (COORD-055, #232, for
-  T-776), in a later tag.
+  closed; T-599 and T-771 name them).
+- `v0.41.0` (taken 2026-11-14) brought pod-term's mode that follows a termios, `pod_term::termios`
+  (COORD-055, #232, closed; T-776 drives it), and `tox-tcp-relay` with four relays (podssh's test asks
+  for four at least). Awaited in the next tag: COORD-057 (#234), COORD-059 (#236) and COORD-061 (#238).
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #232 (COORD-055) | pod-term's mode that follows a termios, for T-776 (podcrates' entry 539, in work for a later tag) |
 | #233 (COORD-056) | podcrates to record podssh's take of `v0.40.0`; close it when its answer comes |
 
 ## The live runs and interop harnesses

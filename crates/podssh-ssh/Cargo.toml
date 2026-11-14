@@ -74,7 +74,7 @@ signature = { version = "3", default-features = false }
 libc = { workspace = true }
 # serve's line discipline where no pty opens (T-111): the cooked mode of
 # PodUtils/podcrates' pod-term, the tag of every podcrates crate.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0" }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.41.0" }
 
 [target.'cfg(windows)'.dependencies]
 # Security keys (T-229): the WebAuthn API of Windows (webauthn.dll), loaded
@@ -95,7 +95,7 @@ windows-sys = { version = "0.61", features = [
 pageant = { version = "0.2.4", default-features = false, features = ["wmmessage"] }
 
 [dev-dependencies]
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.40.0", features = ["screen"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.41.0", features = ["screen"] }
 # `test-util` gives the tests a paused clock: a hop's 10 s of silence (T-462)
 # and the relay's idle cut at 180 s (T-463) pass at once.
 tokio = { workspace = true, features = ["macros", "rt", "signal", "process", "test-util"] }
