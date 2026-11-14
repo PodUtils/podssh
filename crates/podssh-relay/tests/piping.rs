@@ -177,6 +177,24 @@ async fn the_node_and_the_client_meet_at_the_second_server_when_the_first_is_dow
     }
 }
 
+/// The third server of the order (T-575): the first two down, the node
+/// and the client meet at the third, which holds each body, as serv00's
+/// does.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_node_and_the_client_meet_at_the_third_server_when_the_first_two_are_down() {
+    let Some(server) = server_of(Kind::Js) else { return };
+    let down = || std::net::TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).expect("a port").port();
+    let holding = Holding::start(server.port).await;
+    let dials = vec![
+        piping_harness::dial(down(), Proto::H1),
+        piping_harness::dial(down(), Proto::H1),
+        piping_harness::dial(holding.port, Proto::H1),
+    ];
+    let dialer = one_mib_each_way_through(dials).await;
+    assert_eq!(dialer.proto(), Some(Proto::H1), "the client's links went through the third server");
+    assert!(dialer.numbered(), "the third server holds bodies: its links are numbered");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_client_of_another_pair_finds_no_node_at_its_door() {
     let Some(server) = server_of(Kind::Js) else { return };

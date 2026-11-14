@@ -354,8 +354,10 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         "The HTTP road (see THE RELAY), which the operator's ruling Q44 allows: when each relay host failed and the \
           way to one of them refused the WebSocket upgrade, podssh ssh, each command that reaches a server as it \
           does, and podssh proxy carry the session over plain HTTPS requests to that host, which podssh relay serve \
-          serves. Unset, empty, auto or yes: the split form, then the serial form; split or serial: that form alone; \
-          no: no such road. Another word is a configuration error (78), which does not echo the value.",
+          serves. Unset, empty, auto or yes: the one-POST form where the host's /relays.json names it (one \
+          connection, the bytes both ways in one request; a way that holds its body takes the split form within 2 s, \
+          and for the rest of the run), then the split form, then the serial form; split, serial or one: that form \
+          alone; no: no such road. Another word is a configuration error (78), which does not echo the value.",
     ),
     (
         &["PODSSH_H2"],

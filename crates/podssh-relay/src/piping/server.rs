@@ -138,13 +138,15 @@ mod tests {
     }
 
     #[test]
-    fn the_public_servers_are_ppng_io_then_onrender_which_holds_bodies() {
+    fn the_public_servers_are_ppng_io_then_onrender_then_serv00_which_hold_bodies() {
         let public = public();
         let shown: Vec<String> = public.iter().map(Server::to_string).collect();
-        assert_eq!(shown[..2], ["https://ppng.io".to_string(), "https://piping.onrender.com".to_string()]);
+        let want = ["https://ppng.io", "https://piping.onrender.com", "https://p.kokoro.serv00.net"];
+        assert_eq!(shown[..3], want.map(String::from), "in the order of their rank (T-497, T-575)");
         assert_eq!(public[0], Server::default());
         assert!(!public[0].holds_bodies());
         assert!(public[1].holds_bodies(), "pod-services measured that it holds a body to its end");
+        assert!(public[2].holds_bodies(), "serv00's too, measured on 2026-11-14 (T-575)");
         assert!(!Server::parse("https://piping.onrender.com:8443").unwrap().holds_bodies());
     }
 

@@ -1,0 +1,7 @@
+# T-575: the road tries serv00's Piping Server, the third of pod-services'
+# order, before piping.onrender.com, the second: the test of the public
+# servers' order must fail.
+ENTRY=T-575
+GROUP=cli-tests
+EXPECT='test piping::server::tests::the_public_servers_are_ppng_io_then_onrender_then_serv00_which_hold_bodies \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features piping --lib piping::server::tests::the_public_servers_are_ppng_io_then_onrender_then_serv00_which_hold_bodies'

@@ -19,7 +19,9 @@ mod role_harness;
 use std::process::Stdio;
 use std::time::Duration;
 
-use http_road_harness::{bytes, echo_target, raw, Faults, Proxy, MIB};
+use http_road_harness::{bytes, each_way, echo_target, open, raw, road, Faults, Proxy, MIB};
+use podssh_relay::http_road::client::End;
+use podssh_relay::http_road::Form;
 use podssh_relay::serve::http_road::one::MARK;
 use podssh_relay::serve::policy::Policy;
 use podssh_relay::serve::{tokens, Mint};
@@ -73,7 +75,7 @@ fn curl(scratch: &Scratch, port: u16, target: u16, token: &str) -> tokio::proces
 
 /// `size` bytes up through curl at `port`, at once with the answer read:
 /// the answer's mark, and the digest of what came after it.
-async fn each_way(port: u16, target: u16, token: &str, size: usize) -> (Vec<u8>, [u8; 32], [u8; 32]) {
+async fn curl_each_way(port: u16, target: u16, token: &str, size: usize) -> (Vec<u8>, [u8; 32], [u8; 32]) {
     let scratch = Scratch::new(&format!("{port}"));
     let mut child = curl(&scratch, port, target, token);
     let sent = bytes(size, 7);
@@ -101,7 +103,7 @@ async fn each_way(port: u16, target: u16, token: &str, size: usize) -> (Vec<u8>,
 async fn curl_carries_20_mib_each_way_in_one_post_straight_to_the_role() {
     let (role, token) = role().await;
     let target = echo_target(b"").await;
-    let (mark, got, want) = each_way(role.relay.port, target, &token, 20 * MIB).await;
+    let (mark, got, want) = curl_each_way(role.relay.port, target, &token, 20 * MIB).await;
     assert_eq!(mark, MARK);
     assert_eq!(got, want, "the echo's digest is the body's");
     assert!(
@@ -116,7 +118,7 @@ async fn curl_carries_20_mib_each_way_through_a_hop_that_passes_bodies_as_they_c
     let (role, token) = role().await;
     let target = echo_target(b"").await;
     let proxy = Proxy::start(role.relay.port, Faults { stream_bodies: true, ..Faults::default() }).await;
-    let (mark, got, want) = each_way(proxy.port, target, &token, 20 * MIB).await;
+    let (mark, got, want) = curl_each_way(proxy.port, target, &token, 20 * MIB).await;
     assert_eq!(mark, MARK);
     assert_eq!(got, want);
     assert_eq!(proxy.count(|c| &c.requests), 1, "one request carried the session");
@@ -195,4 +197,39 @@ async fn the_form_takes_the_token_and_a_body_in_chunks() {
     .await;
     assert_eq!(status, 411, "{text}");
     assert!(!role.said("http one open"));
+}
+
+/// The end of a session whose target ended after the client's last byte.
+fn target_closed() -> Option<End> {
+    Some(End::Closed { code: 1000, reason: "target closed".into() })
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn podssh_s_client_opens_the_one_post_form_first_and_carries_20_mib_each_way() {
+    let (role, token) = role().await;
+    let target = echo_target(b"").await;
+    let opened = open(&road(role.relay.port, "127.0.0.1"), target, &token, None).await;
+    assert_eq!(opened.form, Form::One, "the form first where the host is not known to refuse it");
+    let ended = each_way(opened, b"", 20 * MIB, 5).await;
+    assert!(ended.is_none() || ended == target_closed(), "{ended:?}");
+    assert!(role.said("http one open"), "{:?}", role.events.lock().unwrap());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn behind_a_hop_that_holds_the_body_the_client_takes_the_split_form_and_keeps_it_for_the_run() {
+    let (role, token) = role().await;
+    let target = echo_target(b"").await;
+    let proxy = Proxy::start(role.relay.port, Faults::default()).await;
+    let road = road(proxy.port, "127.0.0.1");
+    let started = std::time::Instant::now();
+    let opened = open(&road, target, &token, None).await;
+    let first = started.elapsed();
+    assert_eq!(opened.form, Form::Split, "the mark did not come: the split form");
+    assert!(first < Duration::from_secs(15), "within the mark's bound and the split's open: {first:?}");
+    assert_eq!(each_way(opened, b"", 2 * MIB, 6).await, target_closed());
+    // The same road in the same run: the way that held the form is known.
+    let started = std::time::Instant::now();
+    let opened = open(&road, target, &token, None).await;
+    assert_eq!(opened.form, Form::Split);
+    assert!(started.elapsed() < first, "no second wait for the mark: {:?} after {first:?}", started.elapsed());
 }

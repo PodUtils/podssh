@@ -1,0 +1,8 @@
+# T-746: the drain of the program's datagrams asks tokio's try_recv, which
+# reads nothing while the reactor has not seen the socket readable, so the
+# last answer before the program's exit is lost: the test of a datagram
+# that the reactor did not see yet must fail.
+ENTRY=T-746
+GROUP=cli-tests
+EXPECT='test pipe::datagram::tests::a_datagram_that_the_reactor_did_not_see_yet_is_drained \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --lib pipe::datagram::tests::a_datagram_that_the_reactor_did_not_see_yet_is_drained'

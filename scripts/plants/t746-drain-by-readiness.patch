@@ -1,0 +1,22 @@
+diff --git a/crates/podssh-cli/src/pipe/datagram.rs b/crates/podssh-cli/src/pipe/datagram.rs
+index 2d1a907..26a29e2 100644
+--- a/crates/podssh-cli/src/pipe/datagram.rs
++++ b/crates/podssh-cli/src/pipe/datagram.rs
+@@ -208,15 +208,8 @@ async fn drain(
+     to_pump: &mut tokio::io::WriteHalf<DuplexStream>,
+     dropped: &mut u64,
+ ) {
+-    use std::os::fd::AsRawFd;
+-    loop {
+-        // SAFETY: a read of at most `buf.len()` bytes into `buf`, which
+-        // outlives the call, from a descriptor that `socket` keeps open.
+-        let n = unsafe { libc::recv(socket.as_raw_fd(), buf.as_mut_ptr().cast(), buf.len(), libc::MSG_DONTWAIT) };
+-        if n < 0 {
+-            break;
+-        }
+-        if !into_pump(&buf[..n as usize], to_pump, dropped).await {
++    while let Ok(n) = socket.try_recv(buf) {
++        if !into_pump(&buf[..n], to_pump, dropped).await {
+             break;
+         }
+     }

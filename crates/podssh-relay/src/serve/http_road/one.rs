@@ -23,11 +23,10 @@ use tokio::time::Instant;
 use super::answers::{refuse, write};
 use crate::serve::Config;
 
-/// The form's path, before `HOST/PORT`.
-pub const ONE: &str = "/v1/http/one/";
-/// The answer's first bytes, at once: what tells the client that no hop
-/// holds the answer, nor the request's body.
-pub const MARK: &[u8] = b"podssh-http-one 1\n";
+/// The form's path, before `HOST/PORT`, and the answer's first bytes, at
+/// once, which tell the client that no hop holds the answer nor the
+/// request's body: the wire's, in `pod-relay`, which its client reads too.
+pub use crate::http_road::{MARK, ONE};
 /// The bytes asked of the target in each read.
 const READ: usize = 64 * 1024;
 /// The longest line of a chunk's size, with its extensions.

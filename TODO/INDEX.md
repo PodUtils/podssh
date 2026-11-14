@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**735 entries: 48 open, 34 partial, 16 blocked, 637 done.**
+**735 entries: 48 open, 32 partial, 14 blocked, 641 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 3 | 3 | 72 | 82 |
-| P2 | 7 | 20 | 2 | 277 | 306 |
-| P3 | 37 | 11 | 11 | 287 | 346 |
-| **All** | 48 | 34 | 16 | 637 | 735 |
+| P2 | 7 | 19 | 2 | 278 | 306 |
+| P3 | 37 | 10 | 9 | 290 | 346 |
+| **All** | 48 | 32 | 14 | 641 | 735 |
 
 ## Entries
 
@@ -614,7 +614,7 @@ repository and CI).
 | [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |
 | [T-573](mesh.md) | P3 | S | M10 | research | done | VMess's protocol: the research, for the public proxy nodes that speak it alone |
 | [T-574](mesh.md) | P2 | M | M10 | feature | done | The public proxy nodes of aggregator lists (VLESS, Trojan) as a last fallback of the forward road |
-| [T-575](mesh.md) | P3 | S | M10 | feature | blocked | serv00's public Piping Server as the third server of the Piping Server road |
+| [T-575](mesh.md) | P3 | S | M10 | feature | done | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | done | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |
 | [T-578](mesh.md) | P3 | L | M10 | feature | done | Tor's onion services: a node reached by its onion address, through the Tor road |
@@ -624,7 +624,7 @@ repository and CI).
 | [T-582](mesh.md) | P3 | L | M10 | feature | done | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
 | [T-583](ssh.md) | P3 | S | none | feature | open | The warning before the relay's idle cut with `--persist` and `--upgrade` |
 | [T-584](release.md) | P1 | M | none | release | done | Publish `v1.0.1`, the repairs of the testers' defects |
-| [T-585](roads.md) | P3 | S | none | defect | blocked | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
+| [T-585](roads.md) | P3 | S | none | defect | done | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
 | [T-586](resume.md) | P1 | M | none | defect | done | A node holds each session whose OpenSSH client ended its `operator`, so 16 short logins in 10 minutes fill its budget and it refuses each new one |
 | [T-587](reverse.md) | P2 | S | none | feature | done | `podssh proxy` takes no `node://NAME`, and its help never names `operator`, the ProxyCommand form of a node |
 | [T-588](ssh.md) | P1 | M | none | defect | done | `ssh node://` waits ConnectTimeout for an SSH handshake that OpenSSH through `operator` finishes on the same node, and says nothing of what came |
@@ -661,7 +661,7 @@ repository and CI).
 | [T-619](relay.md) | P3 | S | M10 | docs | done | The note to the relay's operator asks nothing of `/relays.json`'s rank, which changes with the edge that answered |
 | [T-620](reverse.md) | P3 | S | M10 | defect | done | The stop token's rotation and the renewal follow the node's next pair at expiry |
 | [T-621](mesh.md) | P3 | M | M10 | feature | done | TURN with RFC 6062: a TURN server that the user runs, as a road with no relay |
-| [T-622](roads.md) | P3 | M | M10 | feature | partial | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
+| [T-622](roads.md) | P3 | M | M10 | feature | done | The HTTP road's one-POST form: one request carries both ways, where the way streams a body |
 | [T-623](mesh.md) | P3 | S | M10 | research | done | smee.io, a POST in and server-sent events out, as a carrier where a proxy refuses the upgrade: the research |
 | [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
 | [T-625](mesh.md) | P3 | S | M10 | measurement | partial | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |
@@ -776,7 +776,7 @@ repository and CI).
 | [T-743](mesh.md) | P3 | S | M10 | feature | done | Sandhole's public server as a host of T-565's module: a tunnel of HTTP made by `ssh -R` |
 | [T-744](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate on 2026-11-10: a stand-in's count of DERP logins, and Python's server of the funnel's test on macOS |
 | [T-745](robustness.md) | P1 | S | M10 | defect | done | The gate at the pause was red on four causes that the record did not know: clippy 1.99, an advisory of SQLite, a test's URL, and bore's stand-in on Windows |
-| [T-746](robustness.md) | P2 | S | M10 | defect | partial | Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS |
+| [T-746](robustness.md) | P2 | S | M10 | defect | done | Two tests failed at random in the gate at `6f78a7c7`: a datagram echo of `pipe` on Linux, and OpenTunnel's resume on macOS |
 | [T-747](cli.md) | P3 | S | M10 | feature | done | `podssh doctor`: a probe of concurrent handshakes that tells a per-connection limit from a lone failure |
 | [T-748](relay.md) | P2 | S | M10 | defect | done | `relay serve`: a cap on the open connections of an address and in all, and a pause after a failed accept |
 | [T-749](mesh.md) | P3 | M | M10 | feature | done | `podssh net policy`: `test` against an expectation file, `diff` by behaviour, and both before `set` signs |

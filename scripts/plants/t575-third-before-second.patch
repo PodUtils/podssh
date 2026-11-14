@@ -1,0 +1,16 @@
+diff --git a/crates/podssh-relay/src/piping/server.rs b/crates/podssh-relay/src/piping/server.rs
+index 6661389..93dd859 100644
+--- a/crates/podssh-relay/src/piping/server.rs
++++ b/crates/podssh-relay/src/piping/server.rs
+@@ -35,7 +35,10 @@ pub struct Server {
+ /// failed (T-497).
+ pub fn public() -> Vec<Server> {
+     let servers = pod_services::of_kind("piping").filter_map(|service| service.endpoint("server"));
+-    servers.map(|e| Server { host: e.host().to_ascii_lowercase(), port: e.port(), prefix: String::new() }).collect()
++    let mut all: Vec<Server> =
++        servers.map(|e| Server { host: e.host().to_ascii_lowercase(), port: e.port(), prefix: String::new() }).collect();
++    all.swap(1, 2);
++    all
+ }
+ 
+ impl Default for Server {

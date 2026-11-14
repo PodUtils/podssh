@@ -239,10 +239,10 @@
 231 issue closed
 232 issue closed
 233 issue closed
-234 issue open
+234 issue closed
 235 issue open
-236 issue open
+236 issue closed
 237 issue open
-238 issue open
-239 issue open
-240 issue open
+238 issue closed
+239 issue closed
+240 issue closed

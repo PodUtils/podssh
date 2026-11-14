@@ -93,12 +93,12 @@ where
     loop {
         let keep = may_keep && head.minor == 1 && !head.has_token("connection", "close");
         let path = head.target.split('?').next().unwrap_or_default().to_string();
+        let asked = route(&path);
         // The one-POST form takes the connection: its body is the way up.
-        if one::serves(&path) {
+        if asked == Some(Route::One) {
             one::serve(stream, head, pending, cfg).await;
             return None;
         }
-        let asked = route(&path);
         let max = match asked {
             Some(Route::Session(_, Kind::Up | Kind::Exchange)) => batch_max(),
             _ => SMALL_BODY,
@@ -115,6 +115,8 @@ where
         let kept = match asked {
             None => write(&mut stream, refuse(404, &format!("{path}: not found"), &[], keep), keep).await,
             Some(Route::Open) => open(&mut stream, &head, &cfg, keep).await,
+            // Served above, before a body is read.
+            Some(Route::One) => Some(false),
             Some(Route::Session(id, kind)) => match sessions::find(&id, head.header(KEY), &cfg) {
                 None => {
                     let reply = refusal(Refusal::UnknownSession, "http: no such session", &[], keep);

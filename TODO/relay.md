@@ -4237,7 +4237,7 @@ Read at `2042200`:
 - Each road of the role goes through `Policy::plan`: `/connect/`
   (`crates/podssh-relay/src/serve/forward.rs:100`), the resumable layer
   (`crates/podssh-relay/src/serve/layer.rs:185`), the HTTP road
-  (`crates/podssh-relay/src/serve/http_road/mod.rs:163`) and `/trace`
+  (`crates/podssh-relay/src/serve/http_road/mod.rs:165`) and `/trace`
   (`crates/podssh-relay/src/serve/docs.rs:138`); one change there serves each.
 - podssh has this list already for an exit: `podssh node --exit --routes` takes ranges
   (`crates/podssh-cli/src/node_exit.rs:91`), each a `Range` of `ADDR/BITS` or one address

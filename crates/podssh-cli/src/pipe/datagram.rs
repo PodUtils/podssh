@@ -197,7 +197,10 @@ pub fn exec(words: &[String], _say: &mut dyn FnMut(&str)) -> Result<End, Unopene
 }
 
 /// Each datagram that the program sent and the loop has not read yet, into
-/// the pump, so that an end loses none of them.
+/// the pump, so that an end loses none of them. The kernel's queue is read
+/// itself (`MSG_DONTWAIT`): tokio's `try_recv` tries no read while its
+/// reactor has not yet seen the socket readable, and a datagram that came
+/// just before the program's exit was lost so (T-746).
 #[cfg(unix)]
 async fn drain(
     socket: &tokio::net::UnixDatagram,
@@ -205,8 +208,15 @@ async fn drain(
     to_pump: &mut tokio::io::WriteHalf<DuplexStream>,
     dropped: &mut u64,
 ) {
-    while let Ok(n) = socket.try_recv(buf) {
-        if !into_pump(&buf[..n], to_pump, dropped).await {
+    use std::os::fd::AsRawFd;
+    loop {
+        // SAFETY: a read of at most `buf.len()` bytes into `buf`, which
+        // outlives the call, from a descriptor that `socket` keeps open.
+        let n = unsafe { libc::recv(socket.as_raw_fd(), buf.as_mut_ptr().cast(), buf.len(), libc::MSG_DONTWAIT) };
+        if n < 0 {
+            break;
+        }
+        if !into_pump(&buf[..n as usize], to_pump, dropped).await {
             break;
         }
     }
@@ -331,6 +341,26 @@ impl Ending for Exited {
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
+
+    /// A datagram that the kernel holds is drained though tokio's reactor
+    /// has not seen the socket readable yet, as when the program's exit
+    /// wins the race against its last answer (T-746).
+    #[tokio::test]
+    async fn a_datagram_that_the_reactor_did_not_see_yet_is_drained() {
+        let (ours, theirs) = std::os::unix::net::UnixDatagram::pair().unwrap();
+        ours.set_nonblocking(true).unwrap();
+        let ours = tokio::net::UnixDatagram::from_std(ours).unwrap();
+        theirs.send(b"the last answer").unwrap();
+        let (pump, far) = tokio::io::duplex(1024);
+        let (_, mut to) = tokio::io::split(pump);
+        let (mut buf, mut dropped) = (vec![0u8; 1024], 0u64);
+        drain(&ours, &mut buf, &mut to, &mut dropped).await;
+        to.shutdown().await.unwrap();
+        drop(to);
+        let mut frames = Frames::new(far);
+        let got = tokio::time::timeout(Duration::from_secs(5), frames.recv()).await.expect("in time").unwrap();
+        assert_eq!(got, Some(b"the last answer".to_vec()));
+    }
 
     /// The program's datagrams come into the pump each after its length,
     /// and the pump's reach it whole; at its exit, its status, and the end

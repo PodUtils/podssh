@@ -22,8 +22,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.41.0"` (COORD-083, PodUtils/podcrates#143; podssh's answer is
-COORD-063). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.42.0"` (COORD-085, PodUtils/podcrates#145; podssh's answer is
+COORD-064). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
@@ -33,14 +33,17 @@ COORD-063). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
   closed; T-599 and T-771 name them).
 - `v0.41.0` (taken 2026-11-14) brought pod-term's mode that follows a termios, `pod_term::termios`
   (COORD-055, #232, closed; T-776 drives it), and `tox-tcp-relay` with four relays (podssh's test asks
-  for four at least). Awaited in the next tag: COORD-057 (#234), COORD-059 (#236) and COORD-061 (#238).
+  for four at least).
+- `v0.42.0` (taken 2026-11-14) answered four asks: `pod-warp` names the door's certificate and a proxy only
+  where one was on the way (COORD-057, #234; T-585), `srv-us` and `tunnl-gg` (COORD-059, #236; T-566 and
+  T-567, whose live runs are next), `serv00-piping` (COORD-061, #238; T-575), and `pod-relay`'s client of the
+  one-POST form, `Form::One` (COORD-062, #239; T-622); `http_road::Route::One` takes an arm in the role.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #233 (COORD-056) | podcrates to record podssh's take of `v0.40.0`; close it when its answer comes |
-| #240 (COORD-063) | podcrates to record podssh's take of `v0.41.0`; close it when its answer comes |
+| COORD-064 | podcrates to record podssh's take of `v0.42.0`; close it when its answer comes |
 
 ## The live runs and interop harnesses
 

@@ -2137,7 +2137,7 @@ network namespace with the loopback alone). The next gate's `windows`, `gate (li
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2187,6 +2187,19 @@ the cut. In a namespace with the loopback alone: `pipe::datagram` 10 runs in 10,
 2026-11-11, the gate at `bc5107b0` (run 42948403145): each job passed; on macOS, `--features opentunnel
 --test opentunnel_link` passed with the held thirds. The entry stays partial for the datagram test's
 next failure, which now names the program's verdict.
+
+2026-11-14, the next failure came (the gate of `5c177b9`, run 43556423648, `gate (ssh)`) and named its cause:
+`the program's output ended with no answer; its verdict: Some((3, []))`: `sh` ran, `dd` ran, and the answer
+that `dd` sent before the exit never reached the pump. `drain` asked tokio's `try_recv`, which makes no read
+while its reactor has not yet seen the socket readable: when the child's exit won the `select!` before the
+reactor saw the answer arrive, the drain found nothing in a queue that held the answer. `drain` now reads the
+kernel's queue itself (`recv` with `MSG_DONTWAIT`).
+
+- The new test `a_datagram_that_the_reactor_did_not_see_yet_is_drained` sends a datagram to a socket that
+  the reactor never polled, then drains: the old drain reads nothing, the new one the datagram.
+- Planted (`scripts/plants/t746-drain-by-readiness.plant`, the old `try_recv` drain): caught.
+- `cargo test -p podssh-cli --lib pipe::datagram`: 2 passed. The cause is proven, and the OpenTunnel half of the
+  entry passed in each gate since `bc5107b0`.
 
 # T-753: On Windows, an operator over a carrier loses the echo's last bytes at the end of its input
 

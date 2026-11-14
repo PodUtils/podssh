@@ -9929,7 +9929,7 @@ nodes. `proxy-lists-interop.yml` from Actions (run 43307736465): 2 passed. The e
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -9963,15 +9963,6 @@ Three of nwtgck's servers on the loopback, the first two stopped: the node and t
 the third. Live, a short run through it (T-548's Decision). Planted: the third server tried before the second,
 and the test of the order fails.
 
-## Blocker
-
-PodUtils/podcrates: the road reads its public servers from `pod-services`, in the order of their
-`[rank]`, and holds no host of its own; the catalog at podssh's tag (`v0.40.0`) has `ppng-piping` and
-`onrender-piping` only. COORD-061 (GitHub #238, 2026-11-14) asks for `serv00-piping`, rank 2, with
-`streams-request-body = false`. Once a tag holds it, podssh takes the tag, extends
-`the_public_servers_are_ppng_io_then_onrender_which_holds_bodies` and the test of the order to the
-third server, and runs the short live exchange.
-
 ## Start condition
 
 T-497 is done: the road has public servers in order.
@@ -10002,6 +9993,24 @@ reached the GET only as it ended (both at 8.1 s), where `ppng.io` through the sa
 at 2.8 s: serv00 holds a body to its end, as the archive read, so the road sends it numbered pieces,
 as on `piping.onrender.com`. Steps 2 and 3 need no code of podssh: `public()` takes each server of
 kind `piping` by rank, `holds_bodies()` reads the fact, and `PODSSH_PIPING` keeps one server.
+
+2026-11-14. The blocker ended with podcrates `v0.42.0`. It said: PodUtils/podcrates: the road reads its public servers from `pod-services`, in the order of their `[rank]`, and holds no host of its own; the catalog at podssh's tag (`v0.40.0`) has `ppng-piping` and `onrender-piping` only. COORD-061 (GitHub #238, 2026-11-14) asks for `serv00-piping`, rank 2, with `streams-request-body = false`. Once a tag holds it, podssh takes the tag, extends `the_public_servers_are_ppng_io_then_onrender_which_holds_bodies` and the test of the order to the third server, and runs the short live exchange.
+
+## Done
+
+2026-11-14, on podcrates `v0.42.0`, whose `pod-services` has `serv00-piping` (rank 2, `streams-request-body =
+false`), as COORD-061 (#238) asked. podssh's road needs no code for it: `public()` takes each server of kind `piping`
+by rank, and `holds_bodies()` reads the fact.
+
+- `cargo test -p podssh-relay --features piping --lib piping::server`: 4 passed; its test of the order reads
+  `ppng.io`, `piping.onrender.com`, then `p.kokoro.serv00.net`, the last two holding bodies.
+- `cargo test -p podssh-relay --features serve,plain-ws,quick,piping --test piping` with nwtgck's piping-server
+  1.12.9 (`PODSSH_TEST_PIPING_JS`): 8 passed, two runs in two; its new test: the first two servers down (ports of
+  the loopback where nothing listens), the node and the client meet at the third, which holds each body, and the
+  links are numbered. piping-server-rust is not here, so its arms said that they did not run.
+- Live, short (T-548's Decision): `PODSSH_PIPING=https://p.kokoro.serv00.net cargo test -p podssh-relay --features
+  piping --test piping_live -- --ignored a_session_through`: passed in 15 s, over HTTP/2, in numbered pieces.
+- Planted (`scripts/plants/t575-third-before-second.plant`, the third server before the second): caught.
 
 # T-576: HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces
 

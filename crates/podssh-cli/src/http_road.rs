@@ -33,13 +33,15 @@ pub const ENV: &str = "PODSSH_HTTP_ROAD";
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Asked {
     No,
-    /// The split form, then the serial one: the default.
+    /// The one-POST form where the host names it, then the split form,
+    /// then the serial one: the default.
     Auto,
     Only(Form),
 }
 
-/// `PODSSH_HTTP_ROAD`: unset, empty, auto or yes, the default; no; split or
-/// serial. Another word is a configuration error, whose words do not echo it.
+/// `PODSSH_HTTP_ROAD`: unset, empty, auto or yes, the default; no; split,
+/// serial or one. Another word is a configuration error, whose words do not
+/// echo it.
 pub fn asked(value: Option<&str>) -> Result<Asked, String> {
     let Some(value) = value else { return Ok(Asked::Auto) };
     match value.trim().to_ascii_lowercase().as_str() {
@@ -47,7 +49,8 @@ pub fn asked(value: Option<&str>) -> Result<Asked, String> {
         "no" | "off" | "0" => Ok(Asked::No),
         "split" => Ok(Asked::Only(Form::Split)),
         "serial" => Ok(Asked::Only(Form::Serial)),
-        _ => Err(format!("{ENV}: auto, no, split or serial")),
+        "one" => Ok(Asked::Only(Form::One)),
+        _ => Err(format!("{ENV}: auto, no, split, serial or one")),
     }
 }
 
@@ -75,8 +78,12 @@ fn announce(relay: &Relay) -> String {
 pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option<Form>) -> Result<Opened, String> {
     let proxy = ProxyChoice::FromEnvironment;
     let limit = podssh_relay::open::CONNECT_TIMEOUT;
-    let ctx = MintContext { relay, trust, ctx: &podssh_relay::context::of(&proxy), timeout: limit };
-    let road = Road::tls(&podssh_ws::client::way(&proxy), relay, trust, limit);
+    let run = podssh_relay::context::of(&proxy);
+    let ctx = MintContext { relay, trust, ctx: &run, timeout: limit };
+    // The forms that the host's `limits.http` names, and what this run
+    // learned of a way that held the one-POST form (T-622).
+    let forms = podssh_relay::pool::cached_limits(&relay.host).http_forms;
+    let road = Road::tls(&podssh_ws::client::way(&proxy), relay, trust, limit).in_run(&run).with_forms(forms);
     // What `doctor --stream` measured there, else the defaults (#55's
     // invariant 5: the batch and the wait come from the path's probe).
     let (tuning, _) = crate::http_road_path::tuning_for(relay);
@@ -253,6 +260,7 @@ mod tests {
         assert_eq!(asked(Some("no")), Ok(Asked::No));
         assert_eq!(asked(Some("Split")), Ok(Asked::Only(Form::Split)));
         assert_eq!(asked(Some("serial")), Ok(Asked::Only(Form::Serial)));
+        assert_eq!(asked(Some("ONE")), Ok(Asked::Only(Form::One)));
         let refused = asked(Some("sometimes-secret")).unwrap_err();
         assert!(refused.starts_with("PODSSH_HTTP_ROAD: ") && !refused.contains("secret"), "{refused}");
     }

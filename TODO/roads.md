@@ -9045,7 +9045,7 @@ reads of T-399); a new registration tries `PODSSH_WARP_API`, then the API's two 
 **Milestone:** none
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -9079,12 +9079,6 @@ cargo test -p podssh-warp --features stand-in
 
 Planted: the proxy's words on the direct road: the test fails.
 
-## Blocker
-
-The road is `pod-warp`'s (PodUtils/podcrates), which podssh took on 2026-11-13; `crates/podssh-warp` is glue
-alone (`src/lib.rs`), and the road's tests are `pod-warp`'s. PodUtils/podcrates is asked for the line and its test
-as COORD-057 (#234); podssh takes them by that tag, then closes this entry.
-
 ## Correction
 
 2026-11-03: `warp-live.yml` at `3bb42ea` (run 41563996906, its first attempt) met the same
@@ -9113,6 +9107,22 @@ key does not match the pinned key" (`tls.rs`, `PIN_MISMATCH`), which names no pr
 failure to exit 69 (crates/podssh-cli/src/ssh/cloud/warp/road.rs, `code`). Step 1's words (the certificate that the
 door showed, WARP's side or a proxy, and a later try that tells them apart) and step 2's test are `pod-warp`'s to
 write: asked as COORD-057 (#234).
+
+2026-11-14. The blocker ended with podcrates `v0.42.0`. It said: The road is `pod-warp`'s (PodUtils/podcrates), which podssh took on 2026-11-13; `crates/podssh-warp` is glue alone (`src/lib.rs`), and the road's tests are `pod-warp`'s. PodUtils/podcrates is asked for the line and its test as COORD-057 (#234); podssh takes them by that tag, then closes this entry.
+
+2026-11-14. The Prove's command names the feature `stand-in` of `podssh-warp`, which went with the road to
+`pod-warp` at its take (2026-11-13): the stand-in edge and the test of the line are `pod-warp`'s, in
+PodUtils/podcrates (its entry 549, in `v0.42.0`). podssh's part is its glue, `cargo test -p podssh-warp`.
+
+## Done
+
+2026-11-14, by podcrates `v0.42.0` (COORD-057, #234, answered by its entry 549): `pod-warp` names the issuer of the
+certificate that the door showed, and names a proxy only where the dial went through one (`pod_core::Dial::proxy_label`).
+podssh's glue (`crates/podssh-warp/src/lib.rs`) hands `pod-warp` a `pod_proxy::Dialer`, which gives that label
+itself, so the glue changes nothing; the road's test and its planted defect are `pod-warp`'s, in PodUtils/podcrates.
+
+- `cargo test -p podssh-warp`: 3 passed (the glue's). The Prove's `--features stand-in` is
+  `pod-warp`'s since the take of `pod-warp` (the Correction); its test and its planted defect ran there.
 
 # T-590: A roost on a host with no sshd says `Connection refused`, not that no sshd is installed, and `doctor` has no line for a roost
 
@@ -9408,7 +9418,7 @@ the same day: `docs/research/forward-carriers.md`, sections 3.1, 3.2 and 6.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -9530,8 +9540,22 @@ stream's END_STREAM, a cut of the role a reset (CANCEL), and a refusal goes back
 - `--test http_road`, `http_road_one`, `http_road_role`: 9, 4 and 4 passed; `--lib serve`: 145 passed.
   Clippy as the gate runs it: clean.
 
-Left: the client, once a tag of podcrates brings it (COORD-062, #239), with its test against the role
-here and its plant (the bound on the mark removed).
+The client followed with podcrates `v0.42.0` (below).
+
+2026-11-14, the client, on podcrates `v0.42.0` (COORD-062, #239; its entry 559): `pod-relay` has `Form::One`, the
+host's forms from `limits.http.forms`, the mark's bound of 2 s, and what a run learned of a way that held the form.
+podssh's `crates/podssh-cli/src/http_road.rs` builds the road with `in_run` and the forms of the pool's cached
+limits, and `PODSSH_HTTP_ROAD=one` asks for the form alone; the role routes `Route::One` (`pod-relay`'s), and takes
+the path and the mark from `pod-relay`, one source for both ends. The manual's item and the variable's row say so.
+
+- `cargo test -p podssh-relay --features serve,plain-ws --test http_road_one`: 6 passed. podssh's client, with no
+  form asked, opens the form straight to the role and carries 20 MiB each way; behind the stand-in that holds the
+  body it takes the split form within the mark's bound, and a second open of the run takes it at once.
+- `--test http_road`, `http_road_role`, `relay_serve_h2`: 10, 4 and 7 passed (the client now tries the form first
+  where its host is not known: each of them still opens).
+- The Prove's planted defect, the bound on the mark removed, is in `pod-relay`'s code, which podssh took: its
+  plant is podcrates' (its entry 559); podssh's two plants hold the role (`t622-body-held`, `t622-h2-held`).
+- HTTP/2 in the client is podcrates' T-560, which waited for this entry's role over HTTP/2 (done); told by COORD-064.
 
 # T-665: QUIC on the iroh road, tuned and measured on a wide-area path
 
