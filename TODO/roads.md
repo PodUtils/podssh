@@ -10396,6 +10396,10 @@ Merged and measured, 2026-11-14:
 - Left: the short live test against gs-netcat both ways, which waits for the operator to name the GSRN relay
   among the test targets of `AGENTS.md` (a question in `TODO/PROGRESS.md`); `sh scripts/check-static.sh` on a
   static build with the feature, with the release check (T-251).
+
+At the gate of `6fdf175` (run 43577129878), the step `gsr` found no rustfmt and no clippy in the image's
+toolchain: the step adds them as `lint` does (`rustup component add rustfmt clippy`).
+
 # T-718: Access service-token headers from files on each WebSocket road
 
 **Source:** PodUtils/podcrates#35, cfb's ask A-C-04 (COORD-014, PodUtils/podcrates#38)

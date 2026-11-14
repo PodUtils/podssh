@@ -249,6 +249,14 @@ fn a_socket_that_nobody_serves_is_replaced() {
     let _ = std::fs::remove_file(&path);
     drop(std::os::unix::net::UnixListener::bind(&path).unwrap());
     assert!(std::path::Path::new(&path).exists());
+    // On macOS the listener's close-on-exec comes after its bind, so a child
+    // that another test forks in between holds it, and serves the socket,
+    // until it ends: wait until nobody does, the state that this test needs.
+    let started = Instant::now();
+    while std::os::unix::net::UnixStream::connect(&path).is_ok() {
+        assert!(started.elapsed() < LIMIT, "the socket is served still");
+        std::thread::sleep(Duration::from_millis(50));
+    }
     both_ways(&format!("unix-listen:{path}"), Some(&format!("unix-connect:{path}")));
 }
 

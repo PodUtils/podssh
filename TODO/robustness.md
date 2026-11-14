@@ -564,7 +564,7 @@ Read, the bounds today:
    `crates/podssh-ssh/src/run.rs:26-29` does since T-024, and the result of
    T-062 when it exists.
 3. Tests in the process, with a peer over `tokio::io::duplex`, so no network
-   (`docs/development.md:590-593`): a proxy head that never ends stops at
+   (`docs/development.md:592-595`): a proxy head that never ends stops at
    16 KiB, and an upgrade head too; fragments past 16 MiB give the error, not
    more memory; a pool body over 256 KiB is refused; a cache file over 64 KiB
    is ignored.
@@ -885,7 +885,7 @@ Read:
    session back from 127.0.0.2, and a stall of 3 minutes, each with the digest
    of a running transfer intact. T-156 uses these checks as its measurement.
 5. Update docs/development.md (item 8 of the gate, item 9 since T-156,
-   `docs/development.md:376-388`) and the faults table of docs/STATUS.md.
+   `docs/development.md:378-390`) and the faults table of docs/STATUS.md.
 
 Pitfall: each check must show that its fault was injected (see Prove).
 
@@ -2626,4 +2626,43 @@ Correction at the gate of `f599ce4` (2026-11-14): CI's container took the send t
 machine's Linux refused it, so the new test's assertion on the send failed there. The test asserts the answer
 alone now, which is what the change keeps on either kernel.
 
+# T-784: On macOS, `pipe_listen`'s stale socket was still served by a child of another test
+
+**Source:** the gate of `6fdf175` (2026-11-14, run 43577129878, job `macos`).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`a_socket_that_nobody_serves_is_replaced` failed on macOS: podssh found "a program listens on it already" at a
+socket that the test had bound and closed. On macOS a listener's close-on-exec is set after its `socket`, so a
+child that another test thread forks in between inherits it and serves the socket until it ends.
+
+## Premise
+
+- Read at `6fdf175`: `crates/podssh-cli/tests/pipe_listen.rs` bound a listener and dropped it, then started the
+  server at once ("drop(std::os::unix::net::UnixListener::bind(&path).unwrap());").
+
+## Approach
+
+1. The test waits, within its limit, until a connect to the socket is refused: the state that it needs, a
+   socket that nobody serves. podssh's probe of a stale socket stays as it is: it is right to refuse one that
+   answers.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test pipe_listen
+```
+
+The gate's job `macos` passes.
+
+## Done
+
+Done, 2026-11-14: the wait is in the test; `cargo test -p podssh-cli --test pipe_listen`: 8 passed here (Linux);
+the job `macos` runs it at the next gate.
 

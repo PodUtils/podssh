@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**738 entries: 44 open, 31 partial, 14 blocked, 649 done.**
+**739 entries: 44 open, 31 partial, 14 blocked, 650 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 3 | 3 | 3 | 74 | 83 |
+| P1 | 3 | 3 | 3 | 75 | 84 |
 | P2 | 7 | 19 | 2 | 279 | 307 |
 | P3 | 34 | 9 | 9 | 295 | 347 |
-| **All** | 44 | 31 | 14 | 649 | 738 |
+| **All** | 44 | 31 | 14 | 650 | 739 |
 
 ## Entries
 
@@ -814,3 +814,4 @@ repository and CI).
 | [T-781](robustness.md) | P2 | S | M10 | defect | done | A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes |
 | [T-782](multi.md) | P3 | M | M10 | feature | done | `each`, `run` and `job` reach an `iroh:` or a `derp:` destination |
 | [T-783](robustness.md) | P1 | S | M10 | defect | done | `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit |
+| [T-784](robustness.md) | P1 | S | M10 | defect | done | On macOS, `pipe_listen`'s stale socket was still served by a child of another test |

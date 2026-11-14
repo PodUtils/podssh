@@ -339,6 +339,7 @@ step_tor() {
 # relay on the loopback, and the CLI's own with the feature.
 step_gsr() {
     run "perl and make, for OpenSSL from source" retry3 apk add --no-cache perl make
+    run "rustfmt and clippy: the components" retry3 rustup component add rustfmt clippy
     run "the format of the GSRN road" cargo fmt -p podssh-gsr -- --check
     run "clippy: no warning with the GSRN feature" \
         cargo clippy --locked --all-targets -p podssh-cli -p podssh-gsr --features podssh-cli/gsr -- -D warnings $LINTS_ALLOWED
