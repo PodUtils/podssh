@@ -62,7 +62,7 @@ pub fn answer_lines(stdout: &[u8], marker: &str) -> Option<Vec<String>> {
 /// The connection to the host of `resolved`, each hop logged in: the
 /// destination's connection is the last. Each failure is said on `log`.
 pub(crate) async fn connect(resolved: &Resolved, log: &Arc<Log>) -> Option<Vec<Connection>> {
-    let reached = match crate::ssh::transport::reach(resolved, log).await {
+    let reached = match crate::ssh::node_roads::reach_any(resolved, log).await {
         Ok(reached) => reached,
         Err(not) => {
             for line in &not.lines {

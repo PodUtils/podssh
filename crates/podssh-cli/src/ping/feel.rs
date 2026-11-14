@@ -7,7 +7,7 @@ use std::sync::Arc;
 use podssh_ssh::Log;
 
 use super::{cold, keys, PingArgs};
-use crate::ssh::resolve::{Resolved, Transport};
+use crate::ssh::resolve::Resolved;
 use crate::ssh::transport::{NotReached, Reached};
 
 /// What a run measures beside, or in place of, the plain measures.
@@ -52,13 +52,7 @@ impl Plan {
 /// that `podssh ssh` races to it, or over its carrier, as `podssh cp`
 /// reaches one; any other as `ssh` reaches it.
 pub async fn reach(resolved: &Resolved, log: &Arc<Log>) -> Result<Reached, NotReached> {
-    match &resolved.transport {
-        Transport::Node { label, channel, carrier: Some(text), .. } => {
-            crate::ssh::carried::reach(label, text, channel, log).await
-        }
-        Transport::Node { .. } => crate::ssh::node_roads::reach(&resolved.transport, log).await,
-        _ => crate::ssh::transport::reach(resolved, log).await,
-    }
+    crate::ssh::node_roads::reach_any(resolved, log).await
 }
 
 #[cfg(test)]

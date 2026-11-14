@@ -304,6 +304,20 @@ pub(crate) async fn reach(transport: &Transport, log: &Arc<Log>) -> Result<Reach
     }
 }
 
+/// The first hop of a connection to `resolved`'s destination for a command
+/// whose SSH runs on a stream (a copy, `each`, `job`, `run`, `ping`): a node
+/// at the other end of a carrier, a node over the roads that `ssh node://`
+/// races to it, and any other destination as `ssh` reaches it.
+pub(crate) async fn reach_any(resolved: &super::resolve::Resolved, log: &Arc<Log>) -> Result<Reached, NotReached> {
+    match &resolved.transport {
+        Transport::Node { label, channel, carrier: Some(text), .. } => {
+            super::carried::reach(label, text, channel, log).await
+        }
+        Transport::Node { .. } => reach(&resolved.transport, log).await,
+        _ => super::transport::reach(resolved, log).await,
+    }
+}
+
 /// The roads of the node of `transport`, each timed to its far end's first
 /// bytes, for `podssh ping node://NAME` (T-435): the roads that `ssh` races,
 /// chosen as it chooses them, in its order with its delays, and the pair's

@@ -1,0 +1,11 @@
+diff --git a/crates/podssh-cli/src/ssh/node_roads.rs b/crates/podssh-cli/src/ssh/node_roads.rs
+--- a/crates/podssh-cli/src/ssh/node_roads.rs
++++ b/crates/podssh-cli/src/ssh/node_roads.rs
+@@ -313,7 +313,6 @@
+         Transport::Node { label, channel, carrier: Some(text), .. } => {
+             super::carried::reach(label, text, channel, log).await
+         }
+-        Transport::Node { .. } => reach(&resolved.transport, log).await,
+         _ => super::transport::reach(resolved, log).await,
+     }
+ }

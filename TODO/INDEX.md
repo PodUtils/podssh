@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**736 entries: 47 open, 30 partial, 14 blocked, 645 done.**
+**737 entries: 47 open, 30 partial, 14 blocked, 646 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 4 | 3 | 3 | 72 | 82 |
+| P1 | 3 | 3 | 3 | 73 | 82 |
 | P2 | 7 | 19 | 2 | 279 | 307 |
-| P3 | 36 | 8 | 9 | 293 | 346 |
-| **All** | 47 | 30 | 14 | 645 | 736 |
+| P3 | 37 | 8 | 9 | 293 | 347 |
+| **All** | 47 | 30 | 14 | 646 | 737 |
 
 ## Entries
 
@@ -738,7 +738,7 @@ repository and CI).
 | [T-705](machine.md) | P3 | S | none | defect | done | `doctor --full` names a QUIC handshake and stream probes that `--quick` does not run, in the help, the manual and the MCP schema |
 | [T-706](cli.md) | P3 | M | M5 | feature | done | `podssh doctor --tier`: one verdict of the host's capabilities and what each closes |
 | [T-707](roads.md) | P3 | L | backlog | feature | open | A road of the GSRN relay network, by a shared secret |
-| [T-708](multi.md) | P1 | M | M10 | feature | open | `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination |
+| [T-708](multi.md) | P1 | M | M10 | feature | done | `each`, `run` and `job` reach a node, a net name, an `iroh:` or a `derp:` destination |
 | [T-709](serve.md) | P1 | M | M10 | feature | open | A node as a hardened system service of a named user: `--print-unit`, `--install --system --run-as` |
 | [T-710](reverse.md) | P1 | M | M10 | measurement | open | A node stays reachable for months: pair renewal and legs by key, proven over 90 days and in a beta |
 | [T-711](mesh.md) | P1 | M | M10 | feature | blocked | One switch `PODSSH_PUBLIC` over each third-party service, and `status --json` gives the set |
@@ -812,3 +812,4 @@ repository and CI).
 | [T-779](copy.md) | P2 | S | M5 | defect | partial | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
 | [T-780](robustness.md) | P1 | M | M6 | defect | partial | m6's session with no fault hung past 600 s in the gate |
 | [T-781](robustness.md) | P2 | S | M10 | defect | done | A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes |
+| [T-782](multi.md) | P3 | M | M10 | feature | open | `each`, `run` and `job` reach an `iroh:` or a `derp:` destination |

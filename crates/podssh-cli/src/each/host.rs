@@ -61,10 +61,10 @@ fn planned(label: &str, args: &SshArgs, env: &Env, shell: bool) -> Result<Plan, 
             "SessionType in ssh_config asks for no command here, and podssh each runs one on each host",
         )));
     }
-    if matches!(resolved.transport, Transport::Node { .. } | Transport::Iroh { .. } | Transport::Derp { .. }) {
+    if matches!(resolved.transport, Transport::Iroh { .. } | Transport::Derp { .. }) {
         return Err(named(Refusal::usage(
-            "podssh each reaches a host through the relay or with --direct; a node://, iroh: or derp: destination is \
-             for podssh ssh",
+            "podssh each reaches a host through the relay, with --direct or as a node://; an iroh: or derp: destination \
+             is for podssh ssh, or reaches its node by the node's net name",
         )));
     }
     // N questions at once cannot be answered: an unknown host key refuses
@@ -141,7 +141,7 @@ pub(crate) async fn ran(plan: &Plan, place: Place) -> (Ended, Ran) {
     // The options, and with them the sink, go when the session ends: then
     // the drain has each piece, and ends too.
     let session = async move {
-        let reached = match transport::reach(&plan.resolved, &log).await {
+        let reached = match crate::ssh::node_roads::reach_any(&plan.resolved, &log).await {
             Ok(reached) => reached,
             Err(failure) => {
                 for line in &failure.lines {

@@ -1,0 +1,7 @@
+# T-708: the reach of each, run and job sends a node of a pair to the road of
+# a host, which refuses it, so no node runs the command: the test of the
+# three through the stand-in relay must fail.
+ENTRY=T-708
+GROUP=cli-tests
+EXPECT='test each_run_and_job_reach_nodes_and_a_stopped_node_fails_alone \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test each_node -- each_run_and_job_reach_nodes_and_a_stopped_node_fails_alone'

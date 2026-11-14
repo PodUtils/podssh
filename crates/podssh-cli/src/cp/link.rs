@@ -162,19 +162,11 @@ pub async fn open_sftp(resolved: &Resolved, log: &Arc<Log>, name: &str) -> Resul
 type Hops = (Vec<Connection>, Option<RelayStatus>, Option<crate::ssh::transport::Carriage>, Limits);
 
 async fn hops(resolved: &Resolved, log: &Arc<Log>) -> Result<Hops, Failed> {
-    let reached = match &resolved.transport {
-        // A node at the other end of a carrier, the command's one stream,
-        // each connection a leg of it (T-595).
-        Transport::Node { label, channel, carrier: Some(text), .. } => {
-            crate::ssh::carried::reach(label, text, channel, log).await
-        }
-        // A node of a pair, or a member of the net, over the roads that `ssh
-        // node://` races, or its pair's alone (T-296, T-551). Its session has
-        // no relay status here: the resumable layer moves it to a new leg
-        // before the relay's limits (T-155).
-        Transport::Node { .. } => crate::ssh::node_roads::reach(&resolved.transport, log).await,
-        _ => crate::ssh::transport::reach(resolved, log).await,
-    };
+    // A node at the other end of a carrier is the command's one stream, each
+    // connection a leg of it (T-595); a node of a pair or a member of the
+    // net goes over the roads that `ssh node://` races (T-296, T-551), with
+    // no relay status: the layer moves it before the relay's limits (T-155).
+    let reached = crate::ssh::node_roads::reach_any(resolved, log).await;
     let reached = match reached {
         Ok(reached) => reached,
         Err(not) => {

@@ -50,8 +50,8 @@ pub use args::{action, files, id, new_id, now_ms, slots, Action, JobArgs, ID_LEN
 
 /// The connection to `host`, resolved as `podssh ssh` resolves its
 /// destination, with the `Host` blocks of ssh_config for it: no terminal and
-/// no input, no agent and no forward. A `node://` or `iroh:` destination is
-/// refused: a job needs the host's own sh.
+/// no input, no agent and no forward. An `iroh:` or `derp:` destination is
+/// refused: its road runs a whole session and gives no stream.
 pub(crate) fn plan(host: &str, args: &SshArgs, env: &Env) -> Result<Resolved, Refusal> {
     let mut ssh = args.clone();
     ssh.destination = Some(host.to_string());
@@ -59,10 +59,10 @@ pub(crate) fn plan(host: &str, args: &SshArgs, env: &Env) -> Result<Resolved, Re
     ssh.stdin_null = true;
     let named = |r: Refusal| Refusal { message: format!("{host}: {}", r.message), code: r.code };
     let mut resolved = resolve::resolve_or_refuse(&ssh, env).map_err(named)?;
-    if matches!(resolved.transport, Transport::Node { .. } | Transport::Iroh { .. } | Transport::Derp { .. }) {
+    if matches!(resolved.transport, Transport::Iroh { .. } | Transport::Derp { .. }) {
         return Err(Refusal::usage(
-            "podssh job reaches a host through the relay or with --direct; a node://, iroh: or derp: destination is \
-             for podssh ssh",
+            "podssh job reaches a host through the relay, with --direct or as a node://; an iroh: or derp: destination \
+             is for podssh ssh, or reaches its node by the node's net name",
         ));
     }
     resolved.options.forward_agent = podssh_ssh::Agent::Off;

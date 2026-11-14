@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:6308-6311`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6313-6316`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-78`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:6524-6633`); they cannot define a group.
+  (`docs/cli.md:6529-6638`); they cannot define a group.
 
 ## Approach
 
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:470`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:6308-6311`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6313-6316`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:447-491`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:6308-6311`), which is not a failure of podssh.
+  status (`docs/cli.md:6313-6316`), which is not a failure of podssh.
 
 ## Approach
 
@@ -2268,7 +2268,7 @@ a command.
 
 - Read: `run` leaves out the default excludes, and reads `.podsshignore` at the project's root
   when it is there (`crates/podssh-cli/src/run_cmd/mod.rs:42-46`, `:161-169`; lines 141-149 at
-  `b02d8c4`), as the manual's note says (`crates/podssh-cli/src/man/notes_run.rs:11-20`). So the
+  `b02d8c4`), as the manual's note says (`crates/podssh-cli/src/man/notes_run.rs:12-21`). So the
   issue's first ask, a `.podsshignore` read by default, is met, as its comment found.
 - Read, at `b02d8c4`: the rows of `run`, which `--help` shows, name neither the defaults nor the
   file, and hold no `--dry-run` and no way to turn the excludes off
@@ -3344,8 +3344,8 @@ host runs nothing anywhere.
   `crates/podssh-cli/src/hosts.rs:197-217`), for the word of the command line and for a group of
   the settings file alike; `add` knows which of the two it reads
   (`crates/podssh-cli/src/hosts.rs:109-114`).
-- Read: the manual says "a comma list" (`crates/podssh-cli/src/man/notes_each.rs:5-10`), and gives
-  a group's hosts as "a list of the same kind" (`crates/podssh-cli/src/man/notes_each.rs:11-18`):
+- Read: the manual says "a comma list" (`crates/podssh-cli/src/man/notes_each.rs:5-11`), and gives
+  a group's hosts as "a list of the same kind" (`crates/podssh-cli/src/man/notes_each.rs:12-19`):
   no part of it states the blanks.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
@@ -3609,7 +3609,7 @@ Before it, the same day (steps 1 and 2):
 **Milestone:** M10
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3643,6 +3643,14 @@ with no result file, no `--json`, no `--parallel` and no job record.
    host. A node with no `sh` fails with the words of `job`, not of the road.
 5. The manual, `docs/cli.md`, the words of the three refusals in the tests.
 
+## Decision
+
+2026-11-14: nodes first, in this entry: `node://` and a name of the net (which resolves to a node), as cfb's
+fleet is reached; `iroh:` and `derp:` go to T-782, as their roads run a whole session of `podssh ssh` and give no
+stream, a change of its own on two roads, and a name of the net already reaches the same node over its roads.
+Lost: all three here (a larger change, held behind the two roads' runners); `transport::reach` itself taking a
+node (persist, upgrade, containers, pipe and health refuse a node before it, and would change unasked).
+
 ## Prove
 
 ```sh
@@ -3655,3 +3663,69 @@ New tests, against a stand-in node with a real OpenSSH `sshd` as TARGET: `each -
 -- true` gives two results; a net name in `run` and `job start`; a stopped node fails one host and not the
 others. The test of the old refusal turns into the test of a node that works. Planted: a `reach` that
 returns `Direct` for a node fails the first test.
+
+## Correction
+
+2026-11-14: the Premise's second point was older than the code: `ssh::node_roads::reach` (T-296, T-551) already
+gives a `Reached` for a node, over the race of its roads in a task of its own, and the copies and `ping`
+took it each with its own `match`. So step 1 is that function shared: `node_roads::reach_any`, which `each`,
+`job`, `run` (through the copy's `link::connect` and `job::far::connect`), `cp` and `ping` call.
+
+## Done
+
+Done, 2026-11-14: `crates/podssh-cli/src/ssh/node_roads.rs`, `reach_any`: a node at the end of a carrier, a node
+over its roads, else `transport::reach`; `each/host.rs`, `job/far.rs`, `cp/link.rs` and `ping/feel.rs` call it.
+The refusals of `each`, `job` and `run` keep `iroh:` and `derp:` alone (64). The manual (`notes_each.rs`,
+`notes_job.rs`, `notes_run.rs`) and `docs/cli.md` say so.
+
+- `cargo test -p podssh-cli --test each_node` (new): two nodes of two pairs through the stand-in relay in front of
+  the test's server whose commands run in sh, and a third pair with no node: `each --json` gives each running
+  node `from-42` and 0, the third fails alone; `run` sends its project and gives 6; `job start --no-tmux`, its
+  `log` and `list` on a node. Passed (2.1 s).
+- The plant `scripts/plants/t708-node-as-a-host.patch` (a node sent to the road of a host): caught.
+- `cargo test -p podssh-cli --test each --test run --test job --test node_copy --test job_far --test run_far`:
+  23, 3, 11, 3, 3 and 4 passed; `--lib`: 1,175 passed; `man_page`, `man_json`, `flag_table`, `man_flag_parity`
+  and `--lib man::`: passed.
+- No real OpenSSH `sshd` was the node's TARGET here: the test's server runs its commands in sh as
+  `job_harness` makes it; the run in the build image waits for T-251.
+
+# T-782: `each`, `run` and `job` reach an `iroh:` or a `derp:` destination
+
+**Source:** T-708's Decision (PodUtils/podcrates#35, cfb's ask A-S-01)
+**Category:** feature
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podssh each`, `run` and `job` reach a node and a name of the net since T-708, but refuse an `iroh:` ticket and
+a `derp:` ticket (64): the two roads run a whole session of `podssh ssh` and give no stream to a command whose
+SSH runs on one.
+
+## Premise
+
+- `crates/podssh-cli/src/ssh/iroh.rs:182` says "pub(super) async fn connect(": the iroh road's runner, which
+  gives an exit code, not a stream.
+- `crates/podssh-cli/src/ssh/derp.rs:213` says "pub(super) async fn connect(": the DERP road's, the same.
+
+## Approach
+
+1. Give each road a `reach` that returns the layered stream and its task (`Reached`), as `node_roads::reach`
+   does for a node: the road's session in a task of its own, its stream handed over a channel.
+2. `node_roads::reach_any` calls them for `Transport::Iroh` and `Transport::Derp`; drop the two refusals of
+   `each`, `job` and `run`.
+3. The manual and `docs/cli.md`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test derp_road
+cargo test -p podssh-cli --features iroh-test --test iroh_cli
+```
+
+New: `each --json derp:TICKET -- true` against the DERP road's stand-in, and `iroh:TICKET` in a build with the
+road; a plant that keeps the refusal fails each.
+

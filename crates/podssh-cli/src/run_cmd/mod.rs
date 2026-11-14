@@ -222,10 +222,10 @@ fn run_planned(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write, scope: 
         Ok(resolved) => resolved,
         Err(refusal) => return refused(refusal, err, ran),
     };
-    if matches!(resolved.transport, Transport::Node { .. } | Transport::Iroh { .. } | Transport::Derp { .. }) {
+    if matches!(resolved.transport, Transport::Iroh { .. } | Transport::Derp { .. }) {
         let why =
-            "podssh run reaches a host through the relay or with --direct; a node://, iroh: or derp: destination is \
-                   for podssh ssh";
+            "podssh run reaches a host through the relay, with --direct or as a node://; an iroh: or derp: destination \
+             is for podssh ssh, or reaches its node by the node's net name";
         return refused(Refusal::usage(why), err, ran);
     }
     resolved.options.request = Request::Exec(plan.command.clone());
