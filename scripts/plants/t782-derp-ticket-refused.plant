@@ -1,0 +1,6 @@
+# T-782: the reach of each, run and job sends a derp: ticket to the road of a
+# host, which refuses it: the test of each over the DERP road must fail.
+ENTRY=T-782
+GROUP=cli-tests
+EXPECT='test derp_each::each_runs_its_command_on_the_node_of_a_derp_ticket \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test derp_road -- derp_each::each_runs_its_command_on_the_node_of_a_derp_ticket'

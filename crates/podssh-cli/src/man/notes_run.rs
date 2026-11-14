@@ -7,8 +7,8 @@ pub const RUN: &[&str] = &[
      command's status. The far directory is DIR of HOST:DIR, under the home directory when it is \
      relative; with none, ~/.podssh/run/NAME, NAME the name of the project here. A parent that is not \
      there is made, with mode 0700. The connection flags are those of podssh ssh, and the Host blocks of \
-     ssh_config apply. HOST can be a node, node://[user@]NAME or a name of the net; an iroh: or derp: \
-     destination is refused (64).",
+     ssh_config apply. HOST can be a node, node://[user@]NAME, a name of the net, or an iroh: or derp: \
+     ticket.",
     "The copy is that of podssh cp for a directory, over SFTP, with the times kept: each file to a \
      temporary name, verified by its digest, then renamed, several files at once, as podssh cp sends \
      them by default. So the next run sends only the files whose \

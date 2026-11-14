@@ -1751,8 +1751,9 @@ host, and a list of hosts changes both.
 - **Nodes** (T-708): a host can be a node, `node://[user@]NAME` or a name of the net, reached over
   the roads that `podssh ssh node://` races to it, with one connection for each node; a node that does
   not answer fails that host alone. `podssh run` and `podssh job` take a node the same way (a job needs
-  sh at the node's TARGET: an sshd or `podssh serve`). An `iroh:` or `derp:` destination is refused
-  (64): its road runs a whole session of `podssh ssh` and gives no stream (T-782).
+  sh at the node's TARGET: an sshd or `podssh serve`). The node of an `iroh:` or `derp:` ticket goes over
+  its road, the session carried in a task as for a node (T-782), with the client's key of the cache;
+  `PODSSH_IROH_RELAY` and `PODSSH_DERP_SERVER` name the relays, as these commands take no flag of them.
 - **Braces and groups** (T-184, `crates/podssh-cli/src/hosts.rs`) are
   expanded first, so that a shell that has no braces (dash, cmd,
   PowerShell) and a settings file can name many hosts. An item takes the

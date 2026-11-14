@@ -9,6 +9,7 @@
 #![cfg(feature = "iroh-test")]
 
 mod cleanup;
+mod iroh_each;
 mod ssh_harness;
 mod upgrade_support;
 // A TLS stand-in of the test's own CA, for a relay that refuses (T-348).

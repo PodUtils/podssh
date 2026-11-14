@@ -224,3 +224,60 @@ pub(super) async fn connect(
     let _ = tokio::time::timeout(CLOSE_LIMIT, endpoint.close()).await;
     code
 }
+
+/// The stream to the node of `text` over the iroh road, for a command whose
+/// SSH runs on a stream (`each`, `job`, `run`, T-782): a task carries the
+/// session in the layer, as [`connect`] does, and says why when the carriage
+/// fails; SSH then sees its stream end.
+pub(super) async fn reach(
+    text: &str,
+    key: Option<&str>,
+    relays: &[String],
+    trust: &Trust,
+    ask: &crate::channel::Ask,
+    log: &Arc<Log>,
+) -> Result<crate::ssh::transport::Reached, crate::ssh::transport::NotReached> {
+    let not = |why: String| crate::ssh::transport::NotReached {
+        lines: vec![why],
+        code: crate::exitmap::sysexits::EX_UNAVAILABLE,
+    };
+    let Prepared { dialer, endpoint, shown, fingerprint, identity, node, .. } =
+        prepare(text, key, relays, trust, log).await.map_err(not)?;
+    let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
+    let me = identity.clone();
+    let channel = ask.with(identity, crate::channel::Expect::Ticket(node));
+    let pin_say = {
+        let (log, shown) = (log.clone(), shown.clone());
+        move |line: String| log.info(&format!("{shown}: {line}"))
+    };
+    let (layer_app, session) = crate::channel::around(layer_end, channel, pin_say);
+    let (ended, done) = tokio::sync::oneshot::channel();
+    let log = log.clone();
+    tokio::spawn(async move {
+        let say = |line: Line| match line {
+            Line::Always(text) => log.info(&format!("{shown}: {text}")),
+            Line::Verbose(text) => log.verbose(&format!("{shown}: {text}")),
+        };
+        let note = |note: Note| say(crate::layered::line_of(note));
+        let settings = crate::layered::iroh_settings(podssh_iroh::FEATURES);
+        let session = async move {
+            match session {
+                Some(session) => session.await.err(),
+                None => None,
+            }
+        };
+        let carry = podssh_iroh::client::carry_heard(&dialer, layer_app, settings, note, Arc::new(Hearing::default()));
+        let (carried, failed) = tokio::join!(carry, session);
+        if let Some((fault, why)) = failed.as_ref().and_then(|e| crate::channel::judged(e, Some(&me))) {
+            log.error(&format!("{shown}: {why}"));
+            crate::ssh::result::channel_failed(&fault);
+        } else if let Some(why) = why_failed(carried, &fingerprint) {
+            log.error(&format!("{shown}: {why}"));
+        }
+        dialer.close().await;
+        let _ = tokio::time::timeout(CLOSE_LIMIT, endpoint.close()).await;
+        let _ = ended.send(());
+    });
+    let stream: Box<dyn crate::ssh::transport::Duplex> = Box::new(ssh_end);
+    Ok(crate::ssh::transport::Reached { stream, relay: None, direct_proxy: None, layer: Some(done) })
+}

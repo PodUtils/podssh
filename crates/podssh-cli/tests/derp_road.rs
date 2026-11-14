@@ -17,6 +17,7 @@
 
 mod cleanup;
 mod derp_croc;
+mod derp_each;
 #[cfg(feature = "hyperdht")]
 mod derp_hyperdht;
 mod derp_net;

@@ -61,12 +61,6 @@ fn planned(label: &str, args: &SshArgs, env: &Env, shell: bool) -> Result<Plan, 
             "SessionType in ssh_config asks for no command here, and podssh each runs one on each host",
         )));
     }
-    if matches!(resolved.transport, Transport::Iroh { .. } | Transport::Derp { .. }) {
-        return Err(named(Refusal::usage(
-            "podssh each reaches a host through the relay, with --direct or as a node://; an iroh: or derp: destination \
-             is for podssh ssh, or reaches its node by the node's net name",
-        )));
-    }
     // N questions at once cannot be answered: an unknown host key refuses
     // its host and names its fingerprint and accept-new.
     let batch_mode = resolved.options.batch_mode;

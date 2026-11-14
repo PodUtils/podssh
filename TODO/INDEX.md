@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**737 entries: 47 open, 30 partial, 14 blocked, 646 done.**
+**737 entries: 46 open, 30 partial, 14 blocked, 647 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 3 | 3 | 3 | 73 | 82 |
 | P2 | 7 | 19 | 2 | 279 | 307 |
-| P3 | 37 | 8 | 9 | 293 | 347 |
-| **All** | 47 | 30 | 14 | 646 | 737 |
+| P3 | 36 | 8 | 9 | 294 | 347 |
+| **All** | 46 | 30 | 14 | 647 | 737 |
 
 ## Entries
 
@@ -812,4 +812,4 @@ repository and CI).
 | [T-779](copy.md) | P2 | S | M5 | defect | partial | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
 | [T-780](robustness.md) | P1 | M | M6 | defect | partial | m6's session with no fault hung past 600 s in the gate |
 | [T-781](robustness.md) | P2 | S | M10 | defect | done | A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes |
-| [T-782](multi.md) | P3 | M | M10 | feature | open | `each`, `run` and `job` reach an `iroh:` or a `derp:` destination |
+| [T-782](multi.md) | P3 | M | M10 | feature | done | `each`, `run` and `job` reach an `iroh:` or a `derp:` destination |

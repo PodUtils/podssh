@@ -299,6 +299,66 @@ pub(super) async fn connect(
     code
 }
 
+/// The stream to the node of `ticket` over the DERP road, for a command
+/// whose SSH runs on a stream (`each`, `job`, `run`, T-782): a task carries
+/// the session in the layer, as [`connect`] does, and says why when the
+/// carriage fails; SSH then sees its stream end.
+pub(crate) async fn reach(
+    ticket: &Ticket,
+    servers: &[Server],
+    trust: &Trust,
+    ask: &crate::channel::Ask,
+    log: &Arc<Log>,
+) -> Result<super::transport::Reached, super::transport::NotReached> {
+    let shown = shown(ticket);
+    let not = |why: String, code: i32| super::transport::NotReached { lines: vec![format!("{shown}: {why}")], code };
+    crate::pairs::online().map_err(|refusal| not(refusal.message, refusal.code))?;
+    let say_line = |line: String| log.info(&format!("{shown}: {line}"));
+    let channel = ask
+        .operator(crate::channel::Expect::Ticket(ticket.node), &say_line)
+        .map_err(|why| not(why, crate::exitmap::sysexits::EX_CONFIG))?;
+    let me = channel.as_ref().map(|c| c.identity.clone());
+    let dialer =
+        dialer(ticket, servers, trust, log, &shown).map_err(|why| not(why, crate::exitmap::sysexits::EX_USAGE))?;
+    let through: Vec<String> = dialer.servers().iter().map(ToString::to_string).collect();
+    log.verbose(&format!("connecting to {shown} over the DERP road, through {}", through.join(", then ")));
+    let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
+    let pin_say = {
+        let (log, shown) = (log.clone(), shown.clone());
+        move |line: String| log.info(&format!("{shown}: {line}"))
+    };
+    let (layer_app, session) = crate::channel::around(layer_end, channel, pin_say);
+    let (ended, done) = tokio::sync::oneshot::channel();
+    let (log, task_shown) = (log.clone(), shown.clone());
+    tokio::spawn(async move {
+        let say = |line: Line| match line {
+            Line::Always(text) => log.info(&format!("{task_shown}: {text}")),
+            Line::Verbose(text) => log.verbose(&format!("{task_shown}: {text}")),
+        };
+        let note = |note: Note| say(crate::layered::line_of(note));
+        // As `connect`: the iroh road's features, and no spare link.
+        let settings = crate::layered::iroh_settings(derp::FEATURES);
+        let session = async move {
+            match session {
+                Some(session) => session.await.err(),
+                None => None,
+            }
+        };
+        let carry = derp::client::carry_heard(&dialer, layer_app, settings, note, Arc::new(Hearing::default()));
+        let (carried, failed) = tokio::join!(Box::pin(carry), session);
+        if let Some((fault, why)) = failed.as_ref().and_then(|e| crate::channel::judged(e, me.as_deref())) {
+            log.error(&format!("{task_shown}: {why}"));
+            crate::ssh::result::channel_failed(&fault);
+        } else if let Some(why) = carried.map_or_else(Some, crate::layered::why_ended) {
+            log.error(&format!("{task_shown}: {why}"));
+        }
+        dialer.close().await;
+        let _ = ended.send(());
+    });
+    let stream: Box<dyn super::transport::Duplex> = Box::new(ssh_end);
+    Ok(super::transport::Reached { stream, relay: None, direct_proxy: None, layer: Some(done) })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

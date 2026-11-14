@@ -36,7 +36,7 @@ use crate::cp::result::{class, Copied};
 use crate::cp::{link, summary, sync, tree};
 use crate::relay_settings::Refusal;
 use crate::ssh::args::SshArgs;
-use crate::ssh::resolve::{self, Env, Resolved, Transport};
+use crate::ssh::resolve::{self, Env, Resolved};
 use result::Ran;
 
 /// What is never copied, at any depth: the output of a build, the packages
@@ -222,12 +222,6 @@ fn run_planned(args: &RunArgs, out: &mut dyn Write, err: &mut dyn Write, scope: 
         Ok(resolved) => resolved,
         Err(refusal) => return refused(refusal, err, ran),
     };
-    if matches!(resolved.transport, Transport::Iroh { .. } | Transport::Derp { .. }) {
-        let why =
-            "podssh run reaches a host through the relay, with --direct or as a node://; an iroh: or derp: destination \
-             is for podssh ssh, or reaches its node by the node's net name";
-        return refused(Refusal::usage(why), err, ran);
-    }
     resolved.options.request = Request::Exec(plan.command.clone());
     // Each new connection of the run meets the first one's host key, and
     // logs in as the first did, with no second question (T-136, T-137).

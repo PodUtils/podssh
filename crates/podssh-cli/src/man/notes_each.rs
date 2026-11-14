@@ -6,7 +6,9 @@ pub const EACH: &[&str] = &[
      through the relay or with --direct, with the connection flags of podssh ssh: -p and -l for each host \
      that names none, -i, -o, -F and -J; the Host blocks of ssh_config apply to each host as podssh ssh \
      applies them. A host can be a node, node://[user@]NAME or a name of the net, reached over the roads \
-     that podssh ssh races to it, one connection for each node; an iroh: or derp: destination is refused (64). Each host is checked before anything connects: a bad one exits 64, and nothing has run \
+     that podssh ssh races to it, one connection for each node, or the node of an iroh: or derp: ticket, over \
+     its road (the client's key of the cache; PODSSH_DERP_SERVER names DERP's servers, and in a build with \
+     the iroh road its variable names the relays). Each host is checked before anything connects: a bad one exits 64, and nothing has run \
      anywhere. A host named twice runs once. Commas part the hosts of the command line, and a blank parts \
      none: 'a b', or a tab, is refused (64), and the refusal gives a,b; a blank beside a comma is dropped.",
     "An item of the list takes the braces of bash: web{1..3} is web1, web2 and web3, {01..12} keeps its \

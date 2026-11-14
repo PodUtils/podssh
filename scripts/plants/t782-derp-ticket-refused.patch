@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-cli/src/ssh/node_roads.rs b/crates/podssh-cli/src/ssh/node_roads.rs
+--- a/crates/podssh-cli/src/ssh/node_roads.rs
++++ b/crates/podssh-cli/src/ssh/node_roads.rs
+@@ -319,9 +319,6 @@
+         Transport::Iroh { ticket, key, relays, trust, channel } => {
+             super::iroh::reach(ticket, key.as_deref(), relays, trust, channel, log).await
+         }
+-        Transport::Derp { ticket, servers, trust, channel } => {
+-            super::derp::reach(ticket, servers, trust, channel, log).await
+-        }
+         _ => super::transport::reach(resolved, log).await,
+     }
+ }

@@ -205,6 +205,32 @@ pub(super) async fn connect(
     podssh_ssh::EXIT_FAILURE
 }
 
+/// The stream to the node of `ticket` over the iroh road, for `each`,
+/// `job` and `run` (T-782).
+#[cfg(feature = "iroh")]
+pub(crate) async fn reach(
+    ticket: &str,
+    key: Option<&str>,
+    relays: &[String],
+    trust: &Trust,
+    ask: &crate::channel::Ask,
+    log: &std::sync::Arc<podssh_ssh::Log>,
+) -> Result<super::transport::Reached, super::transport::NotReached> {
+    dial::reach(ticket, key, relays, trust, ask, log).await
+}
+
+#[cfg(not(feature = "iroh"))]
+pub(crate) async fn reach(
+    ticket: &str,
+    _: Option<&str>,
+    _: &[String],
+    _: &Trust,
+    _: &crate::channel::Ask,
+    _: &std::sync::Arc<podssh_ssh::Log>,
+) -> Result<super::transport::Reached, super::transport::NotReached> {
+    Err(super::transport::NotReached { lines: vec![not_built(ticket)], code: crate::exitmap::sysexits::EX_SOFTWARE })
+}
+
 /// `future` as a copy's (T-666): each stream that it opens on the iroh road
 /// goes below a terminal's of the same connection, at each end that reads
 /// its lane. A task that it spawns takes the lane again with this.
