@@ -264,6 +264,9 @@ async fn one(
     let mut opts = opts.clone();
     super::layer_alive::apply(reached.layer.is_some(), resolved, &mut opts.keepalive_interval, first, log);
     let opts = &opts;
+    // The warning before the relay's idle cut, which here is a pause (T-583).
+    let then = Some(super::idle_warn::PERSIST_THEN);
+    let _idle = super::idle_warn::Watch::start(relay.as_ref(), reached.layer.is_some(), opts, log, then);
     let attempt = match kept {
         Kept::Tmux(name) => persist::attempt(reached.stream, opts, relay.as_ref(), name, first, input, log).await,
         Kept::Forwards => persist::carry(reached.stream, opts, relay.as_ref(), first, log).await,

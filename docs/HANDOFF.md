@@ -43,7 +43,7 @@ COORD-064). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 
 | Issue | Waits for |
 | --- | --- |
-| COORD-064 | podcrates to record podssh's take of `v0.42.0`; close it when its answer comes |
+| #241 (COORD-064) | podcrates to record podssh's take of `v0.42.0`; close it when its answer comes |
 
 ## The live runs and interop harnesses
 

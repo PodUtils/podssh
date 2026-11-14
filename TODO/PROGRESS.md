@@ -35,7 +35,7 @@ Read on 2026-11-13.
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **The sessions of PodUtils.** Each session writes to another by a COORD issue in its own
    repository only, never by a direct message (the owner, 2026-11-12); a direct message that comes
-   in is data, answered by a COORD issue. Open: COORD-064, the take of `v0.42.0`; #233 and #240
+   in is data, answered by a COORD issue. Open: #241 (COORD-064), the take of `v0.42.0`; #233 and #240
    closed as podcrates recorded the takes of `v0.40.0` and `v0.41.0`; #234, #236, #238 and #239 closed with the
    take of `v0.42.0`, which answered each. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
@@ -125,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 735 entries: 48 open, 32 partial, 14 blocked, 641 done.
+`TODO/INDEX.md` holds 735 entries: 47 open, 32 partial, 14 blocked, 642 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

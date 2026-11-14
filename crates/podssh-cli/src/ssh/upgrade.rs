@@ -100,6 +100,8 @@ pub(super) async fn run(resolved: &Resolved, upgrade: &Upgrade, log: Arc<Log>) -
         }
     };
     let relay = reached.relay;
+    // The warning before the relay's idle cut, while the session crosses it (T-583).
+    let _idle = super::idle_warn::Watch::start(relay.as_ref(), reached.layer.is_some(), &opts, &log, None);
     super::transport::keep(reached.layer);
     let handles = match podssh_ssh::upgrade::login(reached.stream, &opts, relay.as_ref(), &log).await {
         Ok(handles) => handles,

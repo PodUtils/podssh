@@ -43,6 +43,18 @@ pub fn spawn(
     asked: Option<Duration>,
     log: Arc<Log>,
 ) -> Option<tokio::task::JoinHandle<()>> {
+    spawn_then(status, silence, asked, log, None)
+}
+
+/// [`spawn`], with `then` after the line: what comes after the cut, as
+/// `--persist` attaches again (T-583).
+pub fn spawn_then(
+    status: RelayStatus,
+    silence: Silence,
+    asked: Option<Duration>,
+    log: Arc<Log>,
+    then: Option<&'static str>,
+) -> Option<tokio::task::JoinHandle<()>> {
     if log.level() == podssh_ssh::LogLevel::Quiet {
         return None;
     }
@@ -52,7 +64,7 @@ pub fn spawn(
         let last = move || status.get().is_none().then(|| status.last_payload());
         idle::watch(last, Idle::new(cut, lead), |step| match step {
             Step::Warn { ends_in, .. } if silence.titled() => silence.set_idle(Some(idle::title(*ends_in))),
-            Step::Warn { ends_in, quiet } => log.info(&idle::line(*ends_in, *quiet, cut)),
+            Step::Warn { ends_in, quiet } => log.info(&with_then(idle::line(*ends_in, *quiet, cut), then)),
             Step::Crossed => silence.set_idle(None),
             Step::Wait(_) => {}
         })
@@ -76,6 +88,43 @@ pub fn spawn_proxy(crossed: Crossed, asked: Option<Duration>) -> Option<tokio::t
     }))
 }
 
+/// `line`, then `then` after a semicolon.
+fn with_then(line: String, then: Option<&str>) -> String {
+    match then {
+        Some(then) => format!("{line}; {then}"),
+        None => line,
+    }
+}
+
+/// What `--persist` says after the warning: the cut is a pause.
+pub const PERSIST_THEN: &str = "--persist attaches again after it";
+
+/// The watch of one run of `--persist` or `--upgrade` (T-583): started where
+/// the run crosses the relay with no layer, as `podssh ssh` starts it, and
+/// aborted when this is dropped, at the run's end.
+pub struct Watch(Option<tokio::task::JoinHandle<()>>);
+
+impl Watch {
+    pub fn start(
+        relay: Option<&RelayStatus>,
+        layered: bool,
+        opts: &podssh_ssh::Options,
+        log: &Arc<Log>,
+        then: Option<&'static str>,
+    ) -> Watch {
+        let status = relay.filter(|_| !layered).cloned();
+        Watch(status.and_then(|s| spawn_then(s, opts.silence.clone(), opts.idle_lead, log.clone(), then)))
+    }
+}
+
+impl Drop for Watch {
+    fn drop(&mut self) {
+        if let Some(task) = self.0.take() {
+            task.abort();
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,6 +140,18 @@ mod tests {
             let why = lead_of(Some(bad)).unwrap_err();
             assert!(why.contains("whole number of seconds") && why.contains("0 turns it off"), "{why}");
         }
+    }
+
+    /// With `--persist`, the line says that the cut is a pause (T-583).
+    #[test]
+    fn the_line_of_persist_names_the_attach_after_the_cut() {
+        let line = with_then(
+            idle::line(Duration::from_secs(30), Duration::from_secs(150), Duration::from_secs(180)),
+            Some(PERSIST_THEN),
+        );
+        assert!(line.starts_with("the relay ends this session in 30 s, as nothing crossed it for 150 s"), "{line}");
+        assert!(line.ends_with("; --persist attaches again after it"), "{line}");
+        assert_eq!(with_then("x".into(), None), "x");
     }
 
     /// With `-q`, or `--idle-warn 0`, no watch runs.

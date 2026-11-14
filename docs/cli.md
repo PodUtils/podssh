@@ -852,8 +852,9 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   off stays so. `podssh proxy --idle-warn SECONDS` warns on stderr, which
   its SSH client shows. Not on `node://` and the other roads of the
   resumable layer, whose heartbeat keeps the link busy, nor with
-  `--direct`; with `--persist`, which attaches again after the cut, and
-  `--upgrade`, not before T-583.
+  `--direct`. With `--persist` (T-583) each run that crosses the relay warns
+  too, and its line ends "--persist attaches again after it", as the cut is
+  then a pause; `--upgrade` warns while its session crosses the relay.
 - **`--sudo` and `--su` run the remote command as root** (T-032), with the
   password asked here, on the terminal or through `SSH_ASKPASS`, never on
   the command line. `--sudo` sends `sudo -S -k -p PROMPT -- sh -c '...'`

@@ -1,0 +1,7 @@
+# T-583: `--persist` starts no watch of the relay's idle cut, so its run
+# through the role gives no warning before the cut: the test of the warning
+# with --persist must fail.
+ENTRY=T-583
+GROUP=cli-tests
+EXPECT='test persist_through_the_relay_role_warns_before_its_idle_cut_and_attaches_again \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test persist_idle -- persist_through_the_relay_role_warns_before_its_idle_cut_and_attaches_again'

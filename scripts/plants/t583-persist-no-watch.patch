@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-cli/src/ssh/persist.rs b/crates/podssh-cli/src/ssh/persist.rs
+index e8552f8..b68ce34 100644
+--- a/crates/podssh-cli/src/ssh/persist.rs
++++ b/crates/podssh-cli/src/ssh/persist.rs
+@@ -266,7 +266,7 @@ async fn one(
+     let opts = &opts;
+     // The warning before the relay's idle cut, which here is a pause (T-583).
+     let then = Some(super::idle_warn::PERSIST_THEN);
+-    let _idle = super::idle_warn::Watch::start(relay.as_ref(), reached.layer.is_some(), opts, log, then);
++    let _ = then;
+     let attempt = match kept {
+         Kept::Tmux(name) => persist::attempt(reached.stream, opts, relay.as_ref(), name, first, input, log).await,
+         Kept::Forwards => persist::carry(reached.stream, opts, relay.as_ref(), first, log).await,

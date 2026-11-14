@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**735 entries: 48 open, 32 partial, 14 blocked, 641 done.**
+**735 entries: 47 open, 32 partial, 14 blocked, 642 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 3 | 3 | 72 | 82 |
 | P2 | 7 | 19 | 2 | 278 | 306 |
-| P3 | 37 | 10 | 9 | 290 | 346 |
-| **All** | 48 | 32 | 14 | 641 | 735 |
+| P3 | 36 | 10 | 9 | 291 | 346 |
+| **All** | 47 | 32 | 14 | 642 | 735 |
 
 ## Entries
 
@@ -622,7 +622,7 @@ repository and CI).
 | [T-580](mesh.md) | P3 | L | M10 | feature | done | Hysteria 2 as a client road over QUIC, where a probe found that UDP passes |
 | [T-581](mesh.md) | P3 | M | M10 | feature | done | TUIC version 5 as a client road over QUIC, where a probe found that UDP passes |
 | [T-582](mesh.md) | P3 | L | M10 | feature | done | MASQUE over HTTP/3: WARP's connect-ip on UDP, where a probe found that UDP passes |
-| [T-583](ssh.md) | P3 | S | none | feature | open | The warning before the relay's idle cut with `--persist` and `--upgrade` |
+| [T-583](ssh.md) | P3 | S | none | feature | done | The warning before the relay's idle cut with `--persist` and `--upgrade` |
 | [T-584](release.md) | P1 | M | none | release | done | Publish `v1.0.1`, the repairs of the testers' defects |
 | [T-585](roads.md) | P3 | S | none | defect | done | WARP's road names a proxy that re-terminates TLS on a road with no proxy |
 | [T-586](resume.md) | P1 | M | none | defect | done | A node holds each session whose OpenSSH client ended its `operator`, so 16 short logins in 10 minutes fill its budget and it refuses each new one |
