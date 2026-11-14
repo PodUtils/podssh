@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 52 open, 32 partial, 16 blocked, 633 done.**
+**733 entries: 51 open, 32 partial, 17 blocked, 633 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 41 | 11 | 10 | 284 | 346 |
-| **All** | 52 | 32 | 16 | 633 | 733 |
+| P3 | 40 | 11 | 11 | 284 | 346 |
+| **All** | 51 | 32 | 17 | 633 | 733 |
 
 ## Entries
 
@@ -560,7 +560,7 @@ repository and CI).
 | [T-493](mesh.md) | P2 | M | M10 | feature | done | Shadowsocks in a WebSocket, as Outline's servers serve it, and `ssconf://` keys |
 | [T-494](mesh.md) | P3 | S | M10 | measurement | done | `--via` against NaiveProxy's server, and the words of a probe-resistant proxy |
 | [T-495](mesh.md) | P3 | M | M10 | feature | done | `-J upterm://SESSION@HOST`: a session of upterm's host as the first hop |
-| [T-496](mesh.md) | P3 | S | M10 | feature | open | ntfy.sh, a meeting point of the pairing where a proxy refuses the WebSocket upgrade |
+| [T-496](mesh.md) | P3 | S | M10 | feature | blocked | ntfy.sh, a meeting point of the pairing where a proxy refuses the WebSocket upgrade |
 | [T-497](mesh.md) | P3 | S | M10 | feature | done | A second public Piping Server, `piping.onrender.com` |
 | [T-498](mesh.md) | P3 | L | M10 | feature | done | frp's protocol: a podssh node behind the user's frps, and its visitor |
 | [T-499](mesh.md) | P3 | M | M10 | feature | open | IETF's connect-tcp, once it is an RFC |

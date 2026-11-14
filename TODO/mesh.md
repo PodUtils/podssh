@@ -5743,7 +5743,7 @@ interop say so now.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -5786,6 +5786,13 @@ loopback: two peers with one code pair through it; a wrong code fails both sides
 code; a stranger's message on the topic changes nothing; the topic holds no word of the code.
 Live, a short run through ntfy.sh (Q65). Planted: the topic derived from the whole code, and the
 test of the topic fails.
+
+## Blocker
+
+The meeting points of the pairing are `pod-wormhole`'s, with their services in `pod-services`, both of
+PodUtils/podcrates, which podssh took: the transport over an ntfy topic, its service and its place in `pod-relay`'s
+runs of a code are asked as COORD-060 (#237), beside Nostr's and the trackers' (COORD-058, #235). podssh's part is
+its glue (`PODSSH_PAIR_NTFY`), its manual and a live run, once it takes that tag.
 
 ## Start condition
 
