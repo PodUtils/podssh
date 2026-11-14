@@ -2567,3 +2567,48 @@ the race is a tunnel of HTTP; `ssh::roads` takes it. `cargo test -p podssh-cli -
 1 passed (localhost.run with its Bare hop and the other tunnels alone take none; the pair's road or bore.pub
 beside them keeps them; `PODSSH_SPARE_LINKS=no` holds). The live job runs after the push (STATUS).
 
+# T-783: `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit
+
+**Source:** the gate of `1c4c440` (2026-11-14, run 43564870189, job `gate (ssh)`).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`a_program_sends_and_takes_whole_datagrams_and_its_status_comes_back` failed again after T-746: "the program's
+output ended with no answer; its verdict: Some((3, []))". The program echoed the first datagram and exited; the
+loop then sent the second one to its closed socket, which failed, and the drain after it found nothing.
+
+## Premise
+
+- Read at `1c4c440`: `crates/podssh-cli/src/pipe/datagram.rs` gave the program one end of one socketpair as both
+  its stdin and its stdout ("theirs_out = theirs.try_clone()").
+- Linux, `unix_dgram_disconnected`: a send on a datagram socket whose peer is dead purges the sender's own receive
+  queue. Measured here with Python: a peer sends `echo` and closes; a send to it is refused (111), then a read
+  finds nothing (11); with no send, the read gets `echo`.
+
+## Approach
+
+1. Two socketpairs: the program's stdin on one, on which the loop sends, and its stdout on another, on which
+   nothing is sent, so a failed send drops nothing that the program said. The loop reads both, for a program
+   that writes on its stdin.
+2. A test of the two sockets: an answer on the stdout's pair stays through a failed send on the stdin's.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib pipe::datagram
+```
+
+## Done
+
+Done, 2026-11-14: `exec` gives the program two pairs (`Sockets { to, from }`); the loop sends on `to`, reads both,
+and drains `from` first after a failed send and at the program's exit. The new test
+`an_answer_stays_when_a_send_to_a_program_that_closed_fails`: passed; `--lib pipe::datagram`: 3 passed; the
+exec test 300 runs in 300 passed here. The planted run waits for T-251: the loss is a race of the loop against
+the program's exit, which the exec test meets only at random.
+

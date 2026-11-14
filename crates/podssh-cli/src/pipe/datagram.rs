@@ -4,10 +4,12 @@
 //! (`podssh_relay::udp`). Nothing on this host sends UDP, and nothing binds.
 //!
 //! The other side gives and takes the same framing: stdin and stdout, a
-//! descriptor, a socket. A program of `exec:` beside it gets one end of an
-//! AF_UNIX `SOCK_DGRAM` socketpair as its stdin and stdout on Unix, which
-//! needs no bind: each datagram that it sends is one at the target, and
-//! each reply one that it receives. Where that socketpair is refused, and
+//! descriptor, a socket. A program of `exec:` beside it gets an end of an
+//! AF_UNIX `SOCK_DGRAM` socketpair as its stdin and of another as its
+//! stdout on Unix, which needs no bind: each datagram that it sends is one
+//! at the target, and each reply one that it receives. Two pairs, as a send
+//! to an end that closed makes Linux drop what the sender's own end holds:
+//! the program's last answers stay on the pair that nothing sends on. Where that socketpair is refused, and
 //! on Windows, which has none, its stdin and stdout carry the framing.
 //!
 //! The node's session has no half-close: its layer ends the session at the
@@ -158,8 +160,10 @@ pub fn exec(words: &[String], say: &mut dyn FnMut(&str)) -> Result<End, Unopened
     use std::os::fd::OwnedFd;
     use std::process::Stdio;
 
-    let (ours, theirs) = match std::os::unix::net::UnixDatagram::pair() {
-        Ok(pair) => pair,
+    let pairs =
+        std::os::unix::net::UnixDatagram::pair().and_then(|a| Ok((a, std::os::unix::net::UnixDatagram::pair()?)));
+    let ((ours, theirs), (answers, theirs_out)) = match pairs {
+        Ok(pairs) => pairs,
         Err(e) => {
             say(&format!(
                 "exec:{}: no datagram socketpair here ({e}): its stdin and stdout carry each datagram after its \
@@ -171,22 +175,37 @@ pub fn exec(words: &[String], say: &mut dyn FnMut(&str)) -> Result<End, Unopened
     };
     let failed =
         |e: std::io::Error| Unopened { code: 126, why: format!("exec:{}: a datagram socketpair: {e}", words[0]) };
-    let theirs_out = theirs.try_clone().map_err(failed)?;
     let mut cmd = tokio::process::Command::new(&words[0]);
     cmd.args(&words[1..]).stderr(Stdio::inherit());
     cmd.stdin(Stdio::from(OwnedFd::from(theirs))).stdout(Stdio::from(OwnedFd::from(theirs_out)));
     let child = cmd.spawn().map_err(|e| super::local::not_started(&words[0], e))?;
     // The program's ends stay only in the program.
     drop(cmd);
-    ours.set_nonblocking(true).map_err(failed)?;
-    let ours = tokio::net::UnixDatagram::from_std(ours).map_err(failed)?;
+    let ours = to_tokio(ours).map_err(failed)?;
+    let answers = to_tokio(answers).map_err(failed)?;
     let (stream, theirs) = tokio::io::duplex(PIPE);
-    let task = tokio::spawn(datagrams(ours, theirs, child, words[0].clone()));
+    let task = tokio::spawn(datagrams(Sockets { to: ours, from: answers }, theirs, child, words[0].clone()));
     let (read, write) = tokio::io::split(stream);
     // Its output is its last word: once the program exited, nobody reads a
     // reply.
     let ending = Some(Box::new(Exited { task }) as Box<dyn Ending>);
     Ok(End { read: Box::new(read), write: Box::new(write), child: None, last_word: true, ending })
+}
+
+/// One end of a pair, as the loop reads and writes it.
+#[cfg(unix)]
+fn to_tokio(end: std::os::unix::net::UnixDatagram) -> std::io::Result<tokio::net::UnixDatagram> {
+    end.set_nonblocking(true)?;
+    tokio::net::UnixDatagram::from_std(end)
+}
+
+/// The program's two sockets: `to` its stdin's, on which the loop sends,
+/// and `from` its stdout's, which gives its answers. A program that writes
+/// on its stdin reaches `to`, which the loop reads too.
+#[cfg(unix)]
+struct Sockets {
+    to: tokio::net::UnixDatagram,
+    from: tokio::net::UnixDatagram,
 }
 
 /// `exec:CMD` beside `udp:node:` where there is no datagram socketpair
@@ -226,18 +245,22 @@ async fn drain(
 /// pump's to the program, until it exits: its exit code, as a shell gives
 /// it. What it sent before it exited still goes.
 #[cfg(unix)]
-async fn datagrams(
-    socket: tokio::net::UnixDatagram,
-    pump: DuplexStream,
-    mut child: tokio::process::Child,
-    program: String,
-) -> i32 {
+async fn datagrams(sockets: Sockets, pump: DuplexStream, mut child: tokio::process::Child, program: String) -> i32 {
     let (from_pump, mut to_pump) = tokio::io::split(pump);
     let mut frames = Frames::new(from_pump);
-    let mut buf = vec![0u8; RECEIVE];
+    let (mut buf, mut answer) = (vec![0u8; RECEIVE], vec![0u8; RECEIVE]);
     let mut dropped = 0u64;
+    let Sockets { to: socket, from } = sockets;
     let exited = loop {
         tokio::select! {
+            got = from.recv(&mut answer) => match got {
+                Ok(n) => {
+                    if !into_pump(&answer[..n], &mut to_pump, &mut dropped).await {
+                        break None;
+                    }
+                }
+                Err(_) => break None,
+            },
             got = socket.recv(&mut buf) => match got {
                 Ok(n) => {
                     if !into_pump(&buf[..n], &mut to_pump, &mut dropped).await {
@@ -252,7 +275,7 @@ async fn datagrams(
                     // what it sent before it closed is queued here still:
                     // it goes to the pump before the end.
                     if socket.send(&datagram).await.is_err() {
-                        drain(&socket, &mut buf, &mut to_pump, &mut dropped).await;
+                        drain(&from, &mut buf, &mut to_pump, &mut dropped).await;
                         break None;
                     }
                 }
@@ -264,13 +287,14 @@ async fn datagrams(
     };
     let status = match exited {
         Some(status) => {
+            drain(&from, &mut buf, &mut to_pump, &mut dropped).await;
             drain(&socket, &mut buf, &mut to_pump, &mut dropped).await;
             let _ = to_pump.shutdown().await;
             status
         }
         None => {
             let _ = to_pump.shutdown().await;
-            drop((socket, to_pump, frames));
+            drop((socket, from, to_pump, frames));
             ended(&mut child).await
         }
     };
@@ -357,6 +381,28 @@ mod tests {
         drain(&ours, &mut buf, &mut to, &mut dropped).await;
         to.shutdown().await.unwrap();
         drop(to);
+        let mut frames = Frames::new(far);
+        let got = tokio::time::timeout(Duration::from_secs(5), frames.recv()).await.expect("in time").unwrap();
+        assert_eq!(got, Some(b"the last answer".to_vec()));
+    }
+
+    /// A send to a program whose socket closed makes Linux drop what the
+    /// sender's own end holds: its last answer, when one socket carries both
+    /// ways. On its stdout's pair, nothing is sent, so it stays.
+    #[tokio::test]
+    async fn an_answer_stays_when_a_send_to_a_program_that_closed_fails() {
+        let (to, program_in) = std::os::unix::net::UnixDatagram::pair().unwrap();
+        let (from, program_out) = std::os::unix::net::UnixDatagram::pair().unwrap();
+        let Sockets { to, from } = Sockets { to: to_tokio(to).unwrap(), from: to_tokio(from).unwrap() };
+        program_out.send(b"the last answer").unwrap();
+        drop((program_in, program_out));
+        assert!(to.send(b"one more").await.is_err(), "the program's end is closed");
+        let (pump, far) = tokio::io::duplex(1024);
+        let (_, mut into) = tokio::io::split(pump);
+        let (mut buf, mut dropped) = (vec![0u8; 1024], 0u64);
+        drain(&from, &mut buf, &mut into, &mut dropped).await;
+        into.shutdown().await.unwrap();
+        drop(into);
         let mut frames = Frames::new(far);
         let got = tokio::time::timeout(Duration::from_secs(5), frames.recv()).await.expect("in time").unwrap();
         assert_eq!(got, Some(b"the last answer".to_vec()));
