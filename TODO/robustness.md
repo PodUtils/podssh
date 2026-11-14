@@ -2514,3 +2514,56 @@ The step passes in the gate ten times in a row, or the cause is named and repair
 Partial, 2026-11-14: not made here. `cargo test -p podssh-cli --test m6_exit -- --ignored with_no_fault_the_layer`
 passed five runs in five (20 s each), and the whole step with `--test-threads 1` passed (7 tests, 394 s). The
 node's later lines are now kept for the failure's text. It waits for the next failure.
+
+# T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
+
+**Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`a_node_behind_localhost_run_serves_a_client_at_its_tunnel_s_url` passed `greet` and then took none of its 1 MiB
+in 120 s, in three runs in a row (it passed on 2026-11-11 at 05:40). The client said "the link said nothing for
+13.0 s: a spare link opens beside it" again and again, and the node wrote 192 to 256 KiB into each link, its
+writes waiting for 2 to 13 s: localhost.run holds the far end's bytes for longer than a spare waits. Then the
+spare took the session, the node replayed the same bytes into the same third party, and nothing came through.
+
+## Premise
+
+- `crates/podssh-cli/src/layered.rs:91` says "let spare_links = !std::env::var(SPARE_LINKS_ENV)": a client
+  opens spare links on each road but the iroh road's.
+
+## Approach
+
+1. Where each road of the race is a third party's tunnel of HTTP (Pinggy, Serveo, a tunnel of `ssh -R`,
+   srv.us, localtunnel, the Bare hop), the session opens no spare link: a spare goes through the same third
+   party. The heartbeat still finds a dead link after 30 s. A race with any other road keeps spare links.
+2. Ask podcrates (a COORD issue) for a spare that backs off in `pod-session` after a spare that moved no byte.
+
+## Decision
+
+The rule is in podssh's glue (`road_link::spares`), which podssh owns, as `iroh_settings` holds spares off for
+the iroh road; the general back-off belongs to `pod-session`, which podssh took (Rule Q3). Lost: spares off for
+localhost.run alone (its kin end HTTPS the same way, and none gains from a spare through itself); a longer wait
+for a spare on each road (slower on a client that moved, where a spare earns its 3 s).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib tunnels_of_http
+```
+
+Live: the job of T-565 in `last-roads-live.yml` passes.
+
+## Done
+
+Done, 2026-11-14: `road_link::spares` gives the session's settings with no spare link where each road of
+the race is a tunnel of HTTP; `ssh::roads` takes it. `cargo test -p podssh-cli --lib tunnels_of_http`:
+1 passed (localhost.run with its Bare hop and the other tunnels alone take none; the pair's road or bore.pub
+beside them keeps them; `PODSSH_SPARE_LINKS=no` holds). The live job runs after the push (STATUS).
+

@@ -249,7 +249,25 @@ pub(crate) enum Kind {
     Frp,
 }
 
+/// The layer's settings for a race of `kinds`: no spare link where each
+/// road is a third party's tunnel of HTTP. A spare goes through the same
+/// third party, which can hold the far end's bytes for longer than a spare
+/// waits (localhost.run, 13 s and more): the spare then takes the session,
+/// the far end replays the same bytes into the same holding, and nothing
+/// comes through. The heartbeat still finds a dead link, after 30 s.
+pub(crate) fn spares(kinds: &[Kind], settings: podssh_relay::session::Settings) -> podssh_relay::session::Settings {
+    let held = !kinds.is_empty() && kinds.iter().all(|kind| kind.a_tunnel_of_http());
+    podssh_relay::session::Settings { spare_links: settings.spare_links && !held, ..settings }
+}
+
 impl Kind {
+    /// Whether this road is a third party's tunnel of HTTP, which ends the
+    /// visitor's HTTPS and may hold what it carries.
+    fn a_tunnel_of_http(self) -> bool {
+        use Kind::*;
+        matches!(self, Pinggy | Serveo | SshHttp(..) | SrvUs | LocalTunnel | Bare)
+    }
+
     /// Whether this is a road of the pair's secret that is a last fallback
     /// of Q78: croc's relay and the roads after it.
     fn of_the_pair_last(self) -> bool {
@@ -393,4 +411,28 @@ pub(super) fn winner(
         crate::net::reached::reached(label, road, took);
     }
     won.link.rewound()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use podssh_relay::session::Settings;
+
+    fn on() -> Settings {
+        Settings { spare_links: true, ..Settings::default() }
+    }
+
+    #[test]
+    fn tunnels_of_http_alone_take_no_spare_link_and_any_other_road_keeps_them() {
+        let lhr = Kind::SshHttp(false, "localhost.run");
+        assert!(!spares(&[lhr, Kind::Bare], on()).spare_links, "localhost.run and its Bare hop alone");
+        assert!(!spares(&[Kind::Pinggy, Kind::Serveo, Kind::SrvUs, Kind::LocalTunnel], on()).spare_links);
+        assert!(spares(&[Kind::Pair, lhr], on()).spare_links, "the pair's road beside it");
+        assert!(spares(&[Kind::Bore, lhr], on()).spare_links, "a port at bore.pub holds nothing");
+        assert!(spares(&[], on()).spare_links, "no race: as asked");
+        assert!(
+            !spares(&[Kind::Pair], Settings { spare_links: false, ..on() }).spare_links,
+            "PODSSH_SPARE_LINKS=no holds"
+        );
+    }
 }

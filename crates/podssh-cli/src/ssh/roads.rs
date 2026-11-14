@@ -374,7 +374,7 @@ where
     // keeps no shell. Each resume races the roads again, so a session that
     // the pair's road may carry keeps that road's window on each (T-443).
     let layer = if rider.shell.is_some() { layered::ssh_settings() } else { layered::settings() };
-    let settings = if roads.pair.is_some() { layer } else { layer.off_the_pair() };
+    let settings = super::road_link::spares(&kinds, if roads.pair.is_some() { layer } else { layer.off_the_pair() });
     let client = match Box::pin(client::start(first, Ask::New, settings, &mut OsEntropy)).await {
         Ok(client) => client,
         Err(e) => {

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**735 entries: 47 open, 32 partial, 14 blocked, 642 done.**
+**736 entries: 47 open, 30 partial, 14 blocked, 645 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 3 | 3 | 72 | 82 |
-| P2 | 7 | 19 | 2 | 278 | 306 |
-| P3 | 36 | 10 | 9 | 291 | 346 |
-| **All** | 47 | 32 | 14 | 642 | 735 |
+| P2 | 7 | 19 | 2 | 279 | 307 |
+| P3 | 36 | 8 | 9 | 293 | 346 |
+| **All** | 47 | 30 | 14 | 645 | 736 |
 
 ## Entries
 
@@ -605,8 +605,8 @@ repository and CI).
 | [T-563](relay.md) | P2 | S | none | defect | done | The relay's record forgets a host that opens, and one road's failure moves the host on each road |
 | [T-564](robustness.md) | P3 | S | none | feature | done | podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE` |
 | [T-565](mesh.md) | P3 | M | M10 | feature | done | localhost.run as a last fallback: the relay role behind a tunnel of HTTP made by `ssh -R` |
-| [T-566](mesh.md) | P3 | S | M10 | feature | partial | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
-| [T-567](mesh.md) | P3 | S | M10 | feature | partial | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
+| [T-566](mesh.md) | P3 | S | M10 | feature | done | srv.us as a last fallback: an HTTPS name derived from the node's SSH key |
+| [T-567](mesh.md) | P3 | S | M10 | feature | done | tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R` |
 | [T-568](mesh.md) | P3 | M | M10 | feature | done | localtunnel as a last fallback: the relay role behind `localtunnel.me` |
 | [T-569](mesh.md) | P3 | M | M10 | feature | done | bore.pub as a last fallback: a raw TCP port for the node, reached by the client's other roads |
 | [T-570](mesh.md) | P3 | S | M10 | feature | done | `ssh-j.com` as a last fallback: a public SSH jump and forward by name |
@@ -811,3 +811,4 @@ repository and CI).
 | [T-778](repo.md) | P2 | S | M5 | chore | done | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |
 | [T-779](copy.md) | P2 | S | M5 | defect | partial | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
 | [T-780](robustness.md) | P1 | M | M6 | defect | partial | m6's session with no fault hung past 600 s in the gate |
+| [T-781](robustness.md) | P2 | S | M10 | defect | done | A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes |

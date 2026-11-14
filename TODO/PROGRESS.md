@@ -125,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 735 entries: 47 open, 32 partial, 14 blocked, 642 done.
+`TODO/INDEX.md` holds 736 entries: 47 open, 30 partial, 14 blocked, 645 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -157,7 +157,7 @@ operator interrupts it.
    2026-11-14: `v0.41.0`, with pod-term's mode that follows a termios (COORD-055, #232), which serve's tty with no pty drives (done);
    and `v0.42.0`, with the answers to COORD-057, 059, 061 and 062.
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
-   entries, P1 before any other; their features (T-545, T-566, T-567,
+   entries, P1 before any other; their features (T-545,
    which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
@@ -209,10 +209,10 @@ parts are named so that the open ones read in their place):
    pub/sub networks (done), then what they filed: croc's relay as a road and a meeting point
    (done), WebTorrent's trackers (T-695), ZeroTier's relay (done), Tox's (done), Yggdrasil's
    peers (done), HyperDHT's road (done) and the public MQTT brokers as a meeting point (done),
-   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (T-566, T-567,
+   and Nostr's meeting point (T-545, parked); the other last fallbacks of Q78 (srv.us and tunnl.gg (done),
    serv00's and HTTP Relay's demo (done), the onion services (done), and what the research of 2026-11-10 filed: file hosts as the last
-   carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); T-566 and T-567
-   parked, serv00's done); and the roads over UDP (done: MASQUE over HTTP/3, Hysteria 2's and TUIC's). These are features of a tester's
+   carrier (T-738), VMess's AEAD form (done) and Bare servers as a hop (T-740); srv.us and tunnl.gg
+   done, serv00's done); and the roads over UDP (done: MASQUE over HTTP/3, Hysteria 2's and TUIC's). These are features of a tester's
    report and of the sweep, done after the defects (Q85). Then what the archive of forward
    carriers (`docs/research/forward-carriers.md`) filed: the rates of `ppng.io`'s road and of the
    Wisp demo server through podssh (T-625), TURN with RFC 6062 for a server that the user runs

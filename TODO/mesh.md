@@ -8457,7 +8457,7 @@ of the Prove wait for the checks of a release (T-251).
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8650,6 +8650,9 @@ session; the live run waits for `pod-services`' `srv-us`.
   `last-roads-live.yml` (the client names the node's whole key and no URL; the node's line must
   name the derived name): waits for `pod-services`' `srv-us`, asked of podcrates (the Correction).
 
+Done, 2026-11-14: the live job `a_node_at_srv_us_serves_a_client_that_derives_its_name_from_its_key` of `last-roads-live.yml` passed at `7e457b4`
+(run 43560494966, from GitHub Actions): `greet`, then 1 MiB down, through the public service, with the node's key named.
+
 # T-567: tunnl.gg as a last fallback, a word of the tunnel of HTTP made by `ssh -R`
 
 **Source:** the operator's ruling Q78 (2026-11-02).
@@ -8657,7 +8660,7 @@ session; the live run waits for `pod-services`' `srv-us`.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -8844,6 +8847,9 @@ session; the live run waits for `pod-services`' `tunnl-gg`.
 - The live job `a_node_behind_tunnl_gg_serves_a_client_at_its_tunnel_s_url` of
   `last-roads-live.yml` (`greet` and 1 MiB down, the Correction's measure past 512 KiB): waits for
   `pod-services`' `tunnl-gg`, asked of podcrates (the Correction).
+
+Done, 2026-11-14: the live job `a_node_behind_tunnl_gg_serves_a_client_at_its_tunnel_s_url` of `last-roads-live.yml` passed at `7e457b4`
+(run 43560494966, from GitHub Actions): `greet`, then 1 MiB down, through the public service, with the node's key named.
 
 # T-568: localtunnel as a last fallback: the relay role behind `localtunnel.me`
 
