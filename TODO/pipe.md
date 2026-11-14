@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6291`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6311`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:339-443` a typed error, so that 77 is not
    guessed from a message.
@@ -313,8 +313,8 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
   (`crates/podssh-ssh/src/keys.rs:410-423`, `connect_agent`); on Windows the agent is a
   named pipe (`crates/podssh-ssh/src/keys.rs:424-445`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
-  before the call (`crates/podssh-cli/src/doctor/unix.rs:199-208`,
-  `crates/podssh-cli/src/doctor/unix.rs:222-227`).
+  before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
+  `crates/podssh-cli/src/doctor/unix.rs:235-240`).
 - Read: sandbox A allows an AF_UNIX bind (`docs/STATUS.md:521`); a connect
   was not measured. The attempt is the probe, and its errno is the message.
 
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:734-738`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:6418-6420`). After the attach, send the window size again.
+   (`docs/cli.md:6438-6440`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`), `docs/design.md:734-738`,
    `docs/STATUS.md`, and tmux in the interop image

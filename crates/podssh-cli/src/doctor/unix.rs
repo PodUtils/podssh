@@ -134,6 +134,19 @@ pub(super) fn pty_notify() -> Verdict {
     }
 }
 
+/// Whether `podssh serve` can answer a child's tty calls by `ptrace` where
+/// user notification is refused (T-777): serve's own probe, a child forked
+/// for it that ends at once. A fact, never a failure.
+#[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+pub(super) fn pty_ptrace() -> Verdict {
+    match podssh_ssh::server::notify::probe_trace() {
+        Ok(()) => {
+            ok("podssh serve can answer a program's tty calls by ptrace here, where user notification is refused")
+        }
+        Err(why) => ok(format!("none: {why}")),
+    }
+}
+
 /// Bind a TCP socket to 127.0.0.1 port 0, listen once with a backlog of 1,
 /// accept nothing, and close it (T-358).
 pub(super) fn bind_inet() -> Verdict {

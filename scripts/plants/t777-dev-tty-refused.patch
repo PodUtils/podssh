@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-ssh/src/server/notify/tracer.rs b/crates/podssh-ssh/src/server/notify/tracer.rs
+index 7613b3a..11bbbef 100644
+--- a/crates/podssh-ssh/src/server/notify/tracer.rs
++++ b/crates/podssh-ssh/src/server/notify/tracer.rs
+@@ -165,7 +165,7 @@ impl Tracer {
+         }
+         let dup = if flags as i32 & libc::O_CLOEXEC != 0 { libc::F_DUPFD_CLOEXEC } else { libc::F_DUPFD };
+         let _ = match self.held_by(pid) {
+-            Some(fd) => regs::rewrite(pid, r, libc::SYS_fcntl, [fd as u64, dup as u64, 0]),
++            Some(_) => regs::skip(pid, r, -(libc::ENXIO as i64)),
+             None => regs::skip(pid, r, -(libc::ENXIO as i64)),
+         };
+     }

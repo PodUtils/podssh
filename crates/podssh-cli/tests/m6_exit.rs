@@ -99,6 +99,14 @@ impl Stand {
         wait_for(&lines, "serving").expect("the node starts");
         // The relay has the node's socket only from this line on.
         wait_for(&lines, "online").expect("the node is online");
+        // Its later lines, in a log that a failure shows (T-780).
+        let log = self.session.home.join("node.log");
+        std::thread::spawn(move || {
+            let Ok(mut file) = std::fs::File::create(log) else { return };
+            for line in lines {
+                let _ = std::io::Write::write_all(&mut file, format!("{line}\n").as_bytes());
+            }
+        });
         label
     }
 }

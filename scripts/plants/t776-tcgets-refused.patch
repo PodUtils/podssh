@@ -1,8 +1,8 @@
-diff --git a/crates/podssh-ssh/src/server/notify/supervisor.rs b/crates/podssh-ssh/src/server/notify/supervisor.rs
-index 6686727..ba04c5c 100644
---- a/crates/podssh-ssh/src/server/notify/supervisor.rs
-+++ b/crates/podssh-ssh/src/server/notify/supervisor.rs
-@@ -208,7 +208,7 @@ impl Supervisor {
+diff --git a/crates/podssh-ssh/src/server/notify/answer.rs b/crates/podssh-ssh/src/server/notify/answer.rs
+index ab00a5d..05d3805 100644
+--- a/crates/podssh-ssh/src/server/notify/answer.rs
++++ b/crates/podssh-ssh/src/server/notify/answer.rs
+@@ -140,7 +140,7 @@ impl Answerer {
              Err(poisoned) => poisoned.into_inner(),
          };
          match cmd {

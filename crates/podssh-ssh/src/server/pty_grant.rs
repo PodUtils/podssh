@@ -38,27 +38,42 @@ pub(super) fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>)
     }
     // No pty: a tty that serve answers (T-776), else serve is the line
     // discipline (T-111), where the mode lets it.
+    let answered = answered_here();
     let (line, notify) = match settings.pty {
-        PtyMode::Line => (true, false),
-        PtyMode::No => (false, false),
-        PtyMode::Notify => (notify_here(), true),
-        PtyMode::Auto => (settings.ptmx.is_none(), notify_here()),
+        PtyMode::Line => (true, None),
+        PtyMode::No => (false, None),
+        PtyMode::Notify => (answered.is_some(), answered),
+        PtyMode::Auto => (settings.ptmx.is_none(), answered),
     };
     if line {
         let mut grant = LineGrant::new(asked.term, asked.cols, asked.rows, asked.modes);
-        grant.notify = notify;
+        (grant.notify, grant.traced) = (notify.is_some(), notify == Some(true));
+        if grant.traced {
+            settings.say(
+                "no user notification here: the tty's calls are answered by ptrace, which the program then cannot use",
+            );
+        }
         open.line = Some(grant);
     }
     line
 }
 
-/// Whether serve can answer a child's tty calls on this host (T-776).
+/// Whether serve can answer a child's tty calls on this host: by user
+/// notification (`Some(false)`, T-776), else by `ptrace` (`Some(true)`,
+/// T-777), else not (`None`).
 #[cfg(unix)]
-fn notify_here() -> bool {
+fn answered_here() -> Option<bool> {
     #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
-    return super::notify::probe().is_ok();
-    #[allow(unreachable_code)]
-    false
+    {
+        use super::notify::{probe, probe_trace};
+        if probe().is_ok() {
+            return Some(false);
+        }
+        if probe_trace().is_ok() {
+            return Some(true);
+        }
+    }
+    None
 }
 
 /// On Windows a pty request fails: serve runs no program there.

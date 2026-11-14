@@ -2284,7 +2284,7 @@ then resumes over a new one. For those 30 s, an interactive session shows nothin
   new one goes on (`docs/design.md:932-934`). The far end lets the newest resume take a session
   (`docs/design.md:1008-1010`).
 - Measured (T-156): a session on the layer and on the iroh road survives a new address of its
-  client (`crates/podssh-cli/tests/m6_exit.rs:262`); the time that the resume took is not in the
+  client (`crates/podssh-cli/tests/m6_exit.rs:270`); the time that the resume took is not in the
   record.
 - Read in Mosh (`docs/design.md:789-803`): its client tries a new source port after 10 s with no
   round trip, and its server follows each newer authentic datagram at once.

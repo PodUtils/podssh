@@ -1,0 +1,7 @@
+# T-777: the tracer answers each open of /dev/tty with ENXIO, though the
+# caller holds the tty socket, so less cannot read its keys and fails: the
+# test of a shell on the tty that serve answers by ptrace must fail.
+ENTRY=T-777
+GROUP=cli-tests
+EXPECT='test where_a_listener_already_stands_serve_answers_the_tty_by_ptrace \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test serve_tty -- where_a_listener_already_stands_serve_answers_the_tty_by_ptrace'

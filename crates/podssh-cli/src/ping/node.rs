@@ -113,9 +113,10 @@ fn road_line(shown: &str, measured: &Measured) -> String {
     let Some(timed) = &measured.timed else {
         return format!("{shown}: {road}: not started: a fallback, which starts only when each road before it failed");
     };
-    // A road started with the race is some microseconds in, which would
-    // read as "started 0.0 ms": only a road that waited says when.
-    let into = match timed.started < std::time::Duration::from_millis(1) {
+    // A road started with the race is a moment in, which would read as
+    // "started 1.2 ms" on a busy host: only a road that waited says when,
+    // and the least wait of a stagger is 10 ms (RFC 8305, section 8).
+    let into = match timed.started < std::time::Duration::from_millis(10) {
         true => String::new(),
         false => format!(", started {} into the race", shown_ms(timed.started)),
     };

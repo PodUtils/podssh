@@ -45,8 +45,22 @@ fn jump(code: u16, k: u32, jt: u8, jf: u8) -> libc::sock_filter {
     libc::sock_filter { code, jt, jf, k }
 }
 
-/// The filter's program, as the study's probe has it.
+/// `SECCOMP_RET_TRACE`: the call stops for the tracer (T-777).
+const RET_TRACE: u32 = 0x7ff0_0000;
+
+/// The filter's program, as the study's probe has it: the calls go to
+/// serve as user notifications.
 pub fn program() -> Vec<libc::sock_filter> {
+    with_action(RET_USER_NOTIF)
+}
+
+/// The same program for the tracer of T-777: the calls stop the child for
+/// serve's `ptrace`.
+pub fn traced() -> Vec<libc::sock_filter> {
+    with_action(RET_TRACE)
+}
+
+fn with_action(action: u32) -> Vec<libc::sock_filter> {
     #[cfg(target_arch = "x86_64")]
     let opens = [libc::SYS_openat as u32, libc::SYS_open as u32];
     // aarch64 has no `open`: the same number twice keeps one program.
@@ -64,7 +78,7 @@ pub fn program() -> Vec<libc::sock_filter> {
         stmt(BPF_ALU_AND_K, 0xff00),
         jump(BPF_JMP_JEQ_K, TTY_FAMILY, 1, 0),
         stmt(BPF_RET_K, RET_ALLOW),
-        stmt(BPF_RET_K, RET_USER_NOTIF),
+        stmt(BPF_RET_K, action),
     ]
 }
 
@@ -76,6 +90,23 @@ pub fn program() -> Vec<libc::sock_filter> {
 ///
 /// `program` must stay alive for the call; it is only read.
 pub unsafe fn install(program: &[libc::sock_filter]) -> io::Result<RawFd> {
+    // SAFETY: the caller keeps the contract above.
+    unsafe { install_with(program, libc::SECCOMP_FILTER_FLAG_NEW_LISTENER as libc::c_ulong) }
+}
+
+/// [`install`] with no listener, for the tracer's program: a stop for a
+/// tracer needs none, and a filter of the sandbox's that holds one (EBUSY
+/// for a second) does not refuse it.
+///
+/// # Safety
+///
+/// As [`install`].
+pub unsafe fn install_traced(program: &[libc::sock_filter]) -> io::Result<()> {
+    // SAFETY: the caller keeps the contract above.
+    unsafe { install_with(program, 0).map(|_| ()) }
+}
+
+unsafe fn install_with(program: &[libc::sock_filter], flags: libc::c_ulong) -> io::Result<RawFd> {
     // SAFETY: the caller keeps the function's contract, above.
     unsafe {
         if libc::prctl(libc::PR_GET_NO_NEW_PRIVS, 0, 0, 0, 0) != 1
@@ -89,7 +120,7 @@ pub unsafe fn install(program: &[libc::sock_filter]) -> io::Result<RawFd> {
         let fd = libc::syscall(
             libc::SYS_seccomp,
             libc::SECCOMP_SET_MODE_FILTER as libc::c_ulong,
-            libc::SECCOMP_FILTER_FLAG_NEW_LISTENER as libc::c_ulong,
+            flags,
             &prog as *const libc::sock_fprog,
         );
         if fd < 0 {

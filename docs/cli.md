@@ -5820,6 +5820,26 @@ gives up each capability of the process (T-698), before it reads a file.
   back. `--pty notify` takes this route with no pty tried and refuses the
   request where it fails; `--pty auto` takes it after a real pty and a
   devpts instance, before the line discipline.
+- **The same tty by ptrace (T-777).** Where user notification is refused
+  (a filter of the host's own holds a listener: EBUSY), serve answers the
+  same calls by `ptrace` (route 2b of T-248's study;
+  `crates/podssh-ssh/src/server/notify/tracer.rs`). The child's filter
+  returns `SECCOMP_RET_TRACE`, needs no listener, and is installed with no
+  new one; the child sends its pid over a socket pair and waits until a
+  thread of serve's seized it (`PTRACE_SEIZE` with `TRACESECCOMP`, the
+  fork, vfork and clone events, and `EXITKILL`), so no call of its filter
+  meets no tracer. At each stop the thread reads the call from the
+  registers (x86_64's set, aarch64's with `NT_ARM_SYSTEM_CALL`), answers it
+  from the same state as the notifications, and skips it with that value;
+  an open of `/dev/tty` becomes `fcntl(F_DUPFD)` of a descriptor of the
+  caller that holds the socket (ENXIO where none does); each process and
+  thread that the child starts is followed, a stop of job control stays a
+  stop (`PTRACE_LISTEN`), and each other signal goes on. The thread peeks at
+  the child's exit (`waitid` with `WNOWAIT`) and leaves it to tokio's
+  reaper, which waits on a pidfd. The program and its children can then use
+  no `ptrace` of their own; serve says so on its lines. Doctor's line `pty
+  ptrace` runs the probe: a child forked for it, seized, asks
+  `TIOCGWINSZ`.
 - **The line discipline where no pty opens (T-111).** With `--pty auto`
   (the default), a `pty-req` that neither a master nor a devpts instance
   serves is granted with serve as the line discipline: pod-term's cooked

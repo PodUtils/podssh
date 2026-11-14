@@ -13651,7 +13651,7 @@ reached each and measures nothing.
 ## Premise
 
 - Read: `ping NAME` races the roads of a member and gives each its time and the winner
-  (T-435; `crates/podssh-cli/src/ping/node.rs:79-163`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:50`).
+  (T-435; `crates/podssh-cli/src/ping/node.rs:79-164`); `--json` exists (`crates/podssh-cli/src/flags/ping.rs:50`).
 - Read: `ping` takes one destination (`crates/podssh-cli/src/flags/ping.rs`, the positional).
 - Read: `status --net` measures no road (`crates/podssh-cli/src/status.rs:26`).
 - Read: each probe drops its link before `OPEN` (`TODO/mesh.md`, T-435 Decision), so no session starts.

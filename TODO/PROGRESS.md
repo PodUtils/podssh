@@ -77,17 +77,17 @@ item whenever it appears.
 3. **The serve entries that T-248 filed** (offline): T-778 and T-775 are done (2026-11-13); T-776
    (route 2a) is done (2026-11-14), on pod-term's mode that follows a termios of `v0.41.0`; T-113 (M5's
    exit) passed in the box and a cloud container, and waits for the operator's real sandbox
-   (`scripts/m5-in-sandbox.sh`); T-779 (a copy that failed once there) and T-777 (route 2b) next.
+   (`scripts/m5-in-sandbox.sh`); T-777 (route 2b, by ptrace) is done (2026-11-14); T-779 (a copy that failed once there) waits for its next failure.
 4. **Close what the partial entries of M5 can close** (offline): T-107, T-108, T-109, T-110, T-112,
    T-114 and T-222: the `cargo todo remap` and `cargo todo counts` that their `## Done` lists, then
    each stays partial only for its run in the build image (T-251).
 5. **The takes of podcrates** (offline, T-684): `v0.41.0` is taken (2026-11-14, COORD-063); next,
    `filehost-live.yml` from Actions for T-738 on the pushed take. Answer each take with a COORD issue.
 6. **T-576** (done, 2026-11-14): the demo of HTTP Relay never answered on three days.
-7. **Then the open work by its order** (below): T-779 (M5, P2: a copy through `serve NAME` that failed once); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
+7. **Then the open work by its order** (below): T-779 (partial: a copy through `serve NAME` that failed once, then four runs in four passed; it waits for the next failure); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
    `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-575 is blocked on serv00's entry in pod-services (COORD-061, #238); T-532 (done); T-545, T-695 and T-496 are blocked on
    podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237); T-622's client waits for
-   `pod-relay` (COORD-062, #239); then T-777, which T-776 (done) opened again. Each with its Prove, one entry at a time.
+   `pod-relay` (COORD-062, #239); T-777 (done, 2026-11-14). Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-113's real sandbox (the operator's agents run
    `sh scripts/m5-in-sandbox.sh`), T-625 and T-665 (the throughput host's secrets), T-106
    (the operator's tailnet), T-755 (a tester's tunnel), T-319 and T-321's live runs and the build
@@ -125,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 734 entries: 50 open, 32 partial, 16 blocked, 636 done.
+`TODO/INDEX.md` holds 735 entries: 48 open, 34 partial, 16 blocked, 637 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

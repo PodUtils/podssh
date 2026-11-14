@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:374-395` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6281-6284`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6301-6304`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -4069,7 +4069,7 @@ repair.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4101,3 +4101,9 @@ sh scripts/m5-in-sandbox.sh target/x86_64-unknown-linux-musl/release/podssh
 ```
 
 Ten runs in a row from a cloud container pass, or the failure is named and repaired with a test that makes it.
+
+## Done
+
+Partial, 2026-11-14: three more runs of `sh scripts/m5-in-sandbox.sh target/x86_64-unknown-linux-musl/release/podssh`
+from this cloud container, with the logs kept on a failure, each passed (200 MiB up in 40, 48 and 44 s, down in 37
+s each, SHA-256 equal). The entry waits for the next failure of the script, whose logs it keeps.

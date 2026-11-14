@@ -16,7 +16,7 @@ use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 
 use super::super::child::{turned, AFTER_EXIT, QUIET};
-use super::supervisor::{Shared, Told};
+use super::answer::{Shared, Told};
 
 /// The lines that may wait for the child to read them.
 const LINES: usize = 128;

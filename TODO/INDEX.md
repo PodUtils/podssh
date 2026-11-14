@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**734 entries: 50 open, 32 partial, 16 blocked, 636 done.**
+**735 entries: 48 open, 34 partial, 16 blocked, 637 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 8 | 19 | 2 | 277 | 306 |
-| P3 | 38 | 11 | 11 | 286 | 346 |
-| **All** | 50 | 32 | 16 | 636 | 734 |
+| P1 | 4 | 3 | 3 | 72 | 82 |
+| P2 | 7 | 20 | 2 | 277 | 306 |
+| P3 | 37 | 11 | 11 | 287 | 346 |
+| **All** | 48 | 34 | 16 | 637 | 735 |
 
 ## Entries
 
@@ -807,6 +807,7 @@ repository and CI).
 | [T-774](serve.md) | P2 | S | M5 | defect | done | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |
 | [T-775](serve.md) | P2 | M | M5 | feature | done | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |
 | [T-776](serve.md) | P2 | L | M5 | feature | done | `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens |
-| [T-777](serve.md) | P3 | M | M5 | feature | open | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
+| [T-777](serve.md) | P3 | M | M5 | feature | done | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
 | [T-778](repo.md) | P2 | S | M5 | chore | done | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |
-| [T-779](copy.md) | P2 | S | M5 | defect | open | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
+| [T-779](copy.md) | P2 | S | M5 | defect | partial | A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container |
+| [T-780](robustness.md) | P1 | M | M6 | defect | partial | m6's session with no fault hung past 600 s in the gate |

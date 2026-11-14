@@ -2483,7 +2483,7 @@ Read:
   it".
 - `scripts/box/probe.sh:109-118` checks an AF_INET listen only, and expects the
   refusal. `doctor` probes both families
-  (`crates/podssh-cli/src/doctor/host.rs:46-47`).
+  (`crates/podssh-cli/src/doctor/host.rs:48-49`).
 - A seccomp filter compares the arguments of a call as numbers. It cannot read
   the address that `bind` gets through a pointer, so it cannot refuse AF_INET
   and allow AF_UNIX.

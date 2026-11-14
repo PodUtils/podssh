@@ -53,13 +53,16 @@ pub(super) struct LineGrant {
     /// Whether serve answers the child's tty calls (T-776), in place of
     /// the line discipline on pipes.
     pub(super) notify: bool,
+    /// Whether it answers them by `ptrace` (T-777), where notification is
+    /// refused.
+    pub(super) traced: bool,
 }
 
 impl LineGrant {
     pub(super) fn new(term: &str, cols: u32, rows: u32, modes: &[(Pty, u32)]) -> LineGrant {
         let utf8 = modes.iter().any(|(mode, on)| *mode == Pty::IUTF8 && *on != 0);
         let (size, _) = watch::channel(size_of(cols, rows));
-        LineGrant { term: super::pty::term_of(term), utf8, size, notify: false }
+        LineGrant { term: super::pty::term_of(term), utf8, size, notify: false, traced: false }
     }
 
     /// A window change: the discipline draws the line at the new width.

@@ -242,7 +242,11 @@ impl Lab {
         }
         let proxy = format!("http://127.0.0.1:{}", self.proxy);
         let mut cmd = Command::new("curl");
-        cmd.args(["-sS", "--max-time", "20", "--proxy", &proxy, "--cacert"]).arg(&self.ca).args(args);
+        // schannel (curl on Windows) asks the test CA's revocation status,
+        // which no responder answers; the option is curl's on each system.
+        cmd.args(["-q", "-sS", "--max-time", "20", "--ssl-no-revoke", "--proxy", &proxy, "--cacert"])
+            .arg(&self.ca)
+            .args(args);
         let out = cmd.stdin(Stdio::null()).output().expect("curl runs");
         let text = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
         Some((out.status.code().unwrap_or(-1), text(&out.stdout), text(&out.stderr)))

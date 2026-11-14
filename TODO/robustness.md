@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:238`, `docs/STATUS.md:244`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:6289-6290` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:6309-6310` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:6289-6290`). A difference that the table does not name fails,
+   `docs/cli.md:6309-6310`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:6289-6290` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:6309-6310` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -2458,3 +2458,46 @@ shutdown has 10 s. Its row in `vendor/README.md`; eleven patches in AGENTS.md an
 - Clippy as the gate runs it on the workspace: clean; check-repo: pass.
 - `cargo test --workspace --no-fail-fast`: 4,107 passed, none failed.
 
+
+# T-780: m6's session with no fault hung past 600 s in the gate
+
+**Source:** the gate of `f9e12b3` (2026-11-14, run 43549248617, job `gate (m6)`).
+**Category:** defect
+**Milestone:** M6
+**Priority:** P1
+**Effort:** M
+**Status:** partial
+
+## Problem
+
+`with_no_fault_the_layer_carries_the_session` of `crates/podssh-cli/tests/m6_exit.rs`, 20 MiB up and back
+through `podssh ssh node://` with the resumable layer and stand-in proxies with no fault, did not end within
+600 s in the gate. The client's `-v` lines end at `authenticated to node://m6 as tester`; the client's proxy
+logged one CONNECT, the node's three, and the faults' clock started, so 8 MiB at least were written. The other
+six tests of the step passed before it, in one thread.
+
+## Premise
+
+- `crates/podssh-cli/tests/m6_exit.rs:34` says "const LIMIT: Duration = Duration::from_secs(600);": the bound
+  that the session passed.
+
+## Approach
+
+1. Keep what a next failure needs: the node's lines after `online` go to `node.log` in the test's directory,
+   which the failure prints (done with this entry).
+2. At the next failure, read which end stopped moving bytes: the node's lines, the client's, the proxies'.
+   Repair what they name, with a test that makes it, where the stand-ins can.
+
+## Prove
+
+```sh
+cargo test -p podssh-cli --test m6_exit -- --ignored --test-threads 1
+```
+
+The step passes in the gate ten times in a row, or the cause is named and repaired with a test that makes it.
+
+## Done
+
+Partial, 2026-11-14: not made here. `cargo test -p podssh-cli --test m6_exit -- --ignored with_no_fault_the_layer`
+passed five runs in five (20 s each), and the whole step with `--test-threads 1` passed (7 tests, 394 s). The
+node's later lines are now kept for the failure's text. It waits for the next failure.

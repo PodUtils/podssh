@@ -77,9 +77,14 @@ pub const SERVE: &[&str] = &[
      0, stty, a shell's job control, vi, less and top; the keys go through a line discipline in serve that \
      follows the state that the program set (echo, editing, Ctrl-C, Ctrl-Z and Ctrl-\\ to the foreground \
      group, the window size with SIGWINCH). On a socket, Ctrl-D on an empty line ends the program's input \
-     for good, and a program that reads two lines quickly may get both in one read. A host that refuses \
-     seccomp's user notification, or the program's memory to serve, refuses this (podssh doctor's line \
-     pty notify); --pty notify takes it with no pty tried, and refuses the request where it fails. Where \
+     for good, and a program that reads two lines quickly may get both in one read. Where the host's own \
+     filter already holds a listener, so that a second is refused, serve answers the same calls by ptrace: \
+     the program's filter stops it at each tty call and open, serve's thread answers from the same state \
+     and follows each process that the program starts, an open of /dev/tty becomes a copy of a descriptor \
+     that holds the socket, and the program and its children can then use no ptrace of their own (gdb, \
+     strace); serve says so. A host that refuses both, or the program's memory to serve, refuses this \
+     (podssh doctor's lines pty notify and pty ptrace); --pty notify takes it with no pty tried, and \
+     refuses the request where it fails. Where \
      none of these opens (a cage with no /dev/ptmx), serve is the line discipline itself (--pty auto): \
      the command or the shell runs on pipes, each key is echoed and edited in serve, a line goes to the \
      program when Enter submits it, Ctrl-C and Ctrl-\\ go to the program's process group as SIGINT and \

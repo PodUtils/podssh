@@ -896,7 +896,7 @@ paths only: lines 286-299 at `22c3b88`), then `std::env::temp_dir()` with the us
 working directory (lines 72-74 there). A store falls through each directory that refuses it
 (lines 151-160 there). No variable or
 flag names a directory. `doctor` probes the same list and names the first that can be written
-(`crates/podssh-cli/src/doctor/host.rs:149-204`). VARIABLES and FILES give the list
+(`crates/podssh-cli/src/doctor/host.rs:151-206`). VARIABLES and FILES give the list
 (`crates/podssh-cli/src/man/facts.rs`, line 112 at `4dd52f8`, and the cache's text of FILES in
 `crates/podssh-cli/src/man/data.rs`), a test fixes its shape (lines 365-377 at `22c3b88`), and
 the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at `4dd52f8`).

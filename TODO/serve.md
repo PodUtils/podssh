@@ -2267,7 +2267,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:137-260`).
+  (`crates/podssh-cli/src/doctor/unix.rs:150-273`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -2345,7 +2345,7 @@ no reason (`docs/target-environment.md:88-89`).
 - Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:522`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:241-243`).
+  (`crates/podssh-cli/src/doctor/host.rs:243-245`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -2420,7 +2420,7 @@ the entry joins the work order by its priority.
   noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:469`, `docs/STATUS.md:489`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
   The Prove's `docs/STATUS.md:467` is `docs/STATUS.md:469`.
-- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:227`.
+- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
   start of a data file of mode 0755 can succeed, and only its status tells. Each candidate is
@@ -2477,7 +2477,7 @@ criterion of M5 (T-113) needs them.
 ## Premise
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
-  (`crates/podssh-cli/src/doctor/unix.rs:95-140`). Both real sandboxes have no
+  (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
   `/dev/ptmx` (`docs/STATUS.md:522`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
@@ -3330,7 +3330,7 @@ vi and less in the box are T-113's Prove, which this route now serves.
 **Milestone:** M5
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3367,3 +3367,33 @@ defect: `TIOCGWINSZ` passed to the kernel; `stty size` fails, and the test fails
 ## Correction
 
 2026-11-14. The blocker ended with the take of podcrates `v0.41.0` and T-776's route 2a. It said: PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055, #232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): it answers the same calls from the same state as T-776, whose mode is that one. podssh takes it by that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
+
+2026-11-14. The Prove's planted defect, `TIOCGWINSZ` passed to the kernel, would fail the probe too, which
+asks that request, so the test would say that it did not run and pass: the plant is instead an open of
+`/dev/tty` answered with ENXIO, which the session's `test -t 3 3</dev/tty` reads and the probe does not ask.
+`--pty notify` takes this route where notification is refused, as the probe of a `pty-req` finds; no flag of
+its own.
+
+## Done
+
+2026-11-14. `crates/podssh-ssh/src/server/notify/`: `tracer.rs` (the seize before the exec, the loop over each
+tracee, the calls answered at their stops, `/dev/tty` as `fcntl(F_DUPFD)`, the leader's exit left to its
+reaper), `regs.rs` (the call from the registers, skipped with a value or made another, on x86_64 and aarch64),
+`answer.rs` (the answers of T-776, moved out of the supervisor so that both routes share them), `probe.rs` (both
+probes; the trace probe forks a child, seizes it, answers its `TIOCGWINSZ`, and reads its exit, with a bound
+that kills it only before the reap); `filter.rs` gives the program with `SECCOMP_RET_TRACE` and installs it
+with no listener; the grant takes notification, else ptrace, else the line discipline, and serve says when it
+traces. Doctor's line `pty ptrace`; the manual's note of serve and `docs/cli.md`.
+
+- `cargo test -p podssh-cli --test serve_tty`: 3 passed, three runs in three. Its new test runs serve behind a
+  Python wrapper that installs a filter with a listener (kept open across the exec), so serve's notification
+  gets EBUSY: serve says that it answers by ptrace, and bash gives `TTY-YES-24x80`, `DEVTTY-2` (`/dev/tty`
+  opens, as a copy of the socket, and is a tty), `AFTER-130` after Ctrl-C, less's screen and `LESS-DONE-0`,
+  and exit 9. T-776's test now reads `/dev/tty` the same way.
+- `podssh doctor` here: `pty ptrace  podssh serve can answer a program's tty calls by ptrace here`.
+- Planted (`scripts/plants/t777-dev-tty-refused.plant`, `/dev/tty` answered with ENXIO): caught. T-776's plant
+  moved to `answer.rs` with its code, and is caught.
+- Three defects found and repaired on the way: each `ptrace` call passed `addr` as a 32-bit 0 to a variadic
+  function, where the kernel reads a pointer; a tracee's stops come to its tracer's `waitid` with no
+  `WSTOPPED`, which the loop took for the leader's exit (it reads `si_code` now); and the probe's bound could
+  have killed a pid given again after the reap.

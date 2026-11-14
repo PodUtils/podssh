@@ -217,6 +217,7 @@ mod tests {
         assert!(store.load(&Service::hosted()).is_none());
         let mut kept = record();
         let path = store.save(&kept).unwrap();
+        assert!(path.is_file(), "{}", path.display());
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
