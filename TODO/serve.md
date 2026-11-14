@@ -332,8 +332,7 @@ and the plant `t108-whole-environment`. Merged, built and run by the main sessio
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,741 passed, 0 failed. Clippy and rustfmt clean. The
   build on Windows: the gate's job `windows`.
 
-Left after the merge: `cargo todo remap` on each cited file that the draft changed (`docs/cli.md`,
-`docs/STATUS.md`, `crates/podssh-ssh/src/signals.rs`, the handler, the CLI's files); the run in the
+The record's part of it is done (2026-11-14: `cargo todo check` and `cargo todo counts` agree; each citation was moved with its file since). Left: the run in the
 build image (T-251).
 
 # T-109: `podssh serve`: direct-tcpip into the cage
@@ -504,9 +503,7 @@ Merged, built and run by the main session the same day:
 - Clippy: `fetch_update` of the forward's count is `try_update` on Rust 1.99; then clean, and rustfmt clean.
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,756 passed, 0 failed.
 
-Left after the merge: `cargo todo remap` on each cited file that the draft changed
-(`crates/podssh-ssh/src/server/handler.rs`, `crates/podssh-ssh/src/server/mod.rs`, `docs/cli.md`,
-`docs/STATUS.md`, the CLI's files) and `cargo todo counts`; the run in the build image (T-251).
+The record's part of it is done (2026-11-14: `cargo todo check` and `cargo todo counts` agree; each citation was moved with its file since). Left: the run in the build image (T-251).
 
 # T-110: `podssh serve`: a real pty when `/dev/ptmx` exists
 
@@ -673,9 +670,7 @@ Merged, built and run by the main session the same day:
 - `cargo test -p podssh-ssh -p podssh-cli --no-fail-fast`: 2,773 passed, 0 failed. Clippy clean; rustfmt reflowed
   `channel.rs` and `terminal/modes.rs`. The build on Windows: the gate's job `windows`.
 
-Left after the merge: `cargo todo counts` (the status moved by hand in the entry and the index) and
-`cargo todo check`, as the citations were moved by a line diff of the draft, not by `cargo todo remap`;
-the run in the build image (T-251): `scripts/interop-pty.py` against serve and the `-tt` cases of
+The record's part of it is done (2026-11-14: `cargo todo check` and `cargo todo counts` agree; each citation was moved with its file since). Left: the run in the build image (T-251): `scripts/interop-pty.py` against serve and the `-tt` cases of
 `scripts/interop.sh`.
 
 # T-111: `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group
@@ -1292,11 +1287,7 @@ Found, not repaired here: serve does not check the user-presence flag of a secur
 checks by default (Decision): T-774. Since T-774's draft, `touch-required` and `verify-required` no longer refuse
 their line: serve checks the flags at login, as sshd does (T-774's Decision).
 
-Left after the merge: `cargo todo remap` on each cited file that the draft changed
-(`crates/podssh-ssh/src/server/authorized.rs`, `crates/podssh-ssh/src/server/handler.rs`,
-`crates/podssh-ssh/src/server/mod.rs`, `crates/podssh-ssh/src/server/env.rs`,
-`crates/podssh-ssh/src/server/direct.rs`, `crates/podssh-cli/src/serve.rs`, `docs/cli.md`,
-`docs/STATUS.md`) and `cargo todo counts` (the status moved by hand in the entry and the index); the
+The record's part of it is done (2026-11-14: `cargo todo check` and `cargo todo counts` agree; each citation was moved with its file since). Left: the
 run in the build image (T-251).
 
 # T-115: `podssh serve`: a TOTP second factor
@@ -2773,7 +2764,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2251-2252` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2242-2243` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".
