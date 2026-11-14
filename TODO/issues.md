@@ -305,6 +305,7 @@ and num-bigint 0.5) are T-754.
 | #239 | COORD-062: pod-relay: the client of the HTTP road's one-POST form (to podcrates) | closed 2026-11-14: given in podcrates `v0.42.0` (COORD-085), taken by podssh (COORD-064) | T-622 |
 | #240 | COORD-063: podssh took podcrates v0.41.0 at 6f77eaa (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.41.0` (its #143, closed) | T-684 |
 | #241 | COORD-064: podssh took podcrates v0.42.0 at 7e457b4 (to podcrates) | open (2026-11-14: posted) | T-684 |
+| #242 | COORD-065: pod-session: a spare link that moved no byte should back off before the next (to podcrates) | open (2026-11-14: posted) | T-781 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,
