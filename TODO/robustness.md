@@ -2515,6 +2515,13 @@ Partial, 2026-11-14: not made here. `cargo test -p podssh-cli --test m6_exit -- 
 passed five runs in five (20 s each), and the whole step with `--test-threads 1` passed (7 tests, 394 s). The
 node's later lines are now kept for the failure's text. It waits for the next failure.
 
+Again on 2026-11-14, at `02c0cf3` (the take of podcrates `v0.45.0`, run 43613233641): another test of the step,
+`iroh::the_iroh_road_survives_a_new_address`, did not end within 600 s. The client said only its known host;
+the node's lines end at "came in, by the door"; and both proxies logged a CONNECT to the stand-in relay again
+and again after the faults' clock started, the client's from its new address: each end kept dialing the relay,
+and no session's bytes ended. Here it passed five runs in five (29 to 35 s each), with the tag's pod-session.
+It passed each gate of the six before this one. It waits for its next failure, as the first did.
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
