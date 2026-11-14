@@ -221,7 +221,7 @@ pub(crate) fn settings() -> Settings {
 }
 
 /// The line of where the tunnel is kept.
-fn kept_line(path: Option<&PathBuf>, made: bool) -> String {
+pub(crate) fn kept_line(path: Option<&PathBuf>, made: bool) -> String {
     match (path, made) {
         (Some(path), true) => format!("a new tunnel, kept in {}", path.display()),
         (Some(path), false) => format!("the tunnel kept in {}", path.display()),

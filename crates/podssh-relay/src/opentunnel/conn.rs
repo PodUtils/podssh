@@ -41,13 +41,21 @@ pub enum Inbound {
 #[derive(Clone)]
 pub struct Outbox {
     control: mpsc::UnboundedSender<String>,
-    data: mpsc::Sender<Vec<u8>>,
+    data: mpsc::Sender<Queued>,
+}
+
+/// What waits in the data queue, in order: a connection's data frame, or a
+/// control message that must not pass the frames before it (its `end`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Queued {
+    Binary(Vec<u8>),
+    Text(String),
 }
 
 /// The writer's side of an [`Outbox`].
 pub struct Outgoing {
     pub control: mpsc::UnboundedReceiver<String>,
-    pub data: mpsc::Receiver<Vec<u8>>,
+    pub data: mpsc::Receiver<Queued>,
 }
 
 impl Outbox {
@@ -66,7 +74,16 @@ impl Outbox {
     /// Send a data frame, waiting while the queue is full; false once the
     /// bridge ended.
     pub async fn data(&self, frame: Vec<u8>) -> bool {
-        self.data.send(frame).await.is_ok()
+        self.data.send(Queued::Binary(frame)).await.is_ok()
+    }
+
+    /// Send a control message behind the data frames that wait: a
+    /// connection's end, which the control queue would let pass its last
+    /// frames, and the service would close the visitor's connection before
+    /// the end of its bytes (T-532: an answer cut short). False once the
+    /// bridge ended.
+    pub async fn end_after(&self, up: &Up<'_>) -> bool {
+        self.data.send(Queued::Text(up.text())).await.is_ok()
     }
 }
 
@@ -145,7 +162,8 @@ async fn up(
             () = reset_by(&mut reset) => return,
         };
         if n == 0 {
-            outbox.control(&Up::End { conn });
+            // Behind its last data frames, never before them.
+            let _ = outbox.end_after(&Up::End { conn }).await;
             return;
         }
         let sent = tokio::select! {
@@ -256,13 +274,21 @@ mod tests {
         visitor.read_exact(&mut got).await.unwrap();
         assert_eq!(&got, b"hello");
         visitor.write_all(&vec![1u8; 40 * 1024]).await.unwrap();
-        let first = out.data.recv().await.unwrap();
+        let binary = |q: Queued| match q {
+            Queued::Binary(frame) => frame,
+            other => panic!("a data frame, not {other:?}"),
+        };
+        let first = binary(out.data.recv().await.unwrap());
         assert_eq!(wire::split_frame(&first).map(|(c, p)| (c, p.len())), Some((7, wire::MAX_PAYLOAD)));
-        let second = out.data.recv().await.unwrap();
+        let second = binary(out.data.recv().await.unwrap());
         assert_eq!(wire::split_frame(&second).map(|(c, p)| (c, p.len())), Some((7, 8 * 1024)));
         visitor.shutdown().await.unwrap();
-        let end: serde_json::Value = serde_json::from_str(&out.control.recv().await.unwrap()).unwrap();
+        // The end comes behind the last frame, in the same queue, never
+        // before it by the control queue (T-532).
+        let Queued::Text(text) = out.data.recv().await.unwrap() else { panic!("the end, behind the data") };
+        let end: serde_json::Value = serde_json::from_str(&text).unwrap();
         assert_eq!(end, serde_json::json!({ "type": "end", "conn": 7 }));
+        assert!(out.control.try_recv().is_err(), "no end by the control queue");
         held.reset("OpenTunnel reset the connection (client_io_error)".into());
         let mut rest = Vec::new();
         let read = visitor.read_to_end(&mut rest).await.expect_err("a reset is no clean end");

@@ -306,6 +306,8 @@ pub mod shadowsocks;
 pub mod share;
 // `podssh funnel`: a local HTTP service at a public name (T-180).
 pub mod funnel;
+// `podssh funnel --opentunnel`: the funnel whose TLS ends here (T-532).
+pub mod funnel_opentunnel;
 // Commands of the settings file, shown and asked before they run (T-187).
 pub mod snippets;
 pub mod ssh;

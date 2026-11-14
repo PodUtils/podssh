@@ -406,7 +406,7 @@ pub const VERBS: &[Verb] = &[
     Verb { name: "share", aliases: &["share"], flags: SHARE_FLAGS,
         about: "a running node's local services by name, for its net: add, rm and ls, each reached as node://NODE/NAME" },
     Verb { name: "funnel", aliases: &["funnel"], flags: FUNNEL_FLAGS,
-        about: "a local HTTP service at a public https:// name, through a quick tunnel; TLS ends at Cloudflare's edge" },
+        about: "a local HTTP service at a public https:// name, through a quick tunnel (TLS ends at Cloudflare's edge) or OpenTunnel (TLS ends here)" },
     Verb { name: "chat", aliases: &["chat", "irc"], flags: CHAT_FLAGS,
         about: "messages and files with another podssh, end to end encrypted" },
     Verb { name: "cp", aliases: &["cp"], flags: CP_FLAGS,

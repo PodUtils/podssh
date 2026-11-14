@@ -397,8 +397,12 @@ member of the net").
   TARGET is `HOST:PORT`, `unix-connect:PATH` or `exec:CMD`, as `podssh pipe`
   names them, so that a node in a cage serves a socket or a program. TLS
   ends at Cloudflare's edge, which reads the traffic, and the node says so.
-  Where the quick tunnel's edge is out of reach, OpenTunnel can carry it,
-  with TLS that ends at the node (T-532).
+  With `--opentunnel`, or unasked where the quick tunnel cannot carry it
+  (Q76), OpenTunnel carries it, with TLS that ends at the node (T-532,
+  `crates/podssh-cli/src/funnel_opentunnel.rs`): one tunnel for the host's
+  funnels, whose bridge claims the tunnel's own name, `https://ID.DOMAIN/`;
+  each visitor's own connection of HTTP/1.1 goes to the same origin, its
+  answer framed as TARGET framed it, with `Connection: close`.
 
 ## 6. Carriers and standard servers
 

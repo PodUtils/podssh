@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-cli/src/funnel_opentunnel.rs b/crates/podssh-cli/src/funnel_opentunnel.rs
+--- a/crates/podssh-cli/src/funnel_opentunnel.rs
++++ b/crates/podssh-cli/src/funnel_opentunnel.rs
+@@ -118,7 +118,8 @@
+             let _ = told.send(());
+         }
+     };
+-    let routes = vec![ROOT_ROUTE.to_string()];
++    let routes = vec![node.record.route.clone()];
++    let _ = ROOT_ROUTE;
+     let reached = format!("a visitor opens {url}");
+     let bridges = far::bridges(&node, &routes, &reached, opened, attached);
+     tokio::pin!(bridges);

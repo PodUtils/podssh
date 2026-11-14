@@ -4823,7 +4823,7 @@ Results:
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4849,6 +4849,40 @@ HTTPS proxy with no WARP, and no third party reads its traffic.
 3. ALPN `http/1.1`, and `h2` only where podssh-ws's server serves it.
 4. As Q76 rules, a funnel that the quick tunnel cannot carry tries this road unasked.
 
+## Decision
+
+Made by the drafting agent of 2026-11-14, each with the alternative that lost:
+
+1. One tunnel for this host's funnels, kept as a node's is, under the label `-funnel`
+   (`opentunnel-HOST--funnel.json`), which no node's name can be, as none starts with `-`
+   (`crates/podssh-cli/src/funnel_opentunnel.rs`, `LABEL`); its bridge claims `@` alone, so the URL
+   is the tunnel's own name and stays across runs. Two funnels of one host at once meet the
+   service's `route_conflict`, which the second says and tries again after. Lost: a tunnel for each
+   TARGET, which spends one of the service's 30 tunnels an hour at each new spelling of a TARGET;
+   and a funnel on a node's tunnel, which has no NAME to find it by.
+2. ALPN `http/1.1` alone: podssh-ws has no server of HTTP/2 for a visitor (`h2_road` is a client,
+   and the quick tunnel's HTTP/2 serves the edge in cloudflared's framing). Lost: `h2`, which needs a
+   server of HTTP/2 of its own, an entry apart.
+3. T-180's origin serves the visitor's own connection (`Funnel::on_own_connections` of
+   `crates/podssh-relay/src/quick/funnel.rs`): one request for each connection, as on the edge's
+   road; the answer keeps TARGET's framing (a chunked body stays chunked, as the visitor reads it
+   itself) and says `Connection: close`, so that no visitor sends a second request on a connection
+   that ends. Lost: keep-alive, which needs a reader of each request's length on the visitor's side.
+4. The fallback of Q76 is for a funnel with no `--tunnel-token-file`: when the quick tunnel's API
+   does not answer or refuses, no road reaches port 7844 of the edge, or the edge refuses the
+   tunnel; it says why, its first tunnel has 20 s, and `PODSSH_OPENTUNNEL=no` turns it off. Lost: a
+   fallback of a named tunnel, whose names the user chose in their own account.
+5. The quick tunnel's URL goes to stdout once the edge registered the tunnel, no longer at once
+   (a change of T-180), so that a funnel that falls back prints one URL, which serves. Lost: the
+   URL at once and a second one at the fallback, where a script that reads the first line takes a
+   URL that never serves.
+6. An interim answer (`100 Continue`) is still dropped on a visitor's own connection, so a visitor
+   that sent `Expect` sends its body after its own wait (curl's 1 s). Lost: interim answers passed
+   on, a change of T-180's reader of an answer's head that the edge does not need.
+7. `podssh-relay`'s `opentunnel::far` keeps its bridge loop in `bridges`, which the node's
+   `serve_kept` and the funnel share, with the line of an attach in the caller's words. Lost: a copy
+   of the loop, its backoff and its renewals in the command line.
+
 ## Prove
 
 ```sh
@@ -4873,6 +4907,79 @@ module map is `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
 moved code then runs there.
+
+2026-11-14, the drafting agent, read again at the cited lines and in the code:
+
+- The Correction of 2026-11-05 above: podssh has taken no `pod-opentunnel`, nor `pod-cloudflare`
+  (`TODO/PROGRESS.md`, state item 7, lists the crates taken, and says that no file of podssh is
+  frozen), so the OpenTunnel road (`crates/podssh-relay/src/opentunnel/`) and T-180's origin
+  (`crates/podssh-relay/src/quick/funnel.rs`) are podssh's code, changed here.
+- Premise, item 1 holds: `crates/podssh-relay/src/quick/funnel.rs:32` says "pub const TLS_LINE".
+  Item 2: `docs/carriers.md` (the reverse road, item 6) says that the service reads the SNI alone
+  and that TLS ends at the client; the route `@` of the tunnel's own name is the protocol's, in
+  `crates/podssh-relay/src/opentunnel/wire.rs` (`ROOT_ROUTE`), not in that page.
+- Approach, item 1: T-180's origin reads one request on each pipe and drops a chunked answer's
+  framing, as the edge takes a body's bytes alone; on a visitor's own connection the answer keeps
+  its framing and says `Connection: close` (Decision 3).
+- Prove: the test of the command line runs T-530's stand-in server on the loopback, as T-531's
+  Correction made its test, not OpenTunnel's server in containers, which `opentunnel-interop.yml`
+  runs for the link. The planted defect "TLS ended with a certificate of another name" is none
+  that podssh's code can make: the service issues the certificate for the tunnel's name and its
+  wildcard, and the funnel presents it as the node does. The plant is instead the bridge that
+  claims the tunnel's random route in place of `@`, so the URL's name reaches no bridge; the test
+  of a WebSocket, which needs neither Python nor curl, fails with it.
+
+## Done
+
+2026-11-14, drafted (`DRAFT T-532`) by an agent that does not build, then merged, built and
+run by the main session. The merge found a defect of the OpenTunnel road that the draft could
+not see: a connection's end went out on the control queue, which the bridge's biased writer
+drains before the data queue, so the end of a visitor's connection could pass its last frames
+and the server cut the answer (curl's exit 52 or 18, three runs in five). It is repaired in
+`crates/podssh-relay/src/opentunnel/conn.rs` (`Queued`, `Outbox::end_after`: the end goes in
+the data queue, behind the frames) and `bridge.rs` (the writer sends either kind in order); the
+same defect could cut a node's sessions, and the node's road takes the repair too. The unit test
+of `conn.rs` now asserts the end's place behind the last frame.
+
+What changed:
+
+- `crates/podssh-cli/src/funnel_opentunnel.rs` (new): the funnel of the road: its tunnel under the
+  label `-funnel`, the bridge of `@`, TLS that ends here with ALPN `http/1.1`, T-180's origin on each
+  visitor's own connection, the URL on stdout once a bridge attached, the line "TLS ends at this
+  host; OpenTunnel sees the names, the times and the sizes.", and the line of Q76 when unasked;
+  unit tests of the URL, the label and the pump.
+- `crates/podssh-cli/src/funnel.rs`: `--opentunnel`, its refusals beside `--tunnel-token-file`
+  and `--warp` and with `PODSSH_OPENTUNNEL=no` (64), the fallback of Q76, and the quick tunnel's
+  URL once the edge registered it; `crates/podssh-cli/src/lib.rs`: the module;
+  `crates/podssh-cli/src/node_opentunnel.rs`: `kept_line` shared.
+- `crates/podssh-relay/src/opentunnel/far.rs`: `Node::acceptor` and `bridges`, the loop of the
+  bridge shared by the node and the funnel, with no change of the node's behaviour or lines.
+- `crates/podssh-relay/src/quick/funnel.rs`: `Funnel::on_own_connections`; two unit tests in
+  `crates/podssh-relay/src/quick/funnel_tests.rs`.
+- `crates/podssh-cli/src/flags/funnel.rs`, `crates/podssh-cli/src/flags.rs`: the row of
+  `--opentunnel` and the verb's line; `crates/podssh-cli/src/man/notes_funnel.rs`,
+  `crates/podssh-cli/src/man/facts/roads.rs`: the note of the road and `PODSSH_OPENTUNNEL`.
+- `crates/podssh-cli/tests/funnel_opentunnel.rs` (new): 4 tests against the stand-in server.
+- `scripts/plants/t532-route-not-root.patch` and `.plant`.
+- `docs/cli.md` (a section `podssh funnel`), `docs/mesh.md` (section 5), `SECURITY.md` (what
+  OpenTunnel sees of a funnel), `docs/STATUS.md`.
+
+Results:
+
+- `cargo test -p podssh-cli --test funnel_opentunnel`: 4 passed, five runs in five after the
+  repair (three in five failed before it).
+- `cargo test -p podssh-cli --lib funnel`: 4 passed.
+- `cargo test -p podssh-relay --features quick --lib quick::funnel`: 6 passed.
+- `cargo test -p podssh-relay --features opentunnel --test opentunnel_link` and
+  `cargo test -p podssh-cli --test opentunnel_road` (the bridge's loop moved): 7 and 4 passed;
+  `cargo test -p podssh-relay --features opentunnel --lib`: 96 passed.
+- `cargo test -p podssh-cli --test flag_table --test man_flag_parity`: 9 and 6 passed.
+- `cargo clippy --all-targets -p podssh-cli -p podssh-relay --all-features -- -D warnings`:
+  clean (`-D warnings -A clippy::collapsible_if`, as the gate runs it).
+- Planted (`scripts/plants/t532-route-not-root.plant`): caught, the WebSocket's test fails
+  (`sh scripts/plant-each.sh --here t532-route-not-root`: 1 caught, 0 missed).
+- What waits: a short live run through `opentunnel.xyz` (Q76, Q91), a step of
+  `opentunnel-live.yml` that curls a funnel's URL; not drafted.
 
 # T-533: The manual says which public services podssh tries last, and which it never names
 

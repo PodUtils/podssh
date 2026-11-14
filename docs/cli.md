@@ -5027,6 +5027,39 @@ own, and the forward road starts at the node.
   stream; a `node:` side beside it is refused (64), as one node is at the
   other end of a stream.
 
+## `podssh funnel`
+
+`podssh man funnel` gives the command (T-180): a local HTTP service at a
+public `https://` name, through a quick tunnel that podssh makes itself,
+whose TLS ends at Cloudflare's edge. The URL is the one line on stdout,
+once the edge registered the tunnel.
+
+- **`funnel TARGET --opentunnel` publishes through OpenTunnel** (T-532,
+  drafted 2026-11-14), whose TLS ends at this host
+  (`crates/podssh-cli/src/funnel_opentunnel.rs`). The funnel's tunnel is
+  made and kept as a node's is (T-530), under the label `-funnel`
+  (`opentunnel-HOST--funnel.json`), which no node's name can be, as none
+  starts with `-`: one tunnel for this host's funnels. Its bridge claims the
+  route `@`, the tunnel's own name, so the URL is `https://ID.DOMAIN/`, the
+  name that the service gave (`opentunnel.xyz`'s from `pod-services`, or the
+  service of `PODSSH_OPENTUNNEL`), on stdout once the bridge attached. Each
+  visitor's TLS ends here with the tunnel's certificate, offering
+  `http/1.1` alone, as podssh-ws serves no HTTP/2; the connection is then
+  T-180's origin on the visitor's own connection
+  (`Funnel::on_own_connections`): the request's head to TARGET with
+  `Connection: close`, its body as bytes, the answer as TARGET framed it
+  (a chunked one in its chunks) with `Connection: close`, and a WebSocket's
+  upgrade and its frames untouched. stderr says "TLS ends at this host;
+  OpenTunnel sees the names, the times and the sizes." No `--allow`: the
+  URL is public. `--opentunnel` with `--tunnel-token-file` or `--warp` is
+  64; with `PODSSH_OPENTUNNEL=no` it is 64 too.
+- **A funnel that the quick tunnel cannot carry takes it unasked** (the
+  operator's ruling Q76): with no token file, when the quick tunnel's API
+  does not answer or refuses, or no road reaches port 7844 of the edge, or
+  the edge refuses the tunnel, the funnel says why and serves the
+  OpenTunnel road, its first tunnel within 20 s. `PODSSH_OPENTUNNEL=no`
+  turns that off, and the quick tunnel's refusal stands.
+
 ## `podssh pipe`
 
 `podssh man pipe` gives the command (T-174). The rules behind it:

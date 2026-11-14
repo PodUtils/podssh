@@ -12,6 +12,12 @@
 //! TARGET is dialed by the caller's [`Dial`]: TCP, a Unix socket or a
 //! program's stdin and stdout (`podssh pipe`'s addresses), so that a node in
 //! a cage where loopback is refused still serves a socket or a program.
+//!
+//! The same origin serves a visitor's own connection of HTTP/1.1, whose TLS
+//! the node ended itself (the OpenTunnel road, T-532:
+//! [`Funnel::on_own_connections`]): there the answer goes as TARGET framed
+//! it, chunks and all, with `Connection: close`, as the visitor's connection
+//! ends with its one answer.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -42,11 +48,21 @@ pub type Say = Arc<dyn Fn(String) + Send + Sync>;
 pub struct Funnel {
     dial: Dial,
     say: Say,
+    /// Each pipe is a visitor's own connection, not the edge's request.
+    own: bool,
 }
 
 impl Funnel {
     pub fn new(dial: Dial, say: Say) -> Funnel {
-        Funnel { dial, say }
+        Funnel { dial, say, own: false }
+    }
+
+    /// A funnel whose pipes are visitors' own connections of HTTP/1.1, with
+    /// no edge between: an answer keeps its framing, which the visitor reads
+    /// itself, and says `Connection: close`, so that no visitor sends a
+    /// second request on a connection that ends with the first answer.
+    pub fn on_own_connections(self) -> Funnel {
+        Funnel { own: true, ..self }
     }
 }
 
@@ -57,9 +73,9 @@ impl Origin for Funnel {
 
     fn connect(&self, _: Option<std::net::IpAddr>) -> DuplexStream {
         let (theirs, ours) = tokio::io::duplex(PIPE);
-        let (dial, say) = (self.dial.clone(), self.say.clone());
+        let (dial, say, own) = (self.dial.clone(), self.say.clone(), self.own);
         tokio::spawn(async move {
-            if let Err(why) = carry(ours, dial).await {
+            if let Err(why) = carry(ours, dial, own).await {
                 say(why);
             }
         });
@@ -72,8 +88,9 @@ impl Origin for Funnel {
 }
 
 /// One request from `edge`, the node's side of the origin's pipe, to a new
-/// connection of TARGET, and its answer back.
-async fn carry(mut edge: DuplexStream, dial: Dial) -> Result<(), String> {
+/// connection of TARGET, and its answer back; `own` when the pipe is a
+/// visitor's own connection.
+async fn carry(mut edge: DuplexStream, dial: Dial, own: bool) -> Result<(), String> {
     let (head, rest) = read_head(&mut edge).await?;
     let websocket = upgrades(&head);
     let head = if websocket { head } else { closing(&head) };
@@ -110,7 +127,12 @@ async fn carry(mut edge: DuplexStream, dial: Dial) -> Result<(), String> {
             }
         };
         let switched = status_of(&head) == Some(101);
-        if switched || !chunked(&head) {
+        if own && !switched {
+            // The visitor reads TARGET's framing itself; its connection ends here.
+            to_edge.write_all(&closing(&head)).await.map_err(|e| e.to_string())?;
+            to_edge.write_all(&rest).await.map_err(|e| e.to_string())?;
+            let _ = tokio::io::copy(&mut from_target, &mut to_edge).await;
+        } else if switched || !chunked(&head) {
             // A length, an end at the close, or a WebSocket's frames: as they are.
             to_edge.write_all(&head).await.map_err(|e| e.to_string())?;
             to_edge.write_all(&rest).await.map_err(|e| e.to_string())?;
@@ -238,7 +260,8 @@ fn rewritten(head: &[u8], drop: &[&str], add: &str) -> Vec<u8> {
     out.into_bytes()
 }
 
-/// A request's head with `Connection: close`: TARGET's close ends its answer.
+/// A head with `Connection: close`: TARGET's close ends its answer, and a
+/// visitor's own connection ends with that answer.
 fn closing(head: &[u8]) -> Vec<u8> {
     rewritten(head, &["connection", "keep-alive"], "Connection: close\r\n")
 }

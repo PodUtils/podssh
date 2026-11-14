@@ -1,0 +1,9 @@
+# T-532: the funnel's bridge claims the tunnel's random route in place of
+# `@`, the tunnel's own name, so the URL that the funnel prints reaches no
+# bridge: the service closes each visitor of it, and the test of a
+# WebSocket through the funnel against the stand-in OpenTunnel server must
+# fail.
+ENTRY=T-532
+GROUP=cli-tests
+EXPECT='test a_websocket_passes_through_the_funnel_and_a_funnel_started_again_keeps_its_url \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test funnel_opentunnel -- a_websocket_passes_through_the_funnel_and_a_funnel_started_again_keeps_its_url'

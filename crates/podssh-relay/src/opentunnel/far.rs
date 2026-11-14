@@ -14,7 +14,7 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
-use podssh_ws::tls_server::{self, Served};
+use podssh_ws::tls_server::{self, Served, TlsAcceptor};
 use rand::RngExt;
 use tokio::io::{AsyncRead, AsyncWrite};
 
@@ -67,6 +67,13 @@ impl Node {
     /// The name that a client dials: the node's route under the tunnel.
     pub fn name(&self) -> String {
         self.record.name()
+    }
+
+    /// The TLS of the tunnel's certificate, offering `alpn`: the node's
+    /// sessions offer none, a funnel's visitors `http/1.1` (T-532). A
+    /// renewed certificate reaches each acceptor through `served`.
+    pub fn acceptor(&self, alpn: &[&[u8]]) -> Result<TlsAcceptor, String> {
+        tls_server::acceptor_for(self.served.clone(), alpn)
     }
 }
 
@@ -126,21 +133,11 @@ where
             }
         });
     }
-    let renewal = tokio::spawn(renew(
-        node.api.clone(),
-        node.record.clone(),
-        node.store.clone(),
-        node.served.clone(),
-        node.say.clone(),
-    ));
-    let acceptor = match tls_server::acceptor_for(node.served.clone(), &[]) {
+    let acceptor = match node.acceptor(&[]) {
         Ok(acceptor) => acceptor,
-        Err(why) => {
-            renewal.abort();
-            return format!("the node's TLS: {why}");
-        }
+        Err(why) => return format!("the node's TLS: {why}"),
     };
-    let (say, name) = (node.say.clone(), node.name());
+    let say = node.say.clone();
     let routes = vec![node.record.route.clone()];
     let opened = |visitor: Visitor| {
         let (acceptor, keeper, open, say) = (acceptor.clone(), keeper.clone(), open.clone(), say.clone());
@@ -154,15 +151,39 @@ where
             far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
         });
     };
+    let reached = format!("a client dials {}", node.name());
+    bridges(&node, &routes, &reached, opened, || {}).await
+}
+
+/// Keep a bridge of `node` that claims `routes`, attached again after each
+/// loss, and its certificate renewed meanwhile: each visitor's connection
+/// goes to `opened`, still encrypted, and `attached` is called at each
+/// attach, whose line ends with `reached`. It ends only when the service
+/// refuses the tunnel's token, or knows no tunnel: why. Both the node of the
+/// road and a funnel (T-532) serve their visitors through it.
+pub async fn bridges<F, T>(node: &Node, routes: &[String], reached: &str, opened: F, attached: T) -> String
+where
+    F: Fn(Visitor) + Send + Sync,
+    T: Fn() + Send + Sync,
+{
+    let renewal = tokio::spawn(renew(
+        node.api.clone(),
+        node.record.clone(),
+        node.store.clone(),
+        node.served.clone(),
+        node.say.clone(),
+    ));
+    let say = node.say.clone();
     let (mut attempt, mut attached_once) = (0u32, false);
     let why = loop {
-        match bridge::attach(&node.api, &node.record.id, &node.record.token, &routes).await {
-            Ok((session, attached)) => {
+        match bridge::attach(&node.api, &node.record.id, &node.record.token, routes).await {
+            Ok((session, answered)) => {
                 attempt = 0;
                 let again = if attached_once { " again" } else { "" };
-                say(format!("attached{again} to OpenTunnel at {}: a client dials {name}", node.api.service()));
+                say(format!("attached{again} to OpenTunnel at {}: {reached}", node.api.service()));
                 attached_once = true;
-                let ended = bridge::serve(session, &attached, &node.record.hostname, &routes, &opened).await;
+                attached();
+                let ended = bridge::serve(session, &answered, &node.record.hostname, routes, &opened).await;
                 say(format!("the bridge to OpenTunnel ended: {ended}"));
             }
             Err(Failed::Fatal(why)) => break why,

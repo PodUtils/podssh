@@ -9,7 +9,12 @@
 //! `podssh pipe` names them (T-174 to T-176), so that a node in a cage where
 //! loopback is refused serves a socket or a program. The URL is public, so
 //! there is no `--allow`; TLS ends at Cloudflare's edge, and the first lines
-//! say so. stdout holds the URL alone.
+//! say so. stdout holds the URL alone, once the edge registered the tunnel.
+//!
+//! With `--opentunnel` (T-532) the funnel takes the OpenTunnel road instead,
+//! whose TLS ends at this host ([`crate::funnel_opentunnel`]); and a funnel
+//! with no token file that the quick tunnel cannot carry takes that road
+//! unasked, by the operator's ruling Q76, unless `PODSSH_OPENTUNNEL=no`.
 
 use std::io::Write;
 use std::pin::Pin;
@@ -24,7 +29,7 @@ use podssh_relay::quick::register::Connector;
 use podssh_relay::quick::{api, token};
 use podssh_ws::ProxyChoice;
 use tokio::io::{AsyncRead, AsyncWrite, DuplexStream, ReadBuf};
-use tokio::sync::watch;
+use tokio::sync::{oneshot, watch};
 
 use crate::exitmap::{sysexits, Fault};
 use crate::node_warp::WarpRoad;
@@ -40,6 +45,8 @@ pub struct FunnelArgs {
     pub tunnel_token_file: Option<String>,
     /// `--warp`: the edge inside WARP's tunnel first.
     pub warp: bool,
+    /// `--opentunnel`: the OpenTunnel road, whose TLS ends here (T-532).
+    pub opentunnel: bool,
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
@@ -50,6 +57,7 @@ impl FunnelArgs {
             target: matches.get_one::<String>("target").cloned(),
             tunnel_token_file: matches.get_one::<String>("tunnel-token-file").cloned(),
             warp: matches.get_flag("warp"),
+            opentunnel: matches.get_flag("opentunnel"),
             refused,
         }
     }
@@ -76,6 +84,9 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Ok(target) => target,
         Err(refusal) => return refusal.report("funnel", err),
     };
+    if let Err(refusal) = check(args) {
+        return refusal.report("funnel", err);
+    }
     if args.warp && !cfg!(feature = "warp") {
         let message = crate::ssh::cloud::warp::not_built("--warp");
         return Refusal { message, code: crate::exit_codes::EXIT_NOT_IMPLEMENTED }.report("funnel", err);
@@ -85,6 +96,18 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Ok(named) => named,
         Err(refusal) => return refusal.report("funnel", err),
     };
+    // PODSSH_OPENTUNNEL, read before anything connects: the road asked, or
+    // the one that a funnel of the quick tunnel falls back on (Q76).
+    let opentunnel = match (named.is_some(), crate::funnel_opentunnel::service()) {
+        (true, _) => None,
+        (false, Ok(service)) => service,
+        (false, Err(refusal)) => return refusal.report("funnel", err),
+    };
+    if args.opentunnel && opentunnel.is_none() {
+        let words = format!("--opentunnel: {}=no turns the OpenTunnel road off", podssh_relay::opentunnel::ENV);
+        return Refusal::usage(words).report("funnel", err);
+    }
+    let road = Road { named, warp: args.warp, opentunnel, asked: args.opentunnel };
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
@@ -92,7 +115,7 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             return Fault::SessionFault.code();
         }
     };
-    let code = runtime.block_on(Box::pin(serve(text.to_string(), target, named, args.warp, out, err)));
+    let code = runtime.block_on(Box::pin(serve(text.to_string(), target, road, out, err)));
     runtime.shutdown_background();
     code
 }
@@ -104,30 +127,74 @@ fn read_token(path: &str) -> Result<api::Tunnel, Refusal> {
     token::read(&text).map_err(|why| Refusal::config(format!("--tunnel-token-file {path}: {why}")))
 }
 
-async fn serve(
-    shown: String,
-    target: Address,
+/// The flags of the roads, checked before anything is read.
+fn check(args: &FunnelArgs) -> Result<(), Refusal> {
+    if args.opentunnel && args.tunnel_token_file.is_some() {
+        return Err(Refusal::usage(
+            "--opentunnel and --tunnel-token-file name two roads: a named tunnel of Cloudflare's, or OpenTunnel's",
+        ));
+    }
+    if args.opentunnel && args.warp {
+        return Err(Refusal::usage("--warp reaches Cloudflare's edge: --opentunnel does not take it"));
+    }
+    Ok(())
+}
+
+/// The road of a funnel: the quick tunnel's, or a named one; OpenTunnel's
+/// when it is asked, or as the fallback of Q76.
+struct Road {
     named: Option<api::Tunnel>,
     warp: bool,
-    out: &mut dyn Write,
-    err: &mut dyn Write,
-) -> i32 {
-    let say: Say = Arc::new(|line: String| podssh_ssh::err_line!("podssh funnel: {line}"));
-    let (proxy, trust) = (ProxyChoice::FromEnvironment, crate::pairs::trust(None));
+    /// The OpenTunnel service, where the road is on and no token names a tunnel.
+    opentunnel: Option<podssh_relay::opentunnel::Service>,
+    asked: bool,
+}
+
+async fn serve(shown: String, target: Address, road: Road, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let (stop, stopped) = watch::channel(false);
     tokio::spawn(async move {
         crate::node_upgrade::stop_signal().await;
         let _ = stop.send(true);
     });
+    let dial = dial_of(target);
+    let Road { named, warp, opentunnel, asked } = road;
+    if let (true, Some(service)) = (asked, opentunnel.clone()) {
+        return crate::funnel_opentunnel::serve(&shown, dial, service, None, stopped, out, err).await;
+    }
+    let refusal = match quick(&shown, dial.clone(), named, warp, stopped.clone(), out, err).await {
+        Ok(code) => return code,
+        Err(refusal) => refusal,
+    };
+    match opentunnel {
+        // Q76: the quick tunnel could not carry it, so OpenTunnel's road.
+        Some(service) => {
+            let why = format!("the quick tunnel could not carry the funnel ({})", refusal.message);
+            crate::funnel_opentunnel::serve(&shown, dial, service, Some(why), stopped, out, err).await
+        }
+        None => refusal.report("funnel", err),
+    }
+}
+
+/// The funnel through a quick tunnel, or the named one of `named`: the exit
+/// code once it stopped, or why the edge did not carry it.
+async fn quick(
+    shown: &str,
+    dial: Dial,
+    named: Option<api::Tunnel>,
+    warp: bool,
+    stopped: watch::Receiver<bool>,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> Result<i32, Refusal> {
+    let say: Say = Arc::new(|line: String| podssh_ssh::err_line!("podssh funnel: {line}"));
+    let (proxy, trust) = (ProxyChoice::FromEnvironment, crate::pairs::trust(None));
     let tunnel = match named {
         Some(tunnel) => tunnel,
         None => match api::request(&trust, &proxy, &*say).await {
             Ok(tunnel) => tunnel,
-            Err(api::Failed::ForNow(why)) => {
-                return Refusal { message: why, code: sysexits::EX_TEMPFAIL }.report("funnel", err)
-            }
+            Err(api::Failed::ForNow(why)) => return Err(Refusal { message: why, code: sysexits::EX_TEMPFAIL }),
             Err(api::Failed::Refused(why)) => {
-                return Refusal { message: why, code: Fault::RelayUnreachable.code() }.report("funnel", err)
+                return Err(Refusal { message: why, code: Fault::RelayUnreachable.code() })
             }
         },
     };
@@ -137,13 +204,10 @@ async fn serve(
     };
     let _ = writeln!(err, "podssh funnel: serving {shown} at {at} until Ctrl-C");
     let _ = writeln!(err, "podssh funnel: {TLS_LINE}");
-    if !tunnel.hostname.is_empty() {
-        let _ = writeln!(out, "https://{}", tunnel.hostname);
-        let _ = out.flush();
-    }
-    let origin: Arc<dyn Origin> = Arc::new(Funnel::new(dial_of(target), say.clone()));
+    let origin: Arc<dyn Origin> = Arc::new(Funnel::new(dial, say.clone()));
     // Each path is TARGET's: no visitor's WebSocket comes to this closure.
     let visit = Visitors { visit: |_: DuplexStream| async {}, origin: Some(origin) };
+    let hostname = tunnel.hostname.clone();
     let connector = Arc::new(Connector {
         account_tag: tunnel.account_tag.clone(),
         secret: tunnel.secret.clone(),
@@ -153,21 +217,42 @@ async fn serve(
         arch: crate::node_quick::arch(),
     });
     let roads = crate::node_quick::edge_roads(proxy, WarpRoad::new(warp), say.clone());
-    let ready = Box::new(|| crate::detach::ready("funnel"));
+    // The URL goes out once the edge registered the tunnel, so that a
+    // funnel that falls back on OpenTunnel (Q76) prints one URL, which serves.
+    let (told, mut first) = oneshot::channel::<()>();
+    let ready = Box::new(move || {
+        crate::detach::ready("funnel");
+        let _ = told.send(());
+    });
     let connections = crate::node_quick::CONNECTIONS;
     let keep = Keep { connector, visit, roads, say: say.clone(), ready, connections };
-    let message = match keep::keep(keep, stopped).await {
+    let keeping = keep::keep(keep, stopped);
+    tokio::pin!(keeping);
+    let mut printed = false;
+    let kept = loop {
+        tokio::select! {
+            kept = &mut keeping => break kept,
+            got = &mut first, if !printed => {
+                printed = true;
+                if got.is_ok() && !hostname.is_empty() {
+                    let _ = writeln!(out, "https://{hostname}");
+                    let _ = out.flush();
+                }
+            }
+        }
+    };
+    let message = match kept {
         Ok(()) => {
             say("stopped".into());
-            return 0;
+            return Ok(0);
         }
-        Err(Gone::Refused(message)) => return Refusal { message, code: Fault::Auth.code() }.report("funnel", err),
+        Err(Gone::Refused(message)) => return Err(Refusal { message, code: Fault::Auth.code() }),
         Err(Gone::Unreached(why)) => format!(
             "{why}; a funnel needs port 7844 of Cloudflare's edge: UDP for QUIC, TCP directly or through a proxy \
              that allows it, or TCP inside WARP's tunnel"
         ),
     };
-    Refusal { message, code: Fault::RelayUnreachable.code() }.report("funnel", err)
+    Err(Refusal { message, code: Fault::RelayUnreachable.code() })
 }
 
 /// A new connection to `target` for each request.
@@ -251,6 +336,20 @@ mod tests {
         assert!(matches!(target_of("exec:python3 -m http.server").unwrap(), Address::Exec(_)));
         for refused in ["stdio", "node:lab", "tcp-listen:8080", "no-port-here"] {
             assert!(target_of(refused).is_err(), "{refused}");
+        }
+    }
+
+    #[test]
+    fn opentunnel_takes_no_token_file_and_no_warp() {
+        let base = || FunnelArgs { target: Some("127.0.0.1:8080".into()), opentunnel: true, ..FunnelArgs::default() };
+        assert!(check(&base()).is_ok());
+        for (flag, args) in [
+            ("--tunnel-token-file", FunnelArgs { tunnel_token_file: Some("token".into()), ..base() }),
+            ("--warp", FunnelArgs { warp: true, ..base() }),
+        ] {
+            let refusal = check(&args).unwrap_err();
+            assert_eq!(refusal.code, 64, "{flag}: {}", refusal.message);
+            assert!(refusal.message.contains(flag), "{flag}: {}", refusal.message);
         }
     }
 }

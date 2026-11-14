@@ -19,7 +19,7 @@ use podssh_ws::{frame, Frame, RelaySession, SessionError};
 use tokio::sync::mpsc;
 
 use super::api::Api;
-use super::conn::{self, Held, Inbound, Outbox, Visitor};
+use super::conn::{self, Held, Inbound, Outbox, Queued, Visitor};
 use super::dial::BoxIo;
 use super::wire::{self, codes, Down, Up};
 use super::Service;
@@ -174,7 +174,10 @@ where
                 let sent = tokio::select! {
                     biased;
                     Some(text) = outgoing.control.recv() => session.send_text(&text).await,
-                    Some(frame) = outgoing.data.recv() => session.send_binary(&frame).await,
+                    Some(queued) = outgoing.data.recv() => match queued {
+                        Queued::Binary(frame) => session.send_binary(&frame).await,
+                        Queued::Text(text) => session.send_text(&text).await,
+                    },
                     else => return String::new(),
                 };
                 if let Err(e) = sent {

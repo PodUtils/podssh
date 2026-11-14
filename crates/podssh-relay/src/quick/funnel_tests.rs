@@ -81,3 +81,26 @@ async fn a_target_that_does_not_answer_the_dial_is_a_502_and_a_line() {
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     assert!(said.lock().unwrap().iter().any(|l| l.contains("connection refused")));
 }
+
+#[tokio::test]
+async fn on_a_visitor_s_own_connection_an_answer_keeps_its_chunks_and_says_close() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let answer: &[u8] =
+        b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: keep-alive\r\n\r\n5\r\nhello\r\n0\r\n\r\n";
+    let funnel = Funnel::new(target(answer, seen.clone()), Arc::new(|_| {})).on_own_connections();
+    let got = ask(&funnel, b"GET /x HTTP/1.1\r\nHost: a.example\r\n\r\n").await;
+    let want = "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n5\r\nhello\r\n0\r\n\r\n";
+    assert_eq!(String::from_utf8(got).unwrap(), want);
+    let request = String::from_utf8(seen.lock().unwrap().clone()).unwrap();
+    assert!(request.contains("Connection: close\r\n"), "{request}");
+}
+
+#[tokio::test]
+async fn on_a_visitor_s_own_connection_a_101_passes_unchanged() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let answer: &[u8] = b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\nFRAMES";
+    let funnel = Funnel::new(target(answer, seen.clone()), Arc::new(|_| {})).on_own_connections();
+    let request = b"GET /ws HTTP/1.1\r\nHost: a.example\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n";
+    let got = ask(&funnel, request).await;
+    assert_eq!(got.as_slice(), answer, "the 101 and the frames as TARGET sent them");
+}

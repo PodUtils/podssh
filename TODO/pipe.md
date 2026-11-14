@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6222`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6255`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:339-443` a typed error, so that 77 is not
    guessed from a message.
@@ -413,7 +413,7 @@ shows that an AF_UNIX or loopback bind works (`docs/design.md:1188-1190`).
   configure the address and can turn listening off.
 - Read: five documents still say that podssh never listens:
   `AGENTS.md:332-360`, `docs/architecture.md:284-301`,
-  `docs/target-environment.md:99-103`, `SECURITY.md:263-298`, `README.md:47-56`.
+  `docs/target-environment.md:99-103`, `SECURITY.md:274-309`, `README.md:47-56`.
 - Read: sandbox A refuses an AF_INET bind and allows an AF_UNIX bind
   (`docs/STATUS.md:521`). The box refuses each `bind`, AF_UNIX too
   (`scripts/box/seccomp.json:11-18`), so it gives the refused case.
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:734-738`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:6349-6351`). After the attach, send the window size again.
+   (`docs/cli.md:6382-6384`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-159`), `docs/design.md:734-738`,
    `docs/STATUS.md`, and tmux in the interop image

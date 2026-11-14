@@ -47,6 +47,17 @@ the answers, never a body. The token of `--tunnel-token-file FILE` is the
 credential of a tunnel of the user's account: it is read from FILE alone,
 and goes in no argument, line or URL.
 
+A funnel through OpenTunnel (`podssh funnel TARGET --opentunnel`, T-532, and
+unasked where the quick tunnel cannot carry a funnel, Q76) ends TLS at this
+host, with the key of the tunnel's name, which never leaves it, and the
+certificate that the service got for that name: OpenTunnel sees the names,
+the times and the sizes, never a request or an answer, and the first lines
+say so ("TLS ends at this host; OpenTunnel sees the names, the times and the
+sizes."). It is still public: there is no end-to-end channel and no key of
+a visitor's, and anyone who learns the name reaches TARGET. The tunnel's
+token and key are kept as a node's tunnel's are, in a private file of the
+cache.
+
 Between two podssh ends (a node and its operator, on either road), each
 session runs the end-to-end channel (T-088): Noise XX above the resumable
 layer. The relay then sees the layer's records (offsets, acknowledgements,

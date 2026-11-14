@@ -46,7 +46,7 @@ Read on 2026-11-13.
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now. Awaited: the tag with pod-term's mode that follows a termios (COORD-055).
-8. **Drafts.** In work: T-532's on `draft-t532`. Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** In work: none. Merged on 2026-11-14: T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -86,7 +86,7 @@ item whenever it appears.
 6. **T-576** (live): read the `VERDICT` of `httprelay-probe.yml` of 2026-11-13; with 2026-11-14's,
    close it as never answered, or go on to step 2.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
-   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-532 (a draft in work); T-545, T-695 and T-496 are blocked on
+   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-532 (done); T-545, T-695 and T-496 are blocked on
    podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237). podcrates' `v0.41.0`, in
    release, brings pod-term's termios mode (COORD-055, #232): take it, then T-776. Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
@@ -125,7 +125,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 51 open, 32 partial, 17 blocked, 633 done.
+`TODO/INDEX.md` holds 733 entries: 50 open, 32 partial, 17 blocked, 634 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -156,7 +156,7 @@ operator interrupts it.
    (COORD-054, #231) and the mended forms of the file hosts (COORD-053, #230) for T-738. Awaited: the
    tag with pod-term's mode that follows a termios (COORD-055, #232), for T-776.
 4. The testers' defects, then their features (Q84, Q85): the defects first among the `none`
-   entries, P1 before any other; their features (T-532, T-545, T-566, T-567, T-575,
+   entries, P1 before any other; their features (T-545, T-566, T-567, T-575,
    T-576, which Q74, Q75, Q77, Q78 and Q82 filed) by priority, beside
    M10. Between entries: the `none` entries, the highest priority first, but for the testers'.
    Dependabot's #123 waits for an iroh-dns that takes simple-dns 0.13.
@@ -200,7 +200,7 @@ parts are named so that the open ones read in their place):
    frp's are done), upterm's door (done) and a second Piping Server (done), T-496 and T-499
    parked; then what the triage of the sweep of public relays filed, as Q74 to Q79 rule:
    OpenTunnel's road (Q76, done), and the manual's word on the public services that podssh uses
-   and the ones it never names (done); T-532 is parked; then what the rulings Q74, Q75, Q77, Q78
+   and the ones it never names (done); the funnel through OpenTunnel (done); then what the rulings Q74, Q75, Q77, Q78
    and Q82 filed, the P2 ones first: Tailscale's main DERP fleet after tailcat's (done), the public
    Wisp servers made for it (done: none qualifies), Pinggy (done) and the public proxy nodes
    (done); then the research of the overlay networks (NetBird, Firezone, ZeroTier, Tox,
@@ -243,7 +243,7 @@ it can start.
 | T-161 | T-159 is done: a far end keeps a shell, its ring and its pty after the client leaves |
 | T-303 | T-110 is done: `podssh serve` has a pty; and T-161 has a model of the far end's screen |
 | T-304 | T-303 is done: frames of the screen exist |
-| T-532 | T-180 and T-530 are done: `podssh funnel` and OpenTunnel's link exist |
+| T-532 | Started on 2026-11-14 from its draft: T-180 and T-530 are done, so `podssh funnel` and OpenTunnel's link exist |
 | T-496 | T-086 is done: the pairing's exchange exists over a mailbox |
 | T-499 | draft-ietf-httpbis-connect-tcp is an RFC, and a server over HTTP/2 or HTTP/1.1 implements it |
 | T-545 | T-086 is done: the pairing's exchange exists over a mailbox |

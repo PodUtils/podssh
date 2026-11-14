@@ -1,10 +1,10 @@
-//! The notes of `podssh funnel` (T-180), apart from the others so that each
-//! file stays short.
+//! The notes of `podssh funnel` (T-180, and its OpenTunnel road, T-532),
+//! apart from the others so that each file stays short.
 
 pub const FUNNEL: &[&str] = &[
     "podssh funnel TARGET publishes a local HTTP service at a public https:// name, as Tailscale's funnel does, \
      through a quick tunnel that podssh makes itself, with no cloudflared, no relay and no listener: the name is a \
-     new NAME.trycloudflare.com for each run, and the one line on stdout. TARGET is HOST:PORT or tcp:HOST:PORT, \
+     new NAME.trycloudflare.com for each run, and the one line on stdout once the edge registered the tunnel. TARGET is HOST:PORT or tcp:HOST:PORT, \
      dialed from this host as podssh pipe dials one; unix-connect:PATH, a service on a Unix socket; or exec:CMD, a \
      program started for each request, its stdin the request and its stdout the answer, as inetd starts one. A \
      host whose sandbox refuses a connection to the loopback still serves a socket or a program.",
@@ -27,4 +27,18 @@ pub const FUNNEL: &[&str] = &[
      as the quick tunnel of podssh node does: QUIC on UDP port 7844 where no proxy is set, else HTTP/2 on TCP port \
      7844, directly or through HTTPS_PROXY, and with --warp inside WARP's tunnel first; it keeps two connections, \
      and connects again after a loss with the same name, until Ctrl-C.",
+    "--opentunnel publishes through OpenTunnel, a blind TLS tunnel with no account (https://opentunnel.xyz, or \
+     the service of PODSSH_OPENTUNNEL), in place of a quick tunnel. Its TLS ends at this host: the funnel makes \
+     one tunnel for this host's funnels, with a key that never leaves it and a certificate of the tunnel's own \
+     name that the service gets for it, keeps both in the cache, and serves the name https://ID.opentunnel.xyz/, \
+     the one line on stdout once its bridge attached, and the same at each run. The first lines say: \"TLS ends \
+     at this host; OpenTunnel sees the names, the times and the sizes.\" Each visitor's connection comes over \
+     the funnel's bridge, a WebSocket through HTTPS_PROXY, so it leaves a cage of an HTTPS proxy with no WARP. \
+     The funnel offers HTTP/1.1 alone; each request goes to TARGET as above, and its answer as TARGET framed it, \
+     with Connection: close; a WebSocket passes through. The name is public, as a quick tunnel's is, so there is \
+     no --allow. By the operator's ruling Q76, a funnel with no token file that the quick tunnel cannot carry \
+     (no answer of its API, or no road to port 7844 of the edge) takes this road unasked, says why, and tries \
+     for 20 s at most; PODSSH_OPENTUNNEL=no turns that off. --opentunnel takes neither --tunnel-token-file nor \
+     --warp (64). Two funnels of one host at once share the tunnel's name, which one bridge holds: the second \
+     says so, and tries again until the first stops.",
 ];

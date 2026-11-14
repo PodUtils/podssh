@@ -162,8 +162,9 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
         &["PODSSH_OPENTUNNEL"],
         "The OpenTunnel road (T-531), which the operator's ruling Q76 lets podssh take unasked for a node with no \
           other road: a blind TLS tunnel with no account, https://opentunnel.xyz by default, of podssh node \
-          --opentunnel and podssh ssh node://NAME --opentunnel-name. no: no such road, and the flags are refused \
-          (64); an https://HOST[:PORT] URL: that service in place of OpenTunnel's, whose certificates the trust of \
+          --opentunnel and podssh ssh node://NAME --opentunnel-name, and of podssh funnel --opentunnel (T-532), \
+          which a funnel that the quick tunnel cannot carry takes unasked. no: no such road, and the flags are \
+          refused (64); an https://HOST[:PORT] URL: that service in place of OpenTunnel's, whose certificates the trust of \
           --ca-file checks; unset, empty or yes: the default. Another word is a configuration error (78), which \
           does not echo the value.",
     ),

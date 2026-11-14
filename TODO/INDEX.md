@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 51 open, 32 partial, 17 blocked, 633 done.**
+**733 entries: 50 open, 32 partial, 17 blocked, 634 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 40 | 11 | 11 | 284 | 346 |
-| **All** | 51 | 32 | 17 | 633 | 733 |
+| P3 | 39 | 11 | 11 | 285 | 346 |
+| **All** | 50 | 32 | 17 | 634 | 733 |
 
 ## Entries
 
@@ -579,7 +579,7 @@ repository and CI).
 | [T-512](cli.md) | P3 | S | none | docs | done | The help and the manual leave out eight facts that the report of 2026-11-02 found by trial or after a refusal |
 | [T-530](mesh.md) | P2 | L | M10 | feature | done | OpenTunnel, a blind TLS tunnel with no account, as a carrier of the reverse road |
 | [T-531](mesh.md) | P2 | M | M10 | feature | done | The OpenTunnel road in the command line: `podssh node --opentunnel` and `ssh node://` |
-| [T-532](mesh.md) | P3 | M | M10 | feature | open | `podssh funnel` through OpenTunnel, with TLS that ends at the node |
+| [T-532](mesh.md) | P3 | M | M10 | feature | done | `podssh funnel` through OpenTunnel, with TLS that ends at the node |
 | [T-533](mesh.md) | P3 | S | M10 | docs | done | The manual says which public services podssh tries last, and which it never names |
 | [T-534](mesh.md) | P2 | M | M10 | feature | done | Tailscale's main DERP fleet after tailcat's: a short test that it lets podssh in, then the fallback |
 | [T-535](mesh.md) | P2 | M | M10 | feature | done | The public Wisp servers that their operators run for that use, as forwarders after the demo server |
