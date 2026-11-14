@@ -85,7 +85,7 @@ item whenever it appears.
    (COORD-055, #232) for T-776. Answer each take with a COORD issue.
 6. **T-576** (done, 2026-11-14): the demo of HTTP Relay never answered on three days.
 7. **Then the open work by its order** (below): T-111's box step (M5; T-113 is blocked behind T-776); then T-598's run in the build image (T-251; T-772 is done; T-585 is blocked on pod-warp's words, COORD-057, #234) (the
-   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-532 (done); T-545, T-695 and T-496 are blocked on
+   `none` entries); then M10's P3 entries: T-566's and T-567's live runs, once podcrates names their services (COORD-059, #236); T-575 is blocked on serv00's entry in pod-services (COORD-061, #238); T-532 (done); T-545, T-695 and T-496 are blocked on
    podcrates' meeting points of the pairing (COORD-058, #235; COORD-060, #237). podcrates' `v0.41.0`, in
    release, brings pod-term's termios mode (COORD-055, #232): take it, then T-776. Each with its Prove, one entry at a time.
 8. **What waits on others, not tonight:** T-625 and T-665 (the throughput host's secrets), T-106
@@ -124,7 +124,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 733 entries: 50 open, 31 partial, 17 blocked, 635 done.
+`TODO/INDEX.md` holds 733 entries: 49 open, 31 partial, 18 blocked, 635 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

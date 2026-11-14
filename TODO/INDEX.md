@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 50 open, 31 partial, 17 blocked, 635 done.**
+**733 entries: 49 open, 31 partial, 18 blocked, 635 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
 | P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 39 | 10 | 11 | 286 | 346 |
-| **All** | 50 | 31 | 17 | 635 | 733 |
+| P3 | 38 | 10 | 12 | 286 | 346 |
+| **All** | 49 | 31 | 18 | 635 | 733 |
 
 ## Entries
 
@@ -614,7 +614,7 @@ repository and CI).
 | [T-572](mesh.md) | P3 | M | M10 | research | done | File hosts and paste sites as a carrier that stores and forwards: the research |
 | [T-573](mesh.md) | P3 | S | M10 | research | done | VMess's protocol: the research, for the public proxy nodes that speak it alone |
 | [T-574](mesh.md) | P2 | M | M10 | feature | done | The public proxy nodes of aggregator lists (VLESS, Trojan) as a last fallback of the forward road |
-| [T-575](mesh.md) | P3 | S | M10 | feature | open | serv00's public Piping Server as the third server of the Piping Server road |
+| [T-575](mesh.md) | P3 | S | M10 | feature | blocked | serv00's public Piping Server as the third server of the Piping Server road |
 | [T-576](mesh.md) | P3 | S | M10 | feature | done | HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces |
 | [T-577](mesh.md) | P3 | S | M10 | research | done | Bare servers as a hop to a WebSocket road: the research |
 | [T-578](mesh.md) | P3 | L | M10 | feature | done | Tor's onion services: a node reached by its onion address, through the Tor road |

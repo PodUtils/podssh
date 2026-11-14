@@ -301,6 +301,7 @@ and num-bigint 0.5) are T-754.
 | #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | open (2026-11-14: answered, podcrates' entries 550 and 551) | T-545, T-695 |
 | #236 | COORD-059: pod-services: srv.us and tunnl.gg as services of the kind ssh-tunnel (to podcrates) | open (2026-11-14: answered, podcrates' entry 552 in work) | T-566, T-567 |
 | #237 | COORD-060: pod-wormhole: an ntfy topic as a meeting point of the pairing where a proxy refuses the WebSocket upgrade (to podcrates) | open (2026-11-14: posted) | T-496 |
+| #238 | COORD-061: pod-services: serv00's public Piping Server as the third of kind piping (to podcrates) | open (2026-11-14: posted) | T-575 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

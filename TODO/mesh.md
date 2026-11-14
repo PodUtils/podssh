@@ -9929,7 +9929,7 @@ nodes. `proxy-lists-interop.yml` from Actions (run 43307736465): 2 passed. The e
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -9963,6 +9963,15 @@ Three of nwtgck's servers on the loopback, the first two stopped: the node and t
 the third. Live, a short run through it (T-548's Decision). Planted: the third server tried before the second,
 and the test of the order fails.
 
+## Blocker
+
+PodUtils/podcrates: the road reads its public servers from `pod-services`, in the order of their
+`[rank]`, and holds no host of its own; the catalog at podssh's tag (`v0.40.0`) has `ppng-piping` and
+`onrender-piping` only. COORD-061 (GitHub #238, 2026-11-14) asks for `serv00-piping`, rank 2, with
+`streams-request-body = false`. Once a tag holds it, podssh takes the tag, extends
+`the_public_servers_are_ppng_io_then_onrender_which_holds_bodies` and the test of the order to the
+third server, and runs the short live exchange.
+
 ## Start condition
 
 T-497 is done: the road has public servers in order.
@@ -9985,6 +9994,14 @@ stand-in) goes to `pod-piping` of PodUtils/podcrates (T-684; the waves are in Q1
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
+
+2026-11-14, step 1 is measured (the measurement), from a cloud session through its agent proxy, short:
+`https://p.kokoro.serv00.net/version` and the name with `www.` answer `1.12.9` (Piping Server); a POST
+of 64 KiB met by a GET on a random path came through whole (`cmp`). A POST of `FIRST`, 6 s, `SECOND`
+reached the GET only as it ended (both at 8.1 s), where `ppng.io` through the same proxy gave `FIRST`
+at 2.8 s: serv00 holds a body to its end, as the archive read, so the road sends it numbered pieces,
+as on `piping.onrender.com`. Steps 2 and 3 need no code of podssh: `public()` takes each server of
+kind `piping` by rank, `holds_bodies()` reads the fact, and `PODSSH_PIPING` keeps one server.
 
 # T-576: HTTP Relay's demo server as a last fallback, in the Piping Server road's pieces
 
