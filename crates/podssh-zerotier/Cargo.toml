@@ -19,7 +19,7 @@ stand-in = ["tokio/net"]
 libc = { workspace = true }
 # TCP over the network's frames: the userspace stack of smoltcp, with its
 # listener.
-pod-netstack = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }
+pod-netstack = { git = "https://github.com/PodUtils/podcrates", tag = "v0.45.0" }
 sha2 = { workspace = true }
 tokio = { workspace = true }
 
@@ -29,4 +29,4 @@ cc = "1.2"
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread"] }
 # The relay of the live run, as podssh names no host of a third party.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.45.0" }

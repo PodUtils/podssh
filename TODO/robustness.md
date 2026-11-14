@@ -2577,6 +2577,14 @@ Live, 2026-11-14, `last-roads-live.yml` at `6fdf175` (run 43577144823): localhos
 128 KiB down, whole), as did srv.us, tunnl.gg, Sandhole, localtunnel and bore; the Bare hop failed on
 openbare.xyz's own 500, T-740's blocker.
 
+2026-11-14, podcrates `v0.45.0` (COORD-097) answers COORD-065 with its T-579: pod-session's wait for a spare
+doubles after each spare that took the session and moved no byte, up to its 30 s, and the first byte that moves
+sets it back (`beside.rs`, `SpareWait`). podssh keeps its rule of no spare where each road is a third party's
+tunnel of HTTP: there a spare goes through the same holder, and several replays would still be lost before the
+wait passed localhost.run's 13 s; the back-off now guards each other road. Lost: spares on again for the
+tunnels (a client that moves would resume within seconds, not 30 s, at the cost of those replays), which the
+live job of the tunnels would have to measure first.
+
 # T-783: `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit
 
 **Source:** the gate of `1c4c440` (2026-11-14, run 43564870189, job `gate (ssh)`).

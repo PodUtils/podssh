@@ -22,8 +22,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.44.0"` (COORD-094, PodUtils/podcrates#154; podssh's answer is
-COORD-067). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.45.0"` (COORD-097, PodUtils/podcrates#157; podssh's answer is
+COORD-068). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
@@ -44,12 +44,15 @@ COORD-067). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 - `v0.44.0` (taken 2026-11-14) carries no change of podssh's crates (a fix of security in pod-extract for podvm,
   pod-hold's socket rules for podnet, pod-actions-workflow for podrunner): the bump of the tag only. Its next
   tag carries podcrates T-579, the answer to COORD-065.
+- `v0.45.0` (taken 2026-11-14) carries podcrates T-579, pod-session's wait for a spare that doubles after a spare
+  that moved no byte (COORD-065, #242, closed; T-781 keeps its rule for the tunnels of HTTP), T-560, pod-relay's
+  one-POST form over HTTP/2, a fix of pod-proxy that names no password of a Unix proxy's URL, and `Road::dial_alpn`
+  (podssh builds no `Road` by a literal): no change of podssh's code.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
-| #242 (COORD-065) | podcrates: pod-session's spare links back off after a spare that moved no byte (T-781) |
 
 ## The live runs and interop harnesses
 
