@@ -47,16 +47,19 @@ const LINES: usize = 128;
 /// A pty request granted with serve as the line discipline, from the
 /// request until the program starts; then its sizes, for window changes.
 pub(super) struct LineGrant {
-    term: String,
-    utf8: bool,
-    size: watch::Sender<Size>,
+    pub(super) term: String,
+    pub(super) utf8: bool,
+    pub(super) size: watch::Sender<Size>,
+    /// Whether serve answers the child's tty calls (T-776), in place of
+    /// the line discipline on pipes.
+    pub(super) notify: bool,
 }
 
 impl LineGrant {
     pub(super) fn new(term: &str, cols: u32, rows: u32, modes: &[(Pty, u32)]) -> LineGrant {
         let utf8 = modes.iter().any(|(mode, on)| *mode == Pty::IUTF8 && *on != 0);
         let (size, _) = watch::channel(size_of(cols, rows));
-        LineGrant { term: super::pty::term_of(term), utf8, size }
+        LineGrant { term: super::pty::term_of(term), utf8, size, notify: false }
     }
 
     /// A window change: the discipline draws the line at the new width.

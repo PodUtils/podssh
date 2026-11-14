@@ -121,6 +121,19 @@ pub(super) fn pty_devpts() -> (Verdict, bool) {
     }
 }
 
+/// Whether `podssh serve` can answer a child's tty calls by seccomp's user
+/// notification (T-776): serve's own probe, on a thread that ends at once.
+/// A fact, never a failure.
+#[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+pub(super) fn pty_notify() -> Verdict {
+    match podssh_ssh::server::notify::probe() {
+        Ok(()) => {
+            ok("podssh serve can answer a program's tty calls here (seccomp's user notification), where no pty opens")
+        }
+        Err(why) => ok(format!("none: {why}; where no pty opens, podssh serve is the line discipline on pipes")),
+    }
+}
+
 /// Bind a TCP socket to 127.0.0.1 port 0, listen once with a backlog of 1,
 /// accept nothing, and close it (T-358).
 pub(super) fn bind_inet() -> Verdict {

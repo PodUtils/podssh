@@ -1,0 +1,7 @@
+# T-776: serve answers the child's TCGETS on its tty socket with EIO, so
+# `test -t 0` (isatty) is false there and bash runs with no tty: the test
+# of bash on a tty that serve answers must fail.
+ENTRY=T-776
+GROUP=cli-tests
+EXPECT='test bash_sees_a_tty_that_serve_answers_with_no_pty \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test serve_tty -- bash_sees_a_tty_that_serve_answers_with_no_pty'

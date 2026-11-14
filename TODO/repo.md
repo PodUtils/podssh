@@ -1155,7 +1155,7 @@ sees it.
 Read:
 
 - `docs/STATUS.md:477-491`: the box, measured by hand on 2026-10-08.
-- `scripts/test_in_box.sh:301-304`: the box runs `probe.sh`, then
+- `scripts/test_in_box.sh:306-309`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
@@ -1164,8 +1164,8 @@ Read:
   in a required property (17 properties, `docs/STATUS.md:484`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
-- The box uses `--disable-dns` (`scripts/test_in_box.sh:212`) and a mask on
-  `/dev/pts` (`scripts/test_in_box.sh:312`). Nobody measured the Podman of a
+- The box uses `--disable-dns` (`scripts/test_in_box.sh:217`) and a mask on
+  `/dev/pts` (`scripts/test_in_box.sh:317`). Nobody measured the Podman of a
   GitHub runner with them.
 - The box reaches the live relay and `github.com` through its proxy.
 
@@ -2483,7 +2483,7 @@ Read:
   it".
 - `scripts/box/probe.sh:109-118` checks an AF_INET listen only, and expects the
   refusal. `doctor` probes both families
-  (`crates/podssh-cli/src/doctor/host.rs:43-44`).
+  (`crates/podssh-cli/src/doctor/host.rs:46-47`).
 - A seccomp filter compares the arguments of a call as numbers. It cannot read
   the address that `bind` gets through a pointer, so it cannot refuse AF_INET
   and allow AF_UNIX.

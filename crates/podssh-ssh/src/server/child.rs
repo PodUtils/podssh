@@ -79,7 +79,12 @@ pub(super) fn spawn(
     if open.pty.is_some() {
         return super::pty_child::spawn(open, id, shell, program, env);
     }
-    if open.line.is_some() {
+    if let Some(grant) = open.line.as_ref() {
+        #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+        if grant.notify {
+            return super::notify::spawn(open, id, shell, program, env);
+        }
+        let _ = grant;
         return super::line::spawn(open, id, shell, program, env);
     }
     let mut cmd = command(shell, &program, env)?;

@@ -23,6 +23,8 @@ mod handler;
 pub mod host_key;
 #[cfg(unix)]
 mod line;
+#[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+pub mod notify;
 pub mod options;
 #[cfg(unix)]
 pub mod pty;
@@ -128,12 +130,15 @@ pub struct Settings {
 /// `--pty`: what a pty request that no pty serves meets (T-111).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum PtyMode {
-    /// A real pty, then a devpts instance of serve's own, then serve as the
-    /// line discipline on pipes.
+    /// A real pty, then a devpts instance of serve's own, then a tty that
+    /// serve answers (Linux), then serve as the line discipline on pipes.
     #[default]
     Auto,
     /// Serve as the line discipline, with no pty tried.
     Line,
+    /// A tty that serve answers by seccomp's user notification, with no pty
+    /// tried; else the request is refused (Linux on x86_64 and aarch64).
+    Notify,
     /// A real pty or a devpts instance; else the request is refused.
     No,
 }
@@ -144,6 +149,7 @@ impl PtyMode {
         match value {
             "auto" => Some(PtyMode::Auto),
             "line" => Some(PtyMode::Line),
+            "notify" => Some(PtyMode::Notify),
             "no" => Some(PtyMode::No),
             _ => None,
         }

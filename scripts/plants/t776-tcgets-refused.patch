@@ -1,0 +1,13 @@
+diff --git a/crates/podssh-ssh/src/server/notify/supervisor.rs b/crates/podssh-ssh/src/server/notify/supervisor.rs
+index 6686727..ba04c5c 100644
+--- a/crates/podssh-ssh/src/server/notify/supervisor.rs
++++ b/crates/podssh-ssh/src/server/notify/supervisor.rs
+@@ -208,7 +208,7 @@ impl Supervisor {
+             Err(poisoned) => poisoned.into_inner(),
+         };
+         match cmd {
+-            TCGETS => put(&shared.bytes(TERMIOS)),
++            TCGETS => Answer::Error(libc::EIO),
+             TCGETS2 => put(&shared.bytes(TERMIOS2)),
+             TCSETS | TCSETSW | TCSETSF | TCSETS2 | TCSETSW2 | TCSETSF2 => {
+                 let len = if matches!(cmd, TCSETS | TCSETSW | TCSETSF) { TERMIOS } else { TERMIOS2 };

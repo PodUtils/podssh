@@ -22,7 +22,7 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
     row(None, "no-shell", None, FlagKind::Supported,
         "run no command and no shell: each such request is refused, and no shell is looked for", None),
     row(None, "pty", Some("MODE"), FlagKind::Supported,
-        "what a pty request meets where no pty opens: auto, a devpts instance of serve's own and then serve as the line discipline on pipes (echo, editing, Ctrl-C to the command); line, the line discipline with no pty tried; no, the request refused (default: auto)", None),
+        "what a pty request meets where no pty opens: auto, a devpts instance of serve's own, then a tty whose calls serve answers (Linux), then serve as the line discipline on pipes (echo, editing, Ctrl-C to the command); notify, the tty that serve answers with no pty tried, else the request refused; line, the line discipline with no pty tried; no, the request refused (default: auto)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
 ];

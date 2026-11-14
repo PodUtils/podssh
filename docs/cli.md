@@ -5784,6 +5784,37 @@ gives up each capability of the process (T-698), before it reads a file.
   slave has no path, so the child gets no `SSH_TTY`. A host that refuses
   `unshare` or `mount` refuses this; doctor's line `pty devpts` names the
   step and its errno.
+- **A tty that serve answers (T-776).** On Linux (x86_64 and aarch64),
+  where no pty opens, a `pty-req` is granted with a tty in user space
+  (route 2a of T-248's study, `docs/research/serve-tty.md`;
+  `crates/podssh-ssh/src/server/notify/`). The program's descriptors 0 to
+  2 are one `AF_UNIX` stream socket; between its fork and its exec, serve's
+  code in the child sets `PR_SET_NO_NEW_PRIVS` and a seccomp filter with a
+  new listener, which sends each `ioctl` of the tty family (`0x54xx`) and
+  each `open` and `openat` to serve as a user notification, and sends the
+  listener back over a socket pair; the program itself gets no code of
+  serve's. A thread of serve's answers: a call on another descriptor goes
+  on to the kernel (`kcmp`, else `pidfd_getfd`, else `/proc/PID/fd`, tell
+  the socket from the others); the termios requests, `TCGETS2` and its
+  family, the window size, the foreground group and the session are
+  answered from one state, written into the program's memory
+  (`process_vm_writev`, else `/proc/PID/mem`); a request that a tty has and
+  this one does not answer is `ENOTTY`; an open of `/dev/tty` gets a copy of
+  the socket (`SECCOMP_IOCTL_NOTIF_ADDFD`). The same state drives
+  pod-term's termios mode between the client and the socket: echo, editing
+  and `ISIG` as the program set them, SIGINT, SIGQUIT and SIGTSTP to the
+  foreground group that `TIOCSPGRP` named, `OPOST` on the program's output,
+  `VSTOP` and `VSTART`, and SIGWINCH at a `window-change` or `TIOCSWINSZ`.
+  What differs from a pty: Ctrl-D on an empty line ends the program's input
+  for good (a socket reads 0 bytes only at its end); a program that reads
+  two lines at once may get both; `VMIN` and `VTIME` are not kept. A host
+  whose filter already holds a listener (EBUSY), or that refuses `seccomp`
+  or the program's memory, refuses this; `podssh doctor`'s line `pty
+  notify` runs the same probe as serve, once for the process: a thread
+  installs the filter, asks `TCGETS` of a socket, and the answer must come
+  back. `--pty notify` takes this route with no pty tried and refuses the
+  request where it fails; `--pty auto` takes it after a real pty and a
+  devpts instance, before the line discipline.
 - **The line discipline where no pty opens (T-111).** With `--pty auto`
   (the default), a `pty-req` that neither a master nor a devpts instance
   serves is granted with serve as the line discipline: pod-term's cooked

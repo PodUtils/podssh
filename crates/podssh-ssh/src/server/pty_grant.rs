@@ -25,7 +25,7 @@ pub(super) fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>)
     if open.started() || open.pty.is_some() || open.line.is_some() {
         return false;
     }
-    if settings.pty != PtyMode::Line {
+    if !matches!(settings.pty, PtyMode::Line | PtyMode::Notify) {
         let paths = settings.ptmx.clone().unwrap_or_else(|| pty::PTMX.iter().map(std::path::PathBuf::from).collect());
         let devpts = settings.devpts.unwrap_or(settings.ptmx.is_none());
         if let Ok(pair) = pty::open_with(&paths, devpts) {
@@ -36,16 +36,29 @@ pub(super) fn grant_pty(open: &mut Open, settings: &Settings, asked: &Asked<'_>)
             }
         }
     }
-    // No pty: serve is the line discipline (T-111), where the mode lets it.
-    let line = match settings.pty {
-        PtyMode::Line => true,
-        PtyMode::No => false,
-        PtyMode::Auto => settings.ptmx.is_none(),
+    // No pty: a tty that serve answers (T-776), else serve is the line
+    // discipline (T-111), where the mode lets it.
+    let (line, notify) = match settings.pty {
+        PtyMode::Line => (true, false),
+        PtyMode::No => (false, false),
+        PtyMode::Notify => (notify_here(), true),
+        PtyMode::Auto => (settings.ptmx.is_none(), notify_here()),
     };
     if line {
-        open.line = Some(LineGrant::new(asked.term, asked.cols, asked.rows, asked.modes));
+        let mut grant = LineGrant::new(asked.term, asked.cols, asked.rows, asked.modes);
+        grant.notify = notify;
+        open.line = Some(grant);
     }
     line
+}
+
+/// Whether serve can answer a child's tty calls on this host (T-776).
+#[cfg(unix)]
+fn notify_here() -> bool {
+    #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+    return super::notify::probe().is_ok();
+    #[allow(unreachable_code)]
+    false
 }
 
 /// On Windows a pty request fails: serve runs no program there.

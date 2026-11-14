@@ -303,6 +303,7 @@ and num-bigint 0.5) are T-754.
 | #237 | COORD-060: pod-wormhole: an ntfy topic as a meeting point of the pairing where a proxy refuses the WebSocket upgrade (to podcrates) | open (2026-11-14: posted) | T-496 |
 | #238 | COORD-061: pod-services: serv00's public Piping Server as the third of kind piping (to podcrates) | open (2026-11-14: posted) | T-575 |
 | #239 | COORD-062: pod-relay: the client of the HTTP road's one-POST form (to podcrates) | open (2026-11-14: posted) | T-622 |
+| #240 | COORD-063: podssh took podcrates v0.41.0 at 6f77eaa (to podcrates) | open (2026-11-14: posted) | T-684 |
 
 **The survey of #59, of 2026-10-31.** It extends #18 and the study of
 carriers of the same day (`docs/carriers.md`, whose forward road is T-347,

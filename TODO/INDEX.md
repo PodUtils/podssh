@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**733 entries: 48 open, 32 partial, 18 blocked, 635 done.**
+**733 entries: 50 open, 32 partial, 15 blocked, 636 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 4 | 2 | 3 | 72 | 81 |
-| P2 | 7 | 19 | 3 | 276 | 305 |
-| P3 | 37 | 11 | 12 | 286 | 346 |
-| **All** | 48 | 32 | 18 | 635 | 733 |
+| P2 | 8 | 19 | 1 | 277 | 305 |
+| P3 | 38 | 11 | 11 | 286 | 346 |
+| **All** | 50 | 32 | 15 | 636 | 733 |
 
 ## Entries
 
@@ -187,7 +187,7 @@ repository and CI).
 | [T-110](serve.md) | P2 | M | M5 | feature | partial | `podssh serve`: a real pty when `/dev/ptmx` exists |
 | [T-111](serve.md) | P2 | L | M5 | feature | partial | `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group |
 | [T-112](serve.md) | P2 | M | M5 | feature | partial | An SFTP server in `podssh serve` |
-| [T-113](serve.md) | P2 | M | M5 | measurement | blocked | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
+| [T-113](serve.md) | P2 | M | M5 | measurement | open | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
 | [T-114](serve.md) | P2 | M | backlog | feature | partial | `podssh serve`: access rules for each key and command |
 | [T-115](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: a TOTP second factor |
 | [T-116](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: an audit log |
@@ -806,6 +806,6 @@ repository and CI).
 | [T-773](mesh.md) | P2 | M | M10 | defect | done | The file-host road carries small writes in its note, so the end-to-end handshake ends within 30 s |
 | [T-774](serve.md) | P2 | S | M5 | defect | done | `podssh serve` checks the user-presence flag of a security key's signature, as sshd does by default |
 | [T-775](serve.md) | P2 | M | M5 | feature | done | `podssh serve` gives a pty from a new devpts instance where `/dev/ptmx` is missing and `unshare` is allowed |
-| [T-776](serve.md) | P2 | L | M5 | feature | blocked | `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens |
-| [T-777](serve.md) | P3 | M | M5 | feature | blocked | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
+| [T-776](serve.md) | P2 | L | M5 | feature | done | `podssh serve` answers a child's tty calls by seccomp user notification where no pty opens |
+| [T-777](serve.md) | P3 | M | M5 | feature | open | `podssh serve` answers a child's tty calls by ptrace where user notification is refused |
 | [T-778](repo.md) | P2 | S | M5 | chore | done | The box has a profile that refuses `unshare`, `mount` and `ptrace`, as the real sandboxes do |

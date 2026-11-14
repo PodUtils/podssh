@@ -80,7 +80,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         None => PtyMode::Auto,
         Some((_, Some(mode))) => mode,
         Some((value, None)) => {
-            let _ = writeln!(err, "podssh serve: --pty takes auto, line or no, not {value:?}");
+            let _ = writeln!(err, "podssh serve: --pty takes auto, notify, line or no, not {value:?}");
             return EXIT_USAGE;
         }
     };

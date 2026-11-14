@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:164-170`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:6367-6427`
+   so that only the notes change. No document changes: `docs/cli.md:6398-6458`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6241-6341`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6272-6372`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6251-6254`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:6282-6285`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6241-6341`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6272-6372`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -684,7 +684,7 @@ Read:
 - The lookup runs before `record`, so a changed or revoked key in a readable
   file is still refused (`crates/podssh-ssh/src/hostkey.rs:88-161`).
 - `podssh doctor` fails when the default file cannot be written
-  (`crates/podssh-cli/src/doctor/host.rs:79-106`).
+  (`crates/podssh-cli/src/doctor/host.rs:82-109`).
 
 Not measured here: each case needs a server.
 
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:6367-6427` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:6398-6458` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:473`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:6390-6395`). A person who types slowly must not meet a limit
+  `docs/cli.md:6421-6426`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:173-174`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:6425-6427` asks for a limit on the whole operation.
+   `docs/cli.md:6456-6458` asks for a limit on the whole operation.
 
 ## Decision
 

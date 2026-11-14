@@ -1025,7 +1025,7 @@ and `--lib -- sftp`: 5 and 30 passed, no `podssh-*` left in `/tmp`.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -1046,7 +1046,7 @@ out with matching digests.
   (`docs/relay.md:557`; measured: `docs/STATUS.md:530`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
-  `connect()` (`scripts/test_in_box.sh:55-62`).
+  `connect()` (`scripts/test_in_box.sh:60-67`).
 
 ## Approach
 
@@ -1083,13 +1083,6 @@ session that continues, and two 200 MiB copies with equal digests. The grep
 shows the rows recorded for the box and for the real sandbox, with their
 dates.
 
-## Blocker
-
-The Prove's `vi` and `less` need a tty in the box, which has no `/dev/ptmx` and refuses `unshare` (T-778), as
-the real sandboxes do: only route 2 of T-248 gives one there (T-776, T-777), and those wait for PodUtils/podcrates
-to give `pod-term` a line discipline that follows a termios (COORD-055, #232; podcrates' entry 539, in work).
-Once podssh takes that tag and T-776 is done, this entry opens again.
-
 ## Correction
 
 The premise that no podssh code can give the child a tty where `/dev/ptmx` is
@@ -1099,6 +1092,8 @@ stays (`docs/decisions.md:101`).
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
+
+2026-11-14. The blocker ended with the take of podcrates `v0.41.0` and T-776's route 2a. It said: The Prove's `vi` and `less` need a tty in the box, which has no `/dev/ptmx` and refuses `unshare` (T-778), as the real sandboxes do: only route 2 of T-248 gives one there (T-776, T-777), and those wait for PodUtils/podcrates to give `pod-term` a line discipline that follows a termios (COORD-055, #232; podcrates' entry 539, in work). Once podssh takes that tag and T-776 is done, this entry opens again.
 
 # T-114: `podssh serve`: access rules for each key and command
 
@@ -1724,8 +1719,8 @@ Correction):
   any channel holds some (`vendor/russh/src/server/session.rs:704` and `vendor/russh/src/server/session.rs:814`).
   But serve's output never puts data there: each output goes through a channel's writer, which waits
   for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
-  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:230`) reads 32 KiB, and reads
-  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:257`). Approach items 1 and 2
+  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:235`) reads 32 KiB, and reads
+  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:262`). Approach items 1 and 2
   were done by T-108 and T-110; this entry proves them. A `Handle::data` loop is held too: russh's
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
@@ -2222,7 +2217,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
-  (`crates/podssh-cli/src/doctor/unix.rs:124-247`).
+  (`crates/podssh-cli/src/doctor/unix.rs:137-260`).
 - Read in the report of GitHub #18, not verified here: sandhole can take SSH
   on its HTTPS port, and quic-ssh falls back to TLS over TCP on one port.
 
@@ -2300,7 +2295,7 @@ no reason (`docs/target-environment.md:88-89`).
 - Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:522`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
-  (`crates/podssh-cli/src/doctor/host.rs:238-240`).
+  (`crates/podssh-cli/src/doctor/host.rs:241-243`).
 - Read in the report, not verified here: `rssh-org/rssh:src-tauri/src/terminal/pty.rs`
   checks the exec bit; a directory `sh` and a data file `dash` pass `exists()`.
 
@@ -2375,7 +2370,7 @@ the entry joins the work order by its priority.
   noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:469`, `docs/STATUS.md:489`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
   The Prove's `docs/STATUS.md:467` is `docs/STATUS.md:469`.
-- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:224`.
+- doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:227`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
   start of a data file of mode 0755 can succeed, and only its status tells. Each candidate is
@@ -2432,7 +2427,7 @@ criterion of M5 (T-113) needs them.
 ## Premise
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
-  (`crates/podssh-cli/src/doctor/unix.rs:95-127`). Both real sandboxes have no
+  (`crates/podssh-cli/src/doctor/unix.rs:95-140`). Both real sandboxes have no
   `/dev/ptmx` (`docs/STATUS.md:522`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
@@ -2764,7 +2759,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2242-2243` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2237-2238` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".
@@ -3189,7 +3184,7 @@ namespace, so it would pass; the plant is the route never tried (`t775-devpts-ne
 **Milestone:** M5
 **Priority:** P2
 **Effort:** L
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -3231,11 +3226,52 @@ Through `podssh serve --stdio` with no `/dev/ptmx` and `unshare` refused: `test 
 ending `sleep 30` with 130, and vi, less and top with their screens read. Planted defect: `TCGETS`
 answered with an error; `test -t 0` then fails, and the test fails.
 
-## Blocker
+## Correction
 
-PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055,
-#232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): its supervisor answers the tty calls from a termios state that drives that mode. podssh takes it by
-that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
+2026-11-14. The blocker ended: podcrates `v0.41.0` gave `pod_term::termios` (COORD-055, #232), and podssh
+took it (`6f77eaa`, COORD-063). It said: PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055, #232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): its supervisor answers the tty calls from a termios state that drives that mode. podssh takes it by that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
+
+The probe of a `pty-req` asks `TIOCGWINSZ`, not `TCGETS`, so that the Prove's planted `TCGETS` shows in the
+session and not as a host that refuses. `--pty notify` asks for this route alone (refused where the probe
+fails); `--pty auto` takes it after a real pty and devpts, before the line discipline of T-111.
+
+## Done
+
+2026-11-14. `crates/podssh-ssh/src/server/notify/`: `filter.rs`, the program of the study's probe
+(the tty family of `ioctl`, `open` and `openat` to serve; another architecture's numbers to the kernel),
+installed between the fork and the exec after `PR_SET_NO_NEW_PRIVS`, its listener sent back by
+`SCM_RIGHTS`; `reach.rs`, the socket told by `kcmp`, else `pidfd_getfd`, else `/proc/PID/fd`, and the
+child's memory by `process_vm_readv` and `process_vm_writev`, else `/proc/PID/mem`; `supervisor.rs`, a
+thread that answers `TCGETS`, `TCGETS2`, the six `TCSETS*`, `TIOCGWINSZ` and `TIOCSWINSZ`, `TIOCGPGRP` and
+`TIOCSPGRP`, `TIOCGSID`, `TCFLSH`, `TCXONC` and the requests with no effect here from one state, passes the
+socket's own (`FIONREAD`, `FIONBIO` and the like) and each other descriptor's to the kernel, says `ENOTTY`
+for the rest, and answers an open of `/dev/tty` with `SECCOMP_IOCTL_NOTIF_ADDFD` (with
+`SECCOMP_ADDFD_FLAG_SEND`, else in two steps); `run.rs`, pod-term's termios mode between the client and the
+socket, its two rules for the caller kept (the output held between `StopOutput` and `StartOutput`, the held
+bytes dropped at a flushing signal); `mod.rs`, the probe (once for the process) and the spawn.
+`PtyMode::Notify` and `--pty notify`; doctor's line `pty notify`; the manual's note of serve, the flag's
+row, `docs/cli.md`, and the box's step `BOX_RUN=notify` (`scripts/box/notify-session.sh`).
+
+- `cargo test -p podssh-cli --test serve_tty`: 2 passed, three runs in three: OpenSSH 9.6p1's `ssh -tt`
+  into `podssh serve --stdio --pty notify --shell /bin/bash`, with no pty: bash runs interactive (readline,
+  bracketed paste), `TTY-YES-24x80` from `test -t 0` and `stty size`, Ctrl-C ends `sleep 30` and
+  `AFTER-130` follows, less draws on the alternate screen and reads its `q` from `/dev/tty`
+  (`LESS-DONE-0`), vi takes `:q!` (`VI-DONE-0`), top draws one frame (`load average`, `TOP-DONE-0`), and
+  `exit 9` is the status; and `--pty` names `notify` among its modes.
+- `cargo test -p podssh-ssh --lib notify`: 3 passed (the program's jumps; the memory and the socket told
+  in this process; a state read back as `TCGETS` gives it).
+- `cargo test -p podssh-ssh --no-fail-fast`: 561 passed, none failed; `podssh-cli --lib`: 1,172 passed;
+  `serve_line_openssh`, `man_page`, `man_json`, `man_flag_parity`, `flag_table`: passed. Clippy as the
+  gate runs it on gnu and musl: clean; `cargo check --target x86_64-pc-windows-gnu`: clean; rustfmt: clean.
+- `podssh doctor` here: `pty notify  podssh serve can answer a program's tty calls here`.
+- Planted (`scripts/plants/t776-tcgets-refused.plant`, `TCGETS` answered with EIO): caught.
+- The box: `BOX_RUN=notify sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh` (the
+  binary of `scripts/box/build-podssh.sh`), exit 0. In the box doctor says `pty  none: /dev/ptmx: No such
+  file`, `pty devpts  none: unshare: Operation not permitted` and `pty notify  podssh serve can answer`;
+  OpenSSH 9.6p1's `ssh -tt` into `podssh serve --stdio --pty notify` there through `podman exec -i`, with
+  the box's busybox sh: `TTY-YES-24x80`, Ctrl-C gives `AFTER-130`, and exit 9, in 13 s.
+
+vi and less in the box are T-113's Prove, which this route now serves.
 
 # T-777: `podssh serve` answers a child's tty calls by ptrace where user notification is refused
 
@@ -3244,7 +3280,7 @@ that tag (work on a taken crate is done in PodUtils/podcrates), then this entry 
 **Milestone:** M5
 **Priority:** P3
 **Effort:** M
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -3278,9 +3314,6 @@ cargo test -p podssh-cli --test serve_tty -- ptrace
 With user notification refused and `ptrace` allowed, `test -t 0` and `stty size` in the child. Planted
 defect: `TIOCGWINSZ` passed to the kernel; `stty size` fails, and the test fails.
 
-## Blocker
+## Correction
 
-PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055,
-#232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): it answers the same calls from the same state as T-776, whose mode is that one. podssh takes it by
-that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.
-
+2026-11-14. The blocker ended with the take of podcrates `v0.41.0` and T-776's route 2a. It said: PodUtils/podcrates must give `pod-term` a line discipline that follows a termios state (asked as COORD-055, #232; podcrates' entry 539, in work for a later tag, as its COORD-080 says): it answers the same calls from the same state as T-776, whose mode is that one. podssh takes it by that tag (work on a taken crate is done in PodUtils/podcrates), then this entry opens again.

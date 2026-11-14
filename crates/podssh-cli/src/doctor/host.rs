@@ -40,6 +40,9 @@ pub(super) fn check(report: &mut Report<'_>) -> Facts {
                 facts.pty = super::tier::Pty::Allocates(podssh_ssh::server::pty_devpts::NAME.to_string());
             }
         }
+        // A tty whose calls serve answers, where no pty opens (T-776).
+        #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
+        report.line("pty notify", super::unix::pty_notify());
         report.line("listen AF_INET", super::unix::bind_inet());
         report.line("listen AF_UNIX", super::unix::bind_unix());
         exec::check(report, &mut facts.floor);

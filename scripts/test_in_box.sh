@@ -7,6 +7,7 @@
 #   BOX_RUN=tt sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=reverse sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=line sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#   BOX_RUN=notify sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_SECCOMP=nolisten sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_PROFILE=strict sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #
@@ -20,6 +21,10 @@
 # scripts/box/line-session.sh on this host: OpenSSH's ssh -tt into podssh
 # serve --stdio in the box, through podman exec -i, where serve is its own
 # line discipline (no /dev/ptmx, unshare refused).
+#
+# BOX_RUN=notify (T-776) runs the same way with scripts/box/notify-session.sh:
+# serve gives the shell a tty that it answers by seccomp's user notification
+# (--pty notify), with no pty in the box.
 #
 # BOX_RUN=tt runs scripts/box/tt-session.sh in place of sandbox-check.sh: an
 # interactive session over -tt (T-004) against OpenSSH in a container next
@@ -78,7 +83,7 @@ PROXY=podssh-box-proxy
 BOX=podssh-box
 TARGET=podssh-box-target
 RUN=${BOX_RUN:-check}
-case $RUN in check | tt | reverse | line) ;; *) echo "test_in_box: BOX_RUN is check, tt, reverse or line, not $RUN" >&2; exit 1 ;; esac
+case $RUN in check | tt | reverse | line | notify) ;; *) echo "test_in_box: BOX_RUN is check, tt, reverse, line or notify, not $RUN" >&2; exit 1 ;; esac
 PROFILE=${BOX_PROFILE:-sandbox-a}
 case $PROFILE in
     sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
@@ -355,7 +360,7 @@ if [ "$RUN" = reverse ]; then
         die "the node's box did not start"
     set -- --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer"
 fi
-if [ "$RUN" = line ]; then
+if [ "$RUN" = line ] || [ "$RUN" = notify ]; then
     # The box waits for the host's client; its probe comes first, as for each run.
     run_box "$BOX" -d "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh &&
         sh /scripts/box/probe.sh > /tmp/probe.log 2>&1; echo $? > /tmp/probe.rc; exec sleep 900' >/dev/null ||
@@ -367,7 +372,7 @@ if [ "$RUN" = line ]; then
     done
     podman exec "$BOX" cat /tmp/probe.log
     if [ "$(podman exec "$BOX" cat /tmp/probe.rc 2>/dev/null)" = 0 ]; then
-        sh "$HERE/box/line-session.sh" "$BOX" "$WORK"
+        sh "$HERE/box/$RUN-session.sh" "$BOX" "$WORK"
         rc=$?
     else
         echo "the box does not match the sandbox: podssh is not measured in it"

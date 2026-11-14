@@ -63,7 +63,18 @@ pub const SERVE: &[&str] = &[
      own: a helper process makes a user and a mount namespace, mounts a new devpts instance, and gives \
      back its master and its slave, which has no path, so the variable of the slave's path is not set; \
      a host that refuses unshare or mount refuses this too (podssh doctor's line pty devpts). Where no \
-     pty opens (a cage with no /dev/ptmx), serve is the line discipline itself (--pty auto, the default): \
+     pty opens, on Linux (x86_64 and aarch64), serve gives the program a tty that it answers itself: the \
+     program's stdin, stdout and stderr are one socket, and a seccomp filter of the program's own, set \
+     before it starts, sends its tty calls (the ioctl requests of termios, the window size and the \
+     foreground group) and its opens to serve, which answers them from one termios state, and gives a \
+     copy of the socket for /dev/tty; each other call goes to the kernel. The program sees a tty: test -t \
+     0, stty, a shell's job control, vi, less and top; the keys go through a line discipline in serve that \
+     follows the state that the program set (echo, editing, Ctrl-C, Ctrl-Z and Ctrl-\\ to the foreground \
+     group, the window size with SIGWINCH). On a socket, Ctrl-D on an empty line ends the program's input \
+     for good, and a program that reads two lines quickly may get both in one read. A host that refuses \
+     seccomp's user notification, or the program's memory to serve, refuses this (podssh doctor's line \
+     pty notify); --pty notify takes it with no pty tried, and refuses the request where it fails. Where \
+     none of these opens (a cage with no /dev/ptmx), serve is the line discipline itself (--pty auto): \
      the command or the shell runs on pipes, each key is echoed and edited in serve, a line goes to the \
      program when Enter submits it, Ctrl-C and Ctrl-\\ go to the program's process group as SIGINT and \
      SIGQUIT, and its output comes around the line under edit with each line ending CR LF. A login shell \
@@ -71,7 +82,7 @@ pub const SERVE: &[&str] = &[
      the shell; serve draws the prompt $. A program that draws on a tty (vi, less, top) gets a line that \
      says so, then runs. --pty line takes the line discipline with no pty tried; --pty no refuses such a \
      request with its answer, and a command then runs on pipes (OpenSSH, with -tt, ends with PTY \
-     allocation request failed); podssh doctor's lines pty and pty devpts say which a client meets. On \
+     allocation request failed); podssh doctor's lines pty, pty devpts and pty notify say which a client meets. On \
      Windows the request is refused.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it, so \
      that OpenSSH's sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has \
