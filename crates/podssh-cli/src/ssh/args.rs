@@ -107,6 +107,9 @@ pub struct SshArgs {
     pub pinggy_name: Option<String>,
     /// `--tunnel-url https://HOST`: a node's tunnel of `ssh -R` (T-565).
     pub tunnel_url: Option<String>,
+    /// For `node://NAME`: `--gsr-secret-file FILE`, the secret of the GSRN
+    /// road (T-707), a path.
+    pub gsr_secret_file: Option<String>,
     /// For `node://NAME`: `--carrier ADDR`, the node at the other end of a
     /// stream that exists already, its one road (T-595), unparsed.
     pub carrier: Option<String>,
@@ -235,6 +238,7 @@ pub const ONCE: &[(&str, &str)] = &[
     ("opentunnel-name", "give one name"),
     ("pinggy-name", "give one name"),
     ("tunnel-url", "give one URL"),
+    ("gsr-secret-file", "give one file"),
     ("carrier", "give one stream"),
     ("persist-name", "give one name"),
     ("attach", "give one name"),
@@ -374,6 +378,7 @@ impl SshArgs {
             opentunnel_name: one("opentunnel-name"),
             pinggy_name: one("pinggy-name"),
             tunnel_url: one("tunnel-url"),
+            gsr_secret_file: one("gsr-secret-file"),
             carrier: one("carrier"),
             detach: flag("detach"),
             restart: flag("restart"),

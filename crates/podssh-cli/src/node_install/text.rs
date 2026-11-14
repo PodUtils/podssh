@@ -57,6 +57,8 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
         ("--iroh-allow", &args.iroh_allow),
         // The node's share file (T-433), which `podssh share` edits.
         ("--shares", &args.shares),
+        // The GSRN road's secret (T-707): its path, never its text.
+        ("--gsr-secret-file", &args.gsr_secret_file),
     ];
     for (flag, value) in files {
         if let Some(value) = value {
@@ -78,6 +80,7 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
         ("--tunnl-gg", args.tunnl_gg),
         ("--localtunnel", args.localtunnel),
         ("--bore", args.bore),
+        ("--gsr", args.gsr),
         ("--no-e2e", args.no_e2e),
         ("--sshd", args.sshd),
         ("--exit", args.exit),

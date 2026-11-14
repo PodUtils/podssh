@@ -106,6 +106,8 @@ mod notes_hysteria;
 mod notes_turn;
 // The notes of devtunnel://, Microsoft Dev Tunnels' relay (T-755).
 mod notes_devtunnel;
+// The notes of the GSRN road, gsocket's relay by a shared secret (T-707).
+mod notes_gsr;
 pub mod roff;
 pub mod text;
 

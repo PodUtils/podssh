@@ -494,5 +494,6 @@ pub fn files() -> Vec<(Vec<String>, String)> {
     ];
     rows.extend([super::notes_roads::chisel_file(), super::notes_hysteria::file(), super::notes_turn::file()]);
     rows.extend([super::notes_devtunnel::file(), super::notes_serve::file(), super::notes_doctor::http_road_file()]);
+    rows.push(super::notes_gsr::file());
     rows
 }

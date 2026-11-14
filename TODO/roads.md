@@ -10260,7 +10260,7 @@ line on the direct road, and the pin of the four-byte sniff.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -10325,6 +10325,63 @@ PodUtils/podcrates#41) ships `pod-gsr`: `Identity`, `Settings` from `pod-service
 linked static. The road is a thin module of podssh on that crate: no SRP and no host of the network in
 podssh. A known defect of the crate on Windows ARM64 (podcrates T-131) leaves that target out of the
 road until podcrates repairs it. The entry is open, by its priority (P3), behind podssh's own work.
+
+2026-11-14 (the draft): the road is a crate of its own, `crates/podssh-gsr`, behind the feature `gsr` of
+podssh-cli, as `crates/podssh-warp` and `crates/podssh-tor` are, not a module of podssh-ws: pod-gsr links
+OpenSSL, which no default build of podssh-ws takes. So the Prove's `cargo test -p podssh-ws gsr` becomes
+`cargo test -p podssh-gsr`, and the feature's tests of podssh-cli join it. The roads' order: the client
+races the road once each road before it failed, after the bore road and before the file hosts' road, the
+slowest of all; the user asked for it by naming the secret, so it is no fallback that podssh takes
+unasked. The node serves it alone, as the bore road, with `--gsr`. pod-gsr gives no message of a
+registration that holds, so the node takes a first registration that has not failed within 10 s as
+held.
+
+## Done
+
+Drafted 2026-11-14 (DRAFT, not built; each result below is UNVERIFIED until the main session builds and
+runs it). The road is podssh's glue over `pod-gsr` of PodUtils/podcrates at `v0.43.0`, with no SRP, no
+derivation and no host of the network in podssh:
+
+- `crates/podssh-gsr` (a member, not a default member, as OpenSSL is built from source): podssh's dial
+  (`podssh_ws::dial::dialer`, through `HTTPS_PROXY`) as `pod_core::Dial`, `open` with a bound on the TLS
+  handshake, the relay's host of a secret's shard, the check of a secret's length, `check_tls`, a probe
+  secret that nobody holds on the shard of the user's, one control round trip (status 2 of a `CONNECT`)
+  and an idle registration held 20 s. Its test `tests/stand_in.rs` runs a stand-in of the relay on the
+  loopback: one secret moves 256 KiB both ways; two secrets that the stand-in pairs anyway give no
+  connection (the planted defect of the Prove). UNVERIFIED.
+- The feature `gsr` of podssh-cli (`dep:podssh-gsr`). `crates/podssh-cli/src/gsr.rs`: the secret from the
+  private file of `--gsr-secret-file` or `PODSSH_GSR_SECRET_FILE` (`podssh_relay::cache::read_private`),
+  its first line, never in a word of a refusal (78), a `Debug` that names no byte; the refusal of a build
+  without the road (70). UNVERIFIED.
+- The node: `podssh node NAME TARGET --gsr` (`node_gsr.rs`, `node_gsr_serve.rs`), the road alone as the
+  bore road is: TARGET probed, one registration (`Role::Listen`) at a time, made again at once after a
+  pairing, after a pause up to 30 s after a failure; a first registration that fails within 10 s ends
+  the node (69); each client a visitor of the resumable layer's far end
+  (`podssh_relay::pinggy::far::serve`) under the node's keeper, with the end-to-end channel and its door
+  (`--allow` or the net); `--no-e2e`, `--plain`, `--exit`, `udp:`, `--spares` and each other road's flag
+  are 64. `--install` carries `--gsr` and the file's path; `--carrier` refuses `--gsr`. UNVERIFIED.
+- The client: `Kind::Gsr` and `Road::Gsr` (`crates/podssh-cli/src/ssh/road_link.rs`), `GsrRoads`
+  (`crates/podssh-cli/src/ssh/gsr.rs`) in the last roads (`crates/podssh-cli/src/ssh/road_last.rs`),
+  raced once each road before it failed, before the file hosts' road; a node with the secret alone races
+  (`crates/podssh-cli/src/ssh/node_roads.rs`); never with `--no-e2e`; a line names the relay as a third
+  party. `podssh ssh --gsr-secret-file FILE` is read before anything connects. UNVERIFIED.
+- `doctor`: the section `gsr` in a build with the feature: `gsr tls` (both SRP contexts, OpenSSL's
+  version); with `PODSSH_GSR_SECRET_FILE`, the relay's host of its shard and one round trip by a probe
+  secret; with `--full`, `gsr idle`, whether a registration with the pings alone lives 20 s, past the
+  proxy's 15 s cut. UNVERIFIED.
+- The manual (`crates/podssh-cli/src/flags/gsr.rs`, `crates/podssh-cli/src/man/notes_gsr.rs`) and
+  `docs/cli.md` ("The GSRN road").
+
+What waits: the build with and without `--features gsr`, clippy, the tests below, the static link of
+OpenSSL (`sh scripts/check-static.sh`), and the short live test against gs-netcat both ways with a
+throwaway secret in .work/.
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-gsr                               # UNVERIFIED
+cargo test -p podssh-cli --lib gsr                     # UNVERIFIED (70 without the feature)
+cargo test -p podssh-cli --features gsr --lib gsr      # UNVERIFIED
+```
 
 # T-718: Access service-token headers from files on each WebSocket road
 

@@ -564,7 +564,7 @@ Read, the bounds today:
    `crates/podssh-ssh/src/run.rs:26-29` does since T-024, and the result of
    T-062 when it exists.
 3. Tests in the process, with a peer over `tokio::io::duplex`, so no network
-   (`docs/development.md:588-591`): a proxy head that never ends stops at
+   (`docs/development.md:590-593`): a proxy head that never ends stops at
    16 KiB, and an upgrade head too; fragments past 16 MiB give the error, not
    more memory; a pool body over 256 KiB is refused; a cache file over 64 KiB
    is ignored.
@@ -885,7 +885,7 @@ Read:
    session back from 127.0.0.2, and a stall of 3 minutes, each with the digest
    of a running transfer intact. T-156 uses these checks as its measurement.
 5. Update docs/development.md (item 8 of the gate, item 9 since T-156,
-   `docs/development.md:374-386`) and the faults table of docs/STATUS.md.
+   `docs/development.md:376-388`) and the faults table of docs/STATUS.md.
 
 Pitfall: each check must show that its fault was injected (see Prove).
 
@@ -1702,8 +1702,8 @@ Read at `2042200`:
   line to stderr, and `crates/podssh-ssh/src/log.rs:32-37` holds a level and stderr or a file; the
   level stops in the process.
 - `crates/podssh-cli/src/flags.rs:291` says "podssh does not write to syslog", for `-y`.
-- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:152`)
-  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:154` says
+- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:155`)
+  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:157` says
   "RestartPreventExitStatus=64 78"): a fault of the journal must never become one of those.
 - No source reads `JOURNAL_STREAM` (searched).
 
@@ -2617,4 +2617,9 @@ and drains `from` first after a failed send and at the program's exit. The new t
 `an_answer_stays_when_a_send_to_a_program_that_closed_fails`: passed; `--lib pipe::datagram`: 3 passed; the
 exec test 300 runs in 300 passed here. The planted run waits for T-251: the loss is a race of the loop against
 the program's exit, which the exec test meets only at random.
+
+Correction at the gate of `f599ce4` (2026-11-14): CI's container took the send to the closed end, where this
+machine's Linux refused it, so the new test's assertion on the send failed there. The test asserts the answer
+alone now, which is what the change keeps on either kernel.
+
 

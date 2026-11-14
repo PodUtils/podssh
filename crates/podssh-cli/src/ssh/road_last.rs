@@ -73,6 +73,10 @@ pub(crate) mod bore;
 #[path = "road_bare.rs"]
 pub(crate) mod bare;
 
+// The GSRN road of node://NAME by a shared secret, before the file hosts' (T-707).
+#[path = "gsr.rs"]
+pub(crate) mod gsr;
+
 // The file hosts' road of node://NAME, the last of all (T-738).
 #[path = "filehost.rs"]
 pub(crate) mod filehost;
@@ -102,6 +106,8 @@ pub(crate) struct LastRoads {
     bore: Option<bore::BoreRoads>,
     /// The Bare node of the hop of the tunnel's name, where the hop is on.
     bare: Option<podssh_ws::url::WsUrl>,
+    /// The relay of gsocket, by the secret of the user's file (T-707).
+    gsr: Option<gsr::GsrRoads>,
     /// The pair's pieces at public file hosts (T-738), the last of all.
     filehost: Option<filehost::FileHostRoads>,
 }
@@ -135,6 +141,7 @@ impl LastRoads {
             bore: bore::BoreRoads::new(label, ask, trust, log, shown),
             // A bad PODSSH_BARE is refused before the race (`race` of the road).
             bare: bare::node().ok().flatten(),
+            gsr: gsr::GsrRoads::new(ask, log, shown),
             filehost: None,
         }
     }
@@ -161,6 +168,7 @@ impl LastRoads {
             localtunnel: None,
             bore: None,
             bare: None,
+            gsr: None,
             filehost: None,
         }
     }
@@ -193,7 +201,7 @@ impl LastRoads {
     /// Whether one of them races.
     pub(crate) fn any(&self) -> bool {
         let named = self.serveo.is_some() || self.sshj.is_some() || self.tunnel.is_some() || self.srv_us.is_some();
-        named || self.localtunnel.is_some() || self.bore.is_some()
+        named || self.localtunnel.is_some() || self.bore.is_some() || self.gsr.is_some()
     }
 
     /// Their places in the race, in their order; the onion road and the
@@ -245,6 +253,10 @@ impl LastRoads {
         }
         if let (Some(tunnel), Some(node)) = (&self.tunnel, &self.bare) {
             tunnel.push_bare(node, list, kinds, record);
+        }
+        // The GSRN road, asked by its secret, before the slowest road of all.
+        if let Some(gsr) = &self.gsr {
+            gsr.push(list, kinds);
         }
         if let Some(filehost) = &self.filehost {
             filehost.push(list, kinds);

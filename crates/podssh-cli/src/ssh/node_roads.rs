@@ -88,6 +88,8 @@ struct Chosen {
     zerotier: bool,
     /// Whether a name of the node's tunnel of `ssh -R` is given or kept (T-565).
     tunnel: bool,
+    /// Whether a secret of the GSRN road is named (T-707).
+    gsr: bool,
 }
 
 impl Chosen {
@@ -99,6 +101,7 @@ impl Chosen {
             self.derp.is_some() || self.opentunnel.is_some() || self.transit.is_some() || self.record.is_some();
         let pair_last = self.croc || self.zerotier;
         let last = self.pinggy || self.serveo || self.sshj || pair_last || self.tunnel || self.localtunnel || self.bore;
+        let last = last || self.gsr;
         dest.race.is_some() || others || piping_asked || self.members || self.frp || last
     }
 }
@@ -168,6 +171,8 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
     // or srv.us's (T-566), whose name the node's whole key gives.
     let srv_us = super::roads::last::srv_us::named(label, channel);
     let tunnel = super::roads::ssh_http::named(label, channel.off) || srv_us;
+    // The GSRN road (T-707): a secret named, never with --no-e2e; a bad file is refused here.
+    let gsr = super::roads::last::gsr::named(channel)?;
     Ok(Chosen {
         record,
         derp,
@@ -184,6 +189,7 @@ fn chosen(dest: &Dest<'_>) -> Result<Chosen, Refusal> {
         tunnel,
         localtunnel,
         bore,
+        gsr,
     })
 }
 

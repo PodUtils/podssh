@@ -58,6 +58,7 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
         (args.localtunnel, "--localtunnel"),
         (args.hostc, "--hostc"),
         (args.bore, "--bore"),
+        (args.gsr, "--gsr"),
         (args.quick_tunnel, "--quick-tunnel"),
         (args.warp, "--warp"),
         (args.relay, "--relay"),

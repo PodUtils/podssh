@@ -86,6 +86,9 @@ mod tier;
 mod stream;
 #[cfg(feature = "tor")]
 mod tor;
+// The GSRN road's TLS with SRP and its relay, with the feature `gsr` (T-707).
+#[cfg(feature = "gsr")]
+mod gsr;
 #[cfg(unix)]
 mod unix;
 // The second proxy of --via (T-439).

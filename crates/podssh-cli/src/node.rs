@@ -95,6 +95,10 @@ pub fn run_node(args: &NodeArgs, err: &mut dyn Write) -> i32 {
     if let Err(refusal) = crate::node_quick_relay::check(args) {
         return refusal.report("node", err);
     }
+    // The GSRN road by a shared secret (T-707): the road alone, 70 without the feature.
+    if args.gsr || args.gsr_secret_file.is_some() {
+        return crate::node_gsr::run(args, err);
+    }
     // A quick tunnel of Cloudflare's, which podssh makes itself (T-300), or localtunnel's (T-568).
     if args.quick_tunnel || args.localtunnel || args.hostc {
         return crate::node_localtunnel::or_quick(args, err);

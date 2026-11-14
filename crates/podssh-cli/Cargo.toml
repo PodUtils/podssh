@@ -67,6 +67,13 @@ strelay = ["podssh-relay/strelay"]
 # `filehost` there, pure Rust, aes-gcm as croc's); this switch turns the road
 # on. Off by default until its live run through each host passed. No C.
 filehost = []
+# The GSRN road by a shared secret (T-707): `podssh node --gsr` and a last
+# road of `podssh ssh node://NAME`, over pod-gsr (PodUtils/podcrates), whose
+# TLS with SRP is OpenSSL built from source and linked static (rustls has
+# none). Off by default: a C compiler and perl build OpenSSL, and the road
+# waits for its live run. Without it, --gsr and --gsr-secret-file are
+# refused with exit 70.
+gsr = ["dep:podssh-gsr"]
 # The road with the stand-in relay and root on the loopback, for the test of
 # the command line from end to end (`tests/derp_road.rs`); never in a release.
 zerotier-test = ["zerotier", "podssh-zerotier/stand-in"]
@@ -80,6 +87,7 @@ podssh-iroh = { path = "../podssh-iroh", optional = true }
 podssh-warp = { path = "../podssh-warp", optional = true }
 podssh-tor = { path = "../podssh-tor", optional = true }
 podssh-zerotier = { path = "../podssh-zerotier", optional = true }
+podssh-gsr = { path = "../podssh-gsr", optional = true }
 # The type of a relay's URL, for `doctor`'s line; the version that
 # podssh-iroh builds, and its range (T-359).
 iroh = { version = ">=1.4.1, <1.5", default-features = false, features = ["tls-aws-lc-rs"], optional = true }

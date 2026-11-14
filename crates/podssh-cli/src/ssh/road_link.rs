@@ -67,6 +67,10 @@ pub enum Road {
     /// A link of sealed uploads to public file hosts, their URLs as notes at
     /// a public MQTT broker (T-738), which a build with the road makes.
     FileHost(podssh_relay::opentunnel::dial::BoxIo),
+    /// A tunnel of TLS with SRP through the relay of gsocket, to the node
+    /// of the same secret (T-707), which a build with the road makes.
+    #[cfg_attr(not(feature = "gsr"), allow(dead_code))]
+    Gsr(podssh_relay::opentunnel::dial::BoxIo),
     /// A WebSocket to a node's quick tunnel, of its record (T-445), which a
     /// build with the iroh road reads.
     #[cfg(feature = "iroh")]
@@ -96,7 +100,8 @@ impl AsyncRead for Road {
             | Road::Syncthing(link)
             | Road::Onion(link)
             | Road::Smee(link)
-            | Road::FileHost(link) => Pin::new(link).poll_read(cx, buf),
+            | Road::FileHost(link)
+            | Road::Gsr(link) => Pin::new(link).poll_read(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_read(cx, buf),
         }
@@ -126,7 +131,8 @@ impl AsyncWrite for Road {
             | Road::Syncthing(link)
             | Road::Onion(link)
             | Road::Smee(link)
-            | Road::FileHost(link) => Pin::new(link).poll_write(cx, buf),
+            | Road::FileHost(link)
+            | Road::Gsr(link) => Pin::new(link).poll_write(cx, buf),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_write(cx, buf),
         }
@@ -154,7 +160,8 @@ impl AsyncWrite for Road {
             | Road::Syncthing(link)
             | Road::Onion(link)
             | Road::Smee(link)
-            | Road::FileHost(link) => Pin::new(link).poll_flush(cx),
+            | Road::FileHost(link)
+            | Road::Gsr(link) => Pin::new(link).poll_flush(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_flush(cx),
         }
@@ -182,7 +189,8 @@ impl AsyncWrite for Road {
             | Road::Syncthing(link)
             | Road::Onion(link)
             | Road::Smee(link)
-            | Road::FileHost(link) => Pin::new(link).poll_shutdown(cx),
+            | Road::FileHost(link)
+            | Road::Gsr(link) => Pin::new(link).poll_shutdown(cx),
             #[cfg(feature = "iroh")]
             Road::Tunnel(link) => Pin::new(link).poll_shutdown(cx),
         }
@@ -239,6 +247,8 @@ pub(crate) enum Kind {
     LocalTunnel,
     /// A port of a node's key at bore.pub, the last of the fallbacks of Q78 (T-569).
     Bore,
+    /// The relay of gsocket, by a secret that both ends share (T-707).
+    Gsr,
     /// The tunnel's name of `ssh -R` through a Bare node, the last of all (T-740).
     Bare,
     /// A road of the node's record, by its name.
@@ -302,6 +312,7 @@ impl Kind {
             Kind::SshHttp(_, _) => "the localhost.run road",
             Kind::LocalTunnel => "the localtunnel road",
             Kind::Bore => "the bore road",
+            Kind::Gsr => "the GSRN road",
             Kind::Bare => "the Bare hop",
             Kind::Member => "a member's relay role",
             Kind::Frp => "the frp road",
@@ -343,6 +354,7 @@ pub(super) fn order(kinds: &[Kind], unasked: Unasked) -> String {
             }
             (_, Kind::Member) => "when each road before it failed (a member of the net that relays, T-434)".to_string(),
             (_, Kind::Frp) => "when each road before it failed (the user's frps, T-498)".to_string(),
+            (_, Kind::Gsr) => "when each road before it failed (the shared secret, T-707)".to_string(),
             (_, Kind::Pinggy) if unasked.pinggy.is_some() => {
                 let from = unasked.pinggy.unwrap_or_default();
                 format!("when each road before it failed ({from}, the last fallback of Q78)")

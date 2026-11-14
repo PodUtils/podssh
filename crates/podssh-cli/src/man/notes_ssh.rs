@@ -344,6 +344,7 @@ const FIRST: &[&str] = &[
     super::notes_localtunnel::SSH,
     super::notes_bore::SSH,
     super::notes_filehost::SSH,
+    super::notes_gsr::SSH,
     super::notes_frp::SSH,
     super::notes_pair::SSH_CARRIER,
     super::notes_grant::SSH,

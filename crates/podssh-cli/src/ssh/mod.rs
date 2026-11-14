@@ -179,6 +179,10 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh ssh: {}", cloud::devtunnel::not_built(destination));
         return EXIT_NOT_IMPLEMENTED;
     }
+    // The GSRN road's secret (T-707): 70 without the road, 78 for a bad file.
+    if let Some(code) = crate::gsr::ssh_flag(args.gsr_secret_file.as_deref(), err) {
+        return code;
+    }
     if let Err(refusal) = crate::pins::apply(args.relay_addr.as_deref()) {
         return refusal.report("ssh", err);
     }

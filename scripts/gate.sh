@@ -18,7 +18,7 @@ set -u
 
 # The steps, in the order of a full run. A step that is not in this list runs
 # nowhere: not here, and not in CI.
-STEPS="lint libs record ssh ts iroh tor m6 release"
+STEPS="lint libs record ssh ts iroh tor gsr m6 release"
 
 if [ "$#" -eq 1 ] && [ "$1" = --list ]; then
     for _s in $STEPS; do
@@ -331,6 +331,20 @@ step_tor() {
     tests "podssh-tor: its tests" cargo test --locked --no-fail-fast -p podssh-tor
     tests "podssh-cli with the feature tor: its library's tests" \
         cargo test --locked --no-fail-fast -p podssh-cli --features tor --lib
+}
+
+# The GSRN road (T-707): pod-gsr links OpenSSL, which openssl-src builds from
+# source with perl and make, so its format, clippy and tests run here, apart
+# from the steps of the crates with no C: podssh-gsr against a stand-in of the
+# relay on the loopback, and the CLI's own with the feature.
+step_gsr() {
+    run "perl and make, for OpenSSL from source" retry3 apk add --no-cache perl make
+    run "the format of the GSRN road" cargo fmt -p podssh-gsr -- --check
+    run "clippy: no warning with the GSRN feature" \
+        cargo clippy --locked --all-targets -p podssh-cli -p podssh-gsr --features podssh-cli/gsr -- -D warnings $LINTS_ALLOWED
+    tests "podssh-gsr: its tests" cargo test --locked --no-fail-fast -p podssh-gsr
+    tests "podssh-cli with the feature gsr: its library's tests" \
+        cargo test --locked --no-fail-fast -p podssh-cli --features gsr --lib
 }
 
 # The exit of M6 (T-156): a session survives a stopped relay host, a new

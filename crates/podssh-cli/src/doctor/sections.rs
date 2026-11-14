@@ -81,6 +81,9 @@ pub(super) enum Kind {
     Iroh,
     #[cfg(feature = "tor")]
     Tor,
+    /// The GSRN road's TLS with SRP, and its relay once a secret is named (T-707).
+    #[cfg(feature = "gsr")]
+    Gsr,
     /// The API's host of OpenTunnel (T-531).
     OpenTunnel,
     Derp,
@@ -111,6 +114,8 @@ impl Kind {
             Kind::Iroh => "iroh",
             #[cfg(feature = "tor")]
             Kind::Tor => "tor",
+            #[cfg(feature = "gsr")]
+            Kind::Gsr => "gsr",
             Kind::OpenTunnel => "opentunnel",
             Kind::Derp => "derp",
             Kind::Carriers => "carriers",
@@ -144,6 +149,8 @@ pub(super) fn kinds(quick: bool, servers: bool, road: bool, links: bool, exit: b
         kinds.push(Kind::Iroh);
         #[cfg(feature = "tor")]
         kinds.push(Kind::Tor);
+        #[cfg(feature = "gsr")]
+        kinds.push(Kind::Gsr);
         kinds.extend([Kind::OpenTunnel, Kind::Derp, Kind::Carriers, Kind::Pairs, Kind::Net]);
     }
     if stream {
@@ -279,6 +286,8 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Iroh => super::iroh::relay(report, trust).await,
         #[cfg(feature = "tor")]
         Kind::Tor => super::tor::check(report, trust, full).await,
+        #[cfg(feature = "gsr")]
+        Kind::Gsr => super::gsr::check(report, full).await,
         Kind::OpenTunnel => super::opentunnel::check(report, trust).await,
         Kind::Derp => super::derp::check(report, trust).await,
         Kind::Carriers => super::carriers::check(report, trust).await,
@@ -318,6 +327,8 @@ fn left_out() -> Vec<&'static str> {
     names.push("iroh (bind UDP and its relays)");
     #[cfg(feature = "tor")]
     names.push("tor");
+    #[cfg(feature = "gsr")]
+    names.push("gsr");
     names.extend(["OpenTunnel", "DERP", "the public carriers", "the pairs", "the net held"]);
     names
 }

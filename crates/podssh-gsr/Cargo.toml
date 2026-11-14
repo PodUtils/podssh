@@ -1,0 +1,28 @@
+[package]
+name = "podssh-gsr"
+description = "The GSRN road over pod-gsr: a stream between two ends that share a secret, through the relay of gsocket, dialled by podssh's way out and proxy."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# A feature crate (T-707), as podssh-warp and podssh-tor are: podssh-cli
+# takes it with its feature `gsr`. Not a default member: pod-gsr links
+# OpenSSL, built from source by openssl-src (a C compiler and perl), as
+# rustls has no SRP cipher suite; the binary still links it static. The
+# protocol, the derivations and the relay's facts are pod-gsr's and
+# pod-services' (PodUtils/podcrates); this crate gives them podssh's dial
+# and proxy, and the words of podssh's lines.
+[dependencies]
+pod-gsr = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+# The party of the relay's data file, for the line of the third party.
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+podssh-ws = { path = "../podssh-ws" }
+tokio = { workspace = true }
+zeroize = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "io-util", "time", "sync"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }

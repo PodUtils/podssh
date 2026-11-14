@@ -6958,3 +6958,50 @@ before anything connects.
   the test behind the tunnel runs a command; a relay that goes away ends a
   stream with the named error, and a new stream after it works; no token is
   in a line, a `Debug` or a failure.
+
+## The GSRN road: `--gsr` (T-707)
+
+A build with the feature `gsr` (`cargo build -p podssh-cli --features gsr`)
+has a road through the relay of gsocket, hackerschoice's Global Socket
+Relay Network, where two ends that share a secret meet with no account and
+no token. Another build refuses `--gsr` and `--gsr-secret-file` with 70,
+and passes `PODSSH_GSR_SECRET_FILE` over. The protocol is `pod-gsr` of
+PodUtils/podcrates (`crates/podssh-gsr` is podssh's glue), and the relay's
+host and facts are the data file `hackerschoice-gsr` of `pod-services`.
+
+- The secret: the first line of a private file, from `--gsr-secret-file
+  FILE` or `PODSSH_GSR_SECRET_FILE` (the flag wins), never from argv. It is
+  read only as a regular file of the user's that nobody else can read; a
+  file with no secret, a second line, a control character, or a secret
+  longer than the relay's 32 bytes is 78, in words that never hold it. The
+  secret gives the address at the relay and its shard; the relay never
+  sees the secret.
+- `podssh node NAME TARGET --gsr --allow FILE`: the node keeps one
+  registration at that address, by one TCP connection to the relay's port
+  443, directly or through `HTTPS_PROXY`'s CONNECT, with a ping each 5 s
+  (a proxy was seen to cut an idle tunnel at 15 s). Each client of the same
+  secret pairs with it, and the node registers again at once. TLS with SRP
+  of the secret (OpenSSL, built from source and linked static, as rustls
+  has no SRP suite) keeps the bytes from the relay; the resumable layer and
+  the end-to-end channel run above it. Whoever holds the secret reaches the
+  door, so the road needs one: `--allow`, or the net's members. The road is
+  served alone; `--plain`, `--no-e2e`, `--exit`, a `udp:` TARGET,
+  `--spares` and each other road's flag are 64. A first registration that
+  fails within 10 s ends the node (69); a later failure is retried after a
+  pause that grows to 30 s. A line names the relay as a third party that
+  nobody vouches for.
+- `podssh ssh node://NAME --gsr-secret-file FILE`: the client races the
+  road once each road before it failed, after the bore road and before the
+  file hosts' road, with no pair needed here; the end-to-end channel checks
+  the node's key by the pins of NAME or `--node-key`. Never with
+  `--no-e2e`. A line names the relay before the first link. `cp`, `scp`
+  and `sftp` take the road by the variable.
+- `podssh doctor`: the section `gsr` says whether TLS with SRP builds
+  (`gsr tls`); with `PODSSH_GSR_SECRET_FILE`, one control round trip at the
+  shard of that secret by a secret that nobody holds (`gsr`), so that no
+  node is disturbed; with `--full`, whether a registration with the pings
+  alone lives 20 s (`gsr idle`). With no secret named, no byte goes to the
+  relay.
+- The tests: `crates/podssh-gsr/tests/stand_in.rs`, a stand-in of the relay
+  on the loopback: two ends of one secret move bytes both ways; two ends of
+  different secrets, which the stand-in pairs anyway, get no connection.

@@ -56,6 +56,11 @@ pub struct NodeArgs {
     pub bore: bool,
     /// The file of the frp road (T-498): frps, its token and the STCP secret.
     pub frp: Option<String>,
+    /// Serve the GSRN road (T-707): the relay of gsocket, where the ends
+    /// meet by a shared secret; in a build with the feature `gsr`.
+    pub gsr: bool,
+    /// The private file of that secret; else `PODSSH_GSR_SECRET_FILE`.
+    pub gsr_secret_file: Option<String>,
     /// Serve a quick tunnel of Cloudflare's, with no pair (T-300).
     pub quick_tunnel: bool,
     /// Reach the quick tunnel's edge inside WARP's tunnel first (T-374).
@@ -175,6 +180,8 @@ impl NodeArgs {
             hostc: matches.get_flag("hostc"),
             bore: matches.get_flag("bore"),
             frp: get("frp"),
+            gsr: matches.get_flag("gsr"),
+            gsr_secret_file: get("gsr-secret-file"),
             quick_tunnel: matches.get_flag("quick-tunnel"),
             warp: matches.get_flag("warp"),
             relay: matches.get_flag("relay"),
