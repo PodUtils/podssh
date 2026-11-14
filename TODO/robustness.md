@@ -2666,3 +2666,6 @@ The gate's job `macos` passes.
 Done, 2026-11-14: the wait is in the test; `cargo test -p podssh-cli --test pipe_listen`: 8 passed here (Linux);
 the job `macos` runs it at the next gate.
 
+The gate of `c009f3b` (run 43594009290, 2026-11-14) passed, its job `macos` among them.
+
+

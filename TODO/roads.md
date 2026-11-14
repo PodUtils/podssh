@@ -10400,6 +10400,8 @@ Merged and measured, 2026-11-14:
 At the gate of `6fdf175` (run 43577129878), the step `gsr` found no rustfmt and no clippy in the image's
 toolchain: the step adds them as `lint` does (`rustup component add rustfmt clippy`).
 
+The gate of `c009f3b` (run 43594009290, 2026-11-14) passed, its step `gsr` among them: OpenSSL from source in the image, clippy with the feature, and the tests of `podssh-gsr` and of the CLI with it.
+
 # T-718: Access service-token headers from files on each WebSocket road
 
 **Source:** PodUtils/podcrates#35, cfb's ask A-C-04 (COORD-014, PodUtils/podcrates#38)
