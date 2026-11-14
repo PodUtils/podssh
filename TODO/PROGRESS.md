@@ -46,7 +46,7 @@ Read on 2026-11-13.
    (2026-11-12), and `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue); podssh keeps glue over them (`resolve.rs` of `podssh-ws`; `code/`, `session/`,
    `src/e2e/` and the relay client's modules over `context.rs` of `podssh-relay`). No file of podssh is
    frozen now.
-8. **Drafts.** In work: none. Merged on 2026-11-14: T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** In work: none. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -165,8 +165,8 @@ operator interrupts it.
    rest of M10, in this order: T-660, T-670, T-665 and T-666 (each waits for a run that its
    `## Done` names), their follow-up and what the netem run found (done); then the open
    entries of GitHub #127 to #148 by their priority, beside M10 (Q85, Q100).
-6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is open since
-   podcrates v0.8.0 ships `pod-gsr`, by its priority (P3). cfb's asks (`each`, `run` and `job` on a node and
+6. podssh's own order by priority beside M10's order below. T-707 (the GSRN road) is built on
+   `pod-gsr` and waits for Q106, its live test alone. cfb's asks (`each`, `run` and `job` on a node and
    on an `iroh:` or `derp:` ticket, and `mcp --read-only`: done, 2026-11-14) stay behind podssh's own
    work order, M10 included (the owner's ruling "Priority"; Q105 is settled).
 7. The holds are released (Q92): T-107 to T-113, T-117, T-118, T-222 and
