@@ -2567,6 +2567,12 @@ the race is a tunnel of HTTP; `ssh::roads` takes it. `cargo test -p podssh-cli -
 1 passed (localhost.run with its Bare hop and the other tunnels alone take none; the pair's road or bore.pub
 beside them keeps them; `PODSSH_SPARE_LINKS=no` holds). The live job runs after the push (STATUS).
 
+Live, 2026-11-14, `last-roads-live.yml` at `1c4c440` (run 43564876193): no spare link opened (the client's
+lines name none), and localhost.run carried 352 KiB of the 1 MiB in 120 s, about 3 KB/s, where on 2026-11-11 its
+link carried 1 MiB in 67 s: the pace of its free tunnel, not of podssh. The run through localhost.run (and its Bare
+hop) now takes 128 KiB down (`down_for` of `crates/podssh-cli/tests/last_roads_live.rs`), each other road 1 MiB.
+The live job runs again after the push (STATUS).
+
 # T-783: `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit
 
 **Source:** the gate of `1c4c440` (2026-11-14, run 43564870189, job `gate (ssh)`).

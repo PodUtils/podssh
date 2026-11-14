@@ -5,7 +5,8 @@
 //! (`.github/workflows/last-roads-live.yml`), never in the gate, so each is
 //! ignored unless asked. A node with a throwaway key serves the loopback's
 //! SSH server of the tests over the road alone, each other road off; a
-//! client that names the node's key runs `greet`, then takes 1 MiB down; the
+//! client that names the node's key runs `greet`, then takes 1 MiB down (128
+//! KiB through localhost.run, at its pace); the
 //! node is stopped at the end, which gives its tunnel up. With
 //! `PODSSH_LAST_TEST_PLANT=stranger`, the client names another node's key,
 //! and the run must fail: the check is not vacuous. Sandhole's demo (T-743)
@@ -31,6 +32,19 @@ use ssh_harness::GREETING;
 const LIMIT: Duration = Duration::from_secs(120);
 /// The bytes taken down: a few MiB at most (T-548's Decision, which these follow).
 const DOWN: usize = 1 << 20;
+/// Through localhost.run, whose free tunnel gave some 3 KB/s on 2026-11-14
+/// (352 KiB in 120 s; 15 KB/s on 2026-11-11): what its pace carries within
+/// [`LIMIT`] (T-781).
+const DOWN_SLOW: usize = 128 << 10;
+
+/// The bytes that the run of `road` takes down, at the pace of its third party.
+fn down_for(road: &str) -> usize {
+    if road == "PODSSH_LOCALHOST_RUN" {
+        DOWN_SLOW
+    } else {
+        DOWN
+    }
+}
 
 /// Each last road's switch, which a run turns off but for its own.
 const LAST_ROADS: [&str; 9] = [
@@ -254,11 +268,12 @@ fn live_via(
     assert_eq!(rc, 0, "the client over {flag}");
     assert_eq!(String::from_utf8_lossy(&out), GREETING);
     assert!(err.contains(&format!("{answered} answered first")) && err.contains("nobody vouches for"), "{err}");
-    let source = format!("source {DOWN}");
+    let down = down_for(road);
+    let source = format!("source {down}");
     let (rc, out, err) = ssh(&["node://tester@lab", &source]);
     eprintln!("client, {source}: {err}");
     assert_eq!(rc, 0, "{err}");
-    assert_eq!(out.len(), DOWN, "1 MiB down, whole");
+    assert_eq!(out.len(), down, "{down} bytes down, whole");
     let _ = std::io::stderr().flush();
     drop(runtime);
 }
