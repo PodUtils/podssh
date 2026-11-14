@@ -346,20 +346,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
     }
 
     if verb.name == "mcp" {
-        return Parsed::Mcp(Box::new(crate::mcp::McpArgs {
-            allow_host: matches.get_many::<String>("allow-host").map(|v| v.cloned().collect()).unwrap_or_default(),
-            allow_dir: matches.get_many::<String>("allow-dir").map(|v| v.cloned().collect()).unwrap_or_default(),
-            allow_session: matches.get_flag("allow-session"),
-            read_only: matches.get_flag("read-only"),
-            allow_command: matches
-                .get_many::<String>("allow-command")
-                .map(|v| v.cloned().collect())
-                .unwrap_or_default(),
-            config: matches.get_one::<String>("config").cloned(),
-            direct: matches.get_flag("direct"),
-            client_config: matches.get_one::<String>("client-config").cloned(),
-            refused,
-        }));
+        return Parsed::Mcp(Box::new(crate::mcp::McpArgs::from_matches(&matches, refused)));
     }
 
     if verb.name == "serve" {

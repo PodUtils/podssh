@@ -766,10 +766,10 @@ session path; the test that parses each stdout line fails.
 
 ## Done
 
-2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:84-169`, its
-lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:176-262`,
-the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:266-292`, a
-call at `crates/podssh-cli/src/mcp/mod.rs:295-327`. The messages in
+2026-10-12. `podssh mcp` in `crates/podssh-cli/src/mcp/mod.rs:102-187`, its
+lines and its calls in flight at `crates/podssh-cli/src/mcp/mod.rs:194-280`,
+the signals that end it at `crates/podssh-cli/src/mcp/mod.rs:284-310`, a
+call at `crates/podssh-cli/src/mcp/mod.rs:313-345`. The messages in
 `crates/podssh-cli/src/mcp/protocol.rs:70-103`, the two eras at
 `crates/podssh-cli/src/mcp/protocol.rs:113-168` and
 `crates/podssh-cli/src/mcp/protocol.rs:188-220`, the answers at

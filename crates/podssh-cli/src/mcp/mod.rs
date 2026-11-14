@@ -78,6 +78,24 @@ pub struct McpArgs {
     pub refused: Vec<(String, &'static str, &'static str)>,
 }
 
+impl McpArgs {
+    /// The command line that clap read.
+    pub fn from_matches(matches: &clap::ArgMatches, refused: Vec<(String, &'static str, &'static str)>) -> McpArgs {
+        let each = |id: &str| matches.get_many::<String>(id).map(|v| v.cloned().collect()).unwrap_or_default();
+        McpArgs {
+            allow_host: each("allow-host"),
+            allow_dir: each("allow-dir"),
+            allow_session: matches.get_flag("allow-session"),
+            read_only: matches.get_flag("read-only"),
+            allow_command: each("allow-command"),
+            config: matches.get_one::<String>("config").cloned(),
+            direct: matches.get_flag("direct"),
+            client_config: matches.get_one::<String>("client-config").cloned(),
+            refused,
+        }
+    }
+}
+
 /// Serve stdin and stdout until the end of stdin: 0, or 64 for a pattern
 /// that is not one or a directory of keys, 78 for a `-F` file or an
 /// `--allow-dir` that is not there.

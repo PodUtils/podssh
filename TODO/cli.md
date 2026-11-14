@@ -990,7 +990,7 @@ Read then: each value flag but `-i` and `-o` was `ArgAction::Set`.
 3. `ONCE` and `repeated` refuse a second `-J`, `-W`, `--relay-host`,
    `--relay-addr` or `--ca-file` with exit 64 before anything connects
    (`crates/podssh-cli/src/ssh/args.rs:199-265`, called at
-   `crates/podssh-cli/src/tree.rs:489-493`).
+   `crates/podssh-cli/src/tree.rs:476-480`).
 4. `docs/cli.md:953-958` and a note of the manual
    (`crates/podssh-cli/src/man/notes_ssh_more.rs:83-85`) state the rule.
 
