@@ -184,7 +184,7 @@ impl Stand {
         cmd.env("XDG_CACHE_HOME", self.home.join("cache")).env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no");
         // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
         cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
-        cmd.env("PODSSH_SRV_US", "no");
+        cmd.env("PODSSH_SRV_US", "no").env("PODSSH_TUNNL_GG", "no");
         cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_HOSTC", "no").env("PODSSH_SMEE", "no").env("PODSSH_BORE", "no");
         for name in ["PODSSH_OFFLINE", "SSH_AUTH_SOCK", "NO_PROXY", "no_proxy", "ALL_PROXY", "all_proxy", "https_proxy"]
         {

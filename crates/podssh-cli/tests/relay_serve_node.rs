@@ -422,6 +422,7 @@ fn openssh_through_podssh_operator_and_a_node_of_the_role_reaches_openssh_with_e
             .env("PODSSH_LOCALHOST_RUN", "no")
             .env("PODSSH_SANDHOLE", "no")
             .env("PODSSH_SRV_US", "no")
+            .env("PODSSH_TUNNL_GG", "no")
             .env("PODSSH_LOCALTUNNEL", "no")
             .env("PODSSH_HOSTC", "no")
             .env("PODSSH_SMEE", "no")

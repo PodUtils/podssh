@@ -231,7 +231,7 @@ pub(crate) enum Kind {
     /// A node's tunnel of HTTP made by `ssh -R`, the last of the fallbacks of
     /// Q78 (T-565), whether its name was given in this run, and the id of the
     /// word whose zone holds the name known before the race (Sandhole's,
-    /// T-743; srv.us's, T-566; else localhost.run's).
+    /// T-743; srv.us's, T-566; tunnl.gg's, T-567; else localhost.run's).
     SshHttp(bool, &'static str),
     /// The node's tunnel at srv.us, whose name its key gives (T-566).
     SrvUs,
@@ -280,6 +280,7 @@ impl Kind {
             Kind::SshJ => "the ssh-j road",
             Kind::SshHttp(_, "sandhole") => "the Sandhole road",
             Kind::SshHttp(_, "srv-us") | Kind::SrvUs => "the srv.us road",
+            Kind::SshHttp(_, "tunnl-gg") => "the tunnl.gg road",
             Kind::SshHttp(_, _) => "the localhost.run road",
             Kind::LocalTunnel => "the localtunnel road",
             Kind::Bore => "the bore road",

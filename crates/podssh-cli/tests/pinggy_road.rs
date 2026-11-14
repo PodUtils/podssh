@@ -76,7 +76,7 @@ fn command(home: &Path, proxy: u16, args: &[&str]) -> Command {
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no");
     // Nor the last roads of all (Q78): localhost.run (T-565), localtunnel (T-568), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no");
-    cmd.env("PODSSH_SRV_US", "no");
+    cmd.env("PODSSH_SRV_US", "no").env("PODSSH_TUNNL_GG", "no");
     cmd.env("PODSSH_LOCALTUNNEL", "no").env("PODSSH_HOSTC", "no").env("PODSSH_SMEE", "no").env("PODSSH_BORE", "no");
     cmd.env("PODSSH_IROH_PKARR", "off");
     cmd.env("HOME", home).env("USERPROFILE", home);

@@ -1,0 +1,7 @@
+# T-567: tunnl.gg's word asks a shell in place of the command output=json,
+# so the stand-in of tunnl.gg draws its banner for a terminal, with no line
+# of JSON, and the node names no tunnel; the test of the stand-in must fail.
+ENTRY=T-567
+GROUP=cli-tests
+EXPECT='test ssh_tunnel_http_words::tunnl_the_json_line_names_the_tunnel_and_carries_the_session \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test ssh_tunnel_http -- tunnl'

@@ -130,6 +130,7 @@ fn prepare(args: &NodeArgs) -> Result<Ready, Refusal> {
         (args.localhost_run, "--localhost-run"),
         (args.sandhole, "--sandhole"),
         (args.srv_us, "--srv-us"),
+        (args.tunnl_gg, "--tunnl-gg"),
         (args.localtunnel, "--localtunnel"),
         (args.hostc, "--hostc"),
         (args.bore, "--bore"),

@@ -45,12 +45,12 @@ pub(crate) fn check(args: &NodeArgs) -> Result<(), Refusal> {
     if let Some((_, flag)) = given.iter().find(|(given, _)| *given).filter(|_| !args.relay) {
         return Err(Refusal::usage(format!("{flag} is a setting of the relay role of a quick tunnel: add --relay")));
     }
-    let ssh_r = args.localhost_run || args.sandhole || args.srv_us;
+    let ssh_r = args.localhost_run || args.sandhole || args.srv_us || args.tunnl_gg;
     let behind = args.quick_tunnel || ssh_r || args.localtunnel || args.hostc;
     if args.relay && !behind {
-        let why = "--relay is for --quick-tunnel, --localhost-run, --sandhole, --srv-us, --localtunnel or --hostc, \
-                   whose node then serves the relay with no listener; a relay that listens is podssh relay serve \
-                   --listen";
+        let why = "--relay is for --quick-tunnel, --localhost-run, --sandhole, --srv-us, --tunnl-gg, --localtunnel or \
+                   --hostc, whose node then serves the relay with no listener; a relay that listens is podssh relay \
+                   serve --listen";
         return Err(Refusal::usage(why));
     }
     // The word now (64), before a key is loaded; whom it names is read once

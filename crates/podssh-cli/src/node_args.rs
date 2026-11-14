@@ -43,6 +43,8 @@ pub struct NodeArgs {
     pub sandhole: bool,
     /// The same road at srv.us (T-566), whose name the node's key gives.
     pub srv_us: bool,
+    /// The same road at tunnl.gg (T-567).
+    pub tunnl_gg: bool,
     /// Serve the localtunnel road (T-568), a last fallback of Q78: a name
     /// derived from the node's key at localtunnel's public server.
     pub localtunnel: bool,
@@ -140,11 +142,11 @@ impl NodeArgs {
     /// Whether a road of a tunnel with no account was asked: OpenTunnel's
     /// (T-531) and the last fallbacks of Q78, Pinggy's, Serveo's, ssh-j's,
     /// localhost.run's and its module's other words, hostc's, localtunnel's and
-    /// bore's (T-548, T-549, T-570, T-742, T-565, T-743, T-566, T-568, T-569).
-    /// One list, so that each check names each road.
+    /// bore's (T-548, T-549, T-570, T-742, T-565, T-743, T-566, T-567, T-568,
+    /// T-569). One list, so that each check names each road.
     pub fn tunnel_asked(&self) -> bool {
         let first = self.opentunnel || self.pinggy || self.serveo || self.ssh_j;
-        let ssh_r = self.localhost_run || self.sandhole || self.srv_us;
+        let ssh_r = self.localhost_run || self.sandhole || self.srv_us || self.tunnl_gg;
         first || ssh_r || self.hostc || self.localtunnel || self.bore
     }
 
@@ -168,6 +170,7 @@ impl NodeArgs {
             localhost_run: matches.get_flag("localhost-run"),
             sandhole: matches.get_flag("sandhole"),
             srv_us: matches.get_flag("srv-us"),
+            tunnl_gg: matches.get_flag("tunnl-gg"),
             localtunnel: matches.get_flag("localtunnel"),
             hostc: matches.get_flag("hostc"),
             bore: matches.get_flag("bore"),

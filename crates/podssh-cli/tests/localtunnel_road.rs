@@ -260,7 +260,7 @@ fn command(home: &Path, server: &str, args: &[&str]) -> Command {
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");
     // Nor the last roads beside this one (Q78): localhost.run (T-565), bore (T-569).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no").env("PODSSH_BORE", "no");
-    cmd.env("PODSSH_SRV_US", "no");
+    cmd.env("PODSSH_SRV_US", "no").env("PODSSH_TUNNL_GG", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));
     cmd

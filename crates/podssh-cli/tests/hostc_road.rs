@@ -207,7 +207,7 @@ fn command(home: &Path, server: &str, args: &[&str]) -> Command {
     cmd.env("PODSSH_FORWARDER_FALLBACK", "no");
     // Nor the last roads beside this one (Q78).
     cmd.env("PODSSH_LOCALHOST_RUN", "no").env("PODSSH_SANDHOLE", "no").env("PODSSH_LOCALTUNNEL", "no");
-    cmd.env("PODSSH_SRV_US", "no");
+    cmd.env("PODSSH_SRV_US", "no").env("PODSSH_TUNNL_GG", "no");
     cmd.env("PODSSH_BORE", "no");
     cmd.env("HOME", home).env("USERPROFILE", home);
     cmd.env("XDG_CACHE_HOME", home.join("cache")).env("LOCALAPPDATA", home.join("cache"));

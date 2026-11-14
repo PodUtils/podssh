@@ -585,12 +585,13 @@ to none. The sources are in "Sources", under "T-738".
   the topic of a code alone, so the board needs a retained publish, a read of one topic and a
   clear from it: asked of podcrates (T-738's Done). The board carries the small writes too (T-773): a write of at most 16 KiB less its seal (under the 64,000 bytes of `pod_wormhole`'s board) rides sealed in its note, with no host and no turn of a host's pace, so the handshakes above the road end within their 30 s; only a larger write is a piece on a host. A write's number orders notes and pieces alike, and a client's link starts once the node took its hello.
 
-### The verdict of T-566 (read on 2026-11-13)
+### The verdicts of T-566 and T-567 (read on 2026-11-13)
 
 Each source below was read on 2026-11-13 through the services of web.pkgforge.dev (forge, domain
-and archive), and none by a connection of podssh to srv.us. Its server is open source, so the
-facts are read in its Go code at a named commit, not inferred from a page. The sources are in
-"Sources", under "T-566". Q78 makes it a last fallback, whatever its terms.
+and archive), and none by a connection of podssh to srv.us or tunnl.gg. Each server is open
+source, so the facts are read in its Go code at a named commit, not inferred from a page. The
+sources are in "Sources", under "T-566 and T-567". Q78 makes each a last fallback, whatever its
+terms.
 
 **T-566: srv.us. Passes, as a word of T-565's module whose name a client derives from the node's
 key, with no meeting point.**
@@ -638,7 +639,41 @@ key, with no meeting point.**
 - **The verdict.** A word of T-565's module: the user `nomatch`, the node's own key, the forward of
   port 1, the session before the forward, the marker `1: https://`. The client derives the name
   from the node's whole key (a fingerprint does not do), so the road needs no record, as the ssh-j
-  road. Last of the module's words, as its edge was not measured live.
+  road. Last of the module's words but tunnl.gg, as its edge was not measured live.
+
+**T-567: tunnl.gg. Passes, as a word of T-565's module; the record carries its random name.**
+
+- **The login and the name** [R567-1]. A login with no key (`authNone`) is let in as any user but
+  `stable`, `pro` (with accounts) and the users of a key command; its name is random,
+  `ADJ-NOUN-HEX`, 8 hex digits, new at each connection. `stable@` asks a key, any key, and its
+  name is HMAC-SHA-256 of the key's wire form under a secret derived from the server's private
+  host key: "The URL can't be worked out from your public key", and it changes with the host key.
+  So no client can derive it: the record carries the name, and the node sends no key of its own.
+- **The session** [R567-1][R567-2]. The server waits 30 s for the forward (any port: it is kept,
+  never checked; the bind address names a subdomain only for an account), then 5 s for a session,
+  then 5 s for a shell or an exec; the exec's command is its options, and `output=json` makes the
+  first line `{"event":"tunnel","url":"https://NAME.tunnl.gg",...}`, then a line for each request.
+  With a shell and no terminal the banner is drawn for a person, so the node asks `output=json`.
+  The server asks a keepalive after 15 quiet seconds and ends a connection after 45 s with nothing
+  from the client.
+- **The edge** [R567-1][R567-3]. An HTTP proxy in Go: a WebSocket upgrade is hijacked and copied
+  raw both ways (100 a tunnel, 20 a visitor, 1 GB each way, 2 hours idle); a request's body and an
+  answer's are 64 MB at most, and a request ends after 2 minutes with no byte either way; 25
+  requests a second a visitor, 50 a tunnel; 3 tunnels an IP; 2 hours idle, 24 hours at most; 5 GB a
+  day an IP, WebSockets counted. A browser's `User-Agent` meets a warning page once a day; podssh's
+  is no browser's. Each name under `tunnl.gg` resolves to Cloudflare's addresses, the server's
+  proxied names; `proxy.tunnl.gg`, the SSH host, is one address of Hetzner, its Ed25519 host key
+  `SHA256:5uQ6VobmUpY4wyMmm5jnAwFtt3aX06WYDDM4ER+2WUw` (README, and an SSHFP record under DNSSEC).
+  The cut of `ff-relay` (T-567's Correction, 520,192 bytes of an HTTP/2 fetch) is no limit of the
+  code: the body's limit is 64 MB and the idle one 2 minutes; Cloudflare in front, or the run, is
+  left; a WebSocket, which podssh takes, has its own limit of 1 GB, and the live run of 1 MiB down
+  measures it.
+- **The host** [R567-4]. `tunnl.gg` was registered on 2025-12-03, at NameCheap, the registrant
+  redacted; Cloudflare's intelligence files it as "Anonymizer", which a filter of a cage may
+  refuse. One person runs it, with sponsors and a "Pro" plan.
+- **The verdict.** A word of T-565's module: the user `tunnel`, no key, the forward of port 80 as
+  its README asks, the command `output=json`, the marker `"event":"tunnel"`; the record and the
+  cache carry the name. Last of the module's words.
 
 ## The reverse road
 
@@ -2836,8 +2871,8 @@ T-738 (read on 2026-11-12 through the services of web.pkgforge.dev; nothing was 
 - [R738-12] https://www.shiftr.io/docs/broker/mqtt-interface and
   https://www.shiftr.io/docs/broker/http-interface
 
-T-566 (read on 2026-11-13 through the services of web.pkgforge.dev: forge, domain and archive;
-podssh connected to no host of srv.us):
+T-566 and T-567 (read on 2026-11-13 through the services of web.pkgforge.dev: forge, domain and
+archive; podssh connected to neither service):
 
 - [R566-1] `xmit-dev/srv.us:backend/main.go` and `backend/go.mod` at `c153c354fbb622dfa786e73e8f767e50449ba8d1`
   (0BSD; GitHub's API answers `pcarrier/srv.us` with it, and the README links `xmit-co/srv.us`), through
@@ -2851,6 +2886,15 @@ podssh connected to no host of srv.us):
   sample, so it is no vector
 - [R566-5] https://domain.web.pkgforge.dev/dns/srv.us, `/dns/zzrmnvgfo2simj7f57nztj24qq.srv.us`,
   `/rdap/srv.us` and `/category/srv.us`
+- [R567-1] `klipitkas/tunnl.gg` at `ea47661c5bc75554a5ec4393636c07241836c0d0` (MIT):
+  `pkg/server/ssh.go`, `auth.go`, `accounts.go`, `keycommand.go`, `http.go`, `pkg/config/config.go`,
+  `pkg/subdomain/subdomain.go`, `pkg/tunnel/logbuffer.go`, through forge.web.pkgforge.dev
+- [R567-2] `klipitkas/tunnl.gg:README.md` at the same commit ("Keep the same URL", "JSON output for
+  scripts and agents", "Limits and protection", "Troubleshooting")
+- [R567-3] https://domain.web.pkgforge.dev/dns/tunnl.gg, `/dns/proxy.tunnl.gg` and
+  `/dns/calm-fox-00000001.tunnl.gg`
+- [R567-4] https://domain.web.pkgforge.dev/rdap/tunnl.gg (the WHOIS of `.gg`) and
+  `/category/tunnl.gg`
 
 Read on 2026-11-10 through the services of web.pkgforge.dev (read, fetch, domain, ip and search),
 for T-623, T-624 and T-626. No host of these services was connected to; each fact is from a

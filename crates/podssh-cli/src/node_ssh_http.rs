@@ -23,9 +23,11 @@
 //! same road at Sandhole's public server (T-743), which a node serves unasked
 //! after localhost.run's; `PODSSH_SANDHOLE=no` turns it off. `--srv-us`
 //! serves it at srv.us (T-566), whose name is a function of the node's own
-//! key, with which the leg logs in, so a client derives it. A node serves
-//! it unasked after Sandhole's; `PODSSH_SRV_US=no` turns it off. The road is
-//! served alone, as the ssh-j road is (T-570's Decision). stdout stays empty.
+//! key, with which the leg logs in, so a client derives it; `--tunnl-gg` at
+//! tunnl.gg (T-567), whose random name the record carries. A node serves
+//! them unasked after Sandhole's, in that order; `PODSSH_SRV_US=no` and
+//! `PODSSH_TUNNL_GG=no` turn them off. The road is served alone, as the
+//! ssh-j road is (T-570's Decision). stdout stays empty.
 
 use std::io::Write;
 
@@ -39,13 +41,14 @@ use crate::node_quick_relay::Role;
 use crate::relay_settings::Refusal;
 
 /// The words of the module, in the order that a node serves them unasked:
-/// localhost.run's, then Sandhole's (T-743) and srv.us's (T-566).
+/// localhost.run's, then Sandhole's (T-743), srv.us's (T-566) and
+/// tunnl.gg's (T-567).
 pub(crate) const WORDS: &[Word] = ssh_http::WORDS;
 
 /// The word that the node's flags ask for: the first of [`WORDS`] whose
 /// flag is given ([`check`] refuses two).
 pub(crate) fn asked(args: &NodeArgs) -> Option<Word> {
-    let given = [args.localhost_run, args.sandhole, args.srv_us];
+    let given = [args.localhost_run, args.sandhole, args.srv_us, args.tunnl_gg];
     WORDS.iter().zip(given).find(|(_, given)| *given).map(|(word, _)| *word)
 }
 
@@ -127,6 +130,7 @@ pub(crate) fn check(args: &NodeArgs, word: Word) -> Result<(), Refusal> {
         (args.localhost_run && flag != "--localhost-run", "--localhost-run"),
         (args.sandhole && flag != "--sandhole", "--sandhole"),
         (args.srv_us && flag != "--srv-us", "--srv-us"),
+        (args.tunnl_gg && flag != "--tunnl-gg", "--tunnl-gg"),
         (args.localtunnel, "--localtunnel"),
         (args.bore, "--bore"),
         (args.iroh, "--iroh"),
@@ -270,11 +274,15 @@ mod tests {
         assert!(check(&sandhole, ssh_http::SANDHOLE).is_ok());
         assert_eq!(asked(&sandhole), Some(ssh_http::SANDHOLE));
         assert!(check(&NodeArgs { relay: true, ..base() }, ssh_http::LOCALHOST_RUN).is_ok(), "the relay role");
-        let (word, args) = (ssh_http::SRV_US, NodeArgs { localhost_run: false, srv_us: true, ..base() });
-        assert!(check(&args, word).is_ok(), "{}", word.flag);
-        assert_eq!(asked(&args), Some(word));
-        let both = NodeArgs { sandhole: true, ..args };
-        assert!(check(&both, word).unwrap_err().message.contains("--sandhole"), "{}", word.flag);
+        for (word, args) in [
+            (ssh_http::SRV_US, NodeArgs { localhost_run: false, srv_us: true, ..base() }),
+            (ssh_http::TUNNL_GG, NodeArgs { localhost_run: false, tunnl_gg: true, ..base() }),
+        ] {
+            assert!(check(&args, word).is_ok(), "{}", word.flag);
+            assert_eq!(asked(&args), Some(word));
+            let both = NodeArgs { sandhole: true, ..args };
+            assert!(check(&both, word).unwrap_err().message.contains("--sandhole"), "{}", word.flag);
+        }
     }
 
     #[test]

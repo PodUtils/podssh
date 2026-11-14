@@ -1,0 +1,12 @@
+diff --git a/crates/podssh-relay/src/ssh_http/mod.rs b/crates/podssh-relay/src/ssh_http/mod.rs
+--- a/crates/podssh-relay/src/ssh_http/mod.rs
++++ b/crates/podssh-relay/src/ssh_http/mod.rs
+@@ -179,7 +179,7 @@
+     marker: "\"event\":\"tunnel\"",
+     tunnels_under_host: false,
+     session_first: false,
+-    command: Some("output=json"),
++    command: None,
+ };
+ 
+ /// Each word of the module, in the order that a node tries them unasked:

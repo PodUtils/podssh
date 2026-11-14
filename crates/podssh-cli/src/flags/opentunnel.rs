@@ -56,10 +56,15 @@ pub const NODE_SANDHOLE: FlagRow = row(None, "sandhole", None, FlagKind::Support
 pub const NODE_SRV_US: FlagRow = row(None, "srv-us", None, FlagKind::Supported,
     "serve TARGET over the same road at srv.us (where podssh's list of services names it, or the server of env PODSSH_SRV_US): SSH on port 22, directly or through the proxy's CONNECT, as the user nomatch, logged in with the node's own key, and the remote forward of port 1; srv.us derives the tunnel's HTTPS name from that key and port, so a client that holds the node's key (--node-key, the net, or the pins of NAME) derives the name and races the road last, with no record; the node prints the name, keeps it under NAME and puts it in its record; with --relay, the relay role behind it too; a third party that nobody vouches for, which sees the node's public key, so a last fallback, after Sandhole's; the road alone; needs the end-to-end channel, and --allow or a key that the net held here names", None);
 
+/// `node --tunnl-gg` (T-567).
+#[rustfmt::skip]
+pub const NODE_TUNNL_GG: FlagRow = row(None, "tunnl-gg", None, FlagKind::Supported,
+    "serve TARGET over the same road at tunnl.gg (where podssh's list of services names it, or the server of env PODSSH_TUNNL_GG): SSH on port 22, directly or through the proxy's CONNECT, with no key and the remote forward of port 80, and the command output=json, whose first line names a random HTTPS name, new at each connection, which the node prints, keeps under NAME in the cache and puts in its record; with --relay, the relay role behind it too; a third party that nobody vouches for, so a last fallback, after srv.us's; the road alone; needs the end-to-end channel, and --allow or a key that the net held here names", None);
+
 /// `ssh node://NAME --tunnel-url https://HOST`.
 #[rustfmt::skip]
 pub const SSH_TUNNEL_URL: FlagRow = row(None, "tunnel-url", Some("URL"), FlagKind::Supported,
-    "node://NAME: race the road of a tunnel of HTTP made by ssh -R (localhost.run's, Sandhole's or srv.us's) to https://HOST, the name that the node prints, 250 ms after the road before it: a WebSocket at / of HOST, whose TLS this host's roots verify; the name is kept under NAME, and a later run that gives none dials it, or the one of the node's record, last, when each road before it failed; a free name changes after a few hours", None);
+    "node://NAME: race the road of a tunnel of HTTP made by ssh -R (localhost.run's, Sandhole's, srv.us's or tunnl.gg's) to https://HOST, the name that the node prints, 250 ms after the road before it: a WebSocket at / of HOST, whose TLS this host's roots verify; the name is kept under NAME, and a later run that gives none dials it, or the one of the node's record, last, when each road before it failed; a free name changes after a few hours", None);
 /// `node --hostc` (T-742).
 #[rustfmt::skip]
 pub const NODE_HOSTC: FlagRow = row(None, "hostc", None, FlagKind::Supported,

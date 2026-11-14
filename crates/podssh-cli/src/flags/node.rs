@@ -153,6 +153,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
     super::opentunnel::NODE_LOCALHOST_RUN,
     super::opentunnel::NODE_SANDHOLE,
     super::opentunnel::NODE_SRV_US,
+    super::opentunnel::NODE_TUNNL_GG,
     super::opentunnel::NODE_HOSTC,
     super::opentunnel::NODE_LOCALTUNNEL,
     super::opentunnel::NODE_BORE,

@@ -1,13 +1,16 @@
-//! The word of srv.us (T-566) of the road of a tunnel of HTTP made by
-//! `ssh -R`, through T-565's stand-in in its shape
+//! The words of srv.us (T-566) and tunnl.gg (T-567) of the road of a tunnel
+//! of HTTP made by `ssh -R`, through T-565's stand-in in their shapes
 //! (`ssh_tunnel_http_stand_in`): as srv.us, the node logs in with its own
 //! key as `nomatch`, opens its session before the forward of port 1, and the
 //! stand-in names the tunnel by srv.us's steps; a client that names the
 //! node's whole key derives the same name and reaches it with no URL, and a
-//! fingerprint alone derives none. The switch turns it off. Planted: a
-//! wrong derivation of srv.us's name
+//! fingerprint alone derives none. As tunnl.gg, the node logs in with no
+//! key, asks the command `output=json`, takes the name of its first line,
+//! and a client reaches it at that URL, 1 MiB down whole. The switches turn
+//! each off. Planted: a wrong derivation of srv.us's name
 //! (`scripts/plants/t566-wrong-derivation.patch`), and the session with no
-//! URL fails.
+//! URL fails; tunnl.gg's word with no command
+//! (`scripts/plants/t567-no-json.patch`), and the node names no tunnel.
 
 use std::sync::atomic::Ordering;
 
@@ -16,7 +19,7 @@ use podssh_relay::identity::PublicKey;
 use podssh_relay::session::OsEntropy;
 
 use super::ssh_harness::GREETING;
-use super::ssh_tunnel_http_stand_in::{srv_us_label, ZONE};
+use super::ssh_tunnel_http_stand_in::{srv_us_label, SERVER, ZONE};
 use super::{command, name_of, run, Lab};
 
 /// The whole key of the node's key file `key`, once it ran.
@@ -74,8 +77,40 @@ fn srv_us_is_served_unasked_after_the_words_before_it_and_its_switch_turns_it_of
     let (rc, out, err) = run(cmd.arg(&lab.allow).env("PODSSH_SRV_US", "no"));
     assert_eq!(rc, 64, "stdout {out:?}, stderr {err}");
     assert!(err.contains("PODSSH_SRV_US=no turns the srv.us road off"), "{err}");
-    let words = ["node", "lab", &lab.target, "--srv-us", "--sandhole"];
+    let words = ["node", "lab", &lab.target, "--srv-us", "--tunnl-gg"];
     let (rc, _, err) = run(&mut command(&lab.node_home, lab.proxy, &lab.ca, &words));
     assert_eq!(rc, 64, "two roads: {err}");
+    drop(lab.runtime);
+}
+
+#[test]
+fn tunnl_the_json_line_names_the_tunnel_and_carries_the_session() {
+    let lab = Lab::new("tunnl");
+    lab.stand_in.tunnl.store(true, Ordering::SeqCst);
+    lab.let_in();
+    lab.pair_down();
+    let env = [("PODSSH_TUNNL_GG", SERVER), ("PODSSH_LOCALHOST_RUN", "no")];
+    let (_node, lines, _) = lab.node("node.key", &["--tunnl-gg"], &env);
+    assert!(lines.iter().any(|l| l.contains("as tunnel, a user with no account")), "{lines:#?}");
+    assert!(lines.iter().any(|l| l.contains("over the tunnl.gg road alone")), "{lines:#?}");
+    let name = name_of(lines.last().unwrap());
+    assert!(name.starts_with("calm-fox-") && name.ends_with(&format!(".{ZONE}")), "{name}");
+    assert_eq!(lab.stand_in.commands(), ["output=json"], "the command of its JSON lines");
+    assert_eq!(lab.stand_in.users(), ["tunnel"]);
+    assert!(lab.stand_in.keys().is_empty(), "no key goes to it");
+    assert_eq!(lab.stand_in.forwards(), [("localhost".to_string(), 80)]);
+
+    let url = format!("https://{name}");
+    let (rc, out, err) = run(&mut lab.ssh(&["-v", "--tunnel-url", &url, "node://tester@lab", "greet"]));
+    assert_eq!((rc, out.as_str()), (0, GREETING), "{err}");
+    assert!(err.contains("answered first"), "{err}");
+    let (rc, out, err) = run(&mut lab.ssh(&["--tunnel-url", &url, "node://tester@lab", "source 1048576"]));
+    assert_eq!((rc, out.len()), (0, 1 << 20), "1 MiB down whole: {err}");
+    let words = ["node", "lab", &lab.target, "--tunnl-gg", "--allow"];
+    let mut cmd = command(&lab.node_home, lab.proxy, &lab.ca, &words);
+    let (rc, _, err) = run(cmd.arg(&lab.allow).env("PODSSH_TUNNL_GG", "no"));
+    assert_eq!(rc, 64, "{err}");
+    assert!(err.contains("PODSSH_TUNNL_GG=no turns the tunnl.gg road off"), "{err}");
+    assert_eq!(lab.stand_in.made.load(Ordering::SeqCst), 1, "one tunnel for the node");
     drop(lab.runtime);
 }

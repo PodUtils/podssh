@@ -24,7 +24,11 @@
 //! srv.us (T-566, `StandIn::srv_us`, written from its `backend/main.go`): a
 //! key that signs, any; the forward answered only once a session is open,
 //! of any port, its name the key's and the port's by srv.us's steps
-//! ([`srv_us_label`]), and its line `P: https://NAME/` on the session.
+//! ([`srv_us_label`]), and its line `P: https://NAME/` on the session. As
+//! tunnl.gg (T-567, `StandIn::tunnl`, from its `pkg/server/ssh.go`): no
+//! key, a forward of any port, a random name, and the first line
+//! `{"event":"tunnel","url":...}` of the command `output=json`, else a
+//! banner for a terminal that holds the URL with no such line.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -76,6 +80,10 @@ pub struct StandIn {
     keys: Mutex<Vec<String>>,
     /// srv.us's shape: the node's key, the forward after a session.
     pub srv_us: AtomicBool,
+    /// tunnl.gg's shape: no key, and the command `output=json`.
+    pub tunnl: AtomicBool,
+    /// The command of each session that asked one.
+    commands: Mutex<Vec<String>>,
 }
 
 /// srv.us's label of a tunnel, by the steps of its `endpointURLs`: SHA-256
@@ -108,6 +116,11 @@ impl StandIn {
     /// The fingerprint of each key that logged in, in order.
     pub fn keys(&self) -> Vec<String> {
         lock(&self.keys).clone()
+    }
+
+    /// The command of each session that asked one, in order.
+    pub fn commands(&self) -> Vec<String> {
+        lock(&self.commands).clone()
     }
 
     /// Each remote forward that was taken: its address and its port.
@@ -295,16 +308,17 @@ impl server::Handler for Far {
         port: &mut u32,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        let srv_us = self.stand_in.srv_us.load(Ordering::SeqCst);
-        // "bindport — 80 or 443"; 80 ends TLS at the edge. srv.us takes any
-        // port, and answers only with a session open.
-        if (*port != 80 && !srv_us) || (srv_us && (self.session.is_none() || self.key.is_none())) {
+        let (srv_us, tunnl) = (self.stand_in.srv_us.load(Ordering::SeqCst), self.stand_in.tunnl.load(Ordering::SeqCst));
+        // "bindport — 80 or 443"; 80 ends TLS at the edge. srv.us and
+        // tunnl.gg take any port; srv.us answers only with a session open.
+        if (*port != 80 && !srv_us && !tunnl) || (srv_us && (self.session.is_none() || self.key.is_none())) {
             return Ok(false);
         }
         lock(&self.stand_in.forwards).push((address.to_string(), *port));
         let n = self.stand_in.made.fetch_add(1, Ordering::SeqCst) + 1;
         let name = match (srv_us, self.key) {
             (true, Some(key)) => format!("{}.{ZONE}", srv_us_label(&key, *port)),
+            _ if tunnl => format!("calm-fox-{n:08x}.{ZONE}"),
             _ => format!("t{n}.{ZONE}"),
         };
         if let (true, Some(channel)) = (srv_us, self.session) {
@@ -328,6 +342,33 @@ impl server::Handler for Far {
         Ok(())
     }
 
+    async fn exec_request(
+        &mut self,
+        channel: ChannelId,
+        data: &[u8],
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        session.channel_success(channel)?;
+        let command = String::from_utf8_lossy(data).into_owned();
+        lock(&self.stand_in.commands).push(command.clone());
+        if !self.stand_in.tunnl.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+        self.held_shell(channel);
+        let name = self.tunnel.clone().unwrap_or_default();
+        // tunnl.gg's `sessionJSON`, then a request's line as its logger writes one.
+        let text = match command.trim() == "output=json" {
+            true => format!(
+                "{{\"event\":\"tunnel\",\"url\":\"https://{name}\",\"subdomain\":\"{}\",\"stable\":false,\
+                 \"idle_timeout_seconds\":7200,\"max_lifetime_seconds\":86400}}\r\n",
+                name.split('.').next().unwrap_or_default()
+            ),
+            false => format!("\r\n  ERROR: unknown option {command:?}\r\n"),
+        };
+        session.data(channel, text.into_bytes())?;
+        Ok(())
+    }
+
     async fn shell_request(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), Self::Error> {
         session.channel_success(channel)?;
         let name = self.tunnel.clone().unwrap_or_default();
@@ -338,6 +379,11 @@ impl server::Handler for Far {
         }
         let text = match self.stand_in.sandhole.load(Ordering::SeqCst) {
             true => format!("Starting HTTPS on https://{name} for address localhost\r\n"),
+            // tunnl.gg's banner for a terminal: the URL, coloured, and no line of JSON.
+            false if self.stand_in.tunnl.load(Ordering::SeqCst) => format!(
+                "\r\n\x1b[32m  ● Tunnel is live\x1b[0m on {ZONE}\r\n\r\n\x1b[90m  URL      \x1b[0m\
+                 \x1b[35mhttps://{name}\x1b[0m\r\n"
+            ),
             false => format!(
                 "\r\n===============================================\r\nWelcome to localhost.run!\r\n\
              Follow your favourite reverse tunnel at [https://twitter.com/localhost_run].\r\n\

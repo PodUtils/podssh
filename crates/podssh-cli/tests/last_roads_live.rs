@@ -12,7 +12,8 @@
 //! too; and the Bare hop (T-740): the client's proxy of the test passes the
 //! Bare node of `pod-services` alone, so the tunnel's name of localhost.run
 //! is reached through that node, the last road of all. srv.us (T-566),
-//! whose name the client derives from the node's whole key.
+//! whose name the client derives from the node's whole key, and tunnl.gg
+//! (T-567).
 
 mod cleanup;
 mod ssh_harness;
@@ -32,13 +33,14 @@ const LIMIT: Duration = Duration::from_secs(120);
 const DOWN: usize = 1 << 20;
 
 /// Each last road's switch, which a run turns off but for its own.
-const LAST_ROADS: [&str; 8] = [
+const LAST_ROADS: [&str; 9] = [
     "PODSSH_PINGGY",
     "PODSSH_SSH_J",
     "PODSSH_SERVEO",
     "PODSSH_LOCALHOST_RUN",
     "PODSSH_SANDHOLE",
     "PODSSH_SRV_US",
+    "PODSSH_TUNNL_GG",
     "PODSSH_LOCALTUNNEL",
     "PODSSH_BORE",
 ];
@@ -307,4 +309,11 @@ fn behind_a_proxy_that_passes_the_bare_node_alone_the_bare_hop_carries_the_sessi
 #[ignore = "a live run through srv.us: last-roads-live.yml"]
 fn a_node_at_srv_us_serves_a_client_that_derives_its_name_from_its_key() {
     live_via("PODSSH_SRV_US", "--srv-us", ": tunnel https://", "the srv.us road", None, None, true);
+}
+
+/// tunnl.gg (T-567): its random name, given as --tunnel-url.
+#[test]
+#[ignore = "a live run through tunnl.gg: last-roads-live.yml"]
+fn a_node_behind_tunnl_gg_serves_a_client_at_its_tunnel_s_url() {
+    live("PODSSH_TUNNL_GG", "--tunnl-gg", ": tunnel https://", "the tunnl.gg road", Some(tunnel_url));
 }

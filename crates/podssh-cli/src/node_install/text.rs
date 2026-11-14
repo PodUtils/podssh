@@ -75,6 +75,7 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
         ("--localhost-run", args.localhost_run),
         ("--sandhole", args.sandhole),
         ("--srv-us", args.srv_us),
+        ("--tunnl-gg", args.tunnl_gg),
         ("--localtunnel", args.localtunnel),
         ("--bore", args.bore),
         ("--no-e2e", args.no_e2e),

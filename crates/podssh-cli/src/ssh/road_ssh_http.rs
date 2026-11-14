@@ -16,8 +16,9 @@
 //! names `wss://NAME/`, never `cf://` or Cloudflare Access: the edge is the
 //! service's, not Cloudflare's. A name under Sandhole's tunnels' zone is
 //! Sandhole's (T-743): its switch `PODSSH_SANDHOLE` and its line hold; so
-//! for srv.us's (T-566, `PODSSH_SRV_US`). srv.us's name needs no word at
-//! all: the road of `road_srv_us` derives it from the node's key. A
+//! for srv.us's (T-566, `PODSSH_SRV_US`) and tunnl.gg's (T-567,
+//! `PODSSH_TUNNL_GG`). srv.us's name needs no word at all: the road of
+//! `road_srv_us` derives it from the node's key. A
 //! name of hostc's tunnels is hostc's (T-742): a node of the hostc road
 //! names its tunnel so, and the same link reaches it; `PODSSH_HOSTC` and
 //! hostc's line hold for it.
@@ -44,8 +45,8 @@ use crate::ssh::road_link::{Kind, Road};
 use crate::ssh::roads::Going;
 
 /// The word of a name: the one whose tunnels' zone holds it (Sandhole's,
-/// T-743; srv.us's, T-566), else localhost.run's, whose switch and line the
-/// link takes.
+/// T-743; srv.us's, T-566; tunnl.gg's, T-567), else localhost.run's, whose
+/// switch and line the link takes.
 fn word_of(name: &str) -> Word {
     ssh_http::word_of_name(name)
 }

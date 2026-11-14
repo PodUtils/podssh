@@ -1,6 +1,6 @@
 //! The variables of the TURN road (T-621), of the file hosts' road
-//! (T-738), and of the srv.us road (T-566), apart from `roads.rs` for its
-//! length.
+//! (T-738), and of the srv.us and tunnl.gg roads (T-566, T-567), apart from
+//! `roads.rs` for its length.
 
 /// `PODSSH_TURN` and its credential file.
 pub(super) const VARIABLES: &[(&[&str], &str)] = &[
@@ -40,5 +40,16 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           host key nobody names, its tunnels named under HOST; unset, empty or yes: srv.us where podssh's list of \
           services names it, else no server, and --srv-us is a configuration error (78). Another word is a \
           configuration error (78), which does not echo the value.",
+    ),
+    (
+        &["PODSSH_TUNNL_GG"],
+        "The tunnl.gg road (T-567), a last fallback of the operator's ruling Q78: the localhost.run road's shape \
+          at tunnl.gg, SSH on port 22 with no key, the forward of port 80 and the command output=json, of podssh \
+          node --tunnl-gg and podssh ssh node://NAME --tunnel-url https://HOST of a name under its tunnels' zone, \
+          which a node with no other road serves unasked after the srv.us road; its name is random, so a client \
+          finds it by --tunnel-url, a kept name or the node's record. no: no such road, and the flags are refused \
+          (64); HOST[:PORT]: that server of the same shape, whose host key nobody names; unset, empty or yes: \
+          proxy.tunnl.gg where podssh's list of services names it, else no server, and --tunnl-gg is a \
+          configuration error (78). Another word is a configuration error (78), which does not echo the value.",
     ),
 ];

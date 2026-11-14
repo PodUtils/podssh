@@ -26,10 +26,10 @@
 //! the layer's bytes, which the channel keeps from it.
 //!
 //! A service of the shape is a [`Word`]: its user, its login, its forward,
-//! its ports and the word of its line that names a tunnel. localhost.run is
-//! the first (T-565); Sandhole's public server (T-743), srv.us (T-566, whose
-//! name is a function of the login's key, [`srv_us`]) and tunnl.gg (T-567)
-//! are more words of the same module. Each server comes from
+//! its ports, its command and the word of its line that names a tunnel.
+//! localhost.run is the first (T-565); Sandhole's public server (T-743),
+//! srv.us (T-566, whose name is a function of the login's key, [`srv_us`])
+//! and tunnl.gg (T-567) are more words of the same module. Each server comes from
 //! `pod-services` alone, or from the word's variable: podssh names no host
 //! of a third party in its own code. The SSH client of the node's leg is the
 //! binary's.
@@ -80,6 +80,9 @@ pub struct Word {
     /// Whether the session opens before the forward is asked: srv.us
     /// answers a forward only once a session can carry its line.
     pub session_first: bool,
+    /// The session's command where the service reads one (tunnl.gg's
+    /// `output=json`); none asks for a shell.
+    pub command: Option<&'static str>,
 }
 
 /// localhost.run's word. The user `nokey`: "For free tunnels, skip the key
@@ -101,6 +104,7 @@ pub const LOCALHOST_RUN: Word = Word {
     marker: "tunneled",
     tunnels_under_host: false,
     session_first: false,
+    command: None,
 };
 
 /// Sandhole's public server (T-743): it lets any key in as a user and
@@ -122,6 +126,7 @@ pub const SANDHOLE: Word = Word {
     marker: "starting https",
     tunnels_under_host: true,
     session_first: false,
+    command: None,
 };
 
 /// srv.us (T-566; its Go server, `backend/main.go` of xmit-dev/srv.us at
@@ -149,11 +154,37 @@ pub const SRV_US: Word = Word {
     marker: "1: https://",
     tunnels_under_host: true,
     session_first: true,
+    command: None,
+};
+
+/// tunnl.gg (T-567; its Go server, klipitkas/tunnl.gg at ea47661c, MIT,
+/// read 2026-11-13): a login with no key is let in as any user but
+/// `stable` and `pro`, and gets a random name `ADJ-NOUN-HEX.tunnl.gg`
+/// (`pkg/subdomain`); the name of `stable@` is an HMAC of the key under a
+/// secret of the server's, which no client can compute, so the record
+/// carries the name either way and no key of the node's goes to it. The
+/// command `output=json` makes the session's first line
+/// `{"event":"tunnel","url":"https://NAME.tunnl.gg",...}`: with a shell
+/// and no terminal its banner is drawn for a person. The forward is the
+/// README's `-R 80:localhost:PORT`; the server reads its port nowhere.
+pub const TUNNL_GG: Word = Word {
+    id: "tunnl-gg",
+    name: "tunnl.gg",
+    env: "PODSSH_TUNNL_GG",
+    flag: "--tunnl-gg",
+    user: "tunnel",
+    login: Login::NoAccount,
+    forward: ("localhost", 80),
+    ports: &[22],
+    marker: "\"event\":\"tunnel\"",
+    tunnels_under_host: false,
+    session_first: false,
+    command: Some("output=json"),
 };
 
 /// Each word of the module, in the order that a node tries them unasked:
-/// the ones measured live first (T-565, T-743), then srv.us.
-pub const WORDS: &[Word] = &[LOCALHOST_RUN, SANDHOLE, SRV_US];
+/// the ones measured live first (T-565, T-743), then srv.us and tunnl.gg.
+pub const WORDS: &[Word] = &[LOCALHOST_RUN, SANDHOLE, SRV_US, TUNNL_GG];
 
 /// The word whose service holds `name` under its tunnels' zone (the fact
 /// `tunnel-zone` of `pod-services`), else localhost.run's, whose zone
@@ -227,8 +258,11 @@ impl std::fmt::Display for Service {
     }
 }
 
-/// What a word's variable and [`LAST_RESORT`] ask for.
+/// What a word's variable and [`LAST_RESORT`] ask for. One is made for each
+/// road of a run, never in a loop of bytes, so the size of `On` costs
+/// nothing worth a box.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum Setting {
     /// No road of the word, as the variable of this name says.
     Off(&'static str),
@@ -368,13 +402,24 @@ mod tests {
     }
 
     #[test]
-    fn the_words_go_in_their_order_and_srv_us_logs_in_by_the_node_s_key() {
+    fn the_words_go_in_their_order_and_tunnl_gg_s_json_line_names_its_tunnel() {
         let ids: Vec<&str> = WORDS.iter().map(|word| word.id).collect();
-        assert_eq!(ids, ["localhost-run", "sandhole", "srv-us"], "srv.us last (Q78)");
+        assert_eq!(ids, ["localhost-run", "sandhole", "srv-us", "tunnl-gg"], "srv.us and tunnl.gg last (Q78)");
         assert_eq!((SRV_US.login, SRV_US.session_first, SRV_US.forward.1), (Login::NodeKey, true, 1));
-        let off = setting_with(SRV_US, Some("no"), None, None);
-        assert_eq!(off, Ok(Setting::Off(SRV_US.env)));
-        assert_eq!(SRV_US.env, "PODSSH_SRV_US");
+        assert_eq!((TUNNL_GG.login, TUNNL_GG.command), (Login::NoAccount, Some("output=json")));
+        // The first line of `output=json`, as tunnl.gg's README shows it.
+        let line = "{\"event\":\"tunnel\",\"url\":\"https://brave-fox-7c41e09b.tunnl.gg\",\"subdomain\":\
+                    \"brave-fox-7c41e09b\",\"stable\":false,\"idle_timeout_seconds\":7200}";
+        let tunnl = Service { word: TUNNL_GG, host: "proxy.tunnl.gg".into(), ports: vec![22], host_key: None };
+        let found = name::of_line(line, &TUNNL_GG, &|host| tunnl.own(host));
+        assert_eq!(found.as_deref(), Some("brave-fox-7c41e09b.tunnl.gg"));
+        let request = "{\"event\":\"request\",\"method\":\"GET\",\"path\":\"https://x.tunnl.gg/\"}";
+        assert_eq!(name::of_line(request, &TUNNL_GG, &|host| tunnl.own(host)), None, "a request's line");
+        for word in [SRV_US, TUNNL_GG] {
+            let off = setting_with(word, Some("no"), None, None);
+            assert_eq!(off, Ok(Setting::Off(word.env)), "{}", word.env);
+        }
+        assert_eq!((SRV_US.env, TUNNL_GG.env), ("PODSSH_SRV_US", "PODSSH_TUNNL_GG"));
     }
 
     #[test]

@@ -4561,6 +4561,15 @@ commands. The rules behind them:
   record, with no record at all (`ssh/road_srv_us.rs`); a fingerprint alone
   derives nothing. srv.us sees the node's public key and logs it for a day.
   `PODSSH_SRV_US=no` or `PODSSH_LAST_RESORT=no` turns it off.
+- **`node --tunnl-gg` serves the same road at tunnl.gg** (T-567), after
+  srv.us's, the last word: `proxy.tunnl.gg` where `pod-services` names it
+  (the service `tunnl-gg`), or the server of `PODSSH_TUNNL_GG`. The leg is
+  raw SSH on port 22 as the user `tunnel` with no key, the remote forward
+  of port 80, and the command `output=json`, whose first line
+  `{"event":"tunnel","url":"https://NAME.tunnl.gg",...}` names a random
+  name, new at each connection; the record and the cache carry it, as
+  localhost.run's. `PODSSH_TUNNL_GG=no` or `PODSSH_LAST_RESORT=no` turns it
+  off.
 - **The Bare hop is the last road of `ssh node://NAME`** (T-740): the
   tunnel's name of the road of `ssh -R` (localhost.run's or Sandhole's),
   reached through a Bare v3 node (`podssh_ws::bare`), once each road

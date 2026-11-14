@@ -9,7 +9,8 @@
 //! (srv.us, T-566) logs in with the node's own key instead. One remote
 //! forward, the word's, whose `forwarded-tcpip` channels Pinggy's handler
 //! hands on as visitors. The session channel takes a shell with no
-//! terminal, as `ssh -T` does, whose lines name the tunnel, then each new name,
+//! terminal, as `ssh -T` does, or the word's command (tunnl.gg's
+//! `output=json`, T-567), whose lines name the tunnel, then each new name,
 //! for as long as the session lives (`podssh_relay::ssh_http::name`): the
 //! service logs a line for each request there too, so the text is read to
 //! its end, line by line, and never kept whole.
@@ -126,8 +127,12 @@ async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), servic
             Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
         },
     };
-    if let Err(e) = session.request_shell(false).await {
-        return give_up(handle, format!("{service}: a shell: {e}")).await;
+    let asked = match service.word.command {
+        Some(command) => session.exec(false, command).await,
+        None => session.request_shell(false).await,
+    };
+    if let Err(e) = asked {
+        return give_up(handle, format!("{service}: the session's shell or command: {e}")).await;
     }
     let (said, mut names) = watch::channel(None);
     tokio::spawn(read_names(session, said, service.clone()));

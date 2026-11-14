@@ -68,6 +68,7 @@ fn command(home: &Path, proxy: u16, server: &str, args: &[&str]) -> Command {
     cmd.env("PODSSH_LOCALHOST_RUN", "no")
         .env("PODSSH_SANDHOLE", "no")
         .env("PODSSH_SRV_US", "no")
+        .env("PODSSH_TUNNL_GG", "no")
         .env("PODSSH_LOCALTUNNEL", "no")
         .env("PODSSH_HOSTC", "no")
         .env("PODSSH_SMEE", "no");

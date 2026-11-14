@@ -1,7 +1,8 @@
 //! The notes of the localhost.run road (T-565), the last fallback of the
 //! operator's ruling Q78, after the ssh-j road's: a node behind a tunnel of
 //! HTTP made by ssh -R, and a client that takes a WebSocket at its name; and
-//! of the other words of its module: Sandhole (T-743) and srv.us (T-566).
+//! of the other words of its module: Sandhole (T-743), srv.us (T-566) and
+//! tunnl.gg (T-567).
 
 /// The note of `podssh node NAME TARGET --localhost-run`.
 pub(super) const NODE: &str = "With --localhost-run, the node serves TARGET over the localhost.run road: a \
@@ -35,8 +36,11 @@ pub(super) const NODE: &str = "With --localhost-run, the node serves TARGET over
      server of PODSSH_SRV_US): its leg is SSH on port 22 as the user nomatch, logged in with the node's own \
      key, so srv.us sees that public key, and the remote forward of port 1; srv.us names the tunnel by that \
      key and port, the same at each connection, and the node says when the name it gave is not the one that a \
-     client derives. A node that would serve the Sandhole road unasked serves srv.us's after it; \
-     PODSSH_SRV_US=no turns it off.";
+     client derives. With --tunnl-gg, the node serves it at tunnl.gg (where podssh's list of services names \
+     it, or the server of PODSSH_TUNNL_GG): SSH on port 22 with no key, the forward of port 80 and the \
+     command output=json, whose first line names a random name, new at each connection. A node that would \
+     serve the Sandhole road unasked serves srv.us's after it, then tunnl.gg's; PODSSH_SRV_US=no and \
+     PODSSH_TUNNL_GG=no turn them off.";
 
 /// The note of `podssh ssh node://NAME` on the localhost.run road.
 pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races the localhost.run road too, \
@@ -50,8 +54,8 @@ pub(super) const SSH: &str = "node://NAME with --tunnel-url https://HOST races t
      session over HTTPS that it ends, and that the end-to-end channel keeps its bytes. A free name changes \
      after a few hours. podssh ping measures it only with --tunnel-url. PODSSH_LOCALHOST_RUN=no or \
      PODSSH_LAST_RESORT=no turns the road off. A name under Sandhole's tunnels' zone is the Sandhole road's: \
-     its line names Sandhole, and PODSSH_SANDHOLE=no turns it off; so for srv.us's (PODSSH_SRV_US). With \
-     no name at all, the srv.us road derives the node's name there from \
+     its line names Sandhole, and PODSSH_SANDHOLE=no turns it off; so for srv.us's (PODSSH_SRV_US) and \
+     tunnl.gg's (PODSSH_TUNNL_GG). With no name at all, the srv.us road derives the node's name there from \
      its whole key (--node-key, the net's, or the pins of NAME), as srv.us does, and races it last, after the \
      names given, kept or recorded; a fingerprint alone derives none. Last of all, once each road before it \
      failed, the Bare hop reaches the same name through a Bare v3 node (the one of podssh's list of services, \
@@ -77,7 +81,7 @@ mod tests {
         for text in ["--tunnel-url", "WebSocket at /", "last, once each road before it failed", "record", "--no-e2e"] {
             assert!(super::SSH.contains(text), "{text}");
         }
-        for text in ["--srv-us", "nomatch", "port 1", "PODSSH_SRV_US=no"] {
+        for text in ["--srv-us", "nomatch", "port 1", "--tunnl-gg", "output=json", "PODSSH_TUNNL_GG=no"] {
             assert!(super::NODE.contains(text), "{text}");
         }
         assert!(super::SSH.contains("whole key") && super::SSH.contains("PODSSH_SRV_US"));

@@ -16,14 +16,15 @@
 //! the next session; a node with no pair and each other road off serves the
 //! road unasked (Q78). As Sandhole (T-743): a key made for the login alone,
 //! a name under the server's own, and port 443 refused before 22. As srv.us
-//! (T-566): `ssh_tunnel_http_words`. Planted: a visitor's request of the role's path never
+//! and tunnl.gg (T-566, T-567): `ssh_tunnel_http_words`. Planted: a visitor's request of the role's path never
 //! given to the role (`scripts/plants/t565-role-not-taken.patch`), and the
 //! test of the role's contract fails.
 
 mod cleanup;
 mod ssh_harness;
 mod ssh_tunnel_http_stand_in;
-// The tests of srv.us's word (T-566), apart for the length of this file.
+// The tests of srv.us's word (T-566) and tunnl.gg's (T-567), apart for the
+// length of this file.
 mod ssh_tunnel_http_words;
 
 use std::io::{BufRead, BufReader, Write};
@@ -70,8 +71,8 @@ fn command(home: &Path, proxy: u16, ca: &Path, args: &[&str]) -> Command {
     let proxy = format!("http://127.0.0.1:{proxy}");
     cmd.env("HTTPS_PROXY", &proxy).env("https_proxy", &proxy).env("HTTP_PROXY", &proxy);
     cmd.env("PODSSH_LOCALHOST_RUN", SERVER).env("PODSSH_SANDHOLE", "no");
-    // The word of srv.us (T-566), which its tests name.
-    cmd.env("PODSSH_SRV_US", "no");
+    // The words of srv.us (T-566) and tunnl.gg (T-567), which their tests name.
+    cmd.env("PODSSH_SRV_US", "no").env("PODSSH_TUNNL_GG", "no");
     // No other road, no public forwarder and no record at n0's server.
     cmd.env("PODSSH_OPENTUNNEL", "no").env("PODSSH_PINGGY", "no").env("PODSSH_SERVEO", "no").env("PODSSH_SSH_J", "no");
     cmd.env("PODSSH_TRANSIT", "no").env("PODSSH_CROC", "no").env("PODSSH_PIPING", "no").env("PODSSH_IROH_PKARR", "off");

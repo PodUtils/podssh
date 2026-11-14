@@ -1,5 +1,5 @@
 //! The serving of `podssh node --localhost-run` (T-565), and of the other
-//! words of its module (`--sandhole`, `--srv-us`), apart from
+//! words of its module (`--sandhole`, `--srv-us`, `--tunnl-gg`), apart from
 //! `node_ssh_http` for the length of that file, in the shape of the ssh-j
 //! road's (`node_sshj_serve`): TARGET probed first, when there is one; then
 //! one tunnel at a time, opened again after its end (a lost connection, the
