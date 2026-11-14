@@ -49,7 +49,6 @@ COORD-067). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 
 | Issue | Waits for |
 | --- | --- |
-| #244 (COORD-067) | podcrates to record podssh's take of `v0.44.0`; close it when its answer comes |
 | #242 (COORD-065) | podcrates: pod-session's spare links back off after a spare that moved no byte (T-781) |
 
 ## The live runs and interop harnesses
