@@ -51,7 +51,7 @@ core: the handshake, a host key that does not change, and key authentication.
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:378-452` and
-   `crates/podssh-cli/src/positionals.rs:8-277`, an arm beside
+   `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:351-425`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
@@ -170,7 +170,7 @@ Merged, built and run by the main session the same day:
   still says "after the bind" and "the role": `apply` does not know the moment, and that refusal comes only where a
   drop fails.
 
-Left: `podssh serve NAME` on a node's road (Approach item 5); the merge runs
+Left then: `podssh serve NAME` on a node's road (Approach item 5), done on 2026-11-14 (below); the merge runs
 `cargo todo remap` on each cited file that the draft changed.
 
 2026-11-13, with the draft of T-108 (branch `draft-t108`): a command runs since T-108, so the two
@@ -180,6 +180,28 @@ the test `exec_and_direct_tcpip_are_refused_with_an_answer` is now
 crates/podssh-cli/tests/serve_stdio.rs the strict client's `true` now exits 0 with no `exec request
 failed`, and the helpers that it shares with T-108's test moved to crates/podssh-cli/tests/serve_kit/mod.rs.
 The plant `t107-accept-each-key` has its context moved to the handler as T-108 left it.
+
+2026-11-14, Approach item 5: `podssh serve NAME` (`crates/podssh-cli/src/node_serve.rs`). The verb takes NAME,
+the label of a pair, beside `--stdio` (both are 64); it reads the keys, the settings and the host key as for
+`--stdio`, then runs the node of the pair on the relay's road with a handler whose `open` gives one end of a pipe
+and starts `serve_under` on the other, so no TARGET is dialled and nothing listens. `node.rs` hooks it in three
+places (no TARGET parsed, the first line `serving podssh serve, in this process`, no Piping Server road beside
+it), and its runner of pipes, `with_handler`, moved to the new file. The manual's note of serve, the verb's
+line, NAME's help, and `docs/cli.md` say so.
+
+- `cargo test -p podssh-cli --test serve_node`: 2 passed (and the harness's own), against the stand-in relay
+  (Python and openssl): `podssh ssh node://USER@lab 'echo SERVED-$((40+2)); exit 3'` gives `SERVED-42` and 3,
+  the test's own SSH server takes no connection, and another key is refused (255, `Permission denied`);
+  `--stdio` with NAME is 64.
+- Live, through the live relay (2026-11-14, from a cloud session): `podssh relay pair t1074234e6`, `podssh serve
+  t1074234e6 --authorized-key KEY --shell /bin/bash`, then `podssh ssh --pair-file op.json node://root@t1074234e6
+  'echo HELLO-$(whoami); exit 3'`: `HELLO-root` and 3; `podssh cp` of 20 MiB up and down through it, equal SHA-256
+  at both ends, 1.7 MiB/s; the node stopped at SIGINT, the pair revoked.
+- Planted (`scripts/plants/t107-serve-name-dials.plant`, the node leaves out serve's handler): caught.
+- `podssh-cli --lib`: 1,172 passed; `flag_table`, `man_flag_parity`, `man_json`, `man_page`, `serve_stdio`,
+  `roost`, `channel_cli`, `serve_tty`: passed. Clippy as the gate runs it: clean; rustfmt: clean.
+
+Left: the run in the build image (T-251).
 
 # T-108: `podssh serve`: exec, a shell and the environment, as the sandbox's user
 
@@ -2759,7 +2781,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2237-2238` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2259-2260` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".

@@ -259,8 +259,12 @@ pub fn add(cmd: Command, name: &str) -> Command {
         "doctor" => cmd,
         // `mcp` reads its messages on stdin, and takes no word.
         "mcp" => cmd,
-        // `serve --stdio` speaks SSH on stdin, and takes no word.
-        "serve" => cmd,
+        // `serve --stdio` speaks SSH on stdin; `serve NAME` serves a pair's node.
+        "serve" => cmd.arg(
+            Arg::new("name")
+                .value_name("NAME")
+                .help("the label of a stored pair (podssh relay pair NAME), whose node this serves through the relay, with no TARGET and no listener; not with --stdio"),
+        ),
         // `ts` takes its three forms: bare (status), `[user@]host` (a session)
         // and `-W` (a byte pipe).
         "ts" => cmd

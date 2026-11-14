@@ -10,6 +10,12 @@ pub const SERVE: &[&str] = &[
      Nothing listens. It runs as the user that started it, with no passwd entry, setgroups or chroot. At its \
      start it gives up each capability of the process, before it reads a file; a capability that stays is \
      a refusal (78).",
+    "podssh serve NAME is the node of the pair NAME (podssh relay pair NAME) whose sessions serve answers \
+     itself, in its process: no TARGET is dialled, and nothing listens. An operator reaches it as any node, \
+     podssh ssh node://user@NAME, podssh cp or sftp to node://NAME, through the relay, with the node's \
+     end-to-end channel and resumable layer. A host with no sshd, which may not listen, gives a shell and \
+     its files this way. The keys, the host key and the other flags are those of --stdio; --stdio and NAME \
+     are one of the two (64). The node's lines say serving podssh serve, in this process.",
     "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
      file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
      nothing. The options before a key are its rules (below); a line whose options serve cannot all \

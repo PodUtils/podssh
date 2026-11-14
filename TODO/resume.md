@@ -801,7 +801,7 @@ no `GREETING`, and that the default node greets.
 as they are, with no resumable layer: the node's handler is then the TCP
 handler alone, which dials TARGET at `open`
 (`crates/podssh-cli/src/node.rs`, lines 152-163 at `8e31960`). The node's first line names its
-mode (`crates/podssh-cli/src/node.rs:342`). `--plain` with `--iroh` is
+mode (`crates/podssh-cli/src/node.rs:345`). `--plain` with `--iroh` is
 refused with 64 (`crates/podssh-cli/src/node_flags.rs:116-118`, moved from `node.rs` by T-531): the iroh road
 always runs the layer. The flag's row, the manual's note of `node`,
 `docs/reverse.md` and `docs/cli.md`.

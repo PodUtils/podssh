@@ -446,7 +446,7 @@ pub const VERBS: &[Verb] = &[
     Verb { name: "session", aliases: &["session"], flags: SESSION_FLAGS,
         about: "a session that outlives each call, for an agent: start it, send keys, wait until the output stops, read the screen" },
     Verb { name: "serve", aliases: &["serve"], flags: SERVE_FLAGS,
-        about: "an SSH server here: one connection on stdin and stdout, as sshd -i, with a host key kept and authorized keys" },
+        about: "an SSH server here: one connection on stdin and stdout, as sshd -i, or the node of a pair through the relay, with a host key kept and authorized keys" },
     Verb { name: "detached", aliases: &["detached"], flags: DETACHED_FLAGS,
         about: "the runs that --detach and -f sent into the background, by their names: list them, the state of one, stop one" },
     Verb { name: "update", aliases: &["update"], flags: UPDATE_FLAGS,

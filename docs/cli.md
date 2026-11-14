@@ -5666,7 +5666,12 @@ the entry; nothing is written into a client's file. Another CLIENT is 64.
 
 `podssh serve --stdio` (T-107, milestone M5) is podssh's own SSH server
 (russh's server, in `crates/podssh-ssh/src/server/`) for one connection on
-stdin and stdout, as `sshd -i`. Nothing listens: OpenSSH's client, or
+stdin and stdout, as `sshd -i`. `podssh serve NAME` is the node of the pair
+NAME on the relay's road whose sessions serve answers in its process
+(`crates/podssh-cli/src/node_serve.rs`): each session is one end of a pipe,
+serve speaks SSH on the other, and no TARGET is dialled; an operator reaches
+it as any node (`podssh ssh node://user@NAME`, `podssh cp`), with the
+node's channel and resumable layer. `--stdio` and NAME together are 64. Nothing listens: OpenSSH's client, or
 `podssh ssh`, reaches it through its `ProxyCommand`, so the gate tests it
 with OpenSSH and no port (`crates/podssh-cli/tests/serve_stdio.rs`). It runs
 as the user that started it and needs no passwd entry; at its start it

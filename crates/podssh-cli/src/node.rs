@@ -28,10 +28,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use podssh_relay::e2e::ends::Node;
 use podssh_relay::pair::Pair;
 use podssh_relay::reverse::routes::{Route, Routed};
-use podssh_relay::reverse::{self, E2e, Exit, Handler, Layered, NodeConfig, Wire};
+use podssh_relay::reverse::{self, E2e, Exit, Layered, NodeConfig, Wire};
 use podssh_ws::dial::ProxyChoice;
 use podssh_ws::Trust;
 
@@ -186,7 +185,9 @@ struct Ready {
 fn prepare(args: &NodeArgs) -> Result<Ready, Refusal> {
     let label = args.name.clone().ok_or("missing NAME: the label of a pair (podssh relay pair NAME)")?;
     pairs::check_label(&label)?;
+    // `podssh serve NAME` (T-107): serve answers each session, no TARGET.
     let (targets, udp) = match crate::node_udp::target_of(&args.targets)? {
+        _ if crate::node_serve::serving() => (Vec::new(), false),
         Some(_) if args.sshd => {
             return Err(Refusal::usage("--sshd stands in front of an sshd, which a udp: TARGET is not"))
         }
@@ -305,7 +306,9 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     // TARGET first: a node that cannot reach it would serve no session, a
     // roost whose sshd does not answer as one would refuse each, and a UDP
     // one, on a host that refuses UDP, could send nothing.
-    let target = if udp {
+    let target = if crate::node_serve::serving() {
+        crate::node_serve::SHOWN.to_string()
+    } else if udp {
         match crate::node_udp::probe(&targets[0], DIAL_LIMIT).await {
             Ok(()) => crate::node_udp::shown(&targets[0]),
             Err(refusal) => return refusal.report("node", err),
@@ -319,7 +322,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     // The Piping Server road unasked (T-437, Q65), once TARGET passed: where
     // a probe finds the upgrade refused on the way, the node serves it alone.
     // Not with --plain, --no-e2e or UDP, which it cannot carry.
-    if let (false, false, Some(_)) = (udp, plain, &key) {
+    if let (false, false, Some(_), false) = (udp, plain, &key, crate::node_serve::serving()) {
         if let Some((servers, why)) = crate::node_piping::unasked(&pair, &trust).await {
             let Some(key) = key else { return Fault::SessionFault.code() };
             let ready = crate::node_piping::Ready { label, pair, stored, targets, roost, key, allow, trust };
@@ -371,12 +374,17 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let first = &crate::node_exit::first(&targets);
     // A flow of UDP for each session (T-168); a flow that did not end
     // plainly says so on the node's lines.
+    if crate::node_serve::serving() {
+        let exit = crate::node_serve::with_handler(&mut config, crate::node_serve::Sessions, plain, channel).await;
+        expiry.abort();
+        return upgrade::or_finish(|| finish(&label, exit, err)).await;
+    }
     if udp {
         let flow_label = label.clone();
         let flow_say: Arc<dyn Fn(String) + Send + Sync> =
             Arc::new(move |line: String| podssh_ssh::err_line!("podssh node: {flow_label}: {line}"));
         let handler = crate::node_udp::handler(first, DIAL_LIMIT, flow_say);
-        let exit = with_handler(&mut config, handler, plain, channel).await;
+        let exit = crate::node_serve::with_handler(&mut config, handler, plain, channel).await;
         expiry.abort();
         return upgrade::or_finish(|| finish(&label, exit, err)).await;
     }
@@ -425,31 +433,6 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     };
     expiry.abort();
     upgrade::or_finish(|| finish(&label, exit, err)).await
-}
-
-/// Run the node with `inner` opening each session's target, as the TCP
-/// target's arms above do: at `open` with no layer, or after the layer's
-/// handshake, with the channel above the layer. Its targets are pipes in
-/// this process, which an upgrade cannot move (T-668).
-async fn with_handler<H>(config: &mut NodeConfig<'_>, inner: H, plain: bool, channel: Option<Node>) -> Exit
-where
-    H: Handler<Stream = tokio::io::DuplexStream>,
-{
-    let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
-    let (stop, deadline) = (upgrade::stop, settings.resume_deadline);
-    match (plain, channel) {
-        (true, None) => Box::pin(reverse::run(config, Arc::new(inner), stop())).await,
-        (true, Some(node)) => Box::pin(reverse::run(config, Arc::new(E2e::new(inner, node)), stop())).await,
-        (false, None) => {
-            let handler = Arc::new(Layered::with_keeper(inner, settings, budget, upgrade::pipe_keeper(deadline)));
-            Box::pin(reverse::run(config, handler, stop())).await
-        }
-        (false, Some(node)) => {
-            let keeper = upgrade::channel_keeper(&node, deadline);
-            let handler = Arc::new(Layered::with_keeper(E2e::new(inner, node), settings, budget, keeper));
-            Box::pin(reverse::run(config, handler, stop())).await
-        }
-    }
 }
 
 /// The exit code for each end of a node, by the table of `exitmap`, and what

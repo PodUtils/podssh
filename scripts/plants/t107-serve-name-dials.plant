@@ -1,0 +1,7 @@
+# T-107: `podssh serve NAME` leaves out its own handler, so the node opens
+# each session as a node of TARGET does, with no TARGET and no serve behind
+# it: the test of an operator's login through the stand-in relay must fail.
+ENTRY=T-107
+GROUP=cli-tests
+EXPECT='test an_operator_logs_in_to_serve_name_through_the_relay_and_its_exit_comes_back \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-cli --test serve_node -- an_operator_logs_in_to_serve_name_through_the_relay_and_its_exit_comes_back'

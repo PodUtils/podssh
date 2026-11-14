@@ -1,0 +1,16 @@
+diff --git a/crates/podssh-cli/src/node.rs b/crates/podssh-cli/src/node.rs
+index 65f2d58..ce1110c 100644
+--- a/crates/podssh-cli/src/node.rs
++++ b/crates/podssh-cli/src/node.rs
+@@ -374,11 +374,6 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
+     let first = &crate::node_exit::first(&targets);
+     // A flow of UDP for each session (T-168); a flow that did not end
+     // plainly says so on the node's lines.
+-    if crate::node_serve::serving() {
+-        let exit = crate::node_serve::with_handler(&mut config, crate::node_serve::Sessions, plain, channel).await;
+-        expiry.abort();
+-        return upgrade::or_finish(|| finish(&label, exit, err)).await;
+-    }
+     if udp {
+         let flow_label = label.clone();
+         let flow_say: Arc<dyn Fn(String) + Send + Sync> =

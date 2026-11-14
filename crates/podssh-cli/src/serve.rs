@@ -26,6 +26,9 @@ use crate::serve_keys::{self, Sources};
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ServeArgs {
     pub stdio: bool,
+    /// `podssh serve NAME`: the label of a pair, whose node this serves
+    /// (T-107, Approach item 5).
+    pub name: Option<String>,
     pub host_key: Option<String>,
     pub authorized_key: Vec<String>,
     pub authorized_keys: Vec<String>,
@@ -42,6 +45,7 @@ impl ServeArgs {
         let many = |id: &str| matches.get_many::<String>(id).map(|v| v.cloned().collect()).unwrap_or_default();
         ServeArgs {
             stdio: matches.get_flag("stdio"),
+            name: matches.get_one::<String>("name").cloned(),
             host_key: matches.get_one::<String>("host-key").cloned(),
             authorized_key: many("authorized-key"),
             authorized_keys: many("authorized-keys"),
@@ -69,12 +73,20 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh serve: not on Windows: it serves a Unix host");
         return EXIT_NOT_IMPLEMENTED;
     }
-    if !args.stdio {
-        let _ = writeln!(
-            err,
-            "podssh serve: give --stdio: one SSH connection on stdin and stdout, as the ProxyCommand of a client"
-        );
-        return EXIT_USAGE;
+    match (args.stdio, &args.name) {
+        (false, None) => {
+            let _ = writeln!(
+                err,
+                "podssh serve: give --stdio, one SSH connection on stdin and stdout as the ProxyCommand of a \
+                 client, or NAME, the label of a pair whose node this serves"
+            );
+            return EXIT_USAGE;
+        }
+        (true, Some(name)) => {
+            let _ = writeln!(err, "podssh serve: --stdio and NAME {name:?}: give one of them");
+            return EXIT_USAGE;
+        }
+        _ => {}
     }
     let pty = match args.pty.as_deref().map(|v| (v, PtyMode::parse(v))) {
         None => PtyMode::Auto,
@@ -88,7 +100,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh serve: --shell and --no-shell: give one of them");
         return EXIT_USAGE;
     }
-    if std::io::stdin().is_terminal() {
+    if args.stdio && std::io::stdin().is_terminal() {
         let _ = writeln!(
             err,
             "podssh serve: --stdio speaks SSH on stdin, which is a terminal here: run it as a client's ProxyCommand"
@@ -125,7 +137,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         devpts: None,
         pty,
         sftp_limit: None,
-        peer: peer_of_stdin(),
+        peer: if args.stdio { peer_of_stdin() } else { None },
         // A refusal by a key's rules is said where serve's other lines go.
         say: Some(Say(Arc::new(|line: &str| {
             let _ = writeln!(std::io::stderr(), "podssh serve: {line}");
@@ -144,6 +156,17 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Err(why) => return refused(err, Refusal::config(format!("the host key: {why}"))),
     };
     say_host_key(err, &key, &path, made);
+    // NAME: a node of the pair, whose sessions this process answers.
+    if let Some(name) = &args.name {
+        let control = podssh_ssh::server::Control::new();
+        let served = crate::node_serve::Served { key, keys, settings: Arc::new(settings), control };
+        if !crate::node_serve::set(served) {
+            let _ = writeln!(err, "podssh serve: one node of serve in a process");
+            return podssh_ssh::EXIT_FAILURE;
+        }
+        let node = crate::node::NodeArgs { name: Some(name.clone()), ..Default::default() };
+        return crate::node::run_node(&node, err);
+    }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
@@ -244,7 +267,7 @@ mod tests {
             assert_eq!(code, EXIT_NOT_IMPLEMENTED, "{said}");
         } else {
             assert_eq!(code, EXIT_USAGE, "{said}");
-            assert!(said.contains("--stdio"), "{said}");
+            assert!(said.contains("--stdio") && said.contains("NAME"), "{said}");
         }
     }
 
