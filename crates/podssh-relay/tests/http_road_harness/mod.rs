@@ -51,6 +51,8 @@ pub fn dial(port: u16) -> Dial {
 pub fn road(port: u16, authority: &str) -> Road {
     Road {
         dial: dial(port),
+        // Plain TCP on the loopback: no ALPN to offer.
+        dial_alpn: None,
         authority: authority.to_string(),
         user_agent: podssh_ws::dial::user_agent(),
         forms: None,
