@@ -15,14 +15,14 @@ publish.workspace = true
 # pod-services' (PodUtils/podcrates); this crate gives them podssh's dial
 # and proxy, and the words of podssh's lines.
 [dependencies]
-pod-gsr = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+pod-gsr = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }
 # The party of the relay's data file, for the line of the third party.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }
 podssh-ws = { path = "../podssh-ws" }
 tokio = { workspace = true }
 zeroize = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "io-util", "time", "sync"] }
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.43.0" }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.44.0" }

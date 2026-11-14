@@ -22,8 +22,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.43.0"` (COORD-089, PodUtils/podcrates#149; podssh's answer is
-COORD-066). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.44.0"` (COORD-094, PodUtils/podcrates#154; podssh's answer is
+COORD-067). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`
@@ -41,6 +41,9 @@ COORD-066). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 - `v0.43.0` (taken 2026-11-14) carries no change of podssh's crates (pod-wg for podnet, pod-actions-* for
   podrunner, pod-rootfs, pod-enter and pod-hostprobe for podvm): the bump of the tag only. The next tag carries
   COORD-065 (#242, pod-session's spare links that back off; T-781).
+- `v0.44.0` (taken 2026-11-14) carries no change of podssh's crates (a fix of security in pod-extract for podvm,
+  pod-hold's socket rules for podnet, pod-actions-workflow for podrunner): the bump of the tag only. Its next
+  tag carries podcrates T-579, the answer to COORD-065.
 
 ## Open COORD issues
 
