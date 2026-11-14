@@ -1155,7 +1155,7 @@ sees it.
 Read:
 
 - `docs/STATUS.md:477-491`: the box, measured by hand on 2026-10-08.
-- `scripts/test_in_box.sh:306-309`: the box runs `probe.sh`, then
+- `scripts/test_in_box.sh:313-316`: the box runs `probe.sh`, then
   `sandbox-check.sh` (or, with `BOX_RUN=tt`, the session of T-004), and the
   script exits with the code of the second.
   `scripts/sandbox-check.sh:85-332` prints the exit code of each step and does
@@ -1164,8 +1164,8 @@ Read:
   in a required property (17 properties, `docs/STATUS.md:484`).
 - The box needs a static binary; CI uploads one
   (`.github/workflows/build.yml:132-137`).
-- The box uses `--disable-dns` (`scripts/test_in_box.sh:217`) and a mask on
-  `/dev/pts` (`scripts/test_in_box.sh:317`). Nobody measured the Podman of a
+- The box uses `--disable-dns` (`scripts/test_in_box.sh:224`) and a mask on
+  `/dev/pts` (`scripts/test_in_box.sh:324`). Nobody measured the Podman of a
   GitHub runner with them.
 - The box reaches the live relay and `github.com` through its proxy.
 

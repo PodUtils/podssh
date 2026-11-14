@@ -4061,3 +4061,43 @@ repair.
   the code: the choice of marks against the room (marks of the usable budget, `budget - room`, or one
   last line at the stop) is the coordinator's, as the Decision of 2026-11-09 fixed 80 % and 95 % of
   the budget.
+
+# T-779: A copy of 200 MiB through `podssh serve NAME` failed once after 796 s, from a cloud container
+
+**Source:** the first run of `scripts/m5-in-sandbox.sh` on 2026-11-14, from a cloud session (T-113).
+**Category:** defect
+**Milestone:** M5
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+M5's exit in a sandbox, run in this cloud container with both ends there, copied 200 MiB up through the
+live relay to `podssh serve NAME` and failed: `podssh: 0 copied, 1 failed, in 796.3 s` (exit 69), and the
+copy down then said `podssh: node://NAME: no connection to the server` (69). The second run of the same
+script, minutes later, passed (200 MiB up in 50 s, down in 44 s, equal SHA-256), as did two runs in the box
+(54 and 63 s up). The script removed its logs with its directory, so the cause is not known: a drop that the
+copy should have outlived (T-136 continues from an offset, T-137 opens a new session before the relay's
+limits), the agent proxy that each byte crossed twice, or the node.
+
+## Premise
+
+- `scripts/m5-in-sandbox.sh:81` says "cp --timeout 28m": the copy has 28 minutes,
+  and failed at 796 s, well before, so its own retries ended it.
+
+## Approach
+
+1. Keep the logs of a failed run (the script does since this entry: its directory stays, with no key and
+   no pair) and run it again from this kind of host until it fails, or ten runs pass.
+2. From the logs of `cp` and of `serve`'s node: which leg dropped, whether `cp` tried a new session, and
+   why it gave up. Repair what the logs name; a drop that the copy should survive is a defect of `cp`.
+3. A test that makes the same drop at the stand-in relay, if the logs name one.
+
+## Prove
+
+```sh
+sh scripts/m5-in-sandbox.sh target/x86_64-unknown-linux-musl/release/podssh
+```
+
+Ten runs in a row from a cloud container pass, or the failure is named and repaired with a test that makes it.

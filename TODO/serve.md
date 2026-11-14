@@ -1047,7 +1047,7 @@ and `--lib -- sftp`: 5 and 30 passed, no `podssh-*` left in `/tmp`.
 **Milestone:** M5
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -1068,7 +1068,7 @@ out with matching digests.
   (`docs/relay.md:557`; measured: `docs/STATUS.md:530`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
-  `connect()` (`scripts/test_in_box.sh:60-67`).
+  `connect()` (`scripts/test_in_box.sh:67-74`).
 
 ## Approach
 
@@ -1105,6 +1105,14 @@ session that continues, and two 200 MiB copies with equal digests. The grep
 shows the rows recorded for the box and for the real sandbox, with their
 dates.
 
+## Blocker
+
+The operator's agents, in the operator's real sandbox (step 5; T-001's way): `sh scripts/m5-in-sandbox.sh
+PODSSH` there, with a binary of `main` at or after the commit of this entry, and its output in their report.
+No session of podssh reaches that sandbox. The script runs both ends there, each byte through its proxy to the
+live relay, and prints one line for each step; the box and this cloud container passed it (Correction,
+2026-11-14).
+
 ## Correction
 
 The premise that no podssh code can give the child a tty where `/dev/ptmx` is
@@ -1116,6 +1124,26 @@ stays (`docs/decisions.md:101`).
 the entry joins the work order by its priority.
 
 2026-11-14. The blocker ended with the take of podcrates `v0.41.0` and T-776's route 2a. It said: The Prove's `vi` and `less` need a tty in the box, which has no `/dev/ptmx` and refuses `unshare` (T-778), as the real sandboxes do: only route 2 of T-248 gives one there (T-776, T-777), and those wait for PodUtils/podcrates to give `pod-term` a line discipline that follows a termios (COORD-055, #232; podcrates' entry 539, in work). Once podssh takes that tag and T-776 is done, this entry opens again.
+
+2026-11-14. Steps 1 to 4 and 6 are done; step 5 waits for the operator (Blocker). The preconditions hold:
+T-107's `podssh serve NAME` (done on this date, beside its run in the build image), T-776's tty that serve
+answers where no pty opens (done), and T-133 to T-138. `scripts/test_in_box.sh` has the step `BOX_RUN=m5`: the
+box makes the pair m5 and runs `podssh serve m5 --pty notify --shell /bin/sh --authorized-key KEY` as its
+node, through the box's proxy and the live relay, and this host is the operator
+(`scripts/box/m5-session.sh`); the pair is revoked at the end. `scripts/m5-in-sandbox.sh` runs both ends in
+one host, for the real sandbox.
+
+- `BOX_RUN=m5 sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh` (the binary of
+  `scripts/box/build-podssh.sh`), exit 0, in the box that matches the sandbox (no `/dev/ptmx`, `unshare`
+  refused, no bind, no DNS, uid 0 with no name): `podssh ssh -tt node://box@m5` with the keys typed one after
+  another gave `TTY-YES-24x80`, `AFTER-130` (Ctrl-C ended `sleep 30`, the shell went on), busybox vi and less on
+  `/etc/os-release` with their screens (`VI-DONE-0`, `LESS-DONE-0`), and exit 9, in 37 s; `podssh cp` of 200 MiB
+  up in 54 s (3.2 MiB/s) and down in 41 s, SHA-256 equal in the box and here; the pair stopped. Its first run
+  failed vi alone: the script sent ESC and `:q!` in one write, which busybox vi reads as one escape sequence;
+  ESC goes alone now, as a person types it.
+- `sh scripts/m5-in-sandbox.sh target/x86_64-unknown-linux-musl/release/podssh` in this cloud container (T-311):
+  each step passed (the shell, vi, less, Ctrl-C, exit 9; 200 MiB up in 50 s and down in 44 s, SHA-256 equal).
+  Its first run failed the copy after 796 s, with its logs gone: T-779.
 
 # T-114: `podssh serve`: access rules for each key and command
 
@@ -2781,7 +2809,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2259-2260` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2287-2288` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".

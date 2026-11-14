@@ -1,0 +1,25 @@
+diff --git a/crates/podssh-relay/src/serve/http2/one.rs b/crates/podssh-relay/src/serve/http2/one.rs
+index 9c10ea6..cbc0456 100644
+--- a/crates/podssh-relay/src/serve/http2/one.rs
++++ b/crates/podssh-relay/src/serve/http2/one.rs
+@@ -60,6 +60,7 @@ pub(super) async fn serve(
+     // The bytes up: each DATA frame as one chunk, and the stream's end as
+     // the body's last chunk.
+     let up = tokio::spawn(async move {
++        let mut held = Vec::new();
+         while let Some(data) = body.data().await {
+             let Ok(data) = data else { return };
+             let _ = body.flow_control().release_capacity(data.len());
+@@ -69,10 +70,9 @@ pub(super) async fn serve(
+             let mut chunk = format!("{:x}\r\n", data.len()).into_bytes();
+             chunk.extend_from_slice(&data);
+             chunk.extend_from_slice(b"\r\n");
+-            if to_role.write_all(&chunk).await.is_err() || to_role.flush().await.is_err() {
+-                return;
+-            }
++            held.extend_from_slice(&chunk);
+         }
++        let _ = to_role.write_all(&held).await;
+         let _ = to_role.write_all(b"0\r\n\r\n").await;
+         let _ = to_role.flush().await;
+     });

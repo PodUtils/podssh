@@ -8,6 +8,7 @@
 #   BOX_RUN=reverse sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=line sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_RUN=notify sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
+#   BOX_RUN=m5 sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_SECCOMP=nolisten sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #   BOX_PROFILE=strict sh scripts/test_in_box.sh [PODSSH_LINUX_BINARY]
 #
@@ -25,6 +26,12 @@
 # BOX_RUN=notify (T-776) runs the same way with scripts/box/notify-session.sh:
 # serve gives the shell a tty that it answers by seccomp's user notification
 # (--pty notify), with no pty in the box.
+#
+# BOX_RUN=m5 (T-113, M5's exit) makes the pair m5 in the box and runs
+# `podssh serve m5 --pty notify` there as its node, through the box's proxy
+# and the live relay; this host is the operator (scripts/box/m5-session.sh):
+# a shell with vi, less and Ctrl-C, and 200 MiB copied each way. The pair is
+# stopped at the end.
 #
 # BOX_RUN=tt runs scripts/box/tt-session.sh in place of sandbox-check.sh: an
 # interactive session over -tt (T-004) against OpenSSH in a container next
@@ -83,7 +90,7 @@ PROXY=podssh-box-proxy
 BOX=podssh-box
 TARGET=podssh-box-target
 RUN=${BOX_RUN:-check}
-case $RUN in check | tt | reverse | line | notify) ;; *) echo "test_in_box: BOX_RUN is check, tt, reverse, line or notify, not $RUN" >&2; exit 1 ;; esac
+case $RUN in check | tt | reverse | line | notify | m5) ;; *) echo "test_in_box: BOX_RUN is check, tt, reverse, line, notify or m5, not $RUN" >&2; exit 1 ;; esac
 PROFILE=${BOX_PROFILE:-sandbox-a}
 case $PROFILE in
     sandbox-a) SECCOMP=seccomp-sandbox-a.json ;;
@@ -360,7 +367,38 @@ if [ "$RUN" = reverse ]; then
         die "the node's box did not start"
     set -- --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer"
 fi
-if [ "$RUN" = line ] || [ "$RUN" = notify ]; then
+if [ "$RUN" = m5 ]; then
+    # The operator's key, made here; its public half goes to serve in the box.
+    mkdir -p "$WORK/xfer" && chmod 777 "$WORK/xfer" || die "cannot make the directory of the pair"
+    rm -f "$WORK/xfer/op" "$WORK/xfer/op.pub"
+    "$BIN" keygen -q -t ed25519 -N '' -f "$WORK/xfer/op" >/dev/null 2>&1 || die "no operator's key"
+    chmod 644 "$WORK/xfer/op.pub"
+    echo "== the box: its probe, podssh relay pair m5, then podssh serve m5 --pty notify"
+    run_box "$BOX" -d --mount "type=bind,source=$(hostpath "$WORK/xfer"),target=/xfer" \
+        "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh &&
+            sh /scripts/box/probe.sh > /tmp/probe.log 2>&1; echo $? > /tmp/probe.rc;
+            podssh relay pair m5 --operator-file /xfer/operator.tmp && mv /xfer/operator.tmp /xfer/operator.pair &&
+            { podssh serve m5 --pty notify --shell /bin/sh --authorized-key "$(cat /xfer/op.pub)" >/xfer/serve.log 2>&1 & } &&
+            exec sleep 3600' >/dev/null ||
+        die "the box did not start"
+    i=0
+    until podman exec "$BOX" test -s /tmp/probe.rc 2>/dev/null || [ "$i" -ge 120 ]; do
+        sleep 1
+        i=$((i + 1))
+    done
+    podman exec "$BOX" cat /tmp/probe.log
+    if [ "$(podman exec "$BOX" cat /tmp/probe.rc 2>/dev/null)" = 0 ]; then
+        sh "$HERE/box/m5-session.sh" "$BOX" "$WORK" "$BIN"
+        rc=$?
+    else
+        echo "the box does not match the sandbox: podssh is not measured in it"
+        rc=1
+    fi
+    stopped=$(timeout 120 podman exec "$BOX" podssh relay revoke m5 2>&1)
+    if [ $? = 0 ]; then echo "ok    the pair was stopped: $stopped"; else echo "FAIL  the pair was not stopped: $stopped"; rc=1; fi
+    echo "== serve's log"
+    tail -20 "$WORK/xfer/serve.log" 2>/dev/null
+elif [ "$RUN" = line ] || [ "$RUN" = notify ]; then
     # The box waits for the host's client; its probe comes first, as for each run.
     run_box "$BOX" -d "$IMAGE" $JAIL sh -c 'install -m 755 /in/podssh /usr/local/bin/podssh &&
         sh /scripts/box/probe.sh > /tmp/probe.log 2>&1; echo $? > /tmp/probe.rc; exec sleep 900' >/dev/null ||

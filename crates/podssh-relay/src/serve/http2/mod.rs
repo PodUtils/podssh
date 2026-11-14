@@ -15,6 +15,7 @@
 //! keep a connection, or a stream, as HTTP/1.1 gives them. A connection with
 //! no stream for [`IDLE`] ends with a GOAWAY.
 
+mod one;
 mod stream;
 
 use std::net::IpAddr;

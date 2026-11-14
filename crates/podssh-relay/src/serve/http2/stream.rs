@@ -59,13 +59,17 @@ pub(super) async fn serve(
         Some(_) => refuse(&mut respond, 501, "this relay's extended CONNECT takes websocket alone"),
         None if connect => refuse(&mut respond, 405, "this relay is no proxy: a CONNECT names websocket in :protocol"),
         None if whole(request.method(), request.uri().path()) => document(request, respond, cfg, sni, from).await,
+        // The HTTP road's one-POST form, on this one stream (T-622).
+        None if request.method() == Method::POST && crate::serve::http_road::one::serves(request.uri().path()) => {
+            super::one::serve(request, respond, cfg, sni, from).await
+        }
         // Asked for again over HTTP/1.1, which a client of HTTP/2 does at once.
         None => respond.send_reset(Reason::HTTP_1_1_REQUIRED),
     }
 }
 
 /// An answer of this end's own: `status`, and `words` as a body of text.
-fn refuse(respond: &mut SendResponse<Bytes>, status: u16, words: &str) {
+pub(super) fn refuse(respond: &mut SendResponse<Bytes>, status: u16, words: &str) {
     let head = http::Response::builder().status(status).header(http::header::CONTENT_TYPE, "text/plain; charset=utf-8");
     let Ok(head) = head.body(()) else { return respond.send_reset(Reason::INTERNAL_ERROR) };
     if let Ok(mut send) = respond.send_response(head, false) {
@@ -75,7 +79,7 @@ fn refuse(respond: &mut SendResponse<Bytes>, status: u16, words: &str) {
 
 /// The client's fields of `headers` as lines of HTTP/1.1, but for those of
 /// one hop and of `skip`; a value that is not text is left out.
-fn fields(head: &mut String, headers: &HeaderMap, skip: &[&str]) {
+pub(super) fn fields(head: &mut String, headers: &HeaderMap, skip: &[&str]) {
     for (name, value) in headers {
         let name = name.as_str();
         if HOP.contains(&name) || skip.contains(&name) {
@@ -104,7 +108,12 @@ fn upgrade_head(parts: &http::request::Parts) -> Result<String, (u16, &'static s
 /// `request` to the role's routes, served in a task of its own as a
 /// connection of the listener is: the pipe's other end, once the request
 /// went in.
-async fn route(request: Vec<u8>, cfg: Arc<Config>, sni: Option<String>, from: Option<IpAddr>) -> Option<DuplexStream> {
+pub(super) async fn route(
+    request: Vec<u8>,
+    cfg: Arc<Config>,
+    sni: Option<String>,
+    from: Option<IpAddr>,
+) -> Option<DuplexStream> {
     let (inner, mut outer) = tokio::io::duplex(PIPE);
     tokio::spawn(crate::serve::serve_from(inner, cfg, sni, from));
     outer.write_all(&request).await.ok()?;
@@ -113,7 +122,7 @@ async fn route(request: Vec<u8>, cfg: Arc<Config>, sni: Option<String>, from: Op
 
 /// The head of the role's answer on `pipe`: its status, the bytes read,
 /// and where the head ends in them.
-async fn read_head(pipe: &mut DuplexStream) -> Option<(u16, Vec<u8>, usize)> {
+pub(super) async fn read_head(pipe: &mut DuplexStream) -> Option<(u16, Vec<u8>, usize)> {
     let mut buf = Vec::with_capacity(1024);
     let mut chunk = [0u8; 4096];
     let read = async {
@@ -220,7 +229,7 @@ async fn taken(body: &mut RecvStream) -> Option<Vec<u8>> {
 
 /// The role's answer on `pipe`, `buffered` its first bytes, given back on
 /// the stream whole.
-async fn answer(pipe: &mut DuplexStream, buffered: Vec<u8>, mut respond: SendResponse<Bytes>) {
+pub(super) async fn answer(pipe: &mut DuplexStream, buffered: Vec<u8>, mut respond: SendResponse<Bytes>) {
     let read = tokio::time::timeout(ANSWER_WAIT, podssh_ws::http::read_response(pipe, buffered, ANSWER)).await;
     let Ok(Ok(answer)) = read else { return refuse(&mut respond, 502, "relay: its answer did not come whole") };
     let mut head = http::Response::builder().status(answer.status);

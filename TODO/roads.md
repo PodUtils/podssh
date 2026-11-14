@@ -3793,7 +3793,7 @@ this road.
   its `101` answered `200`, so `/connect/`, the layer's path and the reverse road keep their own
   code, tokens, policy, brake and limits, and no file of theirs changes; `GET` of `/health`,
   `/relays.json`, `/trace`, `/llms-full.txt` and `POST /v1/mint` answer whole; each other request
-  is reset with `HTTP_1_1_REQUIRED` (`crates/podssh-relay/src/serve/http2/stream.rs:63`), which a
+  is reset with `HTTP_1_1_REQUIRED` (`crates/podssh-relay/src/serve/http2/stream.rs:67`), which a
   client of HTTP/2 follows over HTTP/1.1, as the HTTP road keeps its connection between requests
   and the probes stream. Lost: `/connect/` served on the stream itself, which would change
   `forward::connect` that T-173's layer builds on; a socket to the role's own listener on the
@@ -9517,9 +9517,21 @@ chunked body to its last chunk, and with `stream_bodies` passes bodies and answe
   relay's lib with `serve,plain-ws,quick`: 239 passed. Clippy as the gate runs it: clean.
 - Planted (`scripts/plants/t622-body-held.plant`, the role holds the body to its last chunk): caught.
 
-Left: item 3 at the role (the form over HTTP/2, one stream, which `serve/http2/stream.rs` now sends
-back to HTTP/1.1); then the client, once a tag of podcrates brings it (COORD-062), with its test
-against the role here and its plant (the bound on the mark removed).
+2026-11-14, item 3 at the role: the form over HTTP/2 (`crates/podssh-relay/src/serve/http2/one.rs`). A
+POST to `/v1/http/one/` on one stream goes to the role's routes as the same request of HTTP/1.1 on a
+pipe, its body in chunks; once the role's `200` came, the stream's DATA goes up as chunks and the
+answer's chunks come down as DATA, each waiting for the client's window; the target's end is the
+stream's END_STREAM, a cut of the role a reset (CANCEL), and a refusal goes back whole.
+
+- `cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2`: 7 passed, three runs in
+  three; its new test, with h2's client: the mark and the echo of `first` while the stream is open,
+  then 4 MiB up while the echo is read, equal SHA-256, and the stream's end.
+- Planted (`scripts/plants/t622-h2-held.plant`, the stream's DATA held to its end): caught.
+- `--test http_road`, `http_road_one`, `http_road_role`: 9, 4 and 4 passed; `--lib serve`: 145 passed.
+  Clippy as the gate runs it: clean.
+
+Left: the client, once a tag of podcrates brings it (COORD-062, #239), with its test against the role
+here and its plant (the bound on the mark removed).
 
 # T-665: QUIC on the iroh road, tuned and measured on a wide-area path
 

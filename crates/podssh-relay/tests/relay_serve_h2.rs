@@ -9,7 +9,9 @@
 //! `podssh_relay::open` takes the road to a host that the user named; the
 //! documents and the mint answer over HTTP/2, and a request of another path
 //! is asked for again over HTTP/1.1. With `h2` not offered, as `--http2 no`,
-//! the upgrade goes on the one connection.
+//! the upgrade goes on the one connection. The HTTP road's one-POST form
+//! (T-622) runs on one stream: the mark and the echo of the first chunk come
+//! while the stream is open, then 4 MiB each way with equal digests.
 //!
 //!     cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2
 #![cfg(all(feature = "serve", feature = "plain-ws"))]
@@ -386,4 +388,58 @@ async fn the_opener_takes_the_road_to_a_host_that_the_user_named() {
     assert!(opened.road().starts_with(", over HTTP/2 (RFC 8441)"), "{:?}", opened.road());
     assert_eq!(tls.said("h2"), 1);
     each_way(opened.session, MIB, 22).await;
+}
+
+/// The HTTP road's one-POST form on one stream of HTTP/2 (T-622): the
+/// role's mark at once, the echo of the first chunk while the stream is
+/// open, then 4 MiB up while the echo is read, with equal digests, and the
+/// target's end as the stream's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_one_post_form_carries_4_mib_each_way_on_one_stream() {
+    let tls = Tls::start(&[H2, HTTP1], "one").await;
+    let target = echo_target(b"").await;
+    let sender = h2_client(&tls).await;
+    let uri = format!("https://{NAME}:{}/v1/http/one/127.0.0.1/{target}", tls.port);
+    let request =
+        http::Request::builder().method("POST").uri(uri).header("x-relay-token", tls.token()).body(()).unwrap();
+    let mut sender = sender.ready().await.unwrap();
+    let (response, mut send) = sender.send_request(request, false).unwrap();
+    send.send_data(Bytes::from_static(b"first"), false).unwrap();
+    let response = tokio::time::timeout(std::time::Duration::from_secs(5), response).await.expect("the head").unwrap();
+    assert_eq!(response.status().as_u16(), 200);
+    let mut recv = response.into_body();
+    let mut got = Vec::new();
+    let mark = podssh_relay::serve::http_road::one::MARK;
+    while got.len() < mark.len() + 5 {
+        let chunk = tokio::time::timeout(std::time::Duration::from_secs(5), recv.data()).await.expect("in time");
+        let chunk = chunk.expect("data").unwrap();
+        let _ = recv.flow_control().release_capacity(chunk.len());
+        got.extend_from_slice(&chunk);
+    }
+    assert_eq!(&got[..mark.len()], mark, "the mark first");
+    assert_eq!(&got[mark.len()..], b"first", "the echo while the stream is open");
+    let data = bytes(4 * MIB, 11);
+    let want: [u8; 32] = sha2::Digest::finalize(sha2::Digest::chain_update(sha2::Sha256::default(), &data)).into();
+    let writer = tokio::spawn(async move {
+        for part in data.chunks(64 * 1024) {
+            send.reserve_capacity(part.len());
+            let _ = std::future::poll_fn(|cx| send.poll_capacity(cx)).await;
+            send.send_data(Bytes::copy_from_slice(part), false).unwrap();
+        }
+        send.send_data(Bytes::new(), true).unwrap();
+    });
+    let mut back = Vec::new();
+    let read = async {
+        while let Some(chunk) = recv.data().await {
+            let chunk = chunk.unwrap();
+            let _ = recv.flow_control().release_capacity(chunk.len());
+            back.extend_from_slice(&chunk);
+        }
+    };
+    tokio::time::timeout(LIMIT, read).await.expect("the stream's end in time");
+    writer.await.unwrap();
+    let got: [u8; 32] = sha2::Digest::finalize(sha2::Digest::chain_update(sha2::Sha256::default(), &back)).into();
+    assert_eq!(back.len(), 4 * MIB);
+    assert_eq!(got, want, "the echo's digest is the body's");
+    assert!(tls.said("http one open") >= 1, "{:?}", tls.role.events.lock().unwrap());
 }

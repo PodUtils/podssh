@@ -1,0 +1,8 @@
+# T-622: over HTTP/2 the role holds the stream's DATA until the stream ends
+# before the body's chunks go to the target, as a hop that holds bodies, so
+# the echo of the first chunk does not come while the stream is open: the
+# test of the one-POST form on one stream must fail.
+ENTRY=T-622
+GROUP=resume
+EXPECT='test the_one_post_form_carries_4_mib_each_way_on_one_stream \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-relay --features serve,plain-ws --test relay_serve_h2 -- the_one_post_form_carries_4_mib_each_way_on_one_stream'
