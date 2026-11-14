@@ -2573,6 +2573,10 @@ link carried 1 MiB in 67 s: the pace of its free tunnel, not of podssh. The run 
 hop) now takes 128 KiB down (`down_for` of `crates/podssh-cli/tests/last_roads_live.rs`), each other road 1 MiB.
 The live job runs again after the push (STATUS).
 
+Live, 2026-11-14, `last-roads-live.yml` at `6fdf175` (run 43577144823): localhost.run's job passed (`greet`, then
+128 KiB down, whole), as did srv.us, tunnl.gg, Sandhole, localtunnel and bore; the Bare hop failed on
+openbare.xyz's own 500, T-740's blocker.
+
 # T-783: `pipe exec:` beside `udp:node:` lost a program's last answer when a send to it failed after its exit
 
 **Source:** the gate of `1c4c440` (2026-11-14, run 43564870189, job `gate (ssh)`).
