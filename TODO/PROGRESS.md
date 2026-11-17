@@ -201,7 +201,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 764 entries: 27 open, 37 partial, 11 blocked, 689 done.
+`TODO/INDEX.md` holds 773 entries: 36 open, 37 partial, 11 blocked, 689 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -252,7 +252,7 @@ operator interrupts it.
    accounts for the live run of the roads of iap:// and eice://) wait for inputs that only the
    operator has. T-672 (TLS tickets kept across runs) waits for a release of rustls that lets a
    client write one. M4's exit measurement is done (2026-11-13).
-8. The next beta goes out when podssh is nearly complete (T-446; the operator, 2026-11-11). It waits for T-809 too (2026-11-17, after podnet's QA round, PodUtils/podnet#649): error-path rows in the lane and a black-box pass with the documents alone, before any beta is called ready for testers.
+8. The next beta goes out when podssh is nearly complete (T-446; the operator, 2026-11-11). It waits for T-809 too (2026-11-17, after podnet's QA round, PodUtils/podnet#649): error-path rows in the lane and a black-box pass with the documents alone, before any beta is called ready for testers. The first black-box pass (2026-11-17) filed T-810 to T-818; each is fixed before the beta.
 
 **M10**, the mesh and the relay in podssh (Q63 to Q66, `docs/mesh.md`), in this order (the done
 parts are named so that the open ones read in their place):

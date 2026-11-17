@@ -2949,3 +2949,306 @@ cargo test -p podssh-cli --test node_cut
 
 Done, 2026-11-16. `names_1003` splits a line at each character that is not a letter or a digit; the test of it holds
 the macOS run's line (no 1003) and a close's line (1003). `cargo test -p podssh-cli --test node_cut`: 4 passed. Every other job of that gate passed.
+
+# T-810: `PODSSH_OFFLINE` does not stop `podssh update --check`
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+ENVIRONMENT says `PODSSH_OFFLINE` forbids each network connection. `PODSSH_OFFLINE=1 podssh update --check` exited 0
+after 4.2 s and named the newest release "from the releases' feed": it reached GitHub. `ssh`, `relay status`, `ping`
+and `doctor` honour the variable.
+
+## Approach
+
+`podssh update` (each form that reads the feed or downloads) checks `PODSSH_OFFLINE` first and ends with its refusal,
+as the other commands do, and its exit code (69, nothing reached). A test runs `update --check` with the variable set
+and a feed URL that would answer, and asserts no request and the refusal.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test update_offline
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-811: `podssh each` on the layer's road: concurrent sessions of one process fail but one
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+`podssh each ... root@127.0.0.1,127.0.0.1,localhost -- 'echo ok'` through `podssh relay serve` (which offers the layer)
+exited 255 in 3 runs of 3 with 1 host of 3 ok; the others said `the resumable layer's handshake failed: the link failed
+in the layer's handshake: broken pipe`. With `PODSSH_RELAY_LAYER=no`, 3 of 3 ok; three `podssh ssh` processes at
+once, each ok. A host that does not resolve took a good host down with it.
+
+## Approach
+
+Reproduce with a test of `each` over podssh's own relay role and three sessions at once; find what the sessions of one
+process share on the layer's road (a process-wide state of the layer's client, its links or its offer) and give each
+session its own. The test passes 10 runs in 10, with a fourth host that does not resolve failing alone.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test each_layer
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-812: With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+ENVIRONMENT says that for a relay host that the user named whose offer is not kept, its `/relays.json` is read once,
+1 s at most, before the session. With the variable unset no offer was read or kept (the relay logged no `/relays.json`),
+so `podssh proxy` took the contract's road, which has no half-close, and hung on a closed stdin until its timeout.
+Only `PODSSH_RELAY_LAYER=yes` wrote the offer; later runs then took the layer.
+
+## Approach
+
+Read the offer as the manual says when the variable is unset and the host was named; a test asserts the one read, the
+kept offer, and `proxy`'s end on a closed stdin within a few seconds on a first run.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_offer_read
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-813: `health --preflight` says `direct` of a session that went through the relay
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+`podssh health --relay-host ... --preflight root@127.0.0.1` printed `ok    road           direct: not the relay, so none
+of its limits on a session`; the session went through the relay (its log: `upgrade layer`), with no `--direct`.
+
+## Approach
+
+The road line reads the road that carried the session; a test through podssh's relay role asserts the relay's road and
+its limits, and `direct` only with `--direct`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test health_road
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-814: The hint of an idle cut names 180 s where the relay published another limit
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+A relay with `--idle 3`: `podssh proxy` ended with `1001 idle timeout`, then `the relay closes a session after 180 s
+with no traffic; set ServerAliveInterval below 180`. The relay's `/relays.json` said `idle_timeout_ms` 3000.
+
+## Approach
+
+The hint takes the limit of the relay's offer when it is known, else says that the relay's limit is unknown; a test
+with a role of `--idle 3` asserts "3 s".
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test idle_hint
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-815: `config import ansible` takes a port that is no number and writes it
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+`printf '[g]\nh1 ansible_port=notnum\n' | podssh config import ansible -` exited 0 and wrote `Port notnum`; the manual
+says a bad line ends the run with its number (exit 65).
+
+## Approach
+
+A port of 1 to 65535 alone; another value ends the run with 65 and the line's number. A unit test of the reader, and the
+planted case of `notnum`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib config::import
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-816: `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+The manual says each mint, upgrade and client's Close is a line on stdout, and that a refusal's cause is a line. No
+Close line came after many sessions nor after a 1001 idle cut; a 502 for a refused target wrote no line (a 403 did).
+
+## Approach
+
+Write the Close of each session (its code and reason) and the cause of each refusal, as the manual says; a test of the
+role reads them from its stdout.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-817: More causes said twice, beside COORD-112
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+Found by the pass, beside pod-relay's 403 and 502 (COORD-112): the relay down while a layer offer is kept (three lines:
+the layer's first link failed and "the session goes on with no resume", a wait, then the connect; the run then fails);
+`pipe - tcp:127.0.0.1:2223` says `could not connect to 127.0.0.1:2223:` twice; `ssh node://` with no node says "the
+connection closed unexpectedly" before the node's own cause.
+
+## Approach
+
+One cause, one line, each: a test for each case in `crates/podssh-cli/tests/error_lines.rs`; a case in pod-relay or
+pod-session goes to podcrates as COORD-112 did.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test error_lines
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-818: The black-box pass's small findings: the manual and the messages
+
+**Source:** the black-box pass of 2026-11-17 (T-809, item 3): an agent with the binary and its documents alone, no source, on this host's loopback with `podssh relay serve` and an OpenSSH sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the black-box pass, below).
+
+## Premise
+
+The pass's nits: `/relays.json`'s `policy.note`, `relay info` and the role's `/llms-full.txt` describe another relay
+under `--allow-private`; `agent list` shows no comment of a key; `agent` puts its socket in `/tmp` with a long
+`XDG_RUNTIME_DIR` and says nothing; misleading usage lines (`--quota` with `--mint anyone`, a second `--mint`, `play
+--speed -1`, `PODSSH_LISTEN=no relay serve`, `ssh --bogus` pointing at `podssh --help`, no `PODSSH_RELAY_TOKEN` named
+when a relay mints for none); EXIT STATUS lacks `play`'s 1, `edit`'s 66 and `ping`'s 69 of a refused default target;
+`ping` against a dead relay prints an empty field; `sftp -b` does not echo a failing line; `pipe relay:`'s missing
+half-close is said in one place and contradicted in another; an unresolvable TARGET of `node` gives one line of 900
+characters.
+
+## Approach
+
+Each one repaired, or its documents made true, with a test where the behaviour changes; the manual's sentences stay at
+25 words or fewer.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+```
+
+The test fails on the code before the fix and passes after it.

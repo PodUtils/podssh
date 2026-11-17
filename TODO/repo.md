@@ -7467,3 +7467,12 @@ words of a closed connection now (an end of the stream, a broken pipe, a reset),
 `the_socket_of_a_unix_route_under_a_home_is_let_through_read_only` (T-714) ran on Windows, where a unit's home path
 holds `\`: it is Unix's alone now, as the other tests of a system unit are. `checks` failed on citations of
 `layered.rs` that a later edit of the same commit moved by one line (repaired with `cargo todo remap --base HEAD~1`).
+
+2026-11-17, item 3, a first black-box pass (an agent with the debug binary of `5d6efd0`, `--help` and `podssh man`, no
+source; this host's loopback with `podssh relay serve` and an OpenSSH sshd; about 5 minutes of its own work). Seven
+defects and some smaller findings, each filed: T-810 (`PODSSH_OFFLINE` and `update`), T-811 (`each` on the layer's road),
+T-812 (a named relay's offer never read), T-813 (`health --preflight`'s road), T-814 (the idle hint's limit), T-815
+(`config import ansible`'s port), T-816 (`relay serve`'s lines), T-817 (more causes said twice) and T-818 (the small
+ones). It also found that a full `doctor` and a first `node` reach public services by default, as documented; the pass
+then turned them off. Its coverage (what matched the documents) is in its report; the next pass runs on the candidate
+of the beta, after these are done.
