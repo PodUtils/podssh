@@ -210,6 +210,11 @@ pub fn bad_invocation(verb: &str, kind: clap::error::ErrorKind, given: &str) -> 
         clap::error::ErrorKind::UnknownArgument => {
             format!("podssh {verb}: '{given}' is not an argument this verb takes.")
         }
+        // A host or a path of bytes that are not text (T-818): named, as the
+        // vague line of the default named nothing.
+        clap::error::ErrorKind::InvalidUtf8 => {
+            format!("podssh {verb}: an argument is not UTF-8 text, which each argument of podssh must be.")
+        }
         _ => format!("podssh {verb}: that command line cannot be used."),
     };
     format!(
@@ -313,6 +318,8 @@ mod tests {
         assert!(unknown_flag("", "--x", None).contains("'podssh --help'"));
         assert!(given_twice("relay serve", "--mint").contains("--mint is given more than once"));
         assert!(negative_value("play", "-1").contains("--FLAG=-1"));
+        let bytes = bad_invocation("ssh", clap::error::ErrorKind::InvalidUtf8, "");
+        assert!(bytes.contains("not UTF-8"), "{bytes}");
         assert!(without.contains("Nothing was ignored"), "{without}");
         // Four lines: the flag, the next step, the reassurance, and nothing else.
         assert!(without.lines().count() <= 4, "{without}");
