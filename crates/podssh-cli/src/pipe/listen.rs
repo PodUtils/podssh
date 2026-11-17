@@ -31,11 +31,24 @@ pub fn allowed() -> Result<(), Refusal> {
     let Ok(value) = std::env::var(LISTEN_ENV) else { return Ok(()) };
     match value.trim().to_ascii_lowercase().as_str() {
         "" | "yes" | "on" | "true" | "1" => Ok(()),
+        // The plain refusal: each verb that listens takes it; pipe adds
+        // what needs no listener (T-818).
         "no" | "off" | "false" | "0" => {
-            Err(Refusal::config(format!("{LISTEN_ENV}={value} turns listening off, so nothing listens; {INSTEAD}")))
+            Err(Refusal::config(format!("{LISTEN_ENV}={value} turns listening off, so nothing listens")))
         }
         _ => Err(Refusal::config(format!("{LISTEN_ENV}={value}: yes or no"))),
     }
+}
+
+/// [`allowed`] for `podssh pipe`: a refusal names its sides that need no
+/// listener.
+pub fn allowed_for_pipe() -> Result<(), Refusal> {
+    allowed().map_err(|mut refusal| {
+        if refusal.message.ends_with("so nothing listens") {
+            refusal.message = format!("{}; {INSTEAD}", refusal.message);
+        }
+        refusal
+    })
 }
 
 /// The control socket of `podssh ssh -M` (T-039): a socket of mode 0600,

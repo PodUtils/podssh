@@ -12597,6 +12597,8 @@ EXIT STATUS
       document disagrees. podssh relay conform: a check of the relay failed.
       podssh keygen: a key could not be made or read. podssh health
       --preflight: after the login, a check failed or the facts did not come.
+      podssh play: the recording cannot be read, or its version is not one that
+      it plays.
   64
       A usage error: an unknown command or flag, a bad value, a missing
       argument. podssh did nothing.
@@ -12608,7 +12610,8 @@ EXIT STATUS
   66
       podssh cp and mv: a source is missing or cannot be read. podssh mv: a
       source that changed during the move, which stays. podssh chat: the file
-      of --file or --sendfile cannot be read.
+      of --file or --sendfile cannot be read. podssh edit: the file is not on
+      the host.
   69
       podssh proxy: no relay host could be reached, or the relay ended the
       session abnormally. podssh node, operator and relay: the relay or TARGET
@@ -12619,14 +12622,14 @@ EXIT STATUS
       the server, or it has neither SFTP nor the sh and the tools of a copy by
       exec. podssh chat: the same of the relay and the pair, or a message went
       with no acknowledgement; each is said. podssh ping: no relay host
-      answered, or PODSSH_OFFLINE is set. podssh relay status: no relay host
-      answered; podssh relay trace: the relay would not dial the target. podssh
-      agent: no agent answers at SSH_AUTH_SOCK, or the agent keeps no
-      passwords. podssh containers: the host has none of docker, podman and
-      kubectl, one of them failed, or --exec names no container that a list
-      has. podssh session: no session of that name answers, or its session
-      ended (and the status that it ended with is said). podssh detached status
-      and stop: no run of that name runs.
+      answered, the relay refused its default target, or PODSSH_OFFLINE is set.
+      podssh relay status: no relay host answered; podssh relay trace: the
+      relay would not dial the target. podssh agent: no agent answers at
+      SSH_AUTH_SOCK, or the agent keeps no passwords. podssh containers: the
+      host has none of docker, podman and kubectl, one of them failed, or
+      --exec names no container that a list has. podssh session: no session of
+      that name answers, or its session ended (and the status that it ended
+      with is said). podssh detached status and stop: no run of that name runs.
   70
       The command is not implemented yet, or podssh failed inside. podssh node
       and operator: the relay closed the node or the session for a fault (1003,

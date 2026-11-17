@@ -3361,9 +3361,12 @@ Partial, 2026-11-17. Done:
   (`podssh ssh --help`); a flag of one value given twice says so (`--mint is given more than once`), never "unknown
   flag '--mint <WHO>'"; a negative number taken for a flag says to give it after `=` (`play --speed -1`). `--lib`
   1251 passed; `--test binary_streams --test flag_table --test scp_args --test tree` passed.
-Waits: `PODSSH_LISTEN=no relay serve`'s words (pipe's now); a relay that mints for none to name
-`PODSSH_RELAY_TOKEN`; EXIT STATUS's rows of `play` (1), `edit` (66) and `ping` (69 of a refused default target);
-`ping`'s empty field at a dead relay; `sftp -b`'s echo of a failing line; the two places of the manual on `pipe
+- `PODSSH_LISTEN=no` refuses each verb that listens with the plain line (`pipe/listen.rs` `allowed`); only `pipe`
+  adds what needs no listener (`allowed_for_pipe`): `relay serve` said pipe's words before. Both exit 78.
+- EXIT STATUS names `play`'s 1 (a recording that cannot be read), `edit`'s 66 (a file not on the host) and `ping`'s 69
+  of a refused default target; `--lib man` 114 passed.
+Waits: a relay that mints for none to name `PODSSH_RELAY_TOKEN` (the words are `pod-relay`'s `token.rs`, which names
+no consumer's variable: an ask of podcrates); `ping`'s empty field at a dead relay; `sftp -b`'s echo of a failing line; the two places of the manual on `pipe
 relay:`'s half-close; one line of 900 characters for an unresolvable TARGET of `node`; `agent list`'s comment of a key;
 `agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said; a host that is not UTF-8, named.
 

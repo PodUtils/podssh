@@ -105,7 +105,7 @@ pub fn run_pipe(args: &PipeArgs, err: &mut dyn Write) -> i32 {
         Err(refusal) => return refusal.report("pipe", err),
     };
     if listening {
-        if let Err(refusal) = listen::allowed() {
+        if let Err(refusal) = listen::allowed_for_pipe() {
             return refusal.report("pipe", err);
         }
     }

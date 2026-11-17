@@ -1177,7 +1177,7 @@ Read: podssh matches hashed lines with HMAC-SHA1
 with their numbers (`scan`, `crates/podssh-ssh/src/known_hosts.rs:149-179`), and
 appends without a rewrite (`crates/podssh-ssh/src/known_hosts.rs`, lines 323-372 at `f6b7676`).
 The default files are the ones of `podssh ssh`
-(`crates/podssh-cli/src/man/data.rs:180`).
+(`crates/podssh-cli/src/man/data.rs:182`).
 
 ## Approach
 
@@ -2470,14 +2470,14 @@ nothing.
 - Read: `crates/podssh-cli/src/doctor/mod.rs` line 15 at `48a8744` says "The bind probes here are the only place
   podssh calls". The listener scan of `scripts/check-repo.py` allows a `bind(` in 17 files
   (`scripts/check-repo.py:170-191`), and these listen, each when the user asks: `pipe`'s
-  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:127-141`, `:168-192`),
-  the control socket of `-M` (`:194-202`), `-L` and `-D` on a port or a path
+  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:140-154`, `:181-205`),
+  the control socket of `-M` (`:207-215`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:78-88`, `:111-128`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:38-41`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:136`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
-  (`crates/podssh-cli/src/pipe/listen.rs:48-55`), and 255 in `-L` and `-D`, with the system's
+  (`crates/podssh-cli/src/pipe/listen.rs:61-68`), and 255 in `-L` and `-D`, with the system's
   words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:89-93`).
   The issue's amendment says that `-L` exits 77: it exits 255, as OpenSSH's ssh does for a
   failure of its own (`crates/podssh-ssh/src/run.rs:24`).
@@ -2597,8 +2597,8 @@ alone measures less than they use, so it cannot answer what a user asks it.
 1. After the bind, `listen(fd, 1)` on the same socket, then close: nothing is accepted, and
    nothing is left. For AF_INET on 127.0.0.1 port 0; for AF_UNIX on the file in the temporary
    directory, made mode 0600 as `pipe` makes its socket
-   (`crates/podssh-cli/src/pipe/listen.rs:204-216`), and on Linux on an abstract name. With
-   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-39`) no listen is made, and the
+   (`crates/podssh-cli/src/pipe/listen.rs:217-229`), and on Linux on an abstract name. With
+   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-41`) no listen is made, and the
    line says so.
 2. The lines `listen AF_INET` and `listen AF_UNIX`, each with what happened: bound and listened;
    bound, and `listen()` refused with its error; or the bind refused. A refusal names the features
@@ -3320,9 +3320,9 @@ Read on 2026-11-01:
   of `crates/podssh-cli/src/detach/child.rs`; the line of `crates/podssh-cli/src/detach/mod.rs` that
   the Premise cites is `when_requested`, which makes no file. There was no lock, as it says.
 - The probe of a session's socket is the daemon's (`session serve`, which `start` runs), in `stale`
-  of `crates/podssh-cli/src/pipe/listen.rs:230`, inside the bind that the Premise cites. Two daemons
+  of `crates/podssh-cli/src/pipe/listen.rs:243`, inside the bind that the Premise cites. Two daemons
   can both pass it, and the race is worse than two copies: the second, whose bind failed, removes
-  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:188`), which then answers nobody.
+  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:201`), which then answers nobody.
 
 ## Done
 
@@ -3593,11 +3593,11 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   it. Inferred: a line shaped as OpenSSH's would make OpenSSH's server apply the quirks of its own
   client's versions to podssh, so the line stays podssh's. Against the report: the README says
   that podssh has "the options of OpenSSH" (`README.md:152`), not that it is OpenSSH.
-- Read (L-14): the side file of a broken copy is in FILES (`crates/podssh-cli/src/man/data.rs:228-229`)
+- Read (L-14): the side file of a broken copy is in FILES (`crates/podssh-cli/src/man/data.rs:230-231`)
   and in the notes (`crates/podssh-cli/src/man/notes.rs:168`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:90-92`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:92-94`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:394-395`).
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:238`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:108-123`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:110-125`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 

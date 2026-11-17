@@ -32,7 +32,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             crate::doctor::EXIT_FAILED,
             "podssh doctor: a check failed. podssh relay spec: a fact of the relay's document disagrees. \
              podssh relay conform: a check of the relay failed. podssh keygen: a key could not be made or read. podssh health --preflight: after the login, a \
-             check failed or the facts did not come.",
+             check failed or the facts did not come. podssh play: the recording cannot be read, or its version is \
+             not one that it plays.",
         ),
         row(
             crate::exit_codes::EXIT_USAGE,
@@ -47,7 +48,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
-             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read.",
+             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh \
+             edit: the file is not on the host.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,
@@ -58,7 +60,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              certificate failed. podssh cp and mv: no connection to \
              the server, or it has neither SFTP nor the sh and the tools of a copy by exec. podssh chat: \
              the same of the relay and the pair, or a message went with no acknowledgement; each is said. \
-             podssh ping: no relay host answered, or PODSSH_OFFLINE is set. podssh relay status: no relay \
+             podssh ping: no relay host answered, the relay refused its default target, or PODSSH_OFFLINE is set. podssh relay status: no relay \
              host answered; podssh relay trace: the relay would not dial the target. podssh agent: no agent \
              answers at SSH_AUTH_SOCK, or the agent keeps no passwords. podssh containers: the host has \
              none of docker, podman and kubectl, one of them failed, or --exec names no container that a \
