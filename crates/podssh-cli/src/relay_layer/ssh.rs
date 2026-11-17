@@ -103,11 +103,13 @@ pub(crate) async fn reach(
     let (ended, done) = oneshot::channel();
     // Each session of the process on one thread and runtime (T-811): their
     // connections of HTTP/2 are shared, and live on the runtime that made them.
+    // The session's record goes with the road to its thread (T-822).
+    let here = podssh_ssh::outcome::here();
     let job: super::one_thread::Job = Box::new(move || {
-        Box::pin(async move {
+        Box::pin(here.run_in(async move {
             carried(road, tell).await;
             let _ = ended.send(());
-        })
+        }))
     });
     if let Err(why) = super::one_thread::submit(job) {
         log.info(&format!("{why}: {}", super::WITHOUT));

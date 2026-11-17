@@ -3500,7 +3500,7 @@ nine rows pass behind `proxy-only`, `proxy-tls-reterminate`, `proxy-per-name` an
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3525,6 +3525,21 @@ cargo test -p podssh-cli --test result_file
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Correction
+
+The cause is not the copies' own record: since the layer (T-811) each session's road runs on a thread of its own,
+and the road wrote its relay host to the process's record, not the session's (`relay_layer/ssh.rs`). `ssh` read the
+process's record, the copies their own. The test is `tests/result_relay.rs`, through podssh's relay role, where
+`result_file`'s tests run `--direct`.
+
+## Done
+
+2026-11-17. `podssh_ssh::outcome::Here::run_in` runs a future with the session's record as its own on any thread;
+the layer's road takes the caller's record with it, so its relay host is the session's. `tests/result_relay.rs`:
+one table of `sftp`, `cp` and `scp` with `--result-file` through `podssh relay serve` and the layer, each naming
+`relay-a.test`. Planted: the road without the caller's record gives `"relay":null` for sftp, and the test fails;
+restored, it passes. `cargo test -p podssh-cli --test result_relay`.
 
 # T-823: `transferred.up` of a resumed copy counts the whole file
 

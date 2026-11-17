@@ -150,6 +150,17 @@ impl Here {
     pub(crate) fn broke(&self, why: String) {
         self.with(|r| *lock(&r.broke) = Some(why));
     }
+
+    /// `work` with this record as its own, on whatever task or thread runs
+    /// it: the road of the resumable layer runs on a thread of its own, and
+    /// what it records (its relay host) is the session's, not the
+    /// process's (T-822).
+    pub async fn run_in<F: Future>(self, work: F) -> F::Output {
+        match self.0 {
+            Some(scope) => SCOPE.scope(scope, work).await,
+            None => work.await,
+        }
+    }
 }
 
 /// The record that a call made now writes.

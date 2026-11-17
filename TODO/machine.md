@@ -604,11 +604,11 @@ stderr into stdout; the byte test fails.
 
 ## Done
 
-2026-10-12. The record of a run in `crates/podssh-ssh/src/outcome.rs:1-308`:
-the bytes at `crates/podssh-ssh/src/outcome.rs:200-211`, the end at
-`crates/podssh-ssh/src/outcome.rs:221-239`, a run through a control master
-at `crates/podssh-ssh/src/outcome.rs:241-252`, and the cause of a failure
-at `crates/podssh-ssh/src/outcome.rs:254-275`. The bytes are counted where
+2026-10-12. The record of a run in `crates/podssh-ssh/src/outcome.rs:1-319`:
+the bytes at `crates/podssh-ssh/src/outcome.rs:211-222`, the end at
+`crates/podssh-ssh/src/outcome.rs:232-250`, a run through a control master
+at `crates/podssh-ssh/src/outcome.rs:252-263`, and the cause of a failure
+at `crates/podssh-ssh/src/outcome.rs:265-286`. The bytes are counted where
 they pass: stdin at `crates/podssh-ssh/src/io.rs:234`, stdout and stderr at
 `crates/podssh-ssh/src/io/msg.rs:93`, `-W` at
 `crates/podssh-ssh/src/forward.rs:66` and
