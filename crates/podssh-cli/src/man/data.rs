@@ -65,7 +65,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              none of docker, podman and kubectl, one of them failed, or --exec names no container that a \
              list has. podssh session: no session of that name answers, or its session ended (and the \
              status that it ended with is said). podssh detached status and stop: no run of that name \
-             runs.",
+             runs. podssh relay serve: the port of --listen is in use.",
         ),
         row(
             crate::exit_codes::EXIT_NOT_IMPLEMENTED,
@@ -100,7 +100,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
             "podssh proxy: the relay or the proxy refused (a token, a blocked address, a proxy's 403 or 407). \
              podssh node, operator and relay: the relay refused the pair, or the pair expired; for relay \
              trace, the token. podssh operator and pipe node:: the node's key is not the one pinned in known-nodes or named by \
-             --node-key; or the node's allowlist refused this client's key, or the node its grant. podssh cp \
+             --node-key; or the node's allowlist refused this client's key, its grant, or its route. podssh cp \
              and mv: the server refused the login, or podssh did not accept its host key. podssh chat: the same of the pair \
              and of the keys, or the peer declined the file of --file. podssh session start: this host refuses \
              the bind of the session's socket. podssh net policy check: the policy does not let FROM reach TO.",

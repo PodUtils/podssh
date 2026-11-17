@@ -1769,8 +1769,8 @@ The command line: the targets at `crates/podssh-cli/src/node.rs:249-286`,
 `NAME/ROUTE` at `crates/podssh-cli/src/node.rs:288-303`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/node.rs:303-311`; the channel's glue at
-`crates/podssh-cli/src/channel.rs:370-379` and
-`crates/podssh-cli/src/channel.rs:424-448`; `node://NAME/ROUTE` at
+`crates/podssh-cli/src/channel.rs:375-384` and
+`crates/podssh-cli/src/channel.rs:429-453`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
 `crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
@@ -4761,7 +4761,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).
 - Two kinds of node cannot move whole, which the Approach did not name: an iroh session of `--no-e2e` is
-  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:412` says "let (ours, mut theirs)
+  a pipe that a task copies to TARGET (`crates/podssh-cli/src/channel.rs:417` says "let (ours, mut theirs)
   = tokio::io::duplex(PIPE);"), and a node of `--quick-tunnel --relay` holds the role's tokens, random for
   each run (`crates/podssh-cli/src/node_quick_relay.rs:103` says "let tokens =
   serve::tokens::Tokens::random().map_err(Refusal::config)?;"). See Decision, items 5 and 8.

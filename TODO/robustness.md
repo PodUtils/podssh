@@ -3600,7 +3600,7 @@ The test fails on the code before the fix and passes after it.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3625,6 +3625,13 @@ cargo test -p podssh-cli --lib
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. A route that the key may not use is the node's refusal of the key now (`channel::judged`): 77, as its
+allowlist's and its grant's, not 70 (`a_route_refused_is_the_node_s_refusal_of_the_key`). `relay serve` on a port in use
+keeps 69, as `pipe`'s bind that fails for a reason other than the host's refusal (77); EXIT STATUS names it in 69's row,
+and 77's row names a refused route. `--lib` passed; the manual's tests and `llms-full.txt` written again.
 
 # T-826: At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first
 

@@ -265,6 +265,11 @@ pub fn judged(e: &e2e::Error, me: Option<&Identity>) -> Option<(Fault, String)> 
         e2e::Error::Refused(NodeRefusal::Other(why)) if why == ends::NO_EXIT => {
             (Fault::SessionFault, format!("the node refused: {why} (podssh node --exit)"))
         }
+        // A route that the key may not use is the node's refusal of the key,
+        // as its allowlist's (T-825): 77, not a fault of the channel.
+        e2e::Error::Refused(NodeRefusal::Other(why)) if why.starts_with("this key may not use the route") => {
+            (Fault::Auth, format!("the node refused: {why}"))
+        }
         e2e::Error::Refused(NodeRefusal::Other(why)) => (Fault::SessionFault, format!("the node refused: {why}")),
         e2e::Error::Timeout(_) => (Fault::RelayUnreachable, e.to_string()),
         // podssh's hint of the switch at both ends (pod-e2e's words name none).

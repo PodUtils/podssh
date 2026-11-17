@@ -74,3 +74,16 @@ fn a_dialect_that_the_relay_does_not_read_is_final_for_a_new_leg() {
                update the relay";
     assert!(is_final(&ConnectError::Refused { status: 426, body: why.into() }));
 }
+
+/// A route that the key may not use is the node's refusal of the key: 77,
+/// as its allowlist's (T-825), never a fault of the channel (70).
+#[test]
+fn a_route_refused_is_the_node_s_refusal_of_the_key() {
+    use podssh_relay::e2e::{self, Refusal as NodeRefusal};
+    let route = e2e::Error::Refused(NodeRefusal::Other("this key may not use the route nope of the node".into()));
+    let (fault, said) = crate::channel::judged(&route, None).expect("a refusal");
+    assert_eq!(fault.code(), 77, "{said}");
+    assert!(said.contains("may not use the route nope"), "{said}");
+    let other = e2e::Error::Refused(NodeRefusal::Other("something else".into()));
+    assert_eq!(crate::channel::judged(&other, None).expect("a refusal").0.code(), 70);
+}

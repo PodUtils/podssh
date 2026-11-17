@@ -12631,6 +12631,7 @@ EXIT STATUS
       --exec names no container that a list has. podssh session: no session of
       that name answers, or its session ended (and the status that it ended
       with is said). podssh detached status and stop: no run of that name runs.
+      podssh relay serve: the port of --listen is in use.
   70
       The command is not implemented yet, or podssh failed inside. podssh node
       and operator: the relay closed the node or the session for a fault (1003,
@@ -12664,11 +12665,11 @@ EXIT STATUS
       the pair, or the pair expired; for relay trace, the token. podssh
       operator and pipe node:: the node's key is not the one pinned in
       known-nodes or named by --node-key; or the node's allowlist refused this
-      client's key, or the node its grant. podssh cp and mv: the server refused
-      the login, or podssh did not accept its host key. podssh chat: the same
-      of the pair and of the keys, or the peer declined the file of --file.
-      podssh session start: this host refuses the bind of the session's socket.
-      podssh net policy check: the policy does not let FROM reach TO.
+      client's key, its grant, or its route. podssh cp and mv: the server
+      refused the login, or podssh did not accept its host key. podssh chat:
+      the same of the pair and of the keys, or the peer declined the file of
+      --file. podssh session start: this host refuses the bind of the session's
+      socket. podssh net policy check: the policy does not let FROM reach TO.
   78
       A setting of the environment cannot be used: PODSSH_RELAY or
       PODSSH_RELAY_ADDR (podssh ssh, cp, proxy and doctor). For podssh proxy
