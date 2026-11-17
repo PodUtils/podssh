@@ -357,6 +357,9 @@ def main(argv):
             if why:
                 failed.append(name)
                 print(f"FAIL {name:11} {took:5.1f} s  {why}", flush=True)
+                # The sshd's words of this row, before later rows push them
+                # out of the tail at the end (the ssh row of windows-arm, T-728).
+                print(servers.tail(scratch / "sshd.log", 12), flush=True)
             else:
                 passed.append(name)
                 print(f"ok   {name:11} {took:5.1f} s", flush=True)

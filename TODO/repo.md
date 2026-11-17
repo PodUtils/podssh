@@ -6479,6 +6479,11 @@ at `6cda86b`: 22 passed and the plant failed the row `proxy` alone; `macos` (`ma
 LibreSSL) at `b95cda5`: 22 passed and the plant failed the row `proxy` alone. No row found a
 defect of podssh on these hosts. `windows-arm` joins `all` (two runs passed).
 
+2026-11-17: the gate's `windows-arm` at `6001f8a` (run 44124212972) failed the `ssh` row once: exit 255 in 0.9 s, "the
+connection to 127.0.0.1:PORT was lost before the session ended: the connection closed unexpectedly"; each other row
+passed, and the row passed at `5d6efd0` and before. The sshd's log of that row was out of the tail at the end (15 lines,
+the later rows'). A failed row now prints the sshd's last 12 lines at once, for the cause at its next failure.
+
 # T-754: Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5
 
 **Source:** PodUtils/podssh#197 (trufflehog 3.99.8 in `images/trufflehog`), #198 (the actions group:
