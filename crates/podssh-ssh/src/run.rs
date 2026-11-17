@@ -465,8 +465,8 @@ pub(crate) fn display(hop: &Hop) -> String {
     }
 }
 
-pub use crate::run_words::describe;
 use crate::run_words::closed;
+pub use crate::run_words::describe;
 
 #[path = "run_config.rs"]
 mod config;

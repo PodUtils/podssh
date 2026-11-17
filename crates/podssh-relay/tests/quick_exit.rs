@@ -47,6 +47,10 @@ async fn service(word: &'static str) -> (u16, Arc<AtomicUsize>) {
         while let Ok((mut stream, _)) = listener.accept().await {
             counted.fetch_add(1, Ordering::SeqCst);
             let _ = stream.write_all(word.as_bytes()).await;
+            // Read to the end before the close: a socket closed with bytes
+            // unread resets the connection, which the exit reads as a cut.
+            let mut sent = Vec::new();
+            let _ = tokio::time::timeout(std::time::Duration::from_secs(10), stream.read_to_end(&mut sent)).await;
         }
     });
     (port, count)

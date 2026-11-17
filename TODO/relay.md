@@ -5603,6 +5603,12 @@ quick,serve,plain-ws --test quick_exit` 2 passed. Planted (`sh scripts/plant-eac
 caught, 0 missed. Clippy (the gate's lints, `pair,serve,grant` and podssh-cli) and rustfmt clean; the citations moved by
 `cargo todo remap`.
 
+2026-11-17: the gate's `macos` at `aae18e8` (run 44158003478) failed `caller_allowlist_a_member_reaches_the_range_and_is_
+counted`: "the exit reached its target: Cut". The test's target wrote its word and closed with the caller's bytes unread,
+which resets the connection, and the exit reads a reset as a cut: a race that macOS lost. The target reads to the end
+before its close now, here and in `tests/quick_exit.rs`, which had the same target. `--features quick,pair,serve,grant
+--test reverse_exit_caller --test quick_exit`: 5 runs in 5 passed.
+
 # T-722: A lease header `X-Relay-Lease` on the forward and reverse roads
 
 **Source:** PodUtils/podcrates#35, cfb's ask A-S-14 (COORD-014, PodUtils/podcrates#38)
