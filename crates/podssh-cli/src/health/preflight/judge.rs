@@ -73,12 +73,17 @@ pub fn road(road: &Road, relay_host: Option<&str>, limits: &Limits) -> Verdict {
         let through = if road.proxy { ", through HTTPS_PROXY" } else { "" };
         return ok(format!("{}{through}: not the relay, so none of its limits on a session", road.name));
     }
+    let host = relay_host.map(|h| format!(" {h}")).unwrap_or_default();
+    if road.layer {
+        return ok(format!(
+            "the relay{host}, in the resumable layer: a limit of the relay ends a link, and the session goes on a new one"
+        ));
+    }
     let bytes = limits.max_session_bytes.unwrap_or(relay::session_byte_cap());
     let idle = limits.idle_timeout_ms.map_or(relay::relay_idle_secs(), |ms| ms / 1000);
     let most = limits.max_session_ms.map_or(relay::session_time_cap().as_secs(), |ms| ms / 1000);
     let read = limits.max_session_bytes.or(limits.idle_timeout_ms).or(limits.max_session_ms).is_some();
     let from = if read { "its /relays.json" } else { "podssh's own: no /relays.json was read" };
-    let host = relay_host.map(|h| format!(" {h}")).unwrap_or_default();
     ok(format!(
         "the relay{host} ends a session at {} both ways, after {} with no payload, and at {} ({from}): podssh cp \
          copies more on new sessions, and a session of podssh ssh ends there",

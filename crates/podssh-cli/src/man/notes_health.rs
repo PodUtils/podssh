@@ -39,7 +39,8 @@ pub const HEALTH: &[&str] = &[
     "PREFLIGHT: with --preflight, after the facts, the same login asks what the server allows of what a long command \
      needs later. Each probe takes 10 s at most, and the lines are as podssh doctor gives them: ok, FAIL or ????, a \
      name, and what came. login: the user, the hops of -J, the method that let the user in, and the server's version \
-     line. road: the relay's limits on a session, or none with --direct. The limits are 64 MiB both ways, 180 s with \
+     line. road: the relay's limits on a session, or none with --direct. In the resumable layer, a limit \
+     ends a link, and the session goes on a new one. The limits are 64 MiB both ways, 180 s with \
      no payload and 12 h, from its /relays.json where one was read. sftp: the subsystem, its sizes and its \
      extensions, and what podssh cp does without copy-data, posix-rename@openssh.com, hardlink@openssh.com and \
      limits@openssh.com; no subsystem is ok, as podssh cp then copies by exec. remote forward: a tcpip-forward on \

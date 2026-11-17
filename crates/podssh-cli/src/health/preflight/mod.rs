@@ -49,6 +49,9 @@ pub struct Road {
     /// The relay carried the session; else, for a direct one, whether a
     /// proxy did.
     pub relay: bool,
+    /// The relay carried it in the resumable layer: a limit of the relay
+    /// ends a link, and the session goes on a new one (T-813).
+    pub layer: bool,
     pub proxy: bool,
     /// The hops of `-J` before the destination, as they were named.
     pub hops: Vec<String>,
@@ -58,8 +61,12 @@ impl Road {
     /// The road of `resolved` as `reached` went: the relay, or the direct
     /// road after each relay host failed (T-363).
     pub fn of(resolved: &Resolved, reached: &Reached) -> Road {
-        let relay = reached.relay.is_some();
-        let name = match crate::ssh::road(&resolved.transport) {
+        // The layer's road keeps no status of the relay's session (T-813):
+        // on the relay's road, its carriage says the relay carried it.
+        let word = crate::ssh::road(&resolved.transport);
+        let layer = word == "relay" && reached.layer.is_some();
+        let relay = reached.relay.is_some() || layer;
+        let name = match word {
             "relay" if !relay => "direct",
             word => word,
         };
@@ -74,7 +81,7 @@ impl Road {
                 format!("{user}{at}")
             })
             .collect();
-        Road { name, relay, proxy: reached.direct_proxy.is_some(), hops }
+        Road { name, relay, layer, proxy: reached.direct_proxy.is_some(), hops }
     }
 }
 

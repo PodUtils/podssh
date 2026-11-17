@@ -127,6 +127,10 @@ fn the_login_and_the_road_say_what_carried_the_session() {
     assert!(got.contains("and at 12 h (its /relays.json)"), "{got}");
     let own = text(&judge::road(&relay, None, &Limits::default())).to_string();
     assert!(own.contains("(podssh's own: no /relays.json was read)"), "{own}");
+    // The layer's road (T-813): the relay's, its limits ending links alone.
+    let layer = Road { name: "relay", relay: true, layer: true, ..Road::default() };
+    let got = text(&judge::road(&layer, Some("relay.example.org"), &read)).to_string();
+    assert!(got.starts_with("the relay relay.example.org, in the resumable layer"), "{got}");
     let direct = Road { name: "direct", proxy: true, ..Road::default() };
     let got = judge::road(&direct, None, &Limits::default());
     assert_eq!(text(&got), "direct, through HTTPS_PROXY: not the relay, so none of its limits on a session");

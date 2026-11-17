@@ -3082,7 +3082,7 @@ The test fails on the code before the fix and passes after it.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3106,6 +3106,16 @@ cargo test -p podssh-cli --test health_road
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. The layer's road gives its stream with no status of the relay's session (`Reached { relay: None, layer:
+Some(..) }`), so `health/preflight/mod.rs`'s `Road::of` read it as `direct`. On the relay's road, the layer's carriage now
+says that the relay carried it, and the road line says so: "the relay HOST, in the resumable layer: a limit of the relay
+ends a link, and the session goes on a new one" (`judge::road`); the contract's road keeps its line of the relay's
+limits. The manual's note of `health` says both. `cargo test -p podssh-cli --test health_road`: 1 passed (podssh's
+relay role, the layer yes and no); `--lib health` 36 passed. Planted, the layer's road read as no relay: `direct`,
+caught.
 
 # T-814: The hint of an idle cut names 180 s where the relay published another limit
 
