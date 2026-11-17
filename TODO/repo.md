@@ -5185,7 +5185,7 @@ names no version and no way to a newer release. Docs.
   35a0d19` exits 1). The notes of `v1.0.1` (T-584, partial) say that it carries the work of M10
   that `main` holds since `v1.0.0` (`docs/releases/v1.0.1.md:5-6`).
 - Read: an unknown subcommand's words list this binary's subcommands, with no version
-  (`crates/podssh-cli/src/refuse.rs:115-118`).
+  (`crates/podssh-cli/src/refuse.rs:131-134`).
 - Read: `podssh serve` is M5 in `docs/ROADMAP.md:179`, and the operator holds its entries (T-107
   to T-113, Q32); the roadmap gives milestones, not releases, and its line says no hold.
 
@@ -5250,7 +5250,7 @@ Read at `38f424c` (2026-11-03): since the entry was written, `v1.0.1` (`6ece1f9`
 `v1.1.0-beta.1` (`5d95e5f`, published at 08:31 UTC) are out, and each holds the exit:
 `git merge-base --is-ancestor 0b07025 6ece1f9` exits 0. The tester's case is now answered by an
 update; the page still said nothing of `main` or of the releases, and T-584 is done. The words
-that list the subcommands are at `crates/podssh-cli/src/refuse.rs:120-124`; the premise's lines are
+that list the subcommands are at `crates/podssh-cli/src/refuse.rs:136-140`; the premise's lines are
 the arm of an unknown word with no close subcommand. The build image has no Python, so the plant
 installs it first (SETUP), as T-430's plant does.
 

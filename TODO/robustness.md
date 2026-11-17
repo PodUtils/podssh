@@ -3320,7 +3320,7 @@ entry 869), taken with its next tag. `--lib` 1251 passed; `--test error_lines` 5
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3350,6 +3350,22 @@ cargo test -p podssh-cli --lib man::
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+Partial, 2026-11-17. Done:
+- `/relays.json`'s `policy.note` says what the role dials as it was started (`Policy::note`: private addresses too
+  with `--allow-private`, the ranges of `--routes`, the ports refused); `podssh-relay --features serve --lib
+  serve::policy` 10 passed, among them `the_note_says_what_the_role_dials`.
+- The refusals of the command line (`refuse.rs`, `clap_error.rs`): an unknown flag names the verb's own help
+  (`podssh ssh --help`); a flag of one value given twice says so (`--mint is given more than once`), never "unknown
+  flag '--mint <WHO>'"; a negative number taken for a flag says to give it after `=` (`play --speed -1`). `--lib`
+  1251 passed; `--test binary_streams --test flag_table --test scp_args --test tree` passed.
+Waits: `PODSSH_LISTEN=no relay serve`'s words (pipe's now); a relay that mints for none to name
+`PODSSH_RELAY_TOKEN`; EXIT STATUS's rows of `play` (1), `edit` (66) and `ping` (69 of a refused default target);
+`ping`'s empty field at a dead relay; `sftp -b`'s echo of a failing line; the two places of the manual on `pipe
+relay:`'s half-close; one line of 900 characters for an unresolvable TARGET of `node`; `agent list`'s comment of a key;
+`agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said; a host that is not UTF-8, named.
 
 # T-819: podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges
 

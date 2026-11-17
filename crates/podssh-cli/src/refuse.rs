@@ -25,7 +25,7 @@ use crate::suggest::NoSubcommand;
 /// so it can name `-p` for a typo of `-P` on `ssh`; a hand-rolled search over a
 /// flat list would name a flag belonging to a different verb, which is the
 /// `cp`/`ssh` `-P` split made worse.
-pub fn unknown_flag(token: &str, suggestion: Option<&str>) -> String {
+pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>) -> String {
     // **The last line is the same in both branches, and it was missing from
     // one.** A test caught it: with no suggestion the message ended at
     // *"Run 'podssh --help' for the flags this build accepts."* and never said
@@ -36,11 +36,27 @@ pub fn unknown_flag(token: &str, suggestion: Option<&str>) -> String {
     let last = "Nothing was ignored: an unrecognised -o would drop a security setting.";
     match suggestion {
         Some(s) => format!("podssh: unknown flag '{token}'.\n  Did you mean '{s}'?\n  {last}"),
-        None => format!(
-            "podssh: unknown flag '{token}'.\n  \
-             Run 'podssh --help' for the flags this build accepts.\n  {last}"
-        ),
+        // The verb's own help, where its flags are (T-818).
+        None => {
+            let help = if verb.is_empty() { "podssh --help".to_string() } else { format!("podssh {verb} --help") };
+            format!("podssh: unknown flag '{token}'.\n  Run '{help}' for the flags this build accepts.\n  {last}")
+        }
     }
+}
+
+/// A flag that takes one value, given twice (T-818): named as the flag it
+/// is, never as an unknown one.
+pub fn given_twice(verb: &str, flag: &str) -> String {
+    format!("podssh {verb}: {flag} is given more than once; give it once.\n  Run 'podssh {verb} --help' for each flag.")
+}
+
+/// A negative number that the parser took for a flag (T-818): it goes after
+/// `=`, where it is the value.
+pub fn negative_value(verb: &str, token: &str) -> String {
+    format!(
+        "podssh {verb}: {token} is read as a flag; a value that starts with '-' goes after '=', as --FLAG={token}.\n  \
+         Run 'podssh {verb} --help' for each flag and its value."
+    )
 }
 
 /// The message for a flag that parses but is refused, and it **must** name the
@@ -286,13 +302,17 @@ mod tests {
     /// ignored, because a silently-dropped `-o` is the spec's security bug.
     #[test]
     fn an_unknown_flag_names_the_given_and_the_nearest() {
-        let with = unknown_flag("-StricthostKeyChekcing", Some("-StrictHostKeyChecking"));
+        let with = unknown_flag("ssh", "-StricthostKeyChekcing", Some("-StrictHostKeyChecking"));
         assert!(with.contains("-StricthostKeyChekcing"), "{with}");
         assert!(with.contains("Did you mean"), "{with}");
         assert!(with.contains("-StrictHostKeyChecking"), "{with}");
 
-        let without = unknown_flag("--qqqqq", None);
+        let without = unknown_flag("ssh", "--qqqqq", None);
         assert!(without.contains("--qqqqq"), "{without}");
+        assert!(without.contains("podssh ssh --help"), "the verb's own help: {without}");
+        assert!(unknown_flag("", "--x", None).contains("'podssh --help'"));
+        assert!(given_twice("relay serve", "--mint").contains("--mint is given more than once"));
+        assert!(negative_value("play", "-1").contains("--FLAG=-1"));
         assert!(without.contains("Nothing was ignored"), "{without}");
         // Four lines: the flag, the next step, the reassurance, and nothing else.
         assert!(without.lines().count() <= 4, "{without}");

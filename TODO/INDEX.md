@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**775 entries: 28 open, 38 partial, 11 blocked, 698 done.**
+**775 entries: 27 open, 39 partial, 11 blocked, 698 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
 | P2 | 0 | 23 | 2 | 296 | 321 |
-| P3 | 28 | 7 | 6 | 316 | 357 |
-| **All** | 28 | 38 | 11 | 698 | 775 |
+| P3 | 27 | 8 | 6 | 316 | 357 |
+| **All** | 27 | 39 | 11 | 698 | 775 |
 
 ## Entries
 
@@ -848,6 +848,6 @@ repository and CI).
 | [T-815](robustness.md) | P2 | S | M10 | defect | done | `config import ansible` takes a port that is no number and writes it |
 | [T-816](robustness.md) | P3 | S | M10 | defect | done | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
 | [T-817](robustness.md) | P3 | M | M10 | defect | done | More causes said twice, beside COORD-112 |
-| [T-818](robustness.md) | P3 | M | M10 | defect | open | The black-box pass's small findings: the manual and the messages |
+| [T-818](robustness.md) | P3 | M | M10 | defect | partial | The black-box pass's small findings: the manual and the messages |
 | [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |
 | [T-820](repo.md) | P2 | M | M10 | chore | partial | podssh's copies of shared code, as podcrates named them (COORD-131) |

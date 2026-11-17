@@ -31,6 +31,23 @@ pub struct Policy {
     pub ipv6: Ipv6Out,
 }
 
+impl Policy {
+    /// The policy in words, as `/relays.json` gives it (T-818): what it
+    /// dials, as this role was started.
+    pub fn note(&self) -> String {
+        let targets = match (self.private, self.ranges.is_empty()) {
+            (true, _) => "each TCP target, private addresses too (--allow-private)".to_string(),
+            (false, true) => "public TCP targets".to_string(),
+            (false, false) => format!("public TCP targets and {} range(s) of --routes", self.ranges.len()),
+        };
+        let ports: Vec<String> = self.denied_ports.iter().map(u16::to_string).collect();
+        match ports.is_empty() {
+            true => format!("podssh relay serve: {targets}"),
+            false => format!("podssh relay serve: {targets}, port {} refused", ports.join(", ")),
+        }
+    }
+}
+
 impl Default for Policy {
     fn default() -> Self {
         Policy { private: false, ranges: Vec::new(), denied_ports: vec![25], ipv6: Ipv6Out::default() }
@@ -236,6 +253,16 @@ mod ranges_tests;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The note of `/relays.json` says what the role dials (T-818).
+    #[test]
+    fn the_note_says_what_the_role_dials() {
+        assert_eq!(Policy::default().note(), "podssh relay serve: public TCP targets, port 25 refused");
+        let private = Policy { private: true, ..Policy::default() };
+        assert!(private.note().contains("private addresses too"), "{}", private.note());
+        let routed = Policy { ranges: vec![Range::parse("10.0.0.0/8").unwrap()], ..Policy::default() };
+        assert!(routed.note().contains("1 range(s) of --routes"), "{}", routed.note());
+    }
 
     fn ip(text: &str) -> IpAddr {
         text.parse().unwrap()

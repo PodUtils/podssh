@@ -292,12 +292,12 @@ Read: clap 4.6.7 (`Cargo.lock`) reports a missing value as
 `InvalidArg` set to the flag's display, `--port <PORT>` (its `empty_value` and
 `verify_num_args`, read in the local cargo registry). podssh sends this kind to
 the `_` arm (`crates/podssh-cli/src/clap_error.rs` lines 70-77 at `3cd368b`). The token is
-flag-shaped (`crates/podssh-cli/src/clap_error.rs:111-113`), so the arm calls
+flag-shaped (`crates/podssh-cli/src/clap_error.rs:125-127`), so the arm calls
 `unknown_flag` (`crates/podssh-cli/src/refuse.rs:28-44`).
 
 ## Approach
 
-1. In `rebuild_error` (`crates/podssh-cli/src/clap_error.rs:33-90`), before
+1. In `rebuild_error` (`crates/podssh-cli/src/clap_error.rs:33-104`), before
    the `_` arm, read `InvalidValue` with an empty value as a missing value.
 2. Find the row: take the long name between `--` and the first space of
    `InvalidArg`, and look it up in the verb's rows (`crate::flags::verb_for`).
@@ -693,8 +693,8 @@ Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:381-455`
 group. Four places render it: `top_level_help`
 (`crates/podssh-cli/src/help.rs`, lines 132-146), the start of the manual
 (`crates/podssh-cli/src/man/model.rs`, lines 120-126), `unknown_verb`
-(`crates/podssh-cli/src/refuse.rs:120-124`) and `no_arguments`
-(`crates/podssh-cli/src/refuse.rs:147-158`).
+(`crates/podssh-cli/src/refuse.rs:136-140`) and `no_arguments`
+(`crates/podssh-cli/src/refuse.rs:163-174`).
 
 ## Approach
 
@@ -707,7 +707,7 @@ group. Four places render it: `top_level_help`
    the availability note of each line (`crates/podssh-cli/src/help.rs:192-199`).
 3. Keep the two refusal lists flat, or raise their limit with a reason:
    `a_refusal_is_a_line_not_a_usage_dump` allows 18 lines
-   (`crates/podssh-cli/src/refuse.rs:235-236`), and the list for
+   (`crates/podssh-cli/src/refuse.rs:251-252`), and the list for
    `example.org` has 17.
 4. Update `scripts/interop-man.sh` (lines 35-36 at `3a78cff`) in the same commit. It reads the
    `SUBCOMMANDS:` block up to the first blank line, and takes the first word
@@ -3708,7 +3708,7 @@ still sets it starts, looks healthy, and does not do what its owner believes.
 
 Read at `2042200`:
 
-- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:51` says
+- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:67` says
   "pub fn refused(verb: &str, given: &str, instead: &str, reason: &str) -> String {".
 - A service's file of variables takes each `PODSSH_` name but the secrets:
   `crates/podssh-cli/src/node_install/env.rs:45` says "name.starts_with(OWN) && !SECRET.contains(&name)",

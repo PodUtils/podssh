@@ -395,7 +395,7 @@ at `crates/podssh-cli/src/ssh/resolve.rs:136-147` and, for a hop of `-J`,
 `crates/podssh-cli/src/ssh/options.rs:202-214`, a forward once at
 `crates/podssh-cli/src/ssh/local_spec.rs:73-81` and
 `crates/podssh-cli/src/ssh/forward.rs:37-42`; the note of `-P` at
-`crates/podssh-cli/src/refuse.rs:83-99`.
+`crates/podssh-cli/src/refuse.rs:99-115`.
 - `cargo test -p podssh-cli --test ssh_config_match`: 4 passed. 32 cases,
   each a file and the words of `ssh -G`, give the lines that OpenSSH 10.3p1
   printed for them: each criterion with and without `!`, lists, case,

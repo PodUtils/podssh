@@ -4227,9 +4227,9 @@ whole of it to each holder of a token.
 Read at `2042200`:
 
 - `crates/podssh-relay/src/serve/policy.rs:19-20` holds the choice in one `bool`, `private`;
-  `crates/podssh-relay/src/serve/policy.rs:142` says "if self.private {" and returns each address
-  unchecked; else `:94` refuses the first address that is not public.
-- `crates/podssh-relay/src/serve/policy.rs:107-109` hands a name to the host's proxy unresolved only with
+  `crates/podssh-relay/src/serve/policy.rs:159` says "if self.private {" and returns each address
+  unchecked; else `:111` refuses the first address that is not public.
+- `crates/podssh-relay/src/serve/policy.rs:124-126` hands a name to the host's proxy unresolved only with
   `private`, so a role without `--allow-private` checks each address that it dials.
 - The flag: `crates/podssh-cli/src/flags/relay.rs:69` (the row `allow-private`),
   `crates/podssh-cli/src/relay_serve.rs:175` says "private: s.allow_private", and the role behind a
@@ -4264,7 +4264,7 @@ Read at `2042200`:
 2026-11-04 (the drafting agent of the triage). One word for one idea: the role's ranges are named
 `--routes`, as an exit's, and take ranges and single addresses, not names. Lost: the issue's
 `--allow-target` with names, as a name admits what the resolver says at the dial, and the check of each
-address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:138-143`);
+address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:155-160`);
 a second word for the exit's idea. A prefix with host bits is refused, as `ip route` refuses one,
 also for the exit, whose silent widening is the same fault.
 
@@ -4648,7 +4648,7 @@ Read at `2042200`:
 - The node's check of a standard sshd peeks for the version line in the same way
   (`PodUtils/podssh:crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:32`); the word is the node's
   (`crates/podssh-cli/src/flags/node.rs:134`).
-- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:140-143`), so an
+- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:157-160`), so an
   sshd of this host is no target of `/connect/`.
 - `TODO/serve.md:2284-2285` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
@@ -4739,8 +4739,8 @@ listener given no sshd, and OpenSSH's login through the role's port fails.
 `2042200` as at this draft. The role's 30 s for a request's head is `HEAD_WAIT`:
 `crates/podssh-relay/src/serve/mod.rs:85` says "const HEAD_WAIT". The policy refuses the loopback
 as an address that is not public:
-`crates/podssh-relay/src/serve/policy.rs:145` says "self.unlisted(&wanted)", and
-`crates/podssh-relay/src/serve/policy.rs:194` says "ip.is_loopback()". What the Premise says of them
+`crates/podssh-relay/src/serve/policy.rs:162` says "self.unlisted(&wanted)", and
+`crates/podssh-relay/src/serve/policy.rs:211` says "ip.is_loopback()". What the Premise says of them
 holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
 
 ## Done

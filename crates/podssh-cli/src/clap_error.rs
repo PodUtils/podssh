@@ -65,8 +65,22 @@ pub fn rebuild_error(verb: &str, e: &clap::Error) -> Parsed {
             if !flag_shaped(&given) {
                 return Parsed::Usage(crate::refuse::bad_invocation(verb, e.kind(), &given));
             }
+            if given.parse::<f64>().is_ok() {
+                return Parsed::Usage(crate::refuse::negative_value(verb, &given));
+            }
             let suggestion = string_ctx_opt(e, ContextKind::SuggestedArg);
-            Parsed::Usage(crate::refuse::unknown_flag(&given, suggestion.as_deref()))
+            Parsed::Usage(crate::refuse::unknown_flag(verb, &given, suggestion.as_deref()))
+        }
+        // A flag of one value given twice: clap names it with its value's
+        // name (`--mint <WHO>`), which is no unknown flag (T-818).
+        ErrorKind::ArgumentConflict => {
+            let given = string_ctx(e, ContextKind::InvalidArg);
+            let flag = given.split(' ').next().unwrap_or(&given).to_string();
+            let other = string_ctx(e, ContextKind::PriorArg);
+            match flag_shaped(&flag) && (other.is_empty() || other.split(' ').next() == Some(flag.as_str())) {
+                true => Parsed::Usage(crate::refuse::given_twice(verb, &flag)),
+                false => unknown(verb, e, &given),
+            }
         }
         // A known flag with no value: an invalid value that is empty, with
         // `InvalidArg` as `--long <VALUE>`, also when `-p` was typed (measured
@@ -96,7 +110,7 @@ fn unknown(verb: &str, e: &clap::Error, given: &str) -> Parsed {
         return Parsed::Usage(crate::refuse::bad_invocation(verb, e.kind(), given));
     }
     let suggestion = string_ctx_opt(e, ContextKind::SuggestedArg);
-    Parsed::Usage(crate::refuse::unknown_flag(given, suggestion.as_deref()))
+    Parsed::Usage(crate::refuse::unknown_flag(verb, given, suggestion.as_deref()))
 }
 
 /// **Whether a token was written as a flag.**

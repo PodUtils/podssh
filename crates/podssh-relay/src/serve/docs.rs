@@ -60,7 +60,7 @@ pub fn relays(cfg: &Config, head: &Request) -> Value {
         "you": { "edge_colo": null, "bucket": null },
         "target": target,
         "connect": connect,
-        "policy": { "note": "podssh relay serve: public TCP targets, port 25 refused" },
+        "policy": { "note": cfg.policy.note() },
         // Whether this host routes IPv6 out, as its role knows it (T-253).
         "egress": cfg.policy.ipv6.doc(&cfg.egress),
         // A pair whose connect token takes one upgrade, `POST /v1/pair?once=1`

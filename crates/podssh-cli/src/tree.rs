@@ -165,7 +165,7 @@ where
     // A leading `-` at the top level names no verb and has no verb to name
     // a flag against, so it is reported with no guess rather than a wrong one.
     if first.starts_with('-') {
-        return Parsed::Usage(crate::refuse::unknown_flag(&first, None));
+        return Parsed::Usage(crate::refuse::unknown_flag("", &first, None));
     }
 
     let Some(verb) = crate::flags::verb_for(&first) else {
