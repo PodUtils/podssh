@@ -3269,7 +3269,7 @@ target that refuses, its 502 and its line). Planted, the end's line left out: ca
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3295,6 +3295,23 @@ cargo test -p podssh-cli --test error_lines
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. podssh's three cases, each one line now, in one table of `crates/podssh-cli/tests/error_lines.rs` and a test
+each for the two that need the relay role:
+- `pipe - tcp:HOST:PORT` that cannot connect: the dial's own words name the target, so `pipe/remote.rs`'s
+  `tcp_failure` adds no prefix that names it again (`each_failure_with_no_relay_is_one_line_with_its_code`, a table of
+  `pipe`, `config import ansible` and `update` under `PODSSH_OFFLINE`; planted, the prefix again: caught).
+- `ssh node://` to a node that is not online: `ssh/node.rs` takes the SSH client's lines (`run_outcome`) and leaves out
+  its words of the closed connection where the leg says the cause (`layer_told::lines`) (`a_node_that_is_not_online_is_
+  one_line`; planted, both lines: caught).
+- A relay that the user named, down while its offer is kept: the first link that cannot connect to the one host named
+  ends the run with its cause (`relay_layer::dead_alone`), on `ssh` and `proxy`, instead of a line that the session
+  goes on, a wait, and the contract's road's same failure (`a_named_relay_that_is_down_is_one_line`, Unix; planted,
+  the contract's road tried: three lines, caught).
+pod-relay's own doubled lines (a 403 of the policy, a 502) are COORD-112 (#309): fixed on podcrates' `main` (its
+entry 869), taken with its next tag. `--lib` 1251 passed; `--test error_lines` 5 and the layer's road's tests passed.
 
 # T-818: The black-box pass's small findings: the manual and the messages
 

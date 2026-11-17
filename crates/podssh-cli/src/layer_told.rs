@@ -58,7 +58,7 @@ const CLOSED: &[&str] = &["the connection closed unexpectedly", "broken pipe", "
 
 /// The lines of a failed run, less the SSH client's own words of a closed
 /// connection when a road of the layer said the cause already.
-fn lines(lines: Vec<String>, said: bool) -> Vec<String> {
+pub(crate) fn lines(lines: Vec<String>, said: bool) -> Vec<String> {
     let echo = |line: &String| {
         let words = line.rsplit_once(": ").map_or(line.as_str(), |(_, words)| words).to_ascii_lowercase();
         CLOSED.iter().any(|closed| words.starts_with(closed))

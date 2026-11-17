@@ -330,10 +330,11 @@ pub(super) async fn run_on(
     // keeps nothing of; Ctrl-C stays the remote command's (T-586).
     crate::hangup::take(crate::hangup::Which::Ends);
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
-    let (code, carried) = tokio::join!(
-        podssh_ssh::run(ssh_end, opts, None, log.clone()),
+    let (outcome, carried) = tokio::join!(
+        podssh_ssh::run::run_outcome(ssh_end, opts, None, log.clone()),
         carry_keeping(config, link_end, leg, layer_end, expires_ms, &say, channel, pin_say, shell)
     );
+    let code = outcome.code;
     // A refused key, or a changed node key, is the session's end whatever
     // the SSH client saw after it.
     if let Some((fault, why)) = &carried.channel {
@@ -341,11 +342,14 @@ pub(super) async fn run_on(
         super::result::channel_failed(fault);
         return EXIT_FAILURE;
     }
-    if code == EXIT_FAILURE {
-        let why = carried.why.or_else(|| carried.leg.as_ref().and_then(explain));
-        if let Some(why) = why {
-            log.error(&format!("{shown}: {why}"));
-        }
+    let why = carried.why.or_else(|| carried.leg.as_ref().and_then(explain)).filter(|_| code == EXIT_FAILURE);
+    // The leg's cause once: the SSH client's own words of the closed
+    // connection that it made are no second line (T-817).
+    for line in crate::layer_told::lines(outcome.lines, why.is_some()) {
+        log.error(&line);
+    }
+    if let Some(why) = why {
+        log.error(&format!("{shown}: {why}"));
     }
     code
 }

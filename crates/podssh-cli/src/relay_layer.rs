@@ -234,7 +234,7 @@ pub async fn run(relays: &RelayList, trust: &Trust, (host, port): (&str, u16), e
                 say(err, &line);
                 return None;
             }
-            return refused(&missed, &dialer, &at, err);
+            return refused(relays, &missed, &dialer, &at, err);
         }
     };
     crate::session_log::opened(Some(&dialer.relay().host));
@@ -366,12 +366,28 @@ fn say(err: &mut dyn Write, note: &str) {
     let _ = writeln!(err, "podssh: {note}");
 }
 
+/// Whether the first link could not connect at all to the one relay host
+/// that the user named (T-817): the contract's road would only fail the same
+/// way, after a wait, and its line would say the cause a second time.
+pub(crate) fn dead_alone(relays: &RelayList, missed: &Missed) -> bool {
+    use podssh_relay::open::OpenError;
+    use podssh_relay::token::TokenError;
+    use podssh_ws::{ConnectError, DialError};
+    let unconnected = |e: &ConnectError| matches!(e, ConnectError::Dial(DialError::Connect { .. }));
+    let one = relays.explicit && relays.hosts.len() == 1;
+    let dead = match missed.failure().map(|f| f.last()) {
+        Some(OpenError::Token(TokenError::Connect(e))) | Some(OpenError::Connect { error: e, .. }) => unconnected(e),
+        _ => false,
+    };
+    one && dead
+}
+
 /// A first link that did not open: a refusal that the contract's road would
 /// get again ends the run with its lines and code; another failure leaves
 /// the session to the contract's road, which may try another host.
-fn refused(missed: &Missed, dialer: &Dialer, at: &str, err: &mut dyn Write) -> Option<i32> {
+fn refused(relays: &RelayList, missed: &Missed, dialer: &Dialer, at: &str, err: &mut dyn Write) -> Option<i32> {
     let lines = missed.lines(dialer.target());
-    if missed.is_final() && !way_refused(missed) {
+    if (missed.is_final() || dead_alone(relays, missed)) && !way_refused(missed) {
         for line in &lines {
             let _ = writeln!(err, "podssh: {line}");
         }
