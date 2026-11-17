@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**774 entries: 31 open, 37 partial, 11 blocked, 695 done.**
+**774 entries: 30 open, 37 partial, 11 blocked, 696 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 1 | 22 | 2 | 295 | 320 |
+| P2 | 0 | 22 | 2 | 296 | 320 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 31 | 37 | 11 | 695 | 774 |
+| **All** | 30 | 37 | 11 | 696 | 774 |
 
 ## Entries
 
@@ -842,7 +842,7 @@ repository and CI).
 | [T-809](repo.md) | P2 | M | M10 | chore | partial | What the release gate proves, and the gaps that podnet's QA round found: examples, error paths, a black-box pass |
 | [T-810](robustness.md) | P1 | S | M10 | defect | done | `PODSSH_OFFLINE` does not stop `podssh update --check` |
 | [T-811](robustness.md) | P1 | M | M10 | defect | done | `podssh each` on the layer's road: concurrent sessions of one process fail but one |
-| [T-812](robustness.md) | P2 | S | M10 | defect | open | With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run |
+| [T-812](robustness.md) | P2 | S | M10 | defect | done | With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run |
 | [T-813](robustness.md) | P2 | S | M10 | defect | done | `health --preflight` says `direct` of a session that went through the relay |
 | [T-814](robustness.md) | P2 | S | M10 | defect | done | The hint of an idle cut names 180 s where the relay published another limit |
 | [T-815](robustness.md) | P2 | S | M10 | defect | done | `config import ansible` takes a port that is no number and writes it |

@@ -3048,7 +3048,7 @@ http_road_layer_cli --test error_lines --test h2_each_cli --test each` and `--li
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3074,6 +3074,24 @@ cargo test -p podssh-cli --test relay_offer_read
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Correction
+
+2026-11-17. The read is made as the manual says: a fresh cache reads the named host's `/relays.json` once, keeps its
+offer, and `proxy` takes the layer and ends at once on a closed stdin (measured here, 0.15 s). What the pass saw was a
+kept offer of "no layer": a read that failed (the pass's relay was down after its host restarted) was kept as no
+offer for a day, by design, so that a relay that hangs costs its wait once a day; the cache's places include a
+directory of the temporary tree that each home of the uid reads (`/tmp/podssh-UID`), so a fresh home took it too.
+
+## Done
+
+2026-11-17. `crates/podssh-cli/src/relay_layer.rs`: `keep_read` keeps an offer that was read, and a read that waited out
+its limit as no offer, as before; a read that failed at once (a refused connection, a relay down) is not kept, so the
+next run reads again, at no cost. `cargo test -p podssh-cli --test relay_offer_read`: 1 passed (a dead relay keeps no
+offer; then a fresh run through podssh's relay role, the variable unset, takes the layer and ends at once on a closed
+stdin); `--lib relay_layer` 7 passed; `--test relay_serve --test http_road_layer_cli` passed. Planted, each failed read
+kept: caught. The places of the cache (a temporary directory shared by each home of a uid) stay as designed (T-593),
+for a sandbox whose home may not be written.
 
 # T-813: `health --preflight` says `direct` of a session that went through the relay
 

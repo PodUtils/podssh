@@ -130,10 +130,9 @@ pub(crate) async fn chosen(
     let read = match kept {
         Some(offered) => Ok(offered),
         None if loud => {
+            let started = std::time::Instant::now();
             let read = offer::ask(&asked, trust, &ProxyChoice::FromEnvironment, OFFER_WAIT).await;
-            // A read that failed is kept as no offer, so that a host whose
-            // document hangs costs the wait once a day, not at each run.
-            kept::keep_now(&asked, read.as_ref().unwrap_or(&offer::Offer::default()));
+            keep_read(&asked, &read, started.elapsed() >= OFFER_WAIT);
             read
         }
         None if relays.explicit => unasked(&asked, trust).await,
@@ -162,16 +161,28 @@ pub(crate) async fn chosen(
 /// The read of the offer of `relay`, a host that the user named, where the
 /// user did not ask for the layer: [`UNASKED_WAIT`] in all, its connection
 /// closed before the session's opens, never beside it. What it found is
-/// kept for a day; a read that failed or passed the wait as no offer, so
+/// kept for a day, and so is a read that passed the wait, as no offer, so
 /// that a silent first host costs the wait once a day, not at each run.
 async fn unasked(relay: &Relay, trust: &Trust) -> Result<offer::Offer, String> {
     let asking = offer::ask(relay, trust, &ProxyChoice::FromEnvironment, UNASKED_WAIT);
-    let read = match tokio::time::timeout(UNASKED_WAIT, asking).await {
-        Ok(read) => read,
-        Err(_) => Err(format!("/relays.json took more than {} s", UNASKED_WAIT.as_secs())),
+    let (read, waited) = match tokio::time::timeout(UNASKED_WAIT, asking).await {
+        Ok(read) => (read, false),
+        Err(_) => (Err(format!("/relays.json took more than {} s", UNASKED_WAIT.as_secs())), true),
     };
-    kept::keep_now(relay, read.as_ref().unwrap_or(&offer::Offer::default()));
+    keep_read(relay, &read, waited);
     read
+}
+
+/// Keep what a read of `relay`'s offer found, for a day. A read that failed
+/// at once (a relay down, a refused connection, T-812) is not kept: the next
+/// run reads again at no cost, where keeping it as no offer turned the layer
+/// off for a day. One that `waited` out its limit is kept as no offer.
+fn keep_read(relay: &Relay, read: &Result<offer::Offer, String>, waited: bool) {
+    match read {
+        Ok(offered) => kept::keep_now(relay, offered),
+        Err(_) if waited => kept::keep_now(relay, &offer::Offer::default()),
+        Err(_) => {}
+    }
 }
 
 /// `settings` for a session whose first host is that of `relays`: with no
