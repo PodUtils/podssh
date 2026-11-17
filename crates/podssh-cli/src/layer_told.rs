@@ -52,10 +52,17 @@ fn ended_words(outcome: Outcome) -> Option<String> {
     }
 }
 
+/// The SSH client's words of a connection that the far end closed, as each
+/// system says them: an end of the stream, a broken pipe (macOS), a reset.
+const CLOSED: &[&str] = &["the connection closed unexpectedly", "broken pipe", "connection reset by peer"];
+
 /// The lines of a failed run, less the SSH client's own words of a closed
 /// connection when a road of the layer said the cause already.
 fn lines(lines: Vec<String>, said: bool) -> Vec<String> {
-    let echo = |line: &String| line.ends_with(": the connection closed unexpectedly");
+    let echo = |line: &String| {
+        let words = line.rsplit_once(": ").map_or(line.as_str(), |(_, words)| words).to_ascii_lowercase();
+        CLOSED.iter().any(|closed| words.starts_with(closed))
+    };
     if said && !lines.is_empty() && lines.iter().all(echo) {
         return Vec::new();
     }
@@ -78,6 +85,8 @@ mod tests {
         let closed = vec!["127.0.0.1:2299: the connection closed unexpectedly".to_string()];
         assert!(lines(closed.clone(), true).is_empty());
         assert_eq!(lines(closed.clone(), false), closed, "no cause said: the client's line stays");
+        let piped = vec!["127.0.0.1:53370: broken pipe".to_string()];
+        assert!(lines(piped, true).is_empty(), "macOS's words of the same end");
         let other = vec!["127.0.0.1:2299: the server did not answer with an SSH version line".to_string()];
         assert_eq!(lines(other.clone(), true), other, "another cause stays");
     }

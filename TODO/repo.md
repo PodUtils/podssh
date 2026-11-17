@@ -7460,3 +7460,10 @@ Measured first on this host's loopback with the role and an sshd, before the row
 Found, and asked of podcrates: `pod_relay::open::OpenError::lines` says a refusal of the policy (403) and a 502 twice
 (COORD-112, #309). The row of a name with no answer fails until that tag is taken; the lane runs whole here
 otherwise (the four success rows, then the dead relay, the refused connect and the unreachable target).
+
+2026-11-17, the gate at `5d6efd0` (run 44103950557): on macOS the SSH client's echo of the closed connection is "broken
+pipe", not "the connection closed unexpectedly", so `error_lines` saw two lines there; `layer_told` takes each system's
+words of a closed connection now (an end of the stream, a broken pipe, a reset), with a unit test of macOS's line. And
+`the_socket_of_a_unix_route_under_a_home_is_let_through_read_only` (T-714) ran on Windows, where a unit's home path
+holds `\`: it is Unix's alone now, as the other tests of a system unit are. `checks` failed on citations of
+`layered.rs` that a later edit of the same commit moved by one line (repaired with `cargo todo remap --base HEAD~1`).

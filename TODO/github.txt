@@ -128,7 +128,7 @@
 120 pull closed
 121 issue closed
 122 pull closed
-123 pull open
+123 pull closed
 124 issue closed
 125 issue deleted
 126 issue closed

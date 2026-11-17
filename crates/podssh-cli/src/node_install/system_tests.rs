@@ -192,6 +192,7 @@ fn the_directories_of_the_flags_files_are_let_through() {
 }
 
 #[test]
+#[cfg(unix)]
 fn the_socket_of_a_unix_route_under_a_home_is_let_through_read_only() {
     let hidden = node(&["api=unix-connect:/home/alice/run/api.sock", "db=unix-connect:/run/db.sock"]);
     let text = unit(&hidden, &alice()).expect("a unit");

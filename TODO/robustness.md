@@ -2235,7 +2235,7 @@ the channel failed: An existing connection was forcibly closed by the remote hos
   podssh took `pod-relay` of PodUtils/podcrates at v0.27.0, that crate's `reverse::operator`) writes a frame's
   bytes to the local side only while not `draining`; `end_of_input` (lines 326 to 336 there) sets `draining`
   once the input ends when `node_ends` is set,
-  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:412`).
+  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:411`).
 
 ## Approach
 
@@ -2617,6 +2617,11 @@ window, the link's writer, the records sent again, or a target that sent nothing
 offsets sent and acknowledged, the bytes kept, the room and the window; and `session.resume` ends with the room and the
 window. m6's test keeps the node's lines (`-v`), so the next hang names its wait. Next: at the next failure of `gate
 (m6)`, read the node's `session.stall` and write it on #283.
+
+2026-11-17, here at podcrates `v0.69.0`: `cargo test -p podssh-cli --test m6_exit -- --ignored --test-threads 1` passed
+8 runs in 8 (2 at `6a1a9eb`, 6 at `5d6efd0`; about 370 s each, 7 passed each). Still waits: the gate's next failure of
+`gate (m6)`, whose node's `session.stall` lines name the wait (COORD-091, #283).
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
