@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**773 entries: 32 open, 37 partial, 11 blocked, 693 done.**
+**774 entries: 32 open, 37 partial, 11 blocked, 694 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 2 | 22 | 2 | 293 | 319 |
+| P2 | 2 | 22 | 2 | 294 | 320 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 32 | 37 | 11 | 693 | 773 |
+| **All** | 32 | 37 | 11 | 694 | 774 |
 
 ## Entries
 
@@ -849,3 +849,4 @@ repository and CI).
 | [T-816](robustness.md) | P3 | S | M10 | defect | open | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
 | [T-817](robustness.md) | P3 | M | M10 | defect | open | More causes said twice, beside COORD-112 |
 | [T-818](robustness.md) | P3 | M | M10 | defect | open | The black-box pass's small findings: the manual and the messages |
+| [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |

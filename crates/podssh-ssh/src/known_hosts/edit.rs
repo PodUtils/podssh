@@ -278,7 +278,8 @@ pub fn rewrite<T>(
     }
     write_new(&old, &raw, create)?;
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    let new = path.with_file_name(format!(".{name}.podssh-new-{}", std::process::id()));
+    // A nonce beside the pid, which repeats in each PID namespace.
+    let new = path.with_file_name(format!(".{name}.podssh-new-{}-{:08x}", std::process::id(), rand::random::<u32>()));
     write_new(&new, &text, create)?;
     if let Err(e) = std::fs::rename(&new, &path) {
         let _ = std::fs::remove_file(&new);

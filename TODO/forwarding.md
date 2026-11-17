@@ -430,7 +430,7 @@ swap of the cookie in `crates/podssh-ssh/src/x11.rs:1-339`; the session asks
 (`crates/podssh-ssh/src/session.rs:116-118`) and the handler joins an `x11`
 channel when the destination's run asked
 (`crates/podssh-ssh/src/handler.rs:304-317`). The plan and the probe of the
-command line in `crates/podssh-cli/src/ssh/x11.rs:1-153`, the flags at
+command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
 `crates/podssh-cli/src/flags.rs:288-291`, and the keywords, honoured now, at
 `crates/podssh-cli/src/ssh/keywords.rs:49-51` and
 `crates/podssh-cli/src/ssh/keywords.rs:96`.

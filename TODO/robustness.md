@@ -3292,3 +3292,50 @@ cargo test -p podssh-cli --lib man::
 ```
 
 The test fails on the code before the fix and passes after it.
+
+# T-819: podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges
+
+**Source:** PodUtils/podvm#567 (COORD-180 of podvm, 2026-11-17, to all): its lesson 5 (a pid is no unique name where a
+process runs in a PID namespace) asked of each project, and its lesson 3 (fail safe at the edges).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A file or directory named by the pid alone can be another process's in another PID namespace with the same `/tmp` or
+home; a number that overflows or an argument that is not UTF-8 can panic a parser.
+
+## Premise
+
+- `crates/podssh-cli/src/ssh/x11.rs:125`: `podssh-x11-PID` in the temporary directory, made with `private_dir`, which
+  takes a directory that exists, and removed at the end of the run.
+- `crates/podssh-cli/src/keygen_cert.rs:140`, `crates/podssh-cli/src/keygen_change.rs:152` and
+  `crates/podssh-ssh/src/known_hosts/edit.rs:281`: `.NAME.podssh-new-PID` beside a key or `known_hosts`, made with
+  `create_new`.
+
+## Approach
+
+A nonce beside each pid; measure the edges (an argument that is not UTF-8, a number that overflows) and repair a panic.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib
+cargo test -p podssh-cli --test keygen --test keygen_cert --test keygen_known_hosts
+cargo test -p podssh-ssh --lib known_hosts
+```
+
+## Done
+
+2026-11-17. The x11 directory, the new file of `keygen` (a certificate, a changed passphrase) and that of a
+`known_hosts` edit take a random nonce beside the pid: two runs never share the x11 directory, which each removes; the
+`create_new` of the others failed safe before, and fails no run now. The agent's directory (`agent/serve.rs`) is made
+new or refused (`private_dir` of its own), as OpenSSH's is, and kept its name. The edges, measured with the binary:
+a verb or a host that is not UTF-8, `-p 99999999999999999999`, `-o ConnectTimeout=` of 23 digits, `cp --timeout` of 20
+digits and `relay serve --idle` of 20 digits each end with 64 and one refusal, no panic. `--lib` 1251 passed; the
+keygen tests 20 passed; `podssh-ssh --lib known_hosts` 9 passed. A host that is not UTF-8 gets the vague "that command
+line cannot be used" (T-818's kind of finding).

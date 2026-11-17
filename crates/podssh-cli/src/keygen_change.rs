@@ -146,10 +146,11 @@ fn replace(path: &Path, text: &str, original: &PublicKey, passphrase: &str) -> R
     })
 }
 
-/// The new file beside `path`: `.NAME.podssh-new-PID`.
+/// The new file beside `path`: `.NAME.podssh-new-PID-NONCE`, as a pid
+/// repeats in each PID namespace.
 fn beside(path: &Path) -> PathBuf {
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    path.with_file_name(format!(".{name}.podssh-new-{}", std::process::id()))
+    path.with_file_name(format!(".{name}.podssh-new-{}-{:08x}", std::process::id(), rand::random::<u32>()))
 }
 
 /// Whether the file at `new` holds the key of `original`, opened with

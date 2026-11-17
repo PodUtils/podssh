@@ -1241,7 +1241,7 @@ Plant: drop the comment lines in the rewrite; the byte test fails.
 ## Done
 
 2026-10-11. `find`, `remove`, `hash` and `rewrite` in
-`crates/podssh-ssh/src/known_hosts/edit.rs:89-288`, on the bytes of the file;
+`crates/podssh-ssh/src/known_hosts/edit.rs:89-289`, on the bytes of the file;
 `append` opens the file again when a rewrite took its place
 (`crates/podssh-ssh/src/known_hosts.rs:342-410`); the flags at
 `crates/podssh-cli/src/flags/keygen.rs:35-40`, and the command in
@@ -1489,7 +1489,7 @@ the `sshd` login check fails.
 
 2026-10-11. Certificates in `crates/podssh-ssh/src/cert.rs:1-424`, signed by an RSA CA through
 `Detached` (`crates/podssh-ssh/src/rsa_key.rs:106-134`); the command in
-`crates/podssh-cli/src/keygen_cert.rs:1-199`, its new flags at
+`crates/podssh-cli/src/keygen_cert.rs:1-200`, its new flags at
 `crates/podssh-cli/src/flags/keygen.rs:53-60` and `:67-68`.
 - `cargo test -p podssh-ssh --lib -- cert::`: 5 passed: `-L` of a certificate of OpenSSH's prints
   the lines that OpenSSH printed for it (each kind of option among them); `-V`, `-z` and `-O` as
