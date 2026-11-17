@@ -194,7 +194,8 @@ impl<S: AgentStream + Unpin> AgentClient<S> {
         }
 
         key.key_data().encode(&mut self.buf)?;
-        "".encode(&mut self.buf)?; // comment field
+        // The key's own comment, as ssh-add sends it (podssh's patch, T-818).
+        key.comment().encode(&mut self.buf)?;
 
         if !constraints.is_empty() {
             for cons in constraints {

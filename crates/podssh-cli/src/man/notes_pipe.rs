@@ -6,7 +6,7 @@ pub const PIPE: &[&str] = &[
     "podssh pipe A B joins two byte streams, as socat does, with no listener unless one side asks for one: what A \
      gives goes to B, and what B gives goes to A. Each address is KIND:REST: - or stdio (stdin and stdout), fd:N (a \
      descriptor that podssh inherited, 3 or more, on Unix), or exec:CMD (a program). relay:HOST:PORT is TCP through \
-     the relay, as podssh proxy carries it. tcp:HOST:PORT is TCP from this host, through HTTPS_PROXY when it is set. \
+     the relay on the contract's road, with no half-close (see below). tcp:HOST:PORT is TCP from this host, through HTTPS_PROXY when it is set. \
      ssh:[USER@]HOP[,HOP...],HOST:PORT is TCP that the last SSH hop opens, as -W asks. node:NAME is the TARGET of the \
      node of a pair, and udp:node:NAME is UDP through a node; see below. The others are iroh:TICKET (the TARGET of a \
      node of the iroh road), unix-connect:PATH (a local socket; @NAME in Linux's abstract namespace; on Windows a Unix \

@@ -3372,8 +3372,12 @@ Partial, 2026-11-17. Done:
   passed.
 Asked of podcrates (COORD-116, #313): a relay that mints for none to name `PODSSH_RELAY_TOKEN` (`pod-relay`'s
 `token.rs`), and one line, not 1032 characters, where each resolver of DNS over HTTPS failed alike (`pod-dns`'s
-`order.rs`). Waits: the two places of the manual on `pipe relay:`'s half-close; `agent list`'s comment of a key;
-`agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said.
+`order.rs`). - The manual on `pipe relay:`: "TCP through the relay on the contract's road, with no half-close", as its later note
+  says (it said "as podssh proxy carries it", and `proxy` half-closes on the layer's road).
+- `agent list` and `ssh-add -l` show each key's comment: russh's agent kept none (its server decoded the comment and
+  dropped it, its client sent none); `vendor/patches/russh/0012-agent-comment.patch` keeps it both ways. `--test
+  agent_cli` 7 passed, its listing now with the key's comment; `ssh-add -l` of OpenSSH shows it too.
+Waits: `agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said.
 
 # T-819: podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges
 

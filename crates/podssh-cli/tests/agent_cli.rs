@@ -118,7 +118,8 @@ fn agent_serves_and_podssh_ssh_logs_in_with_its_key() {
     let listed = ran(podssh(&home, Some(&sock), &["agent", "list"]));
     let out = String::from_utf8_lossy(&listed.stdout);
     assert_eq!(listed.status.code(), Some(0), "{out}");
-    // russh's agent keeps no comment: the fingerprint and the type.
+    // The fingerprint, the key's comment (kept since T-818's patch of
+    // russh's agent) and the type.
     let fingerprint = String::from_utf8_lossy(
         &ran({
             let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));
@@ -133,6 +134,7 @@ fn agent_serves_and_podssh_ssh_logs_in_with_its_key() {
     .to_string();
     assert!(fingerprint.starts_with("SHA256:"), "{fingerprint}");
     assert!(out.starts_with("256 ") && out.contains(&fingerprint) && out.contains("(ED25519)"), "{out}");
+    assert!(out.contains(&format!("{fingerprint} agent-test (ED25519)")), "the key's comment: {out}");
 
     let login = |sock: Option<&str>| {
         let known = home.join("known_hosts");

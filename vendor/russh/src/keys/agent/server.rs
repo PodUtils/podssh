@@ -146,9 +146,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync 
                 if let Ok(keys) = self.keys.0.read() {
                     msg::IDENTITIES_ANSWER.encode(writebuf)?;
                     (keys.len() as u32).encode(writebuf)?;
-                    for (k, _) in keys.iter() {
+                    // Each key with the comment that it came with (podssh's patch, T-818).
+                    for (k, (key, _, _)) in keys.iter() {
                         k.encode(writebuf)?;
-                        "".encode(writebuf)?;
+                        key.comment().encode(writebuf)?;
                     }
                 } else {
                     msg::FAILURE.encode(writebuf)?
@@ -274,9 +275,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync 
         writebuf: &mut Vec<u8>,
     ) -> Result<bool, Error> {
         let (blob, key_pair) = {
-            let private_key =
-                ssh_key::private::PrivateKey::new(ssh_key::private::KeypairData::decode(r)?, "")?;
-            let _comment = String::decode(r)?;
+            let data = ssh_key::private::KeypairData::decode(r)?;
+            // The comment is kept with the key, as ssh-agent keeps it (podssh's patch, T-818).
+            let comment = String::decode(r)?;
+            let private_key = ssh_key::private::PrivateKey::new(data, comment)?;
 
             (private_key.public_key().key_data().encoded()?, private_key)
         };
