@@ -308,7 +308,7 @@ The relay sends no keepalives on reverse sockets (`docs/reverse.md:39-49`).
 Read: the codecs: `encode_operator_frame` and `chunk_for_bare`
 (crates/podssh-transport/src/framing/legs.rs lines 60-76 at `e8bbd4d`, lines 125-133), and `parse_operator_control`
 (crates/podssh-transport/src/control.rs lines 223-230 at `e8bbd4d`). `podssh proxy` has the pump to follow: stdin and
-stdout, liveness, the close reason (`crates/podssh-cli/src/pipe/relay.rs:118-258`).
+stdout, liveness, the close reason (`crates/podssh-cli/src/pipe/relay.rs:118-259`).
 
 Read in a local copy of podbox at `5bd8cb0`: `run_operator` waits 20 s for `ready`, queues at most
 1 MiB of input before it, sends a Close after the end of input and waits 10 s for the answer, and
@@ -910,7 +910,7 @@ host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 
 1. `podssh operator NAME`: load the operator's part of the pair under NAME (T-078, T-083), and run
    `operator::run` (T-080) on stdin and stdout: a byte pipe as `podssh proxy`
-   (`crates/podssh-cli/src/pipe/relay.rs:118-258`). stdout carries data only; never 0 without `ready`.
+   (`crates/podssh-cli/src/pipe/relay.rs:118-259`). stdout carries data only; never 0 without `ready`.
 2. `podssh ssh node://[user@]NAME`: `parse_hop` reads `node://` as it reads `ssh://`; add
    `Transport::Node` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-72`).
 3. For a node, `connect_and_run` opens the operator leg and waits for `ready` (T-080), then gives

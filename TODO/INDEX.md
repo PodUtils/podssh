@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**774 entries: 32 open, 37 partial, 11 blocked, 694 done.**
+**774 entries: 31 open, 37 partial, 11 blocked, 695 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 2 | 22 | 2 | 294 | 320 |
+| P2 | 1 | 22 | 2 | 295 | 320 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 32 | 37 | 11 | 694 | 774 |
+| **All** | 31 | 37 | 11 | 695 | 774 |
 
 ## Entries
 
@@ -844,7 +844,7 @@ repository and CI).
 | [T-811](robustness.md) | P1 | M | M10 | defect | done | `podssh each` on the layer's road: concurrent sessions of one process fail but one |
 | [T-812](robustness.md) | P2 | S | M10 | defect | open | With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run |
 | [T-813](robustness.md) | P2 | S | M10 | defect | done | `health --preflight` says `direct` of a session that went through the relay |
-| [T-814](robustness.md) | P2 | S | M10 | defect | open | The hint of an idle cut names 180 s where the relay published another limit |
+| [T-814](robustness.md) | P2 | S | M10 | defect | done | The hint of an idle cut names 180 s where the relay published another limit |
 | [T-815](robustness.md) | P2 | S | M10 | defect | done | `config import ansible` takes a port that is no number and writes it |
 | [T-816](robustness.md) | P3 | S | M10 | defect | open | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
 | [T-817](robustness.md) | P3 | M | M10 | defect | open | More causes said twice, beside COORD-112 |

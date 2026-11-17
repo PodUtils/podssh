@@ -32,7 +32,7 @@ Read, the parsers that take input from a peer or a file: WebSocket frames
 (`PodUtils/podssh:crates/podssh-ws/src/proxy.rs:82`), `NO_PROXY` and the CONNECT status
 (`crates/podssh-ws/src/dial.rs`, lines 178 and 334 at `22c3b88`); since T-070 (2026-10-11), a
 SOCKS5 proxy's answers (`PodUtils/podssh:crates/podssh-ws/src/socks5.rs:156`); close
-reasons (`crates/podssh-ws/src/close.rs:20`); PEM bundles
+reasons (`crates/podssh-ws/src/close.rs:48`); PEM bundles
 (`PodUtils/podssh:crates/podssh-ws/src/bundle.rs:72`); relay lists and the pool document
 (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:173`, `PodUtils/podssh:crates/podssh-relay/src/pool.rs:153`);
 `known_hosts` lines, in a private function
@@ -3124,7 +3124,7 @@ caught.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3148,6 +3148,18 @@ cargo test -p podssh-cli --test idle_hint
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. The hint of an idle cut was a fixed text of 180 s (`podssh-ws/src/close.rs`). It is the relay's own limit
+now: `podssh_relay::context::tell_idle` gives podssh-ws the idle limit of the relay that the run's sessions use, as
+pod-relay keeps it from that relay's `/relays.json` (`Context::in_use`), before each place that says the hint (`ssh`,
+`proxy` and `pipe`, the HTTP road); "the relay closes a session after 3 s with no traffic; set ServerAliveInterval
+below 3". Where no `/relays.json` of that relay was read, the hint names no number as its own: "after its idle limit
+with no traffic (180 s at podssh's default relay)". `cargo test -p podssh-cli --test idle_hint`: 1 passed (podssh's relay
+role with `--idle 3`, `proxy` on the contract's road: 69, `1001 idle timeout`, no 180 s as its limit); `podssh-ws --lib
+close` 2 passed (3 s where given, the words with no number where not). Planted, the fixed 180 s: caught. Where the
+role's own 3 s is named depends on its `/relays.json` being read for a named host, which T-812 repairs.
 
 # T-815: `config import ansible` takes a port that is no number and writes it
 

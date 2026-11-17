@@ -37,6 +37,12 @@ fn base() -> &'static Context {
     BASE.get_or_init(|| Context::new(podssh_ws::client::way(&ProxyChoice::FromEnvironment), cache()))
 }
 
+/// Tell podssh-ws the idle limit of the relay that this run's sessions use,
+/// as its `/relays.json` gave it, for the words of an idle cut (T-814).
+pub fn tell_idle() {
+    podssh_ws::session::relay_idle_ms(base().in_use().idle_timeout_ms);
+}
+
 /// The context of the process, through the proxy that the environment names.
 pub fn process() -> Context {
     of(&ProxyChoice::FromEnvironment)

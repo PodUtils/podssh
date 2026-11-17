@@ -248,8 +248,9 @@ fn verdict(end: Option<End>, target: &str) -> Verdict {
 /// code and reason, as the WebSocket road names them, then what may help.
 fn close_lines(code: u16, reason: &str, target: &str) -> Vec<String> {
     let leg = podssh_ws::session::forward_close(Some(code), reason);
+    podssh_relay::context::tell_idle();
     let mut lines = vec![format!("{}: {code} {reason}", leg.what(target, "podssh"))];
-    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(str::to_string));
+    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(|r| r.into_owned()));
     lines
 }
 

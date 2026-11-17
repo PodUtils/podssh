@@ -102,7 +102,7 @@ pub fn failure_lines(message: &str, relay: Option<&RelayEnd>, target: &str) -> V
         Some(RelayEnd::Closed { reason, .. }) => reason.as_str(),
         _ => "",
     };
-    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(str::to_string));
+    lines.extend(podssh_ws::session::Remedy::remedy(leg, reason).map(|r| r.into_owned()));
     lines
 }
 

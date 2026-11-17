@@ -449,6 +449,7 @@ async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<podssh_ssh::
         // A rank in the session's background, with RelayRank auto (T-608).
         let ranker = crate::relay_rank_auto::spawn(&resolved.transport, reached.relay.is_some());
         opts.window_cap = window::road(&resolved.transport, &reached).cap();
+        podssh_relay::context::tell_idle(); // the relay's idle limit, for an idle cut's words (T-814)
         let mut outcome = podssh_ssh::run::run_outcome(reached.stream, &opts, reached.relay, log.clone()).await;
         for watch in [near, idle, ranker].into_iter().flatten() {
             watch.abort();

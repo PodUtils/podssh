@@ -27,7 +27,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 - Measured: `PODSSH_OFFLINE=1 podssh pipe stdio relay:example.org:80` exits
   64 with `podssh: unknown subcommand 'pipe'.` The verb table has no `pipe`
   row (`crates/podssh-cli/src/flags.rs:385-455`).
-- Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:118-258`. At the end
+- Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:118-259`. At the end
   of input it stops sending and keeps receiving
   (`crates/podssh-cli/src/proxy.rs:8-11`). T-101 is the opposite defect in
   `crates/podssh-ts/src/pipe.rs`; the new pump must not repeat it.
@@ -52,7 +52,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    reads of 32 KiB; an end of input half-closes the other side (a shutdown
    of the write side, never a drop, or the reply is lost), and the other
    direction goes on; a reader that is gone ends the pipe with 0
-   (`crates/podssh-cli/src/pipe/relay.rs:256-260`). Keep
+   (`crates/podssh-cli/src/pipe/relay.rs:257-261`). Keep
    `runtime.shutdown_background()` (`crates/podssh-cli/src/proxy.rs:307-309`).
    This is the one path: T-175 moves `podssh proxy` onto it.
 4. `fd:N` (Unix): `fcntl(F_GETFD)` first. A closed N, or N below 3, exits 64.
@@ -184,7 +184,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 3. Move `podssh proxy` onto the pipe: `run_proxy`
    (`crates/podssh-cli/src/proxy.rs:89-311`) runs `stdio` and `relay:`. Keep
    its exit codes and messages (`crates/podssh-cli/src/proxy.rs:480-493`,
-   `crates/podssh-cli/src/pipe/relay.rs:231-264`).
+   `crates/podssh-cli/src/pipe/relay.rs:231-265`).
 4. `ssh:[USER@]HOP[,HOP...],HOST:PORT`: the last item is the target, each
    other item a hop, read as `-J` reads it
    (`crates/podssh-cli/src/ssh/resolve.rs:166-170`,

@@ -5,4 +5,4 @@
 
 pub use pod_ws::session::*;
 
-pub use crate::close::Remedy;
+pub use crate::close::{relay_idle_ms, Remedy};
