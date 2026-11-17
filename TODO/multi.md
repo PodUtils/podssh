@@ -2845,7 +2845,7 @@ relay reaches; nothing reports the far side.
   `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:128-129`), so the
   issue's `doctor --via HOST` names a flag that exists.
 - Read: `podssh health` resolves the host as `ssh` does, logs in on the same road, and runs one
-  exec (`crates/podssh-cli/src/health/mod.rs:170-208`, the login and the exec as this entry's
+  exec (`crates/podssh-cli/src/health/mod.rs:170-214`, the login and the exec as this entry's
   change split them).
 - Read: what a preflight asks is in podssh already: the SFTP server's extensions
   (`crates/podssh-ssh/src/sftp/mod.rs:234-237`), the request of a remote forward

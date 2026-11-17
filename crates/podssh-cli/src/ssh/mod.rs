@@ -420,7 +420,7 @@ async fn tries(resolved: &Resolved, log: &Arc<Log>) -> (i32, Option<podssh_ssh::
         tried += 1;
         let reached = match unreached.take() {
             Some(relay) => Box::pin(transport::after_ipv6_close(resolved, relay, started.elapsed(), log)).await,
-            None => transport::reach_skipping(resolved, skip, log).await,
+            None => crate::layer_told::claimed(transport::reach_skipping(resolved, skip, log)).await,
         };
         let reached = match reached {
             Ok(reached) => reached,

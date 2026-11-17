@@ -3790,7 +3790,7 @@ Planted: the new field read as required: the test of `scp` with no terminal fail
 (EXIT STATUS), and a handshake that ConnectTimeout ends is a hop that could not be reached
 (`crates/podssh-ssh/src/run.rs:410` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
 which a copy takes as a server that cannot be reached, 69
-(`crates/podssh-cli/src/cp/link.rs:237`). Read, not measured; the test asks for 69 within 10 s.
+(`crates/podssh-cli/src/cp/link.rs:245`). Read, not measured; the test asks for 69 within 10 s.
 The field of the row is `FlagRow::optional` (`crates/podssh-cli/src/flags.rs`), set by
 `optional(row(...))` on the row of `--timeout` of `scp` and `sftp`, and false on each other row.
 

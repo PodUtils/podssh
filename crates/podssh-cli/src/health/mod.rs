@@ -168,17 +168,23 @@ pub fn run(args: &HealthArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
 /// Reach the host and log in: each hop's connection, the destination's
 /// last, and the road that carried them, as the preflight says it.
 async fn login(resolved: &Resolved, log: &Arc<Log>) -> Result<(Vec<Connection>, preflight::Road), Failure> {
-    let reached = crate::ssh::transport::reach(resolved, log).await.map_err(|not| {
+    let reached = crate::layer_told::claimed(crate::ssh::transport::reach(resolved, log)).await.map_err(|not| {
         let why = if not.lines.is_empty() { "no connection".to_string() } else { not.lines.join("; ") };
         // A target that the relay cannot carry is the command line's fault.
         let code = if not.code == EXIT_USAGE { EXIT_USAGE } else { podssh_ssh::EXIT_FAILURE };
         Failure { code, why }
     })?;
     let road = preflight::Road::of(resolved, &reached);
+    let handles = match podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log).await {
+        Ok(handles) => handles,
+        Err(e) => {
+            // The road's cause once, not the client's echo of it (T-824).
+            crate::ssh::transport::settle(reached.layer).await;
+            return Err(Failure::new(crate::layer_told::failed(e.to_string(), log)));
+        }
+    };
+    crate::layer_told::release(log);
     crate::ssh::transport::keep(reached.layer);
-    let handles = podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log)
-        .await
-        .map_err(|e| Failure::new(e.to_string()))?;
     Ok((handles, road))
 }
 

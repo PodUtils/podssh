@@ -84,6 +84,9 @@ pub struct Recorder {
     /// error in words, as the handler keeps them (T-026, T-227).
     said: Mutex<Option<String>>,
     broke: Mutex<Option<String>>,
+    /// Whether the command says the cause of a road of the resumable layer
+    /// itself, and that cause, which the road then keeps here (T-824).
+    road: Mutex<(bool, Option<String>)>,
 }
 
 impl Recorder {
@@ -96,6 +99,7 @@ impl Recorder {
             phase: AtomicU8::new(0),
             said: Mutex::new(None),
             broke: Mutex::new(None),
+            road: Mutex::new((false, None)),
         }
     }
 
@@ -206,6 +210,31 @@ pub async fn scoped<F: Future>(work: F) -> (F::Output, Record) {
     let scope = Scope::new();
     let out = scope.run(work).await;
     (out, scope.record())
+}
+
+/// The command says the cause of its road's end itself, once, in place of
+/// the SSH client's words of the closed connection (T-824): from now until
+/// [`release_road_cause`], a road keeps its cause here.
+pub fn claim_road_cause() {
+    with(|r| *lock(&r.road) = (true, None));
+}
+
+/// A road of the layer ended with `line`: whether the command claimed it,
+/// so that the road does not say it. The first cause is kept.
+pub fn road_cause(line: String) -> bool {
+    with(|r| {
+        let mut road = lock(&r.road);
+        if road.0 && road.1.is_none() {
+            road.1 = Some(line);
+        }
+        road.0
+    })
+}
+
+/// The cause that a road kept since [`claim_road_cause`]; a road says its
+/// own from now on.
+pub fn release_road_cause() -> Option<String> {
+    with(|r| std::mem::take(&mut *lock(&r.road)).1)
 }
 
 /// Bytes read from stdin and sent to the far side.

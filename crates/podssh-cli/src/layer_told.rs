@@ -75,10 +75,44 @@ pub(crate) fn lines(lines: Vec<String>, said: bool) -> Vec<String> {
 }
 
 /// After a run on a road of the layer, and its last line: its lines less
-/// the client's echo of a cause that the road said.
+/// the client's echo of a cause that the road said, with the cause that the
+/// road kept for the command first (T-824).
 pub(crate) fn once(run: &mut Vec<String>, layered: bool) {
-    let said = take() && layered;
-    *run = lines(std::mem::take(run), said);
+    let kept = podssh_ssh::outcome::release_road_cause();
+    let said = (take() || kept.is_some()) && layered;
+    let mut lines = lines(std::mem::take(run), said);
+    lines.splice(0..0, kept);
+    *run = lines;
+}
+
+/// `reach`, a road that may carry the layer, with its cause claimed for the
+/// command to say once ([`once`], [`failed`], [`release`]).
+pub(crate) async fn claimed<T>(reach: impl std::future::Future<Output = T>) -> T {
+    podssh_ssh::outcome::claim_road_cause();
+    reach.await
+}
+
+/// A connection that failed with `words`, its road settled: the road's
+/// cause in place of the client's echo of the closed connection; a cause
+/// beside other words is said first, on its own line.
+pub(crate) fn failed(words: String, log: &podssh_ssh::Log) -> String {
+    let Some(cause) = podssh_ssh::outcome::release_road_cause() else { return words };
+    let _ = take();
+    match lines(vec![words.clone()], true).is_empty() {
+        true => cause,
+        false => {
+            log.error(&cause);
+            words
+        }
+    }
+}
+
+/// The connection is up: a road says its own cause from now on, and one
+/// that it kept meanwhile is said now.
+pub(crate) fn release(log: &podssh_ssh::Log) {
+    if let Some(cause) = podssh_ssh::outcome::release_road_cause() {
+        log.error(&cause);
+    }
 }
 
 #[cfg(test)]

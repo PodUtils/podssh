@@ -3601,7 +3601,7 @@ times). `cp_parallel`, `result_file`, `cp_tree`, `cp_delta`, `cp_inplace` and th
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3627,6 +3627,19 @@ cargo test -p podssh-cli --test error_lines
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. A command that says its own failure claims the road's cause in its session's record
+(`podssh_ssh::outcome::claim_road_cause`, per session since T-822); the layer's road then keeps its cause there in
+place of saying it, and the command says it once: `ssh` and `each` after the road settled (`layer_told::once`, the
+cause in place of the client's closed-connection words), `cp`, `scp`, `sftp` and `health` where the connection failed
+(`layer_told::failed`), and a cause kept while a connection came up is said at once (`layer_told::release`). A road
+that no command claimed says its cause as before. `tests/error_lines.rs`'s table of `each`, `scp`, `sftp` and
+`health` through `podssh relay serve` with the layer to a closed port: one line of the relay's cause, no echo (each's
+summary of its hosts aside). Planted: the road says its cause where a command claimed it; this test and `ssh`'s fail
+with the cause twice; restored, `cargo test -p podssh-cli --test error_lines` passes, 7 of 7, and `each`, `health`,
+`result_file`, `node_copy` and the library's tests pass.
 
 # T-825: Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused
 

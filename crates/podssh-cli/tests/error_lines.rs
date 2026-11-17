@@ -235,3 +235,53 @@ fn a_target_taken_and_closed_with_no_byte_is_said_so() {
         }
     }
 }
+
+/// One cause, one line, for each verb that runs a session on the layer's
+/// road (T-824): a refused target says the relay's cause once in `each`,
+/// `scp`, `sftp` and `health`, with no line of the client's closed
+/// connection after it. One table, one rule; the planted defect, the road
+/// that says its cause where the verb claimed it, fails each row.
+#[test]
+fn a_refused_target_is_one_line_in_each_verb() {
+    let s = Session::start("error-lines-verbs");
+    let cell = match Cell::podssh_relay(&s, "podssh's relay role", &["--allow-private"]) {
+        Ok(cell) => cell,
+        Err((_, why)) => {
+            eprintln!("did not run: {why}");
+            return;
+        }
+    };
+    let ca = cell.args.iter().position(|a| a == "--ca-file").map(|i| cell.args[i + 1].clone()).unwrap();
+    let closed = closed_port().to_string();
+    // The cell's flags with the closed port, and its target last.
+    let (target, flags) = cell.args[1..].split_last().unwrap();
+    let mut flags = flags.to_vec();
+    let at = flags.iter().position(|a| a == "-p").unwrap() + 1;
+    flags[at] = closed.clone();
+    let upper: Vec<String> = flags.iter().map(|a| if a == "-p" { "-P".to_string() } else { a.clone() }).collect();
+    let words = |list: &[&str]| list.iter().map(|w| w.to_string()).collect::<Vec<_>>();
+    let rows: [(&str, Vec<String>, Vec<String>); 4] = [
+        ("each", flags.clone(), words(&[target, "--", "true"])),
+        ("scp", upper.clone(), vec![format!("{target}:x"), s.home.join("x").display().to_string()]),
+        ("sftp", upper, vec!["-b".into(), "-".into(), target.clone()]),
+        ("health", flags.clone(), vec![target.clone()]),
+    ];
+    for (verb, flags, tail) in rows {
+        let mut args = vec![verb.to_string()];
+        if verb == "scp" {
+            args.extend(words(&["--timeout", "30s"]));
+        }
+        args.extend(flags);
+        args.extend(tail);
+        let out = s.stand_in(&args, &ca).env("PODSSH_RELAY_LAYER", "yes").stdin(Stdio::null()).output().unwrap();
+        let err = String::from_utf8_lossy(&out.stderr);
+        // `each`'s summary of its hosts is its own, after the cause.
+        let lines: Vec<&str> = err.lines().filter(|l| !l.trim().is_empty() && !l.starts_with("podssh each:")).collect();
+        assert_ne!(out.status.code(), Some(0), "{verb}: {err}");
+        assert_eq!(lines.len(), 1, "{verb}: one cause, one line: {err}");
+        assert!(lines[0].contains("could not reach") && lines[0].contains(&closed), "{verb}: {err}");
+        for echo in ["broken pipe", "closed unexpectedly", "taken and then closed"] {
+            assert!(!err.contains(echo), "{verb}: the client's echo: {err}");
+        }
+    }
+}

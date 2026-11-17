@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**783 entries: 30 open, 38 partial, 11 blocked, 704 done.**
+**783 entries: 29 open, 38 partial, 11 blocked, 705 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 2 | 23 | 2 | 299 | 326 |
+| P2 | 1 | 23 | 2 | 300 | 326 |
 | P3 | 28 | 7 | 6 | 319 | 360 |
-| **All** | 30 | 38 | 11 | 704 | 783 |
+| **All** | 29 | 38 | 11 | 705 | 783 |
 
 ## Entries
 
@@ -854,7 +854,7 @@ repository and CI).
 | [T-821](robustness.md) | P2 | M | M10 | defect | done | A target that a proxy took and kept silent: the end's line says so |
 | [T-822](robustness.md) | P2 | S | M10 | defect | done | `cp`, `scp` and `sftp` write `relay: null` in `--result-file` for a copy that the relay carried |
 | [T-823](robustness.md) | P2 | S | M10 | defect | done | `transferred.up` of a resumed copy counts the whole file |
-| [T-824](robustness.md) | P2 | S | M10 | defect | open | A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health` |
+| [T-824](robustness.md) | P2 | S | M10 | defect | done | A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health` |
 | [T-825](robustness.md) | P3 | S | M10 | defect | done | Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused |
 | [T-826](robustness.md) | P2 | M | M10 | defect | open | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
 | [T-827](robustness.md) | P3 | S | M10 | defect | done | `relay serve --key` in a file that others may read starts with no word |

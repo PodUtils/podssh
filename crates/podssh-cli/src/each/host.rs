@@ -135,7 +135,7 @@ pub(crate) async fn ran(plan: &Plan, place: Place) -> (Ended, Ran) {
     // The options, and with them the sink, go when the session ends: then
     // the drain has each piece, and ends too.
     let session = async move {
-        let reached = match crate::ssh::node_roads::reach_any(&plan.resolved, &log).await {
+        let reached = match crate::layer_told::claimed(crate::ssh::node_roads::reach_any(&plan.resolved, &log)).await {
             Ok(reached) => reached,
             Err(failure) => {
                 for line in &failure.lines {
@@ -150,8 +150,11 @@ pub(crate) async fn ran(plan: &Plan, place: Place) -> (Ended, Ran) {
         };
         let relay = reached.relay.clone();
         opts.window_cap = crate::ssh::window::road(&plan.resolved.transport, &reached).cap();
-        let outcome = podssh_ssh::run::run_outcome(reached.stream, &opts, reached.relay, log.clone()).await;
+        let mut outcome = podssh_ssh::run::run_outcome(reached.stream, &opts, reached.relay, log.clone()).await;
+        let layered = reached.layer.is_some();
         transport::settle(reached.layer).await;
+        // The road's cause once, not the client's echo of it (T-824).
+        crate::layer_told::once(&mut outcome.lines, layered);
         // The relay's close, as `podssh ssh` keeps it.
         if let Some(end) = relay.as_ref().and_then(podssh_ssh::RelayStatus::get) {
             podssh_ssh::outcome::relay_end(&end);

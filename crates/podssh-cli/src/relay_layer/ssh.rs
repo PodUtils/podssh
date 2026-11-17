@@ -194,6 +194,10 @@ async fn carried(road: Road, tell: oneshot::Sender<Begun>) {
     };
     let outcome = super::links::carry(&dialer, by_road, client, layer_end, note).await;
     if let Some(why) = layered::why_ended(outcome) {
-        log.error(&format!("{at}: {why}"));
+        // A command that says its own failure says this cause in its place.
+        let line = format!("{at}: {why}");
+        if !podssh_ssh::outcome::road_cause(line.clone()) {
+            log.error(&line);
+        }
     }
 }

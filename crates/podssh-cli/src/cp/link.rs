@@ -166,7 +166,7 @@ async fn hops(resolved: &Resolved, log: &Arc<Log>) -> Result<Hops, Failed> {
     // connection a leg of it (T-595); a node of a pair or a member of the
     // net goes over the roads that `ssh node://` races (T-296, T-551), with
     // no relay status: the layer moves it before the relay's limits (T-155).
-    let reached = crate::ssh::node_roads::reach_any(resolved, log).await;
+    let reached = crate::layer_told::claimed(crate::ssh::node_roads::reach_any(resolved, log)).await;
     let reached = match reached {
         Ok(reached) => reached,
         Err(not) => {
@@ -183,10 +183,18 @@ async fn hops(resolved: &Resolved, log: &Arc<Log>) -> Result<Hops, Failed> {
     };
     let road = crate::ssh::window::road(&resolved.transport, &reached);
     let opts = crate::ssh::window::on(&resolved.options, road);
-    let handles = podssh_ssh::run::connect_hops(reached.stream, &opts, log).await.map_err(|e| {
-        podssh_ssh::outcome::failed(e.class());
-        hop_failure(e)
-    })?;
+    let handles = match podssh_ssh::run::connect_hops(reached.stream, &opts, log).await {
+        Ok(handles) => handles,
+        Err(e) => {
+            podssh_ssh::outcome::failed(e.class());
+            // The road's cause once, not the client's echo of it (T-824).
+            crate::ssh::transport::settle(reached.layer).await;
+            let mut failed = hop_failure(e);
+            failed.message = crate::layer_told::failed(failed.message, log);
+            return Err(failed);
+        }
+    };
+    crate::layer_told::release(log);
     Ok((handles, reached.relay, reached.layer, Limits { in_flight: road.cap(), ..Limits::default() }))
 }
 
