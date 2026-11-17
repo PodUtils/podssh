@@ -50,6 +50,9 @@ pub struct Done {
     /// Why no byte went: the destination stays, as `--no-clobber` or
     /// `--update` asks; the run counts it as a skip.
     pub skipped: Option<Skip>,
+    /// The bytes of `bytes` that an earlier run had sent: a copy that went
+    /// on from its temporary file did not move them now (T-823).
+    pub kept: u64,
 }
 
 /// What a failure leaves the copy able to do.

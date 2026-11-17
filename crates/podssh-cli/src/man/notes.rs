@@ -171,8 +171,9 @@ const CP: &[&str] = &[
      for digests that differ; session, timeout, interrupted, usage or config; or null), error (its words), \
      duration_ms, relay (host, close_code, reason, and sessions, the relay sessions that the run opened); files \
      (sent, unchanged, skipped, deleted and failed) and transferred (up and down: the bytes of the files through \
-     this host, with --delta the blocks that went, none for a rename or a hard link). bytes is null, as in podssh \
-     ssh it counts a command's streams. After the --timeout, files and transferred are null. --jsonl keeps its \
+     this host, with --delta the blocks that went, none for a rename or a hard link). A copy that goes on from an \
+     earlier run's partial file counts only the bytes that this run moved. bytes is null, as in podssh ssh it \
+     counts a command's streams. After the --timeout, files and transferred are null. --jsonl keeps its \
      events on stdout.",
 ];
 

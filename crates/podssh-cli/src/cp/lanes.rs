@@ -349,7 +349,10 @@ async fn attempt(lane: &Lane<'_>, slot: &mut Slot, run: &Run<'_>, shape: Shape) 
             _ => unreachable!("several files at once go up or down"),
         };
         match copied {
-            Ok(done) => return Step::Answer(Ok((done, slot.first.take().expect("set at the first attempt")))),
+            Ok(mut done) => {
+                done.kept = p.earlier.min(done.bytes);
+                return Step::Answer(Ok((done, slot.first.take().expect("set at the first attempt"))));
+            }
             Err(f) if matches!(f.cause, Cause::Broke | Cause::Spent) => return Step::Again(f),
             // The digest covers the whole file: a copy that went on and
             // fails it starts once more from the first byte, then fails.

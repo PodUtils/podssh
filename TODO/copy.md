@@ -3236,7 +3236,7 @@ destination too.
   and a second copy of a changed file replaces the far one with exit 0 and nothing on stderr.
   Read: `CP_FLAGS` has no such row (`crates/podssh-cli/src/flags/copy.rs`, lines 10-82 at
   `38f424c`), and each copy
-  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:207-226`), by
+  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:210-229`), by
   `posix-rename@openssh.com` where the server has it
   (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
 - Read: `hardlink@openssh.com` gives a file a second name

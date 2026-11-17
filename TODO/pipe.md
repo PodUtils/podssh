@@ -724,7 +724,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 ## Premise
 
 - Read: a byte pipe carries each TCP protocol
-  (`crates/podssh-cli/src/man/notes.rs:238-248`); a client that calls
+  (`crates/podssh-cli/src/man/notes.rs:239-249`); a client that calls
   `connect()` itself needs a listener (`docs/design.md:1191-1194`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
@@ -844,7 +844,7 @@ The calls made where the Approach left a choice:
   (`crates/podssh-cli/src/man/examples.rs:319`). It has no
   `ServerAliveInterval`, so that its line stays within rustfmt's 120
   columns; the note of proxy asks for it
-  (`crates/podssh-cli/src/man/notes.rs:249`).
+  (`crates/podssh-cli/src/man/notes.rs:250`).
 - Form b runs with `--direct`, as `scripts/interop-pipe.sh` runs `ssh:`;
   forms a and c go through the stand-in relay.
 - The citations of `crates/podssh-cli/src/man/examples.rs` in

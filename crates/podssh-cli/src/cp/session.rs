@@ -247,8 +247,9 @@ pub(crate) async fn attempts(
         let p = progress.as_mut().expect("set above");
         continued |= p.temp.is_some() && p.offset > 0;
         match copy(&current, source, dest, many, log, p, shape).await {
-            Ok(done) => {
+            Ok(mut done) => {
                 *link = Some(current);
+                done.kept = p.earlier.min(done.bytes);
                 return Ok((done, first.take().expect("set at the first attempt")));
             }
             // Near the relay's limits: a new session at once, with no wait;

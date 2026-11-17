@@ -162,6 +162,10 @@ pub struct Progress {
     /// attempt after a broken connection says it no more, and its result
     /// keeps the first reason. Not in the side file.
     pub delta_why: Option<Full>,
+    /// The bytes that an earlier run left in the temporary file and this run
+    /// kept: they did not go through this host now (T-823). Not in the side
+    /// file.
+    pub earlier: u64,
 }
 
 impl Progress {
@@ -191,8 +195,21 @@ impl Progress {
             (Some(was), Some(temp), Some(target), Some(offset)) if was == state => {
                 let target = Some(target);
                 let (temp, saved) = (Some(temp), offset);
-                let progress =
-                    Progress { dirs, side, state, target, temp, offset, saved, chunk, chunks, delta_why: None };
+                // Each listed chunk past the offset is whole in the file.
+                let earlier = offset.saturating_add((chunks.len() as u64).saturating_mul(chunk));
+                let progress = Progress {
+                    dirs,
+                    side,
+                    state,
+                    target,
+                    temp,
+                    offset,
+                    saved,
+                    chunk,
+                    chunks,
+                    delta_why: None,
+                    earlier,
+                };
                 (progress, None)
             }
             (_, stale, _, _) => {
@@ -208,6 +225,7 @@ impl Progress {
         self.temp = Some(temp.to_string());
         self.offset = 0;
         self.chunks.clear();
+        self.earlier = 0;
         self.save();
     }
 
@@ -226,6 +244,7 @@ impl Progress {
             self.offset -= self.offset % chunk;
             self.chunks.clear();
             self.chunk = chunk;
+            self.earlier = self.earlier.min(self.offset);
         }
     }
 

@@ -3,7 +3,8 @@
 //! server on the loopback (`ssh_harness`, with OpenSSH's `sftp-server`): a
 //! copy under `-l` takes its time, the line goes to stderr and never to
 //! stdout, and `--jsonl` gives `progress` objects. The interruption by
-//! SIGINT is measured on Unix, here and in the gate. The summary and the
+//! SIGINT is measured on Unix, here and in the gate; the run that goes on
+//! counts only the bytes that it moved (T-823). The summary and the
 //! run's progress (T-472): a run in a pipe ends with one summary line on
 //! stderr, none with `-q`, and one `summary` object with `--jsonl`; a copy
 //! that lasts 12 s writes a plain line in the pipe, one of 1 s none; the
@@ -237,10 +238,12 @@ fn an_interrupted_copy_keeps_and_names_its_partial_file() {
     need_server!();
     let home = scratch("interrupt");
     let (_runtime, port) = server(&home);
-    let data: Vec<u8> = (0..3_000_000u32).map(|i| (i % 253) as u8).collect();
+    // Past the side file's step of 4 MiB before the interruption, so that the
+    // next run goes on from a byte past 0.
+    let data: Vec<u8> = (0..30_000_000u32).map(|i| (i % 253) as u8).collect();
     std::fs::write(home.join("f.bin"), &data).unwrap();
-    // 4000 Kbit/s: 0.5 MB/s, 6 s in all.
-    let child = cp(&home, port, &["-l", "4000", "f.bin", "u@127.0.0.1:up.bin"], None).spawn().unwrap();
+    // 40000 Kbit/s: 5 MB/s, 6 s in all.
+    let child = cp(&home, port, &["-l", "40000", "f.bin", "u@127.0.0.1:up.bin"], None).spawn().unwrap();
     std::thread::sleep(Duration::from_millis(2500));
     let killed = Command::new("kill").args(["-INT", &child.id().to_string()]).status().unwrap();
     assert!(killed.success());
@@ -253,9 +256,19 @@ fn an_interrupted_copy_keeps_and_names_its_partial_file() {
         .filter_map(Result::ok)
         .any(|e| e.file_name().to_string_lossy().contains(".podssh-"));
     assert!(partial, "the temporary file stays");
-    let out = cp(&home, port, &["-v", "f.bin", "u@127.0.0.1:up.bin"], None).output().unwrap();
+    let out =
+        cp(&home, port, &["-v", "--result-file", "r.json", "f.bin", "u@127.0.0.1:up.bin"], None).output().unwrap();
     let err = String::from_utf8_lossy(&out.stderr);
     assert_eq!(out.status.code(), Some(0), "{err}");
     assert!(err.contains("continuing"), "the second run goes on: {err}");
     assert_eq!(std::fs::read(home.join("up.bin")).unwrap(), data);
+    // `transferred` is what this run moved: the file less the part that the
+    // first run left (T-823).
+    let at: u64 = err
+        .lines()
+        .find_map(|l| l.split(" at byte ").nth(1)?.split_whitespace().next()?.parse().ok())
+        .unwrap_or_else(|| panic!("no offset said: {err}"));
+    assert!(at > 0, "{err}");
+    let r: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(home.join("r.json")).unwrap()).unwrap();
+    assert_eq!(r["transferred"]["up"], data.len() as u64 - at, "{r}: {err}");
 }

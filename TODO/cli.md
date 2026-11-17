@@ -493,7 +493,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    `[OPTIONS] [--] [user@]host [COMMAND...]` for `ssh` and
    `[OPTIONS] [--] HOST PORT` for `proxy`; `--help` and the synopsis of the
    manual (`PodUtils/podssh:crates/podssh-cli/src/man/model.rs:186-190`) read it.
-2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-493` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-175` and `crates/podssh-cli/src/man/notes.rs:75-245`)
+2. A note for `ssh` and `proxy` (`crates/podssh-cli/src/man/notes_ssh.rs:4-493` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-175` and `crates/podssh-cli/src/man/notes.rs:75-246`)
    and an example (`crates/podssh-cli/src/man/examples.rs:8-316`). Pitfall: the
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
@@ -3607,7 +3607,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   file works.
 - Read (L-27): `podssh proxy` has no direct road (`crates/podssh-cli/src/man/notes_ssh.rs:256`);
   `podssh pipe - tcp:%h:%p` is that road as a `ProxyCommand` (`crates/podssh-cli/src/man/notes_pipe.rs:5-14`),
-  and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:238`).
+  and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:239`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
   environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:109-124`), not the files.

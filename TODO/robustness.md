@@ -3548,7 +3548,7 @@ restored, it passes. `cargo test -p podssh-cli --test result_relay`.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3565,6 +3565,12 @@ through this host".
 Count the bytes that this run moved (the file less its kept part), and say the kept part apart; a test that resumes
 a copy and reads both.
 
+## Decision
+
+The kept part is said apart by `-v`'s line `continuing ... at byte N`, which already names it; the result file keeps
+its keys (`transferred` up and down), and the manual says that a copy that goes on counts this run's bytes alone. A
+key of its own (`kept`) lost: one more key in the one list of six verbs, for a number that `-v` already gives.
+
 ## Prove
 
 ```sh
@@ -3573,6 +3579,20 @@ cargo test -p podssh-cli --test result_file
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Correction
+
+The test is `cp_progress`'s interrupted copy (its run that goes on), not `result_file`: that one interrupts nothing.
+Its file was 3 MB, under the side file's step of 4 MiB, so the run went on from byte 0; it is now 30 MB at 5 MB/s.
+
+## Done
+
+2026-11-17. `Progress::earlier` holds the bytes that an earlier run left in the temporary file (at load: the offset
+and each whole chunk past it; a new start or a change of chunk size lowers it); `Done::kept` takes it when the copy
+succeeds, and `transferred` counts `bytes - kept`. The manual (podssh cp, the result file) and `llms-full.txt` say so.
+`cargo test -p podssh-cli --test cp_progress`, 7 passed: the interrupted copy's second run, which went on at byte
+4439040 of 30000000, reads `transferred.up` 25560960; before the fix it read 30000000 (the planted state, run three
+times). `cp_parallel`, `result_file`, `cp_tree`, `cp_delta`, `cp_inplace` and the library's `cp::` tests pass.
 
 # T-824: A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health`
 

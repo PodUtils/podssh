@@ -94,15 +94,16 @@ impl Copied {
     }
 }
 
-/// The bytes of a file that went through this host: its size, or with
-/// `--delta` the blocks that went; none for a rename or a hard link.
+/// The bytes of a file that went through this host in this run: its size
+/// less the part that an earlier run left (T-823), or with `--delta` the
+/// blocks that went; none for a rename or a hard link.
 pub(crate) fn moved(done: &Done) -> u64 {
     if done.verified_by == "rename" || done.verified_by.starts_with("a hard link to") {
         return 0;
     }
     match &done.delta {
         Some(Delta::Sent { bytes, .. }) => *bytes,
-        _ => done.bytes,
+        _ => done.bytes.saturating_sub(done.kept),
     }
 }
 
