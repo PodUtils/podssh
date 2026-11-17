@@ -20,7 +20,7 @@ Read on 2026-11-13; the rows below are the measurements.
   HTTP/2 roads in part (T-319, T-321), the quick tunnel, and the public carriers and last fallbacks of M10 (Piping Server,
   Wisp, OpenTunnel, croc, Serveo, ssh-j, localhost.run, localtunnel, bore and others), and ZeroTier's
   road, live through ZeroTier Inc.'s roots and relay and in the release's features on Unix (T-733).
-- **The gate.** Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on its second attempt,
+- **The gate.** Green at `1ed2c2a` (2026-11-17, run 44145310916, podcrates `v0.69.0`, each job on its first attempt: the fixes of the black-box pass, T-810 to T-819). Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on its second attempt,
   T-780's seventh). Green at `0f2c8a0` (2026-11-16, run 43859588499, podcrates `v0.62.0` and T-796's bound, each job on its
   first attempt). Green at `d13ab01` (2026-11-16, run 43839740067, podcrates `v0.61.0`; `gate (release)` on its second
   attempt: on the first, the interop of OpenSSH and Dropbear hung past the job's 45 min, T-796). Green at `f5b4f43` (2026-11-16, run 43823925587, podcrates `v0.60.0`; `gate (m6)` on its second attempt,
