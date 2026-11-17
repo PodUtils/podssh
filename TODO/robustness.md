@@ -3226,7 +3226,7 @@ number from 1 to 65535` and exits 65. Planted, every value taken as a port: caug
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3250,6 +3250,17 @@ cargo test -p podssh-cli --test relay_serve
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. The role wrote a client's Close only where a Close frame came (`close CODE` in `serve/forward.rs`), and a
+session on HTTP/2 or on the layer's road ends its stream with none, so most sessions ended with no line. Each session's
+end is a line now, at the end of `forward::pump`, which each road's session goes through: `end client`, `end gone: the
+client went with no Close`, or `end close CODE REASON` (the relay's own, as `1001 idle timeout`). A 502 of a target that
+cannot be reached is a line of its cause too (`refused 502 cannot reach HOST:PORT: CAUSE`), on the forward road and the
+HTTP road; a 403 of its policy was one already. The manual's note of `relay serve` says so. `cargo test -p podssh-relay
+--features serve,plain-ws --test relay_serve_h2`: 8 passed (eight sessions on HTTP/2, eight lines of their ends; a
+target that refuses, its 502 and its line). Planted, the end's line left out: caught.
 
 # T-817: More causes said twice, beside COORD-112
 

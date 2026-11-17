@@ -166,8 +166,9 @@ pub const RELAY: &[&str] = &[
      /relays.json publishes the first four as they are, never the keepalive. A value above the default moves this \
      role's cut only: a client keeps its own lower budgets and its own warning, as it only lowers them to what \
      /relays.json says. --mint anyone mints a token for each client; by default it mints for no one (503), as its \
-     tokens are given another way. A token lives until the relay stops. Each mint, upgrade and client's Close is a \
-     line on stdout. It listens because you ask it to, and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM stops \
+     tokens are given another way. A token lives until the relay stops. Each mint, upgrade and refusal is a \
+     line on stdout, and so is each session's end: end client, end gone, or end close CODE REASON. It \
+     listens because you ask it to, and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM stops \
      it.",
     "On Linux the relay gives up each capability that it started with, once its listener is bound and before it \
      serves. A port below 1024 needs one for its bind alone (a start as root, or the file capability \

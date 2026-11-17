@@ -123,6 +123,8 @@ where
             // A proxy's refusal too: the role's 502, with the proxy's status.
             Err(why) => {
                 let why = format!("relay: cannot reach {target}: {why}");
+                // Its cause is a line on stdout too, as the manual says (T-816).
+                cfg.event(&format!("refused 502 {}", why.trim_start_matches("relay: ")));
                 return answer(&mut stream, request::refusal(502, &why, &[])).await;
             }
         }
@@ -246,6 +248,7 @@ pub(super) async fn pump<S, R, W>(
     R: AsyncRead + Unpin + Send,
     W: AsyncWrite + Unpin + Send,
 {
+    let said = cfg.clone();
     let started = Instant::now();
     let moved = Arc::new(AtomicU64::new(0));
     // A session from here: a refusal, or a target out of reach, is none.
@@ -367,6 +370,13 @@ pub(super) async fn pump<S, R, W>(
         }
         (end, _) => end,
     };
+    // How each session ended is a line, on each road (T-816): a client of
+    // HTTP/2 ends its stream with no Close frame of its own.
+    said.event(&match &end {
+        End::Client => "end client".to_string(),
+        End::Gone => "end gone: the client went with no Close".to_string(),
+        End::Close(code, why) => format!("end close {code} {why}"),
+    });
     if let End::Close(code, why) = end {
         let _ = session.send_close(code, &why).await;
     }

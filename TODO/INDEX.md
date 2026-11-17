@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**775 entries: 30 open, 38 partial, 11 blocked, 696 done.**
+**775 entries: 29 open, 38 partial, 11 blocked, 697 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
 | P2 | 0 | 23 | 2 | 296 | 321 |
-| P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 30 | 38 | 11 | 696 | 775 |
+| P3 | 29 | 7 | 6 | 315 | 357 |
+| **All** | 29 | 38 | 11 | 697 | 775 |
 
 ## Entries
 
@@ -846,7 +846,7 @@ repository and CI).
 | [T-813](robustness.md) | P2 | S | M10 | defect | done | `health --preflight` says `direct` of a session that went through the relay |
 | [T-814](robustness.md) | P2 | S | M10 | defect | done | The hint of an idle cut names 180 s where the relay published another limit |
 | [T-815](robustness.md) | P2 | S | M10 | defect | done | `config import ansible` takes a port that is no number and writes it |
-| [T-816](robustness.md) | P3 | S | M10 | defect | open | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
+| [T-816](robustness.md) | P3 | S | M10 | defect | done | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
 | [T-817](robustness.md) | P3 | M | M10 | defect | open | More causes said twice, beside COORD-112 |
 | [T-818](robustness.md) | P3 | M | M10 | defect | open | The black-box pass's small findings: the manual and the messages |
 | [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |

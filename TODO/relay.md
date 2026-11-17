@@ -4358,8 +4358,8 @@ and nothing says, or limits, what one key carried in a day. A restart forgets it
 
 Read at `2042200`:
 
-- One counter for both ways: `crates/podssh-relay/src/serve/forward.rs:250` says
-  "let moved = Arc::new(AtomicU64::new(0));", and `:340` ends the session at the cap;
+- One counter for both ways: `crates/podssh-relay/src/serve/forward.rs:253` says
+  "let moved = Arc::new(AtomicU64::new(0));", and `:343` ends the session at the cap;
   `crates/podssh-relay/src/serve/mod.rs:97` says "Payload bytes, both ways together." The counter
   dies with its session.
 - A token names no key: `crates/podssh-relay/src/serve/tokens.rs:61` MACs the expiry alone under the
@@ -5114,7 +5114,7 @@ role's forward road.
 
 - `docs/relay.md:397` says "is no TCP half-close. But the target's bytes still come after the client's",
   measured on the default relay on 2026-10-09.
-- `crates/podssh-relay/src/serve/forward.rs:287` says "return End::Client;": the client's Close
+- `crates/podssh-relay/src/serve/forward.rs:290` says "return End::Client;": the client's Close
   ends the pump of both ways, after `to_target.shutdown()`.
 
 ## Approach
@@ -5257,7 +5257,7 @@ patch and rebuild the binary.
 - `/relays.json` is written from `cfg.limits`: `crates/podssh-relay/src/serve/docs.rs:80` writes
   `connect_timeout_ms`, `idle_timeout_ms`, `max_session_ms` and `max_session_bytes`. It does not
   write the keepalive.
-- `half_closed` is read at `crates/podssh-relay/src/serve/forward.rs:156`. It bounds the drain
+- `half_closed` is read at `crates/podssh-relay/src/serve/forward.rs:158`. It bounds the drain
   after a client's Close and has no field in the contract.
 - A client only lowers its budgets to the published values. `PodUtils/podssh:crates/podssh-relay/src/relay.rs:81`
   takes the margin from the compiled cap, and `PodUtils/podssh:crates/podssh-relay/src/relay.rs:82` uses
@@ -6511,7 +6511,7 @@ legs), its mint or session setup, or the study's client (tokio-tungstenite 0.24)
 
 ## Decision
 
-2026-11-17. No change of the role. Its forward session is one task (`crates/podssh-relay/src/serve/forward.rs:353`,
+2026-11-17. No change of the role. Its forward session is one task (`crates/podssh-relay/src/serve/forward.rs:356`,
 both directions in one `select!`, no queue between its legs), and the split is the multi-thread runtime's placement
 of the tasks that wake on each socket: on one thread the run has one mode. Lost: a runtime of one thread for the role
 (its sessions would share one core), or a pinning of each session (a cost on every session for a rate that, in its

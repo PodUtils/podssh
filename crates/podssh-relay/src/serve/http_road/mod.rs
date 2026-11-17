@@ -231,6 +231,7 @@ where
                 cfg.event(&format!("proxy: {line}"));
             }
             let why = format!("relay: cannot reach {target}: {said}");
+            cfg.event(&format!("refused 502 cannot reach {target}: {said}"));
             return Err(write(stream, refuse(502, &why, &[], keep), keep).await);
         }
     };

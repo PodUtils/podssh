@@ -4090,7 +4090,7 @@ nothing, works.
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/forward.rs:159` dials the resolved addresses with
+- `crates/podssh-relay/src/serve/forward.rs:161` dials the resolved addresses with
   `TcpStream::connect`, and `crates/podssh-relay/src/serve/docs.rs:153` does the same for
   `/trace`; neither reads `HTTPS_PROXY`.
 - Rule 2 of `AGENTS.md`: one outbound connection, through `HTTPS_PROXY` when it is set.
