@@ -43,6 +43,9 @@ fn sources() -> Vec<(PathBuf, String)> {
             }
         }
     }
+    // The pager is pod-manual's, which podssh takes (T-820): its source,
+    // as the crate gives it for this check.
+    out.push((PathBuf::from("pod-manual/src/pager.rs"), non_test(pod_manual::pager::SOURCE)));
     out
 }
 

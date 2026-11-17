@@ -32,7 +32,12 @@ fn sources() -> Vec<(PathBuf, String)> {
     }
     let dirs: Vec<PathBuf> = crates.iter().map(|c| crate_src(c)).collect();
     let man = crate_src("podssh-cli").join("man");
-    scan::rust_sources(&dirs).into_iter().filter(|(path, _)| !path.starts_with(&man)).collect()
+    let mut out: Vec<(PathBuf, String)> =
+        scan::rust_sources(&dirs).into_iter().filter(|(path, _)| !path.starts_with(&man)).collect();
+    // The pager is pod-manual's, which podssh takes (T-820): its source, as
+    // the crate gives it for this check.
+    out.push((PathBuf::from("pod-manual/src/pager.rs"), pod_manual::pager::SOURCE.to_string()));
+    out
 }
 
 /// Each exit code that podssh gives: 0, and each constant `EXIT_*` or

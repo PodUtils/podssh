@@ -7526,6 +7526,8 @@ cargo test -p podssh-cli --lib
 
 Partial, 2026-11-17. `crates/podssh-ws/src/clock.rs` is `pub use pod_core::clock::*` now (the crate's functions are a
 superset; its hint gives a clock before the epoch as it reads); `podssh-ws --lib` 60 passed, and the cli builds.
-Waits: the pager (podssh's `show` takes a `PagerEnv` where the crate's `show_with` does, and its `Tty` and
-`Interrupts` are used by six files: one change of its own), and the crates of podcrates' entries 501, 877, 879 and 880
-at their tags.
+2026-11-17, later: `crates/podssh-cli/src/pager.rs` is `pod_manual::pager` now (59 lines from 383): the crate's items
+re-exported, `show` over its `show_with`, and `Interrupts` kept, which `podssh edit` takes and the crate keeps private
+(asked of podcrates in COORD-115, #312). The checks of the manual's variables read the crate's source
+(`pod_manual::pager::SOURCE`) beside podssh's. `--lib` passed, and `--test man_page --test tree --test error_program`.
+Waits: `Interrupts` from the crate, and the crates of podcrates' entries 501, 877, 879 and 880 at their tags.
