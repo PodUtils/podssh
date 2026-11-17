@@ -2883,7 +2883,7 @@ connection.
 
 - `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
   `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:161`
-  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:123` only reads
+  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:137` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
   `harden_tests.rs` (228).
 - `crates/podssh-cli/src/first_thread.rs` and `crates/podssh-cli/src/main.rs:32` hold the hand-off

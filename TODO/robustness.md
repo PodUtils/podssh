@@ -3666,7 +3666,7 @@ The test fails on the code before the fix and passes after it.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3690,6 +3690,13 @@ cargo test -p podssh-cli --lib relay_serve
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. `relay serve`'s first line says a key that others may read, with its mode and `chmod 600 KEY`
+(`relay_serve/certs.rs`, `open_to_others`; Unix's mode bits, none on Windows, whose ACL is the user's); it still
+serves, as a warning, which the help's words allow. `--lib relay_serve` 22 passed, among them
+`a_key_that_others_may_read_is_named`; measured with a key of mode 0644.
 
 # T-828: The second black-box pass's smaller findings: the documents and the lines
 

@@ -56,6 +56,20 @@ impl Source {
     }
 }
 
+/// The mode of `path` where others than its owner may read or write it.
+#[cfg(unix)]
+fn open_to_others(path: &str) -> Option<u32> {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = std::fs::metadata(path).ok()?.permissions().mode() & 0o7777;
+    (mode & 0o077 != 0).then_some(mode)
+}
+
+/// Windows keeps no such mode bits; its ACL is the user's own.
+#[cfg(not(unix))]
+fn open_to_others(_path: &str) -> Option<u32> {
+    None
+}
+
 /// NAME of `--acme`: a DNS name of two labels at least, lower-cased, with no
 /// wildcard and no address, as TLS-ALPN-01 validates it on port 443.
 pub fn acme_name(text: &str) -> Result<String, Refusal> {
@@ -146,9 +160,15 @@ impl Certs {
     pub fn open(source: Source) -> Result<Certs, Refusal> {
         match source {
             Source::Files { cert, key } => {
-                let files = Files { cert: cert.into(), key: key.into(), seen: Mutex::new(None) };
+                let files = Files { cert: cert.into(), key: key.clone().into(), seen: Mutex::new(None) };
                 let (pair, leaf) = files.load().map_err(Refusal::config)?;
-                let shown = format!("with the certificate of {} {}", files.shown(), acme::about(&leaf));
+                let mut shown = format!("with the certificate of {} {}", files.shown(), acme::about(&leaf));
+                // The help asks a key that only its owner reads (T-827): said, as the role starts.
+                if let Some(mode) = open_to_others(&key) {
+                    shown.push_str(&format!(
+                        "; warning: others may read the key {key} (mode {mode:04o}): chmod 600 {key}"
+                    ));
+                }
                 Ok(Certs { served: Served::new(Some(pair)), files, acme: None, shown })
             }
             Source::Acme { name, directory, ca_file } => {
@@ -265,6 +285,23 @@ impl Hangups {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A key that others may read is named with its mode (T-827).
+    #[cfg(unix)]
+    #[test]
+    fn a_key_that_others_may_read_is_named() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir =
+            std::env::temp_dir().join(format!("podssh-key-mode-{}-{:08x}", std::process::id(), rand::random::<u32>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let key = dir.join("k.pem");
+        std::fs::write(&key, b"not a key").unwrap();
+        std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(open_to_others(key.to_str().unwrap()), Some(0o644));
+        std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+        assert_eq!(open_to_others(key.to_str().unwrap()), None);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn a_name_for_acme_is_a_dns_name_of_two_labels_with_no_wildcard_or_address() {
