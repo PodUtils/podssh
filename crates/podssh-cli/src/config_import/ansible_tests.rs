@@ -59,4 +59,9 @@ fn a_bad_line_is_refused_with_its_number() {
     assert!(read("[web]\nh a=1\n[web:vars]\nnot a pair\n").unwrap_err().starts_with("4: "));
     assert!(read("[web:nonsense]\nh\n").unwrap_err().starts_with("1: "));
     assert!(read("h a='open\n").unwrap_err().starts_with("1: "));
+    // A port that is no port (T-815): its line's number, never a Host block.
+    assert!(read("[g]\nh1 ansible_port=notnum\n").unwrap_err().starts_with("2: "));
+    assert!(read("[g]\nh1\n[g:vars]\nansible_ssh_port=70000\n").unwrap_err().starts_with("4: "));
+    assert!(read("h1:0\n").unwrap_err().starts_with("1: "));
+    assert!(read("[g]\nh1 ansible_port=2222\n").is_ok());
 }

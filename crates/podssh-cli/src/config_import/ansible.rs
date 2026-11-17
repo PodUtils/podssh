@@ -69,6 +69,7 @@ pub fn read(text: &str) -> Result<Vec<Host>, String> {
             Kind::Vars => {
                 let (key, value) = line.split_once('=').ok_or_else(|| at(format!("{line}: expected key=value")))?;
                 let value = unquote(value.trim());
+                port_ok(key.trim(), &value).map_err(at)?;
                 inv.groups.entry(group.clone()).or_default().vars.insert(key.trim().to_string(), value);
             }
             Kind::Children => {
@@ -98,10 +99,12 @@ impl Inventory {
         let mut vars = BTreeMap::new();
         for word in rest {
             let (key, value) = word.split_once('=').ok_or_else(|| format!("{word}: expected key=value"))?;
+            port_ok(key, value)?;
             vars.insert(key.to_string(), value.to_string());
         }
         let (names, port) = expand(pattern)?;
         if let Some(port) = port {
+            port_ok("ansible_port", &port)?;
             vars.entry("ansible_port".into()).or_insert(port);
         }
         for name in names {
@@ -169,6 +172,18 @@ impl Inventory {
                 Host { name: name.clone(), groups, vars }
             })
             .collect()
+    }
+}
+
+/// A port of SSH, 1 to 65535, where `key` names one: a value that is no
+/// port would be written into a `Host` block that ssh refuses (T-815).
+fn port_ok(key: &str, value: &str) -> Result<(), String> {
+    if !matches!(key, "ansible_port" | "ansible_ssh_port") {
+        return Ok(());
+    }
+    match value.parse::<u16>() {
+        Ok(port) if port > 0 => Ok(()),
+        _ => Err(format!("{key}={value}: a port is a number from 1 to 65535")),
     }
 }
 

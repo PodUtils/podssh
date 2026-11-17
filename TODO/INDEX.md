@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**773 entries: 36 open, 37 partial, 11 blocked, 689 done.**
+**773 entries: 34 open, 37 partial, 11 blocked, 691 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 2 | 8 | 3 | 83 | 96 |
-| P2 | 4 | 22 | 2 | 291 | 319 |
+| P1 | 1 | 8 | 3 | 84 | 96 |
+| P2 | 3 | 22 | 2 | 292 | 319 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 36 | 37 | 11 | 689 | 773 |
+| **All** | 34 | 37 | 11 | 691 | 773 |
 
 ## Entries
 
@@ -840,12 +840,12 @@ repository and CI).
 | [T-807](relay.md) | P3 | M | M10 | feature | done | The relay role reads the client's address from PROXY protocol's header of a trusted balancer |
 | [T-808](repo.md) | P3 | S | none | chore | done | podssh-ssh's dates without chrono, which RUSTSEC-2026-0543 calls unmaintained |
 | [T-809](repo.md) | P2 | M | M10 | chore | partial | What the release gate proves, and the gaps that podnet's QA round found: examples, error paths, a black-box pass |
-| [T-810](robustness.md) | P1 | S | M10 | defect | open | `PODSSH_OFFLINE` does not stop `podssh update --check` |
+| [T-810](robustness.md) | P1 | S | M10 | defect | done | `PODSSH_OFFLINE` does not stop `podssh update --check` |
 | [T-811](robustness.md) | P1 | M | M10 | defect | open | `podssh each` on the layer's road: concurrent sessions of one process fail but one |
 | [T-812](robustness.md) | P2 | S | M10 | defect | open | With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run |
 | [T-813](robustness.md) | P2 | S | M10 | defect | open | `health --preflight` says `direct` of a session that went through the relay |
 | [T-814](robustness.md) | P2 | S | M10 | defect | open | The hint of an idle cut names 180 s where the relay published another limit |
-| [T-815](robustness.md) | P2 | S | M10 | defect | open | `config import ansible` takes a port that is no number and writes it |
+| [T-815](robustness.md) | P2 | S | M10 | defect | done | `config import ansible` takes a port that is no number and writes it |
 | [T-816](robustness.md) | P3 | S | M10 | defect | open | `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause |
 | [T-817](robustness.md) | P3 | M | M10 | defect | open | More causes said twice, beside COORD-112 |
 | [T-818](robustness.md) | P3 | M | M10 | defect | open | The black-box pass's small findings: the manual and the messages |

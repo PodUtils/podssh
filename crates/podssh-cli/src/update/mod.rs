@@ -340,6 +340,15 @@ pub fn run(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     if args.rollback {
         return rollback(args, out, err);
     }
+    // Each other form reads the releases' feed (T-810); --rollback is local.
+    if podssh_relay::open::offline() {
+        let _ = writeln!(
+            err,
+            "podssh update: {} is set, so podssh does not connect anywhere",
+            podssh_relay::open::OFFLINE_ENV
+        );
+        return EX_UNAVAILABLE;
+    }
     let asked = match args.version.as_deref() {
         None => None,
         Some(text) => match Version::parse(text.strip_prefix('v').unwrap_or(text)) {

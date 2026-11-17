@@ -619,7 +619,7 @@ output. Planted defect: copy the password field into a comment; the secret test 
 
 2026-10-12. `podssh config import ansible FILE`: the verb at
 `crates/podssh-cli/src/config_import/mod.rs:46-169`, the inventory at
-`crates/podssh-cli/src/config_import/ansible.rs:1-270`, the blocks at
+`crates/podssh-cli/src/config_import/ansible.rs:1-285`, the blocks at
 `crates/podssh-cli/src/config_import/mod.rs:281-325`, with the secrets at
 `crates/podssh-cli/src/config_import/mod.rs:171-175` and the options of
 `ansible_ssh_common_args` at

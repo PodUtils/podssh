@@ -2957,7 +2957,7 @@ the macOS run's line (no 1003) and a close's line (1003). `cargo test -p podssh-
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2983,6 +2983,14 @@ cargo test -p podssh-cli --test update_offline
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. `podssh update` (each form but `--rollback`, which reads no network) checks `PODSSH_OFFLINE` first and
+ends with "PODSSH_OFFLINE is set, so podssh does not connect anywhere" and 69, as `ping` does
+(`crates/podssh-cli/src/update/mod.rs`). `cargo test -p podssh-cli --test update_offline`: 1 passed (a listener stands
+in for `HTTPS_PROXY` and counts no connection; one line, 69). Planted, the check removed: the run went out through the
+proxy, caught.
 
 # T-811: `podssh each` on the layer's road: concurrent sessions of one process fail but one
 
@@ -3124,7 +3132,7 @@ The test fails on the code before the fix and passes after it.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3148,6 +3156,14 @@ cargo test -p podssh-cli --lib config::import
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. `config_import/ansible.rs`: `port_ok` holds `ansible_port` and `ansible_ssh_port` (a host's word, a group's
+`:vars` line, and a `host:PORT` pattern) to 1 to 65535; another value ends the run with the line's number and 65.
+`cargo test -p podssh-cli --lib config_import`: 15 passed (`a_bad_line_is_refused_with_its_number` takes `notnum`,
+70000 and `:0`); `printf '[g]\nh1 ansible_port=notnum\n' | podssh config import ansible -` says `-:2: ansible_port=notnum: a port is a
+number from 1 to 65535` and exits 65. Planted, every value taken as a port: caught.
 
 # T-816: `relay serve` does not write the lines that the manual promises: a client's Close, and a refusal's cause
 
