@@ -2473,7 +2473,7 @@ nothing.
   `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:140-154`, `:181-205`),
   the control socket of `-M` (`:207-215`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:78-88`, `:111-128`), `podssh agent`
-  (`crates/podssh-cli/src/agent/serve.rs:38-41`) and `podssh session`
+  (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:136`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`

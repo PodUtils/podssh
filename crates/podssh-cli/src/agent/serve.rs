@@ -35,6 +35,9 @@ pub async fn serve(args: &AgentArgs, out: &mut dyn Write, err: &mut dyn Write) -
             return EX_CANTCREAT;
         }
     };
+    if let Some(why) = &place.moved {
+        let _ = writeln!(err, "podssh agent: {why}");
+    }
     let bound = Listener::bind(&Address::UnixListen(place.path.clone()), &mut |line: &str| {
         let _ = writeln!(err, "podssh agent: {line}");
     })
@@ -86,6 +89,9 @@ pub async fn serve(args: &AgentArgs, out: &mut dyn Write, err: &mut dyn Write) -
 struct Place {
     path: String,
     made: Option<std::path::PathBuf>,
+    /// Why the socket is not in the runtime directory that was asked
+    /// (T-818): it is said, never moved in silence.
+    moved: Option<String>,
 }
 
 impl Place {
@@ -94,13 +100,13 @@ impl Place {
     /// this user and process.
     fn choose(given: Option<&str>) -> Result<Place, String> {
         if let Some(path) = given {
-            return Ok(Place { path: path.to_string(), made: None });
+            return Ok(Place { path: path.to_string(), made: None, moved: None });
         }
         #[cfg(windows)]
         {
             let user: String =
                 std::env::var("USERNAME").unwrap_or_default().chars().filter(|c| c.is_ascii_alphanumeric()).collect();
-            Ok(Place { path: format!(r"\\.\pipe\podssh-agent-{user}-{}", std::process::id()), made: None })
+            Ok(Place { path: format!(r"\\.\pipe\podssh-agent-{user}-{}", std::process::id()), made: None, moved: None })
         }
         #[cfg(not(windows))]
         {
@@ -108,10 +114,17 @@ impl Place {
                 .map(std::path::PathBuf::from)
                 .filter(|p| p.is_absolute())
                 .unwrap_or_else(std::env::temp_dir);
-            let dir = agent_dir(base, std::process::id());
+            let dir = agent_dir(base.clone(), std::process::id());
             private_dir(&dir)
                 .map_err(|e| format!("{}: a directory of mode 0700 could not be made: {e}", dir.display()))?;
-            Ok(Place { path: dir.join("agent.sock").display().to_string(), made: Some(dir) })
+            let moved = (!dir.starts_with(&base)).then(|| {
+                format!(
+                    "the socket is in {}: a path in {} would not fit a socket's address",
+                    dir.display(),
+                    base.display()
+                )
+            });
+            Ok(Place { path: dir.join("agent.sock").display().to_string(), made: Some(dir), moved })
         }
     }
 }

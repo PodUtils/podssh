@@ -3320,7 +3320,7 @@ entry 869), taken with its next tag. `--lib` 1251 passed; `--test error_lines` 5
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3377,7 +3377,10 @@ Asked of podcrates (COORD-116, #313): a relay that mints for none to name `PODSS
 - `agent list` and `ssh-add -l` show each key's comment: russh's agent kept none (its server decoded the comment and
   dropped it, its client sent none); `vendor/patches/russh/0012-agent-comment.patch` keeps it both ways. `--test
   agent_cli` 7 passed, its listing now with the key's comment; `ssh-add -l` of OpenSSH shows it too.
-Waits: `agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said.
+- `agent` with an `XDG_RUNTIME_DIR` too long for a socket's address says where its socket went and why (`agent/serve.rs`
+  `Place::moved`), before its line of where it listens; measured with a directory of 94 characters.
+Each finding of the pass in podssh's own code is repaired; the two in crates of podcrates are asked (COORD-116, #313).
+`--lib agent` and `--test agent_cli` passed.
 
 # T-819: podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges
 
