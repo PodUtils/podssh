@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**774 entries: 30 open, 37 partial, 11 blocked, 696 done.**
+**775 entries: 30 open, 38 partial, 11 blocked, 696 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 0 | 22 | 2 | 296 | 320 |
+| P2 | 0 | 23 | 2 | 296 | 321 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 30 | 37 | 11 | 696 | 774 |
+| **All** | 30 | 38 | 11 | 696 | 775 |
 
 ## Entries
 
@@ -850,3 +850,4 @@ repository and CI).
 | [T-817](robustness.md) | P3 | M | M10 | defect | open | More causes said twice, beside COORD-112 |
 | [T-818](robustness.md) | P3 | M | M10 | defect | open | The black-box pass's small findings: the manual and the messages |
 | [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |
+| [T-820](repo.md) | P2 | M | M10 | chore | partial | podssh's copies of shared code, as podcrates named them (COORD-131) |

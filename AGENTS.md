@@ -147,6 +147,12 @@ each by a git tag of that repository. A session of podssh's own work:
 - adds no hardcoded host of another party: those lists go to `pod-services`;
 - talks with the other sessions as the next section says.
 
+**Shared code first** (the owner's ruling "Shared code", 2026-11-17, `docs/decisions.md`). Before
+writing a capability, search PodUtils/podcrates (its `docs/design.md`, each crate's `README.md`) and
+each sibling. Where podcrates has it, take the crate; where it has most of it, ask for the extension
+by a COORD issue `(to podcrates)`; where a sibling has it, do not copy it: ask podcrates, and the
+code moves there for both. Each copy that podssh keeps is named to podcrates by a COORD issue.
+
 ### Talk with the other sessions of PodUtils
 
 The owner's protocol for each session of PodUtils is PodUtils/podcrates
@@ -361,6 +367,14 @@ or outside the repository. Never print the claim URL of railway.new.
 ## 5. Rules for the code
 
 These rules come from [docs/decisions.md](docs/decisions.md).
+
+**Quality first** (the owner's ruling "Quality first", 2026-11-17): quality code with redundancy and
+fallbacks built in, not a zillion tests. Each edge (an input, a file that another process shares, a
+peer, a proxy, a resolver, the host) has a check and a second path, also where the first path works
+today. Each failure gives one true line (what happened, not what was asked) and a documented exit
+code; no panic reaches the user. A test pins a class of fault: one table-driven test where a family
+of cases has one rule, not a test for each case by reflex. "Ready" comes from a run on a constrained
+host and an outside pass with the binary and the documents alone (T-809).
 
 1. Do not assume that the client host has a privilege, a tool or a setup.
    Probe it at runtime. Do not use a capability that was not probed.

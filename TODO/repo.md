@@ -7481,3 +7481,51 @@ T-812 (a named relay's offer never read), T-813 (`health --preflight`'s road), T
 ones). It also found that a full `doctor` and a first `node` reach public services by default, as documented; the pass
 then turned them off. Its coverage (what matched the documents) is in its report; the next pass runs on the candidate
 of the beta, after these are done.
+
+# T-820: podssh's copies of shared code, as podcrates named them (COORD-131)
+
+**Source:** PodUtils/podcrates#221 (COORD-131, 2026-11-17, to all): the owner's ruling "Shared code" and podcrates'
+survey of each project's copies of what podcrates holds.
+**Category:** chore
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** partial
+
+## Problem
+
+podssh keeps copies of capabilities that podcrates holds or will hold; each copy drifts from the crate, as
+`podssh-ws`'s clock did (its hint said 0 of a clock before the epoch, where `pod_core::clock` says what it reads).
+
+## Premise
+
+- `crates/podssh-ws/src/clock.rs`: the functions of `pod_core::clock`.
+- `crates/podssh-cli/src/pager.rs`: `pod_manual::pager` was taken from it; podssh's callers still use its own.
+- `crates/podssh-ws/src/turn/`: a TURN client beside `pod-turn` (RFC 6062 comes with podcrates' entry 501).
+- `crates/podssh-cli/src/exitmap.rs`, `crates/podssh-cli/src/exit_codes.rs`: each code against
+  `pod_core::failure::Class::exit_code()`.
+- `crates/podssh-cli/src/detach/` (podcrates' entry 879, `pod-detach`), `crates/podssh-cli/src/update/`
+  (its entry 880, `pod-release`), `crates/podssh-ssh/src/known_hosts/lock.rs` and `crates/podssh-cli/src/detach/lock.rs`
+  (its entry 877, `pod_core::lock`), and the checks of `doctor/host.rs` and `doctor/unix.rs` that are rows of `pod-hostprobe`.
+
+## Approach
+
+Remove each copy that needs no change of podcrates now: the clock, the pager. Take each other crate at the tag that
+carries it (T-684), and write each in the COORD issue of the take. Name each other copy that this session finds to
+podcrates by a COORD issue, never a new one.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --lib
+cargo test -p podssh-cli --lib
+```
+
+## Done
+
+Partial, 2026-11-17. `crates/podssh-ws/src/clock.rs` is `pub use pod_core::clock::*` now (the crate's functions are a
+superset; its hint gives a clock before the epoch as it reads); `podssh-ws --lib` 60 passed, and the cli builds.
+Waits: the pager (podssh's `show` takes a `PagerEnv` where the crate's `show_with` does, and its `Tty` and
+`Interrupts` are used by six files: one change of its own), and the crates of podcrates' entries 501, 877, 879 and 880
+at their tags.
