@@ -3437,7 +3437,7 @@ and `proxy-per-name`, whose proxy answers a CONNECT with 200 for any address or 
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3460,6 +3460,12 @@ all. The end's line does not say what happened: the target was taken and sent no
    the connection and closed it with no byte after N s", not the generic words; one line.
 3. The lane's two rows pass behind each network class.
 
+## Decision
+
+2026-11-17. The client alone says it (item 2): the SSH client knows that no byte of the server came, and how long the
+stream lasted, whatever the relay saw. Lost: the role's Close with a reason of its own for a target that sent nothing
+(item 1): a relay that is not podssh's role would not give it, and the client's line is true without it.
+
 ## Prove
 
 ```sh
@@ -3469,3 +3475,20 @@ cargo test -p podssh-cli --test error_lines
 
 With a stand-in target that takes a connection, says nothing and closes: one line that names it, 255. Then the lane
 behind `proxy-tls-reterminate` and `proxy-per-name`.
+
+## Done
+
+2026-11-17. `podssh-ssh/src/run.rs`: a handshake that ends with the stream's end and no byte of the server says "the
+connection was taken and then closed after N s with no byte of the server", not the generic words (`run_words.rs` holds
+`describe` and `closed` now, so that `run.rs` stays within 500 lines); `layer_told` takes it as the client's echo of a
+cause that the layer said. Found beside it in the same classes, and repaired: `pairs::connect_refusal` named a way's 403
+of the upgrade as the relay's refusal of the pair ("it was stopped, or has expired"); a way's refusal (not the relay's
+words, `upgrade_refused`; never a 426, the relay's own of a dialect) is said as the way's now. And the lane ran with
+the host's home, so a pair that one run left blocked the next: it takes its own home and caches now, and a pair that is
+not made fails it with its words. `cargo test -p podssh-cli --test error_lines`: 6 passed, among them
+`a_target_taken_and_closed_with_no_byte_is_said_so` (the layer yes and no; planted, the generic words: caught); `--lib`
+1242 passed, among them `a_way_s_refusal_of_the_upgrade_is_not_the_pair_s`. The lane behind `pod-lab`'s classes: all
+nine rows pass behind `proxy-only`, `proxy-tls-reterminate`, `proxy-per-name` and `ws-upgrade-refused`; behind
+`sni-allowlist` and `no-proxy-no-dns` each row but "a name with no answer", which waits for COORD-112's tag;
+`ipv6-only` does not hold on this host.
+

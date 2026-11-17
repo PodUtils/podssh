@@ -885,7 +885,7 @@ Read: the hops come from `-J` or `ProxyJump` as text
 (`crates/podssh-cli/src/ssh/resolve.rs`, lines 201-205 at `b0177cf`), parsed by `jump_hop` alone
 (`crates/podssh-cli/src/ssh/hop.rs:69-71`). Each hop logs in as its own user or the destination's
 (`crates/podssh-ssh/src/run.rs:370`), with the identities of the destination
-(`crates/podssh-ssh/src/run.rs:427`).
+(`crates/podssh-ssh/src/run.rs:434`).
 
 ## Approach
 

@@ -30,6 +30,10 @@ W=$(mktemp -d)
 PIDS=
 trap 'kill $PIDS 2>/dev/null; rm -rf "$W"' EXIT
 cd "$W" || exit 1
+# The run's own home and caches: its keys, tokens and pairs go with it, and
+# no run of before (a pair that one left) changes this one.
+HOME=$W XDG_CACHE_HOME=$W/cache XDG_CONFIG_HOME=$W/config
+export HOME XDG_CACHE_HOME XDG_CONFIG_HOME
 # The CA and the certificate of listed.test, made before the lab (PKI, the
 # second argument), as podlab's --serve-ca names the CA at its start.
 PKI=$2
@@ -129,7 +133,8 @@ fi
 # The error rows (T-809, after podnet's QA round, PodUtils/podnet#649): each
 # failure ends within its limit, with its documented exit code, and says its
 # cause in one line. A line of information (a new key, a host key added, the
-# road that a refused upgrade sends a link on) is no error line. A row that hangs, exits with another code, or says its cause
+# road that a refused upgrade sends a link on, a handshake's note while it
+# waits) is no error line. A row that hangs, exits with another code, or says its cause
 # twice fails the lane.
 row() {
     name=$1 code=$2 words=$3 limit=$4
@@ -138,9 +143,12 @@ row() {
     SSL_CERT_FILE=$W/trust.pem timeout "$limit" "$@" < /dev/null > row.out 2> row.err
     rc=$?
     took=$(( $(date +%s) - s ))
-    grep -v -e "a new key for this client" -e "Permanently added" -e "each link goes on the HTTP road" row.err > row.lines
+    grep -v -e "a new key for this client" -e "Permanently added" -e "each link goes on the HTTP road" \
+        -e "the SSH handshake has not finished after" row.err > row.lines
     n=$(grep -c . row.lines)
-    if [ "$rc" = "$code" ] && [ "$n" = 1 ] && grep -q -E -e "$words" row.lines; then
+    # CODE is each code that the row's case may document, by spaces.
+    case " $code " in *" $rc "*) coded=yes ;; *) coded=no ;; esac
+    if [ "$coded" = yes ] && [ "$n" = 1 ] && grep -q -E -e "$words" row.lines; then
         echo "ok   $name: exit $rc in $took s, one line: $(cat row.lines)"
     else
         echo "FAIL $name: exit $rc (want $code) in $took s, $n lines (want 1, with \"$words\")"
@@ -157,18 +165,25 @@ row "a dead relay" 255 "could not mint|minting a relay token failed" 60 "$B" ssh
 row "a refused connect" 255 "could not reach" 60 "$B" ssh --relay-host "$RELAY" $ADDR \
     -i "$W/user_key" -o BatchMode=yes -o StrictHostKeyChecking=no -o "UserKnownHostsFile=$W/known" -o Port=2299 \
     root@127.0.0.1 true
-# An address that no route of the lab reaches.
+# An address that no route of the lab reaches; behind a class whose proxy
+# takes each CONNECT, then closes it with no byte, that is the cause (T-821).
 # shellcheck disable=SC2086 # $ADDR and $o are lists of options, a word each
-row "an unreachable target" 255 "could not reach" 120 "$B" ssh --relay-host "$RELAY" $ADDR $o root@10.255.255.1 true
+row "an unreachable target" 255 "could not reach|taken and then closed" 120 "$B" ssh --relay-host "$RELAY" $ADDR $o root@10.255.255.1 true
 # A name that no resolver answers: the role says so in the words of its
 # policy, as for each target that it does not dial (GitHub #126); behind a
 # class whose proxy the role dials through, the proxy's refusal.
 # shellcheck disable=SC2086 # $ADDR and $o are lists of options, a word each
-row "a name with no answer" 255 "does not allow|refused CONNECT" 60 "$B" ssh --relay-host "$RELAY" $ADDR $o root@no-such-host.invalid true
-# A pair whose node is not online.
+row "a name with no answer" 255 "does not allow|refused CONNECT|taken and then closed" 60 "$B" ssh --relay-host "$RELAY" $ADDR $o root@no-such-host.invalid true
+# A pair whose node is not online; a pair that is not made fails the lane
+# with its own words. Behind a way that refuses the upgrade, the operator
+# reaches no relay at all: the way's refusal, 77.
 # shellcheck disable=SC2086 # $ADDR is a list of options, a word each
-SSL_CERT_FILE=$W/trust.pem timeout 60 "$B" relay pair lane-off --relay-host "$RELAY" $ADDR > /dev/null 2>&1
+if ! SSL_CERT_FILE=$W/trust.pem timeout 60 "$B" relay pair lane-off --relay-host "$RELAY" $ADDR > pair.out 2>&1; then
+    echo "FAIL relay pair lane-off"
+    sed 's/^/     /' pair.out
+    exit 1
+fi
 # shellcheck disable=SC2086 # $ADDR is a list of options, a word each
-row "a node that is not online" 69 "node unavailable" 60 "$B" operator lane-off $ADDR
+row "a node that is not online" "69 77" "node unavailable|refused the WebSocket upgrade" 60 "$B" operator lane-off $ADDR
 # shellcheck disable=SC2086 # $ADDR is a list of options, a word each
 SSL_CERT_FILE=$W/trust.pem timeout 30 "$B" relay revoke lane-off $ADDR > /dev/null 2>&1

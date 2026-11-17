@@ -108,6 +108,11 @@ impl Record {
         self.lock().asking.is_some()
     }
 
+    /// Whether no byte came from the far end (T-821).
+    pub(crate) fn nothing_came(&self) -> bool {
+        self.lock().came.bytes == 0
+    }
+
     /// The far end's version line, once it came, made safe for a terminal.
     pub(crate) fn version(&self) -> Option<String> {
         self.lock().came.version.clone()

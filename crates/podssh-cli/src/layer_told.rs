@@ -54,7 +54,12 @@ fn ended_words(outcome: Outcome) -> Option<String> {
 
 /// The SSH client's words of a connection that the far end closed, as each
 /// system says them: an end of the stream, a broken pipe (macOS), a reset.
-const CLOSED: &[&str] = &["the connection closed unexpectedly", "broken pipe", "connection reset by peer"];
+const CLOSED: &[&str] = &[
+    "the connection closed unexpectedly",
+    "broken pipe",
+    "connection reset by peer",
+    "the connection was taken and then closed",
+];
 
 /// The lines of a failed run, less the SSH client's own words of a closed
 /// connection when a road of the layer said the cause already.

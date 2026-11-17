@@ -260,7 +260,7 @@ Read:
   After the upgrade, a relay close ends the run
   (`crates/podssh-ssh/src/run.rs`, lines 38-47 at `981b8fc`).
 - Both reported drops printed `HOST: the connection closed unexpectedly`,
-  which only the SSH handshake prints (`crates/podssh-ssh/src/run.rs:403-420`).
+  which only the SSH handshake prints (`crates/podssh-ssh/src/run.rs:403-427`).
   At that point no request has reached the server.
 - The command starts with the exec, shell or subsystem request
   (`crates/podssh-ssh/src/session.rs:127-160`). `-W` reads stdin only after its
@@ -2950,7 +2950,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:243`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:208`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
-  error has no words of podssh's (`crates/podssh-ssh/src/run.rs:478`), so #83 read russh's.
+  error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:34`), so #83 read russh's.
 - Read: a forward that the server refuses is a warning, and the run goes on
   (`crates/podssh-ssh/src/remote.rs:90-95`); a refusal with the connection gone ends the run as
   lost, with no cause (`crates/podssh-ssh/src/remote.rs:87-88`). `tcpip_forward` gives the same

@@ -95,6 +95,7 @@ pub mod retry;
 mod rsa_key;
 pub use rsa_key::{seeded_login_key, throwaway_login_key};
 pub mod run;
+mod run_words;
 // podssh's last messages, for the report of a failure (T-195).
 pub mod said;
 // The server of `podssh serve`, over a stream that it is given (T-107).

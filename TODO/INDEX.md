@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**776 entries: 28 open, 38 partial, 11 blocked, 699 done.**
+**776 entries: 27 open, 38 partial, 11 blocked, 700 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 1 | 23 | 2 | 296 | 322 |
+| P2 | 0 | 23 | 2 | 297 | 322 |
 | P3 | 27 | 7 | 6 | 317 | 357 |
-| **All** | 28 | 38 | 11 | 699 | 776 |
+| **All** | 27 | 38 | 11 | 700 | 776 |
 
 ## Entries
 
@@ -851,4 +851,4 @@ repository and CI).
 | [T-818](robustness.md) | P3 | M | M10 | defect | done | The black-box pass's small findings: the manual and the messages |
 | [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |
 | [T-820](repo.md) | P2 | M | M10 | chore | partial | podssh's copies of shared code, as podcrates named them (COORD-131) |
-| [T-821](robustness.md) | P2 | M | M10 | defect | open | A target that a proxy took and kept silent: the end's line says so |
+| [T-821](robustness.md) | P2 | M | M10 | defect | done | A target that a proxy took and kept silent: the end's line says so |

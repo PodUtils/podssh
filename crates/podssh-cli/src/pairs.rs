@@ -225,6 +225,15 @@ pub(crate) fn session_end(code: u16, reason: &str) -> String {
 /// refused token the remedy.
 pub(crate) fn connect_refusal(e: &ConnectError, label: &str) -> Refusal {
     let message = match e {
+        // The way's refusal of the upgrade, not the relay's (T-821, found
+        // behind pod-lab's ws-upgrade-refused): said as it is.
+        // A 426 is the relay's own of a dialect (T-643), never the way's here.
+        ConnectError::Refused { status, body } if *status != 426 && podssh_relay::piping::probe::upgrade_refused(e) => {
+            format!(
+                "the way to the relay refused the WebSocket upgrade (HTTP {status}: {}), before the relay saw the pair",
+                podssh_ws::text::one_line(body)
+            )
+        }
         ConnectError::Refused { status: 403, .. } => format!(
             "the relay refused the pair (403): it was stopped, or has expired; make a new one with \
              `podssh relay pair {label}`"
@@ -237,6 +246,19 @@ pub(crate) fn connect_refusal(e: &ConnectError, label: &str) -> Refusal {
 #[cfg(test)]
 mod tests {
     use super::session_end;
+
+    /// The way's 403 of the upgrade is said as the way's; the relay's own
+    /// 403 of a pair as the pair's (T-821).
+    #[test]
+    fn a_way_s_refusal_of_the_upgrade_is_not_the_pair_s() {
+        use podssh_ws::ConnectError;
+        let way = ConnectError::Refused { status: 403, body: "Forbidden".into() };
+        let said = super::connect_refusal(&way, "lab").message;
+        assert!(said.contains("the way to the relay refused the WebSocket upgrade"), "{said}");
+        let relay = ConnectError::Refused { status: 403, body: "reverse: forbidden".into() };
+        let said = super::connect_refusal(&relay, "lab").message;
+        assert!(said.starts_with("the relay refused the pair (403)"), "{said}");
+    }
 
     #[test]
     fn a_session_that_ends_with_no_close_is_the_link_and_may_work_again() {

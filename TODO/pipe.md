@@ -200,7 +200,7 @@ local program to a target, and `podssh proxy` stays a second pump.
    (`iroh:@FILE`), never from argv.
 6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6483`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
-   `crates/podssh-ssh/src/run.rs:339-443` a typed error, so that 77 is not
+   `crates/podssh-ssh/src/run.rs:339-450` a typed error, so that 77 is not
    guessed from a message.
 7. In the same commit: `docs/cli.md`, `docs/design.md:1145-1154`, the notes,
    the examples, `docs/STATUS.md`.

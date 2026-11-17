@@ -197,3 +197,41 @@ fn a_named_relay_that_is_down_is_one_line() {
     assert!(lines[0].contains("could not connect"), "{err}");
     assert!(started.elapsed() < Duration::from_secs(10), "{:?}: {err}", started.elapsed());
 }
+
+/// A target that takes the connection and closes it with no byte, as a
+/// proxy on the way does with a target that it cannot reach (T-821): 255,
+/// and one line that says so, not the closed stream's words alone.
+#[test]
+fn a_target_taken_and_closed_with_no_byte_is_said_so() {
+    let s = Session::start("error-lines-taken");
+    let cell = match Cell::podssh_relay(&s, "podssh's relay role", &["--allow-private"]) {
+        Ok(cell) => cell,
+        Err((_, why)) => {
+            eprintln!("did not run: {why}");
+            return;
+        }
+    };
+    let taker = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = taker.local_addr().unwrap().port();
+    std::thread::spawn(move || {
+        for stream in taker.incoming().flatten() {
+            std::thread::sleep(Duration::from_millis(500));
+            drop(stream);
+        }
+    });
+    let ca = cell.args.iter().position(|a| a == "--ca-file").map(|i| cell.args[i + 1].clone()).unwrap();
+    let mut args = cell.args.clone();
+    let at = args.iter().position(|a| a == "-p").unwrap() + 1;
+    args[at] = port.to_string();
+    args.push("true".into());
+    for layer in ["no", "yes"] {
+        let out = s.stand_in(&args, &ca).env("PODSSH_RELAY_LAYER", layer).stdin(Stdio::null()).output().unwrap();
+        let err = String::from_utf8_lossy(&out.stderr);
+        let lines: Vec<&str> = err.lines().filter(|l| !l.trim().is_empty()).collect();
+        assert_eq!(out.status.code(), Some(255), "layer {layer}: {err}");
+        assert_eq!(lines.len(), 1, "layer {layer}: one cause, one line: {err}");
+        if layer == "yes" {
+            assert!(lines[0].contains("taken and then closed"), "what happened, not the closed stream: {err}");
+        }
+    }
+}

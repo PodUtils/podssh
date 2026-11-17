@@ -405,6 +405,7 @@ where
     let road = opts.road.as_ref().filter(|_| opts.jump.is_empty());
     let wait = Wait { label: &label, limit: opts.connect_timeout, road, log };
     let handshake = russh::client::connect_stream(config, record.watch(stream), client);
+    let started = std::time::Instant::now();
     let mut handle = match wait.run(&record, handshake).await {
         Err(timed_out) => return Err(HopError::Unreachable(timed_out)),
         Ok(Err(russh::Error::UnknownKey)) => {
@@ -417,6 +418,12 @@ where
             let said = disconnect.lock().unwrap_or_else(|e| e.into_inner()).take();
             return Err(HopError::Unreachable(match said {
                 Some(said) => format!("{label}: the server ended the connection: {said}"),
+                // What happened, not the closed stream's words (T-821): a
+                // proxy on the way can take a target that it cannot reach.
+                None if record.nothing_came() && closed(&e) => format!(
+                    "{label}: the connection was taken and then closed after {:.1} s with no byte of the server",
+                    started.elapsed().as_secs_f64()
+                ),
                 None => format!("{label}: {}", describe(&e)),
             }));
         }
@@ -458,30 +465,8 @@ pub(crate) fn display(hop: &Hop) -> String {
     }
 }
 
-/// russh's errors, in words a user can act on.
-pub fn describe(e: &russh::Error) -> String {
-    use russh::Error;
-    match e {
-        Error::Disconnect | Error::HUP | Error::RecvError | Error::SendError => {
-            "the connection closed unexpectedly".into()
-        }
-        Error::IO(io) if io.kind() == std::io::ErrorKind::UnexpectedEof => "the connection closed unexpectedly".into(),
-        Error::Version => "the server did not answer with an SSH version line (is this an SSH server?)".into(),
-        Error::NoCommonAlgo { kind, ours, theirs } => format!(
-            "no {kind:?} algorithm in common with the server (podssh offers {}; the server offers {})",
-            ours.join(","),
-            theirs.join(",")
-        ),
-        Error::KeepaliveTimeout => "the server stopped answering keepalives".into(),
-        Error::ConnectionTimeout | Error::InactivityTimeout => "the connection timed out".into(),
-        Error::StrictKeyExchangeViolation { .. } => {
-            format!("{e} (the connection was tampered with, or the server is broken)")
-        }
-        // russh's words alone named no side (GitHub #83).
-        Error::SshEncoding(inner) => format!("podssh could not read a message of the server: {inner}"),
-        other => other.to_string(),
-    }
-}
+pub use crate::run_words::describe;
+use crate::run_words::closed;
 
 #[path = "run_config.rs"]
 mod config;
