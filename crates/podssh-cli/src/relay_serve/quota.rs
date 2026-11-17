@@ -47,7 +47,11 @@ pub(super) fn of(s: &ServeArgs, mint: &Mint) -> Result<(Usage, String), Refusal>
     }));
     let budget = quota.map(|q| format!(", a quota of {} a day for each key", quota_words(q))).unwrap_or_default();
     let kept = match &s.usage {
-        Some(file) => format!(", the counts of each key kept in {file} ({} keys now)", usage.keys()),
+        Some(file) => {
+            let n = usage.keys();
+            let keys = if n == 1 { "1 key".to_string() } else { format!("{n} keys") };
+            format!(", the counts of each key kept in {file} ({keys} now)")
+        }
         None => String::new(),
     };
     Ok((usage, format!("{budget}{kept}")))

@@ -102,6 +102,15 @@ pub struct Missed {
     pub line: Option<String>,
 }
 
+/// `cannot reach TARGET: SAID`, with the target once: a literal address's
+/// own words name it already (T-828: `127.0.0.1:1: 127.0.0.1:1: ...`).
+pub fn cannot_reach(target: &str, said: &str) -> String {
+    match said.strip_prefix(target).and_then(|rest| rest.strip_prefix(": ")) {
+        Some(_) => format!("cannot reach {said}"),
+        None => format!("cannot reach {target}: {said}"),
+    }
+}
+
 /// The target `name` by `plan`, through the proxy that `egress` gives it,
 /// within `limit` in all: the first address that answers, in order. A
 /// direct dial tells `ipv6` whether this host routes IPv6 out (T-253).

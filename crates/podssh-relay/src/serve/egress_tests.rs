@@ -103,3 +103,14 @@ async fn the_name_goes_to_the_proxy_only_where_nothing_is_checked() {
     let port = open.plan("target.invalid", 25, None, &egress).await;
     assert!(matches!(&port, Err(crate::serve::policy::Refused::Policy(w)) if w.contains("port 25")), "{port:?}");
 }
+
+/// The target once (T-828): a literal address's own words name it, and a
+/// name's dialled address is kept beside it.
+#[test]
+fn cannot_reach_names_the_target_once() {
+    let said = "127.0.0.1:1: Connection refused (os error 111)";
+    assert_eq!(cannot_reach("127.0.0.1:1", said), format!("cannot reach {said}"));
+    let named = cannot_reach("a.example:22", "192.0.2.1:22: Connection refused");
+    assert_eq!(named, "cannot reach a.example:22: 192.0.2.1:22: Connection refused");
+    assert_eq!(cannot_reach("a.example:22", "no address"), "cannot reach a.example:22: no address");
+}

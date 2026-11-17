@@ -160,7 +160,7 @@ async fn dial_for_trace(host: &str, port: u16, plan: &Plan, cfg: &Config) -> Val
             if let Some(line) = missed.line {
                 cfg.event(&format!("proxy: {line}"));
             }
-            return json!({ "error": format!("refused: cannot reach {}: {}", shown(host, port), missed.said) });
+            return json!({ "error": format!("refused: {}", egress::cannot_reach(&shown(host, port), &missed.said)) });
         }
     };
     let connect_ms = started.elapsed().as_millis() as u64;

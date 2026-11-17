@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**784 entries: 28 open, 38 partial, 12 blocked, 706 done.**
+**784 entries: 27 open, 39 partial, 12 blocked, 706 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 86 | 97 |
 | P2 | 0 | 23 | 3 | 300 | 326 |
-| P3 | 28 | 7 | 6 | 319 | 360 |
-| **All** | 28 | 38 | 12 | 706 | 784 |
+| P3 | 27 | 8 | 6 | 319 | 360 |
+| **All** | 27 | 39 | 12 | 706 | 784 |
 
 ## Entries
 
@@ -858,5 +858,5 @@ repository and CI).
 | [T-825](robustness.md) | P3 | S | M10 | defect | done | Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused |
 | [T-826](robustness.md) | P2 | M | M10 | defect | blocked | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
 | [T-827](robustness.md) | P3 | S | M10 | defect | done | `relay serve --key` in a file that others may read starts with no word |
-| [T-828](robustness.md) | P3 | M | M10 | defect | open | The second black-box pass's smaller findings: the documents and the lines |
+| [T-828](robustness.md) | P3 | M | M10 | defect | partial | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |

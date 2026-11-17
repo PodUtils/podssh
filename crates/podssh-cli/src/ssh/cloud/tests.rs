@@ -80,3 +80,21 @@ fn cloud_a_duration_is_whole_seconds_to_an_hour() {
         assert!(eice::max_duration(Some(bad)).is_err(), "{bad}");
     }
 }
+
+/// A user before a scheme is refused with the form that is meant, for any
+/// scheme; a plain destination with no scheme, or a user after the scheme,
+/// is not touched (T-828).
+#[test]
+fn a_user_before_the_scheme_is_refused_with_the_form_meant() {
+    for (text, meant) in [
+        ("root@node://lab", "node://root@lab"),
+        ("me@iap://a-project/us-central1-a/a-vm", "iap://me@a-project/us-central1-a/a-vm"),
+        ("u@tor://abc.onion:22", "tor://u@abc.onion:22"),
+    ] {
+        let why = destination(text).unwrap_err();
+        assert!(why.contains(&format!("the user goes after the scheme: {meant}")), "{text}: {why}");
+    }
+    assert_eq!(destination("root@host").unwrap(), None);
+    assert_eq!(destination("root@host:22").unwrap(), None);
+    assert!(destination("node://root@lab").map(|_| ()).is_ok());
+}

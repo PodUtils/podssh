@@ -18,7 +18,7 @@ use std::sync::Arc;
 
 use podssh_relay::forward_layer;
 use podssh_relay::relay::RelayList;
-use podssh_relay::session::client;
+use podssh_relay::session::client::{self, Found};
 use podssh_relay::session::resume::Note;
 use podssh_relay::session::{Ask, OsEntropy};
 use podssh_ssh::keep::Offer;
@@ -174,7 +174,7 @@ async fn carried(road: Road, tell: oneshot::Sender<Begun>) {
             return;
         }
     };
-    log.verbose(&format!("{at}: {}", client.found()));
+    log.verbose(&format!("{at}: {}", found_words(client.found())));
     podssh_ssh::outcome::relay_host(&dialer.relay().host);
     layered::learn(client.found(), &offer);
     let client = layered::heard(client, &silence);
@@ -199,5 +199,15 @@ async fn carried(road: Road, tell: oneshot::Sender<Begun>) {
         if !podssh_ssh::outcome::road_cause(line.clone()) {
             log.error(&line);
         }
+    }
+}
+
+/// What the client found, in the words of this road: its far end is the
+/// relay's role, which answers the layer as a node does on the wire.
+fn found_words(found: &Found) -> String {
+    match found {
+        Found::Layer { id, resumed: false, .. } => format!("the relay opened resumable session {}", id.short()),
+        Found::Layer { id, resumed: true, .. } => format!("the relay resumed session {}", id.short()),
+        plain => plain.to_string(),
     }
 }

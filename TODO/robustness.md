@@ -3781,7 +3781,7 @@ serves, as a warning, which the help's words allow. `--lib relay_serve` 22 passe
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3814,6 +3814,25 @@ cargo test -p podssh-cli --lib
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+Partly, 2026-11-17 (the rest stays open here):
+- `relay serve` says `the one key` and `1 key now`; `share ls` says `1 share`.
+- `ssh -v` on the relay's layer says `the relay opened resumable session ID`, not `the far end (a node)`
+  (`relay_layer/ssh.rs`).
+- A failed direct dial (`ssh --direct`, `via`) names its target once (`pipe::remote::could_not_connect`). So does a
+  remote forward's (`podssh-ssh` `remote_join.rs`), and so does the role's 502 and `relay trace` (`egress::cannot_reach`,
+  with a unit test).
+- `ssh -i nofile` names the file `(no such file)` in its last note.
+- `USER@SCHEME://NAME` is refused with the form meant, `SCHEME://USER@NAME` (`ssh/cloud.rs`, a table test).
+- An unknown flag of a verb with no `-o` (`node --relay-host`) says `the command did not run`, not the reassurance
+  of `-o` (`refuse.rs`, its test).
+- The manual says that `~?` lists the escapes that the session offers (`~d` only where the far end keeps shells).
+
+Each was run against the debug binary: a sshd of the scratch lab, `relay serve` with the lab's PKI. `cargo test -p
+podssh-cli --lib`, 1245 passed; `-p podssh-ssh --lib`, 423; `-p podssh-relay --features serve,plain-ws`, each passed.
+`2 addresses (X, X)` is pod-proxy's line (`race.rs`), asked of podcrates.
 
 # T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
 

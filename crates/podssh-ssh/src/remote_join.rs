@@ -39,7 +39,7 @@ async fn tcp(channel: Channel<Msg>, host: &str, port: u16, counts: &Arc<Counts>,
         Ok(tcp) => tcp,
         Err(e) => {
             counts.failed();
-            log.info(&format!("remote forward to {target}: cannot connect: {e}"));
+            log.info(&cannot_connect("remote forward", &target, &e.to_string()));
             let _ = channel.close().await;
             return;
         }
@@ -104,7 +104,7 @@ async fn socks(channel: Channel<Msg>, counts: &Arc<Counts>, log: &Log) {
         Err(e) => {
             counts.failed();
             let _ = crate::socks::answer(&mut write, request.version, Err(crate::socks::Refusal::Refused)).await;
-            return log.info(&format!("remote forward, SOCKS to {target}: cannot connect: {e}"));
+            return log.info(&cannot_connect("remote forward, SOCKS", &target, &e.to_string()));
         }
     };
     if crate::socks::answer(&mut write, request.version, Ok(())).await.is_err() {
@@ -114,5 +114,16 @@ async fn socks(channel: Channel<Msg>, counts: &Arc<Counts>, log: &Log) {
     let _ = tcp.set_nodelay(true);
     if let Err(e) = crate::tally::copy(tcp, read.unsplit(write), counts).await {
         log.verbose(&format!("remote forward, SOCKS to {target} ended: {e}"));
+    }
+}
+
+/// A dial of the forward's `target` that failed with `said`: the dial's
+/// own words name the target where they can, and the target again would say
+/// it twice (T-828).
+fn cannot_connect(what: &str, target: &str, said: &str) -> String {
+    if said.contains(target) {
+        format!("{what}: {said}")
+    } else {
+        format!("{what} to {target}: cannot connect: {said}")
     }
 }

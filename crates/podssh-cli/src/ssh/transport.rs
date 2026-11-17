@@ -332,7 +332,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
                         let direct_proxy = Some(DirectProxy { proxy: proxy.to_string(), heard });
                         return Ok(Reached { stream: Box::new(watched), relay: None, direct_proxy, layer: None });
                     }
-                    Err(e) => log.error(&format!("could not connect to {target}: {e}")),
+                    Err(e) => log.error(&crate::pipe::remote::could_not_connect(&target, e.to_string())),
                 }
             }
             Err(NotReached { lines: Vec::new(), code: sysexits::EX_UNAVAILABLE })

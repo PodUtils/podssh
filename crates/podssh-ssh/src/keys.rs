@@ -151,7 +151,13 @@ impl PublicKeys {
     pub fn notes(&self) -> Vec<String> {
         let mut notes = Vec::new();
         if self.offered.is_empty() {
-            let files: Vec<String> = self.all_files.iter().map(|p| p.display().to_string()).collect();
+            // A file that is not there says so: `-i` with a wrong path is
+            // the usual cause, and the bare name hides it.
+            let shown = |p: &PathBuf| match std::fs::metadata(p) {
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => format!("{} (no such file)", p.display()),
+                _ => p.display().to_string(),
+            };
+            let files: Vec<String> = self.all_files.iter().map(shown).collect();
             notes.push(if files.is_empty() {
                 "no key was offered: no key file is configured and no agent answered; use -i FILE".to_string()
             } else {

@@ -293,7 +293,7 @@ Read: clap 4.6.7 (`Cargo.lock`) reports a missing value as
 `verify_num_args`, read in the local cargo registry). podssh sends this kind to
 the `_` arm (`crates/podssh-cli/src/clap_error.rs` lines 70-77 at `3cd368b`). The token is
 flag-shaped (`crates/podssh-cli/src/clap_error.rs:125-127`), so the arm calls
-`unknown_flag` (`crates/podssh-cli/src/refuse.rs:28-44`).
+`unknown_flag` (`crates/podssh-cli/src/refuse.rs:28-49`).
 
 ## Approach
 
@@ -390,7 +390,7 @@ rest. For a verb, clap reads each word before `--help` is answered
    (`crate::flags::verb_for`), it is `Parsed::Help` of that verb, as
    `podssh VERB --help` is. Any other word is `Parsed::Usage`:
    `unknown_flag` for a flag-shaped word
-   (`crates/podssh-cli/src/refuse.rs:28-44`), else a message that names it.
+   (`crates/podssh-cli/src/refuse.rs:28-49`), else a message that names it.
 2. `-V` or `--version` with any other word is `Parsed::Usage` (exit 64).
 3. Keep the verb level as it is: `podssh ssh --help host` prints the help of
    `ssh`, after clap has checked each word.
@@ -693,8 +693,8 @@ Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:381-455`
 group. Four places render it: `top_level_help`
 (`crates/podssh-cli/src/help.rs`, lines 132-146), the start of the manual
 (`crates/podssh-cli/src/man/model.rs`, lines 120-126), `unknown_verb`
-(`crates/podssh-cli/src/refuse.rs:136-140`) and `no_arguments`
-(`crates/podssh-cli/src/refuse.rs:163-174`).
+(`crates/podssh-cli/src/refuse.rs:150-154`) and `no_arguments`
+(`crates/podssh-cli/src/refuse.rs:177-188`).
 
 ## Approach
 
@@ -707,7 +707,7 @@ group. Four places render it: `top_level_help`
    the availability note of each line (`crates/podssh-cli/src/help.rs:192-199`).
 3. Keep the two refusal lists flat, or raise their limit with a reason:
    `a_refusal_is_a_line_not_a_usage_dump` allows 18 lines
-   (`crates/podssh-cli/src/refuse.rs:256-257`), and the list for
+   (`crates/podssh-cli/src/refuse.rs:270-271`), and the list for
    `example.org` has 17.
 4. Update `scripts/interop-man.sh` (lines 35-36 at `3a78cff`) in the same commit. It reads the
    `SUBCOMMANDS:` block up to the first blank line, and takes the first word
@@ -1366,7 +1366,7 @@ OpenSSH's verify with `-n git` then fails.
 
 2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-388`; an RSA key
 signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:81-88`), and the keys of
-the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:402-408`). The command is
+the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:408-414`). The command is
 `crates/podssh-cli/src/keygen_sign.rs:1-479`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
 - `cargo test -p podssh-ssh --lib -- sshsig`: 6 passed: the signatures of OpenSSH's (Ed25519 in
   `git`; RSA in `file` with SHA-256) verify, and refuse another namespace and changed data with
@@ -1878,7 +1878,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:368`,
-`crates/podssh-ssh/src/keys.rs:339` and `crates/podssh-cli/src/keygen.rs:382`.
+`crates/podssh-ssh/src/keys.rs:345` and `crates/podssh-cli/src/keygen.rs:382`.
 Its refusals name the real remedies (`docs/cli.md:6610-6612`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:379-400`,
@@ -3708,7 +3708,7 @@ still sets it starts, looks healthy, and does not do what its owner believes.
 
 Read at `2042200`:
 
-- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:67` says
+- A flag's refusal names its replacement: `crates/podssh-cli/src/refuse.rs:81` says
   "pub fn refused(verb: &str, given: &str, instead: &str, reason: &str) -> String {".
 - A service's file of variables takes each `PODSSH_` name but the secrets:
   `crates/podssh-cli/src/node_install/env.rs:45` says "name.starts_with(OWN) && !SECRET.contains(&name)",

@@ -33,7 +33,12 @@ pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>) -> String
     // just mistyped `-o StrictHostKeyChecking=no` needs, because the failure
     // they are afraid of is a **silent** drop, and the branch that cannot
     // suggest anything is the branch most likely to be a genuinely unknown flag.
-    let last = "Nothing was ignored: an unrecognised -o would drop a security setting.";
+    let last = if takes_o(verb) {
+        "Nothing was ignored: an unrecognised -o would drop a security setting."
+    } else {
+        // A verb with no -o has no such setting to drop (T-828).
+        "Nothing was ignored: the command did not run."
+    };
     match suggestion {
         Some(s) => format!("podssh: unknown flag '{token}'.\n  Did you mean '{s}'?\n  {last}"),
         // The verb's own help, where its flags are (T-818).
@@ -41,6 +46,15 @@ pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>) -> String
             let help = if verb.is_empty() { "podssh --help".to_string() } else { format!("podssh {verb} --help") };
             format!("podssh: unknown flag '{token}'.\n  Run '{help}' for the flags this build accepts.\n  {last}")
         }
+    }
+}
+
+/// Whether `verb` (or no verb: the top of the command line) takes `-o`.
+fn takes_o(verb: &str) -> bool {
+    let first = verb.split_whitespace().next().unwrap_or("");
+    match VERBS.iter().find(|v| v.aliases.contains(&first)) {
+        Some(v) => v.flags.iter().any(|f| f.short == Some('o')),
+        None => true,
     }
 }
 
@@ -321,6 +335,10 @@ mod tests {
         let bytes = bad_invocation("ssh", clap::error::ErrorKind::InvalidUtf8, "");
         assert!(bytes.contains("not UTF-8"), "{bytes}");
         assert!(without.contains("Nothing was ignored"), "{without}");
+        // The -o of the reassurance only where the verb takes -o (T-828).
+        assert!(without.contains("-o would drop"), "{without}");
+        let node = unknown_flag("node", "--relay-host", Some("--relay"));
+        assert!(node.contains("the command did not run") && !node.contains("-o"), "{node}");
         // Four lines: the flag, the next step, the reassurance, and nothing else.
         assert!(without.lines().count() <= 4, "{without}");
     }

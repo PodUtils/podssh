@@ -384,7 +384,7 @@ const FIRST: &[&str] = &[
      re-key; ~C opens a command line that adds and stops forwards (below); ~# lists the forwards of the session with \
      the connections and bytes of each (with -v, the end of a run prints the same lines); ~d leaves the shell to a far \
      end that keeps shells (see --attach) and goes as typed elsewhere; ~Z sends a file by ZMODEM (below); ~? lists the \
-     escapes, and ~~ sends one ~; another key \
+     escapes that this session offers, and ~~ sends one ~; another key \
      goes with the ~ before it. Each other byte passes unchanged, as the remote \
      side reads it: Ctrl-C, Ctrl-Z, Ctrl-D, Escape, the sequences of the keys, the mouse and a paste; only \
      a question of ZMODEM, and a transfer, take the keys. A resize of the terminal sends the new size. With \

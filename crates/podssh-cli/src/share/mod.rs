@@ -200,8 +200,11 @@ fn ls(label: Option<&str>, place: &Place, out: &mut dyn Write, err: &mut dyn Wri
     for share in &shares.list {
         let _ = writeln!(out, "{}\t{}", share.name, share.target());
     }
-    let count = shares.list.len();
-    let _ = writeln!(err, "podssh share: {who}: {count} shares in {}, each reached as {at}", path.display());
+    let count = match shares.list.len() {
+        1 => "1 share".to_string(),
+        n => format!("{n} shares"),
+    };
+    let _ = writeln!(err, "podssh share: {who}: {count} in {}, each reached as {at}", path.display());
     if !shares.bad.is_empty() {
         let _ = writeln!(err, "podssh share: lines {:?} of {} are no share NAME=HOST:PORT", shares.bad, path.display());
     }

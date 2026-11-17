@@ -104,7 +104,7 @@ pub async fn open(road: &Road, host: &str, port: u16, say: &mut dyn FnMut(&str))
             Ok(End::plain(Box::new(read), Box::new(write)))
         }
         Err(e) => {
-            say(&format!("could not connect to {target}: {e}"));
+            say(&crate::pipe::remote::could_not_connect(&target.to_string(), e.to_string()));
             Err(super::reach::exit_code(&e))
         }
     }

@@ -648,7 +648,7 @@ old writer can race the new one.
   (`crates/podssh-ssh/src/relay_stream.rs:236`,
   `crates/podssh-ssh/src/relay_stream.rs:265-277`). Each new SSH
   connection asks again for a passphrase or a password
-  (`crates/podssh-ssh/src/keys.rs:301-363`,
+  (`crates/podssh-ssh/src/keys.rs:307-369`,
   `crates/podssh-ssh/src/auth.rs:328-389`).
 
 ## Approach

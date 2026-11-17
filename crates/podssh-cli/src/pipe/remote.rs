@@ -253,16 +253,18 @@ pub(crate) async fn tcp_dial(host: &str, port: u16) -> Result<End, Option<podssh
 pub(crate) fn tcp_failure(host: &str, port: u16, e: Option<&podssh_ws::DialError>) -> String {
     match e {
         None => format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV),
-        // The dial's own words name the target where they can (T-817): its
-        // name again would say the cause twice.
-        Some(e) => {
-            let (target, said) = (podssh_ws::dial::authority(host, port), e.to_string());
-            if said.contains(&target) {
-                said
-            } else {
-                format!("could not connect to {target}: {said}")
-            }
-        }
+        Some(e) => could_not_connect(&podssh_ws::dial::authority(host, port), e.to_string()),
+    }
+}
+
+/// A dial of `target` that failed with `said`: the dial's own words name the
+/// target where they can (T-817), and its name again would say the cause
+/// twice (T-828, the direct road).
+pub(crate) fn could_not_connect(target: &str, said: String) -> String {
+    if said.contains(target) {
+        said
+    } else {
+        format!("could not connect to {target}: {said}")
     }
 }
 

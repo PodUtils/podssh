@@ -312,7 +312,11 @@ fn list_shown(list: &List) -> Result<String, Refusal> {
         [] => String::new(),
         lines => format!("; lines {lines:?} hold no key, and let nobody in"),
     };
-    Ok(format!("the {} keys of {}{bad}", list.len(), file.display()))
+    let keys = match list.len() {
+        1 => "the one key".to_string(),
+        n => format!("the {n} keys"),
+    };
+    Ok(format!("{keys} of {}{bad}", file.display()))
 }
 
 fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {

@@ -30,7 +30,7 @@ Read:
   never offers a key (`crates/podssh-ssh/src/auth.rs:124-126`).
 - The denial adds the notes of the keys with no condition
   (`crates/podssh-ssh/src/auth.rs` line 115 at `475aea9`). `PublicKeys::notes` writes "no key
-  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:150-163`).
+  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:150-169`).
 - The reporter's output (GitHub #7): the line
   `Permission denied (publickey,keyboard-interactive).`, the note about
   keyboard-interactive, then the wrong note.
@@ -52,7 +52,7 @@ Read:
 3. When the server does not accept `publickey`, say nothing about keys:
    `-i FILE` cannot help.
 4. Give the note about skipped encrypted keys
-   (`crates/podssh-ssh/src/keys.rs:164-170`) the same condition as step 1.
+   (`crates/podssh-ssh/src/keys.rs:170-176`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
    so that only the notes change. No document changes: `docs/cli.md:6595-6655`
    already says that a refusal names the remedy.
@@ -1338,9 +1338,9 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:410-447`, `connect_agent`). It offers the agent's
-  keys first (`crates/podssh-ssh/src/keys.rs:212-281`), and skips the agent's
-  certificates (`crates/podssh-ssh/src/keys.rs:220-223`).
+  Pageant (`crates/podssh-ssh/src/keys.rs:416-453`, `connect_agent`). It offers the agent's
+  keys first (`crates/podssh-ssh/src/keys.rs:218-287`), and skips the agent's
+  certificates (`crates/podssh-ssh/src/keys.rs:226-229`).
 - Read: russh 0.64.1, which the binary links, has an agent server
   (`russh::keys::agent::server::serve`): identities, signatures, add and
   remove, lock, and the lifetime and confirm constraints. It has no handler
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:432-436`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:438-442`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:354-361`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -1776,7 +1776,7 @@ with the key file of one, and has no agent to hold one.
   them (`crates/podssh-ssh/src/known_hosts.rs:416-417`), and `ssh-key`
   0.7.0-rc.11 has their algorithms.
 - Read: podssh offers each key that an agent lists
-  (`crates/podssh-ssh/src/keys.rs:212-281`), so an `sk-` key in OpenSSH's
+  (`crates/podssh-ssh/src/keys.rs:218-287`), so an `sk-` key in OpenSSH's
   `ssh-agent`, with its device present, can work today. Not measured.
 - Read: `-I` (PKCS#11) is refused by name
   (`crates/podssh-cli/src/flags.rs:272-273`).
@@ -2573,7 +2573,7 @@ its caller for a signature, it takes the caller's messages until one is a signat
 other (lines 287-299).
 
 Read: podssh offers the next key after a signature that failed
-(`crates/podssh-ssh/src/keys.rs:278`).
+(`crates/podssh-ssh/src/keys.rs:284`).
 
 ## Approach
 
@@ -2598,7 +2598,7 @@ the agent's error, as now; the test fails.
 that each server decodes and none verifies, of the key's own kind: Ed25519 64 bytes of zero, RSA
 zeros of the modulus's length, ECDSA r and s of 1 (`crates/podssh-ssh/src/answer.rs:48-106`); an
 empty one, the first try, made russh's server close the session, as it cannot decode it. The login
-says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:270`).
+says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:276`).
 - `cargo test -p podssh-ssh --lib -- agent_sign`: 1 passed, on Windows: for an Ed25519, an ECDSA
   and an RSA key whose agent refuses to sign, russh's server in the process refused the signature
   that stood in, and a key file logged in at once on the same connection. Planted: the agent's
@@ -2619,7 +2619,7 @@ says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:2
 ## Problem
 
 `podssh ssh -i FILE` asks for the passphrase of a key only when russh says that it is encrypted
-(`crates/podssh-ssh/src/keys.rs:310-311`). russh says so for a key of OpenSSH and for an RSA key
+(`crates/podssh-ssh/src/keys.rs:316-317`). russh says so for a key of OpenSSH and for an RSA key
 in PEM, but not for three others. An encrypted key of PKCS#8 (`BEGIN ENCRYPTED PRIVATE KEY`) is
 read as a plain one, and fails on its DER. An encrypted key of PuTTY fails with ssh-key's "private
 key is encrypted". A key in PEM encrypted with another cipher than AES-128-CBC is read as a plain
@@ -2669,7 +2669,7 @@ Plant: answer as russh does, with no look at the text; the tests of the question
 ## Done
 
 2026-10-11. `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-42`) reads each key
-file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:307-352`), `podssh agent add` and
+file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:313-358`), `podssh agent add` and
 `add-passphrase`, and `podssh keygen -p` and `-c`. It finds an encrypted key by its text (a PEM key
 with `Proc-Type: 4,ENCRYPTED`, `BEGIN ENCRYPTED PRIVATE KEY`, a PuTTY key whose `Encryption` is
 not `none`) and answers "encrypted" with no passphrase. It decrypts a PEM key of AES-128-CBC,

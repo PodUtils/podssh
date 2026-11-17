@@ -125,7 +125,7 @@ where
             }
             // A proxy's refusal too: the role's 502, with the proxy's status.
             Err(why) => {
-                let why = format!("relay: cannot reach {target}: {why}");
+                let why = format!("relay: {}", egress::cannot_reach(&target, &why));
                 // Its cause is a line on stdout too, as the manual says (T-816).
                 cfg.event(&format!("refused 502 {}", why.trim_start_matches("relay: ")));
                 return answer(&mut stream, request::refusal(502, &why, &[])).await;

@@ -1140,13 +1140,14 @@ podssh ssh
   the session with the connections and bytes of each (with -v, the end of a run
   prints the same lines); ~d leaves the shell to a far end that keeps shells
   (see --attach) and goes as typed elsewhere; ~Z sends a file by ZMODEM
-  (below); ~? lists the escapes, and ~~ sends one ~; another key goes with the
-  ~ before it. Each other byte passes unchanged, as the remote side reads it:
-  Ctrl-C, Ctrl-Z, Ctrl-D, Escape, the sequences of the keys, the mouse and a
-  paste; only a question of ZMODEM, and a transfer, take the keys. A resize of
-  the terminal sends the new size. With no pty, podssh reads no byte: stdin is
-  the command's data, and Ctrl-C is the local terminal's signal to podssh
-  (below). A session through a control master has its escapes at the master.
+  (below); ~? lists the escapes that this session offers, and ~~ sends one ~;
+  another key goes with the ~ before it. Each other byte passes unchanged, as
+  the remote side reads it: Ctrl-C, Ctrl-Z, Ctrl-D, Escape, the sequences of
+  the keys, the mouse and a paste; only a question of ZMODEM, and a transfer,
+  take the keys. A resize of the terminal sends the new size. With no pty,
+  podssh reads no byte: stdin is the command's data, and Ctrl-C is the local
+  terminal's signal to podssh (below). A session through a control master has
+  its escapes at the master.
 
   Ctrl-C in a session with no pty that runs a command or a shell (not -N, -W or
   -s): the first sends signal INT to the command, as OpenSSH's sshd ends the

@@ -39,7 +39,7 @@ pub async fn reach(road: &Road, host: &str, port: u16, rounds: u32, log: &Arc<Lo
                 return Ok(Reached { stream: Box::new(stream), relay: None, direct_proxy: None, layer: None });
             }
             Err(e) => {
-                log.error(&format!("could not connect to {target}: {e}"));
+                log.error(&crate::pipe::remote::could_not_connect(&target.to_string(), e.to_string()));
                 code = exit_code(&e);
                 // The proxy's answer, or a setting, is the same at each try.
                 if code != EX_UNAVAILABLE {

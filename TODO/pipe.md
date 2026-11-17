@@ -310,8 +310,8 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Measured: `podssh proxy unix-connect:/tmp/x.sock 1` exits 64
   (`':' is not allowed`): no command takes a socket path.
 - Read: podssh connects to a Unix socket only for the agent
-  (`crates/podssh-ssh/src/keys.rs:410-423`, `connect_agent`); on Windows the agent is a
-  named pipe (`crates/podssh-ssh/src/keys.rs:424-445`).
+  (`crates/podssh-ssh/src/keys.rs:416-429`, `connect_agent`); on Windows the agent is a
+  named pipe (`crates/podssh-ssh/src/keys.rs:430-451`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
   `crates/podssh-cli/src/doctor/unix.rs:235-240`).

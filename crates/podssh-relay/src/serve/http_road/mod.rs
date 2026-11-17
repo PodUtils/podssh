@@ -230,8 +230,9 @@ where
             if let Some(line) = line {
                 cfg.event(&format!("proxy: {line}"));
             }
-            let why = format!("relay: cannot reach {target}: {said}");
-            cfg.event(&format!("refused 502 cannot reach {target}: {said}"));
+            let reach = super::egress::cannot_reach(&target, &said);
+            let why = format!("relay: {reach}");
+            cfg.event(&format!("refused 502 {reach}"));
             return Err(write(stream, refuse(502, &why, &[], keep), keep).await);
         }
     };

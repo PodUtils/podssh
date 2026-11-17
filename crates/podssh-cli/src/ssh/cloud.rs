@@ -63,6 +63,7 @@ pub enum Road {
 /// `eice://[user@]ENDPOINT/ADDRESS[:PORT]` as its user and its road; `None`
 /// for each other destination.
 pub fn destination(text: &str) -> Result<Option<(Option<String>, Road)>, String> {
+    misplaced_user(text)?;
     if let Some((user, target)) = iap::destination(text)? {
         return Ok(Some((user, Road::Iap(target))));
     }
@@ -82,6 +83,19 @@ pub fn destination(text: &str) -> Result<Option<(Option<String>, Road)>, String>
         return Ok(Some((user, Road::Devtunnel(target))));
     }
     Ok(None)
+}
+
+/// `USER@SCHEME://REST`, a user before the scheme, refused with the form
+/// that is meant (`SCHEME://USER@REST`), where its port would be read as
+/// the scheme's `//REST` (T-828: `root@node://lab`).
+fn misplaced_user(text: &str) -> Result<(), String> {
+    let Some((user, rest)) = text.split_once('@') else { return Ok(()) };
+    let Some((scheme, after)) = rest.split_once("://") else { return Ok(()) };
+    let plain = |word: &str| !word.is_empty() && !word.contains([':', '/', '@']);
+    if plain(user) && plain(scheme) {
+        return Err(format!("{text:?}: the user goes after the scheme: {scheme}://{user}@{after}"));
+    }
+    Ok(())
 }
 
 /// A user's name before `@`, when it comes before the first `/`: a name of
