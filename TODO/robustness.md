@@ -3428,3 +3428,44 @@ a verb or a host that is not UTF-8, `-p 99999999999999999999`, `-o ConnectTimeou
 digits and `relay serve --idle` of 20 digits each end with 64 and one refusal, no panic. `--lib` 1251 passed; the
 keygen tests 20 passed; `podssh-ssh --lib known_hosts` 9 passed. A host that is not UTF-8 gets the vague "that command
 line cannot be used" (T-818's kind of finding).
+
+# T-821: A target that a proxy took and kept silent: the end's line says so
+
+**Source:** the lane's error rows in `pod-lab`'s network classes (T-809), 2026-11-17: behind `proxy-tls-reterminate`
+and `proxy-per-name`, whose proxy answers a CONNECT with 200 for any address or name.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Where the proxy of the relay's host takes the relay's CONNECT to a target that it cannot reach (an unroutable address,
+a name with no answer), then holds it silent for 30 s and closes it, `podssh ssh` says "the SSH handshake has not
+finished after 10 s: no byte came from the server" and then the generic "the connection closed unexpectedly", 31 s in
+all. The end's line does not say what happened: the target was taken and sent nothing.
+
+## Premise
+
+- `scripts/pod-lab-serve-lane.sh`, rows "an unreachable target" and "a name with no answer": two lines and 31 s behind
+  the two classes; one line at once on the host and behind `proxy-only`, whose proxy refuses with 403.
+- `crates/podssh-ssh/src/run.rs:466`: `describe` says "the connection closed unexpectedly" of each end of the stream.
+
+## Approach
+
+1. The role: a session whose target sent no byte and ended says so in its Close (a reason such as "the target closed
+   with no byte", not 1000), so the client has the relay's words.
+2. The client: an end of the stream before any byte of the server, after its note of the wait, says "the target took
+   the connection and closed it with no byte after N s", not the generic words; one line.
+3. The lane's two rows pass behind each network class.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test error_lines
+```
+
+With a stand-in target that takes a connection, says nothing and closes: one line that names it, 255. Then the lane
+behind `proxy-tls-reterminate` and `proxy-per-name`.

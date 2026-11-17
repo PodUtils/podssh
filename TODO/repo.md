@@ -7482,6 +7482,14 @@ ones). It also found that a full `doctor` and a first `node` reach public servic
 then turned them off. Its coverage (what matched the documents) is in its report; the next pass runs on the candidate
 of the beta, after these are done.
 
+2026-11-17, the lane with its error rows behind `pod-lab`'s network classes (`podlab` of podcrates `v0.69.0`, checked
+against its `SHA256SUMS`; a debug build of `1ed2c2a`): `proxy-only` passed each of its nine rows. Behind
+`ws-upgrade-refused`, `proxy-tls-reterminate` and `proxy-per-name` the success rows passed; the error rows found more:
+a proxy that answers in the relay's place gives the mint's "HTTP 200: the response was not the expected JSON"
+(pod-relay's words, added to COORD-116); a road's notice of a refused upgrade is information, as the row now counts it;
+and a target that the relay host's proxy took and kept silent ends with two lines after 31 s (T-821). The lane passes
+in a class only when each row does; it stands between podssh and its next beta.
+
 # T-820: podssh's copies of shared code, as podcrates named them (COORD-131)
 
 **Source:** PodUtils/podcrates#221 (COORD-131, 2026-11-17, to all): the owner's ruling "Shared code" and podcrates'

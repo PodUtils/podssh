@@ -128,8 +128,8 @@ else
 fi
 # The error rows (T-809, after podnet's QA round, PodUtils/podnet#649): each
 # failure ends within its limit, with its documented exit code, and says its
-# cause in one line. A line of information (a new key, a host key added) is
-# no error line. A row that hangs, exits with another code, or says its cause
+# cause in one line. A line of information (a new key, a host key added, the
+# road that a refused upgrade sends a link on) is no error line. A row that hangs, exits with another code, or says its cause
 # twice fails the lane.
 row() {
     name=$1 code=$2 words=$3 limit=$4
@@ -138,9 +138,9 @@ row() {
     SSL_CERT_FILE=$W/trust.pem timeout "$limit" "$@" < /dev/null > row.out 2> row.err
     rc=$?
     took=$(( $(date +%s) - s ))
-    grep -v -e "a new key for this client" -e "Permanently added" row.err > row.lines
+    grep -v -e "a new key for this client" -e "Permanently added" -e "each link goes on the HTTP road" row.err > row.lines
     n=$(grep -c . row.lines)
-    if [ "$rc" = "$code" ] && [ "$n" = 1 ] && grep -q -e "$words" row.lines; then
+    if [ "$rc" = "$code" ] && [ "$n" = 1 ] && grep -q -E -e "$words" row.lines; then
         echo "ok   $name: exit $rc in $took s, one line: $(cat row.lines)"
     else
         echo "FAIL $name: exit $rc (want $code) in $took s, $n lines (want 1, with \"$words\")"
@@ -148,9 +148,10 @@ row() {
         exit 1
     fi
 }
-# The relay's port where nothing listens: the token's mint is refused.
+# The relay's port where nothing listens: the token's mint is refused; behind
+# a class whose proxy answers in the relay's place, its answer is no token.
 # shellcheck disable=SC2086 # $ADDR and $o are lists of options, a word each
-row "a dead relay" 255 "could not mint" 60 "$B" ssh --relay-host listed.test:1 $ADDR $o root@127.0.0.1 true
+row "a dead relay" 255 "could not mint|minting a relay token failed" 60 "$B" ssh --relay-host listed.test:1 $ADDR $o root@127.0.0.1 true
 # A port of the target where nothing listens, behind the role.
 # shellcheck disable=SC2086 # $ADDR is a list of options, a word each
 row "a refused connect" 255 "could not reach" 60 "$B" ssh --relay-host "$RELAY" $ADDR \
@@ -160,9 +161,10 @@ row "a refused connect" 255 "could not reach" 60 "$B" ssh --relay-host "$RELAY" 
 # shellcheck disable=SC2086 # $ADDR and $o are lists of options, a word each
 row "an unreachable target" 255 "could not reach" 120 "$B" ssh --relay-host "$RELAY" $ADDR $o root@10.255.255.1 true
 # A name that no resolver answers: the role says so in the words of its
-# policy, as for each target that it does not dial (GitHub #126).
+# policy, as for each target that it does not dial (GitHub #126); behind a
+# class whose proxy the role dials through, the proxy's refusal.
 # shellcheck disable=SC2086 # $ADDR and $o are lists of options, a word each
-row "a name with no answer" 255 "does not allow" 60 "$B" ssh --relay-host "$RELAY" $ADDR $o root@no-such-host.invalid true
+row "a name with no answer" 255 "does not allow|refused CONNECT" 60 "$B" ssh --relay-host "$RELAY" $ADDR $o root@no-such-host.invalid true
 # A pair whose node is not online.
 # shellcheck disable=SC2086 # $ADDR is a list of options, a word each
 SSL_CERT_FILE=$W/trust.pem timeout 60 "$B" relay pair lane-off --relay-host "$RELAY" $ADDR > /dev/null 2>&1
