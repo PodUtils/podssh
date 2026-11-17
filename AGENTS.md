@@ -147,11 +147,22 @@ each by a git tag of that repository. A session of podssh's own work:
 - adds no hardcoded host of another party: those lists go to `pod-services`;
 - talks with the other sessions as the next section says.
 
-**Shared code first** (the owner's ruling "Shared code", 2026-11-17, `docs/decisions.md`). Before
-writing a capability, search PodUtils/podcrates (its `docs/design.md`, each crate's `README.md`) and
-each sibling. Where podcrates has it, take the crate; where it has most of it, ask for the extension
-by a COORD issue `(to podcrates)`; where a sibling has it, do not copy it: ask podcrates, and the
-code moves there for both. Each copy that podssh keeps is named to podcrates by a COORD issue.
+**Shared code first** (the owner's ruling, 2026-11-17; PodUtils/podcrates `docs/session-protocol.md`
+at `0fefea74c`). Before you write a capability (a dialer, a proxy client, a DNS path, a retry, a lock
+of a shared file, a probe of the host, a parser of the help, an installer step, a stand-in for a
+test), search for it:
+
+1. In podcrates: `docs/design.md` (the table of crates) and each crate's `README.md`. Where a crate
+   has it, take the crate. Where it has most of it, ask podcrates for the extension by a COORD issue
+   `(to podcrates)`; do not write a second copy beside it.
+2. In each sibling (podnet, podvm, podrunner). Where a sibling has it, do not copy it: ask podcrates
+   for it by a COORD issue. A module of a sibling that a second project needs moves to podcrates, and
+   both take it from there.
+3. Where nobody has it and a second project can need it, ask podcrates first. Write it here only
+   when it is specific to podssh.
+
+Each copy that exists today is an entry of the record of podcrates that ends with one copy there
+(podssh's: T-820).
 
 ### Talk with the other sessions of PodUtils
 
@@ -368,13 +379,18 @@ or outside the repository. Never print the claim URL of railway.new.
 
 These rules come from [docs/decisions.md](docs/decisions.md).
 
-**Quality first** (the owner's ruling "Quality first", 2026-11-17): quality code with redundancy and
-fallbacks built in, not a zillion tests. Each edge (an input, a file that another process shares, a
-peer, a proxy, a resolver, the host) has a check and a second path, also where the first path works
-today. Each failure gives one true line (what happened, not what was asked) and a documented exit
-code; no panic reaches the user. A test pins a class of fault: one table-driven test where a family
-of cases has one rule, not a test for each case by reflex. "Ready" comes from a run on a constrained
-host and an outside pass with the binary and the documents alone (T-809).
+**Quality first** (the owner's ruling, 2026-11-17; the same document):
+
+- Write code that fails safe at each edge: an input (not UTF-8, too large, out of range), a file that
+  another process shares (a lock and a unique name: a pid is not unique across PID namespaces), a
+  peer that answers wrong or not at all, a proxy, a resolver, the host. Each edge has a check and a
+  second path, also where the first path works today.
+- Each failure gives one line that is true (what happened, not what was asked), and a documented exit
+  code. No panic reaches the user.
+- A test pins a class of fault: one table-driven test where a family of cases has one rule (the help,
+  the parser and the manual against one table). Do not add a test for each case by reflex.
+- "Ready" comes from a run on a constrained host and an outside pass with the binary and the
+  documents only, not from your own checks (T-809).
 
 1. Do not assume that the client host has a privilege, a tool or a setup.
    Probe it at runtime. Do not use a capability that was not probed.
