@@ -201,6 +201,27 @@ fn sftp_names_the_command_that_ended_the_batch() {
     assert!(r.get("files").is_none() && r["bytes"].is_null(), "{r}");
 }
 
+/// A line of a batch that does not parse is echoed first, as each line is
+/// (T-818), then refused with 64.
+#[test]
+fn sftp_echoes_a_line_that_does_not_parse() {
+    let Some(far) = far("result-sftp-echo") else { return };
+    let port = far.port.to_string();
+    let batch = far.local.join("batch");
+    std::fs::write(
+        &batch,
+        "pwd
+bogus thing
+pwd
+",
+    )
+    .unwrap();
+    let batch = batch.display().to_string();
+    let (code, out, err, _) = ran(&far, "sftp", &["-P", port.as_str(), "-b", batch.as_str(), "a@127.0.0.1"]);
+    assert_eq!(code, 64, "{err}");
+    assert!(out.contains("sftp> bogus thing"), "the line first: {out} {err}");
+}
+
 /// The six verbs, each against the same far host: one list of keys, each
 /// key of one type, and `bytes` the streams of a command wherever it is
 /// an object.

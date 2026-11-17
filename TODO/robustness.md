@@ -3365,8 +3365,11 @@ Partial, 2026-11-17. Done:
   adds what needs no listener (`allowed_for_pipe`): `relay serve` said pipe's words before. Both exit 78.
 - EXIT STATUS names `play`'s 1 (a recording that cannot be read), `edit`'s 66 (a file not on the host) and `ping`'s 69
   of a refused default target; `--lib man` 114 passed.
+- `ping` at a dead relay: no empty field before the cause (`ping/relay.rs` `Leg::line`), with a unit test.
+- `sftp -b`: a line that does not parse is echoed first, as each line is (`sftp/mod.rs`), then refused with 64;
+  `--test result_file` `sftp_echoes_a_line_that_does_not_parse` (planted, no echo: caught).
 Waits: a relay that mints for none to name `PODSSH_RELAY_TOKEN` (the words are `pod-relay`'s `token.rs`, which names
-no consumer's variable: an ask of podcrates); `ping`'s empty field at a dead relay; `sftp -b`'s echo of a failing line; the two places of the manual on `pipe
+no consumer's variable: an ask of podcrates); the two places of the manual on `pipe
 relay:`'s half-close; one line of 900 characters for an unresolvable TARGET of `node`; `agent list`'s comment of a key;
 `agent`'s socket under `/tmp` with a long `XDG_RUNTIME_DIR`, said; a host that is not UTF-8, named.
 

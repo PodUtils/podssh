@@ -342,6 +342,10 @@ async fn batch(state: &mut State<'_>, lines: &[String], log: &Log, out: &mut dyn
             Ok(Some(line)) => line,
             Ok(None) => continue,
             Err(why) => {
+                // Echoed first, as each line of the batch is (T-818), unless `@`.
+                if !text.trim_start().starts_with('@') {
+                    let _ = writeln!(out, "sftp> {}", text.trim().trim_start_matches('-'));
+                }
                 log.error(&why);
                 (tally.run, tally.failed) = (tally.run + 1, tally.failed + 1);
                 tally.failed_command = Some(text.trim().to_string());

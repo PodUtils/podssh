@@ -58,15 +58,20 @@ impl Leg {
         if let Some(took) = &self.upgrade {
             steps.push(format!("upgrade to {} {}", self.target, ms(took)));
         }
-        let mut line = format!("relay {}: {}", self.host, steps.join(", "));
+        // Each part that is there, joined: no empty field where no step
+        // came before a failure (T-818).
+        let mut parts = Vec::new();
+        if !steps.is_empty() {
+            parts.push(steps.join(", "));
+        }
         if let Some(summary) = Summary::of(&self.pings) {
             let lost = if self.lost > 0 { format!(" ({} lost)", self.lost) } else { String::new() };
-            line.push_str(&format!("; {} pings: {}{lost}", self.pings.len(), summary.shown()));
+            parts.push(format!("{} pings: {}{lost}", self.pings.len(), summary.shown()));
         }
         if let Some(why) = &self.failed {
-            line.push_str(&format!("; {why}"));
+            parts.push(why.clone());
         }
-        line
+        format!("relay {}: {}", self.host, parts.join("; "))
     }
 
     pub fn json(&self) -> serde_json::Value {
@@ -230,4 +235,28 @@ async fn pings(leg: &mut Leg, session: Arc<RelaySession>, count: usize) {
     }
     let _ = session.send_close(1000, "").await;
     reader.abort();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A leg that failed before any step has no empty field (T-818).
+    #[test]
+    fn a_leg_that_failed_first_says_its_cause_alone() {
+        let failed = Leg {
+            host: "listed.test:1".into(),
+            target: "github.com:22".into(),
+            token: None,
+            connect: None,
+            tls: None,
+            upgrade: None,
+            pings: Vec::new(),
+            lost: 0,
+            failed: Some("the relay token: refused".into()),
+        };
+        assert_eq!(failed.line(), "relay listed.test:1: the relay token: refused");
+        let stepped = Leg { tls: Some(Duration::from_millis(12)), ..failed };
+        assert_eq!(stepped.line(), "relay listed.test:1: TLS 12 ms; the relay token: refused");
+    }
 }

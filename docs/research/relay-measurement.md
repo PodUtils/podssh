@@ -177,7 +177,7 @@ Read in the tools. Each stage is one pass: each cell is measured once.
   16 MiB in 4.4 to 6.3 s, dial included, in the next stage, so the delay did
   not come again with the host. `podssh ping` times the CONNECT apart from
   the TLS and the upgrade, so its numbers keep a slow proxy out of the
-  relay's line (`crates/podssh-cli/src/ping/relay.rs:161-198`).
+  relay's line (`crates/podssh-cli/src/ping/relay.rs:166-203`).
 - **The relay's dial of the target with the client's leg.** podssh's relay
   dials the target before its `101` ([relay.md](../relay.md), "The forward
   path"), so its `upgrade_ms` holds the dial of `git.sr.ht`; through
@@ -321,7 +321,7 @@ hold podssh's own reading of each class.
 
 | The archive's stage | podssh | Where |
 | --- | --- | --- |
-| The probe's upgrade and banner | `podssh ping`, the relay leg of each host: the token, TCP or CONNECT, TLS and the upgrade, each timed, then WebSocket pings with min, p50, p95 and max, one host after another; `--json` | `crates/podssh-cli/src/ping/relay.rs:102-150`, `crates/podssh-cli/src/ping/relay.rs:202-233`, `crates/podssh-cli/src/ping/mod.rs:172-177` |
+| The probe's upgrade and banner | `podssh ping`, the relay leg of each host: the token, TCP or CONNECT, TLS and the upgrade, each timed, then WebSocket pings with min, p50, p95 and max, one host after another; `--json` | `crates/podssh-cli/src/ping/relay.rs:107-155`, `crates/podssh-cli/src/ping/relay.rs:207-238`, `crates/podssh-cli/src/ping/mod.rs:172-177` |
 | The write leg (KEXINIT, IRC) | `doctor`'s `forward`: a forward session to `github.com:22` must show one of GitHub's published host keys, which needs the key exchange both ways and that nothing between answered in GitHub's place | `crates/podssh-cli/src/doctor/relay_checks.rs:218-254` |
 | One sample | `doctor`'s samples: nine tries over at least a second, best, median, p95, jitter and loss, a refusal counted apart | `crates/podssh-cli/src/doctor/samples.rs:1-25` |
 | The relay's side | `podssh relay trace` (the relay's dial and first byte), `relay status` (each host's `/health` and edge), `relay info` (the pool and the limits) | `crates/podssh-cli/src/relay_diag.rs:1-7` |
@@ -484,7 +484,7 @@ looks past the first three hosts of the pool. The design:
    host of the cached pool (all of them), or the list of `--relay-host`; each host
    probed `--rounds` times in a new random order each round, one host at a
    time, by the code of `podssh ping`'s relay leg
-   (`crates/podssh-cli/src/ping/relay.rs:102`), to `--target` (GitHub's SSH
+   (`crates/podssh-cli/src/ping/relay.rs:107`), to `--target` (GitHub's SSH
    port by default, never a session's destination). The order of the
    harness's rank (section 7). The rank goes into the cache as
    `relay-rank.json`, mode 0600, beside `relay-failures.json`: when it was

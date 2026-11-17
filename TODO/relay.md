@@ -3162,7 +3162,7 @@ URL written into each result, and a download target that is no test target of `A
 ## Premise
 
 - Read: `podssh ping` times the token, the dial, TLS and the upgrade of one host, then its
-  WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:102-150`), one host after another
+  WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), one host after another
   (`crates/podssh-cli/src/ping/mod.rs:172-177`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
   (`crates/podssh-cli/src/doctor/relay_checks.rs:218-254`); `--quick` keeps the relay's sections and
@@ -3317,7 +3317,7 @@ working hosts, which a measurement can make.
   ranks relays by the edge that answered, and that its `score_ms` did not agree with the measured
   latency.
 - Read: `podssh ping`'s leg times the token, the dial, TLS and the upgrade of one host, and its
-  WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:102-150`), and `ping` runs the legs one after
+  WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), and `ping` runs the legs one after
   another (`crates/podssh-cli/src/ping/mod.rs:172-177`); the module is private to `ping`
   (`crates/podssh-cli/src/ping/mod.rs:9`).
 - Read: the record of failures is a file of the cache, `PodUtils/podssh:crates/podssh-relay/src/failures.rs:27`
