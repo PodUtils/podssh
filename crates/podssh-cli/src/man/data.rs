@@ -48,8 +48,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
-             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh \
-             edit: the file is not on the host.",
+             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,
