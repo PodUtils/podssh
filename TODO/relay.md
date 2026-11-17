@@ -6256,7 +6256,7 @@ dropped link is most common.
 
 - `scripts/pod-lab-serve-lane.sh`'s command 6 in `ws-upgrade-refused` (2026-11-16): "the class refuses the resumable
   layer, so the cut ended the session (255)", while in `proxy-only` "the session resumed after 0.1 s".
-- `crates/podssh-cli/src/relay_layer.rs:67` says "the session goes on with no resume" when the first link fails.
+- `crates/podssh-cli/src/relay_layer.rs:68` says "the session goes on with no resume" when the first link fails.
 - The client of each link is `pod-relay`'s (`forward_layer::client`, PodUtils/podcrates); the HTTP road's client takes a
   `Target` of a host and a port alone (`pod-relay/src/http_road/client.rs`, `Target`), so it cannot name the layer.
 

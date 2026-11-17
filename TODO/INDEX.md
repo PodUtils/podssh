@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**773 entries: 34 open, 37 partial, 11 blocked, 691 done.**
+**773 entries: 33 open, 37 partial, 11 blocked, 692 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 1 | 8 | 3 | 84 | 96 |
+| P1 | 0 | 8 | 3 | 85 | 96 |
 | P2 | 3 | 22 | 2 | 292 | 319 |
 | P3 | 30 | 7 | 6 | 314 | 357 |
-| **All** | 34 | 37 | 11 | 691 | 773 |
+| **All** | 33 | 37 | 11 | 692 | 773 |
 
 ## Entries
 
@@ -841,7 +841,7 @@ repository and CI).
 | [T-808](repo.md) | P3 | S | none | chore | done | podssh-ssh's dates without chrono, which RUSTSEC-2026-0543 calls unmaintained |
 | [T-809](repo.md) | P2 | M | M10 | chore | partial | What the release gate proves, and the gaps that podnet's QA round found: examples, error paths, a black-box pass |
 | [T-810](robustness.md) | P1 | S | M10 | defect | done | `PODSSH_OFFLINE` does not stop `podssh update --check` |
-| [T-811](robustness.md) | P1 | M | M10 | defect | open | `podssh each` on the layer's road: concurrent sessions of one process fail but one |
+| [T-811](robustness.md) | P1 | M | M10 | defect | done | `podssh each` on the layer's road: concurrent sessions of one process fail but one |
 | [T-812](robustness.md) | P2 | S | M10 | defect | open | With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run |
 | [T-813](robustness.md) | P2 | S | M10 | defect | open | `health --preflight` says `direct` of a session that went through the relay |
 | [T-814](robustness.md) | P2 | S | M10 | defect | open | The hint of an idle cut names 180 s where the relay published another limit |

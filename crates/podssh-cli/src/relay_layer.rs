@@ -35,6 +35,7 @@
 
 mod half;
 pub(crate) mod links;
+mod one_thread;
 pub(crate) mod ssh;
 
 use std::io::Write;

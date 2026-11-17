@@ -2999,7 +2999,7 @@ proxy, caught.
 **Milestone:** M10
 **Priority:** P1
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3026,6 +3026,20 @@ cargo test -p podssh-cli --test each_layer
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Done
+
+2026-11-17. The cause: the process's pool of HTTP/2 connections to a relay (`pod_relay::Context`'s, pod-ws's
+`h2_road::Pool`) drives each connection on the runtime that opened it, and each session of the layer's road ran on a
+thread and a runtime of its own (`relay_layer/ssh.rs`). The sessions of `each` shared one connection; when the first
+session ended, its runtime ended the connection, and the others' links broke ("broken pipe", in the layer's handshake
+a failure). Reproduced here: `podssh each` of three hosts through `podssh relay serve` lost a link in 2 runs of 3.
+Repaired: `crates/podssh-cli/src/relay_layer/one_thread.rs` runs each session of the layer's road on one thread and
+runtime for the life of the process (a `LocalSet`, as the opener's future is not `Send`; the thread's stack of 16 MiB as
+before). Asked of podcrates, at the root: COORD-113 (#310). `cargo test -p podssh-cli --test each_layer`: 1 passed
+(five runs, three good hosts and one name with no answer: 3 gave 0, 1 failed, no link lost); planted, the runtime of
+each session back: caught on its first run. `--lib one_thread` 1 passed; `--test relay_serve --test node --test
+http_road_layer_cli --test error_lines --test h2_each_cli --test each` and `--lib` (1251) passed.
 
 # T-812: With `PODSSH_RELAY_LAYER` unset, a named relay's offer is never read, so `proxy` never half-closes on a first run
 

@@ -9,10 +9,10 @@
 //! ends with its link. Where the way refuses the upgrade of a link, the
 //! links go on the HTTP road (`super::links`), with one line.
 //!
-//! The road runs on a thread of its own, with a runtime of its own, from
-//! the read of the offer to the session's end: the forward opener's future
-//! holds the lines that it says, so no task can take it, and the session
-//! goes on while the command's own task runs SSH.
+//! The road runs on the layer's one thread and runtime (`super::one_thread`),
+//! from the read of the offer to the session's end: the forward opener's
+//! future holds the lines that it says, so it runs as a local task there, and
+//! the session goes on while the command's own task runs SSH.
 
 use std::sync::Arc;
 
@@ -101,15 +101,16 @@ pub(crate) async fn reach(
     };
     let (tell, told) = oneshot::channel();
     let (ended, done) = oneshot::channel();
-    // The stack of the command's own thread (`main.rs`): this one runs the
-    // same opener, whose futures are deep (a debug build overflowed 2 MiB
-    // once QUIC's race joined the TCP road, T-667).
-    let started = std::thread::Builder::new()
-        .name("podssh-relay-layer".into())
-        .stack_size(16 << 20)
-        .spawn(move || run(road, tell, ended));
-    if let Err(e) = started {
-        log.info(&format!("the resumable layer's thread did not start ({e}): {}", super::WITHOUT));
+    // Each session of the process on one thread and runtime (T-811): their
+    // connections of HTTP/2 are shared, and live on the runtime that made them.
+    let job: super::one_thread::Job = Box::new(move || {
+        Box::pin(async move {
+            carried(road, tell).await;
+            let _ = ended.send(());
+        })
+    });
+    if let Err(why) = super::one_thread::submit(job) {
+        log.info(&format!("{why}: {}", super::WITHOUT));
         return None;
     }
     match told.await {
@@ -121,21 +122,6 @@ pub(crate) async fn reach(
         // The thread ended before it said anything: the contract's road.
         Err(_) => None,
     }
-}
-
-/// The road on its thread, in a runtime of its own; `ended` once the
-/// session ended, its `CLOSE` sent and its last line said.
-fn run(road: Road, tell: oneshot::Sender<Begun>, ended: oneshot::Sender<()>) {
-    let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
-        Ok(runtime) => runtime,
-        Err(e) => {
-            road.log.info(&format!("the resumable layer could not start its runtime ({e}): {}", super::WITHOUT));
-            let _ = tell.send(Begun::Contract);
-            return;
-        }
-    };
-    runtime.block_on(carried(road, tell));
-    let _ = ended.send(());
 }
 
 /// The offer, the first link and its handshake, each told to `tell`; then
