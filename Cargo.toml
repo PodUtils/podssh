@@ -177,7 +177,7 @@ p256 = { version = "0.14", default-features = false, features = ["ecdsa", "arith
 # presents, so it is not a provider.
 p384 = { version = "0.14", default-features = false, features = ["ecdsa", "arithmetic"] }
 # RSA signature verification in podssh's TLS provider (public keys only).
-rsa = { version = "0.9", default-features = false, features = ["std"] }
+rsa = { version = "0.10", default-features = false, features = ["std"] }
 
 # rand's `sys_rng` backend (getrandom) reads the OS, not a C library.
 # `small_rng` is deliberately off: podssh's protocol randomness is OS-sourced
