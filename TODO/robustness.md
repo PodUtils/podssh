@@ -3492,3 +3492,242 @@ nine rows pass behind `proxy-only`, `proxy-tls-reterminate`, `proxy-per-name` an
 `sni-allowlist` and `no-proxy-no-dns` each row but "a name with no answer", which waits for COORD-112's tag;
 `ipv6-only` does not hold on this host.
 
+
+# T-822: `cp`, `scp` and `sftp` write `relay: null` in `--result-file` for a copy that the relay carried
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+`podssh cp $R ... --result-file r.json lab:/etc/hostname ./h1` exited 0 with `"relay":null`, though `-v` and the role's
+log showed the relay's session; `podssh ssh --result-file` fills it. The manual (podssh cp) names relay's host,
+close_code, reason and sessions.
+
+## Approach
+
+Fill `relay` for each verb of copies from the relay that carried its sessions; a test of `cp`, `scp` and `sftp`
+through podssh's relay role reads the host there.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test result_file
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-823: `transferred.up` of a resumed copy counts the whole file
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+After Ctrl-C and a run again of `cp big.bin lab:...` (120 MiB), `-v` said `continuing ... .part at byte 13317120`, and
+`transferred.up` was 125829120 with `1 copied (120.0 MiB)`. The manual: transferred is "the bytes of the files
+through this host".
+
+## Approach
+
+Count the bytes that this run moved (the file less its kept part), and say the kept part apart; a test that resumes
+a copy and reads both.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test result_file
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-824: A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health`
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+The relay's cause first (`the relay could not reach its target: 127.0.0.1:2299: Connection refused`), then
+`127.0.0.1:2299: broken pipe` (each, also its `--json` error) or `the connection was taken and then closed after 0.0 s
+with no byte of the server` (scp, sftp, health). `ssh` and `proxy` say one line: T-809's rule of `ssh/mod.rs`
+(`layer_told`) reaches only that path.
+
+## Approach
+
+The one-line rule at each verb that runs a session on the layer's road: the client's echo of a cause that the road
+said is no second line; a table of `error_lines.rs` over each verb.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test error_lines
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-825: Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+`relay serve --listen` on a port in use exits 69 ("the relay or TARGET could not be reached"), where `pipe`'s refused
+bind is 77; `operator labnode/nope` with a key that may not use the route exits 70 ("the end-to-end channel failed"),
+where a node's refusal of a key is 77.
+
+## Approach
+
+A bind that fails is the code that `pipe` gives (69 in use, 77 refused) with its row in EXIT STATUS; a route refused
+is 77, as the node's other refusals; a test of each.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-826: At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+With `relay serve --max-session-mib 1`, `ssh ... 'head -c 3145728 /dev/zero'`: the role logged `end close 1009 session
+byte cap` three times; the client saw `the link failed: Connection reset by peer`, resumed, and the bytes came whole.
+The manual says the client moves the session to a new link before the relay's limits; it did at 64 MiB, not at 1.
+
+## Approach
+
+The role's Close goes out before its socket closes (its 1009 read by the client); the client's budget of a link takes
+the relay's published cap of any size; a test with a role of `--max-session-mib 1`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-827: `relay serve --key` in a file that others may read starts with no word
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+`relay serve --cert leaf.pem --key lk644` (mode 0644) served with no line; its help says "--key FILE ... in a file that
+only its owner reads".
+
+## Approach
+
+Say it on start (a line that names the mode and `chmod 600`), as podssh does of each other key file; or refuse it, as
+the help's words ask; a test.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib relay_serve
+```
+
+The test fails on the code before the fix and passes after it.
+
+# T-828: The second black-box pass's smaller findings: the documents and the lines
+
+**Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The documents promise one thing and podssh does another (the second black-box pass, below).
+
+## Premise
+
+Doc gaps: `-f`'s text names ProxyCommand that `ssh` refuses; `session`'s socket under `/tmp` with a long cache path,
+unsaid; `node --print-unit --system` with ExecStart under `/tmp` or a home that the unit's hardening hides; no way to
+print an operator's own key in the form of `--grant-to` (`keygen -y` refuses `client.key`); `sftp -b missing` exits 66
+(not in its row); `node --run-as nosuchuser` exits 69. Lines: a key that may not mint retries the same 403; a failed
+TLS check prints one line twice, and a certificate of another name falls to cleartext with no cause said; a relay
+killed mid-session gives a docs.rs link and "the far end forgot the session" for a restart; `share add` claims a route
+that the command line's route keeps; `remote forward ... could not connect to` twice; `relay trace` names its target
+twice; `2 addresses (X, X)`; `-v` calls the relay's layer "a node"; sftp's progress counts across gets; scp and cp do
+not expand a remote glob; a missing destination directory names the `.part` file; two copies to one destination share
+one `.part`; `ssh -i nofile` says nothing; `ssh root@node://NAME` gives "is not a port"; `node --relay-host` gets the
+`-o` reassurance; `~?` does not list `~d`; "the 1 keys", "1 shares".
+
+## Approach
+
+Each one repaired, or its documents made true, with a test where behaviour changes; a case in a crate of podcrates
+asked there.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib
+```
+
+The test fails on the code before the fix and passes after it.

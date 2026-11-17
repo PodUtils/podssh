@@ -7490,6 +7490,13 @@ a proxy that answers in the relay's place gives the mint's "HTTP 200: the respon
 and a target that the relay host's proxy took and kept silent ends with two lines after 31 s (T-821). The lane passes
 in a class only when each row does; it stands between podssh and its next beta.
 
+2026-11-17, a second black-box pass (the same form, a debug binary of `37abf31`, each public road switched off before its
+first command): seven defects and more lines, filed as T-822 to T-828 (a copy's `relay` in `--result-file`, a resumed
+copy's count, a second wrong line of a refused target in `each`, `scp`, `sftp` and `health`, two codes that EXIT STATUS
+does not name, a low byte cap's Close lost as a reset, a key file that others may read, and the smaller ones). Two reads
+left the loopback, each documented: DNS over HTTPS where `--relay-addr` was left out by mistake, and the relay's dial
+of `ping`'s default target, github.com:22.
+
 # T-820: podssh's copies of shared code, as podcrates named them (COORD-131)
 
 **Source:** PodUtils/podcrates#221 (COORD-131, 2026-11-17, to all): the owner's ruling "Shared code" and podcrates'

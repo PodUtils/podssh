@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**776 entries: 27 open, 38 partial, 11 blocked, 700 done.**
+**783 entries: 34 open, 38 partial, 11 blocked, 700 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 0 | 23 | 2 | 297 | 322 |
-| P3 | 27 | 7 | 6 | 317 | 357 |
-| **All** | 27 | 38 | 11 | 700 | 776 |
+| P2 | 4 | 23 | 2 | 297 | 326 |
+| P3 | 30 | 7 | 6 | 317 | 360 |
+| **All** | 34 | 38 | 11 | 700 | 783 |
 
 ## Entries
 
@@ -852,3 +852,10 @@ repository and CI).
 | [T-819](robustness.md) | P2 | S | M10 | defect | done | podvm's lessons checked in podssh: temp files named by a pid, hostile input at the edges |
 | [T-820](repo.md) | P2 | M | M10 | chore | partial | podssh's copies of shared code, as podcrates named them (COORD-131) |
 | [T-821](robustness.md) | P2 | M | M10 | defect | done | A target that a proxy took and kept silent: the end's line says so |
+| [T-822](robustness.md) | P2 | S | M10 | defect | open | `cp`, `scp` and `sftp` write `relay: null` in `--result-file` for a copy that the relay carried |
+| [T-823](robustness.md) | P2 | S | M10 | defect | open | `transferred.up` of a resumed copy counts the whole file |
+| [T-824](robustness.md) | P2 | S | M10 | defect | open | A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health` |
+| [T-825](robustness.md) | P3 | S | M10 | defect | open | Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused |
+| [T-826](robustness.md) | P2 | M | M10 | defect | open | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
+| [T-827](robustness.md) | P3 | S | M10 | defect | open | `relay serve --key` in a file that others may read starts with no word |
+| [T-828](robustness.md) | P3 | M | M10 | defect | open | The second black-box pass's smaller findings: the documents and the lines |
