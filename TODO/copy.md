@@ -2009,8 +2009,8 @@ host, and the copy back then destroys that change with no word.
 
 - Read: podssh starts another program only when the user names it or a
   probe found it (`AGENTS.md` rule 3). `podssh man` finds `less` with a
-  probe (`crates/podssh-cli/src/pager.rs:96`) and runs it with
-  `run_program` (`crates/podssh-cli/src/pager.rs:134`).
+  probe (`PodUtils/podcrates:crates/pod-manual/src/pager.rs`, `find_program`) and runs it with
+  `run_program` (`PodUtils/podcrates:crates/pod-manual/src/pager.rs`).
 - Read: `VISUAL` and `EDITOR` are not in the manual's variables
   (`crates/podssh-cli/src/man/facts.rs:46-280`).
 - Read: the relay cuts a session after 180 s with no payload

@@ -906,7 +906,7 @@ short numbered list helps a person; a script must still get the usage error.
 - Read: `run_ssh` gets no terminal state
   (`crates/podssh-cli/src/dispatch.rs:406-408`), and the entry point of the
   tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:32-40`,
-  `crates/podssh-cli/src/pager.rs:21-45`).
+  `PodUtils/podcrates:crates/pod-manual/src/pager.rs`, its `Tty`).
 - Read: the names can come only from the `Host` lines of ssh_config (T-043,
   M8); hashed `known_hosts` names cannot be listed.
 
