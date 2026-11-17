@@ -36,6 +36,9 @@ const PRECHECK_CAP: Duration = Duration::from_millis(400);
 /// How often the limits are looked at.
 const TICK: Duration = Duration::from_millis(500);
 
+/// The wait for the client's Close after the role's own (T-826).
+const CLOSE_WAIT: Duration = Duration::from_secs(2);
+
 /// What `/connect/` was asked: the target and its options.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Asked {
@@ -378,11 +381,25 @@ pub(super) async fn pump<S, R, W>(
         End::Close(code, why) => format!("end close {code} {why}"),
     });
     if let End::Close(code, why) = end {
-        let _ = session.send_close(code, &why).await;
+        if session.send_close(code, &why).await.is_ok() {
+            closing(&session).await;
+        }
     }
     // The session's one charge, at its end; a drop of this task charges it
     // too, as the meter's last holder goes.
     meter.settle();
+}
+
+/// The closing handshake after the role's Close: what the client still
+/// sends is read until it lets the connection go, within [`CLOSE_WAIT`]. A
+/// socket closed with bytes unread resets the connection, and a reset can
+/// take the Close with it, so that the client saw a lost link where the
+/// role said why (T-826: `1009 session byte cap` read as a broken pipe). A
+/// client can still write after its own Close, until it reads the role's,
+/// so its Close does not end the read either.
+async fn closing<S: AsyncRead + AsyncWrite + Send + 'static>(session: &RelaySession<S>) {
+    let read = async { while session.read_frame().await.is_ok() {} };
+    let _ = tokio::time::timeout(CLOSE_WAIT, read).await;
 }
 
 /// The bytes of `n` that the session's cap still takes, charged at once:

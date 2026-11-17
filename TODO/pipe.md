@@ -2063,7 +2063,7 @@ Read at `2042200`:
 - `crates/podssh-cli/src/pipe/ws_listen.rs:114` answers with the framed session; `tcp-listen:` already
   carries raw bytes (`crates/podssh-cli/src/pipe/serve.rs:52`).
 - The relay role's roads call the same check, and their contract is framed:
-  `crates/podssh-relay/src/serve/forward.rs:83`, `crates/podssh-relay/src/serve/layer.rs:179`,
+  `crates/podssh-relay/src/serve/forward.rs:86`, `crates/podssh-relay/src/serve/layer.rs:179`,
   `crates/podssh-relay/src/serve/reverse/node.rs:57` and `crates/podssh-relay/src/serve/reverse/operator.rs:53`;
   they keep it.
 - No TLS on `ws-listen:`: a WebTunnel client of a bridge speaks `https://`, so a front that ends TLS is

@@ -3688,7 +3688,7 @@ and 77's row names a refused route. `--lib` passed; the manual's tests and `llms
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -3713,6 +3713,27 @@ cargo test -p podssh-cli --test relay_serve
 ```
 
 The test fails on the code before the fix and passes after it.
+
+## Blocker
+
+PodUtils/podcrates: COORD-117 (PodUtils/podssh#314) asks for the drain to keep the relay's Close, and for the cap in
+the offer with a budget under any cap. On their tag: set `Settings::move_bytes` from the offer in `relay_layer.rs`
+(`paced`), and add to `layer_cap.rs` the check that no link fails with a reset or a broken pipe.
+
+## Correction
+
+The test is `tests/layer_cap.rs`, with bytes each way (`cat`): with bytes down alone, the role's Close was read each
+time even before a change. The reset is not the role's. The role's events show `end close 1009 session byte cap` at
+each link, and a role that reads on after its Close until the client lets go fails at the same rate. The client loses
+the Close: pod-session's pump, on a failed write, drains the read side, but keeps a relay's Close read there
+(`End::Lost`) below the write's `broken pipe`. Both halves of the Approach are on the client side, in PodUtils/podcrates
+(Rule Q3): that drain (pod-session) and the link budget under a small cap (pod-relay: `forward_layer::Offer` carries
+no `max_session_bytes`, and `byte_budget_under` keeps 56 MiB for a cap under 9 MiB).
+
+What is done, 2026-11-17: The role reads on after its own Close until the client lets the connection go, within 2 s
+(`serve/forward.rs`, `closing`): a socket closed with the client's bytes unread resets, and RFC 6455 has the closing
+handshake. `tests/layer_cap.rs`: 3 MiB each way through a role of `--max-session-mib 1` come whole, over links each
+ended by the role's 1009 (4 of 4 runs). The client's half waits for the Blocker.
 
 # T-827: `relay serve --key` in a file that others may read starts with no word
 

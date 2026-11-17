@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**783 entries: 29 open, 38 partial, 11 blocked, 705 done.**
+**783 entries: 28 open, 38 partial, 12 blocked, 705 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 85 | 96 |
-| P2 | 1 | 23 | 2 | 300 | 326 |
+| P2 | 0 | 23 | 3 | 300 | 326 |
 | P3 | 28 | 7 | 6 | 319 | 360 |
-| **All** | 29 | 38 | 11 | 705 | 783 |
+| **All** | 28 | 38 | 12 | 705 | 783 |
 
 ## Entries
 
@@ -856,6 +856,6 @@ repository and CI).
 | [T-823](robustness.md) | P2 | S | M10 | defect | done | `transferred.up` of a resumed copy counts the whole file |
 | [T-824](robustness.md) | P2 | S | M10 | defect | done | A refused target says a second, wrong line in `each`, `scp`, `sftp` and `health` |
 | [T-825](robustness.md) | P3 | S | M10 | defect | done | Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused |
-| [T-826](robustness.md) | P2 | M | M10 | defect | open | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
+| [T-826](robustness.md) | P2 | M | M10 | defect | blocked | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
 | [T-827](robustness.md) | P3 | S | M10 | defect | done | `relay serve --key` in a file that others may read starts with no word |
 | [T-828](robustness.md) | P3 | M | M10 | defect | open | The second black-box pass's smaller findings: the documents and the lines |
