@@ -7,6 +7,7 @@
 //! it. It says that it did not run where this host has no openssl for the
 //! role's certificate.
 
+mod held_port;
 mod ssh_harness;
 mod throughput_harness;
 
@@ -16,12 +17,6 @@ use std::time::{Duration, Instant};
 use throughput_harness::{Cell, Session};
 
 const LIMIT: Duration = Duration::from_secs(30);
-
-/// A port of the loopback where nothing listens: one bound, then let go.
-fn closed_port() -> u16 {
-    let socket = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    socket.local_addr().unwrap().port()
-}
 
 /// `podssh proxy` in `s` through `relay` to the session's sshd, stdin
 /// closed: its code and how long it took.
@@ -84,7 +79,7 @@ fn a_named_relay_s_offer_is_read_once_and_a_failed_read_is_not_kept() {
     let (relay, addr, ca) = (at("--relay-host"), at("--relay-addr"), at("--ca-file"));
     // The relay down: a port where nothing listens. Its failed read is no
     // offer kept, so a later run reads again.
-    let dead = closed_port();
+    let (dead, _held) = held_port::refusing();
     let (code, _, err) = proxy(&s, &ca, &format!("relay-a.test:{dead}"), &addr);
     assert_ne!(code, Some(0), "{err}");
     let kept = kept_offers(&s, dead);

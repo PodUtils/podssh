@@ -16,6 +16,7 @@
 #[path = "../../podssh-relay/tests/bore_stand_in/mod.rs"]
 mod bore_stand_in;
 mod cleanup;
+mod held_port;
 mod ssh_harness;
 
 use std::io::{BufRead, BufReader, Write};
@@ -266,7 +267,7 @@ impl Lab {
     /// A pair of the client's under `lab` whose relay is a port of the
     /// loopback where nothing listens, so the pair's road fails at once.
     fn pair_down(&self) {
-        let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        let (closed, _held) = held_port::refusing();
         let relay = podssh_relay::relay::Relay { host: "127.0.0.1".into(), port: closed };
         let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
         // The repository's fixture form of a token, which names no credential.

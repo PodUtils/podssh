@@ -11,6 +11,7 @@
 //! nothing, the fallback ends with the proxy named.
 
 mod cleanup;
+mod held_port;
 mod ssh_harness;
 
 use std::io::Read;
@@ -48,16 +49,6 @@ fn port_443_is_closed() -> bool {
         eprintln!("did not run: something takes 127.0.0.1:443 here, where the relay's pin must find nothing");
     }
     !open
-}
-
-/// A port of the loopback that refuses each dial, held for as long as its
-/// socket lives: bound and never listening. A port that is bound and let
-/// go can be handed at once to a server of a test that runs beside this
-/// one, which then answers the dial.
-fn closed_port() -> (u16, tokio::net::TcpSocket) {
-    let socket = tokio::net::TcpSocket::new_v4().unwrap();
-    socket.bind(std::net::SocketAddr::from(([127, 0, 0, 1], 0))).unwrap();
-    (socket.local_addr().unwrap().port(), socket)
 }
 
 /// `podssh ssh ARGS` with HOME and the cache under `home`, the relay pinned,
@@ -148,14 +139,14 @@ fn direct_alone_does_not_fall_back_and_a_named_relay_or_podssh_direct_no_ends_th
     }
     let home = scratch("alone");
     let (runtime, port) = server(&home);
-    let (closed, _held) = closed_port();
+    let (closed, _held) = held_port::refusing();
     let (closed, port) = (closed.to_string(), port.to_string());
     // --direct with the server's port closed: the direct road alone.
     let (rc, _, err, _) = ssh(&home, &["--direct", "-p", &closed, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");
     assert!(!err.contains(FELL_BACK), "--direct fell back: {err}");
     // A relay that the user names is the relay alone, though the server is up.
-    let (named, _held_too) = closed_port();
+    let (named, _held_too) = held_port::refusing();
     let named = format!("127.0.0.1:{named}");
     let (rc, _, err, _) = ssh(&home, &["--relay-host", &named, "-p", &port, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");
@@ -176,7 +167,7 @@ fn when_both_roads_fail_the_lines_name_both_and_their_times() {
         return;
     }
     let home = scratch("both");
-    let (closed, _held) = closed_port();
+    let (closed, _held) = held_port::refusing();
     let closed = closed.to_string();
     let (rc, _, err, _) = ssh(&home, &["-p", &closed, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");

@@ -1387,7 +1387,7 @@ runs of the test binary, six at once, all pass.
 2026-10-11. `crates/podssh-ssh/src/terminal/mod.rs:62-65`:
 `stdin_is_terminal` asks once and keeps the answer;
 `crates/podssh-ssh/src/io/input.rs:105`: the input's task asks before it reads.
-`crates/podssh-cli/tests/persist.rs:223`: after the loss, the test waits for
+`crates/podssh-cli/tests/persist.rs:224`: after the loss, the test waits for
 the second "[podssh] attached" before it types. Without the repair the test
 failed (exit 101, after 31.4 s); with it, `cargo test -p podssh-cli --test
 persist`: 4 passed, and 48 runs of the test binary, six at once: 48 passed,

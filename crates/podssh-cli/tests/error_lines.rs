@@ -7,6 +7,7 @@
 //! before. It says that it did not run where this host has no openssl for
 //! the role's certificate.
 
+mod held_port;
 mod ssh_harness;
 mod throughput_harness;
 
@@ -17,12 +18,6 @@ use std::time::{Duration, Instant};
 use throughput_harness::{Cell, Session};
 
 const LIMIT: Duration = Duration::from_secs(60);
-
-/// A port of the loopback where nothing listens: one bound, then let go.
-fn closed_port() -> u16 {
-    let socket = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    socket.local_addr().unwrap().port()
-}
 
 #[test]
 fn a_refused_target_is_one_line_and_255() {
@@ -37,7 +32,8 @@ fn a_refused_target_is_one_line_and_255() {
     let ca = cell.args.iter().position(|a| a == "--ca-file").map(|i| cell.args[i + 1].clone()).unwrap();
     let mut args = cell.args.clone();
     let port = args.iter().position(|a| a == "-p").unwrap() + 1;
-    args[port] = closed_port().to_string();
+    let (closed, _held) = held_port::refusing();
+    args[port] = closed.to_string();
     args.push("true".into());
     let mut child =
         s.stand_in(&args, &ca).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();
@@ -71,7 +67,8 @@ fn a_refused_target_is_one_line_and_255() {
 /// with its target said twice, fails the first row.
 #[test]
 fn each_failure_with_no_relay_is_one_line_with_its_code() {
-    let closed = closed_port().to_string();
+    let (closed, _held) = held_port::refusing();
+    let closed = closed.to_string();
     let target = format!("127.0.0.1:{closed}");
     let rows: Vec<(Vec<String>, &str, i32, String)> = vec![
         (vec!["pipe".into(), "-".into(), format!("tcp:{target}")], "", 69, target.clone()),
@@ -252,7 +249,8 @@ fn a_refused_target_is_one_line_in_each_verb() {
         }
     };
     let ca = cell.args.iter().position(|a| a == "--ca-file").map(|i| cell.args[i + 1].clone()).unwrap();
-    let closed = closed_port().to_string();
+    let (closed, _held) = held_port::refusing();
+    let closed = closed.to_string();
     // The cell's flags with the closed port, and its target last.
     let (target, flags) = cell.args[1..].split_last().unwrap();
     let mut flags = flags.to_vec();

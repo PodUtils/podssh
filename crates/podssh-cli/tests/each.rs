@@ -14,6 +14,7 @@ mod cleanup;
 mod conpty_harness;
 mod each_interactive;
 mod each_json;
+mod held_port;
 #[cfg(target_os = "linux")]
 mod pty_harness;
 mod ssh_harness;
@@ -235,7 +236,10 @@ fn server(home: &Path) -> (tokio::runtime::Runtime, u16, u16) {
     assert!(status.success());
     let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
     let port = runtime.block_on(ssh_harness::start(&key));
-    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    // Held for the life of the test process, so that no test beside this
+    // one takes the port.
+    let (closed, held) = held_port::refusing();
+    std::mem::forget(held);
     (runtime, port, closed)
 }
 

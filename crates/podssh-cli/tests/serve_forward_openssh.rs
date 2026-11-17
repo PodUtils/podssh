@@ -10,6 +10,7 @@
 
 #![cfg(unix)]
 
+mod held_port;
 mod serve_kit;
 
 use std::io::{Read, Write};
@@ -88,7 +89,8 @@ fn w_carries_a_million_bytes_to_an_echo_and_back() {
 #[test]
 fn w_to_a_closed_port_is_255_with_the_system_s_reason() {
     let Some(dir) = home("fwd-closed") else { return };
-    let target = format!("127.0.0.1:{}", closed_port());
+    let (closed, _held) = held_port::refusing();
+    let target = format!("127.0.0.1:{closed}");
     let cmd = openssh_with(&dir.0, &dir.0.join("id"), "accept-new", "", &["-W", &target], &[]);
     let (code, err) = finish(cmd);
     assert_eq!(code, Some(255), "{err}");

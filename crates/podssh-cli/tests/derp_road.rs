@@ -32,6 +32,7 @@ mod derp_tox;
 mod derp_ygg;
 #[cfg(feature = "zerotier-test")]
 mod derp_zerotier;
+mod held_port;
 mod ssh_harness;
 mod upgrade_support;
 // The TLS acceptor of the test's own CA.
@@ -349,7 +350,7 @@ fn with_the_pair_s_road_blocked_the_race_gives_the_session_to_the_derp_road() {
     let ticket = ticket_in(&started, "ticket derp:");
     // The client's pair: its relay is a port of the loopback where nothing
     // listens, so the pair's road fails at once.
-    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let (closed, _held) = held_port::refusing();
     let relay = podssh_relay::relay::Relay { host: "127.0.0.1".into(), port: closed };
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
     // The repository's fixture form of a token, which names no credential.

@@ -28,6 +28,7 @@
 mod cleanup;
 mod derp_support;
 mod filehost_stand_in;
+mod held_port;
 mod ssh_harness;
 // The TLS acceptor of the test's own CA.
 #[path = "update_support/mod.rs"]
@@ -133,7 +134,7 @@ fn command(home: &Path, args: &[&str]) -> Command {
 /// A pair under `lab` in the cache of `home`, whose relay is a port of the
 /// loopback where nothing listens: its road fails at once at both ends.
 fn store_pair(home: &Path) {
-    let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    let (closed, _held) = held_port::refusing();
     let relay = podssh_relay::relay::Relay { host: "127.0.0.1".into(), port: closed };
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
     // The repository's fixture form of a token, which names no credential.

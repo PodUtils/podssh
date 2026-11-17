@@ -3814,3 +3814,45 @@ cargo test -p podssh-cli --lib
 ```
 
 The test fails on the code before the fix and passes after it.
+
+# T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
+
+**Source:** the gate at `04b7759` (2026-11-17), step `ts`: `tests/ping.rs`, `offline_connects_nowhere_and_exits_69`, `left: 1 right: 0`.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A test that fails at random. Each test of the gate must hold on any run.
+
+## Premise
+
+`tests/ping.rs`: `no_relay_host_that_answers_exits_69` binds a port, lets it go, and pings a relay there. Beside it,
+`offline_connects_nowhere_and_exits_69` binds a counting listener on a port of the system's choice, which can be the
+same port, and counts that ping as a dial of the offline run. The same pattern, a port bound and let go, stands for a
+target or a relay that is not there in several files of tests; three files already hold such a port as a socket
+that is bound and never listens.
+
+## Approach
+
+One helper for the class of fault, `tests/held_port/mod.rs`: a port that refuses each dial, held for as long as its
+socket lives. Each test of a refused target or relay takes it; the three copies go.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ping --test each --test error_lines --test relay_offer_read --test serve_forward_openssh --test persist --test roost --test direct_fallback --test bore_road --test derp_road
+```
+
+## Done
+
+2026-11-17. `tests/held_port/mod.rs` (`refusing`): a socket bound to the loopback, never listening, held by the test.
+`ping.rs`, `each.rs` (held for the life of the process, as its `server` hands the port to four tests),
+`error_lines.rs`, `relay_offer_read.rs`, `serve_forward_openssh.rs` (its refused target; its port for `ssh -L` to
+listen on stays free), `bore_road.rs`, `carrier_filehost.rs` and `derp_road.rs` take it; `persist.rs`, `roost.rs` and
+`direct_fallback.rs` lose their own copies. The ten tests of the Prove pass (2026-11-17), and clippy, also with
+`--features filehost`.

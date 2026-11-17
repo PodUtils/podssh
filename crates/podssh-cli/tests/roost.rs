@@ -14,6 +14,7 @@
 //! times than its budget holds sessions, as OpenSSH hangs up each
 //! ProxyCommand (T-586).
 
+mod held_port;
 mod pair_harness;
 mod ssh_harness;
 mod throughput_harness;
@@ -80,16 +81,6 @@ fn service(first: &'static str, later: &'static str) -> (u16, Arc<AtomicUsize>) 
     (port, count)
 }
 
-/// A port of the loopback that refuses each dial, held for as long as its
-/// socket lives: bound and never listening. A port that is bound and let
-/// go can be handed at once to a server of a test that runs beside this
-/// one, which then answers the dial.
-fn closed_port() -> (u16, tokio::net::TcpSocket) {
-    let socket = tokio::net::TcpSocket::new_v4().unwrap();
-    socket.bind(std::net::SocketAddr::from(([127, 0, 0, 1], 0))).unwrap();
-    (socket.local_addr().unwrap().port(), socket)
-}
-
 /// The test pair under the label lab, whose relay is `relay`.
 fn store_pair(s: &Session, relay: &Counted) {
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
@@ -149,7 +140,7 @@ fn a_roost_with_nothing_at_target_exits_before_it_registers() {
     let s = Session::start("roost-none");
     let relay = counted();
     store_pair(&s, &relay);
-    let (port, _held) = closed_port();
+    let (port, _held) = held_port::refusing();
     let (rc, out, err) = roost_ends(&s, &[format!("127.0.0.1:{port}")]);
     assert_eq!(rc, 69, "{err}");
     assert!(err.contains(&format!("TARGET 127.0.0.1:{port}")), "the roost names TARGET: {err}");
@@ -179,7 +170,7 @@ fn stand_ins(s: &Session, names: &[&str]) -> std::path::PathBuf {
 fn roost_on_path(s: &Session, path: &std::path::Path) -> (u16, String) {
     let relay = counted();
     store_pair(s, &relay);
-    let (port, _held) = closed_port();
+    let (port, _held) = held_port::refusing();
     let (rc, out, err) = roost_ends_with(s, &[format!("127.0.0.1:{port}")], &[("PATH", path.as_os_str())]);
     assert_eq!(rc, 69, "{err}");
     assert!(err.contains(&format!("TARGET 127.0.0.1:{port}: could not connect")), "the dial's words stay: {err}");

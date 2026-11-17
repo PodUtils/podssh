@@ -6,6 +6,7 @@
 //! attach. With `-N` (T-042), a link dropped under a forward of `-R` asks
 //! for it again on a new connection.
 
+mod held_port;
 mod tmux_harness;
 
 use std::io::{Read, Write};
@@ -300,22 +301,12 @@ fn a_lost_link_asks_for_the_remote_forward_again() {
     assert_eq!((tmux.connections, tmux.forward_requests, tmux.attaches), (2, 3, 0), "{err}");
 }
 
-/// A port of the loopback that refuses each dial, held for as long as its
-/// socket lives: bound and never listening. A port that is bound and let
-/// go can be handed at once to a server of a test that runs beside this
-/// one, which then answers the dial.
-fn closed_port() -> (u16, tokio::net::TcpSocket) {
-    let socket = tokio::net::TcpSocket::new_v4().unwrap();
-    socket.bind(std::net::SocketAddr::from(([127, 0, 0, 1], 0))).unwrap();
-    (socket.local_addr().unwrap().port(), socket)
-}
-
 /// `podssh ssh --direct --persist -N -R` to a server that is not there, with
 /// `extra`: the child, its stderr as it comes, and the port's socket, which
 /// the test holds while the child tries.
 fn tunnel_to_nothing(home: &std::path::Path, extra: &[&str]) -> (Child, Arc<Mutex<String>>, tokio::net::TcpSocket) {
     std::fs::create_dir_all(home).unwrap();
-    let (port, held) = closed_port();
+    let (port, held) = held_port::refusing();
     let known = format!("UserKnownHostsFile={}", home.join("known_hosts").display());
     let mut child = podssh(home)
         .args(["ssh", "--direct", "--persist", "-N", "-R", "0:127.0.0.1:9", "-o", "BatchMode=yes", "-o", &known])

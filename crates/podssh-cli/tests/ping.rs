@@ -9,6 +9,7 @@
 //! a user feels, `--under-load` and `--connect-runs` (T-660), is `ping_feel`.
 
 // What a user feels (T-660).
+mod held_port;
 mod ping_feel;
 mod ssh_harness;
 mod throughput_harness;
@@ -275,8 +276,8 @@ fn json_through_the_stand_in_relay_has_each_step() {
 #[test]
 fn no_relay_host_that_answers_exits_69() {
     let s = Session::start("ping-unavailable");
-    // A port that nothing holds: the connection is refused at once.
-    let port = TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+    // A port that refuses: the connection is refused at once.
+    let (port, _held) = held_port::refusing();
     let args = ["--relay-host".to_string(), format!("127.0.0.1:{port}"), "--count".into(), "2".into()];
     let mut cmd = ping(&s, &args);
     cmd.env("PODSSH_RELAY_TOKEN", "a-token-that-no-relay-sees");
