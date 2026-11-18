@@ -86,6 +86,14 @@ tag at once; `v1.1.0-beta.4` waits for the move, then goes out with its testers'
 it, while podcrates builds: the GSRN road's live test (done), the cell of an outage (T-786), the netem lab of T-625,
 T-665 and T-463, and `feel-netem.yml` again on osewa v0.1.5.
 
+**Session of 2026-11-17 to 18 (cloud), the black-box passes (T-809).** Two passes with the binary and the documents
+alone filed T-810 to T-828. The owner's rulings "Quality first", "Shared code first" and the beta rule are in
+`AGENTS.md`. Done: T-810 to T-825, T-827, T-829 (a port held by a test of a refused target) and T-830 (the
+tail of stdout on Windows). Open: T-826 (blocked, COORD-117: pod-session's drain and a link budget under a small
+cap); T-828 (partial: two copies share one `.part`, waiting for pod-core's `lock`; COORD-118's three lines); each
+next tag of podcrates (COORD-112, 113, 116, 117, 118 and entries 877, 878, 881), then the lane behind each class
+again and a third black-box pass on the candidate before any beta. **No beta until that pass is clean.**
+
 **Session of 2026-11-16 to 17 (cloud).** Done: T-797; T-791's commands 5 and 6 and the release steps (with a repair
 of `relay:` of `podssh pipe`); T-790 whole (the manual on `pod-manual`, its 860 long sentences, its writers); T-799
 (russh 0.65.2, ssh-key rc.12); T-800; T-709 (partial: a real `--install --system` waits for systemd as PID 1),
