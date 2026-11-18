@@ -7563,5 +7563,8 @@ OpenSSH's reads); `same_file` stays (not a lock). `podssh-cli`'s `node_install/l
 `session/daemon.rs` and `--env-file` use) is `FileLock::try_lock` plus the pid written in the file, and `detach/lock.rs`'s
 `holder` is `FileLock::try_lock_existing(.., Shared)`; `Tried::Held` and the statics carry a `FileLock`. `podssh-ssh` takes
 `pod-core`. Merged and run here (2026-11-18, Linux): `cargo test -p podssh-ssh --lib known_hosts` 9 passed; `-p podssh-cli --lib
-detach` 24, `node_install` 31, `session` 58; clippy clean. Windows' sidecar is proven by the next gate's `windows`. Asks of podcrates: a mode of the lock for a byte far past the end of the file (Windows), so that a lock of a
+detach` 24, `node_install` 31, `session` 58; clippy clean. The gate at `59bdb39` (run 44318276974) failed on Windows: the sidecar
+`known_hosts.podssh-lock` stayed beside the user's file (`known_hosts::edit::tests::a_rewrite_keeps_the_old_text`,
+`tests/cp_inplace.rs`). So `known_hosts/lock.rs` is podssh's own again (its lock of a byte far past the end, which leaves
+OpenSSH's reads alone), until pod-core has that mode (asked in COORD-121, #319); the CLI's locks stay on pod-core. Asks of podcrates: a mode of the lock for a byte far past the end of the file (Windows), so that a lock of a
 file that others read needs no file beside it.

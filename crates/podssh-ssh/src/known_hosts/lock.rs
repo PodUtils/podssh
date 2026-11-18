@@ -1,47 +1,98 @@
-//! A lock on a `known_hosts` file that only other writers see (T-029),
-//! `pod_core::lock` (T-820) over this file's glue: the bound of the wait, a
-//! file system with no locks, and which file the path names after the wait.
-//! On Unix the lock is on the file itself, an advisory `flock` that no reader
-//! meets; on Windows pod-core locks the whole file, which would refuse each
-//! reader meanwhile (OpenSSH's among them), so the lock is on a file beside it.
+//! A lock on a `known_hosts` file that only other writers see (T-029): on
+//! Unix an advisory `flock`, which no reader meets; on Windows one byte far
+//! past any end of the file, as a lock of the file's own bytes would refuse
+//! each reader meanwhile, OpenSSH's among them.
 
 use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::time::Duration;
-
-use pod_core::failure::Class;
-use pod_core::lock::{FileLock, Mode};
+use std::path::Path;
+use std::time::{Duration, Instant};
 
 /// How long a writer waits for another one to finish: a read and one line.
 pub const WAIT: Duration = Duration::from_secs(5);
 
-/// The file that carries the lock of the `known_hosts` file at `path`: the
-/// file itself, its target when it is a link (pod-core opens no link), and
-/// on Windows a file beside it.
-fn target(path: &Path) -> PathBuf {
-    let real = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    #[cfg(windows)]
-    {
-        let mut name = real.into_os_string();
-        name.push(".podssh-lock");
-        PathBuf::from(name)
+/// The lock, until it is dropped.
+pub struct Held<'a>(&'a File);
+
+impl Drop for Held<'_> {
+    fn drop(&mut self) {
+        unlock(self.0);
     }
-    #[cfg(not(windows))]
-    real
 }
 
-/// Hold the lock of the file at `path`: `None` when its file system takes no
-/// locks, so the caller writes without one and says so, and an error when
-/// another writer kept it for `wait`. Never a wait without a limit.
-pub fn hold(path: &Path, wait: Duration) -> std::io::Result<Option<FileLock>> {
-    match FileLock::lock_within(&target(path), Mode::Exclusive, wait) {
-        Ok(lock) => Ok(Some(lock)),
-        Err(e) if e.class == Class::Unavailable => Err(std::io::Error::new(
-            std::io::ErrorKind::TimedOut,
-            format!("another writer held its lock for {} s", wait.as_secs()),
-        )),
-        Err(_) => Ok(None),
+/// Hold a lock on `file`: `None` when its file system takes no locks, so the
+/// caller writes without one and says so, and an error when another writer
+/// kept it for `wait`. Never a wait without a limit.
+pub fn hold(file: &File, wait: Duration) -> std::io::Result<Option<Held<'_>>> {
+    let deadline = Instant::now() + wait;
+    loop {
+        match try_once(file) {
+            Ok(true) => return Ok(Some(Held(file))),
+            Ok(false) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
+            Ok(false) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    format!("another writer held its lock for {} s", wait.as_secs()),
+                ))
+            }
+            Err(_) => return Ok(None),
+        }
     }
+}
+
+/// One try: held, or held by another writer.
+#[cfg(not(windows))]
+fn try_once(file: &File) -> std::io::Result<bool> {
+    match file.try_lock() {
+        Ok(()) => Ok(true),
+        Err(std::fs::TryLockError::WouldBlock) => Ok(false),
+        Err(std::fs::TryLockError::Error(e)) => Err(e),
+    }
+}
+
+#[cfg(not(windows))]
+fn unlock(file: &File) {
+    let _ = file.unlock();
+}
+
+/// The byte that the lock covers, far past any end of a file.
+#[cfg(windows)]
+fn far_byte() -> windows_sys::Win32::System::IO::OVERLAPPED {
+    // SAFETY: an OVERLAPPED of zeros is valid; only its offset is set.
+    let mut at: windows_sys::Win32::System::IO::OVERLAPPED = unsafe { std::mem::zeroed() };
+    at.Anonymous.Anonymous.Offset = u32::MAX - 1;
+    at.Anonymous.Anonymous.OffsetHigh = u32::MAX;
+    at
+}
+
+#[cfg(windows)]
+fn try_once(file: &File) -> std::io::Result<bool> {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Foundation::{GetLastError, ERROR_LOCK_VIOLATION};
+    use windows_sys::Win32::Storage::FileSystem::{LockFileEx, LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY};
+    let mut at = far_byte();
+    // SAFETY: the handle is open while `file` lives, and `at` outlives the
+    // call, which returns at once instead of waiting.
+    let ok = unsafe {
+        LockFileEx(file.as_raw_handle(), LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &mut at)
+    };
+    if ok != 0 {
+        return Ok(true);
+    }
+    // SAFETY: GetLastError has no preconditions.
+    match unsafe { GetLastError() } {
+        ERROR_LOCK_VIOLATION => Ok(false),
+        error => Err(std::io::Error::from_raw_os_error(error as i32)),
+    }
+}
+
+#[cfg(windows)]
+fn unlock(file: &File) {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::UnlockFileEx;
+    let mut at = far_byte();
+    // SAFETY: as in `try_once`; Windows asks for each lock to be undone
+    // before the handle closes.
+    unsafe { UnlockFileEx(file.as_raw_handle(), 0, 1, 0, &mut at) };
 }
 
 /// Whether `file` is the file that `path` names now: a writer that waited
