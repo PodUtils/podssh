@@ -77,7 +77,9 @@ const CP: &[&str] = &[
      goes through the relay (see THE RELAY) or over TCP with --direct, with the connection flags of podssh ssh: -o, \
      -J, -i, -v and -q, and -P for the port, as scp has it. An operand names a server when a : comes before any /: \
      [user@]host:path or [user@][IPV6]:path. ./a:b is a local file, and on Windows so is C:\\x. An empty path, \
-     host:, is the login directory.",
+     host:, is the login directory. A remote source whose last name holds * or ? names the files of its \
+     directory that it matches, in order, over SFTP; a name that starts with . only by a pattern that does. A \
+     pattern that matches nothing exits 66.",
     "node://[user@]NAME[/ROUTE]:path is the node of the pair under the label NAME (see podssh node). It is reached \
      as podssh ssh node://NAME reaches it, on the same roads in the same order: its pair's, and those that race \
      beside it, again at each resume. Beside it race a ticket of the net, a ticket or a name kept under NAME, and \

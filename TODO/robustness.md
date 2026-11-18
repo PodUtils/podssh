@@ -3850,10 +3850,22 @@ Second part, 2026-11-18:
 - The manual: `--detach` names no ProxyCommand, which `ssh` never runs. THE SOCKET of `session` says where a long path
   goes. EXIT STATUS names `sftp -b` with a missing file (66) and `node --run-as` with no such user (69).
 
+Asked of podcrates, 2026-11-18, in COORD-118 (PodUtils/podssh#315): `2 addresses (X, X)` (pod-proxy); a relay
+restarted mid-session said as its timeout of 10 min (pod-session's `forgotten`); the cleartext road's line, which
+does not say why TLS failed (pod-relay). That road does print its two lines by default, as the manual says.
+
+Third part, 2026-11-18:
+- The one relay host that the user named, which refuses this client's key a token (401, 403), ends the run with
+  its refusal once, 255: no second mint on the contract's road after a wait (`relay_layer::dead_alone`;
+  `tests/error_lines.rs`, its planted defect fails it).
+- A node says once that a share of its file has the name of a route of its command line, which serves that name
+  (`share/serve.rs`, a unit test of the names of the routes).
+- `cp` and `scp` take a remote pattern (`*`, `?` in the last name) as the files that it matches, over SFTP, and one
+  that matches nothing exits 66 (`cp/remote_glob.rs`; `tests/cp_progress.rs`; the manual).
+
 Left, 2026-11-18: two copies to one destination share one `.part` (a lock across processes: pod-core's `lock`,
-podcrates' entry 877, with its tag); a key that may not mint retries the same 403; a failed TLS check's line twice,
-and a certificate of another name that falls to cleartext with no cause said; a relay killed mid-session (a docs.rs
-link, `the far end forgot the session`); `share add` and a route of the command line; a remote glob of `scp` and `cp`.
+podcrates' entry 877, with its tag); a failed TLS check's line twice, and a docs.rs link when a relay is killed
+mid-session, neither met again in the lab (the run of a relay killed and started again gave COORD-118's line).
 
 # T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
 

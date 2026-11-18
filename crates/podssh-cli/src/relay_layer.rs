@@ -367,7 +367,8 @@ fn say(err: &mut dyn Write, note: &str) {
 }
 
 /// Whether the first link could not connect at all to the one relay host
-/// that the user named (T-817): the contract's road would only fail the same
+/// that the user named (T-817), or that host refused this client's key a
+/// token (401, 403; T-828): the contract's road would only fail the same
 /// way, after a wait, and its line would say the cause a second time.
 pub(crate) fn dead_alone(relays: &RelayList, missed: &Missed) -> bool {
     use podssh_relay::open::OpenError;
@@ -377,6 +378,7 @@ pub(crate) fn dead_alone(relays: &RelayList, missed: &Missed) -> bool {
     let one = relays.explicit && relays.hosts.len() == 1;
     let dead = match missed.failure().map(|f| f.last()) {
         Some(OpenError::Token(TokenError::Connect(e))) | Some(OpenError::Connect { error: e, .. }) => unconnected(e),
+        Some(OpenError::Token(TokenError::Failed { status: 401 | 403, .. })) => true,
         _ => false,
     };
     one && dead

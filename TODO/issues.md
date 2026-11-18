@@ -371,6 +371,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #312 | COORD-115: podssh's answer to COORD-131: the rulings in AGENTS.md, and its copies of shared code (to podcrates) | open 2026-11-17: until podcrates reads it | T-820 |
 | #313 | COORD-116: two messages of pod-dns and pod-relay that podssh's black-box pass found (to podcrates) | open 2026-11-17: until podcrates' tag is taken | T-818 |
 | #314 | COORD-117: pod-session keeps a write's error over the relay's Close, and the layer's link budget ignores a small cap (to podcrates) | open 2026-11-17: until podcrates' tag is taken | T-826 |
+| #315 | COORD-118: three lines of pod-proxy, pod-session and pod-relay that podssh's black-box pass found untrue or short (to podcrates) | open 2026-11-18: until podcrates' tag is taken | T-828 |
 | #267 | COORD-080: what podssh's help and manual need of the shared crate (to all) | closed 2026-11-17: T-790 and T-730 done; podnet closed its COORD-090 (PodUtils/podnet#584) | T-730, T-790 |
 | #268 | COORD-081: podssh's host classes and lane for pod-lab, and its manual for pod-manual (to podcrates) | open 2026-11-15: answers COORD-107 and COORD-108 | T-790, T-791 |
 | #269 | COORD-082: podssh's map of issues to entries, and its install (to podcrates) | open 2026-11-15: answers COORD-110 and COORD-109 | T-792, T-793 |

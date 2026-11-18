@@ -12,7 +12,7 @@
 //! object in FILE, as `cp`'s, with the commands run and failed and the
 //! command that ended the batch ([`result`]).
 
-mod commands;
+pub(crate) mod commands;
 mod listing;
 mod result;
 mod run;

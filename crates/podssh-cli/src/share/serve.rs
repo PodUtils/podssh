@@ -26,6 +26,9 @@ struct Installed {
     started: AtomicBool,
     /// The fault said last, so that each session does not say it again.
     said: Mutex<Option<String>>,
+    /// The names of the routes of the command line, which serve their name
+    /// before a share of it (T-828).
+    routes: Vec<String>,
 }
 
 static INSTALLED: OnceLock<Installed> = OnceLock::new();
@@ -46,12 +49,19 @@ pub fn install(args: &NodeArgs) -> Result<(), Refusal> {
         None if cache::candidate_dirs().is_empty() => None,
         None => Some(Place::Cache(file::file_name(label))),
     };
-    let installed =
-        Installed { label: label.to_string(), place, started: AtomicBool::new(false), said: Mutex::default() };
+    let routes = route_names(&args.targets);
+    let started = AtomicBool::new(false);
+    let installed = Installed { label: label.to_string(), place, started, said: Mutex::default(), routes };
     // A node that serves again after an upgrade that did not start keeps
     // the first: the same arguments give the same place.
     let _ = INSTALLED.set(installed);
     Ok(())
+}
+
+/// The names of the routes among `targets`: each `NAME=TARGET`.
+fn route_names(targets: &[String]) -> Vec<String> {
+    let name = |word: &str| !word.is_empty() && !word.contains([':', '/', '[']);
+    targets.iter().filter_map(|t| t.split_once('=').map(|(n, _)| n)).filter(|n| name(n)).map(str::to_string).collect()
 }
 
 /// Why the sessions of the node of `args` carry no route, so no share.
@@ -107,8 +117,24 @@ impl Installed {
             Ok(Some((path, text))) => {
                 let shares = Shares::parse(&text);
                 let (bad, at) = (&shares.bad, path.display());
-                let fault = (!bad.is_empty())
-                    .then(|| format!("lines {bad:?} of {at} are no share NAME=HOST:PORT, and serve nothing"));
+                let mut faults = Vec::new();
+                if !bad.is_empty() {
+                    faults.push(format!("lines {bad:?} of {at} are no share NAME=HOST:PORT, and serve nothing"));
+                }
+                // A share that a route of the command line keeps (T-828).
+                let kept: Vec<&str> = shares
+                    .list
+                    .iter()
+                    .map(|s| s.name.as_str())
+                    .filter(|n| self.routes.iter().any(|r| r == n))
+                    .collect();
+                if !kept.is_empty() {
+                    let names = kept.join(", ");
+                    faults.push(format!(
+                        "the shares {names} of {at} are names of its command line's routes, which serve them"
+                    ));
+                }
+                let fault = (!faults.is_empty()).then(|| faults.join("; "));
                 (shares.list.iter().map(Share::route).collect(), fault)
             }
             Err(why) => (Vec::new(), Some(format!("its shares cannot be read, so it serves none: {why}"))),
@@ -126,5 +152,21 @@ impl Installed {
             }
             *said = fault;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A route of the command line is `NAME=TARGET`; a target alone, an
+    /// address with `=` past a `:`, or a URL, names none (T-828).
+    #[test]
+    fn the_command_line_s_routes_are_named() {
+        let targets: Vec<String> =
+            ["127.0.0.1:22", "web=127.0.0.1:80", "db=unix:/run/db.sock", "udp:127.0.0.1:53", "[::1]:22"]
+                .map(String::from)
+                .to_vec();
+        assert_eq!(route_names(&targets), vec!["web".to_string(), "db".to_string()]);
     }
 }

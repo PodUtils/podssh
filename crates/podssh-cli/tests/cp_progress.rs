@@ -291,3 +291,28 @@ fn a_missing_destination_directory_is_named() {
         assert!(!err.contains(".part"), "the temporary file's name: {err}");
     }
 }
+
+/// A remote source whose last name holds `*` names the files that it
+/// matches, as OpenSSH's scp lets the far shell expand it; one that matches
+/// nothing is a missing source (T-828).
+#[test]
+fn a_remote_pattern_names_the_files_that_it_matches() {
+    need_server!();
+    let home = scratch("glob");
+    let (_runtime, port) = server(&home);
+    for name in ["a1.txt", "a2.txt", "b.txt"] {
+        std::fs::write(home.join(name), name.as_bytes()).unwrap();
+    }
+    std::fs::create_dir_all(home.join("got")).unwrap();
+    let out = cp(&home, port, &["u@127.0.0.1:a*.txt", "got/"], None).output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(0), "{err}");
+    let mut got: Vec<String> =
+        std::fs::read_dir(home.join("got")).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+    got.sort();
+    assert_eq!(got, ["a1.txt", "a2.txt"], "{err}");
+    let out = cp(&home, port, &["u@127.0.0.1:z*.txt", "got/"], None).output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(66), "{err}");
+    assert!(err.contains("no file matches"), "{err}");
+}

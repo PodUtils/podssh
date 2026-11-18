@@ -42,6 +42,7 @@ pub mod rate;
 mod report;
 // `--result-file` of the copies, and its parts that `run` and `sftp` take
 // (T-486).
+mod remote_glob;
 pub(crate) mod result;
 pub(crate) mod resume;
 pub(crate) mod session;

@@ -48,12 +48,23 @@ pub(super) async fn session(
         return None;
     }
     let mut link = Some(first);
-    let many = plan.sources.len() > 1;
+    // A remote pattern, as the paths that it matches (T-828).
+    let sources = match super::remote_glob::expanded(&link, &plan.sources).await {
+        Ok(sources) => sources,
+        Err(failed) => {
+            if let Some(link) = link.take() {
+                link.close().await;
+            }
+            outcome.failed = Some((shown(&plan.sources[0]), failed));
+            return Some(outcome);
+        }
+    };
+    let many = sources.len() > 1;
     // Several files: they wait, then go K at once over the connection
     // (T-297), K of --parallel K or the default (T-474).
-    let pooled = lanes::fit(plan.sources.len(), plan.shape, link.as_ref());
+    let pooled = lanes::fit(sources.len(), plan.shape, link.as_ref());
     let mut waiting = Vec::new();
-    for source in &plan.sources {
+    for source in &sources {
         // -r: a directory goes with what it holds (T-143), after the files
         // named before it.
         if let Some(tree) = &plan.tree {

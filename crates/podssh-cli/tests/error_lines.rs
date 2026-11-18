@@ -283,3 +283,32 @@ fn a_refused_target_is_one_line_in_each_verb() {
         }
     }
 }
+
+/// The one relay host that the user named refuses this client's key a
+/// token (T-828): 255 and the refusal once, with no second mint on the
+/// contract's road after a wait, and no line of the layer's first link.
+#[test]
+fn a_key_that_may_not_mint_is_one_line() {
+    let s = Session::start("error-lines-mint");
+    let keys = s.home.join("mint-keys.txt");
+    // A key of the list that is not this client's.
+    std::fs::write(&keys, format!("{}\n", "0".repeat(63) + "1")).unwrap();
+    let mint = format!("keys:{}", keys.display());
+    let cell = match Cell::podssh_relay(&s, "podssh's relay role", &["--allow-private", "--mint", &mint]) {
+        Ok(cell) => cell,
+        Err((_, why)) => {
+            eprintln!("did not run: {why}");
+            return;
+        }
+    };
+    let ca = cell.args.iter().position(|a| a == "--ca-file").map(|i| cell.args[i + 1].clone()).unwrap();
+    let mut args = cell.args.clone();
+    args.push("true".into());
+    let out = s.stand_in(&args, &ca).env("PODSSH_RELAY_LAYER", "yes").stdin(Stdio::null()).output().unwrap();
+    let err = String::from_utf8_lossy(&out.stderr);
+    let lines: Vec<&str> =
+        err.lines().filter(|l| !l.trim().is_empty() && !l.contains("a new key for this client")).collect();
+    assert_eq!(out.status.code(), Some(255), "{err}");
+    assert_eq!(lines.len(), 1, "one cause, one line: {err}");
+    assert!(lines[0].contains("403") && lines[0].contains("not on this relay's list"), "{err}");
+}
