@@ -3806,6 +3806,11 @@ one `.part`; `ssh -i nofile` says nothing; `ssh root@node://NAME` gives "is not 
 Each one repaired, or its documents made true, with a test where behaviour changes; a case in a crate of podcrates
 asked there.
 
+## Decision
+
+`node --run-as` with no such user stays 69, now named in its row. 67 (`EX_NOUSER`) lost: no command of podssh gives it,
+and a new code needs a row of its own in EXIT STATUS for one case of one flag.
+
 ## Prove
 
 ```sh
@@ -3833,6 +3838,22 @@ Partly, 2026-11-17 (the rest stays open here):
 Each was run against the debug binary: a sshd of the scratch lab, `relay serve` with the lab's PKI. `cargo test -p
 podssh-cli --lib`, 1245 passed; `-p podssh-ssh --lib`, 423; `-p podssh-relay --features serve,plain-ws`, each passed.
 `2 addresses (X, X)` is pod-proxy's line (`race.rs`), asked of podcrates.
+
+Second part, 2026-11-18:
+- A copy whose destination's directory is missing names that directory (`no such directory: DIR`), each way and on
+  each road (sftp, exec, here), never the `.part` file (`transfer::not_made`; `tests/cp_progress.rs`).
+- Each `get` and `put` of `podssh sftp` draws a line of its own, not counted with those before it (`gauge::new_run`).
+  In the lab, with `PODSSH_PROGRESS=line`, the second `get` said `1 of 2 files 3.1 MiB` before and its own file after.
+- A system unit binds the binary read-only where `ProtectHome` or `PrivateTmp` hides it (a unit test, five paths).
+- `keygen -y` and `-l` read podssh's own key file, 64 hex digits of a seed, as the key of its identity (a unit test
+  of the same public half), and print the line that `--grant-to` takes.
+- The manual: `--detach` names no ProxyCommand, which `ssh` never runs. THE SOCKET of `session` says where a long path
+  goes. EXIT STATUS names `sftp -b` with a missing file (66) and `node --run-as` with no such user (69).
+
+Left, 2026-11-18: two copies to one destination share one `.part` (a lock across processes: pod-core's `lock`,
+podcrates' entry 877, with its tag); a key that may not mint retries the same 403; a failed TLS check's line twice,
+and a certificate of another name that falls to cleartext with no cause said; a relay killed mid-session (a docs.rs
+link, `the far end forgot the session`); `share add` and a route of the command line; a remote glob of `scp` and `cp`.
 
 # T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
 

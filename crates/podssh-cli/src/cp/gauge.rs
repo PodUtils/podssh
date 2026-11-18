@@ -163,6 +163,16 @@ fn with_run<T>(f: impl FnOnce(&mut Run) -> T) -> Option<T> {
     run.as_mut().map(f)
 }
 
+/// A new run of the same mode: each command of `podssh sftp` (`get`, `put`)
+/// is a run of its own, so that its line counts its own files and bytes,
+/// not those of the commands before it (T-828).
+pub fn new_run() {
+    let mut run = RUN.lock().unwrap_or_else(|e| e.into_inner());
+    if run.is_some() {
+        *run = Some(Run::new());
+    }
+}
+
 /// The run has `n` more files: a source of the command line, or the files
 /// of a tree once walked.
 pub fn more_files(n: usize) {

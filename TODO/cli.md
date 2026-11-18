@@ -1624,7 +1624,7 @@ ECDSA; `-y` can read through it.
 2026-10-11. The forms of other systems in `crates/podssh-ssh/src/convert.rs:1-318`, an encrypted
 PEM key written by `encrypt_pem` (`crates/podssh-ssh/src/key_file.rs:211-235`); the command in
 `crates/podssh-cli/src/keygen_convert.rs:1-72`, the key loader and the text of `-m` at
-`crates/podssh-cli/src/keygen_convert.rs:74-143`, and the flags at `crates/podssh-cli/src/flags/keygen.rs:61-66`.
+`crates/podssh-cli/src/keygen_convert.rs:74-151`, and the flags at `crates/podssh-cli/src/flags/keygen.rs:61-66`.
 - `cargo test -p podssh-ssh --lib -- convert`: 3 passed: `-e` writes, byte for byte, what OpenSSH's
   `ssh-keygen -e` wrote for its Ed25519, ECDSA (P-256, P-384, P-521) and RSA keys in each form,
   and `-i` reads each back; the refusals name their reason; `-m PEM` and `-m PKCS8` keys of RSA and

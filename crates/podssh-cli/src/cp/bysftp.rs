@@ -136,8 +136,14 @@ pub async fn up(
             // it: a connection lost between the two leaves no file that no
             // record names, and the next attempt goes on in it or removes it.
             progress.begin(&target, &temp);
-            let file =
-                sftp.open_file(&temp, flags, attrs).await.map_err(|e| transfer::from_sftp(e, Side::Destination))?;
+            let file = sftp.open_file(&temp, flags, attrs).await.map_err(|e| {
+                let mut failed = transfer::from_sftp(e, Side::Destination);
+                if failed.cause == Cause::Answer {
+                    let missing = transfer::says_no_directory(&failed.message);
+                    failed.message = transfer::not_made(&target, dir, missing, &failed.message);
+                }
+                failed
+            })?;
             log.verbose(&format!("{source}: writing {temp}"));
             (temp, file)
         }

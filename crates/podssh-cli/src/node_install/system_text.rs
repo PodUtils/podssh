@@ -100,6 +100,9 @@ const READ: &[&str] =
 /// The trees that `ProtectHome=` hides.
 const HOMES: &[&str] = &["/home", "/root", "/run/user"];
 
+/// The trees that `PrivateTmp=` replaces.
+const TEMPS: &[&str] = &["/tmp", "/var/tmp"];
+
 /// What the run does that a line of the hardening would stop.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(super) struct Needs {
@@ -226,6 +229,17 @@ fn paths(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<(), 
     lines.push("# The user's cache of podssh, which holds the pair and the keys; its settings, read.".to_string());
     lines.push(format!("BindPaths={}", cache.display()));
     lines.push(format!("BindReadOnlyPaths=-{}", config.display()));
+    // The binary itself, where a line above hides it: under a home, or in
+    // the temporary directory that PrivateTmp replaces (T-828).
+    let exe = &spec.exe;
+    let hidden = HOMES.iter().chain(TEMPS).any(|top| exe.starts_with(top)) || exe.starts_with(&account.home);
+    if hidden {
+        if !path_ok(exe) {
+            return Err(unit_path_refusal("the binary", exe));
+        }
+        lines.push("# This binary, which the lines above hide: a copy outside a home and /tmp needs none.".into());
+        lines.push(format!("BindReadOnlyPaths={}", exe.display()));
+    }
     // Each directory once: written when any of its files is made there.
     let mut dirs: BTreeMap<PathBuf, bool> = BTreeMap::new();
     for pair in spec.args.windows(2) {

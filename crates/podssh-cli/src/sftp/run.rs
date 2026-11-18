@@ -108,6 +108,8 @@ impl<'a> State<'a> {
         let gone = |e| transfer::from_sftp(e, Side::Destination);
         match command {
             Command::Get { remote, local, preserve, recursive } => {
+                // Each command's line counts its own files (T-828).
+                crate::cp::gauge::new_run();
                 let sources = self.expand(remote).await?;
                 let many = sources.len() > 1;
                 let dest = match local {
@@ -132,6 +134,8 @@ impl<'a> State<'a> {
                 }
             }
             Command::Put { local, remote, preserve, recursive } => {
+                // Each command's line counts its own files (T-828).
+                crate::cp::gauge::new_run();
                 let source = self.here(local);
                 let dest = match remote {
                     Some(r) => self.there(r),

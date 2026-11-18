@@ -123,6 +123,24 @@ pub(crate) fn from_sftp(e: SftpError, side: Side) -> Failed {
     Failed { fault, message: e.to_string(), cause }
 }
 
+/// The line of a destination `target` whose temporary file in `dir` could
+/// not be made: the destination, and the directory where that is the cause,
+/// never the hidden name of the temporary file alone (T-828).
+pub(crate) fn not_made(target: &str, dir: &str, missing_dir: bool, why: &str) -> String {
+    let dir = if dir.is_empty() { "." } else { dir };
+    match missing_dir {
+        true => format!("{target}: no such directory: {dir}"),
+        false => format!("{target}: cannot be written in {dir}: {why}"),
+    }
+}
+
+/// Whether the words of a failed write say that a directory is missing: a
+/// server's status, or a shell's (dash and bash say it apart).
+pub(crate) fn says_no_directory(why: &str) -> bool {
+    let why = why.to_ascii_lowercase();
+    why.contains("no such file") || why.contains("directory nonexistent") || why.contains("not found")
+}
+
 /// `.NAME.podssh-RANDOM.part`: hidden, unique, and named for what it holds.
 pub(super) fn temp_name(name: &str) -> String {
     format!(".{name}.podssh-{:016x}.part", rand::random::<u64>())

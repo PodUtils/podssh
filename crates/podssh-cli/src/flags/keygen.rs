@@ -29,7 +29,7 @@ pub const KEYGEN_FLAGS: &[FlagRow] = &[
     row(Some('q'), "quiet", None, FlagKind::Supported,
         "print nothing but errors", None),
     row(Some('y'), "print-public", None, FlagKind::Supported,
-        "print the public key of the private key in -f FILE", None),
+        "print the public key of the private key in -f FILE; podssh's own key file (client.key, node.key) gives the line that --grant-to and an allowlist take", None),
     row(Some('l'), "fingerprint", None, FlagKind::Supported,
         "print the fingerprint of the key in -f FILE, its private file or its .pub", None),
     row(Some('F'), "find-host", Some("HOST"), FlagKind::Supported,

@@ -138,6 +138,46 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
                 .map(KeyFile::Private)
                 .map_err(|_| format!("{shown}: incorrect passphrase"))
         }
+        // podssh's own key file (client.key, node.key): the 64 hex digits of
+        // an Ed25519 seed, so that -y prints the line that --grant-to and an
+        // allowlist take (T-828).
+        Err(_) if seed_of(&text).is_some() => {
+            let seed = seed_of(&text).unwrap_or_default();
+            let pair = podssh_ssh::russh::keys::ssh_key::private::Ed25519Keypair::from_seed(&seed);
+            Ok(KeyFile::Private(PrivateKey::from(pair)))
+        }
         Err(e) => Err(format!("{shown}: not a key that podssh reads: {e}")),
+    }
+}
+
+/// The seed of podssh's own key file: one line of 64 hex digits.
+fn seed_of(text: &str) -> Option<Zeroizing<[u8; 32]>> {
+    let word = text.trim();
+    if word.len() != 64 || !word.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    let mut seed = Zeroizing::new([0u8; 32]);
+    for (i, byte) in seed.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&word[2 * i..2 * i + 2], 16).ok()?;
+    }
+    Some(seed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// podssh's own key file is read as the key that its identity is: the
+    /// same public half, which `-y` prints for `--grant-to` (T-828); a line
+    /// of another length or of a letter past f is none.
+    #[test]
+    fn podssh_s_own_key_file_is_its_identity_s_key() {
+        let hex = "71e2bb6174508077004f6626e4c46d42042c889876136a41aa55aa55aa55aa55";
+        let seed = seed_of(&format!("{hex}\n")).expect("a seed");
+        let pair = podssh_ssh::russh::keys::ssh_key::private::Ed25519Keypair::from_seed(&seed);
+        let identity = podssh_relay::identity::Identity::from_seed(&seed);
+        assert_eq!(pair.public.0, identity.public().0);
+        assert!(seed_of(&hex[..62]).is_none());
+        assert!(seed_of(&hex.replace('7', "g")).is_none());
     }
 }

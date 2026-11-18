@@ -2186,7 +2186,7 @@ program writes on, such as a log, need not end at all.
 ## Premise
 
 Read at `a22e3ec`: the copy up over SFTP reads the source until a read
-gives no byte (`crates/podssh-cli/src/cp/bysftp.rs:174-200`), and each read
+gives no byte (`crates/podssh-cli/src/cp/bysftp.rs:180-206`), and each read
 waits for the server's answer to the write before it. The check's writer
 adds a byte to the source in a loop, so a read gives no byte only when the
 writer adds none for a whole round trip: when the runner does not schedule
@@ -2195,7 +2195,7 @@ it. The check after the read gives 66 to a source whose size moved
 ends. The copy up by exec reads the same way
 (`crates/podssh-cli/src/cp/byexec/files.rs:139-165`); the copies down read
 the far file until it ends, over SFTP
-(`crates/podssh-cli/src/cp/bysftp.rs:359-398`) and with `cat`
+(`crates/podssh-cli/src/cp/bysftp.rs:365-404`) and with `cat`
 (`crates/podssh-cli/src/cp/byexec.rs:332-369`); and so do the far digests
 that read the file again (`crates/podssh-cli/src/cp/digest.rs:78-109`,
 `crates/podssh-cli/src/cp/byexec.rs:303-330`).
@@ -2231,7 +2231,7 @@ bound fails the native test.
 
 2026-10-10. Each road of the copy reads what the source held at the start,
 and stops with 66, "the file changed while it was read", at the first byte
-past it: up over SFTP (`crates/podssh-cli/src/cp/bysftp.rs:174-200`) and by
+past it: up over SFTP (`crates/podssh-cli/src/cp/bysftp.rs:180-206`) and by
 exec (`crates/podssh-cli/src/cp/byexec/files.rs:139-165`); down by exec
 past the size that `wc -c` gave; down over SFTP after a second look at the
 far size, so that a file of `/proc` goes on as before. The far digest by
@@ -3094,7 +3094,7 @@ with no word, which reads as a hang.
   `PODSSH_PROGRESS=line` (`crates/podssh-cli/src/cp/gauge.rs`, lines 23-37 at `010abe1`): T-145's
   Approach chose nothing in a pipe.
 - Read: a gauge is made only by the SFTP road's copy of one file in one stream
-  (`crates/podssh-cli/src/cp/bysftp.rs:168`, `:351`). The chunks of `--parallel`
+  (`crates/podssh-cli/src/cp/bysftp.rs:174`, `:357`). The chunks of `--parallel`
   (`crates/podssh-cli/src/cp/chunks.rs`) and the copy by exec (`crates/podssh-cli/src/cp/byexec.rs`)
   draw none, and each file of a tree draws a line of its own, with no count of the run's files.
 - Read: the counts that a summary needs are in the run's `Outcome` already: the files done with
@@ -3236,7 +3236,7 @@ destination too.
   and a second copy of a changed file replaces the far one with exit 0 and nothing on stderr.
   Read: `CP_FLAGS` has no such row (`crates/podssh-cli/src/flags/copy.rs`, lines 10-82 at
   `38f424c`), and each copy
-  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:210-229`), by
+  ends with a rename over its destination (`crates/podssh-cli/src/cp/transfer.rs:228-247`), by
   `posix-rename@openssh.com` where the server has it
   (`crates/podssh-ssh/src/sftp/mod.rs:414-423`).
 - Read: `hardlink@openssh.com` gives a file a second name
@@ -3975,7 +3975,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 - Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:442`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
-- Read: `crates/podssh-cli/src/sftp/run.rs:130` hands `self.link.meter` to `bysftp::down` and `up`;
+- Read: `crates/podssh-cli/src/sftp/run.rs:132` hands `self.link.meter` to `bysftp::down` and `up`;
   `crates/podssh-cli/src/cp/link.rs:92-100` stops the transfer with the failure
   "the relay session is near its limits"; `Meter::left` is at `crates/podssh-cli/src/cp/link.rs:79`.
 - The issue says the transfer is "cut mid-way". That is not right: the meter stops it before the cap.

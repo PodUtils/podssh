@@ -385,14 +385,14 @@ podssh ssh
   PODSSH_SYSTEMD=no asks nothing. At ready the run leaves the caller's working
   directory for the root. It keeps the caller's directory when a word of the
   run is a relative path or a command that runs here (exec: of pipe,
-  ProxyCommand, LocalCommand). Where the sandbox has no /dev/null, its stdin is
-  a pipe that is closed. As the first process of a namespace it refuses (69); a
-  unit of systemd, WSL and Termux, which may end it still, are named first. A
-  CI's job ends it at the job's end: podssh touches no variable by which a CI
-  finds its processes. --persist keeps the forwards going across a lost relay.
-  With --restart a small process stays in the background between the parent and
-  the run (the pid printed is its own): once the run is ready, it starts the
-  run again whenever it ends (a crash, a kill, an abort), after the relay's
+  LocalCommand). Where the sandbox has no /dev/null, its stdin is a pipe that
+  is closed. As the first process of a namespace it refuses (69); a unit of
+  systemd, WSL and Termux, which may end it still, are named first. A CI's job
+  ends it at the job's end: podssh touches no variable by which a CI finds its
+  processes. --persist keeps the forwards going across a lost relay. With
+  --restart a small process stays in the background between the parent and the
+  run (the pid printed is its own): once the run is ready, it starts the run
+  again whenever it ends (a crash, a kill, an abort), after the relay's
   backoff. It does not start it after 64, 77 or 78, which a new start would
   repeat. Nor does it after its own SIGTERM, which it passes on; a run that
   lasted 30 s starts the count again, and it never gives up. It holds no
@@ -9494,7 +9494,9 @@ podssh keygen
     -q, --quiet
         print nothing but errors.
     -y, --print-public
-        print the public key of the private key in -f FILE.
+        print the public key of the private key in -f FILE; podssh's own key
+        file (client.key, node.key) gives the line that --grant-to and an
+        allowlist take.
     -l, --fingerprint
         print the fingerprint of the key in -f FILE, its private file or its
         .pub.
@@ -10348,7 +10350,10 @@ podssh session
   THE SOCKET: start and serve listen on a socket of this user's: NAME.sock in
   the directory sessions of the cache (see FILES), made mode 0700, the socket
   mode 0600; on Windows a Unix-domain socket there, whose clients must run as
-  this user. --socket PATH names another, also \\.\pipe\NAME on Windows, and
+  this user. A path too long for the address of a socket (107 bytes on Linux)
+  goes to the next directory of the cache (see FILES). That one may be under
+  the temporary directory. With none that fits, start names each one and asks
+  for --socket. --socket PATH names another, also \\.\pipe\NAME on Windows, and
   @NAME on Linux, which has no file. A client of another user is closed before
   it is read. No TCP: a request types into a shell. The bind is the probe:
   where this host refuses it, start exits 77 with the reason; PODSSH_LISTEN set
@@ -12614,26 +12619,27 @@ EXIT STATUS
       podssh cp and mv: a source is missing or cannot be read. podssh mv: a
       source that changed during the move, which stays. podssh chat: the file
       of --file or --sendfile cannot be read. podssh edit: the file is not on
-      the host.
+      the host. podssh sftp: the file of -b cannot be read.
   69
       podssh proxy: no relay host could be reached, or the relay ended the
       session abnormally. podssh node, operator and relay: the relay or TARGET
       could not be reached, the node did not take the session, the pair was
       stopped, or another node serves it; with --sshd, a TARGET that sent no
       line within 10 s, or closed first; with --publish-tls and --acme, the
-      first order of the certificate failed. podssh cp and mv: no connection to
-      the server, or it has neither SFTP nor the sh and the tools of a copy by
-      exec. podssh chat: the same of the relay and the pair, or a message went
-      with no acknowledgement; each is said. podssh ping: no relay host
-      answered, the relay refused its default target, or PODSSH_OFFLINE is set.
-      podssh relay status: no relay host answered; podssh relay trace: the
-      relay would not dial the target. podssh agent: no agent answers at
-      SSH_AUTH_SOCK, or the agent keeps no passwords. podssh containers: the
-      host has none of docker, podman and kubectl, one of them failed, or
-      --exec names no container that a list has. podssh session: no session of
-      that name answers, or its session ended (and the status that it ended
-      with is said). podssh detached status and stop: no run of that name runs.
-      podssh relay serve: the port of --listen is in use.
+      first order of the certificate failed; with --run-as, no such user.
+      podssh cp and mv: no connection to the server, or it has neither SFTP nor
+      the sh and the tools of a copy by exec. podssh chat: the same of the
+      relay and the pair, or a message went with no acknowledgement; each is
+      said. podssh ping: no relay host answered, the relay refused its default
+      target, or PODSSH_OFFLINE is set. podssh relay status: no relay host
+      answered; podssh relay trace: the relay would not dial the target. podssh
+      agent: no agent answers at SSH_AUTH_SOCK, or the agent keeps no
+      passwords. podssh containers: the host has none of docker, podman and
+      kubectl, one of them failed, or --exec names no container that a list
+      has. podssh session: no session of that name answers, or its session
+      ended (and the status that it ended with is said). podssh detached status
+      and stop: no run of that name runs. podssh relay serve: the port of
+      --listen is in use.
   70
       The command is not implemented yet, or podssh failed inside. podssh node
       and operator: the relay closed the node or the session for a fault (1003,

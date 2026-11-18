@@ -48,7 +48,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
-             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host.",
+             during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,
@@ -56,7 +56,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              podssh node, operator and relay: the relay or TARGET could not be reached, the node did not take \
              the session, the pair was stopped, or another node serves it; with --sshd, a TARGET that sent \
              no line within 10 s, or closed first; with --publish-tls and --acme, the first order of the \
-             certificate failed. podssh cp and mv: no connection to \
+             certificate failed; with --run-as, no such user. podssh cp and mv: no connection to \
              the server, or it has neither SFTP nor the sh and the tools of a copy by exec. podssh chat: \
              the same of the relay and the pair, or a message went with no acknowledgement; each is said. \
              podssh ping: no relay host answered, the relay refused its default target, or PODSSH_OFFLINE is set. podssh relay status: no relay \

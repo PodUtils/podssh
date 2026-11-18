@@ -201,7 +201,7 @@ const FIRST: &[&str] = &[
      the user's last logout still ends it where lingering is off (loginctl enable-linger), as it ends \
      the user's systemd. PODSSH_SYSTEMD=no asks nothing. At ready the run leaves the caller's working directory for \
      the root. It keeps the caller's directory when a word of the run is a relative path or a command that runs here \
-     (exec: of pipe, ProxyCommand, LocalCommand). \
+     (exec: of pipe, LocalCommand). \
      Where the sandbox has no /dev/null, its stdin is a pipe that is closed. As the first process of a namespace it refuses (69); a unit of systemd, \
      WSL and Termux, which may end it still, are named first. A CI's job ends it at the job's end: podssh \
      touches no variable by which a CI finds its processes. --persist keeps the forwards going across a \

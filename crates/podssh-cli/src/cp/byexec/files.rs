@@ -173,10 +173,9 @@ impl Far {
             })?;
             if got.status != Some(0) {
                 let why = String::from_utf8_lossy(&got.stderr);
-                return Err(failed(
-                    Fault::CantCreate,
-                    format!("{temp}: the far side could not write it: {}", why.trim()),
-                ));
+                let (dir, _) = transfer::split_remote(&target);
+                let missing = transfer::says_no_directory(&why);
+                return Err(failed(Fault::CantCreate, transfer::not_made(&target, dir, missing, why.trim())));
             }
             let after = std::fs::metadata(local).map_err(|e| failed(Fault::NoInput, format!("{source}: {e}")))?;
             if after.len() != sent || after.modified().ok() != before.modified().ok() {

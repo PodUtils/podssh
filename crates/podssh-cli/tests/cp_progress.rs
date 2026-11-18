@@ -272,3 +272,22 @@ fn an_interrupted_copy_keeps_and_names_its_partial_file() {
     let r: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(home.join("r.json")).unwrap()).unwrap();
     assert_eq!(r["transferred"]["up"], data.len() as u64 - at, "{r}: {err}");
 }
+
+/// A destination whose directory is missing names that directory, each
+/// way, never the hidden name of the temporary file (T-828).
+#[test]
+fn a_missing_destination_directory_is_named() {
+    need_server!();
+    let home = scratch("nodir");
+    let (_runtime, port) = server(&home);
+    std::fs::write(home.join("f.bin"), b"some bytes\n").unwrap();
+    for (from, to, dir) in
+        [("f.bin", "u@127.0.0.1:nodir/up.bin", "nodir/"), ("u@127.0.0.1:f.bin", "nodir/f.bin", "nodir")]
+    {
+        let out = cp(&home, port, &[from, to], None).output().unwrap();
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert_eq!(out.status.code(), Some(73), "{from} {to}: {err}");
+        assert!(err.contains("no such directory: ") && err.contains(dir), "{err}");
+        assert!(!err.contains(".part"), "the temporary file's name: {err}");
+    }
+}

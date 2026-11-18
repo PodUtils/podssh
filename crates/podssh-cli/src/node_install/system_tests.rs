@@ -342,3 +342,24 @@ fn a_printed_unit_writes_no_file() {
         Err(_) => assert_ne!(code, 0, "{out}"),
     }
 }
+
+/// A binary that the hardening hides, under a home or the temporary
+/// directory, is let through read-only; one in /usr/local/bin needs no line
+/// (T-828).
+#[test]
+#[cfg(unix)]
+fn a_binary_that_the_hardening_hides_is_let_through() {
+    for (exe, bound) in [
+        ("/usr/local/bin/podssh", false),
+        ("/home/alice/bin/podssh", true),
+        ("/root/podssh", true),
+        ("/tmp/podssh", true),
+        ("/var/tmp/x/podssh", true),
+    ] {
+        let mut spec = node(&[]);
+        spec.exe = PathBuf::from(exe);
+        let text = unit(&spec, &alice()).unwrap();
+        let line = format!("BindReadOnlyPaths={exe}");
+        assert_eq!(section(&text, "Service").contains(&line), bound, "{exe}: {text}");
+    }
+}

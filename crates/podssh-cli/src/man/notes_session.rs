@@ -40,7 +40,9 @@ pub const SESSION: &[&str] = &[
      it.",
     "THE SOCKET: start and serve listen on a socket of this user's: NAME.sock in the directory sessions of the \
      cache (see FILES), made mode 0700, the socket mode 0600; on Windows a Unix-domain socket there, whose \
-     clients must run as this user. --socket PATH names another, also \\\\.\\pipe\\NAME on Windows, and @NAME \
+     clients must run as this user. A path too long for the address of a socket (107 bytes on Linux) goes to the \
+     next directory of the cache (see FILES). That one may be under the temporary directory. With none \
+     that fits, start names each one and asks for --socket. --socket PATH names another, also \\\\.\\pipe\\NAME on Windows, and @NAME \
      on Linux, which has no file. A client of another user is closed before it is read. No TCP: a request \
      types into a shell. The bind is the probe: where this host refuses it, start exits 77 with the reason; \
      PODSSH_LISTEN set to no refuses start and serve before any bind (78), and so does PODSSH_CACHE_DIR set to \

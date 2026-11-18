@@ -351,8 +351,11 @@ pub fn local_temp(
     }
     let leaf = target.file_name().and_then(|n| n.to_str()).unwrap_or("file");
     let temp = target.with_file_name(transfer::temp_name(leaf));
-    let file = transfer::create_private(&temp)
-        .map_err(|e| Failed::new(Fault::CantCreate, format!("{}: {e}", temp.display())))?;
+    let file = transfer::create_private(&temp).map_err(|e| {
+        let dir = target.parent().map(|d| d.display().to_string()).unwrap_or_default();
+        let missing = e.kind() == std::io::ErrorKind::NotFound;
+        Failed::new(Fault::CantCreate, transfer::not_made(&target.display().to_string(), &dir, missing, &e.to_string()))
+    })?;
     progress.begin(&target.display().to_string(), &temp.display().to_string());
     Ok((temp, file, 0))
 }
