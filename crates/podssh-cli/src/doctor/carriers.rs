@@ -168,8 +168,19 @@ async fn croc_line(report: &mut Report<'_>, bridge: &Bridge, trust: &Trust) {
             let whose = if bridge.public { ", a third party's" } else { "" };
             report.ok(&label, format!("the WebSocket to relay 0 opened in {ms} ms{whose}; no room joined"));
         }
-        Ok(Err(why)) => report.fail(&label, why),
-        Err(_) => report.fail(&label, format!("no WebSocket within {} s", WAIT.as_secs())),
+        Ok(Err(why)) => bridge_failed(report, &label, bridge.public, why),
+        Err(_) => bridge_failed(report, &label, bridge.public, format!("no WebSocket within {} s", WAIT.as_secs())),
+    }
+}
+
+/// A bridge that did not open. The public one is a volunteer's service and the
+/// road's last fallback: its outage, or a proxy that refuses it, is no fault
+/// of this host, so its line is unknown. A bridge that the user named fails.
+fn bridge_failed(report: &mut Report<'_>, label: &str, public: bool, why: String) {
+    if public {
+        report.unknown(label, format!("{why}; a third party's last fallback, which this host does not need"));
+    } else {
+        report.fail(label, why);
     }
 }
 
@@ -294,6 +305,20 @@ mod tests {
         assert!(text.contains("1 ok, 0 FAIL, 1 ????"), "the order does not matter: {text}");
         let text = lines_of(vec![failed("a"), failed("b")]);
         assert!(text.contains("0 ok, 2 FAIL, 0 ????"), "{text}");
+    }
+
+    /// croc's public bridge that does not open is unknown, as the road's last
+    /// fallback of a third party; a bridge that the user named fails.
+    #[test]
+    fn only_a_named_bridge_that_does_not_open_fails() {
+        for (public, want) in [(true, "0 ok, 0 FAIL, 1 ????"), (false, "0 ok, 1 FAIL, 0 ????")] {
+            let mut out = Vec::new();
+            let mut report = Report::new(&mut out);
+            bridge_failed(&mut report, "croc's bridge wss://b.test/ws", public, "502 Bad Gateway".into());
+            let _ = report.finish();
+            let text = String::from_utf8(out).unwrap();
+            assert!(text.contains(want) && text.contains("502 Bad Gateway"), "public {public}: {text}");
+        }
     }
 
     /// With no variable each carrier of Q65 is asked: Least Authority's

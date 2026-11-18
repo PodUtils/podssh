@@ -4002,3 +4002,41 @@ cargo test -p podssh-cli --test relay_serve --test pipe_http
 
 PodUtils/podcrates: the line of a policy refusal in `pod-relay` (asked in COORD-119). podssh takes the tag that
 carries it.
+
+# T-844: `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open
+
+**Source:** the gate at `bf001df` (run 44270996069, 2026-11-18): the job `box` failed, as `doctor` in the box said
+`FAIL croc's bridge wss://getcroc.com/ws ... the proxy refused CONNECT getcroc.com:443: 502 Bad Gateway`.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Since podcrates `v0.70.0` lists croc's public bridge, `doctor` asks it with no variable set, and a bridge that does
+not open was a FAIL: the run exits 1 on a host where nothing is wrong, for a volunteer's service that the road takes
+only as its last fallback. The lists of public servers (the Piping Servers) already say such a silence as unknown.
+
+## Premise
+
+`crates/podssh-cli/src/doctor/carriers.rs` (`croc_line`) gave `report.fail` for each bridge that did not open,
+public or named. `croc::setting` turns the bridge on from `pod-services` (`crates/podssh-relay/src/croc/mod.rs:136`).
+
+## Approach
+
+A public bridge that does not open is `????`, with its cause and why it is no fault of the host; a bridge that the
+user named (`PODSSH_CROC=URL`) still fails. One table test of both.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib doctor::carriers
+```
+
+## Done
+
+2026-11-18. `bridge_failed` in `doctor/carriers.rs`; `only_a_named_bridge_that_does_not_open_fails` passes (3 of 3 in
+`doctor::carriers`). The next gate's `box` is its proof on the box's proxy.

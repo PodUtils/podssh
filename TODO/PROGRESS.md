@@ -223,7 +223,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 798 entries: 39 open, 39 partial, 13 blocked, 707 done.
+`TODO/INDEX.md` holds 799 entries: 39 open, 39 partial, 13 blocked, 708 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
