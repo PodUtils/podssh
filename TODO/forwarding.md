@@ -1769,3 +1769,40 @@ and a port, a socket on this host, or a SOCKS proxy that podssh serves, as the t
   push; `scripts/interop-baseline.txt` names it, 3 ids, floor 3.
 - The manual's note, the flag's help, `podssh help`, the keyword's table and `docs/cli.md` say it.
 
+# T-840: A state word for each forward: bound, waiting for the link, up, refused
+
+**Source:** the donor study of 2026-11-18, report 17 (davrodpin/mole at its pinned commit); the tracker issue is PodUtils/podssh#317.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With `--persist -N`, a forward outlives a lost link: its listener stays bound and serves again on the new connection. During the loss, nothing says so. `~#` lists counts only, so a forward that waits for the link and one that was refused by the server look the same. mole separates the three facts (listener bound, link down, forward refused) in its tunnel record (davrodpin/mole:tunnel/tunnel.go:186-203) and keeps its local listener across a reconnect (davrodpin/mole:tunnel/tunnel.go:138-156); podssh keeps the listener, and lacks the word.
+
+## Premise
+
+- Read: `-L` and `-D` keep their listeners across a loss, and a refused `-R` is asked again for 2 minutes at most (`docs/cli.md:765-770`). T-042 and T-391 did this.
+- Read: `~#` lists "the forwards of the session, with what each carried" (`crates/podssh-ssh/src/escape.rs:18`); T-041 counts connections and bytes and says nothing of state.
+- Not verified: which of the existing tables holds a place for a state; the reading of `crates/podssh-cli/src/ssh/persist.rs` and `crates/podssh-ssh/src/forward.rs` settles it.
+- mole's own policy is one integer that is also the supervision switch, so `0` supervises nothing after the first dial (davrodpin/mole:tunnel/tunnel.go:344-379). Do not copy that: the state word and the retry policy stay two things.
+
+## Approach
+
+1. One enum for each forward: `bound` (listener or request made, no link), `waiting` (link lost, asking again), `up`, `refused` (with the server's reason when it gave one). Keep it in the forward's own atomics beside T-041's counts; no lock on the data path.
+2. Show it in `~#` and in the end-of-run `-v` lines of T-041, and in the machine-readable result of T-054 where the forwards are listed.
+3. Each change of state of a forward of `--persist` is one line on stderr, the line that names the hop that broke (`docs/cli.md:775-776`) extended with the forward.
+4. Same commit: the manual (`~#`), `docs/cli.md`.
+5. Do not add a named tunnel record or a per-forward fail action: `ssh_config` names forwards, and `ExitOnForwardFailure` is the one policy. If a tester asks for a second, it is a new entry.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh escape
+cargo test -p podssh-cli --test persist_forwards
+```
+
+The second is a test that does not exist yet: against OpenSSH, with `--persist -N -L`, stop the server, read `~#` (`waiting`), start it again (`up`); and a server with `AllowTcpForwarding no` gives `refused` for a `-R`.

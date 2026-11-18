@@ -14,12 +14,14 @@
 //! whole file: a continued copy whose digests differ starts once more from
 //! the first byte, then fails.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, Weak};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use pod_core::lock::{FileLock, Mode};
 use podssh_ssh::sftp::Sftp;
 use sha2::{Digest, Sha256};
 
@@ -166,6 +168,9 @@ pub struct Progress {
     /// kept: they did not go through this host now (T-823). Not in the side
     /// file.
     pub earlier: u64,
+    /// The lock of the side file, held while the copy runs: a second copy to
+    /// the same destination keeps a file of its own (T-828).
+    lock: Option<Arc<FileLock>>,
 }
 
 impl Progress {
@@ -179,7 +184,15 @@ impl Progress {
 
     /// [`Progress::load`] in the cache directories `dirs`.
     pub fn load_in(dirs: Vec<PathBuf>, side: String, state: String) -> (Progress, Option<String>) {
-        let fresh = Progress { dirs: dirs.clone(), side: side.clone(), state: state.clone(), ..Progress::default() };
+        // Another run copies to the destination now: no side file for this one.
+        let Some(lock) = held(&dirs, &side) else { return (Progress { side, state, ..Progress::default() }, None) };
+        let fresh = Progress {
+            dirs: dirs.clone(),
+            side: side.clone(),
+            state: state.clone(),
+            lock: lock.clone(),
+            ..Progress::default()
+        };
         let Some(text) = podssh_relay::cache::load_file_from(&dirs, &side) else { return (fresh, None) };
         let kept: serde_json::Value = serde_json::from_str(&text).unwrap_or_default();
         let field = |name: &str| kept.get(name).and_then(|v| v.as_str()).map(str::to_string);
@@ -209,6 +222,7 @@ impl Progress {
                     chunks,
                     delta_why: None,
                     earlier,
+                    lock,
                 };
                 (progress, None)
             }
@@ -275,6 +289,9 @@ impl Progress {
     /// The copy is done, or cannot continue: the side file goes.
     pub fn clear(&mut self) {
         podssh_relay::cache::remove_named_from(&self.dirs, &self.side);
+        if let Some(lock) = &self.lock {
+            let _ = std::fs::remove_file(lock.path());
+        }
         // This copy's own: other files may still be in flight (T-297).
         CURRENT.lock().unwrap().retain(|(side, ..)| side != &self.side);
         self.target = None;
@@ -377,121 +394,32 @@ pub fn hash_prefix(reader: &mut impl Read, hasher: &mut Sha256, n: u64) -> std::
     Ok(())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// The locks that this process holds, by their file: a second load of the
+/// same side file in this process is the same run's, and shares its lock.
+static HELD: Mutex<BTreeMap<PathBuf, Weak<FileLock>>> = Mutex::new(BTreeMap::new());
 
-    #[test]
-    fn only_podssh_s_temporary_names_count_as_temporary() {
-        assert!(is_temp(&format!("dir/{}", transfer::temp_name("a b.txt"))));
-        assert!(is_temp(r"C:\x\.f.podssh-0123456789abcdef.part"));
-        for not in ["f.part", ".f.part", ".f.podssh-xyz.part", "dir/.f.podssh-0123456789abcdef", "/etc/passwd"] {
-            assert!(!is_temp(not), "{not}");
+/// The lock of the side file `side` in the first of `dirs` that is there:
+/// `None` while another holder has it; no lock where none can be taken,
+/// and the copy then goes on as before.
+fn held(dirs: &[PathBuf], side: &str) -> Option<Option<Arc<FileLock>>> {
+    let Some(dir) = dirs.iter().find(|dir| dir.is_dir()) else { return Some(None) };
+    let path = dir.join(format!("{side}.lock"));
+    let mut held = HELD.lock().unwrap_or_else(|e| e.into_inner());
+    held.retain(|_, lock| lock.strong_count() > 0);
+    if let Some(lock) = held.get(&path).and_then(Weak::upgrade) {
+        return Some(Some(lock));
+    }
+    match FileLock::try_lock(&path, Mode::Exclusive) {
+        Ok(Some(lock)) => {
+            let lock = Arc::new(lock);
+            held.insert(path, Arc::downgrade(&lock));
+            Some(Some(lock))
         }
-    }
-
-    #[test]
-    fn a_side_file_names_neither_path() {
-        let a = side_name("u@h", 22, "/srv/secret.db", "local.db");
-        assert!(a.starts_with("podssh-cp-") && a.ends_with(".resume") && !a.contains("secret"), "{a}");
-        assert_ne!(a, side_name("u@h", 22, "/srv/secret.db", "other.db"));
-        assert_ne!(a, side_name("u@h", 2222, "/srv/secret.db", "local.db"));
-    }
-
-    /// A cache directory of the test's own.
-    fn scratch() -> PathBuf {
-        std::env::temp_dir().join(format!("podssh-resume-{:016x}", rand::random::<u64>()))
-    }
-
-    #[test]
-    fn a_side_file_continues_the_same_source_only() {
-        let dir = scratch();
-        let temp = format!("srv/{}", transfer::temp_name("f"));
-        let load = |state: &str| Progress::load_in(vec![dir.clone()], "s.resume".into(), state.into());
-        let (mut first, stale) = load("local 5 x");
-        assert_eq!((first.temp.as_deref(), stale), (None, None));
-        first.begin("srv/f", &temp);
-        first.advance(SAVE_EVERY + 1);
-        // The same source: the copy goes on where the side file says.
-        let (again, stale) = load("local 5 x");
-        assert_eq!(stale, None);
-        assert_eq!(again.temp.as_deref(), Some(temp.as_str()));
-        assert_eq!((again.target.as_deref(), again.offset), (Some("srv/f"), SAVE_EVERY + 1));
-        // A changed source: the copy starts over, the stale temporary file is
-        // given back for removal, and the side file goes.
-        let (fresh, stale) = load("local 6 y");
-        assert_eq!(stale.as_deref(), Some(temp.as_str()));
-        assert_eq!((fresh.temp, fresh.offset), (None, 0));
-        let (gone, stale) = load("local 5 x");
-        assert_eq!((gone.temp, stale), (None, None), "the stale side file was removed");
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn the_side_file_follows_each_four_mib_and_goes_when_done() {
-        let dir = scratch();
-        let load = || Progress::load_in(vec![dir.clone()], "t.resume".into(), "state".into()).0;
-        let mut p = load();
-        p.begin("f", &transfer::temp_name("f"));
-        p.advance(SAVE_EVERY - 1);
-        assert_eq!(load().offset, 0, "not written yet");
-        p.advance(SAVE_EVERY);
-        assert_eq!(load().offset, SAVE_EVERY);
-        p.clear();
-        assert_eq!(load().temp, None, "a copy that is done leaves no side file");
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    /// The chunks of a copy in chunks (T-141): done out of order, the offset
-    /// moves over each one next to it, and the side file keeps the others.
-    #[test]
-    fn the_map_of_chunks_moves_the_offset_and_survives_a_new_run() {
-        let dir = scratch();
-        let load = || Progress::load_in(vec![dir.clone()], "c.resume".into(), "state".into()).0;
-        let mut p = load();
-        p.begin("f", &transfer::temp_name("f"));
-        p.begin_chunks(8);
-        // A file of 30 bytes: chunks at 0, 8, 16 and 24 (the last of 6).
-        p.finish_chunk(16, 8, 30);
-        p.finish_chunk(8, 8, 30);
-        assert_eq!((p.offset, p.has_chunk(8), p.has_chunk(16), p.has_chunk(0)), (0, true, true, false));
-        let again = load();
-        assert_eq!((again.chunk, again.chunks.iter().copied().collect::<Vec<_>>()), (8, vec![8, 16]));
-        p.finish_chunk(0, 8, 30);
-        assert_eq!((p.offset, p.chunks.len()), (24, 0), "0, 8 and 16 are contiguous");
-        p.finish_chunk(24, 8, 30);
-        assert_eq!(p.offset, 30, "the last chunk ends at the size");
-        // A run in one stream after it keeps the offset, and no chunk.
-        let mut q = load();
-        q.begin_sequential();
-        assert_eq!((q.offset, q.chunk, q.chunks.len()), (30, 0, 0));
-        // A run in chunks of another size counts only what is below the offset.
-        let mut r = load();
-        r.offset = 21;
-        r.begin_chunks(10);
-        assert_eq!((r.offset, r.has_chunk(10), r.has_chunk(20)), (20, true, false));
-        p.clear();
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn a_side_file_that_names_another_file_is_not_trusted() {
-        let dir = scratch();
-        let load = || Progress::load_in(vec![dir.clone()], "u.resume".into(), "state".into());
-        load().0.begin("f", "/etc/passwd");
-        let (fresh, stale) = load();
-        assert_eq!((fresh.temp, stale), (None, None), "never a file that podssh did not make");
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn the_prefix_of_a_file_goes_into_the_digest() {
-        let data = b"0123456789";
-        let mut hasher = Sha256::new();
-        hash_prefix(&mut &data[..], &mut hasher, 4).expect("four bytes");
-        hasher.update(&data[4..]);
-        assert_eq!(<[u8; 32]>::from(hasher.finalize()), <[u8; 32]>::from(Sha256::digest(data)));
-        let mut short = Sha256::new();
-        assert!(hash_prefix(&mut &data[..], &mut short, 11).is_err(), "a file shorter than its offset");
+        Ok(None) => None,
+        Err(_) => Some(None),
     }
 }
+
+#[cfg(test)]
+#[path = "resume_tests.rs"]
+mod tests;

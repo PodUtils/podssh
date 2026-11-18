@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**785 entries: 27 open, 39 partial, 12 blocked, 707 done.**
+**798 entries: 39 open, 39 partial, 13 blocked, 707 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 87 | 98 |
-| P2 | 0 | 23 | 3 | 300 | 326 |
-| P3 | 27 | 8 | 6 | 319 | 360 |
-| **All** | 27 | 39 | 12 | 707 | 785 |
+| P2 | 0 | 23 | 4 | 300 | 327 |
+| P3 | 39 | 8 | 6 | 319 | 372 |
+| **All** | 39 | 39 | 13 | 707 | 798 |
 
 ## Entries
 
@@ -861,3 +861,16 @@ repository and CI).
 | [T-828](robustness.md) | P3 | M | M10 | defect | partial | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
+| [T-831](copy.md) | P3 | M | backlog | research | open | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
+| [T-832](multi.md) | P3 | M | backlog | feature | open | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
+| [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
+| [T-834](serve.md) | P3 | M | backlog | research | open | A bearer identity in the session's OPEN, bound to the session and its carrier |
+| [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
+| [T-836](serve.md) | P3 | M | backlog | research | open | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
+| [T-837](serve.md) | P3 | M | backlog | feature | open | A live shell shared by name: a read-only name, and one writer at a time |
+| [T-838](ssh.md) | P3 | M | backlog | feature | open | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
+| [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
+| [T-840](forwarding.md) | P3 | S | backlog | feature | open | A state word for each forward: bound, waiting for the link, up, refused |
+| [T-841](serve.md) | P3 | S | backlog | feature | open | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
+| [T-842](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: a key that a reload removes ends its open sessions when asked |
+| [T-843](robustness.md) | P2 | S | M10 | defect | blocked | A refusal of the relay's policy no longer says the relay's cause |

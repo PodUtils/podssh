@@ -10,7 +10,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
   43889251706, T-797) were still running; read them first (`TODO/PROGRESS.md`, "Tonight").
 - The gate is green at `5340fbb` (2026-11-16, run 43870922795, m6 on attempt 2), at `0f2c8a0` (run 43859588499), at `f5b4f43` (2026-11-16, run 43823925587, attempt 2 for T-780's m6) and at `71ebc9d` (run 43814811221), and `release.yml` by hand there (run 43815141894).
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
-- No draft waits for its merge ("Drafts" in `TODO/PROGRESS.md`).
+- No draft waits for its merge ("Drafts" in `TODO/PROGRESS.md`, 2026-11-18).
 
 ## The sessions of PodUtils
 
@@ -20,8 +20,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.69.0"` (COORD-130, PodUtils/podcrates#220; podssh's answer is
-COORD-108). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.70.0"` (taken 2026-11-18; podssh's answer is
+COORD-119). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`,
@@ -70,7 +70,8 @@ COORD-108). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 | Issue | Waits for |
 | --- | --- |
 | #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
-| #262 (COORD-078) | pod-relay's fix: a new link of the layer off the pooled HTTP/2 connection (T-789) |
+| #314 (COORD-117), #315 (COORD-118) | podcrates' entry 909 and the drain of pod-session; three lines (T-826, T-828) |
+| #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 
 ## The live runs and interop harnesses
 

@@ -5515,3 +5515,124 @@ why. `vendor/README.md` says each. A test, `agent_failures_of_unlock_and_remove_
 russh 0.65.0 it fails ("Agent unlocked.", exit 0). `cargo test -p podssh-ssh -p podssh-cli` 2891 passed, 0 failed;
 russh's own `--lib` 235 passed; clippy (the gate's lints) and rustfmt clean. `upstream.yml` by hand at
 `a7932ec` (run 43921238333): success, its check of the copies passed; `chisel interop` there passed too. Done.
+
+# T-838: An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file
+
+**Source:** the donor study of 2026-11-18, report 15 (jtesta/ssh-audit at its pinned commit); the tracker issue is PodUtils/podssh#317
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A user who must show that a host offers only the agreed algorithms, or a node that must refuse a client
+which offers weak ones, has no way in podssh to say so. `Ciphers`, `KexAlgorithms` and the like restrict
+what podssh offers (T-505); nothing judges what the peer offered.
+
+## Premise
+
+- Read: the algorithm lists are assembled and kept in one place
+  (`crates/podssh-ssh/src/algorithms/mod.rs:89-111`, `own` and `assemble`), and the first names that a host
+  gave in its KEXINIT are already read and kept (`crates/podssh-ssh/src/kex_first.rs`,
+  `crates/podssh-ssh/src/handshake_side.rs`); so an observation of a peer's lists exists, with no verdict.
+- Read: `podssh serve` has per-key rules and no algorithm rule (`crates/podssh-ssh/src/server/rules.rs`).
+- Read: the exit contract is sysexits (78 config, 69 unavailable, 255 for `ssh`); ssh-audit's 3, 2, 1 are
+  not podssh's.
+- Read in the report, not verified here: ssh-audit's policy file is a `key = value` list of ordered
+  expected names plus host key sizes and markers (jtesta/ssh-audit:src/ssh_audit/policy.py:112-121,
+  :213-219), and `Evaluate` returns a bool, a list of four-field mismatches and a string
+  (jtesta/ssh-audit:src/ssh_audit/policy.py:341, :234). It reads sizes of host keys by their measured
+  type and does not check that the returned type is the requested one: a port of it carries that
+  defect (jtesta/ssh-audit:src/ssh_audit/hostkeytest.py:201-219). Its text and JSON outputs disagree about
+  an unknown algorithm (jtesta/ssh-audit:src/ssh_audit/ssh_audit.py:152-154).
+
+## Approach
+
+1. A versioned policy document: name, version, ordered expected lists for the four name-lists,
+   optional entries, host key size floors, markers. Read ssh-audit's grammar so its files load unchanged;
+   a field that podssh does not know is refused (78), never ignored.
+2. `Observed` (banner, four lists, compression, sizes by the type actually returned) and a total,
+   I/O-free `evaluate(policy, observed) -> Verdict` with mismatches as expected and actual. A returned type
+   that was not requested is a mismatch.
+3. Call sites, one at a time: `podssh ssh --policy FILE` on the server's KEXINIT before authentication;
+   `serve` on a client's, before authentication; a probe in `podssh health --policy FILE` and
+   `podssh doctor`. The verdict goes to stdout as JSON; exit 0 pass, 78 mismatch, 69 no reading.
+4. Do not ship ssh-audit's built-in database of 60 policies; a user brings a file. If a shared verdict type is
+   wanted by podnet or podvm, ask podcrates before writing it here.
+5. `podssh man` documents the grammar and the exit codes (`docs/cli.md`, "The manual").
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib policy
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test policy_check
+```
+
+A table-driven test that does not exist yet: one table of (policy, observation, verdict) cases, with
+observations captured from OpenSSH and Dropbear; the same table runs both directions. A planted
+`evaluate` that compares a size without the type fails the returned-type case. Against OpenSSH in the
+box: a policy that lists only `curve25519-sha256` passes with `KexAlgorithms curve25519-sha256` set on the
+server and exits 78 without it.
+
+# T-839: A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one
+
+**Source:** the donor study of 2026-11-18, report 16 (Foxboron/ssh-tpm-agent at its pinned commit); the tracker issue is PodUtils/podssh#317
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** L
+**Status:** open
+
+## Problem
+
+A key file that is copied works anywhere its passphrase is known. A key that the TPM holds cannot be
+copied, and one that also refuses to sign after a tampered boot cannot be used from a changed host.
+podssh keeps keys in files, in an agent and on a security key (T-229), and has no key that the machine
+state gates.
+
+## Premise
+
+- Read: key types live beside `crates/podssh-ssh/src/keygen.rs` and the security-key backend
+  (`crates/podssh-ssh/src/sk/mod.rs`), whose flow (a probe of the device, a refusal where it is absent)
+  is the pattern for a second hardware backend. No TPM code exists (grep `tpm` in `crates`, 2026-11-18:
+  the only hits are `HttpMethod` in the quick tunnel files).
+- Read: the keys and the identity of an end are `pod-identity` in PodUtils/podcrates (`AGENTS.md`, the
+  map), so the sealed-key backend is an ask of podcrates by a COORD issue, not podssh code (Rule Q3).
+- Read in the report, not verified here: ssh-tpm-agent makes the key under an SRK with `FixedTPM` and
+  `FixedParent` (Foxboron/go-tpm-keyfiles:tpm.go:211), signs with a password auth, not a policy
+  (Foxboron/go-tpm-keyfiles:tpm.go:362), and carries a policy slot that it parses and writes and never
+  evaluates (Foxboron/go-tpm-keyfiles:der.go:42, Foxboron/go-tpm-keyfiles:config.go:17). No file
+  mentions `PolicyPCR`, `PolicySigned` or `PolicyAuthorize` at the pin. So the donor proves the file
+  format and the agent path, and the gate is this entry's own design (inferred).
+- Read in the report: the key file's PEM type is `TSS2 PRIVATE KEY`
+  (Foxboron/go-tpm-keyfiles:der.go:368); the device is `/dev/tpmrm0`
+  (Foxboron/ssh-tpm-agent:utils/tpm.go:81); a global mutex serialises signing
+  (Foxboron/go-tpm-keyfiles:signer.go:15).
+
+## Approach
+
+1. Research first, on a host with `swtpm` in the box: does `PolicyAuthorize` over a signed policy digest
+   work with the PCR bank and selection that podssh would use? Two boot states (PCR extended or not),
+   one accepted, one refused. Write the result in `docs/design.md`.
+2. Ask podcrates (COORD issue `(to podcrates)`) for a sealed-key backend in `pod-identity`: a key in the
+   TSS2 key file layout whose `authPolicy` is the digest of a `PolicyPCR` trial; a signer that builds the
+   policy session, runs `PolicyPCR`, and signs. Offline update: a signed policy digest that
+   `PolicyAuthorize` accepts, so a kernel update needs no reseal.
+3. podssh: `podssh keygen --tpm --pcr 0,7,11`, a probe of `/dev/tpmrm0` at run time (no TPM: refuse with
+   one line, 69; never fall back to a file key silently), the auth chain's key provider, and `serve`'s host
+   key. The key that signs policy digests is kept offline; say in `docs/design.md` what a writer of the same
+   disk can do if it is not.
+4. The sandbox has no TPM: the backend is behind a probe, and the manual says so.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test tpm_key -- --ignored   # needs swtpm
+```
+
+A test that does not exist yet: a key sealed to PCR 7 signs; after the PCR is extended the same key
+file refuses (one line, not a panic); after a signed policy for the new value it signs again; a copy of
+the key file on a second `swtpm` does not sign. OpenSSH verifies the signature. A planted signer that
+authorises by a password and ignores the policy fails the PCR-changed case.

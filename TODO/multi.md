@@ -3746,4 +3746,52 @@ relays, as these commands take no flag of them.
 - `derp_road` (11), `each` (23), `each_node`, `job`, `run`, `--lib man::` (60), `man_page`, `man_json`,
   `flag_table`, `man_flag_parity`: passed; `cargo check -p podssh-cli --features iroh-test --tests`: clean.
 
+# T-832: `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it
 
+**Source:** the donor study of 2026-11-18, report 02 (trzsz/trzsz-ssh at e8e573b); the tracker issue is PodUtils/podssh#317.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+T-188's picker shows the literal `Host` names and nothing of what each one means. A person who
+half-remembers a name cannot see its host, user or jump. A script cannot list the aliases at all.
+tssh resolves each alias once and gives two views of the result: a JSON list and a chooser.
+
+## Premise
+
+- Read: the picker takes its names from `config::host_names` (`crates/podssh-cli/src/ssh/picker.rs:61`,
+  `crates/podssh-cli/src/ssh/config.rs:128`): names only, no resolved field, and only when `podssh ssh`
+  has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:41`).
+- Read in the donor report: tssh builds one record for each alias with its host, port, user, identity,
+  proxy and labels; wildcard patterns stay out of the list; `--list-hosts` prints the same list as JSON
+  (trzsz/trzsz-ssh:tssh/config.go:692, tssh/config.go:735, tssh/tools_list_hosts.go:34).
+- Read in the donor report: its multi-select opens one pane or window for each host, with the alias
+  token replaced in the argv (trzsz/trzsz-ssh:tssh/tmgr_tmux.go:64); that needs tmux, iTerm2 or Windows Terminal.
+
+## Approach
+
+1. A projection beside T-043's reader: for each literal `Host` alias, the fields that a connection to
+   it would resolve (host name, port, user, identity files, proxy jump), through the same code that
+   `podssh ssh` uses, so that the two cannot differ. Follow each `Include` as T-188 does.
+2. `podssh ssh --list-hosts`: a JSON array on stdout, one record for each alias, no secret and no
+   passphrase, exit 0; a file that cannot be read exits 78. Write the field names in the manual.
+3. The picker shows the host and user beside each name, and the text of a question narrows on all of
+   them. A number still picks (T-188's Decision).
+4. Many hosts from the picker: hand the chosen names to `podssh each`, not a loop of dials inside
+   the process (the donor re-executes itself for the same reason).
+5. Decide in this entry's notes whether a destination that is no alias and does not resolve opens the
+   picker with the text as the query (the donor waits 200 ms for DNS and vetoes any text with
+   `. : [ ] @`); the lookup already happens for the connection.
+6. The expect rules of T-191 (done) are literal text. The donor study (report 02) read tssh's expect engine (trzsz/trzsz-ssh:tssh/expect.go:517), which runs rules in strict order, each with its own buffer, with regex captures that later rules can send (tssh/expect.go:43, 386). Its faults to avoid if podssh moves past literal text: one deadline for the whole list (tssh/expect.go:596), numeric captures that shift when a rule is inserted (tssh/expect.go:386), and a wildcard matched on an escaped buffer but a regex on the raw one (tssh/expect.go:440). Take named captures only, a deadline for each rule (T-191 has it), one buffer form for every kind of match, and a capture that a later `--send` may name but never print or log. That is a new entry when someone asks for it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ssh_list_hosts   # JSON shape, patterns left out, Include, exit 78
+cargo test -p podssh-cli --test ssh_args -- picker
+```

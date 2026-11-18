@@ -52,7 +52,7 @@ Read on 2026-11-15.
    take of `v0.42.0`, which answered each. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.69.0` (COORD-130, PodUtils/podcrates#220; podssh's answer is COORD-108). Taken, so worked on in
+   `v0.70.0` (COORD-132, PodUtils/podcrates#222; podssh's answer is COORD-119, 2026-11-18). Taken, so worked on in
    PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`,
    `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`
    and `pod-relay` (2026-11-12), `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue), and
@@ -64,11 +64,7 @@ Read on 2026-11-15.
    `acme/mod.rs` of `podssh-cli`). Nothing is frozen now (2026-11-15). Taken on 2026-11-17 (`v0.65.0`): `pod-tor` and `pod-iroh`.
    Next, as podcrates names them: `pod-cloudflare` and `pod-ts`; then
    `pod-relay-serve` last.
-8. **Drafts.** One waits (2026-11-18): `draft/take-v070` (`c73164f`, WIP): the take of podcrates `v0.70.0` (the pin of
-   each Cargo.toml and `issue-sync.yml`, no patch at the tag; the workspace builds; `cargo test --workspace` had run
-   54 suites with no failure when it was stopped), and T-828's lock of a copy's side file (`pod_core::lock`, not yet
-   built; `cp/resume_tests.rs`). Merge it first: build, the whole tests, clippy, then file
-   the branch's draft-coord-119.md (in TODO) as COORD-119 (to podcrates) and remove that file. Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** None waits (2026-11-18). Merged on 2026-11-18: `draft/take-v070` (the take of podcrates `v0.70.0`, T-828's lock) and the donor study's entries T-831 to T-842 (#317). Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -83,6 +79,20 @@ Read on 2026-11-15.
    local branch `merge-NNN`, never on `main`.
 
 ## Tonight
+
+**Session of 2026-11-18 (cloud): podrunner first.** The owner's rulings "podrunner first", "Coordinator" and "Schema
+ids" (COORD-134, PodUtils/podcrates#225; the coordinator's order is COORD-136, PodUtils/podcrates#227) are in
+`docs/decisions.md`; the operator confirmed them at this session's start. The order of each session from now: (1) a red
+run of podssh's CI; (2) each ask of podrunner (a COORD issue `(to podssh)`; none yet: podrunner's census, its T-491,
+sends them) and each ask of podcrates that serves it; (3) the asks of githome and cfb in this record (#195: T-711,
+T-719, T-722, T-729 wait for podcrates T-112, T-110, T-111, T-117, which the coordinator ordered after githome's and
+cfb's CI entries; COORD-120, #316); (4) podssh's own order, critical repairs only: the rest of this page's queue waits.
+Done this session: the red `windows-arm` row (T-728); the take of `v0.70.0` (COORD-119); T-828's lock; T-843 filed
+(pod-relay's policy line lost the relay's cause, asked in COORD-119); the donor study filed as T-831 to T-842 and
+additions to T-116, T-123, T-150, T-159, T-160, T-161, T-303 and T-304 (#317, backlog); twelve COORD issues of takes
+that podcrates recorded closed. Asked by the coordinator and answered in COORD-120: no relay of the pool runs podssh's
+role (each `/health` of the 37 hosts of `/relays.json` says `tcp-ssh-relay 2026-10-03-r2`, the operator's own relay),
+so T-801's fix reaches the pool only through the relay's operator or `pod-relay-serve` (podcrates T-036).
 
 **First, from 2026-11-15 (the operator's ruling, `docs/decisions.md`): T-684 is fast-tracked.** podssh asks
 podcrates for Q101's waves 3 and 4 (COORD-071, #248), freezes each module as podcrates names it, and takes each
@@ -214,7 +224,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 785 entries: 27 open, 39 partial, 12 blocked, 707 done.
+`TODO/INDEX.md` holds 798 entries: 39 open, 39 partial, 13 blocked, 707 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

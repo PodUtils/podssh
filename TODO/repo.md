@@ -6484,6 +6484,14 @@ connection to 127.0.0.1:PORT was lost before the session ended: the connection c
 passed, and the row passed at `5d6efd0` and before. The sshd's log of that row was out of the tail at the end (15 lines,
 the later rows'). A failed row now prints the sshd's last 12 lines at once, for the cause at its next failure.
 
+2026-11-18: the second failure, the gate's `windows-arm` at `9b1a911` (run 44212013082), printed them: the sshd
+accepted the key, then logged `mm_request_receive: read: Connection reset by peer`: its own privilege-separated
+session child died under its monitor, a fault of MSYS2's sshd on that runner, not of the client. A row whose
+sshd log says that since the row began now runs once more, with a `note` line (`scripts/smoke-operator.py`,
+`sshd_child_died`); a second failure stands, and a failure with no such line never runs again. Measured here
+(Linux, 2026-11-18): `python scripts/smoke-operator.py target/debug/podssh`, 22 passed; `sshd_child_died` holds on a
+planted log (the line after the row's start: yes; before it, or no file: no). The next `windows-arm` gates are its proof.
+
 # T-754: Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5
 
 **Source:** PodUtils/podssh#197 (trufflehog 3.99.8 in `images/trufflehog`), #198 (the actions group:

@@ -12593,7 +12593,7 @@ tunnels of T-548 and T-565 to T-569 are.
   tunnel's client ran inside a WARP namespace of cfrs, as that host's proxy refused their ports
   (its tools/measure_reverse.py).
 - `docs/decisions.md:43` says "Q78: each service is a last fallback, whatever its terms".
-- `TODO/serve.md:2173` says "EpicEric/sandhole: reverse proxying through a stock": the record
+- `TODO/serve.md:2177` says "EpicEric/sandhole: reverse proxying through a stock": the record
   knows Sandhole as a project, not its public server as a carrier; it names neither hostc nor
   Tunnelmole (a search of `TODO/` and `docs/` on 2026-11-04).
 
@@ -16042,7 +16042,7 @@ make a remote forward, which a Sandhole server allows only with its option
 - `docs/decisions.md:43` says "Q78: each service is a last fallback, whatever its terms".
 - `docs/carriers.md:1234` says "a host of T-565's module, T-743", and `docs/carriers.md:1120` says
   "It is one more host for T-565's module": the verdict of T-624.
-- `TODO/serve.md:2173` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
+- `TODO/serve.md:2177` says "EpicEric/sandhole: reverse proxying through a stock": the record knows
   Sandhole as a project (GitHub #18), and not its public server as a carrier.
 
 ## Approach
@@ -16348,3 +16348,63 @@ Partial (2026-11-13): drafted (DRAFT T-773), not built, not run.
   note, every other on a host; caught by `a_write_that_fits_a_note_rides_in_it_and_no_host_sees_it`.
 - The manual (`crates/podssh-cli/src/man/notes_filehost.rs`, `crates/podssh-cli/src/man/facts/turn.rs`) and
   `docs/carriers.md` (T-738's re
+
+# T-835: A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else
+
+**Source:** the donor study of 2026-11-18, report 09 (Mygod/dnstt at its pinned commit); the tracker issue is PodUtils/podssh#317
+**Category:** research
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Some hosts reach a recursive resolver and no other address (a captive network, a locked guest network).
+dnstt carries a TCP stream there in the questions and answers of DNS. podssh has no road that does, and
+the answer to "is it worth having" is not written down.
+
+## Premise
+
+- Read: the sandbox that podssh targets refuses port 53, and its proxy resolves the names that `CONNECT`
+  gives (`docs/target-environment.md:24`). A DNS carrier does not help that host; it helps another one.
+- Read: `docs/design.md:1223` allows a UDP bind only after podssh's own probe; AGENTS.md rule 2 asks one
+  outbound connection. A resolver query is one datagram to the user's own resolver, so the rule needs a
+  ruling before any code.
+- Read: a carrier is a stream that exists already (`crates/podssh-cli/src/carrier.rs`,
+  `crates/podssh-cli/src/node_carrier.rs`); T-725 added the bucket as one. `pod-session` keeps identity,
+  replay and resume above any road, so the road needs no ARQ of dnstt's kind for the session, only for its
+  own loss.
+- Read in the report, not verified here: dnstt sends each KCP segment as a base32 name under a delegated
+  zone, asks for TXT, polls at 500 ms to 10 s with a doubling delay, and the server queues downstream bytes
+  per 8-byte client id (Mygod/dnstt:dnstt-client/dns.go:33-39, :285-310; Mygod/dnstt:dnstt-server/main.go:447-454,
+  :666-681). It answers only UDP (Mygod/dnstt:dnstt-server/main.go:1064) and has no rate limit
+  (Mygod/dnstt:CHANGELOG:69-71).
+- Read: Cloudflare Gateway and similar filters class "DNS Tunneling" as a threat (`docs/carriers.md:721-723`),
+  so the road is a last resort, and may harm the resolver's reputation for other roads.
+
+## Approach
+
+1. Ask first: is there a host that podssh's users have, with a resolver and no 443? Read the issues, and
+   measure with `podssh doctor` on two networks that block 443 (a TXT query for a name of the user's own
+   zone, answer size, RCODE, TC, EDNS(0) kept). Write the result in `docs/carriers.md`.
+2. If yes, a sans-IO codec (name encode, TXT decode, poll ladder) as an ask of podcrates, by a COORD issue
+   `(to podcrates)`; do not write the codec here (AGENTS.md, "Shared code first"). Do not port dnstt's KCP,
+   smux or Noise: the session layer above carries identity and resume.
+3. The responder is a separate operator-started command, never inside `serve` or a node's listener set (a
+   UDP listener); a ruling of the operator comes first, as a question in `TODO/PROGRESS.md`.
+4. Limits to measure and to write: FORMERR on a resolver that strips OPT, silent loss at a TC of 512, no
+   TCP retry, cache by name (random bytes in each name), a 429 pause of a DoH resolver.
+5. Name it in `docs/carriers.md` as a last resort, with the deployment that it needs (a domain, a
+   delegation, port 53 or a redirect).
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test dns_carrier   # when step 2 lands
+```
+
+The research step is done when `docs/carriers.md` holds the measurement of step 1 and the operator's
+ruling of step 3. A test that does not exist yet: the codec against bytes of `Mygod/dnstt`'s client, then
+a transfer through a resolver that podssh did not write (`unbound` in the box), with a planted resolver
+that sets TC and one that strips OPT; each must fail with one true line.

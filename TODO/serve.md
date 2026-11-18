@@ -1445,6 +1445,10 @@ syslog and no `/var`. A record must not leak secrets or session data.
    a session.
 5. Same commit: the flags, the manual, `docs/cli.md`.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 06.** (jkobierczynski/FeroSSH at 5f24229). The audit log of step 1 shows an edit only if it is chained. FeroSSH seals a log every 10 s with the SHA-256 of what came before, writes the seals to a `.chain` file beside it, and links each finished log in a `log-index.chain` (jkobierczynski/FeroSSH:crates/term/src/chain.rs:21, crates/term/src/chain.rs:325). Take it as an option (`--audit-chain`, off by default): a seal each N lines or each 10 s, the index in the same directory, `podssh serve --audit-verify FILE` to recompute it. `sha2` is already a dependency; no new one. Limits to say in the manual, from the donor's own code: the chain detects an edit, it does not stop one, and the index must be copied off the machine to mean anything (crates/term/src/chain.rs:21); a cut at a seal boundary that also removes the newest chain lines passes as "not ended" (crates/term/src/chain.rs:271); two logs that finish together can compute the same predecessor, so the index append takes a lock (crates/app/src/win.rs:1924 reads, then appends, with none). Same chain for `podssh play` recordings and `--detach` records as a later entry once this one works. The donor's other half, a signer that signs only a login or an SSHSIG blob that parses (jkobierczynski/FeroSSH:crates/auth/src/userauth.rs:88), would be an ask of podcrates for `pod-identity`; it narrows an agent that a forwarded `-A` gives away, and it is not filed because no podssh report needs it. Its AppContainer worker is no option: rule 3 of `AGENTS.md` allows no helper process.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 24.** (ssh-mitm/ssh-mitm at its pinned commit). Let the record say what it does not see. Write, before login, a first line or file that carries a coverage map: for each class (`auth`, `channel`, `exec`, `pty.in`, `pty.out`, `sftp.meta`, `sftp.content`, `forward.meta`, `forward.payload`) one of `recorded`, `metadata`, `lossy`, `not_visible`, `declined`, `truncated`. `pty.in` and `sftp.content` default to `declined` (the donor's own input log holds passwords, ssh-mitm/ssh-mitm:doc/audit_guide/sessions.rst:101), which agrees with step 3 here. Chain the lines: each carries the SHA-256 of the line before it, the first that of the manifest, and a last `session.close` line with the final counts; a missing last line reads as `unfinished`, since a chain detects edits and not truncation. A small `podssh serve audit verify FILE` recomputes the chain and refuses an event for a class that is `declined` or `not_visible`. The cast of `podssh play` may be linked, not hashed in. Add to the Prove the verifier's test with one planted edited line and one cut tail.
+
 ## Prove
 
 ```sh
@@ -2216,6 +2220,12 @@ default of russh refuses each `tcpip-forward` with no reason.
    ends with its connection.
 6. Same commit: `docs/cli.md`, the serve notes.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 11.** (antoniomika/sish at its pinned commit): sish's forward handler is the model for the rows that step 1 and step 5 hold. Rules to take: (a) the request chooses a row kind (port 80 or 443: a name; 443 with an `sni-proxy` option: a TLS pass-through; another port: a raw route; antoniomika/sish:sshmuxer/requests.go:174-205); (b) a duplicate key joins a row only when the route matches and balancing is on, else the forward is refused or given a random name (antoniomika/sish:sshmuxer/httphandler.go:22-39); (c) one idempotent teardown for `cancel-tcpip-forward`, a closed connection and a failed bind, under one lock, and the row leaves only when its last backend leaves (antoniomika/sish:sshmuxer/requests.go:77, :365-378, :499-504); (d) an unauthenticated connection has a timer (antoniomika/sish:sshmuxer/sshmuxer.go:298), which is T-631. The sniffing of the first bytes (TLS by `0x16 0x03`, SSH by `SSH-`, HTTP by a method and a space, under the accept deadline) belongs to the shared listener of T-631 and T-644, not here; sish dedicates a port to each and needs only the TLS peek (antoniomika/sish:httpmuxer/https.go:40, :127). A certificate on demand for a name that a row holds is T-433's and `podssh funnel`'s question, not this entry's. Unverified in podssh: that `russh` gives the forward's bind name unchanged to `tcpip_forward`.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 12.** (rapiz1/rathole at its pinned commit, now rathole-org/rathole). podssh already has the proof that rathole's handshake gives (`pod-session`'s 16-byte id and nonces), so do not copy the handshake. Two rules are worth taking for the `-R` registry of step 1. First, a lane is bound to a generation of its forward: a reload or a new `tcpip-forward` for the same bind bumps the generation, a lane of an older one is closed, and the listener is kept when the bind is unchanged, so that in-flight flows survive (rathole-org/rathole:src/server.rs:228-235, :369-379). Second, a forward that names a service that does not exist is refused before any proof is read (rathole-org/rathole:src/server.rs:301-307). A change of `podssh share` (T-433) takes no lane away today (a share is read for each session); say in `docs/mesh.md` whether a removed share ends its open lanes, and test it. Where the registry needs the service digest in `pod-session`'s OPEN, that is an ask of podcrates by a COORD issue, not a change here. Rathole declares balancing out of scope (rathole-org/rathole:docs/out-of-scope.md:3), which agrees with report 11's rule that a duplicate joins only on the same owner.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 23.** (pgrok/pgrok at its pinned commit). If a node ever routes HTTP by name to a `-R` forward, take three rules of pgrok: the forward's listener is on `127.0.0.1` only, never `0.0.0.0`, so the port is not a second, unauthenticated entrance; the name is kept in the per-forward record, not in a field of the connection, so a connection with several forwards cannot orphan one (pgrok/pgrok:internal/sshd/, the registry of a Host to a forward); and the Host is lowercased and cut of its port once, on both sides of the lookup. The name belongs to the authenticated key; the SSH user name, which stock OpenSSH always sends, can be a label under that key (`ssh -R 0:localhost:3000 staging@node` binds "staging" for the key), so no client of podssh's own is needed. The ingress listener only looks up the Host and proxies, and is fronted by T-631's deadline and cap. Step 1 (no bind in the cage) is unchanged: the registry maps a name to the relay pair, not to a socket. The relay role (T-720) already names nodes, so the name registry is asked of it, not written beside it.
+
 ## Prove
 
 ```sh
@@ -2809,7 +2819,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1152` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2287-2288` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2297-2298` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".
@@ -3584,3 +3594,251 @@ exited 0 here (a tty, Ctrl-C's 130, vi, less, `exit 9`, 200 MiB up in 52 s and d
 of `pod-lab`'s `listen-denied`, `udp-denied`, `no-ptmx`, `no-passwd-entry`, `noexec-home`, `no-proc`,
 `seccomp-nonewprivs`, `ro-etc-ssl`, `no-tun` and `bind-denied` (with `--allow-connect` of the proxy's port), each step
 ok. `cargo test --release -p podssh-zerotier` 14 passed.
+
+# T-834: A bearer identity in the session's OPEN, bound to the session and its carrier
+
+**Source:** the donor study of 2026-11-18, report 08 (francoismichel/ssh3 at 5b4b242, and quic-go/quic-go at 554d543); the tracker issue is PodUtils/podssh#317.
+**Category:** research
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A user of `podssh serve` must hold a key, an agent or a password (T-107, T-115). Some operators want a
+person who holds an external identity, a signed short token, to log in with no key file on the host.
+SSH3 does this with a JWT of 10 seconds whose `jti` binds it to the connection. Its OIDC path does not
+bind (no `jti` cache), which is the lesson: a token that is not tied to the session and the connection
+can be copied.
+
+## Premise
+
+- Read: the client's methods are the agent, key files, keyboard-interactive and a password
+  (`crates/podssh-ssh/src/auth.rs`); the layer's proof is a key's (`crates/podssh-relay/src/session/mod.rs:1`,
+  `pod-session` of PodUtils/podcrates). No entry covers authentication by a token.
+- Read in the donor report: the key path of SSH3 binds `jti` to a TLS exporter of the connection
+  (francoismichel/ssh3:conversation.go:44-47, client_auth.go:331-339, auth/plugins/pubkey_authentication/server/server_plugin.go:37-67);
+  the OIDC path ignores the conversation (francoismichel/ssh3:server_auth/authorized_identities.go:38),
+  and one binding serves all conversations of a connection (francoismichel/ssh3:conversation.go:93-96).
+- Not read: which roads of podssh give a TLS exporter (`pod-tls`, `pod-quic`, the WebSocket road).
+
+## Approach
+
+1. Research first: which roads give an exporter, and which need a nonce from the server instead. Write
+   the table in `docs/design.md`, section 5.
+2. If a bearer is wanted: a feature name in OPEN (`bearer.v1`) and a token of 20 to 30 seconds with
+   `exp` and a `jti` that is `HMAC-SHA256(exporter, session id)`, not the session id alone. It rides
+   inside OPEN, never in argv, a URL or an environment variable. The server checks it before ACCEPT,
+   keeps each `jti` for the token's life, and records the user and the method on the session.
+3. A resume mints a new token; the session id stays the handle.
+4. Signers: first a key listed in the user's identity file; an OIDC ID token comes after, and only with
+   the replay cache. The `email_verified` claim is required, not assumed.
+5. Shared code first: OPEN's field and the verifier belong to `pod-session` and `pod-identity`; ask
+   podcrates by a COORD issue. podssh writes the use in `podssh serve` and the client's source of the token.
+6. The decision about scope is the operator's: write a question in `TODO/PROGRESS.md` if step 1 finds a
+   road with no exporter and no nonce.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of another session, expiry
+```
+
+# T-836: A gateway role: a user name chooses the upstream, and the client's own key proves the second hop
+
+**Source:** the donor study of 2026-11-18, report 10 (tg123/sshpiper at its pinned commit); the tracker issue is PodUtils/podssh#317
+**Category:** research
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+One host in front of many private hosts (a bastion that holds no local account for each user) needs
+to pick the target from the first user name and to log in upstream with no password stored. sshpiper does
+it by joining two SSH handshakes at the packet layer. podssh has `-J` for a client, and the relay role for
+a pair, and no gateway that routes a stock `ssh` client by its user name.
+
+## Premise
+
+- Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
+  (`crates/podssh-ssh/src/server/handler.rs:227-231`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler.rs:223-225`), which is the check that sshpiper lacks.
+- Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
+  would be a second table.
+- Read in the report, not verified here: sshpiper stops the downstream handshake after the service
+  request, so the first user name arrives with the first userauth request, and it dials upstream before
+  the client has signed (tg123/sshpiper:ssh/server.go:805-846, fork `67a2713`). An empty route becomes
+  an upstream `none` (tg123/sshpiper:cmd/sshpiperd/internal/plugin/grpc.go:356-362), and the upstream
+  host key check is optional (:445-452). Upstream keyboard-interactive is not relayed (:307-354).
+- Read in the report, inferred: a podssh gateway can relay the client's signature over the upstream
+  session id, so the private key never leaves the client; a stock client needs an assertion that the
+  upstream trusts, signed with `pod-identity`.
+
+## Approach
+
+1. Research only, first: read the pinned `russh` server (`vendor/russh`) for two things: whether the
+   offered-key query and the signed attempt are separate (they are, at `auth_publickey_offered` and
+   `auth_publickey`), and whether a client can sign a blob that another side supplies. Write the result in
+   `docs/design.md`.
+2. Decide among three paths: (a) relay the signature (podssh to podssh; needs a patched client), (b) a
+   gateway assertion signed with `pod-identity` and a trust set at the upstream, (c) a mapped key for a
+   stock upstream. Write the choice, the audit line each leaves upstream, and what a compromised gateway can
+   do, in the entry's `## Decision`.
+3. A route table keyed by user name pattern, read by the first callback of `serve`, owned by the net's
+   policy where one exists (T-430), else a file. A route that is empty refuses; it never maps to `none`.
+   Each route pins its upstream host key.
+4. Dial upstream only after the signed attempt, never on a key query (a client that offers many keys would
+   cause many upstream logins).
+5. Anything for `pod-identity` (the assertion, the trust set) is a COORD issue `(to podcrates)`.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test gateway_route
+```
+
+A test that does not exist yet: OpenSSH's `ssh user-a@gateway` and `ssh user-b@gateway` reach two
+OpenSSH servers; a user name with no route is refused (255, one true line); an upstream key that is not
+pinned is refused; a client that offers 20 keys and signs none causes no upstream connection. A planted
+gateway that dials on the key query fails the last check.
+
+# T-837: A live shell shared by name: a read-only name, and one writer at a time
+
+**Source:** the donor study of 2026-11-18, report 13 (tmate-io/tmate at its pinned commit); the tracker issue is PodUtils/podssh#317
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A user who wants a colleague to watch a shell, or to type in it, sends `ssh NAME@host`. tmate does it
+with the name as the SSH user and a second, read-only name; neither needs a client install. podssh can
+attach a second client (T-158) only as a take-over; it has no viewer that cannot type, and no rule for
+which of two writers' bytes reach the pty.
+
+## Premise
+
+- Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
+  nothing (`crates/podssh-ssh/src/server/handler.rs:227-231`, `:343-360`); `--listen` is T-124, still open.
+- Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
+  is no viewer with a different right.
+- Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
+  attachment has a place.
+- Read in the report, not verified here: tmate picks the role by the first channel request, makes the name
+  the user, mints the read-only name as `ro-` plus a fresh token
+  (tmate-io/tmate-ssh-server:tmate-ssh-daemon.c:94-131), takes only one channel for each connection
+  (tmate-io/tmate-ssh-server:tmate-ssh-server.c:104), and has no lease: the windows of two writers
+  interleave. Its window size is the owner's floor (tmate-io/tmate:resize.c:86).
+- Read: T-159, T-161 and T-303 hold the persistence and the screen of an attach, not concurrent input.
+
+## Approach
+
+1. A table in the serve session registry: `name -> (session, mode)`. The name is minted from 128
+   random bits, shown once as `ssh NAME@ENDPOINT` where the endpoint is the relay road or T-124's
+   listener. A miss is not told at auth time, and says the same as a wrong key.
+2. Read-only is a property of the name, kept at one gate: the channel handler, before bytes reach the
+   pty. A viewer may send window-change and nothing else. Do not scatter checks at write sites.
+3. One writer lease: one writable viewer's bytes reach the pty at a time; a lease has a generation and
+   an idle deadline (150 to 250 ms is the starting point to measure); acquire by an explicit claim. No
+   byte-level interleaving.
+4. Window size is the minimum over writers and the owner. Where T-161 gives a screen, a viewer gets a
+   viewport instead of a crop.
+5. Revoke by deleting a name; rotating the read-only name leaves the writable one alone.
+6. Ask first the cost to `pod-term`: the lease belongs in the session so that a future screen frame
+   shares one authority; if `pod-term` should own it, a COORD issue `(to podcrates)`.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share
+```
+
+A test that does not exist yet: OpenSSH connects with the read-only name and reads the owner's output,
+its typed bytes never reach the pty, a window change does; with two writable names, bytes of the second
+are held while the first holds the lease, and the output of `cat` shows no interleaved line; a deleted name
+refuses a new login and leaves an attached one. A planted handler that checks the mode at the write site
+of the pty and not at the gate fails a test that sends input through the second path (a paste).
+
+# T-841: `podssh serve` offers one stated set of algorithms, and a table test refuses the rest
+
+**Source:** the donor study of 2026-11-18, report 19 (janmojzis/tinyssh at its pinned commit); the tracker issue is PodUtils/podssh#317.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh serve` takes the key exchange, host key, cipher and MAC lists from the default of russh. A russh update can add or remove an algorithm of the server with no line in podssh's record, and no test says which names the server accepts. tinyssh fixes its three tables and tests each named limit and each refusal against one source (janmojzis/tinyssh:tests-plan.md:88).
+
+## Premise
+
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:68-86`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:55`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
+- T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
+
+## Approach
+
+1. Name the server's set in one place: `preferred` of `russh::server::Config` set from a constant that lists the key exchanges, host key types, ciphers and MACs that podssh serves. Start from russh's default list minus none; the entry does not choose a new set, it states the present one.
+2. A test that reads every name that the client's table knows, connects with each alone, and asserts: the names of the set are accepted, every other is refused with the one wire reply. A set, not a ranking: to require a name, remove the others.
+3. A table of what each refusal sends (`CHANNEL_FAILURE`, `REQUEST_FAILURE`, `USERAUTH_FAILURE`, `UNIMPLEMENTED`, `DISCONNECT`) with the request that causes it, tested against OpenSSH's client.
+4. Same commit: `podssh serve` in `docs/cli.md` names the set.
+
+## Decision
+
+Recommendation: a constant and a test, no new crate. The donor's split of one core per connection (janmojzis/tinyssh:main_tinysshd.c) fits a process of one connection; podssh serves many connections in one process on russh's handler. Lost: a `podssh-sshd-core` crate (a second copy of the handler's state, with no second user); a counting allocator for zero allocations after login (russh allocates, and the test would pin russh).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_algorithms
+```
+
+The test does not exist yet. Planted: add one name to the constant that the table does not list, and the test fails.
+
+# T-842: `podssh serve`: a key that a reload removes ends its open sessions when asked
+
+**Source:** the donor study of 2026-11-18, report 21 (openziti/zrok at its pinned commit); the tracker issue is PodUtils/podssh#317.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+An operator who removes a key from the authorized keys and sends SIGHUP stops new logins by that key. Each session that the key already opened goes on, with its shell, its forwards and its files. To end them the operator restarts the node, which ends every session. zrok's revoke deletes the access and closes its live channels (openziti/zrok:controller/unaccess.go), so removing a person does not leave the stream running.
+
+## Premise
+
+- Read: a reload replaces the set of keys whole, a new login uses the new set, and open sessions continue (`crates/podssh-ssh/src/server/stop.rs:11`, `crates/podssh-ssh/src/server/stop.rs:44-46`); this is T-117's invariant "never drops a session".
+- Read: the server knows each connection's fingerprint at login (T-114 logs a refusal with it).
+- Not verified: whether the handler keeps a handle to each live connection that a reload can reach; reading `crates/podssh-ssh/src/server/handler.rs` settles it.
+- T-159 (sessions that outlive the client) will make this more needed: a kept shell is not bound to a socket that ends.
+
+## Approach
+
+1. Keep a table of the live connections of a server: the fingerprint, the connection's handle and the session number.
+2. On SIGHUP, with `--revoke-ends-sessions` (off by default, so T-117's invariant stands without it), compare the table with the new set; for each connection whose key is gone, send a disconnect with one line that names the cause ("key removed"), SIGHUP to its children's process groups, as T-117's stop does.
+3. A file that does not parse keeps the old set, and ends nothing (T-117).
+4. A session that came by `expiry-time` of T-114 is ended at its time by the same path.
+5. Same commit: the flag, the manual, `docs/cli.md`, the audit line of T-116 if it exists.
+6. Not here: a `Share` record with a token, an access mode and `serve revoke share TOKEN`. That waits for T-159.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_lifecycle
+```
+
+A test that does not exist yet, in that file: log in with two keys, remove one, reload; the removed key's session ends with the line and its child is gone, the other lives; without the flag, neither ends.

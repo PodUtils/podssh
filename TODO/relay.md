@@ -4650,7 +4650,7 @@ Read at `2042200`:
   (`crates/podssh-cli/src/flags/node.rs:134`).
 - The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:157-160`), so an
   sshd of this host is no target of `/connect/`.
-- `TODO/serve.md:2284-2285` plans the same choice for `podssh serve --listen` (T-124, step 5).
+- `TODO/serve.md:2294-2295` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
 ## Approach
 

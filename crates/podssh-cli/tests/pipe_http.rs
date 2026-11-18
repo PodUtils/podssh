@@ -180,7 +180,7 @@ fn through_the_relay_a_page_comes_whole_its_policy_is_403_and_a_dead_target_502(
     let (status, err) = connect_status(&proxy_url, &url, None, &out);
     assert_eq!(status, "403", "{err}");
     assert!(err.contains("ALLOW list"), "the client hears the relay's words: {err}");
-    wait_for(&lines, "ALLOW list").expect("podssh's line names the relay's refusal");
+    wait_for(&lines, "policy does not allow").expect("podssh's line names the relay's refusal");
 }
 
 /// What a CONNECT to the sshd's own port through `proxy_url` gets, up to its

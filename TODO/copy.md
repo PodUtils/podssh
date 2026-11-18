@@ -2139,6 +2139,8 @@ can do better.
 5. Test both ways: podssh's client against `podssh serve`, and OpenSSH's
    `sftp` against `podssh serve`.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 18.** (libfuse/sshfs at its pinned commit). The client already waits for each write to be acknowledged before the digest (`crates/podssh-ssh/src/sftp/pipeline.rs:274` for the acked offset, `crates/podssh-ssh/src/sftp/pipeline.rs:314` for the finish). The new requests of step 1 are where the rule can fail on the server: a digest request must answer only after each write that the same handle accepted before it, as sshfs orders a path request behind the handle's writes (libfuse/sshfs:sshfs.c:1098-1129); and a request for a range must name the file's state it read (size and time of change), so that a resume offset read before a write is discarded (libfuse/sshfs:cache.c:189-196, a counter that each accepted write advances). A failed write may have landed a prefix: the client truncates to the last acknowledged offset, never deletes the file (libfuse/sshfs:sshfs.c:3458-3477). Add to the Prove a test that sends a write and a digest request in one pipeline and checks that the digest covers the write.
+
 ## Decision
 
 Recommendation: requests of podssh's own inside SFTP, not a new protocol.
@@ -4107,3 +4109,56 @@ Ten runs in a row from a cloud container pass, or the failure is named and repai
 Partial, 2026-11-14: three more runs of `sh scripts/m5-in-sandbox.sh target/x86_64-unknown-linux-musl/release/podssh`
 from this cloud container, with the logs kept on a failure, each passed (200 MiB up in 40, 48 and 44 s, down in 37
 s each, SHA-256 equal). The entry waits for the next failure of the script, whose logs it keeps.
+
+# T-831: A 7-bit transfer envelope for a session whose pty damages ZMODEM
+
+**Source:** the donor study of 2026-11-18, report 01 (trzsz/trzsz at f73b234); the tracker issue is PodUtils/podssh#317.
+**Category:** research
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+T-148 moves a file inside a pty session with ZMODEM. ZMODEM escapes a few control bytes and sends
+the rest as they are. A multiplexer or a container's tty path can rewrite bytes (tmux repaints
+and may convert binary input), so a transfer can stall. trzsz keeps every payload to the
+alphabet of base64, so no control byte crosses the pty, and it resynchronizes each line. It needs
+its own binary at the far end, as podssh's ZMODEM needs `sz` or `rz`; what it saves is the
+second channel. It is not measured whether podssh's ZMODEM fails in these places.
+
+## Premise
+
+- Read: the start of a transfer is found in the output by `crates/podssh-ssh/src/zmodem/detect.rs:1`;
+  the keys, the question and the transfer belong to the session (`docs/terminal.md:438`).
+- Read: T-148's Correction says the gate has no `sz` or `rz`, so no run of ZMODEM through tmux or a
+  container exists in the record.
+- Read in the donor report, not verified here: trzsz's lines are `#KIND:` plus base64, resynchronized
+  at the last `#KIND:` of a line, with a CR that ends a read joined to the next line
+  (trzsz/trzsz:trzsz-libs/trzsz/libs/utils.py:575-588); one frame in flight, its byte count echoed,
+  a chunk of 1 KiB that doubles after a fast ack (trzsz/trzsz:trzsz-libs/trzsz/libs/transfer.py:202-205).
+
+## Approach
+
+1. Measure first: podssh's ZMODEM through tmux (normal mode), through `podman exec -t`, and through a
+   pty that maps CR and LF, with `scripts/interop-pty.py` as the driver. Write the rate of failures
+   and the cause in `docs/terminal.md`. Build only where a fault shows.
+2. If one shows: a second carrier in the same session, chosen by the trigger line that the far
+   side paints (a printable line, saved cursor first), which the session removes from the display as
+   T-148's start is removed. Frames are `#KIND:` lines of base64, one in flight, the received count
+   echoed, the chunk doubling after a fast ack and falling to 1 KiB after a slow one; a read that
+   fails to parse resynchronizes at the last `#KIND:`.
+3. Reuse T-134's rule: a temporary name, SHA-256 of the file, then the rename. Keep MD5 out. Drop the
+   donor's loopback listener for bulk bytes: rule 2 of `AGENTS.md` forbids a listener that nobody
+   asked for, and this carrier is for the case where no second channel exists.
+4. Each wait has a limit (20 s); a stop leaves no half file under the final name.
+5. Shared code first: the framing is sans-IO; ask podcrates by a COORD issue whether `pod-term` or
+   another crate should hold it before a copy is written here.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test pty_envelope   # frames, resync after junk, limits (after step 2)
+```

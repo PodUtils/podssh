@@ -141,8 +141,9 @@ fn a_private_target_and_port_25_are_refused_by_the_policy() {
     let out = ran(s.command(&args));
     let text = said(&out);
     assert!(!out.status.success(), "a loopback target through a relay that dials public ones: {text}");
-    // GitHub #126: the words name no address that the name resolved to.
-    assert!(text.contains("ALLOW list") && !text.contains("not a public address"), "{text}");
+    // GitHub #126: the words name no address that the name resolved to. One
+    // line of the refusal and its target (pod-relay's, PodUtils/podssh#309).
+    assert!(text.contains("policy does not allow 127.0.0.1:") && !text.contains("not a public address"), "{text}");
     assert!(!text.contains("SSH-2.0-never-reached"), "{text}");
 
     let mut args = vec!["proxy".to_string()];
@@ -150,7 +151,9 @@ fn a_private_target_and_port_25_are_refused_by_the_policy() {
     // An address of GitHub's: the port is refused before any dial.
     args.extend(["140.82.112.3".into(), "25".into()]);
     let text = said(&ran(s.command(&args)));
-    assert!(text.contains("port 25 is refused"), "{text}");
+    // The relay's cause ("port 25 is refused") is not in pod-relay's line
+    // since v0.70.0; T-843 asks for it back, then checks it here again.
+    assert!(text.contains("policy does not allow 140.82.112.3:25"), "{text}");
 }
 
 #[test]
@@ -271,7 +274,7 @@ fn a_listed_private_target_is_dialed_through_the_role_and_another_refused() {
     let out = proxy("10.255.255.1");
     let text = said(&out);
     assert!(!out.status.success(), "a target outside each range: {text}");
-    assert!(text.contains("not in the ALLOW list") && !text.contains("not a public address"), "{text}");
+    assert!(text.contains("policy does not allow 10.255.255.1:") && !text.contains("not a public address"), "{text}");
     let first = std::fs::read_to_string(s.home.join("fake-relay-normal-role.log")).unwrap_or_default();
     assert!(first.contains("the private targets in 127.0.0.1 too"), "the first line names the ranges: {first}");
 }

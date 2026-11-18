@@ -98,6 +98,28 @@ def expect(got, code=0, out=None, err=None):
     return None
 
 
+def log_size(path):
+    try:
+        return Path(path).stat().st_size
+    except OSError:
+        return 0
+
+
+# What OpenSSH's sshd logs when its own privilege-separated child dies under
+# it; podssh's client cannot cause a reset of that internal pipe.
+SSHD_CHILD_DIED = "mm_request_receive: read: Connection reset by peer"
+
+
+def sshd_child_died(path, since):
+    """Whether the sshd's log after byte `since` says its session child died."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(since)
+            return SSHD_CHILD_DIED in f.read().decode("utf-8", "replace")
+    except OSError:
+        return False
+
+
 def row_keygen(r):
     return expect(r.run(["keygen", "-q", "-t", "ed25519", "-N", "", "-C", "smoke", "-f", str(r.w / "k2")])) or (
         None if (r.w / "k2.pub").is_file() else "no k2.pub")
@@ -352,7 +374,16 @@ def main(argv):
             if only and name not in only:
                 continue
             started = time.monotonic()
+            log_at = log_size(scratch / "sshd.log")
             why = check(r)
+            if why and sshd_child_died(scratch / "sshd.log", log_at):
+                # MSYS2's sshd on windows-arm lost its own session child after
+                # the key was accepted (its monitor read a reset): a fault of
+                # that server, seen twice (T-728). Run the row once more, and
+                # say so; a second failure stands.
+                print(f"note {name:11} the sshd's session child died ({why}); the row runs once more", flush=True)
+                log_at = log_size(scratch / "sshd.log")
+                why = check(r)
             took = time.monotonic() - started
             if why:
                 failed.append(name)

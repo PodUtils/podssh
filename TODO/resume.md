@@ -1551,6 +1551,10 @@ metadata can.
 6. Docs: the server side in `docs/terminal.md`, and the section of `serve` in
    the manual.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 03.** (trzsz/tsshd at 8ae6c63). A kept shell has one owner at a time, and a new link is a ticket, not a new session. Four rules to settle in step 1, besides the ring: (a) the far end holds a record with one owner slot and a generation that stays after the path dies; a ticket at or below the generation is refused, a newer one swaps the owner and closes the old path (trzsz/tsshd:tsshd/attach.go:371-380, tsshd/proxy_server.go:519-521). (b) A new client takes over from the old one and tells it why before it closes it (trzsz/tsshd:tsshd/server.go:235-248); a read-only second client is not in the donor and is left to T-161's decision. (c) Output that arrives with no client is kept as whole lines, at most `max(1000, 2 * rows)`, and flushed at attach; past the cap, one repaint and one notice (trzsz/tsshd:tsshd/output.go:225-231, tsshd/output.go:254-256). The ring of step 1 already stops at a boundary of the grammar (T-221), so this is its line count, not a second buffer. (d) Eight marker bytes follow an attach and prefix the next input, so the far end drops input that was queued for the old client (trzsz/tsshd:tsshd/session.go:77-79, tsshd/client.go:1249-1250). Limits to avoid: the donor's attach is authorised by the transport alone, so any session id in its table can be named (tsshd/attach.go:371-380); T-833 holds the ticket rule. Whether `pod-session`'s `move.v1` already keeps a generation after a link dies is not read here; the session is `pod-session`'s, so a record needs an ask of podcrates (a COORD issue), not a copy.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 22.** (unixshells/latch at its pinned commit). Where step 1 keeps the pty, its ring and its lease, keep them in one object that no transport owns: it holds the pty, the screen of `pod-term`, the ring and the set of attached ends, and names no SSH type (unixshells/latch:internal/mux/render.go:20-66, where the render takes the session and a size, not a client). The SSH handler then only authenticates, resolves the name and attaches; T-158's `--attach` and a later ingress take the same attach call. Write first the test that two in-memory attachments to one object each get the same full frame, one pty write for each input frame, and the pty lives when both close (T-159 and T-161 in one assertion). This does not need a second wire protocol now.
+
 ## Decision
 
 Recommendation: keep a shell after the resume deadline only when the client
@@ -1650,6 +1654,8 @@ never show.
    above a measured round trip of 120 ms.
 6. Test the model against the terminal oracle of T-200.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 07.** (mobile-shell/mosh at decd9b7). Details of mosh's overlay that step 2 and step 4 do not give, for the design before the code: (a) each predicted cell holds the state number after which it is judged (`local_frame_sent + 1`) and what it replaced, so a prediction is checked against a state, not against a clock (mobile-shell/mosh:src/frontend/terminaloverlay.cc:762, src/frontend/terminaloverlay.h:57-64); (b) the far end tells the client the number of the last input it applied, after 50 ms of batching, and the client gets the echo ack from that number (mobile-shell/mosh:src/statesync/completeterminal.cc:132-136, src/frontend/mosh-server.cc:799-801), which is the "input offset that reached the pty" of step 3; (c) a wrong tentative guess kills its epoch, and a wrong confirmed guess resets the whole engine, which makes right guesses elsewhere flash (mobile-shell/mosh:src/frontend/terminaloverlay.cc:468-482, src/frontend/terminaloverlay.cc:502-507); consider resetting the row only; (d) wide characters and non-printing input are tentative, and a read over 100 bytes is a paste that resets prediction (mobile-shell/mosh:src/frontend/terminaloverlay.cc:712-714, src/frontend/stmclient.cc:331-335); (e) overlays are drawn on a copy of the screen and the copy is diffed to the display, so the model that the far end sends never holds a guess (mobile-shell/mosh:src/frontend/stmclient.cc:281-288). The decision to take before T-160 and T-161 are written separately: mosh's framebuffer holds exactly `height` rows and no history (mobile-shell/mosh:src/terminal/terminalframebuffer.h:396-420), so the object that is numbered and diffed must be larger than the viewport, or the scrollback needs a stream of its own; write the choice in T-161's Decision. T-303 and T-304 then follow: the latest screen is the newest state number, and the datagram is only the carriage.
+
 ## Prove
 
 ```sh
@@ -1736,6 +1742,8 @@ Each step ends with a result in `docs/terminal.md`.
 4. Compare the two: the screen after an attach, the local scrollback, the
    memory, and the size of the code.
 5. Write the recommendation in `docs/design.md` section 5, for the operator.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 14.** (ekzhang/sshx at its pinned commit): a measured alternative to a terminal model for step 3. sshx keeps no emulator: the pty's output is a log with an absolute byte offset that counts what the pty has produced since it started, a bounded tail (2 MiB for each shell, ekzhang/sshx:crates/sshx-server/src/session.rs:26), and a reader attaches with a cursor. The reply starts at `max(cursor, tailStart)`, and a cursor below the tail is marked as resynced so the client knows it missed bytes (ekzhang/sshx:crates/sshx-server/src/session.rs:176); a re-delivery is trimmed by overlap, so it is idempotent (:259); the offset is kept with the tail (ekzhang/sshx:crates/sshx-server/src/session/snapshot.rs:49). The client resends from the server's offset, snapped to a character boundary (ekzhang/sshx:crates/sshx/src/runner.rs:114), which is T-221's rule. Add to the comparison of step 4 a third column: "log with offsets, no model", and measure it on `vi`, `less` and `top` with a cursor that is below the tail. Input stays one queue into the pty with one check of the right at its head (ekzhang/sshx:crates/sshx-server/src/session.rs:349), the same single gate as T-837. The offset of the input is a keystream position in sshx and not a merge key (ekzhang/sshx:crates/sshx-core/proto/sshx.proto:26); do not take it as one. The offset counter belongs to `pod-term`/`pod-session`: ask podcrates by a COORD issue before writing it here.
 
 ## Decision
 
@@ -2173,6 +2181,10 @@ so Ctrl-C shows within a round trip.
    is off by default.
 5. Mosh as a reference, never a road, where a test host of the operator's has it.
 
+**The donor study (2026-11-18, PodUtils/podssh#317), report 04.** (gedigi/noissh at e0ce50c). Rules for step 2's frames, all from the donor's sender and client loops: (a) a frame carries the number of its state and of its base; the acknowledgement is its own record, not the byte ACK of the layer, which cannot say "I drew state 41". (b) The receiver sets one "ack due" bit when any diff arrives, before it checks the base, so a rejected diff is acknowledged too; it sends at most one ack for each pass of its loop, and none on a timer. (c) A resend is encoded again from the acked state, never replayed from a stored frame; it goes after 1.5 round trips plus 10 ms, not under 30 ms, and frames are gathered for 8 ms first (gedigi/noissh:crates/proto/src/shell.rs and src/server.rs). Faults to design out: the sender keeps a whole screen for each state until an ack, with no cap (gedigi/noissh:crates/proto/src/shell.rs:100-106), so a client that never acks costs memory without bound; keep the acked base and the newest screen, and drop the rest, which makes the next diff a full snapshot. A full snapshot applied regardless of its number (gedigi/noissh:crates/proto/src/shell.rs:184) can move the receiver back to an older state when a datagram passes a delta that took the stream; refuse a snapshot older than the state held. For T-161: noissh's screen mode feeds no scrollback (its CHANGELOG), as T-303 step 4 already says; keep the mode opt-in.
+
+See also the addition of the donor study (report 14) to T-161: the offset log is an alternative to the screen model that this entry sends.
+
 ## Prove
 
 ```sh
@@ -2235,6 +2247,8 @@ again: the next frame replaces it.
 5. The datagrams are inside the iroh connection, whose keys both ends proved (T-163); whether they
    also go through the Noise channel of T-088, or carry a MAC of their own, this entry decides.
 6. Only when both ends name it in the layer's features, after the UDP probe.
+
+**The donor study (2026-11-18, PodUtils/podssh#317), report 20.** (hashicorp/yamux at its pinned commit). Each session is its own QUIC stream with a lane by priority (`docs/design.md:1407-1415`), so no multiplexer of podssh's own owns a per-lane window, and yamux's credit rule (hashicorp/yamux:stream.go, the update at a half window) is not needed. If this entry puts screen frames and keys beside the session's bytes on one stream, three rules of yamux are the checks: a frame longer than what was advertised ends the session, with its own reason code (not a reset of one lane); the end of a lane is ordered behind its queued bytes; and a keepalive reply is written on a path that does not queue behind data, with the miss reported as a write stall (the 60 s bound of T-598) and not as a dead peer. Datagrams, as this entry plans them, need none of these. Revisit if a second ask for several lanes in one stream comes: it is an ask of podcrates (`pod-session`), not code of podssh.
 
 ## Prove
 
@@ -4326,3 +4340,58 @@ passes on it (3837 tests, T-684). The outage cell of the role's road from Action
 then 178.0 ms and 1,042.6 ms, where it was 12.7 and 12.5 s before. Both rounds are within the target of 2 s. T-781's
 tunnels of HTTP keep their own rule (no spare links through a third party's tunnel), which this fix does not touch.
 
+# T-833: An attach ticket for a kept shell: who may attach, and replay or reset
+
+**Source:** the donor study of 2026-11-18, report 05 (MisterTea/EternalTerminal at bba566b); the tracker issue is PodUtils/podssh#317.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+T-159 keeps a shell, its pty and its ring after the client leaves, and T-158 attaches again. No rule
+says who may attach, and none says what happens when the client's count of received bytes is older than
+the ring. EternalTerminal answers the first with a ticket that the owner of the pty mints, and the
+second with a reset under an authenticated salt; its running client never asks for the reset, so a gap
+that cannot be served repeats every second until the user restarts it.
+
+## Premise
+
+- Read: the resumable layer is `pod-session` of PodUtils/podcrates; podssh keeps a sink and a move
+  (`crates/podssh-relay/src/session/mod.rs:1`, `crates/podssh-relay/src/session/handover.rs:1`). Its
+  session id and proof name a session, not a pty that a far end keeps.
+- Read: T-159 holds the shell, the lease and the limits, T-158 the client's side, T-161 what an attach
+  shows. None holds the ticket or the choice of replay or reset.
+- Read in the donor report: the process that owns the pty mints the id and a passkey, and the router
+  checks the passkey before it hands the terminal out
+  (MisterTea/EternalTerminal:src/terminal/UserTerminalRouter.cpp:191-192); an attach carries the
+  client's count, and a count that cannot be served makes the server send a fresh salt with a reset bit
+  (MisterTea/EternalTerminal:src/base/ServerConnection.cpp:216-238); one reclaim is in flight at a time
+  and the second is refused (MisterTea/EternalTerminal:src/base/ServerClientConnection.cpp:42-51).
+  The donor's gap: the running client always reconnects with `resetIntent` false
+  (MisterTea/EternalTerminal:src/base/ClientConnection.cpp:228).
+
+## Approach
+
+1. In `podssh serve`, where the pty is made (T-159): a 16-byte id and a 32-byte ticket at spawn, held in
+   a table of the process; the ticket goes back in the reply that the authenticated session gave. The
+   table entry, not the connection, owns the pty, the ring and the lease.
+2. The attach carries the ticket and the client's count. A count in the ring: replay from it. A count
+   older than the ring, or a request to reset: the server says so with a reset the client can
+   authenticate, and sends what T-161 decides (a screen, or a replay from a boundary). The running
+   client asks for the reset itself on a gap that cannot be served; no repeat loop.
+3. One attach at a time: a second one while the first completes is refused with a word; a later one takes
+   over and the old end is told why (T-159's note of 2026-11-18 on tsshd).
+4. Decide here whether the ticket is bound to the client's key fingerprint. The donor's ticket is a
+   bearer: whoever holds it takes the shell. Recommendation: bind it, and refuse another key.
+5. Shared code first: the ticket and the attach record belong to `pod-session`. Ask podcrates by a COORD
+   issue; podssh writes only the table of `podssh serve`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_attach_ticket   # a wrong ticket, replay, reset, a second attach
+```

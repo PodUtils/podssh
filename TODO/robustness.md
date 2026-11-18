@@ -3867,6 +3867,12 @@ Left, 2026-11-18: two copies to one destination share one `.part` (a lock across
 podcrates' entry 877, with its tag); a failed TLS check's line twice, and a docs.rs link when a relay is killed
 mid-session, neither met again in the lab (the run of a relay killed and started again gave COORD-118's line).
 
+Fourth part, 2026-11-18, on podcrates `v0.70.0`: two copies to one destination no longer share one `.part`. A copy holds
+`pod_core::lock::FileLock` on its side file's `.lock` while it runs (`cp/resume.rs`, `held`); a second copy that finds
+it held keeps no side file and writes a `.part` of its own name, and a second load in the same process shares the
+first's lock. `cargo test -p podssh-cli --lib cp::resume`: 8 passed, among them
+`a_copy_that_another_runs_now_keeps_no_side_file`. Left: COORD-118's three lines (PodUtils/podssh#315), for podcrates.
+
 # T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
 
 **Source:** the gate at `04b7759` (2026-11-17), step `ts`: `tests/ping.rs`, `offline_connects_nowhere_and_exits_69`, `left: 1 right: 0`.
@@ -3954,3 +3960,45 @@ cargo test -p podssh-cli --test access_relay --test pipe --test proxy
 writer with no wrapper leaves the bytes in its buffer, and the test fails (`left: []`). `access_relay`, `pipe`,
 `proxy`, `layer_cap` and the others of T-829 pass on Linux; the Windows run of the gate says whether the tail stays.
 
+
+# T-843: A refusal of the relay's policy no longer says the relay's cause
+
+**Source:** the take of podcrates `v0.70.0` (2026-11-18): pod-relay's answer to PodUtils/podssh#309 (COORD-112) made
+a refusal one line, and the line lost the relay's own words.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+A relay that refuses a target by its policy says why: `port 25 is refused`, or `this relay dials no address of it`
+(`crates/podssh-relay/src/serve/policy.rs:89`). Since `v0.70.0` the client says only `the relay's policy does not
+allow HOST:PORT (HTTP 403)`. The line is true, but the user no longer learns which rule refused the target, nor what
+to change.
+
+## Premise
+
+`PodUtils/podcrates:crates/pod-relay/src/open_lines.rs:25-26` at `v0.70.0` returns the fixed line for each policy
+refusal (`is_policy_refusal`), with no part of the body. The 502 branch beside it keeps the cause
+(`unreachable_cause`). podssh's `crates/podssh-cli/tests/relay_serve.rs` checked `port 25 is refused` before the take.
+
+## Approach
+
+1. Ask podcrates (COORD-119): keep the relay's cause after the target, with no part that names the relay or the target
+   again, as the 502 line does: `the relay's policy does not allow HOST:25: port 25 is refused (HTTP 403)`.
+2. At its tag: put the check of `port 25 is refused` back in `relay_serve.rs`, and the cause of a target outside the
+   routes (`dials no address of it`) in the test of the routes.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test relay_serve --test pipe_http
+```
+
+## Blocker
+
+PodUtils/podcrates: the line of a policy refusal in `pod-relay` (asked in COORD-119). podssh takes the tag that
+carries it.
