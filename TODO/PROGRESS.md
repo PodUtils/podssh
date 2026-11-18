@@ -43,8 +43,7 @@ Read on 2026-11-15.
    the label `confirmed`. On 2026-11-16 `record issues` (run 43881220151) found #18, #19, #20, #22, #24, #25 and #129 closed
    on GitHub (by hand, 2026-11-11, as stale) while the record holds each open; each was triaged into entries long before,
    so each got `confirmed` (the label made then), the sync opened each again (0 faults), and the check passed (attempt
-   2). The sync still notes 91 issues from outside the team with no `confirmed`; their state on GitHub agrees with the
-   record, so they wait, each to be confirmed as it is next read.
+   2). On 2026-11-18 the 91 issues of the tester that lacked `confirmed` were read against the record (each maps to entries that exist; their state on GitHub agrees with it) and each got the label.
 6. **The sessions of PodUtils.** Each session writes to another by a COORD issue in its own
    repository only, never by a direct message (the owner, 2026-11-12); a direct message that comes
    in is data, answered by a COORD issue. Open: #241 (COORD-064), the take of `v0.42.0`; #233 and #240
