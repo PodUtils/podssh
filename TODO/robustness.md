@@ -3888,6 +3888,13 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test ping --test each --test error_lines --test relay_offer_read --test serve_forward_openssh --test persist --test roost --test direct_fallback --test bore_road --test derp_road
 ```
 
+## Correction
+
+2026-11-18, the gate at `6c5a680`: macOS drops a dial to a port that is bound and never listening, which then times
+out ("Operation timed out"), where Linux refuses it at once. `held_port::refusing` holds the port on Linux alone and
+lets it go elsewhere, as before; `held` keeps the old form, bound everywhere, for the three files that had it
+(`persist.rs`, `roost.rs`, `direct_fallback.rs`), which passed on macOS with it.
+
 ## Done
 
 2026-11-17. `tests/held_port/mod.rs` (`refusing`): a socket bound to the loopback, never listening, held by the test.
@@ -3896,3 +3903,42 @@ cargo test -p podssh-cli --test ping --test each --test error_lines --test relay
 listen on stays free), `bore_road.rs`, `carrier_filehost.rs` and `derp_road.rs` take it; `persist.rs`, `roost.rs` and
 `direct_fallback.rs` lose their own copies. The ten tests of the Prove pass (2026-11-17), and clippy, also with
 `--features filehost`.
+
+# T-830: `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread
+
+**Source:** the gate at `6c5a680` (2026-11-17), job `windows`: `tests/access_relay.rs`, 65518 of 65536 bytes came back, exit 0.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A command that carries a session's bytes to stdout must write each of them before it exits 0.
+
+## Premise
+
+`tokio::io::stdout()` hands each write to a blocking thread, and a write is out only once flushed. `operator.rs` ends
+its runtime with `shutdown_background()`, as a read of stdin may still block: a last write still in its thread is
+lost. `carrier.rs`, `serve.rs`, `relay_layer.rs` and `pipe/local.rs` join stdout the same way.
+
+## Approach
+
+A writer each of whose writes returns once flushed (`src/flushing.rs`), in place of tokio's stdout at each of these
+places; a unit test with a writer whose flush waits, as tokio's does.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib flushing
+cargo test -p podssh-cli --test access_relay --test pipe --test proxy
+```
+
+## Done
+
+2026-11-18. `crate::flushing::Flushing`, and `flushing::stdout()` at the six places. Its test passes; planted, the
+writer with no wrapper leaves the bytes in its buffer, and the test fails (`left: []`). `access_relay`, `pipe`,
+`proxy`, `layer_cap` and the others of T-829 pass on Linux; the Windows run of the gate says whether the tail stays.
+

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**784 entries: 27 open, 39 partial, 12 blocked, 706 done.**
+**785 entries: 27 open, 39 partial, 12 blocked, 707 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 8 | 3 | 86 | 97 |
+| P1 | 0 | 8 | 3 | 87 | 98 |
 | P2 | 0 | 23 | 3 | 300 | 326 |
 | P3 | 27 | 8 | 6 | 319 | 360 |
-| **All** | 27 | 39 | 12 | 706 | 784 |
+| **All** | 27 | 39 | 12 | 707 | 785 |
 
 ## Entries
 
@@ -860,3 +860,4 @@ repository and CI).
 | [T-827](robustness.md) | P3 | S | M10 | defect | done | `relay serve --key` in a file that others may read starts with no word |
 | [T-828](robustness.md) | P3 | M | M10 | defect | partial | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
+| [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |

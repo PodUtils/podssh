@@ -306,7 +306,7 @@ fn a_lost_link_asks_for_the_remote_forward_again() {
 /// the test holds while the child tries.
 fn tunnel_to_nothing(home: &std::path::Path, extra: &[&str]) -> (Child, Arc<Mutex<String>>, tokio::net::TcpSocket) {
     std::fs::create_dir_all(home).unwrap();
-    let (port, held) = held_port::refusing();
+    let (port, held) = held_port::held();
     let known = format!("UserKnownHostsFile={}", home.join("known_hosts").display());
     let mut child = podssh(home)
         .args(["ssh", "--direct", "--persist", "-N", "-R", "0:127.0.0.1:9", "-o", "BatchMode=yes", "-o", &known])

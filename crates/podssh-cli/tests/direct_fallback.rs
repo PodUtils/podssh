@@ -139,14 +139,14 @@ fn direct_alone_does_not_fall_back_and_a_named_relay_or_podssh_direct_no_ends_th
     }
     let home = scratch("alone");
     let (runtime, port) = server(&home);
-    let (closed, _held) = held_port::refusing();
+    let (closed, _held) = held_port::held();
     let (closed, port) = (closed.to_string(), port.to_string());
     // --direct with the server's port closed: the direct road alone.
     let (rc, _, err, _) = ssh(&home, &["--direct", "-p", &closed, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");
     assert!(!err.contains(FELL_BACK), "--direct fell back: {err}");
     // A relay that the user names is the relay alone, though the server is up.
-    let (named, _held_too) = held_port::refusing();
+    let (named, _held_too) = held_port::held();
     let named = format!("127.0.0.1:{named}");
     let (rc, _, err, _) = ssh(&home, &["--relay-host", &named, "-p", &port, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");
@@ -167,7 +167,7 @@ fn when_both_roads_fail_the_lines_name_both_and_their_times() {
         return;
     }
     let home = scratch("both");
-    let (closed, _held) = held_port::refusing();
+    let (closed, _held) = held_port::held();
     let closed = closed.to_string();
     let (rc, _, err, _) = ssh(&home, &["-p", &closed, "tester@127.0.0.1", "true"], &[]);
     assert_eq!(rc, 255, "{err}");

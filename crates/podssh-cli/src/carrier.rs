@@ -310,7 +310,7 @@ async fn carry(
     crate::connect_bound::step("the node did not answer ready");
     // OpenSSH ends its ProxyCommand with SIGHUP (T-586).
     crate::hangup::take(crate::hangup::Which::All);
-    let io = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
+    let io = tokio::io::join(tokio::io::stdin(), crate::flushing::stdout());
     let shown = label.to_string();
     let pin_say = move |line: String| podssh_ssh::err_line!("podssh {verb}: {shown}: {line}");
     Ok(crate::layered::carry_through(&config, link, first, io, None, say, channel, pin_say).await)

@@ -182,7 +182,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             return EXIT_NOT_IMPLEMENTED;
         }
     };
-    let stream = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
+    let stream = tokio::io::join(tokio::io::stdin(), crate::flushing::stdout());
     let serving = serve_keys::serve_until_stopped(stream, key, keys, Arc::new(settings), &sources, err);
     match runtime.block_on(serving) {
         Ok(()) => 0,

@@ -156,7 +156,7 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
         limits: OperatorLimits { on_ready: Some(crate::connect_bound::ready), ..OperatorLimits::default() },
         wire: Wire::Tls,
     };
-    let io = tokio::io::join(tokio::io::stdin(), tokio::io::stdout());
+    let io = tokio::io::join(tokio::io::stdin(), crate::flushing::stdout());
     // stdout carries the session's bytes alone: each line goes to stderr.
     let say = |line: Line| {
         if let Line::Always(text) = line {

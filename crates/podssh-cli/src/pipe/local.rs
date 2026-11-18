@@ -65,7 +65,7 @@ pub(crate) fn socketpair() -> io::Result<Pair> {
 
 /// stdin and stdout.
 pub fn stdio() -> End {
-    End::plain(Box::new(tokio::io::stdin()), Box::new(tokio::io::stdout()))
+    End::plain(Box::new(tokio::io::stdin()), Box::new(crate::flushing::stdout()))
 }
 
 /// Start `words` with a socketpair from `pair`, or with two pipes when it

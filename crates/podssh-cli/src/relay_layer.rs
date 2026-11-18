@@ -263,11 +263,11 @@ pub async fn run(relays: &RelayList, trust: &Trust, (host, port): (&str, u16), e
     let ends = matches!(client.found(), Found::Layer { features, .. } if half_close::agreed(features));
     if ends {
         // A signal fails the reads, so that it still ends the whole session.
-        let io = half::EndsWithReply::new(tokio::io::stdin(), tokio::io::stdout());
+        let io = half::EndsWithReply::new(tokio::io::stdin(), crate::flushing::stdout());
         let app = crate::hangup::ending_wholly(io, Some(&hangup));
         return carried((&dialer, by_road), client, app, (&at, &hangup), err).await;
     }
-    let io = tokio::io::join(KeepsReceiving { read: tokio::io::stdin(), ended: false }, tokio::io::stdout());
+    let io = tokio::io::join(KeepsReceiving { read: tokio::io::stdin(), ended: false }, crate::flushing::stdout());
     let app = crate::hangup::ending(io, Some(&hangup));
     carried((&dialer, by_road), client, app, (&at, &hangup), err).await
 }
