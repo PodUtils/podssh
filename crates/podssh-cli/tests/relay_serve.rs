@@ -151,9 +151,8 @@ fn a_private_target_and_port_25_are_refused_by_the_policy() {
     // An address of GitHub's: the port is refused before any dial.
     args.extend(["140.82.112.3".into(), "25".into()]);
     let text = said(&ran(s.command(&args)));
-    // The relay's cause ("port 25 is refused") is not in pod-relay's line
-    // since v0.70.0; T-843 asks for it back, then checks it here again.
-    assert!(text.contains("policy does not allow 140.82.112.3:25"), "{text}");
+    // The relay's cause after the target (pod-relay's line, T-843).
+    assert!(text.contains("policy does not allow 140.82.112.3:25: port 25 is refused"), "{text}");
 }
 
 #[test]
@@ -275,6 +274,7 @@ fn a_listed_private_target_is_dialed_through_the_role_and_another_refused() {
     let text = said(&out);
     assert!(!out.status.success(), "a target outside each range: {text}");
     assert!(text.contains("policy does not allow 10.255.255.1:") && !text.contains("not a public address"), "{text}");
+    assert!(text.contains("this relay dials no address of it"), "the role's cause (T-843): {text}");
     let first = std::fs::read_to_string(s.home.join("fake-relay-normal-role.log")).unwrap_or_default();
     assert!(first.contains("the private targets in 127.0.0.1 too"), "the first line names the ranges: {first}");
 }

@@ -235,7 +235,7 @@ strip = true
 # cargo says so: podcrates carries the fork to that version first.
 [patch.crates-io]
 russh = { path = "vendor/russh" }
-iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.70.0" }
+iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.71.0" }
 # ssh-key, whose release refuses an ECDSA key of OpenSSH whose scalar has a
 # leading zero byte (T-609).
 ssh-key = { path = "vendor/ssh-key" }

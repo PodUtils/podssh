@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**800 entries: 39 open, 39 partial, 13 blocked, 709 done.**
+**800 entries: 39 open, 38 partial, 12 blocked, 711 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 8 | 3 | 89 | 100 |
-| P2 | 0 | 23 | 4 | 300 | 327 |
-| P3 | 39 | 8 | 6 | 319 | 372 |
-| **All** | 39 | 39 | 13 | 709 | 800 |
+| P2 | 0 | 23 | 3 | 301 | 327 |
+| P3 | 39 | 7 | 6 | 320 | 372 |
+| **All** | 39 | 38 | 12 | 711 | 800 |
 
 ## Entries
 
@@ -858,7 +858,7 @@ repository and CI).
 | [T-825](robustness.md) | P3 | S | M10 | defect | done | Two exit codes that EXIT STATUS does not name: a port in use for `relay serve`, and a route refused |
 | [T-826](robustness.md) | P2 | M | M10 | defect | blocked | At a low `--max-session-mib` the relay's Close is lost as a reset, and the client moves no link first |
 | [T-827](robustness.md) | P3 | S | M10 | defect | done | `relay serve --key` in a file that others may read starts with no word |
-| [T-828](robustness.md) | P3 | M | M10 | defect | partial | The second black-box pass's smaller findings: the documents and the lines |
+| [T-828](robustness.md) | P3 | M | M10 | defect | done | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
 | [T-831](copy.md) | P3 | M | backlog | research | open | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
@@ -873,6 +873,6 @@ repository and CI).
 | [T-840](forwarding.md) | P3 | S | backlog | feature | open | A state word for each forward: bound, waiting for the link, up, refused |
 | [T-841](serve.md) | P3 | S | backlog | feature | open | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
 | [T-842](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: a key that a reload removes ends its open sessions when asked |
-| [T-843](robustness.md) | P2 | S | M10 | defect | blocked | A refusal of the relay's policy no longer says the relay's cause |
+| [T-843](robustness.md) | P2 | S | M10 | defect | done | A refusal of the relay's policy no longer says the relay's cause |
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
 | [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |

@@ -3743,6 +3743,11 @@ What is done, 2026-11-17: The role reads on after its own Close until the client
 handshake. `tests/layer_cap.rs`: 3 MiB each way through a role of `--max-session-mib 1` come whole, over links each
 ended by the role's 1009 (4 of 4 runs). The client's half waits for the Blocker.
 
+2026-11-18, podcrates `v0.71.0` (its entry 908, COORD-117 ask 1): the relay's Close read in the drain wins over the
+write's error. `tests/layer_cap.rs` now also checks that no link's end is said as a broken pipe or a reset: 10 runs
+in 10 passed here. Left: ask 2 (podcrates' entry 909, the cap in the offer and a budget under any cap), then `move_bytes`
+from it.
+
 # T-827: `relay serve --key` in a file that others may read starts with no word
 
 **Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
@@ -3789,7 +3794,7 @@ serves, as a warning, which the help's words allow. `--lib relay_serve` 22 passe
 **Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3880,6 +3885,12 @@ Fourth part, 2026-11-18, on podcrates `v0.70.0`: two copies to one destination n
 it held keeps no side file and writes a `.part` of its own name, and a second load in the same process shares the
 first's lock. `cargo test -p podssh-cli --lib cp::resume`: 8 passed, among them
 `a_copy_that_another_runs_now_keeps_no_side_file`. Left: COORD-118's three lines (PodUtils/podssh#315), for podcrates.
+
+Fifth part, 2026-11-18, on podcrates `v0.71.0` (COORD-118, #315, its entries 911, 912 and 913): a race dials each address
+once and names it once; a far end that lost a session by a restart is said so, not as a timeout; the cleartext road
+names why the TLS of each relay failed (`cleartext::over` takes each relay with its cause). `cargo test --workspace
+--no-fail-fast`: 383 suites, 0 failed. Each finding of the second pass is fixed here or in podcrates; the third pass
+(T-809) reads them again on the candidate.
 
 # T-829: A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial
 
@@ -3977,7 +3988,7 @@ a refusal one line, and the line lost the relay's own words.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -4006,10 +4017,12 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test relay_serve --test pipe_http
 ```
 
-## Blocker
+## Done
 
-PodUtils/podcrates: the line of a policy refusal in `pod-relay` (asked in COORD-119). podssh takes the tag that
-carries it.
+2026-11-18, on podcrates `v0.71.0` (its entry 926, answering COORD-119, #318): the line keeps the relay's cause after the
+target, `the relay's policy does not allow 140.82.112.3:25: port 25 is refused (HTTP 403)`. `tests/relay_serve.rs`
+checks `port 25 is refused` again, and the role's `this relay dials no address of it` for a target outside the
+routes. `cargo test --workspace --no-fail-fast`: 383 suites, 0 failed.
 
 # T-844: `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open
 

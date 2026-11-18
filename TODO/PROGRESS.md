@@ -51,7 +51,7 @@ Read on 2026-11-15.
    take of `v0.42.0`, which answered each. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.70.0` (COORD-132, PodUtils/podcrates#222; podssh's answer is COORD-119, 2026-11-18). Taken, so worked on in
+   `v0.71.0` (COORD-137, PodUtils/podcrates#228; podssh's answer is COORD-121, 2026-11-18). Taken, so worked on in
    PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`,
    `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`
    and `pod-relay` (2026-11-12), `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue), and
@@ -89,7 +89,7 @@ cfb's CI entries; COORD-120, #316); (4) podssh's own order, critical repairs onl
 Done this session: the red `windows-arm` row (T-728); the take of `v0.70.0` (COORD-119); T-828's lock; T-843 filed
 (pod-relay's policy line lost the relay's cause, asked in COORD-119); the donor study filed as T-831 to T-842 and
 additions to T-116, T-123, T-150, T-159, T-160, T-161, T-303 and T-304 (#317, backlog); twelve COORD issues of takes
-that podcrates recorded closed. Asked by the coordinator and answered in COORD-120: no relay of the pool runs podssh's
+that podcrates recorded closed. Then podcrates `v0.71.0` taken (COORD-121): T-843 and T-828 done, T-826's ask 1 in (ask 2, podcrates' entry 909, waits); T-844 (doctor and croc's public bridge) and T-845 (the HTTP road's close said at a failed write) repaired from the gate; T-780's eighth failure (iroh road, new address) written on #283 as ask 4. Asked by the coordinator and answered in COORD-120: no relay of the pool runs podssh's
 role (each `/health` of the 37 hosts of `/relays.json` says `tcp-ssh-relay 2026-10-03-r2`, the operator's own relay),
 so T-801's fix reaches the pool only through the relay's operator or `pod-relay-serve` (podcrates T-036).
 
@@ -223,7 +223,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 800 entries: 39 open, 39 partial, 13 blocked, 709 done.
+`TODO/INDEX.md` holds 800 entries: 39 open, 38 partial, 12 blocked, 711 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

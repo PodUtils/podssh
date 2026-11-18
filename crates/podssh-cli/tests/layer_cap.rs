@@ -1,10 +1,10 @@
 //! A relay role with a small byte cap of a session (T-826): 3 MiB each way
 //! (`cat`) through `podssh relay serve --max-session-mib 1` on the resumable
 //! layer come whole, over links that the role ends at its cap, each with its
-//! Close (`end close 1009 session byte cap`). That the client reads each such
-//! end as the Close, never as a broken pipe, waits for pod-session's drain
-//! (COORD-117). It says that it did not run where this host has no openssl
-//! for the role's certificate.
+//! Close (`end close 1009 session byte cap`), and the client reads each such
+//! end as the Close, never as a broken pipe or a reset (pod-session's drain,
+//! COORD-117 ask 1). It says that it did not run where this host has no
+//! openssl for the role's certificate.
 
 mod ssh_harness;
 mod throughput_harness;
@@ -55,4 +55,8 @@ fn a_small_cap_ends_links_with_the_role_s_close_and_the_bytes_come_whole() {
     let events = std::fs::read_to_string(s.home.join("fake-relay-normal-events.log")).unwrap_or_default();
     let capped = events.lines().filter(|l| *l == "end close 1009 session byte cap").count();
     assert!(capped >= 2, "each link ended at the cap with the role's Close: {events}\n{err}");
+    let lost =
+        err.lines().filter(|l| l.contains("Broken pipe") || l.contains("broken pipe") || l.contains("reset by peer"));
+    let lost: Vec<&str> = lost.collect();
+    assert!(lost.is_empty(), "a link's end said as its write's error, not the role's Close: {lost:?}");
 }

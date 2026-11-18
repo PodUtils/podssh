@@ -36,9 +36,10 @@ pub async fn last(
     pod_relay::cleartext::last(&crate::context::process(), hosts, attempts, path, notes).await
 }
 
-/// The road to `tried`, in order, as [`last`] takes it.
+/// The road to `tried`, in order, each with the cause of its TLS failure
+/// ([`tls_cause`]), as [`last`] takes it.
 pub async fn over(
-    tried: Vec<Relay>,
+    tried: Vec<(Relay, String)>,
     path: &str,
     notes: &mut (dyn FnMut(&str) + Send),
 ) -> Option<(Relay, RelaySession)> {
