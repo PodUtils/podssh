@@ -60,12 +60,25 @@ impl AsyncRead for Told {
 }
 
 impl AsyncWrite for Told {
+    // A write that fails is an end too: the road dropped its half after it
+    // recorded why, and SSH may write before it reads (a broken pipe on
+    // Windows, where the read would have said the road's close).
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, data: &[u8]) -> Poll<std::io::Result<usize>> {
-        Pin::new(&mut self.get_mut().inner).poll_write(cx, data)
+        let this = self.get_mut();
+        let polled = Pin::new(&mut this.inner).poll_write(cx, data);
+        if matches!(polled, Poll::Ready(Err(_))) {
+            this.tell();
+        }
+        polled
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
-        Pin::new(&mut self.get_mut().inner).poll_flush(cx)
+        let this = self.get_mut();
+        let polled = Pin::new(&mut this.inner).poll_flush(cx);
+        if matches!(polled, Poll::Ready(Err(_))) {
+            this.tell();
+        }
+        polled
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
@@ -97,6 +110,26 @@ mod tests {
         drop(theirs);
         let mut rest = Vec::new();
         told.read_to_end(&mut rest).await.unwrap();
+        assert_eq!(told.read(&mut buf).await.unwrap(), 0);
+        assert_eq!(said.load(std::sync::atomic::Ordering::SeqCst), 1, "once");
+    }
+
+    /// A write that fails after the road dropped its half says the road's end
+    /// once, as a read of the end does, and a read after it says no more.
+    #[tokio::test]
+    async fn a_failed_write_says_the_end_once() {
+        let (ours, theirs) = tokio::io::duplex(64);
+        let said = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let count = said.clone();
+        let why = move || {
+            count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Some("the road ended".to_string())
+        };
+        let mut told = Told::new(ours, why, Arc::new(Log::new(podssh_ssh::LogLevel::Quiet)));
+        drop(theirs);
+        assert!(told.write_all(b"bytes").await.is_err(), "the far half is gone");
+        assert_eq!(said.load(std::sync::atomic::Ordering::SeqCst), 1, "said at the failed write");
+        let mut buf = [0u8; 5];
         assert_eq!(told.read(&mut buf).await.unwrap(), 0);
         assert_eq!(said.load(std::sync::atomic::Ordering::SeqCst), 1, "once");
     }

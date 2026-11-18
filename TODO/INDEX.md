@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**799 entries: 39 open, 39 partial, 13 blocked, 708 done.**
+**800 entries: 39 open, 39 partial, 13 blocked, 709 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 8 | 3 | 88 | 99 |
+| P1 | 0 | 8 | 3 | 89 | 100 |
 | P2 | 0 | 23 | 4 | 300 | 327 |
 | P3 | 39 | 8 | 6 | 319 | 372 |
-| **All** | 39 | 39 | 13 | 708 | 799 |
+| **All** | 39 | 39 | 13 | 709 | 800 |
 
 ## Entries
 
@@ -875,3 +875,4 @@ repository and CI).
 | [T-842](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: a key that a reload removes ends its open sessions when asked |
 | [T-843](robustness.md) | P2 | S | M10 | defect | blocked | A refusal of the relay's policy no longer says the relay's cause |
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
+| [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |

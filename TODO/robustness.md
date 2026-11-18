@@ -4040,3 +4040,42 @@ cargo test -p podssh-cli --lib doctor::carriers
 
 2026-11-18. `bridge_failed` in `doctor/carriers.rs`; `only_a_named_bridge_that_does_not_open_fails` passes (3 of 3 in
 `doctor::carriers`). The next gate's `box` is its proof on the box's proxy.
+
+# T-845: Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads
+
+**Source:** the gate at `054f159` (run 44277828991, 2026-11-18): the job `windows` failed
+`a_close_of_the_road_other_than_1000_is_said_by_ssh_as_by_proxy` of `tests/http_road_cli.rs` once (it passed at `bf001df`).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A role of `--max-session-mib 1` ends a session over the HTTP road with `1009 session byte cap`. `proxy` says it; `ssh`
+said `the connection to 127.0.0.1:PORT was lost before the session ended: broken pipe`, with no line of the close.
+
+## Premise
+
+`crates/podssh-cli/src/ssh/cloud/told.rs` said the road's end only when SSH read the end of its stream. The road
+records its end, then drops its half of the stream; an SSH that writes first gets a broken pipe and ends with no read.
+
+## Approach
+
+A failed write or flush says the road's end too, once, as a read of the end does. A unit test of a write after the
+far half went.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib cloud::told
+cargo test -p podssh-cli --test http_road_cli
+```
+
+## Done
+
+2026-11-18. `Told`'s `poll_write` and `poll_flush` say the end on an error; `a_failed_write_says_the_end_once` passes
+(2 of 2 in `cloud::told`), and `--test http_road_cli`, 9 passed on Linux. The order of a write and a read is the
+host's (Windows); the next gates of `windows` are its proof.
