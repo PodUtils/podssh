@@ -2622,6 +2622,14 @@ window. m6's test keeps the node's lines (`-v`), so the next hang names its wait
 8 runs in 8 (2 at `6a1a9eb`, 6 at `5d6efd0`; about 370 s each, 7 passed each). Still waits: the gate's next failure of
 `gate (m6)`, whose node's `session.stall` lines name the wait (COORD-091, #283).
 
+2026-11-18, the eighth failure, at `5c254fb` (podcrates `v0.70.0`, run 44287863366, job `gate (m6)`):
+`iroh::the_iroh_road_survives_a_new_address`. The node said `the target sent no byte for 23 s, while it took 201
+bytes of the client; this side sent 13758313 bytes, the client acknowledged 13247259; the replay buffer keeps 511054
+bytes, room 3683250; no window`, and no resume came; the client said nothing after `authenticated`, while its proxy
+logged 14 CONNECTs to the iroh relay from the new address. So 511,054 bytes in flight at the change were never
+acknowledged and neither end resumed: the wait is in pod-iroh with pod-session, not the node's room. Written on
+#283 as its ask 4 (amended).
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
