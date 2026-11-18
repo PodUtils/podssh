@@ -155,7 +155,11 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
     while runs(pid) && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
-    assert!(!runs(pid), "yes runs on after its channel closed (pty: {on_pty})");
+    // Its state and wait, for the cause at a failure (T-846): a zombie that
+    // nobody reaped, or a live process that the hangup did not reach.
+    let state = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+    let wchan = std::fs::read_to_string(format!("/proc/{pid}/wchan")).unwrap_or_default();
+    assert!(!runs(pid), "yes runs on after its channel closed (pty: {on_pty}): stat {state:?}, wchan {wchan:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

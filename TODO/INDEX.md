@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**800 entries: 39 open, 38 partial, 12 blocked, 711 done.**
+**801 entries: 39 open, 39 partial, 12 blocked, 711 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 8 | 3 | 89 | 100 |
+| P1 | 0 | 9 | 3 | 89 | 101 |
 | P2 | 0 | 23 | 3 | 301 | 327 |
 | P3 | 39 | 7 | 6 | 320 | 372 |
-| **All** | 39 | 38 | 12 | 711 | 800 |
+| **All** | 39 | 39 | 12 | 711 | 801 |
 
 ## Entries
 
@@ -876,3 +876,4 @@ repository and CI).
 | [T-843](robustness.md) | P2 | S | M10 | defect | done | A refusal of the relay's policy no longer says the relay's cause |
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
 | [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |
+| [T-846](robustness.md) | P1 | S | M10 | defect | partial | `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate |

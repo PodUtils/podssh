@@ -4100,3 +4100,42 @@ cargo test -p podssh-cli --test http_road_cli
 2026-11-18. `Told`'s `poll_write` and `poll_flush` say the end on an error; `a_failed_write_says_the_end_once` passes
 (2 of 2 in `cloud::told`), and `--test http_road_cli`, 9 passed on Linux. The order of a write and a read is the
 host's (Windows); the next gates of `windows` are its proof.
+
+# T-846: `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate
+
+**Source:** the gate at `a6a3a3e` (run 44307961055, 2026-11-18): the job `gate (ssh)` failed
+`yes_on_a_pty_with_a_client_that_reads_nothing_holds_the_memory` of `crates/podssh-ssh/tests/serve_pressure.rs`.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+After a client that had stalled closes a channel of `yes` on a pty, `podssh serve` hangs up the child's group
+(`crates/podssh-ssh/src/server/child.rs`, `finish`) and `yes` must end. Once, in the gate, it still answered `kill(pid, 0)`
+after 5 s.
+
+## Premise
+
+The test passed 5 runs in 5 here (2026-11-18, Linux) and in each gate before. `runs` is `kill(pid, 0)`, which a zombie also
+answers; `finish` waits for the child after the hangup, so a reaped child is gone, unless the close reached the server late
+behind a full window.
+
+## Approach
+
+1. The failure now says the process's `/proc/PID/stat` and `wchan`: a zombie, or a live `yes` and where it waits.
+2. At the next failure, repair the cause that it names (the close's path through the server, or the test's measure).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_pressure
+```
+
+## Done
+
+Partial, 2026-11-18: step 1; `cargo test -p podssh-ssh --test serve_pressure`, 5 runs in 5 here. Waits for its next
+failure in the gate.
