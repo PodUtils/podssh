@@ -240,9 +240,9 @@
 232 issue closed
 233 issue closed
 234 issue closed
-235 issue open
+235 issue closed
 236 issue closed
-237 issue open
+237 issue closed
 238 issue closed
 239 issue closed
 240 issue closed
@@ -309,13 +309,13 @@
 301 pull closed
 302 issue closed
 303 issue closed
-304 issue open
+304 issue closed
 305 issue closed
 306 issue open
 307 issue open
 308 issue open
 309 issue open
-310 issue open
+310 issue closed
 311 issue open
 312 issue open
 313 issue open

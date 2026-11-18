@@ -300,9 +300,9 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #232 | COORD-055: pod-term: a line discipline that follows a termios state, for podssh serve's tty with no /dev/ptmx (to podcrates) | closed 2026-11-14: given in podcrates `v0.41.0` (COORD-083), taken by podssh (COORD-063) | T-776 |
 | #233 | COORD-056: podssh took podcrates v0.40.0 at 61658e4 (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.40.0` (its #140, closed) | T-684 |
 | #234 | COORD-057: pod-warp: name the certificate that the front door showed when its key is not the pinned one (to podcrates) | closed 2026-11-14: given in podcrates `v0.42.0` (COORD-085), taken by podssh (COORD-064) | T-585 |
-| #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | open (2026-11-14: answered, podcrates' entries 550 and 551) | T-545, T-695 |
+| #235 | COORD-058: pod-wormhole: Nostr's ephemeral events and WebTorrent's trackers as meeting points of the pairing by a code (to podcrates) | closed 2026-11-18: answered by podcrates' entries 550 and 551; T-545 and T-695 done | T-545, T-695 |
 | #236 | COORD-059: pod-services: srv.us and tunnl.gg as services of the kind ssh-tunnel (to podcrates) | closed 2026-11-14: given in podcrates `v0.42.0` (COORD-085), taken by podssh (COORD-064); the live runs are T-566's and T-567's | T-566, T-567 |
-| #237 | COORD-060: pod-wormhole: an ntfy topic as a meeting point of the pairing where a proxy refuses the WebSocket upgrade (to podcrates) | open (2026-11-14: posted) | T-496 |
+| #237 | COORD-060: pod-wormhole: an ntfy topic as a meeting point of the pairing where a proxy refuses the WebSocket upgrade (to podcrates) | closed 2026-11-18: answered; T-496 done | T-496 |
 | #238 | COORD-061: pod-services: serv00's public Piping Server as the third of kind piping (to podcrates) | closed 2026-11-14: given in podcrates `v0.42.0` (COORD-085), taken by podssh (COORD-064) | T-575 |
 | #239 | COORD-062: pod-relay: the client of the HTTP road's one-POST form (to podcrates) | closed 2026-11-14: given in podcrates `v0.42.0` (COORD-085), taken by podssh (COORD-064) | T-622 |
 | #240 | COORD-063: podssh took podcrates v0.41.0 at 6f77eaa (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.41.0` (its #143, closed) | T-684 |
@@ -360,13 +360,13 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #300 | COORD-104: pod-relay and pod-session: a relay's liveness offer, so a Durable Object relay can hibernate (to podcrates) | closed 2026-11-17: answered by podcrates `v0.68.0` (COORD-129, PodUtils/podcrates#219), taken in `94c01b0` (COORD-106, #303) | T-712 |
 | #302 | COORD-105: pod-relay and pod-egress: headers of the caller on each WebSocket road, for Cloudflare Access (to podcrates) | closed 2026-11-17: answered by podcrates `v0.68.0` (COORD-129, PodUtils/podcrates#219), taken in `94c01b0` (COORD-106, #303) | T-718 |
 | #303 | COORD-106: podssh took podcrates v0.68.0: the liveness offer, the headers of Access, a Unix route by pod-relay, one rsa (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-712, T-714, T-718, T-802 |
-| #304 | COORD-107: the wire document of podssh, for T-120 (to podcrates) | open 2026-11-17: until podcrates takes the page | T-723 |
+| #304 | COORD-107: the wire document of podssh, for T-120 (to podcrates) | closed 2026-11-18: podcrates' T-120 (the wire documents) is done; T-723 done | T-723 |
 | #305 | COORD-108: podssh took podcrates v0.69.0 (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-808 |
 | #306 | COORD-109: pod-piping: the probe of a node's upgrade without the caller's headers (to podcrates) | open 2026-11-17: until podcrates fixes the probe and podssh takes it | T-718 |
 | #307 | COORD-110: pod-relay: keep a relay member's `meet` from its `/relays.json` (to podcrates) | open 2026-11-17: until podcrates keeps it and podssh takes it | T-720 |
 | #308 | COORD-111: podssh's answer to podnet's QA round: what its gate proves, and what not (to podnet) | open 2026-11-17: until T-809's lane rows and its black-box pass | T-809 |
 | #309 | COORD-112: pod-relay: OpenError::lines says one cause twice (to podcrates) | open 2026-11-17: until podcrates gives one line and podssh takes it | T-809 |
-| #310 | COORD-113: pod-ws: a shared HTTP/2 connection dies with the runtime that opened it (to podcrates) | open 2026-11-17: until podcrates' fix is taken | T-811 |
+| #310 | COORD-113: pod-ws: a shared HTTP/2 connection dies with the runtime that opened it (to podcrates) | closed 2026-11-18: podcrates' fix (its entry 871) taken in `v0.70.0` (COORD-119); T-811 done | T-811 |
 | #311 | COORD-114: podssh's answer to podvm's COORD-180: its temp files and edges, and its black-box pass (to podvm) | open 2026-11-17: until podvm reads it | T-819 |
 | #312 | COORD-115: podssh's answer to COORD-131: the rulings in AGENTS.md, and its copies of shared code (to podcrates) | open 2026-11-17: until podcrates reads it | T-820 |
 | #313 | COORD-116: two messages of pod-dns and pod-relay that podssh's black-box pass found (to podcrates) | open 2026-11-17: until podcrates' tag is taken | T-818 |
