@@ -263,7 +263,7 @@ pub fn rewrite<T>(
     if !file.metadata()?.is_file() {
         return Err(std::io::Error::new(ErrorKind::InvalidInput, "it is not a regular file"));
     }
-    let _held = lock::hold(&file, lock::WAIT)?;
+    let _held = lock::hold(&path, lock::WAIT)?;
     let mut raw = Vec::new();
     (&file).take(MAX_FILE + 1).read_to_end(&mut raw)?;
     if raw.len() as u64 > MAX_FILE {

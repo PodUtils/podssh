@@ -9,13 +9,14 @@
 //! A lock that cannot be taken at all lets the run go on: a service with no
 //! lock serves, and one that never starts locks its server out.
 
-use std::fs::{File, OpenOptions};
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+use pod_core::lock::{FileLock, Mode};
+
 /// The lock that this process holds, kept open until it ends.
-static HELD: OnceLock<File> = OnceLock::new();
+static HELD: OnceLock<FileLock> = OnceLock::new();
 
 /// The lock's file beside the file of variables `name`.
 pub(super) fn file_name(name: &str) -> String {
@@ -33,34 +34,28 @@ pub(crate) fn path_of(env_file: &Path) -> PathBuf {
 #[derive(Debug)]
 pub(crate) enum Tried {
     /// This process holds it now.
-    Held(File),
+    Held(FileLock),
     /// Another run holds it: its pid, when its file says one.
     Taken(Option<u32>),
 }
 
 /// One try of the lock at `path`, made when missing, with no wait; `Err`
-/// when no lock can be had here, as on a file system that takes none.
+/// when no lock can be had here, as on a file system that takes none. The
+/// open and the try are pod-core's (a link at `path` is refused, 0600).
 pub(crate) fn try_hold(path: &Path) -> Result<Tried, String> {
-    let mut options = OpenOptions::new();
-    options.read(true).write(true).create(true).truncate(false);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
-    }
-    let mut file = options.open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    match file.try_lock() {
-        Ok(()) => {
+    match FileLock::try_lock(path, Mode::Exclusive).map_err(|e| e.to_string())? {
+        Some(lock) => {
             // The pid is for a person who reads the file; the lock is the
-            // kernel's, and needs none.
+            // kernel's, and needs none. A file of another user is read only,
+            // and then no pid is written.
+            let mut file = lock.file();
             let _ = file.set_len(0).and_then(|()| writeln!(file, "{}", std::process::id()));
-            Ok(Tried::Held(file))
+            Ok(Tried::Held(lock))
         }
-        Err(std::fs::TryLockError::WouldBlock) => {
+        None => {
             let pid = std::fs::read_to_string(path).ok().and_then(|text| text.trim().parse().ok());
             Ok(Tried::Taken(pid))
         }
-        Err(std::fs::TryLockError::Error(e)) => Err(format!("{}: {e}", path.display())),
     }
 }
 

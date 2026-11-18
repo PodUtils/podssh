@@ -16,12 +16,13 @@
 //! serves, and one that never starts locks its server out.
 
 use std::ffi::OsString;
-use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
+use pod_core::failure::Class;
+use pod_core::lock::{FileLock, Mode};
 use serde_json::{json, Value};
 
 use crate::exitmap::sysexits::EX_TEMPFAIL;
@@ -43,8 +44,8 @@ const PATIENCE: Duration = Duration::from_secs(1);
 const STEP: Duration = Duration::from_millis(100);
 
 /// The locks of this process, kept open until it ends.
-static HELD: OnceLock<File> = OnceLock::new();
-static RUN_HELD: OnceLock<File> = OnceLock::new();
+static HELD: OnceLock<FileLock> = OnceLock::new();
+static RUN_HELD: OnceLock<FileLock> = OnceLock::new();
 /// This run's name, once chosen.
 static NAME: OnceLock<String> = OnceLock::new();
 /// The record that this process wrote, and where, to write it again.
@@ -126,16 +127,12 @@ pub enum Holder {
 /// Who holds the lock at `path`, found by trying it shared, never by a
 /// pid: a shared lock writes nothing, and two readers do not meet.
 pub fn holder(path: &Path) -> Holder {
-    let file = match File::open(path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Holder::Free,
-        Err(e) => return Holder::Unknown(e.to_string()),
-        Ok(file) => file,
-    };
-    match file.try_lock_shared() {
-        // Let go as the file closes.
-        Ok(()) => Holder::Free,
-        Err(std::fs::TryLockError::WouldBlock) => Holder::Held(read_pid(path)),
-        Err(std::fs::TryLockError::Error(e)) => Holder::Unknown(e.to_string()),
+    match FileLock::try_lock_existing(path, Mode::Shared) {
+        // Let go as the lock drops.
+        Ok(Some(_)) => Holder::Free,
+        Ok(None) => Holder::Held(read_pid(path)),
+        Err(e) if e.class == Class::NotFound => Holder::Free,
+        Err(e) => Holder::Unknown(e.to_string()),
     }
 }
 
@@ -162,11 +159,11 @@ fn hold(path: &Path) -> Result<Tried, String> {
 
 /// Whether `path` still names the open `file`: a lock of a file that a
 /// cleanup removed would hold no name.
-fn still_named(file: &File, path: &Path) -> bool {
+fn still_named(lock: &FileLock, path: &Path) -> bool {
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
-        match (file.metadata(), std::fs::metadata(path)) {
+        match (lock.file().metadata(), std::fs::metadata(path)) {
             (Ok(a), Ok(b)) => a.dev() == b.dev() && a.ino() == b.ino(),
             _ => false,
         }
@@ -175,7 +172,7 @@ fn still_named(file: &File, path: &Path) -> bool {
     {
         // On Windows a file removed while a process holds it open keeps
         // its name until it closes, so the name still names it.
-        let _ = (file, path);
+        let _ = (lock, path);
         true
     }
 }

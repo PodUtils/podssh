@@ -70,6 +70,8 @@ jiff = "0.2.37"
 # signs through aws-lc-rs, and a CA in an agent through the agent. The
 # version that ssh-key builds.
 signature = { version = "3", default-features = false }
+# The advisory lock of a file (T-820), PodUtils/podcrates' pod-core.
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.71.0" }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

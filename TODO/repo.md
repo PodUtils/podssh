@@ -7245,7 +7245,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     `std::fs::rename(&tmp, &final_path)` (line 240).
   - `crates/podssh-relay/src/serve/reverse/pairs.rs:455` `pub(crate) fn write_private` (the relay role's file of pairs,
     and through `crates/podssh-relay/src/serve/usage.rs:305` its file of counts): the rename at line 466.
-  - `crates/podssh-cli/src/detach/lock.rs:321` `fn write_record` (`detached/NAME.json`, mode 0600): `if
+  - `crates/podssh-cli/src/detach/lock.rs:318` `fn write_record` (`detached/NAME.json`, mode 0600): `if
     written.is_err() || std::fs::rename(&part, path).is_err()` (line 333), with no sync at all.
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
@@ -7554,3 +7554,14 @@ re-exported, `show` over its `show_with`, and `Interrupts` kept, which `podssh e
 (asked of podcrates in COORD-115, #312). The checks of the manual's variables read the crate's source
 (`pod_manual::pager::SOURCE`) beside podssh's. `--lib` passed, and `--test man_page --test tree --test error_program`.
 Waits: `Interrupts` from the crate, and the crates of podcrates' entries 501, 877, 879 and 880 at their tags.
+
+2026-11-18 (draft): the locks of podcrates' entry 877 on `pod_core::lock` (v0.71.0). `podssh-ssh`'s
+`known_hosts/lock.rs` lost its `flock` and `LockFileEx` code: `hold(path, wait)` is `FileLock::lock_within` plus glue (a
+timeout as `TimedOut`, a file system with no locks as `None`, the link resolved by `canonicalize` since pod-core opens
+no link, and on Windows a lock on `FILE.podssh-lock` beside the file, as pod-core locks the whole file and would refuse
+OpenSSH's reads); `same_file` stays (not a lock). `podssh-cli`'s `node_install/lock.rs` `try_hold` (which `detach/lock.rs`,
+`session/daemon.rs` and `--env-file` use) is `FileLock::try_lock` plus the pid written in the file, and `detach/lock.rs`'s
+`holder` is `FileLock::try_lock_existing(.., Shared)`; `Tried::Held` and the statics carry a `FileLock`. `podssh-ssh` takes
+`pod-core`. Merged and run here (2026-11-18, Linux): `cargo test -p podssh-ssh --lib known_hosts` 9 passed; `-p podssh-cli --lib
+detach` 24, `node_install` 31, `session` 58; clippy clean. Windows' sidecar is proven by the next gate's `windows`. Asks of podcrates: a mode of the lock for a byte far past the end of the file (Windows), so that a lock of a
+file that others read needs no file beside it.

@@ -377,7 +377,7 @@ fn append_locked(
     key: &PublicKey,
     encoded: &str,
 ) -> std::io::Result<Option<Recorded>> {
-    let held = lock::hold(file, lock::WAIT)?;
+    let held = lock::hold(path, lock::WAIT)?;
     if held.is_some() && !lock::same_file(file, path)? {
         return Ok(None);
     }

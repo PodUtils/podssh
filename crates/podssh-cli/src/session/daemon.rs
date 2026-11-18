@@ -413,7 +413,7 @@ async fn wait_for(shared: &Shared, wait: Wait) -> String {
 /// lock that cannot be had lets the daemon go on as before. An abstract
 /// name of Linux and a named pipe of Windows have no file: their bind
 /// alone decides.
-pub(super) fn socket_lock(path: &str) -> Result<Option<std::fs::File>, String> {
+pub(super) fn socket_lock(path: &str) -> Result<Option<pod_core::lock::FileLock>, String> {
     if path.starts_with('@') || path.starts_with(r"\\.\pipe\") {
         return Ok(None);
     }
