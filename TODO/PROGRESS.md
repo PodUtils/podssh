@@ -51,7 +51,7 @@ Read on 2026-11-15.
    take of `v0.42.0`, which answered each. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.74.0` (COORD-141, PodUtils/podcrates#237; podssh's answer is COORD-124, 2026-11-19). Taken, so worked on in
+   `v0.75.0` (COORD-143, PodUtils/podcrates#238; podssh's answer is COORD-126, 2026-11-19). Taken, so worked on in
    PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`,
    `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`
    and `pod-relay` (2026-11-12), `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue), and
@@ -223,7 +223,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 804 entries: 39 open, 41 partial, 13 blocked, 711 done.
+`TODO/INDEX.md` holds 804 entries: 39 open, 41 partial, 12 blocked, 712 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

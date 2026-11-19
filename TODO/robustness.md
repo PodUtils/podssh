@@ -3714,7 +3714,7 @@ and 77's row names a refused route. `--lib` passed; the manual's tests and `llms
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -3739,12 +3739,6 @@ cargo test -p podssh-cli --test relay_serve
 ```
 
 The test fails on the code before the fix and passes after it.
-
-## Blocker
-
-PodUtils/podcrates: COORD-117 (PodUtils/podssh#314) asks for the drain to keep the relay's Close, and for the cap in
-the offer with a budget under any cap. On their tag: set `Settings::move_bytes` from the offer in `relay_layer.rs`
-(`paced`), and add to `layer_cap.rs` the check that no link fails with a reset or a broken pipe.
 
 ## Correction
 
@@ -3781,6 +3775,14 @@ pod-session counts both ways toward `move_bytes` (`pump/watch.rs`), and a move a
 quarter in flight from each end is five quarters of it; at the loopback's rate the old link passes the cap before the
 move ends. Asked of podcrates in COORD-124: a threshold under the cap less both windows (half of it with windows of a
 quarter), or smaller windows. Then `layer_cap.rs` checks that no link ends with 1009.
+
+## Done
+
+2026-11-19, podcrates `v0.75.0` (its entry 958, COORD-124): while a move is in progress the client holds the old link,
+and the window is an eighth of the cap, so the old link ends under seven eighths of it. No change of podssh's code.
+`tests/layer_cap.rs` now checks that no link ends with the role's 1009 and that the session moved: 8 runs in 8 passed.
+`cargo test --workspace --no-fail-fast`: 383 suites, 0 failed. Done: the client moves each link before a small cap of
+the relay, and the relay's Close is never said as a broken pipe.
 
 # T-827: `relay serve --key` in a file that others may read starts with no word
 
