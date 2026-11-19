@@ -127,7 +127,7 @@ corrects a claim that the code does not support.
 
 ## Requests after the triage (#51 on)
 
-#37 to #50, #52, #53, #57, #58, #64 to #68, #77, #78 to #82, #119, #120, #122, #123, #149, #150, #197 to #202, #290 to #293 and #301 are pull requests;
+#37 to #50, #52, #53, #57, #58, #64 to #68, #77, #78 to #82, #119, #120, #122, #123, #149, #150, #197 to #202, #290 to #293, #301 and #321 are pull requests;
 Dependabot's #44 to #47, updates of a major version, are T-330, but #47 (aes-gcm 0.11), which is
 T-333 (done on 2026-10-31, after the ruling of Q48); Dependabot's #57 and #64
 to #68 are T-355, and so is #77 (pageant 0.2.5 in `fuzz/Cargo.lock`, as in the
@@ -139,7 +139,7 @@ image's digest, sha2 0.11.1 and simple-dns 0.13) are T-597. Dependabot's #149 an
 (trufflehog, the actions group, the minor and patch group, Arti's tor-rtcompat and tor-error 0.48,
 and num-bigint 0.5) are T-754; Dependabot closed them on 2026-11-12. Dependabot's #290 and #291 of 2026-11-17 (the tailscale and
 trufflehog images) and #292 and #293 (the minor and patch group, rsa 0.10) are T-802; Dependabot closed
-the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, also T-802; Dependabot closed it on 2026-11-17 once `main` took podcrates `v0.68.0` with it.
+the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, also T-802; Dependabot closed it on 2026-11-17 once `main` took podcrates `v0.68.0` with it. Dependabot's #321 (taiki-e/install-action 2.90.5, the actions group, 2026-11-19) waits behind podrunner's asks (the ruling "podrunner first"), T-802.
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
@@ -377,6 +377,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #318 | COORD-119: podssh took podcrates v0.70.0 at 99e9fd5; a policy refusal lost the relay's cause (to podcrates) | open 2026-11-18: until podcrates records the take and answers T-843's ask | T-684, T-828, T-843 |
 | #319 | COORD-121: podssh took podcrates v0.71.0 at a6a3a3e (to podcrates) | open 2026-11-18: until podcrates records the take | T-684, T-826 |
 | #320 | COORD-122: podssh took podcrates v0.73.0 at bcd2b2f; under a 1 MiB cap a new link sends again more than the cap (to podcrates) | open 2026-11-19: until podcrates records the take and answers its ask | T-684, T-780, T-826 |
+| #322 | COORD-123: podssh's entry for the ruling "ghcr.io": T-847, the job image of release.yml in the form of C789 (to podcrates) | open 2026-11-19: until T-847's first push at a tag | T-847 |
 | #267 | COORD-080: what podssh's help and manual need of the shared crate (to all) | closed 2026-11-17: T-790 and T-730 done; podnet closed its COORD-090 (PodUtils/podnet#584) | T-730, T-790 |
 | #268 | COORD-081: podssh's host classes and lane for pod-lab, and its manual for pod-manual (to podcrates) | open 2026-11-15: answers COORD-107 and COORD-108 | T-790, T-791 |
 | #269 | COORD-082: podssh's map of issues to entries, and its install (to podcrates) | open 2026-11-15: answers COORD-110 and COORD-109 | T-792, T-793 |
