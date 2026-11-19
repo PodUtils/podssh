@@ -44,6 +44,21 @@ pub fn context() -> &'static Arc<Context> {
     })
 }
 
+/// The TLS context for `trust`: the process's own, or, for a CA file, one
+/// of its own whose roots are that file alone (the file replaces the
+/// default roots, as `Trust::File` does), so that a client that sends no
+/// trust with each request still checks against it.
+pub fn context_for(trust: &Trust) -> Arc<Context> {
+    match trust {
+        Trust::File(path) => {
+            let mut settings = context().settings().clone();
+            settings.ca_file = Some(pod_tls::CaFile::new("--ca-file", path.clone()));
+            Arc::new(Context::new(context().provider().clone(), settings))
+        }
+        _ => context().clone(),
+    }
+}
+
 /// podssh's names in the words of a failed handshake.
 fn words() -> Words {
     Words {

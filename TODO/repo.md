@@ -4022,7 +4022,7 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 
 ## Premise
 
-- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:173`
+- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:177`
   ask for `sha1` 0.10.7, and the root `Cargo.toml:138` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)
@@ -5392,9 +5392,9 @@ built after the transfer refuses each release, whose signer names PodUtils/podss
 ## Premise
 
 - Read: `Cargo.toml:56` sets `repository = "https://github.com/Azathothas/podssh"`;
-  `crates/podssh-cli/src/update/mod.rs:163` takes the repository from `CARGO_PKG_REPOSITORY`.
-- Read: `crates/podssh-cli/src/update/sigstore.rs:30` makes the signer's URI from that repository,
-  and `crates/podssh-cli/src/update/sigstore.rs:134` refuses a leaf that does not name it.
+  `crates/podssh-cli/src/update/mod.rs:140` takes the repository from `CARGO_PKG_REPOSITORY`.
+- Read: update/sigstore.rs:30 (in `pod-release` of podcrates since `v0.77.0`) makes the signer's URI from that repository,
+  and update/sigstore.rs:134 (in `pod-release` of podcrates since `v0.77.0`) refuses a leaf that does not name it.
 - Read: `crates/podssh-relay/src/code/mod.rs:35` and `crates/podssh-relay/src/serve/mailbox/mod.rs:32`
   name the pairing's AppID `github.com/Azathothas/podssh/pair`.
 - Read: 39 files of the repository name `Azathothas/podssh` (`git grep -l`).
@@ -7250,8 +7250,8 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
   `crates/podssh-cli/src/keygen_cert.rs:138`, `crates/podssh-cli/src/keygen_change.rs:131`,
-  `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, `crates/podssh-cli/src/update/replace.rs:116`
-  with `crates/podssh-cli/src/update/keep.rs:149` (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
+  `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
+  with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
   `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:253`,
   `crates/podssh-relay/src/cache/own.rs:67` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
   (an append), `crates/podssh-cli/src/pinggy_cert.rs:56` (`create_new_private`, never a replace).

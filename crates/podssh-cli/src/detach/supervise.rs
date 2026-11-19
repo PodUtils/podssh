@@ -240,7 +240,7 @@ fn keep(args: &[OsString], verb: &str, mut child: Child, mut began: Instant, log
         }
         failed_starts = if began.elapsed() < QUICK { failed_starts.saturating_add(1) } else { 0 };
         if fallback.is_none() && falls_back(failed_starts) {
-            fallback = exe.as_deref().and_then(crate::update::keep::fallback);
+            fallback = exe.as_deref().and_then(crate::update::fallback);
             if let Some(prev) = &fallback {
                 podssh_ssh::err_line!(
                     "podssh {verb}: --restart: the run failed to start {failed_starts} times in a row; the binary of \

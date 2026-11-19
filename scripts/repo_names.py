@@ -22,7 +22,6 @@ NAMES_ALLOWED = {
     "docs/research/": "dated studies",
     "TODO/": "dated entries and their proofs (the live headers are scanned: see SCANNED_RECORDS)",
     "vendor/": "the record of the vendored patches, by the issue of their day",
-    "crates/podssh-cli/src/update/sigstore_tests.rs": "a bundle that a release signed under the old name",
     "crates/podssh-cli/tests/update.rs": "a leaf of the old name, which must be refused",
 }
 # Files under an allowed place that still describe the repository as it is.

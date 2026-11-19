@@ -13,8 +13,9 @@
 
 use std::path::{Path, PathBuf};
 
-use podssh_cli::update::release::Version;
-use podssh_cli::update::{keep, trial, Failure};
+use pod_release::trial::{self, Expect};
+use pod_release::{keep, Error, Version};
+use podssh_cli::update::{self, way};
 
 use super::{run, Stand, OLD, TAG};
 use crate::update_support::Leaf;
@@ -62,12 +63,12 @@ async fn a_new_binary_that_does_not_run_here_is_refused_and_the_old_one_stays() 
     let stand = Stand::new("trial-refused").await;
     let binary = b"\x7fELF but no program of any system\n".to_vec();
     stand.release(TAG, &binary, stand.sums_of(&binary), &Leaf::of_tag(TAG));
-    let options = podssh_cli::update::Options { trial: trial::by_version, ..stand.options("1.0.0-beta.2") };
+    let options = podssh_cli::update::Options { trial: None, ..stand.options("1.0.0-beta.2") };
     let (result, out) = run(&options, false, Some(TAG)).await;
     match result {
-        Err(failure @ Failure::Refused(_)) => {
+        Err(failure @ Error::Refused(_)) => {
             assert!(failure.why().contains("did not run here") && failure.why().contains("nothing was replaced"));
-            assert_eq!(failure.code(), 65);
+            assert_eq!(update::code(&failure), 65);
         }
         other => panic!("refused, not {other:?}\n{out}"),
     }
@@ -90,40 +91,28 @@ async fn a_new_binary_that_fails_or_names_another_version_is_refused() {
         stand.release(TAG, &binary, stand.sums_of(&binary), &Leaf::of_tag(TAG));
         let (result, out) = run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await;
         match result {
-            Err(Failure::Refused(why)) => assert!(why.contains(says), "{says}: {why}"),
+            Err(Error::Refused(why)) => assert!(why.contains(says), "{says}: {why}"),
             other => panic!("{says}: refused, not {other:?}\n{out}"),
         }
         stand.assert_untouched();
     }
 }
 
-/// The trial on the podssh of this build: its version, and no other.
+/// The trial on the podssh of this build: its name and its version, and no
+/// other (the crate's own tests have a program of their own).
 #[test]
 fn the_trial_reads_the_version_of_this_build() {
     let built = Path::new(env!("CARGO_BIN_EXE_podssh"));
-    let line = trial::check(built, Some(&this_version()), trial::LIMIT).unwrap();
+    let this = this_version();
+    let expect = Expect { version: Some(&this), ..update::expect() };
+    let line = trial::check(built, &expect).unwrap();
     assert!(line.starts_with(&format!("podssh {}", env!("CARGO_PKG_VERSION"))), "{line}");
-    assert!(trial::check(built, None, trial::LIMIT).is_ok());
+    assert!(trial::check(built, &update::expect()).is_ok());
     let other = Version::parse("9.9.9").unwrap();
-    let why = trial::check(built, Some(&other), trial::LIMIT).unwrap_err();
+    let why = trial::check(built, &Expect { version: Some(&other), ..update::expect() }).unwrap_err();
     assert!(why.contains("not 9.9.9"), "{why}");
-    let why = trial::check(&built.with_file_name("no-such-podssh"), None, trial::LIMIT).unwrap_err();
+    let why = trial::check(&built.with_file_name("no-such-podssh"), &update::expect()).unwrap_err();
     assert!(why.contains("does not start here"), "{why}");
-}
-
-/// A new binary that never ends is killed at the bound, and refused.
-#[cfg(unix)]
-#[test]
-fn a_trial_that_does_not_end_is_killed_at_its_bound() {
-    use std::time::{Duration, Instant};
-    let dir = scratch("trial-hangs");
-    let file = dir.join("podssh");
-    put_script(&file, "exec sleep 30");
-    let started = Instant::now();
-    let why = trial::check(&file, None, Duration::from_secs(1)).unwrap_err();
-    assert!(why.contains("did not end within 1 s"), "{why}");
-    assert!(started.elapsed() < Duration::from_secs(10), "{:?}", started.elapsed());
-    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// `--rollback` through the library: the kept binary back, once it ran
@@ -148,12 +137,12 @@ fn rollback_puts_the_kept_binary_back_and_keeps_the_other() {
         this_podssh_at(&prev);
     }
     let (new, old) = (std::fs::read(&exe).unwrap(), std::fs::read(&prev).unwrap());
-    assert_eq!(keep::fallback(&exe), Some(prev.clone()), "a supervisor's way back");
-    let lines = keep::rollback(&exe).unwrap();
+    assert_eq!(update::fallback(&exe), Some(prev.clone()), "a supervisor's way back");
+    let lines = way::rolled_back(&exe, &keep::rollback(&exe, &update::expect()).unwrap());
     assert!(lines[0].contains("rolled back") && lines[0].contains("said podssh "), "{lines:?}");
     // T-507: the way back names the move; --rollback only where the binary
     // now in place has it, which 1.0.0-beta.2 has not, and this build has.
-    let mv = keep::moved_back(&prev, &exe);
+    let mv = way::moved_back(&prev, &exe);
     if cfg!(windows) {
         let back = format!("podssh update --rollback goes back to it, and so does {mv}");
         assert!(lines[1].ends_with(&back), "{lines:?}");
@@ -166,19 +155,19 @@ fn rollback_puts_the_kept_binary_back_and_keeps_the_other() {
     assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 2, "nothing left aside");
     // A kept binary that does not run is not put back.
     std::fs::write(&prev, b"\x7fELF but no program\n").unwrap();
-    assert_eq!(keep::fallback(&exe), None);
-    match keep::rollback(&exe) {
-        Err(failure @ Failure::Refused(_)) => assert_eq!(failure.code(), 65, "{failure:?}"),
+    assert_eq!(update::fallback(&exe), None);
+    match keep::rollback(&exe, &update::expect()) {
+        Err(failure @ Error::Refused(_)) => assert_eq!(update::code(&failure), 65, "{failure:?}"),
         other => panic!("{other:?}"),
     }
     assert_eq!(std::fs::read(&exe).unwrap(), old);
     // None kept: nothing to put back.
     std::fs::remove_file(&prev).unwrap();
-    assert_eq!(keep::fallback(&exe), None);
-    match keep::rollback(&exe) {
-        Err(failure @ Failure::Unavailable(_)) => {
+    assert_eq!(update::fallback(&exe), None);
+    match keep::rollback(&exe, &update::expect()) {
+        Err(failure @ Error::NotFound(_)) => {
             assert!(failure.why().contains("no update kept"), "{failure:?}");
-            assert_eq!(failure.code(), 69);
+            assert_eq!(update::code(&failure), 69);
         }
         other => panic!("{other:?}"),
     }
@@ -223,7 +212,7 @@ fn the_command_rolls_back_the_binary_that_runs_it() {
 async fn the_way_back_names_rollback_only_for_a_release_that_has_it() {
     let stand = Stand::new("way-back").await;
     let prev = keep::prev_of(&stand.exe);
-    let mv = keep::moved_back(&prev, &stand.exe);
+    let mv = way::moved_back(&prev, &stand.exe);
     let binary = super::release_binary();
     stand.release(TAG, &binary, stand.sums_of(&binary), &Leaf::of_tag(TAG));
     let (result, out) = run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await;
@@ -253,12 +242,12 @@ fn rollback_came_with_the_release_that_the_constant_names() {
         ("1.0.0-beta.4", include_str!("../../../../docs/releases/v1.0.0-beta.4.md")),
     ];
     let first = notes.iter().find(|(_, text)| text.contains("--rollback")).map(|(version, _)| *version);
-    assert_eq!(first, Some(keep::ROLLBACK_SINCE));
-    let has = |v: &str| keep::has_rollback(&Version::parse(v).unwrap());
+    assert_eq!(first, Some(way::ROLLBACK_SINCE));
+    let has = |v: &str| way::has_rollback(&Version::parse(v).unwrap());
     assert!(!has("1.0.0-beta.3") && !has("0.9.0") && !has("1.0.0-beta.2"));
     assert!(has("1.0.0-beta.4") && has("1.0.0-beta.10") && has("1.0.0") && has("1.0.1") && has("1.1.0-beta.1"));
     assert!(has(env!("CARGO_PKG_VERSION")), "this build has --rollback");
-    let mv = keep::moved_back(Path::new("/opt/my bin/podssh.prev"), Path::new("/opt/my bin/podssh"));
+    let mv = way::moved_back(Path::new("/opt/my bin/podssh.prev"), Path::new("/opt/my bin/podssh"));
     if cfg!(windows) {
         assert!(mv.starts_with("cmd /c move /Y \""), "{mv}");
     } else {

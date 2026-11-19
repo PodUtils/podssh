@@ -15,9 +15,10 @@ mod update_support;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use podssh_cli::update::fetch::Fetcher;
-use podssh_cli::update::release::Version;
-use podssh_cli::update::{asset, trial, update, Failure, Options};
+use pod_release::fetch::Fetcher;
+use pod_release::update::Source;
+use pod_release::{Error, Version};
+use podssh_cli::update::{asset, update, Options};
 use podssh_ws::{ProxyChoice, Trust};
 use sha2::{Digest, Sha256};
 use update_support::{hex, Answer, Leaf, Server, Sigstore, REPO};
@@ -50,20 +51,20 @@ impl Stand {
     }
 
     fn options(&self, current: &str) -> Options {
+        let trust = Trust::File(self.server.ca_file.clone());
+        let client = podssh_ws::client::getter_trusting(&ProxyChoice::Direct, &trust);
         Options {
-            repo: REPO.into(),
-            api: self.server.url(),
-            web: self.server.url(),
-            fetcher: Fetcher {
-                trust: Trust::File(self.server.ca_file.clone()),
-                proxy: ProxyChoice::Direct,
-                timeout: Duration::from_secs(20),
+            source: Source {
+                api: self.server.url(),
+                web: self.server.url(),
+                roots: self.sigstore.roots.clone(),
+                ..Source::github(REPO, "release.yml")
             },
-            roots: self.sigstore.roots.clone(),
+            fetcher: Fetcher::new(client),
             exe: self.exe.clone(),
             target: podssh_cli::update::target().unwrap().into(),
             current: Version::parse(current).unwrap(),
-            trial: if cfg!(windows) { says_its_version } else { trial::by_version },
+            trial: if cfg!(windows) { Some(says_its_version) } else { None },
         }
     }
 
@@ -89,7 +90,7 @@ impl Stand {
             .iter()
             .map(|t| serde_json::json!({"tag_name": t, "draft": false, "prerelease": t.contains('-')}))
             .collect();
-        self.server.body(&format!("/repos/{REPO}/releases?per_page=20"), serde_json::to_vec(&list).unwrap());
+        self.server.body(&format!("/repos/{REPO}/releases?per_page=30"), serde_json::to_vec(&list).unwrap());
     }
 
     fn binary_asked(&self) -> bool {
@@ -111,16 +112,16 @@ impl Drop for Stand {
     }
 }
 
-async fn run(opts: &Options, check: bool, asked: Option<&str>) -> (Result<(), Failure>, String) {
+async fn run(opts: &Options, check: bool, asked: Option<&str>) -> (Result<(), Error>, String) {
     let asked = asked.map(|t| Version::of_tag(t).unwrap());
     let mut out = Vec::new();
     let result = update(opts, check, asked.as_ref(), &mut out).await;
     (result, String::from_utf8_lossy(&out).into_owned())
 }
 
-fn refused(result: Result<(), Failure>) -> String {
+fn refused(result: Result<(), Error>) -> String {
     match result {
-        Err(Failure::Refused(why)) => why,
+        Err(Error::Refused(why)) => why,
         other => panic!("refused, not {other:?}"),
     }
 }
@@ -201,7 +202,7 @@ async fn the_newest_release_replaces_the_binary_which_then_runs() {
     }
     let left = std::fs::read_dir(stand.exe.parent().unwrap()).unwrap().count();
     assert_eq!(left, 2, "only the binary, and the one before it");
-    let prev = podssh_cli::update::keep::prev_of(&stand.exe);
+    let prev = pod_release::keep::prev_of(&stand.exe);
     assert_eq!(std::fs::read(&prev).unwrap(), OLD, "{}", prev.display());
     let printed = output_of(&stand.exe);
     assert!(printed.contains(prints), "{printed:?}");
@@ -290,11 +291,11 @@ async fn a_release_with_no_binary_of_this_target_is_refused() {
     stand.release(TAG, b"another target's binary", sums, &Leaf::of_tag(TAG));
     let (result, _) = run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await;
     match result {
-        Err(failure @ Failure::Unavailable(_)) => {
+        Err(failure @ Error::NotFound(_)) => {
             assert!(failure.why().contains(&format!("{TAG} has no {}", stand.name)), "{failure:?}");
-            assert_eq!(failure.code(), 69);
+            assert_eq!(podssh_cli::update::code(&failure), 69);
         }
-        other => panic!("unavailable, not {other:?}"),
+        other => panic!("not found, not {other:?}"),
     }
     assert!(!stand.binary_asked());
     stand.assert_untouched();
@@ -305,7 +306,7 @@ async fn the_feed_answers_when_the_api_refuses() {
     let stand = Stand::new("feed").await;
     let binary = release_binary();
     stand.release(TAG, &binary, stand.sums_of(&binary), &Leaf::of_tag(TAG));
-    stand.server.route(&format!("/repos/{REPO}/releases?per_page=20"), Answer::Status(403));
+    stand.server.route(&format!("/repos/{REPO}/releases?per_page=30"), Answer::Status(403));
     let feed = format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\
          <entry><link rel=\"alternate\" type=\"text/html\" href=\"https://github.com/{REPO}/releases/tag/{TAG}\"/></entry>\
@@ -363,7 +364,7 @@ async fn this_build_s_release_or_a_newer_build_is_nothing_to_do_and_an_old_one_i
     // No list read at all stays a failure.
     let bare = Stand::new("no-list").await;
     let (result, _) = run(&bare.options("1.0.0"), false, None).await;
-    assert!(matches!(&result, Err(Failure::Unavailable(why)) if why.contains("no list of the releases")), "{result:?}");
+    assert!(matches!(&result, Err(Error::Unavailable(why)) if why.contains("no list of the releases")), "{result:?}");
     // An older release, named.
     let (result, out) = run(&stand.options("1.0.0-beta.4"), false, Some(TAG)).await;
     assert!(result.is_ok(), "{result:?}\n{out}");
@@ -375,11 +376,11 @@ async fn this_build_s_release_or_a_newer_build_is_nothing_to_do_and_an_old_one_i
 async fn a_release_that_is_not_there_and_a_loop_of_redirects_are_unavailable() {
     let stand = Stand::new("missing").await;
     let (result, _) = run(&stand.options("1.0.0-beta.2"), false, Some("v9.9.9")).await;
-    assert!(matches!(&result, Err(Failure::Unavailable(why)) if why.contains("not found (HTTP 404)")), "{result:?}");
+    assert!(matches!(&result, Err(Error::NotFound(why)) if why.contains("not found (HTTP 404)")), "{result:?}");
     stand.server.route(&format!("/{REPO}/releases/download/{TAG}/SHA256SUMS"), Answer::Redirect("/loop".into()));
     stand.server.route("/loop", Answer::Redirect("/loop".into()));
     let (result, _) = run(&stand.options("1.0.0-beta.2"), false, Some(TAG)).await;
-    assert!(matches!(&result, Err(Failure::Unavailable(why)) if why.contains("more than 5 redirects")), "{result:?}");
+    assert!(matches!(&result, Err(Error::Unavailable(why)) if why.contains("more than 5 redirects")), "{result:?}");
     stand.assert_untouched();
 }
 
@@ -389,7 +390,7 @@ async fn a_release_that_is_not_there_and_a_loop_of_redirects_are_unavailable() {
 #[tokio::test]
 async fn this_build_takes_the_leaf_of_podutils_alone() {
     let opts = Options::of_this_build(Trust::Default).expect("this build's options");
-    assert_eq!(opts.repo, REPO);
+    assert_eq!(opts.source.repo, REPO);
     assert_eq!(REPO, "PodUtils/podssh");
     let stand = Stand::new("old-name").await;
     let binary = b"a binary of the release".to_vec();

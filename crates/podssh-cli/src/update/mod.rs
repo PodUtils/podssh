@@ -1,42 +1,35 @@
 //! `podssh update` (T-375): the release for this binary's own target,
 //! fetched through the proxy, its `SHA256SUMS` checked against the
-//! signature that the release workflow made (`sigstore`), and its binary
-//! against that file, then run once here (`trial`) and in place of the
-//! running one (`replace`), the one before it kept beside it (`keep`), which
-//! `--rollback` puts back (T-396). It runs only when asked: no other command
-//! looks for a release.
+//! signature that the release workflow made, and its binary against that
+//! file, then run once here and in place of the running one, the one before
+//! it kept beside it, which `--rollback` puts back (T-396). The steps are
+//! `pod-release`'s (T-880); what stays here is the flags, the lines that
+//! tell each step, the exit codes, the trust and the way out. It runs only
+//! when asked: no other command looks for a release.
 
-pub mod fetch;
-pub mod keep;
-pub mod release;
-pub mod replace;
-pub mod sigstore;
-pub mod trial;
+pub mod way;
 
 use std::cmp::Ordering;
 use std::io::Write;
-use std::path::PathBuf;
-use std::time::Duration;
+use std::path::{Path, PathBuf};
 
+use pod_release::fetch::Fetcher;
+use pod_release::replace::{self, Stopped};
+use pod_release::trial::{self, Expect};
+use pod_release::update::{self as steps, Source};
+use pod_release::{keep, version, Error, Version};
 use podssh_ws::{ProxyChoice, Trust};
-use sha2::{Digest, Sha256};
 
 use crate::exit_codes::EXIT_USAGE;
 use crate::exitmap::sysexits::{EX_CANTCREAT, EX_CONFIG, EX_DATAERR, EX_UNAVAILABLE};
-use fetch::{FetchError, Fetcher};
-use release::Version;
+pub use way::{has_rollback, moved_back, way_back, ROLLBACK_SINCE};
 
-/// The largest list of releases, from the API or the feed: each release's
-/// notes are in it, up to 120 kB each.
-const MAX_LIST: usize = 8 << 20;
-/// The largest `SHA256SUMS` and bundle: a few kB each.
-const MAX_SMALL: usize = 256 << 10;
-/// The largest binary: a release's is about a tenth of this.
-const MAX_BINARY: usize = 256 << 20;
-/// Each small file, the connection and its answer.
-const SMALL_LIMIT: Duration = Duration::from_secs(60);
-/// The binary, on a slow link.
-const BINARY_LIMIT: Duration = Duration::from_secs(900);
+/// The name that a binary of this program says first to `--version`, and
+/// that the file of its release begins with.
+pub const PROGRAM: &str = "podssh";
+/// The release workflow whose token signs a release (its file in
+/// `.github/workflows/`).
+const WORKFLOW: &str = "release.yml";
 
 /// Every value `podssh update` accepts, as typed.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,56 +50,58 @@ impl UpdateArgs {
     }
 }
 
+/// How a new binary is tried instead of the crate's (`--version` of the
+/// file, once): only a test on a system with no small program of its own
+/// to run gives one.
+pub type Check = fn(&Path, &Version) -> Result<String, String>;
+
 /// Where the releases are, and what this binary is.
 #[derive(Debug, Clone)]
 pub struct Options {
-    /// `OWNER/REPO` on GitHub.
-    pub repo: String,
-    /// `https://api.github.com`, or a stand-in's.
-    pub api: String,
-    /// `https://github.com`, or a stand-in's.
-    pub web: String,
+    /// The repository, its hosts, its workflow and the roots of Sigstore.
+    pub source: Source,
     pub fetcher: Fetcher,
-    pub roots: sigstore::Roots,
     /// The file that the update replaces.
     pub exe: PathBuf,
     /// The release's name of this build's target.
     pub target: String,
     /// This build's version.
     pub current: Version,
-    /// How the new binary runs once here before it takes the old one's
-    /// place (T-396).
-    pub trial: trial::Check,
+    /// `None`: the crate's trial, `--version` once (T-396).
+    pub trial: Option<Check>,
 }
 
-/// Why an update stopped, each with its exit code.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Failure {
-    /// GitHub, the release, or one of its files did not come (69).
-    Unavailable(String),
-    /// A file came and failed its check (65).
-    Refused(String),
-    /// The binary could not be replaced (73).
-    CantWrite(String),
-    /// This build has no release to come from (78).
-    Config(String),
+/// The exit code of a failure of an update.
+pub fn code(error: &Error) -> i32 {
+    match error {
+        Error::Unavailable(_) | Error::NotFound(_) => EX_UNAVAILABLE,
+        Error::Refused(_) => EX_DATAERR,
+        Error::CantWrite(_) => EX_CANTCREAT,
+        Error::Config(_) => EX_CONFIG,
+    }
 }
 
-impl Failure {
-    pub fn code(&self) -> i32 {
-        match self {
-            Failure::Unavailable(_) => EX_UNAVAILABLE,
-            Failure::Refused(_) => EX_DATAERR,
-            Failure::CantWrite(_) => EX_CANTCREAT,
-            Failure::Config(_) => EX_CONFIG,
-        }
-    }
+/// What a trial run of this program's binary expects: `podssh`, any
+/// version (an update gives the release's own), within the crate's bound.
+pub fn expect() -> Expect<'static> {
+    Expect { program: PROGRAM, version: None, limit: trial::LIMIT }
+}
 
-    pub fn why(&self) -> &str {
-        match self {
-            Failure::Unavailable(why) | Failure::Refused(why) | Failure::CantWrite(why) | Failure::Config(why) => why,
+/// The binary that an update on Windows moved aside, removed once it runs no
+/// more (T-375); elsewhere nothing.
+pub fn remove_aside() {
+    if cfg!(windows) {
+        if let Ok(exe) = pod_release::replace::running() {
+            pod_release::replace::remove_aside(&exe);
         }
     }
+}
+
+/// The binary that the last update kept beside `exe`, when it runs here:
+/// what the supervisor of a detached run (T-390) starts after the new
+/// binary failed to start again and again.
+pub fn fallback(exe: &Path) -> Option<PathBuf> {
+    keep::fallback(exe, &expect())
 }
 
 /// The release's name of this build's target: the triple of its binary.
@@ -131,25 +126,7 @@ pub fn target() -> Option<&'static str> {
 
 /// The file of a target's binary in a release.
 pub fn asset(target: &str) -> String {
-    if target.contains("-windows-") {
-        format!("podssh-{target}.exe")
-    } else {
-        format!("podssh-{target}")
-    }
-}
-
-/// The SHA-256 that `sums` (a `sha256sum` file) gives `name`.
-pub fn sum_for(sums: &[u8], name: &str) -> Option<String> {
-    String::from_utf8_lossy(sums).lines().find_map(|line| {
-        let (digest, file) = line.split_once(char::is_whitespace)?;
-        let file = file.trim_start().trim_start_matches('*');
-        let ok = digest.len() == 64 && digest.bytes().all(|b| b.is_ascii_hexdigit());
-        (ok && file == name).then(|| digest.to_ascii_lowercase())
-    })
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    version::asset(PROGRAM, target)
 }
 
 fn mib(bytes: usize) -> String {
@@ -159,84 +136,59 @@ fn mib(bytes: usize) -> String {
 impl Options {
     /// This binary, the releases of its repository on GitHub, and Sigstore's
     /// roots; `trust` for TLS to GitHub.
-    pub fn of_this_build(trust: Trust) -> Result<Options, Failure> {
+    pub fn of_this_build(trust: Trust) -> Result<Options, Error> {
         let repository = env!("CARGO_PKG_REPOSITORY");
         let repo = repository
             .strip_prefix("https://github.com/")
             .filter(|r| r.split('/').count() == 2)
-            .ok_or_else(|| Failure::Config(format!("this build's repository, {repository}, is not one of GitHub")))?;
+            .ok_or_else(|| Error::Config(format!("this build's repository, {repository}, is not one of GitHub")))?;
         let target = target().ok_or_else(|| {
-            Failure::Config(format!(
+            Error::Config(format!(
                 "no release has a binary for {} {}: build podssh from its source",
                 std::env::consts::OS,
                 std::env::consts::ARCH
             ))
         })?;
         let current = Version::parse(env!("CARGO_PKG_VERSION"))
-            .ok_or_else(|| Failure::Config("this build's version is not one of semver".into()))?;
+            .ok_or_else(|| Error::Config("this build's version is not one of semver".into()))?;
+        // `--ca-file` once, in the client's own TLS: the crate sends no
+        // trust with each request.
+        let client = podssh_ws::client::getter_trusting(&ProxyChoice::FromEnvironment, &trust);
         Ok(Options {
-            repo: repo.to_string(),
-            api: "https://api.github.com".into(),
-            web: "https://github.com".into(),
-            fetcher: Fetcher { trust, proxy: ProxyChoice::FromEnvironment, timeout: Duration::from_secs(30) },
-            roots: sigstore::Roots::sigstore(),
-            exe: replace::running().map_err(Failure::Config)?,
+            source: Source::github(repo, WORKFLOW),
+            fetcher: Fetcher::new(client),
+            exe: replace::running().map_err(Error::Config)?,
             target: target.to_string(),
             current,
-            trial: trial::by_version,
+            trial: None,
         })
     }
-}
 
-/// A file of the release, or why it did not come.
-async fn get(opts: &Options, url: &str, max: usize, limit: Duration) -> Result<Vec<u8>, Failure> {
-    opts.fetcher.get(url, "application/octet-stream", max, limit).await.map_err(|e| Failure::Unavailable(e.to_string()))
-}
-
-/// A reader of the tags of a list of releases.
-type ReadTags = fn(&[u8]) -> Result<Vec<String>, String>;
-
-/// The newest release that this build follows, and where its tag was read;
-/// `None` when a list was read and holds none (a build of a release, before
-/// the first release, finds prereleases alone).
-async fn newest(opts: &Options) -> Result<Option<(Version, &'static str)>, Failure> {
-    let pre = opts.current.is_prerelease();
-    let mut why = Vec::new();
-    let mut read_one = None;
-    let api = format!("{}/repos/{}/releases?per_page=20", opts.api, opts.repo);
-    let feed = format!("{}/{}/releases.atom", opts.web, opts.repo);
-    let sources: [(&str, &str, &str, ReadTags); 2] = [
-        (api.as_str(), "application/vnd.github+json", "GitHub's API", release::tags_of_api),
-        (feed.as_str(), "application/atom+xml", "the releases' feed", release::tags_of_atom),
-    ];
-    for (url, accept, name, read) in sources {
-        match opts.fetcher.get(url, accept, MAX_LIST, SMALL_LIMIT).await {
-            Ok(body) => match read(&body).map(|tags| release::newest(&tags, pre)) {
-                Ok(Some(version)) => return Ok(Some((version, name))),
-                Ok(None) => {
-                    why.push(format!("{name} lists no release of a version"));
-                    read_one.get_or_insert(name);
-                }
-                Err(e) => why.push(format!("{name}: {e}")),
-            },
-            Err(FetchError::NotFound(e) | FetchError::Failed(e)) => why.push(e),
-        }
-    }
-    match read_one {
-        Some(_) => Ok(None),
-        None => Err(Failure::Unavailable(format!("no list of the releases: {}", why.join("; ")))),
+    /// `bytes` in place of the running binary, once it ran here.
+    fn install(&self, bytes: &[u8], version: &Version) -> Result<replace::Replaced, Error> {
+        let Some(check) = self.trial else {
+            return steps::install(&self.exe, bytes, PROGRAM, version, trial::LIMIT);
+        };
+        let exe = replace::shown(&self.exe);
+        let tried = |file: &Path| check(file, version);
+        replace::replace(&self.exe, bytes, &tried).map_err(|stopped| match stopped {
+            Stopped::Trial(why) => {
+                Error::Refused(format!("{PROGRAM} {version} did not run here: {why}; nothing was replaced"))
+            }
+            Stopped::Disk(why) => Error::CantWrite(format!("{why}; {exe} is as it was")),
+        })
     }
 }
 
 /// The update: the release that `asked` names, else the newest one; its
 /// `SHA256SUMS` and its signature, checked; with `check`, no more; else the
 /// binary of this target, checked, in place of `opts.exe`.
-pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &mut dyn Write) -> Result<(), Failure> {
+pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &mut dyn Write) -> Result<(), Error> {
     let _ = writeln!(out, "podssh {}, {}: {}", opts.current, opts.target, replace::shown(&opts.exe));
     let version = match asked {
         Some(version) => version.clone(),
         None => {
-            let Some((newest, from)) = newest(opts).await? else {
+            let Some((newest, from)) = steps::newest(&opts.fetcher, &opts.source, &opts.current).await? else {
                 let which = if opts.current.is_prerelease() { "release" } else { "release (not a prerelease)" };
                 let _ = writeln!(
                     out,
@@ -274,23 +226,17 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
         let _ = writeln!(out, "{} is older than this build, as --version asked", version.tag());
     }
     let tag = version.tag();
-    let base = format!("{}/{}/releases/download/{tag}", opts.web, opts.repo);
-    let sums = get(opts, &format!("{base}/SHA256SUMS"), MAX_SMALL, SMALL_LIMIT).await?;
-    let bundle = get(opts, &format!("{base}/SHA256SUMS.sigstore.json"), MAX_SMALL, SMALL_LIMIT).await?;
-    let who = sigstore::Identity { repo: &opts.repo, tag: &tag };
-    let logged = sigstore::verify_with(&bundle, &sums, &who, &opts.roots).map_err(|why| {
-        Failure::Refused(format!(
-            "the signature of {tag}'s SHA256SUMS: {why}; nothing was replaced. If Sigstore changed its roots, \
-             download the release by hand: {}/{}/releases/tag/{tag}",
-            opts.web, opts.repo
-        ))
-    })?;
+    let signed = steps::signed(&opts.fetcher, &opts.source, &version).await?;
+    let logged = signed.verified.logged;
     let at = crate::doctor::clock::format_utc(logged.time);
-    let _ =
-        writeln!(out, "SHA256SUMS of {tag}: signed by {}, logged by Rekor at {at} (entry {})", who.uri(), logged.index);
+    let _ = writeln!(
+        out,
+        "SHA256SUMS of {tag}: signed by {}, logged by Rekor at {at} (entry {})",
+        signed.identity.uri, logged.index
+    );
     let name = asset(&opts.target);
-    let want = sum_for(&sums, &name)
-        .ok_or_else(|| Failure::Unavailable(format!("{tag} has no {name}: its SHA256SUMS names none")))?;
+    // Before a check says that it would replace: the file must be named.
+    signed.verified.sums.get(&name).map_err(|why| Error::NotFound(format!("{tag} has no {name}: {why}")))?;
     if cfg!(feature = "ts") {
         let _ = writeln!(out, "this build has the feature ts, which the release's binary has not");
     }
@@ -298,27 +244,15 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
         let _ = writeln!(out, "podssh update would replace {} with {name} of {tag}", replace::shown(&opts.exe));
         return Ok(());
     }
-    let binary = get(opts, &format!("{base}/{name}"), MAX_BINARY, BINARY_LIMIT).await?;
-    let got = hex(&Sha256::digest(&binary));
-    if got != want {
-        return Err(Failure::Refused(format!(
-            "{name} of {tag}: its SHA-256 is {got}, and SHA256SUMS gives {want}; nothing was replaced"
-        )));
-    }
+    let binary = steps::binary(&opts.fetcher, &opts.source, &signed, &name).await?;
     let _ = writeln!(out, "{name}: {}, its SHA-256 is the one of SHA256SUMS", mib(binary.len()));
     let exe = replace::shown(&opts.exe);
-    let trial = |file: &std::path::Path| (opts.trial)(file, &version);
-    let replaced = replace::replace(&opts.exe, &binary, &trial).map_err(|stopped| match stopped {
-        replace::Stopped::Trial(why) => {
-            Failure::Refused(format!("{name} of {tag} did not run here: {why}; nothing was replaced"))
-        }
-        replace::Stopped::Disk(why) => Failure::CantWrite(format!("{why}; {exe} is as it was")),
-    })?;
+    let replaced = opts.install(&binary, &version)?;
     let _ = writeln!(out, "{name}: it ran here, and said {}", replaced.said);
     let _ = writeln!(out, "{exe}: replaced; it is podssh {version} now");
     // The way back that the binary now in place can run (T-507).
     let _ = match &replaced.prev {
-        Ok(prev) => writeln!(out, "{}", keep::way_back(prev, &opts.exe, &version)),
+        Ok(prev) => writeln!(out, "{}", way_back(prev, &opts.exe, &version)),
         Err(why) => writeln!(out, "the binary before it is not kept ({why}): there is none to put back"),
     };
     Ok(())
@@ -359,9 +293,9 @@ pub fn run(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             }
         },
     };
-    let fail = |failure: Failure, err: &mut dyn Write| {
+    let fail = |failure: Error, err: &mut dyn Write| {
         let _ = writeln!(err, "podssh update: {}", failure.why());
-        failure.code()
+        code(&failure)
     };
     let opts = match Options::of_this_build(trust(args)) {
         Ok(opts) => opts,
@@ -369,7 +303,7 @@ pub fn run(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     };
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
-        Err(e) => return fail(Failure::Config(format!("a runtime: {e}")), err),
+        Err(e) => return fail(Error::Config(format!("a runtime: {e}")), err),
     };
     let before = stamp(&opts.exe);
     match runtime.block_on(update(&opts, args.check, asked.as_ref(), out)) {
@@ -387,7 +321,7 @@ pub fn run(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
 
 /// What tells a file that an update replaced from the one before it: its
 /// length and the time of its last write.
-fn stamp(path: &std::path::Path) -> Option<(u64, Option<std::time::SystemTime>)> {
+fn stamp(path: &Path) -> Option<(u64, Option<std::time::SystemTime>)> {
     std::fs::metadata(path).ok().map(|meta| (meta.len(), meta.modified().ok()))
 }
 
@@ -399,16 +333,20 @@ fn rollback(args: &UpdateArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         let _ = writeln!(err, "podssh update: {why}");
         return EXIT_USAGE;
     }
-    match replace::running().map_err(Failure::Config).and_then(|exe| keep::rollback(&exe)) {
-        Ok(lines) => {
-            for line in lines {
+    let done = replace::running().map_err(Error::Config).and_then(|exe| {
+        let done = keep::rollback(&exe, &expect())?;
+        Ok((exe, done))
+    });
+    match done {
+        Ok((exe, done)) => {
+            for line in way::rolled_back(&exe, &done) {
                 let _ = writeln!(out, "{line}");
             }
             0
         }
         Err(failure) => {
             let _ = writeln!(err, "podssh update: {}", failure.why());
-            failure.code()
+            code(&failure)
         }
     }
 }
@@ -425,22 +363,13 @@ mod tests {
         assert!(target().is_some(), "{} {}", std::env::consts::OS, std::env::consts::ARCH);
     }
 
-    #[test]
-    fn a_line_of_sha256sum_gives_its_file_s_digest() {
-        let a = "a".repeat(64);
-        let b = "B".repeat(64);
-        let sums =
-            format!("{a}  podssh-x86_64-unknown-linux-musl\n{b} *podssh-x86_64-pc-windows-msvc.exe\nshort  podssh-x\n");
-        assert_eq!(sum_for(sums.as_bytes(), "podssh-x86_64-unknown-linux-musl"), Some(a));
-        assert_eq!(sum_for(sums.as_bytes(), "podssh-x86_64-pc-windows-msvc.exe"), Some("b".repeat(64)));
-        assert_eq!(sum_for(sums.as_bytes(), "podssh-x"), None);
-        assert_eq!(sum_for(sums.as_bytes(), "podssh-aarch64-apple-darwin"), None);
-    }
-
-    /// beta.2's own SHA256SUMS names each target of the release.
+    /// beta.2's own SHA256SUMS names each target of the release: the
+    /// identity of this program's files, which the crate's tests do not
+    /// have.
     #[test]
     fn the_published_sums_name_each_target() {
         let sums = include_bytes!("../../tests/fixtures/update/SHA256SUMS-v1.0.0-beta.2");
+        let sums = pod_release::Sums::parse(sums).unwrap();
         for target in [
             "x86_64-unknown-linux-musl",
             "aarch64-unknown-linux-musl",
@@ -451,7 +380,21 @@ mod tests {
             "x86_64-pc-windows-msvc",
             "aarch64-pc-windows-msvc",
         ] {
-            assert!(sum_for(sums, &asset(target)).is_some(), "{target}");
+            assert!(sums.get(&asset(target)).is_ok(), "{target}");
+        }
+    }
+
+    /// Each failure of the crate has the exit code that the manual gives.
+    #[test]
+    fn each_failure_has_its_documented_exit_code() {
+        for (error, want) in [
+            (Error::Unavailable(String::new()), EX_UNAVAILABLE),
+            (Error::NotFound(String::new()), EX_UNAVAILABLE),
+            (Error::Refused(String::new()), EX_DATAERR),
+            (Error::CantWrite(String::new()), EX_CANTCREAT),
+            (Error::Config(String::new()), EX_CONFIG),
+        ] {
+            assert_eq!(code(&error), want, "{error:?}");
         }
     }
 }

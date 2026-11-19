@@ -960,7 +960,7 @@ A binary that was copied into a sandbox is never updated (Q48): a fix such as ru
 
 2026-10-31: Sigstore's bundle of the release (T-211), checked in podssh with no network and no C.
 The release publishes it already, and it needs nothing of the operator; podssh checks, in
-`crates/podssh-cli/src/update/sigstore.rs`: the digest of `SHA256SUMS`; the leaf's ECDSA signature
+update/sigstore.rs (in `pod-release` of podcrates since `v0.77.0`): the digest of `SHA256SUMS`; the leaf's ECDSA signature
 of the file; the leaf's chain to Fulcio's root, compiled in from Sigstore's trusted root
 (`trust/fulcio.pem`), at the time that Rekor gives; the leaf's identity (code signing, the URI of
 `release.yml` at the tag, and GitHub Actions as its token's issuer); Rekor's signed entry timestamp
@@ -1044,7 +1044,7 @@ to go back to.
 ## Premise
 
 - Read, at `ea2bd4f`: on Unix the new file is renamed over the old, and no copy of the old stays
-  (`crates/podssh-cli/src/update/replace.rs:95`).
+  (update/replace.rs:95 (in `pod-release` of podcrates since `v0.77.0`)).
 
 ## Approach
 
@@ -1056,12 +1056,12 @@ row within 2 minutes, with a line.
 ## Decision
 
 - **The trial is `--version` of the new file, where it will run**, beside the old one, before
-  anything of the old one moves (`crates/podssh-cli/src/update/trial.rs`): it starts the binary,
+  anything of the old one moves (update/trial.rs (in `pod-release` of podcrates since `v0.77.0`)): it starts the binary,
   its loader and libc, and its first line, `podssh VERSION`, must name the release asked for.
   Lost: a run of `podssh doctor` or of a node (each needs a network, and minutes); no run at all
   (the entry's Problem).
 - **`podssh.prev` on Unix is a hard link to the old file, else a copy**, made before the rename
-  that unlinks it (`crates/podssh-cli/src/update/keep.rs`): a link costs no space and no write. On
+  that unlinks it (update/keep.rs (in `pod-release` of podcrates since `v0.77.0`)): a link costs no space and no write. On
   Windows the running file, which only a rename may move, becomes `podssh.prev.exe`, the name with
   the extension that Windows runs; when that name is held by a running binary (a supervisor's
   fallback), the file goes to `podssh.exe.old` as before T-396, and the line says that nothing is
@@ -1098,9 +1098,9 @@ merge the supervisor of T-390 took `keep::fallback` (below).
 - The new file runs once as `podssh --version`, with no input, within 10 s, its exit code read
   directly, again for 5 s while another thread holds it open (ETXTBSY); a file that does not start,
   ends with another code, or names another version is removed and refused, 65
-  (`crates/podssh-cli/src/update/trial.rs`, `crates/podssh-cli/src/update/replace.rs`).
+  (update/trial.rs (in `pod-release` of podcrates since `v0.77.0`), update/replace.rs (in `pod-release` of podcrates since `v0.77.0`)).
 - The old one is kept as `podssh.prev` (`podssh.prev.exe`), `podssh update --rollback` puts it back
-  and keeps the other (`crates/podssh-cli/src/update/keep.rs`, `crates/podssh-cli/src/flags/update.rs`),
+  and keeps the other (update/keep.rs (in `pod-release` of podcrates since `v0.77.0`), `crates/podssh-cli/src/flags/update.rs`),
   `keep::fallback` names it for T-390; the manual's notes of `update` and its FILES; `docs/cli.md`;
   `docs/STATUS.md`.
 - `cargo test -p podssh-cli --test update`: 16 passed (7 of them new, in
@@ -1148,16 +1148,16 @@ run by the binary now in place, and the user must know that a `mv` does it.
 ## Premise
 
 - Read, before this entry's change: the last line named `--rollback` for each release
-  (`crates/podssh-cli/src/update/mod.rs:319-323`, now the line of T-507), once the new binary took
-  the old one's place (`crates/podssh-cli/src/update/mod.rs:317-318`); an older release is allowed
-  with `--version` (`crates/podssh-cli/src/update/mod.rs:274`).
+  (`crates/podssh-cli/src/update/mod.rs:253-257`, now the line of T-507), once the new binary took
+  the old one's place (`crates/podssh-cli/src/update/mod.rs:251-252`); an older release is allowed
+  with `--version` (`crates/podssh-cli/src/update/mod.rs:226`).
 - Read: `--rollback` came with T-396, first in `v1.0.0-beta.4`
   (`docs/releases/v1.0.0-beta.4.md:119-120`); beta.3 has `update` and no `--rollback`
   (`docs/releases/v1.0.0-beta.3.md:101`), and the betas before it have no `update`.
-- Read: the new binary runs once, with `--version` alone (`crates/podssh-cli/src/update/trial.rs:1-8`),
+- Read: the new binary runs once, with `--version` alone (update/trial.rs:1-8 (in `pod-release` of podcrates since `v0.77.0`)),
   and the update knows its version before the swap.
 - Read, before this entry's change: `--rollback` says its own line of the binary that it put back
-  (`crates/podssh-cli/src/update/keep.rs:107-115`, now with the move of T-507).
+  (update/keep.rs:107-115 (in `pod-release` of podcrates since `v0.77.0`), now with the move of T-507).
 
 ## Approach
 
@@ -1206,7 +1206,7 @@ Planted: the check of the version always true: the test of the update to beta.3 
 Drafted 2026-11-02 by an agent in a worktree, which built nothing; merged and measured by the main
 session on 2026-11-03.
 
-- `crates/podssh-cli/src/update/keep.rs`: `has_rollback` (a version of `ROLLBACK_SINCE`,
+- update/keep.rs (in `pod-release` of podcrates since `v0.77.0`): `has_rollback` (a version of `ROLLBACK_SINCE`,
   `1.0.0-beta.4`, or later; the constant beside the row of `--rollback` in
   `crates/podssh-cli/src/flags/update.rs`, exported by `crates/podssh-cli/src/flags.rs`),
   `moved_back` (`mv P EXE`, quoted; on Windows `cmd /c move /Y "P" "EXE"`), and `way_back`, the
@@ -1392,3 +1392,60 @@ the four images built (amd64 29.9 MB, arm64 22.6 MB, armv7 23.8 MB, riscv64 23.2
 `podssh 1.1.0-beta.3 (d1ef7b6...)`; nothing pushed. The push, the comparison
 and the attestation run at the next tag (after T-684). At that first push, the package `ghcr.io/podutils/podssh` may be created
 private: an admin of PodUtils sets it public once (COORD-142).
+
+# T-850: `podssh update` on `pod-release` of PodUtils/podcrates; podssh's copy of the update goes
+
+**Source:** podcrates' COORD-145 (PodUtils/podcrates#240), its podcrates' entry 880: `pod-release` takes podssh's update (the rulings
+Shared code).
+**Category:** chore
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** partial
+
+## Problem
+
+The self-update of podssh (`crates/podssh-cli/src/update/`: the Sigstore verifier, the versions, the fetch, the replace
+of the running binary, the kept binary, the trial run) has a second copy in podnet. podcrates v0.77.0 holds the better
+of the two as `pod-release`, and podssh must take it and drop its own.
+
+## Premise
+
+`crates/podssh-cli/src/update/` held `sigstore.rs` (with `sigstore_tests.rs` and `trust/`), `release.rs`, `fetch.rs`,
+`replace.rs`, `keep.rs`, `trial.rs` and `mod.rs`; `pod-release` has each of them (`README.md`, "Adoption map"). Its
+fetch goes through a `pod_proxy::Client`, which podssh-ws builds with podssh's way out ([`getter`]); that client takes the
+trust of its TLS context, not of each request, so `--ca-file` needs a context of its own.
+
+## Approach
+
+1. Take `pod-release` (feature `fetch`) at v0.77.0, and pin each other podcrates line of the workspace to the same tag.
+2. Remove the six modules and `trust/`; `update/mod.rs` keeps the flags, the lines of each step, the exit codes (a
+   `pod_release::Error` to its sysexits code), `trust()` and the mark of a detached node; `update/way.rs` keeps the lines
+   of the way back (`way_back`, `moved_back`, the lines of `--rollback` from `RolledBack`).
+3. The steps are `update::newest`, `signed`, `binary` and `install`; `--rollback` and the supervisor's fallback call
+   `keep::rollback` and `keep::fallback` with `Expect { program: "podssh", .. }`; `remove_aside` takes the path of
+   `replace::running()`.
+4. `podssh-ws` gives the client for `--ca-file` (`client::getter_trusting`, `tls::context_for`).
+5. The tests keep what is podssh's own (the lines, the exit codes, the flags, the stand-in release, the trial on this
+   build's binary); those of the moved internals live in `pod-release`.
+
+## Prove
+
+```sh
+cargo test -p podssh-cli --lib update
+cargo test -p podssh-cli --test update
+```
+
+## Done
+
+Partial, 2026-11-19: merged, built and run here. Moved to `pod-release`: `sigstore.rs`, `sigstore_tests.rs`, `trust/`,
+`release.rs`, `fetch.rs`, `replace.rs`, `keep.rs` and `trial.rs` of `update/`; `update::Failure` is `pod_release::Error`
+(a release that is not there is `NotFound`, still 69). New: `update/way.rs` (podssh's lines of the way back),
+`podssh_ws::client::getter_trusting` and `podssh_ws::tls::context_for` (the `--ca-file` trust of the fetch). Changed
+lines: the signature's refusal begins `the signature of SHA256SUMS:`; the trial's bound says milliseconds. The test
+stand answers the release list at `per_page=30`, as `pod-release` asks. `roxmltree` and `x509-parser` stay
+(`config import mremoteng`, `status`); the plant `t507-rollback-always` patches `update/way.rs`.
+`cargo test -p podssh-cli --lib update`: 4 passed; `--test update`: 18 passed; `--test update_offline --test detach
+--test node_detach` and `--lib detach`, `--lib node_upgrade`, `-p podssh-ws --lib`: each passed; clippy clean.
+Left: the release workflow writes `release-index.json` (`PodUtils/podcrates:scripts/release-index.py`) before `SHA256SUMS`,
+at the next release's work on `release.yml` (T-847 beside it).

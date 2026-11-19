@@ -55,6 +55,14 @@ pub fn getter(proxy: &ProxyChoice) -> pod_proxy::Client {
         .with_records(Arc::new(crate::ech::Records(proxy.clone())))
 }
 
+/// [`getter`] whose TLS checks against `trust` on each request: the client
+/// of `podssh update`, which gets `--ca-file` once, not with each request.
+pub fn getter_trusting(proxy: &ProxyChoice, trust: &Trust) -> pod_proxy::Client {
+    pod_proxy::Client::new(tls::context_for(trust), Arc::new(dial::dialer(proxy, false)))
+        .with_user_agent(dial::user_agent())
+        .with_records(Arc::new(crate::ech::Records(proxy.clone())))
+}
+
 /// The failure of a GET as podssh's callers read it: the dial's error as
 /// it was, the handshake's as a TLS road says it, and a failure of the
 /// exchange as the step of the request (`pod_ws::client::request_error`).

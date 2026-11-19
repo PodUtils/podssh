@@ -117,8 +117,12 @@ pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.77.0" }
 # shares, and its checks of drift (T-790): podssh's manual fills it
 # (src/man/pod_model.rs). Pure Rust; libc for its pager alone.
 pod-manual = { git = "https://github.com/PodUtils/podcrates", tag = "v0.77.0" }
-# The leaf of a release's Sigstore bundle, read (T-375): no C, as its
-# feature `verify` (ring) is off; the signatures are podssh-ws's own.
+# `podssh update` (T-850, T-880 of podcrates): the release's signature, its
+# files, the replace of the running binary and the way back; `fetch` for the
+# steps over pod-proxy's client with podssh's way out.
+pod-release = { git = "https://github.com/PodUtils/podcrates", tag = "v0.77.0", features = ["fetch"] }
+# The leaf of a certificate that `podssh status` reads: no C, as its feature
+# `verify` (ring) is off.
 x509-parser = { version = "0.18", default-features = false }
 # The trait of podssh-ws's signature checks, for that bundle.
 rustls = { workspace = true }

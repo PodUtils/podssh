@@ -6363,7 +6363,7 @@ asked: no other command looks for a release. `podssh update --rollback`
   when none is kept, 65 when it does not run here. A run that started
   before goes on with its own binary until it starts again. A supervisor of
   a detached run (T-390) can start `podssh.prev` after the new binary
-  failed to start again and again: `update::keep::fallback` names it, and
+  failed to start again and again: `update::fallback` (on `pod-release`) names it, and
   changes no file.
 - **The way back that the line names (T-507).** The kept file itself:
   `mv podssh.prev podssh`, with the paths of this host (on Windows `cmd /c

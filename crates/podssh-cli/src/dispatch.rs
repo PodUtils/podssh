@@ -467,7 +467,7 @@ where
     }
     // The binary that an update on Windows moved aside, which runs no more
     // (T-375); elsewhere nothing.
-    crate::update::replace::remove_aside();
+    crate::update::remove_aside();
     // A program that the user names gets the report of a failure (T-195).
     let hook = crate::error_program::Hook::from_env(argv.first().map(|a| a.as_os_str()));
     let parsed = crate::tree::parse(argv);

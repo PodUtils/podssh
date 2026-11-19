@@ -24,7 +24,7 @@ use crate::tls::{self, Trust};
 
 // The GET over HTTPS: pod-proxy's client with podssh's settings.
 mod get;
-pub use get::{getter, https_get, https_get_accepting};
+pub use get::{getter, getter_trusting, https_get, https_get_accepting};
 
 /// podssh's way out for `proxy`: its dial, the process's TLS, the read of a
 /// name's HTTPS record through the same proxy, and `podssh/VERSION`.

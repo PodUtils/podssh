@@ -1,5 +1,5 @@
---- a/crates/podssh-cli/src/update/keep.rs
-+++ b/crates/podssh-cli/src/update/keep.rs
+--- a/crates/podssh-cli/src/update/way.rs
++++ b/crates/podssh-cli/src/update/way.rs
 @@ -21,7 +21,7 @@
 
  /// Whether the binary of `version` has `podssh update --rollback`.

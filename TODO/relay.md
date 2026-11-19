@@ -2399,7 +2399,7 @@ podssh's release already trusts:
 - For the public default: a `relays.json` of deployments, signed by a workflow of this
   repository with `cosign sign-blob --bundle`, and checked by the Sigstore verifier that
   `podssh update` already runs on `SHA256SUMS` (`crates/podssh-cli/src/update/mod.rs:278-290`,
-  `crates/podssh-cli/src/update/sigstore.rs`), its identity widened from the release workflow to
+  update/sigstore.rs (in `pod-release` of podcrates since `v0.77.0`)), its identity widened from the release workflow to
   that workflow and its ref. No private key to keep offline, no new cryptography, and an
   unattended session can publish a new list. The document holds a `serial`, a `not_after` and a
   fixed `format` inside the signed bytes.
@@ -4098,7 +4098,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:221` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:225` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
   78 is this host not set up for the mode.

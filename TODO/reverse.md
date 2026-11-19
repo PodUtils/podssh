@@ -3691,7 +3691,7 @@ A new test: a session through a node goes on across the node's upgrade, its byte
 2026-11-05 (the drafting agent of T-668), read in the tree of this draft:
 
 - The Problem's `podssh update` ends no session by itself: it renames the new file over the running
-  one, and `crates/podssh-cli/src/update/replace.rs:5` says "running file, which keeps running from
+  one, and update/replace.rs:5 (in `pod-release` of podcrates since `v0.77.0`) says "running file, which keeps running from
   the old inode"; the manual says that an installed node "goes on with its own binary until it
   starts again" (`crates/podssh-cli/src/man/notes_update.rs:23`). The sessions end when the node
   starts again to take the new binary. The Premise holds: the sessions are in the process

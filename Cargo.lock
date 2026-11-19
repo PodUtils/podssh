@@ -1564,7 +1564,7 @@ checksum = "17933e749f2502cfcd1c27519292fbbea22e8fc64ce680e863f855e8cd8cce23"
 dependencies = [
  "heck",
  "indexmap 2.14.2",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "proc-macro-crate",
  "proc-macro2",
  "quote",
@@ -5417,6 +5417,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-release"
+version = "0.77.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.77.0#7cbe674e39aaa1673339e94ffcc2fcc3b7585bb4"
+dependencies = [
+ "base64 0.23.1",
+ "libc",
+ "pod-core",
+ "pod-proxy",
+ "pod-tls",
+ "rand 0.10.3",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "tokio",
+ "x509-parser",
+]
+
+[[package]]
 name = "pod-services"
 version = "0.77.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.77.0#7cbe674e39aaa1673339e94ffcc2fcc3b7585bb4"
@@ -5648,6 +5667,7 @@ dependencies = [
  "pod-iroh",
  "pod-link",
  "pod-manual",
+ "pod-release",
  "pod-services",
  "pod-term",
  "pod-testkit",

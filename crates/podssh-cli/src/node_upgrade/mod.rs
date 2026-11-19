@@ -276,14 +276,14 @@ pub(crate) async fn stop() {
 /// it passed, and the node stops for it.
 #[cfg(any(unix, windows))]
 async fn ready() -> bool {
-    let binary = match crate::update::replace::running() {
+    let binary = match pod_release::replace::running() {
         Ok(binary) => binary,
         Err(why) => {
             say(format!("an upgrade was asked, but {why}: the node goes on with this binary"));
             return false;
         }
     };
-    let shown = crate::update::replace::shown(&binary);
+    let shown = pod_release::replace::shown(&binary);
     let path = binary.clone();
     let probed = tokio::task::spawn_blocking(move || probe::probe(&path)).await;
     match probed {
@@ -327,7 +327,7 @@ pub(crate) async fn after() -> Option<i32> {
     for why in handed.iter().filter_map(|h| h.target.as_ref().err()).filter(|why| !why.is_empty()) {
         say(format!("a session ends at its resume: {why}"));
     }
-    let shown = crate::update::replace::shown(&binary);
+    let shown = pod_release::replace::shown(&binary);
     say(format!("{moved} of {} sessions go to {shown}", handed.len()));
     hand(binary, handed)
 }
@@ -344,7 +344,7 @@ pub(crate) async fn or_finish(finish: impl FnOnce() -> i32) -> i32 {
 #[cfg(unix)]
 fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
     let (back, why) = pass::become_binary(&binary, &crate::version::line(), handed, &parts::all());
-    let shown = crate::update::replace::shown(&binary);
+    let shown = pod_release::replace::shown(&binary);
     say(format!("{shown} did not start ({why}): this binary serves its {} sessions again", back.len()));
     podssh_relay::reverse::node::set_upgrading(false);
     *lock(&TAKEN) = Some(back);
@@ -355,7 +355,7 @@ fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
 /// waits for it and ends with its code, keeping the run's pid and locks.
 #[cfg(windows)]
 fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
-    let shown = crate::update::replace::shown(&binary);
+    let shown = pod_release::replace::shown(&binary);
     match pass_windows::hand_to_child(&binary, &crate::version::line(), handed, &parts::all()) {
         Ok(code) => Some(code),
         Err((back, why)) => {

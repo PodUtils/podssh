@@ -14,7 +14,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use base64::Engine as _;
-use podssh_cli::update::sigstore::{Roots, ISSUER};
+use pod_release::sigstore::GITHUB_ISSUER as ISSUER;
+use pod_release::Roots;
 use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
