@@ -331,6 +331,7 @@
 323 pull open
 324 pull open
 325 issue open
-326 issue open
+326 issue closed
 327 issue open
 328 issue open
+329 issue open
