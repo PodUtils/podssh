@@ -140,9 +140,11 @@ where
             None => None,
         }
     };
-    // The handshake's line at -v, once the node let this end in (T-643).
-    let told = async {
-        if let Ok(line) = told.await {
+    // The channel's lines at -v: the handshake's once the node let this end in
+    // (T-643), and each write that waited 20 s (T-780).
+    let told = async move {
+        let mut told = told;
+        while let Some(line) = told.recv().await {
             say(Line::Verbose(line));
         }
     };

@@ -8,7 +8,7 @@ this page keeps no history (git does).
 
 Read on 2026-11-15.
 
-1. **The gate.** Green at `4bc5d5a` (2026-11-19, run 44426400728: podcrates `v0.73.0`, each job on its first attempt). Green at `e2d106d` (2026-11-18, run 44326156563, each job on its first attempt: podcrates `v0.71.0`, T-820's locks, T-844, T-845, T-846's lines). Red at `37f9196` (run 43912907328, macOS alone: T-800, a test that read a relay session's hex id as a 1003; repaired). Green at `0370b0b` (2026-11-16, run 43894316171, each job on its first attempt). Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on attempt 2: its first
+1. **The gate.** Green at `38da04d` (2026-11-19, run 44490361365, each job). Green at `4bc5d5a` (2026-11-19, run 44426400728: podcrates `v0.73.0`, each job on its first attempt). Green at `e2d106d` (2026-11-18, run 44326156563, each job on its first attempt: podcrates `v0.71.0`, T-820's locks, T-844, T-845, T-846's lines). Red at `37f9196` (run 43912907328, macOS alone: T-800, a test that read a relay session's hex id as a 1003; repaired). Green at `0370b0b` (2026-11-16, run 43894316171, each job on its first attempt). Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on attempt 2: its first
    hung, T-780's seventh). Green at `0f2c8a0` (2026-11-16, run 43859588499, podcrates `v0.62.0` and T-796's bound, each job on its
    first attempt). Green at `d13ab01` (2026-11-16, run 43839740067, podcrates `v0.61.0`; `gate (release)` on attempt 2:
    its interop hung past the job's limit on attempt 1, T-796). Green at `f5b4f43` (2026-11-16, run 43823925587, the take of `v0.60.0`; its `gate (m6)` failed once,
@@ -51,7 +51,7 @@ Read on 2026-11-15.
    take of `v0.42.0`, which answered each. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.75.0` (COORD-143, PodUtils/podcrates#238; podssh's answer is COORD-126, 2026-11-19). Taken, so worked on in
+   `v0.76.0` (COORD-144, PodUtils/podcrates#239; podssh's answer is COORD-127, 2026-11-19). Taken, so worked on in
    PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`,
    `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`
    and `pod-relay` (2026-11-12), `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue), and

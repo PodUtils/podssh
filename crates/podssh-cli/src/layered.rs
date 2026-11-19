@@ -336,9 +336,11 @@ where
         let (stream, session, told) = crate::channel::around_told(app, channel, pin_say);
         let stream = Counted::new(stream, shell.and_then(|shell| shell.flow).cloned());
         let Some(session) = session else { return carry(config, link, first, stream, expires_ms, say, shell).await };
-        // The handshake's line at -v, once the node let this end in (T-643).
-        let told = async {
-            if let Ok(line) = told.await {
+        // The channel's lines at -v: the handshake's once the node let this end in
+        // (T-643), and each write that waited 20 s (T-780).
+        let told = async move {
+            let mut told = told;
+            while let Some(line) = told.recv().await {
                 say(Line::Verbose(line));
             }
         };

@@ -2235,7 +2235,7 @@ the channel failed: An existing connection was forcibly closed by the remote hos
   podssh took `pod-relay` of PodUtils/podcrates at v0.27.0, that crate's `reverse::operator`) writes a frame's
   bytes to the local side only while not `draining`; `end_of_input` (lines 326 to 336 there) sets `draining`
   once the input ends when `node_ends` is set,
-  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:411`).
+  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:413`).
 
 ## Approach
 
@@ -2655,6 +2655,12 @@ on both roads the hold is above pod-session, at the client: pod-e2e's channel or
 to SSH (`crates/podssh-cli/src/ssh/held.rs`, moved out of the iroh road) now runs on the `node://` road too
 (`ssh/node.rs`). Here: `m6_exit`'s `the_layer_survives_a_new_address`, `the_layer_survives_a_stall_of_3_minutes` and the
 iroh new-address case, each passed.
+
+2026-11-19, podcrates `v0.76.0` (its entry 959, #283 ask 5): pod-e2e's channel says each write that waits 20 s, to the
+application or to the layer (`e2e.wait`). `channel::around_told` gives a stream of the channel's lines (`Told`), and
+the layer's and the exit's roads say each at `-v` (`layered.rs`, `exit/tunnel.rs`). With the layer's `Note::Stall` and
+the watch of SSH's pipe, the next hang names its reader at each step. Here: `cargo test --workspace --no-fail-fast`, 383
+suites, 0 failed; the m6 cases of the layer's stall and the iroh road's new address passed.
 
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
@@ -3801,6 +3807,10 @@ the role's 1009: the client said "the session moved to a new link before the rel
 link still passed 1 MiB; each later link ended with 1000. On Windows the move starts later after its threshold than on
 Linux. The check stays (no link at the cap); asked of podcrates in COORD-126 (amended): a move that begins at its
 threshold, or a threshold that leaves room for the lag that Windows showed.
+
+2026-11-19, podcrates `v0.76.0` (its entry 962, COORD-126): the hold of a move starts in the call that passes the
+threshold. No change of podssh's code. `tests/layer_cap.rs`, 6 runs in 6 here; the Windows job of the next gate is
+its proof.
 
 # T-827: `relay serve --key` in a file that others may read starts with no word
 

@@ -202,10 +202,11 @@ pub fn around<A: Bytes + 'static>(
     (stream, session)
 }
 
-/// The line of the channel's handshake that `-v` shows, once, while the
-/// session runs: the node answered the net's offer with no document
-/// (T-643). It ends with no line when there is none to say.
-pub type Told = tokio::sync::oneshot::Receiver<String>;
+/// The lines of the channel that `-v` shows while the session runs: the
+/// node answered the net's offer with no document (T-643), and each write of
+/// the channel that waited 20 s, to the application or to the layer (T-780).
+/// It ends when the session ends.
+pub type Told = tokio::sync::mpsc::UnboundedReceiver<String>;
 
 /// [`around`], with the handshake's [`Told`] line for the caller to say at
 /// its verbose level.
@@ -214,7 +215,7 @@ pub fn around_told<A: Bytes + 'static>(
     channel: Option<Operator>,
     say: impl Fn(String) + Send + 'static,
 ) -> (Box<dyn Bytes>, Option<Session>, Told) {
-    let (tell, told) = tokio::sync::oneshot::channel();
+    let (tell, told) = tokio::sync::mpsc::unbounded_channel();
     let Some(Operator { identity, expect, route }) = channel else { return (Box::new(app), None, told) };
     // The net's documents for this channel (T-429): a client takes in silence.
     crate::net::admit::install(false);
