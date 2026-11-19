@@ -1214,7 +1214,7 @@ two reads with pod-term's prompt redrawn between them.
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -1243,6 +1243,9 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_line
 ```
 
-## Blocker
+## Done
 
-PodUtils/podcrates: a session of pod-term with no prompt (COORD-125). podssh takes the tag that has it.
+2026-11-19, podcrates `v0.77.0` (its entry 960, COORD-125): `line.rs` builds the session of an exec request with
+`Session::without_prompt`, and a login shell keeps its prompt. `serve_line.rs` now checks that a command's output has
+no `$ `: `cargo test -p podssh-ssh --test serve_line`, 3 runs in 3; `cargo test --workspace --no-fail-fast`, 383
+suites, 0 failed.

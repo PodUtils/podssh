@@ -194,10 +194,10 @@ async fn a_command_on_the_line_discipline_has_no_tty_and_its_term() {
     let mut seen = Seen::default();
     read_to_close(&mut channel, &mut seen).await;
     assert_eq!(seen.replies, vec![true, true], "{seen:?}");
-    // The program's own lines, with the discipline's redraws of its prompt
-    // taken out: the output may come in two reads, and pod-term draws its
-    // prompt after each (T-848).
-    let text = seen.text().replace("\r\x1b[K", "").replace("$ ", "");
+    // A command, not a shell: no prompt of the discipline around its output
+    // (T-848), however the output comes in reads.
+    let text = seen.text().replace("\r\x1b[K", "");
     assert!(text.contains("PIPES\r\nTERM=vt100 SSH_TTY=unset\r\n"), "{seen:?}");
+    assert!(!seen.text().contains("$ "), "no prompt around a command's output: {seen:?}");
     assert_eq!(seen.status, Some(0), "{seen:?}");
 }

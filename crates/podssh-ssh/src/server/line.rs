@@ -110,6 +110,8 @@ pub(super) fn spawn(
     }
     let lines = child.stdin.take().map(feed_lines);
     let session = Session::with_utf8(Facts { selected: true, ..Facts::default() }, utf8).sized(*size.borrow());
+    // A command, not a shell: no prompt around its output, as on a pty (T-848).
+    let session = if login { session } else { session.without_prompt() };
     let line = Line { session, lines, group: open.group.clone(), login };
     tasks.push(tokio::spawn(line.run(keys, [out, err], size, running.write.make_writer())));
     tokio::spawn(running.finish(child, tasks, exited_tx, open.closed.clone()));
