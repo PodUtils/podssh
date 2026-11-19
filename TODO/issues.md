@@ -370,7 +370,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #311 | COORD-114: podssh's answer to podvm's COORD-180: its temp files and edges, and its black-box pass (to podvm) | open 2026-11-17: until podvm reads it | T-819 |
 | #312 | COORD-115: podssh's answer to COORD-131: the rulings in AGENTS.md, and its copies of shared code (to podcrates) | open 2026-11-17: until podcrates reads it | T-820 |
 | #313 | COORD-116: two messages of pod-dns and pod-relay that podssh's black-box pass found (to podcrates) | open 2026-11-17: until podcrates' tag is taken | T-818 |
-| #314 | COORD-117: pod-session keeps a write's error over the relay's Close, and the layer's link budget ignores a small cap (to podcrates) | closed 2026-11-19: both asks answered (podcrates entries 908 and 909, then 953 and 958) and taken at `ba19367`; T-826 done | T-826 |
+| #314 | COORD-117: pod-session keeps a write's error over the relay's Close, and the layer's link budget ignores a small cap (to podcrates) | closed 2026-11-19: both asks answered (podcrates entries 908 and 909, then 953 and 958) and taken at `ba19367`; T-826's rest is COORD-126's | T-826 |
 | #315 | COORD-118: three lines of pod-proxy, pod-session and pod-relay that podssh's black-box pass found untrue or short (to podcrates) | open 2026-11-18: until podcrates' tag is taken | T-828 |
 | #316 | COORD-120: podssh's answer to COORD-134: podrunner first; cfb's asks in podssh wait for podcrates T-110, T-111, T-112 and T-117 (to podcrates) | open 2026-11-18: until the coordinator answers its two asks | T-711, T-719, T-722, T-729 |
 | #317 | Donor study of 2026-11-18: 24 outside projects, one mechanism each that podssh lacks (tracker) | open 2026-11-18: until each of its entries is done | T-831, T-832, T-833, T-834, T-835, T-836, T-837, T-838, T-839, T-840, T-841, T-842, plus the existing entries that got additions: T-116, T-123, T-150, T-159, T-160, T-161, T-303, T-304 |
@@ -380,7 +380,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #322 | COORD-123: podssh's entry for the ruling "ghcr.io": T-847, the job image of release.yml in the form of C789 (to podcrates) | open 2026-11-19: until T-847's first push at a tag | T-847 |
 | #325 | COORD-124: podssh took podcrates v0.74.0 at 9989ae6; a move at three quarters of the cap still comes after it (to podcrates) | open 2026-11-19: until podcrates records the take and answers its ask | T-684, T-826 |
 | #326 | COORD-125: pod-term: a cooked session with no prompt, for an exec'd command (to podcrates) | open 2026-11-19: until podcrates' tag has it and podssh takes it | T-848 |
-| #327 | COORD-126: podssh took podcrates v0.75.0 at ba19367; no link ends at a small cap any more (to podcrates) | open 2026-11-19: until podcrates records the take | T-684 |
+| #327 | COORD-126: podssh took podcrates v0.75.0 at ba19367; no link ends at a small cap any more (to podcrates) | open 2026-11-19: until podcrates records the take and answers its ask | T-684, T-826 |
 | #267 | COORD-080: what podssh's help and manual need of the shared crate (to all) | closed 2026-11-17: T-790 and T-730 done; podnet closed its COORD-090 (PodUtils/podnet#584) | T-730, T-790 |
 | #268 | COORD-081: podssh's host classes and lane for pod-lab, and its manual for pod-manual (to podcrates) | open 2026-11-15: answers COORD-107 and COORD-108 | T-790, T-791 |
 | #269 | COORD-082: podssh's map of issues to entries, and its install (to podcrates) | open 2026-11-15: answers COORD-110 and COORD-109 | T-792, T-793 |
