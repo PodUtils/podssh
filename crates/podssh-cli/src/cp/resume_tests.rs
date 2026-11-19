@@ -134,6 +134,10 @@ fn a_copy_that_another_runs_now_keeps_no_side_file() {
     assert!(busy.dirs.is_empty(), "this run keeps no side file");
     drop(other);
     let again = load();
-    assert_eq!(again.offset, SAVE_EVERY, "the side file is the next run's once the lock is free");
+    // Which branch, at a failure (T-849, once on macOS): the lock still
+    // refused (no side file kept), or the side file not read.
+    let side = std::fs::read_to_string(dir.join("v.resume")).map_err(|e| e.to_string());
+    let why = format!("lock taken: {}, side file: {side:?}", !again.dirs.is_empty());
+    assert_eq!(again.offset, SAVE_EVERY, "the side file is the next run's once the lock is free; {why}");
     let _ = std::fs::remove_dir_all(&dir);
 }

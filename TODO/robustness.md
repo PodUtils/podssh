@@ -4173,3 +4173,40 @@ cargo test -p podssh-ssh --test serve_pressure
 
 Partial, 2026-11-18: step 1; `cargo test -p podssh-ssh --test serve_pressure`, 5 runs in 5 here. Waits for its next
 failure in the gate.
+
+# T-849: `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS
+
+**Source:** the gate at `09ab98b` (run 44462713098, 2026-11-19): the job `macos` failed
+`cp::resume::tests::a_copy_that_another_runs_now_keeps_no_side_file` (`crates/podssh-cli/src/cp/resume_tests.rs`), which
+passed on macOS in each gate before it since T-828.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+After the other holder's lock is dropped, the third load of the side file gave offset 0, not the 4 MiB that the first run
+saved: either the lock was still refused (no side file kept), or the side file was not read.
+
+## Premise
+
+Each step is synchronous: the save (`cache::store_file_in_first`), `pod_core::lock`'s `flock(2)` and its release at the
+drop, and `held` in `crates/podssh-cli/src/cp/resume.rs`. 5 runs in 5 passed here (Linux).
+
+## Approach
+
+1. The assertion now says whether the third load took the lock, and what the side file holds.
+2. At the next failure, repair the branch that it names.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib cp::resume
+```
+
+## Done
+
+Partial, 2026-11-19: step 1; 5 runs in 5 here. Waits for its next failure on macOS.

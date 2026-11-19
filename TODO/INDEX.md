@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**803 entries: 39 open, 40 partial, 13 blocked, 711 done.**
+**804 entries: 39 open, 41 partial, 13 blocked, 711 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 9 | 3 | 89 | 101 |
+| P1 | 0 | 10 | 3 | 89 | 102 |
 | P2 | 0 | 24 | 3 | 301 | 328 |
 | P3 | 39 | 7 | 7 | 320 | 373 |
-| **All** | 39 | 40 | 13 | 711 | 803 |
+| **All** | 39 | 41 | 13 | 711 | 804 |
 
 ## Entries
 
@@ -879,3 +879,4 @@ repository and CI).
 | [T-846](robustness.md) | P1 | S | M10 | defect | partial | `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate |
 | [T-847](release.md) | P2 | M | M10 | release | partial | Each release of podssh also on ghcr.io, by digest, beside its GitHub assets |
 | [T-848](terminal.md) | P3 | S | M10 | defect | blocked | `podssh serve`'s line discipline draws its prompt `$ ` around the output of an exec'd command |
+| [T-849](robustness.md) | P1 | S | M10 | defect | partial | `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS |
