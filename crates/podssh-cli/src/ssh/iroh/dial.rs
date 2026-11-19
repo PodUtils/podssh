@@ -160,11 +160,16 @@ pub(super) async fn connect(
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
     // A write to SSH that waits 20 s is said at -v: with pod-session's line
     // of a stall, it tells SSH's wait from the channel's own (T-780).
-    let seen = Arc::new(crate::ssh::held::Seen::default());
+    let (seen, seen_ssh) = (Arc::new(crate::ssh::held::Seen::to_ssh()), Arc::new(crate::ssh::held::Seen::from_ssh()));
     let layer_end = crate::ssh::held::Held::new(layer_end, seen.clone());
+    let ssh_end = crate::ssh::held::Held::new(ssh_end, seen_ssh.clone());
     let watching = {
         let (log, shown) = (log.clone(), shown.clone());
         tokio::spawn(crate::ssh::held::watch(seen, move |line| log.verbose(&format!("{shown}: {line}"))))
+    };
+    let watching_ssh = {
+        let (log, shown) = (log.clone(), shown.clone());
+        tokio::spawn(crate::ssh::held::watch(seen_ssh, move |line| log.verbose(&format!("{shown}: {line}"))))
     };
     let say = |line: Line| match line {
         Line::Always(text) => log.info(&format!("{shown}: {text}")),
@@ -204,6 +209,7 @@ pub(super) async fn connect(
         session
     );
     watching.abort();
+    watching_ssh.abort();
     // Whether the relay carried each byte, or a direct path some (T-335).
     if let Some(path) = dialer.path() {
         log.verbose(&format!("{shown}: {path}"));

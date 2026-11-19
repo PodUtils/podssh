@@ -331,17 +331,23 @@ pub(super) async fn run_on(
     crate::hangup::take(crate::hangup::Which::Ends);
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
     // A write to SSH that waits 20 s is said at -v (T-780).
-    let seen = Arc::new(super::held::Seen::default());
+    let (seen, seen_ssh) = (Arc::new(super::held::Seen::to_ssh()), Arc::new(super::held::Seen::from_ssh()));
     let layer_end = super::held::Held::new(layer_end, seen.clone());
+    let ssh_end = super::held::Held::new(ssh_end, seen_ssh.clone());
     let watching = {
         let (log, shown) = (log.clone(), shown.to_string());
         tokio::spawn(super::held::watch(seen, move |line| log.verbose(&format!("{shown}: {line}"))))
+    };
+    let watching_ssh = {
+        let (log, shown) = (log.clone(), shown.to_string());
+        tokio::spawn(super::held::watch(seen_ssh, move |line| log.verbose(&format!("{shown}: {line}"))))
     };
     let (outcome, carried) = tokio::join!(
         podssh_ssh::run::run_outcome(ssh_end, opts, None, log.clone()),
         carry_keeping(config, link_end, leg, layer_end, expires_ms, &say, channel, pin_say, shell)
     );
     watching.abort();
+    watching_ssh.abort();
     let code = outcome.code;
     // A refused key, or a changed node key, is the session's end whatever
     // the SSH client saw after it.

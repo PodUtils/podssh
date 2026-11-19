@@ -2662,6 +2662,17 @@ the layer's and the exit's roads say each at `-v` (`layered.rs`, `exit/tunnel.rs
 the watch of SSH's pipe, the next hang names its reader at each step. Here: `cargo test --workspace --no-fail-fast`, 383
 suites, 0 failed; the m6 cases of the layer's stall and the iroh road's new address passed.
 
+2026-11-19, the eleventh failure, in the gate of Dependabot's pull request at `4b21fcd` (run 44506565889, job `gate
+(m6)`): `iroh::the_iroh_road_survives_a_new_address`, with the watch of the pipe: "SSH read nothing for 20 s while the
+channel waits to give it bytes; 16089582 bytes went to SSH so far", and the layer: "the application took no byte for
+21 s, while 961099 bytes wait for it; this side sent 20680506 bytes, the far end acknowledged 20680506". So the hold is
+podssh's SSH, which stopped reading its end of the pipe; the layer and pod-e2e's channel wait on it (pod-e2e carries
+both directions at once, `channel/carry.rs` of podcrates `v0.76.0`). podssh's pump reads the channel's messages while
+a send waits for the window (`crates/podssh-ssh/src/io.rs`, `send`), so the cause is not plain. A second watch now
+says SSH's own write to the channel that waits 20 s ("the channel read nothing of SSH ..."): both lines at the next
+hang mean a cycle through the pipe; the first alone means SSH holds by itself (russh's session or podssh's pump). Here:
+the iroh new-address case and the layer's new-address case passed; `--test pipe --test proxy` passed.
+
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 

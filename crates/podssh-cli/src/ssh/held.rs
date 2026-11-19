@@ -18,13 +18,31 @@ use tokio::time::Instant;
 pub(crate) const HOLD: Duration = Duration::from_secs(20);
 
 /// What the watch has seen: since when a write waits, and the bytes written.
-#[derive(Default)]
 pub(crate) struct Seen {
     waiting: Mutex<Option<Instant>>,
     written: AtomicU64,
+    /// Which write: the channel's to SSH, or SSH's to the channel.
+    to_ssh: bool,
+}
+
+impl Default for Seen {
+    fn default() -> Seen {
+        Seen::to_ssh()
+    }
 }
 
 impl Seen {
+    /// The channel's writes to SSH.
+    pub(crate) fn to_ssh() -> Seen {
+        Seen { waiting: Mutex::new(None), written: AtomicU64::new(0), to_ssh: true }
+    }
+
+    /// SSH's writes to the channel: one that waits means the channel reads
+    /// nothing of SSH, so SSH may stop reading too.
+    pub(crate) fn from_ssh() -> Seen {
+        Seen { to_ssh: false, ..Seen::to_ssh() }
+    }
+
     /// The line of a write that waited `HOLD` at `now`, once for each wait.
     pub(crate) fn line(&self, now: Instant, said: &mut Option<Instant>) -> Option<String> {
         let since = (*self.waiting.lock().unwrap_or_else(|e| e.into_inner()))?;
@@ -32,11 +50,12 @@ impl Seen {
             return None;
         }
         *said = Some(since);
-        Some(format!(
-            "SSH read nothing for {} s while the channel waits to give it bytes; {} bytes went to SSH so far",
-            now.duration_since(since).as_secs(),
-            self.written.load(Ordering::Relaxed)
-        ))
+        let (secs, bytes) = (now.duration_since(since).as_secs(), self.written.load(Ordering::Relaxed));
+        Some(if self.to_ssh {
+            format!("SSH read nothing for {secs} s while the channel waits to give it bytes; {bytes} bytes went to SSH so far")
+        } else {
+            format!("the channel read nothing of SSH for {secs} s while SSH waits to write; {bytes} bytes came from SSH so far")
+        })
     }
 }
 
@@ -123,5 +142,21 @@ mod tests {
         tokio::io::AsyncReadExt::read_exact(&mut theirs, &mut buf).await.unwrap();
         blocked.await.unwrap().unwrap();
         assert!(seen.waiting.lock().unwrap().is_none(), "the read ended the wait");
+    }
+
+    /// SSH's own write that waits is said in its own words.
+    #[tokio::test(start_paused = true)]
+    async fn a_write_of_ssh_that_waits_is_said_as_the_channel_s() {
+        let (ours, _theirs) = tokio::io::duplex(4);
+        let seen = Arc::new(Seen::from_ssh());
+        let mut held = Held::new(ours, seen.clone());
+        tokio::spawn(async move { held.write_all(b"12345678").await });
+        tokio::task::yield_now().await;
+        tokio::time::advance(HOLD).await;
+        let line = seen.line(Instant::now(), &mut None).expect("said after 20 s");
+        assert!(
+            line.starts_with("the channel read nothing of SSH for 20 s") && line.contains("4 bytes came from SSH"),
+            "{line}"
+        );
     }
 }
