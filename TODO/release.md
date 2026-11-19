@@ -1387,6 +1387,8 @@ crane export --platform linux/amd64 ghcr.io/podutils/podssh:TAG - | tar -tf - | 
 ## Done
 
 Partial, 2026-11-19: the job `image` of `.github/workflows/release.yml` and `packaging/ghcr/Dockerfile`. Its dry run
-(the workflow by hand with no tag) builds the four images and runs the amd64 one: UNVERIFIED. The push, the comparison
+(the workflow by hand with no tag) builds the four images and runs the amd64 one: run 44446055538 at `d1ef7b6`, 2026-11-19, each job green;
+the four images built (amd64 29.9 MB, arm64 22.6 MB, armv7 23.8 MB, riscv64 23.2 MB) and the amd64 one said
+`podssh 1.1.0-beta.3 (d1ef7b6...)`; nothing pushed. The push, the comparison
 and the attestation run at the next tag (after T-684). At that first push, the package `ghcr.io/podutils/podssh` may be created
 private: an admin of PodUtils sets it public once (COORD-142).
