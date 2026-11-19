@@ -189,11 +189,12 @@ fn keep_read(relay: &Relay, read: &Result<offer::Offer, String>, waited: bool) {
 /// heartbeat of the layer where its kept offer names a pace of liveness
 /// (T-712), as an idle link then carries no frame of the layer, and the
 /// relay's own Pings at that pace find a dead link; and a link moved to a
-/// new one under the byte cap that the offer publishes (T-826), before the
-/// relay ends it.
+/// new one under the byte cap that the offer publishes, with a window that
+/// a moved link's replay and its next bytes fit under it (T-826).
 pub(crate) fn paced(relays: &RelayList, settings: Settings) -> Settings {
     let Some(offer) = kept::kept_now(relays.primary()) else { return settings };
-    let settings = Settings { move_bytes: offer.move_bytes(), ..settings };
+    // The move threshold and the window, each under the cap (T-826).
+    let settings = offer.fit(settings);
     match offer.liveness {
         Some(_) => settings.quiet(),
         None => settings,

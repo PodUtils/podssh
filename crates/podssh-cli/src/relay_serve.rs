@@ -130,7 +130,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let derp = roads::of(s.relay_roads.as_deref(), s.derp_keys.as_deref(), &mint)?;
     let limits = limits::of(s)?;
     // The resumable sessions of the forward road (T-173).
-    let (sessions, resumable) = resumes::of(s)?;
+    let (sessions, resumable) = resumes::of(s, limits.bytes)?;
     if podssh_relay::open::offline() {
         let env = podssh_relay::open::OFFLINE_ENV;
         return Err(Refusal {

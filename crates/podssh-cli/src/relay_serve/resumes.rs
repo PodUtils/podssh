@@ -19,9 +19,15 @@ use crate::relay_settings::Refusal;
 const MOST_MIB: usize = 16 << 10;
 
 /// The sessions of the flags of `serve`, and their words for its first line,
-/// after a comma; none when no flag of them was given.
-pub(super) fn of(s: &ServeArgs) -> Result<(Resumes, String), Refusal> {
+/// after a comma; none when no flag of them was given. `cap` is the role's
+/// byte cap of a session: under `--max-session-mib`, its end of the layer
+/// sends at most a quarter of it unacknowledged, as the client does, so that
+/// what a moved link sends again fits under the cap (T-826).
+pub(super) fn of(s: &ServeArgs, cap: u64) -> Result<(Resumes, String), Refusal> {
     let mut settings = Settings::default();
+    if s.max_session_mib.is_some() {
+        settings.window = Some(podssh_relay::forward_layer::offer::window_under(cap));
+    }
     if let Some(text) = s.resume_deadline.as_deref() {
         settings.resume_deadline = crate::layered::parse_deadline(text).map_err(Refusal::usage)?;
     }
@@ -89,7 +95,7 @@ mod tests {
 
     #[test]
     fn with_no_flag_the_sessions_are_the_default_and_the_line_says_nothing() {
-        let (resumes, words) = of(&args(None, None, None)).unwrap();
+        let (resumes, words) = of(&args(None, None, None), 64 << 20).unwrap();
         let default = Settings::default().resume_deadline;
         assert_eq!((resumes.budget(), resumes.deadline(), resumes.name()), (BUDGET, default, None));
         assert_eq!(words, "");
@@ -97,7 +103,8 @@ mod tests {
 
     #[test]
     fn the_flags_set_the_budget_the_deadline_and_the_name_and_the_line_says_them() {
-        let (resumes, words) = of(&args(Some("30m"), Some("64"), Some("relay-2.relay.example.org:8443"))).unwrap();
+        let (resumes, words) =
+            of(&args(Some("30m"), Some("64"), Some("relay-2.relay.example.org:8443")), 64 << 20).unwrap();
         assert_eq!((resumes.budget(), resumes.deadline().as_secs()), (64 << 20, 1800));
         let name = resumes.name().cloned().unwrap();
         assert_eq!((name.host.as_str(), name.port), ("relay-2.relay.example.org", 8443));
@@ -106,7 +113,7 @@ mod tests {
             ", resumable sessions within 64 MiB of replay buffers (16 sessions of 4 MiB), each kept 30 min after a \
              loss, each link to relay-2.relay.example.org:8443"
         );
-        let (none, words) = of(&args(None, Some("0"), None)).unwrap();
+        let (none, words) = of(&args(None, Some("0"), None), 64 << 20).unwrap();
         assert_eq!((none.budget(), words.as_str()), (0, ", no resumable session (--resume-budget 0)"));
         assert_eq!(none.offer()["layer"], false, "a budget of none offers no road");
     }
@@ -122,7 +129,7 @@ mod tests {
             (args(None, None, Some("a/b")), "--resume-host"),
             (args(None, None, Some("relay.example.org:0")), "--resume-host"),
         ] {
-            let refusal = of(&a).err().unwrap_or_else(|| panic!("taken: {a:?}"));
+            let refusal = of(&a, 64 << 20).err().unwrap_or_else(|| panic!("taken: {a:?}"));
             assert_eq!(refusal.code, 64, "{a:?}");
             assert!(refusal.message.contains(says), "{a:?}: {}", refusal.message);
         }

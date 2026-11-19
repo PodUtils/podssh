@@ -3762,6 +3762,15 @@ bytes not yet acknowledged again (up to 1,179,648 here), more than the cap itsel
 1009 and the client resumes. Asked of podcrates in COORD-122: a window in flight under the cap, so that what a new link
 sends again fits. `tests/layer_cap.rs` passes (the bytes whole, no broken pipe).
 
+2026-11-19, podcrates `v0.74.0` (its entry 953, COORD-122): `paced` takes `Offer::fit`, the move threshold and a window
+of a quarter of the cap for the client; `relay serve` with `--max-session-mib` gives its end of the layer
+`window_under(cap)` (`relay_serve/resumes.rs`). What a link sends again is now 262,144 bytes at most under a cap of 1 MiB
+(before: up to 1,179,648). Yet each run still met the cap: one move, then five links ended by the role's 1009. The cause:
+pod-session counts both ways toward `move_bytes` (`pump/watch.rs`), and a move at three quarters of the cap plus a
+quarter in flight from each end is five quarters of it; at the loopback's rate the old link passes the cap before the
+move ends. Asked of podcrates in COORD-124: a threshold under the cap less both windows (half of it with windows of a
+quarter), or smaller windows. Then `layer_cap.rs` checks that no link ends with 1009.
+
 # T-827: `relay serve --key` in a file that others may read starts with no word
 
 **Source:** the second black-box pass of 2026-11-17 (T-809): an agent with the debug binary of `37abf31` and its documents alone, on this host's loopback with `podssh relay serve` and OpenSSH's sshd.
