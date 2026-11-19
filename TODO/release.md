@@ -1333,3 +1333,46 @@ stopped there by the operator's ruling Q88 (2026-11-03): its long rows (throughp
 MiB, `reverse.two`, `iroh.n0`) and its ACTIONS rows wait until podssh is stable; the code of the
 tag passed them before the tag. Step 4: the README names `v1.0.1` since step 1; `v1.1.0-beta.1`
 follows with the merges after it (T-446).
+
+# T-847: Each release of podssh also on ghcr.io, by digest, beside its GitHub assets
+
+**Source:** the owner's ruling "ghcr.io" (2026-11-19), relayed by podrunner's COORD-102 (PodUtils/podrunner#312):
+each project publishes its CLIs and assets on ghcr.io, so that a consumer (podrunner, githome, cfb) takes each from one
+registry, by digest.
+**Category:** release
+**Milestone:** M10
+**Priority:** P2
+**Effort:** M
+**Status:** open
+
+## Problem
+
+podssh publishes its release binaries and assets as GitHub release assets alone. podrunner pins its dependencies by
+ghcr.io digest beside their SHA-256, and asks each project to publish there too.
+
+## Premise
+
+`.github/workflows/release.yml` builds, signs and uploads the release assets to the GitHub release; it pushes nothing to
+a registry. `docs/decisions.md` holds the ruling "ghcr.io".
+
+## Approach
+
+1. Wait for the coordinator's confirmation of one form for all projects (PodUtils/podrunner#312 asks podcrates). The form
+   asked: one small image per architecture (`FROM scratch`, the static binary at a fixed path), `linux/amd64` and
+   `linux/arm64` under one multi-arch index, which `docker pull` and `crane export` take; `oras` only for an asset that
+   is not a binary.
+2. Add the push to `release.yml` (`packages: write`), keyless-signed or attested as the GitHub assets are, under
+   `ghcr.io/podutils/podssh` with the release's tag.
+3. The release notes name each pushed digest beside the asset's SHA-256. The GitHub assets and the installers stay.
+4. Run the workflow by hand with no tag first (as `docs/development.md`, "Release builds", says), then at the next beta.
+
+## Prove
+
+```sh
+crane digest ghcr.io/podutils/podssh:TAG
+crane export --platform linux/amd64 ghcr.io/podutils/podssh:TAG - | tar -tf - | grep podssh
+```
+
+## Start condition
+
+The coordinator names the form for all projects (PodUtils/podrunner#312), and the next release of podssh (after T-684).

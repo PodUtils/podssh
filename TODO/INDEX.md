@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**801 entries: 39 open, 39 partial, 12 blocked, 711 done.**
+**802 entries: 40 open, 39 partial, 12 blocked, 711 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 9 | 3 | 89 | 101 |
-| P2 | 0 | 23 | 3 | 301 | 327 |
+| P2 | 1 | 23 | 3 | 301 | 328 |
 | P3 | 39 | 7 | 6 | 320 | 372 |
-| **All** | 39 | 39 | 12 | 711 | 801 |
+| **All** | 40 | 39 | 12 | 711 | 802 |
 
 ## Entries
 
@@ -877,3 +877,4 @@ repository and CI).
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
 | [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |
 | [T-846](robustness.md) | P1 | S | M10 | defect | partial | `serve_pressure`: `yes` on a pty ran on 5 s after its channel closed, once, in the gate |
+| [T-847](release.md) | P2 | M | M10 | release | open | Each release of podssh also on ghcr.io, by digest, beside its GitHub assets |
