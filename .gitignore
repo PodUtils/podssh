@@ -31,7 +31,8 @@ __pycache__/
 /.claude/worktrees/
 /.claude/settings.local.json
 
-# The installer core and pins.py of podcrates, got by scripts/install/get-core.sh.
+# The installer core, pins.py and release-index.py of podcrates, got by scripts/install/get-core.sh.
 /scripts/install/core.sh
 /scripts/install/core-net.sh
 /scripts/install/pins.py
+/scripts/install/release-index.py

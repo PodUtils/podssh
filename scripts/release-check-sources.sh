@@ -192,7 +192,10 @@ sources_tag() {
     fi
 
     if [ -f "$D/SHA256SUMS" ]; then
-        awk '{ n = $2; sub(/^\*/, "", n); print n }' "$D/SHA256SUMS" | sort >"$W/sums.names"
+        # The installer, its offline bundle and the release index (T-793,
+        # T-850) have lines of their own beside the binaries.
+        awk '{ n = $2; sub(/^\*/, "", n); print n }' "$D/SHA256SUMS" |
+            grep -v -e '^podssh-install\.sh$' -e '^podssh-.*\.tar\.gz$' -e '^release-index\.json$' | sort >"$W/sums.names"
         for _t in $TARGETS; do binary_of "$_t"; done | sort >"$W/want.names"
         if cmp -s "$W/sums.names" "$W/want.names"; then
             row PASS sums.names - 0 "the 8 binaries, each once"

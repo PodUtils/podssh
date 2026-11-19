@@ -549,11 +549,21 @@ jobs:
           echo "$again"
           echo "$again" | grep -q 'already installed'
           "$prefix/podssh" --version
+      # The release index (T-850, pod-release of podcrates): each file, its
+      # SHA-256, size and target, and the signer that SHA256SUMS names. It is
+      # written first, and SHA256SUMS holds its line, so the one signature of
+      # SHA256SUMS signs it too. The same commit gives the same bytes.
       - name: checksums
         run: |
           set -eu
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p' Cargo.toml)
+          files=$(cd dist && ls podssh-*)
+          # shellcheck disable=SC2086 # one word for each file
+          python3 -I scripts/install/release-index.py --project "$GITHUB_REPOSITORY" --version "v$version" \
+            --dir dist --date "$(git log -1 --format=%ct)" --commit "$GITHUB_SHA" \
+            --out dist/release-index.json $files
           cd dist
-          sha256sum podssh-* > SHA256SUMS
+          sha256sum podssh-* release-index.json > SHA256SUMS
           cat SHA256SUMS
       # The provenance of each binary (T-210): one attestation of SLSA,
       # signed with Sigstore through the job's own token, that names each

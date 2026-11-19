@@ -430,7 +430,7 @@ previous release, so a change that the notes forget is invisible to a user.
 Read:
 
 - The job `publish` reads the notes from `docs/releases/`, and fails without
-  them (`.github/workflows/release.yml:658-662`).
+  them (`.github/workflows/release.yml:668-672`).
   No notes file exists yet; T-250 writes the first. The notes drafted for a
   beta that the operator dropped are in git:
   `git show b1b111b:docs/releases/v0.1.0-beta.1.md`.
@@ -670,7 +670,7 @@ Measured: `target/debug/podssh.exe --version` prints `podssh 0.1.0`, exit 0.
 Read:
 
 - The jobs `linux` and `windows` build the binaries, and `publish` adds
-  `SHA256SUMS` and publishes them (`.github/workflows/release.yml:58-677`).
+  `SHA256SUMS` and publishes them (`.github/workflows/release.yml:58-687`).
   The workflow has `contents: read` (`:45-46`); `publish` adds
   `contents: write` (`:555-556`).
 - The KTM tester could not tell from an artifact which commit made it, and
@@ -868,7 +868,7 @@ the release workflow of podssh.
 
 Read:
 
-- `.github/workflows/release.yml:576-581` writes `SHA256SUMS` with
+- `.github/workflows/release.yml:586-591` writes `SHA256SUMS` with
   `sha256sum`, and the job published it with the binaries (lines 370-382 at
   `cdf9308`). No signature was published.
 - The notes drafted for the dropped beta told the user that `SHA256SUMS`
@@ -4280,7 +4280,7 @@ two jobs of the release run an image of Docker Hub by the tag `latest`, with no 
   `gh release create` (lines 546-554). The audit put both runs before the attestation; the second
   is after it.
 - Read: the actions of the attestation and of cosign are pinned by commit
-  (`.github/workflows/release.yml` lines 434 and 469 at `1a3e7b6`; `.github/workflows/release-proofs.yml:97`, `:100`).
+  (`.github/workflows/release.yml` lines 434 and 469 at `1a3e7b6`; `.github/workflows/release-proofs.yml:116`, `:119`).
   Each other `uses:` names a tag: `actions/checkout@v7`, `actions/upload-artifact@v7` and
   `actions/download-artifact@v8` in each workflow; `taiki-e/install-action@v2` also in
   `.github/workflows/deny.yml` line 27 and `.github/workflows/fuzz.yml` line 32; `ilammy/setup-nasm@v1`
@@ -4307,7 +4307,7 @@ two jobs of the release run an image of Docker Hub by the tag `latest`, with no 
 ## Approach
 
 1. Each `uses:` of each workflow names a commit of 40 hexadecimal digits, with its tag in a
-   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:589`): the commits of
+   comment, as `actions/attest` is pinned (`.github/workflows/release.yml:599`): the commits of
    T-210's list, read again at each release's API on the day of the change.
 2. A check in `scripts/check-repo.py`: each `uses:` under `.github/workflows/` names a commit. A
    copy with a planted `@v7` fails it, and its floor fails on an empty tree.
@@ -4542,7 +4542,7 @@ Each can stop a release, or the gate, for a reason outside podssh.
   Inferred: Alpine 3.24's rust is 1.89 or later, as the job built `v1.0.0-beta.2`.
 - Read: `pipx run check-jsonschema` names no version (`.github/workflows/build.yml` lines 175 and
   177 at `1a46970`).
-- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:619-644`).
+- Read: the signatures use Sigstore's public instance (`.github/workflows/release.yml:629-654`).
   Inferred (the audit): an outage delays a release, and a run again repairs it.
 
 ## Approach

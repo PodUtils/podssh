@@ -1447,5 +1447,9 @@ stand answers the release list at `per_page=30`, as `pod-release` asks. `roxmltr
 (`config import mremoteng`, `status`); the plant `t507-rollback-always` patches `update/way.rs`.
 `cargo test -p podssh-cli --lib update`: 4 passed; `--test update`: 18 passed; `--test update_offline --test detach
 --test node_detach` and `--lib detach`, `--lib node_upgrade`, `-p podssh-ws --lib`: each passed; clippy clean.
-Left: the release workflow writes `release-index.json` (`PodUtils/podcrates:scripts/release-index.py`) before `SHA256SUMS`,
-at the next release's work on `release.yml` (T-847 beside it).
+Then, 2026-11-19: `release.yml` writes `release-index.json` with podcrates' `release-index.py` (its `scripts/`) at `v0.77.0`
+(got by `scripts/install/get-core.sh`, checked by its SHA-256) before `SHA256SUMS`, which holds its line, so the one
+signature signs it; `release-proofs.yml` checks the index against the tag and each `podssh-*` file, and
+`scripts/release-check-sources.sh` reads the installer, the bundle and the index as lines beside the binaries. The proof
+step, run on a stand-in release: passed; with a changed file and with another tag: failed. Left: the release workflow
+run by hand at this commit (UNVERIFIED).

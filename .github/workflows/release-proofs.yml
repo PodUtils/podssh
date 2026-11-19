@@ -64,14 +64,33 @@ jobs:
         run: |
           set -eu
           n=0
-          for f in podssh-*; do
+          for f in podssh-* release-index.json; do
             grep -q "  $f\$" SHA256SUMS || { echo "SHA256SUMS has no line for $f"; exit 1; }
             n=$((n + 1))
           done
           lines=$(wc -l < SHA256SUMS)
-          test "$n" -eq "$lines" || { echo "SHA256SUMS has $lines lines, for $n binaries"; exit 1; }
+          test "$n" -eq "$lines" || { echo "SHA256SUMS has $lines lines, for $n files"; exit 1; }
           sha256sum -c SHA256SUMS
-          echo "ok   SHA256SUMS: each of the $n binaries"
+          echo "ok   SHA256SUMS: each of the $n files"
+      # The release index (T-850): signed through its line of SHA256SUMS, it
+      # names this tag and each podssh-* file with its SHA-256 and size.
+      - name: the release index
+        working-directory: ${{ runner.temp }}/release
+        run: |
+          set -eu
+          python3 -I - "$TAG" "$GITHUB_REPOSITORY" <<'PY'
+          import glob, hashlib, json, os, sys
+          tag, repo = sys.argv[1], sys.argv[2]
+          index = json.load(open("release-index.json"))
+          assert index["project"] == repo and index["version"] == tag, (index["project"], index["version"])
+          assert index["signature"]["identity"].endswith("/.github/workflows/release.yml@refs/tags/" + tag)
+          named = {f["name"]: f for f in index["files"]}
+          assert sorted(named) == sorted(glob.glob("podssh-*")), sorted(named)
+          for name, f in named.items():
+              data = open(name, "rb").read()
+              assert f["sha256"] == hashlib.sha256(data).hexdigest() and f["size"] == len(data), name
+          print(f"ok   release-index.json: {len(named)} files, each by its SHA-256 and size")
+          PY
       - name: the provenance of each binary
         working-directory: ${{ runner.temp }}/release
         run: |
