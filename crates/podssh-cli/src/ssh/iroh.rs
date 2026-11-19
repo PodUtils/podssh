@@ -7,6 +7,9 @@
 
 #[cfg(feature = "iroh")]
 pub(crate) mod dial;
+// SSH's end of the road's pipe, watched (T-780).
+#[cfg(feature = "iroh")]
+mod held;
 #[cfg(feature = "iroh")]
 mod race;
 // The iroh road of the race of a node's roads (T-164, `super::roads`).

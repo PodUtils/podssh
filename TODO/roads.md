@@ -7162,7 +7162,7 @@ ask, and nothing does so.
   (`crates/podssh-cli/src/ssh/transport_kind.rs:10-72`), in a file of 488 of its 500 lines.
 - Read: the race of T-164 orders two roads (`PodUtils/podssh:crates/podssh-relay/src/session/race.rs:59-61`), and
   the race of the command line is in a build with the feature `iroh` only
-  (`crates/podssh-cli/src/ssh/iroh.rs:8-11`).
+  (`crates/podssh-cli/src/ssh/iroh.rs:8-14`).
 - Read: T-349's node and dialer (`PodUtils/podcrates:crates/pod-derp/src/far.rs`,
   `PodUtils/podcrates:crates/pod-derp/src/client.rs`); a client's DERP key is new for each run, so the
   node's allowlist checks the key that the end-to-end channel proves.

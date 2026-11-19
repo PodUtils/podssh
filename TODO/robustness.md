@@ -2636,6 +2636,17 @@ at `-v`, `layered.rs`), and the iroh road says each change of its relay connecti
 `ssh/iroh/dial.rs`, at `-v`). The next hang names its wait at both ends. Here, `cargo test -p podssh-cli --features podssh-cli/iroh-test
 --test m6_exit -- --ignored --exact iroh::the_iroh_road_survives_a_new_address`: 6 runs in 6 passed (about 40 s each).
 
+2026-11-19, the ninth failure, at `9989ae6` (podcrates `v0.74.0`, run 44452674747, job `gate (m6)`):
+`iroh::the_iroh_road_survives_a_new_address` again, now with the client's lines: its iroh relay connection ended and
+came back in 0.0 s, then "the application took no byte for 21 s, while 288823 bytes wait for it; this side sent
+20680508 bytes, the far end acknowledged 20680508; the replay buffer keeps 0 bytes, room 4194304; no window; this side
+received 14055738". The node said nothing of a stall. So nothing waits on the link: the client's layer holds 288,823
+bytes that the application above it does not take. That application is pod-e2e's channel (`channel::around`), which
+writes into the 256 KiB pipe that podssh's SSH reads (`ssh/iroh/dial.rs`). Either SSH stopped reading the pipe, or the
+channel holds for a cause of its own. `ssh/iroh/held.rs` now says, at `-v`, a write of the channel to SSH that waits
+20 s, with the bytes that went to SSH so far (a unit test with a paused clock); the next hang tells the two apart.
+Here: 4 runs in 4 of the case with it.
+
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 

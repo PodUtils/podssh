@@ -1772,7 +1772,7 @@ target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/channel.rs:375-384` and
 `crates/podssh-cli/src/channel.rs:429-453`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
-`crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
+`crates/podssh-cli/src/ssh/iroh.rs:62-83`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
 `docs/reverse.md`.
 

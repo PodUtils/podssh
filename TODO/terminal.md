@@ -1204,3 +1204,45 @@ as before; the drop of `RawMode` removes it. `cargo test -p podssh-cli
 of this entry is no longer ignored: after Ctrl-Break the input mode is
 `0x1f7`, the one before. Planted defect: no handler added; the test failed
 with `0x3f0`. `docs/terminal.md`, "The Windows console".
+
+# T-848: `podssh serve`'s line discipline draws its prompt `$ ` around the output of an exec'd command
+
+**Source:** the gate at `9989ae6` (run 44452674747, 2026-11-19): `gate (ssh)` failed
+`a_command_on_the_line_discipline_has_no_tty_and_its_term` of `crates/podssh-ssh/tests/serve_line.rs`, whose output came in
+two reads with pod-term's prompt redrawn between them.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+An exec request on a pty where no pty opens runs on pod-term's cooked discipline (`crates/podssh-ssh/src/server/line.rs`).
+The discipline draws its prompt `$ ` after the program's output, and redraws it (`\r`, `$ `, `EL`) around each later
+piece of output. A shell on the discipline needs that prompt, as it prints none; an exec'd command does not, and a real
+pty would show none. The user of `podssh ssh -t HOST CMD` against such a server sees `$ ` between and after the
+command's lines.
+
+## Premise
+
+pod-term's prompt is a constant (`PodUtils/podcrates:crates/pod-term/src/echo.rs:82` at `v0.74.0`), drawn for each line
+with no way for the caller to turn it off.
+
+## Approach
+
+1. Ask podcrates for a cooked session with no prompt, for an exec (asked in COORD-125).
+2. At its tag, `line.rs` takes it for an exec request, and `serve_line.rs` checks that the output has no `$ `.
+3. Meanwhile the test compares the program's lines with the discipline's redraws taken out, so it does not depend on how
+   the output splits into reads.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_line
+```
+
+## Blocker
+
+PodUtils/podcrates: a session of pod-term with no prompt (COORD-125). podssh takes the tag that has it.

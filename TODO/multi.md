@@ -3706,7 +3706,7 @@ SSH runs on one.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/iroh.rs:182` says "pub(super) async fn connect(": the iroh road's runner, which
+- `crates/podssh-cli/src/ssh/iroh.rs:185` says "pub(super) async fn connect(": the iroh road's runner, which
   gives an exit code, not a stream.
 - `crates/podssh-cli/src/ssh/derp.rs:213` says "pub(super) async fn connect(": the DERP road's, the same.
 
