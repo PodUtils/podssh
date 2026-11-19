@@ -87,3 +87,19 @@ fn a_route_refused_is_the_node_s_refusal_of_the_key() {
     let other = e2e::Error::Refused(NodeRefusal::Other("something else".into()));
     assert_eq!(crate::channel::judged(&other, None).expect("a refusal").0.code(), 70);
 }
+
+/// Each note of the session across links is one line at its level: a move
+/// under a small cap says its amount in KiB, not "0 MiB", and a stall that
+/// held 20 s is said at -v with pod-session's words.
+#[test]
+fn each_note_says_a_true_line_at_its_level() {
+    let verbose = |line: Line| match line {
+        Line::Verbose(text) => text,
+        Line::Always(text) => panic!("not at -v: {text}"),
+    };
+    let moved = |bytes| verbose(line_of(Note::Moved { bytes, age: Duration::from_secs(2), resent: 9 }));
+    assert!(moved(786_432).contains("after 768 KiB in 2 s"), "{}", moved(786_432));
+    assert!(moved(48 << 20).contains("after 48 MiB in 2 s"), "{}", moved(48 << 20));
+    let words = "the application took no byte for 20 s, while 5 bytes wait for it".to_string();
+    assert_eq!(verbose(line_of(Note::Stall { words: words.clone() })), words);
+}

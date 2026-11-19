@@ -2630,6 +2630,12 @@ logged 14 CONNECTs to the iroh relay from the new address. So 511,054 bytes in f
 acknowledged and neither end resumed: the wait is in pod-iroh with pod-session, not the node's room. Written on
 #283 as its ask 4 (amended).
 
+2026-11-19, podcrates `v0.73.0` (its entries 939 and 945, #283 ask 4): `pod-session` ends a link whose PING waits 30 s
+while neither count moves, and the layer resumes on a new link; the client says each wait that holds 20 s (`Note::Stall`,
+at `-v`, `layered.rs`), and the iroh road says each change of its relay connection (`say_changes` in
+`ssh/iroh/dial.rs`, at `-v`). The next hang names its wait at both ends.
+
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
@@ -3747,6 +3753,13 @@ ended by the role's 1009 (4 of 4 runs). The client's half waits for the Blocker.
 write's error. `tests/layer_cap.rs` now also checks that no link's end is said as a broken pipe or a reset: 10 runs
 in 10 passed here. Left: ask 2 (podcrates' entry 909, the cap in the offer and a budget under any cap), then `move_bytes`
 from it.
+
+2026-11-19, podcrates `v0.73.0` (its entry 909, ask 2): `paced` in `relay_layer.rs` sets `Settings::move_bytes` from the
+kept offer's cap (`Offer::move_bytes`, three quarters of a small cap). With `--max-session-mib 1` the client now says
+"the session moved to a new link before the relay's limits, after 768 KiB" at each move. Yet each new link carries the
+bytes not yet acknowledged again (up to 1,179,648 here), more than the cap itself, so the role still ends some links with
+1009 and the client resumes. Asked of podcrates in COORD-122: a window in flight under the cap, so that what a new link
+sends again fits. `tests/layer_cap.rs` passes (the bytes whole, no broken pipe).
 
 # T-827: `relay serve --key` in a file that others may read starts with no word
 

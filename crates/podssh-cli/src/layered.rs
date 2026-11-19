@@ -450,9 +450,9 @@ pub(crate) fn line_of(note: Note) -> Line {
             Line::Verbose(format!("no new link yet ({why}); trying again in {:.1} s", wait.as_secs_f64()))
         }
         Note::Moved { bytes, age, resent } => Line::Verbose(format!(
-            "the session moved to a new link before the relay's limits, after {} MiB in {} s ({resent} bytes \
+            "the session moved to a new link before the relay's limits, after {} in {} s ({resent} bytes \
              sent again)",
-            bytes >> 20,
+            amount(bytes),
             age.as_secs()
         )),
         Note::MoveFailed { why } => Line::Verbose(format!("a move to a new link failed ({why}); the link goes on")),
@@ -466,6 +466,19 @@ pub(crate) fn line_of(note: Note) -> Line {
             quiet.as_secs_f64()
         )),
         Note::SpareClosed { why } => Line::Verbose(format!("the spare link closed ({why}); the link goes on")),
+        // A wait of the link that held 20 s, with the offsets each way: what
+        // a hang names at -v (T-780).
+        Note::Stall { words } => Line::Verbose(words),
+    }
+}
+
+/// A count of bytes in MiB, or in KiB under one MiB (a relay's small cap
+/// moves a link early, and "0 MiB" would say nothing).
+fn amount(bytes: u64) -> String {
+    if bytes >= 1 << 20 {
+        format!("{} MiB", bytes >> 20)
+    } else {
+        format!("{} KiB", bytes >> 10)
     }
 }
 

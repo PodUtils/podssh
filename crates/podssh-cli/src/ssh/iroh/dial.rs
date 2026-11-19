@@ -102,6 +102,10 @@ pub(crate) async fn prepare(
         log.verbose(&format!("{shown}: the iroh road's {line}"));
     }
     let endpoint = opened.endpoint;
+    // Each end, new dial, failure and return of this client's connection to
+    // its relay, at -v: which way a stall went (T-780).
+    let (said, about) = (log.clone(), shown.clone());
+    drop(pod_iroh::home_relay::say_changes(&endpoint, move |line| said.verbose(&format!("{about}: {line}"))));
     let through: Vec<String> = addr.relay_urls().map(ToString::to_string).collect();
     log.verbose(&format!("connecting to {shown} over the iroh road, through {}", through.join(", ")));
     let mut dialer = Dialer::new(endpoint.clone(), addr);

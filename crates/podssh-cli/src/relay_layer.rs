@@ -188,9 +188,13 @@ fn keep_read(relay: &Relay, read: &Result<offer::Offer, String>, waited: bool) {
 /// `settings` for a session whose first host is that of `relays`: with no
 /// heartbeat of the layer where its kept offer names a pace of liveness
 /// (T-712), as an idle link then carries no frame of the layer, and the
-/// relay's own Pings at that pace find a dead link.
+/// relay's own Pings at that pace find a dead link; and a link moved to a
+/// new one under the byte cap that the offer publishes (T-826), before the
+/// relay ends it.
 pub(crate) fn paced(relays: &RelayList, settings: Settings) -> Settings {
-    match kept::kept_now(relays.primary()).and_then(|offer| offer.liveness) {
+    let Some(offer) = kept::kept_now(relays.primary()) else { return settings };
+    let settings = Settings { move_bytes: offer.move_bytes(), ..settings };
+    match offer.liveness {
         Some(_) => settings.quiet(),
         None => settings,
     }
