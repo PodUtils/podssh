@@ -2671,7 +2671,10 @@ both directions at once, `channel/carry.rs` of podcrates `v0.76.0`). podssh's pu
 a send waits for the window (`crates/podssh-ssh/src/io.rs`, `send`), so the cause is not plain. A second watch now
 says SSH's own write to the channel that waits 20 s ("the channel read nothing of SSH ..."): both lines at the next
 hang mean a cycle through the pipe; the first alone means SSH holds by itself (russh's session or podssh's pump). Here:
-the iroh new-address case and the layer's new-address case passed; `--test pipe --test proxy` passed.
+the iroh new-address case and the layer's new-address case passed; `--test pipe --test proxy` passed. Where SSH can stop
+reading: russh's loop (`vendor/russh/src/client/mod.rs`, podssh's patch of T-772) reads beside a pending write only while
+the unwritten output stays under `OUTPUT_MOST`, and a read's handler (`reply`) is awaited inline, so a full receiver of
+a channel holds the loop. The second watch tells the first (SSH's write waits too) from the second (it does not).
 
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
