@@ -2633,7 +2633,8 @@ acknowledged and neither end resumed: the wait is in pod-iroh with pod-session, 
 2026-11-19, podcrates `v0.73.0` (its entries 939 and 945, #283 ask 4): `pod-session` ends a link whose PING waits 30 s
 while neither count moves, and the layer resumes on a new link; the client says each wait that holds 20 s (`Note::Stall`,
 at `-v`, `layered.rs`), and the iroh road says each change of its relay connection (`say_changes` in
-`ssh/iroh/dial.rs`, at `-v`). The next hang names its wait at both ends.
+`ssh/iroh/dial.rs`, at `-v`). The next hang names its wait at both ends. Here, `cargo test -p podssh-cli --features podssh-cli/iroh-test
+--test m6_exit -- --ignored --exact iroh::the_iroh_road_survives_a_new_address`: 6 runs in 6 passed (about 40 s each).
 
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
