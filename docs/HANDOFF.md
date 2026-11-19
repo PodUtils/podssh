@@ -6,6 +6,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
+- 2026-11-19: the gate is green at `4bc5d5a` (run 44426400728); podcrates `v0.73.0` is taken (COORD-122, #320).
 - 2026-11-18: the gate is green at `e2d106d` (run 44326156563); podcrates `v0.71.0` is taken (COORD-121, #319).
 - At the hand-off of 2026-11-16 (evening) the gate of the newest commit of `main` and `fuzz.yml` at `a37ea01` (run
   43889251706, T-797) were still running; read them first (`TODO/PROGRESS.md`, "Tonight").
