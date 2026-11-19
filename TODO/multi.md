@@ -47,7 +47,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    flags), and `--parallel N` (default 8, 64 at most), `--fail-fast`,
    `--output-dir DIR`.
 2. One runtime, one task for each host, each on the existing path: the relay
-   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:316-395`,
+   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:318-397`,
    `crates/podssh-ssh/src/run.rs:35-80`). Invariant: no second SSH client.
 3. Sinks: give `crates/podssh-ssh/src/io.rs:175-491` (and `crates/podssh-ssh/src/io/msg.rs:11-95`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
@@ -3706,7 +3706,7 @@ SSH runs on one.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/iroh.rs:185` says "pub(super) async fn connect(": the iroh road's runner, which
+- `crates/podssh-cli/src/ssh/iroh.rs:182` says "pub(super) async fn connect(": the iroh road's runner, which
   gives an exit code, not a stream.
 - `crates/podssh-cli/src/ssh/derp.rs:213` says "pub(super) async fn connect(": the DERP road's, the same.
 

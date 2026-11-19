@@ -330,10 +330,18 @@ pub(super) async fn run_on(
     // keeps nothing of; Ctrl-C stays the remote command's (T-586).
     crate::hangup::take(crate::hangup::Which::Ends);
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
+    // A write to SSH that waits 20 s is said at -v (T-780).
+    let seen = Arc::new(super::held::Seen::default());
+    let layer_end = super::held::Held::new(layer_end, seen.clone());
+    let watching = {
+        let (log, shown) = (log.clone(), shown.to_string());
+        tokio::spawn(super::held::watch(seen, move |line| log.verbose(&format!("{shown}: {line}"))))
+    };
     let (outcome, carried) = tokio::join!(
         podssh_ssh::run::run_outcome(ssh_end, opts, None, log.clone()),
         carry_keeping(config, link_end, leg, layer_end, expires_ms, &say, channel, pin_say, shell)
     );
+    watching.abort();
     let code = outcome.code;
     // A refused key, or a changed node key, is the session's end whatever
     // the SSH client saw after it.

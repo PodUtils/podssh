@@ -4173,9 +4173,9 @@ would still say why the pause comes.
 
 ## Premise
 
-- `crates/podssh-cli/src/ssh/mod.rs:359-361` says "if let Some(kept) = resolved.persist.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:361-363` says "if let Some(kept) = resolved.persist.clone() {",
   and returns from `persist::run` before the watch of the relay's road starts.
-- `crates/podssh-cli/src/ssh/mod.rs:365-366` says "if let Some(upgrade) = resolved.upgrade.clone() {",
+- `crates/podssh-cli/src/ssh/mod.rs:367-368` says "if let Some(upgrade) = resolved.upgrade.clone() {",
   and so does `upgrade::run`.
 - Read at `7e457b4`: `docs/cli.md` said "with `--persist`, which attaches again after the cut, and
   `--upgrade`, not before T-583" (this entry changed that line).
@@ -4252,7 +4252,7 @@ A defect: `ssh node://` is the documented way to log in to a node.
 - Read: `ssh node://` carries SSH with `carry_keeping`: the layer's settings of `ssh`, which name
   `keep.v1` (`crates/podssh-cli/src/layered.rs:222`), the far end's shells learned and its
   silence watched (`:253-259`), and the SSH client and the carriage joined in one task
-  (`crates/podssh-cli/src/ssh/node.rs:333-336`); `operator` carries with `carry_through`, with
+  (`crates/podssh-cli/src/ssh/node.rs:340-343`); `operator` carries with `carry_through`, with
   none of these (`crates/podssh-cli/src/operator.rs:177-178`). These are the client's differences
   between the run that stopped and the one that worked; which one stopped it is not known.
 - Read: the tester's lines show the layer's session open and its features (`replay.v1`,

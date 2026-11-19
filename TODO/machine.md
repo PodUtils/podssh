@@ -545,7 +545,7 @@ at `crates/podssh-cli/src/ssh/transport.rs:225`, and the relay's close reason is
    (`crates/podssh-ssh/src/io.rs:175-185`, and `write_out` at `crates/podssh-ssh/src/io/msg.rs:78-95`). T-055 needs the same change.
 3. stdout and stderr stay byte for byte as now; the command's output never goes into the JSON.
 4. Write the file on each path, also after a failure before the session: at the end of
-   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:305-309`). Mode 0600. Refuse `-`: stdout is data.
+   `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:307-311`). Mode 0600. Refuse `-`: stdout is data.
 5. Add the row to `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-294`; the set of short flags
    does not change), and change the `ssh` notes and `docs/cli.md` in the same commit.
 
@@ -625,9 +625,9 @@ failure at `crates/podssh-ssh/src/run.rs:136-146` and
 `crates/podssh-cli/src/ssh/result.rs:18-42`, the channel's verdict at
 `crates/podssh-cli/src/ssh/result.rs:114-124`, the file at
 `crates/podssh-cli/src/ssh/result.rs:126-140`, written at the end of
-`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:98-138`); the relay host at
+`run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:100-140`); the relay host at
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
-`crates/podssh-cli/src/ssh/mod.rs:379`. The flag in `SSH_FLAGS`
+`crates/podssh-cli/src/ssh/mod.rs:381`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:210`), its note at
 `crates/podssh-cli/src/man/notes_ssh_more.rs:144-158`, and `docs/cli.md`.
 
@@ -901,8 +901,8 @@ at `crates/podssh-cli/src/session_log.rs:97-121`, the lines of `ssh` and
 checks and its move aside at `crates/podssh-cli/src/session_log.rs:174-243`,
 and its last line at `crates/podssh-cli/src/session_log.rs:246-263`. The
 line of `podssh ssh` at the end of `run_ssh`, from its result
-(`crates/podssh-cli/src/ssh/mod.rs:103-138`), and its destination at
-`crates/podssh-cli/src/ssh/mod.rs:275`; that of `podssh proxy` at
+(`crates/podssh-cli/src/ssh/mod.rs:105-140`), and its destination at
+`crates/podssh-cli/src/ssh/mod.rs:277`; that of `podssh proxy` at
 `crates/podssh-cli/src/proxy.rs:89-103`, its destination at
 `crates/podssh-cli/src/proxy.rs:186` and `crates/podssh-cli/src/proxy.rs:328`,
 its session at `crates/podssh-cli/src/proxy.rs:448-455`; the bytes of the

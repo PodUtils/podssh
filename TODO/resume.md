@@ -4194,7 +4194,7 @@ same setting.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:166` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:200` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
-- The guard at `crates/podssh-cli/src/ssh/mod.rs:439` removes the keepalives only when
+- The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
   `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:421` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
@@ -4203,7 +4203,7 @@ same setting.
 
 ## Approach
 
-1. At the guard of `crates/podssh-cli/src/ssh/mod.rs:439`, add the case `reached.layer.is_some()` with
+1. At the guard of `crates/podssh-cli/src/ssh/tries.rs:52`, add the case `reached.layer.is_some()` with
    `!resolved.alive_default` and a keepalive interval that is set. Print the warning of
    `resolve.rs:389-391` there, once, from one shared constant.
 2. Keep the user's interval. Do not add `Transport::Cloudflare` to `resolve.rs:375`: a far end that

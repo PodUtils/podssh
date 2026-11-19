@@ -1,4 +1,4 @@
-//! SSH's end of the iroh road's pipe, watched (T-780): a write of the
+//! SSH's end of a road's pipe, watched (T-780): a write of the
 //! channel that waits for SSH to read is said once it held 20 s, with the
 //! bytes that went to SSH so far. pod-session's line of a stall names the
 //! application above the layer (the end-to-end channel) as the one that took

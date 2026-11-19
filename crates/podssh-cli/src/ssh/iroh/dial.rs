@@ -160,11 +160,11 @@ pub(super) async fn connect(
     let (ssh_end, layer_end) = tokio::io::duplex(PIPE);
     // A write to SSH that waits 20 s is said at -v: with pod-session's line
     // of a stall, it tells SSH's wait from the channel's own (T-780).
-    let seen = Arc::new(super::held::Seen::default());
-    let layer_end = super::held::Held::new(layer_end, seen.clone());
+    let seen = Arc::new(crate::ssh::held::Seen::default());
+    let layer_end = crate::ssh::held::Held::new(layer_end, seen.clone());
     let watching = {
         let (log, shown) = (log.clone(), shown.clone());
-        tokio::spawn(super::held::watch(seen, move |line| log.verbose(&format!("{shown}: {line}"))))
+        tokio::spawn(crate::ssh::held::watch(seen, move |line| log.verbose(&format!("{shown}: {line}"))))
     };
     let say = |line: Line| match line {
         Line::Always(text) => log.info(&format!("{shown}: {text}")),

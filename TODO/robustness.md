@@ -2647,6 +2647,15 @@ channel holds for a cause of its own. `ssh/iroh/held.rs` now says, at `-v`, a wr
 20 s, with the bytes that went to SSH so far (a unit test with a paused clock); the next hang tells the two apart.
 Here: 4 runs in 4 of the case with it.
 
+2026-11-19, the tenth failure, in the gate of Dependabot's pull request at `dcbea2c` (run 44478407399, job `gate (m6)`):
+`the_layer_survives_a_stall_of_3_minutes`, the layer's road, not the iroh road. The same sign at the client: "the
+application took no byte for 22 s, while 191361 bytes wait for it; this side sent 20680058 bytes, the far end
+acknowledged 20680058"; and the node: "the target sent no byte for 24 s, while it took 98505 bytes of the client". So
+on both roads the hold is above pod-session, at the client: pod-e2e's channel or podssh's SSH. The watch of the pipe
+to SSH (`crates/podssh-cli/src/ssh/held.rs`, moved out of the iroh road) now runs on the `node://` road too
+(`ssh/node.rs`). Here: `m6_exit`'s `the_layer_survives_a_new_address`, `the_layer_survives_a_stall_of_3_minutes` and the
+iroh new-address case, each passed.
+
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 

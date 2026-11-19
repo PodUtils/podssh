@@ -1772,7 +1772,7 @@ target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
 `crates/podssh-cli/src/channel.rs:375-384` and
 `crates/podssh-cli/src/channel.rs:429-453`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
-`crates/podssh-cli/src/ssh/iroh.rs:62-83`. The manual's notes of `node`
+`crates/podssh-cli/src/ssh/iroh.rs:59-80`. The manual's notes of `node`
 and `operator`, the file of `--allow`, `docs/cli.md` and
 `docs/reverse.md`.
 
@@ -4839,7 +4839,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:190` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:192` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 

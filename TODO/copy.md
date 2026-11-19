@@ -3974,7 +3974,7 @@ who starts a large `put` has no earlier notice that the budget is nearly gone.
 
 ## Premise
 
-- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/mod.rs:442`. It takes a
+- Read: `near_cap::spawn` has one call site: `crates/podssh-cli/src/ssh/tries.rs:55`. It takes a
   `RelayStatus` (`crates/podssh-cli/src/ssh/near_cap.rs:84`), not a `Meter`. No file under
   `crates/podssh-cli/src/sftp/` calls it.
 - Read: `crates/podssh-cli/src/sftp/run.rs:132` hands `self.link.meter` to `bysftp::down` and `up`;
