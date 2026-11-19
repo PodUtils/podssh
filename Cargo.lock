@@ -247,7 +247,7 @@ dependencies = [
  "libc",
  "once_cell",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "tempfile",
@@ -3162,7 +3162,7 @@ dependencies = [
  "papaya",
  "pin-project",
  "portable-atomic",
- "rand 0.10.3",
+ "rand 0.10.4",
  "reqwest",
  "rustc-hash",
  "rustls",
@@ -3193,7 +3193,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "getrandom 0.4.3",
  "n0-error",
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "url",
  "zeroize",
@@ -3213,7 +3213,7 @@ dependencies = [
  "n0-error",
  "n0-future",
  "portable-atomic",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "simple-dns",
  "strum",
@@ -3286,7 +3286,7 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "postcard",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "reloadable-state",
  "reqwest",
@@ -3874,7 +3874,7 @@ dependencies = [
  "n0-error",
  "n0-future",
  "ndk-context",
- "rand 0.10.3",
+ "rand 0.10.4",
  "reqwest",
  "rustc-hash",
  "rustls",
@@ -3888,9 +3888,9 @@ dependencies = [
 
 [[package]]
 name = "n0-error"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26c59ea174675ce6bc196878851e5049e11b8b1f9af3ba87e4d6df8d828bb001"
+checksum = "96c2215d16de3a55894583a539e6b151fb45236c3a6da45a18a40af73dc00636"
 dependencies = [
  "n0-error-macros",
  "spez",
@@ -3898,9 +3898,9 @@ dependencies = [
 
 [[package]]
 name = "n0-error-macros"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4412346410d6616f3668c40e53c298e5320c7b856f7a960e5914e442601be79f"
+checksum = "6217fd5f567ce1e53f324744c14fab04899861e397539c5f3cc08bd7c1dcd2de"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4209,7 +4209,7 @@ dependencies = [
  "getrandom 0.4.3",
  "identity-hash",
  "lru-slab",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_pcg",
  "ring",
  "rustc-hash",
@@ -4299,7 +4299,7 @@ checksum = "93e7820bc0a80a0238e650327316f929ba18d5be054b647490a3a6a339f3e7c0"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
 ]
 
@@ -4691,7 +4691,7 @@ dependencies = [
  "delegate",
  "futures",
  "log",
- "rand 0.10.3",
+ "rand 0.10.4",
  "sha2 0.11.1",
  "thiserror 2.0.21",
  "tokio",
@@ -5082,7 +5082,7 @@ version = "0.77.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.77.0#7cbe674e39aaa1673339e94ffcc2fcc3b7585bb4"
 dependencies = [
  "libc",
- "rand 0.10.3",
+ "rand 0.10.4",
  "tokio",
  "windows-sys 0.61.2",
 ]
@@ -5319,7 +5319,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "serde_json",
  "tokio",
@@ -5342,7 +5342,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "sha2 0.11.1",
  "tokio",
@@ -5405,7 +5405,7 @@ dependencies = [
  "pod-tls",
  "pod-wormhole",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "serde",
  "serde_json",
@@ -5426,7 +5426,7 @@ dependencies = [
  "pod-core",
  "pod-proxy",
  "pod-tls",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -5494,7 +5494,7 @@ dependencies = [
  "p384 0.14.0",
  "pod-core",
  "pod-identity",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rsa 0.10.0",
  "rustls",
  "rustls-pki-types",
@@ -5552,7 +5552,7 @@ dependencies = [
  "pod-services",
  "pod-session",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "sha2 0.11.1",
  "tokio",
  "zeroize",
@@ -5682,7 +5682,7 @@ dependencies = [
  "podssh-warp",
  "podssh-ws",
  "podssh-zerotier",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "roxmltree",
  "russh",
@@ -5774,7 +5774,7 @@ dependencies = [
  "pod-wormhole",
  "podssh-ws",
  "proptest",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "russh",
  "rustls",
@@ -5811,7 +5811,7 @@ dependencies = [
  "pod-testkit",
  "podssh-ws",
  "proptest",
- "rand 0.10.3",
+ "rand 0.10.4",
  "russh",
  "russh-sftp",
  "sha1 0.11.0",
@@ -6127,7 +6127,7 @@ dependencies = [
  "chacha20 0.10.2",
  "core_detect",
  "num-traits",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_xorshift",
  "regex-syntax",
  "unarray",
@@ -6214,9 +6214,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
+checksum = "8f6fa277c67e6ea590466f04c3fe82cb509f0864fe470643e5570de9514a9b11"
 dependencies = [
  "chacha20 0.10.2",
  "getrandom 0.4.3",
@@ -6660,7 +6660,7 @@ dependencies = [
  "pkcs5",
  "pkcs8 0.11.0",
  "polyval 0.7.3",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "ring",
  "rsa 0.10.0",
@@ -7882,7 +7882,7 @@ dependencies = [
 name = "tailscale"
 version = "0.6.1"
 dependencies = [
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -8143,7 +8143,7 @@ dependencies = [
  "getrandom 0.4.3",
  "http",
  "httparse",
- "rand 0.10.3",
+ "rand 0.10.4",
  "ring",
  "rustls-pki-types",
  "sha1_smol",
@@ -8286,7 +8286,7 @@ dependencies = [
  "itertools 0.15.0",
  "libc",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_chacha 0.10.0",
  "serde",
  "slab",
@@ -8330,7 +8330,7 @@ dependencies = [
  "educe",
  "itertools 0.15.0",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "smallvec",
  "thiserror 2.0.21",
  "tor-basic-utils",
@@ -8382,7 +8382,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "percent-encoding",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "serde_with",
@@ -8442,7 +8442,7 @@ dependencies = [
  "once_cell",
  "oneshot-fused-workaround",
  "pin-project",
- "rand 0.10.3",
+ "rand 0.10.4",
  "retry-error",
  "safelog",
  "serde",
@@ -8610,7 +8610,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "paste",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rusqlite",
  "safelog",
  "scopeguard",
@@ -8693,7 +8693,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "pin-project",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "strum",
@@ -8733,7 +8733,7 @@ dependencies = [
  "itertools 0.15.0",
  "oneshot-fused-workaround",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "retry-error",
  "safelog",
  "slotmap-careful",
@@ -8778,7 +8778,7 @@ dependencies = [
  "humantime",
  "itertools 0.15.0",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "signature 3.0.0",
@@ -8821,7 +8821,7 @@ dependencies = [
  "once_cell",
  "oneshot-fused-workaround",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "retry-error",
  "safelog",
@@ -8865,7 +8865,7 @@ dependencies = [
  "derive_more",
  "downcast-rs",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rsa 0.9.10",
  "signature 3.0.0",
  "ssh-key-fork-arti",
@@ -8897,7 +8897,7 @@ dependencies = [
  "humantime",
  "inventory",
  "itertools 0.15.0",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "signature 3.0.0",
@@ -8966,7 +8966,7 @@ dependencies = [
  "getrandom 0.3.4",
  "getrandom 0.4.3",
  "hex",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_chacha 0.10.0",
  "rand_core 0.10.1",
  "rand_core 0.6.4",
@@ -9065,7 +9065,7 @@ dependencies = [
  "humantime",
  "itertools 0.15.0",
  "num_enum",
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "strum",
  "thiserror 2.0.21",
@@ -9108,7 +9108,7 @@ dependencies = [
  "memchr",
  "paste",
  "phf",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rangemap",
  "saturating-time",
  "serde",
@@ -9198,7 +9198,7 @@ dependencies = [
  "pin-project",
  "polyval 0.7.3",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "safelog",
  "slotmap-careful",
@@ -9286,7 +9286,7 @@ version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e2cb2278dd985503fa638254e966cdfd7fdd5dab18e536d22a68adcc285d65"
 dependencies = [
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "tor-basic-utils",
  "tor-linkspec",
@@ -9834,7 +9834,7 @@ dependencies = [
  "itertools 0.14.0",
  "kameo",
  "kameo_actors",
- "rand 0.10.3",
+ "rand 0.10.4",
  "smallvec",
  "smol_str",
  "thiserror 2.0.21",
@@ -9900,7 +9900,7 @@ dependencies = [
  "blake2 0.10.6",
  "chacha20poly1305 0.11.0",
  "itertools 0.14.0",
- "rand 0.10.3",
+ "rand 0.10.4",
  "tracing",
  "ts_keys",
  "ts_noise",
