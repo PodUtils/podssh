@@ -1175,7 +1175,7 @@ M1, and the NOPASSWD check fails.
 (`crates/podssh-ssh/src/session.rs:132-147`, the question at
 `crates/podssh-ssh/src/session.rs:270-279`), and the pump filters the output,
 asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:186-200`,
-`crates/podssh-ssh/src/io.rs:390-397`). The flags at
+`crates/podssh-ssh/src/io.rs:397-404`). The flags at
 `crates/podssh-cli/src/flags.rs:224-229`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
