@@ -8,7 +8,7 @@ this page keeps no history (git does).
 
 Read on 2026-11-15.
 
-1. **The gate.** Green at `38da04d` (2026-11-19, run 44490361365, each job). Green at `4bc5d5a` (2026-11-19, run 44426400728: podcrates `v0.73.0`, each job on its first attempt). Green at `e2d106d` (2026-11-18, run 44326156563, each job on its first attempt: podcrates `v0.71.0`, T-820's locks, T-844, T-845, T-846's lines). Red at `37f9196` (run 43912907328, macOS alone: T-800, a test that read a relay session's hex id as a 1003; repaired). Green at `0370b0b` (2026-11-16, run 43894316171, each job on its first attempt). Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on attempt 2: its first
+1. **The gate.** Green at `5975bb0` (2026-11-19, run 44504544443, each job: podcrates `v0.76.0`). Green at `38da04d` (2026-11-19, run 44490361365, each job). Green at `4bc5d5a` (2026-11-19, run 44426400728: podcrates `v0.73.0`, each job on its first attempt). Green at `e2d106d` (2026-11-18, run 44326156563, each job on its first attempt: podcrates `v0.71.0`, T-820's locks, T-844, T-845, T-846's lines). Red at `37f9196` (run 43912907328, macOS alone: T-800, a test that read a relay session's hex id as a 1003; repaired). Green at `0370b0b` (2026-11-16, run 43894316171, each job on its first attempt). Green at `5340fbb` (2026-11-16, run 43870922795, podcrates `v0.63.0`; `gate (m6)` on attempt 2: its first
    hung, T-780's seventh). Green at `0f2c8a0` (2026-11-16, run 43859588499, podcrates `v0.62.0` and T-796's bound, each job on its
    first attempt). Green at `d13ab01` (2026-11-16, run 43839740067, podcrates `v0.61.0`; `gate (release)` on attempt 2:
    its interop hung past the job's limit on attempt 1, T-796). Green at `f5b4f43` (2026-11-16, run 43823925587, the take of `v0.60.0`; its `gate (m6)` failed once,
@@ -223,7 +223,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 804 entries: 39 open, 41 partial, 13 blocked, 711 done.
+`TODO/INDEX.md` holds 804 entries: 39 open, 41 partial, 12 blocked, 712 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

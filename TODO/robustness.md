@@ -3729,7 +3729,7 @@ and 77's row names a refused route. `--lib` passed; the manual's tests and `llms
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -3754,10 +3754,6 @@ cargo test -p podssh-cli --test relay_serve
 ```
 
 The test fails on the code before the fix and passes after it.
-
-## Blocker
-
-PodUtils/podcrates: the start of a move after its threshold, under a small cap (COORD-126, #327). podssh takes the tag.
 
 ## Correction
 
@@ -3809,8 +3805,13 @@ Linux. The check stays (no link at the cap); asked of podcrates in COORD-126 (am
 threshold, or a threshold that leaves room for the lag that Windows showed.
 
 2026-11-19, podcrates `v0.76.0` (its entry 962, COORD-126): the hold of a move starts in the call that passes the
-threshold. No change of podssh's code. `tests/layer_cap.rs`, 6 runs in 6 here; the Windows job of the next gate is
-its proof.
+threshold. No change of podssh's code. `tests/layer_cap.rs`, 6 runs in 6 here.
+
+## Done
+
+2026-11-19, the gate at `5975bb0` (run 44504544443), podcrates `v0.76.0`: each job passed, `windows`, `macos` and the
+Linux gates' `layer_cap.rs` included: no link ends at the relay's cap, the session moves before it, and no link's end
+is said as a broken pipe. Done on each system that the gate runs.
 
 # T-827: `relay serve --key` in a file that others may read starts with no word
 
