@@ -988,7 +988,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   `openssh-keygen` and others, but no client package. No harness ran the stock `ssh`; only
   `scripts/sandbox-check.sh:318-331` does, in a sandbox. Nobody knows whether
   the gate's image has `/usr/bin/ssh`.
-- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:68-70`,
+- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:72-74`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:247`, `docs/STATUS.md:253`).
@@ -2675,6 +2675,15 @@ the iroh new-address case and the layer's new-address case passed; `--test pipe 
 reading: russh's loop (`vendor/russh/src/client/mod.rs`, podssh's patch of T-772) reads beside a pending write only while
 the unwritten output stays under `OUTPUT_MOST`, and a read's handler (`reply`) is awaited inline, so a full receiver of
 a channel holds the loop. The second watch tells the first (SSH's write waits too) from the second (it does not).
+
+2026-11-19, the twelfth failure, at `c9772a3` (run 44561423514, job `gate (m6)`): `iroh::with_no_fault_the_iroh_road_carries_the_session`,
+with no fault at all. "SSH read nothing for 20 s while the channel waits to give it bytes; 18491926 bytes went to SSH so
+far", the layer's "the application took no byte for 20 s, while 983777 bytes wait for it", and no line of SSH's own
+write. So SSH holds by itself, with no cycle through the pipe and no loss of a link: russh's read loop, or podssh's pump
+in a step that does not take the channel's messages. The pump now says, at `-v`, a step that holds it 20 s with the
+step's name (`crates/podssh-ssh/src/io/busy.rs`; the send split into `io/send.rs` for `io.rs`'s length): a line of it at
+the next hang names the pump's step; none means russh's loop. Here: `-p podssh-ssh --lib io` 66 passed (the watch's
+test among them), `-p podssh-ssh` each test passed, both no-fault m6 cases passed.
 
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes

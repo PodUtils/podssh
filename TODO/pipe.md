@@ -580,7 +580,7 @@ running on the server (`docs/design.md:734-738`).
 ## Premise
 
 - Measured: `podssh ssh --persist host` exits 64 (`unknown flag '--persist'`).
-- Read: a lost link is `End::Lost` (`crates/podssh-ssh/src/io.rs:42-43`),
+- Read: a lost link is `End::Lost` (`crates/podssh-ssh/src/io.rs:46-47`),
   an error at `crates/podssh-ssh/src/session.rs:42`. An exit status, a
   close with no status, and `~.` are other ends
   (`crates/podssh-ssh/src/session.rs:39-41`). Raw mode is entered once for

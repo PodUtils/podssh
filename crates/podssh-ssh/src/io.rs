@@ -24,13 +24,17 @@ use crate::terminal::text::Consoles;
 use crate::terminal::watch::Resize;
 use crate::zmodem::Zmodem;
 
+mod busy;
 mod feed;
 mod input;
 mod msg;
+mod send;
 
 pub use feed::Feed;
 pub use input::Input;
 use msg::{handle_msg, write_out};
+use send::send;
+pub use send::WINDOW_STALL;
 
 /// How a session ended.
 #[derive(Debug)]
@@ -211,16 +215,22 @@ pub async fn pump(
     let mut added = crate::escape_run::Added::default();
     // The keepalive that asks for a reply, while one waits (T-332).
     let mut ping: Option<Ping<'_>> = None;
+    // A step that holds the pump 20 s, said at -v (T-780).
+    let busy = busy::Busy::default();
+    let _watching = busy.watch(log);
     loop {
+        busy.at("the pump's turn before its wait");
         expected(&mut through, &writer, &mut held, !reading).await;
         if let Err(end) = zmodem_out(&writer, &mut reader, &mut status, &mut out, &mut through, log).await {
             return end;
         }
         let zmodem_at = through.zmodem.as_ref().and_then(Zmodem::deadline);
         let streaming = through.zmodem.as_ref().is_some_and(Zmodem::more);
+        busy.idle();
         tokio::select! {
             chunk = input::next(input, reading && !held) => match chunk {
                 Some(bytes) => {
+                    busy.at("a send of the input");
                     let (data, commands) = match escapes.as_mut() {
                         Some(e) => e.feed(&bytes),
                         None => (bytes, Vec::new()),
@@ -236,7 +246,7 @@ pub async fn pump(
                         if pty {
                             crate::pace::key();
                         }
-                        match send(&writer, &mut reader, data, &mut status, &mut out, &mut through, log).await {
+                        match send(&writer, &mut reader, data, (&mut status, &mut out, &mut through), &busy, log).await {
                             Ok(true) => {}
                             // The channel is closing; keep reading for its status.
                             Ok(false) => reading = false,
@@ -285,6 +295,7 @@ pub async fn pump(
             },
             msg = reader.wait() => match msg {
                 Some(m) => {
+                    busy.at("the output of the channel");
                     if pty && matches!(m, ChannelMsg::Data { .. }) {
                         crate::pace::echo();
                     }
@@ -359,58 +370,6 @@ pub async fn pump(
     }
 }
 
-/// Send `data` on the channel. The send waits for the channel's window,
-/// which a connection that ended never opens: the channel's messages are
-/// read meanwhile, and its end ends this (`Err`). `Ok(false)`: the channel
-/// is closing.
-async fn send(
-    writer: &ChannelWriteHalf<Msg>,
-    reader: &mut ChannelReadHalf,
-    data: Vec<u8>,
-    status: &mut Option<i32>,
-    out: &mut Out,
-    through: &mut Through,
-    log: &Log,
-) -> Result<bool, End> {
-    let send = writer.data_bytes(data);
-    tokio::pin!(send);
-    // A far end that reads nothing leaves the window shut: where the host's
-    // buffers take each byte that the window let go, no write of the socket
-    // waits, and the stream's own limit never arms (T-598). The window shut
-    // for WINDOW_STALL, with bytes to send, ends the session the same way.
-    let bounded = through.window_stall;
-    let mut tick = tokio::time::interval(Duration::from_secs(1));
-    let mut shut_since: Option<tokio::time::Instant> = None;
-    loop {
-        tokio::select! {
-            sent = &mut send => return Ok(sent.is_ok()),
-            msg = reader.wait() => match msg {
-                Some(m) => {
-                    if let Some(end) = handle_msg(m, status, out, through, log).await {
-                        return Err(end);
-                    }
-                }
-                None => return Err(link_ended(*status, out.eof)),
-            },
-            _ = tick.tick(), if bounded => {
-                if writer.writable_packet_size().await > 0 {
-                    shut_since = None;
-                } else if shut_since.get_or_insert_with(tokio::time::Instant::now).elapsed() >= WINDOW_STALL {
-                    log.error(&format!(
-                        "a write made no progress for {} s: the channel's window stayed shut, as the far end reads nothing",
-                        WINDOW_STALL.as_secs()
-                    ));
-                    return Err(End::Lost);
-                }
-            }
-        }
-    }
-}
-
-/// How long the channel's window may stay shut while bytes wait to go: the
-/// write limit's 60 s (T-227, T-598).
-pub const WINDOW_STALL: Duration = Duration::from_secs(60);
-
 /// What ZMODEM has for the terminal and for the server between the
 /// server's messages: its words after a key or a wait, and a sender's next
 /// bytes (T-148). `Err` when the channel ended meanwhile.
@@ -430,7 +389,7 @@ async fn zmodem_out(
         let _ = write_out(out.sink.as_ref(), &out.consoles.text(false, screen), false).await;
     }
     if !taken.server.is_empty() {
-        send(writer, reader, taken.server, status, out, through, log).await?;
+        send(writer, reader, taken.server, (status, out, through), &busy::Busy::default(), log).await?;
     }
     Ok(())
 }
