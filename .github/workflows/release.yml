@@ -675,3 +675,138 @@ jobs:
           name: release-dry-run
           path: dist/*
           if-no-files-found: error
+
+  # The owner's ruling "ghcr.io" (2026-11-19, T-847; the form of call C789 of
+  # podcrates, COORD-142): ghcr.io/<owner>/podssh:<tag>, FROM scratch with the
+  # static binary of the release (packaging/ghcr/Dockerfile), one image for
+  # each Linux architecture under one multi-arch index, from the files that
+  # the release built (no second build). On a tag: pushed, each image's
+  # binary compared with its release asset by SHA-256, the index's provenance
+  # attested in the registry and checked, and the digests added to the notes.
+  # A dry run builds the images, runs the amd64 one, and pushes nothing.
+  image:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          pattern: podssh-*-linux-*
+          merge-multiple: true
+      - name: the images
+        id: images
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          version=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"$/\1/p' Cargo.toml)
+          tag="v$version"
+          repo="ghcr.io/$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')/podssh"
+          push=false
+          case "$GITHUB_REF" in refs/tags/v*) push=true; tag=$GITHUB_REF_NAME ;; esac
+          refs=""
+          : > "$RUNNER_TEMP/pairs"
+          for pair in \
+            x86_64-unknown-linux-musl:linux/amd64:amd64 \
+            aarch64-unknown-linux-musl:linux/arm64:arm64 \
+            armv7-unknown-linux-musleabihf:linux/arm/v7:armv7 \
+            riscv64gc-unknown-linux-musl:linux/riscv64:riscv64; do
+            target=${pair%%:*}
+            rest=${pair#*:}
+            platform=${rest%:*}
+            arch=${rest##*:}
+            ctx="$RUNNER_TEMP/ctx-$arch"
+            mkdir -p "$ctx/home" "$ctx/tmp"
+            cp "dist/podssh-$target" "$ctx/podssh"
+            touch "$ctx/home/.keep" "$ctx/tmp/.keep"
+            docker build --platform "$platform" -f packaging/ghcr/Dockerfile \
+              --label org.opencontainers.image.source="https://github.com/$GITHUB_REPOSITORY" \
+              --label org.opencontainers.image.version="$tag" \
+              --label org.opencontainers.image.revision="$GITHUB_SHA" \
+              -t "$repo:$tag-$arch" "$ctx"
+            refs="$refs $repo:$tag-$arch"
+            echo "$repo:$tag-$arch $platform dist/podssh-$target" >> "$RUNNER_TEMP/pairs"
+          done
+          docker run --rm "$repo:$tag-amd64" --version
+          docker image ls "$repo"
+          if [ "$push" != true ]; then
+            echo "a dry run: the images are built, and nothing is pushed"
+            exit 0
+          fi
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for ref in $refs; do docker push "$ref"; done
+          channel=latest
+          case "$tag" in *-*) channel=beta ;; esac
+          # shellcheck disable=SC2086 # one word for each reference
+          docker buildx imagetools create -t "$repo:$tag" -t "$repo:$channel" $refs
+          digest=$(docker buildx imagetools inspect "$repo:$tag" --format '{{json .Manifest}}' | jq -r .digest)
+          case "$digest" in sha256:*) ;; *) echo "no digest of $repo:$tag: $digest" >&2; exit 1 ;; esac
+          # Each binary of the index, pulled again by digest, is its release
+          # asset byte for byte.
+          while read -r ref platform asset; do
+            docker rmi -f "$ref" > /dev/null
+            id=$(docker create --platform "$platform" "$repo@$digest")
+            docker cp "$id:/usr/local/bin/podssh" "$RUNNER_TEMP/pulled"
+            docker rm "$id" > /dev/null
+            want=$(sha256sum < "$asset" | cut -d' ' -f1)
+            got=$(sha256sum < "$RUNNER_TEMP/pulled" | cut -d' ' -f1)
+            test "$want" = "$got" || { echo "$platform of $repo@$digest is not $asset" >&2; exit 1; }
+            echo "ok   $platform: $got, as $asset"
+          done < "$RUNNER_TEMP/pairs"
+          {
+            echo "repo=$repo"
+            echo "tag=$tag"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo ""
+            echo "## The image, by digest"
+            echo ""
+            echo "| Reference | Digest |"
+            echo "| --- | --- |"
+            echo "| \`$repo:$tag\` (each Linux architecture) | \`$digest\` |"
+            for ref in $refs; do
+              d=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' | jq -r .digest)
+              case "$d" in sha256:*) ;; *) echo "no digest of $ref: $d" >&2; exit 1 ;; esac
+              echo "| \`$ref\` | \`$d\` |"
+            done
+            echo ""
+            echo "Pull by digest: \`docker pull $repo@$digest\`. Check its provenance:"
+            echo "\`gh attestation verify oci://$repo@$digest --repo $GITHUB_REPOSITORY\`."
+          } > "$RUNNER_TEMP/image-digests.md"
+          cat "$RUNNER_TEMP/image-digests.md"
+          docker logout ghcr.io
+      - name: the provenance of the image, in the registry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.images.outputs.repo }}
+          subject-digest: ${{ steps.images.outputs.digest }}
+          push-to-registry: true
+      - name: the provenance of the image, checked; the digests in the notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ steps.images.outputs.repo }}
+          TAG: ${{ steps.images.outputs.tag }}
+          DIGEST: ${{ steps.images.outputs.digest }}
+        run: |
+          set -eu
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          gh attestation verify "oci://$REPO@$DIGEST" --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+          docker logout ghcr.io
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/notes.md"
+          if grep -q '^## The image, by digest$' "$RUNNER_TEMP/notes.md"; then
+            echo "the notes name the digest already"
+            exit 0
+          fi
+          cat "$RUNNER_TEMP/image-digests.md" >> "$RUNNER_TEMP/notes.md"
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/notes.md"

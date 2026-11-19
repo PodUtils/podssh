@@ -1343,7 +1343,7 @@ registry, by digest.
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -1366,6 +1366,17 @@ a registry. `docs/decisions.md` holds the ruling "ghcr.io".
 3. The release notes name each pushed digest beside the asset's SHA-256. The GitHub assets and the installers stay.
 4. Run the workflow by hand with no tag first (as `docs/development.md`, "Release builds", says), then at the next beta.
 
+## Decision
+
+2026-11-19. The form is the coordinator's (COORD-142, PodUtils/podcrates#236, call C789), which podnet already uses:
+one `FROM scratch` image for each Linux architecture that podssh releases (amd64, arm64, armv7, riscv64), the binary at
+`/usr/local/bin/podssh`, the three `org.opencontainers.image.*` labels, one multi-arch index at the release's tag, the
+index's provenance attested in the registry, and after the push each image's binary compared with its release asset by
+SHA-256. macOS and Windows binaries stay GitHub assets alone: an OCI image of them has no runtime that a consumer named.
+The recipe is `packaging/ghcr/Dockerfile`, not under `images/`, which holds the pinned base images alone
+(`scripts/check-repo.py`, one `FROM` line each). Lost: a reusable workflow of podcrates (none exists; podnet's job is
+its own), and `oras` (no consumer names an asset that is not a binary).
+
 ## Prove
 
 ```sh
@@ -1373,6 +1384,8 @@ crane digest ghcr.io/podutils/podssh:TAG
 crane export --platform linux/amd64 ghcr.io/podutils/podssh:TAG - | tar -tf - | grep podssh
 ```
 
-## Start condition
+## Done
 
-The coordinator names the form for all projects (PodUtils/podrunner#312), and the next release of podssh (after T-684).
+Partial, 2026-11-19: the job `image` of `.github/workflows/release.yml` and `packaging/ghcr/Dockerfile`. Its dry run
+(the workflow by hand with no tag) builds the four images and runs the amd64 one: UNVERIFIED. The push, the comparison
+and the attestation run at the next tag (after T-684).
