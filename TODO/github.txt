@@ -339,4 +339,4 @@
 331 pull open
 332 issue closed
 333 issue open
-334 issue open
+334 issue closed
