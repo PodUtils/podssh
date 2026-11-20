@@ -1,16 +1,16 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-13, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-20, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
+- 2026-11-20: the gate is green at `0661ded` (run 44571876363, each job) and at `2c7b594` (run 44643735624);
+  `release.yml` by hand at `0661ded` passed (run 44571898795, T-850). podcrates `v0.78.1` is taken at `e5b7414`
+  (COORD-129, #330); its gate (`ae25fe1`) was still running when this page was read: read it first.
 - 2026-11-19: the gate is green at `4bc5d5a` (run 44426400728); podcrates `v0.73.0` is taken (COORD-122, #320).
 - 2026-11-18: the gate is green at `e2d106d` (run 44326156563); podcrates `v0.71.0` is taken (COORD-121, #319).
-- At the hand-off of 2026-11-16 (evening) the gate of the newest commit of `main` and `fuzz.yml` at `a37ea01` (run
-  43889251706, T-797) were still running; read them first (`TODO/PROGRESS.md`, "Tonight").
-- The gate is green at `5340fbb` (2026-11-16, run 43870922795, m6 on attempt 2), at `0f2c8a0` (run 43859588499), at `f5b4f43` (2026-11-16, run 43823925587, attempt 2 for T-780's m6) and at `71ebc9d` (run 43814811221), and `release.yml` by hand there (run 43815141894).
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
 - No draft waits for its merge ("Drafts" in `TODO/PROGRESS.md`, 2026-11-18).
 
@@ -23,11 +23,11 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 ## Each podcrates take
 
 podssh pins every podcrates crate at `tag = "v0.78.1"` (taken 2026-11-20; podssh's answer is
-COORD-129). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+COORD-129; the tag `v0.78.0` has no GitHub release). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`,
-  `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`, `pod-derp`, `pod-egress`, `pod-tor` and `pod-iroh` (2026-11-17, `v0.65.0`), and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
+  `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`, `pod-derp`, `pod-egress`, `pod-tor` and `pod-iroh` (2026-11-17, `v0.65.0`), `pod-release` (2026-11-19, `v0.77.0`, T-850: `podssh update` runs on it), and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
 - `v0.40.0` (taken 2026-11-13) brought the forms of the file hosts (COORD-053, #230, closed; T-738 reads
   `fetch-link-prefix` and `on-by-default`) and `pod-netstack`'s tests of T-599's cases (COORD-054, #231,
   closed; T-599 and T-771 name them).
@@ -66,14 +66,25 @@ COORD-129). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; 
 - `v0.52.0` (taken 2026-11-15) is step 2, parts 2 and 3: VLESS, VMess's AEAD form, Trojan, Shadowsocks, EICE and
   IAP leave podssh-ws for glue files (`vless.rs`, `vmess.rs`, `trojan.rs`, `shadowsocks.rs`, `eice.rs`, `iap.rs`);
   `tests/vless_support/` and `trojan_support/` stay for the tests of the proxy nodes, Hysteria and TUIC.
+- `v0.53.0` to `v0.78.1` (taken 2026-11-15 to 2026-11-20): each take is a COORD issue of podssh, mapped in
+  `TODO/issues.md`, and podcrates records it under `## Takes` of its release issue. Each entry's `## Done` says what
+  its tag brought. The newest: `v0.77.0` (COORD-128) took `pod-release` (T-850, `release-index.json` and the checks
+  of `podssh update`) and `Session::without_prompt` (T-848); `v0.78.1` (COORD-129) brings `update::plan`'s `Newer`
+  (podcrates' entry 971: podssh's own comparison goes) and the pager's `Interrupts` as the crate's.
 
 ## Open COORD issues
 
 | Issue | Waits for |
 | --- | --- |
 | #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
-| #314 (COORD-117), #315 (COORD-118) | podcrates' entry 909 and the drain of pod-session; three lines (T-826, T-828) |
+| #268 (COORD-081), #269 (COORD-082) | podcrates' answers to its COORD-107 and COORD-108 (T-791, T-793) |
+| #283 (COORD-091) | podcrates' asks of T-780; the lines of the next hang |
+| #306 (COORD-109), #307 (COORD-110) | podssh's use of podcrates' fixes of `v0.70.0` (T-718's skip of a probe, T-720's `meet`) |
+| #308 (COORD-111, to podnet), #311 (COORD-114, to podvm) | podnet and podvm reading them (T-809, T-819) |
+| #312 (COORD-115) | podcrates reading it; the copies of shared code end in T-820 |
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
+| #322 (COORD-123) | T-847's first push at a release tag |
+| #330 (COORD-129) | podcrates recording the take of `v0.78.1` |
 
 ## The live runs and interop harnesses
 
@@ -89,29 +100,29 @@ road). Each has a planted run that must fail, and each did.
 | Syncthing's relays (T-571, done) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
 | The binary's proxy nodes (T-574, done) | `proxy-nodes-live.yml` | 8 of 8 nodes passed, run 43305389601, after #207 dropped two |
 | The proxy lists' round against Xray-core (T-574, done) | `proxy-lists-interop.yml` | passed (`9c9b706`) |
-| HTTP Relay's demo (T-576) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement; day 1 down |
+| HTTP Relay's demo (T-576, done) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement; it never answered in three days (2026-11-14) |
 | ZeroTier (T-733, done) | `zerotier-live.yml` | live through ZeroTier Inc.'s roots and relay |
-| The file hosts (T-738) | `filehost-live.yml` | run 43430909173: temp.sh works; the other three fail (COORD-053, #230) |
+| The file hosts (T-738) | `filehost-live.yml` | run 43562322579 (2026-11-14, podcrates `v0.42.0`): passed, the two hosts that the road takes unasked 32 KiB up, down and opened |
 
 ## The next entries, in the work order's order
 
 | Entry | State and next step |
 | --- | --- |
-| T-465, T-627, T-746, T-753, T-756 | Tests that failed at random; each `## Done` names the failure that it waits for. First whenever one fails. |
-| T-117, T-118, T-248 | Their drafts wait for the merge (T-117's in progress). |
-| T-107, T-108, T-109, T-110, T-112, T-114, T-222 | Partial: merged; each waits for `cargo todo remap` of the files its `## Done` lists (where it says so) and its run in the build image (T-251). |
-| T-684 | The take of `v0.40.0` once tagged (COORD-054), and of the tag that mends the file hosts (COORD-053). |
-| T-738 | Partial: waits for podcrates' entry 528 (COORD-053, #230), then a live run of `filehost-live.yml`. |
-| T-576 | Partial: the daily `VERDICT` of 2026-11-13 and 2026-11-14; never answered: close with that; else step 2. |
+| T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849 | Tests that failed at random (T-746 done); each `## Done` names the failure that it waits for. First whenever one fails. T-780's busy watch is in. |
+| T-107 to T-112, T-114, T-117, T-118, T-222, T-248 | Partial: merged; each waits for its run in the build image (T-251), and for the `cargo todo remap` where its `## Done` says so. |
+| T-684 | Partial: each next tag of podcrates, taken at once; next `pod-cloudflare` and `pod-ts`, then `pod-relay-serve`. |
+| T-847 | Partial: the push to ghcr.io, the comparison and the attestation run at the next release tag (COORD-123, #322). |
+| T-738 | Partial: the run against `mia/0x0`, as its `## Done` says. |
+| T-791, T-793, T-809, T-820 | Partial: the lane on the candidate and the network classes; the installer of a published release; the third black-box pass; the last copies of shared code. |
 | T-319, T-321 | Partial: what stays is a real proxy's path and Apache's `H2WebSockets` in the build image, and their live runs (Q88). |
 | T-106 | Partial: the tailnet's test on the operator's machine, the box's run of B and the drop test of 5 min. |
-| T-625, T-665 | Partial: wait for the throughput host's Actions secrets (an operator action). |
 | T-660, T-666, T-670 | Partial: the matrix rows that their `## Done` names (iroh, DERP, the node's road on the slow link, osewa's binary on a runner). |
 | T-755 | Partial: its live run waits for a tester's tunnel (#215). |
-| T-774, T-111, T-113, T-085 | Open, P2: the security key's touch in serve, the line discipline with no `/dev/ptmx`, M5's exit, M4's exit. |
-| T-446 | The next beta when podssh is nearly complete; `v1.1.0` after the migration. |
+| T-598, T-710, T-714, T-718, T-720 | Partial: each `## Done` says what is left. |
+| T-446 | The next beta when podssh is nearly complete and the black-box pass is clean; `v1.1.0` after the migration. |
 
-Blocked, each on the owner or on another party, as its `## Blocker` names: T-328, T-376, T-672,
+Blocked, each on the owner or on another party, as its `## Blocker` names: T-113 (M5's exit in the operator's
+real sandbox), T-328, T-376, T-672,
 T-687, T-711, T-719, T-722, T-727, T-729 and T-740 (a working Bare node, podcrates
 T-200). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
 
@@ -143,7 +154,7 @@ T-200). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
 - **A cloud session's proxy** passes HTTPS alone: raw SSH and other ports go through GitHub Actions.
 - **Pushes:** each push queues a gate on the runners; batch the record's commits.
 - **A session's account starts runs** (2026-11-16: a push starts `build.yml`, and `gh workflow run` starts one by hand),
-  so no `[gh action] requested` is needed then. **A session whose account cannot start Actions** (2026-11-15: a push of it starts no run): ask the operator's
+  so no `[gh action] requested` is needed then. **A session whose account cannot start Actions** (this one's could not on 2026-11-15): ask the operator's
   local agent by an issue of this repository titled `[gh action] requested`, as PodUtils/podvm#387 does: why, one
   `sh` block that dispatches each workflow and watches it to its end, and "Run the block as it is, once. Then write
   here: the output of the last line, or the line where it stopped and its error." Read the runs as usual. podcrates' `watch.py` (`AGENTS.md`, step 7) says when each asked run
