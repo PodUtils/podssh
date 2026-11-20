@@ -101,6 +101,7 @@ COORD-149, and `v0.78.1`, COORD-129; the tag `v0.78.0` has no GitHub release). I
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 | #322 (COORD-123) | T-847's first push at a release tag |
 | #330 (COORD-129) | podcrates recording the take of `v0.78.1` |
+| #335 (COORD-131) | podcrates recording the take of `v0.80.0` |
 
 ## The live runs and interop harnesses
 
