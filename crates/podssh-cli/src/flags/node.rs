@@ -201,7 +201,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
     row(None, "env-file", Some("FILE"), FlagKind::Supported,
         "read the node's variables from FILE, a private file of NAME=VALUE lines, before anything else; hold FILE.lock while it runs, so that a second start ends at once: the file that --install writes beside the pair", None),
     row(None, "iroh-relay", Some("URLS"), FlagKind::Supported,
-        "with --iroh: the relays, https://HOST[:PORT][,...]; the first that answers is the home relay (default: env PODSSH_IROH_RELAY, else n0's)", None),
+        "with --iroh: the relays, https://HOST[:PORT][,...]; the first that answers is the home relay (default: env PODSSH_IROH_RELAY, else the net's relay members' own, then n0's)", None),
     super::derp::NODE_DERP_SERVER,
     // Grants used once (T-226): one minted with the node's key, and the
     // serials refused.

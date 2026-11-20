@@ -14181,6 +14181,22 @@ iroh-relay's `server` crates are in it; `check-static.sh` passed. Open: Approach
 (rule 2's exception 8, at most once a day for each host) beside the list of relay members that `pod-relay` reads.
 `pod_relay::pool::members` keeps no `meet`: asked of podcrates as COORD-110 (#307).
 
+2026-11-20: COORD-110's answer is in the podcrates that podssh pins (`v0.78.1`): `pod_relay::pool::members` keeps each
+member's `meet` with the day's ask of its list, each value checked against the member's own host, and gives it back
+with no request (`members::meet`). podssh's step 5, its iroh half: `podssh_relay::pool::members::kept_meet`,
+`relay_deployments::net_iroh_relays` (the net's relay members in the document's order, from the cache alone) and
+`iroh_way::relays`, which puts them before n0's table where neither `--iroh-relay` nor `PODSSH_IROH_RELAY` names the
+relays (each road of iroh takes its list there); `doctor` names the source; the help of `--iroh-relay` and the manual's
+`PODSSH_IROH_RELAY` say it (`llms*.txt` written again). Decision: **the DERP home stays `--ts-relay`'s.** `podssh ts`
+takes one relay (`TsMode::Relay`), not a list; a member's DERP admits the node keys of its `--derp-keys`, or any where it
+mints for anyone, so a member's DERP as the one home could refuse a node that Tailscale's fleet carries. Lost: the
+member's `meet.derp` as the default of `--ts-relay`. It comes when `ts`'s chain tries a list. Results: `cargo test -p
+podssh-cli --features iroh --lib` 1243 passed (`iroh_way::tests::the_net_s_relays_come_before_the_table`; planted, the
+table first: caught); `podssh-relay --lib` 78 passed; `--lib -- man:: flags` 93 passed; clippy (the gate's lints, with
+and without `iroh`) clean. Open: a test from end to end (a net whose relay member is `relay serve --relay-roads iroh`,
+asked by `relay status`, then the iroh road's home relay that member), in a build with `iroh`; iroh's QUIC address
+discovery, which the role does not serve.
+
 # T-724: `-J node://NAME` and `mcp` destinations that name a node
 
 **Source:** PodUtils/podcrates#35, cfb's ask A-S-16 (COORD-014, PodUtils/podcrates#38)

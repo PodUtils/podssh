@@ -13,7 +13,8 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
     (
         &["PODSSH_IROH_RELAY"],
         "The iroh relays, as --iroh-relay: https://HOST[:PORT], separated by commas, in order. The flag \
-          wins; an empty value is no value, and a bad one is a configuration error (78).",
+          wins; an empty value is no value, and a bad one is a configuration error (78). With neither, the \
+          iroh relays that the net's relay members serve on their own hosts come first, then n0's.",
     ),
     (
         &["PODSSH_IROH_UDP"],

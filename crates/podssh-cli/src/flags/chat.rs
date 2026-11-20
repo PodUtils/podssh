@@ -53,5 +53,5 @@ pub const CHAT_FLAGS: &[FlagRow] = &[
     row(None, "irc-ca-file", Some("FILE"), FlagKind::Supported,
         "with --irc: trust only the CA certificates in FILE for the server's TLS (default: the system and built-in roots)", None),
     row(None, "iroh-relay", Some("URLS"), FlagKind::Supported,
-        "the iroh relays, https://HOST[:PORT][,...]; the first that answers is the home relay (default: env PODSSH_IROH_RELAY, else n0's)", None),
+        "the iroh relays, https://HOST[:PORT][,...]; the first that answers is the home relay (default: env PODSSH_IROH_RELAY, else the net's relay members' own, then n0's)", None),
 ];

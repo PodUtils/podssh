@@ -199,7 +199,7 @@ pub const SSH_FLAGS: &[FlagRow] = &[
     row(None, "iroh-key", Some("FILE"), FlagKind::Supported,
         "the same as --client-key, by its earlier name", None),
     row(None, "iroh-relay", Some("URLS"), FlagKind::Supported,
-        "iroh:TICKET: the iroh relays to try after the ticket's, https://HOST[:PORT][,...] (default: env PODSSH_IROH_RELAY, else n0's)", None),
+        "iroh:TICKET: the iroh relays to try after the ticket's, https://HOST[:PORT][,...] (default: env PODSSH_IROH_RELAY, else the net's relay members' own, then n0's)", None),
     row(None, "iroh-ticket", Some("TICKET"), FlagKind::Supported,
         "node://NAME: race the iroh road to TICKET, first, with the pair's road; the first that answers carries the session; a build with the feature iroh", None),
     derp::DERP_TICKET, opentunnel::SSH_OPENTUNNEL_NAME, opentunnel::SSH_PINGGY_NAME, opentunnel::SSH_TUNNEL_URL,

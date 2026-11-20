@@ -25,6 +25,12 @@ pub fn last_ask(member: &Member) -> Option<Ask> {
     pod_relay::pool::members::last_ask(&crate::context::cache(), member)
 }
 
+/// The meeting points that `member`'s last answer named on its own host,
+/// as the cache keeps them: no request (T-720).
+pub fn kept_meet(member: &Member) -> Option<Meet> {
+    pod_relay::pool::members::meet(&crate::context::cache(), member)
+}
+
 /// Ask each member of the process that is due for its list, and keep each
 /// list that holds: how many were newly kept.
 pub async fn ask_due(trust: &Trust) -> usize {

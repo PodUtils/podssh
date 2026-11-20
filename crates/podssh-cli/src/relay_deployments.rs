@@ -71,6 +71,17 @@ fn asked_member(doc: &Doc, m: &Member) -> Option<members::Member> {
     Some(members::Member { name: m.name.clone(), net: doc.name.clone(), key: m.key.clone(), host })
 }
 
+/// The iroh relays that the net's relay members named on their own hosts
+/// (`meet` of their `/relays.json`, kept by the day's ask), in the order of
+/// the document: a member of the net meets its peers there first (T-720).
+/// Reads the cache alone, never the network.
+#[cfg(feature = "iroh")]
+pub fn net_iroh_relays() -> Vec<String> {
+    let Some(held) = net_now() else { return Vec::new() };
+    let members = net_hosts(&held);
+    members.iter().filter_map(members::kept_meet).filter_map(|meet| meet.iroh).collect()
+}
+
 /// The default list of a command that measures, `relay status`, with the
 /// lists of the net's relay members that are due asked first (T-617), as a
 /// session asks them; a list that the user named, as it is.

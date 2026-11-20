@@ -175,7 +175,7 @@ fn a_pair_s_road_and_operator_reach_the_relay_behind_access() {
     let lines = lines_of(&mut node);
     s.keep(node);
     // Online on the pair's road, not the Piping Server's: the probe of the
-    // upgrade carries no header, so it is not made for a named host.
+    // upgrade carries the headers too, so the gate does not refuse it.
     wait_for(&lines, "online").expect("the node is online behind the gate");
     let sent: Vec<u8> = (0..64 * 1024).map(|i| (i % 251) as u8).collect();
     let mut operator = podssh(&["operator", "box"], true);

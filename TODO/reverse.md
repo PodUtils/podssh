@@ -4756,7 +4756,7 @@ which `piping.yml` installs, and the second's API and edge are Cloudflare's alon
   at each start before (`crates/podssh-cli/src/node_quick.rs:260` says "asked = api::request(&trust,
   &proxy, &*say) => asked,"). Both pass as parts of the run (Decision, items 2 and 3).
 - The Approach's "the road's own connection is made again" needs nothing more on two roads: the Piping
-  Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:239` says "let secret
+  Server's door comes from the pair's secret (`crates/podssh-cli/src/node_piping.rs:236` says "let secret
   = Arc::new(Secret::of_pair(&pair.name, pair.connect_token()));"), and the OpenTunnel road's route is in
   its record of the cache (crates/podssh-relay/src/opentunnel/record.rs:47 at `b9c04657` says "pub route: String,"),
   save a tunnel that no directory took (Decision, item 6).

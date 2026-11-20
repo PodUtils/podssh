@@ -76,13 +76,6 @@ pub fn set_process(named: Named) {
     *PROCESS.lock().unwrap_or_else(|e| e.into_inner()) = Some(named);
 }
 
-/// Whether this process sends the credentials to `host`: a host that the
-/// user named, with a credential set.
-pub fn process_names(host: &str) -> bool {
-    let named = *PROCESS.lock().unwrap_or_else(|e| e.into_inner());
-    named.is_some_and(|named| named.for_host(host).is_some())
-}
-
 /// The headers of each road of this process: the credentials for a host
 /// that the user named, and nothing for any other host.
 pub fn process_headers() -> pod_ws::Headers {
@@ -258,9 +251,7 @@ mod tests {
         let way = crate::client::way(&ProxyChoice::Direct);
         assert!(format!("{:?}", way.extra("edge.example").unwrap()).contains(CLIENT_ID));
         assert!(!format!("{:?}", way.extra("relay.example").unwrap()).contains(CLIENT_ID));
-        assert!(process_names("EDGE.example.") && !process_names("relay.example"));
         set_process(Named::default());
-        assert!(!process_names("edge.example"), "none set");
         let way = crate::client::way(&ProxyChoice::Direct);
         assert!(!format!("{:?}", way.extra("edge.example").unwrap()).contains(CLIENT_ID), "none set, none sent");
     }

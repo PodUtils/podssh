@@ -311,8 +311,8 @@
 303 issue closed
 304 issue closed
 305 issue closed
-306 issue open
-307 issue open
+306 issue closed
+307 issue closed
 308 issue open
 309 issue closed
 310 issue closed

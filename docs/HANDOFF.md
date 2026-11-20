@@ -92,7 +92,6 @@ COORD-129; the tag `v0.78.0` has no GitHub release). It took `pod-warp` at `v0.3
 | #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
 | #268 (COORD-081), #269 (COORD-082) | podcrates' answers to its COORD-107 and COORD-108 (T-791, T-793) |
 | #283 (COORD-091) | podcrates' asks of T-780; the lines of the next hang |
-| #306 (COORD-109), #307 (COORD-110) | podssh's use of podcrates' fixes of `v0.70.0` (T-718's skip of a probe, T-720's `meet`) |
 | #308 (COORD-111, to podnet), #311 (COORD-114, to podvm) | podnet and podvm reading them (T-809, T-819) |
 | #312 (COORD-115) | podcrates reading it; the copies of shared code end in T-820 |
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
@@ -131,7 +130,7 @@ road). Each has a planted run that must fail, and each did.
 | T-106 | Partial: the tailnet's test on the operator's machine, the box's run of B and the drop test of 5 min. |
 | T-660, T-666, T-670 | Partial: the matrix rows that their `## Done` names (iroh, DERP, the node's road on the slow link, osewa's binary on a runner). |
 | T-755 | Partial: its live run waits for a tester's tunnel (#215). |
-| T-598, T-710, T-714, T-718, T-720 | Partial: each `## Done` says what is left. |
+| T-598, T-710, T-714, T-718, T-720 | Partial: each `## Done` says what is left (2026-11-20: T-718's skip of the probe went and T-720's iroh relay of a member comes first, COORD-109 and COORD-110 closed). |
 | T-446 | The next beta when podssh is nearly complete and the black-box pass is clean; `v1.1.0` after the migration. |
 
 Blocked, each on the owner or on another party, as its `## Blocker` names: T-113 (M5's exit in the operator's

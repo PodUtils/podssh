@@ -1825,9 +1825,14 @@ where its members used n0's iroh relays and Tailscale's DERP fleet.
   a captive portal apart.
 - **`/relays.json`** names the roads as `meet`: `{"iroh":
   "https://HOST:PORT/", "derp": "HOST:PORT", "probe": "/generate_204"}`,
-  each `null` when off. The use of `meet` by a member of the net, to list
-  this host first as its iroh relay and its DERP home, is the open step of
-  T-720.
+  each `null` when off. A member of the net that holds a relay member reads
+  that member's `meet` from the day's ask of its list (`pod-relay` keeps it,
+  each value on the member's own host or dropped), and with no
+  `--iroh-relay` and no `PODSSH_IROH_RELAY` lists its iroh relay before
+  n0's (`crates/podssh-cli/src/iroh_way.rs`), so the net's peers take it as
+  their home relay where it answers. The DERP home stays `--ts-relay`'s:
+  `podssh ts` takes one relay, which a member's DERP of `--derp-keys` may
+  refuse (T-720).
 
 What it does not do: iroh's QUIC address discovery (QAD, a UDP port of its
 own), and rate limits of each client, which iroh-relay's own server has;

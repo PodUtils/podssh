@@ -29,9 +29,28 @@ fn var(name: &str) -> Option<String> {
 }
 
 /// The relays of `flag` (`--iroh-relay`), else of PODSSH_IROH_RELAY, else
-/// the table.
+/// the table, after the iroh relays of the net's own relay members (T-720).
 pub fn relays(flag: Option<&str>) -> Result<(Vec<RelayUrl>, Source), String> {
-    relays::select(flag, var(RELAY_ENV))
+    let (list, source) = relays::select(flag, var(RELAY_ENV))?;
+    Ok(match source {
+        Source::Table => (net_first(&crate::relay_deployments::net_iroh_relays(), list), source),
+        _ => (list, source),
+    })
+}
+
+/// The net's relays (`net`, each checked as a relay URL; one that is not is
+/// passed over) before `table`, each once: the first that answers is the
+/// home relay, so the net's peers meet on its own host, and n0's relays
+/// stay behind it.
+fn net_first(net: &[String], table: Vec<RelayUrl>) -> Vec<RelayUrl> {
+    let mut list: Vec<RelayUrl> = net.iter().filter_map(|text| relays::parse_url(text).ok()).collect();
+    for url in table {
+        if !list.contains(&url) {
+            list.push(url);
+        }
+    }
+    list.dedup();
+    list
 }
 
 /// The choice of PODSSH_IROH_PKARR.
@@ -82,6 +101,19 @@ pub fn load_key(place: &Place, entropy: &mut dyn Entropy) -> Result<Key, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The net's relays come first, each once, a bad one passed over, and
+    /// the table stays behind them; with no net, the table alone.
+    #[test]
+    fn the_net_s_relays_come_before_the_table() {
+        let table = relays::defaults();
+        assert_eq!(net_first(&[], table.clone()), table, "no net: the table");
+        let net = ["https://relay.lab.example/".to_string(), "not a url".to_string(), table[0].to_string()];
+        let list = net_first(&net, table.clone());
+        assert_eq!(list[0].to_string(), "https://relay.lab.example/");
+        assert_eq!(list[1], table[0], "a relay of the table that the net named is first once");
+        assert_eq!(list.len(), table.len() + 1, "{list:?}");
+    }
 
     /// The names that podssh reads are the names that pod-iroh says in its
     /// errors and lines.

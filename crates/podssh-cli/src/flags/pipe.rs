@@ -36,7 +36,7 @@ pub const PIPE_FLAGS: &[FlagRow] = &[
     row(None, "iroh-key", Some("FILE"), FlagKind::Supported,
         "the same as --client-key, by its earlier name", None),
     row(None, "iroh-relay", Some("URLS"), FlagKind::Supported,
-        "iroh: the relays, https://HOST[:PORT][,...], after the ticket's (default: env PODSSH_IROH_RELAY, else n0's)", None),
+        "iroh: the relays, https://HOST[:PORT][,...], after the ticket's (default: env PODSSH_IROH_RELAY, else the net's relay members' own, then n0's)", None),
     row(None, "keep-listening", None, FlagKind::Supported,
         "unix-listen:, tcp-listen:, ws-listen: take each client in turn, 8 at once, each with a new instance of the other side, until SIGINT or SIGTERM; http-listen: always does, 32 at once", None),
     row(None, "detach", None, FlagKind::Supported,

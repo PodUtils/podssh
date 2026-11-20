@@ -5894,7 +5894,7 @@ code that no command of the default build uses is P2 at most".
    is set, a QUIC handshake to the quick tunnel's edge as `podssh node --quick-tunnel` makes it
    (`crates/podssh-relay/src/quick/quic.rs:60-68`), and with a proxy set, that the quick tunnel
    takes HTTP/2. Each answer is `ok`, as a road with no UDP works; a home relay that does not
-   answer is already `FAIL` (`crates/podssh-cli/src/doctor/iroh.rs:90-96`).
+   answer is already `FAIL` (`crates/podssh-cli/src/doctor/iroh.rs:92-98`).
 5. `-v` says which answer the road took. The manual's `PODSSH_IROH_UDP`, `docs/design.md`
    (section 7), `docs/architecture.md` (rule 3) and `SECURITY.md` say that the iroh road takes UDP
    after a datagram came back, not after a socket binds.
@@ -10669,6 +10669,14 @@ A Correction of the waits above: `Headers::in_cleartext` is needed by no road. `
 `pipe --access-host` on `ws:` (`podssh_ws::access::dial`) write the headers into their own requests. Still waits: the
 node's 77 kept from a restart (Decision: `RestartPreventExitStatus` keeps `64 78`; a refusal by Access and an expired
 pair share 77), COORD-109's fix, and the live step with a Cloudflare account (Blocker).
+
+2026-11-20: COORD-109's fix is in the podcrates that podssh pins (`v0.78.1`): `pod_piping::probe::upgrade` writes the
+headers of the caller from the `Way` (`way.extra(host)`). podssh no longer skips the probe for a host that it sends the
+credentials to (`crates/podssh-cli/src/node_piping.rs`, `unasked`), and `podssh_ws::access::process_names` goes with
+its one caller. `cargo test -p podssh-cli --test access_relay`: 3 passed, 3 runs in 3 (the node online on the pair's
+road behind the gate, through the probe); planted, the probe's way with no header: caught (the node never came online
+on the pair's road). `podssh-ws --lib access` 6 passed. Still waits: the node's 77 kept from a restart (Decision), and
+the live step with a Cloudflare account (Blocker).
 
 # T-727: SSH login with a short-lived Access certificate over `cf://`
 

@@ -59,7 +59,9 @@ pub(super) async fn relay(report: &mut Report<'_>, trust: &Trust) {
         }
     };
     let from = match source {
-        Source::Table => "the built-in list".to_string(),
+        // The net's relay members lead the table where they named an iroh relay (T-720).
+        Source::Table if crate::relay_deployments::net_iroh_relays().is_empty() => "the built-in list".to_string(),
+        Source::Table => "the net's relay members, then the built-in list".to_string(),
         Source::Variable | Source::Flag => relays::ENV.to_string(),
     };
     let mut home = None;

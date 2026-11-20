@@ -1905,7 +1905,8 @@ podssh ssh
         the same as --client-key, by its earlier name.
     --iroh-relay URLS
         iroh:TICKET: the iroh relays to try after the ticket's,
-        https://HOST[:PORT][,...] (default: env PODSSH_IROH_RELAY, else n0's).
+        https://HOST[:PORT][,...] (default: env PODSSH_IROH_RELAY, else the
+        net's relay members' own, then n0's).
     --iroh-ticket TICKET
         node://NAME: race the iroh road to TICKET, first, with the pair's road;
         the first that answers carries the session; a build with the feature
@@ -3944,7 +3945,8 @@ podssh pipe
         the same as --client-key, by its earlier name.
     --iroh-relay URLS
         iroh: the relays, https://HOST[:PORT][,...], after the ticket's
-        (default: env PODSSH_IROH_RELAY, else n0's).
+        (default: env PODSSH_IROH_RELAY, else the net's relay members' own,
+        then n0's).
     --keep-listening
         unix-listen:, tcp-listen:, ws-listen: take each client in turn, 8 at
         once, each with a new instance of the other side, until SIGINT or
@@ -5510,7 +5512,8 @@ podssh node
         pair.
     --iroh-relay URLS
         with --iroh: the relays, https://HOST[:PORT][,...]; the first that
-        answers is the home relay (default: env PODSSH_IROH_RELAY, else n0's).
+        answers is the home relay (default: env PODSSH_IROH_RELAY, else the
+        net's relay members' own, then n0's).
     --derp-server SERVERS
         with --derp: the DERP servers, HOST[:PORT][,...]; the first whose
         /derp/probe answers is the home, and after 3 failed connections the
@@ -6487,7 +6490,8 @@ podssh chat
         (default: the system and built-in roots).
     --iroh-relay URLS
         the iroh relays, https://HOST[:PORT][,...]; the first that answers is
-        the home relay (default: env PODSSH_IROH_RELAY, else n0's).
+        the home relay (default: env PODSSH_IROH_RELAY, else the net's relay
+        members' own, then n0's).
     --help
         Print help for this subcommand and exit.
 

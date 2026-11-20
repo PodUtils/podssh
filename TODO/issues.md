@@ -362,8 +362,8 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #303 | COORD-106: podssh took podcrates v0.68.0: the liveness offer, the headers of Access, a Unix route by pod-relay, one rsa (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-712, T-714, T-718, T-802 |
 | #304 | COORD-107: the wire document of podssh, for T-120 (to podcrates) | closed 2026-11-18: podcrates' T-120 (the wire documents) is done; T-723 done | T-723 |
 | #305 | COORD-108: podssh took podcrates v0.69.0 (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-808 |
-| #306 | COORD-109: pod-piping: the probe of a node's upgrade without the caller's headers (to podcrates) | open 2026-11-17: until podcrates fixes the probe and podssh takes it | T-718 |
-| #307 | COORD-110: pod-relay: keep a relay member's `meet` from its `/relays.json` (to podcrates) | open 2026-11-17: until podcrates keeps it and podssh takes it | T-720 |
+| #306 | COORD-109: pod-piping: the probe of a node's upgrade without the caller's headers (to podcrates) | closed 2026-11-20: podcrates' probe writes the caller's headers (in `v0.78.1`), and podssh's skip of the probe went | T-718 |
+| #307 | COORD-110: pod-relay: keep a relay member's `meet` from its `/relays.json` (to podcrates) | closed 2026-11-20: podcrates keeps it (in `v0.78.1`), and podssh's iroh road lists a member's iroh relay first | T-720 |
 | #308 | COORD-111: podssh's answer to podnet's QA round: what its gate proves, and what not (to podnet) | open 2026-11-17: until T-809's lane rows and its black-box pass | T-809 |
 | #309 | COORD-112: pod-relay: OpenError::lines says one cause twice (to podcrates) | closed 2026-11-20: answered by podcrates' entry 869 in `v0.70.0` (PodUtils/podcrates#222), taken at `99e9fd5`; the relay's lost cause is T-843 (done) | T-809 |
 | #310 | COORD-113: pod-ws: a shared HTTP/2 connection dies with the runtime that opened it (to podcrates) | closed 2026-11-18: podcrates' fix (its entry 871) taken in `v0.70.0` (COORD-119); T-811 done | T-811 |

@@ -138,12 +138,9 @@ pub(crate) struct Ready {
 /// road is off.
 pub(crate) async fn unasked(pair: &Pair, trust: &Trust) -> Option<(Vec<Server>, String)> {
     let Ok(Want::Unasked(servers)) = piping_road::want() else { return None };
-    // The probe writes its own request, without the headers of Cloudflare
-    // Access (pod-piping at v0.69.0), so a gate in front of a relay that the
-    // user named would refuse it and send the node off the pair's road.
-    if podssh_ws::access::process_names(&pair.relay.host) {
-        return None;
-    }
+    // The way carries the headers of Cloudflare Access for a host that the
+    // user named, and the probe writes them (pod-piping, COORD-109), so a
+    // gate in front of the relay reads the probe as the node's own upgrade.
     let way = podssh_ws::client::way(&ProxyChoice::FromEnvironment);
     match probe::upgrade(&pair.relay, &pair.name, &way, trust, PROBE_LIMIT).await {
         Probe::Refused(why) => Some((servers, why)),
