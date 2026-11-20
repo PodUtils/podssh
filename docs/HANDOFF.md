@@ -6,6 +6,11 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
+- 2026-11-20 (the cloud session after it): the gate is green at `529bc89` (run 44654103729, each job). Dependabot's #331
+  at `1a24efd` (run 44649725163) was red in `gate (m6)`, T-780's thirteenth hang (no line of the pump's busy watch: the
+  hold is in russh's loop; patch `0013-loop-step` now says its step), and `gate (ssh)`, T-851 (a port race of
+  `shadowsocks_cli`'s stand-in, repaired): neither from its bump. This session's account cannot start Actions (its
+  `GH_TOKEN` is refused): runs by hand go through `[gh action] requested` ("How to test").
 - 2026-11-20: the gate is green at `0661ded` (run 44571876363, each job) and at `2c7b594` (run 44643735624);
   `release.yml` by hand at `0661ded` passed (run 44571898795, T-850). podcrates `v0.78.1` is taken at `e5b7414`
   (COORD-129, #330): `cargo test --workspace` 383 suites, 3954 passed. Its gate at `ae25fe1` was cancelled by the
@@ -162,7 +167,8 @@ T-200). cfb's asks, T-708 to T-731, stay behind podssh's own work order.
 - **A cloud session's proxy** passes HTTPS alone: raw SSH and other ports go through GitHub Actions.
 - **Pushes:** each push queues a gate on the runners; batch the record's commits.
 - **A session's account starts runs** (2026-11-16: a push starts `build.yml`, and `gh workflow run` starts one by hand),
-  so no `[gh action] requested` is needed then. **A session whose account cannot start Actions** (this one's could not on 2026-11-15): ask the operator's
+  so no `[gh action] requested` is needed then. The cloud session of 2026-11-20 could not (`gh`'s token refused; the
+  GitHub tools read runs and logs): a push still starts the gate. **A session whose account cannot start Actions** (this one's could not on 2026-11-15): ask the operator's
   local agent by an issue of this repository titled `[gh action] requested`, as PodUtils/podvm#387 does: why, one
   `sh` block that dispatches each workflow and watches it to its end, and "Run the block as it is, once. Then write
   here: the output of the last line, or the line where it stopped and its error." Read the runs as usual. podcrates' `watch.py` (`AGENTS.md`, step 7) says when each asked run

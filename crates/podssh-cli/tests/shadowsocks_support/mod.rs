@@ -62,19 +62,60 @@ fn free_port() -> u16 {
 /// `ssserver` on the loopback with `method` and `password`, from a file of
 /// its configuration: the process and its port.
 pub fn start_server(program: &Path, dir: &Path, method: &str, password: &str) -> (Running, u16) {
-    let port = free_port();
-    let conf = dir.join(format!("ssserver-{port}.json"));
-    let text = serde_json::json!({"server": "127.0.0.1", "server_port": port, "password": password, "method": method});
-    std::fs::write(&conf, text.to_string()).unwrap();
-    let mut child = Command::new(program);
-    child.arg("-c").arg(&conf).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-    let running = Running(child.spawn().unwrap());
+    // A free port can be taken by another test before ssserver binds it;
+    // ssserver then exits, and a connect reaches the other listener (T-851).
+    for _ in 0..5 {
+        let port = free_port();
+        let conf = dir.join(format!("ssserver-{port}.json"));
+        let text =
+            serde_json::json!({"server": "127.0.0.1", "server_port": port, "password": password, "method": method});
+        std::fs::write(&conf, text.to_string()).unwrap();
+        let mut child = Command::new(program);
+        child.arg("-c").arg(&conf).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+        let mut running = Running(child.spawn().unwrap());
+        if listens(&mut running, port) {
+            return (running, port);
+        }
+    }
+    panic!("ssserver did not listen on any of 5 free ports");
+}
+
+/// Whether the child listens on `port`, within 20 s; false once it exits.
+fn listens(running: &mut Running, port: u16) -> bool {
     let deadline = Instant::now() + Duration::from_secs(20);
-    while std::net::TcpStream::connect(("127.0.0.1", port)).is_err() {
+    loop {
+        if running.0.try_wait().unwrap().is_some() {
+            return false;
+        }
+        match owns_listener(running.0.id(), port) {
+            Some(true) => return true,
+            Some(false) => {}
+            // No /proc: a connect, and the child still there after it.
+            None if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() => {
+                std::thread::sleep(Duration::from_millis(200));
+                return running.0.try_wait().unwrap().is_none();
+            }
+            None => {}
+        }
         assert!(Instant::now() < deadline, "ssserver did not listen on {port}");
         std::thread::sleep(Duration::from_millis(50));
     }
-    (running, port)
+}
+
+/// Whether process `pid` holds the socket that listens on `port` of
+/// 127.0.0.1, by Linux's /proc; `None` where /proc cannot tell.
+pub fn owns_listener(pid: u32, port: u16) -> Option<bool> {
+    let table = std::fs::read_to_string("/proc/net/tcp").ok()?;
+    let local = format!("0100007F:{port:04X}");
+    // Columns: sl, local, remote, st (0A is LISTEN), ..., inode is the tenth.
+    let inode = table.lines().skip(1).find_map(|line| {
+        let cols: Vec<&str> = line.split_whitespace().collect();
+        (cols.len() > 9 && cols[1] == local && cols[3] == "0A").then(|| cols[9].to_string())
+    });
+    let Some(inode) = inode else { return Some(false) };
+    let wanted = format!("socket:[{inode}]");
+    let fds = std::fs::read_dir(format!("/proc/{pid}/fd")).ok()?;
+    Some(fds.flatten().any(|fd| std::fs::read_link(fd.path()).is_ok_and(|l| l.to_string_lossy() == wanted)))
 }
 
 /// What the stand-in subscription serves, and what it was asked.

@@ -635,10 +635,13 @@ impl Session {
                     }
                 }
 
+                // Which wait holds the loop, if one does (podssh's patch, T-780).
                 if let Some(chan) = self.channels.get(&channel_num) {
+                    self.step.at("the queue of a channel, with its CHANNEL_DATA");
                     let _ = chan.send(ChannelMsg::Data { data: data.clone() }).await;
                 }
 
+                self.step.at("the handler's data");
                 client.data(channel_num, &data, self).await
             }
             Some((&msg::CHANNEL_EXTENDED_DATA, mut r)) => {
@@ -664,6 +667,7 @@ impl Session {
                 }
 
                 if let Some(chan) = self.channels.get(&channel_num) {
+                    self.step.at("the queue of a channel, with its CHANNEL_EXTENDED_DATA");
                     let _ = chan
                         .send(ChannelMsg::ExtendedData {
                             ext: extended_code,

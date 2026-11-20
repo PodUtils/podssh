@@ -1,7 +1,8 @@
 //! The pump, watched (T-780): one step of it that holds 20 s, in place of
 //! taking the channel's next message, is said at `-v` with its name. Where SSH
 //! reads nothing of its stream and this says nothing, the pump waits in its
-//! select, ready for a message, and the hold is in russh's own loop.
+//! select, ready for a message, and the hold is in russh's own loop: its step
+//! that holds 20 s is said too (podssh's patch of russh, `Step`).
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -42,19 +43,39 @@ impl Busy {
         ))
     }
 
-    /// A task that says each step that holds, until the pump drops its watch.
-    pub(super) fn watch(&self, log: &Arc<Log>) -> tokio::task::JoinHandle<()> {
+    /// A task that says each step that holds, of the pump and of russh's
+    /// loop, until the pump drops its watch.
+    pub(super) fn watch(&self, log: &Arc<Log>, russh: russh::client::Step) -> tokio::task::JoinHandle<()> {
         let (busy, log) = (self.clone(), log.clone());
         tokio::spawn(async move {
-            let mut said = None;
+            let (mut said, mut said_russh) = (None, None);
             while Arc::strong_count(&busy.0) > 1 {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 if let Some(line) = busy.line(Instant::now(), &mut said) {
                     log.verbose(&line);
                 }
+                if let Some(line) = loop_line(russh.now(), std::time::Instant::now(), &mut said_russh) {
+                    log.verbose(&line);
+                }
             }
         })
     }
+}
+
+/// The line of a step of russh's loop that held [`HOLD`] at `now`, once for
+/// each step: the loop reads nothing of its stream meanwhile.
+fn loop_line(
+    step: Option<(std::time::Instant, &'static str)>,
+    now: std::time::Instant,
+    said: &mut Option<std::time::Instant>,
+) -> Option<String> {
+    let (since, what) = step?;
+    let held = now.saturating_duration_since(since);
+    if held < HOLD || *said == Some(since) {
+        return None;
+    }
+    *said = Some(since);
+    Some(format!("the SSH session's loop read nothing of its stream for {} s, held in {what}", held.as_secs()))
 }
 
 #[cfg(test)]
@@ -76,5 +97,24 @@ mod tests {
         let line = busy.line(Instant::now(), &mut said).expect("said after 20 s");
         assert_eq!(line, "the session took no message of its channel for 20 s, held in the output to stdout");
         assert_eq!(busy.line(Instant::now(), &mut said), None, "once for each step");
+    }
+
+    /// A step of russh's loop that holds 20 s is said once, with its name;
+    /// a loop in its select, or a shorter step, says nothing.
+    #[test]
+    fn a_step_of_the_loop_that_holds_is_said_once_with_its_name() {
+        let since = std::time::Instant::now();
+        let mut said = None;
+        assert_eq!(loop_line(None, since + HOLD, &mut said), None, "the select is no hold");
+        let step = Some((since, "the queue of a channel, with its CHANNEL_DATA"));
+        assert_eq!(loop_line(step, since + HOLD / 2, &mut said), None, "not before 20 s");
+        let line = loop_line(step, since + HOLD, &mut said).expect("said after 20 s");
+        assert_eq!(
+            line,
+            "the SSH session's loop read nothing of its stream for 20 s, held in the queue of a channel, with its CHANNEL_DATA"
+        );
+        assert_eq!(loop_line(step, since + 2 * HOLD, &mut said), None, "once for each step");
+        let next = Some((since + HOLD, "the handler's data"));
+        assert!(loop_line(next, since + 2 * HOLD, &mut said).is_some(), "a new step is said again");
     }
 }

@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:174-193`, `Cargo.toml:237-239`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:175-194`, `Cargo.toml:237-239`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3671,10 +3671,10 @@ Read with T-460's draft in the tree, 2026-11-02:
   test of Approach item 3.
 - The lock's russh is `vendor/russh` there, crates.io's 0.65.0 with T-460's patch, which adds 5
   lines to `src/client/mod.rs` above that code: the code that the Premise reads in cargo's copy is
-  at `vendor/russh/src/client/mod.rs:880-883` (`SendError`), `vendor/russh/src/client/mod.rs:799-802`
-  (`Disconnect`) and `vendor/russh/src/client/mod.rs:796-797` (`ChannelOpenFailure`).
+  at `vendor/russh/src/client/mod.rs:928-931` (`SendError`), `vendor/russh/src/client/mod.rs:847-850`
+  (`Disconnect`) and `vendor/russh/src/client/mod.rs:844-845` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1428-1437`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1479-1488`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
@@ -4596,7 +4596,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3261` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3315` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).

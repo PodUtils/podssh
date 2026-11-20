@@ -217,7 +217,7 @@ pub async fn pump(
     let mut ping: Option<Ping<'_>> = None;
     // A step that holds the pump 20 s, said at -v (T-780).
     let busy = busy::Busy::default();
-    let _watching = busy.watch(log);
+    let _watching = busy.watch(log, handle.step());
     loop {
         busy.at("the pump's turn before its wait");
         expected(&mut through, &writer, &mut held, !reading).await;

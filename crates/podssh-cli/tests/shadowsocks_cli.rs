@@ -302,3 +302,24 @@ fn an_outline_key_carries_the_session_in_a_websocket_and_each_failure_is_named()
     }
     assert!(seen.unopened.load(SeqCst) >= 1, "the wrong key's stream did not open at the server");
 }
+
+/// The world's check that `ssserver` holds its port (T-851): a listener of
+/// another process on the port is not the server's, so a server that lost
+/// its free port to it is started again on a new one.
+#[test]
+fn a_listener_of_another_process_is_not_the_servers() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let Some(ours) = shadowsocks_support::owns_listener(std::process::id(), port) else {
+        eprintln!("did not run: no /proc on this host");
+        return;
+    };
+    assert!(ours, "this process holds the listener");
+    let mut other = std::process::Command::new("sleep").arg("30").spawn().unwrap();
+    let theirs = shadowsocks_support::owns_listener(other.id(), port);
+    let _ = other.kill();
+    let _ = other.wait();
+    assert_eq!(theirs, Some(false), "another process does not");
+    drop(listener);
+    assert_eq!(shadowsocks_support::owns_listener(std::process::id(), port), Some(false), "a closed port is nobody's");
+}

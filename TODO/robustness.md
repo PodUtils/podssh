@@ -2689,6 +2689,22 @@ Loop, 2026-11-19, at `fbf49b2` (the busy watch in): `the_layer_survives_a_stoppe
 `iroh::the_iroh_road_survives_a_new_address` 15 times each, then the whole of `m6_exit` 4 times, here: each passed. The
 gate at `0661ded` (run 44571876363): `gate (m6)` passed. It waits for its next hang.
 
+2026-11-20, the thirteenth failure, in the gate of Dependabot's pull request #331 at `1a24efd` (run 44649725163, job
+`gate (m6)`): `the_layer_survives_a_stopped_relay_host`, the first hang with the pump's busy watch in. The client said
+"SSH read nothing for 20 s while the channel waits to give it bytes; 11990334 bytes went to SSH so far" and pod-e2e's
+"the application took no byte of the channel for 20 s, while 25224 bytes wait for it"; no line of the busy watch ("held
+in ...") and no line of SSH's own write. The client's layer had sent 20,680,531 bytes, all acknowledged, short of the
+upload's 20 MiB: SSH wrote nothing either. So the pump waited in its select, ready for the channel's messages, and
+russh's loop neither read its stream nor waited in a write: it awaits inside a step of its own. Of its loop's awaits,
+podssh's handler answers each at once (`crates/podssh-ssh/src/handler.rs`); the one that can hold is a channel's queue
+(`chan.send(...).await` in `vendor/russh/src/client/encrypted.rs`), or a reply's other await. podssh's patch
+`vendor/patches/russh/0013-loop-step.patch` keeps the loop's step (`russh::client::Step`: a reply to which message, the
+queue of a channel with its data, the handler's data), `Handle::step` gives it, and the pump's busy watch says a step of
+the loop that holds 20 s at `-v` ("the SSH session's loop read nothing of its stream for N s, held in ..."). Proven by
+`crates/podssh-ssh/tests/loop_step.rs` (a server of the process floods a channel that nobody reads: the step names the
+channel's queue; planted, the queue's mark taken out, it named the reply and failed) and the unit test of `io/busy.rs`.
+The next hang names the step; a line naming the queue means a channel whose messages nobody takes.
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
@@ -4267,3 +4283,47 @@ cargo test -p podssh-cli --lib cp::resume
 ## Done
 
 Partial, 2026-11-19: step 1; 5 runs in 5 here. Waits for its next failure on macOS.
+
+# T-851: `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test
+
+**Source:** the gate of Dependabot's pull request #331 at `1a24efd` (run 44649725163, 2026-11-20, job `gate (ssh)`):
+`a_kept_list_whose_servers_changed_is_fetched_again` of `crates/podssh-cli/tests/shadowsocks_cli.rs` failed with 255.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The second server of the test answered no salt: "it closed the connection, with no answer to the salt". The run of a
+list whose servers changed then failed with 255, where it carries the session.
+
+## Premise
+
+- `crates/podssh-cli/tests/shadowsocks_support/mod.rs:58` takes a free port by a bind that it drops at once, and
+  `start_server` called `ssserver` ready once any connect to that port went through, with its output discarded: a port
+  that another test of the step took in between leaves `ssserver` to exit on its bind, and the connect reaches the other
+  test's listener, which closes a stream it cannot read.
+
+## Approach
+
+1. `start_server` calls the server ready only when the server's own process holds the listening socket (Linux's
+   `/proc/net/tcp` and `/proc/PID/fd`; elsewhere a connect, and the process still there after it), and starts it again
+   on a new free port, five times at most, where it exited.
+2. A test pins the rule: a listener of this process is its own, not another process's, and a closed port is nobody's.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+PODSSH_TEST_SSSERVER=/usr/bin/ssserver PODSSH_TEST_SSLOCAL=/usr/bin/sslocal \
+  cargo test -p podssh-cli --test shadowsocks_cli
+```
+
+## Done
+
+Done, 2026-11-20: steps 1 and 2. Here, with shadowsocks-rust v1.25.0's release binaries (their SHA-256 checked):
+`cargo test -p podssh-cli --test shadowsocks_cli`, 10 passed, six runs in six. Planted, the check of the owner taking any
+process's listener for the server's: `a_listener_of_another_process_is_not_the_servers` failed ("another process does
+not").

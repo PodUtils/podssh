@@ -58,7 +58,7 @@ capability does not work, P2 worth doing, P3 recorded). The record has no open P
 
 | # | Problem | Entries | P | Group | Why it ranks here |
 | --- | --- | --- | --- | --- | --- |
-| 1 | A resumable session stops moving, at random, in the gate (12 failures in 6 days) | T-780 | P1 | A, C | The headline feature (M6) hangs a session; each hang costs a gate rerun; the cause now narrows to podssh's own SSH client |
+| 1 | A resumable session stops moving, at random, in the gate (13 failures in 7 days) | T-780 | P1 | A, C | The headline feature (M6) hangs a session; each hang costs a gate rerun; the cause now narrows to podssh's own SSH client |
 | 2 | A relay's byte cap vs the layer's move and window arithmetic | T-826 (COORD-122, 124, 126) | P2 | B, C | The layer still meets the relay's `1009` cap under a small cap; Windows lags the move |
 | 3 | Half-close of a Unix-domain socket not reaching the peer, on macOS and Windows | T-465 | P1 | A | One bug has failed on two systems 5 times since 2026-11-02; a platform fact is in doubt |
 | 4 | Windows loses the last bytes of an echo at the end of input | T-753 | P2 | A | RST on close with unread data is the likely cause; one failure, 50 runs clean |
@@ -93,7 +93,7 @@ client address, a stall of 3 minutes, or no fault. The same cases run on the iro
 (`--features podssh-cli/iroh-test`, `PODSSH_IROH_UDP=off`, iroh's relay server on the loopback).
 One test of 11 hangs until its limit; its rerun passes. It is a different test each time.
 
-**The twelve failures** (gate run, podcrates tag, what the lines said). All are on `gate (m6)`.
+**The thirteen failures** (gate run, podcrates tag, what the lines said). All are on `gate (m6)`.
 
 | # | Date, podssh commit | Test | podcrates | What was seen |
 | --- | --- | --- | --- | --- |
@@ -109,6 +109,7 @@ One test of 11 hangs until its limit; its rerun passes. It is a different test e
 | 10 | 2026-11-19 `dcbea2c` | stall of 3 min | v0.75.0 | same sign on the layer's road: "while 191361 bytes wait for it" |
 | 11 | 2026-11-19 `4b21fcd` | iroh new address | v0.76.0 | pipe watch: "SSH read nothing for 20 s while the channel waits to give it bytes; 16089582 bytes went to SSH so far" |
 | 12 | 2026-11-19 `c9772a3` | iroh, no fault | v0.77.0 | the same, and no line of SSH's own write waiting: no loss of any link at all |
+| 13 | 2026-11-20 `1a24efd` (#331) | stopped relay host | v0.78.1 | the pipe watch's line, and no line of the pump's busy watch: the pump waits in its select; russh's loop neither reads nor writes |
 
 **How the diagnosis moved** (each step is an added log line, taken from podcrates by COORD issue
 #283 "COORD-091"; see `TODO/robustness.md:2490` onward for the dated record):
@@ -124,12 +125,15 @@ reads. (5) Failure 11 added a watch of that pipe (`crates/podssh-cli/src/ssh/hel
 **SSH stopped reading its end of the pipe.** (6) Failure 12, with no fault and a second watch for
 SSH's own writes, showed no write waiting, so there is no cycle through the pipe. The remaining
 holders are russh's read loop and podssh's pump step. A watch of the pump's steps
-(`crates/podssh-ssh/src/io/busy.rs`, commit `edefad63`) now says which step holds 20 s; **none of
-the failures has happened since it went in** (the gate at `0661ded` passed; local loops of 15 + 15 +
-4 whole-file runs passed).
+(`crates/podssh-ssh/src/io/busy.rs`, commit `edefad63`) now says which step holds 20 s; failure 13
+(2026-11-20) came with it and it said nothing, so the pump waited in its select, ready: **the hold is
+inside russh's own loop**, in a step that awaits beside no read and no write. (7) podssh's patch
+`vendor/patches/russh/0013-loop-step.patch` keeps the loop's step (a reply to which message, a
+channel's queue, the handler's data); the busy watch says one that holds 20 s
+(`crates/podssh-ssh/tests/loop_step.rs` makes the queue's hold). The next failure names the step.
 
 **The code where the hold must be** (cited at the worktree's tree):
-- `vendor/russh/src/client/mod.rs:1493-1560`: the client's `select!` loop. It reads the stream only
+- `vendor/russh/src/client/mod.rs:1544-1614`: the client's `select!` loop. It reads the stream only
   `if can_read` with `can_read = packet_writer.unwritten() < OUTPUT_MOST` (16 MiB,
   `vendor/russh/src/lib_inner.rs:538`), writes `if wants_write`, and handles an inbound packet with
   `reply(self, handler, ..).await` **inline** at line ~1541, so a handler that awaits a full bounded

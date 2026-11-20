@@ -8,7 +8,7 @@ this page keeps no history (git does).
 
 Read on 2026-11-20.
 
-1. **The gate.** Green at `0661ded` (2026-11-20, run 44571876363, each job: T-850's release index and T-780's busy watch; `release.yml` by hand there, run 44571898795, green) and at `2c7b594` (run 44643735624; the commit before it, `679b940`, was red in `checks` alone: a row of `docs/STATUS.md` with no release mark, repaired). The gate of the take of podcrates `v0.78.1` (`e5b7414`, `ae25fe1`) was still running when this page was read: read it first. Green at `eb58aec` (2026-11-19, run 44523196227: the two watches of SSH's pipe), `5975bb0` (run 44504544443: podcrates `v0.76.0`), `38da04d` (run 44490361365), `4bc5d5a` (run 44426400728: `v0.73.0`) and `e2d106d` (2026-11-18, run 44326156563). This session's account starts runs by a push and by hand (`gh workflow run`), so no `[gh action] requested` is needed. The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes. A push cancels the gate of the one before it, so a commit's gate is read before the next push.
+1. **The gate.** Green at `0661ded` (2026-11-20, run 44571876363, each job: T-850's release index and T-780's busy watch; `release.yml` by hand there, run 44571898795, green) and at `2c7b594` (run 44643735624; the commit before it, `679b940`, was red in `checks` alone: a row of `docs/STATUS.md` with no release mark, repaired). The gate of the take of podcrates `v0.78.1` (`e5b7414`, `ae25fe1`) was still running when this page was read: read it first. Green at `eb58aec` (2026-11-19, run 44523196227: the two watches of SSH's pipe), `5975bb0` (run 44504544443: podcrates `v0.76.0`), `38da04d` (run 44490361365), `4bc5d5a` (run 44426400728: `v0.73.0`) and `e2d106d` (2026-11-18, run 44326156563). Green at `529bc89` (2026-11-20, run 44654103729, each job). The cloud session of 2026-11-20 cannot start a run by hand (its `gh` token is refused): it asks by `[gh action] requested` (`docs/HANDOFF.md`, "How to test"); a push starts the gate. The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes. A push cancels the gate of the one before it, so a commit's gate is read before the next push.
 2. **Releases.** The newest is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is
    `v1.0.1` (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete
    (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the migration (T-446, T-684). podssh
@@ -62,6 +62,8 @@ Read on 2026-11-20.
    local branch `merge-NNN`, never on `main`.
 
 ## Tonight
+
+**Session of 2026-11-20 (cloud).** Done: T-851 (a port race of `shadowsocks_cli`'s stand-in, from the red gate of #331); T-780's thirteenth hang read (the pump idle, russh's loop neither reading nor writing) and podssh's patch `0013-loop-step` of russh, which says the loop's step that holds; the operator's rule that the repository's conventions win over a session's own setup (`AGENTS.md`, `docs/decisions.md`). Open, in order: T-780's next hang (its step named), the other tests that fail at random; T-684; T-791 and T-809 before any beta.
 
 **Session of 2026-11-19 to 20 (cloud).** Done: podcrates `v0.73.0` to `v0.78.1` taken (COORD-122, 124, 126, 127, 128 and 129; `v0.78.1` is COORD-146 of podcrates, PodUtils/podcrates#241: `update::plan`'s `Newer` in place of podssh's comparison, and the crate's own `Interrupts` of the pager); T-826 done (no link ends at a relay's small cap; the gate at `5975bb0` passed each job, Windows included); T-848 done (an exec has no prompt on the line discipline); T-850 done (`podssh update` on `pod-release`; `release.yml` writes `release-index.json` before `SHA256SUMS`, by hand at `0661ded`, run 44571898795, green); T-847 partial (the four images build in the dry run, run 44446055538; the push to ghcr.io waits for the next release tag); T-780's busy watch is in (30 local runs and 4 whole `m6_exit` runs passed, the gate at `0661ded` green). Open, in order: the gate of `ae25fe1`; T-780 and the other tests that fail at random, each waiting for its next failure; T-684 (`pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`); then the lane behind each class again (T-791) and a third black-box pass on the candidate (T-809): **no beta until that pass is clean.**
 
@@ -119,7 +121,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 805 entries: 39 open, 41 partial, 11 blocked, 714 done.
+`TODO/INDEX.md` holds 806 entries: 39 open, 41 partial, 11 blocked, 715 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
