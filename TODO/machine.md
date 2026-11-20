@@ -609,7 +609,7 @@ the bytes at `crates/podssh-ssh/src/outcome.rs:240-251`, the end at
 `crates/podssh-ssh/src/outcome.rs:261-279`, a run through a control master
 at `crates/podssh-ssh/src/outcome.rs:281-292`, and the cause of a failure
 at `crates/podssh-ssh/src/outcome.rs:294-315`. The bytes are counted where
-they pass: stdin at `crates/podssh-ssh/src/io.rs:244`, stdout and stderr at
+they pass: stdin at `crates/podssh-ssh/src/io.rs:245`, stdout and stderr at
 `crates/podssh-ssh/src/io/msg.rs:93`, `-W` at
 `crates/podssh-ssh/src/forward.rs:66` and
 `crates/podssh-ssh/src/forward.rs:83`. The status and the signal at

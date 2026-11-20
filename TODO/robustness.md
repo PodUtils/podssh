@@ -2705,6 +2705,20 @@ the loop that holds 20 s at `-v` ("the SSH session's loop read nothing of its st
 channel's queue; planted, the queue's mark taken out, it named the reply and failed) and the unit test of `io/busy.rs`.
 The next hang names the step; a line naming the queue means a channel whose messages nobody takes.
 
+2026-11-20, the fourteenth failure, in the gate of Dependabot's pull request #331 at `cfc07be` (run 44710629383, job
+`gate (m6)`, podcrates `v0.79.0`): `iroh::the_iroh_road_survives_a_new_address`, with the step of russh's loop: "the SSH
+session's loop read nothing of its stream for 20 s, held in the queue of a channel, with its CHANNEL_DATA", with the
+pipe's "SSH read nothing for 20 s ...; 18903706 bytes went to SSH so far" and the layer's "the application took no byte
+for 20 s, while 1154073 bytes wait for it", and no line of the pump's busy watch. So russh's loop waits to put a
+CHANNEL_DATA into a channel's full queue, while the pump, idle in its select, should drain that queue: either the queue
+is another channel's, which nobody reads, or the pump's task is not polled (a branch of its select, or the task that it
+shares with the layer, holds the thread). The step now names the channel (`Step::now`'s channel, podssh's patch
+`0013-loop-step`), the watch's line names the session's own channel beside it, and the busy watch says an idle pump
+whose wait of the channel was not polled for 20 s. Proven: `tests/loop_step.rs` (the step names the channel that nobody
+reads; planted, the queue's step with no channel: caught) and `io::busy`'s unit tests (an idle pump not polled for 20 s
+is said once; one polled since says nothing); `cargo test -p podssh-ssh` 568 passed, 0 failed; the m6 layer cases of a
+new address and of no fault passed here; clippy (the gate's lints) clean.
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).

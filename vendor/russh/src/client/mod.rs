@@ -117,19 +117,37 @@ pub struct Session {
 /// waits in its select (podssh's patch, T-780). A step that holds tells why
 /// the loop reads nothing of its stream.
 #[derive(Clone, Default, Debug)]
-pub struct Step(std::sync::Arc<std::sync::Mutex<Option<(std::time::Instant, &'static str)>>>);
+pub struct Step(std::sync::Arc<std::sync::Mutex<Option<StepNow>>>);
+
+/// A step that awaits: since when, what, and the channel that it waits on.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StepNow {
+    pub since: std::time::Instant,
+    pub what: &'static str,
+    pub channel: Option<ChannelId>,
+}
 
 impl Step {
     pub(crate) fn at(&self, what: &'static str) {
-        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some((std::time::Instant::now(), what));
+        self.set(what, None);
+    }
+
+    /// A step that waits on `channel` (its queue).
+    pub(crate) fn at_channel(&self, what: &'static str, channel: ChannelId) {
+        self.set(what, Some(channel));
+    }
+
+    fn set(&self, what: &'static str, channel: Option<ChannelId>) {
+        let now = StepNow { since: std::time::Instant::now(), what, channel };
+        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(now);
     }
 
     pub(crate) fn idle(&self) {
         *self.0.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 
-    /// The step that awaits now, and since when; `None` in the select.
-    pub fn now(&self) -> Option<(std::time::Instant, &'static str)> {
+    /// The step that awaits now; `None` in the select.
+    pub fn now(&self) -> Option<StepNow> {
         *self.0.lock().unwrap_or_else(|e| e.into_inner())
     }
 }

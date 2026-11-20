@@ -7,7 +7,7 @@ diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
  
 +                // Which wait holds the loop, if one does (podssh's patch, T-780).
                  if let Some(chan) = self.channels.get(&channel_num) {
-+                    self.step.at("the queue of a channel, with its CHANNEL_DATA");
++                    self.step.at_channel("the queue of a channel, with its CHANNEL_DATA", channel_num);
                      let _ = chan.send(ChannelMsg::Data { data: data.clone() }).await;
                  }
  
@@ -19,14 +19,14 @@ diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
                  }
  
                  if let Some(chan) = self.channels.get(&channel_num) {
-+                    self.step.at("the queue of a channel, with its CHANNEL_EXTENDED_DATA");
++                    self.step.at_channel("the queue of a channel, with its CHANNEL_EXTENDED_DATA", channel_num);
                      let _ = chan
                          .send(ChannelMsg::ExtendedData {
                              ext: extended_code,
 diff --git a/src/client/mod.rs b/src/client/mod.rs
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -108,6 +108,47 @@
+@@ -108,6 +108,65 @@
      server_sig_algs: Option<Vec<Algorithm>>,
      /// Number of EXT_INFO messages received (RFC 8308 allows at most two).
      ext_info_count: u8,
@@ -39,19 +39,37 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
 +/// waits in its select (podssh's patch, T-780). A step that holds tells why
 +/// the loop reads nothing of its stream.
 +#[derive(Clone, Default, Debug)]
-+pub struct Step(std::sync::Arc<std::sync::Mutex<Option<(std::time::Instant, &'static str)>>>);
++pub struct Step(std::sync::Arc<std::sync::Mutex<Option<StepNow>>>);
++
++/// A step that awaits: since when, what, and the channel that it waits on.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct StepNow {
++    pub since: std::time::Instant,
++    pub what: &'static str,
++    pub channel: Option<ChannelId>,
++}
 +
 +impl Step {
 +    pub(crate) fn at(&self, what: &'static str) {
-+        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some((std::time::Instant::now(), what));
++        self.set(what, None);
++    }
++
++    /// A step that waits on `channel` (its queue).
++    pub(crate) fn at_channel(&self, what: &'static str, channel: ChannelId) {
++        self.set(what, Some(channel));
++    }
++
++    fn set(&self, what: &'static str, channel: Option<ChannelId>) {
++        let now = StepNow { since: std::time::Instant::now(), what, channel };
++        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = Some(now);
 +    }
 +
 +    pub(crate) fn idle(&self) {
 +        *self.0.lock().unwrap_or_else(|e| e.into_inner()) = None;
 +    }
 +
-+    /// The step that awaits now, and since when; `None` in the select.
-+    pub fn now(&self) -> Option<(std::time::Instant, &'static str)> {
++    /// The step that awaits now; `None` in the select.
++    pub fn now(&self) -> Option<StepNow> {
 +        *self.0.lock().unwrap_or_else(|e| e.into_inner())
 +    }
 +}
@@ -74,7 +92,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
  }
  
  impl Drop for Session {
-@@ -329,6 +370,7 @@
+@@ -329,6 +388,7 @@
      join: russh_util::runtime::JoinHandle<Result<(), H::Error>>,
      channel_buffer_size: usize,
      agent_session_binding: Option<crate::keys::agent::AgentSessionBinding>,
@@ -82,7 +100,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
  }
  
  impl<H: Handler> Drop for Handle<H> {
-@@ -342,6 +384,12 @@
+@@ -342,6 +402,12 @@
          self.sender.is_closed()
      }
  
@@ -95,7 +113,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      /// Return the initial key-exchange context for OpenSSH agent session
      /// binding.
      ///
-@@ -1327,6 +1375,7 @@
+@@ -1327,6 +1393,7 @@
          None => session.begin_rekey()?,
      }
      let (kex_done_signal, kex_done_signal_rx) = oneshot::channel();
@@ -103,7 +121,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      let join = russh_util::runtime::spawn(session.run(stream, handler, Some(kex_done_signal)));
  
      let agent_session_binding = match kex_done_signal_rx.await {
-@@ -1346,6 +1395,7 @@
+@@ -1346,6 +1413,7 @@
          join,
          channel_buffer_size,
          agent_session_binding,
@@ -111,7 +129,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      })
  }
  
-@@ -1404,6 +1454,7 @@
+@@ -1404,6 +1472,7 @@
              open_global_requests: VecDeque::new(),
              server_sig_algs: None,
              ext_info_count: 0,
@@ -119,7 +137,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
          }
      }
  
-@@ -1533,7 +1584,10 @@
+@@ -1533,7 +1602,10 @@
                          } else {
                              self.common.received_data = true;
                              let kex_was_active = self.kex.active();

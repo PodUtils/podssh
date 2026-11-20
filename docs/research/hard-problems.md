@@ -133,7 +133,7 @@ channel's queue, the handler's data); the busy watch says one that holds 20 s
 (`crates/podssh-ssh/tests/loop_step.rs` makes the queue's hold). The next failure names the step.
 
 **The code where the hold must be** (cited at the worktree's tree):
-- `vendor/russh/src/client/mod.rs:1544-1614`: the client's `select!` loop. It reads the stream only
+- `vendor/russh/src/client/mod.rs:1562-1632`: the client's `select!` loop. It reads the stream only
   `if can_read` with `can_read = packet_writer.unwritten() < OUTPUT_MOST` (16 MiB,
   `vendor/russh/src/lib_inner.rs:538`), writes `if wants_write`, and handles an inbound packet with
   `reply(self, handler, ..).await` **inline** at line ~1541, so a handler that awaits a full bounded

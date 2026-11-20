@@ -36,7 +36,7 @@ pub(super) async fn send(
         busy.idle();
         tokio::select! {
             sent = &mut send => return Ok(sent.is_ok()),
-            msg = reader.wait() => match msg {
+            msg = busy.polled(reader.wait()) => match msg {
                 Some(m) => {
                     busy.at("the output of the channel, in a send");
                     if let Some(end) = handle_msg(m, status, out, through, log).await {

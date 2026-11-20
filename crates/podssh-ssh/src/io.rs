@@ -187,6 +187,7 @@ pub async fn pump(
     interrupt: Option<Interrupt>,
     log: &Arc<Log>,
 ) -> End {
+    let own = channel.id();
     let (mut reader, writer) = channel.split();
     let mut status: Option<i32> = None;
     // A sink takes the bytes unchanged: its receiver knows where they go.
@@ -217,7 +218,7 @@ pub async fn pump(
     let mut ping: Option<Ping<'_>> = None;
     // A step that holds the pump 20 s, said at -v (T-780).
     let busy = busy::Busy::default();
-    let _watching = busy.watch(log, handle.step());
+    let _watching = busy.watch(log, handle.step(), own);
     loop {
         busy.at("the pump's turn before its wait");
         expected(&mut through, &writer, &mut held, !reading).await;
@@ -293,7 +294,7 @@ pub async fn pump(
                     }
                 }
             },
-            msg = reader.wait() => match msg {
+            msg = busy.polled(reader.wait()) => match msg {
                 Some(m) => {
                     busy.at("the output of the channel");
                     if pty && matches!(m, ChannelMsg::Data { .. }) {

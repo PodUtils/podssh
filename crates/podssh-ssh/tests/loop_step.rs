@@ -75,7 +75,7 @@ async fn step_until(
 ) -> Option<&'static str> {
     let deadline = tokio::time::Instant::now() + within;
     loop {
-        let now = step.now().map(|(_, what)| what);
+        let now = step.now().map(|s| s.what);
         if done(now) || tokio::time::Instant::now() >= deadline {
             return now;
         }
@@ -101,7 +101,7 @@ async fn a_channel_that_nobody_reads_holds_the_loop_in_its_queue() {
         .expect("logged in to the stand-in");
     let handle = handles.last().expect("the destination");
     let step = handle.step();
-    assert_eq!(step.now().map(|(_, what)| what), None, "a loop in its select is in no step");
+    assert_eq!(step.now().map(|s| s.what), None, "a loop in its select is in no step");
     let mut channel = handle.channel_open_session().await.expect("a session channel");
     channel.exec(true, "flood").await.expect("the exec sent");
 
@@ -110,7 +110,8 @@ async fn a_channel_that_nobody_reads_holds_the_loop_in_its_queue() {
     let held = step_until(&step, Duration::from_secs(20), |now| now == Some(queue)).await;
     assert_eq!(held, Some(queue), "the loop is held in the channel's queue");
     tokio::time::sleep(Duration::from_millis(300)).await;
-    assert_eq!(step.now().map(|(_, what)| what), Some(queue), "and stays there while nobody reads");
+    assert_eq!(step.now().map(|s| s.what), Some(queue), "and stays there while nobody reads");
+    assert_eq!(step.now().and_then(|s| s.channel), Some(channel.id()), "the step names the channel that nobody reads");
 
     // The channel read: the loop leaves the queue.
     let mut read = 0usize;

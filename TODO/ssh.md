@@ -388,7 +388,7 @@ Read:
   (`crates/podssh-ssh/src/io.rs`, line 226 at `8cf2587`,
   `crates/podssh-ssh/src/session.rs:19-20`,
   `crates/podssh-ssh/src/session.rs:41`). A channel that ends with no Close
-  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:308`,
+  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:309`,
   `crates/podssh-ssh/src/session.rs:42`).
 - A closed stdout (EPIPE) gives the status so far, or 0 when none came
   (`crates/podssh-ssh/src/io.rs`, lines 200-204 at `8cf2587`).
@@ -1125,7 +1125,7 @@ acceptable.
    it, before M2, and once.
 5. Put the filter in a new module, crates/podssh-ssh/src/elevate.rs. Hook it
    into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-76`) and the stdin
-   branch (`crates/podssh-ssh/src/io.rs:221-291`), and keep `io.rs` under 500
+   branch (`crates/podssh-ssh/src/io.rs:222-292`), and keep `io.rs` under 500
    lines.
 6. Pitfalls: with a NOPASSWD rule, M1 never comes, so no password is sent;
    `-k` makes `sudo` ask also with cached credentials; the remote login shell
@@ -1174,8 +1174,8 @@ M1, and the NOPASSWD check fails.
 `crates/podssh-ssh/src/elevate.rs:1-395`. The session wraps the command
 (`crates/podssh-ssh/src/session.rs:132-147`, the question at
 `crates/podssh-ssh/src/session.rs:270-279`), and the pump filters the output,
-asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:186-200`,
-`crates/podssh-ssh/src/io.rs:397-404`). The flags at
+asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:186-201`,
+`crates/podssh-ssh/src/io.rs:398-405`). The flags at
 `crates/podssh-cli/src/flags.rs:224-229`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
@@ -1219,7 +1219,7 @@ and no player.
 
 - Read: each output of a session passes `handle_msg`
   (`crates/podssh-ssh/src/io/msg.rs:11-34`), and each window change passes the
-  resize branch (`crates/podssh-ssh/src/io.rs:329-334`). The size at the start
+  resize branch (`crates/podssh-ssh/src/io.rs:330-335`). The size at the start
   is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:82`).
   `podssh-ssh` has no JSON dependency
   (`crates/podssh-ssh/Cargo.toml:14-30`).
@@ -2440,7 +2440,7 @@ user sees a session that hangs.
 Measured: a hung run of the control held no TCP connection (the relay
 host's reset had come through), and `-vv` printed nothing after the login.
 Read at `b62d657`: the session's loop awaited each send of stdin's bytes on
-the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:243-255`),
+the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:244-256`),
 and a send waits for the channel's window; while it waited, the loop read
 none of the channel's messages, which carry the end. And in the relay
 stream, the task that sends stopped reading the pipe when a send failed,
@@ -2474,7 +2474,7 @@ hang. Plant: the relay stream's receiving task with no stop fails its test.
 ## Done
 
 2026-10-10. The session's loop reads the channel's messages while a send
-waits for the window (`crates/podssh-ssh/src/io.rs:243-255`), and in the
+waits for the window (`crates/podssh-ssh/src/io.rs:244-256`), and in the
 relay stream each task's end with the link stops the other
 (`crates/podssh-ssh/src/relay_stream.rs:205-302`).
 - T-156's control of a stopped relay host (the forward road, 20 MiB up and
@@ -2947,7 +2947,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
   (`crates/podssh-cli/src/ssh/resolve.rs:340-343`) that #83's comment reads. T-332's question on
-  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:253`), which the same reply ends.
+  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:254`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:208`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
   error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:34`), so #83 read russh's.
@@ -3671,10 +3671,10 @@ Read with T-460's draft in the tree, 2026-11-02:
   test of Approach item 3.
 - The lock's russh is `vendor/russh` there, crates.io's 0.65.0 with T-460's patch, which adds 5
   lines to `src/client/mod.rs` above that code: the code that the Premise reads in cargo's copy is
-  at `vendor/russh/src/client/mod.rs:928-931` (`SendError`), `vendor/russh/src/client/mod.rs:847-850`
-  (`Disconnect`) and `vendor/russh/src/client/mod.rs:844-845` (`ChannelOpenFailure`).
+  at `vendor/russh/src/client/mod.rs:946-949` (`SendError`), `vendor/russh/src/client/mod.rs:865-868`
+  (`Disconnect`) and `vendor/russh/src/client/mod.rs:862-863` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1479-1488`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1497-1506`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
@@ -3906,7 +3906,7 @@ asked.
   channel and keeps the pty open, so su waits, and podssh with it.
 - Read: with no way to ask, podssh says so, ends the input and keeps the deadline
   (`crates/podssh-ssh/src/elevate.rs:325-332`); at 30 s its line says that the command "neither
-  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:323-327`), though it asked.
+  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:324-328`), though it asked.
 - Read: the tests run `--su` with a right and a wrong password, and with no helper that fails
   (`crates/podssh-cli/tests/ssh_sudo.rs:202-264`).
 - Read (L-11): `--sudo` under a `NOPASSWD` rule sends no password, by design
@@ -4596,7 +4596,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3315` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3333` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).
