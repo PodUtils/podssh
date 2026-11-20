@@ -5972,6 +5972,16 @@ podssh takes no `pod-cloudflare`). The node `node-trojan-167-88-61-175` left `po
 `deny.toml` ignores RUSTSEC-2026-0542 (humantime, unmaintained), which only iroh and arti bring, as podcrates does. Each
 dependency and `issue-sync.yml` name `v0.69.0`. `cargo test -p podssh-ws -p podssh-ssh -p podssh-relay -p podssh-cli` 3657 passed, 0 failed. podssh's answer is COORD-108.
 
+2026-11-20, podcrates `v0.79.0` (`68fbc96`, COORD-149, PodUtils/podcrates#245): one break of podssh's, in a test:
+`pod_release::sigstore::Roots` has `logs` and `tsa` in the place of `rekor` (podcrates' entry 964, Rekor v2), and
+`crates/podssh-cli/tests/update_support/mod.rs` gives one log and no timestamp authority. `podssh update` now verifies a
+release that cosign signs with Rekor v2. A leaf out of its time now reads "did not hold at the time of the signature"
+(`tests/update.rs` follows); its line names an empty subject, as a leaf of Fulcio has none ("the signature of
+SHA256SUMS:  did not hold ..."), asked of podcrates in podssh's COORD issue of the take. The dial errors of `pod-ws` and
+`pod-proxy` name the target once (podcrates' entries 985 and 987); no test or script of podssh's quotes the old lines. Each dependency and
+`issue-sync.yml` (at `68fbc96`) name `v0.79.0`. `cargo test --workspace --no-fail-fast`: 384 suites, one failed (that
+line), then `--test update` 18 passed.
+
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

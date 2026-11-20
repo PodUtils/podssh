@@ -160,7 +160,9 @@ impl Sigstore {
         let (mid_key, mid) = (Key::new(), ca("test-sigstore-intermediate"));
         let root_cert = root.self_signed(&root_key).unwrap();
         let mid_cert = mid.signed_by(&mid_key, &rcgen::Issuer::new(root.clone(), &root_key)).unwrap();
-        let roots = Roots { fulcio: vec![mid_cert.der().to_vec(), root_cert.der().to_vec()], rekor: rekor.spki() };
+        // One log, as Rekor v1; no timestamp authority (pod-release v0.79.0).
+        let logs = vec![pod_release::sigstore::Log { name: "rekor.test".into(), key: rekor.spki() }];
+        let roots = Roots { fulcio: vec![mid_cert.der().to_vec(), root_cert.der().to_vec()], logs, tsa: Vec::new() };
         Sigstore { root: (root_key, root), intermediate: (mid_key, mid), rekor, roots }
     }
 

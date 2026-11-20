@@ -254,7 +254,8 @@ async fn a_leaf_of_another_tag_issuer_time_or_use_is_refused() {
     for (leaf, says) in [
         (other_tag, "not https://github.com/PodUtils/podssh/.github/workflows/release.yml@refs/tags/v1.0.0-beta.3"),
         (other_issuer, "the leaf's token came from"),
-        (past, "did not hold when the entry was logged"),
+        // pod-release v0.79.0 reads the time of the signature (Rekor v2, a timestamp).
+        (past, "did not hold at the time of the signature"),
         (no_code_signing, "not for code signing"),
     ] {
         stand.release(TAG, &binary, stand.sums_of(&binary), &leaf);
