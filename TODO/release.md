@@ -1401,7 +1401,7 @@ Shared code).
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1451,5 +1451,8 @@ Then, 2026-11-19: `release.yml` writes `release-index.json` with podcrates' `rel
 (got by `scripts/install/get-core.sh`, checked by its SHA-256) before `SHA256SUMS`, which holds its line, so the one
 signature signs it; `release-proofs.yml` checks the index against the tag and each `podssh-*` file, and
 `scripts/release-check-sources.sh` reads the installer, the bundle and the index as lines beside the binaries. The proof
-step, run on a stand-in release: passed; with a changed file and with another tag: failed. Left: the release workflow
-run by hand at this commit (UNVERIFIED).
+step, run on a stand-in release: passed; with a changed file and with another tag: failed. Done, 2026-11-20: `release.yml`
+by hand at `0661ded` (run 44571898795): each job passed; its `publish` job got `release-index.py` at `7cbe674` by its
+SHA-256 and wrote `SHA256SUMS` with 11 lines (the 8 binaries, the installer, the offline bundle and
+`release-index.json`). The gate at `0661ded` (run 44571876363): each job passed. `release-proofs.yml`'s new step runs at
+the next tag.

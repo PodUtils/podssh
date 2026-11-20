@@ -2685,6 +2685,9 @@ step's name (`crates/podssh-ssh/src/io/busy.rs`; the send split into `io/send.rs
 the next hang names the pump's step; none means russh's loop. Here: `-p podssh-ssh --lib io` 66 passed (the watch's
 test among them), `-p podssh-ssh` each test passed, both no-fault m6 cases passed.
 
+Loop, 2026-11-19, at `fbf49b2` (the busy watch in): `the_layer_survives_a_stopped_relay_host` and
+`iroh::the_iroh_road_survives_a_new_address` 15 times each, then the whole of `m6_exit` 4 times, here: each passed. The
+gate at `0661ded` (run 44571876363): `gate (m6)` passed. It waits for its next hang.
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
