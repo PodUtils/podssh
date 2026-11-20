@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**806 entries: 39 open, 41 partial, 11 blocked, 715 done.**
+**807 entries: 40 open, 40 partial, 11 blocked, 716 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 90 | 103 |
-| P2 | 0 | 24 | 2 | 303 | 329 |
-| P3 | 39 | 7 | 6 | 321 | 373 |
-| **All** | 39 | 41 | 11 | 715 | 806 |
+| P2 | 0 | 23 | 2 | 304 | 329 |
+| P3 | 40 | 7 | 6 | 321 | 374 |
+| **All** | 40 | 40 | 11 | 716 | 807 |
 
 ## Entries
 
@@ -744,7 +744,7 @@ repository and CI).
 | [T-711](mesh.md) | P1 | M | M10 | feature | blocked | One switch `PODSSH_PUBLIC` over each third-party service, and `status --json` gives the set |
 | [T-712](reverse.md) | P2 | M | M10 | feature | done | Liveness that lets a Durable Object relay hibernate: the `hello` offer, a ping each 60 s |
 | [T-713](relay.md) | P2 | M | M10 | feature | done | `podssh relay conform --relay-host HOST [--reverse] --json` |
-| [T-714](reverse.md) | P2 | M | M10 | feature | partial | A node route to a Unix socket, with a first line that names the caller's key and route |
+| [T-714](reverse.md) | P2 | M | M10 | feature | done | A node route to a Unix socket, with a first line that names the caller's key and route |
 | [T-715](mesh.md) | P2 | M | M10 | feature | done | A node's door from a signed net document at an HTTPS URL, with a TTL and a stale limit |
 | [T-716](machine.md) | P2 | S | M10 | feature | done | The public parts of each key of this host as JSON, offline: `podssh status --keys` |
 | [T-717](mesh.md) | P2 | M | M10 | feature | done | Probe each road to a list of nodes as JSON: `podssh ping --nodes` |
@@ -882,3 +882,4 @@ repository and CI).
 | [T-849](robustness.md) | P1 | S | M10 | defect | partial | `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS |
 | [T-850](release.md) | P2 | M | M10 | chore | done | `podssh update` on `pod-release` of PodUtils/podcrates; podssh's copy of the update goes |
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
+| [T-852](reverse.md) | P3 | S | M10 | measurement | open | An upgrade in place of a node on Windows with a session through a Unix route |

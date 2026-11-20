@@ -251,3 +251,108 @@ fn a_node_refuses_a_unix_route_that_it_cannot_serve() {
     assert_eq!(rc, 64, "{err}");
     assert!(err.contains("has a route"), "{err}");
 }
+
+/// A session through a Unix route goes on across the node's own upgrade in
+/// place (T-714, T-668): the route's socket goes to the new binary as a TCP
+/// target's does, and its bytes come whole.
+#[cfg(unix)]
+#[test]
+fn a_unix_route_s_session_goes_on_across_the_node_s_upgrade() {
+    use std::os::unix::net::UnixListener;
+    use std::time::Instant;
+
+    const DOWN: u64 = 32 << 20;
+    let session = Session::start("unix-route-upgrade");
+    let cell = match Cell::fake_relay_mode(&session, "normal", "the stand-in relay") {
+        Ok(cell) => cell,
+        Err((_, why)) => {
+            eprintln!("did not run: {why}");
+            return;
+        }
+    };
+    let at = |flag: &str| cell.args.iter().position(|a| a == flag).map(|i| cell.args[i + 1].clone()).unwrap();
+    let (relay, ca) = (at("--relay-host"), at("--ca-file"));
+    let pins = ["--relay-addr".to_string(), "relay-a.test=127.0.0.1".to_string()];
+    let command = |args: &[&str]| {
+        let mut cmd = session.stand_in(&[args[0].to_string()], &ca);
+        cmd.args(&pins).args(&args[1..]);
+        cmd
+    };
+    let (rc, _, err) = ran(&mut command(&["relay", "pair", "lab", "--relay-host", &relay]));
+    assert_eq!(rc, 0, "podssh relay pair: {err}");
+    let dir = std::env::temp_dir().join(format!("pt714u-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let sock = dir.join("src.sock").display().to_string();
+    // The service: DOWN bytes to each connection, then the end.
+    let listener = UnixListener::bind(&sock).expect("a socket in the test's directory");
+    std::thread::spawn(move || {
+        while let Ok((mut stream, _)) = listener.accept() {
+            let chunk = vec![0x5au8; 1 << 16];
+            let mut left = DOWN;
+            while left > 0 {
+                let n = left.min(chunk.len() as u64) as usize;
+                if stream.write_all(&chunk[..n]).is_err() {
+                    break;
+                }
+                left -= n as u64;
+            }
+        }
+    });
+    let route = format!("src=unix-connect:{sock}");
+    let mut node = command(&["node", "lab", &route]).stdin(Stdio::null()).stderr(Stdio::piped()).spawn().unwrap();
+    let pid = node.id() as libc::pid_t;
+    let lines = lines_of(&mut node);
+    session.keep(node);
+    wait_for(&lines, "online").expect("the node is online");
+
+    let mut operator = command(&["operator", "lab/src"]);
+    let mut child = operator.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    let mut stdout = child.stdout.take().unwrap();
+    let (quarter_tx, quarter_rx) = std::sync::mpsc::channel();
+    let counted = std::thread::spawn(move || {
+        let (mut buf, mut total) = (vec![0u8; 1 << 16], 0u64);
+        while let Ok(n) = stdout.read(&mut buf) {
+            if n == 0 {
+                break;
+            }
+            total += n as u64;
+            if total >= DOWN / 4 {
+                let _ = quarter_tx.send(());
+            }
+        }
+        total
+    });
+    let mut stderr = child.stderr.take().unwrap();
+    let said = std::thread::spawn(move || {
+        let mut text = String::new();
+        let _ = stderr.read_to_string(&mut text);
+        text
+    });
+    quarter_rx.recv_timeout(Duration::from_secs(120)).expect("a quarter of the bytes came before the upgrade");
+    // SAFETY: a signal to the node that this test started, which runs.
+    assert_eq!(unsafe { libc::kill(pid, libc::SIGUSR2) }, 0);
+    let went = wait_for(&lines, "sessions go to").expect("the node hands its sessions over");
+    assert!(went.contains("1 of 1 sessions go to"), "{went}");
+    let took = wait_for(&lines, "sessions over from").expect("the new binary takes them");
+    assert!(took.contains("took 1 of 1 sessions over"), "{took}");
+
+    let deadline = Instant::now() + Duration::from_secs(180);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("32 MiB through the Unix route did not come within 180 s of the upgrade");
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    };
+    let (total, err) = (counted.join().unwrap(), said.join().unwrap());
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(status.code(), Some(0), "{err}");
+    assert_eq!(total, DOWN, "{err}");
+    // SAFETY: a probe of a pid that this test started; no signal is sent.
+    assert_eq!(unsafe { libc::kill(pid, 0) }, 0, "the node runs on in its own process");
+}

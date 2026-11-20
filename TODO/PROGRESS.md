@@ -17,10 +17,10 @@ Read on 2026-11-20.
    T-106; of item 4, T-625 is done, T-738 is partial and T-740 blocked. M5's `podssh serve` is in
    work since the holds ended (Q92): `podssh serve --stdio` runs commands, shells, a pty, direct-tcpip,
    SFTP and the options of a key line on `main`. See "Work order".
-4. **Partial entries** (41; each `## Done` names its next step): the tests that failed at random, each
+4. **Partial entries** (40; each `## Done` names its next step): the tests that failed at random, each
    waiting for its next failure: T-465, T-627, T-753, T-756, T-779, T-780 (its busy watch, `crates/podssh-ssh/src/io/busy.rs`, is in: 30 local runs and 4 whole `m6_exit` runs passed, and the gate at `0661ded` passed `gate (m6)`), T-788, T-796, T-846 and T-849 (T-746 done, 2026-11-14); M5's server, merged and each
    waiting for its run in the build image (T-251): T-107, T-108, T-109, T-110, T-111, T-112, T-114, T-117, T-118, T-222 and T-248; the migration, T-684; the release of M10, T-446; T-847 (the dry run of `release.yml` builds the four images; the push to ghcr.io, the comparison and the attestation run at the next release tag); T-738 (the run against `mia/0x0`, as its `## Done` says); T-319 and T-321 (a real proxy's path and Apache in the
-   build image, live: Q88); T-106 (the operator's tailnet); T-660, T-666 and T-670 (their rows of the matrix); T-755 (its live run waits for a tester's tunnel, #215); T-791, T-793, T-809 and T-820; and T-598, T-710, T-714, T-718 and T-720.
+   build image, live: Q88); T-106 (the operator's tailnet); T-660, T-666 and T-670 (their rows of the matrix); T-755 (its live run waits for a tester's tunnel, #215); T-791, T-793, T-809 and T-820; and T-598, T-710, T-718 and T-720.
 5. **Blocked entries** (11; each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox),
    T-328 and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
    working Bare node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729. T-792 is done (2026-11-16: the
@@ -121,7 +121,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 806 entries: 39 open, 41 partial, 11 blocked, 715 done.
+`TODO/INDEX.md` holds 807 entries: 40 open, 40 partial, 11 blocked, 716 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

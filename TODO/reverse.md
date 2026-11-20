@@ -5308,7 +5308,7 @@ Partial, 2026-11-17 (drafted on `draft-t712`, then merged, built and run).
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -5430,3 +5430,50 @@ Partial, 2026-11-16 (drafted on `draft-t714`; not built).
   `the_socket_of_a_unix_route_under_a_home_is_let_through_read_only`; `podssh node lab api=unix-connect:run/api.sock
   --print-unit` exits 64 with its words. Planted, the socket's directory left out of the unit: caught. Still waits:
   an upgrade in place that moves a Unix route's session.
+
+Done, 2026-11-20: the upgrade in place that moves a Unix route's session.
+`a_unix_route_s_session_goes_on_across_the_node_s_upgrade` (`crates/podssh-cli/tests/node_unix_route.rs`, Unix): a
+service on a socket writes 32 MiB through `podssh operator lab/src`; at a quarter the node is sent SIGUSR2, says "1 of 1
+sessions go to", the new binary "took 1 of 1 sessions over", the 32 MiB come whole with exit 0, and the node keeps its
+pid. `cargo test -p podssh-cli --test node_unix_route`: 4 passed, and the new test 3 runs in 3. Planted, the routed
+session not held for a handover (`node_unix_open.rs`, `holds.holding` left out): caught ("0 of 1 sessions go to"). The
+Prove's `-p podssh-relay --lib reverse::routes` matches no test now: the routes are `pod-relay`'s (taken), whose tests
+are podcrates'. The Windows job of the gate runs the other three on AF_UNIX; an upgrade of a Unix route on Windows
+(WinSock's duplicate of an AF_UNIX socket) is untried, filed as T-852.
+
+# T-852: An upgrade in place of a node on Windows with a session through a Unix route
+
+**Source:** T-714's close (2026-11-20): the upgrade of a Unix route's session is proven on Unix alone.
+**Category:** measurement
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A node's upgrade in place hands each session's target to the new binary. On Windows a Unix route's socket is an
+AF_UNIX socket by WinSock, handed on as a `TcpStream` of its descriptor; whether WinSock's duplicate of such a socket
+carries it to the new process is untried.
+
+## Premise
+
+- `crates/podssh-cli/tests/node_unix_route.rs`: `a_unix_route_s_session_goes_on_across_the_node_s_upgrade` is
+  `#[cfg(unix)]` (it signals the node with SIGUSR2).
+- `crates/podssh-cli/tests/node_upgrade_windows.rs` proves the upgrade of a TCP target's session on Windows.
+
+## Approach
+
+1. Add a Unix route's case to `node_upgrade_windows.rs`, the service an AF_UNIX listener by WinSock (the `sock` module
+   of `node_unix_route.rs`).
+2. Where the duplicate fails, the node says so and keeps the session in the old process (as for a target that it
+   cannot hand on), or refuses the upgrade with one line.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test node_upgrade_windows
+```
+
+On the gate's `windows` job.

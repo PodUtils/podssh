@@ -130,7 +130,7 @@ road). Each has a planted run that must fail, and each did.
 | T-106 | Partial: the tailnet's test on the operator's machine, the box's run of B and the drop test of 5 min. |
 | T-660, T-666, T-670 | Partial: the matrix rows that their `## Done` names (iroh, DERP, the node's road on the slow link, osewa's binary on a runner). |
 | T-755 | Partial: its live run waits for a tester's tunnel (#215). |
-| T-598, T-710, T-714, T-718, T-720 | Partial: each `## Done` says what is left (2026-11-20: T-718's skip of the probe went and T-720's iroh relay of a member comes first, COORD-109 and COORD-110 closed). |
+| T-598, T-710, T-718, T-720 | Partial: each `## Done` says what is left (2026-11-20: T-714 done, its Unix route moved by an upgrade; T-718's skip of the probe went and T-720's iroh relay of a member comes first, COORD-109 and COORD-110 closed). |
 | T-446 | The next beta when podssh is nearly complete and the black-box pass is clean; `v1.1.0` after the migration. |
 
 Blocked, each on the owner or on another party, as its `## Blocker` names: T-113 (M5's exit in the operator's
