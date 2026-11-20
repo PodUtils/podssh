@@ -8,7 +8,15 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 - 2026-11-20: the gate is green at `0661ded` (run 44571876363, each job) and at `2c7b594` (run 44643735624);
   `release.yml` by hand at `0661ded` passed (run 44571898795, T-850). podcrates `v0.78.1` is taken at `e5b7414`
-  (COORD-129, #330); its gate (`ae25fe1`) was still running when this page was read: read it first.
+  (COORD-129, #330): `cargo test --workspace` 383 suites, 3954 passed. Its gate at `ae25fe1` was cancelled by the
+  next push; the gate of the session's last commit on `main` was running at its end: read it first.
+- The session of 2026-11-19 to 20 ended at the operator's word. `docs/research/hard-problems.md` lists the hard and
+  open problems (the m6 hang T-780 first) for an outside agent. The operator removes 24 stale remote branches
+  (`beta/*`, `release/*`, `draft/*`; each is in `main`) from their machine, as the git proxy refuses deletes here.
+  Local clippy (rustc 1.99.1) warns `collapsible_if` in `podssh-core/src/irc/session_recv.rs`,
+  `podssh-ws/src/tuic/link.rs` and `podssh-ws/src/turn/client.rs`; the gate's clippy passes: read which toolchain is
+  right before changing them. T-780: 30 runs of its two cases and 4 of the whole `m6_exit` passed here with the pump's
+  busy watch (`io/busy.rs`); at its next hang, read the lines "held in ..." and "SSH read nothing ..." in the log.
 - 2026-11-19: the gate is green at `4bc5d5a` (run 44426400728); podcrates `v0.73.0` is taken (COORD-122, #320).
 - 2026-11-18: the gate is green at `e2d106d` (run 44326156563); podcrates `v0.71.0` is taken (COORD-121, #319).
 - The record agrees (`cargo todo check`), and `python scripts/check-repo.py` passes.
