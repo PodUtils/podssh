@@ -98,6 +98,7 @@ COORD-129; the tag `v0.78.0` has no GitHub release). It took `pod-warp` at `v0.3
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 | #322 (COORD-123) | T-847's first push at a release tag |
 | #330 (COORD-129) | podcrates recording the take of `v0.78.1` |
+| #334 (COORD-130) | podcrates recording the take of `v0.79.0`, and its line of a leaf with no subject |
 
 ## The live runs and interop harnesses
 
