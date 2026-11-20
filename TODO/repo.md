@@ -5982,6 +5982,13 @@ SHA256SUMS:  did not hold ..."), asked of podcrates in podssh's COORD issue of t
 `issue-sync.yml` (at `68fbc96`) name `v0.79.0`. `cargo test --workspace --no-fail-fast`: 384 suites, one failed (that
 line), then `--test update` 18 passed.
 
+2026-11-20, podcrates `v0.80.0` (`62b8039`, COORD-150, PodUtils/podcrates#250): no change of podssh's code. Its breaks
+touch no crate's API that podssh uses (`pod-enter`, `pod-broker`'s control, `pod-confine`, `pod-guest`, `pod-supervise`);
+`pod_services` drops `pkgforge-qemu`, which podssh names nowhere. `podssh update`'s refusal of a chain names each
+certificate by its place, its window and the time (podcrates' entry 1016, from COORD-130). `pod-unit` (from podssh's
+`node_install/`) is T-820's next copy. Each dependency and `issue-sync.yml` (at `62b8039`) name `v0.80.0`.
+`cargo test --workspace --no-fail-fast`: 384 suites, 3959 passed, 0 failed.
+
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
@@ -7583,3 +7590,8 @@ file that others read needs no file beside it.
 2026-11-20: the ask is podcrates' entry 941 (`pod-core`: a lock of a file that other programs read, which on Windows
 refuses no reader; open, P2, in its record at `v0.78.1`), though COORD-121 (#319) closed with the record of the take.
 `pod_core::lock` at `v0.78.1` has no such mode yet, so `crates/podssh-ssh/src/known_hosts/lock.rs` stays podssh's.
+
+2026-11-20: podcrates `v0.80.0` (COORD-150) brings `pod-unit`, hardened service units whose base is podssh's own
+`crates/podssh-cli/src/node_install/` (the texts, the quoting, a system unit's hardening, the steps of an install), with
+podnet's and podrunner's parts. Next copy to end: `node_install/` on `pod-unit`, the command line (`--print-unit`,
+`--install`, `--uninstall`) staying podssh's, its tests (`--lib node_install`, the units' texts) held to the same output.
