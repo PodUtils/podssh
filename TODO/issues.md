@@ -384,7 +384,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #328 | COORD-127: podssh took podcrates v0.76.0 at 5975bb0 (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#239) | T-684, T-780, T-826 |
 | #329 | COORD-128: podssh took podcrates v0.77.0 at b3005e5, and pod-release at c9772a3 (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#240) and answered its ask (podcrates' entry 971, `Plan::Newer`) in `v0.78.1` (#241), taken at `e5b7414`; T-850 done | T-684, T-850 |
 | #330 | COORD-129: podssh took podcrates v0.78.1 at e5b7414 (to podcrates) | open 2026-11-20: until podcrates records the take | T-684 |
-| #332 | [gh action] requested: the gate of 146bf88 (T-780's step of russh's loop, T-851) | open 2026-11-20: until the operator's local agent runs the gate, as this session's pushes start no run | T-780, T-851 |
+| #332 | [gh action] requested: the gate of 146bf88 (T-780's step of russh's loop, T-851) | closed 2026-11-20: the gate at `d0c2a04` (holding `146bf88`), run 44694900576, green; `deny`, `secrets` and `issue-sync` green | T-780, T-851 |
 | #267 | COORD-080: what podssh's help and manual need of the shared crate (to all) | closed 2026-11-17: T-790 and T-730 done; podnet closed its COORD-090 (PodUtils/podnet#584) | T-730, T-790 |
 | #268 | COORD-081: podssh's host classes and lane for pod-lab, and its manual for pod-manual (to podcrates) | open 2026-11-15: answers COORD-107 and COORD-108 | T-790, T-791 |
 | #269 | COORD-082: podssh's map of issues to entries, and its install (to podcrates) | open 2026-11-15: answers COORD-110 and COORD-109 | T-792, T-793 |

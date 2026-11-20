@@ -6,7 +6,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
-- 2026-11-20 (the cloud session after it): the gate is green at `529bc89` (run 44654103729, each job). Dependabot's #331
+- 2026-11-20 (the cloud session after it): the gate is green at `d0c2a04` (run 44694900576, by hand through #332) and at
+  `529bc89` (run 44654103729, each job). Dependabot's #331
   at `1a24efd` (run 44649725163) was red in `gate (m6)`, T-780's thirteenth hang (no line of the pump's busy watch: the
   hold is in russh's loop; patch `0013-loop-step` now says its step), and `gate (ssh)`, T-851 (a port race of
   `shadowsocks_cli`'s stand-in, repaired): neither from its bump. This session's account cannot start Actions (its

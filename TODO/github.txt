@@ -337,4 +337,4 @@
 329 issue closed
 330 issue open
 331 pull open
-332 issue open
+332 issue closed
