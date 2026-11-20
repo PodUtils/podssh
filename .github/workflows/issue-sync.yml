@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: PodUtils/podcrates/.github/workflows/issue-sync.yml@7cbe674e39aaa1673339e94ffcc2fcc3b7585bb4 # v0.77.0
+    uses: PodUtils/podcrates/.github/workflows/issue-sync.yml@edbc86bc1482f6d821301ca432f7cdca91573577 # v0.78.1
     with:
-      podcrates_ref: v0.77.0
+      podcrates_ref: v0.78.1
       dry_run: ${{ inputs.dry_run || false }}

@@ -9,7 +9,6 @@
 
 pub mod way;
 
-use std::cmp::Ordering;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -204,12 +203,15 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
                 "the newest release"
             };
             let _ = writeln!(out, "{which}: {} (from {from})", newest.tag());
-            match newest.cmp(&opts.current) {
-                Ordering::Equal => {
+            // pod-release's plan with no tag pinned: the same version, an
+            // older release or an update; `Same` and `Available` need a pin
+            // or a check, so they mean an update here.
+            match pod_release::update::plan(&newest, &opts.current, false, false, false) {
+                pod_release::update::Plan::UpToDate => {
                     let _ = writeln!(out, "podssh {} is the newest release: nothing to do", opts.current);
                     return Ok(());
                 }
-                Ordering::Less => {
+                pod_release::update::Plan::Newer => {
                     let _ = writeln!(
                         out,
                         "this build, {}, is newer than {}: nothing to do (--version TAG installs a release)",
@@ -218,7 +220,9 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
                     );
                     return Ok(());
                 }
-                Ordering::Greater => newest,
+                pod_release::update::Plan::Same
+                | pod_release::update::Plan::Available
+                | pod_release::update::Plan::Install => newest,
             }
         }
     };

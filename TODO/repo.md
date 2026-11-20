@@ -7553,7 +7553,8 @@ superset; its hint gives a clock before the epoch as it reads); `podssh-ws --lib
 re-exported, `show` over its `show_with`, and `Interrupts` kept, which `podssh edit` takes and the crate keeps private
 (asked of podcrates in COORD-115, #312). The checks of the manual's variables read the crate's source
 (`pod_manual::pager::SOURCE`) beside podssh's. `--lib` passed, and `--test man_page --test tree --test error_program`.
-Waits: `Interrupts` from the crate, and the crates of podcrates' entries 501, 877, 879 and 880 at their tags.
+Waits: the crates of podcrates' entries 501, 877, 879 and 880 at their tags. 2026-11-20: `Interrupts` is the crate's
+(`pod_manual::pager::Interrupts`, public since `v0.78.1`); podssh's copy is gone, and `podssh edit` takes the crate's.
 
 2026-11-18 (draft): the locks of podcrates' entry 877 on `pod_core::lock` (v0.71.0). `podssh-ssh`'s
 `known_hosts/lock.rs` lost its `flock` and `LockFileEx` code: `hold(path, wait)` is `FileLock::lock_within` plus glue (a
