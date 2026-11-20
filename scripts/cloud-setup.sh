@@ -288,6 +288,10 @@ step_rust() {
 # in its own configuration; an identity already set there is kept.
 step_git() {
     cd "$REPO_ROOT" || return 1
+    # The cloud session's signing key is of another identity: a signature
+    # never verifies on GitHub as the operator's, and the session's stop
+    # hook asks at each turn to change the identity. Off, as in each sibling.
+    [ "$CHECK_ONLY" = 1 ] || git config --local commit.gpgsign false
     if [ -n "$(git config --local user.email 2>/dev/null)" ]; then
         say "git: the repository's identity is $(git config --local user.name) <$(git config --local user.email)>"
         return 0
