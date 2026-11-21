@@ -192,7 +192,7 @@ pub fn probe(path: &Path, env: &[(OsString, OsString)]) -> Result<(), String> {
     let mut cmd = Command::new(path);
     cmd.args(["-c", PROBE]).env_clear().envs(env.iter().map(|(k, v)| (k, v))).current_dir("/");
     cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = cmd.spawn().map_err(|e| not_started(&e))?;
+    let mut child = spawn_when_not_busy(&mut cmd).map_err(|e| not_started(&e))?;
     // Its stdin ends at once: a shell that reads it gets its end.
     drop(child.stdin.take());
     let deadline = Instant::now() + PROBE_WAIT;
@@ -213,6 +213,27 @@ pub fn probe(path: &Path, env: &[(OsString, OsString)]) -> Result<(), String> {
     }
 }
 
+/// How often, and how far apart, a start that met a file open for writing is
+/// tried again.
+const BUSY_TRIES: u32 = 5;
+const BUSY_WAIT: Duration = Duration::from_millis(40);
+
+/// `cmd` started, tried again while the kernel says that its file is open
+/// for writing (ETXTBSY): a fork of another thread that holds the file
+/// written a moment ago, or an install that replaces the shell. Both pass.
+fn spawn_when_not_busy(cmd: &mut Command) -> io::Result<std::process::Child> {
+    let mut tries = 1;
+    loop {
+        match cmd.spawn() {
+            Err(e) if e.raw_os_error() == Some(libc::ETXTBSY) && tries < BUSY_TRIES => {
+                tries += 1;
+                std::thread::sleep(BUSY_WAIT);
+            }
+            started => return started,
+        }
+    }
+}
+
 /// The words of a start that failed, by its errno.
 pub fn not_started(e: &io::Error) -> String {
     match e.raw_os_error() {
@@ -221,6 +242,7 @@ pub fn not_started(e: &io::Error) -> String {
         // loader, or the interpreter of its `#!` line.
         Some(libc::ENOENT) => "its loader or interpreter is missing".into(),
         Some(libc::EACCES) => "refused at its start (a noexec mount, or a security policy)".into(),
+        Some(libc::ETXTBSY) => "open for writing at each of its starts (text file busy)".into(),
         _ => format!("does not start: {e}"),
     }
 }
@@ -263,5 +285,42 @@ mod tests {
         let found = find_with(&list[..2], |_| Err("no".into())).expect_err("none passes");
         let line = found.to_string();
         assert!(line.starts_with("no shell runs here: SHELL=relative/sh: not an absolute path; /bin/sh: "), "{line}");
+    }
+
+    /// A copy of this host's shell at a path of its own, made executable.
+    #[cfg(target_os = "linux")]
+    fn shell_copy(name: &str) -> std::path::PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("podssh-busy-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("sh");
+        std::fs::copy(std::fs::canonicalize("/bin/sh").unwrap(), &path).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path
+    }
+
+    /// A shell open for writing at each start is named so (ETXTBSY); one
+    /// whose writer lets go while the probe tries again runs.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_shell_open_for_writing_is_tried_again_and_named() {
+        let busy = shell_copy("held");
+        let writer = std::fs::OpenOptions::new().write(true).open(&busy).unwrap();
+        let why = probe(&busy, &[]).expect_err("busy at each start");
+        assert_eq!(why, "open for writing at each of its starts (text file busy)");
+        drop(writer);
+        let _ = std::fs::remove_dir_all(busy.parent().unwrap());
+
+        let freed = shell_copy("freed");
+        let writer = std::fs::OpenOptions::new().write(true).open(&freed).unwrap();
+        let letting_go = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(60));
+            drop(writer);
+        });
+        let ran = probe(&freed, &[]);
+        letting_go.join().unwrap();
+        let _ = std::fs::remove_dir_all(freed.parent().unwrap());
+        assert_eq!(ran, Ok(()), "a writer that lets go within the tries");
     }
 }

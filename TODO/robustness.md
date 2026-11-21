@@ -4352,3 +4352,47 @@ Done, 2026-11-20: steps 1 and 2. Here, with shadowsocks-rust v1.25.0's release b
 `cargo test -p podssh-cli --test shadowsocks_cli`, 10 passed, six runs in six. Planted, the check of the owner taking any
 process's listener for the server's: `a_listener_of_another_process_is_not_the_servers` failed ("another process does
 not").
+
+# T-853: `serve_shell`: a data file of the test met "Text file busy" at its start, once
+
+**Source:** `cargo test --workspace` here (2026-11-21, the take of podcrates `v0.81.0`):
+`each_failure_is_named_and_the_good_shell_wins` of `crates/podssh-ssh/tests/serve_shell.rs` failed once in four runs.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The probe of a candidate shell said `data: does not start: Text file busy (os error 26)` where the test expects the
+start's refusal of a data file. A program that the probe starts while its file is open for writing fails with ETXTBSY: a
+fork of another thread (another test, or any spawn of the process) holds the file that was written a moment ago until
+its own exec, and a package manager that replaces the shell holds it as it writes.
+
+## Premise
+
+- `crates/podssh-ssh/src/server/shell.rs`, `probe`: one `spawn`, its error named by `not_started`, which had no words for
+  ETXTBSY.
+
+## Approach
+
+1. The probe starts again while the kernel says ETXTBSY: 5 tries, 40 ms apart; past them its words say that the file
+   was open for writing at each start.
+2. A unit test holds a copy of the host's shell open for writing: held past the tries, the words; let go after 60 ms,
+   the run.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib server::shell
+cargo test -p podssh-ssh --test serve_shell
+```
+
+## Done
+
+Done, 2026-11-21: steps 1 and 2. `--lib server::shell` 4 passed, among them
+`a_shell_open_for_writing_is_tried_again_and_named`; planted, one try alone: caught ("a writer that lets go within the
+tries"). `--test serve_shell` 5 runs in 5; clippy (the gate's lints) clean.
+

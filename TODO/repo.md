@@ -5989,6 +5989,17 @@ certificate by its place, its window and the time (podcrates' entry 1016, from C
 `node_install/`) is T-820's next copy. Each dependency and `issue-sync.yml` (at `62b8039`) name `v0.80.0`.
 `cargo test --workspace --no-fail-fast`: 384 suites, 3959 passed, 0 failed.
 
+2026-11-21, podcrates `v0.81.0` (`0707cfa`, COORD-151, PodUtils/podcrates#254): no change of podssh's code. Its breaks
+(`pod_control`'s wiped request, `pod_unit::install::Form::Service`, `pod_guest`'s QMP connect, `pod_supervise`'s logs)
+touch no API that podssh uses; `pod_services` drops `hermeticbuild-qemu`, which podssh names nowhere. `pod_core::files::
+replace` and `pod_unit::install::install_system` are T-820's next copies. Each dependency and `issue-sync.yml` (at
+`0707cfa`) name `v0.81.0`. `cargo test --workspace --no-fail-fast` (after a disk that filled here, `target/` removed):
+384 suites, 3955 passed, 4 failed. One was `serve_shell`'s start of a file open for writing, repaired (T-853). Three were
+`tests/job_far.rs`, each at the far side's `rm -rf` of a job's directory ("failed to remove ..."), 3 runs in 3, where they
+passed at `v0.80.0` here: since a restart of this session's worker, its shell puts a stand-in of `rm` of the harness first
+on `PATH`, which the test's far side inherits; no code of the take touches the jobs. Not run without the stand-in here (a
+change of the session's guard was refused); the gate decides.
+
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
@@ -7595,3 +7606,8 @@ refuses no reader; open, P2, in its record at `v0.78.1`), though COORD-121 (#319
 `crates/podssh-cli/src/node_install/` (the texts, the quoting, a system unit's hardening, the steps of an install), with
 podnet's and podrunner's parts. Next copy to end: `node_install/` on `pod-unit`, the command line (`--print-unit`,
 `--install`, `--uninstall`) staying podssh's, its tests (`--lib node_install`, the units' texts) held to the same output.
+
+2026-11-21: podcrates `v0.81.0` (COORD-151) brings `pod_core::files::replace(path, body, Mode::Keep)`, one atomic replace
+of a file that keeps its mode, for `crates/podssh-cli/src/keygen_cert.rs` and `crates/podssh-ssh/src/known_hosts/edit.rs`
+(their own writes of a temporary file and a rename), and `pod_unit::install::install_system` for `--install --system
+--run-as USER` of `node_install/`. Both are copies to end here, with the move of `node_install/` above.

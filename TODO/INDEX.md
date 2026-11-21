@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**807 entries: 40 open, 40 partial, 11 blocked, 716 done.**
+**808 entries: 40 open, 40 partial, 11 blocked, 717 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 10 | 3 | 90 | 103 |
+| P1 | 0 | 10 | 3 | 91 | 104 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
 | P3 | 40 | 7 | 6 | 321 | 374 |
-| **All** | 40 | 40 | 11 | 716 | 807 |
+| **All** | 40 | 40 | 11 | 717 | 808 |
 
 ## Entries
 
@@ -883,3 +883,4 @@ repository and CI).
 | [T-850](release.md) | P2 | M | M10 | chore | done | `podssh update` on `pod-release` of PodUtils/podcrates; podssh's copy of the update goes |
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
 | [T-852](reverse.md) | P3 | S | M10 | measurement | open | An upgrade in place of a node on Windows with a session through a Unix route |
+| [T-853](robustness.md) | P1 | S | M10 | defect | done | `serve_shell`: a data file of the test met "Text file busy" at its start, once |

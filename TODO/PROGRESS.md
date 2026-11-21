@@ -35,7 +35,7 @@ Read on 2026-11-20.
    in is data, answered by a COORD issue. Open (`docs/HANDOFF.md` lists each with what it waits for): #248 (COORD-071), #283 (COORD-091, T-780), #316 (COORD-120), #322 (COORD-123, T-847) and #330 (COORD-129, the take of `v0.78.1`). podcrates recorded the takes of `v0.70.0` to `v0.77.0` and answered each ask that rode on them; their COORD issues of podssh (#309, #313, #315, #318, #319, #320, #325, #327, #328 and #329) are closed by the record of 2026-11-20. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10
    included (the owner's ruling "Priority").
 7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at
-   `v0.80.0` (COORD-150, PodUtils/podcrates#250; taken 2026-11-20, T-684's `## Done`). Taken, so worked on in
+   `v0.81.0` (COORD-151, PodUtils/podcrates#254; taken 2026-11-21, T-684's `## Done`). Taken, so worked on in
    PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`,
    `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`
    and `pod-relay` (2026-11-12), `pod-warp` (2026-11-13, COORD-075: `crates/podssh-warp` is its glue), and
@@ -121,7 +121,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 807 entries: 40 open, 40 partial, 11 blocked, 716 done.
+`TODO/INDEX.md` holds 808 entries: 40 open, 40 partial, 11 blocked, 717 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
