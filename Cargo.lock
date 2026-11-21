@@ -247,7 +247,7 @@ dependencies = [
  "libc",
  "once_cell",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "tempfile",
@@ -347,7 +347,7 @@ checksum = "82f6aeea286b8eb4dd3431a1be1b59d290ace00f5bfd8e2a159bc2a05e2c1667"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -771,9 +771,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.12.1"
+version = "1.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
+checksum = "776dfebd015e2d8732c684a2c71003674ccb49457b539b9e82151ba38e96dd7c"
 
 [[package]]
 name = "caret"
@@ -909,9 +909,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.7"
+version = "4.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa8876b300ab35ba921adea3dfd70157a46249b33f95c9084ae5709785478946"
+checksum = "ac230478587d0269d8d6998b82ae69ea51509d55df66d9e92edd1f986904cd4a"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -931,14 +931,14 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.7"
+version = "4.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9c751b79415d4e559e3d1fcf128e09e720eb673a06d26cf6f392d37d75b66e0"
+checksum = "895c9d8d2ac2dd8b8a29f3724a14e72aaaa6debcf8c38c82f97305c6a172767a"
 dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1382,7 +1382,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim 0.11.1",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1415,7 +1415,7 @@ checksum = "2ac7135c3ef02b2f7833bbeb1be5ba7f966dcde8a87c6b87f65a778d71a02785"
 dependencies = [
  "darling_core 0.24.1",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1455,7 +1455,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c54e03a951783e8b327515db3f2a2fd0e3bed362a96b066f341ce66ed49b4ead"
 dependencies = [
  "data-encoding",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1570,7 +1570,7 @@ dependencies = [
  "quote",
  "sha3 0.12.0",
  "strum",
- "syn 3.0.6",
+ "syn 3.0.10",
  "unicode-ident",
  "void",
 ]
@@ -1719,7 +1719,7 @@ checksum = "c6232dd377dcc64799954cbd3a9bb882e9cdc1308ccd87b1c098f1fb2eaf82a8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -1925,7 +1925,7 @@ checksum = "0590c4a94da3372e83493b956755a6e2266830b6e4e3b101afe66e3f39477b91"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -2315,7 +2315,7 @@ checksum = "9fb9654ba8355388abeb8dcb4fc62f511300867002afc858860463bdd9fe0c44"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -3162,7 +3162,7 @@ dependencies = [
  "papaya",
  "pin-project",
  "portable-atomic",
- "rand 0.10.3",
+ "rand 0.10.4",
  "reqwest",
  "rustc-hash",
  "rustls",
@@ -3193,7 +3193,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "getrandom 0.4.3",
  "n0-error",
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "url",
  "zeroize",
@@ -3213,7 +3213,7 @@ dependencies = [
  "n0-error",
  "n0-future",
  "portable-atomic",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "simple-dns",
  "strum",
@@ -3286,7 +3286,7 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "postcard",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "reloadable-state",
  "reqwest",
@@ -3874,7 +3874,7 @@ dependencies = [
  "n0-error",
  "n0-future",
  "ndk-context",
- "rand 0.10.3",
+ "rand 0.10.4",
  "reqwest",
  "rustc-hash",
  "rustls",
@@ -3888,9 +3888,9 @@ dependencies = [
 
 [[package]]
 name = "n0-error"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26c59ea174675ce6bc196878851e5049e11b8b1f9af3ba87e4d6df8d828bb001"
+checksum = "96c2215d16de3a55894583a539e6b151fb45236c3a6da45a18a40af73dc00636"
 dependencies = [
  "n0-error-macros",
  "spez",
@@ -3898,9 +3898,9 @@ dependencies = [
 
 [[package]]
 name = "n0-error-macros"
-version = "1.0.1"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4412346410d6616f3668c40e53c298e5320c7b856f7a960e5914e442601be79f"
+checksum = "6217fd5f567ce1e53f324744c14fab04899861e397539c5f3cc08bd7c1dcd2de"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4209,7 +4209,7 @@ dependencies = [
  "getrandom 0.4.3",
  "identity-hash",
  "lru-slab",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_pcg",
  "ring",
  "rustc-hash",
@@ -4299,7 +4299,7 @@ checksum = "93e7820bc0a80a0238e650327316f929ba18d5be054b647490a3a6a339f3e7c0"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
 ]
 
@@ -4691,7 +4691,7 @@ dependencies = [
  "delegate",
  "futures",
  "log",
- "rand 0.10.3",
+ "rand 0.10.4",
  "sha2 0.11.1",
  "thiserror 2.0.21",
  "tokio",
@@ -5090,7 +5090,7 @@ version = "0.81.0"
 source = "git+https://github.com/PodUtils/podcrates?tag=v0.81.0#0707cfa3ea7d6e6fc9fa54ba2f2889f530b17e23"
 dependencies = [
  "libc",
- "rand 0.10.3",
+ "rand 0.10.4",
  "tokio",
  "windows-sys 0.61.2",
 ]
@@ -5328,7 +5328,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "serde_json",
  "tokio",
@@ -5351,7 +5351,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "sha2 0.11.1",
  "tokio",
@@ -5415,7 +5415,7 @@ dependencies = [
  "pod-tls",
  "pod-wormhole",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls",
  "serde",
  "serde_json",
@@ -5436,7 +5436,7 @@ dependencies = [
  "pod-core",
  "pod-proxy",
  "pod-tls",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -5505,7 +5505,7 @@ dependencies = [
  "p384 0.14.0",
  "pod-core",
  "pod-identity",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rsa 0.10.0",
  "rustls",
  "rustls-pki-types",
@@ -5563,7 +5563,7 @@ dependencies = [
  "pod-services",
  "pod-session",
  "pod-ws",
- "rand 0.10.3",
+ "rand 0.10.4",
  "sha2 0.11.1",
  "tokio",
  "zeroize",
@@ -5693,7 +5693,7 @@ dependencies = [
  "podssh-warp",
  "podssh-ws",
  "podssh-zerotier",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "roxmltree",
  "russh",
@@ -5785,7 +5785,7 @@ dependencies = [
  "pod-wormhole",
  "podssh-ws",
  "proptest",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rcgen",
  "russh",
  "rustls",
@@ -5822,7 +5822,7 @@ dependencies = [
  "pod-testkit",
  "podssh-ws",
  "proptest",
- "rand 0.10.3",
+ "rand 0.10.4",
  "russh",
  "russh-sftp",
  "sha1 0.11.0",
@@ -6138,7 +6138,7 @@ dependencies = [
  "chacha20 0.10.2",
  "core_detect",
  "num-traits",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_xorshift",
  "regex-syntax",
  "unarray",
@@ -6225,9 +6225,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
+checksum = "8f6fa277c67e6ea590466f04c3fe82cb509f0864fe470643e5570de9514a9b11"
 dependencies = [
  "chacha20 0.10.2",
  "getrandom 0.4.3",
@@ -6383,14 +6383,14 @@ checksum = "92ecd8964f8453721699a1ed72037b0db49ce2f5a5138486ee89bed6f67cdf3a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
 name = "regex"
-version = "1.13.1"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+checksum = "9807af0e638c12e753aa1b4e601791bf2a8f71274023c8bbeec12fc149950857"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -6400,9 +6400,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.18"
+version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
+checksum = "41d60ef07df457506a0a1a2073112eb4aae5733dbd2813c3da77d1b0fd441158"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -6417,9 +6417,9 @@ checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.11"
+version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+checksum = "d902046e6a28a1e4c3cab97258a0ce11e994903f01c2d97a9447a0b3df85f4f6"
 
 [[package]]
 name = "reloadable-core"
@@ -6671,7 +6671,7 @@ dependencies = [
  "pkcs5",
  "pkcs8 0.11.0",
  "polyval 0.7.3",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "ring",
  "rsa 0.10.0",
@@ -7131,7 +7131,7 @@ checksum = "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -7176,7 +7176,7 @@ checksum = "8d3b1629de253c70a0508c3899572da79ca359fdab27c7920ff00406df418906"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -7239,7 +7239,7 @@ dependencies = [
  "darling 0.24.1",
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -7808,9 +7808,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "3.0.6"
+version = "3.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8593e8e72159ed2257d083c7a454a85cbf854f37a0966d8d483aff8c8a3ebcee"
+checksum = "4ae9ccbea3a7b0b09443036490c8f34a8b1b760fd345e5c0dae0aac718faea79"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7845,7 +7845,7 @@ checksum = "901704edd0dfe137f1987838ee4f259e4e063c31371bdb423f7ae38ec6f77f02"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -7893,7 +7893,7 @@ dependencies = [
 name = "tailscale"
 version = "0.6.1"
 dependencies = [
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -7962,7 +7962,7 @@ checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -8048,7 +8048,7 @@ checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
@@ -8154,7 +8154,7 @@ dependencies = [
  "getrandom 0.4.3",
  "http",
  "httparse",
- "rand 0.10.3",
+ "rand 0.10.4",
  "ring",
  "rustls-pki-types",
  "sha1_smol",
@@ -8297,7 +8297,7 @@ dependencies = [
  "itertools 0.15.0",
  "libc",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_chacha 0.10.0",
  "serde",
  "slab",
@@ -8341,7 +8341,7 @@ dependencies = [
  "educe",
  "itertools 0.15.0",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "smallvec",
  "thiserror 2.0.21",
  "tor-basic-utils",
@@ -8393,7 +8393,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "percent-encoding",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "serde_with",
@@ -8453,7 +8453,7 @@ dependencies = [
  "once_cell",
  "oneshot-fused-workaround",
  "pin-project",
- "rand 0.10.3",
+ "rand 0.10.4",
  "retry-error",
  "safelog",
  "serde",
@@ -8621,7 +8621,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "paste",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rusqlite",
  "safelog",
  "scopeguard",
@@ -8704,7 +8704,7 @@ dependencies = [
  "oneshot-fused-workaround",
  "pin-project",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "strum",
@@ -8744,7 +8744,7 @@ dependencies = [
  "itertools 0.15.0",
  "oneshot-fused-workaround",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "retry-error",
  "safelog",
  "slotmap-careful",
@@ -8789,7 +8789,7 @@ dependencies = [
  "humantime",
  "itertools 0.15.0",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "signature 3.0.0",
@@ -8832,7 +8832,7 @@ dependencies = [
  "once_cell",
  "oneshot-fused-workaround",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "retry-error",
  "safelog",
@@ -8876,7 +8876,7 @@ dependencies = [
  "derive_more",
  "downcast-rs",
  "paste",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rsa 0.9.10",
  "signature 3.0.0",
  "ssh-key-fork-arti",
@@ -8908,7 +8908,7 @@ dependencies = [
  "humantime",
  "inventory",
  "itertools 0.15.0",
- "rand 0.10.3",
+ "rand 0.10.4",
  "safelog",
  "serde",
  "signature 3.0.0",
@@ -8977,7 +8977,7 @@ dependencies = [
  "getrandom 0.3.4",
  "getrandom 0.4.3",
  "hex",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_chacha 0.10.0",
  "rand_core 0.10.1",
  "rand_core 0.6.4",
@@ -9076,7 +9076,7 @@ dependencies = [
  "humantime",
  "itertools 0.15.0",
  "num_enum",
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "strum",
  "thiserror 2.0.21",
@@ -9119,7 +9119,7 @@ dependencies = [
  "memchr",
  "paste",
  "phf",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rangemap",
  "saturating-time",
  "serde",
@@ -9209,7 +9209,7 @@ dependencies = [
  "pin-project",
  "polyval 0.7.3",
  "postage",
- "rand 0.10.3",
+ "rand 0.10.4",
  "rand_core 0.10.1",
  "safelog",
  "slotmap-careful",
@@ -9297,7 +9297,7 @@ version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e2cb2278dd985503fa638254e966cdfd7fdd5dab18e536d22a68adcc285d65"
 dependencies = [
- "rand 0.10.3",
+ "rand 0.10.4",
  "serde",
  "tor-basic-utils",
  "tor-linkspec",
@@ -9845,7 +9845,7 @@ dependencies = [
  "itertools 0.14.0",
  "kameo",
  "kameo_actors",
- "rand 0.10.3",
+ "rand 0.10.4",
  "smallvec",
  "smol_str",
  "thiserror 2.0.21",
@@ -9911,7 +9911,7 @@ dependencies = [
  "blake2 0.10.6",
  "chacha20poly1305 0.11.0",
  "itertools 0.14.0",
- "rand 0.10.3",
+ "rand 0.10.4",
  "tracing",
  "ts_keys",
  "ts_noise",
@@ -10238,7 +10238,7 @@ dependencies = [
  "bumpalo",
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
  "wasm-bindgen-shared",
 ]
 
@@ -10799,7 +10799,7 @@ checksum = "ec8ebde2db3681e8c9980cc27822030e68752690ddfa9473e739aeb4dbde6d71"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
  "synstructure 0.14.0",
 ]
 
@@ -10840,15 +10840,15 @@ checksum = "f75b4683f6c7f45248d4d64056a24298c6281e0993356d7d1b4a1a962ef10d4a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
  "synstructure 0.14.0",
 ]
 
 [[package]]
 name = "zeroize"
-version = "1.9.1"
+version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
+checksum = "85ccff8a4805aba1eaa4cd4afcd49f7557dd2cf5fd79ffc37f8959466effc5aa"
 dependencies = [
  "zeroize_derive",
 ]
@@ -10895,7 +10895,7 @@ checksum = "c3743ddbf47738d929cd1ae2e199d40d0162979dfe31aef8ae646d2bf00bf97a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 3.0.6",
+ "syn 3.0.10",
 ]
 
 [[package]]
