@@ -5998,7 +5998,8 @@ replace` and `pod_unit::install::install_system` are T-820's next copies. Each d
 `tests/job_far.rs`, each at the far side's `rm -rf` of a job's directory ("failed to remove ..."), 3 runs in 3, where they
 passed at `v0.80.0` here: since a restart of this session's worker, its shell puts a stand-in of `rm` of the harness first
 on `PATH`, which the test's far side inherits; no code of the take touches the jobs. Not run without the stand-in here (a
-change of the session's guard was refused); the gate decides.
+change of the session's guard was refused). Decided by CI: the gate of Dependabot's #338 at `2ae2341` (`main` with its
+bump, run 44876039757) passed `gate (ssh)`, `job_far` among it; its one red job was `gate (m6)`, T-780.
 
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021

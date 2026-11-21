@@ -4839,7 +4839,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:192` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:193` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 

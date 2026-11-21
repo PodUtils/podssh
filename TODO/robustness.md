@@ -2719,6 +2719,21 @@ reads; planted, the queue's step with no channel: caught) and `io::busy`'s unit 
 is said once; one polled since says nothing); `cargo test -p podssh-ssh` 568 passed, 0 failed; the m6 layer cases of a
 new address and of no fault passed here; clippy (the gate's lints) clean.
 
+2026-11-21, the fifteenth failure, in the gate of Dependabot's pull request #338 at `2ae2341` (run 44876039757, job `gate
+(m6)`, podcrates `v0.81.0`): `iroh::the_iroh_road_survives_a_stall_of_3_minutes`. After "the session resumed after 156.2
+s": "the SSH session's loop read nothing of its stream for 20 s, held in the queue of a channel, with its CHANNEL_DATA 2;
+this session's channel is 2", the pipe's "SSH read nothing ...; 16147290 bytes went to SSH so far", and the pump's "the
+session waits for its channel, and its wait was not polled for 20 s". So the full queue is the session's own channel, and
+the pump, whose wait that queue's messages wake, was not polled: the task that runs it holds elsewhere. (The same line
+during the stall itself, before the resume, means nothing: a wait with nothing coming is not polled.) On the iroh road
+and on `node://` that task joins SSH with the layer and the end-to-end channel (`tokio::join!` in
+`crates/podssh-cli/src/ssh/iroh/dial.rs` and `ssh/node.rs`), so a part whose poll does not return holds the pump.
+`crates/podssh-cli/src/ssh/polls.rs` now watches each part: a poll that has not returned for 20 s is said at `-v` with
+its part's name ("the poll of the iroh road's layer has not returned for N s: it holds its task"), and a task none of
+whose parts was polled for 20 s. Proven: `--features iroh --lib ssh::polls` 1 passed; planted, no time of return kept:
+caught. The m6 layer cases of a new address and of no fault passed here; clippy, with and without `iroh`, clean. The
+next hang names the part that holds, or says that the task itself was not run.
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).

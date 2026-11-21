@@ -203,11 +203,23 @@ pub(super) async fn connect(
     };
     // The cap of the iroh road's SSH windows (T-662).
     let opts = &crate::ssh::window::on(opts, podssh_ssh::pace::Road::Iroh);
+    // Each part of the one task, watched: a poll that does not return holds
+    // SSH's pump (T-780).
+    let polls = Arc::new(crate::ssh::polls::Polls::default());
+    let watching_polls = {
+        let (log, shown) = (log.clone(), shown.to_string());
+        tokio::spawn(crate::ssh::polls::watch(polls.clone(), move |line| log.verbose(&format!("{shown}: {line}"))))
+    };
     let (code, carried, failed) = tokio::join!(
-        podssh_ssh::run(ssh_end, opts, None, log.clone()),
-        pod_iroh::client::carry_heard(&dialer, layer_app, settings, note, hearing),
-        session
+        polls.watched("SSH", podssh_ssh::run(ssh_end, opts, None, log.clone())),
+        polls.watched(
+            "the iroh road's layer",
+            pod_iroh::client::carry_heard(&dialer, layer_app, settings, note, hearing)
+        ),
+        polls.watched("the end-to-end channel", session)
     );
+    drop(polls);
+    watching_polls.abort();
     watching.abort();
     watching_ssh.abort();
     // Whether the relay carried each byte, or a direct path some (T-335).

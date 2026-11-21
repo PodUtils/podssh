@@ -342,10 +342,21 @@ pub(super) async fn run_on(
         let (log, shown) = (log.clone(), shown.to_string());
         tokio::spawn(super::held::watch(seen_ssh, move |line| log.verbose(&format!("{shown}: {line}"))))
     };
+    // Each part of the one task, watched (T-780).
+    let polls = Arc::new(super::polls::Polls::default());
+    let watching_polls = {
+        let (log, shown) = (log.clone(), shown.to_string());
+        tokio::spawn(super::polls::watch(polls.clone(), move |line| log.verbose(&format!("{shown}: {line}"))))
+    };
     let (outcome, carried) = tokio::join!(
-        podssh_ssh::run::run_outcome(ssh_end, opts, None, log.clone()),
-        carry_keeping(config, link_end, leg, layer_end, expires_ms, &say, channel, pin_say, shell)
+        polls.watched("SSH", podssh_ssh::run::run_outcome(ssh_end, opts, None, log.clone())),
+        polls.watched(
+            "the layer",
+            carry_keeping(config, link_end, leg, layer_end, expires_ms, &say, channel, pin_say, shell)
+        )
     );
+    drop(polls);
+    watching_polls.abort();
     watching.abort();
     watching_ssh.abort();
     let code = outcome.code;

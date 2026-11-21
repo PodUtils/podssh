@@ -15,6 +15,7 @@ mod attach;
 // The server's version line, for doctor and the direct road (T-363).
 pub(crate) mod banner;
 pub(crate) mod held;
+pub(crate) mod polls;
 mod tries;
 // node://NAME on a stream that exists already, `--carrier` (T-595).
 pub(crate) mod carried;

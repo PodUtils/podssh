@@ -1584,7 +1584,7 @@ a session with a pty:
 - `crates/podssh-cli/src/ssh/local_bind.rs`: the TCP listener and the
   socket of `-L` and `-D` can be closed (`crates/podssh-cli/src/ssh/local_bind.rs:137`
   and `crates/podssh-cli/src/ssh/local_bind.rs:184`), and the `Forwarder`
-  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:360` gives to
+  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:361` gives to
   each session.
 - The manual: the note of the terminal names `~C`, and a note of its own
   (`crates/podssh-cli/src/man/notes_ssh_more.rs:13`); `docs/cli.md` ("`~C`
