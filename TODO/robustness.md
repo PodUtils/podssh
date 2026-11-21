@@ -4261,6 +4261,17 @@ cargo test -p podssh-ssh --test serve_pressure
 Partial, 2026-11-18: step 1; `cargo test -p podssh-ssh --test serve_pressure`, 5 runs in 5 here. Waits for its next
 failure in the gate.
 
+2026-11-21, its second failure, in the gate of Dependabot's pull request #336 at `798f4c4` (run 44809403996, job `gate
+(ssh)`): `yes_on_a_pty_with_a_client_that_reads_nothing_holds_the_memory`, with step 1's lines: `yes` alive in state S,
+the leader of its own session and the foreground group of its pty (stat: pgrp, session and tpgid its pid), `wchan`
+`wait_woken`: a write to the pty that waits for room. Planted here, the server's SIGHUP of the group left out, the test
+still passed: on a pty the master that closes with the channel hangs `yes` up too. So at the failure the server did
+neither within 5 s: it did not act on the channel's close (`finish`'s `closed`), late or never. The failure now says the
+process's signal lines (`SigPnd`, `ShdPnd`, `SigBlk`, `SigIgn`; a SIGHUP pending and blocked would mean it came and did
+not act) and, after waiting 30 s more, whether `yes` ended late and when, or still ran: a late end means the close came
+late on a loaded host (the bound), a live one that the server never acted on it (its loop, the T-780 class on the
+server's side). `--test serve_pressure` 3 passed here; clippy clean.
+
 # T-849: `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS
 
 **Source:** the gate at `09ab98b` (run 44462713098, 2026-11-19): the job `macos` failed

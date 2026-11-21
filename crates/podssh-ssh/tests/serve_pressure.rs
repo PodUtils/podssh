@@ -151,7 +151,8 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
     let (more, took) = read_until(&mut channel, 1 << 20, Duration::from_secs(30)).await;
     assert!(more >= 1 << 20, "the session goes on after the stall: {more} bytes in {took:?}");
     channel.close().await.unwrap();
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let closed_at = Instant::now();
+    let deadline = closed_at + Duration::from_secs(5);
     while runs(pid) && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
@@ -159,7 +160,24 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
     // nobody reaped, or a live process that the hangup did not reach.
     let state = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
     let wchan = std::fs::read_to_string(format!("/proc/{pid}/wchan")).unwrap_or_default();
-    assert!(!runs(pid), "yes runs on after its channel closed (pty: {on_pty}): stat {state:?}, wchan {wchan:?}");
+    // Its signals: a SIGHUP pending and blocked or ignored means the hangup
+    // came and did not act; none pending, that it never came.
+    let status = std::fs::read_to_string(format!("/proc/{pid}/status")).unwrap_or_default();
+    let signals: Vec<&str> = status.lines().filter(|l| l.starts_with("Sig") || l.starts_with("ShdPnd")).collect();
+    if runs(pid) {
+        // Late or never: the close reached the server late (a loaded host),
+        // or not at all. On a pty a closed master hangs `yes` up too, so a
+        // live `yes` means the server did not act on the close.
+        let late = Instant::now() + Duration::from_secs(30);
+        while runs(pid) && Instant::now() < late {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        let after = match runs(pid) {
+            true => format!("and still ran {:.0} s after the close", closed_at.elapsed().as_secs_f32()),
+            false => format!("and ended {:.1} s after the close", closed_at.elapsed().as_secs_f32()),
+        };
+        panic!("yes runs on after its channel closed (pty: {on_pty}): stat {state:?}, wchan {wchan:?}, signals {signals:?}, {after}");
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
