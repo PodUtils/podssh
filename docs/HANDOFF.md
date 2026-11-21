@@ -6,15 +6,35 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
+- **Read first, at the next session (2026-11-21, end of the cloud session of 2026-11-20 to 21):**
+  1. The gate of `main` asked in #333 (`[gh action] requested`). Its block runs the gate on the newest `main`, which
+     holds each commit after the last green gate at `d0c2a04` (run 44694900576): T-718's probe with the headers of
+     Access, T-720's iroh relay of the net's members, T-714 (a Unix route across an upgrade), T-853 (serve's probe of a
+     shell open for writing), podcrates `v0.79.0` to `v0.81.0`, and T-780's and T-846's new lines. No gate ran on them,
+     as this session's pushes start no workflow. The nearest evidence: Dependabot's #338 at `2ae2341` (`main` at
+     `78b8077` with its bump, run 44876039757) passed each job but `gate (m6)` (T-780's fifteenth hang).
+  2. T-780 (P1, the m6 hang): fifteen failures. The last three placed the hold: russh's loop waits on the full queue of
+     the session's own channel (2), and the pump that drains it is not polled. The task that runs the pump joins SSH
+     with the layer and the end-to-end channel (`tokio::join!`, `ssh/iroh/dial.rs`, `ssh/node.rs`); `ssh/polls.rs`
+     (`90763ef`) now names a part whose poll does not return, or says that no part was polled. Read its line at the
+     next hang, then repair that part.
+  3. T-846 (P1, `serve_pressure` on a pty): its second failure showed `yes` alive in a pty write; on a pty a closed
+     master hangs it up too, so serve acted on no close. Its failure now says `yes`'s signals and whether it ended late
+     or never (`c997ca7`).
+  4. T-820: podssh's copies that podcrates' crates now hold: `node_install/` on `pod-unit` (`v0.80.0`),
+     `pod_core::files::replace` for `keygen_cert.rs` and `known_hosts/edit.rs`, and `pod_unit::install::install_system`
+     (`v0.81.0`); and the Windows lock of `known_hosts`, podcrates' entry 941.
+- **This cloud session's own conditions**, which a next cloud session may meet again: `gh`'s token is refused and a
+  push starts no workflow, so each gate is asked by `[gh action] requested` (as #332 and #333); a full disk (it filled
+  here once) is freed by removing `target/` whole; and since a restart of the worker, the shell puts a stand-in of `rm`
+  first on `PATH`, which made `tests/job_far.rs` fail here at the far side's `rm` (3 of 3) while the gate passed it.
+- Done in that session (2026-11-20 to 21): T-851, T-853, T-714 (and T-852 filed), T-718's and T-720's steps
+  (COORD-109 and COORD-110 closed), podcrates `v0.79.0`, `v0.80.0` and `v0.81.0` taken (COORD-130, 131 and 132, each
+  recorded by podcrates and closed), T-780's watches of russh's step (patch `0013-loop-step`), of the channel, of the
+  pump's polls and of the task's parts, T-846's lines, and the operator's rule that the repository's conventions win
+  over a session's own setup (`AGENTS.md`, `docs/decisions.md`).
 - 2026-11-20 (the cloud session after it): the gate is green at `d0c2a04` (run 44694900576, by hand through #332) and at
-  `529bc89` (run 44654103729, each job). The commits after `d0c2a04` (T-718, T-720, T-714, podcrates `v0.79.0`, T-780's
-  watch of the channel and of the pump's polls, to `db0db54` and its record) wait for the gate asked in #333: read it
-  first. Dependabot's #331 at `cfc07be` (`main` at `3f60f28` with its bump) failed `gate (m6)` alone, T-780's fourteenth
-  hang; each other job passed there, the take of `v0.79.0` among them. Dependabot's #331
-  at `1a24efd` (run 44649725163) was red in `gate (m6)`, T-780's thirteenth hang (no line of the pump's busy watch: the
-  hold is in russh's loop; patch `0013-loop-step` now says its step), and `gate (ssh)`, T-851 (a port race of
-  `shadowsocks_cli`'s stand-in, repaired): neither from its bump. This session's account cannot start Actions (its
-  `GH_TOKEN` is refused) and its pushes start none: each gate goes through `[gh action] requested` (#332; "How to test").
+  `529bc89` (run 44654103729, each job).
 - 2026-11-20: the gate is green at `0661ded` (run 44571876363, each job) and at `2c7b594` (run 44643735624);
   `release.yml` by hand at `0661ded` passed (run 44571898795, T-850). podcrates `v0.78.1` is taken at `e5b7414`
   (COORD-129, #330): `cargo test --workspace` 383 suites, 3954 passed. Its gate at `ae25fe1` was cancelled by the
@@ -96,12 +116,12 @@ COORD-149, and `v0.78.1`, COORD-129; the tag `v0.78.0` has no GitHub release). I
 | --- | --- |
 | #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
 | #268 (COORD-081), #269 (COORD-082) | podcrates' answers to its COORD-107 and COORD-108 (T-791, T-793) |
-| #283 (COORD-091) | podcrates' asks of T-780; the lines of the next hang |
+| #283 (COORD-091) | podcrates' asks 2 to 4 of T-780; the hold is now placed in podssh's own task (fifteenth hang), so the next line may close it |
 | #308 (COORD-111, to podnet), #311 (COORD-114, to podvm) | podnet and podvm reading them (T-809, T-819) |
 | #312 (COORD-115) | podcrates reading it; the copies of shared code end in T-820 |
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 | #322 (COORD-123) | T-847's first push at a release tag |
-| #330 (COORD-129) | podcrates recording the take of `v0.78.1` |
+| #333 (`[gh action] requested`) | the operator's local agent running the gate on the newest `main` |
 
 ## The live runs and interop harnesses
 

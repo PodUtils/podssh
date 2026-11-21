@@ -58,7 +58,7 @@ capability does not work, P2 worth doing, P3 recorded). The record has no open P
 
 | # | Problem | Entries | P | Group | Why it ranks here |
 | --- | --- | --- | --- | --- | --- |
-| 1 | A resumable session stops moving, at random, in the gate (13 failures in 7 days) | T-780 | P1 | A, C | The headline feature (M6) hangs a session; each hang costs a gate rerun; the cause now narrows to podssh's own SSH client |
+| 1 | A resumable session stops moving, at random, in the gate (15 failures in 8 days) | T-780 | P1 | A, C | The headline feature (M6) hangs a session; each hang costs a gate rerun; the cause now narrows to podssh's own SSH client |
 | 2 | A relay's byte cap vs the layer's move and window arithmetic | T-826 (COORD-122, 124, 126) | P2 | B, C | The layer still meets the relay's `1009` cap under a small cap; Windows lags the move |
 | 3 | Half-close of a Unix-domain socket not reaching the peer, on macOS and Windows | T-465 | P1 | A | One bug has failed on two systems 5 times since 2026-11-02; a platform fact is in doubt |
 | 4 | Windows loses the last bytes of an echo at the end of input | T-753 | P2 | A | RST on close with unread data is the likely cause; one failure, 50 runs clean |
@@ -93,7 +93,7 @@ client address, a stall of 3 minutes, or no fault. The same cases run on the iro
 (`--features podssh-cli/iroh-test`, `PODSSH_IROH_UDP=off`, iroh's relay server on the loopback).
 One test of 11 hangs until its limit; its rerun passes. It is a different test each time.
 
-**The thirteen failures** (gate run, podcrates tag, what the lines said). All are on `gate (m6)`.
+**The fifteen failures** (gate run, podcrates tag, what the lines said). All are on `gate (m6)`.
 
 | # | Date, podssh commit | Test | podcrates | What was seen |
 | --- | --- | --- | --- | --- |
@@ -110,6 +110,8 @@ One test of 11 hangs until its limit; its rerun passes. It is a different test e
 | 11 | 2026-11-19 `4b21fcd` | iroh new address | v0.76.0 | pipe watch: "SSH read nothing for 20 s while the channel waits to give it bytes; 16089582 bytes went to SSH so far" |
 | 12 | 2026-11-19 `c9772a3` | iroh, no fault | v0.77.0 | the same, and no line of SSH's own write waiting: no loss of any link at all |
 | 13 | 2026-11-20 `1a24efd` (#331) | stopped relay host | v0.78.1 | the pipe watch's line, and no line of the pump's busy watch: the pump waits in its select; russh's loop neither reads nor writes |
+| 14 | 2026-11-20 `cfc07be` (#331) | iroh new address | v0.79.0 | russh's loop held in a channel's full queue (`0013-loop-step`), the pump idle |
+| 15 | 2026-11-21 `2ae2341` (#338) | iroh stall of 3 min | v0.81.0 | the full queue is the session's own channel (2), and the pump's wait was not polled: the task that runs it holds elsewhere |
 
 **How the diagnosis moved** (each step is an added log line, taken from podcrates by COORD issue
 #283 "COORD-091"; see `TODO/robustness.md:2490` onward for the dated record):
@@ -130,7 +132,7 @@ holders are russh's read loop and podssh's pump step. A watch of the pump's step
 inside russh's own loop**, in a step that awaits beside no read and no write. (7) podssh's patch
 `vendor/patches/russh/0013-loop-step.patch` keeps the loop's step (a reply to which message, a
 channel's queue, the handler's data); the busy watch says one that holds 20 s
-(`crates/podssh-ssh/tests/loop_step.rs` makes the queue's hold). The next failure names the step.
+(`crates/podssh-ssh/tests/loop_step.rs` makes the queue's hold). Failures 14 and 15 named it: the queue of the session's own channel, whose pump was not polled. The task that runs the pump joins SSH, the layer and the end-to-end channel (`tokio::join!`); (8) `crates/podssh-cli/src/ssh/polls.rs` names the part whose poll does not return, at the next hang.
 
 **The code where the hold must be** (cited at the worktree's tree):
 - `vendor/russh/src/client/mod.rs:1562-1632`: the client's `select!` loop. It reads the stream only

@@ -335,7 +335,7 @@
 327 issue closed
 328 issue closed
 329 issue closed
-330 issue open
+330 issue closed
 331 pull closed
 332 issue closed
 333 issue open
