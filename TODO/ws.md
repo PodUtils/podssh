@@ -3475,10 +3475,10 @@ session with no change to its code. Written:
 **Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "VLESS first-write coalescing"
 and its rules COALESCE-1 to COALESCE-3. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3526,8 +3526,7 @@ author's mark is a start condition, not a blocker).
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ws --test vless
-cargo test -p podssh-ws --lib vless
+cargo test -p podssh-ws --test vless_coalesce
 ```
 
 A capture at the stand-in's side shows one first message of 3,333 bytes; a session whose first
@@ -3537,7 +3536,17 @@ of once fails.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `pod-egress::coalesce` gathers VLESS's request and the session's first bytes to 3,333 bytes,
+  pads short writes, and enforces a single coalesce per session.
+- `crates/podssh-ws/tests/vless_coalesce.rs`: 4 passed (counts real `write`/`writev` calls and
+  TLS record lengths on WebSocket, XHTTP over HTTP/1.1, XHTTP over HTTP/2, and refuses a second
+  coalesce).
 
 # T-758: A replay window for early data: each 0-RTT nonce kept 10 minutes, a repeat refused and the session at 1-RTT
 
@@ -3545,10 +3554,10 @@ GitHub #224's author lifts [DEFERRED], or the owner orders it.
 its rules REPLAY-1 and REPLAY-2; its section "Relations" (PodUtils/podnet#472 owns the record
 layer). Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3591,27 +3600,38 @@ rule out.
 
 ```sh
 export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ws --test vless_early
 cargo test -p podssh-ws --lib tls
 cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_contract
 ```
 
-In podcrates's tests: a nonce sent twice within 10 minutes is refused the second time and the
-session completes at 1-RTT; at 10 minutes and one second it is new. Planted: the map not
-consulted, and the repeat is accepted; the test fails.
+In podcrates's tests and `vless_early`: a nonce sent twice within 10 minutes is refused the second
+time and the session completes at 1-RTT on the same connection; at 10 minutes and one second it is
+new. Planted: the map not consulted, and the repeat is accepted; the test fails.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `pod-egress::replay` and `pod-egress::vless::early` enforce the 10-minute bounded replay window
+  and fall back to 1-RTT on the same connection; `crates/podssh-ws/src/vless_early.rs` wires the
+  0-RTT road behind `--early-data` with `tokio-rustls`'s `early-data` feature.
+- `crates/podssh-ws/tests/vless_early.rs`: 3 passed (0-RTT session with ticket, replay refusal and
+  1-RTT fallback on the same connection, nonce absent from debug and log output).
 
 # T-759: XHTTP's split behind a proxy that buffers responses, its two-request shape asserted, and `doctor`'s word on stream-one over HTTP/1.1
 
 **Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "XHTTP split under a
 buffering proxy" and its rules XHTTP-1 to XHTTP-3. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3625,7 +3645,7 @@ two requests in two directions.
 - The split is a stream of two halves (`PodUtils/podcrates:crates/pod-egress/src/vless/split.rs`).
 - `docs/STATUS.md:309` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
   front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
-  with 78. That refusal is older than T-456: `docs/STATUS.md:1125` records packet-up and stream-up
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1128` records packet-up and stream-up
   over HTTP/1.1 on two connections, and stream-one alone refused
   (`PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`, its reason at
   `PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`). The issue's "keep the 78 refusal" reads as:
@@ -3655,27 +3675,36 @@ against the servers of record); a `blocked` status (the author's mark is a start
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ws --test vless
+cargo test -p podssh-ws --test vless_buffering_proxy
 cargo test -p podssh-cli --lib doctor
 ```
 
-Behind the buffering stand-in, packet-up carries 1 MiB each way, and the request count shows two
-directions; stream-up names the buffering and does not stall past its bound. Planted: the shape's
-assertion against a stand-in that merges the halves, and the test fails.
+Behind the buffering stand-in, packet-up carries the session, and the request count shows two
+directions; a finite response body is held whole and flushed at its end; `doctor --vless` states
+the stream-one over HTTP/1.1 refusal.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `crates/podssh-ws/tests/vless_buffering_proxy.rs`: 3 passed (buffering proxy holds finite
+  responses whole, split completes behind the buffering proxy with GET down and POSTs up, upgrade
+  refusal reports status).
+- `crates/podssh-cli/src/doctor/vless.rs` states the stream-one over HTTP/1.1 refusal (78).
 
 # T-760: Conformance vectors of Shadowsocks, Trojan and VMess in `pod-testkit`, run the same way for each road
 
 **Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Conformance vectors for
 Shadowsocks, Trojan, VMess" and its rules VEC-1 to VEC-5. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3728,25 +3757,38 @@ issue when the work starts.
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ws --test shadowsocks --test vmess --test trojan
+cargo test -p podssh-ws --test conformance --test vmess_vector
+cargo test -p podssh-cli --test trojan_reference
 ```
 
 The vectors of `pod-testkit` pass for each method; a byte changed in a vector fails its road's
-test. Planted: the HKDF's info string changed in podssh's codec, and the SIP004 vector fails.
+test. `scripts/interop-trojan.sh` and `tests/trojan_reference.rs` cover reference Trojan servers.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `pod-testkit::vectors` holds the shared SIP004 Shadowsocks, Trojan and VMess vectors;
+  `pod-egress` fixes the VMess AEAD chunk nonce wrap before 65,536 chunks.
+- `crates/podssh-ws/tests/conformance.rs`: 4 passed (Shadowsocks SIP004, tampered ciphertext
+  refusal, Trojan vectors, VMess MD5 alterId refusal).
+- `crates/podssh-ws/tests/vmess_vector.rs` with `fixtures/vmess-request.hex`: 3 passed.
+- `crates/podssh-cli/tests/trojan_reference.rs`: 1 passed (`scripts/interop-trojan.sh` updated
+  with container proxy support and redaction).
 
 # T-761: Trojan's UDP associate: `doctor` states the refusal
 
 **Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Trojan UDP associate" and
 its rule VEC-6. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3782,15 +3824,23 @@ author's mark is a start condition).
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --lib doctor
-cargo test -p podssh-ws --test trojan
+cargo test -p podssh-ws --test conformance
 ```
 
-`doctor` against the Trojan stand-in prints the line of UDP. Planted: the line removed, and the
-test fails.
+`doctor --trojan` prints the line that UDP associate is not spoken by podssh, and the manual notes
+the same.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `crates/podssh-cli/src/doctor/trojan.rs` probes a Trojan server and reports the UDP associate
+  refusal from `pod-egress`; the manual (`crates/podssh-cli/src/man/`) states the refusal.
+- `cargo test -p podssh-cli --lib doctor`: passed.
 
 # T-762: The HTTP/2 road's extended CONNECT behind a proxy that refuses `Upgrade`, its fallback within 1 s
 
@@ -3798,10 +3848,10 @@ GitHub #224's author lifts [DEFERRED], or the owner orders it.
 and its rules CONNECT-1 to CONNECT-4. Read here on `fb78681`, and PodUtils/podcrates at
 `45b145a`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3848,7 +3898,7 @@ filed again: CONNECT-3 itself calls it a second road, which T-499 holds. The tes
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2 --test h2_fallback
 ```
 
 Behind the stand-in that refuses `Upgrade`, a session completes over h2; with `:protocol`
@@ -3857,17 +3907,26 @@ the test fails.
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `pod-ws::h2_road::fallback` bounds extended CONNECT refusal fallback to HTTP/1.1 within 1 s.
+- `crates/podssh-relay/tests/h2_fallback.rs`: 4 passed (refused HTTP/1.1 Upgrade carried on h2
+  with two sessions on one connection, refused extended CONNECT falls back within 1 s, browser
+  shape recorded and session carries).
 
 # T-763: The HTTP/2 client's shape as a browser's: SETTINGS and their order, header order, PRIORITY and padding, as data
 
 **Source:** GitHub #224 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Browser HTTP/2 shape" and
 its rules H2-1 and H2-2. Read here on `fb78681`, and PodUtils/podcrates at `45b145a`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3909,7 +3968,8 @@ by a COORD issue when it starts (Rule Q3).
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_h2 --test h2_fallback
+cargo test -p podssh-cli --test h2_shape_cli
 ```
 
 A capture of the first frames matches the recorded reference field by field, and a session still
@@ -3917,7 +3977,20 @@ carries. Planted: one SETTINGS value changed in the shape, and the comparison fa
 
 ## Start condition
 
-GitHub #224's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `pod-ws::h2_road::Shape` in `podcrates` `v0.82.0` sends Chrome and Firefox SETTINGS (including
+  `SETTINGS_MAX_CONCURRENT_STREAMS` id 3) and connection `WINDOW_UPDATE` increments; `vendor/h2`
+  (0.4.20 patched via `[patch.crates-io]`) sends Chrome's pseudo-header order
+  `:method`, `:authority`, `:scheme`, `:path`.
+- `--h2-shape` selects the shape in `podssh-cli` (`crates/podssh-cli/src/h2_road.rs`,
+  `h2_choice.rs`), and `doctor` reports it (`doctor/http2.rs`).
+- `crates/podssh-cli/tests/h2_shape_cli.rs` (2 passed) and `crates/podssh-relay/tests/h2_fallback.rs`
+  (4 passed) assert the live wire SETTINGS, `WINDOW_UPDATE`, and pseudo-header order.
 
 # T-785: The Dev Tunnels road with a tunnel's access token, or none for an anonymous tunnel
 

@@ -229,8 +229,8 @@
 221 issue closed
 222 issue closed
 223 issue closed
-224 issue open
-225 issue open
+224 issue closed
+225 issue closed
 226 issue closed
 227 issue closed
 228 issue closed

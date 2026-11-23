@@ -5936,10 +5936,10 @@ each in a namespace with the loopback alone.
 **Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "A static site per
 published name" and its rules COVER-1 to COVER-3. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5982,27 +5982,38 @@ contract works without it), and `blocked` (the author's mark is a start conditio
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-relay --features serve --lib serve
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_cover
 ```
 
-`curl` (through the test's root) of the cover name gets the page with a valid chain; `/health`
-on it gets the site's 404; no body of an unauthenticated path holds "podssh", "PodUtils" or the
-version. Planted: the role's own 404 on the cover, and the test fails.
+`relay_serve_cover` asks the page, an asset, `robots.txt`, an unknown `Host`, a traversal and the
+site's 404; each answer's `Server` is the configured one, and no body holds "podssh", "PodUtils",
+"podcrates", "contract" or the contract's tag. Planted: the role's own 404 on the cover, and the
+test fails.
 
 ## Start condition
 
-GitHub #225's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `podssh relay serve --cover DIR --cover-server VALUE --cover-name NAME --control-socket PATH`
+  serves the static site from `pod-cover::Site`, read once at the start; unknown names and
+  traversal paths get the site's exact 404.
+- Role listeners share one pair table (`serve/cover.rs`, `serve/listener.rs`), and the cleartext
+  road answers the cover site under `--cover`.
+- `crates/podssh-relay/tests/relay_serve_cover.rs`: 8 passed.
 
 # T-765: The delegated handshake, server side: a temporary credential under the name's own chain for an authenticated client
 
 **Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Delegated handshake, server
 side" and its rules DELEG-1 to DELEG-3. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6050,16 +6061,29 @@ the work starts.
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_cover --test relay_serve_cover_credential
 ```
 
 An unauthenticated probe of the name gets a valid chain and the cover's page; an authenticated
-client gets the tunnel; a capture of both shows one certificate. Planted: a credential of another
-issuer or validity window, and the client's test fails (T-766).
+client gets a credential signed by the operator's pinned Ed25519 issuer key and bound to the
+connection's TLS exporter; a capture of both shows one certificate chain.
 
 ## Start condition
 
-GitHub #225's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `serve::routes::delegate` answers `POST /v1/delegate` for a token; credentials are signed by
+  the pinned operator Ed25519 issuer key (`--cover-issuer-key`, `--cover-issuer-public`) and
+  bound to the TLS connection's exporter (`serve/cover.rs`, `relay_serve/cover.rs`).
+- The relay checks the pinned issuer key, name, validity window, exporter binding and single-use
+  spent set on the live upgrade before opening a tunnel; wrong or replayed credentials get the
+  site's exact 404.
+- `crates/podssh-relay/tests/relay_serve_cover.rs` (8 passed, including `one_chain` comparison)
+  and `crates/podssh-relay/tests/relay_serve_cover_credential.rs` (5 passed).
 
 # T-766: The delegated handshake, client side: podssh verifies the temporary credential against the same chain and name
 
@@ -6067,10 +6091,10 @@ GitHub #225's author lifts [DEFERRED], or the owner orders it.
 side" and its gate ("a test fails when the temporary credential has a different issuer or
 validity window"). Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6106,16 +6130,27 @@ issue when the work starts.
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-ws --lib tls
+cargo test -p podssh-ws --lib delegated
+cargo test -p podssh-cli --test doctor_cover --test cover_credential
 ```
 
-A credential of another issuer, one past its window and one of another name are each refused,
-and the session does not start. Planted: the window not checked, and the test of the lapsed
-credential fails.
+A credential of another issuer, one past its window, one of another name and one of another
+exporter are each refused by name, and the session does not start.
 
 ## Start condition
 
-GitHub #225's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `podssh_ws::delegated` verifies the Ed25519 signature against the pinned issuer public key, the
+  name, validity window and TLS exporter binding on the live connection; `--cover-credential`
+  enables it on the relay road (`cover_choice.rs`) and `podssh doctor --cover NAME` checks it
+  (`doctor/cover.rs`).
+- `cargo test -p podssh-ws --lib delegated`: passed; `crates/podssh-cli/tests/doctor_cover.rs`:
+  2 passed; `crates/podssh-cli/tests/cover_credential.rs`: 4 passed.
 
 # T-767: `relay serve --cover` takes the unauthenticated documents off the public listener, and a test lists each public route
 
@@ -6123,10 +6158,10 @@ GitHub #225's author lifts [DEFERRED], or the owner orders it.
 removed" and its rules SURF-1 to SURF-3; its section "Relations" (PodUtils/podnet#168, the
 surface half). Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6173,26 +6208,39 @@ start condition).
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-relay --features serve --lib serve
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_routes --test relay_serve_contract
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_cover --test relay_serve_cover_credential --test relay_serve_contract
 ```
 
-Under `--cover`, each document's path on the public listener gets the cover's 404 and the socket
-answers it; without, the contract's tests pass unchanged. Planted: a new route added to the router
-alone, and the enumeration test fails.
+Under `--cover`, each document's path and every unauthenticated role route on the public listener
+gets the cover's exact 404 and the control socket answers the documents; without, the contract's
+tests pass unchanged. Planted: a new route added to the router alone, and the enumeration test
+fails.
 
 ## Start condition
 
-GitHub #225's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `serve/surface.rs` holds the router allow-list; under `--cover`, all 9 `Reach::Token` routes
+  and `/v1/pair` require a verified cover credential, documents and probes move to
+  `--control-socket`, `/v1/mint` takes only a POST with a body, and the cleartext road serves
+  only the cover site.
+- `crates/podssh-relay/tests/relay_serve_cover.rs` (8 passed) and
+  `crates/podssh-relay/tests/relay_serve_cover_credential.rs` (5 passed, including full router
+  enumeration `every_route_is_the_sites_404_under_a_cover`).
 
 # T-768: One name for each relay deployment: no wildcard shared across deployments, and a lapsed name fails closed
 
 **Source:** GitHub #225 (Nemo-010, 2026-11-12, "[DEFERRED]"), its row "Certificate hygiene per
 deployment" and its rules CERT-1 and CERT-2. Read here on `fb78681`.
 **Category:** feature
-**Milestone:** backlog
+**Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -6230,16 +6278,28 @@ would break owners who use one name's wildcard for one deployment. The issue's t
 
 ```sh
 export CARGO_BUILD_JOBS=4
-cargo test -p podssh-relay --features serve --lib serve
-cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_publish
+cargo test -p podssh-cli --test cover_refusal
+cargo test -p podssh-relay --features serve,plain-ws --test relay_serve_publish --test relay_serve_cover
 ```
 
-A wildcard leaf gets the warning, and under `--cover` the refusal; a lapsed published name gets no
-certificate. Planted: the check of the leaf's names skipped, and the test fails.
+A wildcard leaf and an `--acme` mismatch are refused (78) in both modes; two names warn and each
+must be named under `--cover`. A lapsed published name gets no certificate. Planted: skip the
+leaf's names, and `cover_refusal` fails.
 
 ## Start condition
 
-GitHub #225's author lifts [DEFERRED], or the owner orders it.
+Met: consolidated on `main` (`e728db9f`).
+
+## Done
+
+2026-11-23, `e728db9f` (on `PodUtils/podcrates` `v0.82.0`, `51c09390`).
+
+- `relay_serve::cover::hygiene` refuses a wildcard leaf and an `--acme` name mismatch (exit 78)
+  with or without `--cover`; `--cover-name` is required for each covered name on the certificate,
+  and `--cover-name` overlapping `--publish` or `--cover-script` without `--cover` is refused (64).
+- `crates/podssh-cli/tests/cover_refusal.rs`: 6 passed;
+  `crates/podssh-relay/tests/relay_serve_publish.rs`: passed;
+  `crates/podssh-relay/tests/relay_serve_cover.rs`: 8 passed.
 
 
 # T-798: The resumable layer over the HTTP road, where the way refuses the WebSocket upgrade

@@ -1,29 +1,44 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-20, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-23, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
-- **Read first, at the next session (2026-11-21, end of the cloud session of 2026-11-20 to 21):**
-  1. The gate of `main` asked in #333 (`[gh action] requested`). Its block runs the gate on the newest `main`, which
-     holds each commit after the last green gate at `d0c2a04` (run 44694900576): T-718's probe with the headers of
-     Access, T-720's iroh relay of the net's members, T-714 (a Unix route across an upgrade), T-853 (serve's probe of a
-     shell open for writing), podcrates `v0.79.0` to `v0.81.0`, and T-780's and T-846's new lines. No gate ran on them,
-     as this session's pushes start no workflow. The nearest evidence: Dependabot's #338 at `2ae2341` (`main` at
-     `78b8077` with its bump, run 44876039757) passed each job but `gate (m6)` (T-780's fifteenth hang).
-  2. T-780 (P1, the m6 hang): fifteen failures. The last three placed the hold: russh's loop waits on the full queue of
-     the session's own channel (2), and the pump that drains it is not polled. The task that runs the pump joins SSH
-     with the layer and the end-to-end channel (`tokio::join!`, `ssh/iroh/dial.rs`, `ssh/node.rs`); `ssh/polls.rs`
-     (`90763ef`) now names a part whose poll does not return, or says that no part was polled. Read its line at the
-     next hang, then repair that part.
-  3. T-846 (P1, `serve_pressure` on a pty): its second failure showed `yes` alive in a pty write; on a pty a closed
-     master hangs it up too, so serve acted on no close. Its failure now says `yes`'s signals and whether it ended late
-     or never (`c997ca7`).
-  4. T-820: podssh's copies that podcrates' crates now hold: `node_install/` on `pod-unit` (`v0.80.0`),
-     `pod_core::files::replace` for `keygen_cert.rs` and `known_hosts/edit.rs`, and `pod_unit::install::install_system`
-     (`v0.81.0`); and the Windows lock of `known_hosts`, podcrates' entry 941.
+- **Read first, at the next session (2026-11-23):**
+  1. **`PodUtils/podcrates` `v0.82.0` (`51c09390`) is taken at `e728db9f`**, with `url` 2.5.9
+     (`RUSTSEC-2026-0592`), `vendor/h2` 0.4.20 patched via `[patch.crates-io]` for Chrome HTTP/2
+     pseudo-header order (`:method`, `:authority`, `:scheme`, `:path`), and `pod-cover` added.
+     `vendor/pod-ws` is not needed because `podcrates v0.82.0` carries the `pod-ws` HTTP/2 shape
+     and `pod-egress` VMess nonce-wrap fixes.
+  2. **GitHub #224 (`T-757` to `T-763`) is done at `e728db9f`**: VLESS first-write coalescing with
+     real write-count tests (`vless_coalesce`), 0-RTT early data with 10-minute replay window and
+     1-RTT fallback (`vless_early`), XHTTP buffering-proxy split tests (`vless_buffering_proxy`),
+     Shadowsocks/Trojan/VMess conformance vectors (`conformance`, `vmess_vector`, `trojan_reference`,
+     `scripts/interop-trojan.sh`), Trojan UDP doctor refusal (`doctor/trojan.rs`), and HTTP/2
+     extended CONNECT fallback and browser shape (`h2_fallback`, `h2_shape_cli`).
+  3. **GitHub #225 (`T-764` to `T-768`) is done at `e728db9f`**: `relay serve --cover` static site,
+     pinned operator Ed25519 issuer key signing and verification (`--cover-issuer-key`,
+     `--cover-issuer-public`, `--cover-credential`, `doctor --cover`), all 9 `Reach::Token` routes
+     and `/v1/pair` gated behind the cover site, shared pair table across role listeners, control
+     socket for role documents, and wildcard refusal (`relay_serve_cover`,
+     `relay_serve_cover_credential`, `cover_credential`, `cover_refusal`, `doctor_cover`).
+  4. **Local WSL verification at `e728db9f`**: `python3 scripts/check-repo.py` 12/12 ok, `cargo fmt`
+     clean, all 14 gate clippy checks clean (`-D warnings -A clippy::collapsible_if`),
+     `podssh-todo check` and `podssh-todo test` (11 passed) green, `scripts/no-plain-ws.sh` ok,
+     `step_libs` 151 suites (868 passed, 0 failed), `podssh-ssh` + `warp` 26 suites (1819 passed,
+     0 failed), `podssh-cli` 239 suites (2479 passed; 2 environmental failures on Arch WSL lacking
+     rootless podman bridge `10.88.0.2` in `exit_routes` and `vi` in `serve_tty`), `node_detach`
+     8/8 passed. Next: push to `main` and watch the CI gate (`build.yml`).
+  5. **Open priorities after CI gate:** T-780 (P1, m6 hang: `ssh/polls.rs` at `90763ef` names a
+     held part at the next hang), T-846 (P1, `serve_pressure` on a pty), T-820 (`node_install/` on
+     `pod-unit`, `pod_core::files::replace`, Windows `known_hosts` lock), T-684 (`pod-cloudflare`,
+     `pod-ts`, `pod-relay-serve`), and T-791 / T-809 before the next beta.
+- **Earlier cloud session notes (2026-11-20 to 21):**
+  1. The gate of `main` asked in #333 (`[gh action] requested`) preceded `e728db9f`. Dependabot's
+     #338 at `2ae2341` (`main` at `78b8077`, run 44876039757) passed each job except `gate (m6)`
+     (T-780's fifteenth hang).
 - **This cloud session's own conditions**, which a next cloud session may meet again: `gh`'s token is refused and a
   push starts no workflow, so each gate is asked by `[gh action] requested` (as #332 and #333); a full disk (it filled
   here once) is freed by removing `target/` whole; and since a restart of the worker, the shell puts a stand-in of `rm`
@@ -59,13 +74,21 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.81.0"` (taken 2026-11-21, COORD-151 of podcrates; before it `v0.80.0`,
-COORD-150, `v0.79.0`,
-COORD-149, and `v0.78.1`, COORD-129; the tag `v0.78.0` has no GitHub release). It took `pod-warp` at `v0.37.0` (COORD-075, PodUtils/podcrates#135; podssh's answer is COORD-050).
+podssh pins every podcrates crate at `tag = "v0.82.0"` (`51c09390`, taken 2026-11-23 at `e728db9f`;
+before it `v0.81.0`, COORD-151, `v0.80.0`, COORD-150, `v0.79.0`, COORD-149, and `v0.78.1`,
+COORD-129; the tag `v0.78.0` has no GitHub release). `v0.82.0` adds `pod-cover` for `relay serve
+--cover` (T-764 to T-768) and delivers `pod-ws`'s browser HTTP/2 shape, `pod-egress`'s VLESS
+coalescing, early data, and VMess nonce-wrap fix, `pod-testkit`'s conformance vectors (T-757 to
+T-763), and `pod_core::Class::{Permission, Suite}`. It took `pod-warp` at `v0.37.0` (COORD-075,
+PodUtils/podcrates#135; podssh's answer is COORD-050).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`,
-  `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`, `pod-derp`, `pod-egress`, `pod-tor` and `pod-iroh` (2026-11-17, `v0.65.0`), `pod-release` (2026-11-19, `v0.77.0`, T-850: `podssh update` runs on it), and `pod-warp` (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
+  `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`, `pod-derp`, `pod-egress`, `pod-tor`,
+  `pod-iroh` (2026-11-17, `v0.65.0`), `pod-release` (2026-11-19, `v0.77.0`, T-850: `podssh update`
+  runs on it), `pod-cover` (2026-11-23, `v0.82.0`, T-764 to T-768), and `pod-warp`
+  (`crates/podssh-warp` is its glue: podssh's way out, its proxy and its resolver). Work on them is
+  done in PodUtils/podcrates (Rule Q3); podssh keeps the glue.
 - `v0.40.0` (taken 2026-11-13) brought the forms of the file hosts (COORD-053, #230, closed; T-738 reads
   `fetch-link-prefix` and `on-by-default`) and `pod-netstack`'s tests of T-599's cases (COORD-054, #231,
   closed; T-599 and T-771 name them).
