@@ -69,7 +69,7 @@ pkcs8 = { version = "0.11", default-features = false, features = ["encryption"] 
 # (RUSTSEC-2026-0543, T-808): it reads the system's time zone with no
 # unsound call, and on Windows its bundled database.
 sha2 = { workspace = true }
-jiff = "0.2.37"
+jiff = "1.0.0"
 # The signer that ssh-key's certificate builder calls (T-021): an RSA CA
 # signs through aws-lc-rs, and a CA in an agent through the agent. The
 # version that ssh-key builds.

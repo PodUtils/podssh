@@ -113,7 +113,7 @@ fn times_are_local_unless_utc() {
     assert_eq!(parse_time("20200101Z"), Some(1_577_836_800));
     assert_eq!(parse_time("202001011230Z"), Some(1_577_836_800 + 12 * 3600 + 30 * 60));
     assert_eq!(parse_time("20200101123045Z"), Some(1_577_836_800 + 12 * 3600 + 30 * 60 + 45));
-    let local = jiff::civil::date(2020, 1, 1).at(0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::system()).unwrap();
+    let local = jiff::civil::date(2020, 1, 1).at(0, 0, 0, 0).to_zoned_datetime(jiff::tz::TimeZone::system()).unwrap();
     assert_eq!(parse_time("20200101"), Some(local.timestamp().as_second()));
     // A day past its month, and a time past the day's, are no time.
     for bad in ["20200230", "202001012460", "20200101000060"] {

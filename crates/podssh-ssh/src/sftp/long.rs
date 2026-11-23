@@ -128,7 +128,7 @@ pub fn long_line_in(
     let user = user.unwrap_or(&uid);
     let group = group.unwrap_or(&gid);
     let mtime = i64::from(attrs.mtime.unwrap_or(0));
-    let time = match Timestamp::from_second(mtime).map(|t| t.to_zoned(zone.clone())) {
+    let time = match Timestamp::from_second(mtime).map(|t| t.to_zoned_datetime(zone.clone())) {
         Ok(at) if now - HALF_YEAR < mtime && now >= mtime => at.strftime("%b %e %H:%M").to_string(),
         Ok(at) => at.strftime("%b %e  %Y").to_string(),
         Err(_) => String::new(),

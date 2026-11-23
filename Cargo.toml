@@ -102,7 +102,6 @@ tokio-rustls = { version = "0.26", default-features = false, features = [
   "logging", "tls12", "early-data",
 ] }
 rustls-pki-types = "1"
-webpki-roots = "1"
 
 serde = { version = "1", features = ["derive"] }
 # The cells of a character on a terminal, for the cursor of the line
@@ -143,19 +142,12 @@ regex = { version = "1", default-features = false, features = ["unicode-perl"] }
 sha2 = { version = "0.11", default-features = false, features = ["oid", "zeroize"] }
 hmac = { version = "0.13", default-features = false, features = ["zeroize"] }
 hkdf = { version = "0.13", default-features = false }
-# rsa 0.9 takes a hash of the digest 0.10 line: SHA-2 of that line under a
-# name of its own, for podssh-ws's RSA verifier alone, until rsa 0.10 is
-# stable. ed25519-dalek 2 and snow keep it in the tree anyway.
-sha2-rsa = { package = "sha2", version = "0.10", default-features = false, features = ["oid"] }
 # `zeroize` on each AEAD and on the block cipher: their key, or its schedule,
 # is wiped when a cipher is dropped. chacha20poly1305 0.10 did so with no
 # feature, 0.11 only with it, and AES-GCM and AES never without it (T-377).
 aes-gcm = { version = "0.11", default-features = false, features = ["aes", "alloc", "zeroize"] }
 # The block cipher under aes-gcm, for QUIC's header protection (T-301).
 aes = { version = "0.9", default-features = false, features = ["zeroize"] }
-# 0.11 with aes-gcm 0.11: both on aead 0.6, whose traits `crypto/aead.rs`
-# shares between them (T-330, T-333).
-chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc", "zeroize"] }
 # `zeroize` makes `StaticSecret` wipe its scalar when it is dropped; without
 # it, a TLS key exchange and a session's X25519 key outlive their use.
 x25519-dalek = { version = "3", default-features = false, features = ["static_secrets", "zeroize"] }
@@ -166,21 +158,6 @@ ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
 # NOT expose `p256::ecdh::EphemeralSecret` — the error is
 # "could not find `ecdh` in `p256` ... found an item that was configured out".
 p256 = { version = "0.14", default-features = false, features = ["ecdsa", "arithmetic", "ecdh"] }
-# `p384` is here because the live TLS handshake FAILED without it, and the
-# failure named the algorithm exactly.
-# **MEASURED 2026-10-02, in `rust:1-alpine`, against the live relay:** the
-# presented chain is three certificates — leaf and first intermediate on
-# secp256r1, the second intermediate on secp384r1 — and the handshake was
-# refused with
-#   `UnsupportedSignatureAlgorithmContext {
-#      signature_algorithm_id: [6, 8, 42, 134, 72, 206, 61, 4, 3, 3],
-#      supported_algorithms: [0x06082a8648ce3d040302, 0x06032b6570] }`
-# and that OID is `ecdsa-with-SHA384` (1.2.840.10045.4.3.3). A provider that
-# offers only P-256/SHA-256 cannot verify the chain the relay actually
-# presents, so it is not a provider.
-p384 = { version = "0.14", default-features = false, features = ["ecdsa", "arithmetic"] }
-# RSA signature verification in podssh's TLS provider (public keys only).
-rsa = { version = "0.10", default-features = false, features = ["std"] }
 
 # rand's `sys_rng` backend (getrandom) reads the OS, not a C library.
 # `small_rng` is deliberately off: podssh's protocol randomness is OS-sourced

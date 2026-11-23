@@ -328,7 +328,7 @@ pub fn parse_time_in(text: &str, local: &TimeZone) -> Option<i64> {
 /// A time as `ssh-keygen` prints it: local time, `YYYY-MM-DDTHH:MM:SS`.
 pub fn format_time(seconds: i64) -> String {
     match Timestamp::from_second(seconds) {
-        Ok(t) => t.to_zoned(TimeZone::system()).strftime("%Y-%m-%dT%H:%M:%S").to_string(),
+        Ok(t) => t.to_zoned_datetime(TimeZone::system()).strftime("%Y-%m-%dT%H:%M:%S").to_string(),
         // Past the range of a time: the epoch, as chrono's default gave.
         Err(_) => "1970-01-01T00:00:00".to_string(),
     }
