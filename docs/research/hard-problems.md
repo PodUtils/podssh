@@ -144,7 +144,7 @@ each wait of a pump on the session drains the channel into a bounded backlog bes
 (`crates/podssh-ssh/src/io/beside.rs`), in `io.rs` and in the master's `mux/msession.rs`.
 
 **The code where the hold must be** (cited at the worktree's tree):
-- `vendor/russh/src/client/mod.rs:1566-1636`: the client's `select!` loop. It reads the stream only
+- `vendor/russh/src/client/mod.rs:1568-1638`: the client's `select!` loop. It reads the stream only
   `if can_read` with `can_read = packet_writer.unwritten() < OUTPUT_MOST` (16 MiB,
   `vendor/russh/src/lib_inner.rs:538`), writes `if wants_write`, and handles an inbound packet with
   `reply(self, handler, ..).await` **inline** at line ~1541, so a handler that awaits a full bounded

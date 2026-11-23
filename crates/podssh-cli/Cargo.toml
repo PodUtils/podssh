@@ -259,7 +259,7 @@ pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0", 
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
 # An SSH server for a node's TARGET in `tests/iroh_road.rs`; the version and
 # the features that podssh-ssh builds, so no crate is added.
-russh = { version = "0.65.2", default-features = false, features = ["aws-lc-rs", "rsa", "flate2"] }
+russh = { version = "0.65.4", default-features = false, features = ["aws-lc-rs", "rsa", "flate2"] }
 # The terminal oracle (T-200) of `tests/silent_notice.rs` (T-302): the
 # model terminal that the tests of podssh-ssh run, so no crate is added.
 vt100 = { workspace = true }

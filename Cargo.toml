@@ -191,7 +191,7 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
-# russh 0.65.0 as published, with eleven patches of podssh's
+# russh 0.65.4 as published, with fifteen patches of podssh's
 # (`vendor/patches/russh/`, `vendor/README.md` says what each does). Three
 # of them, for example. T-460: the data of a reply
 # to a global request that the request needs none of is dropped, where russh
@@ -200,8 +200,8 @@ strip = true
 # T-661: each channel's window goes to the target that the client's handler
 # gives at each data message, where russh used its configured window alone.
 # T-664: a public key's signature can go in the first request, with no query
-# first. The version stays 0.65.0, so the requirements of the crates do not
-# change; an update of russh moves the patches first, and drops each once a
+# first. The copy keeps the published version, which the crates require
+# (0.65.4, T-863); an update of russh moves the patches first, and drops each once a
 # release does what it does (`scripts/check-repo.py` fails on a patch that
 # the lock does not use).
 # iroh's relay client with the patch that podssh made (T-280): its relay

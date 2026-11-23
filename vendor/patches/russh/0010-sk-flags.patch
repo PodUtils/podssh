@@ -1,8 +1,8 @@
 diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
-index 22de244..1137fdb 100644
+index f825b59..82b63ac 100644
 --- a/src/server/encrypted.rs
 +++ b/src/server/encrypted.rs
-@@ -1078,6 +1078,19 @@ thread_local! {
+@@ -1155,6 +1155,19 @@ thread_local! {
      static SIGNATURE_BUFFER: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
  }
  
@@ -22,7 +22,7 @@ index 22de244..1137fdb 100644
  impl Encrypted {
      async fn server_read_auth_request_pk<H: Handler + Send>(
          &mut self,
-@@ -1221,6 +1234,7 @@ impl Encrypted {
+@@ -1298,6 +1311,7 @@ impl Encrypted {
                                      let key = VerifiedPublicKey {
                                          public_key: key,
                                          algorithm: &algorithm,

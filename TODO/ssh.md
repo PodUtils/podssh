@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:182-201`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:205-224`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3671,10 +3671,10 @@ Read with T-460's draft in the tree, 2026-11-02:
   test of Approach item 3.
 - The lock's russh is `vendor/russh` there, crates.io's 0.65.0 with T-460's patch, which adds 5
   lines to `src/client/mod.rs` above that code: the code that the Premise reads in cargo's copy is
-  at `vendor/russh/src/client/mod.rs:949-952` (`SendError`), `vendor/russh/src/client/mod.rs:868-871`
-  (`Disconnect`) and `vendor/russh/src/client/mod.rs:865-866` (`ChannelOpenFailure`).
+  at `vendor/russh/src/client/mod.rs:950-953` (`SendError`), `vendor/russh/src/client/mod.rs:869-872`
+  (`Disconnect`) and `vendor/russh/src/client/mod.rs:866-867` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1501-1510`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1503-1512`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
@@ -4596,7 +4596,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3342` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3381` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).
@@ -4691,7 +4691,7 @@ uses. After an adjust it passes the handler's `adjust_window` the session's
 keeps the answer there, but the target of each adjust of CHANNEL_DATA and CHANNEL_EXTENDED_DATA was
 the configured window, `self.common.config.window_size`, and nothing read `target_window_size`
 again. The hook alone holds no window. The patch of Decision 1 asks at each message:
-`vendor/russh/src/client/encrypted.rs:624` says "let target = window_target(client, channel_num, self.common.config.window_size);".
+`vendor/russh/src/client/encrypted.rs:642` says "let target = window_target(client, channel_num, self.common.config.window_size);".
 
 At the merge (2026-11-04) the Prove's second bound did not hold on the slowest path: on the fake
 path of 1 Mbit/s and 100 ms, with a key each 300 ms for the whole run, the paced download moved
@@ -5515,6 +5515,127 @@ why. `vendor/README.md` says each. A test, `agent_failures_of_unlock_and_remove_
 russh 0.65.0 it fails ("Agent unlocked.", exit 0). `cargo test -p podssh-ssh -p podssh-cli` 2891 passed, 0 failed;
 russh's own `--lib` 235 passed; clippy (the gate's lints) and rustfmt clean. `upstream.yml` by hand at
 `a7932ec` (run 43921238333): success, its check of the copies passed; `chisel interop` there passed too. Done.
+
+# T-863: russh 0.65.4 read: carried in the place of the copy, for six advisories on podssh's paths
+
+**Source:** `upstream.yml`'s scheduled run of 2026-11-23 (run 45241141618, at `444b5181`), job `vendored`.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** M
+**Status:** done
+
+## Problem
+
+`scripts/check-vendored.py` failed: "FAIL russh released 0.65.4, which is neither the copy (0.65.2) nor the one judged
+(0.65.2)". The scheduled check stays red until a session reads the release and moves the copy or the line "Upstream
+read". russh 0.65.3 and 0.65.4 (both of 2026-11-21) fix seven advisories; six reach paths that podssh uses: its SSH
+client (each `podssh ssh`), its server (`podssh serve`) and its agent server (`podssh agent`).
+
+## Premise
+
+- `scripts/check-vendored.py:131` fails when the newest release is neither the copy's version nor the one that the
+  line "Upstream read" names; that line of russh's section is `vendor/README.md:101`, and named 0.65.2 (T-799).
+- `vendor/README.md` ("How to carry it to another version") gives the steps; each patch of `vendor/patches/russh/` is
+  a diff of the tree before it, and the shipped tree is the published crate plus the fifteen patches.
+- russh 0.65.4 still pins `ssh-key = "=0.7.0-rc.12"` (the index of crates.io), the copy of `vendor/ssh-key`, so
+  ssh-key does not move.
+
+## Approach
+
+1. Read the changes from 0.65.2 to 0.65.4: the published crates of crates.io (each checked against the index's
+   SHA-256: 0.65.3 `00daa3a9...`, 0.65.4 `569d8c45...`), `diff -r` of the trees, and the release notes of
+   Eugeny/russh (v0.65.3, v0.65.4).
+2. russh: the published 0.65.4, then the fifteen patches in order; each patch whose hunks no longer apply moves onto
+   the new tree, and each patch is written again as the diff of the tree before it.
+3. The crates' requirement of russh follows (0.65.4); the lock files follow at the next build (cargo resolves the
+   path package's new version).
+4. `vendor/README.md`'s russh section (the copy, the line "Upstream read", what moved), the root `Cargo.toml`'s
+   comment, and AGENTS.md's map line follow.
+
+## Decision
+
+Carry 0.65.4, not hold it. The advisories that reach podssh (the release notes of v0.65.3 and v0.65.4):
+
+- GHSA-66vf-xq4p-pg7q (84717fc): the client took a KEX host key and signature of another algorithm than the
+  negotiated one, an `ssh-rsa` (SHA-1) signature where `rsa-sha2-512` was negotiated among them; and an RSA
+  `hostkeys-prove-00` signature whose hash the client does not allow. Each `podssh ssh`.
+- GHSA-ppq4-8rhp-9xrq (8900287): a server grew the client's unbounded queue of replies with USERAUTH_FAILURE (or
+  CHANNEL_OPEN_FAILURE) that answered no request, before the login. Each `podssh ssh`.
+- GHSA-7qgr-cjxw-6vjf (0e033c0): the client, and the server, took CHANNEL_OPEN_CONFIRMATION or CHANNEL_OPEN_FAILURE
+  for a channel that waited for no answer (an incomplete fix of GHSA-47hw-gvq5-r2gm). `podssh ssh` and `podssh serve`.
+- GHSA-m6v5-wqxv-mffh (951bfb5): the server's handler was still called for a channel that the peer had closed with
+  output queued. `podssh serve`.
+- GHSA-vfx7-2c3m-7fq5 (753d239): the agent server leaked a timer task, never cancelled, for each key added with a
+  lifetime (`ssh-add -t`). `podssh agent` serves russh's agent server (`crates/podssh-cli/src/agent/serve.rs`).
+- GHSA-v3vc-7662-5hv7 (7631717): the agent server signed after a lock that came while `Agent::confirm_request`
+  waited. `podssh agent` keeps russh's default `confirm_request`, which awaits nothing, so its window is small; the
+  fix (the check after each wait) reaches it all the same.
+- GHSA-xm3f-jwj9-3x8m (1feab69) is russh-config's `ProxyCommand`, a crate that podssh does not take.
+
+Beside them, defects on the same paths: the client answered REQUEST_FAILURE to a global request that wanted no reply
+(ee04c3b, #828); a second LOCK of the agent appended its password to the first. The server's banner moves from the
+SERVICE_ACCEPT to the first USERAUTH_REQUEST (b6219a7, #714; `podssh serve` sends no banner), and the MACs drop
+generic-array (f71a1b7) with no change of behaviour.
+
+Held (the loser): the copy at 0.65.2 with the line "Upstream read" moved. It would leave each advisory above in the
+binary, where T-799's rule was to carry on any advisory or a defect that podssh can hit; the rebase is two patches
+of a few lines.
+
+Two patches moved:
+
+- 0007 (T-680, the auth request behind the service request): upstream's `AuthRequest` gained `banner_sent` after
+  `rejection_count`, so the field `service_accept_due` and its two initializers moved beside it; and upstream's
+  `write_auth_request_if_needed` counts each request it writes (`self.pending_auth_requests += 1`, for
+  GHSA-ppq4-8rhp-9xrq), which the patch's hunk keeps: the request written behind the service request is counted as
+  each other is, else the server's USERAUTH_FAILURE to it would be refused as one that answers no request (Error::
+  Inconsistent) and each failed method would end the connection.
+- 0013 (T-780, the loop's step): upstream's client `Session` gained `pending_auth_requests` after `ext_info_count`,
+  so the field `step`, the types `Step` and `StepNow` and `reply_step`, and the initializer moved beside it.
+
+No new test of podssh's: each fix comes with upstream's own tests in the crate (`client::kex::
+negotiated_host_key_algorithm_tests`, `client::encrypted::tests::hostkeys_proof_rsa_hash_must_be_an_allowed_algorithm`,
+`client::tests::unsolicited_userauth_failure_is_rejected`, `client::tests::global_request_is_answered_only_if_it_wants_a_reply`,
+the agent server's `lifetime_constraint_expires_key_without_a_timer_task`, `sign_is_rejected_when_locked_during_confirm_request`
+and `lock_does_not_append_to_an_existing_password`, the server's `open_replies_for_established_channel_are_rejected` and
+`peer_close_with_queued_output_ends_channel`, and `tests::test_auth_banner_is_sent_once`), which russh's `--lib` runs;
+the two rebased patches are proven by their own tests in podssh (`crates/podssh-ssh/tests/cold_connect.rs` for 0007,
+whose failed first method must not end the connection; `crates/podssh-ssh/tests/loop_step.rs` for 0013). A
+podssh-level test of the second LOCK cannot be written from the command line: russh's server already refuses a LOCK
+of a locked agent; only two LOCKs that race through `confirm_request` met the defect.
+
+## Prove
+
+```sh
+python3 scripts/check-vendored.py
+cargo test -p podssh-ssh -p podssh-cli
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib
+```
+
+The check of the copies passes; podssh's tests pass, `cold_connect` and `loop_step` among them; russh's own `--lib`
+passes, the tests of the patches and upstream's new tests of the advisories among them. The shipped tree is the
+published crate plus the fifteen patches (`patch -p1` of each, in order, on the crate, then `diff -r` empty).
+
+## Done
+
+Draft, 2026-11-23: each release read (0.65.2 to 0.65.4, by the crates of crates.io, each checked against the
+index's SHA-256, and the release notes of v0.65.3 and v0.65.4); carried. `vendor/russh` is the published 0.65.4
+(`.cargo_vcs_info.json`: `4977b1af...`) plus the fifteen patches; 0007's and 0013's hunks moved as the Decision says,
+each other patch applied as it was (with offsets only), and each of the fifteen written again as the diff of the tree
+before it (`git diff` of a scratch history, one commit for each patch). Measured in the draft: each patch applied in
+order with `patch -p1` to a fresh copy of the 0.65.4 crate, and with `git apply` (and `git apply --directory=vendor/russh`,
+the README's way) to another: `diff -r` against `vendor/russh` empty each time; the copy before, 0.65.2 plus the old
+patches, was `diff -r` empty against the old `vendor/russh`. The crates require russh 0.65.4 (`crates/podssh-ssh`,
+`crates/podssh-cli`, `crates/podssh-relay`). `vendor/README.md` (russh's section, the line "Upstream read", the
+ssh-key lines that name the russh that pins it), the root `Cargo.toml`'s comment and AGENTS.md's map line follow.
+Merged and run here (2026-11-23, Linux, Rust 1.100): `Cargo.lock` resolved with cargo 1.99 to russh 0.65.4 (its
+dependency on generic-array gone); `fuzz/Cargo.lock`, stale since podcrates `v0.63.0`, resolved with it. russh's own
+`cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib`: 252 passed. `cargo test -p
+podssh-ssh`: each suite passed (`cold_connect`, `loop_step`, `serve_algorithms`, `kex_guess` among them).
+`cargo test -p podssh-cli`: 246 suites, 2512 passed, 3 failed: `tests/job_far.rs` at the container's stand-in of `rm`,
+as at the baseline. clippy (the gate's lints) and rustfmt clean. `python3 scripts/check-vendored.py` could not reach
+crates.io through this container's proxy (403, exit 2: a check that could not run): `upstream.yml` by hand on `main`
+after the push is its proof.
 
 # T-838: An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file
 

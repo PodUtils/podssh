@@ -1,5 +1,6 @@
 diff --git a/src/server/host_key_signer.rs b/src/server/host_key_signer.rs
 new file mode 100644
+index 0000000..b093e64
 --- /dev/null
 +++ b/src/server/host_key_signer.rs
 @@ -0,0 +1,112 @@
@@ -116,9 +117,10 @@ new file mode 100644
 +    }
 +}
 diff --git a/src/server/kex.rs b/src/server/kex.rs
+index d7076ca..6faf754 100644
 --- a/src/server/kex.rs
 +++ b/src/server/kex.rs
-@@ -350,11 +350,21 @@
+@@ -350,11 +350,21 @@ impl ServerKex {
  
                  // Hash signature
                  debug!("signing with key {key:?}");
@@ -146,9 +148,10 @@ diff --git a/src/server/kex.rs b/src/server/kex.rs
                  output.write_packet(|w| {
                      match kex.is_dh_gex() {
 diff --git a/src/server/mod.rs b/src/server/mod.rs
+index 7b6a9fe..373f08f 100644
 --- a/src/server/mod.rs
 +++ b/src/server/mod.rs
-@@ -62,6 +62,8 @@
+@@ -62,6 +62,8 @@ pub use self::session::*;
  mod encrypted;
  #[cfg(test)]
  mod unimplemented;
@@ -157,7 +160,7 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
  
  /// Configuration of a server.
  pub struct Config {
-@@ -101,6 +103,27 @@
+@@ -101,6 +103,27 @@ pub struct Config {
      pub keepalive_max: usize,
      /// If active, invoke `set_nodelay(true)` on client sockets; disabled by default (i.e. Nagle's algorithm is active).
      pub nodelay: bool,
@@ -185,7 +188,7 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
  }
  
  impl Default for Config {
-@@ -128,6 +151,7 @@
+@@ -128,6 +151,7 @@ impl Default for Config {
              keepalive_interval: None,
              keepalive_max: 3,
              nodelay: false,
@@ -193,7 +196,7 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
          }
      }
  }
-@@ -155,6 +179,7 @@
+@@ -155,6 +179,7 @@ impl Debug for Config {
              .field("inactivity_timeout", &self.inactivity_timeout)
              .field("keepalive_interval", &self.keepalive_interval)
              .field("keepalive_max", &self.keepalive_max)

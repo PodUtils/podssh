@@ -15,7 +15,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d122413f284cf2d62fb1b7db97e02edb8cda96d769b16e443a4f6195e35662b0"
 dependencies = [
  "crypto-common 0.1.7",
- "generic-array 0.14.7",
+ "generic-array",
 ]
 
 [[package]]
@@ -269,7 +269,7 @@ version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
 dependencies = [
- "generic-array 0.14.7",
+ "generic-array",
 ]
 
 [[package]]
@@ -597,7 +597,7 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78c8292055d1c1df0cce5d180393dc8cce0abec0a7102adb6c7b1eef6016d60a"
 dependencies = [
- "generic-array 0.14.7",
+ "generic-array",
  "typenum",
 ]
 
@@ -644,7 +644,7 @@ checksum = "b9d6cf87adf719ddf43a805e92c6870a531aedda35ff640442cbaf8674e141e1"
 dependencies = [
  "aead 0.5.2",
  "cipher 0.4.4",
- "generic-array 0.14.7",
+ "generic-array",
  "poly1305 0.8.0",
  "salsa20 0.10.2",
  "subtle",
@@ -835,7 +835,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer 0.10.4",
- "const-oid 0.9.6",
  "crypto-common 0.1.7",
  "subtle",
 ]
@@ -1147,16 +1146,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generic-array"
-version = "1.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "337d46834ee672ab3e48caca2cb0c78cc174fb12b3a68d0d88f99a0519a5e36e"
-dependencies = [
- "rustversion",
- "typenum",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1389,7 +1378,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879f10e63c20629ecabbb64a8010319738c66a5cd0c29b02d63d272b03751d01"
 dependencies = [
- "generic-array 0.14.7",
+ "generic-array",
 ]
 
 [[package]]
@@ -1407,6 +1396,58 @@ name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "jiff"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5e77cbfb9fff4798e283c2d69dff39fc2c45e7da017e5ce95b654e46ea41236"
+dependencies = [
+ "jiff-core",
+ "jiff-static",
+ "jiff-tzdb-platform",
+ "log",
+ "portable-atomic",
+ "portable-atomic-util",
+ "serde_core",
+ "windows-link",
+]
+
+[[package]]
+name = "jiff-core"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6b46a105a9874634dd96231021526bf24ca04955a5998c59a9c7666e634b7b8"
+dependencies = [
+ "log",
+]
+
+[[package]]
+name = "jiff-static"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9067a0b23e5be3147d56b2dcf652b18e6b1364caca93fb157653b6fbcab23a9"
+dependencies = [
+ "jiff-core",
+ "proc-macro2",
+ "quote",
+ "syn 3.0.7",
+]
+
+[[package]]
+name = "jiff-tzdb"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12e71a1b68a875a44a33bb7a1dd84392cb77145a3367a552a3cfe6a4f5cf3afc"
+
+[[package]]
+name = "jiff-tzdb-platform"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc65b284afcfa8f6cf189c7274c805505314a7ab975c60e1f548bff56525420e"
+dependencies = [
+ "jiff-tzdb",
+]
 
 [[package]]
 name = "jobserver"
@@ -1469,9 +1510,6 @@ name = "lazy_static"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
-dependencies = [
- "spin",
-]
 
 [[package]]
 name = "libc"
@@ -1488,12 +1526,6 @@ dependencies = [
  "arbitrary",
  "cc",
 ]
-
-[[package]]
-name = "libm"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "lock_api"
@@ -1637,7 +1669,7 @@ dependencies = [
  "getrandom 0.4.3",
  "identity-hash",
  "lru-slab",
- "rand 0.10.3",
+ "rand",
  "rand_pcg",
  "rustc-hash",
  "rustls",
@@ -1681,24 +1713,8 @@ checksum = "93e7820bc0a80a0238e650327316f929ba18d5be054b647490a3a6a339f3e7c0"
 dependencies = [
  "num-integer",
  "num-traits",
- "rand 0.10.3",
+ "rand",
  "rand_core 0.10.1",
-]
-
-[[package]]
-name = "num-bigint-dig"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e661dda6640fad38e827a6d4a310ff4763082116fe217f279885c97f511bb0b7"
-dependencies = [
- "lazy_static",
- "libm",
- "num-integer",
- "num-iter",
- "num-traits",
- "rand 0.8.8",
- "smallvec",
- "zeroize",
 ]
 
 [[package]]
@@ -1717,23 +1733,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-iter"
-version = "0.1.46"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c92800bd69a1eac91786bcfe9da64a897eb72911b8dc3095decbd07429e8048b"
-dependencies = [
- "num-integer",
- "num-traits",
-]
-
-[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
- "libm",
 ]
 
 [[package]]
@@ -1810,7 +1815,7 @@ dependencies = [
  "delegate",
  "futures",
  "log",
- "rand 0.10.3",
+ "rand",
  "sha2 0.11.0",
  "thiserror",
  "tokio",
@@ -1877,17 +1882,6 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pkcs1"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8ffb9f10fa047879315e6625af03c164b16962a5368d724ed16323b68ace47f"
-dependencies = [
- "der 0.7.10",
- "pkcs8 0.10.2",
- "spki 0.7.3",
-]
-
-[[package]]
-name = "pkcs1"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6250dd7321adbe93d12b750aee0ced159fd13e77f625edcdf1cb6f83cd99f650"
@@ -1945,8 +1939,8 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 
 [[package]]
 name = "pod-acme"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "p256",
@@ -1966,19 +1960,33 @@ dependencies = [
 
 [[package]]
 name = "pod-core"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "libc",
- "rand 0.10.3",
+ "rand",
  "tokio",
  "windows-sys 0.61.2",
 ]
 
 [[package]]
+name = "pod-cover"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
+dependencies = [
+ "ed25519-dalek 2.2.0",
+ "hmac 0.13.0",
+ "pod-core",
+ "serde",
+ "sha2 0.11.0",
+ "toml",
+ "zeroize",
+]
+
+[[package]]
 name = "pod-derp"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "crypto_box",
  "hkdf 0.13.0",
@@ -1997,8 +2005,8 @@ dependencies = [
 
 [[package]]
 name = "pod-dns"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "bytes",
@@ -2018,8 +2026,8 @@ dependencies = [
 
 [[package]]
 name = "pod-e2e"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "aes-gcm 0.11.1",
  "chacha20poly1305 0.11.0",
@@ -2037,8 +2045,8 @@ dependencies = [
 
 [[package]]
 name = "pod-egress"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "aes 0.9.3",
  "base64",
@@ -2067,8 +2075,8 @@ dependencies = [
 
 [[package]]
 name = "pod-identity"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "ed25519-dalek 2.2.0",
@@ -2081,9 +2089,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-link"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
+dependencies = [
+ "base64",
+ "hmac 0.13.0",
+ "libc",
+ "pod-core",
+ "pod-identity",
+ "pod-tls",
+ "pod-ws",
+ "rustls",
+ "sha2 0.11.0",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+]
+
+[[package]]
 name = "pod-manual"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "libc",
  "serde",
@@ -2092,8 +2119,8 @@ dependencies = [
 
 [[package]]
 name = "pod-opentunnel"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "pod-core",
  "pod-proxy",
@@ -2101,7 +2128,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand",
  "rustls",
  "serde_json",
  "tokio",
@@ -2110,8 +2137,8 @@ dependencies = [
 
 [[package]]
 name = "pod-piping"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "bytes",
  "h2",
@@ -2124,7 +2151,7 @@ dependencies = [
  "pod-session",
  "pod-tls",
  "pod-ws",
- "rand 0.10.3",
+ "rand",
  "rustls",
  "sha2 0.11.0",
  "tokio",
@@ -2134,8 +2161,8 @@ dependencies = [
 
 [[package]]
 name = "pod-proxy"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "libc",
@@ -2151,8 +2178,8 @@ dependencies = [
 
 [[package]]
 name = "pod-quic"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "atomic-waker",
  "hmac 0.13.0",
@@ -2160,14 +2187,15 @@ dependencies = [
  "pod-core",
  "rustls",
  "sha2 0.11.0",
+ "socket2",
  "tokio",
  "tracing",
 ]
 
 [[package]]
 name = "pod-relay"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "bytes",
@@ -2187,20 +2215,40 @@ dependencies = [
  "pod-tls",
  "pod-wormhole",
  "pod-ws",
- "rand 0.10.3",
+ "rand",
  "rustls",
  "serde",
  "serde_json",
  "sha2 0.11.0",
  "tokio",
  "tracing",
+ "windows-sys 0.61.2",
  "zeroize",
 ]
 
 [[package]]
+name = "pod-release"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
+dependencies = [
+ "base64",
+ "libc",
+ "pod-core",
+ "pod-proxy",
+ "pod-tls",
+ "rand",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "tokio",
+ "x509-parser",
+]
+
+[[package]]
 name = "pod-services"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "pod-core",
  "toml",
@@ -2208,8 +2256,8 @@ dependencies = [
 
 [[package]]
 name = "pod-session"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "hkdf 0.13.0",
  "hmac 0.13.0",
@@ -2224,16 +2272,16 @@ dependencies = [
 
 [[package]]
 name = "pod-term"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "unicode-width",
 ]
 
 [[package]]
 name = "pod-tls"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "aes 0.9.3",
  "aes-gcm 0.11.1",
@@ -2246,12 +2294,11 @@ dependencies = [
  "p384",
  "pod-core",
  "pod-identity",
- "rand 0.10.3",
- "rsa 0.9.10",
+ "rand",
+ "rsa",
  "rustls",
  "rustls-pki-types",
  "security-framework",
- "sha2 0.10.9",
  "sha2 0.11.0",
  "tokio",
  "tokio-rustls",
@@ -2264,8 +2311,8 @@ dependencies = [
 
 [[package]]
 name = "pod-transit"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "hkdf 0.13.0",
  "hmac 0.13.0",
@@ -2273,7 +2320,7 @@ dependencies = [
  "pod-services",
  "pod-session",
  "pod-ws",
- "rand 0.10.3",
+ "rand",
  "sha2 0.11.0",
  "tokio",
  "zeroize",
@@ -2281,8 +2328,8 @@ dependencies = [
 
 [[package]]
 name = "pod-turn"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "hmac 0.13.0",
  "sha1",
@@ -2290,9 +2337,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pod-unit"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
+dependencies = [
+ "pod-core",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "pod-wormhole"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "bytes",
  "crypto_secretbox",
@@ -2313,8 +2369,8 @@ dependencies = [
 
 [[package]]
 name = "pod-ws"
-version = "0.63.0"
-source = "git+https://github.com/PodUtils/podcrates?tag=v0.63.0#d21fd638d8aa82465643eb33b80537a1d1ddd00f"
+version = "0.82.0"
+source = "git+https://github.com/PodUtils/podcrates?tag=v0.82.0#51c09390b759fe4bed35b16ac76d7e2e54e9e060"
 dependencies = [
  "base64",
  "bytes",
@@ -2329,6 +2385,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tracing",
+ "zeroize",
 ]
 
 [[package]]
@@ -2342,15 +2399,18 @@ dependencies = [
  "libc",
  "pod-acme",
  "pod-core",
+ "pod-cover",
  "pod-manual",
+ "pod-release",
  "pod-services",
  "pod-term",
+ "pod-unit",
  "podssh-core",
  "podssh-probe",
  "podssh-relay",
  "podssh-ssh",
  "podssh-ws",
- "rand 0.10.3",
+ "rand",
  "roxmltree",
  "rustls",
  "serde_json",
@@ -2409,9 +2469,11 @@ dependencies = [
  "noq",
  "num-bigint 0.5.1",
  "pod-core",
+ "pod-cover",
  "pod-derp",
  "pod-e2e",
  "pod-identity",
+ "pod-link",
  "pod-opentunnel",
  "pod-piping",
  "pod-proxy",
@@ -2422,7 +2484,7 @@ dependencies = [
  "pod-transit",
  "pod-wormhole",
  "podssh-ws",
- "rand 0.10.3",
+ "rand",
  "rustls",
  "serde",
  "serde_json",
@@ -2443,21 +2505,23 @@ dependencies = [
  "base64",
  "bytes",
  "cbc",
- "chrono",
  "crypto-bigint",
  "des",
  "futures-util",
  "hmac 0.13.0",
+ "jiff",
  "libc",
  "md5",
  "pageant",
  "pkcs5",
  "pkcs8 0.11.0",
+ "pod-core",
  "pod-term",
  "podssh-ws",
- "rand 0.10.3",
+ "rand",
  "russh",
  "russh-sftp",
+ "serde_json",
  "sha1",
  "sha2 0.11.0",
  "signature 3.0.0",
@@ -2474,12 +2538,15 @@ dependencies = [
  "base64",
  "blake2",
  "bytes",
+ "ed25519-dalek 2.2.0",
  "h2",
+ "hex",
  "hmac 0.13.0",
  "http",
  "libc",
  "md5",
  "pod-core",
+ "pod-cover",
  "pod-dns",
  "pod-egress",
  "pod-proxy",
@@ -2543,19 +2610,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "portable-atomic"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "powerfmt"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958"
-
-[[package]]
-name = "ppv-lite86"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
-dependencies = [
- "zerocopy",
-]
 
 [[package]]
 name = "primefield"
@@ -2616,16 +2689,6 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rand"
-version = "0.8.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e058c7de0b26af77780c769414d6257830bb240f3c38477dbc2c16e5f54d6d4c"
-dependencies = [
- "rand_chacha",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65c9fb96cbc91e3478eaae79a69fcd3f1ae4ad052e471fe6732fff548984b4af"
@@ -2633,16 +2696,6 @@ dependencies = [
  "chacha20 0.10.2",
  "getrandom 0.4.3",
  "rand_core 0.10.1",
-]
-
-[[package]]
-name = "rand_chacha"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
-dependencies = [
- "ppv-lite86",
- "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -2749,26 +2802,6 @@ dependencies = [
 
 [[package]]
 name = "rsa"
-version = "0.9.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8573f03f5883dcaebdfcf4725caa1ecb9c15b2ef50c43a07b816e06799bb12d"
-dependencies = [
- "const-oid 0.9.6",
- "digest 0.10.7",
- "num-bigint-dig",
- "num-integer",
- "num-traits",
- "pkcs1 0.7.5",
- "pkcs8 0.10.2",
- "rand_core 0.6.4",
- "signature 2.2.0",
- "spki 0.7.3",
- "subtle",
- "zeroize",
-]
-
-[[package]]
-name = "rsa"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23e77fd77e0dea28b3011fd62d15445b7de7959333b0276d930e03be0f755699"
@@ -2779,7 +2812,7 @@ dependencies = [
  "crypto-primes",
  "digest 0.11.3",
  "hmac 0.13.0",
- "pkcs1 0.8.0",
+ "pkcs1",
  "pkcs8 0.11.0",
  "rand_core 0.10.1",
  "sha2 0.11.0",
@@ -2790,7 +2823,7 @@ dependencies = [
 
 [[package]]
 name = "russh"
-version = "0.65.2"
+version = "0.65.4"
 dependencies = [
  "aes 0.9.3",
  "aws-lc-rs",
@@ -2813,7 +2846,6 @@ dependencies = [
  "enum_dispatch",
  "flate2",
  "futures",
- "generic-array 1.4.5",
  "getrandom 0.4.3",
  "ghash 0.6.0",
  "hex-literal",
@@ -2830,13 +2862,13 @@ dependencies = [
  "p521",
  "pageant",
  "pbkdf2",
- "pkcs1 0.8.0",
+ "pkcs1",
  "pkcs5",
  "pkcs8 0.11.0",
  "polyval 0.7.3",
- "rand 0.10.3",
+ "rand",
  "rand_core 0.10.1",
- "rsa 0.10.0",
+ "rsa",
  "russh-cryptovec",
  "russh-util",
  "salsa20 0.11.0",
@@ -3194,7 +3226,6 @@ version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
- "digest 0.10.7",
  "rand_core 0.6.4",
 ]
 
@@ -3269,12 +3300,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "spin"
-version = "0.9.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3763264f6b73151db08c50ff20d7d8a0b8796e021cdea7ceedad07b80155fa0e"
-
-[[package]]
 name = "spki"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3347,7 +3372,7 @@ dependencies = [
  "p384",
  "p521",
  "rand_core 0.10.1",
- "rsa 0.10.0",
+ "rsa",
  "sec1",
  "sha1",
  "sha2 0.11.0",
@@ -4011,26 +4036,6 @@ checksum = "b5f6765e852b9b4dc8e2a76843e4d64d1cea8e79bcde0b6901aea8e7c7f08282"
 dependencies = [
  "bit-vec",
  "time",
-]
-
-[[package]]
-name = "zerocopy"
-version = "0.8.62"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86502bf56ac7c77571a32e2647bb2a15894565e981fb2a48d7bde2d91c965a9d"
-dependencies = [
- "zerocopy-derive",
-]
-
-[[package]]
-name = "zerocopy-derive"
-version = "0.8.62"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5457206954b06561e2608c7e19cf58b1926586d999c246eebe4502f7e2039d1a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]

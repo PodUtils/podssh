@@ -1,7 +1,8 @@
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
+index e189153..666df0a 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -1106,6 +1106,19 @@
+@@ -1131,6 +1131,19 @@ impl Session {
              }
              m => {
                  debug!("unknown message received: {m:?}");
@@ -22,9 +23,10 @@ diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
              }
          }
 diff --git a/src/client/mod.rs b/src/client/mod.rs
+index 150afd8..f14a97c 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -85,6 +85,9 @@
+@@ -85,6 +85,9 @@ mod test;
  #[cfg(test)]
  mod reply_data;
  
@@ -34,7 +36,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
  /// Actual client session's state.
  ///
  /// It is in charge of multiplexing and keeping track of various channels
-@@ -1380,6 +1383,7 @@
+@@ -1381,6 +1384,7 @@ where
              strict_kex: false,
              alive_timeouts: 0,
              received_data: false,
@@ -42,7 +44,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
              remote_sshid: sshid.into(),
          },
          session_receiver,
-@@ -2105,6 +2109,9 @@
+@@ -2107,6 +2111,9 @@ async fn reply<H: Handler>(
      >,
      pkt: &mut IncomingSshPacket,
  ) -> Result<(), H::Error> {
@@ -52,7 +54,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      if let Some(message_type) = pkt.buffer.first() {
          debug!(
              "< msg type {message_type:?}, seqn {:?}, len {}",
-@@ -2343,6 +2350,7 @@
+@@ -2345,6 +2352,7 @@ mod tests {
                  strict_kex: false,
                  alive_timeouts: 0,
                  received_data: false,
@@ -60,7 +62,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
                  remote_sshid: b"SSH-2.0-test".to_vec(),
                  packet_writer: PacketWriter::clear(),
              },
-@@ -2650,6 +2658,7 @@
+@@ -2689,6 +2697,7 @@ mod tests {
                  strict_kex: false,
                  alive_timeouts: 0,
                  received_data: false,
@@ -70,6 +72,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
              },
 diff --git a/src/client/unimplemented.rs b/src/client/unimplemented.rs
 new file mode 100644
+index 0000000..c5cf990
 --- /dev/null
 +++ b/src/client/unimplemented.rs
 @@ -0,0 +1,55 @@
@@ -129,9 +132,10 @@ new file mode 100644
 +    assert_eq!(written(200, u32::MAX).await, unimplemented(u32::MAX));
 +}
 diff --git a/src/msg.rs b/src/msg.rs
+index ef0f497..c9d27ab 100644
 --- a/src/msg.rs
 +++ b/src/msg.rs
-@@ -174,3 +174,53 @@
+@@ -174,3 +174,53 @@ const ALL_KEX_MESSAGES: &[u8] = &[
  pub(crate) fn is_kex_msg(msg: u8) -> bool {
      ALL_KEX_MESSAGES.contains(&msg)
  }
@@ -186,9 +190,10 @@ diff --git a/src/msg.rs b/src/msg.rs
 +    KNOWN.contains(&msg)
 +}
 diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
+index 82b63ac..69c3e7c 100644
 --- a/src/server/encrypted.rs
 +++ b/src/server/encrypted.rs
-@@ -158,6 +158,16 @@
+@@ -157,6 +157,16 @@ impl Session {
              (EncryptedState::Authenticated, Some((msg, mut r))) => {
                  self.server_read_authenticated(handler, *msg, &mut r).await
              }
@@ -205,7 +210,7 @@ diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
              _ => Ok(()),
          }
      }
-@@ -851,6 +861,7 @@
+@@ -922,6 +932,7 @@ mod tests {
                  strict_kex: false,
                  alive_timeouts: 0,
                  received_data: false,
@@ -213,7 +218,7 @@ diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
                  remote_sshid: Vec::new(),
              },
              priority_receiver,
-@@ -2039,6 +2050,14 @@
+@@ -2122,6 +2133,14 @@ impl Session {
              }
              m => {
                  debug!("unknown message received: {m:?}");
@@ -229,9 +234,10 @@ diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
              }
          }
 diff --git a/src/server/mod.rs b/src/server/mod.rs
+index fbfbd18..7b6a9fe 100644
 --- a/src/server/mod.rs
 +++ b/src/server/mod.rs
-@@ -60,6 +60,8 @@
+@@ -60,6 +60,8 @@ mod kex;
  mod session;
  pub use self::session::*;
  mod encrypted;
@@ -240,7 +246,7 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
  
  /// Configuration of a server.
  pub struct Config {
-@@ -1179,6 +1181,7 @@
+@@ -1179,6 +1181,7 @@ async fn read_ssh_id<R: AsyncRead + Unpin>(
          strict_kex: false,
          alive_timeouts: 0,
          received_data: false,
@@ -248,7 +254,7 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
          remote_sshid: sshid.into(),
      };
      Ok(session)
-@@ -1189,6 +1192,9 @@
+@@ -1189,6 +1192,9 @@ async fn reply<H: Handler + Send>(
      handler: &mut H,
      pkt: &mut IncomingSshPacket,
  ) -> Result<(), H::Error> {
@@ -259,9 +265,10 @@ diff --git a/src/server/mod.rs b/src/server/mod.rs
          debug!(
              "< msg type {message_type:?}, seqn {:?}, len {}",
 diff --git a/src/server/session.rs b/src/server/session.rs
+index aa03435..d35c2af 100644
 --- a/src/server/session.rs
 +++ b/src/server/session.rs
-@@ -1693,6 +1693,7 @@
+@@ -1693,6 +1693,7 @@ mod tests {
                  strict_kex: false,
                  alive_timeouts: 0,
                  received_data: false,
@@ -271,6 +278,7 @@ diff --git a/src/server/session.rs b/src/server/session.rs
              priority_receiver,
 diff --git a/src/server/unimplemented.rs b/src/server/unimplemented.rs
 new file mode 100644
+index 0000000..87a8c7d
 --- /dev/null
 +++ b/src/server/unimplemented.rs
 @@ -0,0 +1,108 @@
@@ -383,9 +391,10 @@ new file mode 100644
 +    }
 +}
 diff --git a/src/session.rs b/src/session.rs
+index 8c21b4f..b69ea55 100644
 --- a/src/session.rs
 +++ b/src/session.rs
-@@ -78,6 +78,9 @@
+@@ -78,6 +78,9 @@ pub(crate) struct CommonSession<Config> {
      pub strict_kex: bool,
      pub alive_timeouts: usize,
      pub received_data: bool,
@@ -395,7 +404,7 @@ diff --git a/src/session.rs b/src/session.rs
  }
  
  impl<C> Debug for CommonSession<C> {
-@@ -264,6 +267,17 @@
+@@ -274,6 +277,17 @@ impl<C> CommonSession<C> {
      }
  }
  

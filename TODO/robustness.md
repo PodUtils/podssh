@@ -2757,7 +2757,7 @@ Facts, read at `35d51884`:
   the signal, `~d`, the elevated command's acts and the close (`io.rs:307`, `313`, `334`, `338`, `367`). The test
   writes 20 MiB and closes the client's stdin, so the pump takes the `None` arm once, near the end of the upload.
 - `writer.eof()` puts its message into the bounded queue from the handle to russh's loop, of 10
-  (`vendor/russh/src/channels/mod.rs:407-425`, `vendor/russh/src/client/mod.rs:1361`). The loop takes that queue only
+  (`vendor/russh/src/channels/mod.rs:407-425`, `vendor/russh/src/client/mod.rs:1362`). The loop takes that queue only
   while no data waits for the far end's window and its unwritten output is under `OUTPUT_ROOM`
   (`client/mod.rs:1571-1574`, `1649`), and it puts each CHANNEL_DATA into the channel's queue of 100
   (`client/mod.rs:2926`) inline, awaiting room (`client/encrypted.rs:638-641`). Only the pump takes that queue.
@@ -4643,7 +4643,7 @@ at Ctrl-C and at CAN, each with one line and no file left under its final name.
   window's tokio lock. tokio 1.54.1's `Acquire::poll` takes its permit first and then asks the task's budget of work,
   and yields with the permit held when the budget is spent: the pinned write that waited could hold the lock while it
   was not polled, and the body queued behind it for good. russh's loop queued behind both at the server's next
-  window adjust (`vendor/russh/src/client/encrypted.rs:803`, `vendor/russh/src/channels/mod.rs:132`), so nothing more
+  window adjust (`vendor/russh/src/client/encrypted.rs:821`, `vendor/russh/src/channels/mod.rs:132`), so nothing more
   was sent or read: the far `rz` waited for the next byte. `-v` said "held in the pump's turn before its wait" and "the
   SSH session's loop read nothing of its stream for 20 s, held in a reply to CHANNEL_WINDOW_ADJUST"; a build with
   markers said, in 3 stalls of 3, that the pump waited in that check and russh's loop in the lock of `grow`.

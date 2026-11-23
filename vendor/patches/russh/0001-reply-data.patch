@@ -1,8 +1,8 @@
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
-index bd00b12..6fe0719 100644
+index 5b7a676..45e1c11 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -59,6 +59,20 @@ fn verify_hostkeys_proof(
+@@ -68,6 +68,20 @@ fn verify_hostkeys_proof(
      Ok(())
  }
  
@@ -23,7 +23,7 @@ index bd00b12..6fe0719 100644
  impl Session {
      pub(crate) async fn client_read_encrypted<H: Handler>(
          &mut self,
-@@ -969,15 +983,15 @@ impl Session {
+@@ -989,15 +1003,15 @@ impl Session {
                  trace!("Global Request Success");
                  match self.open_global_requests.pop_front() {
                      Some(GlobalRequestResponse::Keepalive) => {
@@ -42,7 +42,7 @@ index bd00b12..6fe0719 100644
                          debug!("no-more-sessions@openssh.com requests success");
                      }
                      Some(GlobalRequestResponse::TcpIpForward(return_channel)) => {
-@@ -987,14 +1001,8 @@ impl Session {
+@@ -1007,14 +1021,8 @@ impl Session {
                          } else {
                              match u32::decode(&mut r) {
                                  Ok(port) => {
@@ -59,7 +59,7 @@ index bd00b12..6fe0719 100644
                                  }
                                  Err(e) => {
                                      error!("Error parsing port for TcpIpForward request: {e:?}");
-@@ -1005,15 +1013,15 @@ impl Session {
+@@ -1025,15 +1033,15 @@ impl Session {
                          let _ = return_channel.send(result);
                      }
                      Some(GlobalRequestResponse::CancelTcpIpForward(return_channel)) => {
@@ -78,7 +78,7 @@ index bd00b12..6fe0719 100644
                          let _ = return_channel.send(true);
                      }
                      Some(GlobalRequestResponse::HostKeysProve {
-@@ -1040,7 +1048,9 @@ impl Session {
+@@ -1065,7 +1073,9 @@ impl Session {
              }
              Some((&msg::REQUEST_FAILURE, r)) => {
                  trace!("global request failure");
@@ -90,7 +90,7 @@ index bd00b12..6fe0719 100644
                      Some(GlobalRequestResponse::Keepalive) => {
                          // ignore keepalives
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index d0579a4..1b254c0 100644
+index 442f1c7..642fa5d 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
 @@ -80,6 +80,11 @@ mod session;
@@ -105,7 +105,7 @@ index d0579a4..1b254c0 100644
  /// Actual client session's state.
  ///
  /// It is in charge of multiplexing and keeping track of various channels
-@@ -2126,7 +2131,7 @@ mod tests {
+@@ -2128,7 +2133,7 @@ mod tests {
      use crate::sshbuffer::{IncomingSshPacket, PacketWriter, SSHBuffer};
      use crate::{CryptoVec, cipher, mac};
  
@@ -114,7 +114,7 @@ index d0579a4..1b254c0 100644
  
      impl Handler for TestHandler {
          type Error = crate::Error;
-@@ -2139,7 +2144,7 @@ mod tests {
+@@ -2141,7 +2146,7 @@ mod tests {
          }
      }
  

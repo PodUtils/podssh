@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**817 entries: 22 open, 45 partial, 11 blocked, 739 done.**
+**818 entries: 22 open, 45 partial, 11 blocked, 740 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 11 | 3 | 93 | 107 |
+| P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
 | P3 | 22 | 11 | 6 | 341 | 380 |
-| **All** | 22 | 45 | 11 | 739 | 817 |
+| **All** | 22 | 45 | 11 | 740 | 818 |
 
 ## Entries
 
@@ -893,3 +893,4 @@ repository and CI).
 | [T-860](serve.md) | P3 | S | backlog | feature | open | `podssh serve --share`: the owner deletes or rotates a name from the session |
 | [T-861](serve.md) | P3 | M | backlog | feature | open | `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`) |
 | [T-862](serve.md) | P3 | S | backlog | measurement | open | A measure of `serve --share`'s writer lease with two people typing |
+| [T-863](ssh.md) | P1 | M | M10 | defect | done | russh 0.65.4 read: carried in the place of the copy, for six advisories on podssh's paths |

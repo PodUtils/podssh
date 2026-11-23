@@ -1,11 +1,11 @@
 diff --git a/src/auth.rs b/src/auth.rs
-index d4e4581..44e258b 100644
+index 46a4825..2aa6e52 100644
 --- a/src/auth.rs
 +++ b/src/auth.rs
-@@ -370,6 +370,10 @@ pub struct AuthRequest {
-     pub(crate) principal: Option<AuthPrincipal>,
+@@ -371,6 +371,10 @@ pub struct AuthRequest {
      #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
      pub rejection_count: usize,
+     pub(crate) banner_sent: bool,
 +    /// The client wrote this request behind its service request, before
 +    /// the server's SERVICE_ACCEPT came, which is still to come. podssh's
 +    /// patch (vendor/patches/russh/).
@@ -13,27 +13,27 @@ index d4e4581..44e258b 100644
  }
  
  #[doc(hidden)]
-@@ -406,6 +410,7 @@ impl AuthRequest {
-             current: None,
+@@ -408,6 +412,7 @@ impl AuthRequest {
              principal: None,
              rejection_count: 0,
+             banner_sent: false,
 +            service_accept_due: false,
          }
      }
  
-@@ -426,6 +431,7 @@ impl AuthRequest {
-             current,
+@@ -429,6 +434,7 @@ impl AuthRequest {
              principal: None,
              rejection_count: 0,
+             banner_sent: false,
 +            service_accept_due: false,
          }
      }
  
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
-index 0884e86..3191ec9 100644
+index c8f444c..10184d3 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -430,6 +430,16 @@ impl Session {
+@@ -449,6 +449,16 @@ impl Session {
                          Some((&msg::EXT_INFO, mut r)) => {
                              return self.handle_ext_info(&mut r).map_err(Into::into);
                          }
@@ -50,7 +50,7 @@ index 0884e86..3191ec9 100644
                          other => {
                              debug!("unknown message: {other:?}");
                              return Err(crate::Error::Inconsistent.into());
-@@ -1103,9 +1113,14 @@ impl Session {
+@@ -1128,9 +1138,14 @@ impl Session {
          meth: auth::Method,
      ) -> Result<bool, crate::Error> {
          let mut is_waiting = false;
@@ -66,7 +66,7 @@ index 0884e86..3191ec9 100644
                  EncryptedState::WaitingAuthServiceRequest {
                      accepted,
                      ref mut sent,
-@@ -1119,14 +1134,20 @@ impl Session {
+@@ -1144,7 +1159,12 @@ impl Session {
                          })?;
                          *sent = true
                      }
@@ -80,9 +80,10 @@ index 0884e86..3191ec9 100644
                  }
                  EncryptedState::InitCompression | EncryptedState::Authenticated => false,
              };
-             debug!("write_auth_request_if_needed: is_waiting = {is_waiting:?}");
+@@ -1152,7 +1172,8 @@ impl Session {
              if is_waiting {
                  enc.write_auth_request(user, &meth)?;
+                 self.pending_auth_requests += 1;
 -                let auth_request = AuthRequest::new(&meth);
 +                let mut auth_request = AuthRequest::new(&meth);
 +                auth_request.service_accept_due = accept_due;

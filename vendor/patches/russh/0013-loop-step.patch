@@ -1,7 +1,8 @@
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
+index 10184d3..e189153 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -635,10 +635,13 @@
+@@ -653,10 +653,13 @@ impl Session {
                      }
                  }
  
@@ -15,7 +16,7 @@ diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
                  client.data(channel_num, &data, self).await
              }
              Some((&msg::CHANNEL_EXTENDED_DATA, mut r)) => {
-@@ -664,6 +667,7 @@
+@@ -682,6 +685,7 @@ impl Session {
                  }
  
                  if let Some(chan) = self.channels.get(&channel_num) {
@@ -24,12 +25,13 @@ diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
                          .send(ChannelMsg::ExtendedData {
                              ext: extended_code,
 diff --git a/src/client/mod.rs b/src/client/mod.rs
+index 0e82512..150afd8 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -108,6 +108,65 @@
-     server_sig_algs: Option<Vec<Algorithm>>,
-     /// Number of EXT_INFO messages received (RFC 8308 allows at most two).
+@@ -110,6 +110,65 @@ pub struct Session {
      ext_info_count: u8,
+     /// USERAUTH_REQUESTs sent and not yet answered with success or failure
+     pending_auth_requests: usize,
 +    /// The step of the session's loop that awaits, and since when (podssh's
 +    /// patch, T-780).
 +    pub(crate) step: Step,
@@ -92,7 +94,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
  }
  
  impl Drop for Session {
-@@ -329,6 +388,7 @@
+@@ -330,6 +389,7 @@ pub struct Handle<H: Handler> {
      join: russh_util::runtime::JoinHandle<Result<(), H::Error>>,
      channel_buffer_size: usize,
      agent_session_binding: Option<crate::keys::agent::AgentSessionBinding>,
@@ -100,7 +102,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
  }
  
  impl<H: Handler> Drop for Handle<H> {
-@@ -342,6 +402,12 @@
+@@ -343,6 +403,12 @@ impl<H: Handler> Handle<H> {
          self.sender.is_closed()
      }
  
@@ -113,7 +115,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      /// Return the initial key-exchange context for OpenSSH agent session
      /// binding.
      ///
-@@ -1327,6 +1393,7 @@
+@@ -1328,6 +1394,7 @@ where
          None => session.begin_rekey()?,
      }
      let (kex_done_signal, kex_done_signal_rx) = oneshot::channel();
@@ -121,7 +123,7 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      let join = russh_util::runtime::spawn(session.run(stream, handler, Some(kex_done_signal)));
  
      let agent_session_binding = match kex_done_signal_rx.await {
-@@ -1346,6 +1413,7 @@
+@@ -1347,6 +1414,7 @@ where
          join,
          channel_buffer_size,
          agent_session_binding,
@@ -129,15 +131,15 @@ diff --git a/src/client/mod.rs b/src/client/mod.rs
      })
  }
  
-@@ -1404,6 +1472,7 @@
-             open_global_requests: VecDeque::new(),
+@@ -1406,6 +1474,7 @@ impl Session {
              server_sig_algs: None,
              ext_info_count: 0,
+             pending_auth_requests: 0,
 +            step: Step::default(),
          }
      }
  
-@@ -1533,7 +1602,10 @@
+@@ -1535,7 +1604,10 @@ impl Session {
                          } else {
                              self.common.received_data = true;
                              let kex_was_active = self.kex.active();

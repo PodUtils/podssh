@@ -96,18 +96,41 @@ Not done here: the home-region override, and connecting again after a drop
 ## russh
 
 - **Upstream**: <https://github.com/warp-tech/russh> (once Eugeny/russh),
-  the release 0.65.2 of crates.io, whose `.cargo_vcs_info.json` names the
-  commit `56a999871aa134072e4f2a7395fe2de313870e21`.
-- **Upstream read**: 0.65.2 on 2026-11-16 (T-799), the copy's own release and
-  the newest of crates.io; 0.65.1 fixed GHSA-736f-c93q-9fwx and
-  GHSA-9264-jvgf-6w2f, the agent client's lock, unlock and remove that took a
-  FAILURE for success (43a46d6), and padded ECDSA signatures, and took in
+  the release 0.65.4 of crates.io, whose `.cargo_vcs_info.json` names the
+  commit `4977b1afba8802137ac93f3e2c8bf916c35f437c`.
+- **Upstream read**: 0.65.4 on 2026-11-23 (T-863), the copy's own release and
+  the newest of crates.io; it and 0.65.3 fix seven advisories, six of them on
+  paths of podssh's: its client took a host key and a signature of another
+  algorithm than the negotiated one, `ssh-rsa` (SHA-1) among them
+  (GHSA-66vf-xq4p-pg7q), grew its queue of replies on each USERAUTH_FAILURE
+  that answered no request (GHSA-ppq4-8rhp-9xrq), and took an open's
+  confirmation or failure for a channel that waited for none
+  (GHSA-7qgr-cjxw-6vjf); its server still called the handler for a channel
+  that the peer had closed with output queued (GHSA-m6v5-wqxv-mffh); its
+  agent server, which `podssh agent` serves, leaked a timer task on each key
+  added with a lifetime (GHSA-vfx7-2c3m-7fq5) and signed after a lock that
+  came during `confirm_request` (GHSA-v3vc-7662-5hv7); the seventh,
+  GHSA-xm3f-jwj9-3x8m, is russh-config's, which podssh does not take. Beside
+  them: the client answers no global request that wants no reply (ee04c3b),
+  a second LOCK of the agent no longer adds to its password, the server
+  sends its banner at the first USERAUTH_REQUEST (b6219a7), and the MACs
+  drop generic-array (f71a1b7). It still pins ssh-key 0.7.0-rc.12. Before
+  it, 0.65.2 on 2026-11-16 (T-799): 0.65.1 fixed GHSA-736f-c93q-9fwx and
+  GHSA-9264-jvgf-6w2f, the agent client's lock, unlock and remove that took
+  a FAILURE for success (43a46d6), and padded ECDSA signatures, and took in
   0008's strict-kex order of a wrong guess for its server (7c59594); 0.65.2
-  takes rsa 0.10 and pins ssh-key 0.7.0-rc.12.
-- **Vendored**: 2026-11-02 (T-460) at 0.65.0, and carried to 0.65.2 on
-  2026-11-16 (T-799), from the crate of crates.io whose SHA-256 is the
-  index's checksum (`78229f06...`); 0008's two hunks of `src/negotiation.rs`
-  moved beside upstream's new `guessed_ignored`, each other patch as it was. The import is the published crate byte for byte, but
+  took rsa 0.10 and pinned ssh-key 0.7.0-rc.12.
+- **Vendored**: 2026-11-02 (T-460) at 0.65.0, carried to 0.65.2 on
+  2026-11-16 (T-799), and to 0.65.4 on 2026-11-23 (T-863), from the crate of
+  crates.io whose SHA-256 is the index's checksum (`569d8c45...`). Two
+  patches moved onto it: 0007's field `service_accept_due` beside upstream's
+  new `banner_sent` of `AuthRequest`, and its auth request written behind the
+  service request counted in upstream's `pending_auth_requests`, as each
+  other request is (else the server's USERAUTH_FAILURE to it would be read
+  as one that answers no request); 0013's field `step` and its `Step` beside
+  upstream's new `pending_auth_requests` of the client's `Session`. Each
+  other patch applied as it was, and each of the fifteen was written again
+  as the diff of the tree before it, so each applies with no offset. The import is the published crate byte for byte, but
   `.cargo-ok`, a mark of cargo's own; the shipped tree is the import plus
   the patches of `patches/russh/`, in the order of their numbers
   (`0001-reply-data.patch`, `0002-window-target.patch` of T-661,
@@ -122,7 +145,7 @@ Not done here: the home-region override, and connecting again after a drop
 - **How podssh uses it**: the root `Cargo.toml` puts it in the place of the
   release with `[patch.crates-io]`, and excludes it from the workspace, so
   its tests, examples and benches are not podssh's; `fuzz/Cargo.toml` does
-  the same. The crates require 0.65.2 (T-799), and the
+  the same. The crates require 0.65.4 (T-863), and the
   lock files' `russh` entries have no source and no checksum, as a path
   package has none. `scripts/check-repo.py` fails when a lock leaves the
   patch unused, as it would after an update of russh that did not move it.
@@ -203,7 +226,7 @@ Move that tag with the others.
   `.cargo_vcs_info.json` names the commit
   `9a7a73baf33d83dd3d8b8b862c417a04c1e613eb`.
 - **Upstream read**: 0.7.0-rc.12 on 2026-11-16 (T-799), the copy's own
-  release, which russh 0.65.2 pins; it refuses a certificate whose CA key is
+  release, which russh 0.65.4 still pins (as 0.65.2 did); it refuses a certificate whose CA key is
   a certificate (8eac39f) and takes rsa 0.10 and the curves' 0.14; its
   `ecdsa.rs` is rc.11's, so 0001 stays. The watch reads the newest version
   of all for a copy of a prerelease.
@@ -222,7 +245,7 @@ Move that tag with the others.
   format, plain and encrypted, and PuTTY's). The root `Cargo.toml` and
   `fuzz/Cargo.toml` put it in the place of the release with
   `[patch.crates-io]`, and the root excludes it from the workspace, so its
-  tests, examples and benches are not podssh's. russh 0.65.2 requires
+  tests, examples and benches are not podssh's. russh 0.65.4 requires
   0.7.0-rc.12 exactly, and the lock files' `ssh-key`
   entries have no source and no checksum.
 - **Its test keys**: `tests/examples/` and its doc comments hold the

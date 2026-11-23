@@ -1,8 +1,8 @@
 diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
-index c4daede..22de244 100644
+index 559771e..f825b59 100644
 --- a/src/server/encrypted.rs
 +++ b/src/server/encrypted.rs
-@@ -1488,10 +1488,16 @@ impl Session {
+@@ -1565,10 +1565,16 @@ impl Session {
                  let data = map_err!(Bytes::decode(r))?;
                  map_err!(ensure_end(r))?;
                  let target = self.target_window_size;
@@ -91,10 +91,10 @@ index 423e64d..6f838db 100644
                  // should be unreachable, since the receiver only gets
                  // messages from methods implemented within russh
 diff --git a/src/session.rs b/src/session.rs
-index 1bf832c..dde6ad9 100644
+index 2b91c5f..8c21b4f 100644
 --- a/src/session.rs
 +++ b/src/session.rs
-@@ -350,6 +350,37 @@ impl Encrypted {
+@@ -366,6 +366,37 @@ impl Encrypted {
          Ok(false)
      }
  

@@ -1,8 +1,8 @@
 diff --git a/src/client/kex.rs b/src/client/kex.rs
-index 9797921..a1cc670 100644
+index 1987f47..ffa7299 100644
 --- a/src/client/kex.rs
 +++ b/src/client/kex.rs
-@@ -77,6 +77,9 @@ pub(crate) struct ClientKex {
+@@ -93,6 +93,9 @@ pub(crate) struct ClientKex {
      cause: KexCause,
      state: ClientKexState,
      config: Arc<Config>,
@@ -12,7 +12,7 @@ index 9797921..a1cc670 100644
  }
  
  impl Debug for ClientKex {
-@@ -114,9 +117,39 @@ impl ClientKex {
+@@ -130,9 +133,39 @@ impl ClientKex {
              exchange,
              cause,
              state: ClientKexState::Created,
@@ -52,7 +52,7 @@ index 9797921..a1cc670 100644
      /// `Created` is "our KEXINIT is out, the peer's has not arrived".
      pub fn peer_kexinit_received(&self) -> bool {
          !matches!(self.state, ClientKexState::Created)
-@@ -181,6 +214,17 @@ impl ClientKex {
+@@ -197,6 +230,17 @@ impl ClientKex {
                      ));
                  }
  
@@ -71,10 +71,10 @@ index 9797921..a1cc670 100644
  
                  if kex.skip_exchange() {
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 2a31f40..5c5dcf4 100644
+index ab57407..869625c 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -1270,13 +1270,20 @@ where
+@@ -1271,13 +1271,20 @@ where
      H: Handler + Send + 'static,
      R: AsyncRead + AsyncWrite + Unpin + Send + 'static,
  {
@@ -99,7 +99,7 @@ index 2a31f40..5c5dcf4 100644
  
      // Reading SSH id and allocating a session if correct.
      let mut stream = SshRead::new(stream);
-@@ -1294,7 +1301,7 @@ where
+@@ -1295,7 +1302,7 @@ where
      let mut session = Session::new(
          config.window_size,
          CommonSession {
@@ -108,7 +108,7 @@ index 2a31f40..5c5dcf4 100644
              auth_user: String::new(),
              auth_attempts: 0,
              auth_method: None, // Client only.
-@@ -1312,7 +1319,13 @@ where
+@@ -1313,7 +1320,13 @@ where
          session_receiver,
          session_sender,
      );
@@ -123,7 +123,7 @@ index 2a31f40..5c5dcf4 100644
      let (kex_done_signal, kex_done_signal_rx) = oneshot::channel();
      let join = russh_util::runtime::spawn(session.run(stream, handler, Some(kex_done_signal)));
  
-@@ -2810,6 +2823,12 @@ pub struct Config {
+@@ -2849,6 +2862,12 @@ pub struct Config {
      pub gex: GexParams,
      /// If active, invoke `set_nodelay(true)` on the ssh socket; disabled by default (i.e. Nagle's algorithm is active).
      pub nodelay: bool,
@@ -136,7 +136,7 @@ index 2a31f40..5c5dcf4 100644
  }
  
  impl Default for Config {
-@@ -2832,6 +2851,7 @@ impl Default for Config {
+@@ -2871,6 +2890,7 @@ impl Default for Config {
              anonymous: false,
              gex: Default::default(),
              nodelay: false,

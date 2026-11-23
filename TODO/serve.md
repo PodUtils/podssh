@@ -114,7 +114,7 @@ on T-698.
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:237-278`); a request handler that does not answer
   still sends no reply (`vendor/russh/src/server/mod.rs:715-720`), and a channel request that russh does
-  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1875-1879`).
+  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1955-1959`).
 - "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
   the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
   `crates/podssh-relay/tests/devtunnel.rs:19`).
@@ -296,14 +296,14 @@ the entry joins the work order by its priority.
 
 - russh is 0.65.0, built from `vendor/russh` (T-107's Correction). `env_request`, `shell_request` and
   `exec_request` are at `vendor/russh/src/server/mod.rs:687-759`, and still answer nothing by
-  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1531-1549`,
+  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1608-1626`,
   into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:145`, 100). Each channel
   request goes to that queue too before the handler sees it, `env` among them
-  (`vendor/russh/src/server/encrypted.rs:1756-1767`): so a channel that nothing reads stalls the
+  (`vendor/russh/src/server/encrypted.rs:1836-1847`): so a channel that nothing reads stalls the
   connection with no data at all, after 100 `env` requests, and the task that reads a channel
   starts at its open, not at its `exec` (Approach item 1).
 - russh's server adjusts a channel's window when the data arrives, not when it is read
-  (`vendor/russh/src/server/encrypted.rs:1520-1530`): no window of a channel apart holds a client
+  (`vendor/russh/src/server/encrypted.rs:1597-1607`): no window of a channel apart holds a client
   back. The bytes for a child's stdin wait in a queue of 128 messages (about 4 MiB) of their own,
   written by a task of their own, which drains the rest after a broken pipe; past that queue the
   connection waits. The window of each channel apart is T-118's.
@@ -473,7 +473,7 @@ the entry joins the work order by its priority.
   (`vendor/russh/src/lib_inner.rs:431-451`; the reply at `vendor/russh/src/server/session.rs:1127-1158`):
   so a refusal of code 2 with the dial's words is `Other { code: 2, .. }`, as `ConnectFailed` carries
   the fixed words "Connect failed". russh's client maps code 2 back to `ConnectFailed` and gives the
-  words to its handler's `channel_open_failure` alone (`vendor/russh/src/client/encrypted.rs:582-612`),
+  words to its handler's `channel_open_failure` alone (`vendor/russh/src/client/encrypted.rs:604-630`),
   after it woke the opener: the test waits for them there.
 - The dialer is no longer in `crates/podssh-ws/src/dial.rs` at the cited lines: `dial` is a thin call
   of `pod-proxy`'s `Dialer` (`crates/podssh-ws/src/dial.rs:86-88`, `PodUtils/podcrates:crates/pod-proxy/src/dial.rs`),
@@ -1779,9 +1779,9 @@ Correction):
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
   1 GiB between the child's stdout and its channel (`t118-read-ahead`).
-- The server opens a window on arrival (`vendor/russh/src/session.rs:319`, `adjust_window_size`, which
+- The server opens a window on arrival (`vendor/russh/src/session.rs:335`, `adjust_window_size`, which
   its data path calls), and gives each data message to the kept `Channel` with a send that waits
-  (`vendor/russh/src/server/encrypted.rs:1545`). So Approach item 4 is measured by reading: a child
+  (`vendor/russh/src/server/encrypted.rs:1622`). So Approach item 4 is measured by reading: a child
   that reads nothing fills the pipe (64 KiB), serve's queue of its stdin (128 messages, T-108), and
   russh's queue of the channel (100), then russh's loop waits in that send, inside its handling of a
   packet, and serves no other channel of the connection. The Decision repairs it in russh rather than
@@ -3741,7 +3741,7 @@ What each path does, from the code read:
 | --- | --- | --- | --- |
 | What the client needs | `ssh -A` and its key in an agent | a stock `ssh`, its key admitted by the route | the same as (b) |
 | What the upstream needs | its own `authorized_keys`, nothing else | `TrustedUserCAKeys` and a principal list on a stock sshd; `cert-authority` in `podssh serve`, which refuses it today (`crates/podssh-ssh/src/server/options.rs:115-116`) | the route's key in its `authorized_keys` |
-| When the gateway dials | after the client is let in and asked for agent forwarding (`vendor/russh/src/server/encrypted.rs:1786-1800`, after authentication), so the gateway's own admission decides first | in `auth_publickey`, after the signature (`encrypted.rs:1239`) | as (b) |
+| When the gateway dials | after the client is let in and asked for agent forwarding (`vendor/russh/src/server/encrypted.rs:1866-1880`, after authentication), so the gateway's own admission decides first | in `auth_publickey`, after the signature (`encrypted.rs:1239`) | as (b) |
 | What upstream logs | the user's own key, from the gateway's address | the certificate: the gateway's CA key, the key id and the serial; the gateway sets the key id to the route, the user name and the user key's fingerprint, so one line ties the login to the user | the route's key: the user is in the gateway's log alone |
 | A compromised gateway | has no key of any user; signs only while a user's connection is open, and only for the servers that the agent's `ssh-add -h` constraints allow (`crates/podssh-ssh/src/agent_bind.rs:1-7`); holds nothing at rest | holds the CA key: it mints a certificate for any principal that an upstream's list allows, at any time, until the upstream drops the CA. It holds no key of a user. A certificate lasts 30 s, with `source-address`, and a route's own CA key limits the loss to that route | holds one credential for each route at rest: a copy of the file logs in from anywhere until the route's key is replaced |
 
@@ -3749,7 +3749,7 @@ Why (b) first. It is the only path that a stock `ssh user-a@gateway` can use wit
 client, which is the Prove of this entry. It works against a stock sshd, as `TrustedUserCAKeys` is
 OpenSSH's own feature (not read here). The parts exist: the certificate is `pod-relay`'s `Mint` with
 principals, a window and critical options (PodUtils/podcrates v0.82.0, `src/grant/cert.rs:149-210`), and
-russh's client logs in with a certificate and a key in the process (`vendor/russh/src/client/mod.rs:610-618`),
+russh's client logs in with a certificate and a key in the process (`vendor/russh/src/client/mod.rs:611-619`),
 the key a fresh one for each login. The gateway proves the first hop itself: the user's signature is
 verified before any callback that can dial (`encrypted.rs:1225-1239`), and the route table lists the
 keys that may take a route.
@@ -3801,7 +3801,7 @@ gateway that dials on the key query fails the last check.
 
 - The Premise's last item, "a podssh gateway can relay the client's signature over the upstream session id,
   so the private key never leaves the client", does not hold as written. A signature covers the session
-  identifier of the connection that it was made on (`vendor/russh/src/server/encrypted.rs:1236-1240`,
+  identifier of the connection that it was made on (`vendor/russh/src/server/encrypted.rs:1313-1317`,
   `src/client/encrypted.rs:1635-1645`): what the user signed for the gateway is worth nothing upstream.
   The client must sign a second time, over the upstream's blob: through its agent, by a channel that the
   gateway opens after login (`src/server/session.rs:254`), or in a patched client.
@@ -3809,7 +3809,7 @@ gateway that dials on the key query fails the last check.
   enough. Step 1's question about the callbacks is answered: they are separate, with the rider that a
   signed request with no probe before it calls `auth_publickey_offered` too (`encrypted.rs:1207-1216`).
 - The Prove's "a client that offers 20 keys and signs none causes no upstream connection" is true, but
-  russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:248-268`).
+  russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:247-267`).
   A cap on the offers, if wanted, is the gateway's.
 
 ## Done
@@ -4221,12 +4221,12 @@ cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-targ
 
 Read on 2026-11-23 in the pinned russh: the drop is not in `src/server/mod.rs` but in
 `vendor/russh/src/server/encrypted.rs`, at two places: `process_packet`'s last arm (`_ => Ok(())`,
-`vendor/russh/src/server/encrypted.rs:171` with the patch), which passes over each message that the state before the
+`vendor/russh/src/server/encrypted.rs:170` with the patch), which passes over each message that the state before the
 login takes no message of, and `server_read_authenticated`'s last arm (`unknown message received`,
-`vendor/russh/src/server/encrypted.rs:2052` with the patch), after the login. `vendor/russh/src/server/mod.rs:1218`
+`vendor/russh/src/server/encrypted.rs:2135` with the patch), after the login. `vendor/russh/src/server/mod.rs:1218`
 passes over IGNORE, UNIMPLEMENTED and DEBUG, as RFC 4253 asks. The client passes over an unknown message after its
-login in silence too (`vendor/russh/src/client/encrypted.rs:1108`); before its login it ends the connection
-(`Inconsistent`, `vendor/russh/src/client/encrypted.rs:129` and `:444`), which is no silence, and stays. The sequence
+login in silence too (`vendor/russh/src/client/encrypted.rs:1133`); before its login it ends the connection
+(`Inconsistent`, `vendor/russh/src/client/encrypted.rs:139` and `:463`), which is no silence, and stays. The sequence
 number of the packet is the loop's count less one (`pkt.seqn`, incremented after read(), as the server's strict-kex
 check reads it); no function below `reply` saw it, so the patch keeps it in `CommonSession`. Item 3's test is at
 russh's session layer (the Decision). Approach items 1 and 2 hold.

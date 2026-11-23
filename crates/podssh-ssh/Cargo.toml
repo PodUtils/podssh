@@ -12,7 +12,7 @@ publish.workspace = true
 # backend choice explicit: `aws-lc-rs`, plus RSA keys and zlib compression
 # (flate2's default backend is pure Rust).
 [dependencies]
-russh = { version = "0.65.2", default-features = false, features = ["aws-lc-rs", "rsa", "flate2"] }
+russh = { version = "0.65.4", default-features = false, features = ["aws-lc-rs", "rsa", "flate2"] }
 podssh-ws = { path = "../podssh-ws" }
 # fs: a descriptor that a control client passes and epoll does not take
 # (a regular file) is read and written on tokio's blocking threads (T-039).

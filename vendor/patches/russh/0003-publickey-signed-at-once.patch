@@ -1,5 +1,5 @@
 diff --git a/src/auth.rs b/src/auth.rs
-index 3c46459..d4e4581 100644
+index 09c00bb..46a4825 100644
 --- a/src/auth.rs
 +++ b/src/auth.rs
 @@ -281,6 +281,13 @@ pub enum Method {
@@ -28,10 +28,10 @@ index 3c46459..d4e4581 100644
                  .debug_struct("OpenSshCertificate")
                  .field("key", key)
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
-index af4c38d..9d19593 100644
+index f4486c0..46036ee 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -1391,6 +1391,58 @@ mod tests {
+@@ -1452,6 +1452,58 @@ mod tests {
              );
          }
      }
@@ -90,7 +90,7 @@ index af4c38d..9d19593 100644
  }
  
  impl Encrypted {
-@@ -1399,6 +1451,15 @@ impl Encrypted {
+@@ -1460,6 +1512,15 @@ impl Encrypted {
          user: &str,
          auth_method: &auth::Method,
      ) -> Result<bool, crate::Error> {
@@ -106,7 +106,7 @@ index af4c38d..9d19593 100644
          // The server is waiting for our USERAUTH_REQUEST.
          Ok(push_packet!(self.write, {
              self.write.push(msg::USERAUTH_REQUEST);
-@@ -1418,7 +1479,8 @@ impl Encrypted {
+@@ -1479,7 +1540,8 @@ impl Encrypted {
                      password.encode(&mut self.write)?;
                      true
                  }
@@ -116,7 +116,7 @@ index af4c38d..9d19593 100644
                      user.encode(&mut self.write)?;
                      "ssh-connection".encode(&mut self.write)?;
                      "publickey".encode(&mut self.write)?;
-@@ -1582,21 +1644,8 @@ impl Encrypted {
+@@ -1643,21 +1705,8 @@ impl Encrypted {
          buffer: &mut Vec<u8>,
      ) -> Result<(), crate::Error> {
          match method {
@@ -140,7 +140,7 @@ index af4c38d..9d19593 100644
              }
              auth::Method::OpenSshCertificate { key, cert } => {
                  let i0 = self.client_make_to_sign(
-@@ -1621,6 +1670,27 @@ impl Encrypted {
+@@ -1682,6 +1731,27 @@ impl Encrypted {
          Ok(())
      }
  
@@ -169,10 +169,10 @@ index af4c38d..9d19593 100644
          push_packet!(self.write, {
              msg::USERAUTH_INFO_RESPONSE.encode(&mut self.write)?;
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 09bfdb0..1157d98 100644
+index 99278e2..b7f3de2 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -511,6 +511,27 @@ impl<H: Handler> Handle<H> {
+@@ -512,6 +512,27 @@ impl<H: Handler> Handle<H> {
          self.wait_recv_reply().await
      }
  

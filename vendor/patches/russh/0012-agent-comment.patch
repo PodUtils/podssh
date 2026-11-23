@@ -13,10 +13,10 @@ index 233ce53..11954ff 100644
          if !constraints.is_empty() {
              for cons in constraints {
 diff --git a/src/keys/agent/server.rs b/src/keys/agent/server.rs
-index 09704cb..b29a925 100644
+index 67c55a6..40a557d 100644
 --- a/src/keys/agent/server.rs
 +++ b/src/keys/agent/server.rs
-@@ -146,9 +146,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync
+@@ -155,9 +155,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync
                  if let Ok(keys) = self.keys.0.read() {
                      msg::IDENTITIES_ANSWER.encode(writebuf)?;
                      (keys.len() as u32).encode(writebuf)?;
@@ -29,7 +29,7 @@ index 09704cb..b29a925 100644
                      }
                  } else {
                      msg::FAILURE.encode(writebuf)?
-@@ -274,9 +275,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync
+@@ -288,9 +289,10 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync
          writebuf: &mut Vec<u8>,
      ) -> Result<bool, Error> {
          let (blob, key_pair) = {

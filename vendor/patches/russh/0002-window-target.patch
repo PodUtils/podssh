@@ -1,8 +1,8 @@
 diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
-index 6fe0719..af4c38d 100644
+index 45e1c11..f4486c0 100644
 --- a/src/client/encrypted.rs
 +++ b/src/client/encrypted.rs
-@@ -609,7 +609,9 @@ impl Session {
+@@ -627,7 +627,9 @@ impl Session {
                  if !self.common.is_established_channel(channel_num) {
                      return Ok(());
                  }
@@ -13,7 +13,7 @@ index 6fe0719..af4c38d 100644
                  #[allow(clippy::collapsible_if)]
                  if let Some(ref mut enc) = self.common.encrypted {
                      if enc.adjust_window_size(channel_num, &data, target)? {
-@@ -636,7 +638,7 @@ impl Session {
+@@ -654,7 +656,7 @@ impl Session {
                  if !self.common.is_established_channel(channel_num) {
                      return Ok(());
                  }
@@ -22,7 +22,7 @@ index 6fe0719..af4c38d 100644
                  #[allow(clippy::collapsible_if)]
                  if let Some(ref mut enc) = self.common.encrypted {
                      if enc.adjust_window_size(channel_num, &data, target)? {
-@@ -1631,3 +1633,14 @@ impl Encrypted {
+@@ -1692,3 +1694,14 @@ impl Encrypted {
          Ok(())
      }
  }
@@ -38,10 +38,10 @@ index 6fe0719..af4c38d 100644
 +    }
 +}
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 1b254c0..09bfdb0 100644
+index 642fa5d..99278e2 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -3175,6 +3175,18 @@ pub trait Handler: Sized + Send {
+@@ -3214,6 +3214,18 @@ pub trait Handler: Sized + Send {
          window
      }
  
@@ -60,7 +60,7 @@ index 1b254c0..09bfdb0 100644
      /// Called when the server announces its host keys
      /// (`hostkeys-00@openssh.com`, sent by OpenSSH after authentication).
      ///
-@@ -3211,3 +3223,8 @@ pub trait Handler: Sized + Send {
+@@ -3250,3 +3262,8 @@ pub trait Handler: Sized + Send {
          }
      }
  }

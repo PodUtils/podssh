@@ -1,8 +1,8 @@
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 2415d8f..2a31f40 100644
+index ffa547d..ab57407 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -199,6 +199,11 @@ pub enum Msg {
+@@ -200,6 +200,11 @@ pub enum Msg {
          socket_path: String,
          channel_ref: ChannelRef,
      },
@@ -14,7 +14,7 @@ index 2415d8f..2a31f40 100644
      TcpIpForward {
          /// Provide a channel for the reply result to request a reply from the server
          reply_channel: Option<oneshot::Sender<Option<u32>>>,
-@@ -954,6 +959,31 @@ impl<H: Handler> Handle<H> {
+@@ -955,6 +960,31 @@ impl<H: Handler> Handle<H> {
              .await
      }
  
@@ -46,7 +46,7 @@ index 2415d8f..2a31f40 100644
      /// Requests the server to open a TCP/IP forward channel
      ///
      /// If port == 0 the server will choose a port that will be returned, returns 0 otherwise
-@@ -1702,6 +1732,14 @@ impl Session {
+@@ -1704,6 +1734,14 @@ impl Session {
                  let id = self.channel_open_direct_streamlocal(&socket_path)?;
                  self.channels.insert(id, channel_ref);
              }

@@ -691,21 +691,21 @@ with one rider.
 
 - A request with no signature (the probe, RFC 4252, section 7) calls
   `auth_publickey_offered` and answers `USERAUTH_PK_OK` on `Accept`
-  (`vendor/russh/src/server/encrypted.rs:1294-1311`). The callback sees the
+  (`vendor/russh/src/server/encrypted.rs:1371-1388`). The callback sees the
   user name and the key, and no proof of the key (`src/server/mod.rs:216-232`).
 - A signed request checks the signature over the session identifier and the
   request (`encrypted.rs:1225-1229`), and only then calls `auth_publickey`
-  (`:1250`) or, for a certificate, `auth_openssh_certificate` (`:1253`). The
+  (`:1327`) or, for a certificate, `auth_openssh_certificate` (`:1330`). The
   callback runs after the proof (`src/server/mod.rs:322-335`).
 - The rider: a signed request that no probe preceded calls
   `auth_publickey_offered` first (`encrypted.rs:1207-1216`). That includes
-  the patched client's single request (`vendor/russh/src/client/mod.rs:593-606`,
+  the patched client's single request (`vendor/russh/src/client/mod.rs:594-607`,
   patch 0003). So `auth_publickey_offered` runs for keys that proved nothing,
   and a gateway never dials in it; `auth_publickey` is the one callback that
   has a verified key and the user name.
 - A probe answered with `PK_OK` is not a rejection, and does not count
   toward `max_auth_attempts` (the cap counts `rejection_count`,
-  `encrypted.rs:63-80`; a test of russh pins it, `:241-261`): a client may
+  `encrypted.rs:63-80`; a test of russh pins it, `:242-262`): a client may
   offer any number of keys, and none of them reaches `auth_publickey` unless
   it signs. A signed attempt that is refused counts, so a connection makes
   at most 10 upstream logins by default (`src/server/mod.rs:124`).

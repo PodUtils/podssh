@@ -1,8 +1,8 @@
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 5c5dcf4..6ade9ee 100644
+index 869625c..0e82512 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -1428,6 +1428,8 @@ impl Session {
+@@ -1430,6 +1430,8 @@ impl Session {
          self.receiver.close();
          self.priority_receiver.close();
          self.inbound_channel_receiver.close();
@@ -11,7 +11,7 @@ index 5c5dcf4..6ade9ee 100644
          map_err!(stream_write.shutdown().await)?;
          match result {
              Ok(v) => {
-@@ -1495,12 +1497,22 @@ impl Session {
+@@ -1497,12 +1499,22 @@ impl Session {
              // Keep reading the network for window adjustments, but leave
              // application output in its bounded receivers while a channel is
              // window-blocked.
@@ -36,7 +36,7 @@ index 5c5dcf4..6ade9ee 100644
                      let (stream_read, mut buffer, mut opening_cipher) = match r {
                          Ok((_, stream_read, buffer, opening_cipher)) => (stream_read, buffer, opening_cipher),
                          Err(e) => return Err(e.into())
-@@ -1609,12 +1621,8 @@ impl Session {
+@@ -1611,12 +1623,8 @@ impl Session {
              };
  
              self.flush()?;
