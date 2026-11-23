@@ -11,8 +11,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
      (`RUSTSEC-2026-0592`), `vendor/h2` 0.4.20 patched via `[patch.crates-io]` for Chrome HTTP/2
      pseudo-header order (`:method`, `:authority`, `:scheme`, `:path`), and `pod-cover` added.
      No vendor/pod-ws patch is needed because `podcrates v0.82.0` carries the `pod-ws` HTTP/2 shape
-     and `pod-egress` VMess nonce-wrap fixes. `.github/workflows/issue-sync.yml` still pins `v0.81.0`
-     (`0707cfa3`). **COORD-133** (#340, `to podcrates`, recording the take of `v0.82.0` at `e728db9f`) is filed and
+     and `pod-egress` VMess nonce-wrap fixes. `.github/workflows/issue-sync.yml` runs at `v0.82.0`
+     (`51c09390`, since `0de83e93`). **COORD-133** (#340, `to podcrates`, recording the take of `v0.82.0` at `e728db9f`) is filed and
      open; `v0.82.0` has a git tag (`51c09390`) and no GitHub release.
   2. **GitHub #224 (`T-757` to `T-763`) is done at `e728db9f` and closed (`930e5ba0`,
      2026-11-23T09:03:56Z):** VLESS first-write coalescing with real write-count tests
