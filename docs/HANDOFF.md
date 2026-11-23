@@ -182,13 +182,9 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
 | Issue | Waits for |
 | --- | --- |
 | #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
-| #268 (COORD-081), #269 (COORD-082) | podcrates' answers to its COORD-107 and COORD-108 (T-791, T-793) |
 | #283 (COORD-091) | podcrates' asks 2 to 4 of T-780; the hold is now placed in podssh's own task (fifteenth hang), so the next line may close it |
-| #308 (COORD-111, to podnet), #311 (COORD-114, to podvm) | podnet and podvm reading them (T-809, T-819) |
-| #312 (COORD-115) | podcrates reading it; the copies of shared code end in T-820 |
-| #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
+| #311 (COORD-114, to podvm) | podvm reading it (T-819) |
 | #322 (COORD-123) | T-847's first push at a release tag |
-| #333 (`[gh action] requested`) | open on GitHub, superseded on `main` by `930e5ba0` (`build.yml` run 45143708331); close once `build` finishes green |
 | #340 (COORD-133) | podcrates recording the take of `v0.82.0` at `e728db9f` (T-684) |
 
 ## The live runs and interop harnesses
