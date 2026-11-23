@@ -189,7 +189,7 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 | #322 (COORD-123) | T-847's first push at a release tag |
 | #333 (`[gh action] requested`) | open on GitHub, superseded on `main` by `930e5ba0` (`build.yml` run 45143708331); close once `build` finishes green |
-| Next: `COORD-133` `(to podcrates)` | not yet opened; file after pushing `main` to record the `v0.82.0` take at `e728db9f` |
+| #340 (COORD-133) | podcrates recording the take of `v0.82.0` at `e728db9f` (T-684) |
 
 ## The live runs and interop harnesses
 
