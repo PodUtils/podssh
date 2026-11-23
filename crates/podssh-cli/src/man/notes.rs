@@ -274,6 +274,7 @@ const DOCTOR: &[&str] = &[
     super::notes_doctor::DOCTOR_ECH,
     super::notes_doctor::DOCTOR_STREAM,
     super::notes_net::DOCTOR_NET,
+    super::notes_policy::DOCTOR_LINE,
     "Each CONNECT, and the direct TCP check, is tried nine times over a second or more: its line gives the best time \
      (the path's floor), the median and the 95th percentile. It gives the jitter (the median change from one try to \
      the next), and the loss: the tries that timed out and those that broke counted apart. A refusal is an answer, not \

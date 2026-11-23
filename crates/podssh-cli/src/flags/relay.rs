@@ -234,6 +234,8 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     row(None, "hop", Some("[USER@]HOST[:PORT]"), FlagKind::Supported,
         "check only this host and a first hop of -J as --direct reaches it: the connection through HTTPS_PROXY with the \
          server's banner, its host key, and the methods that it offers to a key made for the check", None),
+    // The hop's algorithms judged by a policy (T-838).
+    super::policy::DOCTOR_POLICY,
     // The time of a run (T-511): fewer sections, or fewer at once.
     row(None, "quick", None, FlagKind::Supported,
         "check this host, the egress and the relay alone, with the roads that the run names (--forwarder, \

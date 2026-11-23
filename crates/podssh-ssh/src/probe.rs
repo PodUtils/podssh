@@ -3,6 +3,8 @@
 //! by `podssh doctor` to identify a server by equality with a published
 //! fingerprint, never by the shape of its banner. [`login`] goes one step
 //! further, for `podssh doctor --full`: it offers a key that no server knows.
+//! [`algorithm_policy`] judges the server's KEXINIT by a policy, for
+//! `podssh doctor --hop HOST --policy FILE` (T-838).
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -105,6 +107,53 @@ where
         }
     };
     tokio::time::timeout(within, attempt).await.map_err(|_| format!("no answer within {} s", within.as_secs()))?
+}
+
+/// Judges the server's KEXINIT that the record kept, at its host key, by
+/// the same judge as `ssh --policy` and `health --policy`, then refuses.
+struct Judging {
+    record: crate::handshake::Record,
+    judge: Arc<crate::policy::Judge>,
+}
+
+impl Handler for Judging {
+    type Error = russh::Error;
+
+    async fn check_server_key(&mut self, key: &PublicKeyOrCertificate) -> Result<bool, Self::Error> {
+        let _ = self.judge.judge(crate::policy::observe(&self.record.offers(), key));
+        // Refuse: the probe never authenticates, whatever the verdict.
+        Ok(false)
+    }
+}
+
+/// The verdict of `policy` on the server at the end of `stream`, with no
+/// login, within `within`: the key exchange runs to the host key, where the
+/// server's KEXINIT is judged, and the connection ends there. `Err` says
+/// why there is no reading: no handshake reached the host key, or what
+/// came does not read.
+pub async fn algorithm_policy<S>(
+    stream: S,
+    policy: &crate::policy::Policy,
+    within: Duration,
+) -> Result<crate::policy::Verdict, String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let record = crate::handshake::Record::default();
+    let judge = crate::policy::Judge::new(policy.clone(), true);
+    let handler = Judging { record: record.clone(), judge: judge.clone() };
+    let config = Arc::new(Config { inactivity_timeout: Some(within), ..Config::default() });
+    let outcome =
+        tokio::time::timeout(within, russh::client::connect_stream(config, record.watch(stream), handler)).await;
+    match judge.reading() {
+        crate::policy::Reading::Judged(verdict) => Ok(verdict),
+        crate::policy::Reading::Failed(why) => Err(why),
+        crate::policy::Reading::None => match outcome {
+            Err(_) => Err(format!("no host key within {} s", within.as_secs())),
+            Ok(Err(e)) => Err(crate::run::describe(&e)),
+            Ok(Ok(_)) => Err("the server sent no host key".into()),
+        },
+    }
 }
 
 #[cfg(test)]

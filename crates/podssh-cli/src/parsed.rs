@@ -188,6 +188,8 @@ pub enum Parsed {
         full: bool,
         /// `--hop`: a first hop of `-J` alone (T-371).
         hop: Option<String>,
+        /// `--policy FILE`, with `--hop`: the hop's KEXINIT judged (T-838).
+        policy: Option<String>,
         /// `--forwarder`: the forwarders to check too (T-369).
         forwarder: Option<String>,
         /// `--shadowsocks`: the file whose first server is checked too (T-373).

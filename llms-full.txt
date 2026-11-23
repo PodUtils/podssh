@@ -9337,6 +9337,15 @@ podssh doctor
   document names no host for is ????. With PODSSH_OFFLINE, the net's line
   comes, and no member relay is asked.
 
+  POLICY: with --hop HOST, --policy FILE judges the hop's algorithms by an
+  algorithm policy. One more connection runs the handshake to the hop's host
+  key, and ends there. The file and the verdict are those of podssh ssh
+  --policy. The line hop policy is ok with the policy's name on a pass. It is
+  FAIL on a mismatch, naming each one as FIELD: expected A,B, got C. A FAIL
+  makes the exit 1, as each FAIL of doctor does. It is ???? with no reading, or
+  with a size that one exchange cannot measure. --policy goes only with --hop
+  (64). A file that cannot be used is refused before any probe (78).
+
   Each CONNECT, and the direct TCP check, is tried nine times over a second or
   more: its line gives the best time (the path's floor), the median and the
   95th percentile. It gives the jitter (the median change from one try to the
@@ -9510,6 +9519,9 @@ podssh doctor
         check only this host and a first hop of -J as --direct reaches it: the
         connection through HTTPS_PROXY with the server's banner, its host key,
         and the methods that it offers to a key made for the check.
+    --policy FILE
+        with --hop, judge the hop's KEXINIT by the algorithm policy in FILE,
+        with no login; the line hop policy gives the verdict.
     --quick
         check this host, the egress and the relay alone, with the roads that
         the run names (--forwarder, --shadowsocks, --via, --vless); a line
@@ -13031,7 +13043,7 @@ EXIT STATUS
       that cannot be used, or no shell that runs. podssh ssh and health: the
       file of --policy cannot be read or used, or the server's algorithms do
       not meet it. podssh serve: the file of --policy cannot be used, or judges
-      no client.
+      no client. podssh doctor: the file of --policy cannot be used.
   255
       podssh ssh: the connection, the host key, a node's key or the
       authentication failed; or the server refused a session or ended the

@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:170-176`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:6886-6946`
+   so that only the notes change. No document changes: `docs/cli.md:6899-6959`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6760-6860`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6773-6873`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6770-6773`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:6783-6786`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6760-6860`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6773-6873`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:6886-6946` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:6899-6959` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:885-896` and `docs/cli.md:5714-5726`, the manual's notes and an
+- `docs/cli.md:885-896` and `docs/cli.md:5727-5739`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:634`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:6909-6914`). A person who types slowly must not meet a limit
+  `docs/cli.md:6922-6927`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:6944-6946` asks for a limit on the whole operation.
+   `docs/cli.md:6957-6959` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5612-5613` says that the key "is never used".
+called. `docs/cli.md:5625-5626` says that the key "is never used".
 
 ## Approach
 
@@ -5523,7 +5523,7 @@ russh's own `--lib` 235 passed; clippy (the gate's lints) and rustfmt clean. `up
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -5693,6 +5693,53 @@ Draft, 2026-11-23 (`draft-serve-rest`), the call site of `podssh serve` (Approac
   split before a `--policy` beside `--hop` fits; a `podssh_ssh::probe` function that records the server's
   KEXINIT with a `Record` and returns the `Verdict` is the way); the observations of the table are still the
   default lists, not captured bytes; `--persist`, `--upgrade` and connection sharing with `ssh --policy`.
+
+Draft, 2026-11-23 (`draft-doctor-policy`), the probe in `podssh doctor` (Approach 3, its last call site); with it
+each call site of the Approach is done:
+
+- The split first, with no change of behaviour: `doctor/args.rs` holds `DoctorArgs` and `parsed` (moved whole
+  from `doctor/mod.rs` with their comments; `mod.rs` re-exports both), so `mod.rs` is at 425 lines.
+- `podssh_ssh::probe::algorithm_policy(stream, policy, within) -> Result<Verdict, String>` (`probe.rs`): a
+  handshake with a `Record` on its stream and a handler that calls the same `Judge` (probe mode) with
+  `policy::observe(record.offers(), key)` at `check_server_key`, then refuses; `Err` is why there is no reading.
+- `doctor --hop HOST --policy FILE`: `doctor/policy.rs` (`check`, one more connection by the hop's own road and
+  TLS, `wrapped` of `hop.rs` now `pub(super)`; `line`, the text) and `hop.rs`, whose probes give the line
+  `hop policy` after `hop key`: `ok` with the policy's name and version on a pass; `FAIL` naming each mismatch as
+  `FIELD: expected A,B (optional D), got C`; `????` with no reading, or with a size that one exchange cannot
+  measure. When a probe before it ends the hop's section, the line is `????` and says so, so an asked policy is
+  never silent; `PODSSH_OFFLINE` gives it `????` too. Doctor's exit rule holds (a FAIL is 1, a `????` never fails
+  the run). `--policy` without `--hop` is 64 and a file that does not load is 78 (`crate::policy::load`), both in
+  `run_doctor` before the report starts.
+- Flags and manual: `flags/policy.rs`'s `DOCTOR_POLICY` in `DOCTOR_FLAGS` (after `--hop`); `parsed.rs` and
+  `dispatch.rs` carry `policy`; `man/notes_policy.rs`'s `DOCTOR_LINE` in doctor's notes (`man/notes.rs`), each
+  sentence 25 words or fewer, and doctor's words at 78 in EXIT STATUS; `docs/cli.md` ("An algorithm policy", and
+  `--hop` in doctor's notes).
+- Tests: `doctor/policy.rs` (one table of four readings: pass, two mismatches with an optional name and an empty
+  list, unmeasured, no reading: the status and the words of each line); `podssh-ssh` `probe_tests.rs` (the probe
+  against a russh server in this process set to `curve25519-sha256`: a pass, a mismatch naming `key exchanges`,
+  and a stream that ends with no reading); `tests/policy_check.rs`, two more (against this host's sshd: a server
+  set to `KexAlgorithms curve25519-sha256` gives `ok` and exit 0 with `hop login` still run, its default gives
+  `FAIL` naming `key exchanges: expected curve25519-sha256, got ...` and exit 1; with no sshd it skips; `--policy`
+  with no `--hop` is 64 and an unknown field is 78 with an empty stdout), each scratch with `Cleanup`. Merged and run here
+  (2026-11-23, Linux, Rust 1.100, OpenSSH 9.6p1): `cargo test -p podssh-ssh --lib probe` 5 passed; podssh-cli `--lib`
+  1257 (`doctor::policy` among them); `--test policy_check` 6, `doctor` 13, `doctor_hop` 3, `man_flag_parity` 6,
+  `flag_table` 9, `tree` 14, after `llms-full.txt` was written again; clippy and fmt clean; nothing left in the
+  temporary directory. Each item of the Approach is done: the policy file, the verdict, `ssh --policy`, `health
+  --policy`, `serve --policy` and doctor's line. Known limits, each said by its refusal: `ssh --policy` with
+  `--persist`, `--upgrade` or connection sharing (64); the planted `evaluate` waits for T-251.
+- Decision (where the doctor's probe lives): a line of `--hop`'s section, on one more connection by the hop's
+  road. Lost: a `doctor HOST` section of its own (doctor takes no destination; `--hop` already names a host and
+  its road, as `-J` reaches it); judging inside `key`'s connection (`host_key` keeps no record, and a second
+  handler there would mix two probes); calling `health/policy.rs`'s probe (it reaches the host through
+  `podssh ssh`'s `Resolved`, the relay and `-J`, where doctor's hop is reached `--direct`; both share the `Judge`
+  and `observe`, so the verdict is one code path).
+- Decision (the line's status): doctor's three values, not health's exits. A mismatch is `FAIL` (exit 1); an
+  unmeasured size and no reading are `????`. Lost: 78 and 69 from doctor (doctor's exit contract is 0 or 1, and a
+  run of many checks would lose the others' verdicts).
+- All items of the Approach are done. What the Prove names and this entry does not hold yet: the table's
+  observations are the default lists as the sources of OpenSSH and Dropbear name them, not captured bytes (the CLI
+  tests read a live sshd's); the planted `evaluate` waits for T-251; `--persist`, `--upgrade` and connection
+  sharing with `ssh --policy` are refused (64), as the Decision says.
 
 # T-839: A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one
 

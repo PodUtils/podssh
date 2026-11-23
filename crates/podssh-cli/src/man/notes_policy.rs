@@ -1,8 +1,9 @@
 //! The notes of `--policy FILE`, an algorithm policy: its grammar and its
 //! verdict under `podssh ssh`, its probe under `podssh health`, its gate
-//! under `podssh serve`, and its words in EXIT STATUS. Apart from the others
-//! so that each file stays short; `notes_roads`, `notes_health` and
-//! `notes_serve` name these paragraphs.
+//! under `podssh serve`, its line under `podssh doctor --hop`, and its words
+//! in EXIT STATUS. Apart from the others so that each file stays short;
+//! `notes_roads`, `notes_health`, `notes_serve` and `notes` name these
+//! paragraphs.
 
 use podssh_ssh::policy::{EXIT_MISMATCH, EXIT_NO_READING, EXIT_PASS};
 
@@ -54,6 +55,14 @@ pub const SERVE_JUDGE: &str = "POLICY: with --policy FILE, podssh serve judges e
      policy, and no key logs in. One line on stderr names the client's address and each mismatch. A client offers \
      no host key, so a size rule never refuses one.";
 
+/// `podssh doctor --hop HOST --policy FILE`: one line of the report.
+pub const DOCTOR_LINE: &str = "POLICY: with --hop HOST, --policy FILE judges the hop's algorithms by an algorithm \
+     policy. One more connection runs the handshake to the hop's host key, and ends there. The file and the verdict \
+     are those of podssh ssh --policy. The line hop policy is ok with the policy's name on a pass. It is FAIL on a \
+     mismatch, naming each one as FIELD: expected A,B, got C. A FAIL makes the exit 1, as each FAIL of doctor does. \
+     It is ???? with no reading, or with a size that one exchange cannot measure. --policy goes only with --hop (64). \
+     A file that cannot be used is refused before any probe (78).";
+
 /// `rows`, the EXIT STATUS table, with the words of `--policy` at its
 /// codes.
 pub fn exit_words(mut rows: Vec<(Code, String)>) -> Vec<(Code, String)> {
@@ -66,7 +75,8 @@ pub fn exit_words(mut rows: Vec<(Code, String)>) -> Vec<(Code, String)> {
             }
             Code::Value(EXIT_MISMATCH) => {
                 " podssh ssh and health: the file of --policy cannot be read or used, or the server's algorithms do \
-                 not meet it. podssh serve: the file of --policy cannot be used, or judges no client."
+                 not meet it. podssh serve: the file of --policy cannot be used, or judges no client. podssh doctor: \
+                 the file of --policy cannot be used."
             }
             _ => continue,
         };

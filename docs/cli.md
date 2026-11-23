@@ -3167,7 +3167,9 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   offers. A proxy that takes the CONNECT and then waits for TLS carries no
   SSH: the line says so, and names the relay as the road for SSH over
   HTTPS. A password of a hop comes from `SSH_ASKPASS` or the terminal,
-  never from the command line. A value that does not read is 64.
+  never from the command line. A value that does not read is 64. With
+  `--policy FILE` (T-838), `hop policy` judges the hop's algorithms; see
+  "An algorithm policy".
 - `UDP out` (T-359) says whether `podssh node --quick-tunnel` takes QUIC:
   with a proxy set, nothing is sent, as the node then takes HTTP/2; with
   none, `--full` sends the node's probe of UDP (T-400), then, answered,
@@ -3533,8 +3535,8 @@ reaches a hop as `--direct` does; neither reports the far server, and
 
 ### An algorithm policy: `--policy FILE` (T-838)
 
-`podssh ssh --policy FILE` and `podssh health --policy FILE` judge what the
-server offered in its KEXINIT against a named policy file. `Ciphers`,
+`podssh ssh --policy FILE`, `podssh health --policy FILE` and
+`podssh doctor --hop HOST --policy FILE` judge what the server offered in its KEXINIT against a named policy file. `Ciphers`,
 `KexAlgorithms` and the like restrict what podssh offers (T-505); a policy
 judges what the peer offers.
 
@@ -3601,7 +3603,18 @@ judges what the peer offers.
   never refuses. `ext-info-c` and `kex-strict-c-v00@openssh.com` are
   markers, judged only by a policy that names one, as on a server.
   Tested against OpenSSH's client (`tests/serve_policy_openssh.rs`).
-- A probe in `podssh doctor` follows (T-838's notes).
+- **`podssh doctor --hop HOST --policy FILE`** gives one line of doctor's
+  report, `hop policy`, after `hop key`: one more connection runs the
+  handshake to the hop's host key, the policy judges it, and the connection
+  ends (`podssh_ssh::probe::algorithm_policy`, the same judge as `ssh` and
+  `health`). The line is `ok` with the policy's name on a pass; `FAIL` on a
+  mismatch, naming each as `FIELD: expected A,B, got C`; `????` with no
+  reading, or with a size that one exchange cannot measure. Doctor's own
+  exit rule holds: a `FAIL` makes the exit 1, a `????` never fails the run;
+  the JSON verdict and the exits 78 and 69 are `health --policy`'s. When a
+  probe before it ended the hop's section (no banner, no host key), the
+  line is `????` and says so. `--policy` without `--hop` is 64; a file that
+  cannot be used is 78, before any probe.
 
 ## `podssh keygen`
 

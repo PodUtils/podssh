@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**817 entries: 23 open, 47 partial, 11 blocked, 736 done.**
+**817 entries: 23 open, 46 partial, 11 blocked, 737 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 1 | 12 | 3 | 91 | 107 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 22 | 12 | 6 | 340 | 380 |
-| **All** | 23 | 47 | 11 | 736 | 817 |
+| P3 | 22 | 11 | 6 | 341 | 380 |
+| **All** | 23 | 46 | 11 | 737 | 817 |
 
 ## Entries
 
@@ -868,7 +868,7 @@ repository and CI).
 | [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
-| [T-838](ssh.md) | P3 | M | backlog | feature | partial | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
+| [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |
 | [T-841](serve.md) | P3 | S | backlog | feature | done | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |

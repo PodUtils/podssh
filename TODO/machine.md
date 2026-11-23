@@ -42,13 +42,13 @@ failed (lines 156-168). The sections are "this host", "egress" and "relay" (line
    and `detail`) and `counts` (`ok`, `fail`, `unknown`). `status` is "ok", "FAIL" or "unknown",
    the shape of GitHub #9. The exit code does not change.
 3. One model and two renderers, as `podssh man` has (`crates/podssh-cli/src/man/model.rs`).
-4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-277`), read it into
+4. Add the row to `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-279`), read it into
    `Parsed::Doctor` (`crates/podssh-cli/src/tree.rs` lines 172-181 and 384-392 at `c6f09a8`), and pass it on in
-   `crates/podssh-cli/src/dispatch.rs:255-316`. `tree.rs` has 454 lines and `dispatch.rs` 448:
+   `crates/podssh-cli/src/dispatch.rs:255-318`. `tree.rs` has 454 lines and `dispatch.rs` 448:
    keep the additions small, or split first.
 5. The JSON carries the same detail strings as the text, which hide proxy credentials and
    tokens today (`crates/podssh-cli/tests/doctor.rs:142-167`).
-6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:250-336`) and
+6. Change the `doctor` notes (`crates/podssh-cli/src/man/notes.rs:250-337`) and
    `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
@@ -227,7 +227,7 @@ opens no connection: the relay list (`PodUtils/podssh:crates/podssh-relay/src/re
 ## Approach
 
 1. The syntax: `podssh status [OPTIONS] [[user@]host[:port]]`, with the relay flags of `doctor`
-   (`crates/podssh-cli/src/flags/relay.rs:210-277`). Remove the owner row, and add "status" to
+   (`crates/podssh-cli/src/flags/relay.rs:210-279`). Remove the owner row, and add "status" to
    `DISPATCHED` (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 2. Write one line of JSON to stdout and exit 0 (64 for a usage error). No text form: `doctor`
    is the report for people.
@@ -322,7 +322,7 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
 
 1. `--full` adds the check `login` after `forward`: a new forward session (as
    `crates/podssh-cli/src/doctor/relay_checks.rs:182-203`), an SSH handshake that accepts only a
-   key of `GITHUB_KEYS` (equality; the probe `crates/podssh-ssh/src/probe.rs:16-26` records a
+   key of `GITHUB_KEYS` (equality; the probe `crates/podssh-ssh/src/probe.rs:18-28` records a
    key the same way), then public-key authentication as `git` with a throwaway Ed25519 key from
    `keygen::generate`. The key stays in memory and is never written.
 2. Verdicts: a refused key is `ok` ("the handshake, the host key and the authentication path
@@ -334,8 +334,8 @@ and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
    be tested; the notes say so. No OpenSSH step (Decision).
 5. The line joins the JSON of T-049. The script can call `doctor --full` and keep its OpenSSH
    step.
-6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-277`), the `doctor` notes
-   (`crates/podssh-cli/src/man/notes.rs:250-336`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
+6. Change `DOCTOR_FLAGS` (`crates/podssh-cli/src/flags/relay.rs:210-279`), the `doctor` notes
+   (`crates/podssh-cli/src/man/notes.rs:250-337`) and `docs/cli.md` lines 1329-1347 at `48a8744` in the same commit.
 
 ## Decision
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6888-6918`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6901-6931`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -1848,9 +1848,9 @@ both from the schema alone.
 ## Premise
 
 - Read, at `47e1eba`: `crates/podssh-cli/src/flags/relay.rs:230-232` is the `--full` row, with the QUIC
-  handshake. `crates/podssh-cli/src/flags/relay.rs:237-239` is the `--quick` row, which names no
+  handshake. `crates/podssh-cli/src/flags/relay.rs:239-241` is the `--quick` row, which names no
   probe of `--full`.
-- `crates/podssh-cli/src/doctor/mod.rs:340-342` guards the whole section of the quick tunnel with
+- `crates/podssh-cli/src/doctor/mod.rs:265-267` guards the whole section of the quick tunnel with
   `if !args.quick`. That section holds `udp_out` (`crates/podssh-cli/src/doctor/quick.rs:55`) and
   `edge_road` (`crates/podssh-cli/src/doctor/quick.rs:85`).
 - `crates/podssh-cli/src/doctor/stream/mod.rs:103` returns `Asked::Nothing` when `args.quick` holds.

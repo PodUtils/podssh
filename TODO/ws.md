@@ -2907,7 +2907,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:476-480`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:401-405`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3650,7 +3650,7 @@ two requests in two directions.
   (`PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`, its reason at
   `PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`). The issue's "keep the 78 refusal" reads as:
   keep stream-one's refusal, and say why in `doctor`.
-- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:97-98`).
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:99-100`).
 
 ## Approach
 
@@ -3800,7 +3800,7 @@ of UDP only from the source. The tester accepts either outcome: UDP associate bu
 
 - `PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs` says "is not spoken" of UDP's command, and the
   request writes CONNECT alone (`PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs`).
-- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:97-98`)
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:99-100`)
   and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
   2026-11-13).
 
