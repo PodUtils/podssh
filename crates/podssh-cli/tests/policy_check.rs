@@ -95,6 +95,9 @@ fn policy_file(dir: &Path, text: &str) -> std::path::PathBuf {
 #[test]
 fn health_judges_the_server_s_key_exchanges_with_no_login() {
     let dir = live_harness::scratch("policy-health");
+    // Removed at each end, the early returns among them (the gate refuses a
+    // test that leaves a podssh-* entry in the temporary directory, T-272).
+    let _clean_dir = live_harness::Cleanup { home: &dir, node: None };
     let policy = policy_file(&dir, ONLY_CURVE25519);
     let Some(set) = sshd(&dir, "KexAlgorithms curve25519-sha256\n") else { return };
     let ran = podssh(&dir, "health", set.port, &policy, &[]);
@@ -104,6 +107,9 @@ fn health_judges_the_server_s_key_exchanges_with_no_login() {
     drop(set);
 
     let other = live_harness::scratch("policy-health-default");
+    // Removed at each end, the early returns among them (the gate refuses a
+    // test that leaves a podssh-* entry in the temporary directory, T-272).
+    let _clean_other = live_harness::Cleanup { home: &other, node: None };
     let Some(default) = sshd(&other, "") else { return };
     let ran = podssh(&other, "health", default.port, &policy, &[]);
     let doc = verdict(&ran);
@@ -116,6 +122,9 @@ fn health_judges_the_server_s_key_exchanges_with_no_login() {
 #[test]
 fn ssh_stops_at_a_mismatch_before_any_login() {
     let dir = live_harness::scratch("policy-ssh");
+    // Removed at each end, the early returns among them (the gate refuses a
+    // test that leaves a podssh-* entry in the temporary directory, T-272).
+    let _clean_dir = live_harness::Cleanup { home: &dir, node: None };
     let policy = policy_file(&dir, ONLY_CURVE25519);
     let Some(server) = sshd(&dir, "") else { return };
     let ran = podssh(&dir, "ssh", server.port, &policy, &["true"]);
@@ -129,6 +138,9 @@ fn ssh_stops_at_a_mismatch_before_any_login() {
 #[test]
 fn a_port_with_no_server_gives_no_reading() {
     let dir = live_harness::scratch("policy-none");
+    // Removed at each end, the early returns among them (the gate refuses a
+    // test that leaves a podssh-* entry in the temporary directory, T-272).
+    let _clean_dir = live_harness::Cleanup { home: &dir, node: None };
     let policy = policy_file(&dir, ONLY_CURVE25519);
     let port = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
     let ran = podssh(&dir, "health", port, &policy, &[]);
@@ -140,6 +152,9 @@ fn a_port_with_no_server_gives_no_reading() {
 #[test]
 fn a_field_that_podssh_does_not_know_is_refused_before_anything_connects() {
     let dir = live_harness::scratch("policy-unknown");
+    // Removed at each end, the early returns among them (the gate refuses a
+    // test that leaves a podssh-* entry in the temporary directory, T-272).
+    let _clean_dir = live_harness::Cleanup { home: &dir, node: None };
     let policy = policy_file(&dir, "name = \"x\"\nversion = 1\nminimum_strength = high\n");
     for verb in ["health", "ssh"] {
         // Port 9 of the loopback: nothing would answer, and nothing is asked.

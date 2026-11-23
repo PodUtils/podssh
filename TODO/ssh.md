@@ -5647,6 +5647,10 @@ Draft, 2026-11-23 (`draft-t838`), Approach 1, 2 and the client half of 3:
   flag_table` 9, `--test tree` 14) passed after `llms-full.txt` was written again; clippy of podssh-ssh and
   podssh-cli, all targets, `-D warnings`, and `cargo fmt --check`: clean. The planted `evaluate` that credits a size by the returned type: waits
   for T-251.
+- The gate at `35d51884` (run 45165024241) failed its steps ssh, ts and iroh on this entry's `tests/policy_check.rs`:
+  its four tests left their `podssh-node-live-policy-*` scratch in the temporary directory, which the gate refuses
+  (T-272). Each scratch now has the harness's `Cleanup`, which removes it at each end, the early returns among them;
+  `--test policy_check` 4 passed and left nothing (2026-11-23).
 - Remains: `podssh serve`'s call site on a client's KEXINIT follows once T-841 is merged
   (`crates/podssh-ssh/src/server/` is another draft's now); the probe in `podssh doctor`; the observations
   of the table are the default lists as the sources of OpenSSH and Dropbear name them, not captured bytes
