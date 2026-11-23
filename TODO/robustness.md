@@ -4475,3 +4475,73 @@ Done, 2026-11-21: steps 1 and 2. `--lib server::shell` 4 passed, among them
 `a_shell_open_for_writing_is_tried_again_and_named`; planted, one try alone: caught ("a writer that lets go within the
 tries"). `--test serve_shell` 5 runs in 5; clippy (the gate's lints) clean.
 
+# T-858: `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once
+
+**Source:** the gate at `af95c50` (run 45155620101, job 137633396911, `windows-2025`), 2026-11-23:
+`a_shell_left_with_tilde_d_is_attached_again_by_name` of `crates/podssh-cli/tests/attach.rs` failed; 5 of the 6 tests of
+`-p podssh-cli --test attach` passed (30.69 s). It passed on Windows in the gates before it, and nothing that it runs
+changed since 2026-11-21.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+In the pseudo console, after `[shell] ready`, the test typed `MARK=kept\r` and then `~d`, and podssh's line "keeps the
+shell as " did not come within 30 s: the console showed only "podssh: Warning: Permanently added 'node://lab' (ED25519)
+to the list of known hosts.\r\n[shell] ready\r\n". The stand-in shell echoes nothing, so the run cannot tell which step
+was lost: the keys never read by the client, `~d` not taken as an escape, or the detach asked and not answered.
+
+## Premise
+
+- `[shell] ready` is the far end's word, sent at its answer to the shell request
+  (`crates/podssh-cli/tests/keep_harness/mod.rs:266`); it says nothing of the client's input. The stand-in shell answers
+  a line it does not know with "TEXT: not found" (`crates/podssh-cli/tests/keep_harness/mod.rs:187`), and echoes none.
+- The client enters raw mode (`crates/podssh-ssh/src/session.rs:165`) after the shell's answer
+  (`crates/podssh-ssh/src/session.rs:158`) and before the pump draws the early output
+  (`crates/podssh-ssh/src/io.rs:202`); stdin's reader starts at the pump's first wait
+  (`crates/podssh-ssh/src/io.rs:232`, `crates/podssh-ssh/src/io/input.rs:62`). By the code, a key typed after `[shell]
+  ready` waits in the console's input buffer, in raw mode, for that reader; nothing found in the client drops it.
+- `~` is an escape at the start of a line (`crates/podssh-ssh/src/escape.rs:94`): after `MARK=kept\r` it is one.
+- `detach` (`crates/podssh-cli/tests/attach.rs:307`) typed at `[shell] ready` with no sign that a key reaches the shell,
+  and `tilde_d_as_bytes` did the same.
+
+## Approach
+
+1. One helper, `shell` (`crates/podssh-cli/tests/attach.rs:279`), starts each test that types into a shell: after
+   `[shell] ready` it types `probeN\r` until the far shell answers "probeN: not found", a new probe each 2 s, within the
+   limit of 30 s; a probe that needed more than one try is said on stderr (a client that loses the first keys would lose
+   a user's too), and no answer at all fails with "the client read no keys".
+2. `detach` reads the variable back (`echo M=$MARK`, "M=kept") before it types `~d`, so that a failure after it is the
+   detach's, not the input's.
+3. Each failure's message, `shown` (`crates/podssh-cli/tests/attach.rs:263`), gives the console's bytes with their
+   escape sequences too (`Console::bytes` in `crates/podssh-cli/tests/conpty_harness/mod.rs`), which say what the
+   pseudo console asked of its terminal.
+4. At the next failure, or at a gate whose log says that a probe needed more than one try, repair the step that it
+   names; a client that loses keys typed early is a defect of the client, repaired there.
+
+## Decision
+
+The probe is typed again rather than once with a long wait: a key lost once (before the reader of a slow start) would
+fail the test on a defect that the probe then names on stderr, while a retry lets the test check what it is for, the
+detach. Lost: one probe with the whole limit (a lost key fails the test with no more knowledge than now); a fixed sleep
+after `[shell] ready` (a guess of time, not a signal).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test attach
+```
+
+The six tests pass here (Linux), and the Windows job of the gate passes `attach`, with no "the far shell answered probe"
+line in its log; such a line, or a failure, names the step that lost the keys.
+
+## Done
+
+Draft, 2026-11-23: steps 1 to 3 (`crates/podssh-cli/tests/attach.rs`: `shell`, `shown`, `PROBE`, `detach` reads the
+variable back, `tilde_d_as_bytes` starts at `shell`; `crates/podssh-cli/tests/conpty_harness/mod.rs`: `Console::bytes`).
+`cargo test -p podssh-cli --test attach` here (merged 2026-11-23, Linux, its pty harness): 6 passed; clippy and fmt clean. The proof is the Windows job of the gate, with no line "the far shell answered probe" in its log. Step 4
+waits for that job's log.

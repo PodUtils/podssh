@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**812 entries: 24 open, 44 partial, 11 blocked, 733 done.**
+**813 entries: 24 open, 45 partial, 11 blocked, 733 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 11 | 3 | 91 | 105 |
+| P1 | 0 | 12 | 3 | 91 | 106 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
 | P3 | 24 | 10 | 6 | 337 | 377 |
-| **All** | 24 | 44 | 11 | 733 | 812 |
+| **All** | 24 | 45 | 11 | 733 | 813 |
 
 ## Entries
 
@@ -888,3 +888,4 @@ repository and CI).
 | [T-855](serve.md) | P3 | S | backlog | feature | open | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
 | [T-856](serve.md) | P3 | S | backlog | defect | open | `podssh serve` with an RSA host key signs through the `rsa` crate |
 | [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
+| [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |

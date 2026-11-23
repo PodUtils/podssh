@@ -256,17 +256,66 @@ impl Stand {
     }
 }
 
-/// In a terminal: a new shell, its variable, then `~d` at the start of a
-/// line. podssh says the name that the far end keeps the shell as, and
-/// exits 0: the name.
+/// What a terminal shows, for a failure: its text, and each byte that the
+/// program wrote, escape sequences included, which say what a pseudo
+/// console asked of its terminal.
+#[cfg(any(windows, target_os = "linux"))]
+fn shown(term: &Term) -> String {
+    format!("the terminal: {:?}; its bytes: {:?}", term.text(), String::from_utf8_lossy(&term.bytes()))
+}
+
+/// How long each probe of [`shell`] waits for its answer before the next.
+#[cfg(any(windows, target_os = "linux"))]
+const PROBE: Duration = Duration::from_secs(2);
+
+/// `podssh ssh` in a terminal, to a new shell that reads what is typed:
+/// each test that types into a shell starts here (T-858). `[shell] ready`
+/// is the far end's word, which says nothing of the client's own input; a
+/// line that the far shell answers ("probeN: not found") says that a key
+/// typed now reaches it. A probe is typed again each [`PROBE`], up to
+/// [`LIMIT`]; a probe that needed more than one try is said on stderr,
+/// since a client that loses the first keys would lose a user's too.
+#[cfg(any(windows, target_os = "linux"))]
+fn shell(stand: &Stand) -> Term {
+    let mut term = stand.terminal(&[]);
+    assert!(term.expect("[shell] ready", LIMIT), "no [shell] ready; {}", shown(&term));
+    let started = Instant::now();
+    let mut tries = 0;
+    while started.elapsed() < LIMIT {
+        tries += 1;
+        term.send(format!("probe{tries}\r").as_bytes());
+        let waited = Instant::now();
+        while waited.elapsed() < PROBE {
+            let text = term.text();
+            if let Some(answered) = (1..=tries).find(|n| text.contains(&format!("probe{n}: not found"))) {
+                if tries > 1 {
+                    eprintln!(
+                        "the far shell answered probe {answered} of {tries}: the keys before it were lost or late"
+                    );
+                }
+                return term;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+    let limit = LIMIT.as_secs();
+    panic!("the far shell answered none of {tries} probes in {limit} s: the client read no keys; {}", shown(&term));
+}
+
+/// In a terminal: a new shell, its variable, which the far shell reads
+/// back, then `~d` at the start of a line. podssh says the name that the
+/// far end keeps the shell as, and exits 0: the name.
 #[cfg(any(windows, target_os = "linux"))]
 fn detach(stand: &Stand) -> String {
-    let mut term = stand.terminal(&[]);
-    assert!(term.expect("[shell] ready", LIMIT), "the terminal: {:?}", term.text());
+    let mut term = shell(stand);
     term.send(b"MARK=kept\r");
+    // The variable is set before `~d`: a failure after this line is the
+    // detach's, not the input's.
+    term.send(b"echo M=$MARK\r");
+    assert!(term.expect("M=kept", LIMIT), "the variable was not set; {}", shown(&term));
     term.send(b"~d");
-    assert!(term.expect(KEPT_AS, LIMIT), "the terminal: {:?}", term.text());
-    assert_eq!(term.wait(LIMIT), Some(0), "the terminal: {:?}", term.text());
+    assert!(term.expect(KEPT_AS, LIMIT), "no line of the kept shell after ~d; {}", shown(&term));
+    assert_eq!(term.wait(LIMIT), Some(0), "{}", shown(&term));
     let text = term.text();
     let at = text.find(KEPT_AS).expect("the line") + KEPT_AS.len();
     let name: String = text[at..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-').collect();
@@ -330,12 +379,11 @@ fn a_far_end_that_keeps_no_shells_refuses_attach_and_gets_tilde_d_as_bytes() {
 
 #[cfg(any(windows, target_os = "linux"))]
 fn tilde_d_as_bytes(stand: &Stand) {
-    let mut term = stand.terminal(&[]);
-    assert!(term.expect("[shell] ready", LIMIT), "the terminal: {:?}", term.text());
+    let mut term = shell(stand);
     term.send(b"\r~d\r");
-    assert!(term.expect("~d: not found", LIMIT), "the terminal: {:?}", term.text());
+    assert!(term.expect("~d: not found", LIMIT), "{}", shown(&term));
     term.send(b"exit\r");
-    assert_eq!(term.wait(LIMIT), Some(0), "the terminal: {:?}", term.text());
+    assert_eq!(term.wait(LIMIT), Some(0), "{}", shown(&term));
     assert_eq!(stand.shells.lock().unwrap().detaches, 0, "no detach was asked");
 }
 

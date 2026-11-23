@@ -176,6 +176,12 @@ impl Console {
         plain(&self.seen.lock().unwrap())
     }
 
+    /// Each byte that the console wrote, its escape sequences included: what
+    /// the pseudo console asked of its terminal, for a failure's message.
+    pub fn bytes(&self) -> Vec<u8> {
+        self.seen.lock().unwrap().clone()
+    }
+
     /// Wait until the console shows `needle`, at most `limit`.
     pub fn expect(&self, needle: &str, limit: Duration) -> bool {
         let end = Instant::now() + limit;
