@@ -173,12 +173,12 @@ fn subject_alt_names(der: &[u8]) -> Option<String> {
         // A tag in the last byte has no length: the certificate is short.
         let Some(&l) = der.get(at) else { break };
         let l = l as usize;
-        if let Some(name) = der.get(at + 1..at + 1 + l).filter(|_| l > 0) {
-            if let Ok(s) = std::str::from_utf8(name) {
-                if s.contains('.') && s.len() < 100 {
-                    out.push(s.to_string());
-                }
-            }
+        if let Some(name) = der.get(at + 1..at + 1 + l).filter(|_| l > 0)
+            && let Ok(s) = std::str::from_utf8(name)
+            && s.contains('.')
+            && s.len() < 100
+        {
+            out.push(s.to_string());
         }
         i = at + 1;
     }

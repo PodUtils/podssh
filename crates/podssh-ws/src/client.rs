@@ -86,6 +86,90 @@ pub async fn connect(config: &WsClientConfig, token: &str) -> Result<RelaySessio
     pod_ws::connect(&config.pod(), token).await
 }
 
+/// Why a covered connection did not open: the handshake or the upgrade
+/// ([`ConnectError`]), or the credential that the server issued.
+#[derive(Debug)]
+pub enum CoverError {
+    Connect(ConnectError),
+    Credential(crate::delegated::DelegatedError),
+}
+
+impl std::fmt::Display for CoverError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CoverError::Connect(error) => error.fmt(f),
+            CoverError::Credential(error) => write!(f, "the cover credential: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for CoverError {}
+
+impl From<ConnectError> for CoverError {
+    fn from(error: ConnectError) -> Self {
+        CoverError::Connect(error)
+    }
+}
+
+impl From<crate::delegated::DelegatedError> for CoverError {
+    fn from(error: crate::delegated::DelegatedError) -> Self {
+        CoverError::Credential(error)
+    }
+}
+
+/// [`connect`], with the application-layer credential of a cover relay
+/// (T-765): after the handshake, `POST /v1/delegate` on this connection,
+/// checked against the operator key that the authenticated connection
+/// delivered, the name, the window and the exporter, and then the upgrade on
+/// the same connection, carrying the credential in `X-Cover-Credential`. A
+/// server that refuses the credential, or one whose credential names another
+/// issuer, window or exporter, opens no session.
+pub async fn connect_with_cover(
+    config: &WsClientConfig,
+    token: &str,
+    subject: [u8; 32],
+) -> Result<RelaySession, CoverError> {
+    config.validate().map_err(ConnectError::Config).map_err(CoverError::Connect)?;
+    if token.contains(['\r', '\n']) {
+        return Err(CoverError::Connect(ConnectError::Config("the relay token contains a line break".into())));
+    }
+    let at = &config.endpoint;
+    let way = way(&config.proxy);
+    let extra = way.extra(&at.host).map_err(CoverError::Connect)?;
+    let (mut tls, peer) = way
+        .open_tls(&at.host, at.port, &config.server_name, &config.trust, config.timeout, &[])
+        .await
+        .map_err(CoverError::Connect)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+        .unwrap_or(0);
+    let (credential, _issuer) =
+        crate::delegated::request_and_verify(&mut tls, token, subject, &config.server_name, now)
+            .await
+            .map_err(CoverError::Credential)?;
+    if credential.subject_key != subject {
+        return Err(CoverError::Credential(crate::delegated::DelegatedError::Decode(
+            "the credential's subject key is not the one asked for".into(),
+        )));
+    }
+    // The credential goes in its own header, after the caller's: the relay
+    // checks it on this live upgrade, before it admits the tunnel.
+    let mut carried: Vec<pod_ws::headers::Header> =
+        extra.iter().map(|(name, value)| (name, pod_ws::headers::Zeroizing::new(value.to_string()))).collect();
+    carried.push((
+        crate::delegated::CREDENTIAL_HEADER,
+        pod_ws::headers::Zeroizing::new(crate::delegated::encode_wire(&credential)),
+    ));
+    let extra = pod_ws::headers::Extra::checked(carried).map_err(CoverError::Connect)?;
+    let host_header = pod_proxy::authority(&at.host, at.port);
+    let upgraded = pod_ws::client::upgrade_carrying(tls, &host_header, &at.path, token, &extra);
+    let (tls, pending) = tokio::time::timeout(config.timeout, upgraded).await.map_err(|_| {
+        CoverError::Connect(ConnectError::Timeout { step: "the WebSocket upgrade", after: config.timeout })
+    })??;
+    Ok(RelaySession::over_tls(tls, peer, pending, config.idle_timeout, WRITE_TIMEOUT).with_limits(Limits::RELAY))
+}
+
 /// TCP (direct or through the proxy) and a verified TLS handshake.
 pub async fn open_tls(
     host: &str,

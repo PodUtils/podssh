@@ -92,11 +92,12 @@ impl Run {
             policy: Default::default(),
             egress: Default::default(),
             limits: Default::default(),
-            pairs: serve::reverse::Pairs::open(Some(file.to_path_buf())).expect("the file of pairs"),
+            pairs: Arc::new(serve::reverse::Pairs::open(Some(file.to_path_buf())).expect("the file of pairs")),
             resumes: Default::default(),
             answered: Default::default(),
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
             events: Some(events),
         });
         let serving: Arc<Mutex<Vec<JoinHandle<()>>>> = Arc::default();
@@ -231,10 +232,10 @@ impl Legs {
     /// a move keeps its leg, which still carries the session.
     async fn next(&self, moving: bool) -> Next<DuplexStream> {
         let lost = if moving { None } else { self.current.lock().unwrap().take() };
-        if let Some(handle) = lost {
-            if let Ok(Ok(outcome)) = tokio::time::timeout(LEG_WAIT, handle).await {
-                self.ended.lock().unwrap().push(outcome);
-            }
+        if let Some(handle) = lost
+            && let Ok(Ok(outcome)) = tokio::time::timeout(LEG_WAIT, handle).await
+        {
+            self.ended.lock().unwrap().push(outcome);
         }
         match self.open().await {
             Ok(link) => Next::Link(link),

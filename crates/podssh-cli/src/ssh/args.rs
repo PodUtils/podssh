@@ -57,6 +57,14 @@ pub struct SshArgs {
     pub via_auth_file: Option<String>,
     /// `--vless FILE`: VLESS servers in place of the relay (T-440).
     pub vless: Option<String>,
+    /// `--early-data WORD`: the VLESS road's early data (T-758).
+    pub early_data: Option<String>,
+    /// `--h2-shape WORD`: the shape of the HTTP/2 road that podssh builds
+    /// (T-763).
+    pub h2_shape: Option<String>,
+    /// `--cover-credential`: the delegated credential of a cover relay on
+    /// the live connection (T-765).
+    pub cover_credential: bool,
     /// `--trojan FILE`: Trojan servers in place of the relay (T-491).
     pub trojan: Option<String>,
     /// `--tuic FILE`: TUIC servers in place of the relay, where UDP passes
@@ -359,6 +367,9 @@ impl SshArgs {
             via: one("via"),
             via_auth_file: one("via-auth-file"),
             vless: one("vless"),
+            early_data: one("early-data"),
+            h2_shape: one("h2-shape"),
+            cover_credential: flag("cover-credential"),
             trojan: one("trojan"),
             tuic: one("tuic"),
             hysteria: one("hysteria"),

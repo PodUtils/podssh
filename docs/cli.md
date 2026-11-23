@@ -1459,10 +1459,27 @@ server as `ssh` does, `proxy` and `doctor`, which checks each:
   `--relay-failover`, `--forwarder`, `--shadowsocks`, `--via`, `--wstunnel`,
   `--direct`, `-4`, `-6` or a destination with a road of its own is refused
   (64).
+- The first write that carries data is one write of 3,333 bytes
+  (`pod_egress::coalesce`, PodUtils/podcrates), padded where the request is
+  short and recorded as short. Over XHTTP the request's head and its first
+  data are that write; over a WebSocket it is the upgrade head alone, because
+  Xray-core's gorilla server refuses a frame before the handshake, and
+  VLESS's request follows in the first binary message. `-v` and `doctor`
+  name the size, the short write and which of the two shapes applies.
+- `--early-data WORD` (`0rtt`, `1rtt` or `off`; default: `off`, or the
+  word of `PODSSH_VLESS_EARLY_DATA`) offers early data where the link's `ed`
+  names a size: `0rtt` announces it while the nonce is new, and a nonce that
+  this process used inside 10 minutes is refused, with the same session at
+  1-RTT; `1rtt` takes that fallback from the start. The nonce never goes in a
+  line or a log. The flag goes with `--vless`; without it the run is refused
+  (64).
 - `podssh doctor --vless FILE` gives a line in its section `vless` for each
   server, and for each mode where a link says `auto`: the transport that
-  carried it and the time of VLESS's answer, then GitHub's published host
-  key on `github.com:22` through it.
+  carried it, the time of VLESS's answer, the first write's size and whether
+  it was short, then GitHub's published host key on `github.com:22` through
+  it. A link of `stream-one` over HTTP/1.1 is refused (78) with the reason
+  Go's server gives: it reads a request's whole body before it answers, and
+  a session's body never ends.
 
 Tested against stand-ins on the loopback, h2's own server for XHTTP and
 a stand-in of HTTP/1.1 alone (`vless.rs` of the tests of `pod-egress`, PodUtils/podcrates), and against Xray-core and shoes in
@@ -1587,6 +1604,9 @@ reaches its server as `ssh` does, and `proxy`.
 - Refused by name (78): a flow, REALITY, `security=none`, `allowInsecure`,
   another `type`. `fp` and `alpn` pass: a Trojan server does not read the
   ClientHello.
+- Trojan's UDP associate (command `0x03`) is not spoken: this client carries
+  TCP to a target and no UDP path. `podssh doctor --trojan` states both
+  controls by name, from `trojan::capability()`, and makes no connection.
 
 ## Hysteria 2 servers: `--hysteria FILE`
 
@@ -3028,7 +3048,17 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   HTTP/2's preface, its SETTINGS and a PING: the protocol that its TLS chose
   when podssh offered `h2` then `http/1.1`, and on `h2` whether its SETTINGS
   offer extended CONNECT, with its streams at once; then whether the
-  sessions of a run share one connection to it, by `PODSSH_H2`. It is `ok`,
+  sessions of a run share one connection to it, by `PODSSH_H2`. `--h2-shape WORD`
+  (`existing`, `browser` or `firefox`; default: `PODSSH_H2_SHAPE`, else
+  `existing`) sets the shape that `podssh-ws`'s `h2_road` sends, on `ssh`,
+  `proxy` and `doctor`, and a line `http2 shape` names its SETTINGS and window
+  when it is set; `PRIORITY` frames and padded `DATA` are recorded in the
+  shape and are not sent through h2 0.4, which the line says. A word that is
+  not one refuses the run (64). The default session road is the WebSocket
+  upgrade of HTTP/1.1, which does not read it; the relay role's road is
+  `pod-ws`'s at v0.79.0 and takes its own shape. The setting therefore
+  changes no session that the CLI opens today: the `h2_road`'s session path
+  is driven by `podssh-relay`'s `relay_serve_h2` and `h2_fallback` tests. It is `ok`,
   a fact; `????` when the host was not reached; `FAIL` for a word of
   `PODSSH_H2` that is not `auto`, `yes` or `no`. With `--forwarder`, the
   section of the forwarders has the line for each `wss://` one, whose road

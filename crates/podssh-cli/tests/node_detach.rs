@@ -9,8 +9,29 @@ mod ssh_harness;
 mod throughput_harness;
 
 use std::process::Stdio;
+use std::time::Duration;
 
 use throughput_harness::{Cell, Session};
+
+/// One login through the node, ended after `limit`: an attempt left waiting by a node not yet online must not outlast the deadline of its retry.
+fn login_in(cmd: &mut std::process::Command, limit: Duration) -> Option<std::process::Output> {
+    let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().ok()?;
+    let deadline = std::time::Instant::now() + limit;
+    while child.try_wait().ok()?.is_none() {
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return None;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    child.wait_with_output().ok()
+}
+
+fn logs_in_once(cmd: &mut std::process::Command, limit: Duration) -> bool {
+    login_in(cmd, limit)
+        .is_some_and(|out| out.status.code() == Some(0) && out.stdout == ssh_harness::GREETING.as_bytes())
+}
 
 /// The parent's run to its end, within a minute: a node that never says
 /// that it is ready must fail the test, not hold it.
@@ -111,7 +132,12 @@ fn a_node_whose_stderr_fails_goes_on_serving() {
     let at = |flag: &str| cell.args.iter().position(|a| a == flag).map(|i| cell.args[i + 1].clone()).unwrap();
     let (relay, ca) = (at("--relay-host"), at("--ca-file"));
     let pins = ["--relay-addr".to_string(), "relay-a.test=127.0.0.1".to_string()];
-    let command = |args: &[String]| session.stand_in(args, &ca);
+    // A last fallback reaches the internet, and its timeouts outlast this wait for the node's readiness.
+    let command = |args: &[String]| {
+        let mut cmd = session.stand_in(args, &ca);
+        cmd.env("PODSSH_LAST_RESORT", "no");
+        cmd
+    };
     let mut args = vec!["relay".to_string(), "pair".into(), "lab".into(), "--relay-host".into(), relay];
     args.extend(pins.iter().cloned());
     let out = command(&args).stdin(Stdio::null()).output().unwrap();
@@ -135,22 +161,25 @@ fn a_node_whose_stderr_fails_goes_on_serving() {
         // Two logins: the first once the node is online, the second after
         // the lines of the first session.
         for nth in 1..=2 {
-            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(40);
+            let deadline = std::time::Instant::now() + Duration::from_secs(40);
+            let mut last;
             loop {
                 if let Some(status) = node.0.try_wait().unwrap() {
                     panic!("with stderr on {sink_name}, the node ended before login {nth}: {status:?}");
                 }
-                let out = command(&login).stdin(Stdio::null()).output().unwrap();
-                if out.status.code() == Some(0) {
-                    assert_eq!(String::from_utf8_lossy(&out.stdout), ssh_harness::GREETING);
-                    break;
+                match login_in(&mut command(&login), Duration::from_secs(5)) {
+                    Some(out) if out.status.code() == Some(0) => {
+                        assert_eq!(String::from_utf8_lossy(&out.stdout), ssh_harness::GREETING);
+                        break;
+                    }
+                    Some(out) => last = String::from_utf8_lossy(&out.stderr).into_owned(),
+                    None => last = "no answer within 5 s".to_string(),
                 }
                 assert!(
                     std::time::Instant::now() < deadline,
-                    "with stderr on {sink_name}, login {nth} did not pass within 40 s: {}",
-                    String::from_utf8_lossy(&out.stderr)
+                    "with stderr on {sink_name}, login {nth} did not pass within 40 s: {last}"
                 );
-                std::thread::sleep(std::time::Duration::from_millis(500));
+                std::thread::sleep(Duration::from_millis(500));
             }
         }
         assert!(node.0.try_wait().unwrap().is_none(), "with stderr on {sink_name}, the node ended after two logins");
@@ -185,7 +214,12 @@ fn a_restarted_node_comes_back_after_a_kill() {
     let at = |flag: &str| cell.args.iter().position(|a| a == flag).map(|i| cell.args[i + 1].clone()).unwrap();
     let (relay, ca) = (at("--relay-host"), at("--ca-file"));
     let pins = ["--relay-addr".to_string(), "relay-a.test=127.0.0.1".to_string()];
-    let command = |args: &[String]| session.stand_in(args, &ca);
+    // A last fallback reaches the internet, and its timeouts outlast this wait for the node's return.
+    let command = |args: &[String]| {
+        let mut cmd = session.stand_in(args, &ca);
+        cmd.env("PODSSH_LAST_RESORT", "no");
+        cmd
+    };
     let mut args = vec!["relay".to_string(), "pair".into(), "lab".into(), "--relay-host".into(), relay];
     args.extend(pins.iter().cloned());
     let out = command(&args).stdin(Stdio::null()).output().unwrap();
@@ -213,25 +247,45 @@ fn a_restarted_node_comes_back_after_a_kill() {
     login.extend(session.common());
     login.extend(pins.iter().cloned());
     login.extend(["node://tester@lab".to_string(), "greet".into()]);
-    let logs_in = |within: std::time::Duration| {
+    let logs_in = |within: Duration| {
         let deadline = std::time::Instant::now() + within;
+        let mut last;
         loop {
-            let out = command(&login).stdin(Stdio::null()).output().unwrap();
-            if out.status.code() == Some(0) && String::from_utf8_lossy(&out.stdout) == ssh_harness::GREETING {
-                return;
+            match login_in(&mut command(&login), Duration::from_secs(5)) {
+                Some(out)
+                    if out.status.code() == Some(0)
+                        && String::from_utf8_lossy(&out.stdout) == ssh_harness::GREETING =>
+                {
+                    return
+                }
+                Some(out) => last = String::from_utf8_lossy(&out.stderr).into_owned(),
+                None => last = "no answer within 5 s".to_string(),
             }
-            assert!(std::time::Instant::now() < deadline, "no login: {}", String::from_utf8_lossy(&out.stderr));
-            std::thread::sleep(std::time::Duration::from_millis(500));
+            assert!(std::time::Instant::now() < deadline, "no login: {last}");
+            std::thread::sleep(Duration::from_millis(500));
         }
     };
-    logs_in(std::time::Duration::from_secs(20));
+    logs_in(Duration::from_secs(20));
     // SAFETY: a signal to the test's own detached node.
     unsafe { libc::kill(first, libc::SIGKILL) };
-    logs_in(std::time::Duration::from_secs(60));
-    assert!(alive(supervisor), "the supervisor goes on");
-    let text = log.as_deref().and_then(|l| std::fs::read_to_string(l).ok()).unwrap_or_default();
+    // Wait for the run that the supervisor started next to say that the
+    // relay takes it, which is when a login can reach it.
+    let deadline = std::time::Instant::now() + Duration::from_secs(60);
+    let text = loop {
+        let text = log.as_deref().and_then(|l| std::fs::read_to_string(l).ok()).unwrap_or_default();
+        let came = text
+            .find("run 2 started, pid ")
+            .is_some_and(|at| text[at..].contains("online: the relay takes this pair's sessions"));
+        if came {
+            break text;
+        }
+        assert!(std::time::Instant::now() < deadline, "the run did not come back online: {text}");
+        std::thread::sleep(Duration::from_millis(100));
+    };
     let second = number_after(&text, "run 2 started, pid ").expect("the log names the new run");
     ends.0.push(second);
+    logs_in(Duration::from_secs(60));
+    assert!(alive(supervisor), "the supervisor goes on");
     assert!(text.contains("the run ended (signal 9)"), "{text}");
     // A stop of the supervisor ends the run too.
     // SAFETY: as above.
@@ -364,25 +418,6 @@ fn restart_without_detach_is_a_usage_error() {
         .unwrap();
     assert_eq!(out.status.code(), Some(64), "{}", String::from_utf8_lossy(&out.stderr));
     assert!(String::from_utf8_lossy(&out.stderr).contains("give --detach too"));
-}
-
-/// One login through the node, ended after `limit`: a stopped node never
-/// answers, and an attempt must not hold the test.
-fn logs_in_once(cmd: &mut std::process::Command, limit: std::time::Duration) -> bool {
-    let Ok(mut child) = cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() else {
-        return false;
-    };
-    let deadline = std::time::Instant::now() + limit;
-    while child.try_wait().unwrap().is_none() {
-        if std::time::Instant::now() > deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return false;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-    let out = child.wait_with_output().unwrap();
-    out.status.code() == Some(0) && String::from_utf8_lossy(&out.stdout) == ssh_harness::GREETING
 }
 
 /// A node of `--restart` that hangs is ended by its supervisor and started

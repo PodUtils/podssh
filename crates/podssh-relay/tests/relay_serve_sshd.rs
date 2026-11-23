@@ -68,6 +68,7 @@ impl Role {
             answered: Default::default(),
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
             events: Some(say),
         });
         let acceptor = acceptor_for(Served::new(None), &[HTTP1]).expect("an acceptor");

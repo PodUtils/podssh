@@ -128,6 +128,7 @@ fn cfg() -> Arc<Config> {
         events: None,
         brake: Default::default(),
         usage: Default::default(),
+        cover: None,
     })
 }
 

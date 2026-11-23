@@ -89,15 +89,15 @@ pub struct Found {
 pub fn find(raw: &[u8], host: &str, salt: &mut dyn FnMut() -> [u8; 20]) -> Vec<Found> {
     let mut out = Vec::new();
     for line in lines(raw) {
-        if let Kind::Key { marker, patterns, from_key } = kind(line.text) {
-            if matches(patterns, host) {
-                let text = String::from_utf8_lossy(line.text).into_owned();
-                let hashed = match hashed_lines(marker, patterns, from_key, salt) {
-                    Some(hashed) => hashed,
-                    None => vec![text.clone()],
-                };
-                out.push(Found { line: line.number, marker, text, hashed });
-            }
+        if let Kind::Key { marker, patterns, from_key } = kind(line.text)
+            && matches(patterns, host)
+        {
+            let text = String::from_utf8_lossy(line.text).into_owned();
+            let hashed = match hashed_lines(marker, patterns, from_key, salt) {
+                Some(hashed) => hashed,
+                None => vec![text.clone()],
+            };
+            out.push(Found { line: line.number, marker, text, hashed });
         }
     }
     out

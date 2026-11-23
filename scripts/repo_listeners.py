@@ -45,9 +45,15 @@ LISTENERS = {
     # target of the tests of -R to a socket on this host (T-365), in one. And
     # a socket file in the directory of `ws-listen --cover`'s tests (T-639),
     # which the cover must refuse to serve as it is no regular file.
+    # And the owner's socket of `podssh relay serve --cover`, which the user
+    # asks for with --control-socket PATH and which serves the documents that
+    # the cover moved off the public listener (T-767, #225): a socket of mode
+    # 0600 beside the role, no network bind, and a path that exists already is
+    # refused.
     "UnixListener": [
         "crates/podssh-cli/src/pipe/cover_tests.rs",
         "crates/podssh-cli/src/pipe/listen.rs",
+        "crates/podssh-relay/src/serve/control.rs",
         "crates/podssh-ssh/src/agent_forward_tests.rs",
         "crates/podssh-ssh/src/remote_tests.rs",
         "crates/podssh-ssh/src/mux/master.rs",
@@ -127,6 +133,7 @@ LISTENERS = {
         "crates/podssh-cli/src/doctor/nat_tests.rs",
         "crates/podssh-cli/src/journal/tests.rs",
         "crates/podssh-cli/src/pipe/cover_tests.rs",
+        "crates/podssh-relay/src/serve/control.rs",
         "crates/podssh-cli/src/exit/listen.rs",
         "crates/podssh-cli/src/relay_serve.rs",
         "crates/podssh-cli/src/relay_serve/quic.rs",

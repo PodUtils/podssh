@@ -108,13 +108,13 @@ impl<R: Read + Seek> Sender<R> {
             if self.step == Step::Over {
                 break;
             }
-            if let Some(event) = self.reader.push(byte) {
-                if let Some(ended) = self.event(event, now, &mut acts) {
-                    self.step = Step::Over;
-                    self.deadline = None;
-                    acts.push(Act::End { ended, rest: data[i + 1..].to_vec() });
-                    return acts;
-                }
+            if let Some(event) = self.reader.push(byte)
+                && let Some(ended) = self.event(event, now, &mut acts)
+            {
+                self.step = Step::Over;
+                self.deadline = None;
+                acts.push(Act::End { ended, rest: data[i + 1..].to_vec() });
+                return acts;
             }
         }
         acts

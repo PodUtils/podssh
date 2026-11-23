@@ -17,7 +17,7 @@ use podssh_ws::http::request;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpStream;
 
-use super::{answer, brake, docs, forward, tokens, Config};
+use super::{answer, brake, docs, forward, surface, tokens, Config};
 
 /// The first byte of TLS's record of a handshake, which a ClientHello
 /// begins with (RFC 8446, section 5.1); an HTTP request begins with a letter
@@ -58,13 +58,25 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let Some((head, pending, path)) = super::head_of(&mut stream).await else { return };
+    // A cover answers before any role route, on this road too (T-764,
+    // SURF-1). This road has no exporter, so no credential of a connection
+    // can be presented: each route of the role takes the site's 404, and
+    // every other path is the site. No TLS name is here, so the site is
+    // chosen by `Host`.
+    if let Some(cover) = cfg.cover.as_ref() {
+        return if surface::classify(head.method.as_str(), &path).is_some() {
+            answer(&mut stream, cover.not_found(&head)).await
+        } else {
+            answer(&mut stream, cover.respond(None, &head)).await
+        };
+    }
     if let Err(braked) = super::strike(&cfg, &head, &path, from) {
         return super::slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;
     }
-    if brake::braked(&head.method, &path) {
-        if let Err(braked) = cfg.brake.take(brake::Who::of(from)) {
-            return super::slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;
-        }
+    if brake::braked(&head.method, &path)
+        && let Err(braked) = cfg.brake.take(brake::Who::of(from))
+    {
+        return super::slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;
     }
     match (head.method.as_str(), path.as_str()) {
         ("GET", "/health") => {

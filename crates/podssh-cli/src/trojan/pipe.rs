@@ -104,6 +104,7 @@ pub async fn open(
         answer: trojan::EARLY_WAIT,
         silence_is_ready: true,
         at_end: AtEnd::AfterPeer,
+        early: None,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {

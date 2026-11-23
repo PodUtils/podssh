@@ -105,7 +105,20 @@ pub struct Certs {
 }
 
 impl Certs {
+    /// The CA and its leaves for the names [`ROLE`] and [`SITE`].
     pub fn new(tag: &str) -> Certs {
+        Certs::named(tag, ROLE, SITE)
+    }
+
+    /// The CA and its leaves for `role` and `site`, so that two deployments
+    /// present two chains and two names (T-768).
+    pub fn named(tag: &str, role_name: &str, site_name: &str) -> Certs {
+        Certs::named_many(tag, &[role_name], site_name)
+    }
+
+    /// The CA and its leaves for each name that the role terminates itself
+    /// (T-764), and for `site`.
+    pub fn named_many(tag: &str, role_names: &[&str], site_name: &str) -> Certs {
         let ca_key = Key::new();
         let mut ca = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
         ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
@@ -121,10 +134,13 @@ impl Certs {
             let cert = params.signed_by(&key, &issuer).unwrap();
             Leaf { cert: pem("CERTIFICATE", cert.der()), key: key.pkcs8_pem(), der: cert.der().to_vec() }
         };
-        // An address beside the role's name: a client that dials one sends
+        // An address beside the role's names: a client that dials one sends
         // no name, and still checks the leaf that it gets.
-        let (role, role_challenge) = (leaf(&[ROLE, "127.0.0.1"]), leaf(&[ROLE]));
-        let (site, site_challenge) = (leaf(&[SITE]), leaf(&[SITE]));
+        let mut held = role_names.to_vec();
+        held.push("127.0.0.1");
+        let first = role_names.first().copied().expect("a role name");
+        let (role, role_challenge) = (leaf(&held), leaf(&[first]));
+        let (site, site_challenge) = (leaf(&[site_name]), leaf(&[site_name]));
         let dir = std::env::temp_dir().join(format!("podssh-relay-serve-publish-{}-{tag}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let root = dir.join("root.pem");
@@ -184,6 +200,9 @@ pub async fn site(certs: &Certs) -> u16 {
 /// protocol that it chose, and the stream.
 pub struct Visit {
     pub leaf: Vec<u8>,
+    /// Each certificate of the chain that the server presented, the leaf
+    /// first.
+    pub chain: Vec<Vec<u8>>,
     pub alpn: Option<Vec<u8>>,
     pub tls: TlsStream<TcpStream>,
 }
@@ -206,10 +225,11 @@ pub async fn visit(certs: &Certs, port: u16, name: &str, alpn: &[&[u8]]) -> Resu
         Err(_) => return Err("no handshake in time".into()),
     };
     let (_, conn) = tls.get_ref();
-    let leaf = conn.peer_certificates().and_then(|chain| chain.first()).map(|c| c.as_ref().to_vec());
-    let leaf = leaf.unwrap_or_default();
+    let chain: Vec<Vec<u8>> =
+        conn.peer_certificates().map(|chain| chain.iter().map(|c| c.as_ref().to_vec()).collect()).unwrap_or_default();
+    let leaf = chain.first().cloned().unwrap_or_default();
     let alpn = conn.alpn_protocol().map(<[u8]>::to_vec);
-    Ok(Visit { leaf, alpn, tls })
+    Ok(Visit { leaf, chain, alpn, tls })
 }
 
 /// The ClientHello that rustls writes for `name`, offering `alpn`: its first

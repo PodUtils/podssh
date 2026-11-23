@@ -72,6 +72,11 @@ pub mod first_thread;
 // Tables, one flag to a row: rustfmt would spread each row over many lines.
 #[rustfmt::skip]
 pub mod flags;
+// `--h2-shape`: the HTTP/2 road's shape, chosen before the run (T-763).
+mod cover_choice;
+mod h2_choice;
+// The HTTP/2 road that podssh dials itself, to send the shape (T-763).
+pub mod h2_road;
 // stdout whose each write is out when it returns.
 pub mod flushing;
 // `--forwarder`: other products' WebSocket forwarders, in place of the

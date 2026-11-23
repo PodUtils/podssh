@@ -380,10 +380,10 @@ pub(super) async fn pump<S, R, W>(
         End::Gone => "end gone: the client went with no Close".to_string(),
         End::Close(code, why) => format!("end close {code} {why}"),
     });
-    if let End::Close(code, why) = end {
-        if session.send_close(code, &why).await.is_ok() {
-            closing(&session).await;
-        }
+    if let End::Close(code, why) = end
+        && session.send_close(code, &why).await.is_ok()
+    {
+        closing(&session).await;
     }
     // The session's one charge, at its end; a drop of this task charges it
     // too, as the meter's last holder goes.

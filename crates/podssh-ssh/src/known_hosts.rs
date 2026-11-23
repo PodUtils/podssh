@@ -169,10 +169,10 @@ fn parse_entries(path: &Path, raw: &[u8], name: &str) -> Vec<Entry> {
     let mut out = Vec::new();
     let text = String::from_utf8_lossy(raw);
     for (index, line) in text.lines().enumerate() {
-        if let Some(parsed) = parse_line(line) {
-            if matches(parsed.patterns, name) {
-                out.push(Entry { path: path.to_path_buf(), line: index + 1, marker: parsed.marker, key: parsed.key });
-            }
+        if let Some(parsed) = parse_line(line)
+            && matches(parsed.patterns, name)
+        {
+            out.push(Entry { path: path.to_path_buf(), line: index + 1, marker: parsed.marker, key: parsed.key });
         }
     }
     out

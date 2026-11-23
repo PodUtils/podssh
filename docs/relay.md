@@ -133,6 +133,161 @@ of another owner that the role reads again (its certificate, the file of
 cannot read it says so and keeps the pair that it serves. Other systems have
 no such sets.
 
+## A cover site, and the credential of its name (T-764, T-767)
+
+A relay whose name is public has no reason to answer as itself. With
+`--cover DIR` the role's own TLS name answers as a static site from DIR,
+while a name that the role terminates keeps the same name and the same
+certificate on both sides of its cover: a client that proves a cover
+credential gets the tunnel, and a visitor who asks with no credential gets a
+page. The cover does not add a second certificate and does not answer on
+behalf of a name that it forwards.
+
+```sh
+podssh relay serve --listen 0.0.0.0:443 --cert fullchain.pem --key key.pem \
+  --cover ./site --cover-server "nginx/1.24.0" --control-socket ./relay.sock \
+  --mint anyone
+```
+
+`--sshd` is refused with `--cover` (64): an SSH client of the covered port
+would name the role that the site hides. Serve the sshd on another port, or
+without a cover.
+
+A certificate of more than one name is a warning, not a refusal: the role
+must terminate only the names that `--cover-name NAME` gives (repeatable,
+the first is the role's own name), and every other name of the leaf either
+forwards through `--publish NAME=PAIR` or is unknown and gets the site's
+404. A `--cover-name` that the leaf does not hold is refused at the start
+(78). When `--publish` names a name that `--cover` terminates, the start is
+refused (64): one name is served by one of the two, never both.
+
+A name that `--publish NAME=PAIR` forwards is not terminated by the role.
+The connection passes to the pair's node, which terminates TLS itself and
+presents its own certificate, not the role's leaf. The test
+`a_role_owns_a_name_locally_and_forwards_another_on_one_certificate` compares
+the two connections on the role's own name, unauthenticated and authenticated,
+and gets one chain and one observable surface; it separately asserts that the
+forwarded name presents the node's own leaf.
+
+The tree is read once at the start (`pod-cover` reads it): `index.html` for
+`/` and a directory, each asset with its type, `robots.txt`, and the site's
+own `404.html` when it has one. A request that is no route of the contract
+gets the site's own response, and a path that leaves the tree (`..`, an
+escaped separator, a link outside DIR) gets the site's 404, never a file
+outside it. An unknown `Host`, or a name that is not the certificate's, gets
+that same 404. The `Server` header is `--cover-server VALUE` (default
+`nginx`), and a value that names this project is refused. No body and no
+header of an unauthenticated path names PodUtils, the relay, the version or
+the contract: the test scans each body for those words.
+
+Under `--cover` the documents and the probes leave the public listener. The
+site answers `/health`, `/trace`, `/llms-full.txt`, `/relays.json` and
+`/v1/probe/*` with its own 404, and `--control-socket PATH` serves them on a
+Unix socket of mode 0600 instead, for the owner alone:
+
+```sh
+curl --unix-socket ./relay.sock http://relay/health
+```
+
+`/v1/mint` stays public, and under `--cover` it answers a `POST` with a body
+alone: another method gets `405` with `Allow: POST`, and an empty body gets
+`400`. The token roads of the tunnel (`/connect/`, the layer's links,
+`/v1/layer/`, `/v1/mailbox`, `/v1/leg/`, `/v1/http/`, `/derp`, `/v1/pair`)
+stay, and each takes the cover credential before its own token. On a TLS
+connection the role reads `X-Cover-Credential` and admits it against the
+pinned issuer key, the connection's name, the exporter of that handshake and
+the signatures it has already spent; a missing, wrongly keyed, wrongly named,
+expired or replayed credential gets the site's exact 404, with the site's
+`Server` and page. `/v1/delegate` is the one token road that issues a
+credential, so it takes `X-Relay-Token` alone and the site's 404 without it.
+A new route of the router is in the allow-list of
+`crates/podssh-relay/src/serve/surface.rs`; a route that is not in it is not
+served, and the test of the list fails when the list changes without review.
+`crates/podssh-relay/tests/relay_serve_cover.rs` asks each path on the public
+listener and on the socket;
+`crates/podssh-relay/tests/relay_serve_cover_credential.rs` sends one
+unauthenticated request to every row of the router and requires the site's
+exact 404, skipping only a row whose feature or runtime road is off.
+
+The cleartext road beside TLS is the site too. Under `--cover` it serves the
+site's pages, with the site's `Server`, and answers each path of the role with
+the site's exact 404: this road has no handshake exporter, so no cover
+credential can bind to it, and it serves no mint, token or tunnel. A client
+that reaches only this road gets the site, never a hint of the role.
+
+`--cover-script FILE` loads a TOML measurement of record sizes, timings and
+the split policy, and refuses a missing script or one with no date or no
+`cover_version` at the start (78). The role checks it there and keeps its
+replay; the tunnel's records are **not** shaped by it (checked 2026-11-23; PodUtils/podnet#491), so
+the script is a measured plan, not a live cover.
+
+### The delegated credential (T-765, T-766)
+
+A client that authenticated with a token at `POST /v1/delegate` gets a
+temporary credential of the same name, bound to that TLS connection:
+
+```sh
+curl --cacert root.pem --resolve relay.example.org:443:203.0.113.7 \
+  -X POST -H "X-Relay-Token: $TOKEN" \
+  -d '{"subject_key":"<the 32 bytes of the client key, in hexadecimal>"}' \
+  https://relay.example.org/v1/delegate
+```
+
+The credential is an application-layer record signed with Ed25519, with the
+fields `issuer`, `name`, `not_before`, `not_after`, `subject_key` and the
+SHA-256 of the connection's TLS exporter, plus its signature and the
+issuer's public key. The signing key is the operator's, not a value derived
+from the leaf certificate. The relay pins its public half with
+`--cover-issuer-public HEX`, or takes it from the secret seed file named by
+`--cover-issuer-key FILE` (64 hexadecimal digits of the 32-byte seed); with
+neither flag it generates an ephemeral key at the start and prints only its
+fingerprint. `--cover-issuer-public` alone configures verification: the relay
+cannot sign with it, and `/v1/delegate` answers `503`. A secret and a public
+half that do not match are refused at the start (78), without printing either.
+
+The relay checks every credential on the live TLS connection, before any
+tunnel opens: the pinned key, the connection's name, the window, the
+connection's exporter and the signatures it has already spent. A wrong key, a
+wrong name, a lapsed window and a replay are each refused by name and each
+gets the site's exact 404. The client also checks the signature against the
+issuer key delivered on the authenticated connection (`podssh_ws::delegated`),
+so a no-op check on either side is not enough for a tunnel.
+
+**This is not RFC 9345 and it is not a TLS delegated credential.** There is
+no CertificateVerify, no certificate extension and no wire format of a TLS
+handshake; the TLS stack still authenticates the certificate of the name,
+and the credential is signed and checked after the handshake. It proves that
+the fields were signed by the operator's key for this name and window, not
+that the issuer is honest; the exporter binding is what ties the credential
+to one connection, and the relay's spent set is what makes it single use.
+The role issues no credential over QUIC, whose connection has no exporter
+here: a client that asks there with a token gets `503`, and one without a
+token gets the site's 404.
+
+`podssh doctor --quick --cover NAME` asks for that credential with the
+relay's token and prints it: the issuer and name, the subject key's prefix,
+the validity window and that it is bound to the connection's exporter. It
+then checks the three refusals by name: a credential of another issuer
+(`another name`), a window past its end (`expired`), and another exporter
+(`bound to another exporter`). The token itself is never printed. Without a
+token the credential line is `????` and says that there is no relay token.
+
+### One name for each deployment (T-768)
+
+Each deployment uses one name from a public CA, renewed automatically:
+`--acme NAME` refuses a wildcard already. A `--cert`/`--key` whose leaf names
+a wildcard, or not the name that `--acme` asked for, is refused at the start
+(78) in both modes, with or without `--cover`; a warning is not enough for a
+name that two deployments would share. A leaf of more than one name is a
+warning in both modes, because the test harness and a legitimate deployment
+may hold two names for the role; under `--cover` each name that the role
+terminates must be named by `--cover-name`, so no second name is served
+silently. A name whose node is gone fails closed: a published name with no node of its pair closes the
+connection before any TLS of the role answers, and the role never presents
+its own certificate for it (T-649, `relay_serve_publish`). Two deployments
+present two chains and two names, which the test of
+`relay_serve_cover.rs` captures from two certificates of the test's.
+
 ## How podssh selects relay hosts
 
 The code is in `crates/podssh-relay/`.

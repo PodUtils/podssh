@@ -34,7 +34,12 @@
 # timeout; the ports PODSSH_TROJAN_PORT (18470) to PODSSH_TROJAN_PORT+4 of
 # the loopback free, and PODSSH_TROJAN_PORT+5 and +6; trojan-gfw's server needs
 # glibc on this host; and the releases on GitHub, through HTTPS_PROXY when it
-# is set.
+# is set. PODSSH_INTEROP_EVIDENCE names a directory that keeps the run's raw
+# client and server transcripts, with each password and hash replaced by
+# REDACTED and no config or key file copied.
+# PODSSH_INTEROP_CONTAINER_PROXY gives each container the host's proxy for its
+# packages, with `{gateway}` standing for the network's gateway: a host whose
+# containers resolve no name still fetches through a proxy that way.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/.." && pwd)
@@ -87,12 +92,54 @@ remove_all() {
     done
     timeout 60 "$ENGINE" network rm "$NET" >/dev/null 2>&1
 }
+# redact FILE...: replace the run's password, the other password and their
+# hashes with REDACTED in each file. A server's own log may name the password
+# that authenticated, so a kept transcript is redacted before it is kept.
+redact() {
+    [ "$#" -gt 0 ] || return 0
+    python3 -I - "$W" "$@" <<'EOF'
+import hashlib, os, sys
+secrets = []
+for name in ("password", "other"):
+    try:
+        value = open(os.path.join(sys.argv[1], name)).read().strip()
+    except OSError:
+        continue
+    if value:
+        secrets.extend((value, hashlib.sha224(value.encode()).hexdigest()))
+for path in sys.argv[2:]:
+    try:
+        text = open(path, errors="replace").read()
+    except OSError:
+        continue
+    for secret in secrets:
+        text = text.replace(secret, "REDACTED")
+    open(path, "w").write(text)
+EOF
+}
+
 # The servers on this host, each stopped by its pid.
 PIDS=
 cleanup() {
     for _p in $PIDS; do
         kill "$_p" 2>/dev/null
     done
+    # PODSSH_INTEROP_EVIDENCE names a directory that keeps the run's raw
+    # transcripts: the client's stdout and stderr, each server's log, and
+    # the containers' logs. No config and no key file is copied, and each
+    # password and hash is redacted.
+    if [ -n "${PODSSH_INTEROP_EVIDENCE:-}" ]; then
+        mkdir -p "$PODSSH_INTEROP_EVIDENCE"
+        for _f in "$W"/*.out "$W"/*.err "$W"/*.log; do
+            [ -f "$_f" ] || continue
+            cp "$_f" "$PODSSH_INTEROP_EVIDENCE/" 2>/dev/null &&
+                redact "$PODSSH_INTEROP_EVIDENCE/$(basename "$_f")"
+        done
+        for _c in $NAMES; do
+            timeout 60 "$ENGINE" logs "$_c" >"$PODSSH_INTEROP_EVIDENCE/$_c.log" 2>&1
+            redact "$PODSSH_INTEROP_EVIDENCE/$_c.log"
+        done
+    fi
     remove_all
     rm -rf "$W"
 }
@@ -181,8 +228,9 @@ config = {"log": {"loglevel": "warning"}, "outbounds": [freedom], "inbounds": [
 json.dump(config, open(out, "w"), indent=1)
 EOF
 chmod 644 "$W/xray/config.json"
-printf '%s\n' 'http_port 3128' 'http_access allow all' 'cache deny all' 'access_log stdio:/tmp/access.log' \
-    'cache_log /tmp/cache.log' 'pid_filename none' 'logfile_rotate 0' 'coredump_dir /tmp' >"$W/hop/squid.conf"
+printf '%s\n' 'http_port 3128' 'dns_nameservers 127.0.0.11' 'hosts_file /etc/hosts' 'http_access allow all' \
+    'cache deny all' 'access_log stdio:/tmp/access.log' 'cache_log /tmp/cache.log' 'pid_filename none' \
+    'logfile_rotate 0' 'coredump_dir /tmp' >"$W/hop/squid.conf"
 chmod 644 "$W/hop/squid.conf"
 
 # trojan-gfw and trojan-go on this host: each sends a request that is not
@@ -204,16 +252,37 @@ PIDS="$PIDS $!"
 timeout 120 "$ENGINE" run --rm -v "$W/xray:/etc/xray:ro" "$ALPINE" /etc/xray/xray run -test -c /etc/xray/config.json \
     >"$W/xray-test.log" 2>&1 || die "Xray-core refused its configuration: $(tail -8 "$W/xray-test.log")"
 timeout 60 "$ENGINE" network create "$NET" >/dev/null || die "the network $NET could not be made"
+# A container's proxy, where the operator gave one: the network's gateway is
+# the host that the run's servers see, and `{gateway}` stands for it.
+PROXY_ENV=
+if [ -n "${PODSSH_INTEROP_CONTAINER_PROXY:-}" ]; then
+    GW=$(timeout 30 "$ENGINE" network inspect "$NET" -f '{{(index .IPAM.Config 0).Gateway}}') ||
+        die "the network $NET has no gateway"
+    CP=$(printf '%s' "$PODSSH_INTEROP_CONTAINER_PROXY" | sed "s/{gateway}/$GW/g")
+    PROXY_ENV="-e HTTP_PROXY=$CP -e HTTPS_PROXY=$CP -e http_proxy=$CP -e https_proxy=$CP"
+    PROXY_ENV="$PROXY_ENV -e NO_PROXY=127.0.0.1,localhost -e no_proxy=127.0.0.1,localhost"
+fi
+# shellcheck disable=SC2086  # $PROXY_ENV is a list of -e flags, or empty
 timeout 300 "$ENGINE" run -d --name podssh-trojan-sshd --network "$NET" --network-alias sshd.test \
-    -p "127.0.0.1:$SSHD:22" -v "$W/key:/k:ro" "$ALPINE" sh -c 'apk add --no-cache openssh-server >/dev/null &&
+    $PROXY_ENV -p "127.0.0.1:$SSHD:22" -v "$W/key:/k:ro" "$ALPINE" sh -c 'apk add --no-cache openssh-server >/dev/null &&
     ssh-keygen -A >/dev/null && mkdir -p /root/.ssh && cp /k/id.pub /root/.ssh/authorized_keys &&
     chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys && sed -i "s/^root:[^:]*:/root:*:/" /etc/shadow &&
     exec /usr/sbin/sshd -D -e' >/dev/null || die "sshd did not start"
+# shellcheck disable=SC2086  # $PROXY_ENV is a list of -e flags, or empty
 timeout 300 "$ENGINE" run -d --name podssh-trojan-xray --network "$NET" --network-alias trojan.test \
-    -p "127.0.0.1:$XRAY_TLS:8443" -p "127.0.0.1:$XRAY_WS:8444" \
+    $PROXY_ENV -p "127.0.0.1:$XRAY_TLS:8443" -p "127.0.0.1:$XRAY_WS:8444" \
     -v "$W/xray:/etc/xray:ro" "$ALPINE" /etc/xray/xray run -c /etc/xray/config.json >/dev/null ||
     die "Xray-core did not start"
-timeout 300 "$ENGINE" run -d --name podssh-trojan-hop --network "$NET" -p "127.0.0.1:$HOP:3128" \
+# The hop resolves trojan.test from its own /etc/hosts, at the address of the
+# Xray container on this network. The engine's embedded DNS answered SERVFAIL
+# for the alias on a host whose own resolver is down, and a proxy that cannot
+# resolve the name cannot carry the CONNECT.
+XRAY_IP=$(timeout 30 "$ENGINE" inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
+    podssh-trojan-xray 2>/dev/null) || die "Xray-core's address on $NET could not be read"
+[ -n "$XRAY_IP" ] || die "Xray-core has no address on $NET"
+# shellcheck disable=SC2086  # $PROXY_ENV is a list of -e flags, or empty
+timeout 300 "$ENGINE" run -d --name podssh-trojan-hop --network "$NET" $PROXY_ENV \
+    --add-host "trojan.test:$XRAY_IP" -p "127.0.0.1:$HOP:3128" \
     -v "$W/hop:/etc/podssh-squid:ro" "$ALPINE" sh -c 'apk add --no-cache squid >/dev/null &&
     exec squid -N -f /etc/podssh-squid/squid.conf' >/dev/null || die "the host's squid did not start"
 
@@ -331,7 +400,11 @@ rc=$?
 # The host's proxy carries the TCP to Xray-core by its name, which the
 # engine's names give inside the network; no pin, so the proxy is asked.
 # shellcheck disable=SC2086
-HTTPS_PROXY=http://127.0.0.1:$HOP timeout 120 "$BIN" ssh -v --ca-file "$W/ca.pem" --trojan "$W/hop.links" $SSH_OPTS \
+# Both cases: podssh reads `https_proxy` before `HTTPS_PROXY`, as curl does,
+# and a host that exports the lower case would otherwise be carried by that
+# proxy instead of this run's.
+https_proxy=http://127.0.0.1:$HOP HTTPS_PROXY=http://127.0.0.1:$HOP \
+    timeout 120 "$BIN" ssh -v --ca-file "$W/ca.pem" --trojan "$W/hop.links" $SSH_OPTS \
     root@sshd.test 'echo hop' </dev/null >"$W/hop.out" 2>"$W/hop.err"
 rc=$?
 asked=$(timeout 30 "$ENGINE" exec podssh-trojan-hop cat /tmp/access.log 2>/dev/null | grep -c 'CONNECT trojan.test:8443')

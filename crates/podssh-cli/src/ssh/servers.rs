@@ -23,6 +23,10 @@ use crate::relay_settings::Refusal;
 /// VLESS and wstunnel come before `--via`, so that each flag wins over
 /// `PODSSH_VIA`.
 pub(super) fn or_relay(args: &SshArgs, env: &Env, relay: Transport) -> Result<Transport, Refusal> {
+    // A word of `--early-data` is refused before any file of a road is read.
+    if let Some(word) = args.early_data.as_deref() {
+        crate::vless::early_word(Some(word)).map_err(Refusal::usage)?;
+    }
     if args.exit.is_some() {
         return super::exit_road::or_exit(args, env, relay);
     }
@@ -119,7 +123,9 @@ pub(super) async fn reach(resolved: &Resolved, host: &str, port: u16, log: &Arc<
         // A forward proxy over TLS that the user runs (T-439).
         Transport::Via { road } => crate::via::reach::reach(road, host, port, resolved.connection_attempts, log).await,
         // The VLESS servers of a file, in order (T-440).
-        Transport::Vless { servers, trust } => crate::vless::reach::reach(servers, trust, host, port, log).await,
+        Transport::Vless { servers, trust, early } => {
+            crate::vless::reach::reach(servers, trust, early.as_deref(), host, port, log).await
+        }
         // A wstunnel server that the user runs (T-441).
         Transport::Wstunnel { road } => {
             crate::wstunnel::reach::reach(road, host, port, resolved.connection_attempts, log).await

@@ -31,6 +31,8 @@ pub(super) struct Checks<'a> {
     pub(super) road: Option<&'a crate::via::Road>,
     /// The servers of `--vless`, when it names a file.
     pub(super) links: Option<&'a crate::vless::Servers>,
+    /// `--early-data`: the word the VLESS check offers (T-758).
+    pub(super) early: Option<&'a str>,
     /// The servers of `--hysteria`, when it names a file (T-580).
     pub(super) hysteria: Option<&'a crate::hysteria::Servers>,
     /// The servers of `--tuic`, when it names a file (T-581).
@@ -39,6 +41,8 @@ pub(super) struct Checks<'a> {
     pub(super) turn: Option<&'a crate::turn::Road>,
     /// The tunnel of `--devtunnel`, when it names one (T-755).
     pub(super) devtunnel: Option<&'a crate::ssh::cloud::devtunnel::Target>,
+    /// The cover name of `--cover`, whose credential is checked alone (T-766).
+    pub(super) cover: Option<&'a str>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
@@ -227,12 +231,17 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         }
         // Unasked, two public STUN servers by default (Q86).
         Kind::Nat => super::nat::check(report, checks.stun).await,
-        Kind::Relay => {
-            super::relay_checks::check(report, relays, trust, failover, full).await;
-            // After the relay's own checks, in their part, so that no other
-            // section opens a connection to the relay beside it (T-747).
-            super::burst::check(report, relays, trust).await;
-        }
+        Kind::Relay => match checks.cover {
+            // A cover moves /health and the documents off the public
+            // listener: the credential is the relay check there (T-766).
+            Some(name) => super::cover::check(report, name, relays, trust).await,
+            None => {
+                super::relay_checks::check(report, relays, trust, failover, full).await;
+                // After the relay's own checks, in their part, so that no other
+                // section opens a connection to the relay beside it (T-747).
+                super::burst::check(report, relays, trust).await;
+            }
+        },
         Kind::Forwarders => match forwarders.is_empty() {
             true => super::forwarder::fallback_line(report, relays),
             false => super::forwarder::check(report, forwarders, trust).await,
@@ -249,7 +258,7 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         }
         Kind::Vless => {
             if let Some(servers) = links {
-                super::vless::check(report, servers, trust).await;
+                super::vless::check(report, servers, trust, checks.early).await;
             }
         }
         Kind::Hysteria => {

@@ -70,7 +70,7 @@ impl Drop for Held {
 
 /// Serve the connection of `tls`, whose TLS chose `h2`, for a client at
 /// `from` that asked for the name `sni`, until it ends.
-pub async fn serve<S>(tls: S, cfg: Arc<Config>, sni: Option<String>, from: Option<IpAddr>)
+pub async fn serve<S>(tls: S, cfg: Arc<Config>, sni: Option<String>, from: Option<IpAddr>, exporter: Option<[u8; 32]>)
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -108,7 +108,7 @@ where
         let held = Held::of(&open);
         let (cfg, sni) = (cfg.clone(), sni.clone());
         tokio::spawn(async move {
-            stream::serve(request, respond, cfg, sni, from).await;
+            stream::serve(request, respond, cfg, sni, from, exporter).await;
             drop(held);
         });
     }

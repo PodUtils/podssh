@@ -212,7 +212,7 @@ pub async fn reach_skipping(resolved: &Resolved, skip: usize, log: &Arc<Log>) ->
             };
             let note_log = log.clone();
             let started = tokio::time::Instant::now();
-            match podssh_relay::open(&request, &mut |note: &str| note_log.info(note)).await {
+            match crate::h2_road::open(&request, &mut |note: &str| note_log.info(note)).await {
                 Ok(opened) => {
                     // In cleartext (T-326), or over HTTP/2 (T-321), named.
                     let road = opened.road();

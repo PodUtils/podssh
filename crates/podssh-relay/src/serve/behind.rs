@@ -62,6 +62,7 @@ mod tests {
             events: None,
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
         })
     }
 

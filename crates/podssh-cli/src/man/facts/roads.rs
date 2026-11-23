@@ -362,6 +362,16 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[
           podssh doctor's line http2 fails with it.",
     ),
     (
+        &["PODSSH_H2_SHAPE"],
+        "The shape of this client's HTTP/2: its SETTINGS and their order, the window, the fields' order, PRIORITY \
+          and padding. existing is the road's own, browser is Chrome's, firefox is Firefox's; PRIORITY and padded DATA are recorded and not sent through h2 0.4. The road is podssh-ws's h2_road; the default session road, the WebSocket upgrade, does not read it.",
+    ),
+    (
+        &["PODSSH_VLESS_EARLY_DATA"],
+        "Early data on the VLESS road: 0rtt announces the link's ed size while its nonce is new, 1rtt is the \
+          fallback from the start, off (the default) offers none. A nonce used twice in 10 minutes is refused and the session stays at 1-RTT; another word is a 78.",
+    ),
+    (
         &["PODSSH_QUIC"],
         "QUIC to podssh relay serve (see THE RELAY), for podssh ssh, each command that reaches a server as it does, \
           and podssh proxy: a session raced over QUIC on UDP first, then over TCP. Unset, empty or auto: to a relay \

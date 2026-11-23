@@ -21,6 +21,42 @@ use super::Report;
 pub(super) async fn check(report: &mut Report<'_>, relay: &Relay, explicit: bool, trust: &Trust, timeout: Duration) {
     let offered = probe(&relay.host, relay.port, trust, timeout).await;
     report.line("http2", verdict(&relay.host, offered, podssh_relay::h2_road::from_env(), explicit));
+    // H2-2: the client's shape, where the user chose one: the SETTINGS and
+    // their order, the window and the fields. The PRIORITY frames and the
+    // padding of a large DATA frame are recorded in the shape and are not
+    // sent through h2 0.4; the line says that, so it claims no more.
+    if let Some(shape) = named_shape() {
+        report.line("http2 shape", shape);
+    }
+}
+
+/// The shape that `--h2-shape` or `PODSSH_H2_SHAPE` names, as a line: unset
+/// leaves the road's own shape and adds no line; another word fails.
+pub(super) fn named_shape() -> Option<Verdict> {
+    if let Some(chosen) = podssh_ws::h2_road::chosen() {
+        return Some(shape_verdict(Ok(chosen)));
+    }
+    let word = std::env::var(podssh_ws::h2_road::SHAPE_ENV).ok().filter(|v| !v.trim().is_empty())?;
+    named_shape_of(Some(&word))
+}
+
+/// [`named_shape`] of `value`, which a test gives.
+fn named_shape_of(value: Option<&str>) -> Option<Verdict> {
+    let word = value.map(str::trim).filter(|v| !v.is_empty())?;
+    Some(shape_verdict(podssh_ws::h2_road::shape_of(Some(word))))
+}
+
+/// The line of a shape, or of the word that is not one.
+fn shape_verdict(shape: Result<podssh_ws::h2_road::Shape, String>) -> Verdict {
+    match shape {
+        Ok(shape) => Verdict::Ok {
+            detail: format!(
+                "{}; PRIORITY frames and padded DATA are recorded and not sent through h2 0.4",
+                shape.words()
+            ),
+        },
+        Err(why) => Verdict::Failed { detail: why },
+    }
 }
 
 /// The line of a forwarder whose host is `host:port`, over TLS.
@@ -104,6 +140,21 @@ mod tests {
     /// A host whose SETTINGS offer extended CONNECT is named so, and the
     /// line says whether the run's sessions share a connection to it; one
     /// that lacks it, or chose HTTP/1.1, is a fact, not a fault.
+    #[test]
+    fn a_named_shape_is_a_line_and_another_word_fails() {
+        let browser = named_shape_of(Some("browser"));
+        assert!(matches!(&browser, Some(Verdict::Ok { detail }) if detail.contains("SETTINGS 1:65536")), "{browser:?}");
+        assert!(
+            matches!(&browser, Some(Verdict::Ok { detail }) if detail.contains("not sent through h2 0.4")),
+            "{browser:?}"
+        );
+        let firefox = named_shape_of(Some("firefox"));
+        assert!(matches!(&firefox, Some(Verdict::Ok { detail }) if detail.contains("5 PRIORITY")), "{firefox:?}");
+        assert!(named_shape_of(None).is_none());
+        let bad = named_shape_of(Some("safari"));
+        assert!(matches!(&bad, Some(Verdict::Failed { detail }) if detail.starts_with("PODSSH_H2_SHAPE")), "{bad:?}");
+    }
+
     #[test]
     fn the_line_names_the_setting_and_the_road_of_the_run() {
         let shared = detail(verdict("r.test", offered(Some(true)), Ok(Choice::Auto), true));

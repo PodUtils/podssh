@@ -41,6 +41,30 @@ pub const DOCTOR_VLESS: FlagRow = row(
     None,
 );
 
+/// `--early-data`: the VLESS road's early data (T-758).
+pub const EARLY_DATA: FlagRow = row(
+    None,
+    "early-data",
+    Some("WORD"),
+    FlagKind::Supported,
+    "the VLESS road's early data: 0rtt, 1rtt or off (default: env PODSSH_VLESS_EARLY_DATA, else off); a nonce \
+     repeated inside ten minutes is a replay, and the session continues at 1-RTT on the same connection",
+    None,
+);
+
+/// `--h2-shape`: the shape of the HTTP/2 road that podssh builds (T-763).
+pub const H2_SHAPE: FlagRow = row(
+    None,
+    "h2-shape",
+    Some("WORD"),
+    FlagKind::Supported,
+    "the shape of the HTTP/2 road that podssh builds: existing (the default), browser or firefox (default: env \
+     PODSSH_H2_SHAPE); SETTINGS and their order and the connection's window are sent, while PRIORITY frames and \
+     padded DATA are recorded and not sent through h2 0.4. The default session road is the WebSocket upgrade of \
+     HTTP/1.1 and does not read it",
+    None,
+);
+
 /// `--trojan` for `ssh`, `cp`, `each` and the others of `ssh`'s road (T-491).
 pub const TROJAN: FlagRow = row(
     None,
@@ -50,6 +74,17 @@ pub const TROJAN: FlagRow = row(
     "reach the first hop through Trojan servers that you run (trojan-gfw, trojan-go, Xray-core), in order, in \
      place of the relay: FILE is private, with a trojan:// share link on each line, in TLS alone (type=tcp) or \
      in a WebSocket over TLS (type=ws)",
+    None,
+);
+
+/// `doctor`: Trojan's controls, by name, with no connection (T-761).
+pub const DOCTOR_TROJAN: FlagRow = row(
+    None,
+    "trojan",
+    None,
+    FlagKind::Supported,
+    "state what podssh's Trojan road carries: the TCP stream to a target, and UDP associate, refused by name with \
+     why; no connection is made",
     None,
 );
 

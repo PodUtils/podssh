@@ -297,12 +297,12 @@ pub struct Part {
 impl Parts {
     pub fn add(&mut self, at: Duration, bytes: u64) {
         let full = self.0.len() >= PARTS_SHOWN;
-        if let Some(last) = self.0.last_mut() {
-            if full || at.saturating_sub(last.to) <= SAME_PART {
-                last.to = at;
-                last.bytes += bytes;
-                return;
-            }
+        if let Some(last) = self.0.last_mut()
+            && (full || at.saturating_sub(last.to) <= SAME_PART)
+        {
+            last.to = at;
+            last.bytes += bytes;
+            return;
         }
         self.0.push(Part { from: at, to: at, bytes });
     }

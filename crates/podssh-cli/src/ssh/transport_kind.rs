@@ -56,7 +56,9 @@ pub enum Transport {
     /// Through a forward proxy over TLS that the user runs (`--via`, T-439).
     Via { road: crate::via::Road },
     /// Through the VLESS servers of a file, in order (`--vless`, T-440).
-    Vless { servers: crate::vless::Servers, trust: Trust },
+    /// `early` is `--early-data`, or `None` for the variable and then off
+    /// (T-758).
+    Vless { servers: crate::vless::Servers, trust: Trust, early: Option<String> },
     /// Through a wstunnel server that the user runs (`--wstunnel`, T-441).
     Wstunnel { road: crate::wstunnel::Road },
     /// Through a chisel server that the user runs (`--chisel`, T-490).

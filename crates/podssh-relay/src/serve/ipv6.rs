@@ -219,10 +219,10 @@ impl Ipv6Out {
     /// The table of routes, read again once it is older than its hold.
     fn table(&self) -> Option<Vec<Route>> {
         let mut held = self.0.table.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some((at, table)) = held.as_ref() {
-            if at.elapsed() < ROUTES_HOLD {
-                return table.clone();
-            }
+        if let Some((at, table)) = held.as_ref()
+            && at.elapsed() < ROUTES_HOLD
+        {
+            return table.clone();
         }
         let file = self.0.file.as_deref().unwrap_or(std::path::Path::new(ROUTES));
         // A file of no route is no table: a host that hides it says nothing.

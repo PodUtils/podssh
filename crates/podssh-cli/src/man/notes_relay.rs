@@ -170,6 +170,28 @@ pub const RELAY: &[&str] = &[
      line on stdout, and so is each session's end: end client, end gone, or end close CODE REASON. It \
      listens because you ask it to, and PODSSH_LISTEN=no refuses it; Ctrl-C or SIGTERM stops \
      it.",
+    "--cover DIR answers the role's own TLS name as a static site from DIR while the tunnel keeps the same \
+     name: index.html for /, each asset with its type, robots.txt, the site's own 404.html, and a Server header \
+     of --cover-server VALUE (default nginx). A request that is no route of the contract, an unknown Host and a \
+     path that leaves DIR get the site's own 404; a body and a header of an unauthenticated path never name \
+     this project, its version or its contract. The documents leave the public listener under --cover: /health, \
+     /trace, /llms-full.txt, /relays.json and /v1/probe/* answer the site's 404 there. --control-socket PATH \
+     (required with --cover, mode 0600) serves them on a Unix socket of the owner's instead. /v1/mint stays \
+     public, and a POST with a body alone: another method is 405 with Allow: POST, an empty body 400. A client \
+     that authenticated with a token at POST /v1/delegate gets a temporary credential of the same name and \
+     chain. It is bound to the TLS exporter of the connection. podssh-ws checks its issuer, name, window and \
+     binding, and refuses another issuer, a lapsed window or another chain by name. \
+     This is an application-layer credential, not RFC 9345 and not a TLS delegated credential: no \
+     CertificateVerify, no certificate extension, and the TLS stack still authenticates the certificate. One \
+     name for each deployment: a certificate whose leaf names a wildcard, or not the name that --acme asked for, is \
+     refused (78) in both modes. A leaf of more than one name is a warning. Under --cover each name that the role \
+     terminates must be given by --cover-name (repeatable, the first is the role's name). A --cover-name that the \
+     certificate does not hold is refused (78), and one that is also a --publish name is refused (64). \
+     --cover-name without --cover, and --cover-script without --cover, are refused (64). --cover-script FILE loads \
+     a TOML measurement and refuses a missing script or one with no date (78); it is checked at the start, and the \
+     tunnel's records are not shaped by it yet, which the record layer's own work covers. A --control-socket or \
+     --cover-server without --cover is refused. A published name whose node is gone still closes before any TLS of \
+     the role answers.",
     "On Linux the relay gives up each capability that it started with, once its listener is bound and before it \
      serves. A port below 1024 needs one for its bind alone (a start as root, or the file capability \
      cap_net_bind_service on the binary). It gives up: no new privileges on an exec, the bounding set where the \

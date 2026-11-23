@@ -51,10 +51,10 @@ impl State {
                         // VEOF on an empty line: a read of 0 bytes, which a
                         // socket gives only at its end, so input ends here.
                         self.lines = None;
-                    } else if let Some(lines) = &self.lines {
-                        if lines.send(bytes).await.is_err() {
-                            self.lines = None;
-                        }
+                    } else if let Some(lines) = &self.lines
+                        && lines.send(bytes).await.is_err()
+                    {
+                        self.lines = None;
                     }
                 }
                 Event::ToUser(bytes) => {

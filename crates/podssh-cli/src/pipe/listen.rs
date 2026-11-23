@@ -22,6 +22,11 @@ use crate::relay_settings::Refusal;
 /// The variable that turns listening off.
 pub const LISTEN_ENV: &str = "PODSSH_LISTEN";
 
+/// The process's umask is shared by its threads, so the short window of
+/// [`listen_file`] is serialised with anything else that makes files under
+/// a chosen mode. A poisoned lock is used anyway: the umask was put back.
+pub(crate) static UMASK_WINDOW: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// What needs no listener, for the line of a refused one.
 const INSTEAD: &str = "stdio, fd:N and exec:CMD need no listener";
 
@@ -218,11 +223,16 @@ mod unix {
     /// makes its socket: the file is made mode 0600, never open to another
     /// user, not even for a moment.
     fn listen_file(file: &Path) -> io::Result<tokio::net::UnixListener> {
+        // The umask is the process's, so another thread's file creation
+        // could see this window. A helper that makes files takes the same
+        // lock, and the window is two syscalls wide.
+        let _window = super::UMASK_WINDOW.lock().unwrap_or_else(|e| e.into_inner());
         // SAFETY: umask only swaps the process's mask; it is put back below.
         let before = unsafe { libc::umask(0o177) };
         let bound = std::os::unix::net::UnixListener::bind(file);
         // SAFETY: as above.
         unsafe { libc::umask(before) };
+        drop(_window);
         let listener = bound?;
         listener.set_nonblocking(true)?;
         tokio::net::UnixListener::from_std(listener)

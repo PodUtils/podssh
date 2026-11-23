@@ -95,6 +95,12 @@ fn serial() -> rcgen::SerialNumber {
 
 /// A CA of the test, and a leaf of it for NAME with its key: each as PEM.
 pub(crate) fn ca_and_leaf(tag: &str) -> (String, String, String) {
+    ca_and_leaf_for(tag, &[NAME])
+}
+
+/// A CA of the test, and a leaf of it for `names` with its key: each as
+/// PEM. A wildcard name is written as DNS calls it.
+pub(crate) fn ca_and_leaf_for(tag: &str, names: &[&str]) -> (String, String, String) {
     let (ca_key, leaf_key) = (Key::new(), Key::new());
     let mut ca = rcgen::CertificateParams::new(Vec::<String>::new()).unwrap();
     ca.is_ca = rcgen::IsCa::Ca(rcgen::BasicConstraints::Unconstrained);
@@ -102,7 +108,7 @@ pub(crate) fn ca_and_leaf(tag: &str) -> (String, String, String) {
     ca.distinguished_name.push(rcgen::DnType::CommonName, format!("podssh test CA {tag}"));
     ca.serial_number = Some(serial());
     let ca_cert = ca.self_signed(&ca_key).unwrap();
-    let mut leaf = rcgen::CertificateParams::new(vec![NAME.to_string()]).unwrap();
+    let mut leaf = rcgen::CertificateParams::new(names.iter().map(|n| n.to_string()).collect::<Vec<_>>()).unwrap();
     leaf.serial_number = Some(serial());
     let leaf = leaf.signed_by(&leaf_key, &rcgen::Issuer::new(ca, &ca_key)).unwrap();
     (pem("CERTIFICATE", ca_cert.der()), pem("CERTIFICATE", leaf.der()), leaf_key.pem())

@@ -94,10 +94,10 @@ pub fn ping() -> Vec<u8> {
 pub fn no_content(head: &Request) -> Vec<u8> {
     let mut answers = String::new();
     for (asked, header, max, colon) in CHALLENGES {
-        if let Some(challenge) = head.header(asked) {
-            if is_challenge(challenge, max, colon) {
-                answers.push_str(&format!("{header}: response {challenge}\r\n"));
-            }
+        if let Some(challenge) = head.header(asked)
+            && is_challenge(challenge, max, colon)
+        {
+            answers.push_str(&format!("{header}: response {challenge}\r\n"));
         }
     }
     format!(

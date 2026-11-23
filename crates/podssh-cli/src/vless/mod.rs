@@ -14,8 +14,10 @@ pub mod pipe;
 pub mod reach;
 
 use std::path::Path;
+use std::sync::{Arc, OnceLock};
 
-use podssh_ws::vless::Server;
+use podssh_ws::vless::early::Early;
+use podssh_ws::vless::{FirstWrite, ReplayWindow, Server};
 use podssh_ws::Trust;
 use zeroize::Zeroizing;
 
@@ -87,12 +89,15 @@ pub fn or_relay(args: &SshArgs, transport: Transport) -> Result<Transport, Refus
             "-4 and -6 choose the family that the relay dials; a VLESS server dials as it chooses",
         ));
     }
-    Ok(Transport::Vless { servers: read(path)?, trust })
+    Ok(Transport::Vless { servers: read(path)?, trust, early: args.early_data.clone() })
 }
 
 /// `--vless` beside a road of its own, which [`or_relay`] never took: a
 /// usage error.
 pub fn check(args: &SshArgs, resolved: &Resolved) -> Result<(), Refusal> {
+    if args.early_data.is_some() && args.vless.is_none() {
+        return Err(Refusal::usage("--early-data chooses the VLESS road's early data; it goes with --vless FILE"));
+    }
     if args.vless.is_none() {
         return Ok(());
     }
@@ -129,6 +134,112 @@ pub fn trust(ca_file: Option<&str>) -> Trust {
     crate::settings::ca_file(ca_file).map_or(Trust::Default, |file| Trust::File(file.into()))
 }
 
+/// The variable that chooses early data on the VLESS road: `0rtt`, `1rtt`
+/// or `off`, the default.
+pub const EARLY_ENV: &str = "PODSSH_VLESS_EARLY_DATA";
+
+/// The nonces of this process's 0-RTT sessions: one window, so that a
+/// nonce used twice inside ten minutes is a replay of the first.
+fn early_window() -> &'static Arc<ReplayWindow> {
+    static WINDOW: OnceLock<Arc<ReplayWindow>> = OnceLock::new();
+    WINDOW.get_or_init(|| Arc::new(ReplayWindow::new()))
+}
+
+/// The early data that [`EARLY_ENV`] asks for, or none. The nonce is a
+/// session's own and goes in no line and no log.
+pub fn early_from_env() -> Result<Option<Early>, String> {
+    let word = std::env::var(EARLY_ENV).ok();
+    early_of(word.as_deref().map(str::trim).filter(|v| !v.is_empty()))
+}
+
+/// The words that [`EARLY_ENV`] and `--early-data` take, checked with no
+/// nonce and no window: `0rtt`, `1rtt`, `off`, or `no` for off. A word that
+/// is not one is refused with the variable's name.
+pub fn early_word(value: Option<&str>) -> Result<(), String> {
+    let word = match value {
+        None => return Ok(()),
+        Some(word) => word.trim(),
+    };
+    if word.is_empty() {
+        return Err(format!("{EARLY_ENV}: 0rtt, 1rtt or off, not an empty word"));
+    }
+    if word.eq_ignore_ascii_case("off")
+        || word.eq_ignore_ascii_case("no")
+        || word.eq_ignore_ascii_case("0rtt")
+        || word.eq_ignore_ascii_case("1rtt")
+    {
+        return Ok(());
+    }
+    Err(format!("{EARLY_ENV}: 0rtt, 1rtt or off, not {word}"))
+}
+
+/// [`early_from_env`] of `value`, which a test gives. `1rtt` puts the nonce
+/// in the window first, so that the session takes the 1-RTT fallback of a
+/// nonce the window has seen.
+pub fn early_of(value: Option<&str>) -> Result<Option<Early>, String> {
+    use podssh_relay::session::{Entropy, OsEntropy};
+    early_word(value)?;
+    let word = value.map(str::trim).filter(|v| !v.is_empty()).unwrap_or("off");
+    if word.eq_ignore_ascii_case("off") || word.eq_ignore_ascii_case("no") {
+        return Ok(None);
+    }
+    let mut nonce = [0u8; 16];
+    OsEntropy.fill(&mut nonce).map_err(|_| format!("{EARLY_ENV}: the OS gave no random bytes for the nonce"))?;
+    let window = early_window().clone();
+    let early = Early::new(window.clone(), nonce.to_vec());
+    if word.eq_ignore_ascii_case("1rtt") {
+        window.admit(&nonce);
+    }
+    Ok(Some(early))
+}
+
+/// The early data that `--early-data` names, or the variable's, or none.
+pub fn early_from(flag: Option<&str>) -> Result<Option<Early>, String> {
+    match flag {
+        Some(word) => early_of(Some(word)),
+        None => early_from_env(),
+    }
+}
+
+/// The line of a session's early data: what the TLS handshake did with the
+/// upgrade request, or nothing where the road offers no early data.
+/// `Some(false)` is both a process with no ticket for the name and a server
+/// that refused the ticket it was offered; the two are one outcome on the
+/// wire, and the line says no more than that.
+pub fn early_line(accepted: Option<bool>) -> String {
+    match accepted {
+        Some(true) => "; the TLS handshake carried the upgrade request as early data (0-RTT)".to_string(),
+        Some(false) => {
+            "; TLS accepted no early data (no ticket in this process, or the server refused it), so the request went \
+             at 1-RTT on the same connection"
+                .to_string()
+        }
+        None => String::new(),
+    }
+}
+
+/// The record of a session's first write, for a status or doctor line: the
+/// bytes, whether it was short of the 3,333-byte target and padded, and that
+/// it was coalesced. A WebSocket's write is the upgrade head alone: a frame
+/// before the handshake is refused by Xray-core's gorilla/websocket, so
+/// VLESS's request follows in the first message and is not part of it.
+pub fn first_write_line(report: FirstWrite, how: &str) -> String {
+    if !report.coalesced {
+        return "; no first write was coalesced".to_string();
+    }
+    let short = if report.short { ", padded short of 3,333 bytes" } else { "" };
+    match how.contains("WebSocket") {
+        true => format!(
+            "; the first write was {} bytes{short}, coalesced: the upgrade head alone, as Xray-core's server refuses a \
+             frame before the handshake; VLESS's request followed in its first message",
+            report.bytes
+        ),
+        false => format!(
+            "; the first write was {} bytes{short}, coalesced: the request and its first data went in one write",
+            report.bytes
+        ),
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -137,6 +248,37 @@ mod tests {
     // ID for a credential.
     fn line(rest: &str) -> String {
         ["vless://550e8400-e29b-41d4", "-a716-446655440000@", rest, "\n"].concat()
+    }
+
+    /// REPLAY-1 and REPLAY-2: the setting is a word of three, `off` is no
+    /// early data, `1rtt` takes the fallback of a nonce the window has seen,
+    /// and another word is refused with the variable's name.
+    #[test]
+    fn the_early_data_setting_is_one_of_three_words() {
+        assert!(early_of(None).unwrap().is_none());
+        assert!(early_of(Some("off")).unwrap().is_none());
+        assert!(early_of(Some("no")).unwrap().is_none());
+        let zero = early_of(Some("0rtt")).unwrap().expect("0-RTT");
+        assert_eq!(podssh_ws::vless::early::Offer::of(Some(&zero)), podssh_ws::vless::early::Offer::ZeroRtt);
+        let one = early_of(Some("1rtt")).unwrap().expect("1-RTT");
+        assert_eq!(podssh_ws::vless::early::Offer::of(Some(&one)), podssh_ws::vless::early::Offer::OneRtt);
+        let refused = early_of(Some("2rtt")).unwrap_err();
+        assert!(refused.starts_with("PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off"), "{refused}");
+        assert!(early_word(Some("  ")).is_err(), "an empty word is not off");
+    }
+
+    #[test]
+    fn the_flag_names_the_early_data_and_the_first_write_line_records_it() {
+        assert!(early_from(Some("off")).unwrap().is_none());
+        let one = early_from(Some("1rtt")).unwrap().expect("1-RTT");
+        assert_eq!(podssh_ws::vless::early::Offer::of(Some(&one)), podssh_ws::vless::early::Offer::OneRtt);
+        assert!(early_from(Some("2rtt")).is_err());
+        let line =
+            first_write_line(FirstWrite { bytes: 3_333, short: true, coalesced: true }, "XHTTP packet-up over HTTP/2");
+        assert!(line.contains("the first write was 3333 bytes, padded short of 3,333 bytes, coalesced"), "{line}");
+        let ws = first_write_line(FirstWrite { bytes: 3_333, short: true, coalesced: true }, "a WebSocket");
+        assert!(ws.contains("the upgrade head alone"), "{ws}");
+        assert_eq!(first_write_line(FirstWrite::default(), "a WebSocket"), "; no first write was coalesced");
     }
 
     #[test]

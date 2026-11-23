@@ -208,6 +208,19 @@ impl Certs {
         acme::certs::leaf(pair.cert.first()?.as_ref()).ok()
     }
 
+    /// What the leaf served now says: its names and its life, when one is
+    /// served (T-764, T-768).
+    pub fn facts(&self) -> Option<Leaf> {
+        self.leaf()
+    }
+
+    /// The DER of the leaf served now: a cover requires it to be held, and
+    /// no delegated credential key is derived from it (T-765).
+    pub fn leaf_der(&self) -> Option<Vec<u8>> {
+        let pair = self.served.current()?;
+        pair.cert.first().map(|cert| cert.as_ref().to_vec())
+    }
+
     /// Read the files again, for `why`: the line that says what is served.
     pub fn reload(&self, why: &str) -> String {
         match self.files.load() {

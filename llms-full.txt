@@ -607,7 +607,19 @@ podssh ssh
   on each road: the server sees the target's name and SSH's encrypted bytes. A
   run has one road: --relay-host, --relay-failover, --direct, --forwarder,
   --shadowsocks, --via, --wstunnel, -4, -6, and a destination with a road of
-  its own cannot go with it (64).
+  its own cannot go with it (64). The first write that carries data is one
+  write of 3,333 bytes. Over XHTTP it is the request's head and its first data;
+  over a WebSocket, the upgrade head alone. Xray-core's gorilla server refuses
+  a frame before the handshake, so VLESS's request follows in the first
+  message. A short write is padded and said. -v and doctor name the size, the
+  short write and which shape applies. --early-data 0rtt|1rtt|off (default:
+  PODSSH_VLESS_EARLY_DATA, else off) offers early data where the link's ed
+  names a size: a nonce used twice in 10 minutes is refused, and the session
+  stays at 1-RTT; the nonce goes in no line. Without --vless it is refused
+  (64). --h2-shape existing|browser|firefox (default: PODSSH_H2_SHAPE, else
+  existing) chooses the shape of podssh-ws's h2 road. The default session road
+  is the WebSocket upgrade and does not read it. A word that is not one refuses
+  the run (64).
 
   --trojan FILE reaches the first hop through Trojan servers that you run
   (trojan-gfw, trojan-go, Xray-core, sing-box), in place of the relay: after a
@@ -1833,6 +1845,22 @@ podssh ssh
         shoes), in order, in place of the relay: FILE is private, with a
         vless:// share link on each line; over a WebSocket (type=ws) or XHTTP
         on HTTP/2 (type=xhttp), which passes where a proxy refuses the upgrade.
+    --early-data WORD
+        the VLESS road's early data: 0rtt, 1rtt or off (default: env
+        PODSSH_VLESS_EARLY_DATA, else off); a nonce repeated inside ten minutes
+        is a replay, and the session continues at 1-RTT on the same connection.
+    --h2-shape WORD
+        the shape of the HTTP/2 road that podssh builds: existing (the
+        default), browser or firefox (default: env PODSSH_H2_SHAPE); SETTINGS
+        and their order and the connection's window are sent, while PRIORITY
+        frames and padded DATA are recorded and not sent through h2 0.4. The
+        default session road is the WebSocket upgrade of HTTP/1.1 and does not
+        read it.
+    --cover-credential
+        ask the relay for a cover name's application-layer credential after the
+        TLS handshake, check it, and upgrade on that connection. It checks the
+        issuer, chain, window, subject key and exporter. Off by default, and
+        refused with --h2-shape because that road has no credential step.
     --trojan FILE
         reach the first hop through Trojan servers that you run (trojan-gfw,
         trojan-go, Xray-core), in order, in place of the relay: FILE is
@@ -3412,7 +3440,8 @@ podssh proxy
   ends the session, or answers in another protocol, within them gives way to
   the next. A WebSocket and packet-up have no half-close: the end of stdin ends
   nothing, and the target's bytes come until the server ends; stream-up and
-  stream-one end their upload.
+  stream-one end their upload. It takes --early-data and --h2-shape as podssh
+  ssh does (see its notes).
 
   podssh proxy --trojan FILE carries the pipe through the Trojan servers of
   FILE, in order, with no relay, as podssh ssh does (see its notes). A pipe's
@@ -3555,6 +3584,22 @@ podssh proxy
     --vless FILE
         reach the target through the VLESS servers of FILE, in order, in place
         of the relay: vless:// share links in a private file.
+    --early-data WORD
+        the VLESS road's early data: 0rtt, 1rtt or off (default: env
+        PODSSH_VLESS_EARLY_DATA, else off); a nonce repeated inside ten minutes
+        is a replay, and the session continues at 1-RTT on the same connection.
+    --h2-shape WORD
+        the shape of the HTTP/2 road that podssh builds: existing (the
+        default), browser or firefox (default: env PODSSH_H2_SHAPE); SETTINGS
+        and their order and the connection's window are sent, while PRIORITY
+        frames and padded DATA are recorded and not sent through h2 0.4. The
+        default session road is the WebSocket upgrade of HTTP/1.1 and does not
+        read it.
+    --cover-credential
+        ask the relay for a cover name's application-layer credential after the
+        TLS handshake, check it, and upgrade on that connection. It checks the
+        issuer, chain, window, subject key and exporter. Off by default, and
+        refused with --h2-shape because that road has no credential step.
     --trojan FILE
         reach the target through the Trojan servers of FILE, in order, in place
         of the relay: trojan:// share links in a private file.
@@ -8047,6 +8092,37 @@ podssh relay
   CODE REASON. It listens because you ask it to, and PODSSH_LISTEN=no refuses
   it; Ctrl-C or SIGTERM stops it.
 
+  --cover DIR answers the role's own TLS name as a static site from DIR while
+  the tunnel keeps the same name: index.html for /, each asset with its type,
+  robots.txt, the site's own 404.html, and a Server header of --cover-server
+  VALUE (default nginx). A request that is no route of the contract, an unknown
+  Host and a path that leaves DIR get the site's own 404; a body and a header
+  of an unauthenticated path never name this project, its version or its
+  contract. The documents leave the public listener under --cover: /health,
+  /trace, /llms-full.txt, /relays.json and /v1/probe/* answer the site's 404
+  there. --control-socket PATH (required with --cover, mode 0600) serves them
+  on a Unix socket of the owner's instead. /v1/mint stays public, and a POST
+  with a body alone: another method is 405 with Allow: POST, an empty body 400.
+  A client that authenticated with a token at POST /v1/delegate gets a
+  temporary credential of the same name and chain. It is bound to the TLS
+  exporter of the connection. podssh-ws checks its issuer, name, window and
+  binding, and refuses another issuer, a lapsed window or another chain by
+  name. This is an application-layer credential, not RFC 9345 and not a TLS
+  delegated credential: no CertificateVerify, no certificate extension, and the
+  TLS stack still authenticates the certificate. One name for each deployment:
+  a certificate whose leaf names a wildcard, or not the name that --acme asked
+  for, is refused (78) in both modes. A leaf of more than one name is a
+  warning. Under --cover each name that the role terminates must be given by
+  --cover-name (repeatable, the first is the role's name). A --cover-name that
+  the certificate does not hold is refused (78), and one that is also a
+  --publish name is refused (64). --cover-name without --cover, and
+  --cover-script without --cover, are refused (64). --cover-script FILE loads a
+  TOML measurement and refuses a missing script or one with no date (78); it is
+  checked at the start, and the tunnel's records are not shaped by it yet,
+  which the record layer's own work covers. A --control-socket or
+  --cover-server without --cover is refused. A published name whose node is
+  gone still closes before any TLS of the role answers.
+
   On Linux the relay gives up each capability that it started with, once its
   listener is bound and before it serves. A port below 1024 needs one for its
   bind alone (a start as root, or the file capability cap_net_bind_service on
@@ -8691,7 +8767,8 @@ podssh relay
         an address, not a name; its bytes go untouched, so that one port serves
         the relay and a shell: a shell for each client that reaches the port,
         behind that sshd's own authentication; each other start goes to TLS or
-        the cleartext road, as before.
+        the cleartext road, as before; refused with --cover (64), which an SSH
+        client of the port would name.
     --proxy-protocol RANGES
         serve: the TCP balancers of the owner (haproxy's send-proxy, nginx's
         proxy_protocol), as ADDR/BITS or addresses, separated by commas. A
@@ -8709,6 +8786,52 @@ podssh relay
         repeatable; the relay reads the name, never the bytes; a CA's
         validation of NAME (acme-tls/1) goes to the node too; NAME is never the
         name of --acme.
+    --cover DIR
+        serve: answer the role's own TLS name as a static site from DIR:
+        index.html, the assets, robots.txt, the site's own 404 and a Server
+        header (--cover-server), for each request that is not the contract's;
+        an unknown name, and /health, /trace, /llms-full.txt, /relays.json and
+        /v1/probe/* with it, get the site's 404, which the socket of
+        --control-socket keeps instead; an authenticated client (a token at
+        POST /v1/delegate) gets a temporary credential of the same chain and
+        name; a wildcard leaf is refused at the start, in both modes, and each
+        name of a multi-name leaf is named by --cover-name; no RFC 9345
+        delegation and no TLS-level delegation.
+    --cover-server VALUE
+        serve --cover: the Server header of the site, 64 visible bytes that
+        name no project (default: nginx).
+    --cover-name NAME
+        serve --cover: a name of the certificate that the role terminates
+        itself and answers with the cover site, while --publish names forward
+        to their pair's node; repeatable; the first is the role's name; each
+        must be a name of the certificate and none may be a --publish name; a
+        name not named here gets the site's 404.
+    --cover-script FILE
+        serve --cover: the cover script of the role, a TOML measurement with
+        its date, cover_version, record_size, timing and split policy; a
+        missing script, or one with no date or no cover version, is a refusal
+        at the start (78); loaded and checked at the start, and its replay is
+        what the tests read; the tunnel's records are not shaped by it yet,
+        which the record layer's own work covers.
+    --cover-issuer-key FILE
+        serve --cover: the operator's Ed25519 secret that signs each cover
+        credential, 64 hexadecimal digits of its 32-byte seed in FILE; the
+        public half is pinned for the role and each upgrade is checked against
+        it; an application-layer credential, not an RFC 9345 or TLS-level
+        delegation; with neither this nor --cover-issuer-public, a key is made
+        for this process, so a restart refuses the credentials of the one
+        before.
+    --cover-issuer-public HEX
+        serve --cover: the hexadecimal Ed25519 public key that the role pins,
+        for an operator who holds the secret elsewhere: each cover credential
+        is checked against it, and none is issued here (POST /v1/delegate
+        answers 503); with --cover-issuer-key it must be that key's public
+        half, else the start is refused.
+    --control-socket PATH
+        serve --cover: the Unix socket, of mode 0600, that serves /health,
+        /trace, /llms-full.txt, /relays.json and /v1/probe/* while the public
+        listener answers the site; required with --cover; a path that exists
+        already is refused.
     --derp-keys FILE
         serve: serve DERP at /derp, over a WebSocket of the subprotocol derp,
         as Tailscale's derper does; for the node keys in FILE, one a line
@@ -9055,9 +9178,18 @@ podssh doctor
   of a run share one connection to it, by PODSSH_H2 (podssh relay serve offers
   it; the default relay's edge chooses h2 and offers no extended CONNECT). The
   line is ok, a fact; ???? when the host was not reached; FAIL for a word of
-  PODSSH_H2 that is not auto, yes or no. With --forwarder, the section of the
-  forwarders has the line for each wss:// one, whose road keeps the upgrade of
-  HTTP/1.1.
+  PODSSH_H2 that is not auto, yes or no. With --h2-shape WORD (default:
+  PODSSH_H2_SHAPE, else existing), a line http2 shape names the shape's
+  SETTINGS and window, which podssh-ws's h2 road sends. It says that its
+  PRIORITY frames and padded DATA are recorded and not sent through h2 0.4. No
+  session of the run takes that road, whose default is the WebSocket upgrade.
+  With --early-data 0rtt|1rtt|off (default: PODSSH_VLESS_EARLY_DATA), the
+  session of each VLESS server offers that early data, and its line names the
+  first write. With --trojan, the section trojan states Trojan's controls by
+  name from trojan::capability(): a TCP stream is carried, and UDP associate
+  (command 0x03) is refused with why; it makes no connection. With --forwarder,
+  the section of the forwarders has the line for each wss:// one, whose road
+  keeps the upgrade of HTTP/1.1.
 
   The line ech, in the section relay, after http2, says what Encrypted Client
   Hello did for the same host. It reads the connection of its /health, with no
@@ -9209,7 +9341,10 @@ podssh doctor
   if one did, the transport that carried the session and the time of VLESS's
   answer. Then the section opens a session through it to github.com port 22,
   whose host key must be one that GitHub publishes. A server that ends the
-  session before its answer refused the ID, or could not reach the target.
+  session before its answer refused the ID, or could not reach the target. A
+  link whose mode is stream-one says, before any connection, that HTTP/2
+  carries it and HTTP/1.1 refuses it (78), and which modes pass. --early-data
+  and --h2-shape act as on ssh.
 
   With --hysteria FILE, the section hysteria gives a line for each server of
   FILE, after the roads over TCP that the run names: whether UDP reaches its
@@ -9280,6 +9415,12 @@ podssh doctor
     --ca-file FILE
         trust only the CA certificates in FILE (default: env SSL_CERT_FILE,
         else system and built-in roots).
+    --cover NAME
+        check the delegated credential of a cover relay's NAME in place of the
+        relay's own checks. A token at POST /v1/delegate is answered with the
+        chain, issuer, window, subject key and TLS exporter. Another issuer, a
+        lapsed window and another exporter are each refused by name; /health
+        and the documents are off the public listener under a cover.
     --json
         write the report as one JSON object on stdout, when every check has
         run.
@@ -9334,6 +9475,20 @@ podssh doctor
         also check each VLESS server of FILE, on each mode of XHTTP where its
         link says auto: the transport that carried it, then one of GitHub's
         published host keys on github.com port 22 through it.
+    --early-data WORD
+        the VLESS road's early data: 0rtt, 1rtt or off (default: env
+        PODSSH_VLESS_EARLY_DATA, else off); a nonce repeated inside ten minutes
+        is a replay, and the session continues at 1-RTT on the same connection.
+    --h2-shape WORD
+        the shape of the HTTP/2 road that podssh builds: existing (the
+        default), browser or firefox (default: env PODSSH_H2_SHAPE); SETTINGS
+        and their order and the connection's window are sent, while PRIORITY
+        frames and padded DATA are recorded and not sent through h2 0.4. The
+        default session road is the WebSocket upgrade of HTTP/1.1 and does not
+        read it.
+    --trojan
+        state what podssh's Trojan road carries: the TCP stream to a target,
+        and UDP associate, refused by name with why; no connection is made.
     --hysteria FILE
         also check each Hysteria 2 server of FILE: whether UDP reaches its
         port, and its round trip, then one of GitHub's published host keys on
@@ -11930,6 +12085,18 @@ ENVIRONMENT
       none costs one more connection in a run; no: the upgrade of HTTP/1.1
       alone, as before. Another word offers it to none, and podssh doctor's
       line http2 fails with it.
+  PODSSH_H2_SHAPE
+      The shape of this client's HTTP/2: its SETTINGS and their order, the
+      window, the fields' order, PRIORITY and padding. existing is the road's
+      own, browser is Chrome's, firefox is Firefox's; PRIORITY and padded DATA
+      are recorded and not sent through h2 0.4. The road is podssh-ws's
+      h2_road; the default session road, the WebSocket upgrade, does not read
+      it.
+  PODSSH_VLESS_EARLY_DATA
+      Early data on the VLESS road: 0rtt announces the link's ed size while its
+      nonce is new, 1rtt is the fallback from the start, off (the default)
+      offers none. A nonce used twice in 10 minutes is refused and the session
+      stays at 1-RTT; another word is a 78.
   PODSSH_QUIC
       QUIC to podssh relay serve (see THE RELAY), for podssh ssh, each command
       that reaches a server as it does, and podssh proxy: a session raced over

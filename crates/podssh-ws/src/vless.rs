@@ -5,6 +5,12 @@ use std::time::Duration;
 
 pub use pod_egress::vless::*;
 
+/// The one-time coalescer of a session's first write.
+pub use pod_egress::coalesce::First;
+/// What a session's first write was: its bytes, whether it was short of the
+/// 3,333-byte target and padded, and that it was coalesced.
+pub use pod_egress::coalesce::Report as FirstWrite;
+
 use crate::dial::ProxyChoice;
 use crate::tls::Trust;
 
@@ -17,5 +23,13 @@ pub fn dial(
     silence_is_ready: bool,
     at_end: AtEnd,
 ) -> Dial {
-    Dial { way: crate::client::way(proxy), trust: trust.clone(), timeout, answer, silence_is_ready, at_end }
+    Dial {
+        way: crate::client::way(proxy),
+        trust: trust.clone(),
+        timeout,
+        answer,
+        silence_is_ready,
+        at_end,
+        early: None,
+    }
 }

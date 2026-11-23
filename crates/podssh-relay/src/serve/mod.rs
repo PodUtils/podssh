@@ -34,6 +34,10 @@
 pub mod behind;
 pub mod brake;
 pub mod cleartext;
+// The owner's control socket of a cover role (T-767).
+pub mod control;
+// The static cover site and its credential (T-764, T-765).
+pub mod cover;
 // DERP over a WebSocket for the node keys of its owner's file (T-106).
 #[cfg(feature = "derp")]
 pub mod derp;
@@ -63,12 +67,17 @@ pub mod quic;
 // exit's and the net's routes read too.
 pub mod ranges;
 pub mod reverse;
+// The one request on one surface, and the credential of a cover (T-764 to
+// T-767).
+mod routes;
 // The name of a ClientHello, read before any handshake (T-649).
 pub mod sni;
 // The listener's open connections, bounded (T-748).
 pub mod slots;
 pub mod sockets;
 pub mod sshd;
+// The role's public routes as one allow-list (T-767).
+pub mod surface;
 pub mod tokens;
 pub mod usage;
 
@@ -177,8 +186,9 @@ pub struct Config {
     /// (T-457).
     pub egress: egress::Egress,
     pub limits: Limits,
-    /// The pairs of the reverse road, and their sockets.
-    pub pairs: reverse::Pairs,
+    /// The pairs of the reverse road, and their sockets. Shared, so that a
+    /// role's listeners see the one table of pairs.
+    pub pairs: Arc<reverse::Pairs>,
     /// The sessions of the forward road in the resumable layer, with their
     /// targets, across links (T-173).
     pub resumes: layer::Resumes,
@@ -188,6 +198,9 @@ pub struct Config {
     pub brake: brake::Brake,
     /// What each key carried, and its budget for a day (T-636).
     pub usage: usage::Usage,
+    /// The static site of a published cover name, and the key of its
+    /// delegated credential (T-764); none unless `--cover`.
+    pub cover: Option<Arc<cover::Cover>>,
     /// Each mint, upgrade, read of `/relays.json` and client's Close as a
     /// line (`mint`, `upgrade`, `relays.json`, `close CODE`), and each step of
     /// the reverse road (`reverse ...`), as
@@ -232,71 +245,12 @@ where
     serve_from(stream, cfg, sni, None).await
 }
 
-/// [`serve_named`] for a client at `from`, by whom the brake counts (T-454):
-/// a listener's TCP peer; behind the quick tunnel, where the peer is
-/// Cloudflare's edge, the visitor that the edge names
-/// ([`brake::edge_visitor`]). Requests with none share one count.
-pub async fn serve_from<S>(mut stream: S, cfg: Arc<Config>, sni: Option<String>, from: Option<IpAddr>)
-where
-    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
-{
-    let Some((head, pending, first)) = head_of(&mut stream).await else { return };
-    // A wrong token counts before any road reads the request (T-806).
-    if let Err(braked) = strike(&cfg, &head, &first, from) {
-        return slow_down(&mut stream, &head, pending, &first, braked, &cfg).await;
-    }
-    // The HTTP road keeps its connection for its next request, and gives
-    // back a request of another path that came on it (T-319).
-    let (mut stream, head, pending) = if http_road::serves(&head.target) {
-        match http_road::serve(stream, head, pending, cfg.clone()).await {
-            Some(next) => next,
-            None => return,
-        }
-    } else {
-        (stream, head, pending)
-    };
-    let path = head.target.split('?').next().unwrap_or_default().to_string();
-    if brake::braked(&head.method, &path) {
-        if let Err(braked) = cfg.brake.take(brake::Who::of(from)) {
-            return slow_down(&mut stream, &head, pending, &path, braked, &cfg).await;
-        }
-    }
-    match (head.method.as_str(), path.as_str()) {
-        ("GET", p) if p.starts_with("/connect/") => forward::connect(stream, head, pending, cfg).await,
-        // The forward road in the resumable layer (T-173), beside the contract.
-        ("GET", p) if layer::serves(p) => layer::connect(stream, head, pending, cfg).await,
-        ("POST", "/v1/mint") => mint(&mut stream, &head, pending, &cfg, sni.as_deref()).await,
-        ("GET", "/health") => answer(&mut stream, docs::json(&docs::health(&cfg))).await,
-        ("GET", "/relays.json") => {
-            // A harness counts the reads of the document (T-173).
-            cfg.event("relays.json");
-            answer(&mut stream, docs::json(&docs::relays(&cfg, &head))).await
-        }
-        ("GET", "/trace") => {
-            let reply = docs::trace(&cfg, &head).await;
-            answer(&mut stream, reply).await
-        }
-        ("GET", "/llms-full.txt") => answer(&mut stream, docs::text(docs::SPEC)).await,
-        // What a path does to a stream, for `podssh doctor --stream` (T-325).
-        (_, p) if probe::serves(p) => probe::request(stream, head, pending).await,
-        // The meeting point of the pairing by a short code (T-086).
-        (_, p) if mailbox::serves(p) => mailbox::request(stream, head, pending, cfg).await,
-        // A leg for a member of the net, by the node's key (T-434).
-        (_, p) if leg::serves(p) => leg::request(stream, head, pending, cfg, sni).await,
-        (_, p) if reverse::serves(p) => reverse::request(stream, head, pending, cfg, sni).await,
-        // DERP for a node of `podssh ts`, where its owner named the keys (T-106).
-        #[cfg(feature = "derp")]
-        (_, p) if derp::serves(p) => derp::request(stream, head, pending, cfg).await,
-        // iroh's relay protocol and the probes of a meeting point (T-720).
-        (_, p) if meet::serves(p) => meet::request(stream, head, pending, cfg).await,
-        (_, p) => answer(&mut stream, request::refusal(404, &format!("{p}: not found"), &[])).await,
-    }
-}
+pub use routes::{serve_from, serve_local, serve_tls};
 
 /// The head of a connection's one request, the bytes after it, and its path
 /// with no query; `None` once a refusal went, or when the client went away
 /// or was too slow.
-async fn head_of<S>(stream: &mut S) -> Option<(request::Request, Vec<u8>, String)>
+pub(super) async fn head_of<S>(stream: &mut S) -> Option<(request::Request, Vec<u8>, String)>
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -316,7 +270,7 @@ where
 
 /// `POST /v1/mint`: `{token, expires, scope}`; with `?once=1`, a token of
 /// one session, `"once": true` (T-326).
-async fn mint<S>(stream: &mut S, head: &request::Request, pending: Vec<u8>, cfg: &Config, sni: Option<&str>)
+pub(super) async fn mint<S>(stream: &mut S, head: &request::Request, pending: Vec<u8>, cfg: &Config, sni: Option<&str>)
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
@@ -381,7 +335,7 @@ fn forward_token(cfg: &Config, maker: Option<&str>) -> Option<(String, u64)> {
 
 /// The brake's `429`, with the seconds to wait in `Retry-After`, which
 /// podssh's client says. The body is read first, as for each answer.
-async fn slow_down<S>(
+pub(super) async fn slow_down<S>(
     stream: &mut S,
     head: &request::Request,
     pending: Vec<u8>,
@@ -407,7 +361,12 @@ async fn slow_down<S>(
 /// once the address of `from` filled its minute; a token missing or wrong
 /// counts a strike against that address (T-806). A token that the role
 /// minted, and that a later check refuses (its policy, its road), is none.
-fn strike(cfg: &Config, head: &request::Request, path: &str, from: Option<IpAddr>) -> Result<(), brake::Braked> {
+pub(super) fn strike(
+    cfg: &Config,
+    head: &request::Request,
+    path: &str,
+    from: Option<IpAddr>,
+) -> Result<(), brake::Braked> {
     if !brake::needs_token(&head.method, path) {
         return Ok(());
     }
@@ -447,7 +406,7 @@ fn proven(cfg: &Config, head: &request::Request, sni: Option<&str>, path: &str, 
 
 /// The body of a request, `max` bytes at most; `Err` holds the refusal to
 /// answer, empty for a client that went away.
-async fn body<S>(
+pub(super) async fn body<S>(
     stream: &mut S,
     head: &request::Request,
     mut pending: Vec<u8>,
@@ -473,7 +432,7 @@ where
 }
 
 /// Write `reply`, then end the connection.
-async fn answer<S: AsyncWrite + Unpin>(stream: &mut S, reply: Vec<u8>) {
+pub(super) async fn answer<S: AsyncWrite + Unpin>(stream: &mut S, reply: Vec<u8>) {
     let _ = stream.write_all(&reply).await;
     let _ = stream.shutdown().await;
 }

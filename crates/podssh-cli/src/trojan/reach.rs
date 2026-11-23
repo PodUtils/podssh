@@ -35,6 +35,7 @@ pub async fn reach(
         answer: trojan::ANSWER_WAIT,
         silence_is_ready: false,
         at_end: AtEnd::Now,
+        early: None,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {

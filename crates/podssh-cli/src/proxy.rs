@@ -53,6 +53,11 @@ pub struct ProxyArgs {
     pub via: crate::via::Flags,
     /// `--vless`: the file of VLESS servers in place of the relay (T-440).
     pub vless: Option<String>,
+    /// `--early-data WORD`: the VLESS road's early data (T-758).
+    pub early_data: Option<String>,
+    /// `--h2-shape WORD`: the shape of the HTTP/2 road that podssh builds
+    /// (T-763).
+    pub h2_shape: Option<String>,
     /// `--trojan`: the file of Trojan servers in place of the relay (T-491).
     pub trojan: Option<String>,
     /// `--hysteria`: the file of Hysteria 2 servers in place of the relay,
@@ -240,7 +245,7 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
     }
     if let Some(path) = args.vless.as_deref() {
         crate::connect_bound::step("no VLESS server answered");
-        return crate::vless::pipe::run(path, &host, port, args.ca_file.as_deref(), err);
+        return crate::vless::pipe::run(path, &host, port, args.ca_file.as_deref(), args.early_data.as_deref(), err);
     }
     match crate::wstunnel::pipe::chosen(args) {
         Ok(Some(road)) => {
@@ -437,7 +442,7 @@ async fn session(
     let target = &podssh_ws::dial::authority(host, port);
     let request = Request { relays: road.relays, path, trust: road.trust, target, rounds: 1, failover: road.failover };
     let opened = crate::send_notes::said(
-        |notes| async move { podssh_relay::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
+        |notes| async move { crate::h2_road::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
         &mut |note: &str| {
             let _ = writeln!(err, "podssh: {note}");
         },

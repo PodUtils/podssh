@@ -3717,10 +3717,10 @@ The draft's calls, 2026-11-02:
    each socket of both roads, which needs a token or a pair that the brake let through and is
    checked with a MAC or a digest and no state. Lost: a brake of the upgrades with no token, as
    the default relay counts them: the role's refusal of one costs less than the count.
-4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:373`), never a
+4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:402`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
-   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:222`),
+   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:235`),
    with `from` read by `brake::edge_visitor` (`crates/podssh-relay/src/serve/brake.rs:71`) from
    the `cf-connecting-ip` of the edge's own request, which reaches the node only on the
    connection that podssh dialed to the edge. Lost: the role reading that header itself when a
@@ -10529,7 +10529,7 @@ the roads over TCP.
   with a request of ID 0x401 and the address; `docs/carriers.md:2280` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
-  packet of a reserved", and `crates/podssh-relay/Cargo.toml:60` says "The quick tunnel over
+  packet of a reserved", and `crates/podssh-relay/Cargo.toml:64` says "The quick tunnel over
   QUIC (src/quick/quic.rs, T-301): noq, the QUIC of the": a probe of UDP and a QUIC with no C
   exist.
 
@@ -10657,7 +10657,7 @@ road with no relay. podssh does not speak it (Q82).
 - `docs/carriers.md:2292-2293` says "a token of 32 bytes that the TLS keying material exporter
   derives", and `docs/carriers.md:2295-2296` says "as the server never answers a command";
   `docs/carriers.md:2298` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
-- `crates/podssh-relay/Cargo.toml:60` says "The quick tunnel over QUIC (src/quick/quic.rs,
+- `crates/podssh-relay/Cargo.toml:64` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
 ## Approach
@@ -10719,7 +10719,7 @@ fixes only, and once podssh takes the crate the work is done in PodUtils/podcrat
 takes by the next tag; a test of the moved code then runs there.
 
 2026-11-12. The Premise holds: `docs/decisions.md:39`, `docs/carriers.md:2292-2298` and
-`crates/podssh-relay/Cargo.toml:60` say what it quotes. `pod-egress` is not taken (`TODO/PROGRESS.md`,
+`crates/podssh-relay/Cargo.toml:64` say what it quotes. `pod-egress` is not taken (`TODO/PROGRESS.md`,
 State, item 7), so the road is in `podssh-ws` (`tuic/`, behind its feature `quic`) until it is, as T-739's
 VMess is; podcrates imports it with the other roads of `pod-egress`. The QUIC that it needs is `pod-quic`'s,
 taken on 2026-11-12 (the endpoint, the connection within its wait, the probe of UDP), used as it is: no
@@ -12332,7 +12332,7 @@ through an HTTP CONNECT proxy.
   its file crates/podssh-ws/src/turn/mod.rs, and its docs/poc.md: "proxy logs 2 CONNECTs").
   `AGENTS.md:397` says "Make one outbound connection", with five exceptions, none for this road.
 - podssh-ws holds the parts of TURN's long-term credential in pure Rust: `hmac`
-  (`crates/podssh-ws/Cargo.toml:39`), and `md5` and `sha1` (`crates/podssh-ws/Cargo.toml:54-55`);
+  (`crates/podssh-ws/Cargo.toml:42`), and `md5` and `sha1` (`crates/podssh-ws/Cargo.toml:61-62`);
   and a resolver order of its own (`PodUtils/podssh:crates/podssh-ws/src/resolve.rs:2` says "resolver works. In
   order"), as a Connect names an address, not a name.
 - No code of podssh names TURN: `PodUtils/podcrates:crates/pod-egress/src/forwarder/template.rs` says "a
@@ -13014,7 +13014,7 @@ podssh's relay role speaks TCP alone.
 2026-11-05, with the draft (read in noq 1.4.0 and the crates that `Cargo.lock` holds):
 
 1. **QUIC is noq in podssh-relay, behind a feature `quic`.** The quick tunnel's QUIC (T-301) is noq
-   with no ring and no aws-lc (`crates/podssh-relay/Cargo.toml:64`), its TLS on podssh-ws's
+   with no ring and no aws-lc (`crates/podssh-relay/Cargo.toml:68`), its TLS on podssh-ws's
    provider, so rule 4 holds in the library crate, and Approach 3's other branch, a crate of its
    own, is needless; `quic` is `quick` with the role's endpoint and the client's race, and takes its
    noq, its endpoint and its probe. Lost: quinn, which is not in the lock and which noq forks.
@@ -14016,7 +14016,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/mod.rs:211`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
+- `crates/podssh-relay/src/serve/mod.rs:224`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `PodUtils/podcrates:crates/pod-derp/src/conn.rs`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.
@@ -14219,7 +14219,7 @@ a hop of a chain, so a person cannot chain a node and a second jump host. `podss
 - `crates/podssh-cli/src/ssh/jump.rs:105`-`148`: the first hop can be `cf://`, `iap://`, `eice://`,
   `upterm://` as a `Tunnel`; a node is not a variant.
 - `crates/podssh-cli/src/ssh/node.rs:1`-`40`: `node://[user@]NAME[/ROUTE]` already makes a stream through
-  the operator's leg (`reach`, T-084), and `docs/relay.md:454` names `-J node://NAME` for IPv6 egress.
+  the operator's leg (`reach`, T-084), and `docs/relay.md:609` names `-J node://NAME` for IPv6 egress.
 - `crates/podssh-cli/src/mcp/allow.rs:1`-`40`: `--allow-host` patterns match `[USER@]HOST`; no rule
   names the `node://` form.
 

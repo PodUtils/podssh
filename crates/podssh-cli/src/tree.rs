@@ -38,11 +38,10 @@ fn appended(long: &str) -> bool {
     #[rustfmt::skip]
     const EACH: &[&str] = &[
         "option", "identity-file", "allow-host", "allow-dir", "sftp-option", "exclude", "deployment", "publish",
-        "authorized-key", "authorized-keys", "accept-env", "allow-command", "access-host",
+        "cover-name", "authorized-key", "authorized-keys", "accept-env", "allow-command", "access-host",
     ];
     EACH.contains(&long)
 }
-
 /// Value flags whose value may start with `-`, as getopt takes the next
 /// word whatever it is: `keygen -V -5m:+1h` (T-021), where clap read the
 /// value as flags and refused it with 64.
@@ -275,6 +274,9 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
             shadowsocks: get("shadowsocks"),
             via: crate::via::Flags { url: get("via"), auth_file: get("via-auth-file") },
             vless: get("vless"),
+            early_data: get("early-data"),
+            h2_shape: get("h2-shape"),
+            cover_credential: matches.get_flag("cover-credential"),
             trojan: get("trojan"),
             hysteria: get("hysteria"),
             tuic: get("tuic"),
@@ -403,7 +405,6 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
         let detached = crate::detach::control::DetachedArgs { subcommand, args, json, quiet, refused };
         return Parsed::Detached(Box::new(detached));
     }
-
     if verb.name == "run" {
         return Parsed::Run(Box::new(crate::run_cmd::RunArgs::from_matches(&matches, refused)));
     }
@@ -442,35 +443,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
     }
 
     if verb.name == "doctor" {
-        let get = |id: &str| matches.get_one::<String>(id).cloned();
-        return Parsed::Doctor {
-            relay_host: get("relay-host"),
-            relay_failover: get("relay-failover"),
-            relay_addr: get("relay-addr"),
-            ca_file: get("ca-file"),
-            json: matches.get_flag("json"),
-            full: matches.get_flag("full"),
-            hop: get("hop"),
-            forwarder: get("forwarder"),
-            shadowsocks: get("shadowsocks"),
-            via: crate::via::Flags { url: get("via"), auth_file: get("via-auth-file") },
-            vless: get("vless"),
-            hysteria: get("hysteria"),
-            tuic: get("tuic"),
-            turn: crate::turn::Flags { url: get("turn"), auth_file: get("turn-auth-file") },
-            devtunnel: get("devtunnel"),
-            quick: matches.get_flag("quick"),
-            tier: matches.get_flag("tier"),
-            jobs: get("jobs"),
-            stream: get("stream"),
-            stream_idle: get("stream-idle"),
-            exit: crate::doctor::ExitFlags {
-                name: get("exit"),
-                target: get("exit-target"),
-                client_key: get("client-key"),
-            },
-            refused,
-        };
+        return crate::doctor::parsed(&matches, refused);
     }
 
     // `ts` carries its behaviour inputs (Tailscale): `ts::parsed`.
@@ -485,10 +458,10 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
     let timeout = has_timeout.then(|| matches.get_one::<String>("timeout").cloned()).flatten();
     let jsonl = verb.flags.iter().any(|r| r.long == "jsonl") && matches.get_flag("jsonl");
 
-    if verb.name == "ssh" {
-        if let Some(refusal) = crate::ssh::args::repeated(&matches) {
-            return Parsed::Usage(refusal);
-        }
+    if verb.name == "ssh"
+        && let Some(refusal) = crate::ssh::args::repeated(&matches)
+    {
+        return Parsed::Usage(refusal);
     }
     let ssh = (verb.name == "ssh").then(|| Box::new(crate::ssh::args::SshArgs::from_matches(&matches)));
     let keygen = (verb.name == "keygen").then(|| Box::new(crate::keygen::KeygenArgs::from_matches(&matches)));

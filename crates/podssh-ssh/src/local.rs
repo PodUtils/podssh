@@ -267,10 +267,10 @@ async fn carry(handle: &Handle<Client>, forward: &LocalForward, conn: Accepted, 
             return;
         }
     };
-    if let Some(version) = socks {
-        if socks::answer(&mut write, version, Ok(())).await.is_err() {
-            return;
-        }
+    if let Some(version) = socks
+        && socks::answer(&mut write, version, Ok(())).await.is_err()
+    {
+        return;
     }
     log.verbose(&format!("{}: a connection to {target}", forward.shown));
     tokio::spawn(async move {

@@ -104,13 +104,28 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
         "serve: yes (the default) or no: on the listener, a request whose first byte begins no TLS handshake gets the cleartext road, for a client whose proxy cuts TLS: /health, a token of one session (POST /v1/mint?once=1, as --mint says) and /connect/ with it, which its upgrade spends; each other request there is refused (403)", None),
     // An SSH client of the listener, to the owner's sshd (T-644).
     row(None, "sshd", Some("ADDR:PORT"), FlagKind::Supported,
-        "serve: send each connection of the listener whose first four bytes are SSH- (an SSH client's version line) to the sshd at ADDR:PORT; ADDR is an address, not a name; its bytes go untouched, so that one port serves the relay and a shell: a shell for each client that reaches the port, behind that sshd's own authentication; each other start goes to TLS or the cleartext road, as before", None),
+        "serve: send each connection of the listener whose first four bytes are SSH- (an SSH client's version line) to the sshd at ADDR:PORT; ADDR is an address, not a name; its bytes go untouched, so that one port serves the relay and a shell: a shell for each client that reaches the port, behind that sshd's own authentication; each other start goes to TLS or the cleartext road, as before; refused with --cover (64), which an SSH client of the port would name", None),
     // The PROXY header of the owner's TCP balancer (T-807).
     row(None, "proxy-protocol", Some("RANGES"), FlagKind::Supported,
         "serve: the TCP balancers of the owner (haproxy's send-proxy, nginx's proxy_protocol), as ADDR/BITS or addresses, separated by commas. A connection from one of them must begin with a PROXY header of version 1 or 2. Its source is then the client for the brake, the slots and the log. A connection from a balancer without the header is closed. So is one from any other address that begins with a header, since anyone can write one", None),
     // A name published to a pair's node, by its ClientHello (T-649).
     row(None, "publish", Some("NAME=PAIR"), FlagKind::Supported,
         "serve: send each TLS connection whose ClientHello names NAME, a DNS name, to the node of PAIR; PAIR is a pair of this relay (its name p-..., which the pair's file holds); the connection goes before any handshake, with its bytes untouched; this way, the node's own TLS answers it with its own certificate (podssh node --publish-tls); repeatable; the relay reads the name, never the bytes; a CA's validation of NAME (acme-tls/1) goes to the node too; NAME is never the name of --acme", None),
+    // A static site for the role's own name (T-764, #225).
+    row(None, "cover", Some("DIR"), FlagKind::Supported,
+        "serve: answer the role's own TLS name as a static site from DIR: index.html, the assets, robots.txt, the site's own 404 and a Server header (--cover-server), for each request that is not the contract's; an unknown name, and /health, /trace, /llms-full.txt, /relays.json and /v1/probe/* with it, get the site's 404, which the socket of --control-socket keeps instead; an authenticated client (a token at POST /v1/delegate) gets a temporary credential of the same chain and name; a wildcard leaf is refused at the start, in both modes, and each name of a multi-name leaf is named by --cover-name; no RFC 9345 delegation and no TLS-level delegation", None),
+    row(None, "cover-server", Some("VALUE"), FlagKind::Supported,
+        "serve --cover: the Server header of the site, 64 visible bytes that name no project (default: nginx)", None),
+    row(None, "cover-name", Some("NAME"), FlagKind::Supported,
+        "serve --cover: a name of the certificate that the role terminates itself and answers with the cover site, while --publish names forward to their pair's node; repeatable; the first is the role's name; each must be a name of the certificate and none may be a --publish name; a name not named here gets the site's 404", None),
+    row(None, "cover-script", Some("FILE"), FlagKind::Supported,
+        "serve --cover: the cover script of the role, a TOML measurement with its date, cover_version, record_size, timing and split policy; a missing script, or one with no date or no cover version, is a refusal at the start (78); loaded and checked at the start, and its replay is what the tests read; the tunnel's records are not shaped by it yet, which the record layer's own work covers", None),
+    row(None, "cover-issuer-key", Some("FILE"), FlagKind::Supported,
+        "serve --cover: the operator's Ed25519 secret that signs each cover credential, 64 hexadecimal digits of its 32-byte seed in FILE; the public half is pinned for the role and each upgrade is checked against it; an application-layer credential, not an RFC 9345 or TLS-level delegation; with neither this nor --cover-issuer-public, a key is made for this process, so a restart refuses the credentials of the one before", None),
+    row(None, "cover-issuer-public", Some("HEX"), FlagKind::Supported,
+        "serve --cover: the hexadecimal Ed25519 public key that the role pins, for an operator who holds the secret elsewhere: each cover credential is checked against it, and none is issued here (POST /v1/delegate answers 503); with --cover-issuer-key it must be that key's public half, else the start is refused", None),
+    row(None, "control-socket", Some("PATH"), FlagKind::Supported,
+        "serve --cover: the Unix socket, of mode 0600, that serves /health, /trace, /llms-full.txt, /relays.json and /v1/probe/* while the public listener answers the site; required with --cover; a path that exists already is refused", None),
     // DERP over a WebSocket for the node keys of a file (T-106).
     row(None, "derp-keys", Some("FILE"), FlagKind::Supported,
         "serve: serve DERP at /derp, over a WebSocket of the subprotocol derp, as Tailscale's derper does; for the node keys in FILE, one a line (nodekey:HEX, as the status of tailscale and of podssh's ts_echo example write them; # starts a comment), read again at each login; a node key that is not in it is closed with 1008 not authorized, as the operator's relay closes it; this way, podssh ts --ts-mode relay --ts-relay HOST:PORT pins this relay. The packets are WireGuard's, sealed end to end: the relay sees keys, sizes and times", None),
@@ -137,6 +152,19 @@ pub const RELAY_FLAGS: &[FlagRow] = &[
         "serve: yes or no (the default): serve QUIC too, on UDP at the address and port of --listen, a second socket that you ask for; with TLS 1.3, the listener's certificate and the ALPN podssh-relay/1; each stream one connection of HTTP/1.1 to the same routes; /relays.json offers it as forward.quic, and podssh's client races it before TCP (PODSSH_QUIC)", None),
 ];
 
+/// `--cover-credential`: the delegated credential of a cover relay on the
+/// live connection (T-765).
+pub const COVER_CREDENTIAL: FlagRow = row(
+    None,
+    "cover-credential",
+    None,
+    FlagKind::Supported,
+    "ask the relay for a cover name's application-layer credential after the TLS handshake, check it, and \
+     upgrade on that connection. It checks the issuer, chain, window, subject key and exporter. Off by default, \
+     and refused with --h2-shape because that road has no credential step",
+    None,
+);
+
 /// **`proxy`.** It is **not an SSH client** (`podssh man proxy`), so not an alias of `ssh`,
 /// and behaves differently, so it gets its own flag list rather than sharing
 /// `ssh`'s. Sharing them is exactly how the nested-SSH mistake (an SSH client
@@ -156,6 +184,9 @@ pub const PROXY_FLAGS: &[FlagRow] = &[
     super::forwarder::PROXY_FORWARDER,
     super::shadowsocks::PROXY_SHADOWSOCKS,
     super::vless::PROXY_VLESS,
+    super::vless::EARLY_DATA,
+    super::vless::H2_SHAPE,
+    COVER_CREDENTIAL,
     super::vless::PROXY_TROJAN,
     super::vless::PROXY_HYSTERIA,
     super::vless::PROXY_TUIC,
@@ -188,6 +219,12 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
         "use IP for HOST instead of DNS, HOST=IP[,...]; also env PODSSH_RELAY_ADDR (for hosts with no DNS)", None),
     row(None, "ca-file", Some("FILE"), FlagKind::Supported,
         "trust only the CA certificates in FILE (default: env SSL_CERT_FILE, else system and built-in roots)", None),
+    // The delegated credential of a cover relay (T-766).
+    row(None, "cover", Some("NAME"), FlagKind::Supported,
+        "check the delegated credential of a cover relay's NAME in place of the relay's own checks. A token at POST \
+         /v1/delegate is answered with the chain, issuer, window, subject key and TLS exporter. Another issuer, a \
+         lapsed window and another exporter are each refused by name; /health and the documents are off the public \
+         listener under a cover", None),
     row(None, "json", None, FlagKind::Supported,
         "write the report as one JSON object on stdout, when every check has run", None),
     row(None, "full", None, FlagKind::Supported,
@@ -220,6 +257,9 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     super::forwarder::DOCTOR_FORWARDER,
     super::shadowsocks::DOCTOR_SHADOWSOCKS,
     super::vless::DOCTOR_VLESS,
+    super::vless::EARLY_DATA,
+    super::vless::H2_SHAPE,
+    super::vless::DOCTOR_TROJAN,
     super::vless::DOCTOR_HYSTERIA,
     super::vless::DOCTOR_TUIC,
     super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE, super::via::DOCTOR_TURN, super::via::TURN_AUTH_FILE,

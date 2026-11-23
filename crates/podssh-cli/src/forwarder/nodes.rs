@@ -184,6 +184,7 @@ pub async fn round(
         answer: if how == Use::Pipe { vless::EARLY_WAIT } else { NODE_WAIT - Duration::from_secs(4) },
         silence_is_ready: how == Use::Pipe,
         at_end: if how == Use::Pipe { AtEnd::AfterPeer } else { AtEnd::Now },
+        early: None,
     };
     let mut tried = 0;
     let mut read_one = false;

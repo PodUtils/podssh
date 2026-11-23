@@ -13,7 +13,7 @@ use podssh_ws::{ProxyChoice, Trust};
 
 use super::Servers;
 use crate::exit_codes::EXIT_NOT_IMPLEMENTED;
-use crate::exitmap::sysexits::{EX_UNAVAILABLE, EX_USAGE};
+use crate::exitmap::sysexits::{EX_CONFIG, EX_UNAVAILABLE, EX_USAGE};
 use crate::pipe::pump::End;
 use crate::proxy::ProxyArgs;
 use crate::relay_settings::Refusal;
@@ -24,6 +24,12 @@ const OWN_ROADS: &[&str] =
 
 /// `--vless` beside another road of `proxy`: a usage error.
 pub fn beside(args: &ProxyArgs) -> Result<(), Refusal> {
+    if args.early_data.is_some() && args.vless.is_none() {
+        return Err(Refusal::usage("--early-data chooses the VLESS road's early data; it goes with --vless FILE"));
+    }
+    if let Some(word) = args.early_data.as_deref() {
+        super::early_word(Some(word)).map_err(Refusal::usage)?;
+    }
     if args.vless.is_none() {
         return Ok(());
     }
@@ -48,7 +54,7 @@ pub fn beside(args: &ProxyArgs) -> Result<(), Refusal> {
 
 /// The pipe to `host:port` through the servers of the file at `path`: its
 /// exit code.
-pub fn run(path: &str, host: &str, port: u16, ca_file: Option<&str>, err: &mut dyn Write) -> i32 {
+pub fn run(path: &str, host: &str, port: u16, ca_file: Option<&str>, early: Option<&str>, err: &mut dyn Write) -> i32 {
     let servers = match super::read(path) {
         Ok(servers) => servers,
         Err(refusal) => return refusal.report("proxy", err),
@@ -62,15 +68,22 @@ pub fn run(path: &str, host: &str, port: u16, ca_file: Option<&str>, err: &mut d
             return EXIT_NOT_IMPLEMENTED;
         }
     };
-    let code = runtime.block_on(session(&servers, host, port, &trust, err));
+    let code = runtime.block_on(session(&servers, host, port, &trust, early, err));
     // A read on stdin may still be blocked in a helper thread.
     runtime.shutdown_background();
     code
 }
 
-async fn session(servers: &Servers, host: &str, port: u16, trust: &Trust, err: &mut dyn Write) -> i32 {
+async fn session(
+    servers: &Servers,
+    host: &str,
+    port: u16,
+    trust: &Trust,
+    early: Option<&str>,
+    err: &mut dyn Write,
+) -> i32 {
     let mut lines: Vec<String> = Vec::new();
-    let opened = open(servers, host, port, trust, &mut |line: &str| lines.push(line.to_string())).await;
+    let opened = open(servers, host, port, trust, early, &mut |line: &str| lines.push(line.to_string())).await;
     for line in &lines {
         let _ = writeln!(err, "podssh: {line}");
     }
@@ -87,6 +100,7 @@ pub async fn open(
     host: &str,
     port: u16,
     trust: &Trust,
+    early: Option<&str>,
     say: &mut (dyn FnMut(&str) + Send),
 ) -> Result<End, i32> {
     if podssh_relay::open::offline() {
@@ -94,6 +108,13 @@ pub async fn open(
         return Err(EX_UNAVAILABLE);
     }
     let target = podssh_ws::dial::authority(host, port);
+    let early = match super::early_from(early) {
+        Ok(early) => early,
+        Err(why) => {
+            say(&why);
+            return Err(EX_CONFIG);
+        }
+    };
     let dial = Dial {
         trust: trust.clone(),
         way: podssh_ws::client::way(&ProxyChoice::FromEnvironment),
@@ -101,10 +122,11 @@ pub async fn open(
         answer: vless::EARLY_WAIT,
         silence_is_ready: true,
         at_end: AtEnd::AfterPeer,
+        early,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {
-        match vless::open(server, host, port, &dial).await {
+        match podssh_ws::vless_early::open(server, host, port, &dial).await {
             Ok(opened) => {
                 let (read, write) = tokio::io::split(opened.stream);
                 return Ok(End::plain(Box::new(read), Box::new(write)));

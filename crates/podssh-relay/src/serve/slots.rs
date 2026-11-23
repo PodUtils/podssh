@@ -57,12 +57,12 @@ impl Drop for Slot {
     fn drop(&mut self) {
         let mut held = self.held.lock().unwrap_or_else(|e| e.into_inner());
         held.total = held.total.saturating_sub(1);
-        if let Some(who) = self.who {
-            if let Some(n) = held.by.get_mut(&who) {
-                *n -= 1;
-                if *n == 0 {
-                    held.by.remove(&who);
-                }
+        if let Some(who) = self.who
+            && let Some(n) = held.by.get_mut(&who)
+        {
+            *n -= 1;
+            if *n == 0 {
+                held.by.remove(&who);
             }
         }
     }

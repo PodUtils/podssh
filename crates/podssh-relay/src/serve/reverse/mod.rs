@@ -454,11 +454,12 @@ mod tests {
             policy: Default::default(),
             egress: Default::default(),
             limits: Default::default(),
-            pairs: Pairs::default(),
+            pairs: Arc::default(),
             resumes: Default::default(),
             answered: Default::default(),
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
             events: None,
         })
     }

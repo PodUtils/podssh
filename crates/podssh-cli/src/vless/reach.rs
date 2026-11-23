@@ -19,6 +19,7 @@ use crate::ssh::transport::{NotReached, Reached};
 pub async fn reach(
     servers: &Servers,
     trust: &Trust,
+    early: Option<&str>,
     host: &str,
     port: u16,
     log: &Arc<Log>,
@@ -28,6 +29,10 @@ pub async fn reach(
         return Err(NotReached { lines: vec![line], code: EX_UNAVAILABLE });
     }
     let target = podssh_ws::dial::authority(host, port);
+    let early = match super::early_from(early) {
+        Ok(early) => early,
+        Err(why) => return Err(NotReached { lines: vec![why], code: EX_CONFIG }),
+    };
     let dial = Dial {
         trust: trust.clone(),
         way: podssh_ws::client::way(&ProxyChoice::FromEnvironment),
@@ -35,14 +40,20 @@ pub async fn reach(
         answer: vless::ANSWER_WAIT,
         silence_is_ready: false,
         at_end: AtEnd::Now,
+        early,
     };
     let mut code = EX_UNAVAILABLE;
     for server in &servers.servers {
         let shown = server.shown();
         log.verbose(&format!("connecting to {target} through the VLESS server {shown}, {}", server.transport.name()));
-        match vless::open(server, host, port, &dial).await {
+        match podssh_ws::vless_early::open(server, host, port, &dial).await {
             Ok(opened) => {
-                log.verbose(&format!("the VLESS server {shown} carries the session to {target} over {}", opened.how));
+                log.verbose(&format!(
+                    "the VLESS server {shown} carries the session to {target} over {}{}{}",
+                    opened.how,
+                    super::first_write_line(opened.first_write, &opened.how),
+                    super::early_line(opened.early_accepted)
+                ));
                 // A write that makes no progress fails as on the relay leg,
                 // never a wait for ever (T-227).
                 let stream = podssh_ws::write_limit::WriteLimit::new(opened.stream, podssh_ws::client::WRITE_TIMEOUT);

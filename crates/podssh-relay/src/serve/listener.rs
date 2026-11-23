@@ -89,11 +89,11 @@ async fn served(tcp: TcpStream, peer: IpAddr, door: Door, cfg: Arc<Config>) {
             Some(_) => {
                 // An SSH client's version line goes to the owner's sshd; a
                 // start that is no SSH goes on as before.
-                if let Some(sshd) = door.sshd {
-                    if super::sshd::opens(&tcp, deadline).await {
-                        // Boxed: a session's future stays off the caller's.
-                        return Box::pin(super::sshd::serve(tcp, sshd, cfg)).await;
-                    }
+                if let Some(sshd) = door.sshd
+                    && super::sshd::opens(&tcp, deadline).await
+                {
+                    // Boxed: a session's future stays off the caller's.
+                    return Box::pin(super::sshd::serve(tcp, sshd, cfg)).await;
                 }
                 if door.cleartext {
                     return super::cleartext::serve(tcp, cfg, Some(peer)).await;
@@ -119,12 +119,15 @@ async fn served(tcp: TcpStream, peer: IpAddr, door: Door, cfg: Arc<Config>) {
     // The name that the client asked for, which a key's signed mint must
     // name (T-448).
     let sni = tls.get_ref().1.server_name().map(str::to_string);
+    // The exporter of this handshake, which a delegated credential binds
+    // (T-765): the same bytes at both ends.
+    let exporter = podssh_ws::delegated::server_exporter(tls.get_ref().1);
     // HTTP/2, where the client chose it by ALPN (T-321): each stream is a
     // request of its own to the routes below.
     if tls.get_ref().1.alpn_protocol() == Some(super::http2::H2) {
-        return super::http2::serve(tls, cfg, sni, Some(peer)).await;
+        return super::http2::serve(tls, cfg, sni, Some(peer), exporter).await;
     }
     // The TCP peer, by whom the brake of mints and pairs counts (T-454): no
     // header of a client's.
-    super::serve_from(tls, cfg, sni, Some(peer)).await;
+    super::serve_tls(tls, cfg, sni, Some(peer), exporter).await;
 }

@@ -96,6 +96,7 @@ async fn role_behind_balancer(trusted: &str) -> (u16, Arc<Mutex<Vec<String>>>) {
         answered: Default::default(),
         brake: Brake::new(1, WINDOW_MS, ADDRESSES, monotonic()),
         usage: Default::default(),
+        cover: None,
         events: Some(say),
     });
     let acceptor = acceptor_for(Served::new(None), &[HTTP1]).unwrap();

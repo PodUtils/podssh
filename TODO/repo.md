@@ -1925,7 +1925,7 @@ leaves armv7 out of the Decision; the plan below takes Alpine's own toolchain fo
   container. Plan B, which the Decision rejected, for native speed: `ghcr.io/cross-rs/armv7-unknown-
   linux-musleabihf:main`, or `cargo-zigbuild` (its CI covers x86_64, aarch64 and Apple, not armv7).
   The release profile is `opt-level = "z"`, `lto = true`, `codegen-units = 1`
-  (`Cargo.toml:208` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
+  (`Cargo.toml:211` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
   rustc may run out of address space, and under QEMU it is slow. Measure first.
 - `riscv64gc-unknown-linux-musl`: Rust tier 2 with host tools. Plan A: `runs-on: ubuntu-24.04`,
   `docker/setup-qemu-action` with `platforms: riscv64`, `docker run --platform linux/riscv64
@@ -2346,7 +2346,7 @@ Read, wrong facts:
   `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`).
 - crates/podssh-transport/src/backpressure/mod.rs lines 4-22 at `e8bbd4d` gives the reverse
   path's backpressure (1011, 1 MiB, the frame dropped: line 185 of that copy)
-  as the forward path's. For the forward path, `docs/relay.md:570-582` says
+  as the forward path's. For the forward path, `docs/relay.md:725-737` says
   1013 at 2 MiB, with no frame dropped. The comment on the SSH window said
   the same as `backpressure/mod.rs` (`crates/podssh-ssh/src/run.rs` lines
   25-28 at `80f20bf`); T-024 corrected it.
@@ -2699,7 +2699,7 @@ command uses `podssh-probe`.
 2. Move `podssh-core` and `podssh-transport` to the dev-dependencies: an
    example can use a dev-dependency, and the binary does not declare them.
 3. Move `libc` to the dependencies for Unix only, as
-   `crates/podssh-relay/Cargo.toml:279` does; else the lint of step 4 fails on
+   `crates/podssh-relay/Cargo.toml:283` does; else the lint of step 4 fails on
    Windows.
 4. The check: `#![cfg_attr(not(test), deny(unused_crate_dependencies))]` in
    `crates/podssh-cli/src/lib.rs`. rustc then refuses a dependency that the
@@ -4022,20 +4022,20 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 
 ## Premise
 
-- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:177`
-  ask for `sha1` 0.10.7, and the root `Cargo.toml:138` for `hmac` 0.12;
+- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:180`
+  ask for `sha1` 0.10.7, and the root `Cargo.toml:141` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)
   builds on the newer line, so the binary holds both lines today. podssh's `sha1`
   moves with its `hmac`, where the two meet (the hashed names of
   `known_hosts`): Inferred.
-- Read: the root `Cargo.toml:147` asks for `aes-gcm` 0.10 and
-  `Cargo.toml:156` for `x25519-dalek` 2;
+- Read: the root `Cargo.toml:150` asks for `aes-gcm` 0.10 and
+  `Cargo.toml:159` for `x25519-dalek` 2;
   `PodUtils/podssh:crates/podssh-ws/src/crypto/aead.rs` and `PodUtils/podssh:crates/podssh-ws/src/crypto/kx.rs`
   hold the calls, with `PodUtils/podssh:crates/podssh-relay/src/identity/mod.rs` and
   `PodUtils/podssh:crates/podssh-relay/src/session/secret.rs`, and
   `PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs` their vectors.
-- Read: `vt100` 0.15 (`Cargo.toml:113`) is the model of the terminal
+- Read: `vt100` 0.15 (`Cargo.toml:116`) is the model of the terminal
   oracle (T-200) and of `podssh session` (T-186).
 
 ## Approach
@@ -4975,7 +4975,7 @@ of GitHub #69 to #72 corrected these; nothing finds the next.
 - Read, by `grep -w yet` over `docs/`, `README.md`, `AGENTS.md` and `SECURITY.md` on 2026-10-31,
   after the corrections: 19 lines with no date and no id on them. Most are true today, as of the
   work that the operator holds (Q32); some state nothing of podssh, as "not whole yet"
-  (`docs/cli.md:2210`) and "did not act on yet" (`docs/cli.md:1837`).
+  (`docs/cli.md:2230`) and "did not act on yet" (`docs/cli.md:1857`).
 - Read: the checker reads the ids of these documents and the citations of `TODO/` alone
   (`PodUtils/podssh:crates/podssh-todo/src/refs.rs:22-35`); it reads no sentence of a document.
 - Read: the fifth statement of GitHub #71, the comment of the facts file that the relay's frame
@@ -5315,7 +5315,7 @@ builds with, so that its DNS packets and iroh's are of one type.
   box's CONNECT proxy (`scripts/box/proxy.py`), which `scripts/test_in_box.sh` and
   `scripts/chat-in-boxes.sh` build; `images/build/Dockerfile:6` pins `rust:1-alpine` by the digest
   `0cce0a5...`, the gate's image.
-- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:140`), and the lock holds 0.11.0; 0.11.1
+- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:143`), and the lock holds 0.11.0; 0.11.1
   needs Rust 1.88, under the workspace's 1.89 (`Cargo.toml:55`, Q48).
 - Read: `PodUtils/podcrates:crates/pod-iroh/Cargo.toml` takes `simple-dns` 0.12, "the simple-dns that
   iroh-dns builds and reads with, so no crate is added"; iroh-dns 1.4.1, which the lock holds,
@@ -5476,7 +5476,7 @@ each free of `podssh-ws`'s types, serves the three.
 
 ## Premise
 
-- Read: `crates/podssh-relay/Cargo.toml:26` depends on `podssh-ws` with no feature; each road of
+- Read: `crates/podssh-relay/Cargo.toml:30` depends on `podssh-ws` with no feature; each road of
   the relay crate takes `podssh-ws`'s dial, TLS and WebSocket.
 - Read: `PodUtils/podssh:crates/podssh-ws/src/crypto/rsa_sig.rs` is the one user of `rsa` 0.9, to verify RSA
   signatures; RUSTSEC-2023-0071 is a timing attack on the private key's operations.
@@ -7365,7 +7365,7 @@ Done, 2026-11-17 (drafted, then merged, built and run):
   failed (`podssh-relay --test cache` 9, the role's `--lib` 219, the CLI's `--lib` 1215); clippy (the gate's lints)
   and rustfmt clean. Planted: `commit_note` silent on a directory that did not sync fails
   `a_file_stored_again_is_replaced_whole_and_no_temporary_file_stays`.
-- `rg 'rename\(&(tmp|part)' crates` finds one, in the test helper `crates/podssh-cli/tests/serve_certs/mod.rs:117`,
+- `rg 'rename\(&(tmp|part)' crates` finds one, in the test helper `crates/podssh-cli/tests/serve_certs/mod.rs:123`,
   a test's own certificate: none in podssh's code.
 
 

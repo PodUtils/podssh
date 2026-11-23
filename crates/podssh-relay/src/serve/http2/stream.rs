@@ -51,17 +51,20 @@ pub(super) async fn serve(
     cfg: Arc<Config>,
     sni: Option<String>,
     from: Option<IpAddr>,
+    exporter: Option<[u8; 32]>,
 ) {
     let protocol = request.extensions().get::<h2::ext::Protocol>().map(|p| p.as_str().to_ascii_lowercase());
     let connect = request.method() == Method::CONNECT;
     match protocol.as_deref() {
-        Some("websocket") if connect => websocket(request, respond, cfg, sni, from).await,
+        Some("websocket") if connect => websocket(request, respond, cfg, sni, from, exporter).await,
         Some(_) => refuse(&mut respond, 501, "this relay's extended CONNECT takes websocket alone"),
         None if connect => refuse(&mut respond, 405, "this relay is no proxy: a CONNECT names websocket in :protocol"),
-        None if whole(request.method(), request.uri().path()) => document(request, respond, cfg, sni, from).await,
+        None if whole(request.method(), request.uri().path()) => {
+            document(request, respond, cfg, sni, from, exporter).await
+        }
         // The HTTP road's one-POST form, on this one stream (T-622).
         None if request.method() == Method::POST && crate::serve::http_road::one::serves(request.uri().path()) => {
-            super::one::serve(request, respond, cfg, sni, from).await
+            super::one::serve(request, respond, cfg, sni, from, exporter).await
         }
         // Asked for again over HTTP/1.1, which a client of HTTP/2 does at once.
         None => respond.send_reset(Reason::HTTP_1_1_REQUIRED),
@@ -113,9 +116,10 @@ pub(super) async fn route(
     cfg: Arc<Config>,
     sni: Option<String>,
     from: Option<IpAddr>,
+    exporter: Option<[u8; 32]>,
 ) -> Option<DuplexStream> {
     let (inner, mut outer) = tokio::io::duplex(PIPE);
-    tokio::spawn(crate::serve::serve_from(inner, cfg, sni, from));
+    tokio::spawn(crate::serve::serve_tls(inner, cfg, sni, from, exporter));
     outer.write_all(&request).await.ok()?;
     Some(outer)
 }
@@ -153,13 +157,14 @@ async fn websocket(
     cfg: Arc<Config>,
     sni: Option<String>,
     from: Option<IpAddr>,
+    exporter: Option<[u8; 32]>,
 ) {
     let (parts, body) = request.into_parts();
     let head = match upgrade_head(&parts) {
         Ok(head) => head,
         Err((status, why)) => return refuse(&mut respond, status, why),
     };
-    let Some(mut pipe) = route(head.into_bytes(), cfg, sni, from).await else {
+    let Some(mut pipe) = route(head.into_bytes(), cfg, sni, from, exporter).await else {
         return refuse(&mut respond, 502, "relay: the upgrade reached no route");
     };
     let Some((status, buf, end)) = read_head(&mut pipe).await else {
@@ -186,6 +191,7 @@ async fn document(
     cfg: Arc<Config>,
     sni: Option<String>,
     from: Option<IpAddr>,
+    exporter: Option<[u8; 32]>,
 ) {
     let (parts, mut body) = request.into_parts();
     let Some(authority) = parts.uri.authority().map(|a| a.to_string()) else {
@@ -203,7 +209,7 @@ async fn document(
     head.push_str("\r\n");
     let mut request = head.into_bytes();
     request.extend_from_slice(&sent);
-    let Some(mut pipe) = route(request, cfg, sni, from).await else {
+    let Some(mut pipe) = route(request, cfg, sni, from, exporter).await else {
         return refuse(&mut respond, 502, "relay: the request reached no route");
     };
     answer(&mut pipe, Vec::new(), respond).await

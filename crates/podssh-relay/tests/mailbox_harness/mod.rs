@@ -152,6 +152,7 @@ pub async fn role() -> WsUrl {
         answered: Default::default(),
         brake: Default::default(),
         usage: Default::default(),
+        cover: None,
         events: None,
     });
     tokio::spawn(async move {

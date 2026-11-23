@@ -8,7 +8,7 @@
 //! (Q67).
 
 use podssh_ws::dial::{self, ProxyChoice};
-use podssh_ws::vless::{self, AtEnd, Dial};
+use podssh_ws::vless::{self, AtEnd, Dial, Mode, Server, Transport};
 use podssh_ws::Trust;
 
 use super::relay_checks::{forward_host, github_keys, judge_unlisted, published_keys, TIMEOUT};
@@ -16,8 +16,15 @@ use super::Report;
 use crate::vless::Servers;
 
 /// A line for each server and each transport that it is tried on.
-pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Trust) {
+pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Trust, early: Option<&str>) {
     let target = dial::authority(forward_host(), 22);
+    let early = match crate::vless::early_from(early) {
+        Ok(early) => early,
+        Err(why) => {
+            report.fail("vless", why);
+            return;
+        }
+    };
     let road = Dial {
         trust: trust.clone(),
         way: podssh_ws::client::way(&ProxyChoice::FromEnvironment),
@@ -25,9 +32,13 @@ pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Tr
         answer: vless::ANSWER_WAIT,
         silence_is_ready: false,
         at_end: AtEnd::Now,
+        early,
     };
     for server in &servers.servers {
         let shown = server.shown();
+        if let Some(line) = stream_one_line(server) {
+            report.ok("vless stream-one", line);
+        }
         let first = match dial::proxy_from_env(&server.host) {
             Ok(Some(proxy)) => format!(", through the proxy {proxy}"),
             _ => String::new(),
@@ -42,7 +53,8 @@ pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Tr
                 }
             };
             let ms = started.elapsed().as_millis();
-            let reached = format!("{target} through {shown}{first} over {}, answered in {ms} ms", opened.how);
+            let wrote = crate::vless::first_write_line(opened.first_write, &opened.how);
+            let reached = format!("{target} through {shown}{first} over {}, answered in {ms} ms{wrote}", opened.how);
             let key = match podssh_ssh::probe::host_key(opened.stream, TIMEOUT).await {
                 Ok(key) => key,
                 Err(why) => {
@@ -60,5 +72,38 @@ pub(super) async fn check(report: &mut Report<'_>, servers: &Servers, trust: &Tr
             let current = github_keys(trust).await;
             report.line("vless", judge_unlisted(&line, &fingerprint, current));
         }
+    }
+}
+
+/// XHTTP-3: a link that names stream-one says, before any connection, why
+/// HTTP/1.1 refuses it (78) and what carries it instead.
+fn stream_one_line(server: &Server) -> Option<String> {
+    let Transport::Xhttp(Mode::StreamOne) = server.transport else { return None };
+    Some(format!(
+        "{}: mode=stream-one is carried over HTTP/2; over HTTP/1.1 it is refused with 78, because the server reads a \
+         request's whole body before it answers and a session's body never ends; use packet-up or stream-up over two \
+         connections, serve h2, or type=ws",
+        server.shown()
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// XHTTP-3: the line names the refusal and the modes that pass; a link
+    /// of another mode has no line.
+    #[test]
+    fn a_stream_one_link_names_the_http_1_1_refusal() {
+        let id = "550e8400-e29b-41d4-a716-446655440000";
+        let one = Server::parse(&format!("vless://{id}@v.example:443?type=xhttp&mode=stream-one&security=tls"))
+            .expect("a link");
+        let line = stream_one_line(&one).expect("a line for stream-one");
+        assert!(line.contains("refused with 78"), "{line}");
+        assert!(line.contains("packet-up or stream-up"), "{line}");
+        assert!(!line.contains(id), "the ID is not in the line: {line}");
+        let up = Server::parse(&format!("vless://{id}@v.example:443?type=xhttp&mode=stream-up&security=tls"))
+            .expect("a link");
+        assert!(stream_one_line(&up).is_none());
     }
 }

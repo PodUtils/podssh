@@ -183,7 +183,7 @@ leave a short or wrong file under the destination's name.
 ## Approach
 
 1. `CpArgs` in a new module crates/podssh-cli/src/cp/, read as `SshArgs` is
-   (`crates/podssh-cli/src/ssh/args.rs:277-426`). An operand is remote when a
+   (`crates/podssh-cli/src/ssh/args.rs:285-437`). An operand is remote when a
    `:` comes before any `/`; on Windows, `C:\x` is local. Fewer than two
    operands, or none remote, exit 64.
 2. Build an `SshArgs` (host, `-P` as the port, `-i`, `-o`) for
@@ -616,7 +616,7 @@ the offset of the copy, in this run or the next".
 # T-137: `podssh cp` opens a new relay session before the relay's limits
 
 **Source:** ROADMAP M5 ("Open a new relay session before the limits of the
-relay (64 MiB, 12 h)"), `docs/relay.md:469-477`; the KTM sandbox report of
+relay (64 MiB, 12 h)"), `docs/relay.md:624-632`; the KTM sandbox report of
 2026-10-08 (`report-podssh-sandbox-KTM-2026-10-08.txt`, not in the
 repository).
 **Category:** feature
@@ -628,7 +628,7 @@ repository).
 ## Problem
 
 The relay ends a session after 64 MiB in both directions together, or after
-12 h (`docs/relay.md:474-475`). A larger copy breaks in a request with
+12 h (`docs/relay.md:629-630`). A larger copy breaks in a request with
 `1009 session byte cap`. T-136 continues after it, but each cut costs a
 broken SSH connection, a wait and an error line, and on the exec road an
 old writer can race the new one.
@@ -678,7 +678,7 @@ old writer can race the new one.
 
 Recommendation: a budget of 60 MiB counted by podssh, as `podssh-core`
 uses for IRC: the relay counts bytes that podssh has not yet received, and
-can hold 2 MiB queued (`docs/relay.md:559`). Waiting for `1009` (T-136
+can hold 2 MiB queued (`docs/relay.md:714`). Waiting for `1009` (T-136
 alone) lost: each cut breaks a request in flight. Credentials stay in
 memory for the run, never on disk; asking again lost: a 200 MiB copy would
 ask four times, and with no terminal it could not ask at all.
@@ -704,7 +704,7 @@ sh scripts/dev.sh check                    # interop-cp.sh through a small cap
 ```
 
 A new stand-in relay mode closes with `1009` at 4,000,000 bytes counted in
-both directions, as the relay counts (`docs/relay.md:475`). With
+both directions, as the relay counts (`docs/relay.md:630`). With
 `PODSSH_SESSION_BUDGET=3000000`, an upload and a download of 10,000,000
 bytes finish with equal digests, no `1009` on stderr, and 4 sessions or
 more. Plant: count one direction only; the upload then meets `1009`.
@@ -755,7 +755,7 @@ relay's limits, and logs in as the first session did".
 
 **Source:** ROADMAP M5 ("Across hosts, `mv` is copy, verify, delete; podssh
 says first that it is not atomic"); the description of `mv` in
-`crates/podssh-cli/src/flags.rs:421-422`.
+`crates/podssh-cli/src/flags.rs:423-424`.
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -773,7 +773,7 @@ user must know this before the move starts.
 
 - Measured on `3ee70dc`, offline: `podssh mv --timeout 30s a b` exits 70
   (`'mv' is not implemented yet; nothing was done.`).
-- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:421-422`),
+- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:423-424`),
   so the operands and options of T-134 apply.
 - Measured (T-133's offline probe): `posix-rename@openssh.com` replaces in
   one step; `SSH_FXP_RENAME` refuses an existing target.
@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:379-400` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6473-6476`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6503-6506`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -1062,7 +1062,7 @@ trip is long, so such a copy uses a small part of what the path carries.
   (1 MiB queued, `1011`, a dropped frame;
   `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`). T-024
   corrected it to the forward path's rule
-  (`crates/podssh-ssh/src/run.rs:26-29`): `docs/relay.md:570-582` gives
+  (`crates/podssh-ssh/src/run.rs:26-29`): `docs/relay.md:725-737` gives
   2 MiB, `1013` and no drop. The window can grow only after that is
   settled; T-062 measures the `1013`.
 - Measured in two sandboxes (`docs/STATUS.md:537`): 20 MiB through the
@@ -1179,7 +1179,7 @@ stream.
   not. The operator accepted more than one outbound connection for the iroh
   road (`docs/design.md:1463-1466`), and on 2026-10-08 for one copy when the
   user asks (`docs/decisions.md`).
-- Read: the cap of 64 MiB is for each session (`docs/relay.md:475`).
+- Read: the cap of 64 MiB is for each session (`docs/relay.md:630`).
 - Not measured: whether one relay session, or the path itself, limits the
   rate. T-157 measures it.
 
@@ -2018,7 +2018,7 @@ host, and the copy back then destroys that change with no word.
 
 ## Approach
 
-1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:385-455`),
+1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:387-457`),
    with the connection flags that T-134 gives `cp`. It needs a terminal on
    stdin and stdout; else exit 64.
 2. Download with T-134 into a new directory of mode 0700 in the cache
@@ -2782,7 +2782,7 @@ full copy, and said nothing. After the run, the user cannot tell whether the del
 3. With `--jsonl`, the `done` object of each copy with `--delta` gains `"delta"`:
    `{"blocks": N, "sent": K, "bytes": B}` after a delta, or `{"full": "REASON"}` after a full copy.
 4. The row of `--delta` (`crates/podssh-cli/src/flags/copy.rs:44-45`), the manual,
-   `docs/cli.md:2338-2349` and `docs/STATUS.md`.
+   `docs/cli.md:2358-2369` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -2916,7 +2916,7 @@ the names, with no word.
 - Read: `ls` takes `-1afhlnrSt` and keeps `l`, `n` and `a` alone
   (`crates/podssh-cli/src/sftp/commands.rs`, lines 201-205 at `582b1bf`): `-n` is `-l`, and `-f`,
   `-h`, `-r`, `-S` and `-t` do nothing. `docs/cli.md` (line 1916 at `582b1bf`) names `ls [-la]`.
-- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:420`); the
+- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:422`); the
   issue names it the README's.
 - Read: `Sftp::read_dir` keeps the name and the attributes of each entry, and drops the long name
   that the server sends with each (`crates/podssh-ssh/src/sftp/mod.rs`, lines 71-78 and 426-441
@@ -2952,7 +2952,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2638-2644` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2658-2664` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3121,7 +3121,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2456-2496`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2476-2516`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3457,7 +3457,7 @@ waits minutes: 100 files of 2 bytes took 210 s with the default.
 4. T-417's line about `--parallel` is not said when the default applies, nor after
    `--parallel 1`, which the user chose.
 5. The row of `--parallel` names the default; the manual, README.md (its copies, with the
-   measured numbers), `docs/cli.md:2303-2337` and `docs/STATUS.md`.
+   measured numbers), `docs/cli.md:2323-2357` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3624,7 +3624,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2359-2375`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2379-2395`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).

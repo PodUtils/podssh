@@ -11,9 +11,19 @@ const SECRET: &str = "a secret of the test, at least 16 bytes";
 
 /// A directory with `FILE` (`settings`), `keys` and `secret` in it.
 fn dir_with(tag: &str, settings: &str) -> (PathBuf, String) {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().subsec_nanos();
-    let dir = std::env::temp_dir().join(format!("podssh-bucket-{tag}-{}-{nanos}", std::process::id()));
+    let seq = NEXT.fetch_add(1, Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("podssh-bucket-{tag}-{}-{nanos}-{seq}", std::process::id()));
+    // Another test of this process may hold the umask window of a Unix
+    // socket (mode 0600) while this directory is made. The window is
+    // shared, and the mode is then set here whatever the process's mask.
+    let window = crate::pipe::listen::UMASK_WINDOW.lock().unwrap_or_else(|e| e.into_inner());
     std::fs::create_dir_all(&dir).unwrap();
+    #[cfg(unix)]
+    std::fs::set_permissions(&dir, std::os::unix::fs::PermissionsExt::from_mode(0o700)).unwrap();
+    drop(window);
     let keys = format!("[default]\naws_access_key_id = {KEY_ID}\naws_secret_access_key = {KEY_SECRET}\n");
     std::fs::write(dir.join("keys"), keys).unwrap();
     std::fs::write(dir.join("secret"), format!("{SECRET}\n")).unwrap();

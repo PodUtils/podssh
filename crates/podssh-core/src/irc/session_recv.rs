@@ -137,12 +137,12 @@ impl Session {
         // consumed before the text is shown.** The reverse would put a
         // `PODSSH1|chunk|…` line in a user's terminal on every chunk of every
         // transfer. An echo of this client's own line is no line from a peer.
-        if let Command::Privmsg { target, text } = &message.command {
-            if let Some(line) = crate::irc::transfer::Line::parse(text.as_str()).filter(|_| !self.is_echo(&message)) {
-                events.retain(|e| !matches!(e, Event::Privmsg { .. }));
-                let from = message.prefix.clone().unwrap_or_default();
-                events.push(Event::Transfer { from, target: target.0.clone(), line });
-            }
+        if let Command::Privmsg { target, text } = &message.command
+            && let Some(line) = crate::irc::transfer::Line::parse(text.as_str()).filter(|_| !self.is_echo(&message))
+        {
+            events.retain(|e| !matches!(e, Event::Privmsg { .. }));
+            let from = message.prefix.clone().unwrap_or_default();
+            events.push(Event::Transfer { from, target: target.0.clone(), line });
         }
     }
 
@@ -171,10 +171,11 @@ impl Session {
             self.nick_tries += 1;
             self.nick = suffixed(&self.server.nick, self.nick_tries, self.isupport.nicklen());
             out.push(nick_message(&self.nick));
-        } else if self.registered == Registered::Pending && !no_cap {
-            if let Some(failure) = registration_failure(code) {
-                self.registered = Registered::Refused(failure);
-            }
+        } else if self.registered == Registered::Pending
+            && !no_cap
+            && let Some(failure) = registration_failure(code)
+        {
+            self.registered = Registered::Refused(failure);
         }
         if code == Code::RplWelcome as u16 {
             self.registered = Registered::Yes;

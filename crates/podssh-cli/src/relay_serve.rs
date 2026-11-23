@@ -23,6 +23,7 @@
 
 mod args;
 mod certs;
+mod cover;
 mod derp;
 pub(crate) mod keys_url;
 mod limits;
@@ -84,6 +85,8 @@ struct Prepared {
     port_file: Option<(String, u16)>,
     /// QUIC's socket, with --quic yes (T-667).
     quic: Option<std::net::UdpSocket>,
+    /// The owner's control socket of a cover (T-767).
+    control: Option<serve::control::Control>,
 }
 
 fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
@@ -139,7 +142,9 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
         });
     }
     crate::pipe::listen::allowed()?;
-    let certs = certs::Certs::open(source)?;
+    let certs = certs::Certs::open(source.clone())?;
+    // The static site of the one name, and its hygiene (T-764, T-768).
+    let (cover, hygiene) = self::cover::of(s, &source, &certs)?;
     // The list of deployments that its /relays.json signs (T-346).
     let listed = list::install(s)?;
     let acceptor =
@@ -159,6 +164,12 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     })?;
     let sessions = quic::offered(sessions, &udp);
     let bound = listener.local_addr().map_err(|e| Refusal::config(e.to_string()))?;
+    // The owner's socket of the documents that a cover moves, after the
+    // capability drop: it is a file of this user (T-767).
+    let control = match (s.control_socket.as_deref(), cover.is_some()) {
+        (Some(path), true) => Some(serve::control::Control::bind(path).map_err(Refusal::config)?),
+        _ => None,
+    };
     let events: serve::Events = Box::new(|line: &str| {
         let mut out = std::io::stdout().lock();
         let _ = writeln!(out, "{line}");
@@ -178,11 +189,12 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
         },
         egress,
         limits,
-        pairs,
+        pairs: Arc::new(pairs),
         resumes: sessions,
         answered: Default::default(),
         brake: Default::default(),
         usage,
+        cover: cover.clone(),
         events: Some(events),
     };
     let inside = inside_shown(s.allow_private, &routes);
@@ -190,15 +202,27 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let h2 = if http2 { ", HTTP/2 with extended CONNECT" } else { ", no HTTP/2" };
     let over_udp = quic::shown(&udp);
     let dropped = dropped.unwrap_or_default();
+    let covered = match (&cover, &control) {
+        (Some(cover), Some(control)) => format!(
+            ", the cover site of {} from {} (its documents on the socket {}, its credentials {} key {})",
+            cover.name,
+            s.cover.as_deref().unwrap_or("the tree"),
+            control.path().display(),
+            if cover.issuer().signs() { "signed by" } else { "checked against pinned" },
+            cover.issuer().fingerprint()
+        ),
+        _ => String::new(),
+    };
+    let hygiene = hygiene.map(|line| format!(", {line}")).unwrap_or_default();
     let shown = format!(
         "the relay's forward and reverse roads (contract {}) at {bound}, minting for \
-         {who}{came}{metered}{inside}{kept}{through}{clear}{ssh}{named}{derp}{listed}{resumable}{h2}{over_udp}{dropped}; {}",
+         {who}{came}{metered}{inside}{kept}{through}{clear}{ssh}{named}{derp}{listed}{resumable}{h2}{over_udp}{covered}{dropped}{hygiene}; {}",
         serve::CONTRACT,
         certs.shown
     );
     let port_file = s.port_file.clone().map(|path| (path, bound.port()));
     let door = Door { acceptor, cleartext, sshd: owner_sshd, published, proxy: Arc::new(proxy) };
-    Ok(Prepared { listener, door, cfg: Arc::new(cfg), certs, shown, port_file, quic: udp })
+    Ok(Prepared { listener, door, cfg: Arc::new(cfg), certs, shown, port_file, quic: udp, control })
 }
 
 /// The listener of `listen`, then `give_up` once it is bound: the
@@ -327,7 +351,8 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
             return EX_CONFIG;
         }
     };
-    let Prepared { listener, door, cfg, certs: kept, port_file, quic: udp, .. } = prepared;
+    let Prepared { listener, door, cfg, certs: kept, port_file, quic: udp, control, .. } = prepared;
+    let control_path = control.as_ref().map(|c| c.path().to_string_lossy().into_owned());
     // SIGHUP is taken before a harness learns the port, so that none sent
     // after it ends the role.
     let mut hangups = {
@@ -349,6 +374,10 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
         // QUIC beside the listener, with the certificate that it presents.
         if let Some(socket) = udp {
             quic::spawn(socket, kept.served.clone(), cfg.clone())?;
+        }
+        // The documents that a cover moved off the listener (T-767).
+        if let Some(control) = control {
+            tokio::spawn(Box::new(control).serve(cfg.clone()));
         }
         // The lines of ACME's work, said here, as each other line of the role.
         let (say, mut lines) = tokio::sync::mpsc::unbounded_channel();
@@ -430,6 +459,10 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
                     // The counts of the last 2 s, which no later write takes.
                     if let Err(why) = cfg.usage.save() {
                         let _ = writeln!(said, "podssh relay serve: usage: the counts were not written: {why}");
+                    }
+                    // The owner's socket file goes with the role.
+                    if let Some(path) = &control_path {
+                        let _ = std::fs::remove_file(path);
                     }
                     return Ok(());
                 }

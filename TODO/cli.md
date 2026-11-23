@@ -37,7 +37,7 @@ OpenSSH 10.3p1 (`ssh -G -F none`, offline) gives `hostname 2001:db8::1` for
 Read: `parse_hop` already removes the brackets
 (`crates/podssh-cli/src/ssh/hop.rs:30-75`). The refusal is `check_host`
 (`crates/podssh-ws/src/names.rs:8-32`, re-exported by `podssh_relay::relay`), called at
-`crates/podssh-cli/src/ssh/resolve.rs:300`, `crates/podssh-cli/src/proxy.rs:384`
+`crates/podssh-cli/src/ssh/resolve.rs:300`, `crates/podssh-cli/src/proxy.rs:389`
 and in `forward_path` (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:205-218`); since this
 entry, each calls `check_target` there. Tests assert the refusal:
 `PodUtils/podssh:crates/podssh-relay/src/relay.rs:351`, and `crates/podssh-cli/tests/proxy.rs`
@@ -64,13 +64,13 @@ GitHub #2, not verified here: the relay's `/trace` dials `[V6]:8079`.
 3. `forward_path` writes the literal in the measured form. `podssh ssh` uses
    the new check at `crates/podssh-cli/src/ssh/resolve.rs:300`, and refuses
    `-4` with an IPv6 literal (64).
-4. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:376-386`): `HOST PORT` takes
+4. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:381-391`): `HOST PORT` takes
    a bare literal (the `%h %p` form) or `[V6]`. One word takes `[V6]:PORT` and
    refuses `V6:PORT`: `2001:db8::1:22` is itself an address. Reuse the rule of
    `split_host_port` (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:356-375`).
 5. Messages use `podssh_ws::dial::authority` (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:336-343`),
    not `host:port` (`crates/podssh-cli/src/ssh/transport.rs:180`,
-   `crates/podssh-cli/src/proxy.rs:305`, where it is used since this entry). `known_hosts` keeps the literal as
+   `crates/podssh-cli/src/proxy.rs:310`, where it is used since this entry). `known_hosts` keeps the literal as
    typed: `host_name` writes `[V6]:PORT` as OpenSSH does
    (`crates/podssh-ssh/src/known_hosts.rs:89-96`).
 6. Same commit: `docs/cli.md` (lines 62-75 at `3cbf215`), the help at
@@ -178,7 +178,7 @@ done." `podssh status`, `node` and `operator x` (no `--timeout` row) exit 70.
 
 Read: dispatch runs the `--timeout` gate (`crates/podssh-cli/src/dispatch.rs` lines 186-196 at `37ace00`)
 before the refusal of a verb that is not implemented
-(`crates/podssh-cli/src/dispatch.rs:421-429`). `require_timeout` writes the
+(`crates/podssh-cli/src/dispatch.rs:423-431`). `require_timeout` writes the
 fixed text and has no verb to name (`crates/podssh-cli/src/non_interactive.rs` lines 194-201 at `37ace00`).
 `podssh ts` uses the same function (`crates/podssh-cli/src/ts.rs:56-65`), so a
 build with the `ts` feature shows the chat example for `ts` too (read, not
@@ -189,7 +189,7 @@ measured: the debug binary has no `ts`).
 1. In the `Parsed::Command` arm, refuse a verb of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs`, line 453 at `7aa955a`) before the gate. Keep one usage
    error first: a `--timeout` value that was given and does not parse is 64
-   (`docs/cli.md:6473-6474`).
+   (`docs/cli.md:6503-6504`).
 2. Give `require_timeout` the verb's name. The message names that verb, gives
    one true reason, and shows an example for that verb only. Replace
    `({attachment:?})` with words: "stdin or stdout is not a terminal", or
@@ -199,7 +199,7 @@ measured: the debug binary has no `ts`).
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
    that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:221-227`).
-5. Same commit: `docs/STATUS.md`. `docs/cli.md:6548` needs no change.
+5. Same commit: `docs/STATUS.md`. `docs/cli.md:6578` needs no change.
 
 ## Decision
 
@@ -306,7 +306,7 @@ flag-shaped (`crates/podssh-cli/src/clap_error.rs:125-127`), so the arm calls
    when the user typed `-p`, so print both spellings.
 4. A `Refused` row with no value gets its own refusal: a value would not change
    the answer. Move the refusal text of `refusals`
-   (`crates/podssh-cli/src/dispatch.rs:439-447`) to `refuse.rs`, so the two
+   (`crates/podssh-cli/src/dispatch.rs:389-397`) to `refuse.rs`, so the two
    cannot differ.
 5. A long name with no row keeps today's message, as a fallback.
 6. Same commit: `docs/cli.md:74-78` (a flag with no value names the flag and
@@ -381,11 +381,11 @@ Measured offline:
 Read: `parse` returns at the first word when it is `-h`, `--help`, `-V` or
 `--version` (`crates/podssh-cli/src/tree.rs` lines 266-272 at `56b466b`), and never reads the
 rest. For a verb, clap reads each word before `--help` is answered
-(`crates/podssh-cli/src/tree.rs:226-235`), so an unknown word is refused there.
+(`crates/podssh-cli/src/tree.rs:225-234`), so an unknown word is refused there.
 
 ## Approach
 
-1. At `crates/podssh-cli/src/tree.rs:151-163`: `-h` or `--help` alone is
+1. At `crates/podssh-cli/src/tree.rs:150-162`: `-h` or `--help` alone is
    `Parsed::Help("")`. With one more word that names a verb
    (`crate::flags::verb_for`), it is `Parsed::Help` of that verb, as
    `podssh VERB --help` is. Any other word is `Parsed::Usage`:
@@ -395,7 +395,7 @@ rest. For a verb, clap reads each word before `--help` is answered
 3. Keep the verb level as it is: `podssh ssh --help host` prints the help of
    `ssh`, after clap has checked each word.
 4. If the top-level help text changes (`TOP_OPTIONS`,
-   `crates/podssh-cli/src/flags.rs:461-464`), update its test
+   `crates/podssh-cli/src/flags.rs:463-466`), update its test
    `no_top_level_option_runs_into_its_description`
    (`crates/podssh-cli/src/help.rs:121-131`). Same commit: `docs/cli.md:74-78`,
    `docs/STATUS.md`.
@@ -498,7 +498,7 @@ Read, at `61e55d1`: no option made podssh start a program: `ProxyCommand` is ref
    notes test reads a bare `--` as a flag that does not exist
    (`crates/podssh-cli/src/man/notes_tests.rs:56-72`); teach `flag_exists`
    (`crates/podssh-cli/src/man/notes_tests.rs:13-29`) that `--` ends the options.
-3. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:376-381`): when HOST or PORT
+3. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:381-386`): when HOST or PORT
    is missing and a relay or trust flag was given, add one line: a HOST that
    starts with `-` is read as a flag; put `--` before it.
 4. Check `HostName` with the rule of the destination: one function for the
@@ -583,7 +583,7 @@ Measured offline: `PODSSH_TIMEOUT=5s podssh mv` and
 Read: the `--timeout` rows are those of `cp` and `mv`
 (`crates/podssh-cli/src/flags/copy.rs:63-64`), `chat`
 (`crates/podssh-cli/src/flags.rs`, lines 274-275 at `7aa955a`), `ts`
-(`crates/podssh-cli/src/flags.rs:389-390`) and `relay`
+(`crates/podssh-cli/src/flags.rs:391-392`) and `relay`
 (`crates/podssh-cli/src/flags.rs` lines 317-318 at `af0a163`). Each but `ts` exits 70
 (`crates/podssh-cli/src/flags.rs` lines 436-443 at `af0a163`), and `ts` needs its feature. So the
 variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
@@ -595,7 +595,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    lookup passed in, as `proxy_from_vars` does
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:109-123`): the flag, else a `PODSSH_TIMEOUT`
    that is not empty, else nothing. It returns the text and its source.
-2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:379-400` and
+2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:381-402` and
    `crates/podssh-cli/src/ts.rs:56-65`. Parse with `parse_timeout`
    (`crates/podssh-cli/src/non_interactive.rs:136-182`): a whole duration,
    never zero.
@@ -606,7 +606,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:175-176`); `docs/cli.md:6653-6655`;
+   it (`crates/podssh-cli/src/flags.rs:175-176`); `docs/cli.md:6683-6685`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -689,7 +689,7 @@ node, operator, chat, cp, mv, man, relay, status, doctor, keygen, ts. Seven
 lines say "(not implemented yet)" and `ts` says "(not in this build)".
 `podssh man --no-pager` shows the same order under "Commands".
 
-Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:381-455`), has no
+Read, at `3a78cff`: one table, `VERBS` (`crates/podssh-cli/src/flags.rs:383-457`), has no
 group. Four places render it: `top_level_help`
 (`crates/podssh-cli/src/help.rs`, lines 132-146), the start of the manual
 (`crates/podssh-cli/src/man/model.rs`, lines 120-126), `unknown_verb`
@@ -699,7 +699,7 @@ group. Four places render it: `top_level_help`
 ## Approach
 
 1. Add the group to the table in `crates/podssh-cli/src/flags.rs`: a field of
-   `Verb` (`crates/podssh-cli/src/flags.rs:370-381`), or one list of groups. A
+   `Verb` (`crates/podssh-cli/src/flags.rs:372-383`), or one list of groups. A
    new test in `crates/podssh-cli/tests/flag_table.rs` asserts that each verb
    is in exactly one group, as `every_verb_has_an_owner_so_no_verb_can_be_a_silent_stub`
    does for owners (`crates/podssh-cli/tests/flag_table.rs:104`).
@@ -758,7 +758,7 @@ problem of one long list stands; the mix of working and missing commands is gone
 
 ## Done
 
-2026-10-11. `GROUPS` in `crates/podssh-cli/src/flags.rs:451-470`; `--help`
+2026-10-11. `GROUPS` in `crates/podssh-cli/src/flags.rs:453-472`; `--help`
 (`crates/podssh-cli/src/help.rs:158-185`) and the manual's "Commands"
 (`crates/podssh-cli/src/man/model.rs:120-131`) print the commands in their groups.
 - `cargo test -p podssh-cli --test flag_table -- each_verb_is_in_one_group`: 1 passed. Planted:
@@ -923,11 +923,11 @@ the same for the other fifteen.
 ## Approach
 
 1. Rows in `SSH_FLAGS`: `-c -m -f -G -I -K -M -O -S -Q -w -X -Y -y` are refused
-   by name with what to use instead (`crates/podssh-cli/src/flags.rs:263-293`).
+   by name with what to use instead (`crates/podssh-cli/src/flags.rs:265-295`).
    `-k` is supported and `-g` is accepted with no effect
    (`crates/podssh-cli/src/flags.rs`, lines 205-209 at `97146aa`).
 2. A refusal with nothing to use instead says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:439-447`), and `--help` shows
+   (`crates/podssh-cli/src/dispatch.rs:389-397`), and `--help` shows
    "(refused)" (`crates/podssh-cli/src/help.rs:122-125`).
 3. A test holds the reviewed set (`crates/podssh-cli/tests/flag_table.rs:15-30`).
    `docs/cli.md:982-986` states the rule.
@@ -983,14 +983,14 @@ Read then: each value flag but `-i` and `-o` was `ArgAction::Set`.
 ## Approach
 
 1. The value flags of `ssh` keep each value (`ArgAction::Append`,
-   `crates/podssh-cli/src/tree.rs:73-83`).
+   `crates/podssh-cli/src/tree.rs:72-82`).
 2. `SshArgs::from_matches` picks the value as OpenSSH does: the first `-p` and
    `-l`, the last `-e`, `-E` and `-F`, and the first value of each `-o`
-   keyword (`crates/podssh-cli/src/ssh/args.rs:277-426`).
+   keyword (`crates/podssh-cli/src/ssh/args.rs:285-437`).
 3. `ONCE` and `repeated` refuse a second `-J`, `-W`, `--relay-host`,
    `--relay-addr` or `--ca-file` with exit 64 before anything connects
-   (`crates/podssh-cli/src/ssh/args.rs:205-272`, called at
-   `crates/podssh-cli/src/tree.rs:488-492`).
+   (`crates/podssh-cli/src/ssh/args.rs:213-280`, called at
+   `crates/podssh-cli/src/tree.rs:461-465`).
 4. `docs/cli.md:976-981` and a note of the manual
    (`crates/podssh-cli/src/man/notes_ssh_more.rs:98-100`) state the rule.
 
@@ -1037,7 +1037,7 @@ read in the report, not verified here.
 
 A host with no working `ssh-keygen` cannot change the passphrase or the
 comment of a key: the `ssh-keygen` of OpenSSH does not run without a user
-database entry (`docs/cli.md:3371-3372`). `podssh keygen -p` and `-c` exit 64
+database entry (`docs/cli.md:3401-3402`). `podssh keygen -p` and `-c` exit 64
 with "unknown flag", not a refusal by name. podssh's own message for a PEM key
 names `ssh-keygen -p -f FILE` as the remedy
 (`crates/podssh-ssh/src/keygen.rs`, lines 163-166 at `bdbe658`), a program that may not run there.
@@ -1069,13 +1069,13 @@ on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
 3. `-p`: ask for the new passphrase twice (or take `-N ''`), and encrypt with
    `keygen::protect`. `-c`: take `-C` or ask; refuse a control character, as
    `crates/podssh-cli/src/keygen.rs:289-292` does. Write the OpenSSH format.
-4. A new invariant beside "never over an existing file" (`docs/cli.md:3373`):
+4. A new invariant beside "never over an existing file" (`docs/cli.md:3403`):
    write a new file in the same directory (`create_new`, mode 0600), read it
    back, decrypt it with the new passphrase, compare its public key with the
    original, then rename it over the original. Never write a different key
    over the file. For `-c`, write `FILE.pub` again.
 5. Same commit: the PEM message at `crates/podssh-ssh/src/keygen.rs` (lines 184-187 at `8290fe1`)
-   names `podssh keygen -p`; `docs/cli.md:3366-3469`, the notes of `keygen`
+   names `podssh keygen -p`; `docs/cli.md:3396-3499`, the notes of `keygen`
    (`crates/podssh-cli/src/man/notes_keygen.rs:4-48`), `docs/STATUS.md`.
 
 ## Decision
@@ -1194,7 +1194,7 @@ The default files are the ones of `podssh ssh`
    it, and say so.
 4. `-H`: a random salt of 20 bytes and the HMAC-SHA1 of `hashed_matches`, so
    podssh and OpenSSH both find the result.
-5. Same commit: `docs/cli.md:3366-3469`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3396-3499`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfall: a rewrite can lose a key that `podssh ssh` appends at the same moment
 (T-029). Read the file again just before the rename, and refuse if it changed.
@@ -1316,7 +1316,7 @@ that crate as `russh::keys::ssh_key` (`crates/podssh-ssh/src/keygen.rs:11-13`).
    matcher of `known_hosts` (`crates/podssh-ssh/src/known_hosts.rs:311-333`).
    Print the lines and the exit codes of OpenSSH.
 4. Refuse `-r` (a key revocation list) by name until podssh reads one.
-5. Same commit: `docs/cli.md:3366-3469`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3396-3499`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: read the signed file as bytes, never as text. A namespace that does
 not match is a failure, never a warning.
@@ -1427,7 +1427,7 @@ as plain keys (`docs/STATUS.md`, section "Components"). T-027 covers that side.
 
 1. Rows: `-s CA`, `-I ID`, `-n PRINCIPALS`, `-V INTERVAL`, `-z SERIAL`,
    `-O OPTION` (repeatable), `-h` (a host certificate) and `-L`. `-h` is free:
-   a verb declares only `--help` (`crates/podssh-cli/src/tree.rs:94-103`). `-V`
+   a verb declares only `--help` (`crates/podssh-cli/src/tree.rs:93-102`). `-V`
    is a validity here, not the version: say so in `--help`, as the help says
    it for `-P` (`crates/podssh-cli/src/help/notes.rs:27-51`).
 2. Read the CA key as `-y` reads a private key (a passphrase by prompt or
@@ -1439,7 +1439,7 @@ as plain keys (`docs/STATUS.md`, section "Components"). T-027 covers that side.
    `force-command=`, `source-address=`, and the `no-` and `permit-` options;
    refuse the others by name.
 5. `-L`: print the certificate as `ssh-keygen -L` does.
-6. Same commit: `docs/cli.md:3366-3469`, the notes of `keygen`, `docs/STATUS.md`.
+6. Same commit: `docs/cli.md:3396-3499`, the notes of `keygen`, `docs/STATUS.md`.
 
 ## Decision
 
@@ -1517,7 +1517,7 @@ the `sshd` login check fails.
 - At `8290fe1` the gate's step release failed in CI: in the box, `-V -5m:+1h` was refused with 64,
   as clap read a value that starts with `-` as flags, where getopt takes the next word; the checks
   of an expired certificate and of another principal then passed with no certificate made. The next
-  commit lets `-V` take such a value (`crates/podssh-cli/src/tree.rs:46-51`), tests it
+  commit lets `-V` take such a value (`crates/podssh-cli/src/tree.rs:45-50`), tests it
   (`a_validity_may_start_with_a_hyphen`; planted, the old parse failed it with 64), and counts
   each of the two refusals only once its certificate is made.
 
@@ -1567,7 +1567,7 @@ keys/format/mod.rs, read in the local cargo registry).
    public key in that format, and write the OpenSSH line to stdout.
 4. `-m` with a new key and with `-p` (T-018): write the private key in that
    format; use `encode_pkcs8_pem_encrypted` when there is a passphrase.
-5. Same commit: `docs/cli.md:3366-3469`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3396-3499`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: no new C dependency. A format that a key type does not have (PEM
 for Ed25519) is refused by name.
@@ -1695,7 +1695,7 @@ that `forward-remote` names `-W HOST:PORT`
 1. The `-R` row (`crates/podssh-cli/src/flags.rs`, lines 206-207 at `a9299c4`): the help "remote
    forwarding is not implemented yet", the words of `-o RemoteForward`; the
    replacement `no flag`, so the refusal says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:439-447`).
+   (`crates/podssh-cli/src/dispatch.rs:389-397`).
 2. `crates/podssh-cli/src/help.rs`, lines 213-215 at `a9299c4` and
    `crates/podssh-cli/src/man/notes.rs`, lines 70-72 at `a9299c4`: `-L` and `-D` need a local
    listener and are refused, and `-W HOST:PORT` carries one connection; `-R`
@@ -1764,7 +1764,7 @@ file); measured here on `3ee70dc`.
 A `PODSSH_RELAY` or `PODSSH_RELAY_ADDR` that cannot be used makes
 `podssh proxy`, `podssh ssh` and `podssh doctor` exit 64, the code of a usage
 error. The command line is correct; a setting of the environment is not.
-`docs/cli.md:6473-6474` and `docs/decisions.md` ("Exit codes") give 78
+`docs/cli.md:6503-6504` and `docs/decisions.md` ("Exit codes") give 78
 (`EX_CONFIG`) for a configuration error. A script that reads 64 looks for the
 fault in its arguments.
 
@@ -1787,7 +1787,7 @@ one error for the flag and for the variable. Each caller maps it to 64, at
 `crates/podssh-cli/src/ssh/resolve.rs` line 183), and
 `crates/podssh-cli/src/doctor/mod.rs` lines 47-56 (read, not run). The code 78
 exists (`crates/podssh-cli/src/exitmap.rs:63`), and `podssh proxy` gives it for
-a bad proxy URL or token (`crates/podssh-cli/src/proxy.rs:480-493`).
+a bad proxy URL or token (`crates/podssh-cli/src/proxy.rs:485-498`).
 
 ## Approach
 
@@ -1879,11 +1879,11 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:368`,
 `crates/podssh-ssh/src/keys.rs:345` and `crates/podssh-cli/src/keygen.rs:382`.
-Its refusals name the real remedies (`docs/cli.md:6610-6612`). Commands use
+Its refusals name the real remedies (`docs/cli.md:6640-6642`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
-`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:379-400`,
+`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:381-402`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
-(`crates/podssh-cli/src/tree.rs:211-214`).
+(`crates/podssh-cli/src/tree.rs:210-213`).
 
 ## Approach
 
@@ -2470,14 +2470,14 @@ nothing.
 - Read: `crates/podssh-cli/src/doctor/mod.rs` line 15 at `48a8744` says "The bind probes here are the only place
   podssh calls". The listener scan of `scripts/check-repo.py` allows a `bind(` in 17 files
   (`scripts/check-repo.py:170-191`), and these listen, each when the user asks: `pipe`'s
-  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:140-154`, `:181-205`),
-  the control socket of `-M` (`:207-215`), `-L` and `-D` on a port or a path
+  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:145-159`, `:186-210`),
+  the control socket of `-M` (`:212-220`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:78-88`, `:111-128`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:136`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
-  (`crates/podssh-cli/src/pipe/listen.rs:61-68`), and 255 in `-L` and `-D`, with the system's
+  (`crates/podssh-cli/src/pipe/listen.rs:66-73`), and 255 in `-L` and `-D`, with the system's
   words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:89-93`).
   The issue's amendment says that `-L` exits 77: it exits 255, as OpenSSH's ssh does for a
   failure of its own (`crates/podssh-ssh/src/run.rs:24`).
@@ -2487,7 +2487,7 @@ nothing.
   (`crates/podssh-cli/src/man/notes_pipe.rs:6`, where `pipe`'s notes moved from `notes.rs`).
 - Read: doctor's rule: a condition that podssh is built for, no listener among them, is a fact,
   reported `ok`, and `FAIL` is kept for what stops podssh or one of its fallbacks
-  (`crates/podssh-cli/src/doctor/mod.rs:6-9`); `docs/cli.md:2798-2828` says the same.
+  (`crates/podssh-cli/src/doctor/mod.rs:6-9`); `docs/cli.md:2818-2848` says the same.
 
 ## Approach
 
@@ -2509,10 +2509,10 @@ nothing.
 ## Decision
 
 A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that podssh is built
-for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:531`; the measured cage by the
+for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:532`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
-status lost: the report and its JSON have three (`docs/cli.md:2976-2979`). The issue's grade by a
+status lost: the report and its JSON have three (`docs/cli.md:2996-2999`). The issue's grade by a
 run for a listener feature lost: doctor is given no feature to check, and each feature refuses on
 its own, with the system's words.
 
@@ -2585,7 +2585,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
   for, so it waits for a ruling: Q53.
 - Read: the measured cage's listening was not measured, and stands on the operator's report
   (`docs/target-environment.md:25`); sandbox A's AF_UNIX bind was doctor's bind
-  (`docs/STATUS.md:531`), so whether it listens is not known. The box refuses each bind
+  (`docs/STATUS.md:532`), so whether it listens is not known. The box refuses each bind
   (`scripts/box/seccomp.json:11-18`): it has no case of a bind allowed and a listen refused.
 - Read, in the issue (measured by its reporter on a development host, not with podssh): a bind
   of an AF_INET stream socket refused, where an AF_INET datagram socket and an AF_UNIX socket
@@ -2597,8 +2597,8 @@ alone measures less than they use, so it cannot answer what a user asks it.
 1. After the bind, `listen(fd, 1)` on the same socket, then close: nothing is accepted, and
    nothing is left. For AF_INET on 127.0.0.1 port 0; for AF_UNIX on the file in the temporary
    directory, made mode 0600 as `pipe` makes its socket
-   (`crates/podssh-cli/src/pipe/listen.rs:217-229`), and on Linux on an abstract name. With
-   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-41`) no listen is made, and the
+   (`crates/podssh-cli/src/pipe/listen.rs:222-239`), and on Linux on an abstract name. With
+   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-46`) no listen is made, and the
    line says so.
 2. The lines `listen AF_INET` and `listen AF_UNIX`, each with what happened: bound and listened;
    bound, and `listen()` refused with its error; or the bind refused. A refusal names the features
@@ -2680,7 +2680,7 @@ later, in a file, and `ssh -f`, OpenSSH's way, is refused.
 
 ## Premise
 
-- Read: `-f` is a refused row (`crates/podssh-cli/src/flags.rs:268`), and
+- Read: `-f` is a refused row (`crates/podssh-cli/src/flags.rs:270`), and
   `ForkAfterAuthentication` a refused keyword that says to use `&`
   (`crates/podssh-cli/src/ssh/keywords.rs:136`).
 - Read: `podssh session start` (T-186) starts this binary again, its child in a session of its
@@ -3081,7 +3081,7 @@ node at its next line, often "online again" after a reconnect. A server then has
 
 ## Premise
 
-- Read: `panic = "abort"` in the release profile (`Cargo.toml:211`).
+- Read: `panic = "abort"` in the release profile (`Cargo.toml:214`).
 - Read: the node's lines are `eprintln!` (`crates/podssh-cli/src/node.rs:363`,
   `crates/podssh-cli/src/node_derp.rs:334`, `crates/podssh-cli/src/node_iroh.rs:342`), as are 40
   more sites in `crates/podssh-cli/src` and 4 in `crates/podssh-ssh/src` (2026-11-01, a search for
@@ -3320,9 +3320,9 @@ Read on 2026-11-01:
   of `crates/podssh-cli/src/detach/child.rs`; the line of `crates/podssh-cli/src/detach/mod.rs` that
   the Premise cites is `when_requested`, which makes no file. There was no lock, as it says.
 - The probe of a session's socket is the daemon's (`session serve`, which `start` runs), in `stale`
-  of `crates/podssh-cli/src/pipe/listen.rs:243`, inside the bind that the Premise cites. Two daemons
+  of `crates/podssh-cli/src/pipe/listen.rs:253`, inside the bind that the Premise cites. Two daemons
   can both pass it, and the race is worse than two copies: the second, whose bind failed, removes
-  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:201`), which then answers nobody.
+  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:206`), which then answers nobody.
 
 ## Done
 
@@ -3600,7 +3600,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   (`crates/podssh-cli/src/man/data.rs:91-93`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
-  about of `job` does not say (`crates/podssh-cli/src/flags.rs:394-395`).
+  about of `job` does not say (`crates/podssh-cli/src/flags.rs:396-397`).
 - Read (L-25): a file that is a link is refused with "is a symbolic link, which podssh does not
   follow here" (`crates/podssh-relay/src/cache/own.rs`, lines 37-38 at `38f424c`);
   `--allow <(...)` gives such a link (`/dev/fd/63`), and the line does not say that a regular
@@ -3644,7 +3644,7 @@ Planted: none; each sentence is text, which the manual's tests read.
 
 Read at `38f424c` (2026-11-03): the notes of `proxy` are in `crates/podssh-cli/src/man/notes_proxy.rs`
 since T-431, and the premise's line of `crates/podssh-cli/src/man/notes.rs` holds the notes of
-`mv`; the about of `job` is at `crates/podssh-cli/src/flags.rs:387-388`. The manual's notes of
+`mv`; the about of `job` is at `crates/podssh-cli/src/flags.rs:389-390`. The manual's notes of
 `job` already gave the 8 hex digits and the 75 of `fetch` (`crates/podssh-cli/src/man/notes_job.rs:6`,
 `:57`): the gap was `job --help` alone. `crates/podssh-cli/src/help.rs` had 496 lines, so the
 notes under a verb's options went to a file of their own, `crates/podssh-cli/src/help/notes.rs`.
@@ -3722,7 +3722,7 @@ Read at `2042200`:
   documented). The issue says the second does not exist; it does, and a retired name written in the
   source would trip it, so the table needs its own place in the manual.
 - The run's funnel `crates/podssh-cli/src/dispatch.rs` is 439 lines; `main_with_args` is at
-  `crates/podssh-cli/src/dispatch.rs:452`.
+  `crates/podssh-cli/src/dispatch.rs:402`.
 
 ## Approach
 

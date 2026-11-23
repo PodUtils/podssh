@@ -251,3 +251,36 @@ fn with_no_retired_variable_set_the_run_is_as_before() {
         assert!(out.is_empty());
     }
 }
+
+/// T-758 and T-763: `--early-data` and `--h2-shape` parse on `ssh`, and a
+/// shape that is not one refuses before any road is built (64).
+#[test]
+fn the_vless_early_and_h2_shape_flags_parse_and_a_bad_shape_refuses() {
+    let p =
+        crate::tree::parse(vec!["ssh", "--vless", "v.list", "--early-data", "0rtt", "--h2-shape", "browser", "host"]);
+    assert_eq!(p.h2_shape(), Some("browser"));
+    let Parsed::Command { ssh: Some(args), .. } = &p else { panic!("an ssh command: {p:?}") };
+    assert_eq!(args.early_data.as_deref(), Some("0rtt"));
+    assert_eq!(args.h2_shape.as_deref(), Some("browser"));
+    let bad = crate::tree::parse(vec!["ssh", "--h2-shape", "safari", "host"]);
+    let (mut out, mut err): (Vec<u8>, Vec<u8>) = (Vec::new(), Vec::new());
+    let rc = run(&bad, &mut Streams { out: &mut out, err: &mut err });
+    assert_eq!(rc, EXIT_USAGE);
+    let text = String::from_utf8(err).unwrap();
+    assert!(text.contains("PODSSH_H2_SHAPE: existing, browser or firefox"), "{text}");
+    assert!(out.is_empty());
+}
+
+/// T-758: a word of `--early-data` that is not one refuses the run (64)
+/// before the VLESS file is read, so the file need not exist.
+#[test]
+fn a_bad_early_data_word_refuses_before_the_vless_file_is_read() {
+    let p = crate::tree::parse(vec!["ssh", "--vless", "no-such-file.list", "--early-data", "2rtt", "host"]);
+    let (mut out, mut err): (Vec<u8>, Vec<u8>) = (Vec::new(), Vec::new());
+    let rc = run(&p, &mut Streams { out: &mut out, err: &mut err });
+    assert_eq!(rc, EXIT_USAGE);
+    let text = String::from_utf8(err).unwrap();
+    assert!(text.contains("PODSSH_VLESS_EARLY_DATA: 0rtt, 1rtt or off, not 2rtt"), "{text}");
+    assert!(!text.contains("no-such-file"), "the file was not read: {text}");
+    assert!(out.is_empty());
+}

@@ -225,10 +225,10 @@ impl Line {
     }
 
     async fn give_child(&mut self, line: Vec<u8>) {
-        if let Some(lines) = &self.lines {
-            if lines.send(line).await.is_err() {
-                self.lines = None;
-            }
+        if let Some(lines) = &self.lines
+            && lines.send(line).await.is_err()
+        {
+            self.lines = None;
         }
     }
 

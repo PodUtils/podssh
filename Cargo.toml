@@ -41,7 +41,7 @@ default-members = [
 # `vendor/ssh-key` for the keys that russh reads (T-609), which the
 # `[patch]` below puts in their places; excluded, they are no members, so
 # their tests and examples are not podssh's.
-exclude = ["vendor/tailscale-rs", "vendor/russh", "vendor/ssh-key", "fuzz"]
+exclude = ["vendor/tailscale-rs", "vendor/russh", "vendor/ssh-key", "vendor/h2", "fuzz"]
 
 # Versions below were resolved on 2026-10-01, not recalled.
 [workspace.package]
@@ -95,8 +95,11 @@ rustls = { version = "0.23", default-features = false, features = [
 # `AsyncRead`, not `Read`. Bridging the two by hand means owning the
 # non-blocking handshake, the plaintext-pending check and the partial-write
 # outbox — three places each of which can deadlock. This crate exists.
+# `early-data` is what lets a `TlsConnector` hand a session's first writes to
+# rustls before the handshake's answer, and replay them at 1-RTT on the same
+# connection when the server refuses them (T-758, `podssh_ws::vless_early`).
 tokio-rustls = { version = "0.26", default-features = false, features = [
-  "logging", "tls12",
+  "logging", "tls12", "early-data",
 ] }
 rustls-pki-types = "1"
 webpki-roots = "1"
@@ -235,7 +238,11 @@ strip = true
 # cargo says so: podcrates carries the fork to that version first.
 [patch.crates-io]
 russh = { path = "vendor/russh" }
-iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.81.0" }
+iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
 # ssh-key, whose release refuses an ECDSA key of OpenSSH whose scalar has a
 # leading zero byte (T-609).
 ssh-key = { path = "vendor/ssh-key" }
+# h2 0.4.20 with podssh's patch: the request's pseudo-fields go in Chrome's
+# order, `:method`, `:authority`, `:scheme`, `:path` (T-763). The lock must
+# build this copy; an update of h2 moves the patch first.
+h2 = { path = "vendor/h2" }

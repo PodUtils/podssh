@@ -153,11 +153,13 @@ pub async fn signed<S: AsyncRead + AsyncWrite + Unpin>(
     for round in 0..2 {
         let id = transaction_id()?;
         let answer = exchange(stream, &auth.sign(method, &id, attributes), wait, step).await?;
-        if !answer.is_success() && answer.error().0 == 438 && round == 0 {
-            if let Some(nonce) = answer.attribute(NONCE) {
-                auth.nonce = nonce;
-                continue;
-            }
+        if !answer.is_success()
+            && answer.error().0 == 438
+            && round == 0
+            && let Some(nonce) = answer.attribute(NONCE)
+        {
+            auth.nonce = nonce;
+            continue;
         }
         return checked(answer, &auth.key[..]);
     }

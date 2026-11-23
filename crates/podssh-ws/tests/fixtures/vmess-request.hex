@@ -1,0 +1,20 @@
+# One VMess AEAD request header: an authored vector for this test, not a
+# capture of any server.
+#
+# The fields it holds: the account 550e8400-e29b-41d4-a716-446655440000, TCP to
+# www.example.com:443, the option chunk-stream (S), the cipher aes-128-gcm and
+# the command TCP. The body's key and IV, the answer's byte, the auth ID's
+# four random bytes, the connection nonce and the padding's length are fixed
+# for the vector. This repository holds no generator, no transcript and no
+# program output that would make it a recording of Xray-core or of any other
+# server; the tests treat it as a fixed vector of the form, nothing more.
+#
+# The test that reads it here (`tests/vmess_vector.rs`) holds its own decoder,
+# written from the form's rule and outside `pod-egress`, so the bytes are a
+# second reader's as well as this file's. What it proves is that the form's
+# rule reads these bytes; it does not prove that a live server accepts them.
+1feb9a3cc58a5b606dd44309305634c5b4459f1924b98b2d7e4986a3aaf026de
+5a62b55fce793200851280b26aad65fd569d82ad59717bdcb55fcda46432a725
+5f1b2f3e0c89d6196268fd7513a6a424c84abe9300cf99a74ca9c5f141cf7ff6
+6ae4003d04801ca677a49a651c449afd15a2726a1480a96b8d3cb4b486eaec77
+cb

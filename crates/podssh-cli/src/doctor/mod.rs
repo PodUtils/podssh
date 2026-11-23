@@ -33,6 +33,7 @@ mod burst;
 pub(crate) mod clock;
 // What a request with no TLS meets on the way (T-326).
 mod cleartext;
+mod cover;
 mod hop;
 // The DERP road's servers and its home (T-379).
 mod derp;
@@ -95,6 +96,8 @@ mod unix;
 mod via;
 // The servers of --vless (T-440).
 mod vless;
+// Trojan's controls by name (T-761).
+mod trojan;
 
 pub use exit::Flags as ExitFlags;
 pub(crate) use report::Report;
@@ -129,6 +132,14 @@ pub struct DoctorArgs {
     pub via: crate::via::Flags,
     /// `--vless`: the file whose servers are checked (T-440).
     pub vless: Option<String>,
+    /// `--early-data WORD`: the early data that the VLESS check offers
+    /// (T-758).
+    pub early_data: Option<String>,
+    /// `--h2-shape WORD`: the shape of the HTTP/2 road that podssh builds
+    /// (T-763).
+    pub h2_shape: Option<String>,
+    /// `--trojan`: state what the Trojan road carries, with no connection (T-761).
+    pub trojan: bool,
     /// `--hysteria`: the file whose servers are checked (T-580).
     pub hysteria: Option<String>,
     /// `--tuic`: the file whose servers are checked (T-581).
@@ -137,6 +148,8 @@ pub struct DoctorArgs {
     pub turn: crate::turn::Flags,
     /// `--devtunnel TUNNEL[:PORT]`: the Dev Tunnels tunnel checked (T-755).
     pub devtunnel: Option<String>,
+    /// `--cover NAME`: the delegated credential of a cover relay (T-766).
+    pub cover: Option<String>,
     /// `--quick`: this host, the egress and the relay, with the roads that
     /// the run names, and none of the others (T-511).
     pub quick: bool,
@@ -151,9 +164,64 @@ pub struct DoctorArgs {
     pub exit: ExitFlags,
 }
 
+/// The parse of `doctor`, kept here so that `tree` stays a dispatcher of
+/// verbs rather than a list of each verb's fields.
+pub fn parsed(m: &clap::ArgMatches, refused: Vec<(String, &'static str, &'static str)>) -> crate::tree::Parsed {
+    let get = |id: &str| m.get_one::<String>(id).cloned();
+    crate::tree::Parsed::Doctor {
+        relay_host: get("relay-host"),
+        relay_failover: get("relay-failover"),
+        relay_addr: get("relay-addr"),
+        ca_file: get("ca-file"),
+        json: m.get_flag("json"),
+        full: m.get_flag("full"),
+        hop: get("hop"),
+        forwarder: get("forwarder"),
+        shadowsocks: get("shadowsocks"),
+        via: crate::via::Flags { url: get("via"), auth_file: get("via-auth-file") },
+        vless: get("vless"),
+        early_data: get("early-data"),
+        h2_shape: get("h2-shape"),
+        trojan: m.get_flag("trojan"),
+        hysteria: get("hysteria"),
+        tuic: get("tuic"),
+        turn: crate::turn::Flags { url: get("turn"), auth_file: get("turn-auth-file") },
+        devtunnel: get("devtunnel"),
+        cover: get("cover"),
+        quick: m.get_flag("quick"),
+        tier: m.get_flag("tier"),
+        jobs: get("jobs"),
+        stream: get("stream"),
+        stream_idle: get("stream-idle"),
+        exit: ExitFlags { name: get("exit"), target: get("exit-target"), client_key: get("client-key") },
+        refused,
+    }
+}
+
 /// Run every check; returns the exit code. The report goes to `out`; only a
 /// bad setting (64 for a flag, 78 for a variable) goes to `err`.
 pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    if args.early_data.is_some() && args.vless.is_none() {
+        return crate::relay_settings::Refusal::usage(
+            "--early-data chooses the VLESS road's early data; it goes with --vless FILE",
+        )
+        .report("doctor", err);
+    }
+    // A word of the flag is a usage error; a word of the variable is a fault
+    // in the environment. Both are refused before a probe, as a road's own
+    // settings are.
+    if let Some(word) = args.early_data.as_deref() {
+        if let Err(why) = crate::vless::early_word(Some(word)) {
+            let _ = writeln!(err, "podssh doctor: {why}");
+            return crate::exit_codes::EXIT_USAGE;
+        }
+    } else if args.vless.is_some()
+        && let Ok(word) = std::env::var(crate::vless::EARLY_ENV)
+        && let Err(why) = crate::vless::early_word(Some(&word))
+    {
+        let _ = writeln!(err, "podssh doctor: {why}");
+        return crate::exitmap::sysexits::EX_CONFIG;
+    }
     // A hop that does not read is a usage error, before any probe.
     if let Some(Err(why)) = args.hop.as_deref().map(crate::ssh::hop::parse_hop) {
         let _ = writeln!(err, "podssh doctor: --hop {why}");
@@ -252,6 +320,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         Some(path) => report.ok("settings", format!("podssh's settings are read from {}", path.display())),
         None => report.ok("settings", "no settings file; the flags, the variables and the defaults hold".to_string()),
     }
+    if args.trojan {
+        report.section("trojan");
+        trojan::check(&mut report);
+    }
     // The relay hosts that a run tries last now (T-059), and first (T-563).
     relay_record(&mut report);
     agent::check(&mut report);
@@ -270,6 +342,9 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
     }
     if podssh_relay::open::offline() {
         report.unknown("network", "not attempted: PODSSH_OFFLINE is set");
+        if args.cover.is_some() {
+            report.unknown("cover credential", "not attempted: PODSSH_OFFLINE is set");
+        }
         if args.full {
             report.unknown("login", "not attempted: PODSSH_OFFLINE is set");
         }
@@ -323,10 +398,12 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
                 servers: servers.as_ref(),
                 road: road.as_ref(),
                 links: links.as_ref(),
+                early: args.early_data.as_deref(),
                 hysteria: quic_links.as_ref(),
                 tuic: tuic_links.as_ref(),
                 turn: turn.as_ref(),
                 devtunnel: tunnel.as_ref(),
+                cover: args.cover.as_deref(),
                 exit: exit.as_ref(),
                 quick: args.quick,
                 jobs,

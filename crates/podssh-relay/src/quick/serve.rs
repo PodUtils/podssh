@@ -349,10 +349,10 @@ async fn answer_push(mut body: RecvStream, mut respond: SendResponse<Bytes>) {
         let _ = respond.send_response(failed.body(()).expect("a valid answer"), true);
         return;
     };
-    if let Ok(mut send) = respond_200(respond, &[]) {
-        if send_all(&mut send, answer.as_bytes()).await.is_ok() {
-            let _ = send.send_data(Bytes::new(), true);
-        }
+    if let Ok(mut send) = respond_200(respond, &[])
+        && send_all(&mut send, answer.as_bytes()).await.is_ok()
+    {
+        let _ = send.send_data(Bytes::new(), true);
     }
 }
 

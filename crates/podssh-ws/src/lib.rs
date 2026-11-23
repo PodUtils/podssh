@@ -51,6 +51,9 @@ pub use pod_tls::crypto;
 // pod-proxy reads it.
 pub use pod_proxy::cut;
 pub mod dial;
+// The application-layer delegated credential of a cover name (T-765 and
+// T-766): its exporter, its issuer key and its check against one chain.
+pub mod delegated;
 // Encrypted Client Hello, with the list of a name's HTTPS record, when the
 // user asks for it (T-642).
 pub mod ech;
@@ -120,6 +123,9 @@ pub mod via;
 // VLESS over a WebSocket and over XHTTP, to a server that the user runs
 // (T-440).
 pub mod vless;
+// VLESS's WebSocket road with TLS 1.3 early data (0-RTT), and the 1-RTT
+// replay of the same connection where the server refuses it (T-758).
+pub mod vless_early;
 // TURN's TCP allocations of RFC 6062, to a TURN server that the user runs
 // (T-621): a second connection to it carries the bytes (Q93).
 pub mod turn;

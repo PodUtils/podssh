@@ -191,20 +191,26 @@ async fn dial_for_trace(host: &str, port: u16, plan: &Plan, cfg: &Config) -> Val
 
 /// A `200` with a JSON body.
 pub fn json(doc: &Value) -> Vec<u8> {
-    ok("application/json", doc.to_string().as_bytes())
+    ok("application/json", doc.to_string().as_bytes(), "close")
 }
 
 /// A `200` with a body of text.
 pub fn text(body: &str) -> Vec<u8> {
-    ok("text/plain; charset=utf-8", body.as_bytes())
+    ok("text/plain; charset=utf-8", body.as_bytes(), "close")
 }
 
-fn ok(kind: &str, body: &[u8]) -> Vec<u8> {
+/// [`text`] on a connection that stays open for the caller's next request
+/// (T-765: a delegated credential, then the upgrade that uses it).
+pub fn text_kept_alive(body: &str) -> Vec<u8> {
+    ok("text/plain; charset=utf-8", body.as_bytes(), "keep-alive")
+}
+
+fn ok(kind: &str, body: &[u8], connection: &str) -> Vec<u8> {
     // The Date lets a client check its own clock, as `podssh doctor` does
     // with the default relay's.
     let date = http_date(super::tokens::now_ms() / 1000);
     let mut out = format!(
-        "HTTP/1.1 200 OK\r\nDate: {date}\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 200 OK\r\nDate: {date}\r\nContent-Type: {kind}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: {connection}\r\n\r\n",
         body.len()
     )
     .into_bytes();
@@ -256,6 +262,7 @@ mod tests {
             answered: Default::default(),
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
             events: None,
         }
     }

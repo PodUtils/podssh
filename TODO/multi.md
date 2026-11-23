@@ -37,7 +37,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
   (`crates/podssh-ssh/src/known_hosts.rs:335-410`).
 - Read: with no cached token, each session mints one
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:135-180`); the relay allows 120 attempts
-  with no token for each minute and address (`docs/relay.md:476`).
+  with no token for each minute and address (`docs/relay.md:631`).
 
 ## Approach
 
@@ -64,7 +64,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    could not connect or log in; 0 only when each host gave 0. `--fail-fast`
    starts no new host after a failure, and the running ones finish. A
    summary on stderr gives each host and its status.
-7. In the same commit: `crates/podssh-cli/src/flags.rs:385-455`,
+7. In the same commit: `crates/podssh-cli/src/flags.rs:387-457`,
    `crates/podssh-cli/src/positionals.rs:7-281`, a `Parsed` variant,
    `crates/podssh-cli/tests/flag_table.rs:110-146`, the notes, an example,
    `docs/cli.md`, `docs/STATUS.md`. T-013 can then group the commands.
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:6479-6482`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6509-6512`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:6695-6804`); they cannot define a group.
+  (`docs/cli.md:6725-6834`); they cannot define a group.
 
 ## Approach
 
@@ -905,14 +905,14 @@ short numbered list helps a person; a script must still get the usage error.
   (`crates/podssh-cli/src/ssh/resolve.rs:79`).
 - Read: `run_ssh` gets no terminal state
   (`crates/podssh-cli/src/dispatch.rs:406-408`), and the entry point of the
-  tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:32-40`,
+  tests has none on purpose (`crates/podssh-cli/src/dispatch.rs:31-39`,
   `PodUtils/podcrates:crates/pod-manual/src/pager.rs`, its `Tty`).
 - Read: the names can come only from the `Host` lines of ssh_config (T-043,
   M8); hashed `known_hosts` names cannot be listed.
 
 ## Approach
 
-1. Pass `Tty` from `crates/podssh-cli/src/dispatch.rs:60` into `run_ssh`.
+1. Pass `Tty` from `crates/podssh-cli/src/dispatch.rs:59` into `run_ssh`.
    With stdin and stdout both terminals and no destination, show the
    picker. In each other case, keep exit 64.
 2. The list: the literal `Host` names of the files that T-043 reads (no
@@ -1545,9 +1545,9 @@ of the command.
    changed.
 3. Then one exec on the same SSH connection: `cd DIR && COMMAND`, with DIR
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
-   (`docs/relay.md:470`), run the exec on a new session (T-137).
+   (`docs/relay.md:625`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:6479-6482`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6509-6512`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1662,7 +1662,7 @@ outlives the session, show it later, or stop it.
 ## Premise
 
 - Read: a session ends with its connection (`docs/design.md:522`), and `-f`
-  is refused (`crates/podssh-cli/src/flags.rs:268-269`).
+  is refused (`crates/podssh-cli/src/flags.rs:270-271`).
 - Read: tmux is never assumed; T-178 probes it with `command -v tmux`.
 - Read: `podssh serve` (T-107, M5) runs on the far end only where the user
   starts it.
@@ -1809,12 +1809,12 @@ a ticket, or a tool that asks an AI.
   (`PodUtils/podssh:crates/podssh-relay/src/token.rs:28-57`), and doctor never shows proxy
   credentials or tokens (`docs/cli.md` lines 1345-1347 at `48a8744`).
 - Read: podssh's messages leave through two writers: `Streams.err` in the
-  command line (`crates/podssh-cli/src/dispatch.rs:27-30`), and `Log`, which
+  command line (`crates/podssh-cli/src/dispatch.rs:26-29`), and `Log`, which
   writes to the stderr of the process itself
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
-  `crates/podssh-cli/src/dispatch.rs:452-496`.
+  `crates/podssh-cli/src/dispatch.rs:402-446`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:6479-6482`), which is not a failure of podssh.
+  status (`docs/cli.md:6509-6512`), which is not a failure of podssh.
 
 ## Approach
 
@@ -1997,7 +1997,7 @@ queue, no wait for a result, and no way to get the output back.
   queue on the client dies with it, and a client that waits must not need a
   listener (`docs/target-environment.md:89-93`).
 - Read: the output comes back with `cp` (T-134), within 64 MiB for each
-  relay session (`docs/relay.md:470`); T-137 opens a new session.
+  relay session (`docs/relay.md:625`); T-137 opens a new session.
 - Read in the report: GPU-Share places jobs by idle time and free VRAM. No
   such logic here: a count of slots is the only limit.
 
@@ -2841,8 +2841,8 @@ relay reaches; nothing reports the far side.
 - Read: `doctor --hop` reaches the hop as `--direct` does, through `HTTPS_PROXY`
   (`crates/podssh-cli/src/doctor/hop.rs:1-8`), and logs in with a key made for the check, which
   the server refuses (`crates/podssh-cli/src/doctor/hop.rs:131-152`): no command runs there.
-- Read: `doctor` takes no option of `ssh` (`crates/podssh-cli/src/doctor/mod.rs:108-152`), and its
-  `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:128-129`), so the
+- Read: `doctor` takes no option of `ssh` (`crates/podssh-cli/src/doctor/mod.rs:111-165`), and its
+  `--via` is the second proxy of T-439 (`crates/podssh-cli/src/doctor/mod.rs:131-132`), so the
   issue's `doctor --via HOST` names a flag that exists.
 - Read: `podssh health` resolves the host as `ssh` does, logs in on the same road, and runs one
   exec (`crates/podssh-cli/src/health/mod.rs:170-214`, the login and the exec as this entry's
@@ -3522,7 +3522,7 @@ session on 2026-11-03.
   podssh-cli --test flag_table`: 9; `--lib session::`, 17; `--lib man`, 66; `--lib help`, 9.
 - Planted: `scripts/plants/t506-empty-silent.plant` (the line of an empty list never written):
   `sh scripts/plant-each.sh --here t506-empty-silent`: caught, the test of the empty list failed.
-- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:487-491`
+- The Premise reads at `582b1bf`, so its citations stay; `crates/podssh-cli/src/tree.rs:461-465`
   (`TODO/cli.md`) and the citations of `docs/cli.md` were moved by hand; `cargo todo remap` from the
   tree before the draft confirmed them. rustfmt of `podssh-cli` (`exchange` of `session/client.rs`)
   and clippy of `podssh-cli` with `-D warnings`, all targets: clean.

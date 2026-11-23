@@ -3,10 +3,12 @@
 //! socket takes them, and counts what its socket took; the client reads
 //! 16 KiB/s through the role. Each write of the role waits for its reader,
 //! so the target stalls: what the target gave and the client has not read
-//! stays under 2 MiB, the contract's queue for a `1013`, or the role closes
-//! with that `1013`. The reverse road's bound, `1011 relay backpressure` at
-//! 1 MiB, is `relay_serve_reverse.rs`'s slow operator. The control reads at
-//! full speed and gets each byte, then the target's end.
+//! stays under the contract's 2 MiB queue for a `1013` plus the kernel's
+//! receive window on the role's side of the target, which T-336 leaves to
+//! the kernel, or the role closes with that `1013`. The reverse road's
+//! bound, `1011 relay backpressure` at 1 MiB, is `relay_serve_reverse.rs`'s
+//! slow operator. The control reads at full speed and gets each byte, then
+//! the target's end.
 #![cfg(all(feature = "serve", feature = "plain-ws"))]
 
 mod role_harness;
@@ -34,6 +36,19 @@ const SLOW_FOR: Duration = Duration::from_secs(12);
 const BOUND: usize = 2 * MIB;
 /// The control's whole run.
 const CONTROL_LIMIT: Duration = Duration::from_secs(60);
+
+/// The kernel's receive window on the role's side of its target: the role
+/// leaves that window to the kernel by design (T-336), so what waits past
+/// the target includes it. Read from the host, never assumed: the third
+/// value of `tcp_rmem` is the largest window autotuning grants (6 MiB on
+/// the host of the flake, next to a 2 MiB contract queue). A host without
+/// the file keeps the strict 2 MiB.
+fn kernel_receive_window() -> usize {
+    std::fs::read_to_string("/proc/sys/net/ipv4/tcp_rmem")
+        .ok()
+        .and_then(|text| text.split_whitespace().nth(2).and_then(|v| v.parse().ok()))
+        .unwrap_or(0)
+}
 
 /// A target on the loopback that sends `size` bytes to its one client as
 /// fast as its socket takes them, then ends; what its socket took so far.
@@ -118,7 +133,17 @@ async fn a_slow_forward_client_makes_the_target_wait_and_nothing_piles_up_in_the
         }
         None => {
             assert!(seen.read > 0, "the slow client read nothing: {seen:?}");
-            assert!(seen.most_waiting < BOUND, "more than 2 MiB waited past the target: {seen:?}");
+            // The contract's 2 MiB is the role's queue; the kernel's receive
+            // window on the dialed target is counted beside it, measured
+            // above. The role's own part stays the contract's, and 128 KiB
+            // unsent is its send side.
+            let kernel = kernel_receive_window();
+            assert!(
+                seen.most_waiting < BOUND + kernel + sockets::UNSENT as usize,
+                "more than the contract's 2 MiB, the kernel's {kernel}-byte receive window and the \
+                 role's {}-byte unsent bound waited past the target: {seen:?}",
+                sockets::UNSENT as usize
+            );
             assert!(seen.taken < SIZE / 4, "the target was never made to wait: {seen:?}");
         }
     }

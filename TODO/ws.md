@@ -319,7 +319,7 @@ the configuration on each call (`crates/podssh-ws/src/client.rs` lines 187-207 a
 (`PodUtils/podssh:crates/podssh-relay/src/token.rs:95-100`), the pool refresh
 (`PodUtils/podssh:crates/podssh-relay/src/pool.rs:178-186`), and the `https_*` functions (`client.rs` lines
 261-287). podssh's configuration offers no ALPN (`tls.rs` lines 174-177 at `723d90b`), because the upgrade is
-HTTP/1.1 only (`docs/relay.md:627`). The `tls12` feature of `rustls` is on in the workspace
+HTTP/1.1 only (`docs/relay.md:782`). The `tls12` feature of `rustls` is on in the workspace
 (`[workspace.dependencies]` of `Cargo.toml`).
 
 ## Approach
@@ -721,7 +721,7 @@ socks5:// is not supported; podssh speaks HTTP CONNECT to an http:// proxy"
 `HTTPS_PROXY`, `all_proxy` and `ALL_PROXY` (lines 163 and 184), and parses the first that is set
 (line 192). `dial` makes the error `DialError::BadProxy` (line 232), which stops the failover at
 once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in `podssh proxy`
-(`crates/podssh-cli/src/proxy.rs:484`). `doctor` reports it as `FAIL`
+(`crates/podssh-cli/src/proxy.rs:489`). `doctor` reports it as `FAIL`
 (`crates/podssh-cli/src/doctor/net.rs`, lines 101-107). Two tests assert the refusal:
 `crates/podssh-cli/tests/doctor.rs`, lines 144-153, and `PodUtils/podssh:crates/podssh-ws/tests/dial.rs`, lines
 50-58.
@@ -740,7 +740,7 @@ once (`PodUtils/podssh:crates/podssh-relay/src/open.rs:79`) and gives exit 78 in
    order (pinned, system, DNS over HTTPS), and try once with the address.
 4. Map each answer to the HTTP case that `another_host_may_help`
    (`PodUtils/podssh:crates/podssh-relay/src/open.rs:71-93`) and the exit codes of `podssh proxy`
-   (`crates/podssh-cli/src/proxy.rs:480-493`) already treat: a refused user or password as 407
+   (`crates/podssh-cli/src/proxy.rs:485-498`) already treat: a refused user or password as 407
    (the same for each host: stop); 0x02 (not allowed) as 403; 0x03, 0x04 and 0x05 as 502.
 5. Credentials never in output: `Display` shows the host and port only (now
    `PodUtils/podssh:crates/podssh-ws/src/proxy.rs:70-75`).
@@ -1986,7 +1986,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: the release builds two binaries for macOS and two for Windows
   (`.github/workflows/release.yml:321-337`, `:374-390`).
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
-  (`crates/podssh-relay/Cargo.toml:286-287`), a crate with no C; `rustls-native-certs` 0.8.4,
+  (`crates/podssh-relay/Cargo.toml:290-291`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
   (`Cargo.lock:6544-6545`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
@@ -2907,7 +2907,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:399-403`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:476-480`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3312,7 +3312,7 @@ and a local Unix socket of frames. podssh has the roads and the layer, and no co
 
 ## Premise
 
-- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:170-224` lists them, and
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:185-239` lists them, and
   AGENTS.md section 1 names none).
 - Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
   contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.
@@ -3630,7 +3630,7 @@ two requests in two directions.
   (`PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`, its reason at
   `PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`). The issue's "keep the 78 refusal" reads as:
   keep stream-one's refusal, and say why in `doctor`.
-- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:96-97`).
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:97-98`).
 
 ## Approach
 
@@ -3758,7 +3758,7 @@ of UDP only from the source. The tester accepts either outcome: UDP associate bu
 
 - `PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs` says "is not spoken" of UDP's command, and the
   request writes CONNECT alone (`PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs`).
-- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:96-97`)
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:97-98`)
   and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
   2026-11-13).
 
@@ -3813,7 +3813,7 @@ not after a stall).
 ## Premise
 
 - `crates/podssh-ws/src/h2_road/mod.rs:1-4` says the road is `pod-ws`'s of PodUtils/podcrates,
-  re-exported (`crates/podssh-ws/src/h2_road/mod.rs:8-11`). `pod-ws` is taken (`TODO/PROGRESS.md`,
+  re-exported (`crates/podssh-ws/src/h2_road/mod.rs:9-12`). `pod-ws` is taken (`TODO/PROGRESS.md`,
   state item 7), so its work is done in PodUtils/podcrates (Rule Q3, `docs/decisions.md`).
 - Read at `45b145a`: PodUtils/podcrates:crates/pod-ws/tests/h2_road.rs tests eight sessions on
   one TLS connection, a server that offers no extended CONNECT, one whose TLS chooses http/1.1,
@@ -3879,7 +3879,7 @@ its vectors cover.
 
 ## Premise
 
-- The road is `pod-ws`'s (`crates/podssh-ws/src/h2_road/mod.rs:8-11`), a crate that podssh took
+- The road is `pod-ws`'s (`crates/podssh-ws/src/h2_road/mod.rs:9-12`), a crate that podssh took
   (`TODO/PROGRESS.md`, state item 7; Rule Q3, `docs/decisions.md`).
 - Read at `45b145a`: PodUtils/podcrates:crates/pod-ws/src/h2_road/dial.rs sets the initial
   windows and turns push off (line 78 at `45b145a`), and nothing else of the shape.

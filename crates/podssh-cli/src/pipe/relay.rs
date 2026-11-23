@@ -106,7 +106,7 @@ pub async fn session(
     let request =
         Request { relays: road.relays, path, trust: road.trust, target: &target, rounds: 1, failover: road.failover };
     let opened = crate::send_notes::said(
-        |notes| async move { podssh_relay::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
+        |notes| async move { crate::h2_road::open(&request, &mut |n: &str| crate::send_notes::send(&notes, n)).await },
         say,
     )
     .await?;

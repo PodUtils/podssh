@@ -310,10 +310,10 @@ impl Carrier {
                 self.board.take(&door).await
             };
             // A board that failed once is asked again at the next poll.
-            if let Ok(kept) = taken {
-                if kept.as_deref() != Some(hello) {
-                    return Ok(());
-                }
+            if let Ok(kept) = taken
+                && kept.as_deref() != Some(hello)
+            {
+                return Ok(());
             }
             if Instant::now() >= deadline {
                 return Err(format!("the node took no hello within {} s", wait.as_secs()));

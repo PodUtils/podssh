@@ -29,6 +29,7 @@ pub(super) async fn serve(
     cfg: Arc<Config>,
     sni: Option<String>,
     from: Option<IpAddr>,
+    exporter: Option<[u8; 32]>,
 ) {
     let (parts, mut body) = request.into_parts();
     let Some(authority) = parts.uri.authority().map(|a| a.to_string()) else {
@@ -38,7 +39,7 @@ pub(super) async fn serve(
     let mut head = format!("POST {target} HTTP/1.1\r\nHost: {authority}\r\nTransfer-Encoding: chunked\r\n");
     fields(&mut head, &parts.headers, &["host", "content-length"]);
     head.push_str("\r\n");
-    let Some(mut pipe) = route(head.into_bytes(), cfg, sni, from).await else {
+    let Some(mut pipe) = route(head.into_bytes(), cfg, sni, from, exporter).await else {
         return refuse(&mut respond, 502, "relay: the request reached no route");
     };
     let Some((status, buf, end)) = read_head(&mut pipe).await else {

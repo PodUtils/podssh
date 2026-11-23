@@ -120,11 +120,12 @@ async fn refresh_once(
             return Ok(answer.attribute(LIFETIME).and_then(|v| msg::u32_of(&v)).unwrap_or(600));
         }
         let (code, reason) = answer.error();
-        if code == 438 && round == 0 {
-            if let Some(nonce) = answer.attribute(NONCE) {
-                auth.nonce = nonce;
-                continue;
-            }
+        if code == 438
+            && round == 0
+            && let Some(nonce) = answer.attribute(NONCE)
+        {
+            auth.nonce = nonce;
+            continue;
         }
         return Err(format!("{code} {reason}"));
     }

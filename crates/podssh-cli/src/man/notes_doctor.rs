@@ -108,6 +108,13 @@ pub(super) const DOCTOR_HTTP2: &str = "The line http2, in the section relay, aft
      extended CONNECT, with its streams at once; then whether the sessions of a run share one connection to it, by \
      PODSSH_H2 (podssh relay serve offers it; the default relay's edge chooses h2 and offers no extended CONNECT). The \
      line is ok, a fact; ???? when the host was not reached; FAIL for a word of PODSSH_H2 that is not auto, yes or no. \
+     With --h2-shape WORD (default: PODSSH_H2_SHAPE, else existing), a line http2 shape names the shape's SETTINGS \
+     and window, which podssh-ws's h2 road sends. It says that its PRIORITY frames and padded DATA are recorded \
+     and not sent through h2 0.4. No session of the run takes that road, whose default is the WebSocket upgrade. \
+     With --early-data 0rtt|1rtt|off (default: PODSSH_VLESS_EARLY_DATA), the \
+     session of each VLESS server offers that early data, and its line names the first write. With \
+     --trojan, the section trojan states Trojan's controls by name from trojan::capability(): a TCP stream is \
+     carried, and UDP associate (command 0x03) is refused with why; it makes no connection. \
      With --forwarder, the section of the forwarders has the line for each wss:// one, whose road keeps the upgrade of \
      HTTP/1.1.";
 

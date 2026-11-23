@@ -78,7 +78,7 @@ def print_hits(root: Path) -> tuple[int, list[tuple[str, int, str]]]:
     hits = []
     for path in files:
         rel = path.relative_to(root)
-        if _is_test_file(rel.relative_to(*rel.parts[:3])):
+        if _is_test_file(rel.relative_to(Path(*rel.parts[:3]))):
             continue
         text = path.read_text(encoding="utf-8", errors="replace")
         for line_no, line in code_lines(text):

@@ -48,6 +48,7 @@ async fn role(mint: Mint) -> (RelayUrl, Arc<Mutex<Vec<String>>>) {
         answered: Default::default(),
         brake: Default::default(),
         usage: Default::default(),
+        cover: None,
         events: Some(say),
     });
     tokio::spawn(async move {

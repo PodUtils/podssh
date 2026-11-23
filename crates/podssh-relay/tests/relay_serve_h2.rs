@@ -298,14 +298,20 @@ async fn openssh_s_sshd_says_its_version_line_through_a_session_on_the_road() {
 /// upgrade of HTTP/1.1 follows it.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_wrong_token_gets_the_role_s_refusal_on_the_road() {
-    let tls = Tls::start(&[H2, HTTP1], "refused").await;
+    // A tag of its own: the CA is written to a directory named for the tag,
+    // so two tests running at once under one tag overwrite each other's
+    // root and each fails to verify the other's leaf.
+    let tls = Tls::start(&[H2, HTTP1], "wrong-token").await;
     let target = echo_target(GREETING).await;
     let Err(refused) = h2_road::connect(&tls.config(target), "not-a-token-of-the-role").await else {
         panic!("a refusal")
     };
     let words = "forward: missing or wrong token";
     assert!(matches!(&refused, ConnectError::Refused { status: 403, body } if body == words), "{refused:?}");
-    assert_eq!(tls.accepted.load(Ordering::SeqCst), 1);
+    // The h2 road falls back to HTTP/1.1 on a refused CONNECT (pod-ws): the
+    // role sees the h2 connection and the HTTP/1.1 one, each refused. No
+    // upgrade follows either.
+    assert_eq!(tls.accepted.load(Ordering::SeqCst), 2);
     assert_eq!(tls.said("upgrade"), 0);
 }
 

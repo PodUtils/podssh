@@ -28,19 +28,30 @@ pub const SSH_VLESS: &str = "--vless FILE reaches the first hop through VLESS se
      each road: the server sees the \
      target's name and SSH's encrypted bytes. A run has one road: --relay-host, --relay-failover, --direct, \
      --forwarder, --shadowsocks, --via, --wstunnel, -4, -6, and a destination with a road of its own cannot go \
-     with it (64).";
+     with it (64). The first write that carries data is one write of 3,333 bytes. Over XHTTP it is the request's \
+     head and its first data; over a WebSocket, the upgrade head alone. Xray-core's gorilla server refuses a frame \
+     before the handshake, so VLESS's request follows in the first message. A short write is padded and said. -v and \
+     doctor name the size, the short write and which shape applies. --early-data 0rtt|1rtt|off (default: \
+     PODSSH_VLESS_EARLY_DATA, else off) offers early data where the link's ed names a size: a nonce used twice in \
+     10 minutes is refused, and the session stays at 1-RTT; the nonce goes in no line. Without --vless it is \
+     refused (64). --h2-shape existing|browser|firefox (default: PODSSH_H2_SHAPE, else existing) chooses the shape \
+     of podssh-ws's h2 road. The default session road is the WebSocket upgrade and does not read it. A word that \
+     is not one refuses the run (64).";
 
 pub const PROXY_VLESS: &str = "podssh proxy --vless FILE carries the pipe through the VLESS servers of FILE, in \
      order, with no relay, as podssh ssh does (see its notes). A pipe's client may speak first, so a server that \
      says nothing for 3 s is taken; one that ends the session, or answers in another protocol, within them gives \
      way to the next. A WebSocket and packet-up have no half-close: the end of stdin ends nothing, and the \
-     target's bytes come until the server ends; stream-up and stream-one end their upload.";
+     target's bytes come until the server ends; stream-up and stream-one end their upload. It takes --early-data \
+     and --h2-shape as podssh ssh does (see its notes).";
 
 pub const DOCTOR_VLESS: &str = "With --vless FILE, the section vless gives a line for each server of FILE. Where its \
      link says auto, it gives one for each mode of XHTTP (packet-up, stream-up, stream-one): the proxy of HTTPS_PROXY \
      that carried the TCP to it, if one did, the transport that carried the session and the time of VLESS's answer. \
      Then the section opens a session through it to github.com port 22, whose host key must be one that GitHub \
-     publishes. A server that ends the session before its answer refused the ID, or could not reach the target.";
+     publishes. A server that ends the session before its answer refused the ID, or could not reach the target. A \
+     link whose mode is stream-one says, before any connection, that HTTP/2 carries it and HTTP/1.1 refuses it \
+     (78), and which modes pass. --early-data and --h2-shape act as on ssh.";
 
 pub const SSH_TROJAN: &str = "--trojan FILE reaches the first hop through Trojan servers that you run \
      (trojan-gfw, trojan-go, Xray-core, sing-box), in place of the relay: after a real TLS handshake the server \

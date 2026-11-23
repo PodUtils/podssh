@@ -41,7 +41,7 @@ core: the handshake, a host key that does not change, and key authentication.
    waits (podssh: 30 s, `crates/podssh-ssh/src/session.rs:19-22`).
 2. russh settings: `publickey` only (the default also offers `password`);
    the 512 KiB window of `crates/podssh-ssh/src/run.rs:26-30`; no inactivity
-   cut (russh: 600 s); a keepalive every 60 s (`docs/relay.md:556`).
+   cut (russh: 600 s); a keepalive every 60 s (`docs/relay.md:711`).
 3. Host key: `--host-key FILE`, else a file in the first usable directory of
    the cache chain, made with `keygen::generate` and `keygen::write_pair`.
    Invariant: never overwritten; the loser of a `create_new` race reads the
@@ -50,9 +50,9 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:381-455` and
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:383-457` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:356-430`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/dispatch.rs:379-381`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -109,7 +109,7 @@ on T-698.
 2026-11-13. The Premise, read again at `f6c8ba7`:
 
 - russh is 0.65.0, not 0.64.1, and the tree builds it from `vendor/russh` with podssh's patches,
-  through `[patch.crates-io]` of the workspace (`Cargo.toml:214`). Its server module is still built
+  through `[patch.crates-io]` of the workspace (`Cargo.toml:217`). Its server module is still built
   on each target but wasm (`vendor/russh/src/lib_inner.rs:67-68`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:531`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:532`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:557`; measured: `docs/STATUS.md:539`). 200 MiB each way
+  (`docs/relay.md:712`; measured: `docs/STATUS.md:540`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -1171,7 +1171,7 @@ so a key with limits cannot be used at all.
 - Read: the patterns of `from=` are those of `known_hosts`, which
   `crates/podssh-ssh/src/known_hosts.rs:274-297` matches (negation included).
 - Read: on the reverse road, serve does not know the client's address: the
-  stream comes from the relay (`docs/relay.md:635-659`).
+  stream comes from the relay (`docs/relay.md:790-814`).
 - Read in the reports of GitHub #21 and #18, not verified here: agent-ssh-cli
   checks regex lists before exec; sandhole limits local forwarding.
 
@@ -1424,7 +1424,7 @@ syslog and no `/var`. A record must not leak secrets or session data.
 
 - Read: podssh's log goes to stderr or to a file
   (`crates/podssh-ssh/src/log.rs:46-62`), as lines with no structure.
-- Read: `serde_json` is a workspace dependency (`Cargo.toml:121`), but not a
+- Read: `serde_json` is a workspace dependency (`Cargo.toml:124`), but not a
   dependency of `podssh-ssh` yet.
 - Read in the report of GitHub #25, not verified here: USBoverSSH writes an
   audit log of connection events.
@@ -1680,7 +1680,7 @@ must slow the child down, and a client that is gone must end the session.
   buffer of 100 messages (T-108).
 - Read: the comment on the SSH window said that the relay drops a frame
   past 1 MiB with 1011 (`crates/podssh-ssh/src/run.rs` lines 25-29 at
-  `80f20bf`); `docs/relay.md:570-582` says that it closes with 1013 at
+  `80f20bf`); `docs/relay.md:725-737` says that it closes with 1013 at
   2 MiB. T-024 corrected the comment; T-062 measures whether the relay's
   check operates.
 
@@ -2198,7 +2198,7 @@ default of russh refuses each `tcpip-forward` with no reason.
   allows a listener only when the user asks and a probe allows the bind.
 - Read: `docs/design.md:1188-1190` allows a listener on the far side. The relay
   is a listener that podssh does not run: a node name takes operator
-  sessions (`docs/relay.md:635-659`).
+  sessions (`docs/relay.md:790-814`).
 - Read in the report of GitHub #18, not verified here: sandhole publishes
   services through a stock `ssh -R`.
 
@@ -2348,11 +2348,11 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:381-455`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:383-457`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:531`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:532`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2408,7 +2408,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:478`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:479`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2426,10 +2426,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:530` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:478`, `docs/STATUS.md:498`),
+- `docs/STATUS.md:531` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:479`, `docs/STATUS.md:499`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:476` is `docs/STATUS.md:478`.
+  The Prove's `docs/STATUS.md:477` is `docs/STATUS.md:479`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2488,10 +2488,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:531`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:532`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:494`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:495`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2575,8 +2575,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:530`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:493`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:531`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:494`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2892,7 +2892,7 @@ connection.
 ## Premise
 
 - `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
-  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:161`
+  `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:166`
   (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:137` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
   `harden_tests.rs` (228).

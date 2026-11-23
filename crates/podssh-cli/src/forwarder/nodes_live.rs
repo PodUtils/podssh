@@ -23,6 +23,7 @@ async fn version_line(node: &podssh_ws::proxy_nodes::Node) -> Result<String, Str
         answer: NODE_WAIT - Duration::from_secs(4),
         silence_is_ready: false,
         at_end: AtEnd::Now,
+        early: None,
     };
     let mut quiet = |_: &str| {};
     let carried = carry(std::slice::from_ref(node), "github.com", 22, &dial, (NODE_WAIT, 1), &mut quiet)

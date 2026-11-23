@@ -27,7 +27,7 @@ use tokio::io::{AsyncRead, AsyncWrite, DuplexStream};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 
-use super::pairs::{Pair, Pairs};
+use super::pairs::Pair;
 use super::{node, operator};
 use crate::serve::{tokens::Tokens, Config, Events, Limits, Mint};
 
@@ -77,11 +77,12 @@ impl Role {
             policy: Default::default(),
             egress: Default::default(),
             limits: Limits::default(),
-            pairs: Pairs::default(),
+            pairs: Arc::default(),
             resumes: Default::default(),
             answered: Default::default(),
             brake: Default::default(),
             usage: Default::default(),
+            cover: None,
             events,
         };
         let pair = Arc::new(Pair::carried(NAME));

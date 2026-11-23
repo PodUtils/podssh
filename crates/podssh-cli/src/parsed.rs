@@ -89,6 +89,13 @@ pub enum Parsed {
         via: crate::via::Flags,
         /// `--vless` (T-440).
         vless: Option<String>,
+        /// `--early-data` (T-758).
+        early_data: Option<String>,
+        /// `--h2-shape` (T-763).
+        h2_shape: Option<String>,
+        /// `--cover-credential`: the delegated credential of a cover relay
+        /// on the live connection (T-765).
+        cover_credential: bool,
         /// `--trojan` (T-491).
         trojan: Option<String>,
         /// `--hysteria` (T-580).
@@ -189,6 +196,14 @@ pub enum Parsed {
         via: crate::via::Flags,
         /// `--vless`: the VLESS servers to check too (T-440).
         vless: Option<String>,
+        /// `--early-data`: the early data that the VLESS check offers
+        /// (T-758).
+        early_data: Option<String>,
+        /// `--h2-shape`: the shape of the HTTP/2 road that podssh builds
+        /// (T-763).
+        h2_shape: Option<String>,
+        /// `--trojan`: Trojan's controls by name, with no connection (T-761).
+        trojan: bool,
         /// `--hysteria`: the Hysteria 2 servers to check too (T-580).
         hysteria: Option<String>,
         /// `--tuic`: the TUIC servers to check too (T-581).
@@ -197,6 +212,8 @@ pub enum Parsed {
         turn: crate::turn::Flags,
         /// `--devtunnel TUNNEL[:PORT]`: the Dev Tunnels tunnel to check too (T-755).
         devtunnel: Option<String>,
+        /// `--cover NAME`: the delegated credential of a cover relay (T-766).
+        cover: Option<String>,
         /// `--quick` and `--jobs N` (T-511).
         quick: bool,
         /// `--tier`: this host's verdict alone (T-706).
@@ -288,6 +305,28 @@ impl Parsed {
             Parsed::Agent(args) => !args.refused.is_empty(),
             Parsed::Ts { refused, .. } => !refused.is_empty(),
             other => other.is_error(),
+        }
+    }
+
+    /// `--cover-credential`, when the verb that was parsed carries it:
+    /// `ssh` or `proxy` (T-765).
+    pub fn cover_credential(&self) -> bool {
+        match self {
+            Parsed::Command { ssh: Some(args), .. } => args.cover_credential,
+            Parsed::Proxy { cover_credential, .. } => *cover_credential,
+            _ => false,
+        }
+    }
+
+    /// `--h2-shape`, when the verb that was parsed carries it: `ssh`,
+    /// `proxy` or `doctor` (T-763). The shape is chosen once, before the
+    /// run, because the road reads it where it is built.
+    pub fn h2_shape(&self) -> Option<&str> {
+        match self {
+            Parsed::Command { ssh: Some(args), .. } => args.h2_shape.as_deref(),
+            Parsed::Proxy { h2_shape, .. } => h2_shape.as_deref(),
+            Parsed::Doctor { h2_shape, .. } => h2_shape.as_deref(),
+            _ => None,
         }
     }
 }

@@ -201,10 +201,10 @@ pub(super) fn admit(
         state.spares.level = (state.spares.level + 1).min(state.spares.want);
     }
     // A spare never takes a leg's place: one that is still opening gives it.
-    if state.sessions.len() + state.spares.len() >= MAX_SESSIONS {
-        if let Some(spare) = state.spares.each.keys().next().copied() {
-            retire(state, Some(&node), spare, YIELDS);
-        }
+    if state.sessions.len() + state.spares.len() >= MAX_SESSIONS
+        && let Some(spare) = state.spares.each.keys().next().copied()
+    {
+        retire(state, Some(&node), spare, YIELDS);
     }
     if state.sessions.len() >= MAX_SESSIONS {
         return Err("node unavailable");

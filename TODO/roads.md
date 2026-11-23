@@ -167,7 +167,7 @@ access is by an allowlist of keys or a relay token (`docs/design.md:1431-1432`).
 Read in the reports, not verified here: iroh-ssh warns when a server's key is
 ephemeral (`rustonbsd/iroh-ssh:src/ssh.rs`); zuko hands over a ticket out of
 band (`adonm/zuko:docs/protocol.md`). Read: `podssh ts` keeps its node key in
-the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:377-378`,
+the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:379-380`,
 `crates/podssh-cli/src/ts.rs:182`). Credentials never go on argv
 (`AGENTS.md`, section 4).
 
@@ -1183,13 +1183,13 @@ the part of podssh:
    server of their own, on port 443.
 2. The forward path: `/connect/<host>/<port>`, the token header, `/v1/mint`,
    an empty frame each 25 s, the limits (180 s idle, 12 h, 64 MiB, frames of
-   262144 bytes), the close codes of `docs/relay.md:548-569`, and `/health`
+   262144 bytes), the close codes of `docs/relay.md:703-724`, and `/health`
    with the service name that `doctor` checks
    (`PodUtils/podssh:crates/podssh-relay/src/health.rs:13-15`).
 3. The reverse path: `/v1/pair`, `/v1/node/<name>`, `/v1/connect/<name>`,
    `/v1/stop/<name>`, the text control frames, the 32-character ids, `409` for
    a second node, and the reverse close table.
-4. The targets: public addresses only, the ranges of `docs/relay.md:477`,
+4. The targets: public addresses only, the ranges of `docs/relay.md:632`,
    checked after the name resolves. TLS with a certificate that the relay's
    owner gives. Rate limits and quotas for each address and each token.
 5. The part of podssh: no change in the client, because the contract is the
@@ -1238,7 +1238,7 @@ What the role serves: the contract `2026-10-03-r2`, so that each client of podss
 with `?dial=lazy`, `?precheck` and `?family`; `/relays.json` with the five limits of
 `crates/podssh-probe/facts/relay-limits.toml`; `/trace`; and `/llms-full.txt`, podssh's own copy
 of the contract. A target is dialed only after its name resolved to a public address (the ranges
-of `docs/relay.md:477`), and port 25 is refused; the limits are the contract's (an empty frame
+of `docs/relay.md:632`), and port 25 is refused; the limits are the contract's (an empty frame
 each 25 s, 180 s idle, 12 h, 64 MiB, frames of 262144 bytes), and so are the forward close
 codes; each queue has a bound (`1013` at 2 MiB, T-336), which a write that waits gives.
 
@@ -2606,7 +2606,7 @@ The part of podssh, when the start condition holds:
 2. The client uses it only when the relay says that it offers it (a field of
    `/relays.json` or `/health`, read at run time). Never assume it.
 3. Keep the resume token in memory only. Send it back in a header, never in a
-   URL or in output (`docs/relay.md:461-463`).
+   URL or in output (`docs/relay.md:616-618`).
 4. A resume must reach the same Durable Object, so only hosts of one
    deployment can resume a session (the rule of the pool:
    `PodUtils/podssh:crates/podssh-relay/src/pool.rs:140-149`).
@@ -2807,7 +2807,7 @@ the far end closes the target at a cut; the test fails. Live, on a GitHub runner
 `scripts/fake-proxy.py`.
 
 2026-11-04 (the drafting agent). Read at `6a62cdc`: the Premise holds at each line that it cites
-(`docs/design.md` lines 659-662, 702-706 and 1410-1413 at that commit; `docs/relay.md:450-452`;
+(`docs/design.md` lines 659-662, 702-706 and 1410-1413 at that commit; `docs/relay.md:605-607`;
 `PodUtils/podssh:crates/podssh-relay/src/pool.rs:140-149`), and so does the Correction above: the far end of the
 layer is `PodUtils/podssh:crates/podssh-relay/src/session/far.rs`, and the role's `/connect/` ends the target with
 its WebSocket (`crates/podssh-relay/src/serve/forward.rs`). Three parts of the Approach above
@@ -3807,7 +3807,7 @@ this road.
   its `101` answered `200`, so `/connect/`, the layer's path and the reverse road keep their own
   code, tokens, policy, brake and limits, and no file of theirs changes; `GET` of `/health`,
   `/relays.json`, `/trace`, `/llms-full.txt` and `POST /v1/mint` answer whole; each other request
-  is reset with `HTTP_1_1_REQUIRED` (`crates/podssh-relay/src/serve/http2/stream.rs:67`), which a
+  is reset with `HTTP_1_1_REQUIRED` (`crates/podssh-relay/src/serve/http2/stream.rs:70`), which a
   client of HTTP/2 follows over HTTP/1.1, as the HTTP road keeps its connection between requests
   and the probes stream. Lost: `/connect/` served on the stream itself, which would change
   `forward::connect` that T-173's layer builds on; a socket to the role's own listener on the
@@ -5016,7 +5016,7 @@ Endpoint puts a credential in its URL.
 - Read: the `cf://` road uses podssh-ws's WebSocket client through the proxy
   (`crates/podssh-cli/src/ssh/cloudflare.rs:223`); an RSA key signs through aws-lc-rs in the
   binary (`deny.toml`, the reason of RUSTSEC-2023-0071); `podssh cp` opens a new session before
-  the relay's caps (`docs/relay.md:488-494`), as an hour of EICE would need.
+  the relay's caps (`docs/relay.md:643-649`), as an hour of EICE would need.
 - Inferred: a proxy that re-terminates TLS passes either road where it passes a WebSocket.
 
 ## Approach
@@ -5850,7 +5850,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:258-263`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:330-335`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -6041,7 +6041,7 @@ does not depend on them.
 
 - Read: `Transport::Direct` comes from `--direct` alone
   (`crates/podssh-cli/src/ssh/resolve.rs`, lines 340-346 at `4e2010e`), and else the relay (lines 348-371 at `4e2010e`); its other
-  uses are a label (`crates/podssh-cli/src/ssh/servers.rs:88`), the dial
+  uses are a label (`crates/podssh-cli/src/ssh/servers.rs:92`), the dial
   (`crates/podssh-cli/src/ssh/transport.rs:296-339`) and a check of `--upgrade`
   (`crates/podssh-cli/src/ssh/upgrade.rs:59`). The issue's citation of
   the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:286-289`.
@@ -6223,7 +6223,7 @@ relay's path and token.
   nothing of other clients.
 - Read: a relay is a host and a port (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:83-89`), and its forward
   path is `/connect/<host>/<port>` (`:188-201`); a run has one road, of five kinds
-  (`crates/podssh-cli/src/ssh/transport_kind.rs:9-72`).
+  (`crates/podssh-cli/src/ssh/transport_kind.rs:9-74`).
 - Read: `validate` refuses a query other than the relay's knobs, and `connect` always sends a token
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:74-113`, now `crates/podssh-ws/src/client.rs:57-86`); a token goes only to the deployment that
   minted it (`docs/decisions.md:108`).
@@ -6670,7 +6670,7 @@ TCP, and podssh runs no `ProxyCommand` that could add TLS.
 
 - Read: a hop is `[user@]host[:port]` or `ssh://[user@]host[:port]`
   (`crates/podssh-cli/src/ssh/hop.rs:30-57`); a destination can also name a road by its scheme,
-  `cf://`, `node://` or `iroh:` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-72`).
+  `cf://`, `node://` or `iroh:` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-74`).
 - Read: podssh runs no `ProxyCommand` (`crates/podssh-cli/src/ssh/options.rs:231-236`).
 - Read: podssh-ws opens TCP through the proxy, then a TLS handshake checked for a name
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:207-235`), with no ALPN and no client certificate
@@ -7159,7 +7159,7 @@ ask, and nothing does so.
   (`crates/podssh-cli/src/node_iroh.rs:384-385`), and `podssh node` sends `--iroh` there
   (`crates/podssh-cli/src/node.rs:129-131`).
 - Read: `podssh ssh` resolves its destination into an enum of transports
-  (`crates/podssh-cli/src/ssh/transport_kind.rs:10-72`), in a file of 488 of its 500 lines.
+  (`crates/podssh-cli/src/ssh/transport_kind.rs:10-74`), in a file of 488 of its 500 lines.
 - Read: the race of T-164 orders two roads (`PodUtils/podssh:crates/podssh-relay/src/session/race.rs:59-61`), and
   the race of the command line is in a build with the feature `iroh` only
   (`crates/podssh-cli/src/ssh/iroh.rs:8-11`).
@@ -8526,9 +8526,9 @@ puts the fallback in its `ok` column without a probe.
   (`crates/podssh-cli/src/ssh/transport.rs:231-265`); the module's own words are that "a target
   that cannot go" ends the run as before (`crates/podssh-cli/src/forwarder/fallback.rs:10-12`).
 - Read: the relay's refusal of a target by its policy (400, a blocked address range) is 77
-  (`crates/podssh-cli/src/proxy.rs:413-414`), and each other answer, the 502 of a target that the
+  (`crates/podssh-cli/src/proxy.rs:418-419`), and each other answer, the 502 of a target that the
   relay could not reach or whose name does not resolve among them, is 69
-  (`crates/podssh-cli/src/proxy.rs:407-420`); so both go to the forwarders (L-28, and #106's dead
+  (`crates/podssh-cli/src/proxy.rs:412-425`); so both go to the forwarders (L-28, and #106's dead
   target).
 - Read: the relay pool already tells these apart: another host cannot help after a refusal by
   policy or of a token, or after a 502 whose target's name fails
@@ -9841,7 +9841,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:265`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:337`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:33` (`iroh UDP out`); a bind
@@ -9851,7 +9851,7 @@ Read at `2042200`:
 - No code of podssh speaks STUN (searched); the TURN road would bring a STUN codec (T-621, its step 2).
 - The measured sandbox refuses UDP: `docs/target-environment.md:23` says "EPERM", so there the line is
   unknown.
-- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:85` for `UdpSocket`),
+- A socket that a source binds must be named in `scripts/repo_listeners.py` (`:91` for `UdpSocket`),
   which `scripts/check-repo.py:289` reads.
 
 ## Approach
@@ -10568,7 +10568,7 @@ with a Cloudflare account waits (the owner, 2026-11-09).
 ## Correction
 
 2026-11-17. The Premise's lines moved: `crates/podssh-ws/src/client.rs` is 160 lines, `connect` at
-`:85` and `https_with_token` at `:134`; `https_request` is `pod-ws`'s, and private (`PodUtils/podcrates:
+`:85` and `https_with_token` at `:218`; `https_request` is `pod-ws`'s, and private (`PodUtils/podcrates:
 crates/pod-ws/src/client.rs:355`, v0.67.0). `access.headers()` of `pod-egress` is private: podssh builds
 the lines from the public fields and the header names. More: the relay's road, a pair's road and
 `operator` are not podssh's code any more (`pod-relay`, taken), so the headers there are podcrates' work

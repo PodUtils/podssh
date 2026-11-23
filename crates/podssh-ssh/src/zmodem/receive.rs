@@ -122,10 +122,10 @@ impl Receiver {
                     _ => return self.over(acts, Ended::Done, &data[i..]),
                 }
             }
-            if let Some(event) = self.reader.push(byte) {
-                if let Some(ended) = self.event(event, now, &mut acts) {
-                    return self.over(acts, ended, &data[i + 1..]);
-                }
+            if let Some(event) = self.reader.push(byte)
+                && let Some(ended) = self.event(event, now, &mut acts)
+            {
+                return self.over(acts, ended, &data[i + 1..]);
             }
         }
         acts

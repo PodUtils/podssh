@@ -179,10 +179,10 @@ impl Params {
             None | Some("5") | Some("") => {}
             Some(other) => return Err(format!("version={other} is not spoken: podssh speaks TUIC version 5")),
         }
-        if let Some(cc) = self.get("congestion_control").or(self.get("congestion-controller")) {
-            if !matches!(cc.to_ascii_lowercase().as_str(), "" | "cubic" | "bbr" | "new_reno" | "newreno") {
-                return Err(format!("congestion_control={cc} is no controller: cubic, new_reno or bbr"));
-            }
+        if let Some(cc) = self.get("congestion_control").or(self.get("congestion-controller"))
+            && !matches!(cc.to_ascii_lowercase().as_str(), "" | "cubic" | "bbr" | "new_reno" | "newreno")
+        {
+            return Err(format!("congestion_control={cc} is no controller: cubic, new_reno or bbr"));
         }
         Ok(())
     }

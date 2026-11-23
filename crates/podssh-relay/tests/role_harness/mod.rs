@@ -108,11 +108,12 @@ impl Role {
             policy,
             egress,
             limits,
-            pairs,
+            pairs: Arc::new(pairs),
             resumes,
             answered: Default::default(),
             brake: Default::default(),
             usage,
+            cover: None,
             events: Some(say),
         });
         let served = cfg.clone();

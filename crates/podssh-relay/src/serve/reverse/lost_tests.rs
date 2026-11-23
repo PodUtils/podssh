@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, DuplexStream, ReadBuf};
 
 use super::super::pairs::{Made, Pair, Role};
-use super::super::{request as serve, Pairs};
+use super::super::request as serve;
 use super::*;
 use crate::serve::{tokens, Config, Mint};
 
@@ -36,11 +36,12 @@ fn config() -> (Arc<Config>, Arc<Mutex<Vec<String>>>) {
         policy: Default::default(),
         egress: Default::default(),
         limits: Default::default(),
-        pairs: Pairs::default(),
+        pairs: Arc::default(),
         resumes: Default::default(),
         answered: Default::default(),
         brake: Default::default(),
         usage: Default::default(),
+        cover: None,
         events: Some(Box::new(move |line: &str| said.lock().unwrap().push(line.to_string()))),
     });
     (cfg, lines)

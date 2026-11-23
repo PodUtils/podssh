@@ -285,10 +285,10 @@ async fn keyboard_interactive(
                 }
                 // The same prompt again: the server did not take the stored
                 // password. Another prompt: it did, and asks for more.
-                if let Some(text) = answered.take() {
-                    if prompts.iter().any(|p| p.prompt == text) {
-                        credential_store::forget(&opts.agent, target, log).await;
-                    }
+                if let Some(text) = answered.take()
+                    && prompts.iter().any(|p| p.prompt == text)
+                {
+                    credential_store::forget(&opts.agent, target, log).await;
                 }
                 let asks_password = prompts.len() == 1
                     && !prompts[0].echo
@@ -336,18 +336,18 @@ async fn password(
 ) -> Result<Step, String> {
     // The password that the server took earlier in this run goes first: a
     // later connection of a copy must not ask again (T-137).
-    if let Some(memory) = &opts.remembered {
-        if let Some(kept) = memory.password() {
-            let step =
-                within(opts.connect_timeout, host, "the password", handle.authenticate_password(user, kept.as_str()))
-                    .await?
-                    .map(Step::from)
-                    .map_err(|e| format!("password authentication failed: {e}"))?;
-            if matches!(step, Step::Success) {
-                return Ok(step);
-            }
-            memory.forget_password();
+    if let Some(memory) = &opts.remembered
+        && let Some(kept) = memory.password()
+    {
+        let step =
+            within(opts.connect_timeout, host, "the password", handle.authenticate_password(user, kept.as_str()))
+                .await?
+                .map(Step::from)
+                .map_err(|e| format!("password authentication failed: {e}"))?;
+        if matches!(step, Step::Success) {
+            return Ok(step);
         }
+        memory.forget_password();
     }
     // The password that podssh agent keeps (T-228): BatchMode forbids a
     // prompt, not this. One that the server refuses is forgotten.

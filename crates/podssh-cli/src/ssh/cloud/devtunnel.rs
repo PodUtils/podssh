@@ -94,8 +94,8 @@ pub fn code_of(class: podssh_relay::devtunnel::Class) -> i32 {
     use podssh_relay::devtunnel::Class;
     match class {
         Class::Usage => EX_USAGE,
-        Class::Config => EX_CONFIG,
-        Class::Refused | Class::Revoked | Class::Policy => EX_NOPERM,
+        Class::Config | Class::Suite => EX_CONFIG,
+        Class::Refused | Class::Revoked | Class::Policy | Class::Permission => EX_NOPERM,
         Class::TempFail | Class::Timeout => EX_TEMPFAIL,
         Class::Unavailable | Class::NotFound | Class::Protocol | Class::Unsupported => EX_UNAVAILABLE,
     }

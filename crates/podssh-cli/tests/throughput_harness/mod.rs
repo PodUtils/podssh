@@ -33,7 +33,8 @@ const SETUP_LIMIT: Duration = Duration::from_secs(60);
 
 /// The variables that name a proxy, or the hosts that bypass one, as
 /// podssh reads them.
-pub const PROXY_VARS: [&str; 6] = ["https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "no_proxy", "NO_PROXY"];
+pub const PROXY_VARS: [&str; 8] =
+    ["http_proxy", "HTTP_PROXY", "https_proxy", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "no_proxy", "NO_PROXY"];
 
 /// `cmd` with none of the machine's proxy variables, for a run against the
 /// stand-in relay: a name that only `--relay-addr` pins to the loopback,

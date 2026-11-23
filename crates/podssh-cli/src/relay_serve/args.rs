@@ -58,6 +58,25 @@ pub struct ServeArgs {
     pub proxy_protocol: Option<String>,
     /// Each name published to a pair's node, `NAME=PAIR` (T-649).
     pub publish: Vec<String>,
+    /// The tree of a static cover site, for the name of the certificate
+    /// (T-764).
+    pub cover: Option<String>,
+    /// The `Server` value of the cover site, else `nginx`.
+    pub cover_server: Option<String>,
+    /// Each name that the role terminates itself for the cover site, and
+    /// whose requests it answers locally, forwarded names aside (T-764).
+    pub cover_name: Vec<String>,
+    /// The cover script of the role's records (podnet#491).
+    pub cover_script: Option<String>,
+    /// The operator's Ed25519 secret that signs cover credentials, in a file
+    /// of 64 hexadecimal digits (T-765).
+    pub cover_issuer_key: Option<String>,
+    /// The operator's Ed25519 public key that the role pins, in hexadecimal
+    /// (T-765), for a role that holds no secret and issues no credential.
+    pub cover_issuer_public: Option<String>,
+    /// The owner's socket of the documents that a cover moves off the
+    /// public listener (T-767).
+    pub control_socket: Option<String>,
     /// The file of the node keys that DERP at `/derp` admits (T-106).
     pub derp_keys: Option<String>,
     /// The meeting points that it serves, `iroh` and `derp` (T-720).
@@ -105,6 +124,18 @@ impl ServeArgs {
             sshd: get("sshd"),
             proxy_protocol: get("proxy-protocol"),
             publish: publish::args(matches),
+            cover: get("cover"),
+            cover_server: get("cover-server"),
+            cover_name: matches
+                .try_get_many::<String>("cover-name")
+                .ok()
+                .flatten()
+                .map(|v| v.cloned().collect())
+                .unwrap_or_default(),
+            cover_script: get("cover-script"),
+            cover_issuer_key: get("cover-issuer-key"),
+            cover_issuer_public: get("cover-issuer-public"),
+            control_socket: get("control-socket"),
             derp_keys: get("derp-keys"),
             relay_roads: get("relay-roads"),
         }
