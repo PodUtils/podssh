@@ -113,6 +113,10 @@ pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" 
 # PodUtils/podcrates (T-034 there); pod-core for the type of its lines.
 pod-acme = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
 pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
+# The services of `--install` and `--print-unit` (src/node_install/, T-820):
+# pod-unit's quoting of each syntax, the watchdog of the crontab, the UTF-16
+# of a task and the values of the hardening; std alone.
+pod-unit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
 # The model of the help and the manual that each command line of PodUtils
 # shares, and its checks of drift (T-790): podssh's manual fills it
 # (src/man/pod_model.rs). Pure Rust; libc for its pager alone.

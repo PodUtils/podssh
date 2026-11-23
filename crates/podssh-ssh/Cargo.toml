@@ -27,6 +27,10 @@ sha1 = { version = "0.11", default-features = false }
 # keys, seeded from the operating system; the workspace's rand is russh's
 # version, so nothing new is compiled.
 rand = { workspace = true }
+# The atomic replace of a file that keeps its mode, for the rewrite of
+# known_hosts (`pod_core::files::replace`, T-820): the tag of every
+# podcrates crate.
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
 # SFTP version 3 (T-133): pure Rust, Apache-2.0, a limit on each request, and
 # requests in flight together. Its one optional feature (async-trait) is off.
 russh-sftp = { version = "3.0.1", default-features = false }

@@ -233,3 +233,22 @@ fn a_link_stays_a_link() {
     assert!(find(&std::fs::read(&target).unwrap(), "one.example", &mut counter()).iter().all(|f| f.marker.is_some()));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// A rewrite keeps the mode that the file's owner set (pod-core's
+/// `Mode::Keep`), and `FILE.old` is private whatever the file's mode.
+#[cfg(unix)]
+#[test]
+fn a_rewrite_keeps_the_mode_of_the_file() {
+    use std::os::unix::fs::PermissionsExt;
+    let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+    for bits in [0o600, 0o640, 0o644] {
+        let dir = scratch("mode");
+        let path = dir.join("known_hosts");
+        std::fs::write(&path, sample().0).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(bits)).unwrap();
+        let (done, ()) = rewrite(&path, create, |raw| (remove(raw, "one.example").text, ())).unwrap();
+        assert_eq!(mode(&path), bits, "{bits:o}");
+        assert_eq!(mode(&done.unwrap().old), 0o600, "{bits:o}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+}

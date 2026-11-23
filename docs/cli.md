@@ -3496,8 +3496,9 @@ reaches a hop as `--direct` does; neither reports the far server, and
 - `-F HOST`, `-R HOST` and `-H` find, remove and hash the lines of a
   `known_hosts` file (`-f FILE`, else `~/.ssh/known_hosts`), with the lines
   and the messages of OpenSSH's `ssh-keygen` (T-019); a host on another port
-  than 22 is `[HOST]:PORT`. `-R` and `-H` keep the old text in `FILE.old`,
-  and put the new one in place whole, under the lock of `podssh ssh`: a run
+  than 22 is `[HOST]:PORT`. `-R` and `-H` keep the old text in `FILE.old`
+  (a private file), and put the new one in place whole, with the file's
+  mode (`pod_core::files::replace`), under the lock of `podssh ssh`: a run
   that waited for it meanwhile writes its line to the new file. Each line
   that is not changed stays byte for byte. Two calls differ from OpenSSH's,
   so that nothing is lost: `-R` keeps a line that names the host through a
@@ -3539,9 +3540,9 @@ reaches a hop as `--direct` does; neither reports the far server, and
   `source-address=`, `verify-required`, `extension:` and `critical:`), `-U`
   a CA in the agent, and `-t rsa-sha2-256` the signature of an RSA CA
   (SHA-512 by default, through aws-lc-rs). As OpenSSH does, a certificate
-  replaces the one that is there: it is public, and made again at each
-  renewal. A failure exits 1 where OpenSSH exits 255; `-D` (PKCS#11) is
-  refused.
+  replaces the one that is there, whole and with its mode: it is public, and
+  made again at each renewal; a new one is 0644, as `ssh-keygen` makes it.
+  A failure exits 1 where OpenSSH exits 255; `-D` (PKCS#11) is refused.
 - `-e` prints a public key in the format of `-m`: RFC4716 (the default),
   PKCS8 or PEM; `-i` reads one and prints it as a line of OpenSSH; `-m PEM`
   or `-m PKCS8` with a new key or `-p` writes the private key in that format,

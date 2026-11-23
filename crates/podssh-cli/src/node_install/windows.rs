@@ -44,8 +44,9 @@ pub(super) fn schtasks(spec: &Spec) -> Made {
     let Some(program) = schtasks_program() else { return Made::Absent("no schtasks.exe on PATH".into()) };
     let Some(user) = user() else { return Made::Absent("USERNAME is not set, for the logon trigger".into()) };
     let xml = text::task_xml(spec, &user);
-    // schtasks reads a task's XML in UTF-16, as the Task Scheduler writes it.
-    let bytes: Vec<u8> = [0xFFu8, 0xFE].into_iter().chain(xml.encode_utf16().flat_map(u16::to_le_bytes)).collect();
+    // schtasks reads a task's XML in UTF-16, as the Task Scheduler writes it
+    // (pod-unit's encoding, with its mark of the order of bytes).
+    let bytes = pod_unit::windows::utf16(&xml);
     let stem = spec.kind.stem(&spec.name);
     let file = match podssh_relay::cache::store_file(&format!("{stem}.task.xml"), &bytes) {
         Ok(file) => file,

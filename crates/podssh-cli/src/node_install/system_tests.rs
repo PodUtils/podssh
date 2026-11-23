@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 
 use super::env::{without, HOME_BOUND, SECRET};
 use super::system::{account_in, check, flags, path_ok, user_name_ok, Account, Probes};
-use super::system_text::{env_path, state_dir, unit, unit_path, Needs};
+use super::system_text::{env_path, hardening_keys, hardening_value, state_dir, unit, unit_path, Needs, LEFT_OUT};
 use super::text::UNIT_MARK;
 use super::{Kind, Spec};
 use crate::exitmap::sysexits::{EX_CONFIG, EX_NOPERM, EX_UNAVAILABLE, EX_USAGE};
@@ -361,5 +361,30 @@ fn a_binary_that_the_hardening_hides_is_let_through() {
         let text = unit(&spec, &alice()).unwrap();
         let line = format!("BindReadOnlyPaths={exe}");
         assert_eq!(section(&text, "Service").contains(&line), bound, "{exe}: {text}");
+    }
+}
+
+/// The hardening takes its values from pod-unit's table (T-820): each key
+/// of podssh's is a line of the table, in the table's order, and each line
+/// of the table is podssh's or left out with its reason, so that a line
+/// that the table gains is a choice here, never a silent one.
+#[test]
+fn each_line_of_pod_unit_s_hardening_is_taken_or_left_out_with_a_reason() {
+    let table: Vec<&str> = pod_unit::hardening::LINES.iter().map(|line| line.key).collect();
+    let ours: Vec<&str> = hardening_keys().collect();
+    for key in &ours {
+        assert!(hardening_value(key).is_some(), "{key} is not in pod-unit's table");
+    }
+    let kept: Vec<&str> = table.iter().copied().filter(|key| ours.contains(key)).collect();
+    assert_eq!(kept, ours, "the order of the table");
+    for key in &table {
+        let left = LEFT_OUT.iter().find(|(left, _)| left == key);
+        assert!(ours.contains(key) ^ left.is_some(), "{key}: taken, or left out with a reason, once");
+        assert!(left.is_none_or(|(_, why)| !why.is_empty()), "{key}");
+    }
+    // The values that podssh's units held before the table gave them.
+    for line in HARDENED {
+        let (key, value) = line.split_once('=').unwrap_or_default();
+        assert_eq!(hardening_value(key), Some(value), "{line}");
     }
 }

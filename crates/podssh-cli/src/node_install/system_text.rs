@@ -51,44 +51,65 @@ pub(crate) fn env_path(kind: Kind, name: &str) -> PathBuf {
 
 /// One line of the hardening, and why the sessions of serve go without it.
 struct Hard {
+    /// A key of pod-unit's table, which gives its value.
     key: &'static str,
-    value: &'static str,
     /// None: serve keeps it too.
     sessions: Option<&'static str>,
 }
 
-/// The hardening of each system unit. serve's sessions run the user's own
-/// programs, as sshd's do, so the lines that would change what they may do
-/// are left out of serve's unit, each with its reason.
+/// The hardening of each system unit, in the order of pod-unit's table
+/// (`pod_unit::hardening::LINES`), whose values these keys take (T-820).
+/// serve's sessions run the user's own programs, as sshd's do, so the lines
+/// that would change what they may do are left out of serve's unit, each
+/// with its reason.
 const HARDENING: &[Hard] = &[
-    Hard { key: "NoNewPrivileges", value: "yes", sessions: Some("sudo in a session needs it") },
-    Hard { key: "CapabilityBoundingSet", value: "", sessions: Some("sudo in a session needs it") },
-    Hard { key: "RestrictSUIDSGID", value: "yes", sessions: Some("a session may make such files, as with sshd") },
-    Hard { key: "ProtectSystem", value: "strict", sessions: Some("a session writes where its user may") },
-    Hard { key: "ProtectHome", value: "tmpfs", sessions: Some("a session works in its home") },
-    Hard { key: "PrivateTmp", value: "yes", sessions: Some("a session shares /tmp with its user's other logins") },
-    Hard { key: "PrivateDevices", value: "yes", sessions: Some("a session may use the devices of its user") },
-    Hard { key: "ProtectKernelTunables", value: "yes", sessions: None },
-    Hard { key: "ProtectKernelModules", value: "yes", sessions: None },
-    Hard { key: "ProtectKernelLogs", value: "yes", sessions: None },
-    Hard { key: "ProtectControlGroups", value: "yes", sessions: None },
-    Hard { key: "ProtectClock", value: "yes", sessions: None },
-    Hard { key: "ProtectHostname", value: "yes", sessions: None },
-    Hard { key: "ProtectProc", value: "invisible", sessions: Some("a session lists the processes of this host") },
-    Hard { key: "RestrictNamespaces", value: "yes", sessions: Some("a session may run containers") },
-    Hard { key: "RestrictRealtime", value: "yes", sessions: None },
-    Hard { key: "LockPersonality", value: "yes", sessions: Some("a session may run programs of another personality") },
-    Hard { key: "MemoryDenyWriteExecute", value: "yes", sessions: Some("a session may run a compiler at run time") },
-    Hard { key: "SystemCallArchitectures", value: "native", sessions: Some("a session may run 32-bit programs") },
-    Hard { key: "SystemCallFilter", value: "@system-service", sessions: Some("a session's programs make any call") },
-    Hard { key: "SystemCallErrorNumber", value: "EPERM", sessions: Some("it goes with SystemCallFilter") },
-    Hard {
-        key: "RestrictAddressFamilies",
-        value: "AF_INET AF_INET6 AF_UNIX",
-        sessions: Some("a session's programs open any socket"),
-    },
-    Hard { key: "UMask", value: "0077", sessions: Some("a session keeps the umask of its user") },
+    Hard { key: "NoNewPrivileges", sessions: Some("sudo in a session needs it") },
+    Hard { key: "CapabilityBoundingSet", sessions: Some("sudo in a session needs it") },
+    Hard { key: "RestrictSUIDSGID", sessions: Some("a session may make such files, as with sshd") },
+    Hard { key: "ProtectSystem", sessions: Some("a session writes where its user may") },
+    Hard { key: "ProtectHome", sessions: Some("a session works in its home") },
+    Hard { key: "PrivateTmp", sessions: Some("a session shares /tmp with its user's other logins") },
+    Hard { key: "PrivateDevices", sessions: Some("a session may use the devices of its user") },
+    Hard { key: "ProtectKernelTunables", sessions: None },
+    Hard { key: "ProtectKernelModules", sessions: None },
+    Hard { key: "ProtectKernelLogs", sessions: None },
+    Hard { key: "ProtectControlGroups", sessions: None },
+    Hard { key: "ProtectClock", sessions: None },
+    Hard { key: "ProtectHostname", sessions: None },
+    Hard { key: "ProtectProc", sessions: Some("a session lists the processes of this host") },
+    Hard { key: "RestrictNamespaces", sessions: Some("a session may run containers") },
+    Hard { key: "RestrictRealtime", sessions: None },
+    Hard { key: "LockPersonality", sessions: Some("a session may run programs of another personality") },
+    Hard { key: "MemoryDenyWriteExecute", sessions: Some("a session may run a compiler at run time") },
+    Hard { key: "SystemCallArchitectures", sessions: Some("a session may run 32-bit programs") },
+    Hard { key: "SystemCallFilter", sessions: Some("a session's programs make any call") },
+    Hard { key: "SystemCallErrorNumber", sessions: Some("it goes with SystemCallFilter") },
+    Hard { key: "RestrictAddressFamilies", sessions: Some("a session's programs open any socket") },
+    Hard { key: "UMask", sessions: Some("a session keeps the umask of its user") },
 ];
+
+/// The lines of pod-unit's table that podssh's system unit leaves out, and
+/// why: a test checks that each line of the table is here or above.
+#[cfg_attr(not(test), allow(dead_code))]
+pub(super) const LEFT_OUT: &[(&str, &str)] = &[
+    // An account with no privilege has no ambient capability to drop; the
+    // unit's text stays podssh's until pod-unit renders it (T-820).
+    ("AmbientCapabilities", "an account with no privilege has none"),
+    // systemd removes each System V and POSIX IPC object of the account at
+    // each stop: the account is a person's, whose other programs keep theirs.
+    ("RemoveIPC", "the account is a person's, whose other programs keep their IPC objects"),
+];
+
+/// The value of the line `key` in pod-unit's table.
+pub(super) fn hardening_value(key: &str) -> Option<&'static str> {
+    pod_unit::hardening::LINES.iter().find(|line| line.key == key).map(|line| line.value)
+}
+
+/// The keys of podssh's hardening, in its order.
+#[cfg(test)]
+pub(super) fn hardening_keys() -> impl Iterator<Item = &'static str> {
+    HARDENING.iter().map(|hard| hard.key)
+}
 
 /// The flags whose file the run may make: its directory must be writable.
 const MADE: &[&str] = &["--key", "--iroh-key", "--host-key"];
@@ -199,7 +220,11 @@ fn hardening(spec: &Spec, account: &Account, lines: &mut Vec<String>) -> Result<
         lines.push("# A roost (--sshd) dials an sshd of this host, which no line here limits: none is relaxed.".into());
     }
     for hard in HARDENING {
-        let line = format!("{}={}", hard.key, hard.value);
+        // A key that pod-unit's table lost would make a weaker unit: refused.
+        let Some(value) = hardening_value(hard.key) else {
+            return Err(Refusal::config(format!("the hardening line {} is not in pod-unit's table", hard.key)));
+        };
+        let line = format!("{}={value}", hard.key);
         match (needs.sessions, hard.sessions, needs.netlink) {
             (true, Some(why), _) => lines.push(format!("# Relaxed for serve, as {why}: {line}")),
             (_, _, Some(flag)) if hard.key == "RestrictAddressFamilies" => lines.extend([

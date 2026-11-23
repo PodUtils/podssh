@@ -4022,7 +4022,7 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 
 ## Premise
 
-- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:180`
+- Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:184`
   ask for `sha1` 0.10.7, and the root `Cargo.toml:141` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)
@@ -7278,10 +7278,10 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     written.is_err() || std::fs::rename(&part, path).is_err()` (line 333), with no sync at all.
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
-  `crates/podssh-cli/src/keygen_cert.rs:138`, `crates/podssh-cli/src/keygen_change.rs:131`,
+  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:131`,
   `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
-  `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:253`,
+  `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
   `crates/podssh-relay/src/cache/own.rs:67` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
   (an append), `crates/podssh-cli/src/pinggy_cert.rs:56` (`create_new_private`, never a replace).
 
@@ -7387,7 +7387,7 @@ the Tailscale fork bring it whatever podssh does. podssh-ssh's own two uses can 
 
 - `crates/podssh-ssh/src/sshsig.rs:16`: a signature's validity dates, read and written in the local time zone.
 - `crates/podssh-ssh/src/sftp/long.rs:10`: the long listing of sftp, a file's time in the local time zone.
-- `crates/podssh-ssh/Cargo.toml:67`: the dependency.
+- `crates/podssh-ssh/Cargo.toml:71`: the dependency.
 
 ## Approach
 
@@ -7566,12 +7566,62 @@ Remove each copy that needs no change of podcrates now: the clock, the pager. Ta
 carries it (T-684), and write each in the COORD issue of the take. Name each other copy that this session finds to
 podcrates by a COORD issue, never a new one.
 
+## Decision
+
+2026-11-23, `node_install/` and `pod-unit` (`v0.82.0`). Taken now: the parts whose output is podssh's byte for
+byte. `node_install/text.rs` quotes with `pod_unit::quote` (`systemd_word`, `sh_word`, `windows_word`, `xml`; its own
+copies and `plain` are gone) and takes `pod_unit::cron::WATCHDOG`; `node_install/windows.rs` encodes the task with
+`pod_unit::windows::utf16`; `node_install/system_text.rs` takes each value of its hardening from
+`pod_unit::hardening::LINES` by key (its table keeps the keys and serve's reasons), leaves out `AmbientCapabilities`
+and `RemoveIPC` with their reasons (`LEFT_OUT`), and a test makes each line that the table gains a choice here.
+Kept in podssh for now: the renderers of each form (`unit`, `cron_lines`, `cron_table`, `task_xml`, `plist`, the system
+unit), the steps of each way, and the system install, so `pod_unit::install::install_system` is not taken yet. Why:
+
+1. **A refusal of podssh's words** (the reason that decides). Each renderer of pod-unit runs `Unit::check`, whose
+   `secret::check` refuses "a long random word". A fingerprint `SHA256:...` and an OpenSSH public key are such words:
+   a port of the rule to Python refused 198 of 200 random fingerprints and 200 of 200 `ssh-ed25519` keys (2026-11-23,
+   a model of `secret.rs` at `v0.82.0`, not a run of the crate). So `podssh node NAME --install --net-url URL
+   --net-owner KEY` (T-715) and `podssh serve NAME --print-unit --authorized-key 'ssh-ed25519 ...'` would be refused,
+   where today they work. A public key is public by design; the unit needs it in its words.
+2. **The mark.** `Unit::check` refuses a mark with `--` (a comment of XML holds none), and each form's first line is
+   `Written by MARK.`: podssh's first line names its removal (`podssh node lab --uninstall removes it`), and pod-unit's
+   install and removal refuse a file, a task or crontab lines of another mark (`not_ours`, class `Config`, 78). A unit,
+   a task or crontab lines that podssh wrote before would make `--install` and `--uninstall` fail after an upgrade,
+   unless podssh keeps a removal of its old marks beside the crate's.
+3. **The texts differ**, each defensibly, but no test of podssh would hold: `Type=exec`, `Wants=` and
+   `After=network-online.target`, `TimeoutStopSec=90`, no `StartLimitInterval=0` for a systemd older than 230, the
+   lines of seccomp in a user unit (whose `RestrictAddressFamilies` lacks `AF_NETLINK` for `--exit`, `--routes` and
+   `--iroh` unless podssh adds the family), `Environment="K=V"` quoted, `RemoveIPC=yes` on a person's account (it
+   removes that person's IPC objects at each stop), `-` before the bind of the cache, another wording of a relaxed
+   line, another mark of the crontab and of the task, `Umask` and `ExitTimeOut` in the plist, and a name of 64 at most
+   (`podssh-node-` and a label of 52, where podssh's labels go to 128).
+
+Lost: the whole move now, with podssh's test texts changed to pod-unit's (refuses a node of a net and serve's keys:
+item 1); the whole move with podssh's own render where a word trips the scan (two renderers again, the copy that the
+ruling ends). The asks of podcrates, for a COORD issue `(to podcrates)`: (a) `secret::check` passes a public key and a
+fingerprint (`ssh-*`, `ecdsa-sha2-*`, `sk-*` key lines, `SHA256:`), or takes a caller's list of public flags; (b) a
+form's removal also finds a caller's older marks (`Unit::legacy_marks`), or a mark may hold `--` where the form is not
+XML; (c) `RemoveIPC` off for `Scope::System { run_as: Some(_) }`; (d) `StartLimitInterval=0` beside
+`StartLimitIntervalSec=0`. With (a) and (b) at a tag, podssh moves its renderers, steps and `install_system`, and
+changes its tests to the crate's texts.
+
+2026-11-23, `pod_core::files::replace`. `keygen_cert.rs` takes `Mode::Keep` for a certificate that is there and
+`Mode::Exact(0o644)` for a new one, as `ssh-keygen -s` makes it (pod-core's `Keep` gives a new file 0600; the write
+before gave the umask's mode). `known_hosts/edit.rs` takes `Mode::Keep`, as podcrates named it: the rewrite keeps the
+mode that the file's owner set, where the write before made each rewrite private (`create`, 0600); `FILE.old` stays
+private. Lost: `Mode::Private` for `known_hosts` (the old behaviour; it changes a mode that the owner chose of a file
+of public keys). The link: podssh resolves it first (`canonicalize`), so pod-core's default (a link replaced, not
+followed) acts on the target, as before; a certificate's link is replaced, as the rename before replaced it. On
+Windows pod-core's rename has POSIX semantics with a bounded retry, past an open handle of a reader.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ws --lib
 cargo test -p podssh-cli --lib
+cargo test -p podssh-ssh --lib known_hosts
+cargo test -p podssh-cli --test keygen_cert --test keygen_known_hosts --test serve_install
 ```
 
 ## Done
@@ -7612,3 +7662,31 @@ podnet's and podrunner's parts. Next copy to end: `node_install/` on `pod-unit`,
 of a file that keeps its mode, for `crates/podssh-cli/src/keygen_cert.rs` and `crates/podssh-ssh/src/known_hosts/edit.rs`
 (their own writes of a temporary file and a rename), and `pod_unit::install::install_system` for `--install --system
 --run-as USER` of `node_install/`. Both are copies to end here, with the move of `node_install/` above.
+
+Draft, 2026-11-23 (branch `draft-t820`). (1) `crates/podssh-cli/src/keygen_cert.rs` and
+`crates/podssh-ssh/src/known_hosts/edit.rs` write through `pod_core::files::replace` (`## Decision`); their own temporary
+file, nonce and rename are gone, and `podssh-ssh` takes `pod-core` at `v0.82.0` again. Tests added: `keygen_cert::tests`
+(a new certificate 0644, a kept mode for 0600, 0640 and 0644, a link replaced and its target kept, a missing directory
+one error that names the path) and `known_hosts::edit::tests::a_rewrite_keeps_the_mode_of_the_file`; the tests that were
+there hold (`a_rewrite_keeps_the_old_text` counts no file left beside). The manual (`man/notes_keygen.rs`) and
+`docs/cli.md` say the modes. Merged 2026-11-23 and run here (Linux, Rust 1.100): `cargo test -p podssh-ssh --lib
+known_hosts` 10 passed, `cargo test -p podssh-cli --lib keygen_cert` 3 passed, `--test keygen_cert --test
+keygen_known_hosts` 5 and 4 passed; Windows's `tests/cp_inplace.rs` waits for the gate. (2)
+`node_install/` takes `pod-unit` (declared in `crates/podssh-cli/Cargo.toml` at `v0.82.0`; `Cargo.lock` is not
+resolved with cargo 1.99, the gate's, at the merge) where its output is podssh's: the quoting, the watchdog, the task's
+UTF-16 and the values of the hardening; the renderers, the steps and `install_system` wait for asks (a) and (b) of the
+`## Decision`. Test added: `system_tests::each_line_of_pod_unit_s_hardening_is_taken_or_left_out_with_a_reason`; the
+quoting test and each unit text test stay as they were. Run here: `cargo test -p podssh-cli --lib node_install` 32
+passed (31 before, and the new one), `--test serve_install` 9 passed; clippy of podssh-ssh and podssh-cli, all targets,
+`-D warnings`: clean. (3) `pod_core::lock` at `v0.82.0` has `Mode::Exclusive` and `Mode::Shared`
+alone, through `std::fs::File::lock` (the whole file on Windows): no mode that leaves readers alone, so
+`crates/podssh-ssh/src/known_hosts/lock.rs` stays podssh's until podcrates' entry 941. Another copy found:
+`crates/podssh-cli/src/keygen_change.rs` (`replace`, `beside`) writes a private key beside the file and reads it back
+before the rename, which `pod_core::files::replace` has no step for; an ask of podcrates (a check of the temporary file
+before the rename), named in the COORD issue of the take. Still waiting for podcrates: entry 941 (the lock of
+`known_hosts` on Windows), asks (a) and (b) above (`node_install/`'s renderers, steps and `install_system`), entry 501
+(RFC 6062 of `pod-turn`, for `crates/podssh-ws/src/turn/`), entry 879 (`pod-detach`, for `detach/`), and the rows of
+`pod-hostprobe` for `doctor/host.rs` and `doctor/unix.rs`; `exitmap.rs` and `exit_codes.rs` against
+`pod_core::failure::Class::exit_code()` are podssh's own work, still open here. Not every copy that podcrates holds
+today is ended.
+

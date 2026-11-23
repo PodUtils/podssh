@@ -242,10 +242,11 @@ pub struct Rewritten {
 /// Put a new text in the place of the `known_hosts` file at `path`, whole
 /// or not at all. Under the lock that [`super::append`] takes, the file is
 /// read and `change` gives the new text, or `None` to leave the file as it
-/// is; the old text goes to `FILE.old`, and the new one to a new file beside
-/// the file, which then takes its place by a rename. `create` makes a new
-/// file that only its owner may open (podssh-relay's, which this crate does
-/// not depend on). A symbolic link stays, and its target is rewritten.
+/// is; the old text goes to `FILE.old`, and the new one takes the file's
+/// place whole (`pod_core::files::replace`), with the file's mode. `create`
+/// makes `FILE.old`, a new file that only its owner may open (podssh-relay's,
+/// which this crate does not depend on). A symbolic link stays, and its
+/// target is rewritten.
 ///
 /// A writer that waited for the lock meanwhile holds the old file: `append`
 /// looks again, after its lock, at which file the path names, so that its
@@ -277,14 +278,12 @@ pub fn rewrite<T>(
         _ => {}
     }
     write_new(&old, &raw, create)?;
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    // A nonce beside the pid, which repeats in each PID namespace.
-    let new = path.with_file_name(format!(".{name}.podssh-new-{}-{:08x}", std::process::id(), rand::random::<u32>()));
-    write_new(&new, &text, create)?;
-    if let Err(e) = std::fs::rename(&new, &path) {
-        let _ = std::fs::remove_file(&new);
-        return Err(e);
-    }
+    // pod-core's atomic replace: a temporary file beside it, synced,
+    // renamed (on Windows with POSIX semantics, past a reader's handle),
+    // its directory synced. The file keeps the mode that its owner set. A
+    // failed sync of the directory leaves the new text in place: no
+    // failure, as the rename before this one synced no directory either.
+    pod_core::files::replace(&path, &text, pod_core::files::Mode::Keep)?;
     Ok((Some(Rewritten { path, old }), out))
 }
 

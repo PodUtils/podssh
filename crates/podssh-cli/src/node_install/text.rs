@@ -18,9 +18,8 @@ use crate::relay_settings::Refusal;
 #[cfg_attr(windows, allow(dead_code))]
 pub(super) const UNIT_MARK: &str = "# Written by podssh ";
 
-/// The time of the crontab's watchdog: each 5 minutes.
-#[cfg_attr(windows, allow(dead_code))]
-pub(super) const WATCHDOG: &str = "*/5 * * * *";
+/// The time of the crontab's watchdog: each 5 minutes (pod-unit's).
+pub(super) use pod_unit::cron::WATCHDOG;
 
 /// The start of the comment of a LaunchAgent that podssh wrote, which
 /// `--uninstall` checks. A comment of XML may hold no `--`, so it names no
@@ -117,10 +116,9 @@ pub(super) fn one_line(words: &[String]) -> Result<(), Refusal> {
     }
 }
 
-/// The bytes that need no quote in each syntax here.
-fn plain(word: &str) -> bool {
-    !word.is_empty() && word.bytes().all(|b| b.is_ascii_alphanumeric() || b"/._-=:,@+".contains(&b))
-}
+/// The quoting of each syntax here: pod-unit's (T-820), whose base was
+/// this file's.
+pub(super) use pod_unit::quote::{sh_word, systemd_word, windows_word, xml};
 
 /// The binary, then the words.
 fn command(spec: &Spec) -> impl Iterator<Item = String> + '_ {
@@ -130,17 +128,6 @@ fn command(spec: &Spec) -> impl Iterator<Item = String> + '_ {
 /// The run's directory as a path of text, when it has one.
 fn dir_text(spec: &Spec) -> Option<String> {
     spec.dir.as_ref().map(|dir| dir.display().to_string())
-}
-
-/// A word as `ExecStart=` reads it: `%` and `$` doubled, as systemd expands
-/// them, and in double quotes when it is not plain.
-#[cfg_attr(windows, allow(dead_code))]
-pub(super) fn systemd_word(word: &str) -> String {
-    let escaped = word.replace('%', "%%").replace('$', "$$");
-    if plain(word) {
-        return escaped;
-    }
-    format!("\"{}\"", escaped.replace('\\', "\\\\").replace('"', "\\\""))
 }
 
 /// The user unit. It starts the run again 5 s after each end, with no
@@ -177,14 +164,6 @@ pub(super) fn unit(spec: &Spec) -> String {
         kind.verb(),
         words.join(" ")
     )
-}
-
-/// A word for a POSIX shell: as it is when plain, else in single quotes.
-pub(super) fn sh_word(word: &str) -> String {
-    if plain(word) {
-        return word.to_string();
-    }
-    format!("'{}'", word.replace('\'', "'\\''"))
 }
 
 /// The comment above the lines of `kind`'s `name` in the crontab.
@@ -248,40 +227,6 @@ pub(super) fn cron_table(table: &str, kind: Kind, name: &str, lines: Option<&[St
         }
     }
     (text, found)
-}
-
-/// A word of a Windows command line, as `CommandLineToArgvW` reads it: in
-/// double quotes when it holds a space, a tab or a quote, with the
-/// backslashes before a quote doubled.
-pub(super) fn windows_word(word: &str) -> String {
-    if !word.is_empty() && !word.contains([' ', '\t', '"']) {
-        return word.to_string();
-    }
-    let mut quoted = String::from('"');
-    let mut slashes = 0;
-    for c in word.chars() {
-        match c {
-            '\\' => slashes += 1,
-            '"' => {
-                quoted.push_str(&"\\".repeat(slashes * 2 + 1));
-                quoted.push('"');
-                slashes = 0;
-            }
-            _ => {
-                quoted.push_str(&"\\".repeat(slashes));
-                quoted.push(c);
-                slashes = 0;
-            }
-        }
-    }
-    quoted.push_str(&"\\".repeat(slashes * 2));
-    quoted.push('"');
-    quoted
-}
-
-/// `text` for an element or an attribute of XML.
-pub(super) fn xml(text: &str) -> String {
-    text.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;").replace('\'', "&apos;")
 }
 
 /// The task: at the logon of `user`, this user, who needs no privilege to

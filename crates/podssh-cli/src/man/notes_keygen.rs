@@ -13,8 +13,8 @@ pub const KEYGEN: &[&str] = &[
      in the format of OpenSSH. -P '' is for a key with no passphrase; a passphrase given with -P is refused.",
     "podssh keygen -F HOST prints the lines of HOST in known_hosts (-f FILE, else ~/.ssh/known_hosts), as ssh-keygen \
      does. -R HOST removes them, and -H hashes each host name; a host on another port is [HOST]:PORT. -R and -H keep \
-     the old text as FILE.old. -R keeps a line that names the host through a wildcard, as its key is for other hosts \
-     too.",
+     the old text as FILE.old, and the new text takes the file's place whole, with its mode. -R keeps a line \
+     that names the host through a wildcard, as its key is for other hosts too.",
     "podssh keygen -Y sign -f KEY -n NAMESPACE FILE signs FILE to FILE.sig, or standard input to standard output. \
      This is as ssh-keygen -Y sign does for git; the agent signs when it holds the key of KEY (-U: the agent alone). \
      -Y verify -f SIGNERS -I PRINCIPAL -n NAMESPACE -s FILE.sig checks the data on standard input against SIGNERS, \
@@ -27,7 +27,8 @@ pub const KEYGEN: &[&str] = &[
     "podssh keygen -s CA -I ID [-n NAMES] [-V INTERVAL] [-z SERIAL] [-O OPTION] [-h] FILE.pub certifies each key \
      into FILE-cert.pub. This is as ssh-keygen -s does, and -U says that the CA is in the agent. podssh keygen -L -f \
      FILE prints a certificate. -V here is a validity, such as +52w or 20260101:20270101; the version is podssh -V. \
-     A certificate replaces the one that is there, as OpenSSH's does.",
+     A certificate replaces the one that is there, as OpenSSH's does, and keeps its mode; a new one is 0644, as a \
+     certificate is public.",
     "podssh keygen -e -m FORMAT -f FILE prints the public key of FILE as RFC4716 (the default), PKCS8 or \
      PEM; -i -m FORMAT -f FILE prints such a key as a line of OpenSSH. -m PEM or PKCS8 with a new key or -p \
      writes the private key in that format. An Ed25519 key has a form of RFC4716 only. -y and -l read a key \

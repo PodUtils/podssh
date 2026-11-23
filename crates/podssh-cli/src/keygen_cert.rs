@@ -129,26 +129,25 @@ fn certify_one(file: &str, ca: &Ca, request: &Request, rsa_hash: HashAlg) -> Res
         None => format!("{file}-cert.pub"),
     };
     let line = certificate.to_openssh().map_err(|e| format!("could not encode the certificate: {e}"))?;
-    replace(Path::new(&target), format!("{line}\n").as_bytes()).map_err(|e| format!("{target}: {e}"))?;
+    // The error names the path, the step and the cause.
+    replace(Path::new(&target), format!("{line}\n").as_bytes()).map_err(|e| e.to_string())?;
     Ok((target, certificate))
 }
 
-/// `bytes` in place of the file at `path`, whole: a new file beside it,
-/// then a rename.
+/// `bytes` in place of the file at `path`, whole: pod-core's atomic replace
+/// (a temporary file beside it, synced, renamed, its directory synced). A
+/// link at the path is replaced, not followed, as the rename did before. A
+/// certificate that is there keeps its mode, as OpenSSH's truncate keeps
+/// it; a new one is 0644, as `ssh-keygen -s` makes it: it is public.
 fn replace(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    // A nonce beside the pid, which repeats in each PID namespace.
-    let new = path.with_file_name(format!(".{name}.podssh-new-{}-{:08x}", std::process::id(), rand::random::<u32>()));
-    let written = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&new)
-        .and_then(|mut f| f.write_all(bytes).and_then(|()| f.sync_all()));
-    if let Err(e) = written.and_then(|()| std::fs::rename(&new, path)) {
-        let _ = std::fs::remove_file(&new);
-        return Err(e);
-    }
-    Ok(())
+    use pod_core::files::Mode;
+    let mode = match std::fs::symlink_metadata(path) {
+        Ok(meta) if meta.is_file() => Mode::Keep,
+        _ => Mode::Exact(0o644),
+    };
+    // A failed sync of the directory leaves the new file in place: no
+    // failure, as the write before this one synced no directory either.
+    pod_core::files::replace(path, bytes, mode).map(drop)
 }
 
 /// `-L -f FILE`: each certificate of FILE, as `ssh-keygen -L` prints it.
@@ -196,5 +195,70 @@ pub fn print(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
         0
     } else {
         EXIT_FAILED
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    fn scratch(tag: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("podssh-cert-{tag}-{:016x}", rand::random::<u64>()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[cfg(unix)]
+    fn mode(path: &std::path::Path) -> u32 {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::symlink_metadata(path).unwrap().permissions().mode() & 0o777
+    }
+
+    /// The modes of a certificate written in place: a new one is public, one
+    /// that is there keeps what its owner set; nothing stays beside it.
+    #[cfg(unix)]
+    #[test]
+    fn a_certificate_keeps_its_mode_and_a_new_one_is_public() {
+        use std::os::unix::fs::PermissionsExt;
+        for (before, after) in [(None, 0o644), (Some(0o600), 0o600), (Some(0o640), 0o640), (Some(0o644), 0o644)] {
+            let dir = scratch("mode");
+            let path = dir.join("user-cert.pub");
+            if let Some(bits) = before {
+                std::fs::write(&path, b"old\n").unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(bits)).unwrap();
+            }
+            super::replace(&path, b"new\n").unwrap();
+            assert_eq!(std::fs::read(&path).unwrap(), b"new\n");
+            assert_eq!(mode(&path), after, "{before:?}");
+            assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "a file was left beside it");
+            std::fs::remove_dir_all(&dir).unwrap();
+        }
+    }
+
+    /// A link at the path is replaced, and what it named stays, as the
+    /// rename of the write before this one did.
+    #[cfg(unix)]
+    #[test]
+    fn a_link_at_the_certificate_is_replaced_not_followed() {
+        let dir = scratch("link");
+        let (target, link) = (dir.join("elsewhere"), dir.join("user-cert.pub"));
+        std::fs::write(&target, b"theirs\n").unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        super::replace(&link, b"new\n").unwrap();
+        assert!(!std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read(&target).unwrap(), b"theirs\n");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// A directory that is missing is one error that names the path, and
+    /// leaves nothing.
+    #[test]
+    fn a_missing_directory_is_an_error_that_names_the_path() {
+        let dir = scratch("gone");
+        let path = dir.join("missing").join("user-cert.pub");
+        let e = super::replace(&path, b"new\n").unwrap_err();
+        assert!(e.to_string().contains(&path.display().to_string()), "{e}");
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 0);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:379-400` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6503-6506`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6504-6507`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -2936,7 +2936,7 @@ the names, with no word.
   `users-groups-by-id@openssh.com`, `0` for the owner and the group; the issue's line is the
   server's long name.
 - Read: `chrono`, with its local zone, is a dependency of `podssh-ssh` already
-  (`crates/podssh-ssh/Cargo.toml:67`, `crates/podssh-ssh/src/sshsig.rs:16`).
+  (`crates/podssh-ssh/Cargo.toml:71`, `crates/podssh-ssh/src/sshsig.rs:16`).
 
 ## Approach
 
