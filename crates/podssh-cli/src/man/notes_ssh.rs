@@ -430,11 +430,14 @@ const FIRST: &[&str] = &[
      when BatchMode is on and --yes is not given. A word that no placeholder takes, and -N, -s, -W or -O, with \
      --snippet are refused (exit 64).",
     "With no destination, and stdin and stdout both terminals, podssh lists the literal Host names of ssh_config, each \
-     with a number. They are those of -F, or of ~/.ssh/config and the system's file, with their Include lines. podssh \
-     logs in to the one picked, as if it were typed. A number picks; other text narrows the \
-     list to the names that hold it; an empty line or the end of input picks none (exit 64). A pattern, a \
-     negated name and a name of known_hosts are never listed. In each other case, and with no name to \
-     list, a missing destination is a usage error (exit 64).",
+     with a number. Beside each name are the user, host, port and jump that it resolves (see --list-hosts). They are \
+     those of -F, or of \
+     ~/.ssh/config and the system's file, with their Include lines. podssh logs in to the one picked, as if it were \
+     typed. A number picks; other text narrows the list to the names whose line holds it; an empty line or the end \
+     of input picks none (exit 64). With a command, several numbers (1 3, or 1,3) run it on each host picked, as \
+     podssh each runs it. A pattern, a negated name, a name of many hosts (a comma, a brace, a leading @) and a \
+     name of known_hosts are never listed. In each other case, and with no name to list, a missing destination \
+     is a usage error (exit 64).",
     "--record FILE keeps what the session showed, with its timing, as asciicast v2, for podssh play: never \
      what was typed, and never the command line. The file is closed to others and never written over (exit \
      255); the output can hold a secret that a program printed.",

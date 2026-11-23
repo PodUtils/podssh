@@ -1216,13 +1216,16 @@ podssh ssh
   (exit 64).
 
   With no destination, and stdin and stdout both terminals, podssh lists the
-  literal Host names of ssh_config, each with a number. They are those of -F,
-  or of ~/.ssh/config and the system's file, with their Include lines. podssh
-  logs in to the one picked, as if it were typed. A number picks; other text
-  narrows the list to the names that hold it; an empty line or the end of input
-  picks none (exit 64). A pattern, a negated name and a name of known_hosts are
-  never listed. In each other case, and with no name to list, a missing
-  destination is a usage error (exit 64).
+  literal Host names of ssh_config, each with a number. Beside each name are
+  the user, host, port and jump that it resolves (see --list-hosts). They are
+  those of -F, or of ~/.ssh/config and the system's file, with their Include
+  lines. podssh logs in to the one picked, as if it were typed. A number picks;
+  other text narrows the list to the names whose line holds it; an empty line
+  or the end of input picks none (exit 64). With a command, several numbers (1
+  3, or 1,3) run it on each host picked, as podssh each runs it. A pattern, a
+  negated name, a name of many hosts (a comma, a brace, a leading @) and a name
+  of known_hosts are never listed. In each other case, and with no name to
+  list, a missing destination is a usage error (exit 64).
 
   --record FILE keeps what the session showed, with its timing, as asciicast
   v2, for podssh play: never what was typed, and never the command line. The
@@ -1622,6 +1625,18 @@ podssh ssh
   --relay-failover, --direct, --forwarder, --shadowsocks, --via, --vless,
   --trojan, --wstunnel, --chisel, -4 and -6 cannot go with it (64). Nor can a
   destination with a road of its own.
+
+  --list-hosts prints a JSON array on stdout and connects to nothing. It holds
+  one object for each literal Host alias of the files that the picker reads, in
+  their order. The keys are alias, host, port, user, identity_files, proxy_jump
+  and error. host is after HostName, in lower case, as -G prints hostname.
+  identity_files are the files that the login would try, expanded. proxy_jump
+  and error are null when there is none. Each object is what podssh ssh ALIAS
+  resolves, with the other flags of the command line, through the same code; an
+  alias that resolves nothing has its reason in error and null in the other
+  keys, and the list goes on (exit 0). It holds no key and no passphrase. A
+  file that cannot be read, or that others may change, exits 78 with nothing on
+  stdout; a destination or a command exits 64.
 
   --exit NAME starts the road to the first hop (the destination, or the first
   host of -J) at NAME, in place of the relay. NAME is a node of your net that
@@ -2118,6 +2133,9 @@ podssh ssh
         shows and stops it (default: the verb and the pid).
     -G, --print-config
         print the settings in effect, as ssh -G does, and connect to nothing.
+    --list-hosts
+        print a JSON array on stdout, one record for each literal Host alias of
+        ssh_config as a connection to it resolves, and connect to nothing.
     -I, --pkcs11 LIBRARY
         PKCS#11 keys are not supported. Refused. Use -i FILE.
     -K, --gssapi
@@ -9558,8 +9576,9 @@ podssh keygen
   podssh keygen -F HOST prints the lines of HOST in known_hosts (-f FILE, else
   ~/.ssh/known_hosts), as ssh-keygen does. -R HOST removes them, and -H hashes
   each host name; a host on another port is [HOST]:PORT. -R and -H keep the old
-  text as FILE.old. -R keeps a line that names the host through a wildcard, as
-  its key is for other hosts too.
+  text as FILE.old, and the new text takes the file's place whole, with its
+  mode. -R keeps a line that names the host through a wildcard, as its key is
+  for other hosts too.
 
   podssh keygen -Y sign -f KEY -n NAMESPACE FILE signs FILE to FILE.sig, or
   standard input to standard output. This is as ssh-keygen -Y sign does for
@@ -9582,7 +9601,8 @@ podssh keygen
   does, and -U says that the CA is in the agent. podssh keygen -L -f FILE
   prints a certificate. -V here is a validity, such as +52w or
   20260101:20270101; the version is podssh -V. A certificate replaces the one
-  that is there, as OpenSSH's does.
+  that is there, as OpenSSH's does, and keeps its mode; a new one is 0644, as a
+  certificate is public.
 
   podssh keygen -e -m FORMAT -f FILE prints the public key of FILE as RFC4716
   (the default), PKCS8 or PEM; -i -m FORMAT -f FILE prints such a key as a line

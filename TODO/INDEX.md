@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**808 entries: 26 open, 42 partial, 11 blocked, 729 done.**
+**808 entries: 25 open, 42 partial, 11 blocked, 730 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 91 | 104 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 26 | 9 | 6 | 333 | 374 |
-| **All** | 26 | 42 | 11 | 729 | 808 |
+| P3 | 25 | 9 | 6 | 334 | 374 |
+| **All** | 25 | 42 | 11 | 730 | 808 |
 
 ## Entries
 
@@ -862,7 +862,7 @@ repository and CI).
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
 | [T-831](copy.md) | P3 | M | backlog | research | open | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
-| [T-832](multi.md) | P3 | M | backlog | feature | open | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
+| [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |

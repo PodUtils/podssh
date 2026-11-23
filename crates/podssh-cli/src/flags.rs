@@ -272,6 +272,8 @@ pub const SSH_FLAGS: &[FlagRow] = &[
     detach::SSH_DETACH, detach::SSH_RESTART, detach::DETACH_NAME,
     row(Some('G'), "print-config", None, FlagKind::Supported,
         "print the settings in effect, as ssh -G does, and connect to nothing", None),
+    row(None, "list-hosts", None, FlagKind::Supported,
+        "print a JSON array on stdout, one record for each literal Host alias of ssh_config as a connection to it resolves, and connect to nothing", None),
     row(Some('I'), "pkcs11", Some("LIBRARY"), FlagKind::Refused,
         "PKCS#11 keys are not supported", Some("-i FILE")),
     row(Some('K'), "gssapi", None, FlagKind::Refused,

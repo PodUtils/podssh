@@ -173,6 +173,9 @@ pub struct SshArgs {
     pub su: bool,
     /// `-G`: print the settings, and connect to nothing.
     pub print_config: bool,
+    /// `--list-hosts`: one JSON record for each `Host` alias, and connect to
+    /// nothing (T-832).
+    pub list_hosts: bool,
     /// Each `-R` spec, as given.
     pub remote_forwards: Vec<String>,
     /// Each `-L` and each `-D` spec, as given (T-038).
@@ -416,6 +419,7 @@ impl SshArgs {
             idle_warn: one("idle-warn"),
             su: flag("su"),
             print_config: flag("print-config"),
+            list_hosts: flag("list-hosts"),
             remote_forwards: many("forward-remote"),
             local_forwards: many("forward-local"),
             dynamic_forwards: many("dynamic-forward"),

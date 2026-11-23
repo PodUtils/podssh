@@ -44,6 +44,8 @@ pub mod iroh;
 mod jump;
 pub mod keywords;
 mod layer_alive;
+// `--list-hosts`: a record for each Host alias, which the picker shows (T-832).
+pub mod list_hosts;
 mod local_bind;
 // `LocalCommand` and `PermitLocalCommand` (T-191).
 pub mod local_command;
@@ -148,6 +150,10 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         return 0;
     }
     let env = Env::from_process();
+    // The records of the Host aliases, and nothing opened (T-832).
+    if args.list_hosts {
+        return list_hosts::run(args, &env, &mut std::io::stdout().lock(), err);
+    }
     // No destination, and a person at the terminal (T-188): a `Host` name of
     // ssh_config, picked from a list; in each other case the run refuses as
     // before.
@@ -155,6 +161,10 @@ fn run(args: &SshArgs, tty: Tty, err: &mut dyn Write) -> i32 {
         Ok(picked) => picked,
         Err(refusal) => return refusal.report("ssh", err),
     };
+    // Several names picked, with a command: podssh each runs it (T-832).
+    if let Some(each) = picked.as_ref().and_then(picker::to_each) {
+        return crate::each::run_each(&each, &mut std::io::stdout().lock(), err);
+    }
     let args = picked.as_ref().unwrap_or(args);
     // `--attach DEST` alone lists the kept shells at DEST (T-158).
     let listed = attach::listing(args);

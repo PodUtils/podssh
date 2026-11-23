@@ -2018,17 +2018,59 @@ literal `Host` names of `ssh_config` (T-188,
   host: outside each block, or after `Host *`. A pattern (`*`, `?`) and a
   negated name are not names, and `known_hosts` is not read, as its names
   can be hashed.
+- A name with a comma, a brace or a leading `@` is a word of many hosts
+  (T-184), never one destination, and is not listed either.
+- Beside each name, the list shows what a connection to it resolves
+  (T-832): `user@host`, `:PORT` when it is not 22, and `via JUMP`, from the
+  same records as `--list-hosts` (below); a name that resolves nothing is
+  shown alone, as the run then says why.
 - Each name has a number. A number picks its name; other text narrows the
-  list to the names that hold it, case set aside. An empty line, the end of
-  input and a terminal that fails pick none (64). A number outside the list
-  and a text that no name holds are said, and the question comes again, 20
-  times at most.
+  list to the names whose line (name or what it resolves) holds it, case
+  set aside. An empty line, the end of input and a terminal that fails pick
+  none (64). A number outside the list and a text that no name holds are
+  said, and the question comes again, 20 times at most.
+- With a command (or `--snippet`), several numbers (`1 3` or `1,3`) pick
+  each of those hosts, once each, in the order typed, and the run is
+  `podssh each` over them with the same command and flags
+  (`picker::to_each`): the fan-out of `each`, not a loop of dials in the
+  picker. With no command, several numbers are said ("a shell takes one
+  host"), and the question comes again.
 - The name picked takes the path of a typed destination: its `Host`
   blocks, the relay or `--direct`, and the rest of the command line.
 - With no name to list, or with stdin or stdout not a terminal, nothing is
   read, and the run refuses with 64 and `missing destination`, as before:
   a script still gets its usage error. A test that calls `dispatch::run`
   has no terminal, so it never sees the picker.
+
+### `--list-hosts`
+
+`podssh ssh --list-hosts` prints the aliases as data and connects to
+nothing (T-832, `crates/podssh-cli/src/ssh/list_hosts.rs`). The aliases are
+the picker's, in the same order. Each record is what `podssh ssh ALIAS`
+resolves with the rest of the command line, through
+`resolve::resolve_or_refuse` itself, so that the list and a run cannot
+differ:
+
+```json
+[{"alias": "db", "host": "db.internal", "port": 22, "user": "me",
+  "identity_files": ["/home/me/.ssh/id_ed25519"], "proxy_jump": "bastion",
+  "error": null}]
+```
+
+- `host` is the host after `HostName`, in lower case, as `-G` prints
+  `hostname`; `identity_files` are the files that the login would try,
+  expanded (OpenSSH's defaults when none is given); `proxy_jump` is
+  `ProxyJump` or `-J` as given, `null` for none.
+- An alias whose block resolves nothing (a usage fault, as the run would
+  refuse it) keeps its place, with its reason in `error` and `null` in the
+  other keys; the list still exits 0. Each object has the same keys.
+- No key, no passphrase and no password is in it: names, a port and paths.
+- A file that cannot be read, a missing `-F` file, a directory, or a file
+  that others may change exits 78 with nothing on stdout. A destination or
+  a command with `--list-hosts` exits 64.
+- A destination that is no alias and does not resolve does not open the
+  picker (T-832's Decision): a destination given is an explicit ask, and
+  this host often cannot resolve names at all (the relay dials them).
 
 ## `podssh containers`
 

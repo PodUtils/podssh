@@ -47,7 +47,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    flags), and `--parallel N` (default 8, 64 at most), `--fail-fast`,
    `--output-dir DIR`.
 2. One runtime, one task for each host, each on the existing path: the relay
-   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:319-398`,
+   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:329-408`,
    `crates/podssh-ssh/src/run.rs:35-80`). Invariant: no second SSH client.
 3. Sinks: give `crates/podssh-ssh/src/io.rs:179-451` (and `crates/podssh-ssh/src/io/msg.rs:11-95`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
@@ -64,7 +64,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    could not connect or log in; 0 only when each host gave 0. `--fail-fast`
    starts no new host after a failure, and the running ones finish. A
    summary on stderr gives each host and its status.
-7. In the same commit: `crates/podssh-cli/src/flags.rs:387-457`,
+7. In the same commit: `crates/podssh-cli/src/flags.rs:389-459`,
    `crates/podssh-cli/src/positionals.rs:7-281`, a `Parsed` variant,
    `crates/podssh-cli/tests/flag_table.rs:110-146`, the notes, an example,
    `docs/cli.md`, `docs/STATUS.md`. T-013 can then group the commands.
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:6510-6513`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6552-6555`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:6726-6835`); they cannot define a group.
+  (`docs/cli.md:6768-6877`); they cannot define a group.
 
 ## Approach
 
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:625`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:6510-6513`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6552-6555`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:402-446`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:6510-6513`), which is not a failure of podssh.
+  status (`docs/cli.md:6552-6555`), which is not a failure of podssh.
 
 ## Approach
 
@@ -3753,7 +3753,7 @@ relays, as these commands take no flag of them.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3765,7 +3765,7 @@ tssh resolves each alias once and gives two views of the result: a JSON list and
 
 - Read: the picker takes its names from `config::host_names` (`crates/podssh-cli/src/ssh/picker.rs:61`,
   `crates/podssh-cli/src/ssh/config.rs:128`): names only, no resolved field, and only when `podssh ssh`
-  has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:41`).
+  has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:44`).
 - Read in the donor report: tssh builds one record for each alias with its host, port, user, identity,
   proxy and labels; wildcard patterns stay out of the list; `--list-hosts` prints the same list as JSON
   (trzsz/trzsz-ssh:tssh/config.go:692, tssh/config.go:735, tssh/tools_list_hosts.go:34).
@@ -3788,6 +3788,51 @@ tssh resolves each alias once and gives two views of the result: a JSON list and
    `. : [ ] @`); the lookup already happens for the connection.
 6. The expect rules of T-191 (done) are literal text. The donor study (report 02) read tssh's expect engine (trzsz/trzsz-ssh:tssh/expect.go:517), which runs rules in strict order, each with its own buffer, with regex captures that later rules can send (tssh/expect.go:43, 386). Its faults to avoid if podssh moves past literal text: one deadline for the whole list (tssh/expect.go:596), numeric captures that shift when a rule is inserted (tssh/expect.go:386), and a wildcard matched on an escaped buffer but a regex on the raw one (tssh/expect.go:440). Take named captures only, a deadline for each rule (T-191 has it), one buffer form for every kind of match, and a capture that a later `--send` may name but never print or log. That is a new entry when someone asks for it.
 
+## Decision
+
+- **One resolve for the list and the run.** Each record is
+  `resolve::resolve_or_refuse` on the alias as the destination, with the
+  rest of the command line (`ssh/list_hosts.rs`, `record`), and the fields
+  are read from its `Resolved`: `host` is `shown.hostname` (`-G`'s
+  `hostname`), `port` and `user` are the options', `identity_files` the
+  login's list (OpenSSH's defaults when none is given), `proxy_jump` as
+  given. Lost: a second reader of the `Host` blocks beside T-043's, which is
+  the drift that this entry exists to prevent; and parsing `-G`'s lines,
+  which would tie a JSON format to a text one.
+- **A record that resolves nothing keeps its place.** A usage fault of one
+  alias's block (64 for a run) is `error` in its record, `null` in the other
+  keys, and the list exits 0: one bad alias must not hide the others from a
+  script. A fault of a file or a variable (78) is the run's: a list with a
+  file that cannot be read is no list, so it exits 78 with nothing on
+  stdout. Lost: dropping such an alias silently (a script could not tell
+  why it is missing), and failing the whole list on any fault.
+- **Every object has the same keys**, `null` where a value is not known, so
+  that a script reads one shape. `--list-hosts` with a destination or a
+  command is 64: it would use neither.
+- **A name of many hosts is not listed.** A name with a comma, a brace or a
+  leading `@` is a word of many hosts (T-184) for `podssh ssh` as typed, so
+  it can never be one destination; the picker's `names` leaves it out, for
+  the picker and the list alike. This also keeps `picker::to_each`
+  unambiguous: a comma in the picked destination only comes from several
+  picks.
+- **Several hosts from the picker go to `podssh each` in this process.**
+  `picker::to_each` builds `each`'s arguments (the names as its comma list,
+  the command and flags as they are) and `run_each` runs them; its
+  `--result-file` stays `ssh`'s, which writes it at the run's end. Lost:
+  re-executing the binary as the donor does: `each` is already in this
+  binary, and a second process adds a lookup of its own path and an argv to
+  quote, for the same fan-out. Several numbers with no command (a shell)
+  are said, and the question comes again: a shell needs the terminal alone.
+- **Item 5: a destination that is no alias and does not resolve does not
+  open the picker.** A destination given is an explicit ask, of a script as
+  often as of a person, and a question in its place would change what `podssh
+  ssh HOST` does on a terminal. podssh's hosts often have no DNS of their own:
+  the relay dials the name, so "does not resolve" is not known before the
+  connection, and a lookup here only for this would be a second outbound
+  path (rule 2). Lost: tssh's 200 ms DNS wait with its veto of `. : [ ] @`.
+- **Item 6** stays as its text says: a new entry when someone asks for regex
+  expect rules; nothing is built here.
+
 ## Prove
 
 ```sh
@@ -3795,3 +3840,37 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test ssh_list_hosts   # JSON shape, patterns left out, Include, exit 78
 cargo test -p podssh-cli --test ssh_args -- picker
 ```
+
+## Done
+
+Draft, 2026-11-23: items 1 to 5 written; item 6 stays as its text says.
+
+- `crates/podssh-cli/src/ssh/list_hosts.rs` (new): `record`, `records`,
+  `json`, `detail` and `run`; `--list-hosts` in `ssh/mod.rs` before the
+  picker. The flag row is in `flags.rs` (help and manual from the one
+  table), the field in `ssh/args.rs`.
+- `ssh/picker.rs`: the user, host, port and jump beside each name, the
+  narrowing on them, several numbers with a command handed to `podssh each`
+  (`choose_among`, `to_each`), and names of many hosts left out. `choose`
+  keeps its signature.
+- The manual: the picker's note (`man/notes_ssh.rs`) and a note of
+  `--list-hosts` with each key (`man/notes_ssh_more.rs`); `docs/cli.md`,
+  "The host picker" and "`--list-hosts`". `llms-full.txt` needs its
+  regeneration from the new manual.
+- Tests: `ssh::list_hosts::tests` (unit, table-driven: a config with an
+  `Include`, wildcard and negated patterns, `%h`, a jump, a block that
+  resolves nothing, each row checked against `resolve` of the typed alias;
+  the JSON's one shape; 78 for a `-F` directory and a missing `-F` file,
+  64 for a destination, `[]` for `-F none`): 3 passed (2026-11-23, merged).
+  `tests/ssh_list_hosts.rs` (the binary: the array, patterns left out,
+  `Include` followed, the record with `error`, no secret; 78 with nothing
+  on stdout for a directory, a missing file and, on Unix, an included file
+  of mode 0666; 64 for a destination): 9 passed. `tests/ssh_picker/`
+  (the detail column and the narrowing on it; several numbers, with and
+  without a command; `to_each`; names of many hosts left out): in
+  `--test ssh_args`, 39 passed.
+- `cargo test -p podssh-cli --test flag_table --test man_flag_parity --test
+  man_page --test man_json --lib man::`: 6, 4, 11, 3 and 69 passed, after two
+  sentences of the notes were cut to 25 words or fewer (`pod_model`'s rule)
+  and `llms-full.txt` was written again. clippy of podssh-cli, all targets,
+  `-D warnings`: clean.

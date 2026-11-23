@@ -766,7 +766,7 @@ So a local TCP TARGET exists only where the host allows it; `podssh serve` (M5) 
    FILE, and prints only the label and the expiry. `podssh relay revoke NAME` stops the pair and deletes the
    local copies. `podssh relay status NAME` gives presence; agree on the form with T-058, whose `relay status`
    has no NAME.
-4. Exit codes as `podssh proxy` (`docs/cli.md:6514`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
+4. Exit codes as `podssh proxy` (`docs/cli.md:6556`): 64 usage; 69 the relay or TARGET cannot be reached; 77 a
    refused pair (`403`); 78 no usable pair; 0 after a stop by a signal. Add the rows to
    `crates/podssh-cli/src/man/facts/exit.rs:8`.
 5. `doctor`: one line for each stored pair, with its expiry and its presence, as in
@@ -904,7 +904,7 @@ Read: `parse_hop` strips `ssh://` and reads `host:PORT` (`crates/podssh-cli/src/
 operator leg receives text frames (`docs/relay.md:815-818`). A host key is recorded under the target
 host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 (`crates/podssh-cli/src/ssh/resolve.rs:360`). `podssh ssh` uses the exit codes of OpenSSH, and
-`podssh proxy` sysexits (`docs/cli.md:6510-6514`).
+`podssh proxy` sysexits (`docs/cli.md:6552-6556`).
 
 ## Approach
 
@@ -919,7 +919,7 @@ host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 4. Host keys: record and check the node's key under the name `node://NAME`, which no DNS name can be;
    `-o HostKeyAlias` still wins.
 5. Refuse by name a node as a `-J` hop, and `-W` through a node; record them for later.
-6. Flags: `--pair-file FILE` for `operator` and `ssh` (`crates/podssh-cli/src/flags.rs:116-296`,
+6. Flags: `--pair-file FILE` for `operator` and `ssh` (`crates/podssh-cli/src/flags.rs:116-298`,
    lines 418-419 at `3cbf215`). Update the manual's examples and notes, `docs/cli.md` (lines 62-75 at `3cbf215`) and `docs/reverse.md`.
 
 ## Decision
@@ -2681,7 +2681,7 @@ documents works; the form that a user expects is missing.
 - Read: `operator NAME` is "the ProxyCommand of OpenSSH for a node"
   (`crates/podssh-cli/src/man/notes_pair.rs:341-343`), and `pipe` takes `node:NAME`
   (`crates/podssh-cli/src/pipe/address.rs:32-33`); the about of `proxy` is "ProxyCommand form: a
-  byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:401`), with no word of a node.
+  byte pipe, not an SSH client" (`crates/podssh-cli/src/flags.rs:403`), with no word of a node.
 - Read: `proxy` takes other schemes of its own, each with no PORT: `cf://HOST`, and the roads of
   `iap://`, `eice://`, `warp://` and `tor://` (`crates/podssh-cli/src/proxy.rs:147-162`).
 
@@ -4839,7 +4839,7 @@ dropped in the same way.
   refuses only the family. `or_exit` runs after the plain-host branch, so a malformed relay list still
   fails there before the exit replaces the transport.
 - `crates/podssh-cli/src/ssh/node.rs:156-158` reads `--ca-file` for the pair road's TLS.
-  `crates/podssh-cli/src/ssh/mod.rs:193` applies `--relay-addr` before the destination resolves.
+  `crates/podssh-cli/src/ssh/mod.rs:203` applies `--relay-addr` before the destination resolves.
   Both apply to a node and stay.
 - `proxy` refusing these flags was deliberate (T-587, `TODO/reverse.md:2710`; Q90 confirmed it).
 

@@ -206,4 +206,12 @@ pub(super) const MORE: &[&str] = &[
      the server's name, the community server's too. upterm+ws://SESSION@127.0.0.1:PORT reaches an uptermd \
      of this host over ws://. -p gives the port; --direct, -4, -6 and HostName cannot go with it.",
     super::notes_tuic::SSH_TUIC,
+    "--list-hosts prints a JSON array on stdout and connects to nothing. It holds one object for each literal Host \
+     alias of the files that the picker reads, in their order. The keys are alias, host, port, user, \
+     identity_files, proxy_jump and error. host is after HostName, in lower case, as -G prints hostname. \
+     identity_files are the files that the login would try, expanded. proxy_jump and error are null when there is \
+     none. Each object is what podssh ssh ALIAS resolves, with the other \
+     flags of the command line, through the same code; an alias that resolves nothing has its reason in error and \
+     null in the other keys, and the list goes on (exit 0). It holds no key and no passphrase. A file that cannot \
+     be read, or that others may change, exits 78 with nothing on stdout; a destination or a command exits 64.",
 ];

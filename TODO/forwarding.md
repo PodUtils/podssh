@@ -431,7 +431,7 @@ swap of the cookie in `crates/podssh-ssh/src/x11.rs:1-339`; the session asks
 channel when the destination's run asked
 (`crates/podssh-ssh/src/handler.rs:304-317`). The plan and the probe of the
 command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
-`crates/podssh-cli/src/flags.rs:290-293`, and the keywords, honoured now, at
+`crates/podssh-cli/src/flags.rs:292-295`, and the keywords, honoured now, at
 `crates/podssh-cli/src/ssh/keywords.rs:49-51` and
 `crates/podssh-cli/src/ssh/keywords.rs:96`.
 - `cargo test -p podssh-ssh --lib -- x11`: 4 passed: `DISPLAY` as Xlib reads
@@ -1584,7 +1584,7 @@ a session with a pty:
 - `crates/podssh-cli/src/ssh/local_bind.rs`: the TCP listener and the
   socket of `-L` and `-D` can be closed (`crates/podssh-cli/src/ssh/local_bind.rs:137`
   and `crates/podssh-cli/src/ssh/local_bind.rs:184`), and the `Forwarder`
-  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:361` gives to
+  of `podssh ssh`, which `crates/podssh-cli/src/ssh/mod.rs:371` gives to
   each session.
 - The manual: the note of the terminal names `~C`, and a note of its own
   (`crates/podssh-cli/src/man/notes_ssh_more.rs:13`); `docs/cli.md` ("`~C`

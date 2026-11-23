@@ -4,7 +4,10 @@
 //! typed. In each other case nothing is read, and the run refuses as before
 //! (64): a script still gets its usage error. The list is never a guess: no
 //! pattern, no negated name, and no name of `known_hosts`, whose names can
-//! be hashed.
+//! be hashed. Beside each name it shows what a connection to it resolves
+//! (T-832, [`super::list_hosts`]): the user, the host, a port that is not 22
+//! and the jump; a text narrows on all of them. Several numbers with a
+//! command hand the names to `podssh each`, which runs it on each.
 
 use podssh_ssh::Hop;
 
@@ -58,7 +61,10 @@ pub fn names(args: &SshArgs, env: &Env) -> Result<Vec<String>, String> {
         tokens: &tokens,
         given: Given { local_user: env.user.as_deref(), ..Given::default() },
     };
-    super::config::host_names(&source, &ctx)
+    let names = super::config::host_names(&source, &ctx)?;
+    // A comma, a brace or a leading `@` makes a word of many hosts (T-184):
+    // such a name is never one destination, here or typed.
+    Ok(names.into_iter().filter(|name| !crate::hosts::is_pattern(name)).collect())
 }
 
 /// `args` with the destination picked, when the picker is wanted and
@@ -73,8 +79,39 @@ pub fn pick(args: &SshArgs, tty: Tty, env: &Env, keys: &mut dyn Keys) -> Result<
     if names.is_empty() {
         return Ok(None);
     }
-    let picked = choose(&names, keys)?;
-    Ok(Some(SshArgs { destination: Some(picked), ..args.clone() }))
+    let entry = |name: &String| Entry { detail: detail(args, env, name), name: name.clone() };
+    let entries: Vec<Entry> = names.iter().map(entry).collect();
+    // Several hosts take a command, which `podssh each` runs on each; a
+    // shell needs this terminal alone.
+    let several = !args.command.is_empty() || args.snippet.is_some();
+    let picked = choose_among(&entries, several, keys)?;
+    Ok(Some(SshArgs { destination: Some(picked.join(",")), ..args.clone() }))
+}
+
+/// What the list shows beside `name`: its record's user, host, port and
+/// jump, resolved as a run resolves them; nothing when it resolves none, as
+/// the run then says why.
+fn detail(args: &SshArgs, env: &Env, name: &str) -> String {
+    let record = super::list_hosts::record(args, env, name).ok();
+    record.and_then(|r| r.resolved.ok()).map(|f| super::list_hosts::detail(&f)).unwrap_or_default()
+}
+
+/// The run of `podssh each` for the names that the picker gave, when it
+/// gave more than one: the names as its comma list, the command and the
+/// flags as they are. `None` for one name, which `podssh ssh` takes.
+pub fn to_each(picked: &SshArgs) -> Option<crate::each::EachArgs> {
+    let word = picked.destination.as_deref().filter(|word| word.contains(','))?;
+    // The result of this run is `ssh`'s, which writes it at its end.
+    let ssh = SshArgs { destination: None, result_file: None, ..picked.clone() };
+    Some(crate::each::EachArgs { hosts: Some(word.to_string()), ssh, ..crate::each::EachArgs::default() })
+}
+
+/// One line of the list: a name, and what a connection to it resolves
+/// (empty when nothing is shown).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Entry {
+    pub name: String,
+    pub detail: String,
 }
 
 /// One name of `names`, as the person answers: a number of the list picks
@@ -82,29 +119,52 @@ pub fn pick(args: &SshArgs, tty: Tty, env: &Env, keys: &mut dyn Keys) -> Result<
 /// case set aside. An empty line, the end of input (Ctrl-D) and a terminal
 /// that fails pick none.
 pub fn choose(names: &[String], keys: &mut dyn Keys) -> Result<String, Refusal> {
-    let mut list: Vec<&str> = names.iter().map(String::as_str).collect();
+    let entries: Vec<Entry> = names.iter().map(|name| Entry { name: name.clone(), detail: String::new() }).collect();
+    let mut picked = choose_among(&entries, false, keys)?;
+    Ok(picked.remove(0))
+}
+
+/// The names of `entries` that the person picks: a number picks its name;
+/// with `several`, numbers parted by commas or blanks pick each (once, in
+/// the order typed). Other text narrows the list to the entries whose name
+/// or detail holds it, case set aside. An empty line, the end of input and
+/// a terminal that fails pick none. Each refusal is 64.
+pub fn choose_among(entries: &[Entry], several: bool, keys: &mut dyn Keys) -> Result<Vec<String>, Refusal> {
+    let mut list: Vec<&Entry> = entries.iter().collect();
     let mut note = String::new();
     for _ in 0..ROUNDS {
-        let mut prompt = String::new();
-        for (i, name) in list.iter().enumerate() {
-            prompt.push_str(&format!("{:>4}  {name}\n", i + 1));
-        }
-        let count = list.len();
-        prompt.push_str(&format!("{note}Host to log in to, 1 to {count}, or text that narrows the list: "));
+        let prompt = format!("{}{note}{}", lines(&list), question(list.len(), several));
         let line = keys.line(&prompt).map_err(|e| Refusal::usage(format!("{MISSING}; the host picker: {e}")))?;
         let answer = line.trim();
         if answer.is_empty() {
             return Err(Refusal::usage(format!("{MISSING}; no host was picked")));
         }
-        if let Ok(n) = answer.parse::<usize>() {
-            if let Some(name) = n.checked_sub(1).and_then(|i| list.get(i)) {
-                return Ok((*name).to_string());
+        if let Some(words) = numbers(answer) {
+            let mut picked: Vec<String> = Vec::new();
+            let mut outside = None;
+            for (word, n) in words {
+                match n.checked_sub(1).and_then(|i| list.get(i)) {
+                    Some(entry) if picked.contains(&entry.name) => {}
+                    Some(entry) => picked.push(entry.name.clone()),
+                    None => {
+                        outside = Some(word);
+                        break;
+                    }
+                }
             }
-            note = format!("{answer} is not a number of the list.\n");
+            note = match outside {
+                Some(word) => format!("{word} is not a number of the list.\n"),
+                None if picked.len() > 1 && !several => {
+                    "Several hosts take a command, which podssh each runs on each; pick one host for a shell.\n"
+                        .to_string()
+                }
+                None => return Ok(picked),
+            };
             continue;
         }
         let lower = answer.to_lowercase();
-        let narrowed: Vec<&str> = list.iter().copied().filter(|name| name.to_lowercase().contains(&lower)).collect();
+        let holds = |e: &&Entry| e.name.to_lowercase().contains(&lower) || e.detail.to_lowercase().contains(&lower);
+        let narrowed: Vec<&Entry> = list.iter().copied().filter(holds).collect();
         if narrowed.is_empty() {
             note = format!("No host of the list holds {answer}.\n");
         } else {
@@ -113,4 +173,39 @@ pub fn choose(names: &[String], keys: &mut dyn Keys) -> Result<String, Refusal> 
         }
     }
     Err(Refusal::usage(format!("{MISSING}; no host was picked in {ROUNDS} answers")))
+}
+
+/// The list, a number on each line; a detail in a column after the names,
+/// and no blank at the end of a line with none.
+fn lines(list: &[&Entry]) -> String {
+    let width = list.iter().filter(|e| !e.detail.is_empty()).map(|e| e.name.chars().count()).max().unwrap_or(0);
+    let mut text = String::new();
+    for (i, entry) in list.iter().enumerate() {
+        let n = i + 1;
+        if entry.detail.is_empty() {
+            text.push_str(&format!("{n:>4}  {}\n", entry.name));
+        } else {
+            text.push_str(&format!("{n:>4}  {:<width$}  {}\n", entry.name, entry.detail));
+        }
+    }
+    text
+}
+
+fn question(count: usize, several: bool) -> String {
+    if several {
+        format!("Host to log in to, 1 to {count}, several numbers for podssh each, or text that narrows the list: ")
+    } else {
+        format!("Host to log in to, 1 to {count}, or text that narrows the list: ")
+    }
+}
+
+/// Each word of `answer` with its number, when each word is a number: the
+/// words are parted by commas and blanks. `None` when one is not, as the
+/// answer is then a text that narrows.
+fn numbers(answer: &str) -> Option<Vec<(&str, usize)>> {
+    let words: Vec<&str> = answer.split(|c: char| c == ',' || c.is_whitespace()).filter(|w| !w.is_empty()).collect();
+    if words.is_empty() {
+        return None;
+    }
+    words.into_iter().map(|w| w.parse::<usize>().ok().map(|n| (w, n))).collect()
 }

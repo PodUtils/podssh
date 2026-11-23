@@ -137,3 +137,58 @@ fn the_name_picked_takes_the_path_of_a_typed_one() {
     let picked = pick(&args, BOTH, &h.env(), &mut typed(&["1"])).unwrap().unwrap();
     assert_eq!(resolve(&picked, &h.env()).unwrap().options.destination.port, 2201);
 }
+
+#[test]
+fn each_name_shows_what_it_resolves_and_text_narrows_on_it() {
+    let h = Home::new("detail");
+    let config = "Host web\n    HostName web.example.org\n    User admin\n    Port 2222\nHost db\nHost -bad\n";
+    h.file(".ssh/config", config);
+    let mut keys = typed(&["ADMIN", "1"]);
+    let picked = pick(&SshArgs::default(), BOTH, &h.env(), &mut keys).unwrap().unwrap();
+    assert_eq!(picked.destination.as_deref(), Some("web"));
+    // The user, the host and a port not 22, in a column after the names; a
+    // name that resolves nothing is shown alone, with no blank after it.
+    let first = &keys.prompts[0];
+    assert!(first.contains("   1  web  admin@web.example.org:2222\n"), "{first}");
+    assert!(first.contains("   2  db   lu@db\n"), "{first}");
+    assert!(first.contains("   3  -bad\n"), "{first}");
+    // The text narrows on the detail as on the name.
+    assert!(keys.prompts[1].contains("   1  web") && !keys.prompts[1].contains("db"), "{}", keys.prompts[1]);
+}
+
+#[test]
+fn several_numbers_with_a_command_go_to_podssh_each() {
+    use podssh_cli::ssh::picker::{choose_among, to_each, Entry};
+    let entries: Vec<Entry> =
+        ["a", "b", "c"].iter().map(|n| Entry { name: n.to_string(), detail: String::new() }).collect();
+    // With a command: each number once, in the order typed.
+    assert_eq!(choose_among(&entries, true, &mut typed(&["3, 1 3"])).unwrap(), ["c", "a"]);
+    // With none, a shell takes one host: the question comes again.
+    let mut keys = typed(&["1 2", "2"]);
+    assert_eq!(choose_among(&entries, false, &mut keys).unwrap(), ["b"]);
+    assert!(keys.prompts[1].contains("Several hosts take a command"), "{}", keys.prompts[1]);
+    // A number outside the list is said, as for one.
+    let mut keys = typed(&["1 9", "1"]);
+    assert_eq!(choose_among(&entries, true, &mut keys).unwrap(), ["a"]);
+    assert!(keys.prompts[1].contains("9 is not a number of the list"), "{}", keys.prompts[1]);
+
+    // The picker's names as each's comma list, with the command and flags.
+    let h = Home::new("each");
+    h.file(".ssh/config", "Host one\nHost two\n");
+    let args = SshArgs { command: vec!["uptime".into()], port: Some("2200".into()), ..SshArgs::default() };
+    let picked = pick(&args, BOTH, &h.env(), &mut typed(&["2 1"])).unwrap().unwrap();
+    let each = to_each(&picked).expect("podssh each");
+    assert_eq!(each.hosts.as_deref(), Some("two,one"));
+    let carried = (each.ssh.destination, each.ssh.command, each.ssh.port);
+    assert_eq!(carried, (None, args.command.clone(), args.port.clone()));
+    // One name stays podssh ssh's.
+    let one = pick(&args, BOTH, &h.env(), &mut typed(&["1"])).unwrap().unwrap();
+    assert!(to_each(&one).is_none());
+}
+
+#[test]
+fn a_name_of_many_hosts_is_not_listed() {
+    let h = Home::new("pattern");
+    h.file(".ssh/config", "Host a,b web{1..2} @group plain\n");
+    assert_eq!(names(&SshArgs::default(), &h.env()).unwrap(), ["plain"]);
+}
