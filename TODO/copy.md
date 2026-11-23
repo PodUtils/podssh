@@ -4117,7 +4117,7 @@ s each, SHA-256 equal). The entry waits for the next failure of the script, whos
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4162,3 +4162,24 @@ second channel. It is not measured whether podssh's ZMODEM fails in these places
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test pty_envelope   # frames, resync after junk, limits (after step 2)
 ```
+
+## Done
+
+Step 1, 2026-11-23: measured in a Claude Code cloud container (OpenSSH 9.6p1 on 127.0.0.1, lrzsz
+0.12.21rc, tmux 3.4, podman 4.9.3), `podssh ssh --direct` in a local pty, a new session for each
+run, a 1 MiB random file each way with SHA-256 compared and 60 s at most; the table and the commands
+are in `docs/terminal.md` ("Where ZMODEM survives"). Passed: the plain shell (`sz` 25 of 25, `rz` 145
+of 145), `podman exec -it` (5 of 5 each way), a far pty with `-icrnl -onlcr` (5 and 45 of 45) and with
+`inlcr igncr ocrnl onlret` (`sz` 5 of 5); lrzsz sets its tty raw, so the mappings of a pty do not
+reach the bytes. Failed: tmux in normal mode, 0 of 5 each way, also with `sz -e` and `rz -e`: tmux
+repaints `sz`'s output as a screen and drops ZDLE (0x18) from the header, so podssh finds no start,
+and it reads podssh's bytes as keys. Conclusion: the fault that step 2 is for shows, under tmux
+(and, by the same mechanism, presumably any program that emulates a terminal between the far
+shell and the pty), so step 2 is justified; the container and pty paths need no envelope.
+
+Found beside it, not a fault of the envelope: 3 of 205 runs of `rz` under `inlcr igncr ocrnl onlret`
+stopped with podssh silent past its 40 s limit (twice at `16384 of 1048576 bytes`), Ctrl-C and CAN
+ignored, while the far `rz` waited in a read on its raw tty; one such podssh outlived its terminal
+for 30 minutes, idle, the file open at 851,968 bytes. A transfer that waits must keep its limit, its
+keys and the end of the session; this wants an entry of its own (`crates/podssh-ssh/src/io.rs`, the
+pump's `zmodem_out` and `io/send.rs`).

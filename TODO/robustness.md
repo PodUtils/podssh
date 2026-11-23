@@ -371,7 +371,7 @@ Read:
    in the gate's container (installed with apk, as `scripts/interop-man.sh:22`
    installs groff) and through `vt100`. The two must give the same screens
    before the model judges podssh.
-6. docs/terminal.md, section "Tests" (`docs/terminal.md:575`), names the
+6. docs/terminal.md, section "Tests" (`docs/terminal.md:625`), names the
    oracle.
 
 ## Decision
@@ -4545,3 +4545,50 @@ Draft, 2026-11-23: steps 1 to 3 (`crates/podssh-cli/tests/attach.rs`: `shell`, `
 variable back, `tilde_d_as_bytes` starts at `shell`; `crates/podssh-cli/tests/conpty_harness/mod.rs`: `Console::bytes`).
 `cargo test -p podssh-cli --test attach` here (merged 2026-11-23, Linux, its pty harness): 6 passed; clippy and fmt clean. The proof is the Windows job of the gate, with no line "the far shell answered probe" in its log. Step 4
 waits for that job's log.
+
+# T-859: A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN
+
+**Source:** T-831's measurement, 2026-11-23 (`docs/terminal.md`, "Where ZMODEM survives (T-831)"): 3 of 205
+uploads (`rz` at the far end) with the far pty's CR and LF remapped.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A ZMODEM upload through `podssh ssh -t` showed its question and then nothing for more than 80 s, twice after
+`up.bin: 16384 of 1048576 bytes`. The transfer's 40 s limit did not end it, and neither Ctrl-C nor CAN did. One
+stuck podssh outlived its terminal for about 30 minutes: orphaned (PPID 1), idle in `epoll_wait`, waking about once a
+second, with the file open at offset 851968. A user's terminal hangs, and the process stays.
+
+## Premise
+
+- Measured, not reproduced at will: 0 stalls in 145 uploads of a plain shell and 45 with `stty -icrnl -onlcr`; 3 in 205
+  with `stty inlcr igncr ocrnl onlret` before `rz` (lrzsz sets its tty raw itself, so the mapping should not reach the
+  transfer). The far `rz` waited in a read on a raw tty.
+- Not verified: the pump waits in an await inside the transfer's send path (`crates/podssh-ssh/src/io/send.rs`, the
+  ZMODEM sender), where the keys, the transfer's tick and the signals are not polled.
+- The binary measured was at `c33214c0`, after T-780's `io/beside.rs`, which changed `io/send.rs`'s reads. Whether the
+  stall predates it is not known: the first step settles it.
+
+## Approach
+
+1. Reproduce with T-831's driver (`.work/t831/drive.py` is not in git: write its ZMODEM part as a test of the class, a
+   far `rz` that stops reading after the first frames, with podssh's 40 s limit shortened by a test hook), at
+   `c33214c0` and at its parent `68228ea4^` (before T-780's repair), to learn whether T-780 brought it.
+2. Find the await that holds: the transfer's limit, Ctrl-C and CAN must each end a transfer whatever the far end does;
+   the send loop selects on them beside each write and each read, with the transfer's own deadline.
+3. The process ends when its terminal goes (SIGHUP, or a read of 0 on stdin), during a transfer too.
+4. Same commit: `docs/terminal.md` names the limit and the keys that end a transfer.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test zmodem
+```
+
+A test that does not exist yet in that file: a far end that stops reading mid-transfer; the transfer ends at its limit,
+at Ctrl-C and at CAN, each with one line and no file left under its final name.

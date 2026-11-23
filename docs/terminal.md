@@ -494,6 +494,56 @@ file each way. The gate's check (`scripts/interop-pty.py`, `pty.zmodem.*`)
 runs `sz` and `rz` of lrzsz in a real pty; Alpine has no lrzsz package
 now, and the check says `env` without one (T-148's Correction).
 
+### Where ZMODEM survives (T-831)
+
+Measured on 2026-11-23 in a Claude Code cloud container:
+`podssh ssh --direct` (debug build at `c33214c0`) in a local pty of 24x120, against a
+throwaway OpenSSH 9.6p1 on 127.0.0.1, lrzsz 0.12.21rc, tmux 3.4, podman
+4.9.3 with runc. Each run is a new session: `sz` of a 1 MiB random file to
+podssh, or `rz` of another from podssh, the SHA-256 of both ends compared,
+60 s at most. The driver is a copy of `scripts/interop-pty.py`'s ZMODEM
+check, kept out of the repository. The time runs from the command's Enter
+to podssh's `received` or `sent` line.
+
+| Path, as typed in the far shell | `sz` (far to here) | `rz` (here to far) |
+| --- | --- | --- |
+| (a) the shell: `sz down.bin`, `rz` | 25 of 25, 0.07 s | 145 of 145, 0.05 s |
+| (b) tmux: `tmux -L t831 -f /dev/null new -s t831 'sz down.bin'` (and `'rz'`) | 0 of 5 | 0 of 5 |
+| (b) the same with `sz -e` and `rz -e` (each control escaped) | 0 of 5 | 0 of 5 |
+| (c) `podman exec -it -w /far t831 sz down.bin` (and `rz`) | 5 of 5, 0.16 s | 5 of 5, 0.15 s |
+| (d1) `stty -icrnl -onlcr; sz down.bin; stty sane` | 5 of 5, 0.07 s | 45 of 45, 0.05 s |
+| (d2) `stty inlcr igncr ocrnl onlret; sz down.bin; stty sane` | 5 of 5, 0.08 s | 202 of 205, 0.05 s |
+
+- **tmux damages ZMODEM.** tmux is a terminal emulator, not a pipe: it
+  reads `sz`'s bytes as screen output and repaints its own screen. ZDLE
+  (0x18, CAN in ASCII) cancels an escape sequence there and is dropped, so
+  the client sees `**B00000000000000` with no ZDLE, at the place where tmux
+  draws it; the CR, LF and XON after the header and every binary byte are
+  gone or redrawn. No start is found, nothing is asked, and `sz` or `rz`
+  times out in the pane. `-e` does not help: the header itself holds ZDLE.
+  In the other way tmux reads podssh's keys as keys (its prefix is 0x02),
+  so a binary stream would not reach `rz` either. Another program that
+  emulates a terminal (screen, for one; not measured) would do the same; only a carrier of
+  printable bytes, re-sent by line, crosses it (T-831, step 2).
+- **`podman exec -t` passes ZMODEM.** Its tty path copies bytes, and both
+  ttys are raw while `sz` or `rz` runs. lrzsz is not in Alpine and the
+  container had no network, so the container ran the host's glibc `sz` and
+  `rz` through the host's loader (`/opt/g/ld-linux-x86-64.so.2 --library-path
+  /opt/g`), copied in with `podman cp`; the path measured is the tty, not
+  the libc.
+- **A pty that maps CR and LF passes ZMODEM**, as lrzsz sets its tty raw
+  (`-icanon -opost -icrnl -inlcr -igncr`) before the transfer.
+- **A stall that is podssh's own.** 3 of 205 runs of (d2) `rz` stopped: podssh showed its question,
+  then nothing (twice after `up.bin: 16384 of 1048576 bytes`), for more
+  than 80 s, while the far `rz` waited in a read on its raw tty (seen in
+  the one run where its tty was read). podssh's 40 s limit did not end it, Ctrl-C and CAN did not
+  cancel it, and one such podssh outlived the death of its terminal for 30
+  minutes (idle in `epoll_wait`, the file still open at 851,968 bytes). No
+  run of (a) or (d1) stopped in 145 and 45. The cause is not known: a race
+  of the first frames with `rz`'s change of its tty from (d2)'s modes is
+  the guess, but whatever the far side does, a send that waits must still
+  keep its limit and its keys.
+
 ## A notice while the far end is silent
 
 With the resumable layer (`ssh node://`, its race with `--iroh-ticket`,

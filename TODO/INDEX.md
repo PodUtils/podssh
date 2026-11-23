@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**813 entries: 21 open, 45 partial, 11 blocked, 736 done.**
+**814 entries: 21 open, 46 partial, 11 blocked, 736 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 12 | 3 | 91 | 106 |
+| P1 | 1 | 12 | 3 | 91 | 107 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 21 | 10 | 6 | 340 | 377 |
-| **All** | 21 | 45 | 11 | 736 | 813 |
+| P3 | 20 | 11 | 6 | 340 | 377 |
+| **All** | 21 | 46 | 11 | 736 | 814 |
 
 ## Entries
 
@@ -861,7 +861,7 @@ repository and CI).
 | [T-828](robustness.md) | P3 | M | M10 | defect | done | The second black-box pass's smaller findings: the documents and the lines |
 | [T-829](robustness.md) | P1 | S | M10 | defect | done | A port that a test lets go is taken by a test beside it: the gate's `ping` offline test counted a dial |
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
-| [T-831](copy.md) | P3 | M | backlog | research | open | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
+| [T-831](copy.md) | P3 | M | backlog | research | partial | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
@@ -889,3 +889,4 @@ repository and CI).
 | [T-856](serve.md) | P3 | S | backlog | defect | done | `podssh serve` with an RSA host key signs through the `rsa` crate |
 | [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
 | [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |
+| [T-859](robustness.md) | P1 | S | M10 | defect | open | A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN |
