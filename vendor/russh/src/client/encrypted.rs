@@ -1106,6 +1106,19 @@ impl Session {
             }
             m => {
                 debug!("unknown message received: {m:?}");
+                // RFC 4253, section 11.4: a number that russh names no
+                // message of is answered, with the packet's sequence number.
+                // podssh's patch (vendor/patches/russh/, T-854).
+                if let Some((&number, _)) = m {
+                    if !msg::is_known(number) {
+                        if let Some(ref mut enc) = self.common.encrypted {
+                            crate::session::write_unimplemented(
+                                &mut enc.write,
+                                self.common.read_seqn,
+                            );
+                        }
+                    }
+                }
                 Ok(())
             }
         }

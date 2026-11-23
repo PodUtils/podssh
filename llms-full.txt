@@ -10813,14 +10813,14 @@ podssh serve
   diffie-hellman-group18-sha512, diffie-hellman-group17-sha512,
   diffie-hellman-group16-sha512, diffie-hellman-group15-sha512 and
   diffie-hellman-group14-sha256. Host key algorithms: ssh-ed25519,
-  ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512,
-  rsa-sha2-256 and ssh-rsa. Of those, a client is offered the ones that the
-  host key serves. Ciphers: chacha20-poly1305@openssh.com,
-  aes256-gcm@openssh.com, aes256-ctr, aes192-ctr and aes128-ctr. MACs:
-  hmac-sha2-512-etm@openssh.com, hmac-sha2-256-etm@openssh.com, hmac-sha2-512
-  and hmac-sha2-256. Compression: none, zlib and zlib@openssh.com. A client
-  that offers no name of a list is refused in the handshake (OpenSSH: no
-  matching cipher found, and the set as Their offer).
+  ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512
+  and rsa-sha2-256. Of those, a client is offered the ones that the host key
+  serves. Ciphers: chacha20-poly1305@openssh.com, aes256-gcm@openssh.com,
+  aes256-ctr, aes192-ctr and aes128-ctr. MACs: hmac-sha2-512-etm@openssh.com,
+  hmac-sha2-256-etm@openssh.com, hmac-sha2-512 and hmac-sha2-256. Compression:
+  none, zlib and zlib@openssh.com. A client that offers no name of a list is
+  refused in the handshake (OpenSSH: no matching cipher found, and the set as
+  Their offer).
 
   The options of a key line are OpenSSH's (the format of the authorized_keys
   file in sshd(8)), read as sshd reads them: separated by commas, names in any
@@ -10859,7 +10859,10 @@ podssh serve
   the other reads it. Its fingerprint goes to stderr at each start, with a
   warning when the file is in a temporary directory, which a reboot can empty:
   each client would then meet a new host key. A key file with a passphrase is
-  refused (78).
+  refused (78). An RSA key signs through aws-lc-rs, whose RSA is constant-time,
+  with SHA-2 alone (rsa-sha2-512, rsa-sha2-256), never through russh's rsa
+  crate. An RSA key outside 2048 to 8192 bits, or a key that is not Ed25519,
+  ECDSA or RSA, is refused (78).
 
   A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as
   a login shell (its argv[0] the shell's name after a dash). Each runs as the
@@ -14174,9 +14177,13 @@ Each rule is implemented.
   private-key operations are not constant-time (RUSTSEC-2023-0071, the
   Marvin attack; no fixed version). An RSA user key signs each login through
   aws-lc-rs, whose RSA is constant-time, never with SHA-1, at 2048 to 8192
-  bits; `podssh keygen -t rsa` makes its key there; and `podssh agent` keeps
-  no RSA key, as russh's agent server would sign with it through `rsa`. A
-  test reads the source for each way back (T-257). The `rsa` crate stays for
+  bits; `podssh keygen -t rsa` makes its key there; `podssh agent` keeps
+  no RSA key, as russh's agent server would sign with it through `rsa`; and
+  an RSA host key of `podssh serve` signs each key exchange through
+  aws-lc-rs too, with SHA-2 alone, where russh's server would sign it
+  through `rsa` for any client that connects (T-856). A test reads the
+  source for each way back (T-257), and one refuses a host key that only
+  `rsa` would sign (T-856). The `rsa` crate stays for
   the check of a server's RSA certificate (in `pod-tls` of PodUtils/podcrates), with the public key only, and in
   russh's reader of an RSA key in a PEM or PKCS#8 file, which computes with
   the key once, as it reads it.

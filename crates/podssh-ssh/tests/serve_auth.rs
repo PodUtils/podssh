@@ -14,6 +14,7 @@ use std::sync::{Arc, Barrier};
 use std::time::Duration;
 
 use podssh_ssh::keygen::{self, KeyKind};
+use podssh_ssh::russh::keys::ssh_key::private::RsaKeypair;
 use podssh_ssh::russh::keys::{PrivateKey, PrivateKeyWithHashAlg};
 use podssh_ssh::russh::{self, client, ChannelMsg};
 use podssh_ssh::server::{self, host_key, Authorized, Line, StateFiles};
@@ -141,6 +142,22 @@ fn a_host_key_with_a_passphrase_is_refused() {
     let why = host_key::parse(&text).expect_err("refused");
     assert!(why.contains("passphrase"), "{why}");
     assert!(host_key::parse("not a key").is_err());
+}
+
+/// An RSA host key signs through aws-lc-rs (T-856): a key that it takes
+/// (2048 to 8192 bits) is read as before, and one that it refuses is
+/// refused at the start with one line that names the size and the way out,
+/// never left to russh's `rsa` crate.
+#[test]
+fn an_rsa_host_key_that_aws_lc_rs_refuses_is_refused_with_its_reason() {
+    let text = |key: &PrivateKey| key.to_openssh(russh::keys::ssh_key::LineEnding::LF).unwrap();
+    let rsa = keygen::generate(KeyKind::Rsa(2048), "host").unwrap();
+    assert_eq!(host_key::parse(&text(&rsa)).unwrap().public_key(), rsa.public_key());
+    let small = PrivateKey::from(RsaKeypair::random(&mut rand::rng(), 1024).unwrap());
+    let why = host_key::parse(&text(&small)).expect_err("refused");
+    assert!(why.contains("1024 bits") && why.contains("2048 to 8192") && why.contains("Ed25519"), "{why}");
+    assert!(!why.contains('\n'), "one line: {why}");
+    assert_eq!(host_key::check(&small), Err(why));
 }
 
 #[test]

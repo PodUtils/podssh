@@ -78,6 +78,9 @@ pub(crate) struct CommonSession<Config> {
     pub strict_kex: bool,
     pub alive_timeouts: usize,
     pub received_data: bool,
+    /// The sequence number of the peer's packet that the loop reads now,
+    /// which an UNIMPLEMENTED in answer to it names (podssh's patch, T-854).
+    pub(crate) read_seqn: u32,
 }
 
 impl<C> Debug for CommonSession<C> {
@@ -262,6 +265,17 @@ impl<C> CommonSession<C> {
     pub(crate) fn reset_seqn(&mut self) {
         self.packet_writer.reset_seqn();
     }
+}
+
+/// Write SSH_MSG_UNIMPLEMENTED in answer to the peer's packet of sequence
+/// number `seqn` (RFC 4253, section 11.4). A function of the buffer alone,
+/// so that a caller that holds the rest of its `Encrypted` borrowed can
+/// write it. podssh's patch (vendor/patches/russh/, T-854).
+pub(crate) fn write_unimplemented(write: &mut Vec<u8>, seqn: u32) {
+    push_packet!(write, {
+        write.push(msg::UNIMPLEMENTED);
+        write.extend_from_slice(&seqn.to_be_bytes());
+    })
 }
 
 impl Encrypted {

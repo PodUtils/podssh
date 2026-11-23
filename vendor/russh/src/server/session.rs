@@ -1693,6 +1693,7 @@ mod tests {
                 strict_kex: false,
                 alive_timeouts: 0,
                 received_data: false,
+                read_seqn: 0,
             },
             sender: handle,
             priority_receiver,

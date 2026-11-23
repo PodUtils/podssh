@@ -5,9 +5,9 @@
 //! holds against its own table of names.
 //!
 //! The set is the one that serve offered before it was stated (russh
-//! 0.65.2's default), less nothing and plus nothing: the entry states the
-//! present set, it does not choose a new one. Never `none`: no list here
-//! carries the bytes in the clear.
+//! 0.65.2's default), plus nothing, and less `ssh-rsa` alone: an RSA host
+//! key signs through aws-lc-rs (T-856, `host_sign.rs`), which signs no
+//! SHA-1. Never `none`: no list here carries the bytes in the clear.
 
 use std::borrow::Cow;
 
@@ -43,7 +43,9 @@ pub const KEX_EXTENSIONS: &[kex::Name] = &[
 
 /// The host key algorithms. A connection is offered those that the host
 /// key serves (an Ed25519 key: `ssh-ed25519` alone); the list is also the
-/// `server-sig-algs` that serve tells a client (RFC 8308).
+/// `server-sig-algs` that serve tells a client (RFC 8308). No `ssh-rsa`:
+/// its SHA-1 is no signature that aws-lc-rs makes, and russh would sign it
+/// through the `rsa` crate (T-856).
 pub const HOST_KEYS: &[Algorithm] = &[
     Algorithm::Ed25519,
     Algorithm::Ecdsa { curve: EcdsaCurve::NistP256 },
@@ -51,7 +53,6 @@ pub const HOST_KEYS: &[Algorithm] = &[
     Algorithm::Ecdsa { curve: EcdsaCurve::NistP521 },
     Algorithm::Rsa { hash: Some(HashAlg::Sha512) },
     Algorithm::Rsa { hash: Some(HashAlg::Sha256) },
-    Algorithm::Rsa { hash: None },
 ];
 
 /// The ciphers, each way.
@@ -105,6 +106,15 @@ mod tests {
         }
         // Compression's `none` is no clear text: it is the default.
         assert_eq!(names(COMPRESSION).first().map(String::as_str), Some("none"));
+    }
+
+    /// Each host key algorithm of the set signs through a path that is
+    /// not the `rsa` crate's: RSA only with SHA-2, which aws-lc-rs signs.
+    #[test]
+    fn no_host_key_algorithm_signs_with_sha1() {
+        for algorithm in HOST_KEYS {
+            assert!(!matches!(algorithm, Algorithm::Rsa { hash: None }), "{}", algorithm.as_str());
+        }
     }
 
     #[test]

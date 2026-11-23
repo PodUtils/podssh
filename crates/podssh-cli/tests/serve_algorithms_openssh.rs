@@ -48,9 +48,19 @@ const REPLIES: &[(&str, &str, Option<&str>)] = &[
     // `serve_lifecycle_openssh.rs`: `Received disconnect ... podssh serve is stopping`;
     // `serve_policy_openssh.rs`: `... do not meet the policy`.
     ("DISCONNECT", "a stop (SIGTERM, SIGINT); a key that a reload removed, with --revoke-ends-sessions (T-842); a client that --policy refuses (T-838)", None),
-    // russh's server reads a message that it does not know and answers
-    // nothing; no client of OpenSSH sends one.
-    ("UNIMPLEMENTED", "never sent: an unknown message is passed over", None),
+    // No client of OpenSSH sends a message of an unassigned number:
+    // russh's own tests of the patch that sends it (T-854).
+    ("UNIMPLEMENTED", "a message of a number that russh names no message of, with its sequence number", None),
+];
+
+/// Where each row that no request of OpenSSH's client causes is pinned, a
+/// test file from this crate's directory, and a test of that file.
+#[rustfmt::skip]
+const PINNED: &[(&str, &str, &str)] = &[
+    ("CHANNEL_OPEN_FAILURE", "tests/serve_forward_openssh.rs", "fn "),
+    ("DISCONNECT", "tests/serve_lifecycle_openssh.rs", "fn "),
+    ("UNIMPLEMENTED", "../../vendor/russh/src/server/unimplemented.rs",
+        "fn an_unknown_number_after_the_login_gets_unimplemented_with_its_sequence_number"),
 ];
 
 /// The lists of the handshake that OpenSSH's client takes by name: its
@@ -144,11 +154,24 @@ fn each_refusal_that_openssh_can_cause_sends_its_reply() {
     let (code, err) = finish(openssh_with(home, &key, "accept-new", "", &options, &["sleep 1"]));
     assert_eq!(code, Some(0), "the session goes on: {err}");
     assert!(err.contains(words("REQUEST_FAILURE")), "{err}");
-    // Each row without words names where it is pinned, or why none can be.
+}
+
+/// Each row without words names the test that pins it, and that test is
+/// there; a host with no OpenSSH client runs this one too.
+#[test]
+fn each_row_that_openssh_cannot_cause_is_pinned_elsewhere() {
+    let here = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (reply, request, said) in REPLIES {
         assert!(!request.is_empty(), "{reply}");
-        if said.is_none() {
-            assert!(["CHANNEL_OPEN_FAILURE", "DISCONNECT", "UNIMPLEMENTED"].contains(reply), "{reply}");
+        let pin = PINNED.iter().find(|(r, _, _)| r == reply);
+        match (said, pin) {
+            (Some(_), None) => {}
+            (None, Some((_, file, test))) => {
+                let text = std::fs::read_to_string(here.join(file)).unwrap_or_else(|e| panic!("{reply}: {file}: {e}"));
+                assert!(text.contains(test), "{reply}: {file} has no {test:?}");
+            }
+            (Some(_), Some(_)) => panic!("{reply}: OpenSSH's words and a pin elsewhere; one of them"),
+            (None, None) => panic!("{reply}: neither OpenSSH's words nor a pin elsewhere"),
         }
     }
 }

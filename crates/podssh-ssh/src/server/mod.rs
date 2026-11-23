@@ -13,9 +13,10 @@
 //! A stop says why to each client and hangs up each child, and the keys
 //! can be read again while it serves (T-117, `stop.rs`); a reload that takes
 //! a key out ends its sessions when asked (T-842, `live.rs`). The algorithms
-//! that it offers are one stated set (T-841, `algorithms.rs`); a client
-//! policy refuses a client by its KEXINIT before authentication (T-838,
-//! `policy_gate.rs`).
+//! that it offers are one stated set (T-841, `algorithms.rs`); an RSA host
+//! key signs through aws-lc-rs, never russh's `rsa` (T-856, `host_sign.rs`);
+//! a client policy refuses a client by its KEXINIT before authentication
+//! (T-838, `policy_gate.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -26,6 +27,7 @@ mod direct;
 pub mod env;
 mod handler;
 pub mod host_key;
+mod host_sign;
 #[cfg(unix)]
 mod line;
 pub mod live;
@@ -72,9 +74,11 @@ pub const KEEPALIVE: Duration = Duration::from_secs(60);
 
 /// The server's settings: public keys alone (russh's default also offers
 /// passwords), the window of podssh's client, no cut of an idle session
-/// (russh's default cuts at 600 s), a keepalive, and the algorithms of
-/// podssh's own stated set, never russh's default of the day (T-841).
+/// (russh's default cuts at 600 s), a keepalive, the algorithms of
+/// podssh's own stated set, never russh's default of the day (T-841), and
+/// the signer of the host key, which keeps an RSA key from russh (T-856).
 pub fn config(host_key: PrivateKey) -> russh::server::Config {
+    let signer = host_sign::HostSigner::of(&host_key);
     russh::server::Config {
         server_id: SshId::Standard(Cow::Owned(format!(
             "SSH-2.0-podssh_{}",
@@ -89,6 +93,7 @@ pub fn config(host_key: PrivateKey) -> russh::server::Config {
         // OpenSSH's client asks with `none` first, to learn the methods: an
         // answer to it tells nothing, so it need not wait.
         auth_rejection_time_initial: Some(Duration::ZERO),
+        host_key_signer: Some(Arc::new(signer)),
         ..russh::server::Config::default()
     }
 }

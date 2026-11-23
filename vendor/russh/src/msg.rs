@@ -174,3 +174,53 @@ const ALL_KEX_MESSAGES: &[u8] = &[
 pub(crate) fn is_kex_msg(msg: u8) -> bool {
     ALL_KEX_MESSAGES.contains(&msg)
 }
+
+/// The numbers that russh names a message of, of either side; RFC 4253,
+/// section 11.4, asks for UNIMPLEMENTED in answer to each other number. A
+/// named message out of its place is not "unrecognized": it is passed over,
+/// as before. podssh's patch (vendor/patches/russh/, T-854).
+const KNOWN: &[u8] = &[
+    DISCONNECT,
+    IGNORE,
+    UNIMPLEMENTED,
+    DEBUG,
+    SERVICE_REQUEST,
+    SERVICE_ACCEPT,
+    EXT_INFO,
+    KEXINIT,
+    NEWKEYS,
+    KEX_ECDH_INIT,
+    KEX_ECDH_REPLY,
+    KEX_DH_GEX_INIT,
+    KEX_DH_GEX_REPLY,
+    KEX_DH_GEX_REQUEST,
+    USERAUTH_REQUEST,
+    USERAUTH_FAILURE,
+    USERAUTH_SUCCESS,
+    USERAUTH_BANNER,
+    USERAUTH_INFO_REQUEST_OR_USERAUTH_PK_OK,
+    USERAUTH_INFO_RESPONSE,
+    USERAUTH_GSSAPI_EXCHANGE_COMPLETE,
+    USERAUTH_GSSAPI_ERROR,
+    USERAUTH_GSSAPI_ERRTOK,
+    USERAUTH_GSSAPI_MIC,
+    GLOBAL_REQUEST,
+    REQUEST_SUCCESS,
+    REQUEST_FAILURE,
+    CHANNEL_OPEN,
+    CHANNEL_OPEN_CONFIRMATION,
+    CHANNEL_OPEN_FAILURE,
+    CHANNEL_WINDOW_ADJUST,
+    CHANNEL_DATA,
+    CHANNEL_EXTENDED_DATA,
+    CHANNEL_EOF,
+    CHANNEL_CLOSE,
+    CHANNEL_REQUEST,
+    CHANNEL_SUCCESS,
+    CHANNEL_FAILURE,
+];
+
+/// Whether russh names a message of number `msg` (podssh's patch, T-854).
+pub(crate) fn is_known(msg: u8) -> bool {
+    KNOWN.contains(&msg)
+}

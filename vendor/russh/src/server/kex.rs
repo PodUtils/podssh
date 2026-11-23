@@ -350,11 +350,21 @@ impl ServerKex {
 
                 // Hash signature
                 debug!("signing with key {key:?}");
-                let signature = sign_with_hash_alg(
-                    &PrivateKeyWithHashAlg::new(Arc::new(key.clone()), signature_hash_alg),
-                    &hash,
-                )
-                .map_err(Into::into)?;
+                // The server's own signer first, for a key that it takes
+                // (podssh's patch, vendor/patches/russh/, T-856).
+                let own = self
+                    .config
+                    .host_key_signer
+                    .as_ref()
+                    .and_then(|signer| signer.sign(key, signature_hash_alg, &hash));
+                let signature = match own {
+                    Some(signed) => signed.map_err(crate::Error::from)?,
+                    None => sign_with_hash_alg(
+                        &PrivateKeyWithHashAlg::new(Arc::new(key.clone()), signature_hash_alg),
+                        &hash,
+                    )
+                    .map_err(Into::into)?,
+                };
 
                 output.write_packet(|w| {
                     match kex.is_dh_gex() {

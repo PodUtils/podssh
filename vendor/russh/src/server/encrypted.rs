@@ -158,6 +158,16 @@ impl Session {
             (EncryptedState::Authenticated, Some((msg, mut r))) => {
                 self.server_read_authenticated(handler, *msg, &mut r).await
             }
+            // A number that russh names no message of gets UNIMPLEMENTED
+            // before the login too (RFC 4253, section 11.4); a named message
+            // out of its place is passed over, as before. podssh's patch
+            // (vendor/patches/russh/, T-854).
+            (_, Some((&m, _))) if !msg::is_known(m) => {
+                let seqn = self.common.read_seqn;
+                debug!("unknown message {m}: UNIMPLEMENTED for packet {seqn}");
+                crate::session::write_unimplemented(&mut enc.write, seqn);
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
@@ -851,6 +861,7 @@ mod tests {
                 strict_kex: false,
                 alive_timeouts: 0,
                 received_data: false,
+                read_seqn: 0,
                 remote_sshid: Vec::new(),
             },
             priority_receiver,
@@ -2039,6 +2050,14 @@ impl Session {
             }
             m => {
                 debug!("unknown message received: {m:?}");
+                // RFC 4253, section 11.4: a number that russh names no
+                // message of is answered, with the packet's sequence number.
+                // podssh's patch (vendor/patches/russh/, T-854).
+                if !msg::is_known(m) {
+                    if let Some(ref mut enc) = self.common.encrypted {
+                        crate::session::write_unimplemented(&mut enc.write, self.common.read_seqn);
+                    }
+                }
                 Ok(())
             }
         }

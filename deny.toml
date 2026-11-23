@@ -31,10 +31,11 @@ ignore = [
   # fixed version exists. podssh-ws only verifies RSA signatures, with public
   # keys. Since T-257 an RSA user key signs, and podssh keygen makes one,
   # through aws-lc-rs, and podssh agent keeps no RSA key; a test of
-  # podssh-ssh reads the source for each way back. russh's reader of a PEM or
-  # PKCS#8 RSA key still computes with it once. Read 2026-10-09 and
-  # 2026-10-11.
-  { id = "RUSTSEC-2023-0071", reason = "no fixed version; rsa only verifies, and russh reads a PEM key with it once; RSA signing and keygen use aws-lc-rs (T-257)" },
+  # podssh-ssh reads the source for each way back. Since T-856 an RSA host
+  # key of podssh serve signs through aws-lc-rs too (russh's patch
+  # 0015-host-key-signer). russh's reader of a PEM or PKCS#8 RSA key still
+  # computes with it once. Read 2026-10-09, 2026-10-11 and 2026-11-23.
+  { id = "RUSTSEC-2023-0071", reason = "no fixed version; rsa only verifies, and russh reads a PEM key with it once; RSA signing and keygen use aws-lc-rs (T-257, T-856)" },
   # paste is unmaintained, not open to an attack: a proc-macro, which runs
   # at build time only, that only the Tailscale fork brings (through
   # stun-rs). The fork's own deny.toml ignores it too. Read 2026-10-09.

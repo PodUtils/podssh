@@ -112,9 +112,9 @@ on T-698.
   through `[patch.crates-io]` of the workspace (`Cargo.toml:194`). Its server module is still built
   on each target but wasm (`vendor/russh/src/lib_inner.rs:67-68`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
-  `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
-  still sends no reply (`vendor/russh/src/server/mod.rs:688-693`), and a channel request that russh does
-  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1864-1868`).
+  `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:237-278`); a request handler that does not answer
+  still sends no reply (`vendor/russh/src/server/mod.rs:715-720`), and a channel request that russh does
+  not know is refused by russh itself (`vendor/russh/src/server/encrypted.rs:1875-1879`).
 - "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
   the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
   `crates/podssh-relay/tests/devtunnel.rs:19`).
@@ -295,15 +295,15 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `4c98f8b`:
 
 - russh is 0.65.0, built from `vendor/russh` (T-107's Correction). `env_request`, `shell_request` and
-  `exec_request` are at `vendor/russh/src/server/mod.rs:660-732`, and still answer nothing by
-  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1520-1538`,
-  into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:120`, 100). Each channel
+  `exec_request` are at `vendor/russh/src/server/mod.rs:687-759`, and still answer nothing by
+  default. Each data message goes to the kept `Channel` at `vendor/russh/src/server/encrypted.rs:1531-1549`,
+  into a queue of `channel_buffer_size` (`vendor/russh/src/server/mod.rs:145`, 100). Each channel
   request goes to that queue too before the handler sees it, `env` among them
-  (`vendor/russh/src/server/encrypted.rs:1745-1756`): so a channel that nothing reads stalls the
+  (`vendor/russh/src/server/encrypted.rs:1756-1767`): so a channel that nothing reads stalls the
   connection with no data at all, after 100 `env` requests, and the task that reads a channel
   starts at its open, not at its `exec` (Approach item 1).
 - russh's server adjusts a channel's window when the data arrives, not when it is read
-  (`vendor/russh/src/server/encrypted.rs:1509-1519`): no window of a channel apart holds a client
+  (`vendor/russh/src/server/encrypted.rs:1520-1530`): no window of a channel apart holds a client
   back. The bytes for a child's stdin wait in a queue of 128 messages (about 4 MiB) of their own,
   written by a task of their own, which drains the rest after a broken pipe; past that queue the
   connection waits. The window of each channel apart is T-118's.
@@ -638,8 +638,8 @@ the entry joins the work order by its priority.
 2026-11-13. The Premise, read again at `32bf8af`:
 
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `pty_request` and
-  `window_change_request` are at `vendor/russh/src/server/mod.rs:590-602` and
-  `vendor/russh/src/server/mod.rs:776-786`, and both still answer nothing by default. A
+  `window_change_request` are at `vendor/russh/src/server/mod.rs:617-629` and
+  `vendor/russh/src/server/mod.rs:803-813`, and both still answer nothing by default. A
   `window-change` asks for no reply, so the handler sends none.
 - The client's table of modes was at `crates/podssh-ssh/src/terminal/unix.rs` lines 86-163 at
   `32bf8af`; it is now `crates/podssh-ssh/src/terminal/modes.rs` (Approach item 2), one table that the
@@ -981,7 +981,7 @@ the entry joins the work order by its priority.
   russh-sftp and russh) becomes a direct dependency for the codec's buffer type; the size cost is
   measured on the release binary.
 - russh is 0.65.0 from `vendor/russh` (T-107's Correction): `subsystem_request` is at
-  `vendor/russh/src/server/mod.rs:745-752`, and its default sends no reply, so the handler answers
+  `vendor/russh/src/server/mod.rs:772-779`, and its default sends no reply, so the handler answers
   each name (success for `sftp`, failure for each other).
 - russh-sftp's `Channel::into_stream` (Approach item 2) does not fit serve: each session channel is
   split at its open, and a task reads it from then on (T-108, `crates/podssh-ssh/src/server/channel.rs`).
@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:534`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:536`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:718`; measured: `docs/STATUS.md:542`). 200 MiB each way
+  (`docs/relay.md:718`; measured: `docs/STATUS.md:544`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -1779,9 +1779,9 @@ Correction):
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
   1 GiB between the child's stdout and its channel (`t118-read-ahead`).
-- The server opens a window on arrival (`vendor/russh/src/session.rs:305`, `adjust_window_size`, which
+- The server opens a window on arrival (`vendor/russh/src/session.rs:319`, `adjust_window_size`, which
   its data path calls), and gives each data message to the kept `Channel` with a send that waits
-  (`vendor/russh/src/server/encrypted.rs:1534`). So Approach item 4 is measured by reading: a child
+  (`vendor/russh/src/server/encrypted.rs:1545`). So Approach item 4 is measured by reading: a child
   that reads nothing fills the pipe (64 KiB), serve's queue of its stdin (128 messages, T-108), and
   russh's queue of the channel (100), then russh's loop waits in that send, inside its handling of a
   packet, and serves no other channel of the connection. The Decision repairs it in russh rather than
@@ -2352,7 +2352,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:534`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:536`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2408,7 +2408,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:481`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:483`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2426,10 +2426,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:533` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:481`, `docs/STATUS.md:501`),
+- `docs/STATUS.md:535` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:483`, `docs/STATUS.md:503`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:479` is `docs/STATUS.md:481`.
+  The Prove's `docs/STATUS.md:481` is `docs/STATUS.md:483`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2488,10 +2488,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:534`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:536`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:497`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:499`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2575,8 +2575,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:533`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:496`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:535`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:498`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -2814,9 +2814,9 @@ Read at `2042200`:
 - The head of this file said "No server code exists yet." (T-107 changes it), and T-107's step 2 asks russh for
   `TODO/serve.md:43-44`, which says "no inactivity cut (russh: 600 s)".
 - russh bounds the client's version line alone with its `inactivity_timeout`:
-  `vendor/russh/src/server/mod.rs:1162` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
+  `vendor/russh/src/server/mod.rs:1189` says "tokio::time::timeout(t, read.read_client_ssh_id()).await??",
   and the key exchange and the login run in the session that
-  `vendor/russh/src/server/mod.rs:1152` spawns.
+  `vendor/russh/src/server/mod.rs:1179` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
 - T-124's step 4 asks for a cap with no time: `TODO/serve.md:2297-2298` says "a cap on connections at
@@ -3741,7 +3741,7 @@ What each path does, from the code read:
 | --- | --- | --- | --- |
 | What the client needs | `ssh -A` and its key in an agent | a stock `ssh`, its key admitted by the route | the same as (b) |
 | What the upstream needs | its own `authorized_keys`, nothing else | `TrustedUserCAKeys` and a principal list on a stock sshd; `cert-authority` in `podssh serve`, which refuses it today (`crates/podssh-ssh/src/server/options.rs:115-116`) | the route's key in its `authorized_keys` |
-| When the gateway dials | after the client is let in and asked for agent forwarding (`vendor/russh/src/server/encrypted.rs:1775-1789`, after authentication), so the gateway's own admission decides first | in `auth_publickey`, after the signature (`encrypted.rs:1239`) | as (b) |
+| When the gateway dials | after the client is let in and asked for agent forwarding (`vendor/russh/src/server/encrypted.rs:1786-1800`, after authentication), so the gateway's own admission decides first | in `auth_publickey`, after the signature (`encrypted.rs:1239`) | as (b) |
 | What upstream logs | the user's own key, from the gateway's address | the certificate: the gateway's CA key, the key id and the serial; the gateway sets the key id to the route, the user name and the user key's fingerprint, so one line ties the login to the user | the route's key: the user is in the gateway's log alone |
 | A compromised gateway | has no key of any user; signs only while a user's connection is open, and only for the servers that the agent's `ssh-add -h` constraints allow (`crates/podssh-ssh/src/agent_bind.rs:1-7`); holds nothing at rest | holds the CA key: it mints a certificate for any principal that an upstream's list allows, at any time, until the upstream drops the CA. It holds no key of a user. A certificate lasts 30 s, with `source-address`, and a route's own CA key limits the loss to that route | holds one credential for each route at rest: a copy of the file logs in from anywhere until the route's key is replaced |
 
@@ -3749,7 +3749,7 @@ Why (b) first. It is the only path that a stock `ssh user-a@gateway` can use wit
 client, which is the Prove of this entry. It works against a stock sshd, as `TrustedUserCAKeys` is
 OpenSSH's own feature (not read here). The parts exist: the certificate is `pod-relay`'s `Mint` with
 principals, a window and critical options (PodUtils/podcrates v0.82.0, `src/grant/cert.rs:149-210`), and
-russh's client logs in with a certificate and a key in the process (`vendor/russh/src/client/mod.rs:607-615`),
+russh's client logs in with a certificate and a key in the process (`vendor/russh/src/client/mod.rs:610-618`),
 the key a fresh one for each login. The gateway proves the first hop itself: the user's signature is
 verified before any callback that can dial (`encrypted.rs:1225-1239`), and the route table lists the
 keys that may take a route.
@@ -3801,7 +3801,7 @@ gateway that dials on the key query fails the last check.
 
 - The Premise's last item, "a podssh gateway can relay the client's signature over the upstream session id,
   so the private key never leaves the client", does not hold as written. A signature covers the session
-  identifier of the connection that it was made on (`vendor/russh/src/server/encrypted.rs:1225-1229`,
+  identifier of the connection that it was made on (`vendor/russh/src/server/encrypted.rs:1236-1240`,
   `src/client/encrypted.rs:1635-1645`): what the user signed for the gateway is worth nothing upstream.
   The client must sign a second time, over the upstream's blob: through its agent, by a channel that the
   gateway opens after login (`src/server/session.rs:254`), or in a patched client.
@@ -3809,7 +3809,7 @@ gateway that dials on the key query fails the last check.
   enough. Step 1's question about the callbacks is answered: they are separate, with the rider that a
   signed request with no probe before it calls `auth_publickey_offered` too (`encrypted.rs:1207-1216`).
 - The Prove's "a client that offers 20 keys and signs none causes no upstream connection" is true, but
-  russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:238-258`).
+  russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:248-268`).
   A cap on the offers, if wanted, is the gateway's.
 
 ## Done
@@ -3899,8 +3899,8 @@ of the pty and not at the gate fails a test that sends input through the second 
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:77-96`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:62`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:80-101`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:64`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -4056,7 +4056,7 @@ Not done. Draft, 2026-11-23, on the branch `draft-t841-842` (no build, no test r
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4080,12 +4080,79 @@ silence, so a client that probes a feature waits for its own timeout in place of
    key exchange gets the reply with its sequence number.
 4. Ask upstream russh for the same change (an issue of russh, through the operator), so that the patch can go.
 
+## Decision
+
+**What "does not know" means.** A number that russh names no message of (the constants of `msg.rs`, the list
+`msg::KNOWN`) gets UNIMPLEMENTED, in any state after the key exchange; a named message out of its place (a
+CHANNEL_OPEN before the login, a SERVICE_REQUEST after it, CHANNEL_SUCCESS that the server never asked for) is passed
+over, as before. RFC 4253, section 11.4, asks for the reply to "unrecognized" messages; a known message out of place
+is a protocol error of another kind, and RFC 4252, section 5.1, asks to ignore a USERAUTH_REQUEST after the login.
+Lost: OpenSSH's rule (each message that the state's dispatch table does not take gets UNIMPLEMENTED, but the
+USERAUTH_REQUEST after the login): a wider change of russh's behaviour than the entry asks for, and a reply to a
+CHANNEL_SUCCESS or a REQUEST_SUCCESS that russh passes over on purpose would tell a peer something false. Lost too:
+the ranges of RFC 4250 as the rule (all of 30 to 49, 60 to 79 known): a number of a method that russh does not speak
+is not recognized.
+
+**Where the test is.** russh's own test harness of crafted packets over the `none` key exchange
+(`tests::raw_no_crypto`, already in the copy) sends a packet of one byte of any number to russh's server and reads
+the reply's bytes; `vendor/russh/src/server/unimplemented.rs` uses it, with a table of numbers before and after the
+login, and `vendor/russh/src/client/unimplemented.rs` drives the client's `reply` on a crafted packet. Lost: a test
+in `crates/podssh-ssh/tests/serve_algorithms.rs` against `podssh serve` itself: after a real key exchange the client
+must encrypt and MAC its packet, and russh's client has no call that sends a raw message (it would need a second
+patch for a test alone, or a client of SSH's transport written in the test); and `podssh serve`'s set has no `none`
+cipher, nor a way to give it one, by design (T-841). The patch is in russh's loop, which podssh's handler never sees,
+so the layer of the test is the layer of the change. In podssh the row of T-841's table names that test, and
+`crates/podssh-cli/tests/serve_algorithms_openssh.rs` (`each_row_that_openssh_cannot_cause_is_pinned_elsewhere`)
+fails when the file or its test is gone.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_algorithms
+cargo test -p podssh-cli --test serve_algorithms_openssh
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib server::unimplemented
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib client::unimplemented
 ```
+
+## Correction
+
+Read on 2026-11-23 in the pinned russh: the drop is not in `src/server/mod.rs` but in
+`vendor/russh/src/server/encrypted.rs`, at two places: `process_packet`'s last arm (`_ => Ok(())`,
+`vendor/russh/src/server/encrypted.rs:171` with the patch), which passes over each message that the state before the
+login takes no message of, and `server_read_authenticated`'s last arm (`unknown message received`,
+`vendor/russh/src/server/encrypted.rs:2052` with the patch), after the login. `vendor/russh/src/server/mod.rs:1218`
+passes over IGNORE, UNIMPLEMENTED and DEBUG, as RFC 4253 asks. The client passes over an unknown message after its
+login in silence too (`vendor/russh/src/client/encrypted.rs:1108`); before its login it ends the connection
+(`Inconsistent`, `vendor/russh/src/client/encrypted.rs:129` and `:444`), which is no silence, and stays. The sequence
+number of the packet is the loop's count less one (`pkt.seqn`, incremented after read(), as the server's strict-kex
+check reads it); no function below `reply` saw it, so the patch keeps it in `CommonSession`. Item 3's test is at
+russh's session layer (the Decision). Approach items 1 and 2 hold.
+
+## Done
+
+Draft, 2026-11-23 (no build, no test run):
+
+- The fourteenth patch of russh, `vendor/patches/russh/0014-unimplemented.patch`, applied to `vendor/russh` (the
+  tree before it plus the patch gives the copy: checked with `git apply` on an export of the tree before, then
+  `diff -r`, no difference): `msg::is_known` (the list `KNOWN`); `CommonSession::read_seqn`, set in the server's and
+  the client's `reply` from the count that read() incremented (wrapping); `session::write_unimplemented`; the
+  server's `process_packet` (a new arm before `_`) and `server_read_authenticated` (its last arm), and the client's
+  `client_read_authenticated` (its last arm), answer an unknown number. Each constructor of `CommonSession` (three in
+  tests) takes `read_seqn: 0`.
+- russh's tests: `server::unimplemented` (after the login, 31 numbers of a table: 20 answered with the packet's
+  sequence number and 11 named ones passed over, each followed by a probe whose answer comes next; before the
+  login, 9 numbers; and the table against `msg::is_known`), and `client::unimplemented` (11 numbers through the
+  client's `reply`, and a count that wraps to `u32::MAX`). Merged and run here (2026-11-23, Linux, Rust 1.100): `cargo test
+  --manifest-path vendor/russh/Cargo.toml --lib unimplemented` 4 passed, and russh's whole `--lib` 240 passed.
+- T-841's table: the row `UNIMPLEMENTED` of `docs/cli.md` ("The reply of each refusal") and of `REPLIES` in
+  `crates/podssh-cli/tests/serve_algorithms_openssh.rs`, with the new table `PINNED` and its test
+  `each_row_that_openssh_cannot_cause_is_pinned_elsewhere` (each row with no words of OpenSSH names a file and a test
+  that are there; it runs on a host with no OpenSSH client too). Result: `--test serve_algorithms_openssh` 4 passed,
+  after the merge with T-838's row of `DISCONNECT` in both tables.
+- `vendor/README.md` (the list of the shipped tree, now with 0012 and 0013 too, which it lacked; the row of 0014; the
+  commands of the crate's own tests) and `AGENTS.md`'s map (fourteen patches, T-854). A row of `docs/STATUS.md`.
+- Approach item 4 (an issue of russh upstream) is the operator's, as `vendor/README.md` says of each patch.
 
 # T-855: `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does
 
@@ -4154,7 +4221,7 @@ algorithms, and russh's server signs the exchange with an RSA `--host-key` throu
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4177,9 +4244,76 @@ RSA key signs each key exchange through that crate, where a network peer can tim
    `## Decision`, with the one that lost.
 3. Same commit: T-841's set and table, `docs/cli.md`, and the manual's note of `--host-key`.
 
+## Decision
+
+Read on 2026-11-23: russh's server signs the exchange hash at one place
+(`vendor/russh/src/server/kex.rs:362`, `sign_with_hash_alg`, with the patch), whose RSA arm (`vendor/russh/src/helpers.rs:205`) is
+ssh-key's signer over the `rsa` crate; `server::Config::keys` holds `ssh_key::PrivateKey`s and nothing else signs,
+so the Premise holds. **Taken: sign through aws-lc-rs, by a patch of russh and a signer of podssh's.** The patch
+(`vendor/patches/russh/0015-host-key-signer.patch`, the fifteenth) adds `server::HostKeySigner` and
+`Config::host_key_signer`, asked first at that one place: its signature goes, `None` leaves the key to russh, an
+error ends the exchange; the default keeps russh's behaviour. About 40 lines of russh and a test: the contained
+change that the brief prefers. podssh's signer (`crates/podssh-ssh/src/server/host_sign.rs`) holds T-257's
+`RsaSigner` (aws-lc-rs) of the host key, made once in `server::config`, signs `rsa-sha2-512` and `rsa-sha2-256`, and
+for an RSA key never answers `None`: a key that aws-lc-rs refused, or SHA-1, ends the exchange, fail safe. Two calls
+follow from it:
+
+- `ssh-rsa` leaves T-841's set: aws-lc-rs signs no SHA-1 (as T-257 found for the client), and a set that offers
+  `ssh-rsa` with an RSA host key would let a client choose a name whose exchange then fails. OpenSSH's client offers
+  no `ssh-rsa` by default since 8.8. The list is also `server-sig-algs` (RFC 8308): a client that reads it no longer
+  sees `ssh-rsa` there; russh's server still verifies an `ssh-rsa` signature of a user key, as before (no list of
+  russh's server filters a login's algorithm).
+- A host key that serve cannot sign with is refused at the start with one line and 78 (`host_key::check`, called by
+  `host_key::parse`, so both `--host-key FILE` and the file of the cache): an RSA key outside aws-lc-rs's 2048 to
+  8192 bits, with the size and the way out (an Ed25519 key), and a key of another type than Ed25519, ECDSA or RSA
+  (a DSA or a security key's, which no name of the set serves). An RSA key of 2048 to 8192 bits that a user kept
+  works as before, now through aws-lc-rs. The key that serve makes is Ed25519, unchanged.
+
+Lost: **refuse each RSA `--host-key` (78) and drop `rsa-sha2-*` from the set**: smaller, but it takes away a key that
+works and that users keep (an existing `ssh_host_rsa_key` handed to `--host-key`), where the patch is contained.
+Lost: **a host key type of podssh's own, with no patch**: russh's `Config::keys` is a list of `ssh_key::PrivateKey`
+and its server signs them itself at that one place, so no type outside russh can sign there. Lost: **a signer that
+answers `None` for what it cannot sign** (SHA-1, a small key): it would hand those back to the `rsa` crate, the path
+this entry closes.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_algorithms
+cargo test -p podssh-ssh --test serve_auth
+cargo test -p podssh-ssh --test no_rsa_private_op
+cargo test -p podssh-ssh --lib server::
+cargo test -p podssh-cli --lib man::notes_serve
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib server::host_key_signer
 ```
+
+## Done
+
+Draft, 2026-11-23 (no build, no test run):
+
+- russh's fifteenth patch, `vendor/patches/russh/0015-host-key-signer.patch`, applied to `vendor/russh` (the tree
+  before 0014 plus 0014 and 0015 gives the copy: `patch -p1` on an export, then `diff -r`, no difference):
+  `server::HostKeySigner`, `Config::host_key_signer` (default none, in `Debug` as whether it is set), and the
+  signer asked first in `server/kex.rs`. Its test, `server::host_key_signer` (russh's client against russh's server
+  over a pipe: its own signature taken, `None` russh's, a refusal and another key's signature refused, the signer
+  asked once each): 1 passed (2026-11-23).
+- podssh: `crates/podssh-ssh/src/server/host_sign.rs` (`HostSigner`, through `rsa_key::RsaSigner`), set by
+  `server::config`; `server::host_key::check`, called by `parse`; `ssh-rsa` out of `algorithms::HOST_KEYS`, with
+  the unit test `no_host_key_algorithm_signs_with_sha1`. Tests: `server::host_sign::tests` (an RSA key signs both
+  SHA-2 hashes and aws-lc-rs's verifier takes them; SHA-1, a key of 1024 bits and a signer of another key sign
+  nothing and leave nothing to russh; Ed25519 and ECDSA are russh's; serve's config carries the signer);
+  `tests/serve_algorithms.rs` (the table without `ssh-rsa`, so `ssh-rsa` offered alone is now refused by the
+  handshake; `an_rsa_host_key_is_never_signed_by_russh`: 1024 bits ends the exchange, the same config with no
+  signer is let in, 2048 bits through aws-lc-rs is let in); `tests/serve_auth.rs`
+  (`an_rsa_host_key_that_aws_lc_rs_refuses_is_refused_with_its_reason`). Run here: `--test serve_algorithms` 3,
+  `serve_auth` 8, `no_rsa_private_op` 2 passed; podssh-ssh, each suite passed; clippy and fmt clean.
+- The manual's note of the host key (two sentences) and of the algorithms (no `ssh-rsa`), with
+  `man::notes_serve`'s test now holding the note's host key algorithms equal to the set: podssh-cli's `--lib` 1256
+  passed, `llms-full.txt` written again.
+  `docs/cli.md` ("The host key", "The algorithms (T-841)"), `SECURITY.md` (the rule of the `rsa` crate covers serve
+  now), `deny.toml`'s reason of RUSTSEC-2023-0071, `vendor/README.md` (the row of 0015) and `AGENTS.md`'s map
+  (fifteen patches). A row of `docs/STATUS.md`.
+- Against OpenSSH's client with an RSA `--host-key` (`ssh -o HostKeyAlgorithms=rsa-sha2-512`): not run; the
+  logins of the table run russh's client, which verifies each signature. Planted (the signer taken out of
+  `server::config`): `an_rsa_host_key_is_never_signed_by_russh` must fail; waits for the release check (T-251, Q88).

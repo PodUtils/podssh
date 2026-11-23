@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**813 entries: 23 open, 45 partial, 11 blocked, 734 done.**
+**813 entries: 21 open, 45 partial, 11 blocked, 736 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 12 | 3 | 91 | 106 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 23 | 10 | 6 | 338 | 377 |
-| **All** | 23 | 45 | 11 | 734 | 813 |
+| P3 | 21 | 10 | 6 | 340 | 377 |
+| **All** | 21 | 45 | 11 | 736 | 813 |
 
 ## Entries
 
@@ -884,8 +884,8 @@ repository and CI).
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
 | [T-852](reverse.md) | P3 | S | M10 | measurement | open | An upgrade in place of a node on Windows with a session through a Unix route |
 | [T-853](robustness.md) | P1 | S | M10 | defect | done | `serve_shell`: a data file of the test met "Text file busy" at its start, once |
-| [T-854](serve.md) | P3 | S | backlog | defect | open | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
+| [T-854](serve.md) | P3 | S | backlog | defect | done | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
 | [T-855](serve.md) | P3 | S | backlog | feature | done | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
-| [T-856](serve.md) | P3 | S | backlog | defect | open | `podssh serve` with an RSA host key signs through the `rsa` crate |
+| [T-856](serve.md) | P3 | S | backlog | defect | done | `podssh serve` with an RSA host key signs through the `rsa` crate |
 | [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
 | [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |

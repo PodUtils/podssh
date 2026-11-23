@@ -1,0 +1,415 @@
+diff --git a/src/client/encrypted.rs b/src/client/encrypted.rs
+--- a/src/client/encrypted.rs
++++ b/src/client/encrypted.rs
+@@ -1106,6 +1106,19 @@
+             }
+             m => {
+                 debug!("unknown message received: {m:?}");
++                // RFC 4253, section 11.4: a number that russh names no
++                // message of is answered, with the packet's sequence number.
++                // podssh's patch (vendor/patches/russh/, T-854).
++                if let Some((&number, _)) = m {
++                    if !msg::is_known(number) {
++                        if let Some(ref mut enc) = self.common.encrypted {
++                            crate::session::write_unimplemented(
++                                &mut enc.write,
++                                self.common.read_seqn,
++                            );
++                        }
++                    }
++                }
+                 Ok(())
+             }
+         }
+diff --git a/src/client/mod.rs b/src/client/mod.rs
+--- a/src/client/mod.rs
++++ b/src/client/mod.rs
+@@ -85,6 +85,9 @@
+ #[cfg(test)]
+ mod reply_data;
+ 
++#[cfg(test)]
++mod unimplemented;
++
+ /// Actual client session's state.
+ ///
+ /// It is in charge of multiplexing and keeping track of various channels
+@@ -1380,6 +1383,7 @@
+             strict_kex: false,
+             alive_timeouts: 0,
+             received_data: false,
++            read_seqn: 0,
+             remote_sshid: sshid.into(),
+         },
+         session_receiver,
+@@ -2105,6 +2109,9 @@
+     >,
+     pkt: &mut IncomingSshPacket,
+ ) -> Result<(), H::Error> {
++    // The packet's own number, for an UNIMPLEMENTED in answer to it: the
++    // count was incremented after read() (podssh's patch, T-854).
++    session.common.read_seqn = pkt.seqn.0.wrapping_sub(1);
+     if let Some(message_type) = pkt.buffer.first() {
+         debug!(
+             "< msg type {message_type:?}, seqn {:?}, len {}",
+@@ -2343,6 +2350,7 @@
+                 strict_kex: false,
+                 alive_timeouts: 0,
+                 received_data: false,
++                read_seqn: 0,
+                 remote_sshid: b"SSH-2.0-test".to_vec(),
+                 packet_writer: PacketWriter::clear(),
+             },
+@@ -2650,6 +2658,7 @@
+                 strict_kex: false,
+                 alive_timeouts: 0,
+                 received_data: false,
++                read_seqn: 0,
+                 remote_sshid: b"SSH-2.0-test".to_vec(),
+                 packet_writer: PacketWriter::clear(),
+             },
+diff --git a/src/client/unimplemented.rs b/src/client/unimplemented.rs
+new file mode 100644
+--- /dev/null
++++ b/src/client/unimplemented.rs
+@@ -0,0 +1,55 @@
++//! The client's SSH_MSG_UNIMPLEMENTED in answer to a message number that
++//! russh names no message of, after the login (RFC 4253, section 11.4),
++//! with the packet's sequence number; each named message that it passes
++//! over is still passed over. Before the login, such a message ends the
++//! connection, as before. podssh's patch (vendor/patches/russh/, T-854).
++#![allow(clippy::unwrap_used)] // as in the test suite
++
++use std::num::Wrapping;
++
++use super::tests::{TestHandler, keyboard_interactive_session};
++use crate::msg;
++use crate::session::EncryptedState;
++use crate::sshbuffer::IncomingSshPacket;
++
++/// The bytes that a packet of `number` alone adds to the session's write
++/// buffer, read through the loop's `reply` as packet `seqn` of the server.
++async fn written(number: u8, seqn: u32) -> Vec<u8> {
++    let (mut session, _sender, _replies) = keyboard_interactive_session();
++    session.common.encrypted.as_mut().unwrap().state = EncryptedState::Authenticated;
++    let before = session.common.encrypted.as_ref().unwrap().write.len();
++    // The loop's count is one past the packet's own, as after read().
++    let mut pkt = IncomingSshPacket {
++        buffer: vec![number],
++        seqn: Wrapping(seqn.wrapping_add(1)),
++    };
++    super::reply(&mut session, &mut TestHandler, &mut None, &mut pkt)
++        .await
++        .unwrap();
++    session.common.encrypted.as_ref().unwrap().write[before..].to_vec()
++}
++
++/// UNIMPLEMENTED for the packet `seqn`, framed as `push_packet!` frames it.
++fn unimplemented(seqn: u32) -> Vec<u8> {
++    let mut packet = 5u32.to_be_bytes().to_vec();
++    packet.push(msg::UNIMPLEMENTED);
++    packet.extend_from_slice(&seqn.to_be_bytes());
++    packet
++}
++
++#[tokio::test]
++async fn an_unknown_number_is_answered_and_a_named_one_is_passed_over() {
++    #[rustfmt::skip]
++    let table: &[(u8, bool)] = &[
++        (8, true), (62, true), (101, true), (128, true), (200, true), (255, true),
++        (msg::IGNORE, false), (msg::SERVICE_REQUEST, false), (msg::SERVICE_ACCEPT, false),
++        (msg::USERAUTH_REQUEST, false), (msg::USERAUTH_SUCCESS, false),
++    ];
++    for &(number, answered) in table {
++        let seqn = 41 + u32::from(number);
++        let expected = if answered { unimplemented(seqn) } else { Vec::new() };
++        assert_eq!(written(number, seqn).await, expected, "{number}");
++    }
++    // The count wraps: the packet before a count of 0 is u32::MAX.
++    assert_eq!(written(200, u32::MAX).await, unimplemented(u32::MAX));
++}
+diff --git a/src/msg.rs b/src/msg.rs
+--- a/src/msg.rs
++++ b/src/msg.rs
+@@ -174,3 +174,53 @@
+ pub(crate) fn is_kex_msg(msg: u8) -> bool {
+     ALL_KEX_MESSAGES.contains(&msg)
+ }
++
++/// The numbers that russh names a message of, of either side; RFC 4253,
++/// section 11.4, asks for UNIMPLEMENTED in answer to each other number. A
++/// named message out of its place is not "unrecognized": it is passed over,
++/// as before. podssh's patch (vendor/patches/russh/, T-854).
++const KNOWN: &[u8] = &[
++    DISCONNECT,
++    IGNORE,
++    UNIMPLEMENTED,
++    DEBUG,
++    SERVICE_REQUEST,
++    SERVICE_ACCEPT,
++    EXT_INFO,
++    KEXINIT,
++    NEWKEYS,
++    KEX_ECDH_INIT,
++    KEX_ECDH_REPLY,
++    KEX_DH_GEX_INIT,
++    KEX_DH_GEX_REPLY,
++    KEX_DH_GEX_REQUEST,
++    USERAUTH_REQUEST,
++    USERAUTH_FAILURE,
++    USERAUTH_SUCCESS,
++    USERAUTH_BANNER,
++    USERAUTH_INFO_REQUEST_OR_USERAUTH_PK_OK,
++    USERAUTH_INFO_RESPONSE,
++    USERAUTH_GSSAPI_EXCHANGE_COMPLETE,
++    USERAUTH_GSSAPI_ERROR,
++    USERAUTH_GSSAPI_ERRTOK,
++    USERAUTH_GSSAPI_MIC,
++    GLOBAL_REQUEST,
++    REQUEST_SUCCESS,
++    REQUEST_FAILURE,
++    CHANNEL_OPEN,
++    CHANNEL_OPEN_CONFIRMATION,
++    CHANNEL_OPEN_FAILURE,
++    CHANNEL_WINDOW_ADJUST,
++    CHANNEL_DATA,
++    CHANNEL_EXTENDED_DATA,
++    CHANNEL_EOF,
++    CHANNEL_CLOSE,
++    CHANNEL_REQUEST,
++    CHANNEL_SUCCESS,
++    CHANNEL_FAILURE,
++];
++
++/// Whether russh names a message of number `msg` (podssh's patch, T-854).
++pub(crate) fn is_known(msg: u8) -> bool {
++    KNOWN.contains(&msg)
++}
+diff --git a/src/server/encrypted.rs b/src/server/encrypted.rs
+--- a/src/server/encrypted.rs
++++ b/src/server/encrypted.rs
+@@ -158,6 +158,16 @@
+             (EncryptedState::Authenticated, Some((msg, mut r))) => {
+                 self.server_read_authenticated(handler, *msg, &mut r).await
+             }
++            // A number that russh names no message of gets UNIMPLEMENTED
++            // before the login too (RFC 4253, section 11.4); a named message
++            // out of its place is passed over, as before. podssh's patch
++            // (vendor/patches/russh/, T-854).
++            (_, Some((&m, _))) if !msg::is_known(m) => {
++                let seqn = self.common.read_seqn;
++                debug!("unknown message {m}: UNIMPLEMENTED for packet {seqn}");
++                crate::session::write_unimplemented(&mut enc.write, seqn);
++                Ok(())
++            }
+             _ => Ok(()),
+         }
+     }
+@@ -851,6 +861,7 @@
+                 strict_kex: false,
+                 alive_timeouts: 0,
+                 received_data: false,
++                read_seqn: 0,
+                 remote_sshid: Vec::new(),
+             },
+             priority_receiver,
+@@ -2039,6 +2050,14 @@
+             }
+             m => {
+                 debug!("unknown message received: {m:?}");
++                // RFC 4253, section 11.4: a number that russh names no
++                // message of is answered, with the packet's sequence number.
++                // podssh's patch (vendor/patches/russh/, T-854).
++                if !msg::is_known(m) {
++                    if let Some(ref mut enc) = self.common.encrypted {
++                        crate::session::write_unimplemented(&mut enc.write, self.common.read_seqn);
++                    }
++                }
+                 Ok(())
+             }
+         }
+diff --git a/src/server/mod.rs b/src/server/mod.rs
+--- a/src/server/mod.rs
++++ b/src/server/mod.rs
+@@ -60,6 +60,8 @@
+ mod session;
+ pub use self::session::*;
+ mod encrypted;
++#[cfg(test)]
++mod unimplemented;
+ 
+ /// Configuration of a server.
+ pub struct Config {
+@@ -1179,6 +1181,7 @@
+         strict_kex: false,
+         alive_timeouts: 0,
+         received_data: false,
++        read_seqn: 0,
+         remote_sshid: sshid.into(),
+     };
+     Ok(session)
+@@ -1189,6 +1192,9 @@
+     handler: &mut H,
+     pkt: &mut IncomingSshPacket,
+ ) -> Result<(), H::Error> {
++    // The packet's own number, for an UNIMPLEMENTED in answer to it: the
++    // count was incremented after read() (podssh's patch, T-854).
++    session.common.read_seqn = pkt.seqn.0.wrapping_sub(1);
+     if let Some(message_type) = pkt.buffer.first() {
+         debug!(
+             "< msg type {message_type:?}, seqn {:?}, len {}",
+diff --git a/src/server/session.rs b/src/server/session.rs
+--- a/src/server/session.rs
++++ b/src/server/session.rs
+@@ -1693,6 +1693,7 @@
+                 strict_kex: false,
+                 alive_timeouts: 0,
+                 received_data: false,
++                read_seqn: 0,
+             },
+             sender: handle,
+             priority_receiver,
+diff --git a/src/server/unimplemented.rs b/src/server/unimplemented.rs
+new file mode 100644
+--- /dev/null
++++ b/src/server/unimplemented.rs
+@@ -0,0 +1,108 @@
++//! SSH_MSG_UNIMPLEMENTED in answer to a message number that russh names no
++//! message of (RFC 4253, section 11.4), with the packet's sequence number,
++//! before the login and after it; each named message is passed over as
++//! before. podssh's patch (vendor/patches/russh/, T-854), in the way of
++//! the crafted packets of `tests::raw_no_crypto`.
++#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)] // as in the test suite
++
++use std::time::Duration;
++
++use crate::msg;
++use crate::tests::raw_no_crypto::{RawSession, read_packet};
++
++/// A number that no message has: the probe that follows each row that
++/// expects no answer, so that silence is read as the order of the replies
++/// and not as a wait.
++const PROBE: u8 = 200;
++
++/// Each number after the login, and whether the server answers it. The
++/// numbers that RFC 4250 assigns and russh names (`msg.rs`) are passed over,
++/// in their place or out of it; each other is answered, in each range of
++/// RFC 4250, section 4.1.2: transport (8 to 19), kex (22 to 29, 35 to 49),
++/// userauth (54 to 59, 62, 67 to 79), connection (83 to 89, 101 to 127), the
++/// client protocols (128 to 191) and the local extensions (192 to 255).
++#[rustfmt::skip]
++const AFTER_LOGIN: &[(u8, bool)] = &[
++    (msg::IGNORE, false), (msg::UNIMPLEMENTED, false), (msg::DEBUG, false),
++    (msg::SERVICE_REQUEST, false), (msg::SERVICE_ACCEPT, false), (msg::EXT_INFO, false),
++    (8, true), (9, true), (19, true),
++    (22, true), (29, true), (35, true), (49, true),
++    (msg::USERAUTH_REQUEST, false), (msg::USERAUTH_SUCCESS, false), (60, false),
++    (54, true), (59, true), (62, true), (67, true), (79, true),
++    (83, true), (89, true),
++    (msg::CHANNEL_SUCCESS, false), (msg::CHANNEL_FAILURE, false),
++    (101, true), (127, true), (128, true), (191, true), (192, true), (255, true),
++];
++
++/// Each number before the login (after the service request), where a
++/// named message out of its place is passed over too.
++#[rustfmt::skip]
++const BEFORE_LOGIN: &[(u8, bool)] = &[
++    (msg::IGNORE, false), (msg::SERVICE_REQUEST, false), (msg::GLOBAL_REQUEST, false),
++    (msg::CHANNEL_OPEN, false),
++    (8, true), (62, true), (101, true), (128, true), (255, true),
++];
++
++/// The next packet of the server, within a bound.
++async fn next(session: &mut RawSession) -> Vec<u8> {
++    tokio::time::timeout(Duration::from_secs(3), read_packet(&mut session.stream))
++        .await
++        .expect("a packet of the server within 3 s")
++        .unwrap()
++}
++
++/// UNIMPLEMENTED for the packet `seqn`, as its bytes.
++fn unimplemented(seqn: u32) -> Vec<u8> {
++    let mut packet = vec![msg::UNIMPLEMENTED];
++    packet.extend_from_slice(&seqn.to_be_bytes());
++    packet
++}
++
++/// Sends each row, the client's packet `first` the first, and gives each
++/// row whose answer was not the table's.
++async fn rows(session: &mut RawSession, table: &[(u8, bool)], first: u32) -> Vec<String> {
++    let mut wrong = Vec::new();
++    let mut seqn = first;
++    for &(number, answered) in table {
++        session.send_packet(&[number]).await.unwrap();
++        let mut expected = seqn;
++        seqn += 1;
++        if !answered {
++            session.send_packet(&[PROBE]).await.unwrap();
++            expected = seqn;
++            seqn += 1;
++        }
++        let got = next(session).await;
++        if got != unimplemented(expected) {
++            wrong.push(format!(
++                "{number}: answered {answered:?} expected UNIMPLEMENTED for {expected}, got {got:?}"
++            ));
++        }
++    }
++    wrong
++}
++
++#[tokio::test]
++async fn an_unknown_number_after_the_login_gets_unimplemented_with_its_sequence_number() {
++    let mut session = RawSession::connect().await;
++    // KEXINIT took 0 and NEWKEYS 1; the service request 2 and the login 3.
++    session.auth_none().await.unwrap();
++    let wrong = rows(&mut session, AFTER_LOGIN, 4).await;
++    assert!(wrong.is_empty(), "{} rows wrong:\n{}", wrong.len(), wrong.join("\n"));
++}
++
++#[tokio::test]
++async fn an_unknown_number_before_the_login_gets_unimplemented_too() {
++    let mut session = RawSession::connect().await;
++    session.service_request().await.unwrap();
++    let wrong = rows(&mut session, BEFORE_LOGIN, 3).await;
++    assert!(wrong.is_empty(), "{} rows wrong:\n{}", wrong.len(), wrong.join("\n"));
++}
++
++/// The table's rule is `msg::is_known`: each named number is in it.
++#[test]
++fn the_named_numbers_are_the_known_ones() {
++    for (number, answered) in AFTER_LOGIN.iter().chain(BEFORE_LOGIN) {
++        assert_eq!(msg::is_known(*number), !answered, "{number}");
++    }
++}
+diff --git a/src/session.rs b/src/session.rs
+--- a/src/session.rs
++++ b/src/session.rs
+@@ -78,6 +78,9 @@
+     pub strict_kex: bool,
+     pub alive_timeouts: usize,
+     pub received_data: bool,
++    /// The sequence number of the peer's packet that the loop reads now,
++    /// which an UNIMPLEMENTED in answer to it names (podssh's patch, T-854).
++    pub(crate) read_seqn: u32,
+ }
+ 
+ impl<C> Debug for CommonSession<C> {
+@@ -264,6 +267,17 @@
+     }
+ }
+ 
++/// Write SSH_MSG_UNIMPLEMENTED in answer to the peer's packet of sequence
++/// number `seqn` (RFC 4253, section 11.4). A function of the buffer alone,
++/// so that a caller that holds the rest of its `Encrypted` borrowed can
++/// write it. podssh's patch (vendor/patches/russh/, T-854).
++pub(crate) fn write_unimplemented(write: &mut Vec<u8>, seqn: u32) {
++    push_packet!(write, {
++        write.push(msg::UNIMPLEMENTED);
++        write.extend_from_slice(&seqn.to_be_bytes());
++    })
++}
++
+ impl Encrypted {
+     pub fn byte(&mut self, channel: ChannelId, msg: u8) -> Result<(), crate::Error> {
+         if let Some(channel) = self.channels.get(&channel) {

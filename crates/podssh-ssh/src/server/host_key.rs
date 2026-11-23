@@ -10,7 +10,7 @@
 use std::path::{Path, PathBuf};
 
 use russh::keys::ssh_key::LineEnding;
-use russh::keys::PrivateKey;
+use russh::keys::{Algorithm, PrivateKey};
 use zeroize::Zeroizing;
 
 use crate::keygen::{self, KeyKind};
@@ -91,11 +91,28 @@ pub fn in_first(read_dirs: &[PathBuf], dirs: &[PathBuf], files: &StateFiles) -> 
 }
 
 /// A host key from its file's text: an OpenSSH private key with no
-/// passphrase, as nobody is there to type one.
+/// passphrase, as nobody is there to type one, that serve can sign with
+/// ([`check`]).
 pub fn parse(text: &str) -> Result<PrivateKey, String> {
     let key = PrivateKey::from_openssh(text).map_err(|e| format!("not an OpenSSH private key: {e}"))?;
     if key.is_encrypted() {
         return Err("the key has a passphrase, which nobody can type at a server's start: use a key without one".into());
     }
+    check(&key)?;
     Ok(key)
+}
+
+/// Whether serve can sign each key exchange with `key`: Ed25519 and ECDSA
+/// as russh signs them, and RSA through aws-lc-rs alone (T-856), which takes
+/// keys of 2048 to 8192 bits; russh's own RSA, which the `rsa` crate does
+/// and a client could time (RUSTSEC-2023-0071), never.
+pub fn check(key: &PrivateKey) -> Result<(), String> {
+    match key.algorithm() {
+        Algorithm::Ed25519 | Algorithm::Ecdsa { .. } => Ok(()),
+        Algorithm::Rsa { .. } => match crate::rsa_key::RsaSigner::of(key) {
+            Ok(_) => Ok(()),
+            Err(why) => Err(format!("{why}, through aws-lc-rs; use an Ed25519 key (podssh keygen -t ed25519)")),
+        },
+        other => Err(format!("a key of {}, which podssh serve does not sign with: use an Ed25519 key", other.as_str())),
+    }
 }

@@ -6095,12 +6095,26 @@ gives up each capability of the process (T-698), before it reads a file.
   (mode 0600, a whole file through a hard link), read at each later one, and
   never overwritten. Of two starts at once, one makes it and the other reads
   it. Its fingerprint goes to stderr; a key in a temporary directory is
-  warned of, as a reboot would give each client a new host key.
+  warned of, as a reboot would give each client a new host key. An RSA key
+  (T-856) signs each key exchange through aws-lc-rs, whose RSA is
+  constant-time, as an RSA user key does (T-257), with SHA-2 alone
+  (`rsa-sha2-512`, `rsa-sha2-256`): russh would sign it through the `rsa`
+  crate, whose private operation a client could time (RUSTSEC-2023-0071),
+  and serve's signer (`crates/podssh-ssh/src/server/host_sign.rs`, through
+  russh's patch `0015-host-key-signer`) never leaves an RSA key to russh. An
+  RSA key that aws-lc-rs does not take
+  (outside 2048 to 8192 bits), and a key of a type that serve does not sign
+  with (not Ed25519, ECDSA or RSA), is refused at the start with one line
+  and 78: `podssh serve: the host key: FILE: it is an RSA key of 1024 bits;
+  podssh signs with RSA keys of 2048 to 8192 bits, through aws-lc-rs; use an
+  Ed25519 key (podssh keygen -t ed25519)`. The key that serve makes is
+  Ed25519, which russh signs.
 - **The algorithms (T-841).** One stated set
   (`crates/podssh-ssh/src/server/algorithms.rs`), given to russh's server
   in the place of its default, so that a russh update changes no name that
   serve offers. It is the set that serve offered before it was stated
-  (russh 0.65.2's default), with nothing added or removed:
+  (russh 0.65.2's default), with nothing added, and `ssh-rsa` removed
+  (T-856: its SHA-1 is no signature of aws-lc-rs, see the host key above):
   - key exchanges: `mlkem768x25519-sha256`, `curve25519-sha256`,
     `curve25519-sha256@libssh.org`, `diffie-hellman-group-exchange-sha256`,
     `diffie-hellman-group18-sha512`, `diffie-hellman-group17-sha512`,
@@ -6110,7 +6124,7 @@ gives up each capability of the process (T-698), before it reads a file.
     (OpenSSH's strict key exchange, against Terrapin), never chosen;
   - host key algorithms: `ssh-ed25519`, `ecdsa-sha2-nistp256`,
     `ecdsa-sha2-nistp384`, `ecdsa-sha2-nistp521`, `rsa-sha2-512`,
-    `rsa-sha2-256`, `ssh-rsa`; a client is offered those that the host key
+    `rsa-sha2-256`; a client is offered those that the host key
     serves (`ssh-ed25519` alone for the key that serve makes), and the list
     is also the `server-sig-algs` that serve tells a client; no host
     certificate;
@@ -6139,7 +6153,7 @@ gives up each capability of the process (T-698), before it reads a file.
   | `REQUEST_FAILURE` | a global request that serve does not serve: `tcpip-forward` (`-R`), `streamlocal-forward` | `Warning: remote port forwarding failed for listen port N` |
   | `CHANNEL_OPEN_FAILURE` | a forward that `--no-forwarding` or a key's rule refuses, a dial that failed, X11, a Unix socket, more channels than the bound | `open failed: ...` (`serve_forward_openssh.rs`) |
   | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842); a client that `--policy` refuses (T-838) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`); `... do not meet the policy` (`serve_policy_openssh.rs`) |
-  | `UNIMPLEMENTED` | never sent: russh's server passes over a message that it does not know, where RFC 4253 asks for this reply | none |
+  | `UNIMPLEMENTED` | a message of a number that russh names no message of, before the login or after it, answered with that packet's sequence number (RFC 4253, section 11.4; podssh's patch `0014-unimplemented` of russh, T-854); a named message out of its place is passed over | none sends one; pinned by `vendor/russh/src/server/unimplemented.rs` |
 - **A command and a shell (T-108).** A command (`exec`) runs as
   `SHELL -c COMMAND`, and a shell request runs the shell as a login shell
   (argv[0] `-sh`), as the user that runs serve, on three pipes: stdout is

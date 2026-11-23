@@ -60,6 +60,10 @@ mod kex;
 mod session;
 pub use self::session::*;
 mod encrypted;
+#[cfg(test)]
+mod unimplemented;
+#[cfg(test)]
+mod host_key_signer;
 
 /// Configuration of a server.
 pub struct Config {
@@ -99,6 +103,27 @@ pub struct Config {
     pub keepalive_max: usize,
     /// If active, invoke `set_nodelay(true)` on client sockets; disabled by default (i.e. Nagle's algorithm is active).
     pub nodelay: bool,
+    /// Signs the exchange hash with a host key in the place of russh, for
+    /// each key that it takes; none leaves each key to russh (podssh's
+    /// patch, vendor/patches/russh/, T-856).
+    pub host_key_signer: Option<Arc<dyn HostKeySigner>>,
+}
+
+/// A signer of the exchange hash with a host key, in the place of russh's
+/// own (podssh's patch, vendor/patches/russh/, T-856). russh signs with an
+/// RSA host key through the `rsa` crate, whose private operation is open to
+/// a timing attack (RUSTSEC-2023-0071); a server can sign it elsewhere.
+pub trait HostKeySigner: Send + Sync {
+    /// The SSH signature of `data` with `key` (the algorithm's name, then
+    /// the signature, each a string), under `hash` for an RSA key (None for
+    /// any other, and for `ssh-rsa`'s SHA-1). `None` leaves `key` to russh;
+    /// an error ends the key exchange.
+    fn sign(
+        &self,
+        key: &PrivateKey,
+        hash: Option<ssh_key::HashAlg>,
+        data: &[u8],
+    ) -> Option<Result<Vec<u8>, ssh_key::Error>>;
 }
 
 impl Default for Config {
@@ -126,6 +151,7 @@ impl Default for Config {
             keepalive_interval: None,
             keepalive_max: 3,
             nodelay: false,
+            host_key_signer: None,
         }
     }
 }
@@ -153,6 +179,7 @@ impl Debug for Config {
             .field("inactivity_timeout", &self.inactivity_timeout)
             .field("keepalive_interval", &self.keepalive_interval)
             .field("keepalive_max", &self.keepalive_max)
+            .field("host_key_signer", &self.host_key_signer.is_some())
             .finish()
     }
 }
@@ -1179,6 +1206,7 @@ async fn read_ssh_id<R: AsyncRead + Unpin>(
         strict_kex: false,
         alive_timeouts: 0,
         received_data: false,
+        read_seqn: 0,
         remote_sshid: sshid.into(),
     };
     Ok(session)
@@ -1189,6 +1217,9 @@ async fn reply<H: Handler + Send>(
     handler: &mut H,
     pkt: &mut IncomingSshPacket,
 ) -> Result<(), H::Error> {
+    // The packet's own number, for an UNIMPLEMENTED in answer to it: the
+    // count was incremented after read() (podssh's patch, T-854).
+    session.common.read_seqn = pkt.seqn.0.wrapping_sub(1);
     if let Some(message_type) = pkt.buffer.first() {
         debug!(
             "< msg type {message_type:?}, seqn {:?}, len {}",

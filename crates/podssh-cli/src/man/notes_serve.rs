@@ -29,7 +29,7 @@ pub const SERVE: &[&str] = &[
      mlkem768x25519-sha256, curve25519-sha256, curve25519-sha256@libssh.org, diffie-hellman-group-exchange-sha256, \
      diffie-hellman-group18-sha512, diffie-hellman-group17-sha512, diffie-hellman-group16-sha512, \
      diffie-hellman-group15-sha512 and diffie-hellman-group14-sha256. Host key algorithms: ssh-ed25519, \
-     ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256 and ssh-rsa. Of \
+     ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512 and rsa-sha2-256. Of \
      those, a client is offered the ones that the host key serves. Ciphers: chacha20-poly1305@openssh.com, \
      aes256-gcm@openssh.com, aes256-ctr, aes192-ctr and aes128-ctr. MACs: hmac-sha2-512-etm@openssh.com, \
      hmac-sha2-256-etm@openssh.com, hmac-sha2-512 and hmac-sha2-256. Compression: none, zlib and \
@@ -60,7 +60,10 @@ pub const SERVE: &[&str] = &[
      first start, an Ed25519 key of mode 0600, and read at each later one, never overwritten; of two \
      starts at once, one makes it and the other reads it. Its fingerprint goes to stderr at each start, \
      with a warning when the file is in a temporary directory, which a reboot can empty: each client would \
-     then meet a new host key. A key file with a passphrase is refused (78).",
+     then meet a new host key. A key file with a passphrase is refused (78). An RSA key signs through \
+     aws-lc-rs, whose RSA is constant-time, with SHA-2 alone (rsa-sha2-512, rsa-sha2-256), never through \
+     russh's rsa crate. An RSA key outside 2048 to 8192 bits, or a key that is not Ed25519, ECDSA or RSA, \
+     is refused (78).",
     "A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as a login shell (its argv[0] the \
      shell's name after a dash). Each runs as the user that runs serve, on three pipes: stdout comes as data and \
      stderr as extended data, apart. Each child leads a session of its own (setsid), in HOME when it is a directory, \
@@ -208,5 +211,11 @@ mod tests {
         for name in set.iter().flatten() {
             assert!(words.contains(&name.as_str()), "the note does not name {name}");
         }
+        // And its host key algorithms are the set's, no more (T-856 took
+        // ssh-rsa out of the set).
+        let (_, rest) = note.split_once("Host key algorithms: ").expect("the host key algorithms");
+        let (list, _) = rest.split_once(". ").expect("the end of the sentence");
+        let named: Vec<&str> = list.split(", ").flat_map(|part| part.split(" and ")).collect();
+        assert_eq!(named, algorithms::host_key_names(), "the note's host key algorithms");
     }
 }

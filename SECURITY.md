@@ -434,9 +434,13 @@ Each rule is implemented.
   private-key operations are not constant-time (RUSTSEC-2023-0071, the
   Marvin attack; no fixed version). An RSA user key signs each login through
   aws-lc-rs, whose RSA is constant-time, never with SHA-1, at 2048 to 8192
-  bits; `podssh keygen -t rsa` makes its key there; and `podssh agent` keeps
-  no RSA key, as russh's agent server would sign with it through `rsa`. A
-  test reads the source for each way back (T-257). The `rsa` crate stays for
+  bits; `podssh keygen -t rsa` makes its key there; `podssh agent` keeps
+  no RSA key, as russh's agent server would sign with it through `rsa`; and
+  an RSA host key of `podssh serve` signs each key exchange through
+  aws-lc-rs too, with SHA-2 alone, where russh's server would sign it
+  through `rsa` for any client that connects (T-856). A test reads the
+  source for each way back (T-257), and one refuses a host key that only
+  `rsa` would sign (T-856). The `rsa` crate stays for
   the check of a server's RSA certificate (in `pod-tls` of PodUtils/podcrates), with the public key only, and in
   russh's reader of an RSA key in a PEM or PKCS#8 file, which computes with
   the key once, as it reads it.

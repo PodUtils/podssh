@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:170-176`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:6838-6898`
+   so that only the notes change. No document changes: `docs/cli.md:6852-6912`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:842`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:844`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6712-6812`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6726-6826`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6722-6725`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:6736-6739`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6712-6812`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6726-6826`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:6838-6898` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:6852-6912` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:634`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:6861-6866`). A person who types slowly must not meet a limit
+  `docs/cli.md:6875-6880`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:6896-6898` asks for a limit on the whole operation.
+   `docs/cli.md:6910-6912` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:175-194`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:182-201`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3671,10 +3671,10 @@ Read with T-460's draft in the tree, 2026-11-02:
   test of Approach item 3.
 - The lock's russh is `vendor/russh` there, crates.io's 0.65.0 with T-460's patch, which adds 5
   lines to `src/client/mod.rs` above that code: the code that the Premise reads in cargo's copy is
-  at `vendor/russh/src/client/mod.rs:946-949` (`SendError`), `vendor/russh/src/client/mod.rs:865-868`
-  (`Disconnect`) and `vendor/russh/src/client/mod.rs:862-863` (`ChannelOpenFailure`).
+  at `vendor/russh/src/client/mod.rs:949-952` (`SendError`), `vendor/russh/src/client/mod.rs:868-871`
+  (`Disconnect`) and `vendor/russh/src/client/mod.rs:865-866` (`ChannelOpenFailure`).
 - russh closes the queue of the connection's requests before it calls the handler's
-  `disconnected` (`vendor/russh/src/client/mod.rs:1497-1506`): an open that fails with
+  `disconnected` (`vendor/russh/src/client/mod.rs:1501-1510`): an open that fails with
   `SendError` can come before the handler kept the cause. The reading waits for the cause, half a
   second at most.
 - `ChannelOpenFailure::Other` keeps the server's words of a reason that russh does not know
@@ -4596,7 +4596,7 @@ SSH, so it works against any sshd and through any relay, with nothing installed 
 - `crates/podssh-ssh/src/run.rs:30` says "pub(crate) const WINDOW: u32 = 512 * 1024;": one window for
   each channel, on each road.
 - russh's client asks its handler for each channel's next window target,
-  `vendor/russh/src/client/mod.rs:3333` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
+  `vendor/russh/src/client/mod.rs:3342` says "fn adjust_window(&mut self, channel: ChannelId, window: u32) -> u32 {",
   and podssh's handler does not take that hook (no `fn adjust_window` under `crates/`).
 - osewa's own lab shows the gain is its flow control, not QUIC: over its TCP WebSocket the echo
   under load was lower than over QUIC (`docs/research/osewa-paper.md`, section 0, item 4).
@@ -4687,7 +4687,7 @@ the download within 10% of today's; the hook planted out fails it.
 
 Read at `856940b`, the tree of this entry: russh's client asks its handler for no target that it
 uses. After an adjust it passes the handler's `adjust_window` the session's
-`target_window_size` (`vendor/russh/src/client/mod.rs:100` says "target_window_size: u32,") and
+`target_window_size` (`vendor/russh/src/client/mod.rs:103` says "target_window_size: u32,") and
 keeps the answer there, but the target of each adjust of CHANNEL_DATA and CHANNEL_EXTENDED_DATA was
 the configured window, `self.common.config.window_size`, and nothing read `target_window_size`
 again. The hook alone holds no window. The patch of Decision 1 asks at each message:

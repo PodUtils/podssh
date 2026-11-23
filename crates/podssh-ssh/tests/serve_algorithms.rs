@@ -12,6 +12,10 @@
 //! which is what this test reads of the server. OpenSSH's words for the same
 //! refusal, and the table of the other refusals, are `podssh-cli`'s
 //! `tests/serve_algorithms_openssh.rs`.
+//!
+//! An RSA host key signs through aws-lc-rs alone (T-856): no `ssh-rsa`,
+//! whose SHA-1 aws-lc-rs does not sign, and a key that aws-lc-rs refuses
+//! ends the exchange, where russh's `rsa` crate would have signed it.
 
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -19,6 +23,7 @@ use std::time::Duration;
 
 use podssh_ssh::algorithms::{spoken, Kind};
 use podssh_ssh::keygen::{self, KeyKind};
+use podssh_ssh::russh::keys::ssh_key::private::RsaKeypair;
 use podssh_ssh::russh::keys::{Algorithm, EcdsaCurve, PrivateKey, PrivateKeyWithHashAlg};
 use podssh_ssh::russh::{self, cipher, client, kex, mac, Preferred};
 use podssh_ssh::server::{self, algorithms, Authorized};
@@ -52,7 +57,6 @@ const HOST_KEYS: &[&str] = &[
     "ecdsa-sha2-nistp521",
     "rsa-sha2-512",
     "rsa-sha2-256",
-    "ssh-rsa",
 ];
 
 const CIPHERS: &[&str] =
@@ -256,4 +260,43 @@ async fn each_name_of_the_set_is_let_in_and_each_other_is_refused() {
     }
     assert!(rows > 30, "each list of the client's table was tried: {rows} rows");
     assert!(wrong.is_empty(), "{} rows wrong:\n{}", wrong.len(), wrong.join("\n"));
+}
+
+/// A server that lets nobody in: the exchange below needs russh's key
+/// exchange alone.
+struct Nobody;
+
+impl russh::server::Handler for Nobody {
+    type Error = russh::Error;
+}
+
+/// Whether russh's client takes the key exchange of a server that runs with
+/// `config`.
+async fn exchange(config: russh::server::Config) -> bool {
+    let (near, far) = tokio::io::duplex(1 << 20);
+    let served = tokio::spawn(async move {
+        match russh::server::run_stream(Arc::new(config), far, Nobody).await {
+            Ok(running) => running.await,
+            Err(e) => Err(e),
+        }
+    });
+    let client = client::connect_stream(Arc::new(client::Config::default()), near, Trusting);
+    let took = tokio::time::timeout(LIMIT, client).await;
+    served.abort();
+    matches!(took, Ok(Ok(_)))
+}
+
+/// An RSA host key signs through aws-lc-rs alone (T-856): a key of 1024
+/// bits, which aws-lc-rs refuses and the `rsa` crate would sign, ends the
+/// exchange. The control, serve's config with no signer of its own, is let
+/// in by russh's client, so the refusal is serve's and not the client's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn an_rsa_host_key_is_never_signed_by_russh() {
+    let small = PrivateKey::from(RsaKeypair::random(&mut rand::rng(), 1024).unwrap());
+    assert!(!exchange(server::config(small.clone())).await, "a key of 1024 bits was signed");
+    let mut control = server::config(small);
+    control.host_key_signer = None;
+    assert!(exchange(control).await, "the control: russh's client takes russh's own RSA signature");
+    let rsa = keygen::generate(KeyKind::Rsa(2048), "host").unwrap();
+    assert!(exchange(server::config(rsa)).await, "a key of 2048 bits, signed through aws-lc-rs");
 }

@@ -85,6 +85,9 @@ mod test;
 #[cfg(test)]
 mod reply_data;
 
+#[cfg(test)]
+mod unimplemented;
+
 /// Actual client session's state.
 ///
 /// It is in charge of multiplexing and keeping track of various channels
@@ -1380,6 +1383,7 @@ where
             strict_kex: false,
             alive_timeouts: 0,
             received_data: false,
+            read_seqn: 0,
             remote_sshid: sshid.into(),
         },
         session_receiver,
@@ -2105,6 +2109,9 @@ async fn reply<H: Handler>(
     >,
     pkt: &mut IncomingSshPacket,
 ) -> Result<(), H::Error> {
+    // The packet's own number, for an UNIMPLEMENTED in answer to it: the
+    // count was incremented after read() (podssh's patch, T-854).
+    session.common.read_seqn = pkt.seqn.0.wrapping_sub(1);
     if let Some(message_type) = pkt.buffer.first() {
         debug!(
             "< msg type {message_type:?}, seqn {:?}, len {}",
@@ -2343,6 +2350,7 @@ mod tests {
                 strict_kex: false,
                 alive_timeouts: 0,
                 received_data: false,
+                read_seqn: 0,
                 remote_sshid: b"SSH-2.0-test".to_vec(),
                 packet_writer: PacketWriter::clear(),
             },
@@ -2650,6 +2658,7 @@ mod tests {
                 strict_kex: false,
                 alive_timeouts: 0,
                 received_data: false,
+                read_seqn: 0,
                 remote_sshid: b"SSH-2.0-test".to_vec(),
                 packet_writer: PacketWriter::clear(),
             },
