@@ -133,9 +133,20 @@ fn a_copy_that_another_runs_now_keeps_no_side_file() {
     assert_eq!((busy.temp, busy.offset), (None, 0), "the other run's file is not taken");
     assert!(busy.dirs.is_empty(), "this run keeps no side file");
     drop(other);
-    let again = load();
-    // Which branch, at a failure (T-849, once on macOS): the lock still
-    // refused (no side file kept), or the side file not read.
+    // flock(2) belongs to the open file description: a sibling test that
+    // forks while `other` is open gives its child a copy of the descriptor,
+    // and the lock stands until that child execs (T-849, twice on macOS).
+    // So the lock may be refused for a moment after the drop; load again
+    // until it is taken, within a bound, before judging the side file.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let mut again = load();
+    while again.dirs.is_empty() && std::time::Instant::now() < deadline {
+        drop(again);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        again = load();
+    }
+    // Which branch, at a failure: the lock still refused after the bound
+    // (no side file kept), or the side file not read.
     let side = std::fs::read_to_string(dir.join("v.resume")).map_err(|e| e.to_string());
     let why = format!("lock taken: {}, side file: {side:?}", !again.dirs.is_empty());
     assert_eq!(again.offset, SAVE_EVERY, "the side file is the next run's once the lock is free; {why}");

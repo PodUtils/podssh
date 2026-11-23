@@ -4391,6 +4391,14 @@ cargo test -p podssh-cli --lib cp::resume
 
 Partial, 2026-11-19: step 1; 5 runs in 5 here. Waits for its next failure on macOS.
 
+2026-11-23, the second failure (the build of Dependabot's #344 at `ce46f95`, run 45214378571, attempt 2, job `macos`):
+"lock taken: false, side file: Ok(\"{\"offset\":4194304,...}\")": the side file held the 4 MiB, and the lock was still
+refused at the load after `other` was dropped. `flock(2)` belongs to the open file description: a sibling test of the same
+process that forks while `other` is open gives its child a copy of the descriptor, and the lock stands until that child
+execs (std's descriptors are close-on-exec, so only for that moment). A second process holding the lock is the case the
+product answers rightly, with no side file; the race is the test's. Step 2: the test loads again each 20 ms until the lock
+is taken, within 10 s, then judges the side file as before. Run here: UNVERIFIED (the build slot was another's).
+
 # T-851: `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test
 
 **Source:** the gate of Dependabot's pull request #331 at `1a24efd` (run 44649725163, 2026-11-20, job `gate (ssh)`):
