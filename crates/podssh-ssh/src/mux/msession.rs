@@ -20,6 +20,7 @@ use super::proto::{Message, NewSession, NO_ESCAPE};
 use super::wire;
 use crate::escape::{Command, Escapes};
 use crate::handler::Client;
+use crate::io::beside::{self, beside, Backlog};
 use crate::log::Log;
 use crate::terminal;
 
@@ -138,6 +139,11 @@ async fn pump(
 ) -> Option<i32> {
     let (mut reader, writer) = channel.split();
     let (mut status, mut eof) = (None, false);
+    // Each write waits for russh's loop, which can wait for this copy to
+    // take the channel's next message: the channel drains beside the write
+    // (T-780), and what it took goes out first.
+    let mut aside = Backlog::default();
+    let no_watch = || {};
     for msg in early {
         if let Some(()) = take(msg, &mut status, &mut eof, out, err).await {
             return status;
@@ -153,7 +159,7 @@ async fn pump(
             read = input.read(&mut buf), if reading => match read {
                 Ok(0) | Err(_) => {
                     reading = false;
-                    let _ = writer.eof().await;
+                    let _ = beside(writer.eof(), &mut reader, &mut aside, &no_watch).await;
                 }
                 Ok(n) => {
                     let (data, commands) = match escapes.as_mut() {
@@ -163,13 +169,16 @@ async fn pump(
                     if pty && !data.is_empty() {
                         crate::pace::key();
                     }
-                    if !data.is_empty() && writer.data_bytes(data).await.is_err() {
-                        reading = false;
+                    if !data.is_empty() {
+                        let sent = beside(writer.data_bytes(data), &mut reader, &mut aside, &no_watch);
+                        if sent.await.is_err() {
+                            reading = false;
+                        }
                     }
                     for command in commands {
                         match command {
                             Command::Disconnect => {
-                                let _ = writer.close().await;
+                                let _ = beside(writer.close(), &mut reader, &mut aside, &no_watch).await;
                                 return status;
                             }
                             Command::Help => {
@@ -196,7 +205,7 @@ async fn pump(
                     }
                 }
             },
-            msg = reader.wait() => match msg {
+            msg = beside::next(&mut reader, &mut aside) => match msg {
                 Some(msg) => {
                     if pty && matches!(msg, ChannelMsg::Data { .. }) {
                         crate::pace::echo();
@@ -211,7 +220,8 @@ async fn pump(
                 true => {
                     let size = terminal::size_of_fd(input.raw());
                     if let (Some(s), true) = (size, size != last) {
-                        let _ = writer.window_change(s.cols, s.rows, s.px_width, s.px_height).await;
+                        let change = writer.window_change(s.cols, s.rows, s.px_width, s.px_height);
+                        let _ = beside(change, &mut reader, &mut aside, &no_watch).await;
                         last = size;
                     }
                 }

@@ -4,7 +4,10 @@
 //! Each part keeps when its poll entered and when it last returned; a poll
 //! that has not returned for 20 s is said at `-v` with the part's name, and so
 //! is a task none of whose parts was polled for 20 s while one waits on a
-//! channel's full queue.
+//! channel's full queue. A part parked on a wait that is never woken (the
+//! pump's write that waited on russh's loop, which waited on the pump)
+//! returns at once from each poll and is not named here: the pump's watch
+//! (`podssh-ssh`'s `io/busy.rs`) names its step.
 
 use std::future::Future;
 use std::sync::{Arc, Mutex};

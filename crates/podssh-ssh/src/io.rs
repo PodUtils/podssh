@@ -13,6 +13,7 @@ use tokio::io::AsyncWriteExt;
 
 use crate::elevate::Elevated;
 use crate::escape::{Command, Escapes};
+use crate::escape_run;
 use crate::expect::Expect;
 use crate::handler::Client;
 use crate::log::Log;
@@ -24,12 +25,14 @@ use crate::terminal::text::Consoles;
 use crate::terminal::watch::Resize;
 use crate::zmodem::Zmodem;
 
+pub(crate) mod beside;
 mod busy;
 mod feed;
 mod input;
 mod msg;
 mod send;
 
+use beside::beside;
 pub use feed::Feed;
 pub use input::Input;
 use msg::{handle_msg, write_out};
@@ -58,6 +61,9 @@ pub enum End {
     /// Ctrl-C with no remote pty, and the command did not end by it (T-293).
     Interrupted,
 }
+
+/// The messages of a session's channel taken beside a wait on the session.
+type Taken = beside::Backlog<ChannelMsg>;
 
 /// What a user types while `--persist` connects again waits for the next
 /// session, this much at most.
@@ -189,6 +195,14 @@ pub async fn pump(
 ) -> End {
     let own = channel.id();
     let (mut reader, writer) = channel.split();
+    // The messages taken beside each wait on the session, handed on first:
+    // russh's loop can wait on the pump to take one before it takes a write
+    // of the pump (T-780).
+    let mut aside = beside::Backlog::default();
+    // A step that holds the pump 20 s, said at -v (T-780).
+    let busy = busy::Busy::default();
+    let _watching = busy.watch(log, handle.step(), own);
+    let mark = || busy.mark();
     let mut status: Option<i32> = None;
     // A sink takes the bytes unchanged: its receiver knows where they go.
     let sink = through.sink.take();
@@ -205,24 +219,24 @@ pub async fn pump(
         }
     }
     if let Some(e) = through.elevated.as_mut() {
-        e.act(&writer, &mut held, !reading, log).await;
+        busy.at("the elevated command's start");
+        beside(e.act(&writer, &mut held, !reading, log), &mut reader, &mut aside, &mark).await;
     }
     if !reading && !held {
-        let _ = writer.eof().await;
+        busy.at("the end of the input");
+        let _ = beside(writer.eof(), &mut reader, &mut aside, &mark).await;
     }
     let mut resize = Resize::new(pty);
     let mut stop = Termination::new(pty && terminal::raw_active(), interrupt).fed(input.feed());
     // The forwards of `~C` -L and -D, served while the session lasts (T-291).
-    let mut added = crate::escape_run::Added::default();
+    let mut added = escape_run::Added::default();
     // The keepalive that asks for a reply, while one waits (T-332).
     let mut ping: Option<Ping<'_>> = None;
-    // A step that holds the pump 20 s, said at -v (T-780).
-    let busy = busy::Busy::default();
-    let _watching = busy.watch(log, handle.step(), own);
     loop {
         busy.at("the pump's turn before its wait");
-        expected(&mut through, &writer, &mut held, !reading).await;
-        if let Err(end) = zmodem_out(&writer, &mut reader, &mut status, &mut out, &mut through, log).await {
+        beside(expected(&mut through, &writer, &mut held, !reading), &mut reader, &mut aside, &mark).await;
+        let zmodem = zmodem_out(&writer, (&mut reader, &mut aside), &mut status, &mut out, &mut through, log);
+        if let Err(end) = zmodem.await {
             return end;
         }
         let zmodem_at = through.zmodem.as_ref().and_then(Zmodem::deadline);
@@ -247,7 +261,8 @@ pub async fn pump(
                         if pty {
                             crate::pace::key();
                         }
-                        match send(&writer, &mut reader, data, (&mut status, &mut out, &mut through), &busy, log).await {
+                        let state = (&mut status, &mut out, &mut through);
+                        match send(&writer, (&mut reader, &mut aside), data, state, &busy, log).await {
                             Ok(true) => {}
                             // The channel is closing; keep reading for its status.
                             Ok(false) => reading = false,
@@ -265,11 +280,12 @@ pub async fn pump(
                             Command::CommandLine => {
                                 let first = escapes.as_mut().map(Escapes::take_rest).unwrap_or_default();
                                 let caller = through.command_line.clone();
-                                crate::escape_run::command_line(handle, input, first, caller, &mut added, log).await;
+                                let line = escape_run::command_line(handle, input, first, caller, &mut added, log);
+                                beside(line, &mut reader, &mut aside, &mark).await;
                             }
                             Command::Rekey => {
                                 log.info("rekeying");
-                                let _ = handle.rekey_soon().await;
+                                let _ = beside(handle.rekey_soon(), &mut reader, &mut aside, &mark).await;
                             }
                             Command::Help => {
                                 if let Some(e) = &escapes {
@@ -277,7 +293,9 @@ pub async fn pump(
                                 }
                             }
                             Command::List => log.banner(&crate::tally::listing()),
-                            Command::Detach => through.detaching.ask(&writer, log).await,
+                            Command::Detach => {
+                                beside(through.detaching.ask(&writer, log), &mut reader, &mut aside, &mark).await;
+                            }
                             Command::Zmodem => match through.zmodem.as_mut() {
                                 Some(z) => z.escape(),
                                 None => log.info("ZMODEM works in a session with a pty and a local terminal"),
@@ -286,15 +304,18 @@ pub async fn pump(
                     }
                 }
                 None => {
+                    // The end waits for russh's loop to take it, and the loop
+                    // can wait for the pump: the channel drains beside it.
+                    busy.at("the end of the input");
                     reading = false;
                     if through.expect.is_some() {
-                        let _ = writer.data(&[EOF_KEY][..]).await;
+                        let _ = beside(writer.data(&[EOF_KEY][..]), &mut reader, &mut aside, &mark).await;
                     } else {
-                        let _ = writer.eof().await;
+                        let _ = beside(writer.eof(), &mut reader, &mut aside, &mark).await;
                     }
                 }
             },
-            msg = busy.polled(reader.wait()) => match msg {
+            msg = busy.polled(beside::next(&mut reader, &mut aside)) => match msg {
                 Some(m) => {
                     busy.at("the output of the channel");
                     if pty && matches!(m, ChannelMsg::Data { .. }) {
@@ -304,13 +325,13 @@ pub async fn pump(
                         return end;
                     }
                     if let Some(e) = through.elevated.as_mut() {
-                        e.act(&writer, &mut held, !reading, log).await;
+                        beside(e.act(&writer, &mut held, !reading, log), &mut reader, &mut aside, &mark).await;
                     }
                     // stdout's reader went: the server hears the end of input.
                     if out.gone.is_some() && !out.told {
                         out.told = true;
                         reading = false;
-                        let _ = writer.eof().await;
+                        let _ = beside(writer.eof(), &mut reader, &mut aside, &mark).await;
                     }
                 }
                 None => return link_ended(status, out.eof),
@@ -331,11 +352,13 @@ pub async fn pump(
             expired = elevating(&mut through.elevated, &writer, log) => if expired {
                 log.error(&through.elevated.as_ref().map(Elevated::expired).unwrap_or_default());
                 // The far end closes the session, and its pty hangs up on su.
-                let _ = writer.close().await;
+                let _ = beside(writer.close(), &mut reader, &mut aside, &mark).await;
                 return End::NoStatus;
             },
             Some(size) = resize.next() => {
-                let _ = writer.window_change(size.cols, size.rows, size.px_width, size.px_height).await;
+                busy.at("a change of the terminal's size");
+                let change = writer.window_change(size.cols, size.rows, size.px_width, size.px_height);
+                let _ = beside(change, &mut reader, &mut aside, &mark).await;
                 if let Some(r) = through.record.as_mut() {
                     let _ = r.resize(size);
                 }
@@ -358,15 +381,19 @@ pub async fn pump(
             // The notice of a silent far end: its title, or its line (T-302).
             action = crate::notice::next(through.notice.as_mut()) => match action {
                 crate::notice::Action::Write(bytes) => {
+                    busy.at("the notice of a silent far end");
                     let mut stdout = tokio::io::stdout();
                     let _ = stdout.write_all(&bytes).await;
                     let _ = stdout.flush().await;
                 }
                 crate::notice::Action::Say(line) => log.info(&line),
             },
-            stopped = stop.next() => if let Some(end) = stop.act(stopped, &writer, log).await {
-                return end;
-            },
+            stopped = stop.next() => {
+                busy.at("a signal");
+                if let Some(end) = beside(stop.act(stopped, &writer, log), &mut reader, &mut aside, &mark).await {
+                    return end;
+                }
+            }
         }
     }
 }
@@ -376,7 +403,7 @@ pub async fn pump(
 /// bytes (T-148). `Err` when the channel ended meanwhile.
 async fn zmodem_out(
     writer: &ChannelWriteHalf<Msg>,
-    reader: &mut ChannelReadHalf,
+    channel: (&mut ChannelReadHalf, &mut Taken),
     status: &mut Option<i32>,
     out: &mut Out,
     through: &mut Through,
@@ -390,7 +417,7 @@ async fn zmodem_out(
         let _ = write_out(out.sink.as_ref(), &out.consoles.text(false, screen), false).await;
     }
     if !taken.server.is_empty() {
-        send(writer, reader, taken.server, (status, out, through), &busy::Busy::default(), log).await?;
+        send(writer, channel, taken.server, (status, out, through), &busy::Busy::default(), log).await?;
     }
     Ok(())
 }

@@ -900,7 +900,7 @@ as a TCP host again, and the gate's check fails with the server's error.
 (`crates/podssh-ssh/src/options.rs:164-181`), opened by `open_target`
 (`crates/podssh-ssh/src/forward.rs:24-46`); through a control master
 (`crates/podssh-ssh/src/mux/client.rs:177-192`,
-`crates/podssh-ssh/src/mux/msession.rs:271-278`). The command line reads a
+`crates/podssh-ssh/src/mux/msession.rs:281-288`). The command line reads a
 path at `crates/podssh-cli/src/ssh/hop.rs:92-95`, and the row of `-W` says so
 (`crates/podssh-cli/src/flags.rs:143-144`).
 - `cargo test -p podssh-cli --test ssh_stdio_socket`: 2 passed. The test of
@@ -999,7 +999,7 @@ count each chunk twice, and the unit test fails.
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:42` and
 `crates/podssh-ssh/src/forward.rs:77`; `~#` at
-`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:275`,
+`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:291`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:277`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
   1000 down through a forward's copy, counted once, with one connection; one
@@ -1023,8 +1023,8 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:277`.
   the escapes with no `~#`, and the build on Windows never compiled it. The
   repair: the session of a client of a control master lists the master's
   forwards with `~#`, as OpenSSH's `~#` lists the master's connections, and
-  its `~?` names it (`crates/podssh-ssh/src/mux/msession.rs:32-34` and
-  `crates/podssh-ssh/src/mux/msession.rs:173-178`). In the build image
+  its `~?` names it (`crates/podssh-ssh/src/mux/msession.rs:33-35` and
+  `crates/podssh-ssh/src/mux/msession.rs:182-187`). In the build image
   (`sh scripts/dev.sh run`), `cargo clippy --all-targets -p podssh-ssh -p
   podssh-cli -- -D warnings` passed.
 - Correction: at `f80e7f3` the gate failed both checks of this entry, each
@@ -1497,7 +1497,7 @@ ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
 - `~C` is an escape only where the caller gives a `Forwarder`
   (`podssh ssh`), and not in a session that a control master carries, as
   OpenSSH offers no `~C` to a client of its master: there `~C` goes to the
-  server as typed (`crates/podssh-ssh/src/mux/msession.rs:184`). Lost: a
+  server as typed (`crates/podssh-ssh/src/mux/msession.rs:193`). Lost: a
   `~C` of a client sent as `-O forward` to the master, which OpenSSH does
   not do.
 - `-R` and `-KR` wait for the server's answer, 20 s at most

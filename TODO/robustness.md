@@ -988,7 +988,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   `openssh-keygen` and others, but no client package. No harness ran the stock `ssh`; only
   `scripts/sandbox-check.sh:318-331` does, in a sandbox. Nobody knows whether
   the gate's image has `/usr/bin/ssh`.
-- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:72-74`,
+- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:78-80`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:249`, `docs/STATUS.md:255`).
@@ -2733,6 +2733,70 @@ its part's name ("the poll of the iroh road's layer has not returned for N s: it
 whose parts was polled for 20 s. Proven: `--features iroh --lib ssh::polls` 1 passed; planted, no time of return kept:
 caught. The m6 layer cases of a new address and of no fault passed here; clippy, with and without `iroh`, clean. The
 next hang names the part that holds, or says that the task itself was not run.
+
+2026-11-23, the sixteenth failure, at `af95c50` (run 45155620101, job 137633397175, `gate (m6)`):
+`iroh::with_no_fault_the_iroh_road_carries_the_session`, with no fault (`m6_exit.rs:197`, "the session did not end within
+600 s"). The client said: "the iroh road: PODSSH_IROH_UDP=off: the relay carries each byte"; the pump's "the session
+waits for its channel, and its wait was not polled for 20 s: the task that runs it holds elsewhere" (`io/busy.rs`); the
+loop's "held in the queue of a channel, with its CHANNEL_DATA 2; this session's channel is 2" (`0013-loop-step`); the
+pipe's "SSH read nothing for 20 s ...; 18393166 bytes went to SSH so far"; and the layer's "the application took no
+byte for 22 s, while 771720 bytes wait for it; this side sent 20680089 bytes, the far end acknowledged 20680089 ...".
+No line of `ssh/polls.rs` at all; the proxies logged about 13 CONNECTs to the iroh relay after the start.
+
+Facts, read at `35d51884`:
+- `ssh/polls.rs` names a poll that does not return, or a task none of whose parts was polled for 20 s
+  (`crates/podssh-cli/src/ssh/polls.rs:62-93`); its watcher is a task of its own (`ssh/iroh/dial.rs:209-212`), as are the
+  busy watch and the pipe's, which did print. So the thread was not held, and the joined task was polled within each
+  20 s (the layer's and the channel's timers wake it), each poll of SSH's part returning at once. `tokio::join!` polls
+  each part that has not ended at each wake (`ssh/iroh/dial.rs:213-220`), so SSH's future was polled; had the pump been
+  in its select, each poll would have polled its wait of the channel (`crates/podssh-ssh/src/io.rs:297`), whose time
+  the busy watch keeps. The wait was not polled: **the pump was not in its select**, and not in a step that it names
+  (the line is the idle one, `io/busy.rs:57-66`).
+- The pump marks a step only in the input's `Some` arm, the channel's arm and `send`. The input's `None` arm, the end of
+  the input, marks none and awaits `writer.eof()` (or `writer.data(EOF_KEY)`) alone (`io.rs:288-295`); so do the resize,
+  the signal, `~d`, the elevated command's acts and the close (`io.rs:307`, `313`, `334`, `338`, `367`). The test
+  writes 20 MiB and closes the client's stdin, so the pump takes the `None` arm once, near the end of the upload.
+- `writer.eof()` puts its message into the bounded queue from the handle to russh's loop, of 10
+  (`vendor/russh/src/channels/mod.rs:407-425`, `vendor/russh/src/client/mod.rs:1358`). The loop takes that queue only
+  while no data waits for the far end's window and its unwritten output is under `OUTPUT_ROOM`
+  (`client/mod.rs:1571-1574`, `1649`), and it puts each CHANNEL_DATA into the channel's queue of 100
+  (`client/mod.rs:2926`) inline, awaiting room (`client/encrypted.rs:638-641`). Only the pump takes that queue.
+- So the cycle: at the end of the upload the loop's queue holds the upload's last messages while they wait for the echo
+  server's window; the pump awaits room for its EOF and takes no message; the echo comes back, the channel's queue
+  fills, and the loop awaits room there; it reads the stream no more, so the server's WINDOW_ADJUST that would free
+  the upload never comes, and it takes no write. Each waits on the other, each poll returns Pending at once, and no
+  watch saw a poll that does not return. The amount sent fits it: 20,680,089 bytes, as 20,680,058 to 20,680,531 in
+  failures 9 to 15 whatever the fault and the time, short of the 20 MiB written; with packets of 32 KiB, 10 of them are
+  327,680 bytes, and 20,971,520 less those, with SSH's framing, is about 20.68 MB. The upload's tail waits in russh's
+  queues in each failure since the 9th; the pump waited at the same place in each.
+
+Hypotheses, ranked: (1) the cycle above, through the `None` arm's EOF: each line of failures 13 to 16 fits it, and the
+sent count is the same in each; (2) the same cycle through another unmarked wait of the pump on the session (none of
+them runs in this test: no pty, no signal, no `~d`), the same class; (3) a lost wake-up of the joined task: excluded, as
+`polls.rs` would have said that no part was polled; (4) a thread held by a blocking call: excluded, as the watches,
+tasks of their own, printed. The 13 CONNECTs are not explained by the cycle and not needed by it: the layer acknowledged
+each byte and held none to send; failures 1 to 8 (a session that stops while its link lives, the node's target that
+sends nothing after a resume) fit it too, but lack the lines that would show it.
+
+Draft, 2026-11-23: the repair removes the class: each wait of a pump on the session drains the channel beside it.
+`crates/podssh-ssh/src/io/beside.rs`: `beside(op, reader, backlog, polled)` awaits a write (an EOF, a key, a window's
+change, a signal, `~d`, `~R`, the elevated command's acts, the close, `~C`'s line) while it takes the channel's messages
+into a backlog, at most 16 MiB (russh grants the window as data comes, so the backlog needs a bound of its own; past it
+the wait drains no more, as before); `next` hands the backlog on first, in order, at each read of the channel (the
+pump's select and `send`). `io.rs`'s pump and the master's session pump (`mux/msession.rs`, whose write of the
+client's input drained nothing at all) take each wait on the session through it. The busy watch now names each step
+that waits on the session ("the end of the input", "a change of the terminal's size", "a signal", ...), and says a
+step that takes the channel's messages meanwhile ("the session has waited N s in ..., and takes its channel's messages
+meanwhile"); `polls.rs` says in its comment why it cannot see a parked wait. Merged and run here (2026-11-23, Linux, Rust 1.100): `cargo test -p
+podssh-ssh --lib io::` 14 passed (among them `io::beside`'s four: the cycle in small, where the write alone waits for
+ever (the control) and beside the channel it goes and each message is handed on in order; a backlog at its bound drains
+no more; the channel's end is kept behind its messages; and each pump's line that awaits the writer or the handle is a
+call of `beside` or `send`; and `io::busy`'s new test); `cargo test -p podssh-ssh`, each suite passed; clippy of
+podssh-ssh and podssh-cli, all targets, `-D warnings`, and `cargo fmt --check`: clean. Planted (the end-of-input arm's
+`writer.eof().await` alone again): `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` failed and named the
+line. The m6 step as the gate runs it (`cargo test --locked -p podssh-cli --features podssh-cli/iroh-test --test m6_exit
+-- --ignored --test-threads 1`): 11 passed in 719 s, the iroh road's session with no fault among them; it passed here
+before the repair too, so the proof is the gate's. Then the gate ten times in a row (this entry's Prove).
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 

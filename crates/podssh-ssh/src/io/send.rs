@@ -1,13 +1,15 @@
 //! A send of the session's input, which waits for the channel's window while
 //! it reads the channel's messages (T-598), apart from `io.rs` for its length.
+//! The messages taken beside an earlier wait go first (T-780).
 
 use std::time::Duration;
 
 use russh::client::Msg;
 use russh::{ChannelReadHalf, ChannelWriteHalf};
 
+use super::beside::next;
 use super::busy::Busy;
-use super::{handle_msg, link_ended, End, Out, Through};
+use super::{handle_msg, link_ended, End, Out, Taken, Through};
 use crate::log::Log;
 
 /// Send `data` on the channel. The send waits for the channel's window,
@@ -16,7 +18,7 @@ use crate::log::Log;
 /// is closing.
 pub(super) async fn send(
     writer: &ChannelWriteHalf<Msg>,
-    reader: &mut ChannelReadHalf,
+    (reader, aside): (&mut ChannelReadHalf, &mut Taken),
     data: Vec<u8>,
     (status, out, through): (&mut Option<i32>, &mut Out, &mut Through),
     busy: &Busy,
@@ -36,7 +38,7 @@ pub(super) async fn send(
         busy.idle();
         tokio::select! {
             sent = &mut send => return Ok(sent.is_ok()),
-            msg = busy.polled(reader.wait()) => match msg {
+            msg = busy.polled(next(&mut *reader, &mut *aside)) => match msg {
                 Some(m) => {
                     busy.at("the output of the channel, in a send");
                     if let Some(end) = handle_msg(m, status, out, through, log).await {

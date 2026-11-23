@@ -5,7 +5,8 @@
 //! that holds 20 s is said too (podssh's patch of russh, `Step`), with the
 //! channel that it waits on beside the session's own. An idle pump whose wait
 //! of its channel was not polled for 20 s is said too: its task holds
-//! elsewhere, and nothing drains the channel's queue.
+//! elsewhere, and nothing drains the channel's queue. A step that waits on
+//! the session drains the channel beside it (`beside.rs`), and says so.
 
 use std::future::Future;
 use std::sync::{Arc, Mutex};
@@ -39,6 +40,12 @@ impl Busy {
         *self.step.lock().unwrap_or_else(|e| e.into_inner()) = None;
     }
 
+    /// The pump's wait of its channel was polled now, beside a wait on the
+    /// session (`beside.rs`).
+    pub(super) fn mark(&self) {
+        *self.polled.lock().unwrap_or_else(|e| e.into_inner()) = Some(Instant::now());
+    }
+
     /// `wait`, the pump's wait of its channel, with the time of each poll kept.
     pub(super) fn polled<F: Future>(&self, wait: F) -> impl Future<Output = F::Output> {
         let polled = self.polled.clone();
@@ -69,6 +76,15 @@ impl Busy {
             return None;
         }
         *said = Some(since);
+        // A step beside the channel takes its messages meanwhile: the wait
+        // is the session's, and no queue fills behind it.
+        let last = *self.polled.lock().unwrap_or_else(|e| e.into_inner());
+        if last.is_some_and(|last| last >= since && now.duration_since(last) < HOLD) {
+            return Some(format!(
+                "the session has waited {} s in {what}, and takes its channel's messages meanwhile",
+                now.duration_since(since).as_secs()
+            ));
+        }
         Some(format!(
             "the session took no message of its channel for {} s, held in {what}",
             now.duration_since(since).as_secs()
@@ -141,6 +157,27 @@ mod tests {
         let line = busy.line(Instant::now(), &mut said).expect("said after 20 s");
         assert_eq!(line, "the session took no message of its channel for 20 s, held in the output to stdout");
         assert_eq!(busy.line(Instant::now(), &mut said), None, "once for each step");
+    }
+
+    /// A step that waits on the session beside the channel says so: its wait
+    /// of the channel was polled meanwhile.
+    #[tokio::test(start_paused = true)]
+    async fn a_step_beside_the_channel_says_that_it_takes_the_messages() {
+        let busy = Busy::default();
+        let mut said = None;
+        busy.at("the end of the input");
+        tokio::time::advance(HOLD - Duration::from_secs(1)).await;
+        busy.mark();
+        tokio::time::advance(Duration::from_secs(1)).await;
+        let line = busy.line(Instant::now(), &mut said).expect("said after 20 s");
+        assert_eq!(
+            line,
+            "the session has waited 20 s in the end of the input, and takes its channel's messages meanwhile"
+        );
+        busy.at("the end of the input");
+        tokio::time::advance(HOLD).await;
+        let line = busy.line(Instant::now(), &mut said).expect("a new step is said");
+        assert!(line.starts_with("the session took no message of its channel for 20 s"), "{line}");
     }
 
     /// A step of russh's loop that holds 20 s is said once, with its name;
