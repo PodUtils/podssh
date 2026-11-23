@@ -6,7 +6,33 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
-- **Read first, at the next session (2026-11-23, reconciled after `e728db9f` and `930e5ba0`):**
+- **Read first, at the next session (the cloud session of 2026-11-23, after `e728db9f`):**
+  1. **The gate.** At `af95c50` it was red: `gate (m6)` (T-780's sixteenth hang), `macos`
+     (`cover_credential`, T-857) and `windows` (`attach`, T-858). Each has its repair on `main`
+     (T-780 `d3aba042`, T-857 `cae0bdd6`, T-858 `68228ea4`), each `partial` until the gate proves it:
+     T-780 by ten green `gate (m6)` runs in a row, T-857 by the `macos` job, T-858 by the `windows`
+     job with no line "the far shell answered probe". Read the gate of the session's last push first.
+  2. **T-780's repair** (`crates/podssh-ssh/src/io/beside.rs`): each wait of the pump on the SSH
+     session (the end of input, EOF, signals, `~d`, close, ...) takes the channel's messages into a
+     backlog of 16 MiB at most, so that russh's loop never waits on a full channel while the pump
+     waits on russh's queue. A test reads both pumps' sources and fails on a wait that drains nothing.
+  3. **Merged this session** (drafting agents, each built and tested here): T-820 (partial:
+     `pod_core::files::replace`, `pod-unit`'s quoting and hardening; its asks are COORD-135, #342),
+     T-832 (`ssh --list-hosts`), T-838 (partial: `--policy`), T-840 (forward state words), T-841
+     (serve's stated algorithms), T-842 (`--revoke-ends-sessions`), and the research steps of T-834
+     and T-836. Filed: T-854, T-855, T-856 (from T-841 and T-842), T-857, T-858.
+  4. **Dependabot.** #321 and #324 (jiff 1.0) are on `main` (`deedc895`), and #339 without the iroh
+     family, which waits for podcrates' iroh-relay 1.4.2 (COORD-134, #341): podssh's
+     `[patch.crates-io]` names podcrates' fork, and iroh 1.4.2 leaves it unused. The five unused
+     workspace dependencies are gone.
+  5. **The local toolchain.** A cloud container's Rust is 1.100; the gate's is 1.99.1 with
+     `--locked`. Resolve `Cargo.lock` with `cargo +1.99 metadata` before a commit that changes it
+     (`rustup toolchain install 1.99 --profile minimal`).
+  6. **Issues.** The operator closed #268, #269, #308, #312, #316 and #333 by hand on 2026-11-23;
+     the record holds them closed (else `issue-sync` opens them again). New COORD issues: #340
+     (COORD-133, the take of `v0.82.0`), #341 (COORD-134), #342 (COORD-135), #343 (COORD-136,
+     `bind_staged` past `sun_path`). The watcher is fetched at podcrates' tag `v0.70.0` now.
+- **Read before, at the session of 2026-11-23 (reconciled after `e728db9f` and `930e5ba0`):**
   1. **`PodUtils/podcrates` `v0.82.0` (`51c09390`) is taken at `e728db9f`**, with `url` 2.5.9
      (`RUSTSEC-2026-0592`), `vendor/h2` 0.4.20 patched via `[patch.crates-io]` for Chrome HTTP/2
      pseudo-header order (`:method`, `:authority`, `:scheme`, `:path`), and `pod-cover` added.
@@ -185,6 +211,9 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
 | #311 (COORD-114, to podvm) | podvm reading it (T-819) |
 | #322 (COORD-123) | T-847's first push at a release tag |
 | #340 (COORD-133) | podcrates recording the take of `v0.82.0` at `e728db9f` (T-684) |
+| #341 (COORD-134) | podcrates' iroh-relay fork at 1.4.2; then the iroh family of #339 |
+| #342 (COORD-135) | podcrates' answers to T-820's asks (a) to (e) on `pod-unit` and `pod_core::files` |
+| #343 (COORD-136) | podcrates' `bind_staged` for a path past `sun_path` (T-857) |
 
 ## The live runs and interop harnesses
 
