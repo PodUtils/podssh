@@ -344,9 +344,10 @@
 336 pull closed
 337 issue closed
 338 pull closed
-339 pull open
+339 pull closed
 340 issue open
 341 issue open
 342 issue open
 343 issue open
 344 pull open
+345 pull open

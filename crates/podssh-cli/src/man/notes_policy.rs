@@ -1,7 +1,8 @@
 //! The notes of `--policy FILE`, an algorithm policy: its grammar and its
-//! verdict under `podssh ssh`, its probe under `podssh health`, and its
-//! words in EXIT STATUS. Apart from the others so that each file stays
-//! short; `notes_roads` and `notes_health` name these paragraphs.
+//! verdict under `podssh ssh`, its probe under `podssh health`, its gate
+//! under `podssh serve`, and its words in EXIT STATUS. Apart from the others
+//! so that each file stays short; `notes_roads`, `notes_health` and
+//! `notes_serve` name these paragraphs.
 
 use podssh_ssh::policy::{EXIT_MISMATCH, EXIT_NO_READING, EXIT_PASS};
 
@@ -45,6 +46,14 @@ pub const HEALTH_PROBE: &str = "POLICY: with --policy FILE, podssh health gives 
      for no reading: no connection, a KEXINIT that does not read, or a size that one exchange cannot measure. \
      --policy goes with no --preflight (64).";
 
+/// `podssh serve --policy FILE`: a client policy, before authentication.
+pub const SERVE_JUDGE: &str = "POLICY: with --policy FILE, podssh serve judges each client's algorithms, before \
+     authentication. The file must say client policy = true; another is refused at the start (78). The policy reads \
+     the client's first KEXINIT: its key exchanges, host keys, and the ciphers, MACs and compressions it sends with. \
+     A mismatch, or a KEXINIT that does not read, ends the connection. The client gets a disconnect that names the \
+     policy, and no key logs in. One line on stderr names the client's address and each mismatch. A client offers \
+     no host key, so a size rule never refuses one.";
+
 /// `rows`, the EXIT STATUS table, with the words of `--policy` at its
 /// codes.
 pub fn exit_words(mut rows: Vec<(Code, String)>) -> Vec<(Code, String)> {
@@ -57,7 +66,7 @@ pub fn exit_words(mut rows: Vec<(Code, String)>) -> Vec<(Code, String)> {
             }
             Code::Value(EXIT_MISMATCH) => {
                 " podssh ssh and health: the file of --policy cannot be read or used, or the server's algorithms do \
-                 not meet it."
+                 not meet it. podssh serve: the file of --policy cannot be used, or judges no client."
             }
             _ => continue,
         };

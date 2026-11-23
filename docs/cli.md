@@ -3582,8 +3582,26 @@ judges what the peer offers.
   `--json`. Exit 0 pass, 78 a mismatch, 69 no reading (no connection, a
   KEXINIT that does not read, or a check that one exchange cannot make).
   It refuses `--preflight` (64).
-- `podssh serve`'s call site, on a client's KEXINIT, and a probe in
-  `podssh doctor` follow (T-838's notes).
+- **`podssh serve --policy FILE`** judges each client's first KEXINIT
+  before authentication (`crates/podssh-ssh/src/server/policy_gate.rs`).
+  The file must say `client policy = true`; a policy of a server would
+  find a mismatch on each client, so it is refused at the start (78). The
+  client's bytes pass through the same reader of a handshake as the
+  client side's record (`handshake_side.rs`, 64 KiB at most), and the
+  verdict falls in the read that brings the KEXINIT's last byte, before
+  russh reads a message after it. A mismatch, or a KEXINIT that does not
+  read (or none before NEWKEYS), ends the connection as a reload's revoke
+  does (T-842): a disconnect with the reason `podssh serve: this client's
+  algorithms do not meet the policy "NAME"`, and no key logs in on it
+  (`handler.rs`). One line on stderr names the client's address (`with no
+  address (a pipe)` for `serve NAME` and a ProxyCommand) and each
+  mismatch: `podssh serve: client ADDR: refused before authentication:
+  the policy "NAME" found N mismatch(es): ...: FIELD expected A,B, got C`.
+  A client offers no host key, so a size rule is unmeasured there and
+  never refuses. `ext-info-c` and `kex-strict-c-v00@openssh.com` are
+  markers, judged only by a policy that names one, as on a server.
+  Tested against OpenSSH's client (`tests/serve_policy_openssh.rs`).
+- A probe in `podssh doctor` follows (T-838's notes).
 
 ## `podssh keygen`
 
@@ -6120,7 +6138,7 @@ gives up each capability of the process (T-698), before it reads a file.
   | `CHANNEL_FAILURE` | a channel request that serve does not serve: a subsystem other than `sftp`, `x11-req`, a refused `pty-req`, `exec` or `shell` (its reason on the channel's stderr first) | `subsystem request failed on channel 0`; `exec request failed` |
   | `REQUEST_FAILURE` | a global request that serve does not serve: `tcpip-forward` (`-R`), `streamlocal-forward` | `Warning: remote port forwarding failed for listen port N` |
   | `CHANNEL_OPEN_FAILURE` | a forward that `--no-forwarding` or a key's rule refuses, a dial that failed, X11, a Unix socket, more channels than the bound | `open failed: ...` (`serve_forward_openssh.rs`) |
-  | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`) |
+  | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842); a client that `--policy` refuses (T-838) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`); `... do not meet the policy` (`serve_policy_openssh.rs`) |
   | `UNIMPLEMENTED` | never sent: russh's server passes over a message that it does not know, where RFC 4253 asks for this reply | none |
 - **A command and a shell (T-108).** A command (`exec`) runs as
   `SHELL -c COMMAND`, and a shell request runs the shell as a login shell
@@ -6410,8 +6428,13 @@ gives up each capability of the process (T-698), before it reads a file.
   SHA256:...: expiry-time: the key expired at TIME: its session ends`.
   Without the flag, no session ends by a reload or an expiry. With
   `--stdio`, the one connection is the process: a session that a reload
-  ended exits 0, as a stop does. The reload on SIGHUP is `--stdio`'s;
-  under `podssh serve NAME` the flag's expiry holds.
+  ended exits 0, as a stop does. `podssh serve NAME` takes the same
+  reload on SIGHUP (T-855, `Hangups` in `serve_keys.rs`): the node's
+  sessions share one set and one table of live connections, so a reload
+  ends the removed key's sessions of the node and leaves the others; the
+  node itself goes on, and a file that does not read keeps the set
+  before (`crates/podssh-cli/tests/serve_node_reload.rs`). Before T-855,
+  SIGHUP's default ended the node.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

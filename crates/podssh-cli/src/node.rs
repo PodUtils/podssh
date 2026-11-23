@@ -313,6 +313,8 @@ pub(crate) fn shown(targets: &[Route]) -> String {
 
 async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let Ready { label, pair, stored, targets, trust, plain, key, allow, sshd: roost, udp } = ready;
+    // serve NAME's keys read again on SIGHUP while the node serves (T-855).
+    let _hangups = crate::node_serve::hangups();
     let proxy = ProxyChoice::FromEnvironment;
     // TARGET first: a node that cannot reach it would serve no session, a
     // roost whose sshd does not answer as one would refuse each, and a UDP

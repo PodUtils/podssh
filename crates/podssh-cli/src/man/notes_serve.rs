@@ -15,7 +15,8 @@ pub const SERVE: &[&str] = &[
      node://user@NAME, podssh cp or sftp to node://NAME. That goes through the relay, with the node's end-to-end \
      channel and resumable layer. A host with no sshd, which may not listen, gives a shell and its files this way. The \
      keys, the host key and the other flags are those of --stdio; --stdio and NAME are one of the two (64). The node's \
-     lines say serving podssh serve, in this process.",
+     lines say serving podssh serve, in this process. SIGHUP reads the keys again for each session of the node, as \
+     with --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.",
     "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
      file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
      nothing. The options before a key are its rules (below); a line whose options serve cannot all \
@@ -162,6 +163,8 @@ pub const SERVE: &[&str] = &[
      (OpenSSH prints it), and its children are hung up as at a stop. One line on stderr names each key. A key's \
      expiry-time= then ends its sessions at that second too. A reload that keeps the set before ends nothing. \
      Without the flag, no session ends by a reload.",
+    // A client policy (T-838).
+    super::notes_policy::SERVE_JUDGE,
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
     "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \

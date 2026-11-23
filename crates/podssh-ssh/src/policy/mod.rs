@@ -2,9 +2,10 @@
 //! must offer, and a verdict on what it offered. The file is ssh-audit's
 //! grammar ([`file`]); the verdict is a total, I/O-free function of the
 //! policy and an observation ([`verdict::evaluate`]), so that the same check
-//! judges a server's KEXINIT from `podssh ssh` and `podssh health`, and can
-//! judge a client's for `podssh serve`. Its exit contract is sysexits: 0 pass, 78 a
-//! mismatch, 69 no reading; ssh-audit's 3, 2 and 1 are not podssh's.
+//! judges a server's KEXINIT from `podssh ssh` and `podssh health`, and a
+//! client's for `podssh serve --policy` (`server/policy_gate.rs`). Its exit
+//! contract is sysexits: 0 pass, 78 a mismatch, 69 no reading; ssh-audit's
+//! 3, 2 and 1 are not podssh's.
 //!
 //! What it fixes of ssh-audit: a host key's size is read on the type of the
 //! key that actually came, and a key of another type than the one requested
@@ -20,7 +21,7 @@ pub mod verdict;
 use std::sync::{Arc, Mutex};
 
 pub use file::{parse, Policy, PolicyError, SizeRule, MAX_BYTES};
-pub use seen::observe;
+pub use seen::{observe, observe_client};
 pub use verdict::{evaluate, HostKeySeen, Mismatch, Observed, Side, Verdict};
 
 /// The policy passed.

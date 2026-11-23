@@ -3698,8 +3698,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler.rs:246-252`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler.rs:242-244`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler.rs:248-254`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler.rs:243-246`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -3844,7 +3844,7 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler.rs:246-252`, `:374-391`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler.rs:248-254`, `:379-396`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -3899,8 +3899,8 @@ of the pty and not at the gate fails a test that sends input through the second 
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:74-93`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:59`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:77-96`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:62`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -4094,7 +4094,7 @@ cargo test -p podssh-ssh --test serve_algorithms
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4124,6 +4124,27 @@ cargo test -p podssh-cli --test serve_node_reload
 
 A test that does not exist yet: a node of `serve NAME` behind the stand-in relay, two keys logged in, one
 removed and SIGHUP; with the flag its session ends and the other's lives; without it, neither ends.
+
+## Done
+
+Draft, 2026-11-23 (`draft-serve-rest`):
+
+- Premise verified: `serve.rs` hands the NAME path's keys, settings and one `Control` to `node_serve::Served`,
+  which every session of the node shares, and installs no SIGHUP; a node catches SIGTERM, Ctrl-C and SIGUSR2
+  (`node_upgrade::stop`) only, so SIGHUP's default ended `serve NAME`.
+- `serve_keys::Hangups`: a guard that catches SIGHUP in the node's runtime and runs the same `reload` (the same
+  `Keys`, the same table of live connections in `Control`, `--revoke-ends-sessions` from the settings) for each
+  one, its lines in one write on stderr; aborted when it drops. A SIGHUP that cannot be caught is one line, and
+  the keys of the start stay. `node_serve::Served` carries the `Sources`; `node_serve::hangups()` starts the
+  guard, nothing for another kind of node; `node::serve` holds it for the node's whole run, each return among
+  them.
+- The manual's note of `serve NAME` (`man/notes_serve.rs`) and `docs/cli.md` ("A key that a reload takes out").
+- Test `crates/podssh-cli/tests/serve_node_reload.rs`: two tests through the stand-in relay, two keys of a file
+  each holding a session; with the flag the removed key's session ends within 10 s, the node names the key, and
+  the other session lives to its end; without it both live, the removed key's next login is refused (255), and a
+  file that is gone keeps the set before while the kept key logs in again. Merged and run here (2026-11-23,
+  Linux, Rust 1.100): 2 passed, and `--test serve_node` 3 passed. `llms-full.txt` written again; the manual's checks
+  (`--lib` 1256, `--test man_flag_parity` 6, `flag_table` 9, `man_page` 11, `man_json` 4) passed; clippy and fmt clean.
 
 # T-856: `podssh serve` with an RSA host key signs through the `rsa` crate
 

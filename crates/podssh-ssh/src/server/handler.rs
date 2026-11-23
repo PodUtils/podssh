@@ -238,9 +238,11 @@ impl russh::server::Handler for Served {
     type Error = russh::Error;
 
     // A key that is not listed, or that its lines refuse now (from=,
-    // expiry-time=), is refused before the client signs with it.
+    // expiry-time=), is refused before the client signs with it; so is
+    // each key of a connection that a client policy ended (T-838).
     async fn auth_publickey_offered(&mut self, _user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
-        Ok(if self.admit(offer.public_key).is_some() { Auth::Accept } else { Auth::reject() })
+        let ok = self.conn.ended().is_none() && self.admit(offer.public_key).is_some();
+        Ok(if ok { Auth::Accept } else { Auth::reject() })
     }
 
     // The login name selects nothing: the key alone decides, and its line's
@@ -250,6 +252,9 @@ impl russh::server::Handler for Served {
     // The key is in the server's table before it is checked (T-842): a
     // reload then either comes first and refuses it here, or finds it.
     async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
+        if self.conn.ended().is_some() {
+            return Ok(Auth::reject());
+        }
         self.conn.log_in(key.public_key);
         let Some(rules) = self.admit(key.public_key) else {
             self.conn.log_out();

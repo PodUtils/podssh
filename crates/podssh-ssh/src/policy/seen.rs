@@ -1,6 +1,7 @@
 //! An observation of a server, from what the client's handshake record
-//! kept and the host key that came: the glue between russh's types and the
-//! pure verdict.
+//! kept and the host key that came, and of a client, from its KEXINIT that
+//! `podssh serve` read (T-838): the glue between russh's types and the pure
+//! verdict.
 
 use russh::keys::ssh_key::public::KeyData;
 use russh::keys::PublicKeyOrCertificate;
@@ -28,6 +29,25 @@ pub fn observe(offers: &Offers, key: &PublicKeyOrCertificate) -> Result<Observed
         macs: theirs.macs_s2c,
         compressions: theirs.compression_s2c,
         host_key: Some(seen(requested, key)),
+        dh_modulus: Default::default(),
+    })
+}
+
+/// The client of the KEXINIT `payload`, judged by `podssh serve`: its
+/// lists in the direction it sends; a client offers no host key, so a size
+/// rule of the policy is not measured.
+pub fn observe_client(payload: &[u8], banner: Option<String>, header: Option<String>) -> Result<Observed, String> {
+    let theirs = lists(payload)?;
+    Ok(Observed {
+        side: Side::Client,
+        banner,
+        header,
+        kex: theirs.kex,
+        host_keys: theirs.host_keys,
+        ciphers: theirs.ciphers_c2s,
+        macs: theirs.macs_c2s,
+        compressions: theirs.compression_c2s,
+        host_key: None,
         dh_modulus: Default::default(),
     })
 }

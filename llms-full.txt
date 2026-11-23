@@ -10795,7 +10795,8 @@ podssh serve
   sshd, which may not listen, gives a shell and its files this way. The keys,
   the host key and the other flags are those of --stdio; --stdio and NAME are
   one of the two (64). The node's lines say serving podssh serve, in this
-  process.
+  process. SIGHUP reads the keys again for each session of the node, as with
+  --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.
 
   Only public keys log in. The keys are each --authorized-key, and the lines of
   each --authorized-keys file; with neither, ~/.ssh/authorized_keys. A key is
@@ -11016,6 +11017,15 @@ podssh serve
   too. A reload that keeps the set before ends nothing. Without the flag, no
   session ends by a reload.
 
+  POLICY: with --policy FILE, podssh serve judges each client's algorithms,
+  before authentication. The file must say client policy = true; another is
+  refused at the start (78). The policy reads the client's first KEXINIT: its
+  key exchanges, host keys, and the ciphers, MACs and compressions it sends
+  with. A mismatch, or a KEXINIT that does not read, ends the connection. The
+  client gets a disconnect that names the policy, and no key logs in. One line
+  on stderr names the client's address and each mismatch. A client offers no
+  host key, so a size rule never refuses one.
+
   serve NAME --print-unit prints a unit of systemd that runs serve NAME with
   these flags, each file by its absolute path, and writes nothing. It is a user
   unit; with --system --run-as USER, a system unit that runs as USER, with HOME
@@ -11079,6 +11089,10 @@ podssh serve
         open sessions, and a key's expiry-time= ends them at its time; one line
         names each key (default: a session goes on under the rules it logged in
         with).
+    --policy FILE
+        before authentication, judge each client's KEXINIT by the client policy
+        in FILE (client policy = true); a mismatch ends the connection with a
+        disconnect and one line naming the client and each mismatch.
     --print-unit
         with NAME: print a unit of systemd that runs serve NAME with these
         flags, on stdout, and write nothing: a user unit, or with --system
@@ -12998,7 +13012,8 @@ EXIT STATUS
       socket. podssh serve: no authorized key, or a key file or the host key
       that cannot be used, or no shell that runs. podssh ssh and health: the
       file of --policy cannot be read or used, or the server's algorithms do
-      not meet it.
+      not meet it. podssh serve: the file of --policy cannot be used, or judges
+      no client.
   255
       podssh ssh: the connection, the host key, a node's key or the
       authentication failed; or the server refused a session or ended the

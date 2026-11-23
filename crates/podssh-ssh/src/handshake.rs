@@ -30,8 +30,9 @@ use crate::log::Log;
 
 #[path = "handshake_flow.rs"]
 mod flow;
+// The server's policy gate reads a client's KEXINIT with it (T-838).
 #[path = "handshake_side.rs"]
-mod side;
+pub(crate) mod side;
 
 pub use flow::{Counted, Flow, Road};
 use side::{message, Side};

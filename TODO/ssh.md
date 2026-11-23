@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:170-176`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:6815-6875`
+   so that only the notes change. No document changes: `docs/cli.md:6838-6898`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6689-6789`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6712-6812`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6699-6702`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:6722-6725`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6689-6789`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6712-6812`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:6815-6875` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:6838-6898` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:885-896` and `docs/cli.md:5696-5708`, the manual's notes and an
+- `docs/cli.md:885-896` and `docs/cli.md:5714-5726`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:634`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:6838-6843`). A person who types slowly must not meet a limit
+  `docs/cli.md:6861-6866`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:6873-6875` asks for a limit on the whole operation.
+   `docs/cli.md:6896-6898` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5594-5595` says that the key "is never used".
+called. `docs/cli.md:5612-5613` says that the key "is never used".
 
 ## Approach
 
@@ -5655,6 +5655,44 @@ Draft, 2026-11-23 (`draft-t838`), Approach 1, 2 and the client half of 3:
   (`crates/podssh-ssh/src/server/` is another draft's now); the probe in `podssh doctor`; the observations
   of the table are the default lists as the sources of OpenSSH and Dropbear name them, not captured bytes
   (the CLI test reads a live sshd's); `--persist`, `--upgrade` and connection sharing with `--policy`.
+
+Draft, 2026-11-23 (`draft-serve-rest`), the call site of `podssh serve` (Approach 3, its second item):
+
+- `crates/podssh-ssh/src/server/policy_gate.rs`: `Gated`, the server's stream with the client's bytes read by
+  the client side's own reader of a handshake (`handshake.rs`'s `side` is `pub(crate)` now); the verdict falls in
+  the read that brings the KEXINIT's last byte, or at NEWKEYS with none kept, before russh reads a message after
+  it. A mismatch or no reading: one line through `Settings::say` (the client's address, or `with no address (a
+  pipe)`, the verdict's line and each mismatch as `FIELD expected A,B, got C`), then `Conn::end` with
+  `podssh serve: this client's algorithms do not meet the policy "NAME"`, which ends the connection by T-842's
+  path (a disconnect, then the hangup of its children). `handler.rs` rejects each key of an ended connection, so
+  no key logs in between the verdict and the disconnect. `policy::observe_client` (`seen.rs`) reads the client's
+  lists in the direction it sends; it offers no host key, so a size rule is unmeasured and never refuses.
+  `Settings::policy` carries it; with none, the stream is as it was.
+- CLI: `serve --policy FILE` (`flags/policy.rs`'s `SERVE_POLICY` in `SERVE_FLAGS`), `ServeArgs::policy`,
+  `serve.rs`'s `client_policy` (a policy without `client policy = true` is refused at the start, 78, before a
+  host key is made); `--print-unit` carries it as an absolute path (`node_install/print.rs`). The manual
+  (`notes_policy::SERVE_JUDGE` in serve's notes, the 78 of EXIT STATUS), `docs/cli.md` ("An algorithm policy",
+  and the `DISCONNECT` row of serve's replies with `serve_algorithms_openssh.rs`'s table).
+- Tests: `server/policy_gate_tests.rs` (one table of five cases: client policy, the client's offer, the fields its
+  line names; no reading and no policy; the verdict however the bytes are cut) and
+  `crates/podssh-cli/tests/serve_policy_openssh.rs` (OpenSSH's client with `KexAlgorithms=curve25519-sha256`
+  logs in under a policy of that one name; its default offer gets 255, the policy's name in the disconnect, and
+  serve's line naming `key exchanges`; a policy of a server is 78 at the start). Merged and run here (2026-11-23):
+  podssh-ssh `--lib policy` 11 passed (the gate's table among them), `--lib handshake` 13; `--test serve_policy_openssh`
+  2 passed against OpenSSH 9.6p1, `serve_algorithms_openssh` 3, `serve_openssh` 9, `serve_lifecycle_openssh` 2;
+  podssh-cli `--lib` 1256; clippy and fmt clean; no scratch left in the temporary directory.
+- Decision (the hook): a reader of the client's bytes in serve's stream, beside russh, and T-842's end of a
+  connection. Lost: a russh patch that hands the client's KEXINIT to the server's `Handler` (a fourteenth patch
+  of `vendor/russh`, for bytes that pass through podssh's own stream anyway); a check at the first
+  authentication request alone (the key exchange would run to its end first, and a policy that refuses a weak
+  key exchange should not run it; the handler's check stays as the second path); writing a DISCONNECT packet
+  into the stream from the reader (it would race russh's own writes inside a packet).
+- Decision (a server's policy given to serve): refused at the start (78). Lost: running it, which would refuse
+  each client with the mismatch `policy side`, a setup that went wrong found only at the first login.
+- Remains: the probe in `podssh doctor` (`doctor/mod.rs` is at 500 lines: its `DoctorArgs` and dispatch must be
+  split before a `--policy` beside `--hop` fits; a `podssh_ssh::probe` function that records the server's
+  KEXINIT with a `Record` and returns the `Verdict` is the way); the observations of the table are still the
+  default lists, not captured bytes; `--persist`, `--upgrade` and connection sharing with `ssh --policy`.
 
 # T-839: A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one
 

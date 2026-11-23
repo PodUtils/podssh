@@ -6,9 +6,10 @@
 //! the host key in its state file, the drop of each capability of the start
 //! (T-698), then the connection, whose forwards the server dials (T-109),
 //! until the client leaves or a signal stops it; SIGHUP reads the keys
-//! again (T-117, `serve_keys.rs`).
+//! again (T-117, `serve_keys.rs`), also under NAME (T-855).
 //! The options of each key line are its rules (T-114): a line whose options
-//! cannot all be honoured is passed over, and said.
+//! cannot all be honoured is passed over, and said. `--policy FILE` judges
+//! each client's KEXINIT before authentication (T-838).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -38,6 +39,8 @@ pub struct ServeArgs {
     pub no_forwarding: bool,
     /// `--revoke-ends-sessions` (T-842).
     pub revoke_ends_sessions: bool,
+    /// `--policy FILE`: a client policy (T-838).
+    pub policy: Option<String>,
     pub pty: Option<String>,
     /// `--print-unit`, `--system` and `--run-as USER`: a unit of systemd
     /// that runs serve NAME, printed (T-709).
@@ -61,6 +64,7 @@ impl ServeArgs {
             no_shell: matches.get_flag("no-shell"),
             no_forwarding: matches.get_flag("no-forwarding"),
             revoke_ends_sessions: matches.get_flag("revoke-ends-sessions"),
+            policy: matches.get_one::<String>("policy").cloned(),
             pty: matches.get_one::<String>("pty").cloned(),
             print_unit: matches.get_flag("print-unit"),
             system: matches.get_flag("system"),
@@ -137,6 +141,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(authorized) => Keys::new(authorized),
         Err(refusal) => return refused(err, refusal),
     };
+    let policy = match args.policy.as_deref().map(client_policy).transpose() {
+        Ok(policy) => policy.map(Arc::new),
+        Err(refusal) => return refused(err, refusal),
+    };
     let settings = Settings {
         accept_env: args.accept_env.clone(),
         shell: args.shell.as_ref().map(PathBuf::from),
@@ -154,6 +162,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             let _ = writeln!(std::io::stderr(), "podssh serve: {line}");
         }))),
         revoke_ends_sessions: args.revoke_ends_sessions,
+        policy,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
@@ -171,7 +180,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     // NAME: a node of the pair, whose sessions this process answers.
     if let Some(name) = &args.name {
         let control = podssh_ssh::server::Control::new();
-        let served = crate::node_serve::Served { key, keys, settings: Arc::new(settings), control };
+        let served = crate::node_serve::Served { key, keys, settings: Arc::new(settings), control, sources };
         if !crate::node_serve::set(served) {
             let _ = writeln!(err, "podssh serve: one node of serve in a process");
             return podssh_ssh::EXIT_FAILURE;
@@ -195,6 +204,20 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             podssh_ssh::EXIT_FAILURE
         }
     }
+}
+
+/// The client policy of `--policy FILE` (T-838). A policy of a server
+/// would find a mismatch on each client, so it is refused at the start (78).
+fn client_policy(path: &str) -> Result<podssh_ssh::policy::Policy, Refusal> {
+    let policy = crate::policy::load(path)?;
+    if !policy.client_policy {
+        return Err(Refusal::config(format!(
+            "--policy {path}: the policy {:?} judges a server; serve judges clients: give a file with client policy \
+             = true",
+            policy.name
+        )));
+    }
+    Ok(policy)
 }
 
 fn refused(err: &mut dyn Write, refusal: Refusal) -> i32 {

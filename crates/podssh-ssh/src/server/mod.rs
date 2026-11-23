@@ -13,7 +13,9 @@
 //! A stop says why to each client and hangs up each child, and the keys
 //! can be read again while it serves (T-117, `stop.rs`); a reload that takes
 //! a key out ends its sessions when asked (T-842, `live.rs`). The algorithms
-//! that it offers are one stated set (T-841, `algorithms.rs`).
+//! that it offers are one stated set (T-841, `algorithms.rs`); a client
+//! policy refuses a client by its KEXINIT before authentication (T-838,
+//! `policy_gate.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -30,6 +32,7 @@ pub mod live;
 #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
 pub mod notify;
 pub mod options;
+mod policy_gate;
 #[cfg(unix)]
 pub mod pty;
 #[cfg(unix)]
@@ -136,6 +139,9 @@ pub struct Settings {
     /// that key's sessions, and a key's `expiry-time=` ends them at its
     /// time. Off, a session goes on under the rules it logged in with.
     pub revoke_ends_sessions: bool,
+    /// `--policy FILE` (T-838): a client whose first KEXINIT the policy
+    /// does not pass is refused before authentication. None judges nothing.
+    pub policy: Option<Arc<crate::policy::Policy>>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).
@@ -242,6 +248,9 @@ where
     // the login still finds the connection (T-842).
     let conn = control.live.join(settings.peer);
     let mut revoked = conn.watch();
+    // A client policy judges the client's KEXINIT as it passes (T-838); a
+    // refusal ends the connection as a revoke does.
+    let stream = policy_gate::Gated::new(stream, &conn, &settings);
     let served = handler::Served::new(keys, settings, control.clone(), conn.clone());
     let mut running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
     let handle = running.handle();

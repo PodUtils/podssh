@@ -12,7 +12,8 @@
 //! on under the rules it logged in with; the next login meets the new set.
 //! With `--revoke-ends-sessions` (T-842), a reload that took a key out ends
 //! that key's sessions, one line naming each; a reload that kept the set
-//! before ends nothing.
+//! before ends nothing. `podssh serve NAME` takes the same reload on SIGHUP
+//! for each session of its node ([`Hangups`], T-855).
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -111,6 +112,60 @@ pub fn reload(sources: &Sources, keys: &Keys, control: &Control, ends: bool, err
     let _ = writeln!(err, "podssh serve: {line}");
     for one in ended {
         let _ = writeln!(err, "podssh serve: SIGHUP: {one}");
+    }
+}
+
+/// SIGHUP for `podssh serve NAME` (T-855): each one reads the keys again
+/// into the node's set, with the table of its live connections, as
+/// [`reload`] does for `--stdio`. The task ends when the guard drops.
+pub struct Hangups(Option<tokio::task::AbortHandle>);
+
+impl Hangups {
+    /// No reload: another kind of node.
+    pub fn none() -> Hangups {
+        Hangups(None)
+    }
+
+    /// Catch SIGHUP now, in the runtime of the node. Where it cannot be
+    /// caught, one line says so and the keys of the start stay.
+    pub fn start(sources: Sources, keys: Keys, control: Control, ends: bool) -> Hangups {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{signal, SignalKind};
+            let mut hup = match signal(SignalKind::hangup()) {
+                Ok(hup) => hup,
+                Err(e) => {
+                    podssh_ssh::err_line!("podssh serve: SIGHUP cannot be caught here ({e}): the keys stay as read");
+                    return Hangups(None);
+                }
+            };
+            let task = tokio::spawn(async move {
+                while hup.recv().await.is_some() {
+                    let mut said = Vec::new();
+                    reload(&sources, &keys, &control, ends, &mut said);
+                    // One write, so that a reload's lines stay together
+                    // among the node's own.
+                    let mut err = std::io::stderr().lock();
+                    let _ = err.write_all(&said);
+                    let _ = err.flush();
+                }
+            });
+            Hangups(Some(task.abort_handle()))
+        }
+        #[cfg(not(unix))]
+        {
+            // No SIGHUP: the keys of the start stay.
+            let _ = (sources, keys, control, ends);
+            Hangups(None)
+        }
+    }
+}
+
+impl Drop for Hangups {
+    fn drop(&mut self) {
+        if let Some(task) = self.0.take() {
+            task.abort();
+        }
     }
 }
 

@@ -45,8 +45,9 @@ const REPLIES: &[(&str, &str, Option<&str>)] = &[
     ("REQUEST_FAILURE", "a global request that serve does not serve: tcpip-forward (-R)", Some("remote port forwarding failed for listen port")),
     // `serve_forward_openssh.rs`: `open failed: administratively prohibited`.
     ("CHANNEL_OPEN_FAILURE", "a forward that --no-forwarding or a key's rule refuses", None),
-    // `serve_lifecycle_openssh.rs`: `Received disconnect ... podssh serve is stopping`.
-    ("DISCONNECT", "a stop (SIGTERM, SIGINT); a key that a reload removed, with --revoke-ends-sessions (T-842)", None),
+    // `serve_lifecycle_openssh.rs`: `Received disconnect ... podssh serve is stopping`;
+    // `serve_policy_openssh.rs`: `... do not meet the policy`.
+    ("DISCONNECT", "a stop (SIGTERM, SIGINT); a key that a reload removed, with --revoke-ends-sessions (T-842); a client that --policy refuses (T-838)", None),
     // russh's server reads a message that it does not know and answers
     // nothing; no client of OpenSSH sends one.
     ("UNIMPLEMENTED", "never sent: an unknown message is passed over", None),

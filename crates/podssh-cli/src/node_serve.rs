@@ -30,6 +30,8 @@ pub(crate) struct Served {
     pub keys: Keys,
     pub settings: Arc<Settings>,
     pub control: Control,
+    /// Where the keys come from, read again on SIGHUP (T-855).
+    pub sources: crate::serve_keys::Sources,
 }
 
 static SERVED: OnceLock<Served> = OnceLock::new();
@@ -42,6 +44,20 @@ pub(crate) fn set(served: Served) -> bool {
 /// Whether this process's node is `podssh serve NAME`.
 pub(crate) fn serving() -> bool {
     SERVED.get().is_some()
+}
+
+/// SIGHUP reads serve's keys again while the guard lives (T-855); nothing
+/// for a node of another kind. Called in the node's runtime.
+pub(crate) fn hangups() -> crate::serve_keys::Hangups {
+    match SERVED.get() {
+        Some(s) => crate::serve_keys::Hangups::start(
+            s.sources.clone(),
+            s.keys.clone(),
+            s.control.clone(),
+            s.settings.revoke_ends_sessions,
+        ),
+        None => crate::serve_keys::Hangups::none(),
+    }
 }
 
 /// Each session: one end of a pipe, whose other end serve answers.
