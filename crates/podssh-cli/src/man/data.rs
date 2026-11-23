@@ -18,7 +18,7 @@ pub enum Code {
 /// return.
 pub fn exit_codes() -> Vec<(Code, String)> {
     let row = |code: i32, what: &str| (Code::Value(code), what.to_string());
-    vec![
+    super::notes_policy::exit_words(vec![
         row(
             0,
             "Success. For podssh ssh: the remote command exited 0. For podssh chat: each message was \
@@ -150,7 +150,7 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              podssh run: the status of the command, as podssh ssh gives it."
                 .to_string(),
         ),
-    ]
+    ])
 }
 
 fn paths(list: Vec<std::path::PathBuf>) -> Vec<String> {

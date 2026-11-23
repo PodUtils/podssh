@@ -11,6 +11,10 @@ use super::notes_ssh::SSH as OWN;
 pub const SSH: &[&str] = &join::<{ OWN.len() + ROADS.len() }>(OWN, ROADS);
 
 const ROADS: &[&str] = &[
+    // An algorithm policy on the server's KEXINIT, apart for its length.
+    super::notes_policy::SSH_JUDGE,
+    super::notes_policy::GRAMMAR,
+    super::notes_policy::VERDICT,
     "--exit NAME starts the road to the first hop (the destination, or the first host of -J) at NAME, in place of the \
      relay. NAME is a node of your net that lends its egress (see podssh node --exit). It works as a Tailscale exit \
      node carries a device's traffic: the node dials the host from its own, on each of its roads that answers, raced \

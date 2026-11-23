@@ -74,6 +74,9 @@ jiff = "0.2.37"
 # signs through aws-lc-rs, and a CA in an agent through the agent. The
 # version that ssh-key builds.
 signature = { version = "3", default-features = false }
+# The size rules of an algorithm policy, JSON in ssh-audit's grammar, and
+# the verdict as JSON (T-838): the version that the workspace has.
+serde_json = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

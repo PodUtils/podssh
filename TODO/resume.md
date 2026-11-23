@@ -839,10 +839,10 @@ Read: a read waits 90 s at most (`crates/podssh-ws/src/client.rs:31-33`, set at
 frame each 25 s. The ping watcher acts only after a first Pong
 (`PodUtils/podssh:crates/podssh-ws/src/session.rs:296-334`); Pongs and the idle cut on reverse
 sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
-the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:349-389`).
+the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:352-392`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
-`crates/podssh-cli/src/ssh/resolve.rs:334-344` (the `warnings` of keepalives), and `podssh ssh` exits 255.
+`crates/podssh-cli/src/ssh/resolve.rs:336-346` (the `warnings` of keepalives), and `podssh ssh` exits 255.
 
 ## Approach
 
@@ -856,7 +856,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 3. Carry the `ACK` of T-152 in each `PONG`. The cost is about 20 bytes each
    way each 10 s: under 0.2 MiB in 12 h.
 4. On the resumable road, do not print the warning of
-   `crates/podssh-cli/src/ssh/resolve.rs:334-344` (the `warnings` of keepalives).
+   `crates/podssh-cli/src/ssh/resolve.rs:336-346` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:388-403`,
    `crates/podssh-cli/src/man/facts.rs:423-432`), the note at
@@ -1355,7 +1355,7 @@ new SSH login to a far end that kept the shell (T-159). Read: podssh knows
 the escapes `~.`, `~R`, `~?` and `~~`, and another character after `~` goes
 to the server with the `~` (`crates/podssh-ssh/src/escape.rs:1-9`,
 `crates/podssh-ssh/src/escape.rs:90-138`). The flag table has 469 lines, near
-the limit of 500 (the table of `ssh`: `crates/podssh-cli/src/flags.rs:116-298`).
+the limit of 500 (the table of `ssh`: `crates/podssh-cli/src/flags.rs:116-299`).
 
 ## Approach
 
@@ -4187,15 +4187,15 @@ same setting.
 
 ## Premise
 
-- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:324` decides `resumable` from
+- Read, at `47e1eba`: `crates/podssh-cli/src/ssh/resolve.rs:326` decides `resumable` from
   `Transport::Node`, `Transport::Iroh` and `Transport::Derp`. `Transport::Cloudflare` is not in the
   list.
-- The warning at `crates/podssh-cli/src/ssh/resolve.rs:336-341` sits inside `if resumable`.
+- The warning at `crates/podssh-cli/src/ssh/resolve.rs:338-343` sits inside `if resumable`.
 - `crates/podssh-cli/src/ssh/cloudflare.rs:166` branches on `greeted.layer()`;
   `crates/podssh-cli/src/ssh/cloudflare.rs:200` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:421` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:424` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:891-895`) says that the resumable

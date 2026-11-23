@@ -284,6 +284,8 @@ pub mod pipe;
 // (T-437).
 pub mod piping_road;
 pub mod play;
+// `--policy FILE`: an algorithm policy, read before anything connects (T-838).
+pub mod policy;
 pub mod positionals;
 pub mod proxy;
 // `podssh proxy node://NAME`: the pipe of `podssh operator NAME` (T-587).

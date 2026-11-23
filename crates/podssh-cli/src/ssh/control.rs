@@ -147,6 +147,15 @@ type Expand<'a> = &'a dyn Fn(&str, &str) -> Result<PathBuf, String>;
 
 /// Read `-M`, `-S`, `-O` and the keywords: the flags win, as in OpenSSH.
 pub fn plan(args: &SshArgs, settings: &Settings, expand: Expand) -> Result<Plan, String> {
+    // A run with --policy is judged on its own handshake: a master's was
+    // judged by nobody (T-838). ControlMaster and ControlPath of a file
+    // have no effect then.
+    if args.policy.is_some() {
+        if args.control_master > 0 || args.control_path.is_some() || args.control_command.is_some() {
+            return Err("--policy goes with no -M, -S or -O: a shared connection's handshake is not this run's".into());
+        }
+        return Ok(Plan::default());
+    }
     let mode = match args.control_master {
         0 => settings.control_master.unwrap_or_default(),
         1 => Mode::Yes,

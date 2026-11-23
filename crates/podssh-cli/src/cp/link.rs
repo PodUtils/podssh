@@ -246,6 +246,8 @@ fn hop_failure(e: HopError) -> Failed {
     let fault = match e {
         HopError::Unreachable(_) | HopError::Forward(_) => Fault::RelayUnreachable,
         HopError::HostKey(_) | HopError::Auth(_) => Fault::Auth,
+        // No copy takes --policy; a refusal of one is the setup's fault.
+        HopError::Policy(_) => Fault::Config,
     };
     Failed::new(fault, e.to_string())
 }

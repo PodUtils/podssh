@@ -52,6 +52,11 @@ pub fn check(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refusal> {
         return Err("--persist-forever lifts the limit of --persist; give --persist too".into());
     }
     resolved.persist_forever = args.persist_forever;
+    // Each connection again would be judged, and a mismatch on one would
+    // read as a lost link (T-838).
+    if args.persist && args.policy.is_some() {
+        return Err("--policy ends a run at a mismatch, and --persist connects again after a loss: give one".into());
+    }
     let name = match (args.persist, args.persist_name.as_deref()) {
         (false, None) => return Ok(()),
         (false, Some(_)) => return Err("--persist-name names the tmux session of --persist; give --persist too".into()),

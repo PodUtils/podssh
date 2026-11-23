@@ -332,6 +332,9 @@ pub struct Options {
     /// The most window that a channel may have on this connection's road
     /// (T-661): [`crate::run::WINDOW`] where the caller knows no more.
     pub window_cap: u32,
+    /// `--policy FILE` (T-838): the destination's KEXINIT is judged before
+    /// any authentication; a mismatch ends the connection.
+    pub algorithm_policy: Option<std::sync::Arc<crate::policy::Judge>>,
 }
 
 /// How a forward of `-R` that the server refused is asked again after a
@@ -417,6 +420,7 @@ impl Options {
             expect: None,
             road: None,
             window_cap: crate::run::WINDOW,
+            algorithm_policy: None,
         }
     }
 }

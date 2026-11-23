@@ -104,6 +104,8 @@ fn hop_code(e: &HopError) -> i32 {
     match e {
         HopError::Unreachable(_) | HopError::Forward(_) => EX_UNAVAILABLE,
         HopError::HostKey(_) | HopError::Auth(_) => EX_NOPERM,
+        // No pipe takes --policy; a refusal of one is the setup's fault.
+        HopError::Policy(_) => crate::exitmap::sysexits::EX_CONFIG,
     }
 }
 

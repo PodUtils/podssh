@@ -5851,6 +5851,7 @@ dependencies = [
  "rand 0.10.3",
  "russh",
  "russh-sftp",
+ "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.1",
  "signature 3.0.0",

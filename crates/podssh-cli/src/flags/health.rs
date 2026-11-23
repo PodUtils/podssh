@@ -50,6 +50,7 @@ pub const HEALTH_FLAGS: &[FlagRow] = &[
     super::via::CHISEL, super::via::CHISEL_AUTH_FILE, super::via::TURN, super::via::TURN_AUTH_FILE,
     row(None, "json", None, FlagKind::Supported,
         "the facts as one JSON object on stdout, also after a failure; effective holds the CPUs and the memory to plan from, a container's cgroup's where it limits them", None),
+    super::policy::HEALTH_POLICY,
     row(None, "preflight", None, FlagKind::Supported,
         "after the facts, what the server allows, from the same login: SFTP, -R, -J, the tools of sh, tmux, the cgroup and a keepalive, each ok, FAIL or ????; exit 1 when one failed", None),
 ];

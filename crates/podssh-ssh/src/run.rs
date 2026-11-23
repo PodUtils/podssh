@@ -61,6 +61,11 @@ where
     retry::begin();
     match run_inner(stream, opts, &log).await {
         Ok(code) => Outcome { code, retry: None, lines: Vec::new() },
+        // A verdict that ended the connection is final: no try again.
+        Err(message) if opts.algorithm_policy.as_ref().is_some_and(|j| j.ended()) => {
+            let code = opts.algorithm_policy.as_ref().map_or(EXIT_FAILURE, |j| j.print(&message));
+            Outcome { code, retry: None, lines: vec![message] }
+        }
         Err(message) => {
             let first = opts.jump.first().unwrap_or(&opts.destination);
             let target = podssh_ws::dial::authority(&first.host, first.port);
@@ -119,12 +124,19 @@ pub enum HopError {
     Auth(String),
     /// The destination refused a forward of `-R`, with `ExitOnForwardFailure`.
     Forward(String),
+    /// `--policy` ended the connection before any authentication (T-838):
+    /// a mismatch, no reading, or a probe; the judge holds the verdict.
+    Policy(String),
 }
 
 impl std::fmt::Display for HopError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            HopError::Unreachable(m) | HopError::HostKey(m) | HopError::Auth(m) | HopError::Forward(m) => {
+            HopError::Unreachable(m)
+            | HopError::HostKey(m)
+            | HopError::Auth(m)
+            | HopError::Forward(m)
+            | HopError::Policy(m) => {
                 write!(f, "{m}")
             }
         }
@@ -141,6 +153,7 @@ impl HopError {
             HopError::HostKey(_) => "host-key",
             HopError::Auth(_) => "auth",
             HopError::Forward(_) => "forward",
+            HopError::Policy(_) => "policy",
         }
     }
 }
@@ -389,6 +402,9 @@ where
     let pace = crate::pace::Pace::new(!is_destination, opts.window_cap);
     let client = Client::new(policy, log.clone()).forwarding_agent(forwarded).forwarding_x11(x11);
     let client = client.limiting(&opts.algorithms).pacing(pace);
+    // The policy judges the destination alone, as -A and -X serve it alone.
+    let judge = if is_destination { opts.algorithm_policy.clone() } else { None };
+    let client = client.judging(judge.clone());
     // What the handshake sees, for its line when it does not finish (T-588).
     let record = Record::default();
     let client = client.recording(record.clone());
@@ -410,6 +426,10 @@ where
         Err(timed_out) => return Err(HopError::Unreachable(timed_out)),
         Ok(Err(russh::Error::UnknownKey)) => {
             let why = refusal.lock().unwrap_or_else(|e| e.into_inner()).take();
+            if judge.as_ref().is_some_and(|j| j.ended()) {
+                let why = why.unwrap_or_else(|| "the policy ended the connection".into());
+                return Err(HopError::Policy(format!("{label}: {why}")));
+            }
             return Err(HopError::HostKey(why.unwrap_or_else(|| "host key verification failed.".into())));
         }
         Ok(Err(e)) => {

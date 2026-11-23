@@ -183,12 +183,12 @@ leave a short or wrong file under the destination's name.
 ## Approach
 
 1. `CpArgs` in a new module crates/podssh-cli/src/cp/, read as `SshArgs` is
-   (`crates/podssh-cli/src/ssh/args.rs:288-441`). An operand is remote when a
+   (`crates/podssh-cli/src/ssh/args.rs:292-446`). An operand is remote when a
    `:` comes before any `/`; on Windows, `C:\x` is local. Fewer than two
    operands, or none remote, exit 64.
 2. Build an `SshArgs` (host, `-P` as the port, `-i`, `-o`) for
    `crate::ssh::resolve::resolve`
-   (`crates/podssh-cli/src/ssh/resolve.rs:67-441`), so `-F` follows the rule
+   (`crates/podssh-cli/src/ssh/resolve.rs:67-444`), so `-F` follows the rule
    of `ssh`. Add `-o`, `-J`, `-v`, `-q` and the relay rows of `ssh`
    (`--relay-host`, `--relay-addr`, `--ca-file`, `--direct`) to `CP_FLAGS`.
 3. Split `crates/podssh-cli/src/ssh/mod.rs` lines 73-151 at `6483366` so that the relay (with
@@ -503,7 +503,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
 2. Within a run: after a relay close, a lost connection or a failed
    request, open a new session (T-137's path) and continue at the offset.
    Check first that the host key is the one of the first session (pin it in
-   memory, `crates/podssh-ssh/src/handler.rs:155-187`), and that the source's
+   memory, `crates/podssh-ssh/src/handler.rs:166-210`), and that the source's
    size and mtime are the same; else start over and say so.
 3. Invariant: the attempts are bounded. At most 5 in a row with no new
    acknowledged byte, with `podssh_relay::open::backoff`
@@ -755,7 +755,7 @@ relay's limits, and logs in as the first session did".
 
 **Source:** ROADMAP M5 ("Across hosts, `mv` is copy, verify, delete; podssh
 says first that it is not atomic"); the description of `mv` in
-`crates/podssh-cli/src/flags.rs:425-426`.
+`crates/podssh-cli/src/flags.rs:427-428`.
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -773,7 +773,7 @@ user must know this before the move starts.
 
 - Measured on `3ee70dc`, offline: `podssh mv --timeout 30s a b` exits 70
   (`'mv' is not implemented yet; nothing was done.`).
-- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:425-426`),
+- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:427-428`),
   so the operands and options of T-134 apply.
 - Measured (T-133's offline probe): `posix-rename@openssh.com` replaces in
   one step; `SSH_FXP_RENAME` refuses an existing target.
@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:379-400` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6546-6549`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6601-6604`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -2018,7 +2018,7 @@ host, and the copy back then destroys that change with no word.
 
 ## Approach
 
-1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:389-459`),
+1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:391-461`),
    with the connection flags that T-134 gives `cp`. It needs a terminal on
    stdin and stdout; else exit 64.
 2. Download with T-134 into a new directory of mode 0700 in the cache
@@ -2782,7 +2782,7 @@ full copy, and said nothing. After the run, the user cannot tell whether the del
 3. With `--jsonl`, the `done` object of each copy with `--delta` gains `"delta"`:
    `{"blocks": N, "sent": K, "bytes": B}` after a delta, or `{"full": "REASON"}` after a full copy.
 4. The row of `--delta` (`crates/podssh-cli/src/flags/copy.rs:44-45`), the manual,
-   `docs/cli.md:2400-2411` and `docs/STATUS.md`.
+   `docs/cli.md:2401-2412` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -2916,7 +2916,7 @@ the names, with no word.
 - Read: `ls` takes `-1afhlnrSt` and keeps `l`, `n` and `a` alone
   (`crates/podssh-cli/src/sftp/commands.rs`, lines 201-205 at `582b1bf`): `-n` is `-l`, and `-f`,
   `-h`, `-r`, `-S` and `-t` do nothing. `docs/cli.md` (line 1916 at `582b1bf`) names `ls [-la]`.
-- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:424`); the
+- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:426`); the
   issue names it the README's.
 - Read: `Sftp::read_dir` keeps the name and the attributes of each entry, and drops the long name
   that the server sends with each (`crates/podssh-ssh/src/sftp/mod.rs`, lines 71-78 and 426-441
@@ -2952,7 +2952,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2700-2706` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2701-2707` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3121,7 +3121,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2518-2558`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2519-2559`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3457,7 +3457,7 @@ waits minutes: 100 files of 2 bytes took 210 s with the default.
 4. T-417's line about `--parallel` is not said when the default applies, nor after
    `--parallel 1`, which the user chose.
 5. The row of `--parallel` names the default; the manual, README.md (its copies, with the
-   measured numbers), `docs/cli.md:2365-2399` and `docs/STATUS.md`.
+   measured numbers), `docs/cli.md:2366-2400` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3624,7 +3624,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2421-2437`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2422-2438`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).
@@ -3790,7 +3790,7 @@ Planted: the new field read as required: the test of `scp` with no terminal fail
 
 2026-11-03, the draft: item 4's 255 is `ssh`'s code. `podssh scp` exits with `cp`'s sysexits
 (EXIT STATUS), and a handshake that ConnectTimeout ends is a hop that could not be reached
-(`crates/podssh-ssh/src/run.rs:410` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
+(`crates/podssh-ssh/src/run.rs:426` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
 which a copy takes as a server that cannot be reached, 69
 (`crates/podssh-cli/src/cp/link.rs:245`). Read, not measured; the test asks for 69 within 10 s.
 The field of the row is `FlagRow::optional` (`crates/podssh-cli/src/flags.rs`), set by

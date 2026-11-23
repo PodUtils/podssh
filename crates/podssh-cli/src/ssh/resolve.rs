@@ -123,6 +123,8 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         .map(podssh_ssh::hostkey::parse_fingerprints)
         .transpose()?
         .unwrap_or_default();
+    // Read before anything connects: a bad file is 78 (T-838).
+    let algorithm_policy = args.policy.as_deref().map(crate::policy::load).transpose()?;
     // The file's blocks for the host as typed (T-043): under the command
     // line, but for `User` and `Port`, which `user@host` and `host:PORT`
     // also beat.
@@ -367,6 +369,7 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     options.agent = agents.identity.clone();
     options.forward_agent = agents.forward.clone();
     options.host_key_fingerprints = fingerprints;
+    options.algorithm_policy = algorithm_policy.map(|p| podssh_ssh::policy::Judge::new(p, false));
     options.keepalive_interval = keepalive_interval;
     options.request = request;
     options.request_tty = request_tty;

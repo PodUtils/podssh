@@ -99,6 +99,9 @@ pub struct SshArgs {
     /// `--host-key-fingerprint`: the only host keys that the destination may
     /// present (T-031), unparsed.
     pub host_key_fingerprint: Option<String>,
+    /// `--policy FILE`: the algorithm policy that judges the destination's
+    /// KEXINIT before any login (T-838), unread.
+    pub policy: Option<String>,
     /// For `node://NAME`: no end-to-end channel (T-088).
     pub no_e2e: bool,
     /// For `iroh:TICKET`: the relays to try after the ticket's.
@@ -245,6 +248,7 @@ pub const ONCE: &[(&str, &str)] = &[
     ("node-key", "give one key"),
     ("grant", "give one grant: it lets in one session"),
     ("host-key-fingerprint", "give the fingerprints as one comma list"),
+    ("policy", "give one file"),
     ("iroh-relay", "give the relays as one comma list"),
     ("iroh-ticket", "give one ticket"),
     ("derp-ticket", "give one ticket"),
@@ -388,6 +392,7 @@ impl SshArgs {
             client_key: one("client-key"),
             node_key: one("node-key"),
             host_key_fingerprint: one("host-key-fingerprint"),
+            policy: one("policy"),
             no_e2e: flag("no-e2e"),
             iroh_relay: one("iroh-relay"),
             iroh_ticket: one("iroh-ticket"),

@@ -118,6 +118,19 @@ impl Record {
         self.lock().came.version.clone()
     }
 
+    /// What came before the keys, for an algorithm policy (T-838): each
+    /// side's first KEXINIT, the far end's version line and the first line
+    /// before it.
+    pub(crate) fn offers(&self) -> crate::policy::Offers {
+        let seen = self.lock();
+        crate::policy::Offers {
+            theirs: seen.came.kexinit.clone(),
+            ours: seen.went.kexinit.clone(),
+            banner: seen.came.version.clone(),
+            header: seen.came.other.clone(),
+        }
+    }
+
     /// How long the host key's questions waited, until `now`.
     fn asked_for(&self, now: Instant) -> Duration {
         let seen = self.lock();

@@ -14,9 +14,13 @@
 //! failure (no connection, no login, no `sh`, no answer); 64 and 78 before
 //! anything connects. With `--preflight`, once the login is done, those of
 //! `doctor`: 1 when a check failed or the facts did not come, else 0.
+//! With `--policy FILE` (T-838), no login and no facts: the verdict of an
+//! algorithm policy on the server's KEXINIT ([`policy`]), with its own
+//! codes: 0 pass, 78 a mismatch, 69 no reading.
 
 pub mod cgroup;
 pub mod parse;
+pub mod policy;
 pub mod preflight;
 pub mod script;
 pub mod show;
@@ -122,6 +126,13 @@ pub fn run(args: &HealthArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     };
     let opts = &resolved.options;
     let destination = format!("{}@{}", opts.user, opts.destination.host);
+    if args.ssh.policy.is_some() {
+        if args.preflight {
+            let why = "--policy probes with no login, and --preflight asks after one: give one";
+            return Refusal::usage(why).report("health", err);
+        }
+        return policy::probe(resolved, &destination, out, err);
+    }
     let log = Arc::new(Log::new(opts.log_level));
     for note in &resolved.notes {
         log.verbose(note);

@@ -167,7 +167,7 @@ access is by an allowlist of keys or a relay token (`docs/design.md:1598-1599`).
 Read in the reports, not verified here: iroh-ssh warns when a server's key is
 ephemeral (`rustonbsd/iroh-ssh:src/ssh.rs`); zuko hands over a ticket out of
 band (`adonm/zuko:docs/protocol.md`). Read: `podssh ts` keeps its node key in
-the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:381-382`,
+the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:383-384`,
 `crates/podssh-cli/src/ts.rs:182`). Credentials never go on argv
 (`AGENTS.md`, section 4).
 
@@ -681,7 +681,7 @@ not verified here: iroh-ssh checks that a local sshd answers before it accepts
 Recommendation: the client records the host key of sshd under the name that
 the user gives to `podssh ssh` (the roost's name), as OpenSSH does for a host
 with a `ProxyCommand`. `podssh ssh` names a host this way today
-(`crates/podssh-ssh/src/run.rs:370-380`). The alternative, the address of sshd
+(`crates/podssh-ssh/src/run.rs:383-393`). The alternative, the address of sshd
 behind the roost (`127.0.0.1`), lost: each roost would share one name, and one
 key would replace another.
 
@@ -4156,9 +4156,9 @@ the task (`transport::settle`); five commands do not.
   waits for it up to `CARRIAGE_WAIT`.
 - Read: `crates/podssh-cli/src/job/far.rs:64-82`,
   `crates/podssh-cli/src/pipe/ssh.rs:68-91`,
-  `crates/podssh-cli/src/health/mod.rs:171-179`,
+  `crates/podssh-cli/src/health/mod.rs:182-190`,
   `crates/podssh-cli/src/containers/mod.rs:186-197` and
-  `crates/podssh-cli/src/ssh/upgrade.rs:91-106` take `reached.stream` and
+  `crates/podssh-cli/src/ssh/upgrade.rs:93-108` take `reached.stream` and
   drop `reached.layer`.
 
 ## Approach
@@ -4414,8 +4414,8 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:80`).
   `crates/podssh-cli/src/ssh/cloudflare.rs:72` says "a Cloudflare tunnel cannot be reached
   through a -J hop yet", and `docs/cli.md:225-226` says so too.
 - Read: the road of a run is chosen for the first hop's host
-  (`crates/podssh-cli/src/ssh/resolve.rs:256`), and each later hop runs in a `direct-tcpip`
-  channel of the session before it (`crates/podssh-ssh/src/run.rs:161-173`;
+  (`crates/podssh-cli/src/ssh/resolve.rs:258`), and each later hop runs in a `direct-tcpip`
+  channel of the session before it (`crates/podssh-ssh/src/run.rs:174-186`;
   `crates/podssh-ssh/src/forward.rs:14-22`).
 - Read: the `cf://` road opens the WebSocket of `cloudflared access tcp` through `HTTPS_PROXY`,
   and a node behind it greets with the resumable layer first
@@ -6044,7 +6044,7 @@ does not depend on them.
   uses are a label (`crates/podssh-cli/src/ssh/servers.rs:92`), the dial
   (`crates/podssh-cli/src/ssh/transport.rs:296-339`) and a check of `--upgrade`
   (`crates/podssh-cli/src/ssh/upgrade.rs:59`). The issue's citation of
-  the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:286-289`.
+  the arm began two lines early; it is at `crates/podssh-cli/src/ssh/resolve.rs:288-291`.
 - Read: `docs/design.md:45` says "podssh tries the roads in this order"; for a public sshd, the
   forward road comes first, then the direct road (`docs/design.md:51`), which at `8554930` said
   "`--direct`, or when a probe shows it works"; the triage of GitHub #69 to #72 named this entry
@@ -6541,8 +6541,8 @@ a hop. `doctor` has no line for a hop, so a user cannot see whether one is reach
 
 - Read: a hop is `[user@]host[:port]` or `ssh://[user@]host[:port]`
   (`crates/podssh-cli/src/ssh/hop.rs:30-57`), and `-J` refuses a node only (`:68-74`). The road is
-  chosen for the first hop's host (`crates/podssh-cli/src/ssh/resolve.rs:256`); with `--direct` it
-  is TCP through `HTTPS_PROXY` (`crates/podssh-cli/src/ssh/resolve.rs:286-289`; `crates/podssh-cli/src/ssh/transport.rs:1-2`).
+  chosen for the first hop's host (`crates/podssh-cli/src/ssh/resolve.rs:258`); with `--direct` it
+  is TCP through `HTTPS_PROXY` (`crates/podssh-cli/src/ssh/resolve.rs:288-291`; `crates/podssh-cli/src/ssh/transport.rs:1-2`).
 - Read: a prompt goes to the terminal, or to the program of `SSH_ASKPASS`, chosen as OpenSSH
   chooses it (`crates/podssh-ssh/src/prompt.rs:1-12`).
 - Read: through the agent proxy of a cloud container, a CONNECT to `ssh.github.com:443` got `200`,

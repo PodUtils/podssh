@@ -70,6 +70,9 @@ pub struct Client {
     here: crate::outcome::Here,
     /// Each channel's window, held while a key waits (T-661).
     pace: crate::pace::Pace,
+    /// The algorithm policy that judges the server's KEXINIT at its host
+    /// key, before any authentication (T-838): the destination's alone.
+    judge: Option<Arc<crate::policy::Judge>>,
 }
 
 impl Client {
@@ -86,7 +89,15 @@ impl Client {
             record: crate::handshake::Record::default(),
             here: crate::outcome::here(),
             pace: crate::pace::Pace::default(),
+            judge: None,
         }
+    }
+
+    /// Judge the server's KEXINIT by `judge` before its host key is checked
+    /// (T-838).
+    pub fn judging(mut self, judge: Option<Arc<crate::policy::Judge>>) -> Self {
+        self.judge = judge;
+        self
     }
 
     /// Pace each channel's window as `pace` says (T-661): a hop's, or the
@@ -166,6 +177,18 @@ impl Handler for Client {
     type Error = russh::Error;
 
     async fn check_server_key(&mut self, key: &PublicKeyOrCertificate) -> Result<bool, Self::Error> {
+        // The policy first: a server that it refuses gets no question of
+        // its key, and a probe ends here (T-838).
+        if let Some(judge) = &self.judge {
+            if let Some(why) = judge.judge(crate::policy::observe(&self.record.offers(), key)) {
+                *self.refusal.lock().unwrap_or_else(|e| e.into_inner()) = Some(why);
+                return Ok(false);
+            }
+            // A pass: stdout is the session's, so the verdict goes to -v.
+            if let crate::policy::Reading::Judged(verdict) = judge.reading() {
+                self.log.verbose(&verdict.line());
+            }
+        }
         // RequiredRSASize and CASignatureAlgorithms end the connection
         // before any question, as in OpenSSH (T-505).
         let files: Vec<_> = self.policy.user_files.iter().chain(&self.policy.global_files).cloned().collect();

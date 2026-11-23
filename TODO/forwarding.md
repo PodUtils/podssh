@@ -207,7 +207,7 @@ remote host that must use the key, such as `git` on a build host.
 1. `-A` and `-o ForwardAgent=yes|no|PATH` turn the forward on; it is off by
    default. Move `ForwardAgent` from `IGNORED` to `HONOURED`
    (`crates/podssh-cli/src/ssh/keywords.rs:25-132`). Change the help of `-a`
-   (`crates/podssh-cli/src/flags.rs:239-240`, the row `no-agent-forwarding`).
+   (`crates/podssh-cli/src/flags.rs:240-241`, the row `no-agent-forwarding`).
 2. On the destination's session channel, send `auth-agent-req@openssh.com`
    before the shell or exec request (`crates/podssh-ssh/src/session.rs:127-153`).
    Never to a jump hop.
@@ -368,7 +368,7 @@ X11 channel.
    allows. Else refuse `-X`, and name `-Y`.
 5. Move `ForwardX11`, `ForwardX11Trusted`, `ForwardX11Timeout` and
    `XAuthLocation` to `HONOURED`. Change the help of `-x`
-   (`crates/podssh-cli/src/flags.rs:234-235`).
+   (`crates/podssh-cli/src/flags.rs:235-236`).
 6. On Windows, a `DISPLAY` such as `localhost:0` (VcXsrv, X410) is TCP port
    6000. The X server's connection is local and named by the user, as the
    agent's connection is (`crates/podssh-ssh/src/keys.rs:416-453`, `connect_agent`).
@@ -429,9 +429,9 @@ it (`SECURITY.md`, "Design rules").
 swap of the cookie in `crates/podssh-ssh/src/x11.rs:1-339`; the session asks
 (`crates/podssh-ssh/src/session.rs:116-118`) and the handler joins an `x11`
 channel when the destination's run asked
-(`crates/podssh-ssh/src/handler.rs:304-317`). The plan and the probe of the
+(`crates/podssh-ssh/src/handler.rs:327-340`). The plan and the probe of the
 command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
-`crates/podssh-cli/src/flags.rs:292-295`, and the keywords, honoured now, at
+`crates/podssh-cli/src/flags.rs:293-296`, and the keywords, honoured now, at
 `crates/podssh-cli/src/ssh/keywords.rs:49-51` and
 `crates/podssh-cli/src/ssh/keywords.rs:96`.
 - `cargo test -p podssh-ssh --lib -- x11`: 4 passed: `DISPLAY` as Xlib reads
@@ -458,7 +458,7 @@ command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
   this Xvfb takes an untrusted cookie of `xauth` at all
   (`scripts/interop-x11.sh:37-51`): env when it does not, a failure when it
   does and podssh's `-X` fails.
-- `docs/cli.md:1110-1133`, a note of the manual and the variable `XAUTHORITY`
+- `docs/cli.md:1111-1134`, a note of the manual and the variable `XAUTHORITY`
   say what the flags do, and the risk of `-Y`.
 - `cargo test -p podssh-ssh`: 155 passed; `cargo test -p podssh-cli`:
   577 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1000,7 +1000,7 @@ and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:42` and
 `crates/podssh-ssh/src/forward.rs:53`; `~#` at
 `crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:275`,
-and the lines of `-v` at `crates/podssh-ssh/src/run.rs:264`.
+and the lines of `-v` at `crates/podssh-ssh/src/run.rs:277`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
   1000 down through a forward's copy, counted once, with one connection; one
   name, one forward, across connections and a failure; the listing in the
@@ -1014,7 +1014,7 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:264`.
   -W` through OpenSSH's sshd to a TCP echo server, 262144 bytes each way) and
   `pty.forwards` (`scripts/interop-pty.py`, `~#` in a session with `-R
   0:127.0.0.1:2201`).
-- `docs/cli.md:923-930` and the manual's note of `-t` say what `~#` and `-v`
+- `docs/cli.md:924-931` and the manual's note of `-t` say what `~#` and `-v`
   print.
 - `cargo test -p podssh-ssh`: 158 passed; `cargo test -p podssh-cli`:
   578 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1054,8 +1054,8 @@ sessions (GitHub #17).
 
 ## Premise
 
-Read: a drop ends the run with 255 (`crates/podssh-ssh/src/run.rs:62-78`,
-`crates/podssh-ssh/src/run.rs:213-255`). `podssh_relay::open` fails over and
+Read: a drop ends the run with 255 (`crates/podssh-ssh/src/run.rs:62-83`,
+`crates/podssh-ssh/src/run.rs:226-268`). `podssh_relay::open` fails over and
 backs off with jitter, but only before a session exists
 (`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`,
 `PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). With `-N`, no command runs, so a
@@ -1137,14 +1137,14 @@ the second read fails.
 
 2026-10-11. `podssh ssh --persist -N` keeps the forwards through a lost
 link: the mode at `crates/podssh-cli/src/ssh/persist.rs:38-45` and
-`crates/podssh-cli/src/ssh/persist.rs:100-111`; each connection in
+`crates/podssh-cli/src/ssh/persist.rs:105-116`; each connection in
 `crates/podssh-ssh/src/persist.rs:102-144`, which asks for the forwards,
 serves `-L` and `-D`, and tells a loss from an end
 (`crates/podssh-ssh/src/persist.rs:61-66`); a refused `-R` asked again in
 `crates/podssh-ssh/src/remote.rs:50-191`, as `Options::forwards_again` says
-(`crates/podssh-ssh/src/options.rs:334-343`), which the loop sets after the
-first loss (`crates/podssh-cli/src/ssh/persist.rs:170-180`); the rule of
-`STEADY` at `crates/podssh-cli/src/ssh/persist.rs:148-154`.
+(`crates/podssh-ssh/src/options.rs:334-346`), which the loop sets after the
+first loss (`crates/podssh-cli/src/ssh/persist.rs:175-185`); the rule of
+`STEADY` at `crates/podssh-cli/src/ssh/persist.rs:153-159`.
 - `cargo test -p podssh-cli --test persist`: 5 passed. The new test runs
   `--direct --persist -N -R 2291:127.0.0.1:PORT` against the test's server
   (`tests/tmux_harness`, which now takes forwards): a channel of the
@@ -1640,7 +1640,7 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
 
 - Read: `crates/podssh-cli/src/ssh/forward.rs` line 43 at `6f6eda2` says "a Unix socket is not
   carried yet", and its line 49 says "the server's SOCKS proxy (-R [bind_address:]port) is not
-  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1048-1049` and
+  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1049-1050` and
   `crates/podssh-cli/src/man/notes_ssh_more.rs:6-7` say so too. `TODO/forwarding.md:52-54` says
   "until a later step" of both, in T-035.
 - Read: `RemoteForward` holds a port and a `host:host_port` only
@@ -1650,9 +1650,9 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
   (`crates/podssh-cli/src/ssh/dump.rs:122-134`), and `~C -R` reads it with the same parser
   (`crates/podssh-cli/src/ssh/local_bind.rs:264-266`).
 - Read: the handler joins a `forwarded-tcpip` channel that podssh asked for
-  (`crates/podssh-ssh/src/handler.rs:214-234`), and refuses each
-  `forwarded-streamlocal@openssh.com` channel as one that podssh did not ask for (`:236-253`,
-  through `unasked`, `:134-149`). The target of a `-R` is dialed from this host, through
+  (`crates/podssh-ssh/src/handler.rs:237-257`), and refuses each
+  `forwarded-streamlocal@openssh.com` channel as one that podssh did not ask for (`:259-276`,
+  through `unasked`, `:145-160`). The target of a `-R` is dialed from this host, through
   `HTTPS_PROXY` when it is set (`crates/podssh-ssh/src/remote.rs` lines 170-190 at `6f6eda2`).
 - Read: `-L` and `-D` read a socket path on either side with OpenSSH's field reader
   (`crates/podssh-cli/src/ssh/local_spec.rs:135-173`); `-L` opens `direct-streamlocal@openssh.com`

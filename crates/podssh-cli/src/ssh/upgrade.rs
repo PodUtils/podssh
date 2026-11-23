@@ -60,6 +60,8 @@ pub(super) fn check(args: &SshArgs, env: &Env, resolved: &mut Resolved) -> Resul
         Some("--upgrade starts from an sshd, on the forward road or --direct; node:// and iroh: are podssh ends")
     } else if args.persist {
         Some("--upgrade and --persist each keep a session across a lost link: give one")
+    } else if args.policy.is_some() {
+        Some("--policy judges the login's KEXINIT, and --upgrade moves the session to another end: give one")
     } else if !resolved.options.remote_forwards.is_empty() {
         Some("--upgrade carries no -R or RemoteForward yet: each would be asked on two connections")
     } else if resolved.control.command.is_some() {

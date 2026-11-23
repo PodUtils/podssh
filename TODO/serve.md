@@ -50,7 +50,7 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:385-459` and
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:387-461` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:379-381`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
@@ -1859,7 +1859,7 @@ example, a notice that the host is a sandbox that expires.
 - Read: a cage may have no `/etc/motd` and no `/var`
   (`docs/target-environment.md:16-29`); serve reads only what exists.
 - Read: podssh already makes server text safe for a terminal:
-  `crates/podssh-ssh/src/handler.rs:189-192` uses `podssh_ws::text::multi_line`.
+  `crates/podssh-ssh/src/handler.rs:212-215` uses `podssh_ws::text::multi_line`.
 - Read in the report of GitHub #19, not verified here: ssh-obi prints the
   MOTD before the login shell and honours `~/.hushlogin`.
 
@@ -2348,7 +2348,7 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:385-459`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:387-461`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.

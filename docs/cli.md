@@ -844,8 +844,9 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   remote exit status, or null), `signal` (`name` and `core_dumped`, or
   null), `end` (`status`, `signal`, `no-status`, `lost`, `escaped`,
   `terminated`, `detached`, `interrupted`, `failed`, or `shared`; null with no session, as with `-W`),
-  `failure` (`connect`, `host-key`, `auth`, `forward`, `relay`, `session`,
-  `usage`, `config` or `not-built`, or null: `connect` also when podssh got
+  `failure` (`connect`, `host-key`, `auth`, `forward`, `policy`, `relay`,
+  `session`, `usage`, `config` or `not-built`, or null: `policy` when
+  `--policy` ended the run; `connect` also when podssh got
   no session for another cause), `bytes` (`stdin`, `stdout`
   and `stderr`, as they passed), `duration_ms`, and `relay` (`host`,
   `close_code` and `reason`, or null with no relay). A signal ends with
@@ -3506,6 +3507,60 @@ reaches a hop as `--direct` does; neither reports the far server, and
 - A flag of `health`, not of `doctor`: the far host's answer needs the
   login of `ssh`, with each of its options. `doctor --via HOST`, as the
   issue wrote it, names T-439's second proxy.
+
+### An algorithm policy: `--policy FILE` (T-838)
+
+`podssh ssh --policy FILE` and `podssh health --policy FILE` judge what the
+server offered in its KEXINIT against a named policy file. `Ciphers`,
+`KexAlgorithms` and the like restrict what podssh offers (T-505); a policy
+judges what the peer offers.
+
+- **The file** is ssh-audit's grammar, read so that its files load
+  unchanged: `KEY = VALUE` lines, `#` comments; `name` and `version` are
+  required; `banner`, `header`, `compressions`, `host keys`, `optional
+  host keys`, `key exchanges`, `ciphers`, `macs`; `host_key_sizes` and
+  `dh_modulus_sizes` as JSON, and the older `hostkey_size_ALG`,
+  `cakey_size_ALG` and `dh_modulus_size_KEX` lines; `client policy`,
+  `allow_algorithm_subset_and_reordering`, `allow_larger_keys` and
+  `allow_hostkey_subset_and_reordering` as `true` or `false`. A field that
+  podssh does not know, a field given twice, or a value that does not read
+  is refused with its line before anything connects (78), never ignored.
+  ssh-audit's built-in database of policies is not shipped: a user brings
+  a file.
+- **The verdict** is a total, I/O-free function (`podssh_ssh::policy::evaluate`)
+  of the policy and an observation: the server's version line, the first
+  line before it, its four name-lists and its compressions in the
+  direction it sends, and the host key that came. Lists are compared in
+  order and whole, or as a subset in any order where the policy allows it.
+  A host key's size is read on the type of the key that actually came; a
+  key of another type than the one the exchange agreed is a mismatch, and
+  its size counts for nothing (ssh-audit credits it). A size must be
+  equal, or at least as large with `allow_larger_keys`, as in ssh-audit. A
+  size of a type that the exchange did not agree, and a group-exchange
+  modulus, cannot be measured by one exchange: they are listed as
+  `unmeasured`, never passed. `ext-info-s` and `kex-strict-s-v00@openssh.com`
+  are judged only by a policy that names one of them, as ssh-audit's own do.
+- **The JSON** on stdout: `schema` (1), `policy`, `version`, `verdict`
+  (`pass`, `mismatch`, `unmeasured` or `no reading`), `exit`, `mismatches`
+  (each with ssh-audit's four fields: `field`, `expected`, `optional`,
+  `actual`), `unmeasured`, and `why` with no reading.
+- **`podssh ssh --policy FILE`** judges the destination at its host key,
+  before `known_hosts` is read and before any login. A mismatch, or a
+  KEXINIT that does not read, ends the run: the verdict goes to stdout, the
+  line to stderr, and the exit is 78 or 69 (`--result-file`'s `failure` is
+  `policy`). A pass goes on, and `-v` says the verdict; stdout stays the
+  session's. A `-J` hop is not judged. `--policy` refuses `--persist`,
+  `--upgrade`, `-M`, `-S` and `-O` (64), whose connections are not this
+  run's one handshake; `ControlPath` of a file has no effect with it.
+- **`podssh health --policy FILE`** is a probe: no facts and no login. The
+  handshake runs to the server's host key, the policy judges it, and the
+  connection ends; no credential is needed for the destination, and
+  `known_hosts` is not read. The verdict is on stdout with or without
+  `--json`. Exit 0 pass, 78 a mismatch, 69 no reading (no connection, a
+  KEXINIT that does not read, or a check that one exchange cannot make).
+  It refuses `--preflight` (64).
+- `podssh serve`'s call site, on a client's KEXINIT, and a probe in
+  `podssh doctor` follow (T-838's notes).
 
 ## `podssh keygen`
 

@@ -18,6 +18,10 @@ const SHORTEST: u32 = 6;
 const LONGEST: u32 = 256 * 1024;
 /// SSH_MSG_NEWKEYS: each packet after it is encrypted.
 const NEWKEYS: u8 = 21;
+/// SSH_MSG_KEXINIT: its payload is kept, for an algorithm policy (T-838).
+const KEXINIT: u8 = 20;
+/// The most of a KEXINIT that is kept; a longer one is not judged.
+const KEXINIT_MAX: u32 = 64 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum State {
@@ -49,6 +53,10 @@ pub(crate) struct Side {
     pub(crate) other: Option<String>,
     /// The number of the last message whose header passed.
     pub(crate) last: Option<u8>,
+    /// The payload of this side's first KEXINIT, whole, once it passed.
+    pub(crate) kexinit: Option<Vec<u8>>,
+    /// The first KEXINIT while it passes, and the length of its payload.
+    taking: Option<(Vec<u8>, usize)>,
 }
 
 impl Side {
@@ -112,6 +120,7 @@ impl Side {
             let length = u32::from_be_bytes([self.head[0], self.head[1], self.head[2], self.head[3]]);
             self.state = if (SHORTEST..=LONGEST).contains(&length) {
                 self.last = Some(self.head[5]);
+                self.take_kexinit(length);
                 // The length counts each byte after its own 4.
                 State::Body(length + 4 - HEADER as u32)
             } else {
@@ -121,8 +130,26 @@ impl Side {
         take
     }
 
+    /// Start to keep the first KEXINIT, whose packet has `length` bytes: its
+    /// payload is the message number and the bytes before the padding.
+    fn take_kexinit(&mut self, length: u32) {
+        let padding = u32::from(self.head[4]);
+        if self.head[5] != KEXINIT || self.kexinit.is_some() || length > KEXINIT_MAX || padding + 1 > length {
+            return;
+        }
+        let payload = (length - padding - 1) as usize;
+        self.taking = Some((vec![KEXINIT], payload));
+    }
+
     fn body_part(&mut self, left: u32, rest: &[u8]) -> usize {
         let take = (left as usize).min(rest.len());
+        if let Some((kept, payload)) = &mut self.taking {
+            let room = payload.saturating_sub(kept.len());
+            kept.extend_from_slice(&rest[..take.min(room)]);
+            if left as usize == take {
+                self.kexinit = self.taking.take().map(|(kept, _)| kept);
+            }
+        }
         self.state = match left - take as u32 {
             0 if self.last == Some(NEWKEYS) => State::Sealed,
             0 => State::Header,

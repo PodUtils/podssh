@@ -146,7 +146,7 @@ pub(super) const MORE: &[&str] = &[
      signal (its name and core_dumped, or null); end (status, signal, no-status, lost, escaped, terminated, detached, \
      interrupted, failed or shared; interrupted is Ctrl-C with no pty and no end of the command; shared is a run \
      through a control master, which tells the exit code alone; null with no session, as with -W); failure (connect, \
-     host-key, auth, forward, relay, session, usage, config or not-built, or null); bytes (stdin, stdout and stderr, \
+     host-key, auth, forward, policy, relay, session, usage, config or not-built, or null); bytes (stdin, stdout and stderr, \
      as they passed; null through a control master, \
      which carries them), duration_ms, and relay (its host, close_code and reason, or null with no relay). \
      A link lost after the remote exit status and before the end of the output ends lost, with exit 255 \

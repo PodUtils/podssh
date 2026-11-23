@@ -60,4 +60,5 @@ pub const HEALTH: &[&str] = &[
      the facts did not come, else 0. A login that fails is 255, as without it, and its line is FAIL. With \
      --json, preflight holds checks, each with section, check, status and detail as podssh doctor --json \
      gives them, and counts (ok, fail and unknown); without --preflight it is null.",
+    super::notes_policy::HEALTH_PROBE,
 ];

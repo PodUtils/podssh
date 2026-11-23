@@ -38,6 +38,25 @@ fn node_road(channel: bool) -> Road {
     Road { far: "the node's TARGET".into(), end: "the node".into(), flow: Arc::new(Flow::default()), channel }
 }
 
+/// The first KEXINIT's payload is kept whole, its padding left out, however
+/// its bytes are cut (T-838); a later one, and another message, are not.
+#[test]
+fn the_first_kexinit_payload_is_kept_whole_however_it_is_cut() {
+    let first = packet(20, 1100);
+    let want: Vec<u8> = std::iter::once(20).chain(std::iter::repeat_n(0x41, 1100)).collect();
+    for cut in [1, 7, 4096] {
+        let mut side = Side::default();
+        let stream = [OPENSSH, packet(2, 10).as_slice(), first.as_slice(), packet(20, 30).as_slice()].concat();
+        for piece in stream.chunks(cut) {
+            side.feed(piece);
+        }
+        assert_eq!(side.kexinit.as_deref(), Some(want.as_slice()), "cut in pieces of {cut}");
+    }
+    let mut none = Side::default();
+    none.feed(&[OPENSSH, packet(31, 40).as_slice()].concat());
+    assert_eq!(none.kexinit, None);
+}
+
 /// The version line, then the server's packets up to NEWKEYS, after which
 /// the bytes are counted and not read.
 #[test]

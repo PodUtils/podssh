@@ -26,7 +26,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 
 - Measured: `PODSSH_OFFLINE=1 podssh pipe stdio relay:example.org:80` exits
   64 with `podssh: unknown subcommand 'pipe'.` The verb table has no `pipe`
-  row (`crates/podssh-cli/src/flags.rs:389-459`).
+  row (`crates/podssh-cli/src/flags.rs:391-461`).
 - Read: the only pump is `crates/podssh-cli/src/pipe/relay.rs:118-259`. At the end
   of input it stops sending and keeps receiving
   (`crates/podssh-cli/src/proxy.rs:8-11`). T-101 is the opposite defect in
@@ -37,7 +37,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 
 ## Approach
 
-1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:389-459`, two
+1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:391-461`, two
    required positionals (`crates/podssh-cli/src/positionals.rs:7-281`), a
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-263`), a
    dispatch arm, and `pipe` in `DISPATCHED`
@@ -163,7 +163,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   way. Measured live for proxy: the full reply after stdin closed
   (`docs/STATUS.md:436`).
 - Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-22`
-  after the hops of `crates/podssh-ssh/src/run.rs:157-174`, but that code is
+  after the hops of `crates/podssh-ssh/src/run.rs:170-187`, but that code is
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
   measured. Only exec is measured with digests (`docs/STATUS.md:247`); `-W`
@@ -187,9 +187,9 @@ local program to a target, and `podssh proxy` stays a second pump.
    `crates/podssh-cli/src/pipe/relay.rs:231-265`).
 4. `ssh:[USER@]HOP[,HOP...],HOST:PORT`: the last item is the target, each
    other item a hop, read as `-J` reads it
-   (`crates/podssh-cli/src/ssh/resolve.rs:166-170`,
+   (`crates/podssh-cli/src/ssh/resolve.rs:168-172`,
    `crates/podssh-cli/src/ssh/hop.rs:30-75`). Make
-   `crates/podssh-ssh/src/run.rs:157-174` a public `connect_chain` that `-W`
+   `crates/podssh-ssh/src/run.rs:170-187` a public `connect_chain` that `-W`
    and the pipe both use; keep each handle alive until the pipe ends. The
    options: `-i`, `-o NAME=VALUE` through
    `crates/podssh-cli/src/ssh/options.rs:107-280` (a keyword of a session,
@@ -198,9 +198,9 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6556`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6611`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
-   `crates/podssh-ssh/src/run.rs:339-450` a typed error, so that 77 is not
+   `crates/podssh-ssh/src/run.rs:352-470` a typed error, so that 77 is not
    guessed from a message.
 7. In the same commit: `docs/cli.md`, `docs/design.md:1312-1321`, the notes,
    the examples, `docs/STATUS.md`.
@@ -241,7 +241,7 @@ a reply that comes within 15 s of silence; a target that waits for the end of
 its input sees no end.
 
 2026-10-09 (T-133): the hop chain is a public function now,
-`podssh_ssh::run::connect_hops` (`crates/podssh-ssh/src/run.rs:152-176`): it
+`podssh_ssh::run::connect_hops` (`crates/podssh-ssh/src/run.rs:165-189`): it
 returns each handle, authenticated, for `ssh` and for SFTP. So the Premise's
 "that code is private" no longer holds, and the step that makes it a public
 `connect_chain` is done under that name.
@@ -593,7 +593,7 @@ running on the server (`docs/design.md:806-810`).
 ## Approach
 
 1. Flags `--persist` and `--persist-name NAME` (default `podssh`; letters,
-   digits, `_` and `-`, 32 at most) in `crates/podssh-cli/src/flags.rs:116-298`.
+   digits, `_` and `-`, 32 at most) in `crates/podssh-cli/src/flags.rs:116-299`.
    With a command, `-W`, `-N`, `-s` or `RemoteCommand`, exit 64.
 2. The probe, after the login: one exec runs `command -v tmux`. No tmux:
    exit 255 with "the server has no tmux on PATH; --persist needs it". T-193
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:806-810`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:6683-6685`). After the attach, send the window size again.
+   (`docs/cli.md:6738-6740`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-175`), `docs/design.md:806-810`,
    `docs/STATUS.md`, and tmux in the interop image
@@ -775,7 +775,7 @@ the examples must refuse it.
 ## Correction
 
 2026-10-12: the Prove's plant no longer fails. T-038 made `-L` a flag of
-`podssh ssh` (`crates/podssh-cli/src/flags.rs:253` says "forward-local"),
+`podssh ssh` (`crates/podssh-cli/src/flags.rs:254` says "forward-local"),
 so an example with `podssh ssh -L 5901:127.0.0.1:5901 user@host` parses. The
 plant that the test of the examples must refuse gives `-L` to the
 ProxyCommand's `podssh proxy`, which has no such flag:

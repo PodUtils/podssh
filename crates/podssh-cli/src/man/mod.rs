@@ -70,6 +70,7 @@ mod notes_ping;
 mod notes_pinggy;
 mod notes_pipe;
 mod notes_play;
+mod notes_policy;
 mod notes_proxy;
 // `podssh serve`, and its host key's file (T-107).
 mod notes_serve;
