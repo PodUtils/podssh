@@ -346,3 +346,4 @@
 338 pull closed
 339 pull open
 340 issue open
+341 issue open

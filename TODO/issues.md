@@ -390,6 +390,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #335 | COORD-131: podssh took podcrates v0.80.0 at 77c63da (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#250) | T-684, T-820 |
 | #337 | COORD-132: podssh took podcrates v0.81.0 at 467274b (to podcrates) | closed 2026-11-21: podcrates recorded the take (PodUtils/podcrates#254) | T-684, T-820 |
 | #340 | COORD-133: podssh took podcrates v0.82.0 at e728db9 (to podcrates) | open 2026-11-23: until podcrates records the take | T-684 |
+| #341 | COORD-134: carry vendor/iroh-relay to 1.4.2, for iroh 1.4.2 (to podcrates) | open 2026-11-23: until a tag of podcrates carries iroh-relay 1.4.2; the iroh family of #339 waits for it | T-684 |
 | #267 | COORD-080: what podssh's help and manual need of the shared crate (to all) | closed 2026-11-17: T-790 and T-730 done; podnet closed its COORD-090 (PodUtils/podnet#584) | T-730, T-790 |
 | #268 | COORD-081: podssh's host classes and lane for pod-lab, and its manual for pod-manual (to podcrates) | closed 2026-11-23: by the operator: podcrates closed COORD-107 and COORD-108 (PodUtils/podcrates#180, #181) on 2026-11-18 and did T-701; T-790 done, T-791 goes on | T-790, T-791 |
 | #269 | COORD-082: podssh's map of issues to entries, and its install (to podcrates) | closed 2026-11-23: by the operator: podcrates closed COORD-110 and COORD-109 (PodUtils/podcrates#183, #182) on 2026-11-18; T-792 done, T-793's installer in place | T-792, T-793 |
