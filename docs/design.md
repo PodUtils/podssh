@@ -679,6 +679,78 @@ the decision "no LD_PRELOAD". podssh goes the other way: use the cage as a
 thin client and work on a real host over `podssh ssh -tt`, or give the cage a
 usable shell through `podssh serve`.
 
+### A gateway in front of private hosts: what the pinned russh allows (T-836, research of 2026-11-23)
+
+A gateway is `podssh serve` that picks an upstream from the login name and
+logs in there for the user. Two questions about the pinned server
+(`vendor/russh`, 0.65.2 with podssh's patches) decide how. The research reads
+the code; nothing was built or run.
+
+**Is the query of an offered key separate from the signed attempt?** Yes,
+with one rider.
+
+- A request with no signature (the probe, RFC 4252, section 7) calls
+  `auth_publickey_offered` and answers `USERAUTH_PK_OK` on `Accept`
+  (`vendor/russh/src/server/encrypted.rs:1283-1300`). The callback sees the
+  user name and the key, and no proof of the key (`src/server/mod.rs:216-232`).
+- A signed request checks the signature over the session identifier and the
+  request (`encrypted.rs:1225-1229`), and only then calls `auth_publickey`
+  (`:1239`) or, for a certificate, `auth_openssh_certificate` (`:1242`). The
+  callback runs after the proof (`src/server/mod.rs:322-335`).
+- The rider: a signed request that no probe preceded calls
+  `auth_publickey_offered` first (`encrypted.rs:1207-1216`). That includes
+  the patched client's single request (`vendor/russh/src/client/mod.rs:590-603`,
+  patch 0003). So `auth_publickey_offered` runs for keys that proved nothing,
+  and a gateway never dials in it; `auth_publickey` is the one callback that
+  has a verified key and the user name.
+- A probe answered with `PK_OK` is not a rejection, and does not count
+  toward `max_auth_attempts` (the cap counts `rejection_count`,
+  `encrypted.rs:63-80`; a test of russh pins it, `:238-258`): a client may
+  offer any number of keys, and none of them reaches `auth_publickey` unless
+  it signs. A signed attempt that is refused counts, so a connection makes
+  at most 10 upstream logins by default (`src/server/mod.rs:124`).
+- The callback is awaited inside the connection's read loop (`encrypted.rs:1239`),
+  and a handler is one for each client (`src/server/mod.rs:285-286`). A dial
+  in it holds that client's own loop only, and needs a time limit of its own.
+
+**Can a client sign a blob that another side supplies?** Not as a signature
+that crosses; by a channel to its agent, yes.
+
+- The signature covers the session identifier of the connection that it was
+  made on (`encrypted.rs:1225-1229` at the server; the client builds the same
+  bytes from its own `session_id`, `src/client/encrypted.rs:1635-1645`). A
+  signature that a user made for a gateway is therefore worth nothing to the
+  upstream: its session identifier is another. The entry's inference that a
+  gateway "can relay the client's signature" does not hold.
+- russh builds the blob itself and gives it to a signer, which returns the
+  signature: `Signer::auth_sign(key, hash_alg, to_sign)` (`src/auth.rs:170-179`,
+  used by `authenticate_publickey_with`, `src/client/mod.rs:632-684`). The
+  one signer that russh ships is an SSH agent over any stream (`auth.rs:261-275`),
+  and podssh's client already signs with it (`crates/podssh-ssh/src/keys.rs:138`).
+- A server can open a channel to the client's agent, once the client asked for
+  agent forwarding with a channel request on a session
+  (`encrypted.rs:1775-1789`, `src/server/session.rs:254-266`, `:1429-1430`).
+  That request comes after authentication (`server_read_authenticated`,
+  `encrypted.rs:1450`), and `podssh serve` answers none today: the default
+  refuses (`src/server/mod.rs:806-811`; no `agent_request` under
+  `crates/podssh-ssh/src/server/`). So a gateway can have a stock client's
+  agent sign the upstream's blob, but only after the client is let in on the
+  gateway's own admission, and only for a client that was run with `-A`. An
+  OpenSSH agent then applies the destination constraints of `ssh-add -h`,
+  when the client told it which server this is (`crates/podssh-ssh/src/agent_bind.rs:1-7`
+  shows podssh's client doing it).
+- russh's client can also log in with an OpenSSH certificate and a key in the
+  process (`authenticate_openssh_cert`, `src/client/mod.rs:607-615`), and a
+  certificate of an Ed25519 key is made by `pod-relay`'s `Mint`: principals, a
+  window, critical options, signed by a `pod-identity` key
+  (pod-relay `src/grant/cert.rs:149-210`, PodUtils/podcrates v0.82.0). No agent
+  and no help from the client is involved. `podssh serve` takes no certificate
+  today: a `cert-authority` option is refused and the handler has no
+  `auth_openssh_certificate` (`crates/podssh-ssh/src/server/options.rs:115-116`,
+  `src/server/mod.rs:335-347` gives the refusing default).
+
+The choice among the three paths is in the entry's `## Decision` (T-836).
+
 ## 5. Reliability: jitter, latency, drops, reconnections, changed addresses
 
 ### What podssh does now (2026-10-08)
@@ -1122,6 +1194,101 @@ dials its target only after a session's handshake. Through the
 live relay, a node in front of `github.com:22` carried GitHub's banner
 through the layer to `podssh operator`, and `podssh ssh node://` logged in
 through it.
+
+### A bearer in `OPEN`: where a binding exists (T-834, research of 2026-11-23)
+
+Question: a token that a person holds (a signed short token, no key file on
+the host) must work only for one session and one carrier, as SSH3's `jti`
+bound to a TLS exporter does. Which roads give both ends an exporter, and
+which need something else? This is the research step; no code is written.
+
+**What the API gives.**
+
+- rustls's `export_keying_material` (RFC 5705; RFC 8446, section 7.5) fails
+  before the handshake ends, fails on an empty output, and for TLS 1.3 never
+  uses the early exporter (rustls 0.23.46, `src/conn.rs:470-486`,
+  `src/common_state.rs:926-934`). For TLS 1.2 it hashes the context with a
+  16-bit length and asserts that it fits (`src/tls12/mod.rs:242-253`): a
+  caller gives a fixed context.
+- podssh's client offers TLS 1.3 and 1.2 (pod-tls `src/context.rs:254`,
+  `src/crypto/suites.rs:58-65`), and so does the role's server
+  (`crates/podssh-ws/src/tls_server.rs:20-22`). rustls asks for the extended
+  master secret of TLS 1.2 only in a FIPS provider
+  (`src/client/builder.rs:166`, `src/server/builder.rs:104`). A TLS 1.2
+  exporter without it is not unique to its handshake (RFC 7627), so a
+  binding is taken from a connection of TLS 1.3 only
+  (`CommonState::protocol_version`, `src/common_state.rs:178`).
+- QUIC is TLS 1.3. noq has the same call (`noq-1.4.0 src/connection.rs:895`),
+  and the TUIC road already uses it for its token
+  (`crates/podssh-ws/src/tuic/mod.rs:157`).
+- Today's use is the cover name's delegated credential: label
+  `EXPORTER-podssh-cover`, 32 bytes, taken at both ends of the one
+  connection (`crates/podssh-ws/src/delegated.rs:34-50`, `:252`; the role's
+  side, `crates/podssh-relay/src/serve/listener.rs:122-132`). A bearer takes a
+  label of its own.
+
+**The rule that decides.** An exporter is the same at two ends only when
+they are the two ends of one TLS or QUIC connection. The end that checks the
+token is the layer's far end. So a road gives a binding only where the far
+end is the peer of the client's TLS.
+
+| Road | TLS or QUIC ends at | Exporter at both ends | What else is there |
+| --- | --- | --- | --- |
+| Forward road to the role's layer (`/v1/layer/`), WebSocket over TLS | the role, which is the far end (`crates/podssh-relay/src/serve/layer.rs:1-6`, `:251`) | Yes, TLS 1.3 only. The role has it at accept (`listener.rs:124`) but gives it to the cover check alone: `layer::connect` takes none (`routes.rs:144`, `layer.rs:166`). The client holds a rustls stream (`RelayStream`, pod-ws `src/session.rs:40`) and can take it at connect | |
+| The same over HTTP/2 | the role | Yes, but one connection carries many sessions, and each stream is handed the connection's exporter (`serve/http2/stream.rs:119-122`). The client's stream keeps no handle to it (pod-ws `src/h2_road/mod.rs:105-108`) | A per-session value in the HMAC: the client nonce of `OPEN` |
+| The same over QUIC (T-667) | the role | Possible (noq), not given: the role serves each stream as a new HTTP/1.1 connection with no exporter (`serve/quic.rs:7`, `:94`; `routes.rs:28-30`), up to 64 streams per connection (`quic.rs:26`) | As HTTP/2 |
+| Cleartext road | nothing | No (`serve/cleartext.rs:62-64`) | The far end's `GREETING` nonce |
+| Reverse road (`podssh node`, `podssh serve NAME`) through a relay | the relay, once for the node's one socket and once for each operator's (`serve/reverse/node.rs:1-5`, `operator.rs:1-5`) | No: the two TLS legs have two exporters, and the node's carries every session | The end-to-end channel (below) |
+| iroh road | none of a relay: QUIC runs between the two ends | Probably: iroh rests on noq (`Cargo.lock`, package `iroh`). `pod-iroh` never calls it (`src/stream.rs`, `src/client.rs`), and iroh 1.4.1's own `Connection` was not read: its source is not on this machine | The end-to-end channel |
+| A node's own TLS behind a third party's TCP tunnel (Pinggy's TLS tunnel: `crates/podssh-relay/src/pinggy/far.rs:106-108`) | the node | Yes at the node; the client's side is the same TLS peer only where the tunnel passes TLS through | The same tunnel with no TLS (`far.rs:114-116`) has none: the nonce |
+| TUIC, Hysteria and the other roads to a server that the user names | that server | Not the far end's: TUIC's own token binds the hop to its server (`tuic/mod.rs:157`) | The end-to-end channel, where the far end is a node |
+| `podssh serve` on stdin and stdout (no NAME) | no TLS and no layer (`crates/podssh-cli/src/serve.rs:185`) | No | SSH's session identifier, which a publickey signature already covers (vendor/russh `src/server/encrypted.rs:1226-1229`) |
+
+Each road with the layer has a nonce: the far end's `GREETING` carries one,
+and the client's `OPEN` another (pod-session `src/record.rs:286-300`,
+`src/handshake.rs:3-6`). A nonce makes a token fresh against a second
+connection, which is all it does: a relay that is the carrier asks the far
+end for its own nonce and gives it to the client, so it is no proof of the
+carrier.
+
+**The end-to-end channel is the binding that every road with a node has.**
+Noise XX above the layer (`crates/podssh-relay/src/e2e/mod.rs`) gives an
+exporter that only the two ends hold (pod-e2e `src/exporter.rs:1-12`,
+`Channel::exporter`, `src/channel.rs:144-146`) and the handshake hash
+(`src/channel.rs:264-265`), and it runs on each road that carries a node.
+A relay that makes one handshake with each side gets two hashes. It is also
+where a one-use grant already rides: inside the proof, after the node proved
+its key, so that no relay and no URL holds it (pod-relay `src/grant/mod.rs:8-13`,
+the proof's `GRANT_PROOF` form, pod-e2e `src/handshake.rs:38-43`, `:414-430`).
+
+**What this finds.**
+
+1. `OPEN` has no room for a token. Its body is the magic, the version, the
+   role, a nonce, a public key or a session id, and at most 16 feature names
+   of 32 bytes (pod-session `src/record.rs:40-52`, `:293-307`). A feature
+   `bearer.v1` can announce; it cannot carry.
+2. A new session has no id at `OPEN`: the far end draws it and keeps the
+   session before it answers (pod-session `src/handshake.rs:376-408`). A
+   `jti` of `HMAC(exporter, session id)` exists only for a resume. For a new
+   session the values of `OPEN` are the client nonce and the client's public
+   key.
+3. On the reverse road and on each carrier with a relay or a third party in
+   the middle, only the end-to-end channel binds the far end. The channel
+   comes after `OPEN`, so a bearer for those roads rides in the proof, as the
+   grant does. The grant's callback gets the key, the ask and the grant, and
+   no value of the channel (pod-e2e `src/ends.rs:98`): a bearer needs the
+   handshake hash or the exporter passed to it, which is a change in
+   `pod-e2e`.
+4. A token that an identity provider signed cannot hold an exporter: the
+   provider never saw the connection. That is the OIDC path of SSH3, which
+   binds nothing. A binding needs a proof of possession by the holder, a
+   signature over the exporter or the hash with a key that the token names
+   (RFC 7800, RFC 9449); a token with no key is replayable for its life.
+5. A road with neither an exporter nor a nonce does not exist: the roads
+   without TLS have the layer's nonces, and `podssh serve` with no NAME has
+   SSH's session identifier. The question for the operator that step 6 asks
+   for is not raised by the roads; whether a bearer is worth a change in
+   `pod-e2e` is the operator's, as step 2 is not started.
 
 ## 6. socat and tailcat
 

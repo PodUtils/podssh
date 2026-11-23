@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**808 entries: 28 open, 40 partial, 11 blocked, 729 done.**
+**808 entries: 26 open, 42 partial, 11 blocked, 729 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 91 | 104 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 28 | 7 | 6 | 333 | 374 |
-| **All** | 28 | 40 | 11 | 729 | 808 |
+| P3 | 26 | 9 | 6 | 333 | 374 |
+| **All** | 26 | 42 | 11 | 729 | 808 |
 
 ## Entries
 
@@ -864,9 +864,9 @@ repository and CI).
 | [T-831](copy.md) | P3 | M | backlog | research | open | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | open | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
-| [T-834](serve.md) | P3 | M | backlog | research | open | A bearer identity in the session's OPEN, bound to the session and its carrier |
+| [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
-| [T-836](serve.md) | P3 | M | backlog | research | open | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
+| [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | open | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | open | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |

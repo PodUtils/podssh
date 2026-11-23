@@ -831,7 +831,7 @@ The test target `properties` of `podssh-ws` moved to `pod-ws` of PodUtils/podcra
 
 # T-203: The fault-injection harness: latency, jitter, bandwidth, a new address
 
-**Source:** `docs/design.md:765-767` (layers 2 and 3 need the harness
+**Source:** `docs/design.md:837-839` (layers 2 and 3 need the harness
 extended), and the exit criteria of M6 (`docs/ROADMAP.md`, M6; T-156).
 **Category:** chore
 **Milestone:** M6

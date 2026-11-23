@@ -57,7 +57,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
    for SFTP.
 4. Invariant: no request and no step of the open waits without a limit.
    Three named constants, shown by the manual: 30 s for a metadata reply (as
-   `REPLY_WAIT`), 60 s with no data acknowledged (`docs/design.md:692`),
+   `REPLY_WAIT`), 60 s with no data acknowledged (`docs/design.md:764`),
    and the `--timeout` deadline over all, authentication included. Wrap a
    call in `tokio::time::timeout` where the crate has no limit.
 5. Size the requests from `limits@openssh.com`, else 32 KiB. Keep the
@@ -485,7 +485,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
 ## Premise
 
 - Read: today a drop ends the session with the relay's reason, and nothing
-  continues (`docs/design.md:688-696`).
+  continues (`docs/design.md:760-768`).
 - Read: SFTP reads and writes name their offset, so a copy can continue at
   any offset. The far file's size is no proof: with requests in flight
   (T-140), a later write can land while an earlier one fails.
@@ -493,7 +493,7 @@ GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
   (`crates/podssh-relay/src/cache.rs`, lines 62-76 at `4dd52f8`,
   `crates/podssh-relay/src/cache.rs:68-112`).
 - Read: after a drop, the relay closes the target's TCP connection within
-  15 s (`docs/design.md:698-701`), so a far `cat` can write for a while.
+  15 s (`docs/design.md:770-773`), so a far `cat` can write for a while.
 
 ## Approach
 
@@ -1177,7 +1177,7 @@ stream.
 - Read: `AGENTS.md` rule 2 allows one outbound connection. Several channels
   in one SSH connection keep the rule; several relay sessions at once do
   not. The operator accepted more than one outbound connection for the iroh
-  road (`docs/design.md:1463-1466`), and on 2026-10-08 for one copy when the
+  road (`docs/design.md:1630-1633`), and on 2026-10-08 for one copy when the
   user asks (`docs/decisions.md`).
 - Read: the cap of 64 MiB is for each session (`docs/relay.md:630`).
 - Not measured: whether one relay session, or the path itself, limits the
@@ -2102,7 +2102,7 @@ defect wait for T-251.
 **Source:** GitHub #18 (zuko's `files` server, `adonm/zuko:src/files.rs`)
 and GitHub #21 (parsync's internal helper,
 `AlpinDale/parsync:src/remote_helper.rs`), read in the issues;
-`docs/design.md:1468-1474`.
+`docs/design.md:1635-1641`.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P3
@@ -2123,7 +2123,7 @@ can do better.
   request; it names its own requests `NAME@openssh.com`.
 - Read: `podssh serve` will have an SFTP server in the process (T-112).
 - Read: both roads between podssh ends carry the same `cp`
-  (`docs/design.md:1468-1474`).
+  (`docs/design.md:1635-1641`).
 
 ## Approach
 

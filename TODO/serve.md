@@ -1489,7 +1489,7 @@ lifecycle); GitHub #22 (Petyok/SSHub: hot reload).
 
 A node that stops must not leave shells behind, and must not cut sessions
 with no word. An operator who adds a key must not have to restart the node:
-a restart ends each session on it (`docs/design.md:698-701`).
+a restart ends each session on it (`docs/design.md:770-773`).
 
 ## Premise
 
@@ -2196,7 +2196,7 @@ default of russh refuses each `tcpip-forward` with no reason.
 - Read: the cage refuses `bind` (`docs/target-environment.md:25`; the box:
   `scripts/box/probe.sh:109-117`). The operator's ruling on Q1 (2026-10-08)
   allows a listener only when the user asks and a probe allows the bind.
-- Read: `docs/design.md:1188-1190` allows a listener on the far side. The relay
+- Read: `docs/design.md:1355-1357` allows a listener on the far side. The relay
   is a listener that podssh does not run: a node name takes operator
   sessions (`docs/relay.md:790-814`).
 - Read in the report of GitHub #18, not verified here: sandhole publishes
@@ -3602,7 +3602,7 @@ ok. `cargo test --release -p podssh-zerotier` 14 passed.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3627,11 +3627,14 @@ can be copied.
 
 1. Research first: which roads give an exporter, and which need a nonce from the server instead. Write
    the table in `docs/design.md`, section 5.
-2. If a bearer is wanted: a feature name in OPEN (`bearer.v1`) and a token of 20 to 30 seconds with
-   `exp` and a `jti` that is `HMAC-SHA256(exporter, session id)`, not the session id alone. It rides
-   inside OPEN, never in argv, a URL or an environment variable. The server checks it before ACCEPT,
-   keeps each `jti` for the token's life, and records the user and the method on the session.
-3. A resume mints a new token; the session id stays the handle.
+2. If a bearer is wanted (the `## Correction` below changes this step): a feature name in OPEN
+   (`bearer.v1`) that announces it, and a token of 20 to 30 seconds with `exp` and a `jti` that is
+   `HMAC-SHA256(binding, client nonce)` of the layer's `OPEN`, where the binding is the end-to-end
+   channel's handshake hash or exporter on each road with a node, and a TLS 1.3 exporter on a road
+   whose far end is the TLS peer. The token rides in the end-to-end proof, as a grant does, never in
+   argv, a URL or an environment variable. The node checks it before it dials, keeps each `jti` for the
+   token's life, and records the user and the method on the session.
+3. A resume mints a new token only where the road runs a new handshake; the session id stays the handle.
 4. Signers: first a key listed in the user's identity file; an OIDC ID token comes after, and only with
    the replay cache. The `email_verified` claim is required, not assumed.
 5. Shared code first: OPEN's field and the verifier belong to `pod-session` and `pod-identity`; ask
@@ -3646,6 +3649,36 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of another session, expiry
 ```
 
+## Correction
+
+2026-11-23, from the research of step 1 (`docs/design.md`, section 5, "A bearer in `OPEN`"):
+
+- "No entry covers authentication by a token" holds for a bearer, but a token that a node checks
+  exists: the grant of T-226, an OpenSSH user certificate that rides inside the end-to-end channel
+  and is bound to the key that the channel proved (pod-relay `src/grant/mod.rs:8-13`, PodUtils/podcrates
+  at v0.82.0). A bearer is the grant's case with no key at the holder.
+- Step 2 said the token rides "inside OPEN" with `HMAC(exporter, session id)`. `OPEN` has no field for
+  it (feature names only, pod-session `src/record.rs:40-52`, `:293-307`), and a new session has no id
+  at `OPEN`: the far end draws it after (`src/handshake.rs:376-408`). On the reverse road the TLS
+  exporter is a hop's, not the far end's (`crates/podssh-relay/src/serve/reverse/node.rs:1-5`). Step 2
+  is changed above.
+
+## Done
+
+Research step, 2026-11-23: wrote the table of roads in `docs/design.md`, section 5 ("A bearer in
+`OPEN`: where a binding exists"): what rustls and noq give, which roads have a TLS exporter at the far
+end (the forward road to the role's layer over TLS 1.3, HTTP/2 and QUIC with a per-session value;
+the node's own TLS behind a passthrough tunnel), which have none (the reverse road, the cleartext road,
+a stdio `serve`), and that the end-to-end channel is the binding every road with a node has. Found: `OPEN`
+cannot carry a token; a new session has no id at `OPEN`; the TLS 1.2 exporter is not unique without the
+extended master secret, so a binding takes TLS 1.3 only; a token that an identity provider signed has
+no binding without a proof of possession. No road lacks both an exporter and a nonce, so step 6's
+question for `TODO/PROGRESS.md` is not raised; whether a bearer is worth a change in `pod-e2e` (the
+handshake hash or exporter given to the grant's callback) is for the main session and the operator.
+Nothing was built or run; the cited lines were read in the worktree, in pod-session, pod-e2e, pod-relay
+and pod-ws at v0.82.0, and in rustls 0.23.46 and noq 1.4.0. Not read: iroh 1.4.1's `Connection` (its
+source is not on the machine). The entry stays partial for step 2 onward.
+
 # T-836: A gateway role: a user name chooses the upstream, and the client's own key proves the second hop
 
 **Source:** the donor study of 2026-11-18, report 10 (tg123/sshpiper at its pinned commit); the tracker issue is PodUtils/podssh#317
@@ -3653,7 +3686,7 @@ cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of an
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3684,9 +3717,10 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
    offered-key query and the signed attempt are separate (they are, at `auth_publickey_offered` and
    `auth_publickey`), and whether a client can sign a blob that another side supplies. Write the result in
    `docs/design.md`.
-2. Decide among three paths: (a) relay the signature (podssh to podssh; needs a patched client), (b) a
-   gateway assertion signed with `pod-identity` and a trust set at the upstream, (c) a mapped key for a
-   stock upstream. Write the choice, the audit line each leaves upstream, and what a compromised gateway can
+2. Decide among three paths: (a) the client's agent signs the upstream's blob (a stock client run with
+   `-A`; the signature itself cannot be relayed, see `## Correction`), (b) a gateway assertion signed
+   with `pod-identity` and a trust set at the upstream, which is an OpenSSH user certificate (`pod-relay`'s
+   `Mint`), (c) a mapped key for a stock upstream. Write the choice, the audit line each leaves upstream, and what a compromised gateway can
    do, in the entry's `## Decision`.
 3. A route table keyed by user name pattern, read by the first callback of `serve`, owned by the net's
    policy where one exists (T-430), else a file. A route that is empty refuses; it never maps to `none`.
@@ -3694,6 +3728,61 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 4. Dial upstream only after the signed attempt, never on a key query (a client that offers many keys would
    cause many upstream logins).
 5. Anything for `pod-identity` (the assertion, the trust set) is a COORD issue `(to podcrates)`.
+
+## Decision
+
+2026-11-23, from the research of step 1 (`docs/design.md`, section 4, "A gateway in front of private
+hosts"). Build (b), the gateway as a short-lived certificate authority, first. Keep (a) as a second mode
+for a client that forwards its agent. Do not build (c).
+
+What each path does, from the code read:
+
+| | (a) the client's agent signs | (b) a certificate of the gateway | (c) a mapped key |
+| --- | --- | --- | --- |
+| What the client needs | `ssh -A` and its key in an agent | a stock `ssh`, its key admitted by the route | the same as (b) |
+| What the upstream needs | its own `authorized_keys`, nothing else | `TrustedUserCAKeys` and a principal list on a stock sshd; `cert-authority` in `podssh serve`, which refuses it today (`crates/podssh-ssh/src/server/options.rs:115-116`) | the route's key in its `authorized_keys` |
+| When the gateway dials | after the client is let in and asked for agent forwarding (`vendor/russh/src/server/encrypted.rs:1775-1789`, after authentication), so the gateway's own admission decides first | in `auth_publickey`, after the signature (`encrypted.rs:1239`) | as (b) |
+| What upstream logs | the user's own key, from the gateway's address | the certificate: the gateway's CA key, the key id and the serial; the gateway sets the key id to the route, the user name and the user key's fingerprint, so one line ties the login to the user | the route's key: the user is in the gateway's log alone |
+| A compromised gateway | has no key of any user; signs only while a user's connection is open, and only for the servers that the agent's `ssh-add -h` constraints allow (`crates/podssh-ssh/src/agent_bind.rs:1-7`); holds nothing at rest | holds the CA key: it mints a certificate for any principal that an upstream's list allows, at any time, until the upstream drops the CA. It holds no key of a user. A certificate lasts 30 s, with `source-address`, and a route's own CA key limits the loss to that route | holds one credential for each route at rest: a copy of the file logs in from anywhere until the route's key is replaced |
+
+Why (b) first. It is the only path that a stock `ssh user-a@gateway` can use with no `-A` and no patched
+client, which is the Prove of this entry. It works against a stock sshd, as `TrustedUserCAKeys` is
+OpenSSH's own feature (not read here). The parts exist: the certificate is `pod-relay`'s `Mint` with
+principals, a window and critical options (PodUtils/podcrates v0.82.0, `src/grant/cert.rs:149-210`), and
+russh's client logs in with a certificate and a key in the process (`vendor/russh/src/client/mod.rs:607-615`),
+the key a fresh one for each login. The gateway proves the first hop itself: the user's signature is
+verified before any callback that can dial (`encrypted.rs:1225-1239`), and the route table lists the
+keys that may take a route.
+
+Why (a) is second, and kept. It is the strongest against a compromised gateway, and it is what the entry's
+title asks for: the client's own key proves the second hop. But the agent channel exists only after
+the client is let in (`encrypted.rs:1450`, `:1775`), so the gateway needs its own list of keys per route
+anyway, the client must run with `-A`, and a shell request waits for the upstream's login. It adds to
+(b); it does not replace it.
+
+Why (c) lost. It needs a long-lived upstream secret for each route at rest, with no limit by principal
+and no line that names the user. It is (b) with the worse parts of both.
+
+What this changes in the entry's words. The title and the Premise's last item say that the client's key
+proves the second hop; under (b), the gateway's certificate does, on the strength of the client's
+signature at the first hop. The private key still never leaves the client.
+
+What step 3 and the Prove need, found by the research:
+
+- A route's key list and its CA key are `pod-identity` things (Shared code first): the certificate's
+  minting is `Mint`; the gateway's use of it, the route table and the CA keys are for a COORD issue
+  `(to podcrates)` only where a second project needs them. `podssh serve`'s `cert-authority` support
+  (the `Redeem`-like check of a certificate against a principal list) is podssh's, and is needed before an
+  upstream that is a podssh can be a route.
+- The dial in `auth_publickey` holds the client's own connection loop (`encrypted.rs:1239`): it has a
+  time limit, one line when it fails, and a refusal of the login (never a success with no upstream).
+- A route with no match refuses in `auth_publickey` with `Auth::reject()`; no path maps to `none`.
+- russh gives no join of two connections at the packet layer: each channel request of the downstream
+  (pty, shell, exec, subsystem, window change, signal, `direct-tcpip`) has to be forwarded to an upstream
+  channel. That is the larger part of the work, and is a step of its own.
+- The planted gateway of the Prove (one that dials in `auth_publickey_offered`) is a real fault of that
+  callback: it runs for keys that proved nothing, and for a signed request that no probe preceded
+  (`encrypted.rs:1207-1216`).
 
 ## Prove
 
@@ -3705,6 +3794,36 @@ A test that does not exist yet: OpenSSH's `ssh user-a@gateway` and `ssh user-b@g
 OpenSSH servers; a user name with no route is refused (255, one true line); an upstream key that is not
 pinned is refused; a client that offers 20 keys and signs none causes no upstream connection. A planted
 gateway that dials on the key query fails the last check.
+
+## Correction
+
+2026-11-23, from the research of step 1:
+
+- The Premise's last item, "a podssh gateway can relay the client's signature over the upstream session id,
+  so the private key never leaves the client", does not hold as written. A signature covers the session
+  identifier of the connection that it was made on (`vendor/russh/src/server/encrypted.rs:1225-1229`,
+  `src/client/encrypted.rs:1635-1645`): what the user signed for the gateway is worth nothing upstream.
+  The client must sign a second time, over the upstream's blob: through its agent, by a channel that the
+  gateway opens after login (`src/server/session.rs:254`), or in a patched client.
+- Approach step 2's "(a) ... needs a patched client" is changed above: a stock client with `-A` is
+  enough. Step 1's question about the callbacks is answered: they are separate, with the rider that a
+  signed request with no probe before it calls `auth_publickey_offered` too (`encrypted.rs:1207-1216`).
+- The Prove's "a client that offers 20 keys and signs none causes no upstream connection" is true, but
+  russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:238-258`).
+  A cap on the offers, if wanted, is the gateway's.
+
+## Done
+
+Research step, 2026-11-23: wrote the two answers of step 1 in `docs/design.md`, section 4 ("A gateway in
+front of private hosts: what the pinned russh allows"), with the lines of `vendor/russh` that give them,
+and the step-2 decision above, with the audit line and the compromised-gateway case of each path. Found
+that the offered-key query and the signed attempt are separate callbacks, that the signed request can
+also call the offered callback, that a signature cannot cross sessions, and that a stock client's agent
+can sign the upstream's blob only after login and only with `-A`. Nothing was built or run; the lines were
+read in the worktree and in PodUtils/podcrates v0.82.0. Not read: OpenSSH's own `TrustedUserCAKeys`, `source-address` and
+its log line (stated from its documented behaviour, to be checked against a stock sshd in step 2's test),
+and whether `pod-relay`'s `Cert::blob()` converts to russh's `ssh_key::Certificate` without a loss (to be
+tried at the first build). The entry stays partial for steps 3 to 5.
 
 # T-837: A live shell shared by name: a read-only name, and one writer at a time
 
