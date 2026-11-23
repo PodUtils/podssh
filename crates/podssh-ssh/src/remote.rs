@@ -15,6 +15,7 @@ use crate::handler::Client;
 use crate::log::Log;
 use crate::options::{Options, RemoteForward, RemoteListen};
 use crate::run::HopError;
+use crate::tally::State;
 
 /// Where the server listens for a forward that it took: the port that it
 /// chose when the forward asked for 0, or the path.
@@ -57,10 +58,17 @@ pub async fn request(handle: &Handle<Client>, table: &Table, opts: &Options, log
     for forward in opts.remote_forwards.iter().filter(|f| !crate::tally::is_closed(&name(f))) {
         if !ask(handle, table, forward, log).await {
             if opts.exit_on_forward_failure && opts.forwards_again.is_none() {
+                mark(forward, State::Refused);
                 return Err(HopError::Forward(failed("Error", forward)));
             }
             refused.push(forward);
         }
+    }
+    // One that is asked again waits for its answer; else the server's
+    // answer is final (T-840).
+    let pending = if opts.forwards_again.is_some() { State::Waiting } else { State::Refused };
+    for forward in &refused {
+        mark(forward, pending);
     }
     if let Some(again) = opts.forwards_again.filter(|_| !refused.is_empty()) {
         let started = Instant::now();
@@ -88,6 +96,7 @@ pub async fn request(handle: &Handle<Client>, table: &Table, opts: &Options, log
         return Err(HopError::Unreachable(lost_while_asked()));
     }
     for forward in refused {
+        mark(forward, State::Refused);
         if opts.exit_on_forward_failure {
             return Err(HopError::Forward(failed("Error", forward)));
         }
@@ -171,9 +180,18 @@ pub(crate) async fn ask(handle: &Handle<Client>, table: &Table, forward: &Remote
         }
         table.lock().unwrap_or_else(|e| e.into_inner()).push(Bound { at, forward: forward.clone() });
     }
-    // In the list of ~# from now on (T-041), open again if ~C had stopped it.
-    crate::tally::opened(&name(forward));
+    // In the list of ~# from now on (T-041), open again if ~C had stopped
+    // it, and up (T-840).
+    let name = name(forward);
+    crate::tally::opened(&name).set_state(&name, State::Up, None, None);
     true
+}
+
+/// `forward` stands at `state` (T-840). The server's answer to a request of
+/// a forward says no reason (RFC 4254, 4: REQUEST_FAILURE has no data).
+pub(crate) fn mark(forward: &RemoteForward, state: State) {
+    let name = name(forward);
+    crate::tally::of(&name).set_state(&name, state, None, None);
 }
 
 /// The target of `forward` in OpenSSH's line of an allocated port.

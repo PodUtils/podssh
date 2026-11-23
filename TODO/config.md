@@ -1,7 +1,7 @@
 This file holds the work on configuration files: OpenSSH's `ssh_config` (`-F`, `Host`,
 `Include`, `Match` and `-G`), host lists from other clients, and a settings file for podssh's
 own options. The rules of OpenSSH that podssh follows were measured with `ssh -G` and are in
-`docs/cli.md:6823-6935`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
+`docs/cli.md:6846-6958`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
 
 # T-043: Read `ssh_config`: `~/.ssh/config`, `-F FILE`, `Host` patterns, and `Match` refused by name (GitHub #14, #22)
 
@@ -206,7 +206,7 @@ No glob code exists in podssh. `known_hosts::wildcard`
    stands, and `Match final all` applies after the last line and fills only unset values, as
    measured. Each other `Match` stays refused by name until T-045.
 6. Check each included file as T-043 checks the user file: its owner and its mode.
-7. Change `docs/cli.md:6823-6944`, FILES (`crates/podssh-cli/src/man/data.rs:163-500`) and the
+7. Change `docs/cli.md:6846-6967`, FILES (`crates/podssh-cli/src/man/data.rs:163-500`) and the
    `ssh` notes in the same commit.
 
 ## Prove
@@ -464,7 +464,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
    `serveraliveinterval 60` (the relay's idle cut, `docs/relay.md:628`) and `connecttimeout 60`.
 6. It does not wait for T-043: with no file, `-G` shows the effect of `-o`. After T-043 and
    T-044, `-v` names the files that were read, on stderr.
-7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-175`) and `docs/cli.md:66-987`
+7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-186`) and `docs/cli.md:66-1010`
    in the same commit.
 
 ## Decision
@@ -946,7 +946,7 @@ try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:353-361`
 - `scripts/interop.sh:327-337`: `ssh.config.jump_alias`, `-F FILE -J openssh-alias dropbear-alias`
   with podssh and with OpenSSH's `ssh`, each to exit 6 (the floor of ssh is 72). The gate runs it
   at this push.
-- `docs/cli.md:163-169` and `docs/cli.md:6868-6880`, and the manual's file `~/.ssh/config`, say what
+- `docs/cli.md:163-169` and `docs/cli.md:6891-6903`, and the manual's file `~/.ssh/config`, say what
   a hop takes.
 - `cargo test -p podssh-ssh`: 142 passed; `cargo test -p podssh-cli`: 565 passed, 0 failed,
   31 ignored; clippy; rustfmt.
@@ -1614,7 +1614,7 @@ user asked for is gone with no sign, and an audit finds it.
   `HostbasedAcceptedAlgorithms` restricts a hostbased login, which podssh does not make, so it is
   inert here.
 - Read (L-09): `-G` prints the keywords that podssh applies (`crates/podssh-cli/src/ssh/dump.rs:1-7`),
-  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:76-80`), so it has no line for
+  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:84-88`), so it has no line for
   an algorithm list.
 
 ## Approach

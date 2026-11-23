@@ -31,7 +31,7 @@ async fn forward_counts_the_bytes_each_way_once() {
     let (back, got) = tokio::join!(talk, echo);
     assert_eq!((got, back.len()), (262_144, 1000));
     copying.await.unwrap().unwrap();
-    assert_eq!(counts.line(), "1 connection (0 open, 0 failed), 262144 bytes up, 1000 bytes down");
+    assert_eq!(counts.line(), "1 connection (0 open, 0 failed), 262144 bytes up, 1000 bytes down; bound");
 }
 
 /// One name, one forward: its counts go on across connections; a failure

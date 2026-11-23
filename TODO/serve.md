@@ -383,7 +383,7 @@ tells the user nothing.
   limit; `HTTPS_PROXY` when it is set) and
   `PodUtils/podssh:crates/podssh-ws/src/dial.rs:105-112` (loopback never through a proxy).
   The client copies a forward with half-close in
-  `crates/podssh-ssh/src/forward.rs:39-110`.
+  `crates/podssh-ssh/src/forward.rs:58-134`.
 - Read: in the measured sandbox, `connect()` to loopback failed with `EACCES`
   (`docs/target-environment.md:22`). Such a refusal must reach the client
   with its reason.
@@ -395,7 +395,7 @@ tells the user nothing.
    Do not add a second dialer.
 2. On success, accept, then copy between `channel.into_stream()` and the TCP
    stream in both directions. An EOF in one direction keeps the other open,
-   as `crates/podssh-ssh/src/forward.rs:39-110` does.
+   as `crates/podssh-ssh/src/forward.rs:58-134` does.
 3. On failure, reject with code 2 (connect failed) and the dial error in
    words: the errno, or the proxy's status and reason.
 4. Limits: 20 s for the dial; a stated maximum of open forwards for each
@@ -484,7 +484,7 @@ the entry joins the work order by its priority.
   ("invalid destination: ... is not a host name") reach the client as any dial's do. A dial's words
   are `DialError`'s own: "could not connect to HOST:PORT: Connection refused (os error 111)", the
   proxy's "refused CONNECT HOST:PORT: STATUS REASON", or "timed out after 20s".
-- `crates/podssh-ssh/src/forward.rs:39-110` is the client's `-W` on stdin and stdout, not a copy
+- `crates/podssh-ssh/src/forward.rs:58-134` is the client's `-W` on stdin and stdout, not a copy
   with half-close to reuse: the server's copy is its own (`crates/podssh-ssh/src/server/direct.rs`),
   as it must tell the client's EOF from its close, which russh's channel stream reads alike; it ends
   the TCP connection when the client closes the channel, as `agent_forward::splice` ends its socket.

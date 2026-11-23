@@ -17,6 +17,14 @@ pub(super) const MORE: &[&str] = &[
      change, and the new one is printed. The logins after the first ask nothing, unless \
      SSH_ASKPASS_REQUIRE is force and SSH_ASKPASS names a program to ask. With no forward, or \
      --persist-name, -N with --persist is refused (exit 64).",
+    "Each forward has a state word. It follows the counts in ~# and in the lines of -v, and is state in \
+     --result-file. bound: the listener is bound or the request made, and no link carries it yet. waiting: the link \
+     was lost, and --persist connects again or asks again for a refused remote forward. up: it serves on the link. \
+     refused: the server's policy refused it, as AllowTcpForwarding no does. A refused channel gives the server's \
+     reason in parentheses; a refused remote forward has none, as SSH sends none. A target that is down fails one \
+     connection and leaves the word. A forward that ~C stopped says closed instead. With --persist, each change of a \
+     word is one line on stderr, NAME: WORD; waiting ends with the loss that names the hop that broke. At the end of \
+     a run each word is the last one that the forward had.",
     "~C, in a session with a pty, opens the command line of OpenSSH, ssh>, on the terminal. -L, -D or -R \
      with a spec of the command line adds that forward to the running session: the listeners of -L and -D are made as \
      those of the command line are (the probe, -g, PODSSH_LISTEN). -R asks the server and waits 20 s at most for its \
@@ -149,6 +157,9 @@ pub(super) const MORE: &[&str] = &[
      host-key, auth, forward, policy, relay, session, usage, config or not-built, or null); bytes (stdin, stdout and stderr, \
      as they passed; null through a control master, \
      which carries them), duration_ms, and relay (its host, close_code and reason, or null with no relay). \
+     A run with forwards adds forwards, one object for each: name as written, state (bound, waiting, up or \
+     refused), reason (the server's, or null), closed (stopped by ~C), connections, open, failed, bytes_up and \
+     bytes_down. \
      A link lost after the remote exit status and before the end of the output ends lost, with exit 255 \
      and the status kept. stdout and stderr stay as they are; the command's output never goes into the \
      file. A new file is made \

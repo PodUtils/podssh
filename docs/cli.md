@@ -774,7 +774,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   first connection: a warning, or with `ExitOnForwardFailure` the end of the
   run (255). A port that the server chose (`-R 0:...`) can change, and
   podssh prints the new one. Each loss is a line on stderr that names the
-  hop that broke, and each return a line. The logins after the first ask
+  hop that broke, and each return a line; each forward's change of state
+  is a line too (T-840, `waiting`, `up`, `refused`). The logins after the first ask
   nothing (as `BatchMode=yes`), unless `SSH_ASKPASS_REQUIRE=force` names a
   program of `SSH_ASKPASS` to ask. With `-N` and no forward, or with
   `--persist-name`, it is a usage error (64).
@@ -849,7 +850,12 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   `--policy` ended the run; `connect` also when podssh got
   no session for another cause), `bytes` (`stdin`, `stdout`
   and `stderr`, as they passed), `duration_ms`, and `relay` (`host`,
-  `close_code` and `reason`, or null with no relay). A signal ends with
+  `close_code` and `reason`, or null with no relay). A run with forwards
+  adds `forwards` (T-840), one object for each in the order of its first
+  use: `name` as written, `state` (`bound`, `waiting`, `up` or `refused`),
+  `reason` (the server's, or null), `closed` (stopped by `~C`),
+  `connections`, `open`, `failed`, `bytes_up` and `bytes_down`; a run with
+  none has no such key. A signal ends with
   128 + its number, as in OpenSSH, and `status` is then null. `-N` ends
   `lost` when the server or the network ends the connection. A link lost
   after the remote exit status and before the end of the output ends
@@ -957,6 +963,23 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   asked for again on a new connection (`--persist`) keeps its counts. A
   forward that `~C` stopped stays in the list, with `; closed` at the end
   of its line.
+- **Each forward has a state word** (T-840), at the end of its line of `~#`
+  and of `-v`, and as `state` in `--result-file`: `bound` (its listener is
+  bound or its request made, and no link carries it), `waiting` (the
+  link was lost, and `--persist` connects again, or asks the server again
+  for a refused `-R`), `up` (it serves on the link), or `refused`, with the
+  server's reason in parentheses when it gave one: a channel of `-L`, `-D`
+  or `-W` that the server's policy refuses (`AllowTcpForwarding no`:
+  `refused (administratively prohibited)`), or a kind of channel that it
+  lacks; a refused `-R` has no reason, as SSH's answer carries none. A
+  target that is down fails one connection and leaves the word as it was.
+  A forward that `~C` stopped says `closed` instead. With `--persist`, each
+  change of a word is one line on stderr, `NAME: WORD`, and `waiting` ends
+  with the line of the loss that names the hop that broke:
+  `-L 8080:db:5432: waiting: connection to db.example lost: ...`. At the
+  end of a run each word is the last one that the forward had. `-N` has no
+  `~#`, as it has no pty: its words are in those lines, in the lines of
+  `-v`, and in `--result-file`.
 - **`~C` adds and stops forwards in a running session** (T-291), in a
   session with a pty, as OpenSSH's `~C` does. It opens OpenSSH's command
   line, `ssh> `, and reads one line from the session's own keys; no key of

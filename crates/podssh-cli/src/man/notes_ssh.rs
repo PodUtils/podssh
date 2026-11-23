@@ -382,7 +382,7 @@ const FIRST: &[&str] = &[
     "What podssh reads from the terminal: in a session with a pty, the escape character (~, or that of \
      -e; -e none turns it off) at the start of a line, and the key after it: ~. ends the session; ~R asks for a \
      re-key; ~C opens a command line that adds and stops forwards (below); ~# lists the forwards of the session with \
-     the connections and bytes of each (with -v, the end of a run prints the same lines); ~d leaves the shell to a far \
+     the connections, bytes and state word of each (below; with -v, the end of a run prints the same lines); ~d leaves the shell to a far \
      end that keeps shells (see --attach) and goes as typed elsewhere; ~Z sends a file by ZMODEM (below); ~? lists the \
      escapes that this session offers, and ~~ sends one ~; another key \
      goes with the ~ before it. Each other byte passes unchanged, as the remote \

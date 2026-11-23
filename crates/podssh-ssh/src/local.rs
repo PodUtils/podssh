@@ -153,9 +153,10 @@ pub async fn serve(handle: &Handle<Client>, forwards: &[LocalForward], log: &Arc
     // In the list of ~# from now on (T-041), and open again if ~C had
     // closed a forward of that name; one whose listeners ~C closed stays
     // closed on the next connection of `--persist` (T-291).
+    // Up from now on (T-840): its listeners serve on a live link.
     for forward in forwards {
         if forward.listeners.iter().any(|l| !l.closed()) {
-            crate::tally::opened(&forward.shown);
+            crate::tally::opened(&forward.shown).set_state(&forward.shown, crate::tally::State::Up, None, None);
         } else {
             crate::tally::of(&forward.shown);
         }
@@ -256,10 +257,15 @@ async fn carry(handle: &Handle<Client>, forward: &LocalForward, conn: Accepted, 
         Ok(Ok(channel)) => channel,
         failed => {
             counts.failed();
-            let (why, refusal) = match failed {
-                Ok(Err(e)) => (open_failure(&e), refusal_of(&e)),
+            let (why, refusal) = match &failed {
+                Ok(Err(e)) => (open_failure(e), refusal_of(e)),
                 _ => (format!("no answer within {} s", OPEN_LIMIT.as_secs()), socks::Refusal::General),
             };
+            if let Ok(Err(e)) = &failed
+                && refuses_the_forward(e)
+            {
+                counts.set_state(&forward.shown, crate::tally::State::Refused, Some(&why), None);
+            }
             log.info(&format!("{}: the server could not open {target}: {why}", forward.shown));
             if let Some(version) = socks {
                 let _ = socks::answer(&mut write, version, Err(refusal)).await;
@@ -272,6 +278,9 @@ async fn carry(handle: &Handle<Client>, forward: &LocalForward, conn: Accepted, 
     {
         return;
     }
+    // A channel that opened: the forward serves, whatever a refusal said
+    // before (T-840).
+    counts.set_state(&forward.shown, crate::tally::State::Up, None, None);
     log.verbose(&format!("{}: a connection to {target}", forward.shown));
     tokio::spawn(async move {
         let local = tokio::io::join(read, write);
@@ -296,7 +305,7 @@ async fn open(
 }
 
 /// The server's reason, as RFC 4254 names it.
-fn open_failure(e: &russh::Error) -> String {
+pub(crate) fn open_failure(e: &russh::Error) -> String {
     match e {
         russh::Error::ChannelOpenFailure(reason) => match reason {
             ChannelOpenFailure::AdministrativelyProhibited => "administratively prohibited".into(),
@@ -307,6 +316,19 @@ fn open_failure(e: &russh::Error) -> String {
         },
         other => crate::run::describe(other),
     }
+}
+
+/// Whether a channel that did not open says that the server refuses the
+/// forward itself (T-840): its policy (`AllowTcpForwarding no`), or a kind
+/// of channel that it lacks. A target that is down, or a server short of
+/// room, is a fault of one connection, and the forward still serves.
+fn refuses_the_forward(e: &russh::Error) -> bool {
+    matches!(
+        e,
+        russh::Error::ChannelOpenFailure(
+            ChannelOpenFailure::AdministrativelyProhibited | ChannelOpenFailure::UnknownChannelType
+        )
+    )
 }
 
 /// The SOCKS5 code of a channel that did not open.

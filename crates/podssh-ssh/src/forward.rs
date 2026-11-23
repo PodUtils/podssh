@@ -26,29 +26,53 @@ pub async fn open_target(
     handle: &Handle<Client>,
     target: &StdioTarget,
 ) -> Result<russh::ChannelStream<russh::client::Msg>, String> {
+    open_raw(handle, target).await.map_err(|e| refusal_words(target, &e))
+}
+
+/// [`open_target`], with russh's error, whose reason `-W`'s state keeps
+/// (T-840).
+async fn open_raw(
+    handle: &Handle<Client>,
+    target: &StdioTarget,
+) -> Result<russh::ChannelStream<russh::client::Msg>, russh::Error> {
     match target {
-        StdioTarget::Tcp { host, port } => open(handle, host, *port).await,
-        StdioTarget::Socket(path) => handle
-            .channel_open_direct_streamlocal(path.as_str())
-            .await
-            .map(|c| c.into_stream())
-            .map_err(|e| format!("the server could not open a connection to the socket {path}: {e}")),
+        StdioTarget::Tcp { host, port } => {
+            handle.channel_open_direct_tcpip(host, u32::from(*port), "127.0.0.1", 0).await.map(|c| c.into_stream())
+        }
+        StdioTarget::Socket(path) => {
+            handle.channel_open_direct_streamlocal(path.as_str()).await.map(|c| c.into_stream())
+        }
+    }
+}
+
+/// The line of a target that the server did not open, as [`open`] says it.
+fn refusal_words(target: &StdioTarget, e: &russh::Error) -> String {
+    match target {
+        StdioTarget::Tcp { host, port } => {
+            format!("the server could not open a connection to {}: {e}", podssh_ws::dial::authority(host, *port))
+        }
+        StdioTarget::Socket(path) => format!("the server could not open a connection to the socket {path}: {e}"),
     }
 }
 
 /// Copy stdin to the stream and the stream to stdout until the far side
 /// closes. Returns the exit code: 0 for a normal close.
 pub async fn stdio(handle: &Handle<Client>, target: &StdioTarget, log: &Log) -> i32 {
-    let counts = crate::tally::of(&format!("-W {}", target.shown()));
-    let stream = match open_target(handle, target).await {
+    let name = format!("-W {}", target.shown());
+    let counts = crate::tally::of(&name);
+    let stream = match open_raw(handle, target).await {
         Ok(s) => s,
-        Err(why) => {
+        Err(e) => {
             counts.failed();
-            log.error(&why);
+            // The forward is its one channel: one that did not open is a
+            // refusal, with the server's reason (T-840).
+            counts.set_state(&name, crate::tally::State::Refused, Some(&crate::local::open_failure(&e)), None);
+            log.error(&refusal_words(target, &e));
             crate::outcome::failed("forward");
             return crate::run::EXIT_FAILURE;
         }
     };
+    counts.set_state(&name, crate::tally::State::Up, None, None);
     let _connection = counts.connection();
     let stream = crate::tally::Counted::down(stream, &counts);
     let (mut from_far, mut to_far) = tokio::io::split(stream);

@@ -128,13 +128,18 @@ fn a_failure_has_its_class() {
 }
 
 /// `-W` carries stdin and stdout with no session: its bytes, and no end. A
-/// socket that the server refuses is the class `forward`.
+/// socket that the server refuses is the class `forward`. The forward is
+/// listed with its state word (T-840): `up`, or `refused` with the reason.
 #[test]
 fn a_stdio_forward_has_its_bytes_and_no_session() {
     let (dir, port, _runtime) = server("stdio");
     let input = vec![0x62u8; 10_000];
-    let (code, out, err, r) = run(&dir, port, &["-W", "/echo"], "u", &[], &input);
+    let (code, out, err, mut r) = run(&dir, port, &["-W", "/echo"], "u", &[], &input);
     assert_eq!((code, out.len()), (Some(0), input.len()), "{err}");
+    let forwards = r.as_object_mut().unwrap().remove("forwards").unwrap_or_else(|| panic!("no forwards: {err}"));
+    let w = &forwards[0];
+    assert_eq!((&w["name"], &w["state"], &w["reason"]), (&json!("-W /echo"), &json!("up"), &Value::Null), "{w}");
+    assert_eq!((&w["connections"], &w["bytes_up"], &w["bytes_down"]), (&json!(1), &json!(10_000), &json!(10_000)));
     let bytes = json!({ "stdin": 10_000, "stdout": 10_000, "stderr": 0 });
     let want = json!({ "schema": 1, "exit": 0, "status": null, "signal": null, "end": null, "failure": null,
         "bytes": bytes, "relay": null });
@@ -142,6 +147,9 @@ fn a_stdio_forward_has_its_bytes_and_no_session() {
     let (code, _, err, r) = run(&dir, port, &["-W", "/elsewhere"], "u", &[], b"");
     assert_eq!(code, Some(255), "{err}");
     assert_eq!((&r["end"], &r["failure"]), (&json!("failed"), &json!("forward")), "{r}");
+    let w = &r["forwards"][0];
+    assert_eq!((&w["name"], &w["state"], &w["failed"]), (&json!("-W /elsewhere"), &json!("refused"), &json!(1)), "{r}");
+    assert!(w["reason"].as_str().is_some_and(|reason| !reason.is_empty()), "the server's reason: {r}");
 }
 
 /// `-` is refused, as stdout is the command's; a usage error is written.

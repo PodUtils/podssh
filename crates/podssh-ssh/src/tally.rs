@@ -4,7 +4,8 @@
 //! they are read, on atomics: no lock on the data path. A process runs one
 //! chain of connections, so the table is the process's; a forward asked for
 //! again on a new connection (`--persist`) keeps its counts. A forward that
-//! `~C` stopped stays in the list, said closed (T-291).
+//! `~C` stopped stays in the list, said closed (T-291). Each forward has a
+//! state word beside its counts (T-840, `tally_state.rs`).
 
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering::Relaxed};
@@ -12,6 +13,10 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+
+#[path = "tally_state.rs"]
+mod states;
+pub use states::{announce, State, Word};
 
 /// What one forward carried.
 #[derive(Debug, Default)]
@@ -24,6 +29,8 @@ pub struct Counts {
     down: AtomicU64,
     /// `~C -KL`, `-KD` or `-KR` stopped it (T-291).
     closed: AtomicBool,
+    /// Where it stands (T-840).
+    word: Word,
 }
 
 impl Counts {
@@ -46,21 +53,65 @@ impl Counts {
         Connection(self.clone())
     }
 
-    /// The counts in words: the connections, those open and failed, and the
-    /// bytes each way.
+    /// Where the forward stands.
+    pub fn state(&self) -> State {
+        self.word.get()
+    }
+
+    /// The state of the forward `name` is `state` from now on, with the
+    /// server's reason of a refusal; a change is said with `--persist`,
+    /// after `why` when one is given.
+    pub fn set_state(&self, name: &str, state: State, reason: Option<&str>, why: Option<&str>) {
+        if self.word.set(state, reason) {
+            states::said(&states::line(name, &self.word.shown(), why));
+        }
+    }
+
+    /// What the forward carried and where it stands, for `--result-file`.
+    pub fn snapshot(&self, name: &str) -> Forward {
+        let opened = self.opened.load(Relaxed);
+        Forward {
+            name: name.to_string(),
+            state: self.word.get(),
+            reason: self.word.reason(),
+            closed: self.closed.load(Relaxed),
+            opened,
+            open: opened.saturating_sub(self.ended.load(Relaxed)),
+            failed: self.failed.load(Relaxed),
+            up: self.up.load(Relaxed),
+            down: self.down.load(Relaxed),
+        }
+    }
+
+    /// The counts in words: the connections, those open and failed, the
+    /// bytes each way, and the state word, or `closed`.
     pub fn line(&self) -> String {
         let opened = self.opened.load(Relaxed);
         let open = opened.saturating_sub(self.ended.load(Relaxed));
         let failed = self.failed.load(Relaxed);
         let s = |n: u64| if n == 1 { "" } else { "s" };
-        let closed = if self.closed.load(Relaxed) { "; closed" } else { "" };
+        let state = if self.closed.load(Relaxed) { "closed".to_string() } else { self.word.shown() };
         format!(
-            "{opened} connection{} ({open} open, {failed} failed), {} bytes up, {} bytes down{closed}",
+            "{opened} connection{} ({open} open, {failed} failed), {} bytes up, {} bytes down; {state}",
             s(opened),
             self.up.load(Relaxed),
             self.down.load(Relaxed)
         )
     }
+}
+
+/// One forward as `--result-file` gives it (T-840).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Forward {
+    pub name: String,
+    pub state: State,
+    pub reason: Option<String>,
+    pub closed: bool,
+    pub opened: u64,
+    pub open: u64,
+    pub failed: u64,
+    pub up: u64,
+    pub down: u64,
 }
 
 /// A connection of a forward: it ends when dropped.
@@ -104,6 +155,28 @@ pub fn closed(name: &str) {
 pub fn is_closed(name: &str) -> bool {
     let table = TABLE.lock().unwrap_or_else(|e| e.into_inner());
     table.iter().any(|(n, counts)| n == name && counts.closed.load(Relaxed))
+}
+
+/// The link of each forward that `~C` did not stop was lost, and
+/// `--persist` connects again (T-840): `waiting`, each change said after
+/// `why`, the loss that names the hop that broke.
+pub fn waiting(why: &str) {
+    let each: Vec<(String, Arc<Counts>)> = TABLE.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    wait_each(&each, why);
+}
+
+/// [`waiting`] for `forwards`, off the table's lock, as each change may be
+/// said.
+fn wait_each(forwards: &[(String, Arc<Counts>)], why: &str) {
+    for (name, counts) in forwards.iter().filter(|(_, counts)| !counts.closed.load(Relaxed)) {
+        counts.set_state(name, State::Waiting, None, Some(why));
+    }
+}
+
+/// Each forward, in the order of their first use, for `--result-file`.
+pub fn snapshots() -> Vec<Forward> {
+    let table = TABLE.lock().unwrap_or_else(|e| e.into_inner());
+    table.iter().map(|(name, counts)| counts.snapshot(name)).collect()
 }
 
 /// A line for each forward, in the order of their first use.

@@ -28,7 +28,7 @@ pub fn object(exit: i32, started: Instant) -> Value {
     let end = f.end.or(failure.map(|_| "failed"));
     // A control master carries the bytes of a run that goes through it.
     let counted = (!f.shared).then(|| bytes(&record));
-    json!({
+    let mut object = json!({
         "schema": SCHEMA,
         "exit": exit,
         "status": f.status,
@@ -38,6 +38,30 @@ pub fn object(exit: i32, started: Instant) -> Value {
         "bytes": counted,
         "duration_ms": started.elapsed().as_millis() as u64,
         "relay": relay(f),
+    });
+    // The forwards of the run, only where it had any (T-840): a reader of
+    // the object of a run with none sees the keys it always saw.
+    let forwards = podssh_ssh::tally::snapshots();
+    if let (false, Value::Object(map)) = (forwards.is_empty(), &mut object) {
+        map.insert("forwards".into(), forwards.iter().map(forward).collect());
+    }
+    object
+}
+
+/// One forward: its name as written, its state word (T-840) with the
+/// server's reason of a refusal, whether `~C` stopped it, and its counts
+/// (T-041).
+pub(crate) fn forward(f: &podssh_ssh::tally::Forward) -> Value {
+    json!({
+        "name": f.name,
+        "state": f.state.word(),
+        "reason": f.reason,
+        "closed": f.closed,
+        "connections": f.opened,
+        "open": f.open,
+        "failed": f.failed,
+        "bytes_up": f.up,
+        "bytes_down": f.down,
     })
 }
 

@@ -611,8 +611,8 @@ at `crates/podssh-ssh/src/outcome.rs:281-292`, and the cause of a failure
 at `crates/podssh-ssh/src/outcome.rs:294-315`. The bytes are counted where
 they pass: stdin at `crates/podssh-ssh/src/io.rs:245`, stdout and stderr at
 `crates/podssh-ssh/src/io/msg.rs:93`, `-W` at
-`crates/podssh-ssh/src/forward.rs:66` and
-`crates/podssh-ssh/src/forward.rs:83`. The status and the signal at
+`crates/podssh-ssh/src/forward.rs:90` and
+`crates/podssh-ssh/src/forward.rs:107`. The status and the signal at
 `crates/podssh-ssh/src/io/msg.rs:36` and `crates/podssh-ssh/src/io/msg.rs:41`,
 the end at `crates/podssh-ssh/src/session.rs:38`; the class of a hop's
 failure at `crates/podssh-ssh/src/run.rs:148-159` and
@@ -622,14 +622,14 @@ failure at `crates/podssh-ssh/src/run.rs:148-159` and
 `crates/podssh-ssh/src/mux/client.rs:168`,
 `crates/podssh-ssh/src/mux/client.rs:202` and
 `crates/podssh-ssh/src/mux/client.rs:264-271`. The object in
-`crates/podssh-cli/src/ssh/result.rs:18-42`, the channel's verdict at
-`crates/podssh-cli/src/ssh/result.rs:114-124`, the file at
-`crates/podssh-cli/src/ssh/result.rs:126-140`, written at the end of
+`crates/podssh-cli/src/ssh/result.rs:18-66`, the channel's verdict at
+`crates/podssh-cli/src/ssh/result.rs:138-148`, the file at
+`crates/podssh-cli/src/ssh/result.rs:150-164`, written at the end of
 `run_ssh` (`crates/podssh-cli/src/ssh/mod.rs:103-143`); the relay host at
 `crates/podssh-cli/src/ssh/transport.rs:226` and its close at
 `crates/podssh-cli/src/ssh/mod.rs:392`. The flag in `SSH_FLAGS`
 (`crates/podssh-cli/src/flags.rs:213`), its note at
-`crates/podssh-cli/src/man/notes_ssh_more.rs:144-158`, and `docs/cli.md`.
+`crates/podssh-cli/src/man/notes_ssh_more.rs:152-169`, and `docs/cli.md`.
 
 The test `crates/podssh-cli/tests/ssh_result.rs`, against the test server,
 whose `exit N` and `kill NAME` are in
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6725-6755`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:6748-6778`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:78-95`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.
@@ -955,8 +955,8 @@ itself. `ssh --result-file` gives one object at the end; the verbs that copy giv
 
 - Read: `--result-file` is a row of `ssh` alone (`crates/podssh-cli/src/flags.rs:213-214`); its
   object is `schema`, `exit`, `status`, `signal`, `end`, `failure`, `bytes` (stdin, stdout,
-  stderr), `duration_ms` and `relay` (`crates/podssh-cli/src/ssh/result.rs:18-42`), written with
-  the mode 0600 (`crates/podssh-cli/src/ssh/result.rs:126-140`).
+  stderr), `duration_ms` and `relay` (`crates/podssh-cli/src/ssh/result.rs:18-66`), written with
+  the mode 0600 (`crates/podssh-cli/src/ssh/result.rs:150-164`).
 - Read: `cp`, `mv` and `scp` share one run and one report (`crates/podssh-cli/src/cp/report.rs:1-5`);
   its outcome holds the files done, the failure, the deletes, the actions of a dry run and the
   files that `run` did not send again (`crates/podssh-cli/src/cp/outcome.rs:15-46`, where T-476

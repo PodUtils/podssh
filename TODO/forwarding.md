@@ -458,7 +458,7 @@ command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
   this Xvfb takes an untrusted cookie of `xauth` at all
   (`scripts/interop-x11.sh:37-51`): env when it does not, a failure when it
   does and podssh's `-X` fails.
-- `docs/cli.md:1111-1134`, a note of the manual and the variable `XAUTHORITY`
+- `docs/cli.md:1134-1157`, a note of the manual and the variable `XAUTHORITY`
   say what the flags do, and the risk of `-Y`.
 - `cargo test -p podssh-ssh`: 155 passed; `cargo test -p podssh-cli`:
   577 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -857,7 +857,7 @@ Read:
    to `Request::StdioForward` (`crates/podssh-ssh/src/options.rs`, lines 67-68 at `f6af943`).
 2. Open a socket with `channel_open_direct_streamlocal` in
    `crates/podssh-ssh/src/forward.rs`, and use the copy loop of `stdio`
-   (`crates/podssh-ssh/src/forward.rs:39-110`) for both kinds.
+   (`crates/podssh-ssh/src/forward.rs:58-134`) for both kinds.
 3. A server that refuses the channel (OpenSSH with
    `AllowStreamLocalForwarding no`) gives its reason, and 255, as for TCP.
 4. Change the help of the `-W` row (`crates/podssh-cli/src/flags.rs:143-144`)
@@ -898,7 +898,7 @@ as a TCP host again, and the gate's check fails with the server's error.
 
 2026-10-11. The target of `-W` is `StdioTarget`, TCP or a socket
 (`crates/podssh-ssh/src/options.rs:164-181`), opened by `open_target`
-(`crates/podssh-ssh/src/forward.rs:24-37`); through a control master
+(`crates/podssh-ssh/src/forward.rs:24-46`); through a control master
 (`crates/podssh-ssh/src/mux/client.rs:177-192`,
 `crates/podssh-ssh/src/mux/msession.rs:271-278`). The command line reads a
 path at `crates/podssh-cli/src/ssh/hop.rs:92-95`, and the row of `-W` says so
@@ -940,7 +940,7 @@ many bytes moved.
 
 ## Premise
 
-Read: today the only forward is `-W` (`crates/podssh-ssh/src/forward.rs:39-110`),
+Read: today the only forward is `-W` (`crates/podssh-ssh/src/forward.rs:58-134`),
 and it counts nothing. The escapes are `~.`, `~R`, `~?` and `~~`
 (`crates/podssh-ssh/src/escape.rs:1-25`); OpenSSH also has `~#`, which lists
 the forwarded connections. `podssh status` (T-051) runs in another process,
@@ -992,13 +992,13 @@ count each chunk twice, and the unit test fails.
 ## Done
 
 2026-10-11. The counts, the table and the listing in
-`crates/podssh-ssh/src/tally.rs:1-193`; `-L` and `-D` count at
-`crates/podssh-ssh/src/local.rs:156-162`, `crates/podssh-ssh/src/local.rs:254` and
-`crates/podssh-ssh/src/local.rs:278`, `-R` at
-`crates/podssh-ssh/src/remote.rs:171`, `crates/podssh-ssh/src/remote_join.rs:27`
+`crates/podssh-ssh/src/tally.rs:1-266`; `-L` and `-D` count at
+`crates/podssh-ssh/src/local.rs:157-163`, `crates/podssh-ssh/src/local.rs:255` and
+`crates/podssh-ssh/src/local.rs:287`, `-R` at
+`crates/podssh-ssh/src/remote.rs:180`, `crates/podssh-ssh/src/remote_join.rs:27`
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:42` and
-`crates/podssh-ssh/src/forward.rs:53`; `~#` at
+`crates/podssh-ssh/src/forward.rs:77`; `~#` at
 `crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:275`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:277`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
@@ -1014,7 +1014,7 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:277`.
   -W` through OpenSSH's sshd to a TCP echo server, 262144 bytes each way) and
   `pty.forwards` (`scripts/interop-pty.py`, `~#` in a session with `-R
   0:127.0.0.1:2201`).
-- `docs/cli.md:924-931` and the manual's note of `-t` say what `~#` and `-v`
+- `docs/cli.md:930-937` and the manual's note of `-t` say what `~#` and `-v`
   print.
 - `cargo test -p podssh-ssh`: 158 passed; `cargo test -p podssh-cli`:
   578 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1141,10 +1141,10 @@ link: the mode at `crates/podssh-cli/src/ssh/persist.rs:38-45` and
 `crates/podssh-ssh/src/persist.rs:102-144`, which asks for the forwards,
 serves `-L` and `-D`, and tells a loss from an end
 (`crates/podssh-ssh/src/persist.rs:61-66`); a refused `-R` asked again in
-`crates/podssh-ssh/src/remote.rs:50-191`, as `Options::forwards_again` says
+`crates/podssh-ssh/src/remote.rs:51-209`, as `Options::forwards_again` says
 (`crates/podssh-ssh/src/options.rs:334-346`), which the loop sets after the
-first loss (`crates/podssh-cli/src/ssh/persist.rs:175-185`); the rule of
-`STEADY` at `crates/podssh-cli/src/ssh/persist.rs:153-159`.
+first loss (`crates/podssh-cli/src/ssh/persist.rs:189-199`); the rule of
+`STEADY` at `crates/podssh-cli/src/ssh/persist.rs:164-170`.
 - `cargo test -p podssh-cli --test persist`: 5 passed. The new test runs
   `--direct --persist -N -R 2291:127.0.0.1:PORT` against the test's server
   (`tests/tmux_harness`, which now takes forwards): a channel of the
@@ -1459,8 +1459,8 @@ counts, and cannot change them.
 
 Read: the escapes are `~.`, `~R`, `~#`, `~?` and `~~`
 (`crates/podssh-ssh/src/escape.rs:13-25`). The listeners of `-L` and `-D` are
-served from the start of the session (`crates/podssh-ssh/src/local.rs:152-181`),
-and `-R` is asked for after the login (`crates/podssh-ssh/src/remote.rs:50-177`).
+served from the start of the session (`crates/podssh-ssh/src/local.rs:152-182`),
+and `-R` is asked for after the login (`crates/podssh-ssh/src/remote.rs:51-188`).
 ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
 `-D`, `-KL`, `-KR` and `-KD` (read in the manual, not measured here).
 
@@ -1507,7 +1507,7 @@ ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
   session's keys wait as they wait for the line. Lost: an answer read on a
   task that outlives the line, which needs a second place to print from.
 - `-KL` and `-KD` find the listeners in a table of the forwards that serve
-  now (`crates/podssh-ssh/src/local.rs:187`), for the whole process, as the
+  now (`crates/podssh-ssh/src/local.rs:188`), for the whole process, as the
   counts of `~#` are: the forwards of the command line serve beside the
   session, outside its pump. A port with no address names each listener of
   that port, `localhost` those on loopback, `*` and an empty address each
@@ -1516,11 +1516,11 @@ ssh(1), ESCAPE CHARACTERS: `~C` opens a command line that takes `-L`, `-R`,
   OpenSSH. `~#` says closed when no listener of the forward is left.
   `-KR` finds the forward by the port that the server listens on (the one
   it chose for a port of 0) and, when one is given, the address sent
-  (`crates/podssh-ssh/src/remote.rs:206`).
+  (`crates/podssh-ssh/src/remote.rs:224`).
 - The forwards that `~C` adds belong to the connection, and those that it
   stops stay stopped: a new connection of `--persist` asks only for the
   forwards of the command line that `~C` did not stop
-  (`crates/podssh-ssh/src/remote.rs:57`, `crates/podssh-ssh/src/tally.rs:104`),
+  (`crates/podssh-ssh/src/remote.rs:58`, `crates/podssh-ssh/src/tally.rs:155`),
   and a listener that `~C` closed stays closed. Lost: asking again for each
   forward of the command line, which would bring back a forward that the
   user stopped; keeping the forwards of `~C` for later connections, which
@@ -1572,8 +1572,8 @@ a session with a pty:
   session's connection (`crates/podssh-ssh/src/escape_run.rs:114`): `-L`
   and `-D` serve beside the session in its pump (`Added`), `-R` and `-KR`
   ask the server (`crates/podssh-ssh/src/escape_run.rs:166` and
-  `crates/podssh-ssh/src/escape_run.rs:191`), `-KL` and `-KD` close
-  listeners (`crates/podssh-ssh/src/local.rs:217`).
+  `crates/podssh-ssh/src/escape_run.rs:194`), `-KL` and `-KD` close
+  listeners (`crates/podssh-ssh/src/local.rs:218`).
 - `crates/podssh-ssh/src/local.rs`: `Listen` says where it listens, and
   can be closed; the table of the forwards that serve. `remote.rs`:
   `cancel`, and a forward that `~C` stopped is not asked for again.
@@ -1640,12 +1640,12 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
 
 - Read: `crates/podssh-cli/src/ssh/forward.rs` line 43 at `6f6eda2` says "a Unix socket is not
   carried yet", and its line 49 says "the server's SOCKS proxy (-R [bind_address:]port) is not
-  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1049-1050` and
+  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1072-1073` and
   `crates/podssh-cli/src/man/notes_ssh_more.rs:6-7` say so too. `TODO/forwarding.md:52-54` says
   "until a later step" of both, in T-035.
 - Read: `RemoteForward` holds a port and a `host:host_port` only
   (`crates/podssh-ssh/src/options.rs` lines 328-339 at `6f6eda2`). podssh asks for it with `tcpip_forward`
-  (`crates/podssh-ssh/src/remote.rs:150-177`), and so does a control master for `-O forward -R`
+  (`crates/podssh-ssh/src/remote.rs:159-188`), and so does a control master for `-O forward -R`
   (`crates/podssh-ssh/src/mux/fwd.rs` line 52 at `6f6eda2`); `-G` prints it from those fields
   (`crates/podssh-cli/src/ssh/dump.rs:122-134`), and `~C -R` reads it with the same parser
   (`crates/podssh-cli/src/ssh/local_bind.rs:264-266`).
@@ -1656,7 +1656,7 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
   `HTTPS_PROXY` when it is set (`crates/podssh-ssh/src/remote.rs` lines 170-190 at `6f6eda2`).
 - Read: `-L` and `-D` read a socket path on either side with OpenSSH's field reader
   (`crates/podssh-cli/src/ssh/local_spec.rs:135-173`); `-L` opens `direct-streamlocal@openssh.com`
-  to a socket on the server (`crates/podssh-ssh/src/local.rs:293`); the SOCKS side of `-D` reads a
+  to a socket on the server (`crates/podssh-ssh/src/local.rs:302`); the SOCKS side of `-D` reads a
   client's request and answers once the server's channel opened
   (`crates/podssh-ssh/src/socks.rs:1-5`); `podssh pipe unix-connect:` reaches a local socket, and
   the attempt is the probe (`crates/podssh-cli/src/pipe/unix.rs:1-9`).
@@ -1776,7 +1776,7 @@ and a port, a socket on this host, or a SOCKS proxy that podssh serves, as the t
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1797,6 +1797,17 @@ With `--persist -N`, a forward outlives a lost link: its listener stays bound an
 4. Same commit: the manual (`~#`), `docs/cli.md`.
 5. Do not add a named tunnel record or a per-forward fail action: `ssh_config` names forwards, and `ExitOnForwardFailure` is the one policy. If a tester asks for a second, it is a new entry.
 
+## Decision
+
+- The word is one `AtomicU8` in a `Word` beside the counts (`crates/podssh-ssh/src/tally_state.rs`). Setting the word it already has (each connection of `-L` says `up`) is one load and no lock. Only a refusal takes a lock, to keep its reason. Lost: a `Mutex<State>` (a lock on each connection); the reason as RFC 4254's code in the atomic (no words for a reason that is not one of the four codes).
+- `refused` for `-L`, `-D`: only `administratively prohibited` and `unknown channel type` refuse the forward itself. `connect failed`, `resource shortage` and a channel that does not open in time fail that one connection and leave the word as it was. A channel that opens later sets `up` again. For `-W`, which is its one channel, any failure to open is `refused`, with its reason. Lost: every failed channel as `refused`, which would call a forward refused because its target was down.
+- A refused `-R` that `--persist` asks again after a loss stays `waiting` while it is asked, and becomes `refused` only when podssh gives up asking. Lost: `refused` on each refusal and `waiting` before each new ask, which would give two lines a round.
+- The lines of step 3 come only under `--persist`: `tally::announce` turns them on for the run of `persist.rs`, and off before the end-of-run lines. The line is `NAME: WORD`, and `waiting` adds `: WHY`, the line of the loss that names the hop that broke. Lost: one line for all forwards (one change of state, one line, as the Approach says); appending the forwards to the line `connecting again` (that line is skipped after attempt 10 with `--persist-forever`, and a change would then go unsaid).
+- At the end of a run, each word is the last one the forward had: no word is changed when the link ends without `--persist`. Lost: setting `up` back to `bound` at the end, which would call a `-W` that carried its bytes `bound`.
+- In `~#` and `-v`, the word comes at the end of the line, after `; `, where `; closed` was: a forward that `~C` stopped says `closed` in place of its word. The lines keep their start, which `scripts/interop-pty.py` and the tests read.
+- In `--result-file`, `forwards` lists `name`, `state`, `reason`, `closed` and T-041's counts (`connections`, `open`, `failed`, `bytes_up`, `bytes_down`). This also does T-041's step 5. The key is absent when the run had no forward.
+- The control master's `-O forward -R` (`crates/podssh-ssh/src/mux/fwd.rs`) was not in T-041's table, and still is not.
+
 ## Prove
 
 ```sh
@@ -1806,3 +1817,24 @@ cargo test -p podssh-cli --test persist_forwards
 ```
 
 The second is a test that does not exist yet: against OpenSSH, with `--persist -N -L`, stop the server, read `~#` (`waiting`), start it again (`up`); and a server with `AllowTcpForwarding no` gives `refused` for a `-R`.
+
+## Correction
+
+2026-11-23, read in the code:
+
+- The place for a state is T-041's table (`crates/podssh-ssh/src/tally.rs`): one `Counts` for each forward, on atomics, under the name the user wrote. The word goes there, beside the counts; `persist.rs` of either crate holds no table of forwards.
+- `--result-file` (T-054, `crates/podssh-cli/src/ssh/result.rs`) lists no forwards: T-041's step 5 was not done. The object gets a key `forwards`, only for a run that had any, so that the object of a run with none keeps the keys its readers hold.
+- `-N` has no pty, so no `~#`: the Prove cannot read `~#` under `--persist -N`. The test reads the lines of step 3 on stderr and the result file instead.
+- Stopping OpenSSH's listening sshd leaves the process of each connection running, so the link would not drop. The test puts a stand-in of the network between podssh and the server: it cuts each connection and refuses each dial for a while, then listens again.
+- A refused `-R` has no reason to keep: SSH's `REQUEST_FAILURE` carries no data (RFC 4254, 4). The reason is kept where the server gives one: a channel of `-L`, `-D` or `-W` (RFC 4254, 5.1).
+
+## Done
+
+Draft, 2026-11-23:
+
+- The word, its reason, its line and the switch for the lines: `crates/podssh-ssh/src/tally_state.rs`, included in `crates/podssh-ssh/src/tally.rs`. In `tally.rs`: `Counts::set_state`, `Counts::snapshot`, `waiting` (each open forward after a loss), `snapshots`, and the word at the end of `Counts::line`. Where the word is set: `-L` and `-D` in `crates/podssh-ssh/src/local.rs` (`up` when its listeners serve on a link and on each channel that opens; `refused` on a refusal of the policy); `-R` in `crates/podssh-ssh/src/remote.rs` (`up` once taken; `waiting` while asked again; `refused`) and `~C -R` in `crates/podssh-ssh/src/escape_run.rs`; `-W` in `crates/podssh-ssh/src/forward.rs`. `--persist` in `crates/podssh-cli/src/ssh/persist.rs` lists each forward as `bound` before the first link, turns the lines on, and calls `waiting` after each loss that it does not give up on. `--result-file` writes `forwards` (`crates/podssh-cli/src/ssh/result.rs`).
+- The manual (`crates/podssh-cli/src/man/notes_ssh.rs` for `~#`, `crates/podssh-cli/src/man/notes_ssh_more.rs` for the words and `--result-file`) and `docs/cli.md` say it.
+- `cargo test -p podssh-ssh escape`: the new tests are `escape_list_each_change_of_state_has_one_rule` (one table of changes), `escape_list_words_and_numbers`, `escape_list_a_reason_is_one_bounded_line`, `escape_list_the_line_of_a_change` and `escape_list_tilde_hash_says_each_state`. Result (merged, 2026-11-23, Linux, Rust 1.100): 22 passed; `--lib tally` 8 passed. `tally_tests.rs`'s exact line now ends `; bound`.
+- `cargo test -p podssh-cli --test persist_forwards`, against OpenSSH's sshd (`live_harness::sshd`, skipped with a line where none runs). With `--persist -N -L` through the stand-in of the network: `up`, an echo through the listener, the cut, `waiting:` with the loss, no connection carried during the cut, `up` again, and an echo. With `AllowTcpForwarding no`: `--persist -N -R` says `refused`; `-N -o ExitOnForwardFailure=yes -R` ends 255 with the forward `refused`, reason null, in the result; `-W` ends 255 with `refused` and reason `administratively prohibited`. Result: 2 passed against OpenSSH 9.6p1 (not skipped).
+- `cargo test -p podssh-cli --test ssh_result`: the `-W` test now reads `forwards` (`up`, 1 connection and 10000 bytes each way; `refused` with a reason for `/elsewhere`). Result: 5 passed. The manual's note was cut to sentences of 25 words or fewer (`pod_model`), with no `-R` beside `-W` (T-035's note test); `--lib man` 115 passed, `llms-full.txt` written again; clippy and fmt clean.
+- Planted defects (they wait for T-251): `Word::set` that always says no change (the table test and the line `waiting` of `persist_forwards` fail); `refuses_the_forward` true for `connect failed` (no test of this crate holds it yet: a gap, named here).

@@ -117,8 +117,19 @@ fn keep_forwards(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refusal>
 
 /// Run the session of `--persist` until it ends: its exit code.
 pub async fn run(resolved: &Resolved, kept: &Kept, log: Arc<Log>) -> i32 {
+    // Each forward is `bound` before the first link, and each change of its
+    // state is a line from now on (T-840).
+    for forward in &resolved.options.local_forwards {
+        podssh_ssh::tally::of(&forward.shown);
+    }
+    for forward in &resolved.options.remote_forwards {
+        podssh_ssh::tally::of(&podssh_ssh::remote::name(forward));
+    }
+    podssh_ssh::tally::announce(Some(log.clone()));
     let code = keep(resolved, kept, &log).await;
-    // What each forward carried over the connections (T-041), with -v.
+    podssh_ssh::tally::announce(None);
+    // What each forward carried over the connections (T-041), and where it
+    // stands (T-840), with -v.
     for line in podssh_ssh::tally::lines() {
         log.verbose(&line);
     }
@@ -172,6 +183,9 @@ async fn keep(resolved: &Resolved, kept: &Kept, log: &Arc<Log>) -> i32 {
                 wait.as_secs_f64()
             ));
         }
+        // Each forward waits for the link, said after the hop that broke
+        // (T-840); a run that gives up says no wait.
+        podssh_ssh::tally::waiting(&why);
         // The input belongs to the session from the first attach on: a
         // prompt that read the terminal would race the task that reads it.
         // No person waits at forwards (T-042): the program of SSH_ASKPASS
