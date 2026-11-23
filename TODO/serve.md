@@ -109,7 +109,7 @@ on T-698.
 2026-11-13. The Premise, read again at `f6c8ba7`:
 
 - russh is 0.65.0, not 0.64.1, and the tree builds it from `vendor/russh` with podssh's patches,
-  through `[patch.crates-io]` of the workspace (`Cargo.toml:217`). Its server module is still built
+  through `[patch.crates-io]` of the workspace (`Cargo.toml:194`). Its server module is still built
   on each target but wasm (`vendor/russh/src/lib_inner.rs:67-68`). `auth_publickey` now takes a
   `VerifiedPublicKey` (the key and the algorithm of its signature), and `auth_publickey_offered` a
   `PublicKeyOffer` (`vendor/russh/src/server/mod.rs:210-251`); a request handler that does not answer
@@ -1424,7 +1424,7 @@ syslog and no `/var`. A record must not leak secrets or session data.
 
 - Read: podssh's log goes to stderr or to a file
   (`crates/podssh-ssh/src/log.rs:46-62`), as lines with no structure.
-- Read: `serde_json` is a workspace dependency (`Cargo.toml:124`), but not a
+- Read: `serde_json` is a workspace dependency (`Cargo.toml:123`), but not a
   dependency of `podssh-ssh` yet.
 - Read in the report of GitHub #25, not verified here: USBoverSSH writes an
   audit log of connection events.

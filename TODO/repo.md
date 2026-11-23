@@ -1925,7 +1925,7 @@ leaves armv7 out of the Decision; the plan below takes Alpine's own toolchain fo
   container. Plan B, which the Decision rejected, for native speed: `ghcr.io/cross-rs/armv7-unknown-
   linux-musleabihf:main`, or `cargo-zigbuild` (its CI covers x86_64, aarch64 and Apple, not armv7).
   The release profile is `opt-level = "z"`, `lto = true`, `codegen-units = 1`
-  (`Cargo.toml:211` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
+  (`Cargo.toml:188` says "opt-level"; the profile is at the lines around it): the link on a 32-bit
   rustc may run out of address space, and under QEMU it is slow. Measure first.
 - `riscv64gc-unknown-linux-musl`: Rust tier 2 with host tools. Plan A: `runs-on: ubuntu-24.04`,
   `docker/setup-qemu-action` with `platforms: riscv64`, `docker run --platform linux/riscv64
@@ -4023,19 +4023,19 @@ identities (x25519-dalek, `podssh-ws` and `podssh-relay`), and its AEAD
 ## Premise
 
 - Read: `crates/podssh-ssh/Cargo.toml:23` and `crates/podssh-cli/Cargo.toml:184`
-  ask for `sha1` 0.10.7, and the root `Cargo.toml:141` for `hmac` 0.12;
+  ask for `sha1` 0.10.7, and the root `Cargo.toml:140` for `hmac` 0.12;
   `Cargo.lock` holds `sha1` 0.10.7 and 0.11.0, `hmac` 0.12.1 and 0.13.0,
   and `digest` 0.10.7 and 0.11.3, as russh 0.64.1 (vendor/russh/Cargo.toml)
   builds on the newer line, so the binary holds both lines today. podssh's `sha1`
   moves with its `hmac`, where the two meet (the hashed names of
   `known_hosts`): Inferred.
-- Read: the root `Cargo.toml:150` asks for `aes-gcm` 0.10 and
-  `Cargo.toml:159` for `x25519-dalek` 2;
+- Read: the root `Cargo.toml:145` asks for `aes-gcm` 0.10 and
+  `Cargo.toml:151` for `x25519-dalek` 2;
   `PodUtils/podssh:crates/podssh-ws/src/crypto/aead.rs` and `PodUtils/podssh:crates/podssh-ws/src/crypto/kx.rs`
   hold the calls, with `PodUtils/podssh:crates/podssh-relay/src/identity/mod.rs` and
   `PodUtils/podssh:crates/podssh-relay/src/session/secret.rs`, and
   `PodUtils/podssh:crates/podssh-ws/tests/crypto_vectors.rs` their vectors.
-- Read: `vt100` 0.15 (`Cargo.toml:116`) is the model of the terminal
+- Read: `vt100` 0.15 (`Cargo.toml:115`) is the model of the terminal
   oracle (T-200) and of `podssh session` (T-186).
 
 ## Approach
@@ -5315,7 +5315,7 @@ builds with, so that its DNS packets and iroh's are of one type.
   box's CONNECT proxy (`scripts/box/proxy.py`), which `scripts/test_in_box.sh` and
   `scripts/chat-in-boxes.sh` build; `images/build/Dockerfile:6` pins `rust:1-alpine` by the digest
   `0cce0a5...`, the gate's image.
-- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:143`), and the lock holds 0.11.0; 0.11.1
+- Read: the workspace asks for `sha2` 0.11 (`Cargo.toml:142`), and the lock holds 0.11.0; 0.11.1
   needs Rust 1.88, under the workspace's 1.89 (`Cargo.toml:55`, Q48).
 - Read: `PodUtils/podcrates:crates/pod-iroh/Cargo.toml` takes `simple-dns` 0.12, "the simple-dns that
   iroh-dns builds and reads with, so no crate is added"; iroh-dns 1.4.1, which the lock holds,
