@@ -2,13 +2,15 @@
 //! start of `sz` or `rz` ([`super::detect`]), asks on the terminal, and then
 //! runs one side of the protocol. Meanwhile the transfer's bytes stay off
 //! the terminal; a question takes the keys, and during a transfer Ctrl-C
-//! stops it and each other key is dropped. The session's pump gives it the
-//! output, the keys and the time, and takes what it has for the terminal
-//! and for the server.
+//! or five CAN stop it and each other key is dropped. The session's pump
+//! gives it the output, the keys and the time, and takes what it has for
+//! the terminal and for the server; it says when each write of those bytes
+//! ends, so that a write that the server does not take ends the transfer at
+//! its limit.
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use super::ask::{Answer, Question};
 use super::detect::{Detector, Start};
@@ -16,7 +18,7 @@ use super::files::{self, Incoming};
 use super::receive::{Offer, Receiver};
 use super::send::Sender;
 use super::wire::{self, Header};
-use super::{CANCEL, WAIT};
+use super::{CANCEL, TRIES, WAIT};
 
 mod acts;
 
@@ -74,6 +76,17 @@ pub struct Zmodem {
     /// Where files come: the current directory, then the last answer.
     dir: PathBuf,
     gauge: Gauge,
+    /// Since when the pump's write of [`Zmodem::take`]'s bytes waits.
+    writing: Option<Instant>,
+    /// The transfer ended, or its write ran out of time, while a write of
+    /// its bytes waited: the pump drops the rest of that write.
+    abandon: bool,
+    /// How long a write may wait before the transfer ends: [`TRIES`] waits
+    /// of [`WAIT`], the spec's "40 seconds total".
+    limit: Duration,
+    /// CAN typed in a row during a transfer: five end it, as five from the
+    /// server do (7.2).
+    cans: u8,
 }
 
 impl Default for Zmodem {
@@ -102,7 +115,53 @@ impl Zmodem {
             server: Vec::new(),
             dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
             gauge: Gauge::default(),
+            writing: None,
+            abandon: false,
+            limit: WAIT * TRIES,
+            cans: 0,
         }
+    }
+
+    /// The limit of a write that the server does not take, in place of 40 s:
+    /// a test's far end that stops reading ends the transfer sooner.
+    pub fn with_limit(mut self, limit: Duration) -> Zmodem {
+        self.limit = limit;
+        self
+    }
+
+    /// Whether a transfer runs: its keys, its limit and its end then hold
+    /// each wait of the pump.
+    pub fn transferring(&self) -> bool {
+        matches!(self.mode, Mode::Receive(_) | Mode::Send(_))
+    }
+
+    /// The pump's write of the bytes of [`Zmodem::take`] ended, whole or
+    /// dropped.
+    pub fn written(&mut self) {
+        self.writing = None;
+        self.abandon = false;
+    }
+
+    /// Whether the pump drops the rest of the write that waits: the transfer
+    /// of its bytes ended, or the write ran out of time.
+    pub fn abandoned(&self) -> bool {
+        self.abandon
+    }
+
+    /// The local terminal went (its input ended): nobody answers a question
+    /// or sees a transfer, so each ends, and a file that did not end goes.
+    /// The far side's `sz` or `rz` ends with the session's pty.
+    pub fn hangup(&mut self, now: Instant) {
+        if let Some((_, about)) = self.question.take() {
+            // The offered file is skipped; the other questions opened nothing.
+            if matches!(about, About::Replace(..)) {
+                self.decide(false, now);
+            }
+        }
+        if matches!(self.mode, Mode::Armed { .. }) {
+            self.mode = Mode::Idle;
+        }
+        self.cancel("the local terminal went", now);
     }
 
     /// Whether a question is open, a transfer runs, or `rz` is awaited.
@@ -141,11 +200,21 @@ impl Zmodem {
             }
             return Vec::new();
         }
-        if !matches!(self.mode, Mode::Receive(_) | Mode::Send(_)) {
+        if !self.transferring() {
+            self.cans = 0;
             return keys;
         }
         if keys.contains(&0x03) {
             self.cancel("cancelled here (Ctrl-C)", now);
+            return Vec::new();
+        }
+        for &key in &keys {
+            self.cans = if key == wire::CAN { self.cans + 1 } else { 0 };
+            if self.cans >= 5 {
+                self.cans = 0;
+                self.cancel("cancelled here (CAN)", now);
+                break;
+            }
         }
         Vec::new()
     }
@@ -168,7 +237,8 @@ impl Zmodem {
             Mode::Armed { until, .. } => Some(*until),
             Mode::Idle => None,
         };
-        [protocol, self.detect.deadline()].into_iter().flatten().min()
+        let write = self.writing.map(|since| since + self.limit);
+        [protocol, self.detect.deadline(), write].into_iter().flatten().min()
     }
 
     /// The time: held bytes that were no start show, a wait of the protocol
@@ -176,6 +246,19 @@ impl Zmodem {
     pub fn tick(&mut self, now: Instant) {
         let held = self.detect.flush(now);
         self.screen.extend(held);
+        // A write that the server does not take holds no wait of the
+        // protocol: a far end that stops reading sends no answer to time.
+        if self.writing.is_some_and(|since| now >= since + self.limit) {
+            self.writing = None;
+            self.abandon = true;
+            let why = format!("the server took nothing that podssh sent for {} s", self.limit.as_secs());
+            if self.transferring() {
+                self.cancel(&why, now);
+            } else {
+                self.say(&format!("ZMODEM: {why}; the rest was dropped"));
+            }
+            return;
+        }
         if self.question.is_some() {
             return;
         }
@@ -198,7 +281,8 @@ impl Zmodem {
     }
 
     /// What waits for the terminal and for the server. A sender's next bytes
-    /// are read here, when nothing else waits for the server.
+    /// are read here, when nothing else waits for the server. The pump says
+    /// when its write of the server's bytes ends ([`Zmodem::written`]).
     pub fn take(&mut self, now: Instant) -> Taken {
         if self.server.is_empty() && self.more() {
             let acts = match &mut self.mode {
@@ -206,6 +290,10 @@ impl Zmodem {
                 _ => Vec::new(),
             };
             self.run(acts, now);
+        }
+        if !self.server.is_empty() {
+            self.writing = Some(now);
+            self.abandon = false;
         }
         Taken { screen: std::mem::take(&mut self.screen), server: std::mem::take(&mut self.server) }
     }

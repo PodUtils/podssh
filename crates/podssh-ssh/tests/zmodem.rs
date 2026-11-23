@@ -5,11 +5,15 @@
 //! session's output, the headers and the subpackets with their escapes and
 //! CRCs, the limit of each wait, and a file each way, between podssh's two
 //! sides and through the session's question, its temporary name and its
-//! rename (`tests/zmodem_session/mod.rs`). The vectors of binary frames were
+//! rename (`tests/zmodem_session/mod.rs`), each end of a transfer whatever
+//! the far end does (`tests/zmodem_session/ends.rs`), and an upload through
+//! the session's pump to a far `rz` that stops reading
+//! (`tests/zmodem_pump/mod.rs`, T-859). The vectors of binary frames were
 //! computed by a separate implementation of the spec's rules, not by this
 //! crate.
 
 mod cleanup;
+mod zmodem_pump;
 mod zmodem_session;
 
 use std::io::Cursor;

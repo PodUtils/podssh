@@ -123,6 +123,11 @@ impl Zmodem {
 
     pub(super) fn ended(&mut self, ended: Ended) {
         self.gauge.stop();
+        // What still waits to go of a transfer that stopped is no use to the
+        // far side: the pump drops it, and the cancel sequence goes next.
+        if matches!(ended, Ended::Stopped(_)) && self.writing.is_some() {
+            self.abandon = true;
+        }
         let mode = std::mem::replace(&mut self.mode, Mode::Idle);
         let unfinished = match &mode {
             Mode::Receive(r) => r.file.as_ref().map(|file| shown(&file.name)),

@@ -478,10 +478,25 @@ numbers below are its.
 - **Limits.** Each wait for a frame has 10 s, the spec's response time
   (8.1); after it the last header goes again, and after 4 waits ("40
   seconds total") the transfer ends with the cancel sequence and the
-  session goes on. A ZRPOS at the same place 4 times also ends it. Ctrl-C
-  during a transfer stops it; each other key is dropped, as it would land
-  in the protocol's stream. A file of 4 GiB or more is refused: positions
-  have 32 bits. A command from the server (ZCOMMAND, `sz -c`) never runs.
+  session goes on. A ZRPOS at the same place 4 times also ends it. A write
+  of podssh's that the server does not take for 40 s (a far end that stops
+  reading, so that the channel's window stays shut) ends the transfer the
+  same way: `podssh: ZMODEM: the server took nothing that podssh sent for
+  40 s`, and the rest of that write is dropped. A file of 4 GiB or more is
+  refused: positions have 32 bits. A command from the server (ZCOMMAND,
+  `sz -c`) never runs.
+- **What ends a transfer** (T-859), each also while podssh waits for the
+  server to take its bytes, whatever the far end does: Ctrl-C (`ZMODEM:
+  cancelled here (Ctrl-C)`), five CAN typed in a row, in one read or in
+  several (`ZMODEM: cancelled here (CAN)`), the limit above, and five CAN
+  from the server. Each says one line, sends the cancel sequence, and keeps
+  no file that did not end; the session goes on. Each other key is dropped
+  during a transfer, as it would land in the protocol's stream. The end of
+  the local terminal ends the session too: SIGHUP or SIGTERM, or the end of
+  stdin while a question or a transfer holds the keys, cancel the transfer,
+  remove its temporary file, and exit 255, as a session that ends with no
+  status does; the far `sz` or `rz` ends with its pty when the connection
+  closes.
 - **What crosses.** Headers in hex, and in binary with CRC-16 or CRC-32 as
   the receiver allows (CANFC32); ZDLE escapes of ZDLE, DLE, XON and XOFF
   with and without the parity bit, and of CR after `@` (7.2), as lrzsz
@@ -539,10 +554,21 @@ to podssh's `received` or `sent` line.
   the one run where its tty was read). podssh's 40 s limit did not end it, Ctrl-C and CAN did not
   cancel it, and one such podssh outlived the death of its terminal for 30
   minutes (idle in `epoll_wait`, the file still open at 851,968 bytes). No
-  run of (a) or (d1) stopped in 145 and 45. The cause is not known: a race
-  of the first frames with `rz`'s change of its tty from (d2)'s modes is
-  the guess, but whatever the far side does, a send that waits must still
-  keep its limit and its keys.
+  run of (a) or (d1) stopped in 145 and 45. T-859 found the cause, and it
+  was no far side's: podssh's send waited for the channel's window and,
+  each second with `--direct`, awaited the window's lock in the body of
+  its select (T-598's check that the window stays shut 60 s). tokio's lock
+  takes its permit and then yields when the task's budget of work is spent,
+  so the write that waited could hold the lock while it was not polled; the
+  check queued behind it for good, and russh's loop queued behind both at
+  the server's next window adjust. Nothing more was sent or read, and the
+  send read no key, no signal and no time. The far `rz` waited for the
+  next byte. It came in plain `rz` too: 5 of 92 uploads of (a) and 2 of 60
+  of (d2) with the debug build at `55386459`. The check now reads the
+  window beside the write, never after it, and the send also takes the
+  keys, the time and the signals that end a transfer and a session
+  (above): with the change, 0 of 90 uploads of (a) and 0 of 180 of (d2)
+  stopped (T-859's `## Done`).
 
 ## A notice while the far end is silent
 

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use russh::client::{Handle, Msg};
-use russh::{Channel, ChannelMsg, ChannelReadHalf, ChannelWriteHalf};
+use russh::{Channel, ChannelMsg, ChannelWriteHalf};
 use tokio::io::AsyncWriteExt;
 
 use crate::elevate::Elevated;
@@ -31,13 +31,15 @@ mod feed;
 mod input;
 mod msg;
 mod send;
+mod transfer;
 
 use beside::beside;
 pub use feed::Feed;
 pub use input::Input;
 use msg::{handle_msg, write_out};
-use send::send;
 pub use send::WINDOW_STALL;
+use send::{send, Also};
+use transfer::zmodem_out;
 
 /// How a session ended.
 #[derive(Debug)]
@@ -235,7 +237,10 @@ pub async fn pump(
     loop {
         busy.at("the pump's turn before its wait");
         beside(expected(&mut through, &writer, &mut held, !reading), &mut reader, &mut aside, &mark).await;
-        let zmodem = zmodem_out(&writer, (&mut reader, &mut aside), &mut status, &mut out, &mut through, log);
+        let also = Also { stop: &mut stop, zmodem: Some((&mut *input, reading && !held)) };
+        let channel = (&mut reader, &mut aside);
+        let state = (&mut status, &mut out, &mut through);
+        let zmodem = zmodem_out(&writer, channel, state, also, &busy, log);
         if let Err(end) = zmodem.await {
             return end;
         }
@@ -262,7 +267,8 @@ pub async fn pump(
                             crate::pace::key();
                         }
                         let state = (&mut status, &mut out, &mut through);
-                        match send(&writer, (&mut reader, &mut aside), data, state, &busy, log).await {
+                        let also = Also { stop: &mut stop, zmodem: None };
+                        match send(&writer, (&mut reader, &mut aside), data, state, also, &busy, log).await {
                             Ok(true) => {}
                             // The channel is closing; keep reading for its status.
                             Ok(false) => reading = false,
@@ -304,6 +310,10 @@ pub async fn pump(
                     }
                 }
                 None => {
+                    // The terminal went while ZMODEM held its keys (T-859).
+                    if through.zmodem.as_ref().is_some_and(Zmodem::busy) {
+                        return transfer::hung_up(&mut through, log);
+                    }
                     // The end waits for russh's loop to take it, and the loop
                     // can wait for the pump: the channel drains beside it.
                     busy.at("the end of the input");
@@ -396,30 +406,6 @@ pub async fn pump(
             }
         }
     }
-}
-
-/// What ZMODEM has for the terminal and for the server between the
-/// server's messages: its words after a key or a wait, and a sender's next
-/// bytes (T-148). `Err` when the channel ended meanwhile.
-async fn zmodem_out(
-    writer: &ChannelWriteHalf<Msg>,
-    channel: (&mut ChannelReadHalf, &mut Taken),
-    status: &mut Option<i32>,
-    out: &mut Out,
-    through: &mut Through,
-    log: &Log,
-) -> Result<(), End> {
-    let Some(taken) = through.zmodem.as_mut().map(|z| z.take(std::time::Instant::now())) else {
-        return Ok(());
-    };
-    if !taken.screen.is_empty() {
-        let screen = through.recorded(taken.screen, log);
-        let _ = write_out(out.sink.as_ref(), &out.consoles.text(false, screen), false).await;
-    }
-    if !taken.server.is_empty() {
-        send(writer, channel, taken.server, (status, out, through), &busy::Busy::default(), log).await?;
-    }
-    Ok(())
 }
 
 /// An elevated command's question and time (T-032): true when its time is

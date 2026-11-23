@@ -371,7 +371,7 @@ Read:
    in the gate's container (installed with apk, as `scripts/interop-man.sh:22`
    installs groff) and through `vt100`. The two must give the same screens
    before the model judges podssh.
-6. docs/terminal.md, section "Tests" (`docs/terminal.md:625`), names the
+6. docs/terminal.md, section "Tests" (`docs/terminal.md:651`), names the
    oracle.
 
 ## Decision
@@ -988,7 +988,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   `openssh-keygen` and others, but no client package. No harness ran the stock `ssh`; only
   `scripts/sandbox-check.sh:318-331` does, in a sandbox. Nobody knows whether
   the gate's image has `/usr/bin/ssh`.
-- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:78-80`,
+- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:80-82`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:251`, `docs/STATUS.md:257`).
@@ -2749,7 +2749,7 @@ Facts, read at `35d51884`:
   busy watch and the pipe's, which did print. So the thread was not held, and the joined task was polled within each
   20 s (the layer's and the channel's timers wake it), each poll of SSH's part returning at once. `tokio::join!` polls
   each part that has not ended at each wake (`ssh/iroh/dial.rs:213-220`), so SSH's future was polled; had the pump been
-  in its select, each poll would have polled its wait of the channel (`crates/podssh-ssh/src/io.rs:297`), whose time
+  in its select, each poll would have polled its wait of the channel (`crates/podssh-ssh/src/io.rs:303`), whose time
   the busy watch keeps. The wait was not polled: **the pump was not in its select**, and not in a step that it names
   (the line is the idle one, `io/busy.rs:57-66`).
 - The pump marks a step only in the input's `Some` arm, the channel's arm and `send`. The input's `None` arm, the end of
@@ -2800,6 +2800,7 @@ before the repair too, so the proof is the gate's. Then the gate ten times in a 
 
 2026-11-23, the gate at `444b5181` (run 45213300602), the first with `io/beside.rs`: each job green, `gate (m6)` among
 them: one of the ten in a row that this entry's Prove asks.
+The gate at `55386459` (run 45276783667): each job green, `gate (m6)` the second in a row.
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
@@ -4397,7 +4398,7 @@ refused at the load after `other` was dropped. `flock(2)` belongs to the open fi
 process that forks while `other` is open gives its child a copy of the descriptor, and the lock stands until that child
 execs (std's descriptors are close-on-exec, so only for that moment). A second process holding the lock is the case the
 product answers rightly, with no side file; the race is the test's. Step 2: the test loads again each 20 ms until the lock
-is taken, within 10 s, then judges the side file as before. Run here: UNVERIFIED (the build slot was another's).
+is taken, within 10 s, then judges the side file as before. Run here (Linux): `cargo test -p podssh-cli --lib cp::resume` 15 runs in 15 passed. The proof is the macOS job.
 
 # T-851: `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test
 
@@ -4512,8 +4513,8 @@ was lost: the keys never read by the client, `~d` not taken as an escape, or the
   a line it does not know with "TEXT: not found" (`crates/podssh-cli/tests/keep_harness/mod.rs:187`), and echoes none.
 - The client enters raw mode (`crates/podssh-ssh/src/session.rs:165`) after the shell's answer
   (`crates/podssh-ssh/src/session.rs:158`) and before the pump draws the early output
-  (`crates/podssh-ssh/src/io.rs:202`); stdin's reader starts at the pump's first wait
-  (`crates/podssh-ssh/src/io.rs:232`, `crates/podssh-ssh/src/io/input.rs:62`). By the code, a key typed after `[shell]
+  (`crates/podssh-ssh/src/io.rs:204`); stdin's reader starts at the pump's first wait
+  (`crates/podssh-ssh/src/io.rs:234`, `crates/podssh-ssh/src/io/input.rs:62`). By the code, a key typed after `[shell]
   ready` waits in the console's input buffer, in raw mode, for that reader; nothing found in the client drops it.
 - `~` is an escape at the start of a line (`crates/podssh-ssh/src/escape.rs:94`): after `MARK=kept\r` it is one.
 - `detach` (`crates/podssh-cli/tests/attach.rs:307`) typed at `[shell] ready` with no sign that a key reaches the shell,
@@ -4569,7 +4570,7 @@ uploads (`rz` at the far end) with the far pty's CR and LF remapped.
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4598,6 +4599,29 @@ second, with the file open at offset 851968. A user's terminal hangs, and the pr
 3. The process ends when its terminal goes (SIGHUP, or a read of 0 on stdin), during a transfer too.
 4. Same commit: `docs/terminal.md` names the limit and the keys that end a transfer.
 
+## Decision
+
+- The transfer's write stays inline, one write of the channel at a time, and the send that awaits it
+  (`crates/podssh-ssh/src/io/send.rs:89`, `:97` and `:106`) also takes SIGHUP and SIGTERM, the keys while ZMODEM
+  holds them, and ZMODEM's time; a transfer that ends meanwhile drops the rest of the write (`:112`), and the line of
+  its end and the cancel sequence go at once (`crates/podssh-ssh/src/io/transfer.rs:47`). Lost: a write held beside
+  the pump's own select, polled with its other branches. Each other write of the pump (a key, the end of input, an
+  expect rule's keys) would then await the window's lock in a branch's body while that write might hold it: the
+  deadlock below, in more places.
+- T-598's check of a shut window stays, read in its branch's future (`crates/podssh-ssh/src/io/send.rs:119`), never
+  in a body. Lost: dropping the check (a `--direct` session whose far end reads nothing would never end); running the
+  write `unconstrained` by tokio's budget (it hides the class at one place, and lets one stream starve the runtime).
+- The limit is that of a write: bytes of ZMODEM's that the channel has not taken within 40 s (`TRIES` waits of
+  `WAIT`, the spec's "40 seconds total") end the transfer (`crates/podssh-ssh/src/zmodem/session.rs:251`). A stream
+  has no wait of the protocol (`crates/podssh-ssh/src/zmodem/send.rs:309` and `:255` clear it), so this is its only
+  time. Lost: a deadline of the sans-IO sender while it streams, which cannot know when the channel took its bytes.
+- Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:212`), end a transfer as
+  five from the server do (7.2); fewer are dropped as each other key is.
+- The end of the local input while ZMODEM holds the keys ends the session (`crates/podssh-ssh/src/io.rs:315`,
+  `crates/podssh-ssh/src/io/transfer.rs:62`): nobody is left to answer or to see, as with SIGHUP, so it exits 255 as
+  `End::Terminated` does. No cancel sequence is written then: the far pty hangs up when the connection closes, and a
+  write could wait on the far end that stopped.
+
 ## Prove
 
 ```sh
@@ -4607,3 +4631,58 @@ cargo test -p podssh-ssh --test zmodem
 
 A test that does not exist yet in that file: a far end that stops reading mid-transfer; the transfer ends at its limit,
 at Ctrl-C and at CAN, each with one line and no file left under its final name.
+
+## Correction
+
+2026-11-23, read and measured in a worktree at `55386459`:
+
+- The stall is no far end's, and not (d2)'s: it came in plain `rz` too, 5 of 92 uploads of T-831's cell (a) with debug
+  builds at `55386459` (90 of them with markers of where each side waited), and 2 of 60 of (d2). It is a deadlock of the pump with russh's loop, with `--direct`. In
+  `crates/podssh-ssh/src/io/send.rs`, line 51 at `55386459`, the send's select awaited `writer.writable_packet_size()`
+  (T-598's check, each second, only where the road tells no silence) in the body of its branch. That reads the
+  window's tokio lock. tokio 1.54.1's `Acquire::poll` takes its permit first and then asks the task's budget of work,
+  and yields with the permit held when the budget is spent: the pinned write that waited could hold the lock while it
+  was not polled, and the body queued behind it for good. russh's loop queued behind both at the server's next
+  window adjust (`vendor/russh/src/client/encrypted.rs:803`, `vendor/russh/src/channels/mod.rs:132`), so nothing more
+  was sent or read: the far `rz` waited for the next byte. `-v` said "held in the pump's turn before its wait" and "the
+  SSH session's loop read nothing of its stream for 20 s, held in a reply to CHANNEL_WINDOW_ADJUST"; a build with
+  markers said, in 3 stalls of 3, that the pump waited in that check and russh's loop in the lock of `grow`.
+- The Premise's "not verified" was right in its place: the send (`crates/podssh-ssh/src/io.rs`, line 238 at
+  `55386459`, through `zmodem_out`) polled no key, no signal and no time of ZMODEM, and the sender has no deadline
+  while it streams. So the 40 s never armed, Ctrl-C and CAN went unread, and a SIGHUP was taken by tokio's handler
+  and never acted on: the process that outlived its terminal.
+- It predates T-780: `d3aba042^` holds the same check in the same body (`git show d3aba042^:crates/podssh-ssh/src/io/send.rs`),
+  and so does this clone's first commit, `a5a10e59`. Read, not built: the deadlock is all inside that code.
+- Approach step 1's builds at `c33214c0` and `68228ea4^` were replaced by the reading above and a build at
+  `55386459`.
+
+## Done
+
+2026-11-23, each result below run here: a Claude Code cloud container, OpenSSH 9.6p1, lrzsz 0.12.21rc from Ubuntu
+24.04's package, debug builds.
+
+What changed: `crates/podssh-ssh/src/io/send.rs` reads the window in its branch's future, and takes the signals, the
+keys and ZMODEM's time while it waits (Decision); `crates/podssh-ssh/src/io/transfer.rs` (ZMODEM's part of the pump,
+out of `io.rs`) sends the line and the cancel sequence of a transfer that ended at once; `crates/podssh-ssh/src/zmodem/session.rs`
+has the write's limit (`Zmodem::with_limit` for a test), five CAN typed, `hangup`, and says when a write is dropped;
+the send's `signal` request goes beside the channel, and `crates/podssh-ssh/src/io/beside_tests.rs` reads the send's
+body too; `docs/terminal.md` ("Limits", "What ends a transfer", and the cause in "Where ZMODEM survives").
+
+- `cargo test -p podssh-ssh --test zmodem`: 23 passed, among them `zmodem_pump` (a russh server of this process as a
+  far `rz` that answers ZFILE and stops reading: the limit of 2 s, Ctrl-C, five CAN in two reads, each one line within
+  20 s and the session going on; the end of input ends the session with `End::Terminated`) and `zmodem_session::ends`
+  (each end, each way, one line, the cancel sequence, the write dropped, no file kept; four CAN, or 39 s, end nothing).
+  Planted: the send's keys off, the Ctrl-C row failed; keys and time off, the limit row failed.
+- `cargo test -p podssh-ssh --lib io::send`: 1 passed, eight rounds of a write that holds the window's lock (the task's
+  budget spent) while the probe runs, then the send goes once it is free. Planted, the probe back in the body: failed,
+  twice in two runs. `--lib io::beside`: planted, the send's `signal` request awaited alone: failed.
+- `cargo test -p podssh-ssh`: 620 passed, 0 failed, 1 ignored. `cargo clippy -p podssh-ssh -p podssh-cli --all-targets
+  -- -D warnings -A clippy::collapsible_if`: clean. `cargo fmt --check`: clean.
+- T-831's driver (a copy in `.work/`, a throwaway sshd on 127.0.0.1), uploads of 1 MiB to `rz` through `podssh ssh -v
+  --direct -t`: before, cell (a) 5 of 92 stalled and (d2) 2 of 60, each deaf to Ctrl-C and CAN and alive after its
+  terminal closed; after, with the builds of this change, 0 of 90 of (a) and 0 of 180 of (d2) (the last 60 and 30 at
+  the build of the commit).
+- End to end against OpenSSH, a far `rz` stand-in that answers ZFILE and stops reading, an upload of 8 MiB: Ctrl-C and
+  five CAN ended it at once with their line, the closed terminal, SIGHUP and SIGTERM each ended podssh within 0.1 s,
+  and the limit's line came 40 s after the write began; the build at `55386459` ended none of Ctrl-C, CAN, the closed
+  terminal and SIGHUP within 10 s, and outlived its closed terminal.

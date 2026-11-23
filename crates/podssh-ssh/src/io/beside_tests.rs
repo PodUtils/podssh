@@ -118,14 +118,16 @@ async fn the_end_of_the_channel_is_kept_behind_its_messages() {
 }
 
 /// Each wait of a pump on the session goes beside its channel: in the body
-/// of each pump, a line that awaits and names the writer or the handle is a
-/// call of `beside`, or of `send`, which drains the channel itself. A wait
-/// that drains nothing is the cycle above.
+/// of each pump, and of the send that waits for the window (T-859), a line
+/// that awaits and names the writer or the handle is a call of `beside`, or
+/// of `send`, which drains the channel itself. A wait that drains nothing is
+/// the cycle above.
 #[test]
 fn each_wait_of_a_pump_on_the_session_goes_beside_the_channel() {
     let pumps = [
         ("io.rs", include_str!("../io.rs"), "pub async fn pump("),
         ("mux/msession.rs", include_str!("../mux/msession.rs"), "async fn pump("),
+        ("io/send.rs", include_str!("send.rs"), "pub(super) async fn send("),
     ];
     for (file, text, start) in pumps {
         let at = text.find(start).unwrap_or_else(|| panic!("{file}: no {start}"));

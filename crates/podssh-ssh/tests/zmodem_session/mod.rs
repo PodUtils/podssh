@@ -15,6 +15,8 @@ use podssh_ssh::zmodem::{Act, Ended, Zmodem, CANCEL};
 use super::cleanup;
 use super::{outgoing, read_header, split, zrinit};
 
+mod ends;
+
 /// A directory of its own for a test, removed when the test ends.
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("podssh-zmodem-{name}-{}", std::process::id()));
