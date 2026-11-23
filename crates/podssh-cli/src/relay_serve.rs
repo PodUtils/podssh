@@ -204,10 +204,11 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
     let dropped = dropped.unwrap_or_default();
     let covered = match (&cover, &control) {
         (Some(cover), Some(control)) => format!(
-            ", the cover site of {} from {} (its documents on the socket {}, its credentials {} key {})",
+            ", the cover site of {} from {} (its documents on the socket {}{}, its credentials {} key {})",
             cover.name,
             s.cover.as_deref().unwrap_or("the tree"),
             control.path().display(),
+            control.note().map(|note| format!(", {note}")).unwrap_or_default(),
             if cover.issuer().signs() { "signed by" } else { "checked against pinned" },
             cover.issuer().fingerprint()
         ),

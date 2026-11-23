@@ -140,6 +140,29 @@ pub(crate) fn until(what: &str, log: &Path, mut done: impl FnMut() -> bool) {
     }
 }
 
+/// Wait until `done`, or fail with what the role said in each of `logs`. A
+/// role that ended fails at once, with its exit status, rather than after
+/// the whole wait: its refusal is the cause (T-857 waited 30 s on a role
+/// that had refused its socket's path at the start, its stderr unread).
+pub(crate) fn until_role(what: &str, role: &mut Killed, logs: &[&Path], mut done: impl FnMut() -> bool) {
+    let end = Instant::now() + WAIT;
+    while !done() {
+        let ended = role.0.try_wait().ok().flatten();
+        if ended.is_some() || Instant::now() >= end {
+            let said: Vec<String> = logs
+                .iter()
+                .map(|log| format!("{}:\n{}", log.display(), std::fs::read_to_string(log).unwrap_or_default()))
+                .collect();
+            let said = said.join("\n");
+            match ended {
+                Some(status) => panic!("{what}: the role ended first ({status}); it said:\n{said}"),
+                None => panic!("{what}, not within {WAIT:?}; the role said:\n{said}"),
+            }
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
 /// A target that sends back each line that it gets.
 fn echo_target() -> u16 {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -199,7 +222,7 @@ fn sighup_takes_the_new_certificate_for_the_next_handshakes_and_the_open_session
     let pid = role.id() as libc::pid_t;
     let mut role = Killed(role);
     let mut port = 0;
-    until("the role's port", &log, || {
+    until_role("the role's port", &mut role, &[log.as_path()], || {
         port = std::fs::read_to_string(&port_file).ok().and_then(|t| t.trim().parse().ok()).unwrap_or(0);
         port != 0
     });

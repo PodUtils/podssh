@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**811 entries: 24 open, 43 partial, 11 blocked, 733 done.**
+**812 entries: 24 open, 44 partial, 11 blocked, 733 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 10 | 3 | 91 | 104 |
+| P1 | 0 | 11 | 3 | 91 | 105 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
 | P3 | 24 | 10 | 6 | 337 | 377 |
-| **All** | 24 | 43 | 11 | 733 | 811 |
+| **All** | 24 | 44 | 11 | 733 | 812 |
 
 ## Entries
 
@@ -887,3 +887,4 @@ repository and CI).
 | [T-854](serve.md) | P3 | S | backlog | defect | open | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
 | [T-855](serve.md) | P3 | S | backlog | feature | open | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
 | [T-856](serve.md) | P3 | S | backlog | defect | open | `podssh serve` with an RSA host key signs through the `rsa` crate |
+| [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |

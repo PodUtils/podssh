@@ -36,6 +36,9 @@ pub mod brake;
 pub mod cleartext;
 // The owner's control socket of a cover role (T-767).
 pub mod control;
+// Its path when it is longer than a socket's address holds (T-857).
+#[cfg(unix)]
+mod control_link;
 // The static cover site and its credential (T-764, T-765).
 pub mod cover;
 // DERP over a WebSocket for the node keys of its owner's file (T-106).

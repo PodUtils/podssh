@@ -49,11 +49,13 @@ LISTENERS = {
     # asks for with --control-socket PATH and which serves the documents that
     # the cover moved off the public listener (T-767, #225): a socket of mode
     # 0600 beside the role, no network bind, and a path that exists already is
-    # refused.
+    # refused. A path of it that a socket's address cannot hold is bound
+    # through a short link to its directory, at the same path (T-857).
     "UnixListener": [
         "crates/podssh-cli/src/pipe/cover_tests.rs",
         "crates/podssh-cli/src/pipe/listen.rs",
         "crates/podssh-relay/src/serve/control.rs",
+        "crates/podssh-relay/src/serve/control_link.rs",
         "crates/podssh-ssh/src/agent_forward_tests.rs",
         "crates/podssh-ssh/src/remote_tests.rs",
         "crates/podssh-ssh/src/mux/master.rs",
@@ -134,6 +136,7 @@ LISTENERS = {
         "crates/podssh-cli/src/journal/tests.rs",
         "crates/podssh-cli/src/pipe/cover_tests.rs",
         "crates/podssh-relay/src/serve/control.rs",
+        "crates/podssh-relay/src/serve/control_link.rs",
         "crates/podssh-cli/src/exit/listen.rs",
         "crates/podssh-cli/src/relay_serve.rs",
         "crates/podssh-cli/src/relay_serve/quic.rs",

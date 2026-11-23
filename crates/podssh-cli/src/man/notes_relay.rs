@@ -176,7 +176,10 @@ pub const RELAY: &[&str] = &[
      path that leaves DIR get the site's own 404; a body and a header of an unauthenticated path never name \
      this project, its version or its contract. The documents leave the public listener under --cover: /health, \
      /trace, /llms-full.txt, /relays.json and /v1/probe/* answer the site's 404 there. --control-socket PATH \
-     (required with --cover, mode 0600) serves them on a Unix socket of the owner's instead. /v1/mint stays \
+     (required with --cover, mode 0600) serves them on a Unix socket of the owner's instead. A PATH longer than a \
+     socket's address holds (103 bytes on macOS, 107 on Linux) is bound at PATH through a short link to its \
+     directory under /tmp, and the first line says that a client needs a shorter way to it; one that no link \
+     serves is refused (78). /v1/mint stays \
      public, and a POST with a body alone: another method is 405 with Allow: POST, an empty body 400. A client \
      that authenticated with a token at POST /v1/delegate gets a temporary credential of the same name and \
      chain. It is bound to the TLS exporter of the connection. podssh-ws checks its issuer, name, window and \

@@ -16,7 +16,7 @@ use std::net::TcpListener;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
-use serve_certs::{ca_and_leaf, podssh, replace, until, Killed, Scratch};
+use serve_certs::{ca_and_leaf, podssh, replace, until, until_role, Killed, Scratch};
 
 const NAME: &str = "relay-a.test";
 
@@ -69,9 +69,12 @@ impl Place {
     }
 
     /// The role on a free loopback port, its events on stdout to `events`,
-    /// its port in `port_file`, and a cover only when `covered`.
+    /// its lines on stderr to `said`, its port in `port_file`, and a cover
+    /// only when `covered`. A role that ends before its port fails the test
+    /// with its status and both files.
     fn serve(&self, name: &str, covered: bool) -> (u16, Killed) {
         let (events, port_file) = (self.s.0.join(format!("{name}.events")), self.s.0.join(format!("{name}.port")));
+        let said = self.s.0.join(format!("{name}.stderr"));
         let mut cmd: Command = podssh(&self.s.0);
         cmd.args(["relay", "serve", "--listen", "127.0.0.1:0", "--mint", "anyone", "--allow-private"])
             .arg("--cert")
@@ -83,10 +86,12 @@ impl Place {
         if covered {
             cmd.arg("--cover").arg(&self.site).arg("--control-socket").arg(&self.socket);
         }
-        cmd.stdin(Stdio::null()).stdout(std::fs::File::create(&events).unwrap()).stderr(Stdio::null());
-        let role = Killed(cmd.spawn().unwrap());
+        cmd.stdin(Stdio::null())
+            .stdout(std::fs::File::create(&events).unwrap())
+            .stderr(std::fs::File::create(&said).unwrap());
+        let mut role = Killed(cmd.spawn().unwrap());
         let mut port = 0;
-        until("the role's port", &events, || {
+        until_role("the role's port", &mut role, &[events.as_path(), said.as_path()], || {
             port = std::fs::read_to_string(&port_file).ok().and_then(|t| t.trim().parse().ok()).unwrap_or(0);
             port != 0
         });
