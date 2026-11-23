@@ -6,39 +6,81 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## The state of `main`
 
-- **Read first, at the next session (2026-11-23):**
+- **Read first, at the next session (2026-11-23, reconciled after `e728db9f` and `930e5ba0`):**
   1. **`PodUtils/podcrates` `v0.82.0` (`51c09390`) is taken at `e728db9f`**, with `url` 2.5.9
      (`RUSTSEC-2026-0592`), `vendor/h2` 0.4.20 patched via `[patch.crates-io]` for Chrome HTTP/2
      pseudo-header order (`:method`, `:authority`, `:scheme`, `:path`), and `pod-cover` added.
-     `vendor/pod-ws` is not needed because `podcrates v0.82.0` carries the `pod-ws` HTTP/2 shape
-     and `pod-egress` VMess nonce-wrap fixes.
-  2. **GitHub #224 (`T-757` to `T-763`) is done at `e728db9f`**: VLESS first-write coalescing with
-     real write-count tests (`vless_coalesce`), 0-RTT early data with 10-minute replay window and
-     1-RTT fallback (`vless_early`), XHTTP buffering-proxy split tests (`vless_buffering_proxy`),
+     No vendor/pod-ws patch is needed because `podcrates v0.82.0` carries the `pod-ws` HTTP/2 shape
+     and `pod-egress` VMess nonce-wrap fixes. `.github/workflows/issue-sync.yml` still pins `v0.81.0`
+     (`0707cfa3`). **COORD-133** (`to podcrates`, recording the take of `v0.82.0` at `e728db9f`) is
+     next to file once this commit is pushed; `v0.82.0` has a git tag (`51c09390`) and no GitHub
+     release or podcrates COORD issue yet.
+  2. **GitHub #224 (`T-757` to `T-763`) is done at `e728db9f` and closed (`930e5ba0`,
+     2026-11-23T09:03:56Z):** VLESS first-write coalescing with real write-count tests
+     (`vless_coalesce`), 0-RTT early data with 10-minute replay window and 1-RTT fallback
+     (`vless_early`), XHTTP buffering-proxy split tests (`vless_buffering_proxy`),
      Shadowsocks/Trojan/VMess conformance vectors (`conformance`, `vmess_vector`, `trojan_reference`,
-     `scripts/interop-trojan.sh`), Trojan UDP doctor refusal (`doctor/trojan.rs`), and HTTP/2
-     extended CONNECT fallback and browser shape (`h2_fallback`, `h2_shape_cli`).
-  3. **GitHub #225 (`T-764` to `T-768`) is done at `e728db9f`**: `relay serve --cover` static site,
-     pinned operator Ed25519 issuer key signing and verification (`--cover-issuer-key`,
-     `--cover-issuer-public`, `--cover-credential`, `doctor --cover`), all 9 `Reach::Token` routes
-     and `/v1/pair` gated behind the cover site, shared pair table across role listeners, control
-     socket for role documents, and wildcard refusal (`relay_serve_cover`,
-     `relay_serve_cover_credential`, `cover_credential`, `cover_refusal`, `doctor_cover`).
-  4. **Local WSL verification at `e728db9f`**: `python3 scripts/check-repo.py` 12/12 ok, `cargo fmt`
-     clean, all 14 gate clippy checks clean (`-D warnings -A clippy::collapsible_if`),
-     `podssh-todo check` and `podssh-todo test` (11 passed) green, `scripts/no-plain-ws.sh` ok,
-     `step_libs` 151 suites (868 passed, 0 failed), `podssh-ssh` + `warp` 26 suites (1819 passed,
-     0 failed), `podssh-cli` 239 suites (2479 passed; 2 environmental failures on Arch WSL lacking
-     rootless podman bridge `10.88.0.2` in `exit_routes` and `vi` in `serve_tty`), `node_detach`
-     8/8 passed. Next: push to `main` and watch the CI gate (`build.yml`).
-  5. **Open priorities after CI gate:** T-780 (P1, m6 hang: `ssh/polls.rs` at `90763ef` names a
-     held part at the next hang), T-846 (P1, `serve_pressure` on a pty), T-820 (`node_install/` on
-     `pod-unit`, `pod_core::files::replace`, Windows `known_hosts` lock), T-684 (`pod-cloudflare`,
-     `pod-ts`, `pod-relay-serve`), and T-791 / T-809 before the next beta.
+     `scripts/interop-trojan.sh`), Trojan UDP doctor refusal (`crates/podssh-cli/src/doctor/trojan.rs`),
+     and HTTP/2 extended CONNECT fallback and browser shape (`h2_fallback`, `h2_shape_cli`).
+  3. **GitHub #225 (`T-764` to `T-768`) is done at `e728db9f` and closed (`930e5ba0`,
+     2026-11-23T09:04:45Z):** `relay serve --cover` static site, pinned operator Ed25519 issuer key
+     signing and verification (`--cover-issuer-key`, `--cover-issuer-public`, `--cover-credential`,
+     `doctor --cover`), all 9 `Reach::Token` routes and `/v1/pair` gated behind the cover site,
+     shared pair table across role listeners, control socket for role documents, and wildcard refusal
+     (`relay_serve_cover`, `relay_serve_cover_credential`, `cover_credential`, `cover_refusal`,
+     `doctor_cover`).
+  4. **Verification and live CI state at `e728db9f` / `930e5ba0`:**
+     Local WSL at `e728db9f`: `python3 scripts/check-repo.py` 12/12 ok, `cargo fmt` clean, all 14 gate
+     clippy checks clean (`-D warnings -A clippy::collapsible_if`), `podssh-todo check` and
+     `podssh-todo test` (11 passed) green, `scripts/no-plain-ws.sh` ok, `step_libs` 151 suites (868
+     passed, 0 failed), `podssh-ssh` + `warp` 26 suites (1819 passed, 0 failed), `podssh-cli` 239
+     suites (2479 passed; 2 environmental failures on Arch WSL lacking rootless podman bridge
+     `10.88.0.2` in `exit_routes` and `vi` in `serve_tty`), `node_detach` 8/8 passed.
+     `930e5ba0` is on `origin/main` and triggered live GitHub Actions runs: `issue-sync.yml` (run
+     45143708738), `deny.yml` (run 45143708024), `secrets.yml` (run 45143708019), and all 10 interop
+     workflows (`proxy-lists-interop.yml` 45143708014, `hostc-interop.yml` 45143708015,
+     `outline-interop.yml` 45143708021, `turn-interop.yml` 45143708027, `trojan-interop.yml`
+     45143708039, `vless-interop.yml` 45143708059, `mqtt-interop.yml` 45143708063,
+     `zerotier-interop.yml` 45143708187, `tuic-interop.yml` 45143708290, `acme-interop.yml`
+     45143708298) completed with `success`. `build.yml` (run 45143708331 at `930e5ba0`) passed 15
+     of 18 jobs (`checks`, `plan`, `windows-arm`, `tor-net`, `plant`, `box`, `gate (lint)`,
+     `gate (ts)`, `gate (release)`, `gate (record)`, `gate (tor)`, `gate (iroh)`, `gate (gsr)`,
+     `gate (m6)`, `gate (libs)`), with 3 jobs still in progress when checked (`windows`, `macos`,
+     `gate (ssh)`). Read its final result first; once green, close #333 (`[gh action] requested:
+     the gate of 6e2ac37`), which this run supersedes on `main`.
+  5. **Open priorities to resume in order (after checking `build.yml` 45143708331 and filing
+     `COORD-133`):**
+     - **T-780 (P1, the m6 hang):** fifteen failures; the last three placed the hold: `russh`'s loop
+       waits on the full queue of the session's own channel (`2`), and the pump that drains it is not
+       polled. The task that runs the pump joins SSH with the layer and the end-to-end channel
+       (`tokio::join!`, `crates/podssh-cli/src/ssh/iroh/dial.rs`, `crates/podssh-cli/src/ssh/node.rs`);
+       `crates/podssh-cli/src/ssh/polls.rs` (`90763ef`) now names a part whose poll does not return,
+       or says that no part was polled. `gate (m6)` passed in 45143708331; at the next hang, read
+       `ssh/polls.rs`'s line and repair that part.
+     - **T-846 (P1, `serve_pressure` on a pty):** its second failure showed `yes` alive in a pty write;
+       on a pty a closed master hangs it up too, so `serve` acted on no close. Its failure now says
+       `yes`'s signals and whether it ended late or never (`c997ca7`).
+     - **T-820 (`COORD-131`, shared code copies):** podssh's copies that podcrates' crates now hold:
+       `node_install/` on `pod-unit` (`v0.80.0`), `pod_core::files::replace` for
+       `crates/podssh-cli/src/keygen_cert.rs` and `crates/podssh-ssh/src/known_hosts/edit.rs`, and
+       `pod_unit::install::install_system` (`v0.81.0`); and the Windows lock of `known_hosts`
+       (podcrates' entry 941).
+     - **T-684 (Q101 waves 3 and 4):** file `COORD-133` for `v0.82.0` (`e728db9f`), then take
+       `pod-cloudflare` and `pod-ts`, and `pod-relay-serve` last.
+     - **T-791 / T-793 / T-809 / T-446:** `pod-lab` lane behind each class (T-791), installer check on
+       a published release (T-793), and the third black-box pass on the candidate (T-809) before
+       `v1.1.0-beta.4` (T-446).
+     - **Open Dependabot pull requests:** #321 (`taiki-e/install-action` 2.90.5), #324 (`jiff` 1.0.0),
+       and #339 (`minor-and-patch` group with 14 updates, replacing #338 which Dependabot closed on
+       2026-11-23).
 - **Earlier cloud session notes (2026-11-20 to 21):**
-  1. The gate of `main` asked in #333 (`[gh action] requested`) preceded `e728db9f`. Dependabot's
-     #338 at `2ae2341` (`main` at `78b8077`, run 44876039757) passed each job except `gate (m6)`
-     (T-780's fifteenth hang).
+  1. The gate of `main` asked in #333 (`[gh action] requested: the gate of 6e2ac37`) covered each
+     commit after the last green gate at `d0c2a04` (run 44694900576): T-718's probe with Access
+     headers, T-720's iroh relay of net members, T-714 (Unix route across an upgrade), T-853
+     (`serve`'s ETXTBSY shell probe), podcrates `v0.79.0` to `v0.81.0`, and T-780's (`90763ef`) and
+     T-846's (`c997ca7`) new lines. Dependabot's #338 at `2ae2341` (`main` at `78b8077`, run
+     44876039757) passed each job except `gate (m6)` (T-780's fifteenth hang). `930e5ba0` on `main`
+     now carries all of those commits into live CI (`build.yml` run 45143708331).
 - **This cloud session's own conditions**, which a next cloud session may meet again: `gh`'s token is refused and a
   push starts no workflow, so each gate is asked by `[gh action] requested` (as #332 and #333); a full disk (it filled
   here once) is freed by removing `target/` whole; and since a restart of the worker, the shell puts a stand-in of `rm`
@@ -127,11 +169,13 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
 - `v0.52.0` (taken 2026-11-15) is step 2, parts 2 and 3: VLESS, VMess's AEAD form, Trojan, Shadowsocks, EICE and
   IAP leave podssh-ws for glue files (`vless.rs`, `vmess.rs`, `trojan.rs`, `shadowsocks.rs`, `eice.rs`, `iap.rs`);
   `tests/vless_support/` and `trojan_support/` stay for the tests of the proxy nodes, Hysteria and TUIC.
-- `v0.53.0` to `v0.78.1` (taken 2026-11-15 to 2026-11-20): each take is a COORD issue of podssh, mapped in
+- `v0.53.0` to `v0.81.0` (taken 2026-11-15 to 2026-11-21): each take is a COORD issue of podssh, mapped in
   `TODO/issues.md`, and podcrates records it under `## Takes` of its release issue. Each entry's `## Done` says what
-  its tag brought. The newest: `v0.77.0` (COORD-128) took `pod-release` (T-850, `release-index.json` and the checks
-  of `podssh update`) and `Session::without_prompt` (T-848); `v0.78.1` (COORD-129) brings `update::plan`'s `Newer`
-  (podcrates' entry 971: podssh's own comparison goes) and the pager's `Interrupts` as the crate's.
+  its tag brought: `v0.77.0` (COORD-128) took `pod-release` (T-850) and `Session::without_prompt` (T-848); `v0.78.1`
+  (COORD-129, #330 closed) brought `Plan::Newer` and `Interrupts`; `v0.79.0` (COORD-130, #334 closed) brought Rekor v2;
+  `v0.80.0` (COORD-131, #335 closed) brought `pod-unit` (`node_install/` target); `v0.81.0` (COORD-132, #337 closed)
+  brought `pod_core::files::replace` and `pod_unit::install::install_system`. `v0.82.0` (`51c09390`, taken 2026-11-23
+  at `e728db9f`) awaits `COORD-133` `(to podcrates)`.
 
 ## Open COORD issues
 
@@ -144,7 +188,8 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
 | #312 (COORD-115) | podcrates reading it; the copies of shared code end in T-820 |
 | #316 (COORD-120) | the coordinator's order of podcrates T-112, T-110, T-111 and T-117 (cfb's asks) |
 | #322 (COORD-123) | T-847's first push at a release tag |
-| #333 (`[gh action] requested`) | the operator's local agent running the gate on the newest `main` |
+| #333 (`[gh action] requested`) | open on GitHub, superseded on `main` by `930e5ba0` (`build.yml` run 45143708331); close once `build` finishes green |
+| Next: `COORD-133` `(to podcrates)` | not yet opened; file after pushing `main` to record the `v0.82.0` take at `e728db9f` |
 
 ## The live runs and interop harnesses
 
@@ -159,22 +204,23 @@ road). Each has a planted run that must fail, and each did.
 | VMess's AEAD form (T-739, done) | PodUtils/podcrates:.github/workflows/vmess-interop.yml | passed, run 43178390705, against Xray-core v26.10.21 |
 | Syncthing's relays (T-571, done) | `strelay-interop.yml` | passed, run 43164842738, live through the pool on 443 |
 | The binary's proxy nodes (T-574, done) | `proxy-nodes-live.yml` | 8 of 8 nodes passed, run 43305389601, after #207 dropped two |
-| The proxy lists' round against Xray-core (T-574, done) | `proxy-lists-interop.yml` | passed (`9c9b706`) |
+| The proxy lists' round against Xray-core (T-574, done) | `proxy-lists-interop.yml` | passed at `930e5ba0` (run 45143708014, 2026-11-23) |
 | HTTP Relay's demo (T-576, done) | `httprelay-probe.yml`, daily at 14:17 UTC | its `VERDICT` lines are the measurement; it never answered in three days (2026-11-14) |
-| ZeroTier (T-733, done) | `zerotier-live.yml` | live through ZeroTier Inc.'s roots and relay |
+| ZeroTier (T-733, done) | `zerotier-live.yml`, `zerotier-interop.yml` | live through ZeroTier Inc.'s roots and relay; `zerotier-interop.yml` passed at `930e5ba0` (run 45143708187) |
+| VLESS, Trojan, TUIC, ACME, MQTT, TURN, Outline, hostc (`930e5ba0`) | `vless-interop.yml`, `trojan-interop.yml`, `tuic-interop.yml`, `acme-interop.yml`, `mqtt-interop.yml`, `turn-interop.yml`, `outline-interop.yml`, `hostc-interop.yml` | all 8 passed on `main` at `930e5ba0` (2026-11-23: runs 45143708059, 45143708039, 45143708290, 45143708298, 45143708063, 45143708027, 45143708021, 45143708015) |
 | The file hosts (T-738) | `filehost-live.yml` | run 43562322579 (2026-11-14, podcrates `v0.42.0`): passed, the two hosts that the road takes unasked 32 KiB up, down and opened |
 
 ## The next entries, in the work order's order
 
 | Entry | State and next step |
 | --- | --- |
-| T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849 | Tests that failed at random (T-746 done); each `## Done` names the failure that it waits for. First whenever one fails. T-780's busy watch is in. |
+| T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849 | Tests that failed at random (T-746 done); each `## Done` names the failure that it waits for. First whenever one fails. T-780's busy watch, `0013-loop-step`, and `ssh/polls.rs` (`90763ef`) are in; T-846's signal and late-end lines (`c997ca7`) are in. |
 | T-107 to T-112, T-114, T-117, T-118, T-222, T-248 | Partial: merged; each waits for its run in the build image (T-251), and for the `cargo todo remap` where its `## Done` says so. |
-| T-684 | Partial: each next tag of podcrates, taken at once; next `pod-cloudflare` and `pod-ts`, then `pod-relay-serve`. |
+| T-684 | Partial: `v0.82.0` taken at `e728db9f` (`COORD-133` next); each next tag of podcrates, taken at once; next `pod-cloudflare` and `pod-ts`, then `pod-relay-serve`. |
 | T-847 | Partial: the push to ghcr.io, the comparison and the attestation run at the next release tag (COORD-123, #322). |
 | T-738 | Partial: the run against `mia/0x0`, as its `## Done` says. |
-| T-791, T-793, T-809, T-820 | Partial: the lane on the candidate and the network classes; the installer of a published release; the third black-box pass; the last copies of shared code. |
-| T-319, T-321 | Partial: what stays is a real proxy's path and Apache's `H2WebSockets` in the build image, and their live runs (Q88). |
+| T-791, T-793, T-809, T-820 | Partial: the lane on the candidate and the network classes; the installer of a published release; the third black-box pass; T-820's copies (`node_install/` on `pod-unit`, `pod_core::files::replace` for `keygen_cert.rs` and `known_hosts/edit.rs`, `pod_unit::install::install_system`, and Windows `known_hosts` lock entry 941). |
+| T-319, T-321 | Partial: T-762 (`h2` extended CONNECT fallback) is done (`e728db9f`); what stays is a real proxy's path and Apache's `H2WebSockets` in the build image, and their live runs (Q88). |
 | T-106 | Partial: the tailnet's test on the operator's machine, the box's run of B and the drop test of 5 min. |
 | T-660, T-666, T-670 | Partial: the matrix rows that their `## Done` names (iroh, DERP, the node's road on the slow link, osewa's binary on a runner). |
 | T-755 | Partial: its live run waits for a tester's tunnel (#215). |
