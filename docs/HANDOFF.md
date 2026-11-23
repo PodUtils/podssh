@@ -12,9 +12,8 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
      pseudo-header order (`:method`, `:authority`, `:scheme`, `:path`), and `pod-cover` added.
      No vendor/pod-ws patch is needed because `podcrates v0.82.0` carries the `pod-ws` HTTP/2 shape
      and `pod-egress` VMess nonce-wrap fixes. `.github/workflows/issue-sync.yml` still pins `v0.81.0`
-     (`0707cfa3`). **COORD-133** (`to podcrates`, recording the take of `v0.82.0` at `e728db9f`) is
-     next to file once this commit is pushed; `v0.82.0` has a git tag (`51c09390`) and no GitHub
-     release or podcrates COORD issue yet.
+     (`0707cfa3`). **COORD-133** (#340, `to podcrates`, recording the take of `v0.82.0` at `e728db9f`) is filed and
+     open; `v0.82.0` has a git tag (`51c09390`) and no GitHub release.
   2. **GitHub #224 (`T-757` to `T-763`) is done at `e728db9f` and closed (`930e5ba0`,
      2026-11-23T09:03:56Z):** VLESS first-write coalescing with real write-count tests
      (`vless_coalesce`), 0-RTT early data with 10-minute replay window and 1-RTT fallback
@@ -46,10 +45,10 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
      of 18 jobs (`checks`, `plan`, `windows-arm`, `tor-net`, `plant`, `box`, `gate (lint)`,
      `gate (ts)`, `gate (release)`, `gate (record)`, `gate (tor)`, `gate (iroh)`, `gate (gsr)`,
      `gate (m6)`, `gate (libs)`), with 3 jobs still in progress when checked (`windows`, `macos`,
-     `gate (ssh)`). Read its final result first; once green, close #333 (`[gh action] requested:
-     the gate of 6e2ac37`), which this run supersedes on `main`.
-  5. **Open priorities to resume in order (after checking `build.yml` 45143708331 and filing
-     `COORD-133`):**
+     `gate (ssh)`). Read its final result first. #333 (`[gh action] requested:
+     the gate of 6e2ac37`) was closed by the operator on 2026-11-23 as superseded on `main`.
+  5. **Open priorities to resume in order (after checking `build.yml` 45143708331; `COORD-133`
+     is filed as #340):**
      - **T-780 (P1, the m6 hang):** fifteen failures; the last three placed the hold: `russh`'s loop
        waits on the full queue of the session's own channel (`2`), and the pump that drains it is not
        polled. The task that runs the pump joins SSH with the layer and the end-to-end channel
@@ -65,7 +64,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
        `crates/podssh-cli/src/keygen_cert.rs` and `crates/podssh-ssh/src/known_hosts/edit.rs`, and
        `pod_unit::install::install_system` (`v0.81.0`); and the Windows lock of `known_hosts`
        (podcrates' entry 941).
-     - **T-684 (Q101 waves 3 and 4):** file `COORD-133` for `v0.82.0` (`e728db9f`), then take
+     - **T-684 (Q101 waves 3 and 4):** `COORD-133` (#340) records `v0.82.0` (`e728db9f`); then take
        `pod-cloudflare` and `pod-ts`, and `pod-relay-serve` last.
      - **T-791 / T-793 / T-809 / T-446:** `pod-lab` lane behind each class (T-791), installer check on
        a published release (T-793), and the third black-box pass on the candidate (T-809) before
@@ -74,7 +73,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
        and #339 (`minor-and-patch` group with 14 updates, replacing #338 which Dependabot closed on
        2026-11-23).
 - **Earlier cloud session notes (2026-11-20 to 21):**
-  1. The gate of `main` asked in #333 (`[gh action] requested: the gate of 6e2ac37`) covered each
+  1. The gate of `main` asked in #333 (`[gh action] requested: the gate of 6e2ac37`, closed by the operator on 2026-11-23) covered each
      commit after the last green gate at `d0c2a04` (run 44694900576): T-718's probe with Access
      headers, T-720's iroh relay of net members, T-714 (Unix route across an upgrade), T-853
      (`serve`'s ETXTBSY shell probe), podcrates `v0.79.0` to `v0.81.0`, and T-780's (`90763ef`) and
@@ -175,7 +174,7 @@ PodUtils/podcrates#135; podssh's answer is COORD-050).
   (COORD-129, #330 closed) brought `Plan::Newer` and `Interrupts`; `v0.79.0` (COORD-130, #334 closed) brought Rekor v2;
   `v0.80.0` (COORD-131, #335 closed) brought `pod-unit` (`node_install/` target); `v0.81.0` (COORD-132, #337 closed)
   brought `pod_core::files::replace` and `pod_unit::install::install_system`. `v0.82.0` (`51c09390`, taken 2026-11-23
-  at `e728db9f`) awaits `COORD-133` `(to podcrates)`.
+  at `e728db9f`) awaits podcrates' record of `COORD-133` (#340, `to podcrates`).
 
 ## Open COORD issues
 
