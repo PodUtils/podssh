@@ -156,10 +156,15 @@ pub fn run(mut cmd: Command, input: Option<Vec<u8>>) -> (Option<i32>, Vec<u8>, S
 // OpenSSH sends its ProxyCommand SIGHUP as it ends: the shell ignores it
 // once serve runs (serve keeps its own), and lives to write the status.
 pub fn wrapped_serve(home: &Path) -> String {
+    wrapped_serve_with(home, "")
+}
+
+/// [`wrapped_serve`] with `serve` after serve's flags (T-842).
+pub fn wrapped_serve_with(home: &Path, serve: &str) -> String {
     let script = home.join("serve.sh");
     let text = format!(
         "#!/bin/sh\nexec 3<&0\n{} <&3 3<&- &\necho $! > '{}'\ntrap '' HUP\nwait $!\necho $? > '{}'\n",
-        serve_command(home, ""),
+        serve_command(home, serve),
         home.join("serve.pid").display(),
         home.join("serve.status").display()
     );

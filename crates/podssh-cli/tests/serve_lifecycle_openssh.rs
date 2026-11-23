@@ -2,8 +2,11 @@
 //! command that runs `sleep 100` through serve, then a SIGTERM to serve.
 //! The client ends within 5 s with serve's reason (`podssh serve is
 //! stopping`), serve exits 0, and the child is gone; a SIGHUP in between
-//! reads the keys again and keeps the session. Unix's, as `serve_openssh.rs`;
-//! a host with no OpenSSH client says that the test did not run.
+//! reads the keys again and keeps the session. With `--revoke-ends-sessions`
+//! (T-842), a SIGHUP after the key left the file ends the client with the
+//! key's name, serve's stderr names it, serve exits 0, and the child is
+//! gone. Unix's, as `serve_openssh.rs`; a host with no OpenSSH client says
+//! that the test did not run.
 
 #![cfg(unix)]
 
@@ -13,7 +16,10 @@ use std::io::Read;
 use std::process::{Child, Stdio};
 use std::time::{Duration, Instant};
 
-use serve_kit::{ends_within, have_openssh, keygen, number_in, openssh_proxy, runs, scratch, wrapped_serve, Scratch};
+use serve_kit::{
+    ends_within, have_openssh, keygen, number_in, openssh_proxy, runs, scratch, wrapped_serve, wrapped_serve_with,
+    Scratch,
+};
 
 /// A scratch home with the key `id` (listed) made, or None where this host
 /// has no OpenSSH client.
@@ -80,4 +86,31 @@ fn a_sigterm_ends_the_client_with_the_reason_and_leaves_no_child() {
     assert!(err.contains("SIGHUP: the authorized keys read again, 1 in all"), "{err}");
     assert_eq!(number_in(&home.join("serve.status")), 0, "a stop exits 0: {err}");
     assert!(ends_within(child, Duration::from_secs(5)), "sleep 100 runs on after the stop: {err}");
+}
+
+#[test]
+fn with_revoke_a_sighup_that_takes_the_key_out_ends_the_client_with_its_name() {
+    let Some(dir) = home("revoke") else { return };
+    let (home, key) = (&dir.0, dir.0.join("id"));
+    // A second key, so that the file still holds a key once the first left.
+    keygen(home, &home.join("other"));
+    let child_file = home.join("child.pid");
+    let remote = format!("echo $$ > '{}'; exec sleep 100", child_file.display());
+    let serve = wrapped_serve_with(home, " --revoke-ends-sessions");
+    let mut cmd = openssh_proxy(home, &key, "accept-new", &serve, &[], &[&remote]);
+    cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::piped());
+    let client = cmd.spawn().expect("ssh runs");
+    let child = number_in(&child_file);
+    let serve = number_in(&home.join("serve.pid"));
+    assert!(runs(child), "the command runs");
+
+    // The file that serve reads holds the other key alone now.
+    std::fs::copy(home.join("other.pub"), home.join("id.pub")).unwrap();
+    signal(serve, libc::SIGHUP);
+    let (code, took, err) = ended_within(client, Duration::from_secs(10));
+    assert!(code.is_some() && took < Duration::from_secs(5), "ssh ended after {took:?} ({code:?}): {err}");
+    assert!(err.contains("is no longer authorized"), "the client hears that its key is out: {err}");
+    assert!(err.contains("removed from the authorized keys: its session ends"), "serve names the key: {err}");
+    assert_eq!(number_in(&home.join("serve.status")), 0, "a session that a reload ended exits 0: {err}");
+    assert!(ends_within(child, Duration::from_secs(5)), "sleep 100 runs on after the revoke: {err}");
 }

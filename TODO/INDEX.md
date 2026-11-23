@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**808 entries: 23 open, 43 partial, 11 blocked, 731 done.**
+**811 entries: 24 open, 43 partial, 11 blocked, 733 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 91 | 104 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 23 | 10 | 6 | 335 | 374 |
-| **All** | 23 | 43 | 11 | 731 | 808 |
+| P3 | 24 | 10 | 6 | 337 | 377 |
+| **All** | 24 | 43 | 11 | 733 | 811 |
 
 ## Entries
 
@@ -871,8 +871,8 @@ repository and CI).
 | [T-838](ssh.md) | P3 | M | backlog | feature | partial | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |
-| [T-841](serve.md) | P3 | S | backlog | feature | open | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
-| [T-842](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: a key that a reload removes ends its open sessions when asked |
+| [T-841](serve.md) | P3 | S | backlog | feature | done | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
+| [T-842](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: a key that a reload removes ends its open sessions when asked |
 | [T-843](robustness.md) | P2 | S | M10 | defect | done | A refusal of the relay's policy no longer says the relay's cause |
 | [T-844](robustness.md) | P1 | S | M10 | defect | done | `doctor` fails a host when croc's public bridge, a third party's last fallback, does not open |
 | [T-845](robustness.md) | P1 | S | M10 | defect | done | Over the HTTP road, `ssh` says `broken pipe` in place of the role's close where it writes before it reads |
@@ -884,3 +884,6 @@ repository and CI).
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
 | [T-852](reverse.md) | P3 | S | M10 | measurement | open | An upgrade in place of a node on Windows with a session through a Unix route |
 | [T-853](robustness.md) | P1 | S | M10 | defect | done | `serve_shell`: a data file of the test met "Text file busy" at its start, once |
+| [T-854](serve.md) | P3 | S | backlog | defect | open | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
+| [T-855](serve.md) | P3 | S | backlog | feature | open | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
+| [T-856](serve.md) | P3 | S | backlog | defect | open | `podssh serve` with an RSA host key signs through the `rsa` crate |

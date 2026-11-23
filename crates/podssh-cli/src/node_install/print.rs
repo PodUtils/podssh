@@ -99,7 +99,12 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
             words.extend([flag.to_string(), value.clone()]);
         }
     }
-    for (flag, on) in [("--no-shell", args.no_shell), ("--no-forwarding", args.no_forwarding)] {
+    let switches = [
+        ("--no-shell", args.no_shell),
+        ("--no-forwarding", args.no_forwarding),
+        ("--revoke-ends-sessions", args.revoke_ends_sessions),
+    ];
+    for (flag, on) in switches {
         if on {
             words.push(flag.to_string());
         }

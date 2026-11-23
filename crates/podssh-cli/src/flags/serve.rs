@@ -1,7 +1,8 @@
 //! The flag rows of `serve` (T-107): podssh's own SSH server, over stdin
 //! and stdout, its host key, and the keys that may log in; what a session
 //! runs (T-108) and its shell (T-222); whether a client may forward (T-109);
-//! a unit of systemd that runs it (T-709).
+//! whether a reload that takes a key out ends its sessions (T-842); a unit
+//! of systemd that runs it (T-709).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -26,6 +27,8 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "what a pty request meets where no pty opens: auto, a devpts instance of serve's own, then a tty whose calls serve answers (Linux); then serve as the line discipline on pipes (echo, editing, Ctrl-C to the command); notify, the tty that serve answers with no pty tried, else the request refused; line, the line discipline with no pty tried; no, the request refused (default: auto)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
+    row(None, "revoke-ends-sessions", None, FlagKind::Supported,
+        "a SIGHUP that takes a key out of the authorized keys ends that key's open sessions, and a key's expiry-time= ends them at its time; one line names each key (default: a session goes on under the rules it logged in with)", None),
     // A unit of systemd that runs serve NAME, printed (T-709).
     row(None, "print-unit", None, FlagKind::Supported,
         "with NAME: print a unit of systemd that runs serve NAME with these flags, on stdout, and write nothing: a user unit, or with --system --run-as USER a system unit", None),

@@ -1,0 +1,9 @@
+--- a/crates/podssh-ssh/src/server/algorithms.rs
++++ b/crates/podssh-ssh/src/server/algorithms.rs
+@@ -56,5 +56,5 @@
+ 
+ /// The ciphers, each way.
+ pub const CIPHERS: &[cipher::Name] =
+-    &[cipher::CHACHA20_POLY1305, cipher::AES_256_GCM, cipher::AES_256_CTR, cipher::AES_192_CTR, cipher::AES_128_CTR];
++    &[cipher::CHACHA20_POLY1305, cipher::AES_256_GCM, cipher::AES_128_GCM, cipher::AES_256_CTR, cipher::AES_192_CTR, cipher::AES_128_CTR];
+ 

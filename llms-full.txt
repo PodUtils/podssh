@@ -10800,6 +10800,21 @@ podssh serve
   change is refused (78). With no key at all, the start is refused (78): no
   setting lets each key in.
 
+  The algorithms are one stated set, the same at each start, never russh's
+  default of the day. Key exchanges: mlkem768x25519-sha256, curve25519-sha256,
+  curve25519-sha256@libssh.org, diffie-hellman-group-exchange-sha256,
+  diffie-hellman-group18-sha512, diffie-hellman-group17-sha512,
+  diffie-hellman-group16-sha512, diffie-hellman-group15-sha512 and
+  diffie-hellman-group14-sha256. Host key algorithms: ssh-ed25519,
+  ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512,
+  rsa-sha2-256 and ssh-rsa. Of those, a client is offered the ones that the
+  host key serves. Ciphers: chacha20-poly1305@openssh.com,
+  aes256-gcm@openssh.com, aes256-ctr, aes192-ctr and aes128-ctr. MACs:
+  hmac-sha2-512-etm@openssh.com, hmac-sha2-256-etm@openssh.com, hmac-sha2-512
+  and hmac-sha2-256. Compression: none, zlib and zlib@openssh.com. A client
+  that offers no name of a list is refused in the handshake (OpenSSH: no
+  matching cipher found, and the set as Their offer).
+
   The options of a key line are OpenSSH's (the format of the authorized_keys
   file in sshd(8)), read as sshd reads them: separated by commas, names in any
   case, a value in double quotes where a backslash before a quote is a quote.
@@ -10987,6 +11002,14 @@ podssh serve
   reload that took says how many lines are used now. The other settings are the
   command line's, and a restart changes them.
 
+  With --revoke-ends-sessions, a reload that takes a key out also ends that
+  key's open sessions. A key whose line now refuses it (from=, expiry-time=)
+  counts as out. The client gets a disconnect that names the key (OpenSSH
+  prints it), and its children are hung up as at a stop. One line on stderr
+  names each key. A key's expiry-time= then ends its sessions at that second
+  too. A reload that keeps the set before ends nothing. Without the flag, no
+  session ends by a reload.
+
   serve NAME --print-unit prints a unit of systemd that runs serve NAME with
   these flags, each file by its absolute path, and writes nothing. It is a user
   unit; with --system --run-as USER, a system unit that runs as USER, with HOME
@@ -10998,8 +11021,9 @@ podssh serve
   the unit in place by hand.
 
   The connection ends when the client leaves: exit 0, else 255 when it failed;
-  a stop exits 0. Without --stdio the run is a usage error (64), and so are
-  --shell with --no-shell; on Windows it exits 70.
+  a stop exits 0, as does a session that a reload ended. Without --stdio the
+  run is a usage error (64), and so are --shell with --no-shell; on Windows it
+  exits 70.
 
   Usage: podssh serve [OPTIONS]
 
@@ -11044,6 +11068,11 @@ podssh serve
     --no-forwarding
         open no forward: each direct-tcpip channel that a client opens is
         refused (default: each forward dials its host and port from this host).
+    --revoke-ends-sessions
+        a SIGHUP that takes a key out of the authorized keys ends that key's
+        open sessions, and a key's expiry-time= ends them at its time; one line
+        names each key (default: a session goes on under the rules it logged in
+        with).
     --print-unit
         with NAME: print a unit of systemd that runs serve NAME with these
         flags, on stdout, and write nothing: a user unit, or with --system

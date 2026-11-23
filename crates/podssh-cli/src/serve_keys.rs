@@ -10,6 +10,9 @@
 //! read, or a set with no key, keeps the set before, with one line, as a
 //! reload must not lock each new login out. A session that logged in goes
 //! on under the rules it logged in with; the next login meets the new set.
+//! With `--revoke-ends-sessions` (T-842), a reload that took a key out ends
+//! that key's sessions, one line naming each; a reload that kept the set
+//! before ends nothing.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -17,7 +20,7 @@ use std::sync::Arc;
 
 use podssh_relay::cache::{self, Others};
 use podssh_ssh::russh::keys::PrivateKey;
-use podssh_ssh::server::{self, Authorized, Control, Keys, Line, Settings};
+use podssh_ssh::server::{self, Authorized, Control, Keys, Line, Reloaded, Settings};
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::relay_settings::Refusal;
@@ -89,20 +92,26 @@ impl Sources {
 
 /// Read the keys again into `keys` (SIGHUP): each line passed over is
 /// said, then one line: how many lines are used now, or why the set before
-/// stays.
-pub fn reload(sources: &Sources, keys: &Keys, err: &mut dyn Write) {
-    let line = match sources.read(err) {
+/// stays. With `ends` (`--revoke-ends-sessions`), each session of `control`
+/// whose key the new set takes out ends, and one more line names each key.
+pub fn reload(sources: &Sources, keys: &Keys, control: &Control, ends: bool, err: &mut dyn Write) {
+    let (line, ended) = match sources.read(err) {
         Ok(set) => {
             let count = set.len();
-            if keys.replace(set) {
-                format!("SIGHUP: the authorized keys read again, {count} in all")
-            } else {
-                format!("SIGHUP: the keys read gave none; the set before stays, {} keys", keys.len())
+            match server::live::reload(keys, control, set, ends) {
+                Reloaded::Taken(ended) => (format!("SIGHUP: the authorized keys read again, {count} in all"), ended),
+                Reloaded::Refused => {
+                    (format!("SIGHUP: the keys read gave none; the set before stays, {} keys", keys.len()), Vec::new())
+                }
             }
         }
-        Err(refusal) => format!("SIGHUP: {}; the set before stays, {} keys", refusal.message, keys.len()),
+        // A file that does not read keeps the set before, and ends nothing.
+        Err(refusal) => (format!("SIGHUP: {}; the set before stays, {} keys", refusal.message, keys.len()), Vec::new()),
     };
     let _ = writeln!(err, "podssh serve: {line}");
+    for one in ended {
+        let _ = writeln!(err, "podssh serve: SIGHUP: {one}");
+    }
 }
 
 /// What a signal asks of the server. Only Unix's signals are caught, so
@@ -183,6 +192,7 @@ where
     // Caught before the first byte, so that no stop finds the default.
     let mut signals = Signals::new();
     let control = Control::new();
+    let ends = settings.revoke_ends_sessions;
     let serving = server::serve_under(stream, key, keys.clone(), settings, control.clone());
     tokio::pin!(serving);
     loop {
@@ -190,7 +200,7 @@ where
             ended = &mut serving => return ended,
             asked = signals.next() => match asked {
                 Asked::Stop => control.stop(),
-                Asked::Reload => reload(sources, &keys, err),
+                Asked::Reload => reload(sources, &keys, &control, ends, err),
             },
         }
     }
@@ -223,7 +233,7 @@ mod tests {
         let keys = Keys::new(sources.read(&mut Vec::new()).unwrap());
         std::fs::write(&file, format!("# the second alone now\n{two_line}\n")).unwrap();
         let mut said = Vec::new();
-        reload(&sources, &keys, &mut said);
+        reload(&sources, &keys, &Control::new(), false, &mut said);
         let said = String::from_utf8_lossy(&said);
         assert!(said.contains("read again, 1 in all"), "{said}");
         assert!(keys.allows(two.public_key()) && !keys.allows(one.public_key()), "{said}");
@@ -242,14 +252,14 @@ mod tests {
         // and passed over, as at the start, and the rest is taken.
         std::fs::write(&file, format!("no-pty {two_line}\nssh-ed25519 AAAAC3Nza\n")).unwrap();
         let mut said = Vec::new();
-        reload(&sources, &keys, &mut said);
+        reload(&sources, &keys, &Control::new(), false, &mut said);
         let text = String::from_utf8_lossy(&said).to_string();
         assert!(text.contains("line 2") && text.contains("passed over"), "{text}");
         assert!(text.contains("read again, 1 in all"), "{text}");
         assert!(keys.allows(two.public_key()) && !keys.allows(one.public_key()), "{text}");
         std::fs::remove_file(&file).unwrap();
         let mut said = Vec::new();
-        reload(&sources, &keys, &mut said);
+        reload(&sources, &keys, &Control::new(), false, &mut said);
         let text = String::from_utf8_lossy(&said).to_string();
         assert_eq!(text.lines().count(), 1, "{text}");
         assert!(text.contains("no such file") && text.contains("the set before stays, 1 keys"), "{text}");
@@ -266,7 +276,7 @@ mod tests {
         let sources = Sources::of(&[one_line], &[file.display().to_string()], None).unwrap();
         let keys = Keys::new(sources.read(&mut Vec::new()).unwrap());
         std::fs::write(&file, "").unwrap();
-        reload(&sources, &keys, &mut Vec::new());
+        reload(&sources, &keys, &Control::new(), false, &mut Vec::new());
         assert!(keys.allows(one.public_key()) && !keys.allows(two.public_key()));
         let _ = std::fs::remove_dir_all(&dir);
     }

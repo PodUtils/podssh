@@ -10,7 +10,9 @@
 //! The keys are one set shared by each connection of the server, each line
 //! with its rules (T-114), replaced whole by a reload: a new login is
 //! checked against the set of the moment, and a session that logged in
-//! goes on under the rules it logged in with, which its handler holds.
+//! goes on under the rules it logged in with, which its handler holds;
+//! with `--revoke-ends-sessions`, a reload that takes its key out ends it
+//! the way a stop does (T-842, `live.rs`).
 
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex, RwLock, Weak};
@@ -22,6 +24,7 @@ use russh::Disconnect;
 use tokio::sync::watch;
 
 use super::authorized::Admission;
+use super::live::Live;
 use super::rules::Context;
 use super::Authorized;
 
@@ -125,6 +128,14 @@ impl Groups {
         slot
     }
 
+    /// Keep `slot`, made by another list, in this one too: a connection's
+    /// own list beside the server's (T-842).
+    pub(super) fn adopt(&self, slot: &Arc<AtomicI32>) {
+        let mut all = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        all.retain(|weak| weak.strong_count() > 0);
+        all.push(Arc::downgrade(slot));
+    }
+
     /// The groups whose leader runs now.
     pub(super) fn running(&self) -> Vec<i32> {
         let all = self.0.lock().unwrap_or_else(|p| p.into_inner());
@@ -174,6 +185,8 @@ const KILL: &[i32] = &[];
 pub struct Control {
     stage: Arc<watch::Sender<Stage>>,
     pub(super) groups: Groups,
+    /// Each connection and its key, for a reload that ends some (T-842).
+    pub(super) live: Live,
 }
 
 impl Default for Control {
@@ -185,7 +198,7 @@ impl Default for Control {
 impl Control {
     pub fn new() -> Control {
         let (stage, _) = watch::channel(Stage::Serving);
-        Control { stage: Arc::new(stage), groups: Groups::default() }
+        Control { stage: Arc::new(stage), groups: Groups::default(), live: Live::default() }
     }
 
     /// Ask the server to stop; asked again, it kills each child at once.
@@ -207,6 +220,11 @@ impl Control {
         self.groups.running().len()
     }
 
+    /// How many connections have a key logged in now.
+    pub fn sessions(&self) -> usize {
+        self.live.logged_in()
+    }
+
     pub(super) fn watch(&self) -> watch::Receiver<Stage> {
         self.stage.subscribe()
     }
@@ -218,26 +236,29 @@ pub(super) async fn reached(stage: &mut watch::Receiver<Stage>, at: Stage) {
     let _ = stage.wait_for(|now| *now >= at).await;
 }
 
-/// The stop of one connection: the disconnect with its reason, the hangup
-/// of each child, then the wait for each child and for the session, within
-/// [`GRACE`] or until a second stop; then each child left is killed.
-pub(super) async fn wind_down<F>(handle: Handle, control: &Control, session: F)
+/// The end of one connection: the disconnect with `reason`, the hangup of
+/// each child of `groups`, then the wait for each child and for the
+/// session, within [`GRACE`] or until a second stop; then each child left
+/// is killed. A stop gives [`STOPPING`] and the server's groups; a key
+/// that a reload took out, its words and the connection's own (T-842).
+pub(super) async fn wind_down<F>(handle: Handle, control: &Control, groups: &Groups, reason: &str, session: F)
 where
     F: std::future::Future + Send,
 {
     // The disconnect waits on the session's queue; it is said on a task of
     // its own, so a client that reads nothing holds no part of the stop.
+    let reason = reason.to_string();
     tokio::spawn(async move {
-        let said = handle.disconnect(Disconnect::ByApplication, STOPPING.into(), String::new());
+        let said = handle.disconnect(Disconnect::ByApplication, reason, String::new());
         let _ = tokio::time::timeout(SAY_LIMIT, said).await;
     });
-    control.groups.signal(HANGUP);
+    groups.signal(HANGUP);
     let mut stage = control.watch();
     let deadline = tokio::time::Instant::now() + GRACE;
     tokio::pin!(session);
     let mut ended = false;
     loop {
-        if ended && control.groups.running().is_empty() {
+        if ended && groups.running().is_empty() {
             return;
         }
         tokio::select! {
@@ -247,7 +268,7 @@ where
             () = tokio::time::sleep(TICK) => {}
         }
     }
-    control.groups.signal(KILL);
+    groups.signal(KILL);
 }
 
 #[cfg(test)]

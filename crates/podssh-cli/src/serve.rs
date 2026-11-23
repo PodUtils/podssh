@@ -36,6 +36,8 @@ pub struct ServeArgs {
     pub shell: Option<String>,
     pub no_shell: bool,
     pub no_forwarding: bool,
+    /// `--revoke-ends-sessions` (T-842).
+    pub revoke_ends_sessions: bool,
     pub pty: Option<String>,
     /// `--print-unit`, `--system` and `--run-as USER`: a unit of systemd
     /// that runs serve NAME, printed (T-709).
@@ -58,6 +60,7 @@ impl ServeArgs {
             shell: matches.get_one::<String>("shell").cloned(),
             no_shell: matches.get_flag("no-shell"),
             no_forwarding: matches.get_flag("no-forwarding"),
+            revoke_ends_sessions: matches.get_flag("revoke-ends-sessions"),
             pty: matches.get_one::<String>("pty").cloned(),
             print_unit: matches.get_flag("print-unit"),
             system: matches.get_flag("system"),
@@ -150,6 +153,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         say: Some(Say(Arc::new(|line: &str| {
             let _ = writeln!(std::io::stderr(), "podssh serve: {line}");
         }))),
+        revoke_ends_sessions: args.revoke_ends_sessions,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

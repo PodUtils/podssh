@@ -1,8 +1,8 @@
 //! The notes of `podssh serve` (T-107; a command, a shell and the
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
-//! SIGHUP, T-117; a slow client, T-118), and the row of its host key's
-//! file.
+//! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
+//! a removed key's sessions, T-842), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -22,6 +22,18 @@ pub const SERVE: &[&str] = &[
      honour, and a line that is no key, are passed over, and said with their number and why. A file that \
      is a symbolic link, another user's, or one that others can change is refused (78). With no key at \
      all, the start is refused (78): no setting lets each key in.",
+    // The algorithms (T-841): the test below holds each name against the
+    // server's constant, so the note and the set cannot part.
+    "The algorithms are one stated set, the same at each start, never russh's default of the day. Key exchanges: \
+     mlkem768x25519-sha256, curve25519-sha256, curve25519-sha256@libssh.org, diffie-hellman-group-exchange-sha256, \
+     diffie-hellman-group18-sha512, diffie-hellman-group17-sha512, diffie-hellman-group16-sha512, \
+     diffie-hellman-group15-sha512 and diffie-hellman-group14-sha256. Host key algorithms: ssh-ed25519, \
+     ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521, rsa-sha2-512, rsa-sha2-256 and ssh-rsa. Of \
+     those, a client is offered the ones that the host key serves. Ciphers: chacha20-poly1305@openssh.com, \
+     aes256-gcm@openssh.com, aes256-ctr, aes192-ctr and aes128-ctr. MACs: hmac-sha2-512-etm@openssh.com, \
+     hmac-sha2-256-etm@openssh.com, hmac-sha2-512 and hmac-sha2-256. Compression: none, zlib and \
+     zlib@openssh.com. A client that offers no name of a list is refused in the handshake (OpenSSH: no matching \
+     cipher found, and the set as Their offer).",
     "The options of a key line are OpenSSH's (the format of the authorized_keys file in sshd(8)), read as sshd reads \
      them: separated by commas, names in any case, a value in double quotes where a backslash before a quote is a \
      quote. command=\"...\" runs in place of each command, shell and sftp request, as SHELL -c, with the client's \
@@ -145,10 +157,16 @@ pub const SERVE: &[&str] = &[
      on, under the rules it logged in with. A file that is gone or cannot be read, or no key at all, \
      keeps the set before, and one line on stderr says why; a reload that took says how many lines are \
      used now. The other settings are the command line's, and a restart changes them.",
+    "With --revoke-ends-sessions, a reload that takes a key out also ends that key's open sessions. A key whose \
+     line now refuses it (from=, expiry-time=) counts as out. The client gets a disconnect that names the key \
+     (OpenSSH prints it), and its children are hung up as at a stop. One line on stderr names each key. A key's \
+     expiry-time= then ends its sessions at that second too. A reload that keeps the set before ends nothing. \
+     Without the flag, no session ends by a reload.",
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
-    "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0. Without \
-     --stdio the run is a usage error (64), and so are --shell with --no-shell; on Windows it exits 70.",
+    "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \
+     that a reload ended. Without --stdio the run is a usage error (64), and so are --shell with --no-shell; on \
+     Windows it exits 70.",
 ];
 
 /// The host key's file, for FILES.
@@ -161,4 +179,31 @@ pub fn file() -> (Vec<String>, String) {
          each client then sees as a changed one."
             .to_string(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use podssh_ssh::server::algorithms;
+
+    /// The note of the algorithms names each name of the server's set
+    /// (T-841): a name added to the set and not to the note fails here.
+    #[test]
+    fn the_note_names_each_algorithm_of_the_set() {
+        let note = super::SERVE.iter().find(|n| n.starts_with("The algorithms are one stated set")).expect("the note");
+        let set = [
+            algorithms::kex_names(),
+            algorithms::host_key_names(),
+            algorithms::names(algorithms::CIPHERS),
+            algorithms::names(algorithms::MACS),
+            algorithms::names(algorithms::COMPRESSION),
+        ];
+        // A name holds dots (zlib@openssh.com): only the end of a sentence
+        // and the punctuation around a word are cut.
+        let cut = |c: char| ".():".contains(c);
+        let words: Vec<&str> =
+            note.split(|c: char| c.is_whitespace() || c == ',').map(|w| w.trim_matches(cut)).collect();
+        for name in set.iter().flatten() {
+            assert!(words.contains(&name.as_str()), "the note does not name {name}");
+        }
+    }
 }

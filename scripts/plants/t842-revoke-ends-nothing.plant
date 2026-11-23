@@ -1,0 +1,7 @@
+# T-842: with --revoke-ends-sessions, a reload that takes a key out of the set
+# ends nothing (an unlisted key is passed over as if it were let in); the test
+# of the revoke must fail.
+ENTRY=T-842
+GROUP=cli-tests
+EXPECT='test a_reload_that_takes_a_key_out_ends_its_session_when_asked_and_the_other_goes_on \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_lifecycle -- a_reload_that_takes_a_key_out_ends_its_session_when_asked_and_the_other_goes_on'

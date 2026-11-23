@@ -5,8 +5,12 @@
 //! (`podssh serve is stopping`), hangs up each child's process group and
 //! ends within its grace; a child that ignores the hangup is killed after
 //! the grace, and at once on a second stop; a client that closes its
-//! channel hangs up the child. The same against OpenSSH's client and a
-//! SIGTERM: `podssh-cli`'s `tests/serve_lifecycle_openssh.rs`.
+//! channel hangs up the child. With `--revoke-ends-sessions` (T-842), a
+//! reload that takes one of two keys out ends that key's session, with its
+//! name to the client and its child gone, and the other key's goes on;
+//! without the flag neither ends; a key's `expiry-time=` ends its session
+//! at that second. The same against OpenSSH's client and a SIGTERM or a
+//! SIGHUP: `podssh-cli`'s `tests/serve_lifecycle_openssh.rs`.
 
 #![cfg(unix)]
 
@@ -17,7 +21,7 @@ use std::time::{Duration, Instant};
 use podssh_ssh::keygen::{self, KeyKind};
 use podssh_ssh::russh::keys::{PrivateKey, PrivateKeyWithHashAlg};
 use podssh_ssh::russh::{self, client, ChannelMsg};
-use podssh_ssh::server::{self, stop, Authorized, Control, Keys, Settings};
+use podssh_ssh::server::{self, live, stop, Authorized, Control, Keys, Reloaded, Rules, Say, Settings};
 
 /// A bound on each wait.
 const LIMIT: Duration = Duration::from_secs(30);
@@ -71,10 +75,21 @@ async fn connect(
     login: &PrivateKey,
     seen: Client,
 ) -> (client::Handle<Client>, bool, tokio::task::JoinHandle<Result<(), String>>) {
+    connect_with(keys, control, login, seen, settings()).await
+}
+
+/// [`connect`] with the server's `settings`.
+async fn connect_with(
+    keys: &Keys,
+    control: &Control,
+    login: &PrivateKey,
+    seen: Client,
+    settings: Arc<Settings>,
+) -> (client::Handle<Client>, bool, tokio::task::JoinHandle<Result<(), String>>) {
     // Room for a batch of each end: two russh loops on a small pipe stop
     // each other (T-772).
     let (near, far) = tokio::io::duplex(1 << 22);
-    let served = tokio::spawn(server::serve_under(far, key(), keys.clone(), settings(), control.clone()));
+    let served = tokio::spawn(server::serve_under(far, key(), keys.clone(), settings, control.clone()));
     let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, seen).await.unwrap();
     let signed = PrivateKeyWithHashAlg::new(Arc::new(login.clone()), None);
     let ok = handle.authenticate_publickey("anyone", signed).await.unwrap().success();
@@ -241,4 +256,104 @@ async fn a_client_that_closes_its_channel_hangs_up_the_child() {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
     assert_eq!(control.children(), 0, "and its group is no longer counted");
+}
+
+/// The reason of the disconnect that `seen` got, within 2 s.
+async fn told(seen: &Client) -> Option<String> {
+    for _ in 0..40 {
+        if let Some(said) = seen.said.lock().unwrap().clone() {
+            return Some(said);
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    None
+}
+
+/// Kill what a test left running.
+fn kill(pid: i32) {
+    // SAFETY: kill has no memory effect; a pid gone gives ESRCH.
+    unsafe {
+        libc::kill(pid, libc::SIGKILL);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_reload_that_takes_a_key_out_ends_its_session_when_asked_and_the_other_goes_on() {
+    let (first, second) = (key(), key());
+    let mut both = only(&first);
+    both.add(second.public_key().key_data().clone());
+    let keys = Keys::new(both);
+    let control = Control::new();
+    let (seen_one, seen_two) = (Client::default(), Client::default());
+    let (one, ok, served_one) = connect(&keys, &control, &first, seen_one.clone()).await;
+    assert!(ok, "the first key logs in");
+    let (two, ok, served_two) = connect(&keys, &control, &second, seen_two.clone()).await;
+    assert!(ok, "the second key logs in");
+    assert_eq!(control.sessions(), 2);
+    let (_a, child_one) = start(&one, "echo $$; exec sleep 100").await;
+    let (_b, child_two) = start(&two, "echo $$; exec sleep 100").await;
+
+    // Without the flag: the first key is out of the set, and both go on (T-117).
+    assert_eq!(live::reload(&keys, &control, only(&second), false), Reloaded::Taken(Vec::new()));
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(runs(child_one) && runs(child_two), "without the flag no session ends");
+    assert!(seen_one.said.lock().unwrap().is_none(), "nor is a client told anything");
+    // A set with no key is refused, and ends nothing even with the flag.
+    assert_eq!(live::reload(&keys, &control, Authorized::new(), true), Reloaded::Refused);
+    assert!(runs(child_one), "a refused set ends nothing");
+
+    // With the flag: the first key's session ends, named; the second's lives.
+    let ended = match live::reload(&keys, &control, only(&second), true) {
+        Reloaded::Taken(ended) => ended,
+        Reloaded::Refused => panic!("a set with a key is taken"),
+    };
+    let who = podssh_ssh::known_hosts::fingerprint(first.public_key());
+    assert_eq!(ended.iter().map(|e| e.who.clone()).collect::<Vec<_>>(), vec![who.clone()], "{ended:?}");
+    assert!(ended[0].to_string().contains(&who), "the line names the key: {}", ended[0]);
+    let ended_in = tokio::time::timeout(stop::GRACE + Duration::from_secs(3), served_one).await;
+    assert_eq!(ended_in.expect("the connection ends").expect("its task"), Ok(()), "a clean end");
+    assert!(gone_within(child_one, Duration::from_secs(5)).await.is_some(), "the removed key's child is gone");
+    let said = told(&seen_one).await;
+    assert!(said.as_deref().is_some_and(|s| s.contains(&who)), "the client hears which key: {said:?}");
+    assert!(runs(child_two), "the other key's child runs on");
+    assert!(!served_two.is_finished(), "and its connection lives");
+    let (_c, again) = start(&two, "echo $$; exec sleep 100").await;
+    assert!(runs(again), "the other key still runs a command");
+    for _ in 0..40 {
+        if control.sessions() == 1 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(control.sessions(), 1, "the ended connection left the table");
+    for pid in [child_two, again] {
+        kill(pid);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_key_that_expires_ends_its_session_at_its_time_when_asked() {
+    let login = key();
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
+    let mut authorized = Authorized::new();
+    let rules = Rules { expiry: Some(now + 2), ..Rules::default() };
+    authorized.add_ruled(login.public_key().key_data().clone(), rules, "a test".into());
+    let keys = Keys::new(authorized);
+    let control = Control::new();
+    let heard = Arc::new(Mutex::new(Vec::<String>::new()));
+    let sink = heard.clone();
+    let say = Say(Arc::new(move |line: &str| sink.lock().unwrap().push(line.to_string())));
+    let settings = Arc::new(Settings { revoke_ends_sessions: true, say: Some(say), ..(*settings()).clone() });
+    let seen = Client::default();
+    let (handle, ok, served) = connect_with(&keys, &control, &login, seen.clone(), settings).await;
+    assert!(ok, "the key logs in before its time");
+    let (_channel, child) = start(&handle, "echo $$; exec sleep 100").await;
+    let ended = tokio::time::timeout(Duration::from_secs(4) + stop::GRACE, served).await;
+    assert_eq!(ended.expect("the connection ends at the key's time").expect("its task"), Ok(()));
+    assert!(gone_within(child, Duration::from_secs(5)).await.is_some(), "its child is gone");
+    let said = told(&seen).await;
+    assert!(said.as_deref().is_some_and(|s| s.contains("expired")), "the client hears why: {said:?}");
+    let heard = heard.lock().unwrap().join("\n");
+    let who = podssh_ssh::known_hosts::fingerprint(login.public_key());
+    assert!(heard.contains(&who) && heard.contains("expiry-time"), "one line names the key: {heard}");
 }

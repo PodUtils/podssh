@@ -6078,6 +6078,50 @@ gives up each capability of the process (T-698), before it reads a file.
   never overwritten. Of two starts at once, one makes it and the other reads
   it. Its fingerprint goes to stderr; a key in a temporary directory is
   warned of, as a reboot would give each client a new host key.
+- **The algorithms (T-841).** One stated set
+  (`crates/podssh-ssh/src/server/algorithms.rs`), given to russh's server
+  in the place of its default, so that a russh update changes no name that
+  serve offers. It is the set that serve offered before it was stated
+  (russh 0.65.2's default), with nothing added or removed:
+  - key exchanges: `mlkem768x25519-sha256`, `curve25519-sha256`,
+    `curve25519-sha256@libssh.org`, `diffie-hellman-group-exchange-sha256`,
+    `diffie-hellman-group18-sha512`, `diffie-hellman-group17-sha512`,
+    `diffie-hellman-group16-sha512`, `diffie-hellman-group15-sha512`,
+    `diffie-hellman-group14-sha256`; and, in the same list, the
+    extensions `ext-info-s` (RFC 8308) and `kex-strict-s-v00@openssh.com`
+    (OpenSSH's strict key exchange, against Terrapin), never chosen;
+  - host key algorithms: `ssh-ed25519`, `ecdsa-sha2-nistp256`,
+    `ecdsa-sha2-nistp384`, `ecdsa-sha2-nistp521`, `rsa-sha2-512`,
+    `rsa-sha2-256`, `ssh-rsa`; a client is offered those that the host key
+    serves (`ssh-ed25519` alone for the key that serve makes), and the list
+    is also the `server-sig-algs` that serve tells a client; no host
+    certificate;
+  - ciphers: `chacha20-poly1305@openssh.com`, `aes256-gcm@openssh.com`,
+    `aes256-ctr`, `aes192-ctr`, `aes128-ctr`;
+  - MACs (where the cipher needs one): `hmac-sha2-512-etm@openssh.com`,
+    `hmac-sha2-256-etm@openssh.com`, `hmac-sha2-512`, `hmac-sha2-256`;
+  - compression: `none`, `zlib`, `zlib@openssh.com`.
+
+  A client that offers no name of a list is refused in the handshake:
+  russh's server sends its KEXINIT and no DISCONNECT, and the client finds
+  no common name (OpenSSH: `Unable to negotiate ...: no matching cipher
+  found. Their offer: ...`, 255, the offer being the list above). The test
+  `crates/podssh-ssh/tests/serve_algorithms.rs` offers each name that
+  podssh's client knows alone, and holds the constant against a table of
+  its own; `crates/podssh-cli/tests/serve_algorithms_openssh.rs` does the
+  same with each name of `ssh -Q kex`, `cipher` and `mac`.
+- **The reply of each refusal (T-841).** What a client meets, by request
+  (tested against OpenSSH's client in `serve_algorithms_openssh.rs`, but
+  for the rows that name another test):
+
+  | Reply | Request that causes it | OpenSSH's client |
+  | --- | --- | --- |
+  | `USERAUTH_FAILURE` | a key that no line lists, or that its line refuses now | `Permission denied (publickey)`, 255 |
+  | `CHANNEL_FAILURE` | a channel request that serve does not serve: a subsystem other than `sftp`, `x11-req`, a refused `pty-req`, `exec` or `shell` (its reason on the channel's stderr first) | `subsystem request failed on channel 0`; `exec request failed` |
+  | `REQUEST_FAILURE` | a global request that serve does not serve: `tcpip-forward` (`-R`), `streamlocal-forward` | `Warning: remote port forwarding failed for listen port N` |
+  | `CHANNEL_OPEN_FAILURE` | a forward that `--no-forwarding` or a key's rule refuses, a dial that failed, X11, a Unix socket, more channels than the bound | `open failed: ...` (`serve_forward_openssh.rs`) |
+  | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`) |
+  | `UNIMPLEMENTED` | never sent: russh's server passes over a message that it does not know, where RFC 4253 asks for this reply | none |
 - **A command and a shell (T-108).** A command (`exec`) runs as
   `SHELL -c COMMAND`, and a shell request runs the shell as a login shell
   (argv[0] `-sh`), as the user that runs serve, on three pipes: stdout is
@@ -6344,7 +6388,32 @@ gives up each capability of the process (T-698), before it reads a file.
   on stderr that says why (`podssh serve: SIGHUP: FILE: no such file; the
   set before stays, 1 keys`), as a reload must not lock each new login out.
   serve reads no settings file: its other settings are the command line's.
-- **Exit codes.** 0 when the client left, and after a stop; 255 when the
+- **A key that a reload takes out (T-842).** With `--revoke-ends-sessions`
+  (off by default, so that T-117's rule stands without it), a reload that
+  took also ends each session whose key the new set does not let in now:
+  a key that no line lists any more, or whose line now refuses it (a
+  `from=` that no longer matches, an `expiry-time=` that passed). Each
+  connection is in a table of the server from its first byte, with the
+  key of its login (`crates/podssh-ssh/src/server/live.rs`); the key is
+  put there before it is checked, so a reload during a login either comes
+  first and refuses the key, or finds the connection. The connection ends
+  as a stop ends each: a disconnect with the reason `podssh serve: the key
+  SHA256:... is no longer authorized` (OpenSSH prints it; the client hears
+  nothing of the operator's files), the hangup of that connection's
+  children alone (SIGHUP, then SIGCONT; SIGKILL 5 s later, or at once on a
+  second SIGTERM or SIGINT), and one line on stderr for each key after the
+  reload's own (`podssh serve: SIGHUP: key SHA256:...: removed from the
+  authorized keys: its session ends`). The other keys' sessions go on. A
+  file that is gone or does not read, and a set with no key, keep the set
+  before and end nothing. With the flag, a key's `expiry-time=` also ends
+  its sessions at that second, by the same path, with the line `key
+  SHA256:...: expiry-time: the key expired at TIME: its session ends`.
+  Without the flag, no session ends by a reload or an expiry. With
+  `--stdio`, the one connection is the process: a session that a reload
+  ended exits 0, as a stop does. The reload on SIGHUP is `--stdio`'s;
+  under `podssh serve NAME` the flag's expiry holds.
+- **Exit codes.** 0 when the client left, after a stop, and after a reload
+  that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or
   with `--shell` and `--no-shell`; 78 as above; 70 on Windows.
 

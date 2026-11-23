@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:532`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:534`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:712`; measured: `docs/STATUS.md:540`). 200 MiB each way
+  (`docs/relay.md:712`; measured: `docs/STATUS.md:542`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -2352,7 +2352,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:532`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:534`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2408,7 +2408,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:479`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:481`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2426,10 +2426,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:531` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:479`, `docs/STATUS.md:499`),
+- `docs/STATUS.md:533` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:481`, `docs/STATUS.md:501`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:477` is `docs/STATUS.md:479`.
+  The Prove's `docs/STATUS.md:479` is `docs/STATUS.md:481`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2488,10 +2488,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:532`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:534`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:495`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:497`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2575,8 +2575,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:531`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:494`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:533`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:496`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -3698,8 +3698,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler.rs:227-231`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler.rs:223-225`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler.rs:246-252`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler.rs:242-244`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -3844,7 +3844,7 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler.rs:227-231`, `:343-360`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler.rs:246-252`, `:374-391`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -3891,7 +3891,7 @@ of the pty and not at the gate fails a test that sends input through the second 
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3899,8 +3899,8 @@ of the pty and not at the gate fails a test that sends input through the second 
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:68-86`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:55`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:74-93`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:59`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -3924,6 +3924,39 @@ cargo test -p podssh-ssh --test serve_algorithms
 
 The test does not exist yet. Planted: add one name to the constant that the table does not list, and the test fails.
 
+## Done
+
+Not done. Draft, 2026-11-23, on the branch `draft-t841-842` (no build, no test run):
+
+- The set: `crates/podssh-ssh/src/server/algorithms.rs` names the key exchanges (with the four extensions that ride
+  in their list), the host key algorithms, the ciphers, the MACs and the compressions, as consts, and `SERVED`, the
+  `Preferred` of russh that `server::config` now sets (`preferred: algorithms::SERVED`). It is russh 0.65.2's
+  default, stated (Approach item 1: no new set chosen).
+- The test of the Prove, `crates/podssh-ssh/tests/serve_algorithms.rs`: `the_constant_is_the_table` holds each
+  const and the config's `preferred` against the test's own table of names; and
+  `each_name_of_the_set_is_let_in_and_each_other_is_refused` offers each name of `algorithms::spoken` (the client's
+  table of T-505) of the key exchanges, host key algorithms, ciphers and MACs alone, against a server whose host key
+  is of the name's type (Ed25519, ECDSA P-256, P-384, P-521, RSA 2048), and asserts a login for a name of the table,
+  and the server's `No common <kind> algorithm` for each other. Merged and run here (2026-11-23, Linux, Rust 1.100): 2
+  passed; `--lib server::` 63 passed.
+- Item 3: the table of the replies is `REPLIES` in `crates/podssh-cli/tests/serve_algorithms_openssh.rs` and the
+  table "The reply of each refusal" of `docs/cli.md`. Against OpenSSH's client: `USERAUTH_FAILURE` (an unlisted
+  key, `Permission denied (publickey)`), `CHANNEL_FAILURE` (`-s` a subsystem other than sftp), `REQUEST_FAILURE`
+  (`-R`, `remote port forwarding failed for listen port`); `CHANNEL_OPEN_FAILURE` and `DISCONNECT` are pinned by
+  `serve_forward_openssh.rs` and `serve_lifecycle_openssh.rs`. The same file offers each name of `ssh -Q kex`,
+  `cipher` and `mac` alone: a name of the set logs in, each other ends with `no matching ... found`, and OpenSSH's
+  `Their offer:` is the set; a host certificate is refused with the host key alone as the offer. Run against OpenSSH
+  9.6p1: 3 passed (not skipped).
+- Found: russh's server never sends `UNIMPLEMENTED` (a message that it does not know is passed over, where RFC 4253
+  section 11.4 asks for the reply); the table says so. A new entry for it (a patch of russh) is the main session's
+  to file. Found too: with an RSA `--host-key`, russh's server signs the exchange through the `rsa` crate, the
+  private operation that T-257 keeps out of podssh's own code; the set keeps RSA as it was, for the main session
+  to weigh in an entry.
+- Item 4: `docs/cli.md` ("The algorithms (T-841)") names the set; the manual's note of `serve` names it too, and
+  `man::notes_serve`'s test holds the note against the constant. A row of `docs/STATUS.md`.
+- The plant `t841-name-beside-the-table` (`aes128-gcm@openssh.com` added to the constant alone): waits for the
+  release check (T-251), as each plant does until podssh is stable (Q88).
+
 # T-842: `podssh serve`: a key that a reload removes ends its open sessions when asked
 
 **Source:** the donor study of 2026-11-18, report 21 (openziti/zrok at its pinned commit); the tracker issue is PodUtils/podssh#317.
@@ -3931,7 +3964,7 @@ The test does not exist yet. Planted: add one name to the constant that the tabl
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3939,7 +3972,7 @@ An operator who removes a key from the authorized keys and sends SIGHUP stops ne
 
 ## Premise
 
-- Read: a reload replaces the set of keys whole, a new login uses the new set, and open sessions continue (`crates/podssh-ssh/src/server/stop.rs:11`, `crates/podssh-ssh/src/server/stop.rs:44-46`); this is T-117's invariant "never drops a session".
+- Read: a reload replaces the set of keys whole, a new login uses the new set, and open sessions continue (`crates/podssh-ssh/src/server/stop.rs:11`, `crates/podssh-ssh/src/server/stop.rs:47-49`); this is T-117's invariant "never drops a session".
 - Read: the server knows each connection's fingerprint at login (T-114 logs a refusal with it).
 - Not verified: whether the handler keeps a handle to each live connection that a reload can reach; reading `crates/podssh-ssh/src/server/handler.rs` settles it.
 - T-159 (sessions that outlive the client) will make this more needed: a kept shell is not bound to a socket that ends.
@@ -3953,6 +3986,18 @@ An operator who removes a key from the authorized keys and sends SIGHUP stops ne
 5. Same commit: the flag, the manual, `docs/cli.md`, the audit line of T-116 if it exists.
 6. Not here: a `Share` record with a token, an access mode and `serve revoke share TOKEN`. That waits for T-159.
 
+## Decision
+
+Draft, 2026-11-23. A key is out when the new set does not admit it now from the connection's address: a key that
+no line lists, and also one whose line now refuses it (a `from=` that no longer matches, an `expiry-time=` past).
+Lost: only an unlisted key (an operator who adds `expiry-time=` to cut a key would see its session go on). The
+client is told `podssh serve: the key SHA256:... is no longer authorized`, and the operator's line gives the
+reason with the file and line; lost: the line's reason in the disconnect, which would show the operator's file
+paths to the client. The flag governs the end at `expiry-time=` too (item 4), so that without it nothing of
+T-842 ends a session; lost: always ending at the expiry, which would break T-117's invariant with no word from
+the operator. The table lives in the `Control` that each connection of a server shares (weak, so it holds no
+connection), not in the `Keys`; lost: a table in `Keys`, which a caller can share across servers that stop apart.
+
 ## Prove
 
 ```sh
@@ -3961,3 +4006,159 @@ cargo test -p podssh-ssh --test serve_lifecycle
 ```
 
 A test that does not exist yet, in that file: log in with two keys, remove one, reload; the removed key's session ends with the line and its child is gone, the other lives; without the flag, neither ends.
+
+## Done
+
+Not done. Draft, 2026-11-23, on the branch `draft-t841-842` (no build, no test run):
+
+- Premise checked: `crates/podssh-ssh/src/server/handler.rs` kept no handle to a live connection that a reload could
+  reach (the `Served` of each connection is russh's, and the `Control` held the children's groups of all connections
+  in one list); the reload is `crates/podssh-cli/src/serve_keys.rs`'s, on SIGHUP, under `--stdio` only.
+- Item 1: `crates/podssh-ssh/src/server/live.rs`: `Live`, the table of a server's connections (weak, so an ended one
+  leaves it), each with the key of its login and its fingerprint, the client's address, its own list of children's
+  groups (each slot also in the server's, `Groups::adopt`), and a `watch` of its end; `Control::sessions()` counts
+  the logged-in ones. `serve_under` joins the table before the first byte, and selects on the connection's end
+  beside the stop. The handler puts the key in the table before it checks it, so a reload during a login either
+  comes first and refuses it, or finds it; a key that is refused leaves it.
+- Item 2: `server::live::reload(keys, control, set, ends)` replaces the set (T-117) and, with `ends`, ends each
+  connection whose key the new set does not admit now from its own address (`Unlisted`: "removed from the
+  authorized keys"; `Refused`: the line's reasons). The end is `stop::wind_down`, which now takes the groups and the
+  reason: the disconnect `podssh serve: the key SHA256:... is no longer authorized` (no file of the operator's goes
+  to the client), the hangup of that connection's groups alone, the kill after `GRACE` or at a second stop.
+  `serve_keys::reload` takes the `Control` and the flag, says its line, then one line per key ended. Children's
+  process groups: as T-117's stop (SIGHUP, SIGCONT, then SIGKILL).
+- Item 3: a file that does not read, and a set with no key (`Reloaded::Refused`), end nothing.
+- Item 4: with the flag, a key's `expiry-time=` ends its sessions the second after it, by the same path
+  (`live::end_at_expiry`, a timer that sleeps at most a day at a time and is aborted when the connection ends).
+- Item 5: the flag `--revoke-ends-sessions` (`crates/podssh-cli/src/flags/serve.rs`, `ServeArgs`, `Settings`, the unit
+  that `--print-unit` writes), the manual's notes of `serve`, `docs/cli.md` ("A key that a reload takes out"), a row of
+  `docs/STATUS.md`. T-116's audit log does not exist yet: no audit line.
+- Tests: `crates/podssh-ssh/tests/serve_lifecycle.rs`,
+  `a_reload_that_takes_a_key_out_ends_its_session_when_asked_and_the_other_goes_on` (two keys, each with a child;
+  without the flag neither ends; a set with no key ends nothing; with it the first key's connection ends cleanly, the
+  client is told the key's fingerprint, its child is gone, the other's child and connection live and run a new
+  command) and `a_key_that_expires_ends_its_session_at_its_time_when_asked`; `server::live`'s unit tests (the table,
+  once, a connection with no login); `crates/podssh-cli/tests/serve_lifecycle_openssh.rs`,
+  `with_revoke_a_sighup_that_takes_the_key_out_ends_the_client_with_its_name` (OpenSSH's client, the key file
+  rewritten, SIGHUP: the client ends within 5 s with the reason, serve's line names the key, serve exits 0, the child
+  is gone). Merged and run here (2026-11-23): `serve_lifecycle` 7 passed, `--lib server::` 63 passed,
+  `serve_lifecycle_openssh` 2 passed against OpenSSH 9.6p1; `serve_openssh` 9, `serve_options_openssh` 5 and
+  `node_install` 5 passed; podssh-cli's `--lib` 1256 passed; clippy and fmt clean. One repair at the merge: the guard of
+  `watch::Receiver::wait_for` was held across an await in `server::live::ended`, which made `serve`'s future not
+  `Send`; the value is now cloned out first.
+- The plant `t842-revoke-ends-nothing` (the revoke finds no connection to end): waits for the release check (T-251,
+  Q88).
+
+# T-854: `podssh serve` answers a message that it does not know with `UNIMPLEMENTED`
+
+**Source:** T-841's merge, 2026-11-23: its table of the replies found no row for `UNIMPLEMENTED`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+RFC 4253, section 11.4, asks an SSH end to answer a message number that it does not know with
+`SSH_MSG_UNIMPLEMENTED` and the packet's sequence number. `podssh serve` passes over such a message in
+silence, so a client that probes a feature waits for its own timeout in place of a refusal.
+
+## Premise
+
+- Read in T-841's draft: russh's server sends no `UNIMPLEMENTED`; it passes over an unknown message
+  (`vendor/russh/src/server/mod.rs`, the encrypted loop). Not verified at a line; the first step reads it.
+- The replies of each other refusal are a table of `docs/cli.md` and of `crates/podssh-cli/tests/serve_algorithms_openssh.rs`
+  (T-841).
+
+## Approach
+
+1. Read the pinned russh's server loop and find where an unknown message number is dropped.
+2. A patch of `vendor/russh` (the fourteenth, `vendor/patches/russh/`) that sends `UNIMPLEMENTED` with the
+   sequence number there, in the server and the client alike if the client drops one too.
+3. A row `UNIMPLEMENTED` in T-841's table and its test: a raw message of an unassigned number after the
+   key exchange gets the reply with its sequence number.
+4. Ask upstream russh for the same change (an issue of russh, through the operator), so that the patch can go.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_algorithms
+```
+
+# T-855: `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does
+
+**Source:** T-842's merge, 2026-11-23: `--revoke-ends-sessions` acts only at a key's expiry under `serve NAME`.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh serve --stdio` reads its authorized keys again on SIGHUP (T-117), and with `--revoke-ends-sessions`
+ends the sessions of a key that the new set refuses (T-842). `podssh serve NAME`, which answers the sessions
+of a pair's node, has no such reload: an operator who removes a key must stop the node, and the flag acts only
+at a key's `expiry-time`.
+
+## Premise
+
+- Read: the reload is `serve_keys::reload`, called from the `--stdio` path; the NAME path starts the node's
+  sessions in `crates/podssh-cli/src/serve.rs` with no SIGHUP handler (T-842's notes).
+
+## Approach
+
+1. The NAME path takes the same SIGHUP handler, the same `serve_keys::reload` and the same table of live
+   connections (`crates/podssh-ssh/src/server/live.rs`), shared by each session of the node.
+2. A file that does not read keeps the old set (T-117's invariant); the line of each ended key as T-842's.
+3. Same commit: the manual's note of `serve NAME` and `docs/cli.md`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test serve_node_reload
+```
+
+A test that does not exist yet: a node of `serve NAME` behind the stand-in relay, two keys logged in, one
+removed and SIGHUP; with the flag its session ends and the other's lives; without it, neither ends.
+
+# T-856: `podssh serve` with an RSA host key signs through the `rsa` crate
+
+**Source:** T-841's merge, 2026-11-23: the stated set keeps `rsa-sha2-256` and `rsa-sha2-512` as host key
+algorithms, and russh's server signs the exchange with an RSA `--host-key` through the `rsa` crate.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+T-257 moved each RSA signature of podssh's client off the `rsa` crate, whose private operation is open to a
+timing attack (RUSTSEC-2023-0071). The server's side was not in its scope: `podssh serve --host-key` with an
+RSA key signs each key exchange through that crate, where a network peer can time it.
+
+## Premise
+
+- Read in T-841's draft: the server signs through russh's own key types; an RSA host key reaches the `rsa`
+  crate. Not verified at a line; the first step reads it.
+- T-257's way for the client signs RSA through aws-lc-rs (`Done` of T-257 in `TODO/ssh.md`).
+
+## Approach
+
+1. Read where the server signs the exchange hash (`vendor/russh/src/server/`) and which signer an RSA host key
+   takes.
+2. Either sign through T-257's aws-lc-rs signer (a patch of russh, or a host key type of podssh's own), or
+   refuse an RSA `--host-key` with a line that says why (78) and keep Ed25519 and ECDSA. Write the call in a
+   `## Decision`, with the one that lost.
+3. Same commit: T-841's set and table, `docs/cli.md`, and the manual's note of `--host-key`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_algorithms
+```

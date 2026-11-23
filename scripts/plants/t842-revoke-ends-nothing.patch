@@ -1,0 +1,9 @@
+--- a/crates/podssh-ssh/src/server/live.rs
++++ b/crates/podssh-ssh/src/server/live.rs
+@@ -163,5 +163,5 @@
+             let why = match set.admit(&key, &Context::now(conn.0.peer)) {
+                 Admission::Admitted(_) => continue,
+-                Admission::Unlisted => "removed from the authorized keys".to_string(),
++                Admission::Unlisted => continue,
+                 Admission::Refused(reasons) => format!("refused by the authorized keys now: {}", reasons.join("; ")),
+             };

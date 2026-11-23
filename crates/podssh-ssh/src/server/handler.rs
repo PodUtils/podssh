@@ -18,6 +18,7 @@ use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
+use super::live::{self, Conn};
 use super::pty_grant::{grant_pty, resize_pty, Asked};
 use super::rules::{Asked as Wanted, Context, Plan};
 use super::stop::{Control, Keys, Stage};
@@ -42,13 +43,27 @@ pub struct Served {
     who: String,
     /// The server's stop (T-117): no new session or request once it stops.
     control: Control,
+    /// This connection in the server's table (T-842): its key, its
+    /// children, and its end by a reload that took the key out.
+    conn: Conn,
+    /// The timer of the key's `expiry-time=`, with `--revoke-ends-sessions`.
+    expiry: Option<tokio::task::AbortHandle>,
+}
+
+impl Drop for Served {
+    // A connection that ends first leaves no timer behind.
+    fn drop(&mut self) {
+        if let Some(timer) = self.expiry.take() {
+            timer.abort();
+        }
+    }
 }
 
 impl Served {
-    pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control) -> Served {
+    pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control, conn: Conn) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
-        let (rules, who) = (None, String::new());
-        Served { authorized, settings, channels: HashMap::new(), forwards, rules, who, control }
+        let (rules, who, channels, expiry) = (None, String::new(), HashMap::new(), None);
+        Served { authorized, settings, channels, forwards, rules, who, control, conn, expiry }
     }
 
     /// The rules under which `key` logs in now, or None; a key that lines
@@ -73,6 +88,10 @@ impl Served {
     fn rules(&self) -> Result<Arc<Rules>, String> {
         if self.control.stage() != Stage::Serving {
             return Err(super::stop::STOPPING.to_string());
+        }
+        // A key that a reload took out runs nothing more (T-842).
+        if let Some(told) = self.conn.ended() {
+            return Err(told);
         }
         self.rules.clone().ok_or_else(|| "no key logged in".to_string())
     }
@@ -228,13 +247,23 @@ impl russh::server::Handler for Served {
     // rules hold for the whole connection. A security key's signature must
     // carry the flags that its line asks for (T-774), as sshd checks them:
     // the line that admitted the key decides, and no later line is tried.
+    // The key is in the server's table before it is checked (T-842): a
+    // reload then either comes first and refuses it here, or finds it.
     async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
-        let Some(rules) = self.admit(key.public_key) else { return Ok(Auth::reject()) };
+        self.conn.log_in(key.public_key);
+        let Some(rules) = self.admit(key.public_key) else {
+            self.conn.log_out();
+            return Ok(Auth::reject());
+        };
         let sk = matches!(key.public_key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256);
         if let Some(why) = rules.sk_refusal(sk, key.sk_flags) {
             let who = crate::known_hosts::fingerprint(key.public_key);
             self.settings.say(&format!("key {who} refused: {why}"));
+            self.conn.log_out();
             return Ok(Auth::reject());
+        }
+        if let Some(expiry) = rules.expiry.filter(|_| self.settings.revoke_ends_sessions) {
+            self.expiry = Some(live::end_at_expiry(&self.conn, expiry, self.settings.clone()));
         }
         self.rules = Some(rules);
         self.who = crate::known_hosts::fingerprint(key.public_key);
@@ -253,12 +282,14 @@ impl russh::server::Handler for Served {
             reply.reject(ChannelOpenFailure::ResourceShortage).await;
             return Ok(());
         }
-        // A server that stops takes no new session (T-117).
-        if self.control.stage() != Stage::Serving {
+        // A server that stops takes no new session (T-117), nor does a
+        // connection that a reload ended (T-842).
+        if self.control.stage() != Stage::Serving || self.conn.ended().is_some() {
             reply.reject(ChannelOpenFailure::AdministrativelyProhibited).await;
             return Ok(());
         }
         let group = self.control.groups.slot();
+        self.conn.groups().adopt(&group);
         self.channels.insert(channel.id(), Open::new(channel, session.handle(), group));
         reply.accept().await;
         Ok(())

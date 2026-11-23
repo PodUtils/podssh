@@ -11,8 +11,11 @@
 //! waits for. The options of each key line (`command=`, `no-pty`,
 //! `permitopen=`, `from=`, `restrict`...) limit what it may do (T-114).
 //! A stop says why to each client and hangs up each child, and the keys
-//! can be read again while it serves (T-117, `stop.rs`).
+//! can be read again while it serves (T-117, `stop.rs`); a reload that takes
+//! a key out ends its sessions when asked (T-842, `live.rs`). The algorithms
+//! that it offers are one stated set (T-841, `algorithms.rs`).
 
+pub mod algorithms;
 mod authorized;
 mod channel;
 #[cfg(unix)]
@@ -23,6 +26,7 @@ mod handler;
 pub mod host_key;
 #[cfg(unix)]
 mod line;
+pub mod live;
 #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
 pub mod notify;
 pub mod options;
@@ -54,6 +58,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 pub use authorized::{parse_line, Admission, Authorized, Line, Read};
 pub use direct::{DIAL_LIMIT, MAX_FORWARDS};
 pub use host_key::{HostKey, StateFiles};
+pub use live::{Ended, Reloaded};
 pub use options::{Permit, Rules};
 pub use rules::Context;
 pub use stop::{Control, Keys, Stage};
@@ -64,7 +69,8 @@ pub const KEEPALIVE: Duration = Duration::from_secs(60);
 
 /// The server's settings: public keys alone (russh's default also offers
 /// passwords), the window of podssh's client, no cut of an idle session
-/// (russh's default cuts at 600 s), and a keepalive.
+/// (russh's default cuts at 600 s), a keepalive, and the algorithms of
+/// podssh's own stated set, never russh's default of the day (T-841).
 pub fn config(host_key: PrivateKey) -> russh::server::Config {
     russh::server::Config {
         server_id: SshId::Standard(Cow::Owned(format!(
@@ -73,6 +79,7 @@ pub fn config(host_key: PrivateKey) -> russh::server::Config {
         ))),
         methods: MethodSet::from(&[MethodKind::PublicKey][..]),
         keys: vec![host_key],
+        preferred: algorithms::SERVED,
         window_size: crate::run::WINDOW,
         inactivity_timeout: None,
         keepalive_interval: Some(KEEPALIVE),
@@ -125,6 +132,10 @@ pub struct Settings {
     /// Where serve says a line for its operator: a key that a line refused,
     /// a request that a key's rules refused. None says nothing.
     pub say: Option<Say>,
+    /// `--revoke-ends-sessions` (T-842): a reload that takes a key out ends
+    /// that key's sessions, and a key's `expiry-time=` ends them at its
+    /// time. Off, a session goes on under the rules it logged in with.
+    pub revoke_ends_sessions: bool,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).
@@ -227,13 +238,23 @@ where
         return Ok(());
     }
     let config = Arc::new(config(host_key));
-    let served = handler::Served::new(keys, settings, control.clone());
+    // In the server's table from the first byte: a reload that comes during
+    // the login still finds the connection (T-842).
+    let conn = control.live.join(settings.peer);
+    let mut revoked = conn.watch();
+    let served = handler::Served::new(keys, settings, control.clone(), conn.clone());
     let mut running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
     let handle = running.handle();
     let result = tokio::select! {
         result = &mut running => result,
         () = stop::reached(&mut stage, Stage::Stopping) => {
-            stop::wind_down(handle, &control, running).await;
+            stop::wind_down(handle, &control, &control.groups, stop::STOPPING, running).await;
+            return Ok(());
+        }
+        // The key was taken out by a reload, or expired: this connection
+        // alone ends, as a stop ends each.
+        told = live::ended(&mut revoked) => {
+            stop::wind_down(handle, &control, conn.groups(), &told, running).await;
             return Ok(());
         }
     };

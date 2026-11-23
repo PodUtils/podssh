@@ -1,0 +1,7 @@
+# T-841: podssh serve offers a cipher that its stated table does not list
+# (aes128-gcm@openssh.com added to the constant alone); the test that holds the
+# constant against the table must fail.
+ENTRY=T-841
+GROUP=cli-tests
+EXPECT='test the_constant_is_the_table \.\.\. FAILED'
+RUN='cargo test --locked -p podssh-ssh --test serve_algorithms -- the_constant_is_the_table'
