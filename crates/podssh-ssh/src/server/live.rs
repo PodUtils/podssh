@@ -8,6 +8,10 @@
 //! as a stop ends each connection; a key whose `expiry-time=` passes ends
 //! its sessions at that second the same way. Without the flag, nothing of
 //! this ends a session.
+//!
+//! The same table holds the names of the shared shells (T-837,
+//! `share.rs`): a login under a name is a connection here with no key, so
+//! no reload ends it; its name, and its shell's end, do.
 
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex, Weak};
@@ -130,9 +134,13 @@ pub(super) async fn ended(watch: &mut watch::Receiver<Option<String>>) -> String
     }
 }
 
-/// The live connections of one server, shared by each of them.
+/// The live connections of one server, shared by each of them, and the
+/// names of its shared shells.
 #[derive(Debug, Clone, Default)]
-pub(super) struct Live(Arc<Mutex<Vec<Weak<State>>>>);
+pub(super) struct Live {
+    conns: Arc<Mutex<Vec<Weak<State>>>>,
+    pub(super) shares: super::share::Shares,
+}
 
 impl Live {
     /// A new connection from `peer`, kept until the last of its holders
@@ -140,14 +148,14 @@ impl Live {
     pub(super) fn join(&self, peer: Option<IpAddr>) -> Conn {
         let (ended, _) = watch::channel(None);
         let state = Arc::new(State { who: Mutex::new(None), peer, groups: Groups::default(), ended });
-        let mut all = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        let mut all = self.conns.lock().unwrap_or_else(|p| p.into_inner());
         all.retain(|weak| weak.strong_count() > 0);
         all.push(Arc::downgrade(&state));
         Conn(state)
     }
 
     fn each(&self) -> Vec<Conn> {
-        let all = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        let all = self.conns.lock().unwrap_or_else(|p| p.into_inner());
         all.iter().filter_map(Weak::upgrade).map(Conn).collect()
     }
 

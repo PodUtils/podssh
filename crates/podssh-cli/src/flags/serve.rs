@@ -2,7 +2,8 @@
 //! and stdout, its host key, and the keys that may log in; what a session
 //! runs (T-108) and its shell (T-222); whether a client may forward (T-109);
 //! whether a reload that takes a key out ends its sessions (T-842); a client
-//! policy (T-838); a unit of systemd that runs it (T-709).
+//! policy (T-838); a shell shared by name (T-837); a unit of systemd that
+//! runs it (T-709).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -29,6 +30,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
     row(None, "revoke-ends-sessions", None, FlagKind::Supported,
         "a SIGHUP that takes a key out of the authorized keys ends that key's open sessions, and a key's expiry-time= ends them at its time; one line names each key (default: a session goes on under the rules it logged in with)", None),
+    // A login shell offered by two names, typed in or watched (T-837).
+    row(None, "share", None, FlagKind::Supported,
+        "offer each login shell on a pty by two names told once to its owner: one types in it, one watches it; each dies with the shell", None),
     // A client policy on each client's KEXINIT (T-838).
     super::policy::SERVE_POLICY,
     // A unit of systemd that runs serve NAME, printed (T-709).

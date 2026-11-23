@@ -3832,7 +3832,7 @@ tried at the first build). The entry stays partial for steps 3 to 5.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -3844,7 +3844,7 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler.rs:248-254`, `:379-396`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler.rs:248-254`, `:367-390`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -3872,6 +3872,68 @@ which of two writers' bytes reach the pty.
 6. Ask first the cost to `pod-term`: the lease belongs in the session so that a future screen frame
    shares one authority; if `pod-term` should own it, a COORD issue `(to podcrates)`.
 
+## Decision
+
+Draft, 2026-11-23. What it stands on: the relay road (`serve NAME`, reached as `podssh ssh
+node://NAME@NODE`) and `serve --stdio` behind a ProxyCommand (`ssh NAME@HOST`) carry a name as the SSH
+user today, so neither T-124 (`--listen`) nor T-159 (kept shells) is needed for the share to be useful;
+without T-159 the shell, and its names, end when the owner leaves, as any shell of serve does.
+
+- **Who offers, and when.** `serve --share` offers each login shell on a pty that the kernel gives
+  (a `shell` request, not `exec`, not a forced `command=`), and tells its two names once on the
+  owner's channel stderr. Lost: a per-session ask by an `env` request (`--accept-env` lets no new name
+  in by default, so the owner would need two flags and a client option); a per-key option of
+  `authorized_keys` (OpenSSH has none, and a line that serve cannot pass to sshd breaks the file's
+  other use); sharing each `exec` on a pty too (a script run with `-t` is not a shell to watch).
+- **The name.** `rw-` or `ro-` and 128 bits from aws-lc-rs's generator in hex (35 characters, a valid
+  OpenSSH user). The prefix tells a person the right; the table decides it. Lost: base32 (shorter by
+  6 characters, but podssh has no encoder, and hex has no letters to misread); tmate's single token
+  with a derived read name (a read name must not reveal the write name). With no random bytes the
+  shell runs unshared and the owner is told.
+- **The credential.** A name that the table holds lets any public key in, under the name's right
+  alone, as tmate's names do: the colleague needs no line in `authorized_keys`. Its key's
+  fingerprint is still said on serve's stderr. A name that the table lacks falls to the authorized
+  keys, so a miss reads as a wrong key, at offer and at signature. Lost: a name that also needs an
+  authorized key (the colleague would need the owner's file changed first, which defeats the
+  share); `none` or keyboard-interactive authentication for a name (a second method on the server,
+  and a login with no fingerprint in the log). A login under a name is a connection of `live.rs`'s
+  table with no key, so `--revoke-ends-sessions` never ends it; its name and its shell do.
+- **One registry.** The table `name -> (shell, mode)` hangs off `live.rs`'s table of live
+  connections (`Live::shares`), holds each shell weakly, and loses a shell's names when its output
+  ends. Lost: a second registry in `Control`.
+- **The one gate.** The right is applied once, when a name's `shell` request attaches the channel
+  (`share_view::attach`): a read-only channel gets `tokio::io::sink()` as its input and never a handle
+  of the pty, so no path (typed bytes, the bytes kept before the attach, extended data, a signal,
+  whose slot holds no group) reaches it. A name's `exec`, `subsystem` and forward are refused. Lost:
+  a check of the mode in the feeder or at the pty's write (the planted defect of the Prove: a second
+  path, the early paste, slips past it).
+- **The lease.** Every writer, the owner among them, writes through one lease: the bytes of one seat
+  reach the pty at a time; another writer's chunk waits (in a pipe of 32 KiB in serve, then in its
+  channel's window) until the holder was silent for `LEASE_IDLE`, 200 ms, the middle of the entry's
+  150 to 250. Each change of holder is a new generation. The claim is the write itself: a writer's
+  first byte claims a free or idle lease. Lost: an explicit claim by a key or a `break` request
+  (OpenSSH's client sends neither without an escape that a colleague does not know, and a held byte
+  is a claim already); the owner outside the lease (the owner's typing and a writer's would
+  interleave, which the entry forbids); dropping the held bytes (a paste would lose its middle).
+- **The size.** The least, field by field, of each seat's window: the owner's, each writer's and each
+  watcher's. The Prove asks that a watcher's window change reach the pty, so a watcher's window
+  counts too; a smaller watcher then sees no wrapped lines. Lost: the owner's size alone (tmate's
+  floor), and writers only (Approach item 4; it contradicts the Prove).
+- **The output.** The owner's pty output goes to the owner's channel, then a copy to a broadcast of
+  64 chunks; a seat that falls behind skips to the present, and no seat ever holds the owner. A seat
+  sees the output from its attach on: no screen is replayed before T-161, whose viewport (Approach
+  item 4) stays there. When the shell's output ends, each seat gets exit status 0, EOF and close.
+- **Revoke and rotate.** `Control::unshare(name)` deletes a name (a seat that it opened stays) and
+  `Control::reshare(name)` puts a new name of the same right in its place, the other name left
+  alone (Approach item 5). No command line reaches them yet: the owner has no control channel to
+  serve inside its session, and inventing one belongs to its own entry (filed in Done).
+- **Where the lease lives.** In `podssh serve` (`server/share.rs`), not in `pod-term`: it is about 40
+  lines, specific to serve's shared shell, and no sibling serves a shell to several clients. When
+  T-161's screen frames come, the frame and the lease want one authority; that entry asks podcrates
+  by a COORD issue then (Approach item 6).
+- **Not shared yet:** a shell on serve's own tty (`--pty line` or `notify`, T-111, T-776): its input
+  and output take other paths; the owner is told that the shell is not shared.
+
 ## Prove
 
 ```sh
@@ -3883,6 +3945,46 @@ its typed bytes never reach the pty, a window change does; with two writable nam
 are held while the first holds the lease, and the output of `cat` shows no interleaved line; a deleted name
 refuses a new login and leaves an attached one. A planted handler that checks the mode at the write site
 of the pty and not at the gate fails a test that sends input through the second path (a paste).
+
+## Correction
+
+2026-11-23: the cited lines of `handler.rs` held at `c33214c0` (the login name at `:248-254`,
+`pty_request` at `:379-405`), and `rules.rs:115` is `pty_refusal`. This entry changes the first fact:
+with `--share`, a name of the table selects a shared shell; without it, the login name still selects
+nothing. The handler moved: `start_program` and the SFTP start went to `server/program.rs`, so the
+lines of `handler.rs` move (remap). T-841, T-842, T-838 and T-856 changed `server/` today without
+moving these facts.
+
+## Done
+
+Draft, 2026-11-23: `podssh serve --share` (`crates/podssh-ssh/src/server/share.rs`: the names, the
+table in `live.rs`'s `Live`, the lease, the least size; `share_view.rs`: the one gate, the tee of the
+owner's output, each seat's view; `pty_child.rs`: the login shell's input through the lease and its
+output through the tee; `handler.rs`: a name at authentication, a name's pty and shell request;
+`program.rs`: the start of a program and of SFTP, moved out of `handler.rs` to keep it under 500
+lines; `Control::unshare`, `reshare` and `shared`). The flag row, `ServeArgs`, the unit of
+`--print-unit`, the manual's note of serve and `docs/cli.md` (section `podssh serve`, "A shell shared
+by name").
+
+- Unit tests (`server/share_tests.rs`): the lease as a table of holder, deadline and seat; a name's
+  form, `find`, `reshare`, `unshare` and its death with the shell; the least size as seats come and
+  go; a second writer held until the first one's silence, on a paused clock. Merged and run here (2026-11-23, Linux,
+  Rust 1.100): 4 passed.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share`: a watcher with an unknown key reads
+  the owner's output, and its paste before the attach, its typed keys and its extended data never
+  reach the pty, while its window change does (`stty size` gives 10 40); a name's `exec` is refused;
+  a deleted name refuses a new login and leaves the seat it opened; two writers under the `rw-` name
+  give whole lines under `cat`; the names die with the shell and each seat exits 0; without
+  `--share` a name is a wrong key. 4 passed; every suite of podssh-ssh passed; podssh-cli `--lib` 1256 and the serve
+  tests against OpenSSH passed; clippy clean after two type aliases (`Named`, `Case`), fmt clean.
+- The planted defect (a handler that gives a watcher the pty's writer and checks the mode only in the
+  feeder) waits for T-251.
+- `llms-full.txt` holds the manual: write it again after the build (`podssh man --llms full >
+  llms-full.txt`): done at the merge.
+
+Filed at the merge: T-860 (the owner's command line to delete or rotate a name), T-861 (`--share` on serve's own
+tty, `--pty line` and `notify`), T-862 (a measure of `LEASE_IDLE` with two people typing). What stays of this entry:
+Approach item 4, the viewport, which waits for T-161.
 
 # T-841: `podssh serve` offers one stated set of algorithms, and a table test refuses the rest
 
@@ -3899,8 +4001,8 @@ of the pty and not at the gate fails a test that sends input through the second 
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:80-101`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:64`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:85-106`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:69`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -4317,3 +4419,99 @@ Draft, 2026-11-23 (no build, no test run):
 - Against OpenSSH's client with an RSA `--host-key` (`ssh -o HostKeyAlgorithms=rsa-sha2-512`): not run; the
   logins of the table run russh's client, which verifies each signature. Planted (the signer taken out of
   `server::config`): `an_rsa_host_key_is_never_signed_by_russh` must fail; waits for the release check (T-251, Q88).
+
+# T-860: `podssh serve --share`: the owner deletes or rotates a name from the session
+
+**Source:** T-837's merge, 2026-11-23: `Control::unshare` and `Control::reshare` exist as a library call alone.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The owner of a shared shell sees its two names once and cannot take one back: a name given to the wrong person
+stays good until the shell ends.
+
+## Premise
+
+- Read: T-837 put `Control::unshare` (delete a name; the seats it opened stay) and `Control::reshare` (a new
+  name in place of one) in `crates/podssh-ssh/src/server/share.rs`; nothing calls them from a session.
+
+## Approach
+
+1. A way for the owner's session to reach serve: an escape of the owner's own client is not serve's, so serve
+   reads a request on the owner's channel (an `env` or a subsystem request of the owner's connection, chosen in a
+   `## Decision`), and answers with the new name or one line.
+2. Only the connection that owns the shell may do it; a seat of a name may not.
+3. Same commit: the manual and `docs/cli.md`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_share
+```
+
+# T-861: `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`)
+
+**Source:** T-837's merge, 2026-11-23: a shell with no kernel pty is not shared, and the owner is told why.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+Where `/dev/ptmx` is missing, serve runs a shell on a tty of its own (T-111, T-248). `--share` shares only a
+shell on a kernel pty, so a host with no pty cannot share a shell.
+
+## Premise
+
+- Read: T-837's `share_view::attach` feeds a seat from the kernel pty's output (`crates/podssh-ssh/src/server/share_view.rs`).
+
+## Approach
+
+1. Feed the seats from the line discipline's output (`pod_term`), with the same gate for a viewer and the same
+   lease for writers.
+2. Same commit: the manual's note of `--share`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_share
+```
+
+# T-862: A measure of `serve --share`'s writer lease with two people typing
+
+**Source:** T-837's merge, 2026-11-23: `LEASE_IDLE` (200 ms) is a guess.
+**Category:** measurement
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The lease passes to another writer after 200 ms of the holder's silence. Too short, and two people's keys
+interleave within a word; too long, and the second writer waits after each pause.
+
+## Premise
+
+- Read: `LEASE_IDLE` in `crates/podssh-ssh/src/server/share.rs`.
+
+## Approach
+
+1. Two scripted typists with human gaps (100 to 400 ms between keys, words, pauses), through the stand-in or the
+   loopback; count interleaved words and the second writer's waits for 100, 200, 400 and 800 ms.
+2. Write the result in `docs/terminal.md`, and set the constant from it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib server::share
+```

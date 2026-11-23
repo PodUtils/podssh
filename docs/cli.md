@@ -6021,7 +6021,8 @@ gives up each capability of the process (T-698), before it reads a file.
 - **Authentication.** Public keys alone. The keys are each
   `--authorized-key KEY` (a line of `authorized_keys`), and each line of
   each `--authorized-keys FILE`; with neither flag, `~/.ssh/authorized_keys`.
-  A key is compared by its key data: the login name selects nothing. The
+  A key is compared by its key data: the login name selects nothing, but
+  a name of `--share` (T-837, below). The
   options before a key are its rules (below); a line whose options serve
   cannot all honour, and a line that is no key, are passed over and said
   with their number and why. A key file that is a
@@ -6449,6 +6450,39 @@ gives up each capability of the process (T-698), before it reads a file.
   node itself goes on, and a file that does not read keeps the set
   before (`crates/podssh-cli/tests/serve_node_reload.rs`). Before T-855,
   SIGHUP's default ended the node.
+- **A shell shared by name (T-837).** With `--share`, each login shell on
+  a pty that the kernel gives is offered by two names, told once to its
+  owner on the channel's stderr: `rw-` and `ro-`, each followed by 128
+  random bits in hex (aws-lc-rs's generator; with no random bytes, the
+  shell runs unshared and the owner is told). A name is the SSH user of a
+  later login by the same road (`ssh NAME@HOST` through the ProxyCommand,
+  `podssh ssh node://NAME@NODE`): it lets any key in, as tmate does, and
+  attaches the login's shell request to that shell; it runs no command,
+  opens no forward and serves no SFTP. A name that serve does not hold
+  falls to the authorized keys, so a miss reads as a wrong key. The names
+  live in the server's table of live connections (`live.rs`, `share.rs`);
+  a login under a name has no key there, so no reload ends it. The right
+  of a name is applied at one place, the attach
+  (`crates/podssh-ssh/src/server/share_view.rs`): a channel under an `ro-`
+  name gets a sink for its input, so no byte that it types, pastes before
+  its shell request or sends as extended data has a path to the pty; it
+  may send its window size, and nothing else reaches the shell. Each
+  writer, the owner among them, writes through one lease: the bytes of
+  one writer reach the pty at a time, and another writer's bytes wait (in
+  serve, then in the client's window) until 200 ms passed with nothing
+  from the holder; no two writers' bytes interleave. The pty's size is the
+  least of the owner's and each seat's window. A seat reads the output
+  from its attach on (there is no screen to replay before T-161); one that
+  falls 64 chunks behind skips to the present, and none ever holds the
+  owner's output. The names die when the shell's output ends; each seat
+  then gets exit status 0, EOF and close. The owner leaving ends the
+  shell, as without `--share` (a kept shell is T-159). On serve's own tty
+  (`--pty line` or `notify`) the shell is not shared, and the owner is
+  told why. `Control::unshare` deletes a name (a seat that it opened
+  stays) and `Control::reshare` puts a new name of the same right in its
+  place, the other name left alone; no command line reaches them yet.
+  `crates/podssh-ssh/tests/serve_share.rs` holds each rule with russh's
+  client.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

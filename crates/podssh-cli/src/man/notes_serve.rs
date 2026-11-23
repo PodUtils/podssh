@@ -2,7 +2,8 @@
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
-//! a removed key's sessions, T-842), and the row of its host key's file.
+//! a removed key's sessions, T-842; a shell shared by name, T-837), and the
+//! row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -19,7 +20,7 @@ pub const SERVE: &[&str] = &[
      with --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.",
     "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
      file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
-     nothing. The options before a key are its rules (below); a line whose options serve cannot all \
+     nothing, but a name of --share (below). The options before a key are its rules (below); a line whose options serve cannot all \
      honour, and a line that is no key, are passed over, and said with their number and why. A file that \
      is a symbolic link, another user's, or one that others can change is refused (78). With no key at \
      all, the start is refused (78): no setting lets each key in.",
@@ -166,6 +167,15 @@ pub const SERVE: &[&str] = &[
      (OpenSSH prints it), and its children are hung up as at a stop. One line on stderr names each key. A key's \
      expiry-time= then ends its sessions at that second too. A reload that keeps the set before ends nothing. \
      Without the flag, no session ends by a reload.",
+    // A shell shared by name (T-837).
+    "With --share, each login shell on a pty is shared by two names, told once to its owner on stderr. A name is 128 \
+     random bits in hex, after rw- (it types) or ro- (it watches). ssh NAME@HOST, by the same road, attaches to the \
+     shell with any key. A name that serve does not hold reads as a wrong key. A watcher's input never reaches the \
+     pty: it may send only its window size. Writers, the owner among them, take turns: one writer's bytes reach the \
+     pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat sees the output \
+     from its attach on, and one that falls behind skips ahead. A name opens no forward and runs no command. The \
+     names die with the shell, and each seat then exits 0. Only a pty of the kernel is shared; on serve's own tty \
+     the owner is told why not.",
     // A client policy (T-838).
     super::notes_policy::SERVE_JUDGE,
     // A unit of systemd that runs serve NAME (T-709).

@@ -67,6 +67,15 @@ pub(super) struct Open {
     /// A pty request granted with serve as the line discipline (T-111).
     #[cfg(unix)]
     pub(super) line: Option<super::line::LineGrant>,
+    /// With `--share`, the table that the login shell's names go to, until
+    /// a pty takes it (T-837).
+    pub(super) offer: Option<super::share::Shares>,
+    /// The owner's line that the shell's start tells once: its names.
+    pub(super) told: Option<String>,
+    /// This channel's seat at a shared shell: the owner's, or a name's.
+    pub(super) seat: Option<Arc<super::share::Seat>>,
+    /// A name's `pty-req`: the size that its seat starts with.
+    pub(super) asked: Option<crate::terminal::Size>,
 }
 
 impl Open {
@@ -89,6 +98,10 @@ impl Open {
             pty: None,
             #[cfg(unix)]
             line: None,
+            offer: None,
+            told: None,
+            seat: None,
+            asked: None,
         }
     }
 

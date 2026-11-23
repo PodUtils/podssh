@@ -9,7 +9,8 @@
 //! again (T-117, `serve_keys.rs`), also under NAME (T-855).
 //! The options of each key line are its rules (T-114): a line whose options
 //! cannot all be honoured is passed over, and said. `--policy FILE` judges
-//! each client's KEXINIT before authentication (T-838).
+//! each client's KEXINIT before authentication (T-838). `--share` offers
+//! each login shell on a pty by two names (T-837).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -41,6 +42,8 @@ pub struct ServeArgs {
     pub revoke_ends_sessions: bool,
     /// `--policy FILE`: a client policy (T-838).
     pub policy: Option<String>,
+    /// `--share`: a login shell offered by name (T-837).
+    pub share: bool,
     pub pty: Option<String>,
     /// `--print-unit`, `--system` and `--run-as USER`: a unit of systemd
     /// that runs serve NAME, printed (T-709).
@@ -65,6 +68,7 @@ impl ServeArgs {
             no_forwarding: matches.get_flag("no-forwarding"),
             revoke_ends_sessions: matches.get_flag("revoke-ends-sessions"),
             policy: matches.get_one::<String>("policy").cloned(),
+            share: matches.get_flag("share"),
             pty: matches.get_one::<String>("pty").cloned(),
             print_unit: matches.get_flag("print-unit"),
             system: matches.get_flag("system"),
@@ -163,6 +167,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         }))),
         revoke_ends_sessions: args.revoke_ends_sessions,
         policy,
+        share: args.share,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

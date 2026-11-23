@@ -3,10 +3,12 @@
 //! channel (T-108); direct-tcpip (T-109); a pty where one opens (T-110);
 //! the rules of the key that logged in (T-114: `command=`, `no-pty`,
 //! `permitopen=` and the rest, each refusal with its reason on the channel);
-//! and a clean refusal of each request that a later entry serves. russh's
-//! defaults send no reply to a channel request, and a client then waits
-//! (podssh's own for 30 s): each request here is answered, in the order the
-//! requests came, as the handler answers each before russh reads the next.
+//! a login under a shared shell's name, which attaches under its right
+//! (T-837); and a clean refusal of each request that a later entry serves.
+//! russh's defaults send no reply to a channel request, and a client then
+//! waits (podssh's own for 30 s): each request here is answered, in the
+//! order the requests came, as the handler answers each before russh reads
+//! the next.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,10 +21,12 @@ use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
 use super::live::{self, Conn};
+use super::program::{self, start_program};
 use super::pty_grant::{grant_pty, resize_pty, Asked};
 use super::rules::{Asked as Wanted, Context, Plan};
+use super::share::Pass;
 use super::stop::{Control, Keys, Stage};
-use super::{env, Rules, Settings};
+use super::{env, share_view, Rules, Settings};
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -48,6 +52,9 @@ pub struct Served {
     conn: Conn,
     /// The timer of the key's `expiry-time=`, with `--revoke-ends-sessions`.
     expiry: Option<tokio::task::AbortHandle>,
+    /// A login under a shared shell's name (T-837): it attaches, and no key
+    /// rules it.
+    viewer: Option<Pass>,
 }
 
 impl Drop for Served {
@@ -63,7 +70,7 @@ impl Served {
     pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control, conn: Conn) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
         let (rules, who, channels, expiry) = (None, String::new(), HashMap::new(), None);
-        Served { authorized, settings, channels, forwards, rules, who, control, conn, expiry }
+        Served { authorized, settings, channels, forwards, rules, who, control, conn, expiry, viewer: None }
     }
 
     /// The rules under which `key` logs in now, or None; a key that lines
@@ -83,6 +90,11 @@ impl Served {
         }
     }
 
+    /// Whether the server serves and this connection was not ended.
+    fn serving(&self) -> bool {
+        self.control.stage() == Stage::Serving && self.conn.ended().is_none()
+    }
+
     /// The rules in force, or the words of a refusal: before a login, or
     /// once the server stops (T-117), which takes no new request.
     fn rules(&self) -> Result<Arc<Rules>, String> {
@@ -92,6 +104,9 @@ impl Served {
         // A key that a reload took out runs nothing more (T-842).
         if let Some(told) = self.conn.ended() {
             return Err(told);
+        }
+        if self.viewer.is_some() {
+            return Err(share_view::RUNS_NOTHING.to_string());
         }
         self.rules.clone().ok_or_else(|| "no key logged in".to_string())
     }
@@ -114,16 +129,26 @@ impl Served {
         wanted: Wanted<'_>,
         session: &mut Session,
     ) -> Result<(), russh::Error> {
-        let plan = match self.rules() {
-            Ok(rules) => rules.plan(wanted),
-            Err(why) => Plan::Refuse(why),
+        let plan = match (self.rules(), self.viewer.clone()) {
+            // The one gate of a name's right (T-837): its shell request
+            // attaches, under that right; each other request is refused.
+            (Err(_), Some(pass)) if matches!(wanted, Wanted::Shell) && self.serving() => {
+                let attached = self.channels.get_mut(&channel).map(|open| share_view::attach(open, &pass));
+                match attached {
+                    Some(Ok(())) => return session.channel_success(channel),
+                    Some(Err(why)) => Plan::Refuse(why),
+                    None => return Self::refuse(channel, session),
+                }
+            }
+            (Ok(rules), _) => rules.plan(wanted),
+            (Err(why), _) => Plan::Refuse(why),
         };
         match plan {
             Plan::Command(command, original) => {
                 self.start(channel, Program::Command(&command), original, session).await
             }
             Plan::Shell => self.start(channel, Program::Login, None, session).await,
-            Plan::Sftp => self.sftp(channel, session),
+            Plan::Sftp => program::sftp(self.channels.get_mut(&channel), &self.settings, channel, session),
             // As a program that did not start: the channel runs nothing
             // else, so it ends here.
             Plan::Refuse(why) => {
@@ -154,18 +179,27 @@ impl Served {
         session: &mut Session,
     ) -> Result<(), russh::Error> {
         let settings = self.settings.clone();
+        let shares = self.control.live.shares.clone();
         let Some(open) = self.channels.get_mut(&id) else { return Self::refuse(id, session) };
         // A channel runs one program, as RFC 4254 has it.
         if open.started() {
             return Self::refuse(id, session);
+        }
+        // With --share, the login shell on a pty is offered by name (T-837).
+        if settings.share && matches!(program, Program::Login) {
+            open.offer = Some(shares);
         }
         let started = if settings.no_shell {
             Err("--no-shell: this server runs no command and no shell".to_string())
         } else {
             start_program(open, id, &settings, program, original).await
         };
+        let told = share_view::told(open);
         match started {
-            Ok(()) => session.channel_success(id),
+            Ok(()) => {
+                session.channel_success(id)?;
+                told.map_or(Ok(()), |told| session.extended_data(id, 1, told.into_bytes()))
+            }
             // A channel whose program did not start can run nothing else,
             // so it ends here: the client waits for no close of its own.
             Err(line) => {
@@ -176,62 +210,6 @@ impl Served {
             }
         }
     }
-
-    /// Serve SFTP in the process on `channel` (T-112). A channel that runs
-    /// a program, or SFTP already, takes no second one.
-    fn sftp(&mut self, channel: ChannelId, session: &mut Session) -> Result<(), russh::Error> {
-        let Some(open) = self.channels.get_mut(&channel) else { return Self::refuse(channel, session) };
-        if open.started() {
-            return Self::refuse(channel, session);
-        }
-        #[cfg(unix)]
-        let started = super::sftp::start(open, &self.settings);
-        #[cfg(not(unix))]
-        let started: Result<(), String> = Err("not on this system: podssh serve serves SFTP on a Unix host".into());
-        match started {
-            Ok(()) => session.channel_success(channel),
-            Err(line) => {
-                session.extended_data(channel, 1, format!("podssh serve: {line}\n").into_bytes())?;
-                Self::refuse(channel, session)
-            }
-        }
-    }
-}
-
-/// Find the shell (T-222), at each start and with no cache, then start the
-/// program with it. The search runs programs and waits for them, so it
-/// runs on a blocking thread.
-#[cfg(unix)]
-async fn start_program(
-    open: &mut Open,
-    id: ChannelId,
-    settings: &Settings,
-    program: Program<'_>,
-    original: Option<Vec<u8>>,
-) -> Result<(), String> {
-    use super::{child, shell};
-    use std::os::unix::ffi::OsStringExt;
-    let base = settings.base();
-    let candidates = shell::candidates(settings.shell.as_deref(), env::lookup(&base, "SHELL"));
-    let probe_env = env::without_credentials(&base);
-    let found = tokio::task::spawn_blocking(move || shell::find(&candidates, &probe_env))
-        .await
-        .map_err(|e| format!("the search for a shell failed: {e}"))?
-        .map_err(|none| none.to_string())?;
-    let child_env = env::child_env(&base, &found.path, &open.env);
-    let child_env = env::with_original(child_env, original.map(std::ffi::OsString::from_vec));
-    child::spawn(open, id, &found.path, program, child_env)
-}
-
-#[cfg(not(unix))]
-async fn start_program(
-    _: &mut Open,
-    _: ChannelId,
-    _: &Settings,
-    _: Program<'_>,
-    _: Option<Vec<u8>>,
-) -> Result<(), String> {
-    Err("not on this system: podssh serve runs programs on a Unix host".into())
 }
 
 impl russh::server::Handler for Served {
@@ -240,20 +218,30 @@ impl russh::server::Handler for Served {
     // A key that is not listed, or that its lines refuse now (from=,
     // expiry-time=), is refused before the client signs with it; so is
     // each key of a connection that a client policy ended (T-838).
-    async fn auth_publickey_offered(&mut self, _user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
-        let ok = self.conn.ended().is_none() && self.admit(offer.public_key).is_some();
+    async fn auth_publickey_offered(&mut self, user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
+        let named = self.control.live.shares.find(user).is_some();
+        let ok = self.conn.ended().is_none() && (named || self.admit(offer.public_key).is_some());
         Ok(if ok { Auth::Accept } else { Auth::reject() })
     }
 
-    // The login name selects nothing: the key alone decides, and its line's
-    // rules hold for the whole connection. A security key's signature must
+    // The login name selects nothing but a shared shell's name (T-837),
+    // which lets any key attach under its right; a name that the table
+    // lacks falls to the keys, as a wrong key does. Else the key decides,
+    // and its line's rules hold for the whole connection. A security key's signature must
     // carry the flags that its line asks for (T-774), as sshd checks them:
     // the line that admitted the key decides, and no later line is tried.
     // The key is in the server's table before it is checked (T-842): a
     // reload then either comes first and refuses it here, or finds it.
-    async fn auth_publickey(&mut self, _user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
+    async fn auth_publickey(&mut self, user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
         if self.conn.ended().is_some() {
             return Ok(Auth::reject());
+        }
+        // Out of the table's logins: a reload of the keys never ends it.
+        if let Some(pass) = self.control.live.shares.find(user) {
+            self.who = crate::known_hosts::fingerprint(key.public_key);
+            self.settings.say(&format!("key {}: logged in to a shared shell, {}", self.who, pass.mode.says()));
+            self.viewer = Some(pass);
+            return Ok(Auth::Accept);
         }
         self.conn.log_in(key.public_key);
         let Some(rules) = self.admit(key.public_key) else {
@@ -387,6 +375,12 @@ impl russh::server::Handler for Served {
         modes: &[(Pty, u32)],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        // A name's pty is the shared shell's: its size counts (T-837).
+        if self.viewer.is_some() && self.serving() {
+            let open = self.channels.get_mut(&channel);
+            let asked = share_view::ask_pty(open, cols, rows, pix_width, pix_height);
+            return if asked { session.channel_success(channel) } else { Self::refuse(channel, session) };
+        }
         let refused = match self.rules() {
             Ok(rules) => rules.pty_refusal(),
             Err(why) => Some(why),

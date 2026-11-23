@@ -16,7 +16,9 @@
 //! that it offers are one stated set (T-841, `algorithms.rs`); an RSA host
 //! key signs through aws-lc-rs, never russh's `rsa` (T-856, `host_sign.rs`);
 //! a client policy refuses a client by its KEXINIT before authentication
-//! (T-838, `policy_gate.rs`).
+//! (T-838, `policy_gate.rs`). With `--share`, a login shell on a pty is
+//! offered by two names, one that types and one that watches (T-837,
+//! `share.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -35,6 +37,7 @@ pub mod live;
 pub mod notify;
 pub mod options;
 mod policy_gate;
+mod program;
 #[cfg(unix)]
 pub mod pty;
 #[cfg(unix)]
@@ -45,6 +48,8 @@ mod pty_grant;
 pub mod rules;
 #[cfg(unix)]
 pub mod sftp;
+pub mod share;
+mod share_view;
 #[cfg(unix)]
 pub mod shell;
 pub mod stop;
@@ -147,6 +152,9 @@ pub struct Settings {
     /// `--policy FILE` (T-838): a client whose first KEXINIT the policy
     /// does not pass is refused before authentication. None judges nothing.
     pub policy: Option<Arc<crate::policy::Policy>>,
+    /// `--share` (T-837): each login shell on a pty is offered by two names,
+    /// told once to its owner. Off, the login name selects nothing.
+    pub share: bool,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

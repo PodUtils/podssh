@@ -1242,7 +1242,7 @@ end is the peer of the client's TLS.
 | iroh road | none of a relay: QUIC runs between the two ends | Probably: iroh rests on noq (`Cargo.lock`, package `iroh`). `pod-iroh` never calls it (`src/stream.rs`, `src/client.rs`), and iroh 1.4.1's own `Connection` was not read: its source is not on this machine | The end-to-end channel |
 | A node's own TLS behind a third party's TCP tunnel (Pinggy's TLS tunnel: `crates/podssh-relay/src/pinggy/far.rs:106-108`) | the node | Yes at the node; the client's side is the same TLS peer only where the tunnel passes TLS through | The same tunnel with no TLS (`far.rs:114-116`) has none: the nonce |
 | TUIC, Hysteria and the other roads to a server that the user names | that server | Not the far end's: TUIC's own token binds the hop to its server (`tuic/mod.rs:157`) | The end-to-end channel, where the far end is a node |
-| `podssh serve` on stdin and stdout (no NAME) | no TLS and no layer (`crates/podssh-cli/src/serve.rs:198`) | No | SSH's session identifier, which a publickey signature already covers (vendor/russh `src/server/encrypted.rs:1226-1229`) |
+| `podssh serve` on stdin and stdout (no NAME) | no TLS and no layer (`crates/podssh-cli/src/serve.rs:203`) | No | SSH's session identifier, which a publickey signature already covers (vendor/russh `src/server/encrypted.rs:1226-1229`) |
 
 Each road with the layer has a nonce: the far end's `GREETING` carries one,
 and the client's `OPEN` another (pod-session `src/record.rs:286-300`,

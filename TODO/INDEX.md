@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**814 entries: 21 open, 46 partial, 11 blocked, 736 done.**
+**817 entries: 23 open, 47 partial, 11 blocked, 736 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 1 | 12 | 3 | 91 | 107 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 20 | 11 | 6 | 340 | 377 |
-| **All** | 21 | 46 | 11 | 736 | 814 |
+| P3 | 22 | 12 | 6 | 340 | 380 |
+| **All** | 23 | 47 | 11 | 736 | 817 |
 
 ## Entries
 
@@ -867,7 +867,7 @@ repository and CI).
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
-| [T-837](serve.md) | P3 | M | backlog | feature | open | A live shell shared by name: a read-only name, and one writer at a time |
+| [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | partial | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |
@@ -890,3 +890,6 @@ repository and CI).
 | [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
 | [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |
 | [T-859](robustness.md) | P1 | S | M10 | defect | open | A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN |
+| [T-860](serve.md) | P3 | S | backlog | feature | open | `podssh serve --share`: the owner deletes or rotates a name from the session |
+| [T-861](serve.md) | P3 | M | backlog | feature | open | `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`) |
+| [T-862](serve.md) | P3 | S | backlog | measurement | open | A measure of `serve --share`'s writer lease with two people typing |

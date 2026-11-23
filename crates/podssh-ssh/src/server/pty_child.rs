@@ -24,6 +24,8 @@ use tokio::sync::watch;
 use super::channel::{Open, Program};
 use super::child::{command, pump, Running};
 use super::pty::{self, Pair};
+use super::share::Hub;
+use super::share_view::Tee;
 use crate::terminal::Size;
 
 /// A pty granted to a channel, until its program starts; then its master
@@ -36,6 +38,8 @@ pub(super) struct Granted {
     /// Whether `name` is the slave's path, for `SSH_TTY`.
     path: bool,
     term: String,
+    /// The size of the request, where a shared shell's seats start (T-837).
+    size: Size,
 }
 
 impl Granted {
@@ -50,7 +54,7 @@ impl Granted {
         // SAFETY: the AsyncFd owns the master, which stays open and the same
         // until the AsyncFd drops it.
         let master = unsafe { AsyncFd::register(master) }.map_err(|e| format!("{name}: {}", e.into_parts().1))?;
-        Ok(Granted { master: Arc::new(master), slave: Some(slave), name, path, term: pty::term_of(term) })
+        Ok(Granted { master: Arc::new(master), slave: Some(slave), name, path, term: pty::term_of(term), size })
     }
 
     /// A new size (`window-change`); the kernel tells the child's
@@ -111,10 +115,34 @@ pub(super) fn spawn(
     let mut child = spawned.map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
     let running = Running::take(open, id, &mut child)?;
     let Some(granted) = open.pty.as_ref() else { return Err("no pty on this channel".into()) };
-    let master = granted.master.clone();
-    open.give_stdin(Box::new(Master(master.clone())));
+    let (master, size) = (granted.master.clone(), granted.size);
     let (exited_tx, exited) = watch::channel(false);
-    let output = tokio::spawn(pump(Master(master), running.write.make_writer(), exited));
+    let to = running.write.make_writer();
+    // With --share, the login shell's input goes through the lease and its
+    // output to each seat too (T-837); else straight, as before.
+    let output = match open.offer.take() {
+        Some(shares) => {
+            let fd = master.clone();
+            let resize = move |size| {
+                let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
+            };
+            let owner = Hub::open(&shares, Box::new(Master(master.clone())), Box::new(resize), size);
+            open.told = Some(match shares.mint(&owner.hub) {
+                Some(names) => names.told(),
+                None => {
+                    "podssh serve: this shell is not shared: the system gave no random bytes for its names\r\n".into()
+                }
+            });
+            open.give_stdin(owner.writer());
+            let tee = Tee::new(to, owner.hub.clone());
+            open.seat = Some(owner);
+            tokio::spawn(pump(Master(master), tee, exited))
+        }
+        None => {
+            open.give_stdin(Box::new(Master(master.clone())));
+            tokio::spawn(pump(Master(master), to, exited))
+        }
+    };
     tokio::spawn(running.finish(child, vec![output], exited_tx, open.closed.clone()));
     Ok(())
 }
