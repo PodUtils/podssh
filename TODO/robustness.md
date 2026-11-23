@@ -2798,6 +2798,9 @@ line. The m6 step as the gate runs it (`cargo test --locked -p podssh-cli --feat
 -- --ignored --test-threads 1`): 11 passed in 719 s, the iroh road's session with no fault among them; it passed here
 before the repair too, so the proof is the gate's. Then the gate ten times in a row (this entry's Prove).
 
+2026-11-23, the gate at `444b5181` (run 45213300602), the first with `io/beside.rs`: each job green, `gate (m6)` among
+them: one of the ten in a row that this entry's Prove asks.
+
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
 **Source:** the live job of T-565 in `last-roads-live.yml` (runs 42989086142, 42994885604 and 43560494966).
@@ -4545,6 +4548,10 @@ Draft, 2026-11-23: steps 1 to 3 (`crates/podssh-cli/tests/attach.rs`: `shell`, `
 variable back, `tilde_d_as_bytes` starts at `shell`; `crates/podssh-cli/tests/conpty_harness/mod.rs`: `Console::bytes`).
 `cargo test -p podssh-cli --test attach` here (merged 2026-11-23, Linux, its pty harness): 6 passed; clippy and fmt clean. The proof is the Windows job of the gate, with no line "the far shell answered probe" in its log. Step 4
 waits for that job's log.
+
+2026-11-23: the `windows` job of the gate at `444b5181` (run 45213300602) passed, `attach` among its default tests, with
+no line "the far shell answered probe" in its log. It stays partial as each test that failed at random does, until its
+next failure or a run of greens.
 
 # T-859: A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN
 

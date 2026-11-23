@@ -6308,7 +6308,7 @@ Met: consolidated on `main` (`e728db9f`).
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -6406,8 +6406,8 @@ here (2026-11-23, Linux, Rust 1.100): `--lib serve::control` 3 passed and `serve
 test's socket path is about 130 bytes, past Linux's 108: `--test cover_credential` 4 passed, each role
 bound through the link. clippy and fmt clean. Its two sentences of the manual were cut to 25 words or fewer and `llms-full.txt` written again
 (podssh-cli's `--lib man`, 116 passed), which the merge had missed. The planted run (no length check) waits for the release
-check (T-251, Q88). What waits: the macOS job of the gate, which alone has the 104 bytes and the
-long `$TMPDIR`; the COORD issue `(to podcrates)` for a long parent in
+check (T-251, Q88). The macOS job of the gate at `444b5181` (run 45213300602, 2026-11-23) passed, `cover_credential` among its
+default tests: done. What waits: the COORD issue `(to podcrates)` for a long parent in
 `pod_core::files::bind_staged`.
 
 # T-798: The resumable layer over the HTTP road, where the way refuses the WebSocket upgrade

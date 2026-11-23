@@ -7,7 +7,7 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 ## The state of `main`
 
 - **Read first, at the next session (the cloud session of 2026-11-23, after `e728db9f`):**
-  1. **The gate.** At `af95c50` it was red: `gate (m6)` (T-780's sixteenth hang), `macos`
+  1. **The gate.** Green at `444b5181` (run 45213300602, each job; T-857 done). At `af95c50` it was red: `gate (m6)` (T-780's sixteenth hang), `macos`
      (`cover_credential`, T-857) and `windows` (`attach`, T-858). Each has its repair on `main`
      (T-780 `d3aba042`, T-857 `cae0bdd6`, T-858 `68228ea4`), each `partial` until the gate proves it:
      T-780 by ten green `gate (m6)` runs in a row, T-857 by the `macos` job, T-858 by the `windows`

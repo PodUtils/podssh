@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**817 entries: 23 open, 46 partial, 11 blocked, 737 done.**
+**817 entries: 23 open, 45 partial, 11 blocked, 738 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 1 | 12 | 3 | 91 | 107 |
+| P1 | 1 | 11 | 3 | 92 | 107 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
 | P3 | 22 | 11 | 6 | 341 | 380 |
-| **All** | 23 | 46 | 11 | 737 | 817 |
+| **All** | 23 | 45 | 11 | 738 | 817 |
 
 ## Entries
 
@@ -887,7 +887,7 @@ repository and CI).
 | [T-854](serve.md) | P3 | S | backlog | defect | done | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
 | [T-855](serve.md) | P3 | S | backlog | feature | done | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
 | [T-856](serve.md) | P3 | S | backlog | defect | done | `podssh serve` with an RSA host key signs through the `rsa` crate |
-| [T-857](relay.md) | P1 | S | M10 | defect | partial | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
+| [T-857](relay.md) | P1 | S | M10 | defect | done | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
 | [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |
 | [T-859](robustness.md) | P1 | S | M10 | defect | open | A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN |
 | [T-860](serve.md) | P3 | S | backlog | feature | open | `podssh serve --share`: the owner deletes or rotates a name from the session |
