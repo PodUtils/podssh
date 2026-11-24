@@ -90,7 +90,9 @@ pub type Say = Arc<dyn Fn(&str) + Send + Sync>;
 /// what did not answer 69.
 #[cfg(feature = "devtunnel")]
 pub fn code_of(class: podssh_relay::devtunnel::Class) -> i32 {
-    use crate::exitmap::sysexits::{EX_CONFIG, EX_NOPERM, EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE};
+    use crate::exitmap::sysexits::{
+        EX_CANTCREAT, EX_CONFIG, EX_NOPERM, EX_SOFTWARE, EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE,
+    };
     use podssh_relay::devtunnel::Class;
     match class {
         Class::Usage => EX_USAGE,
@@ -98,6 +100,8 @@ pub fn code_of(class: podssh_relay::devtunnel::Class) -> i32 {
         Class::Refused | Class::Revoked | Class::Policy | Class::Permission => EX_NOPERM,
         Class::TempFail | Class::Timeout => EX_TEMPFAIL,
         Class::Unavailable | Class::NotFound | Class::Protocol | Class::Unsupported => EX_UNAVAILABLE,
+        Class::CantCreate => EX_CANTCREAT,
+        Class::Internal => EX_SOFTWARE,
     }
 }
 

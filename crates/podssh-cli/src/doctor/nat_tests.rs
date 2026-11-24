@@ -261,6 +261,7 @@ fn the_variable_names_the_servers_or_turns_the_line_off() {
     let default = Setting::Servers(vec![
         Server { host: "stun.cloudflare.com".into(), port: 3478 },
         Server { host: "stun.l.google.com".into(), port: 19302 },
+        Server { host: "stun.easybell.de".into(), port: 3478 },
     ]);
     assert_eq!(setting_of(None).unwrap(), default);
     assert_eq!(setting_of(Some("  ")).unwrap(), default);

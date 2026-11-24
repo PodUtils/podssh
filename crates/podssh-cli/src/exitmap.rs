@@ -175,10 +175,10 @@ impl Fault {
             // purpose (SHARED_CODES), and `Fault::name` names which; pod-core's
             // `Revoked` is 78.
             Fault::Revoked => own(sysexits::EX_UNAVAILABLE, Some(Class::Revoked)),
-            // Kept 70: pod-core's `Protocol` is 76, and none of its classes is 70.
-            Fault::SessionFault | Fault::ChannelClosed => own(sysexits::EX_SOFTWARE, Some(Class::Protocol)),
-            // Kept 73: none of pod-core's classes is `EX_CANTCREAT`.
-            Fault::CantCreate => own(sysexits::EX_CANTCREAT, None),
+            // 70: a session cut short is pod-core's `Internal` (v0.83.0, COORD-142).
+            Fault::SessionFault | Fault::ChannelClosed => Origin::Pod(Class::Internal),
+            // 73: an output that cannot be created (v0.83.0, COORD-142).
+            Fault::CantCreate => Origin::Pod(Class::CantCreate),
             Fault::Remote(status) => own(status as i32, None),
         }
     }

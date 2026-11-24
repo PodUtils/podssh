@@ -10,23 +10,23 @@ publish.workspace = true
 # A library other projects (podvm) use; its crates move to PodUtils/podcrates
 # (T-684).
 [dependencies]
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
-pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
+pod-identity = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 # The static cover site and the application-layer delegated credential
 # (#225, T-764 to T-766): the site tree, its name routing, and the
 # credential's fields and signature. Pure Rust; only the role's `serve`.
-pod-cover = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-cover = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # The relay client: the hosts, the pool, the rank, the failover, the tokens,
 # the roads to a relay, the pairs, the grants, the reverse road and the
 # blocking facade (PodUtils/podcrates@T-025): pod-relay, over podssh's
 # process context (src/context.rs). The dialer of a node's targets is
 # pod-proxy's, with podssh's settings (podssh-ws's dial.rs).
-pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
-pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
+pod-proxy = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 # The services of other parties: the relay's host, limits and seed, the
 # DERP servers, Piping, the mailboxes and transit, OpenTunnel, the edge of
 # the quick tunnel and its roots.
-pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 podssh-ws = { path = "../podssh-ws" }
 tokio = { workspace = true }
 serde = { workspace = true }
@@ -36,11 +36,11 @@ rand = { workspace = true }
 # The resumable layer (src/session/), UDP in a stream (src/udp/), the link
 # over a WebSocket (pod_transit::link) and the rule of a peer's answer
 # (src/answer.rs): pod-session of PodUtils/podcrates (T-020 there).
-pod-session = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-session = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 # The transit road (src/transit/): pod-transit of PodUtils/podcrates
 # (T-027 there); podssh keeps PODSSH_TRANSIT and the settings of each
 # connection.
-pod-transit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-transit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 # SHA-256, HMAC-SHA-256 and HKDF of the tokens, the mailbox and croc, and
 # X25519 of the key of DERP. Pure Rust, as in podssh-ws.
 sha2 = { workspace = true }
@@ -53,7 +53,7 @@ ed25519-dalek = { workspace = true, features = ["zeroize"] }
 base64 = { workspace = true }
 # The channel between two podssh ends (src/e2e/, T-088): Noise XX on snow,
 # pure Rust: pod-e2e of PodUtils/podcrates (T-021 there).
-pod-e2e = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+pod-e2e = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
 # A quick tunnel's connection to Cloudflare's edge (src/quick/serve.rs, T-300):
 # the edge is the client of HTTP/2 on the connection that podssh dialed. Pure
 # Rust, in the lock already through hyper; only with the features `quick`,
@@ -70,10 +70,10 @@ rustls = { workspace = true, optional = true }
 # The QUIC endpoint, its keys, the connection within its wait, the race of
 # handshakes and the probe of UDP (PodUtils/podcrates, T-019): pod-quic, on
 # the same noq.
-pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-quic = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # The DERP road (src/derp.rs, T-349): pod-derp of PodUtils/podcrates (its
 # T-031), with podssh's lines, names, way out and variables.
-pod-derp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-derp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # Tox's boxes (src/tox/, T-734): NaCl's crypto_box (X25519, XSalsa20,
 # Poly1305). Pure Rust, RustCrypto's; no `getrandom`: a nonce comes from
 # podssh's own source.
@@ -91,15 +91,15 @@ peeroxide = { version = "=1.7.4", optional = true }
 # (PodUtils/podcrates@T-032, T-684), through podssh's way out. smee's and
 # filehost's HTTP/1.1 take its dial and its reader; smee's TLS is the async
 # wrapper of rustls that podssh-ws builds, with no provider of its own.
-pod-piping = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-piping = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # The OpenTunnel road (T-530): pod-opentunnel of PodUtils/podcrates
 # (PodUtils/podcrates@T-033, T-684), through podssh's way out and provider.
-pod-opentunnel = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-opentunnel = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 tokio-rustls = { workspace = true, optional = true }
 # Pairing by a short code (src/code/, T-086): the mailbox client, SPAKE2, the
 # sealed phases and the words of a code, which podssh gives its AppID, its
 # name and its way out; only with the feature `code`.
-pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-wormhole = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # croc's relay road (src/croc/, T-694): the curve SIEC of croc's relay
 # handshake, which no crate implements, on num-bigint's integers (0.5 since
 # T-754), and AES-256-GCM of croc's crypt, the workspace's.
@@ -111,14 +111,14 @@ aes-gcm = { workspace = true, optional = true }
 # there against AWS's examples), so podssh keeps no signer of its own. Its
 # feature `s3` builds crates that the lock has already (pod-tls, pod-ws,
 # sha2, hmac); no C.
-pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true, features = ["s3"] }
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true, features = ["s3"] }
 # The Dev Tunnels forward road (src/devtunnel/, T-755): the client side of
 # Microsoft Dev Tunnels (the management API, the relay WebSocket, SSH with no
 # user authentication to the tunnel's host, `direct-tcpip` channels) is
 # pod-devtunnel of PodUtils/podcrates; podssh gives it its way out, its
 # token file and its lines. Its SSH is russh on ring, beside podssh's
 # aws-lc-rs: only with the feature `devtunnel`.
-pod-devtunnel = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", optional = true }
+pod-devtunnel = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", optional = true }
 # iroh's relay protocol at the role's `/relay` (T-720): iroh-relay's own
 # server (its feature `server`: the handshake, the hook of access and the
 # registry of clients), the vendored 1.4.2 of PodUtils/podcrates through the
