@@ -1,6 +1,6 @@
 //! The server's answers (T-107): public-key authentication against the
 //! authorized keys; a command, a shell and the environment on a session
-//! channel (T-108); direct-tcpip (T-109); a pty where one opens (T-110);
+//! channel (T-108); direct-tcpip (T-109) and `-R` (T-123); a pty where one opens (T-110);
 //! the rules of the key that logged in (T-114: `command=`, `no-pty`,
 //! `permitopen=` and the rest, each refusal with its reason on the channel);
 //! a login under a shared shell's name, which attaches under its right
@@ -20,6 +20,7 @@ use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
+use super::remote_forward::Forwards;
 use super::live::{self, Conn};
 use super::program::{self, start_program};
 use super::pty_grant::{grant_pty, resize_pty, Asked};
@@ -27,6 +28,9 @@ use super::rules::{Asked as Wanted, Context, Plan};
 use super::share::Pass;
 use super::stop::{Control, Keys, Stage};
 use super::{env, share_ctl, share_view, Rules, Settings};
+
+#[path = "handler_forward.rs"]
+mod forward;
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -40,6 +44,8 @@ pub struct Served {
     settings: Arc<Settings>,
     channels: HashMap<ChannelId, Open>,
     forwards: Slots,
+    /// The client's forwards of `-R`, published with no bind (T-123).
+    remote: Forwards,
     /// The rules of the key that logged in; None before a login, which
     /// refuses each request.
     rules: Option<Arc<Rules>>,
@@ -69,8 +75,8 @@ impl Drop for Served {
 impl Served {
     pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control, conn: Conn) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
-        let (rules, who, channels, expiry) = (None, String::new(), HashMap::new(), None);
-        Served { authorized, settings, channels, forwards, rules, who, control, conn, expiry, viewer: None }
+        let (rules, who, channels, expiry, remote) = (None, String::new(), HashMap::new(), None, Forwards::default());
+        Served { authorized, settings, channels, forwards, remote, rules, who, control, conn, expiry, viewer: None }
     }
 
     /// The rules under which `key` logs in now, or None; a key that lines
@@ -303,8 +309,7 @@ impl russh::server::Handler for Served {
         true
     }
 
-    // A TCP connection from this host (T-109): checked here, dialed on a
-    // task of its own, so the answer to the open comes with the dial's.
+    // A TCP connection from this host (T-109), `handler_forward.rs`.
     async fn channel_open_direct_tcpip(
         &mut self,
         channel: Channel<Msg>,
@@ -315,29 +320,23 @@ impl russh::server::Handler for Served {
         reply: ChannelOpenHandle,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        let port = match direct::check(self.settings.no_forwarding, host, port) {
-            Ok(port) => port,
-            Err(refusal) => {
-                reply.reject(refusal).await;
-                return Ok(());
-            }
-        };
-        // The key's own limits (no-port-forwarding, permitopen=).
-        let refused = match self.rules() {
-            Ok(rules) => rules.forward_refusal(host, port),
-            Err(why) => Some(why),
-        };
-        if let Some(why) = refused {
-            self.settings.say(&format!("key {}: refused: {why}", self.who));
-            reply.reject(direct::prohibited(&why)).await;
-            return Ok(());
-        }
-        let Some(slot) = self.forwards.take() else {
-            reply.reject(ChannelOpenFailure::ResourceShortage).await;
-            return Ok(());
-        };
-        direct::open(channel, host.to_string(), port, reply, slot, session.handle());
-        Ok(())
+        self.direct_tcpip(channel, host, port, reply, session).await
+    }
+
+    // A stock `ssh -R` (T-123): published with no bind where the settings
+    // give a way, else refused as before.
+    async fn tcpip_forward(
+        &mut self,
+        address: &str,
+        port: &mut u32,
+        session: &mut Session,
+    ) -> Result<bool, Self::Error> {
+        let rules = self.rules();
+        Ok(self.remote.ask(&self.settings, rules, &self.who, address, port, session.handle()).await)
+    }
+
+    async fn cancel_tcpip_forward(&mut self, address: &str, port: u32, _: &mut Session) -> Result<bool, Self::Error> {
+        Ok(self.remote.cancel(address, port))
     }
 
     async fn channel_open_x11(
