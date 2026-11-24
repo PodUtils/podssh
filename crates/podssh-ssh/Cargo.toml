@@ -30,7 +30,7 @@ rand = { workspace = true }
 # The atomic replace of a file that keeps its mode, for the rewrite of
 # known_hosts (`pod_core::files::replace`, T-820): the tag of every
 # podcrates crate.
-pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
+pod-core = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 # SFTP version 3 (T-133): pure Rust, Apache-2.0, a limit on each request, and
 # requests in flight together. Its one optional feature (async-trait) is off.
 russh-sftp = { version = "3.0.1", default-features = false }
@@ -82,7 +82,7 @@ serde_json = { workspace = true }
 libc = { workspace = true }
 # serve's line discipline where no pty opens (T-111): the cooked mode of
 # PodUtils/podcrates' pod-term, the tag of every podcrates crate.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 
 [target.'cfg(windows)'.dependencies]
 # Security keys (T-229): the WebAuthn API of Windows (webauthn.dll), loaded
@@ -103,7 +103,7 @@ windows-sys = { version = "0.61", features = [
 pageant = { version = "0.2.4", default-features = false, features = ["wmmessage"] }
 
 [dev-dependencies]
-pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0", features = ["screen"] }
+pod-testkit = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", features = ["screen"] }
 # `test-util` gives the tests a paused clock: a hop's 10 s of silence (T-462)
 # and the relay's idle cut at 180 s (T-463) pass at once.
 tokio = { workspace = true, features = ["macros", "rt", "signal", "process", "test-util"] }

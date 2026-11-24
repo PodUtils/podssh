@@ -1,5 +1,5 @@
 //! iroh's relay protocol at `/relay` (T-720), with iroh-relay's own server
-//! code (its feature `server`, the vendored 1.4.1 of PodUtils/podcrates):
+//! code (its feature `server`, the vendored 1.4.2 of PodUtils/podcrates):
 //! its handshake, by which a client proves its endpoint's key; its hook of
 //! access; and its registry of clients, which forwards each datagram to the
 //! key that it names and tells a sender's peers when it is gone.

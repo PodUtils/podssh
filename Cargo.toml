@@ -205,7 +205,7 @@ strip = true
 # release does what it does (`scripts/check-repo.py` fails on a patch that
 # the lock does not use).
 # iroh's relay client with the patch that podssh made (T-280): its relay
-# dial speaks SOCKS5 too, where iroh-relay 1.4.1 speaks HTTP CONNECT only,
+# dial speaks SOCKS5 too, where iroh-relay 1.4.2 speaks HTTP CONNECT only,
 # and iroh's HTTPS probe of the relays gets reqwest's SOCKS5. The fork is
 # `vendor/iroh-relay` of PodUtils/podcrates, at the tag of the other crates
 # of podcrates: a `[patch]` of podcrates does not reach podssh, so podssh
@@ -215,7 +215,7 @@ strip = true
 # cargo says so: podcrates carries the fork to that version first.
 [patch.crates-io]
 russh = { path = "vendor/russh" }
-iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.0" }
+iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 # ssh-key, whose release refuses an ECDSA key of OpenSSH whose scalar has a
 # leading zero byte (T-609).
 ssh-key = { path = "vendor/ssh-key" }
