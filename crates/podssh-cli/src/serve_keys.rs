@@ -173,14 +173,14 @@ impl Drop for Hangups {
 /// What a signal asks of the server. Only Unix's signals are caught, so
 /// another system never builds one.
 #[cfg_attr(not(unix), allow(dead_code))]
-enum Asked {
+pub(crate) enum Asked {
     Stop,
     Reload,
 }
 
 /// SIGTERM, SIGINT and SIGHUP, each caught where it could be installed;
 /// one that could not keeps its default.
-struct Signals {
+pub(crate) struct Signals {
     #[cfg(unix)]
     term: Option<tokio::signal::unix::Signal>,
     #[cfg(unix)]
@@ -190,7 +190,7 @@ struct Signals {
 }
 
 impl Signals {
-    fn new() -> Signals {
+    pub(crate) fn new() -> Signals {
         #[cfg(unix)]
         {
             use tokio::signal::unix::{signal, SignalKind};
@@ -206,7 +206,7 @@ impl Signals {
         }
     }
 
-    async fn next(&mut self) -> Asked {
+    pub(crate) async fn next(&mut self) -> Asked {
         #[cfg(unix)]
         {
             async fn one(signal: Option<&mut tokio::signal::unix::Signal>) {

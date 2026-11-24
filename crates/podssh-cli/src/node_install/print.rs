@@ -63,6 +63,11 @@ fn serve_text(args: &ServeArgs) -> Result<String, Refusal> {
             "--print-unit with --stdio: a unit runs serve NAME, the node of a pair; --stdio serves one ProxyCommand",
         ));
     }
+    if !args.listen.is_empty() {
+        return Err(Refusal::usage(
+            "--print-unit with --listen: a unit runs serve NAME, the node of a pair, which listens on nothing",
+        ));
+    }
     let name = args.name.clone().ok_or_else(|| Refusal::usage("--print-unit needs NAME, the label of a pair"))?;
     crate::pairs::check_label(&name)?;
     let target = target(args.system, args.run_as.as_deref(), &name)?;

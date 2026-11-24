@@ -4,7 +4,8 @@
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
 //! a removed key's sessions, T-842; a shell shared by name, T-837; the
 //! message of the day, T-119; the marks of a shell, T-120; the scope of a
-//! pty child, T-122), and the row of its host key's file.
+//! pty child, T-122; a listener, T-124, `notes_serve_listen`), and the row
+//! of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -26,6 +27,10 @@ pub const SERVE: &[&str] = &[
      honour, and a line that is no key, are passed over, and said with their number and why. A file that \
      is a symbolic link, another user's, or one that others can change is refused (78). With no key at \
      all, the start is refused (78): no setting lets each key in.",
+    // A listener that the user asks for (T-124).
+    super::notes_serve_listen::LISTEN,
+    super::notes_serve_listen::BIND,
+    super::notes_serve_listen::CAPS,
     // The algorithms (T-841): the test below holds each name against the
     // server's constant, so the note and the set cannot part.
     "The algorithms are one stated set, the same at each start, never russh's default of the day. Key exchanges: \
@@ -223,8 +228,8 @@ pub const SERVE: &[&str] = &[
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
     "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \
-     that a reload ended. Without --stdio the run is a usage error (64), and so are --shell with --no-shell; on \
-     Windows it exits 70.",
+     that a reload ended. Without --stdio, NAME or --listen the run is a usage error (64). So are two of them, and \
+     --shell with --no-shell. On Windows it exits 70.",
 ];
 
 /// The host key's file, for FILES.

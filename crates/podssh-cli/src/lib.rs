@@ -336,6 +336,8 @@ pub mod serve;
 mod serve_shell;
 // The keys of `podssh serve`, read again on SIGHUP, and its signals (T-117).
 mod serve_keys;
+// `podssh serve --listen`: its listeners and the caps of each (T-124).
+mod serve_listen;
 // The client's end under `podssh serve --stdio`, which a SIGHUP comes with (T-869).
 mod serve_end;
 // `podssh serve NAME`: a pair's node whose sessions serve answers (T-107).

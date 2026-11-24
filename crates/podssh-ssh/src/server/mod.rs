@@ -3,7 +3,8 @@
 //! public-key authentication against the authorized keys.
 //!
 //! It never listens: the stream is the caller's (stdin and stdout for
-//! `--stdio`, as `sshd -i`; a node's session later). A command and a shell
+//! `--stdio`, as `sshd -i`; a node's session; a connection that the
+//! listener of `--listen` accepted, under the caps of `listen.rs`, T-124). A command and a shell
 //! run on pipes (T-108), with the shell that T-222 finds, or on a pty where
 //! a master opens at the request (T-110); direct-tcpip dials from this host
 //! (T-109); the `sftp` subsystem is served in the process (T-112). Where no
@@ -37,6 +38,7 @@ pub mod host_key;
 mod host_sign;
 #[cfg(unix)]
 mod line;
+pub mod listen;
 pub mod live;
 pub mod marks;
 pub mod motd;
@@ -97,10 +99,7 @@ pub const KEEPALIVE: Duration = Duration::from_secs(60);
 pub fn config(host_key: PrivateKey) -> russh::server::Config {
     let signer = host_sign::HostSigner::of(&host_key);
     russh::server::Config {
-        server_id: SshId::Standard(Cow::Owned(format!(
-            "SSH-2.0-podssh_{}",
-            env!("CARGO_PKG_VERSION").replace('-', "_")
-        ))),
+        server_id: SshId::Standard(Cow::Owned(server_id())),
         methods: MethodSet::from(&[MethodKind::PublicKey][..]),
         keys: vec![host_key],
         preferred: algorithms::SERVED,
@@ -113,6 +112,12 @@ pub fn config(host_key: PrivateKey) -> russh::server::Config {
         host_key_signer: Some(Arc::new(signer)),
         ..russh::server::Config::default()
     }
+}
+
+/// serve's version line, without its CR LF: russh's and a listener's
+/// refusal say the same (T-124).
+fn server_id() -> String {
+    format!("SSH-2.0-podssh_{}", env!("CARGO_PKG_VERSION").replace('-', "_"))
 }
 
 /// What a session may run (T-108, T-222): the `env` requests let in, the

@@ -4,7 +4,7 @@
 //! whether a reload that takes a key out ends its sessions (T-842); a client
 //! policy (T-838); a shell shared by name (T-837); a unit of systemd that
 //! runs it (T-709); the message of the day (T-119); the marks of a shell
-//! (T-120).
+//! (T-120); listeners that the user asks for (T-124).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -13,6 +13,11 @@ use super::{row, FlagKind, FlagRow};
 pub const SERVE_FLAGS: &[FlagRow] = &[
     row(None, "stdio", None, FlagKind::Supported,
         "serve one SSH connection on stdin and stdout, as sshd -i, for a ProxyCommand; nothing listens", None),
+    // A listener that the user asks for, after a bind that the host allows (T-124).
+    row(None, "listen", Some("ADDR"), FlagKind::Supported,
+        "serve each SSH connection that comes on ADDR: PORT on 127.0.0.1, ADDR:PORT on an address of this host ([::1]:PORT for IPv6), or unix:PATH, a socket of mode 0600; may be repeated; never with PODSSH_LISTEN=no", None),
+    row(None, "max-connections", Some("N"), FlagKind::Supported,
+        "with --listen: the connections at once, logged in or not; one more is refused with a disconnect, too many connections (default: 64)", None),
     row(None, "host-key", Some("FILE"), FlagKind::Supported,
         "the host key: an OpenSSH private key with no passphrase, made there (Ed25519, mode 0600) when missing, never overwritten (default: serve_host_ed25519_key in the cache)", None),
     row(None, "authorized-key", Some("KEY"), FlagKind::Supported,

@@ -28,8 +28,13 @@ LISTENERS = {
     # for tests alone, on the loopback, and the stand-in bucket of the S3
     # API (T-725), a test module of src/ that its tests/ start too. And the
     # target that the exit behind a quick tunnel dials in its tests (T-459),
-    # on the loopback, as the node's real dial reaches it.
+    # on the loopback, as the node's real dial reaches it. And `podssh serve
+    # --listen ADDR` (T-124), which the user asks for: the bind is the probe,
+    # before the capability drop, and PODSSH_LISTEN turns it off; its tests
+    # bind port 0 on the loopback and a socket in a scratch directory.
     "TcpListener": [
+        "crates/podssh-cli/src/serve_listen.rs",
+        "crates/podssh-cli/src/serve_listen_tests.rs",
         "crates/podssh-cli/src/exit/tunnel_tests.rs",
         "crates/podssh-cli/src/relay_serve.rs",
         "crates/podssh-cli/src/relay_serve/quic.rs",
@@ -126,6 +131,8 @@ LISTENERS = {
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above. And the stand-in bucket (T-725), as above.
     "bind(": [
+        "crates/podssh-cli/src/serve_listen.rs",
+        "crates/podssh-cli/src/serve_listen_tests.rs",
         "crates/podssh-cli/src/exit/tunnel_tests.rs",
         "crates/podssh-relay/src/bucket/standin.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",

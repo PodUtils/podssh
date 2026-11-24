@@ -288,8 +288,9 @@ These rules apply to each change. The reasons are in
    `nat` asks two STUN servers from one UDP socket of port 0, straight out,
    and closes it within seconds (T-641; not with `PODSSH_STUN=no`). A listener
    that the user asks for (`-L`, `-D`, connection sharing, `podssh agent`,
-   `podssh session`) opens only when a probe at run time allows the bind: on loopback or
-   AF_UNIX, unless the user sets the address. A race between relay hosts can
+   `podssh session`, `podssh serve --listen`) opens only when a probe at run
+   time allows the bind: on loopback or AF_UNIX, unless the user sets the
+   address. A race between relay hosts can
    open a second connection for a short time ([decisions.md](decisions.md),
    2026-10-08). The iroh road (feature `iroh`), which the user selects,
    binds UDP for direct paths, and keeps it only after a probe shows that a
