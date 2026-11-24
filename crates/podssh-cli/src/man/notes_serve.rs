@@ -3,7 +3,8 @@
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
 //! a removed key's sessions, T-842; a shell shared by name, T-837; the
-//! message of the day, T-119), and the row of its host key's file.
+//! message of the day, T-119; the marks of a shell, T-120), and the row of
+//! its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -114,6 +115,16 @@ pub const SERVE: &[&str] = &[
      and serve's stderr says when the rest was cut. Each control character but tab and newline is dropped, so the \
      file cannot drive the terminal. The file is read again at each login. A --motd FILE that cannot be read refuses \
      the start (78); later, a login goes on without it, and stderr says why.",
+    // The marks of a shell (T-120).
+    "With --shell-integration, a login shell on a tty is marked for the terminal: OSC 133 marks each prompt, command \
+     and output, and OSC 7 names the directory. A terminal then jumps between commands, and opens a tab in the same \
+     directory. On a pty, or a tty that serve answers, bash and zsh take the marks from their start. bash runs with \
+     --rcfile, a file of serve's own that reads the files of a login, then adds hooks. It is no login shell then, so \
+     logout refuses; exit ends it. zsh runs with ZDOTDIR at a directory of serve's own. Its .zshenv gives ZDOTDIR \
+     back, reads the user's .zshenv, and adds hooks. The files are in TMPDIR, else /tmp, and go when the session \
+     ends. serve never writes a file of the user's. Another shell gets no marks, and stderr says so. On the line \
+     discipline, serve marks its own prompt and each line submitted. It cannot see a command end, so the output's \
+     end comes at once, with no status. A command gets no marks.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it. So OpenSSH's \
      sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has no sftp-server, scp or \
      rsync. The files are reached as the user that runs serve, with no chroot: what that user may read and write, a \

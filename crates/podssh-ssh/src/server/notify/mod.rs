@@ -66,6 +66,10 @@ pub(super) fn spawn(
     let (ctl_mine, ctl_theirs) = UnixStream::pair().map_err(|e| format!("no socket for the filter: {e}"))?;
     let _ = ctl_mine.set_read_timeout(Some(PROBE_WAIT));
     let mut cmd = command(shell, &program, env)?;
+    // The shell's start files of the marks (T-120), for a login shell.
+    if let Some(files) = open.extras.marks.as_ref() {
+        files.apply(&mut cmd);
+    }
     let stdio = |s: &UnixStream| s.try_clone().map(|c| Stdio::from(OwnedFd::from(c)));
     let fail = |e: std::io::Error| format!("no tty socket for the child: {e}");
     cmd.stdin(stdio(&theirs).map_err(fail)?)
@@ -174,6 +178,11 @@ pub(super) fn spawn(
         }
         run::run(shared, told, ends, size, exited, stop).await;
     });
-    tokio::spawn(running.finish(child, vec![task], exited_tx, open.closed.clone()));
+    // The files of the marks go when the session does.
+    let (marks, closed) = (open.extras.marks.take(), open.closed.clone());
+    tokio::spawn(async move {
+        running.finish(child, vec![task], exited_tx, closed).await;
+        drop(marks);
+    });
     Ok(())
 }

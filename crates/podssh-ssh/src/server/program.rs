@@ -1,6 +1,6 @@
 //! The start of what a session channel runs, apart from the handler so that
 //! each file stays short: a program with the shell found at its start
-//! (T-108, T-222) and the parts of a login's start (T-119, `start.rs`), or
+//! (T-108, T-222) and the parts of a login's start (T-119, T-120, `start.rs`), or
 //! the SFTP server in the process (T-112).
 
 #[cfg(unix)]
@@ -53,14 +53,16 @@ pub(super) async fn start_program(
     let base = settings.base();
     let candidates = shell::candidates(settings.shell.as_deref(), env::lookup(&base, "SHELL"));
     let probe_env = env::without_credentials(&base);
-    let kind = start::Kind { login: matches!(program, Program::Login), tty: open.pty.is_some() || open.line.is_some() };
+    let line = open.line.as_ref().is_some_and(|grant| !grant.notify);
+    let tty = open.pty.is_some() || open.line.is_some();
+    let kind = start::Kind { login: matches!(program, Program::Login), tty, line };
     let (taken, held) = (open.env.clone(), Arc::new(settings.clone()));
-    // The parts of a login's start read files (T-119): on the same blocking
-    // thread as the search, after it.
+    // The parts of a login's start read and write files (T-119, T-120): on
+    // the same blocking thread as the search, after it.
     let (found, child_env, (extras, said)) = tokio::task::spawn_blocking(move || {
         let found = shell::find(&candidates, &probe_env)?;
         let child_env = env::child_env(&base, &found.path, &taken);
-        let extras = start::extras(&held, kind, &child_env);
+        let extras = start::extras(&held, kind, &found.path, &child_env);
         Ok::<_, shell::NoShell>((found, child_env, extras))
     })
     .await

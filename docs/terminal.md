@@ -943,6 +943,45 @@ cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
 
 `PODSSH_MEASURE_SECS` sets the typing of each span (default 60 s).
 
+## Shell integration marks of `podssh serve` (T-120)
+
+A terminal finds the commands of a session by OSC 133 (`ESC ] 133 ; A BEL`
+before a prompt, `B` after it, `C` where a command's output starts, and
+`D[;STATUS]` where the command ended) and the directory by OSC 7
+(`ESC ] 7 ; file://HOST/PATH BEL`). Over a node, a shell sends none unless
+its start files add them, and a cage image often has none.
+`podssh serve --shell-integration` adds them to a login shell on a tty; off
+by default, it adds nothing (`crates/podssh-ssh/src/server/marks.rs`).
+
+- **On a pty, or a tty that serve answers.** Only the shell knows where its
+  prompt is, so the marks come from its start. bash runs as
+  `bash --rcfile FILE -i`, `FILE` a file of serve's own. bash reads
+  `--rcfile` only when it is not a login shell, so the file reads the files
+  of a login first, in a login bash's order (`/etc/profile`, then the first
+  of `~/.bash_profile`, `~/.bash_login`, `~/.profile`). It then adds
+  `PROMPT_COMMAND` (the end with `$?`, OSC 7, the start of the prompt), a
+  mark at the end of `PS1`, and a `DEBUG` trap for the start of the output.
+  A `DEBUG` trap of the user's own stays, and the output then has no start
+  mark. The shell is not a login shell for `shopt login_shell` and
+  `logout`. zsh keeps its login: it runs with `ZDOTDIR` at a directory of
+  serve's own, whose `.zshenv` gives `ZDOTDIR` its value of the session
+  back, reads the user's `.zshenv`, and adds `precmd` and `preexec` hooks;
+  zsh then reads each later file where it would have. The files are in a
+  directory that `mkdtemp` makes (mode 0700) in the child's `TMPDIR`, else
+  `/tmp`, and go when the session ends. Invariant: serve writes no file of
+  the user's. Another shell gets no marks, and serve's stderr says so, as it
+  says a directory that it cannot make; the shell starts either way.
+- **On serve's line discipline (T-111).** serve draws the prompt and sees
+  each line submitted, so it writes the marks itself: `A`, the prompt, `B`
+  at the first prompt. The discipline draws the next prompt with the echo
+  of each line, so that echo becomes the line's end, `C`, `D`, `A`, the
+  prompt and `B`. With no help from the shell, serve does not see a command
+  end: `D` comes at once and has no status, and the command's output is
+  drawn above the next prompt, after its marks. A redraw (Ctrl-C, a line
+  erased) is not marked. No OSC 7: serve does not read the shell's
+  directory.
+- **A command** (`exec`, a forced `command=`) gets no marks.
+
 ## Tests
 
 Linux test hosts grant ptys, so a test must force the paths with no pty:

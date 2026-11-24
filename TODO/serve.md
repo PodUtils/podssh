@@ -1990,6 +1990,32 @@ files add them, and many cage images have none.
 4. Remove the temporary files when the session ends.
 5. Same commit: the flag, the manual, `docs/terminal.md`.
 
+## Decision
+
+2026-11-24 (draft). Rule Q3: `pod-term` is podcrates', so the marks of the line discipline are
+written in podssh, around the discipline's events (`server/line.rs`, `server/marks.rs`), and no
+change of `pod-term` is asked. The discipline draws the next prompt with the echo of each line
+(`pod-term` `src/echo.rs:337-354`, `submit`, at the tag `v0.82.1`), so that echo becomes the line's
+`C`, `D`, `A`, the prompt and `B`: the order that the Approach names, at the only moment serve knows.
+The output then comes after the marks, above the redrawn prompt. Lost: holding `D` and the next
+prompt's marks until the output stops, which serve cannot see (the shell runs non-interactive and
+says nothing); and feeding the shell a line of its own after each line to learn the status, which
+would change `$?` and break a construct over several lines. A redraw (Ctrl-C, a line erased) is not
+marked. No OSC 7 on the line discipline: serve does not read the shell's directory.
+
+bash with `--rcfile` (see Correction) runs as `bash --rcfile FILE -i`, not a login shell, and the
+file reads a login's files first. Lost: keeping the login shell and passing the hooks by
+`PROMPT_COMMAND` in the environment, which a user's file that sets `PROMPT_COMMAND` cleans away
+without a word; the cost of the choice is `shopt login_shell` and `logout`, said in the manual. A
+`DEBUG` trap of the user's own is kept, and the output then has no start mark.
+
+A tty that serve answers (T-776, T-777) takes the start files as a pty does: the shell sees a tty.
+The files are made by `mkdtemp` (mode 0700) in the child's `TMPDIR`, else `/tmp`: a pid is no unique
+name across PID namespaces, and `TMPDIR` lets a test see that they go. A failure to make them, and a
+shell that is neither bash nor zsh, start the shell without marks, with one line on serve's stderr:
+no session fails for the marks. The user's `ZDOTDIR` goes into serve's `.zshenv` as a quoted line,
+not into a variable of podssh's own.
+
 ## Prove
 
 ```sh
@@ -2023,6 +2049,36 @@ next tag. The Premise's line of `echo.rs` that shows where a mark goes is `pod-t
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (draft). bash reads `--rcfile` only when it is interactive and not a login shell (bash(1),
+INVOCATION), and serve starts a login shell (`-bash`): with `--rcfile` alone, a login bash would read
+`/etc/profile` and `~/.bash_profile` and never the file. So bash runs as `bash --rcfile FILE -i`
+with no dash, and the file reads the files of a login in a login bash's order (`/etc/profile`, then
+the first of `~/.bash_profile`, `~/.bash_login`, `~/.profile`) before the hooks; the user's
+`~/.bashrc` is read where those files read it, as at a login. zsh needs no change of the Approach:
+its `ZDOTDIR` is read for each later start file, so serve's `.zshenv` gives the user's back first.
+
+## Done
+
+Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+
+- `crates/podssh-ssh/src/server/marks.rs`: the marks' bytes, the marked echo of a submitted line, the
+  start files of bash (`marks/bash-rc.sh`) and zsh (`marks/zshenv.sh`, after a line that gives
+  `ZDOTDIR` back) in a `mkdtemp` directory, removed on drop. `start.rs` decides them for a login
+  shell on a tty; `pty_child.rs` and `notify/mod.rs` start the shell with them and drop them at the
+  session's end; `line.rs` marks the first prompt and each submitted line.
+- The CLI: `--shell-integration` (`flags/serve.rs`, `serve.rs`, `--print-unit`'s words). The manual: a
+  note of `serve`. `docs/terminal.md`, "Shell integration marks of `podssh serve` (T-120)";
+  `docs/cli.md`, a bullet; `docs/STATUS.md`, a row.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_marks`: UNVERIFIED (the marks' bytes,
+  the files of bash and zsh, the line discipline with and without the flag, bash and zsh on a pty
+  where this host has them, another shell and no flag).
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::line`: UNVERIFIED (only the echo of a
+  submitted line is marked).
+- Waits for T-251: the gate's `ssh -tt` through `podssh serve --stdio --shell-integration` to bash
+  (`ESC ] 133;A`, `ESC ] 7;file://`, the SHA-256 of `~/.bashrc` the same), no mark without the
+  flag, and the plant that appends to `~/.bashrc`.
+- `cargo todo remap docs/cli.md docs/terminal.md` after the merge.
 
 # T-121: Install `podssh serve` or `podssh node` as a service with no privileges
 

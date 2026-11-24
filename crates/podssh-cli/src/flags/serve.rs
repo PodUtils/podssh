@@ -3,7 +3,8 @@
 //! runs (T-108) and its shell (T-222); whether a client may forward (T-109);
 //! whether a reload that takes a key out ends its sessions (T-842); a client
 //! policy (T-838); a shell shared by name (T-837); a unit of systemd that
-//! runs it (T-709); the message of the day (T-119).
+//! runs it (T-709); the message of the day (T-119); the marks of a shell
+//! (T-120).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -29,6 +30,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
     // The message of the day of a login shell on a tty (T-119).
     row(None, "motd", Some("FILE"), FlagKind::Supported,
         "the message of the day: shown before each login shell on a tty, never for a command, and not when ~/.hushlogin exists; at most 64 KiB, with no control character but tab and newline (default: /etc/motd, where it is there)", None),
+    // The marks of OSC 133 and OSC 7 for a terminal (T-120).
+    row(None, "shell-integration", None, FlagKind::Supported,
+        "mark each login shell's prompts and commands for the terminal (OSC 133) and its directory (OSC 7): bash and zsh on a pty by a start file of serve's own that reads the user's, which serve never writes; the prompts and lines of serve's line discipline (default: no marks)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
     row(None, "revoke-ends-sessions", None, FlagKind::Supported,

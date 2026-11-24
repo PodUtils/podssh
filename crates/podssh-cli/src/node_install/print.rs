@@ -110,6 +110,7 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
         ("--no-forwarding", args.no_forwarding),
         ("--revoke-ends-sessions", args.revoke_ends_sessions),
         ("--share", args.share),
+        ("--shell-integration", args.shell_integration),
     ];
     for (flag, on) in switches {
         if on {

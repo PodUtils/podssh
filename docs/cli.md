@@ -6370,6 +6370,17 @@ gives up each capability of the process (T-698), before it reads a file.
   it is drawn before the first prompt, and on a tty that serve answers it is
   written before the discipline starts: in each case before any byte of the
   shell.
+- **Shell integration marks (T-120, GitHub #20).** `--shell-integration`
+  marks a login shell on a tty with OSC 133 (prompt, command, output, end)
+  and OSC 7 (the directory); off by default. bash and zsh on a pty, or on a
+  tty that serve answers, take the marks from a start file of serve's own
+  that reads the user's (`bash --rcfile FILE -i`, or zsh's `ZDOTDIR`), made
+  in the child's `TMPDIR` (else `/tmp`) and removed at the session's end;
+  serve never writes a file of the user's. On the line discipline serve
+  marks its own prompts and each line submitted, with no exit status.
+  Another shell, and a command, get none. `docs/terminal.md`, "Shell
+  integration marks of `podssh serve`", has each mark and what each shell
+  loses.
 - **SFTP (T-112).** The `sftp` subsystem is served in the process
   (`crates/podssh-ssh/src/server/sftp/`): SFTP version 3 as OpenSSH's
   `sftp-server` speaks it, on russh-sftp's packets (the crate of podssh's
