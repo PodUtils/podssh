@@ -4183,3 +4183,16 @@ ignored, while the far `rz` waited in a read on its raw tty; one such podssh out
 for 30 minutes, idle, the file open at 851,968 bytes. A transfer that waits must keep its limit, its
 keys and the end of the session; this wants an entry of its own (`crates/podssh-ssh/src/io.rs`, the
 pump's `zmodem_out` and `io/send.rs`).
+
+2026-11-24: podcrates writes the codec in pod-term (COORD-153, PodUtils/podcrates#258, answering
+COORD-137, #346); the design it asked for is in `docs/terminal.md` ("The 7-bit envelope (T-831, step
+2): the design for pod-term"): the trigger line `#PODSSH-TX1:S|R:<id>:<crc32>` (a fresh random id
+and a CRC, removed from the display), frames `#KIND:<base64>!<crc32>` read across CR, LF, CRLF,
+wrapped lines and escape sequences, nine kinds (`HELO`, `OFFR`, `TAKE`, `SKIP`, `DATA`, `ACKN`,
+`DONE`, `KEPT`, `STOP`), one `DATA` in flight with the echo of its offset and the received count, a
+chunk of 1 KiB to 32 KiB, the resend, the resync, the limits (a frame of 44,032 bytes, 64 KiB of
+junk, 20 s each wait), the cancel paths of T-859, T-134's temporary name, SHA-256 and rename, the
+sans-IO interface and a table of test vectors (each frame computed with Python's `base64` and
+`zlib.crc32`). Step 2 waits for the podcrates tag that carries `pod_term::transfer`; then podssh
+wires it into the session as T-148's ZMODEM is wired (the far program, the question, the keys, the
+write limit), and the Prove's `pty_envelope` test runs the vectors against it.
