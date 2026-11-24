@@ -10,12 +10,13 @@
 //! The options of each key line are its rules (T-114): a line whose options
 //! cannot all be honoured is passed over, and said. `--policy FILE` judges
 //! each client's KEXINIT before authentication (T-838). `--share` offers
-//! each login shell on a pty by two names (T-837). `--motd FILE` is the
-//! message of the day of a login shell on a tty (T-119); `--shell-integration`
-//! marks its prompts and commands (T-120). Where a probe finds systemd, each
-//! pty child runs in a transient scope of its own (T-122). `--listen ADDR`
-//! serves each connection of a listener that the user asks for (T-124,
-//! `serve_listen.rs`).
+//! each login shell on a pty by two names (T-837). Under NAME, a shell that
+//! its client detached is kept for `--keep-lease` (T-159, `serve_keep.rs`).
+//! `--motd FILE` is the message of the day of a login shell on a tty
+//! (T-119); `--shell-integration` marks its prompts and commands (T-120).
+//! Where a probe finds systemd, each pty child runs in a transient scope of
+//! its own (T-122). `--listen ADDR` serves each connection of a listener
+//! that the user asks for (T-124, `serve_listen.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -57,6 +58,8 @@ pub struct ServeArgs {
     pub policy: Option<String>,
     /// `--share`: a login shell offered by name (T-837).
     pub share: bool,
+    /// `--keep-lease TIME`: how long a detached shell waits (T-159).
+    pub keep_lease: Option<String>,
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
@@ -90,6 +93,7 @@ impl ServeArgs {
             revoke_ends_sessions: matches.get_flag("revoke-ends-sessions"),
             policy: matches.get_one::<String>("policy").cloned(),
             share: matches.get_flag("share"),
+            keep_lease: matches.get_one::<String>("keep-lease").cloned(),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
@@ -135,6 +139,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             let _ = writeln!(err, "podssh serve: --pty takes auto, notify, line or no, not {value:?}");
             return EXIT_USAGE;
         }
+    };
+    let keep_lease = match crate::serve_keep::lease(args.keep_lease.as_deref(), args.name.is_some()) {
+        Ok(lease) => lease,
+        Err(refusal) => return refused(err, refusal),
     };
     if args.no_shell && args.shell.is_some() {
         let _ = writeln!(err, "podssh serve: --shell and --no-shell: give one of them");
@@ -205,6 +213,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         scope: None,
         // No relay publishes a client's -R yet: each is refused (T-123).
         remote: None,
+        keep_lease,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
@@ -239,6 +248,9 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     // NAME: a node of the pair, whose sessions this process answers.
     if let Some(name) = &args.name {
         let control = podssh_ssh::server::Control::new();
+        if !keep_lease.is_zero() {
+            crate::serve_keep::at_start(&control, &path, name, err);
+        }
         let served = crate::node_serve::Served { key, keys, settings: Arc::new(settings), control, sources };
         if !crate::node_serve::set(served) {
             let _ = writeln!(err, "podssh serve: one node of serve in a process");

@@ -1562,6 +1562,31 @@ asked, with a lease that the user gives and a maximum that the server sets.
 The alternative, keep each shell after each loss, lost: a cage would collect
 programs that nobody comes back to.
 
+2026-11-24, the calls of the draft, each with what lost:
+
+- One object for each kept shell (`crates/podssh-ssh/src/server/kept.rs`), which no channel owns:
+  the pty's input and size, the child's group, the ring and the one channel attached now, as report 22
+  asks. It is not T-837's `Hub`: the hub's seats and writer lease serve many clients at once, and a
+  change of it would move T-837 to T-861 with no run here. Merged with the hub lost for now; T-161,
+  which gives the screen to each attach, is the place to make them one.
+- The owner of a kept shell is the key that logged in (its fingerprint): serve runs as one user of
+  the host, so the limits "for each user" are for each key, and a shell is found by its key and its
+  name alone. Any key of the server, as trzsz/tsshd's table lets any session id be named, lost.
+- One ring for each shell, fed always, with the offsets of pod-term's `Ring`: an attach gets the
+  bytes since the detach, or since its own count later (T-833). A second buffer fed only with no
+  client (the donor's rule (c)) lost: two buffers of one stream, and no offset to replay from.
+- The lease: `--keep-lease` of serve NAME, 24 h by default, 30 days at most, 0 for none; the client
+  asks for less with `env lease@podssh SECONDS` (`podssh ssh -o SetEnv=...`, or OpenSSH's). zuko's
+  5 minutes lost (a laptop's night is longer), and no bound lost (a cage would collect programs).
+- SIGKILL 10 s after a lease's hangup, as step 4 asks; a shell that its client left unkept keeps
+  T-117's rule (a hangup, and a wait), so that no session of today changes.
+- Only a login shell on a pty of the kernel is kept, and none with `--share`. A shell on serve's own
+  tty (T-111, T-776) has its discipline in the channel's tasks; keeping it too lost for now, and a
+  `~d` there is refused with a line, as by a far end that keeps nothing.
+- The record (step 5) holds names alone, the key's fingerprint and the name, replaced whole by a
+  rename from a name of random bits, and not written during a stop, so that it names the shells
+  that the stop ended. A record of each shell's output lost: the step asks for metadata only.
+
 ## Prove
 
 ```sh
@@ -1607,6 +1632,63 @@ handover are in `podssh-relay`'s `session/`, which goes to `pod-session` of PodU
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24, read before the draft:
+
+- The Premise's "no server exists yet" no longer holds, and the Start condition's parts are on
+  `main`: `podssh serve` runs a login shell on a pty (`crates/podssh-ssh/src/server/pty_child.rs`),
+  stops by hanging up each child's group (`crates/podssh-ssh/src/server/stop.rs`), and under NAME
+  answers each session of a node in one process with one `Control` (`crates/podssh-cli/src/node_serve.rs`),
+  which can hold shells across connections. T-107, T-108, T-110 and T-117 are `partial` for their
+  runs in the build image alone, so this entry starts as T-114 did, from the parts on `main`.
+- The kept shell is podssh's own (`podssh-ssh`'s server), not `pod-session`'s: an attach is a new SSH
+  login above the layer, so the layer's session need not outlive its deadline, and the generation of
+  the donor's rule (a) is the shell object's. No ask of podcrates is needed. The ring is pod-term's
+  `Ring` (T-221), taken as it is; no crate of podcrates or sibling keeps a pty.
+- Step 3's limit for each user: serve runs as one user; the limit is for each key (Decision).
+- A job that an interactive shell starts in the background is in a process group of its own (job
+  control), so a hangup of the shell's group does not reach it, as under sshd. The Prove's job runs
+  after `set +m`, in the shell's own group, which the lease's end must end.
+- The requests: T-158's (`detach@podssh`, `attach@podssh`, `take@podssh`, `from@podssh`,
+  `shells@podssh`), and two more of podssh's own names, `keep@podssh NAME` (step 2's keep at the
+  login) and `lease@podssh SECONDS` (`crates/podssh-ssh/src/keep.rs`).
+
+## Done
+
+Drafted 2026-11-24 (not built here; the main session builds, tests and closes it).
+
+- The server: `crates/podssh-ssh/src/server/kept.rs` (the shell object: its output through `Out` to
+  the attached channel and the ring, each channel's input through a gate of its generation, `~d`'s
+  detach, a lost channel, a join with `--take`, the catch-up of what came with no client, the lease),
+  `kept_ask.rs` (the asks of a channel, the keeper of a start, the id `PODSSH_SHELL_ID`),
+  `kept_shelf.rs` (the shells by key and name, 4 for each key and 32 in all, `Control::keep_record`,
+  `Control::kept`), `kept_record.rs` (the record, 0600, replaced by a rename), `kept_join.rs` (an
+  attach's channel: its spare pty closed, its size to the shell's), `kept_run.rs` (the child's start
+  and end; SIGHUP and SIGCONT, then SIGKILL 10 s after a lease). The handler takes the requests in
+  `kept_asks.rs`; `handler_gate.rs` holds `admit`, `serving` and `rules`, moved so that `handler.rs`
+  stays under 500 lines. `pty_child.rs` starts a login shell that may be kept through `kept_run.rs`,
+  `child.rs`'s `Running` gives its parts, `pty_grant.rs` resizes a kept shell, and a stop freezes
+  the record (`stop.rs`).
+- The command line: `--keep-lease TIME` (`crates/podssh-cli/src/flags/serve.rs`,
+  `crates/podssh-cli/src/serve_keep.rs`), 24 h by default under NAME, refused under `--stdio` (64);
+  `serve-NAME.kept` beside the host key; serve NAME's layer names `keep.v1` where it keeps shells
+  (`node_serve::keeps`); `--print-unit` passes `--keep-lease`. The manual: a note and a FILES row of
+  `serve` (`crates/podssh-cli/src/man/notes_serve.rs`). `docs/cli.md`, `docs/terminal.md`,
+  `docs/design.md`, `docs/STATUS.md`.
+- Prove: `cargo test -p podssh-ssh --test serve_keep`: UNVERIFIED. Its tests:
+  `a_kept_shell_keeps_its_job_and_is_joined_again_by_name` (the job runs on, the line that came with
+  no client replayed, the list, a second client, an attach from inside and another key's refused,
+  `--take`, the status to the client that has the shell);
+  `a_lease_that_runs_out_ends_the_process_group` (a lease of 2 s);
+  `a_shell_is_kept_only_when_its_client_asked` (no `~d`: hung up as before; `keep@podssh`: kept
+  after a lost connection); `a_server_that_keeps_no_shells_refuses_each_request`. The unit tests:
+  `cargo test -p podssh-ssh --lib server::kept server::kept_record`: UNVERIFIED;
+  `cargo test -p podssh-cli --lib serve_keep`: UNVERIFIED; the manual's and the flags' tests of
+  `podssh-cli`: UNVERIFIED.
+- Waits: the run of T-158's `crates/podssh-cli/tests/attach.rs` against `podssh serve NAME` in the
+  place of its stand-in, and live through the relay; the planted servers of the Prove (one that keeps
+  nothing, one with no lease) with the release check (T-251); the remap of the cited files that this
+  change moved (`cargo todo remap`).
 
 # T-160: Local echo and prediction for high latency
 

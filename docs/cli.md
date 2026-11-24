@@ -6664,7 +6664,7 @@ gives up each capability of the process (T-698), before it reads a file.
   falls 64 chunks behind skips to the present, and none ever holds the
   owner's output. The names die when the shell's output ends; each seat
   then gets exit status 0, EOF and close. The owner leaving ends the
-  shell, as without `--share` (a kept shell is T-159). A shell on serve's
+  shell, as without `--share` (a shared shell is not kept, T-159). A shell on serve's
   own tty (`--pty line` or `notify`, T-861) is shared the same way: the
   discipline's input (pod-term's cooked mode, or the termios state that
   serve answers) takes each writer's bytes through the lease, a watcher's
@@ -6698,6 +6698,47 @@ gives up each capability of the process (T-698), before it reads a file.
   OpenSSH, the first login opens a master (`ssh -o ControlMaster=yes -o
   ControlPath=SOCKET HOST`); then `echo rotate rw | ssh -S SOCKET -s HOST
   share@podssh` asks on that same connection.
+- **Kept shells (T-159).** Under NAME, a login shell on a pty of the
+  kernel can outlive its channel: `podssh ssh`'s `~d` (`env detach@podssh
+  NAME`) keeps it as NAME, or `env keep@podssh NAME` before the shell keeps
+  it if the client is lost with no `~d`. serve's layer then names
+  `keep.v1` (`node_serve::keeps`), which T-158's client reads. One object
+  holds each shell, and no channel owns it
+  (`crates/podssh-ssh/src/server/kept.rs`): the pty's input and size, the
+  child's process group, a ring of 256 KiB of its output (pod-term's
+  `Ring`, which drops bytes only up to a boundary of the grammar, T-221),
+  and the one channel attached now. The output goes to that channel and
+  into the ring; with none, into the ring alone. `env attach@podssh NAME`
+  before a shell request joins the shell of the same key by that name
+  (`kept_join.rs`): the channel's own pty is closed and its size goes to
+  the shell's, and it gets what came since the detach, then the shell's
+  output; output that came while it caught up is sent in a next turn, and
+  past 8 turns the rest is dropped and said on stderr, as is a part that
+  the ring had dropped. Each attach is a new generation: input that an
+  older channel queued is dropped, and an older channel's close ends
+  nothing. One client has the shell at a time; `env take@podssh yes` takes
+  it, and the other channel gets a line on stderr and its end with no
+  status (255 for podssh). An attach whose `from@podssh` is the shell's
+  own `PODSSH_SHELL_ID` (128 random bits in hex, in each shell that may be
+  kept) is refused, and so is one of another key: a shell is found by its
+  key and its name alone (`kept_shelf.rs`). A refusal is SUCCESS for the
+  shell request, then its words on stderr and status 1. The subsystem
+  `shells@podssh` lists the key's kept shells, `NAME attached` or `NAME
+  detached`, then `NAME lost` for each that the last run kept. A kept
+  shell waits `--keep-lease` (24 h by default, 30 days at most; 0 keeps
+  none and names no `keep.v1`); `env lease@podssh SECONDS` asks for a
+  shorter one. Its end hangs up the process group (SIGHUP, SIGCONT), then
+  kills it after 10 s (`kept_run.rs`); a job in a group of its own, as job
+  control makes, stays, as under sshd. A key keeps 4 shells at most, and
+  serve 32. A shell that its client leaves with no `~d` and no
+  `keep@podssh` is hung up as before, and a shell with `--share` or on
+  serve's own tty is never kept (a detach there is refused with a line).
+  serve writes the names to `serve-NAME.kept` beside its host key (mode
+  0600, replaced whole by a rename from a name of random bits), and not
+  during a stop, so that the next start says which shells ended with the
+  last run. Under `--stdio` or `--listen` nothing is kept, and
+  `--keep-lease` there is 64. `crates/podssh-ssh/tests/serve_keep.rs` holds each rule with
+  russh's client.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

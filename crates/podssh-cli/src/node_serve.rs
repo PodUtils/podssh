@@ -6,7 +6,8 @@
 //! node (`podssh ssh node://NAME`, `podssh cp`), so a host that has no
 //! sshd and may not listen gives a shell and its files through the relay.
 //! Also the runner of a node whose sessions are pipes in this process
-//! ([`with_handler`]), which UDP's flows share.
+//! ([`with_handler`]), which UDP's flows share. Where serve keeps shells
+//! (T-159), its layer names `keep.v1`.
 
 use std::sync::{Arc, OnceLock};
 
@@ -44,6 +45,12 @@ pub(crate) fn set(served: Served) -> bool {
 /// Whether this process's node is `podssh serve NAME`.
 pub(crate) fn serving() -> bool {
     SERVED.get().is_some()
+}
+
+/// Whether this process's node is `podssh serve NAME` and keeps shells
+/// (T-159): its layer then names `keep.v1`, which `~d` and `--attach` need.
+pub(crate) fn keeps() -> bool {
+    SERVED.get().is_some_and(|s| !s.settings.keep_lease.is_zero())
 }
 
 /// SIGHUP reads serve's keys again while the guard lives (T-855); nothing
@@ -111,7 +118,8 @@ pub(crate) async fn with_handler<H>(config: &mut NodeConfig<'_>, inner: H, plain
 where
     H: Handler<Stream = DuplexStream>,
 {
-    let (settings, budget) = (crate::layered::settings(), reverse::layered::NODE_BUDGET);
+    let settings = if keeps() { crate::layered::ssh_settings() } else { crate::layered::settings() };
+    let budget = reverse::layered::NODE_BUDGET;
     let (stop, deadline) = (upgrade::stop, settings.resume_deadline);
     match (plain, channel) {
         (true, None) => Box::pin(reverse::run(config, Arc::new(inner), stop())).await,

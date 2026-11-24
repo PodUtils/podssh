@@ -56,6 +56,12 @@ impl Granted {
         Ok(Granted { master: Arc::new(master), slave: Some(slave), name, path, term: pty::term_of(term), size })
     }
 
+    /// The size of the request, which a kept shell that the channel joins
+    /// takes (T-159).
+    pub(super) fn size(&self) -> Size {
+        self.size
+    }
+
     /// A new size (`window-change`); the kernel tells the child's
     /// foreground group with SIGWINCH.
     pub(super) fn resize(&self, size: Size) {
@@ -87,6 +93,13 @@ pub(super) fn spawn(
     let Some(granted) = open.pty.as_mut() else { return Err("no pty on this channel".into()) };
     let Some(slave) = granted.slave.take() else { return Err("a program ran on this pty already".into()) };
     let env = super::env::with_tty(env, &granted.term, granted.path.then_some(granted.name.as_str()));
+    // A login shell that may be kept (T-159) knows its id, so that an
+    // attach from inside it is refused; with --share it is not kept.
+    let kept_id = open.keeper.as_ref().filter(|_| open.offer.is_none()).and_then(|_| super::kept_ask::new_id());
+    let env = match kept_id.as_deref() {
+        Some(id) => super::kept_ask::with_id(env, id),
+        None => env,
+    };
     let mut cmd = command(shell, &program, env)?;
     // The shell's start files of the marks (T-120), for a login shell.
     if let Some(files) = open.extras.marks.as_ref() {
@@ -146,6 +159,11 @@ pub(super) fn spawn(
             tokio::spawn(pump(motd.chain(Master(master)), tee, exited))
         }
         None => {
+            if let (Some(keeper), Some(id)) = (open.keeper.take(), kept_id) {
+                let marks = open.extras.marks.take();
+                super::kept_run::start(open, &keeper, id, running, (master, child), motd, marks);
+                return Ok(());
+            }
             open.give_stdin(Box::new(Master(master.clone())));
             tokio::spawn(pump(motd.chain(Master(master)), to, exited))
         }
@@ -186,7 +204,7 @@ fn say(extras: &super::start::Extras, line: &str) {
 }
 
 /// The master, read and written without blocking.
-struct Master(Arc<AsyncFd<OwnedFd>>);
+pub(super) struct Master(pub(super) Arc<AsyncFd<OwnedFd>>);
 
 impl AsyncRead for Master {
     fn poll_read(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut ReadBuf<'_>) -> Poll<io::Result<()>> {

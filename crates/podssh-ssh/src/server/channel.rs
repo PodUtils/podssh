@@ -78,6 +78,12 @@ pub(super) struct Open {
     pub(super) asked: Option<crate::terminal::Size>,
     /// What a login shell's start adds (T-119), until its child takes it.
     pub(super) extras: super::start::Extras,
+    /// What it asked of the kept shells before its shell request (T-159).
+    pub(super) keep: super::kept::Asked,
+    /// Where its login shell is kept, until a pty takes it (T-159).
+    pub(super) keeper: Option<super::kept::Keeper>,
+    /// The kept shell that this channel has, and its generation then.
+    pub(super) kept: Option<super::kept::Held>,
 }
 
 impl Open {
@@ -105,6 +111,9 @@ impl Open {
             seat: None,
             asked: None,
             extras: super::start::Extras::default(),
+            keep: super::kept::Asked::default(),
+            keeper: None,
+            kept: None,
         }
     }
 

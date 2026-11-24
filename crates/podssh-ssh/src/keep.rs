@@ -39,6 +39,12 @@ pub const ATTACH: &str = "attach@podssh";
 pub const TAKE: &str = "take@podssh";
 /// The `env` request that names the shell that the client runs in.
 pub const FROM: &str = "from@podssh";
+/// The `env` request, before `shell`, that keeps the shell under a name if
+/// its client is lost with no `~d` (T-159).
+pub const KEEP: &str = "keep@podssh";
+/// The `env` request that asks for a shorter lease, in seconds, than the
+/// far end's own (T-159).
+pub const LEASE: &str = "lease@podssh";
 /// The subsystem that lists the kept shells.
 pub const LIST: &str = "shells@podssh";
 /// The variable that a far end that keeps shells puts in each shell: the

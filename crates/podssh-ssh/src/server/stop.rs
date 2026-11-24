@@ -24,6 +24,7 @@ use russh::Disconnect;
 use tokio::sync::watch;
 
 use super::authorized::Admission;
+use super::kept_shelf::Shelf;
 use super::live::Live;
 use super::rules::Context;
 use super::Authorized;
@@ -187,6 +188,8 @@ pub struct Control {
     pub(super) groups: Groups,
     /// Each connection and its key, for a reload that ends some (T-842).
     pub(super) live: Live,
+    /// The kept shells (T-159), whose groups are among `groups` too.
+    pub(super) shelf: Shelf,
 }
 
 impl Default for Control {
@@ -198,11 +201,13 @@ impl Default for Control {
 impl Control {
     pub fn new() -> Control {
         let (stage, _) = watch::channel(Stage::Serving);
-        Control { stage: Arc::new(stage), groups: Groups::default(), live: Live::default() }
+        Control { stage: Arc::new(stage), groups: Groups::default(), live: Live::default(), shelf: Shelf::default() }
     }
 
     /// Ask the server to stop; asked again, it kills each child at once.
     pub fn stop(&self) {
+        // The record keeps the names of the shells that the stop ends.
+        self.shelf.freeze();
         self.stage.send_modify(|stage| {
             *stage = match *stage {
                 Stage::Serving => Stage::Stopping,

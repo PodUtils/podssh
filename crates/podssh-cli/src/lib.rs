@@ -334,6 +334,8 @@ pub mod retired;
 pub mod serve;
 // The shell that `podssh serve` runs, checked at its start (T-222).
 mod serve_shell;
+// The kept shells of `podssh serve NAME`: their lease and record (T-159).
+mod serve_keep;
 // The keys of `podssh serve`, read again on SIGHUP, and its signals (T-117).
 mod serve_keys;
 // `podssh serve --listen`: its listeners and the caps of each (T-124).

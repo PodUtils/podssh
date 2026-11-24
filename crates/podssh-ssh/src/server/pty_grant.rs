@@ -84,6 +84,12 @@ pub(super) fn grant_pty(_: &mut Open, _: &Settings, _: &Asked<'_>) -> bool {
 
 #[cfg(unix)]
 pub(super) fn resize_pty(open: &Open, cols: u32, rows: u32, pix_width: u32, pix_height: u32) {
+    // A kept shell's channel: its size goes to the shell, whichever channel
+    // started it (T-159).
+    if let Some(held) = open.kept.as_ref() {
+        held.shell.resize(super::pty::size_of(cols, rows, pix_width, pix_height));
+        return;
+    }
     // A seat at a shared shell: the pty takes the least of each seat's
     // size (T-837), the owner's among them.
     if let Some(seat) = open.seat.as_ref() {
