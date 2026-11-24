@@ -4471,9 +4471,110 @@ that cannot be served repeats every second until the user restarts it.
 5. Shared code first: the ticket and the attach record belong to `pod-session`. Ask podcrates by a COORD
    issue; podssh writes only the table of `podssh serve`.
 
+## Decision
+
+2026-11-24, the calls of the draft, each with what lost:
+
+- The ticket is bound to the key, as item 4 recommends, and is nothing more than the key and the name:
+  serve finds a kept shell by the fingerprint of the key that logged in and the name, and the shell's
+  generation counts its owners (a newer attach takes it; an older channel's input and close count no
+  more). No bearer secret is minted. A 32-byte ticket in the reply lost: SSH's SUCCESS carries no
+  data (T-158's Correction), so it would go on the channel's stderr, into the terminal's scrollback
+  and the user's logs, a credential that `AGENTS.md` keeps out of output; and with the key bound, it
+  would prove nothing that the login did not. A bearer ticket alone (the donor's) lost: whoever read
+  it would take the shell with any key that the server lets in.
+- The id is the shell's `PODSSH_SHELL_ID`, 128 random bits, minted at the start (T-159): the 16 bytes
+  of item 1.
+- The count is an offset of the shell's output from its start, which `shells@podssh` gives for each
+  shell (a third word): where it stands, or where it stood at the detach. A count told on stderr at
+  each attach lost: a line in each attach for a number that only a later client needs.
+- serve chooses the reset itself: a count that the ring does not hold, a count past the output, or
+  `reset@podssh yes`, gives one line on stderr and the ring from its first boundary (T-221); with no
+  count, the offset at the detach. The reset is said inside SSH, which authenticates it: a salt of
+  its own (the donor's) lost, as podssh's stream has no cipher of its own to reseed.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_attach_ticket   # a wrong ticket, replay, reset, a second attach
+```
+
+## Correction
+
+2026-11-24, read before the draft:
+
+- Item 5 is wrong: a kept shell is `podssh serve`'s (`crates/podssh-ssh/src/server/kept.rs`, T-159),
+  above SSH, and an attach is a new SSH login; `pod-session` carries the stream below SSH and keeps
+  nothing of a pty. The ticket and the record of an attach are serve's own, and no ask of podcrates
+  is needed.
+- Item 1's "the ticket goes back in the reply": SSH's SUCCESS carries no data (T-158's Correction,
+  russh's server); the Decision binds the ticket to the key instead.
+- Item 2's "the running client asks for the reset itself": serve decides the reset, so a client that
+  never asks meets no repeat loop. T-158's client sends no count yet: a client that lost its link
+  could give the offset that it has, which T-895 holds.
+- Item 3's refusal of a second attach while the first completes is T-159's `joining` state; this
+  entry pins it with a test and says it in the manual.
+
+## Done
+
+Drafted 2026-11-24 (not built here; the main session builds, tests and closes it), on T-159's draft.
+
+- The server: `count@podssh OFFSET` and `reset@podssh yes` (`crates/podssh-ssh/src/keep.rs`,
+  `kept_ask.rs`); the choice of replay or reset and the reset's line in `kept_replay.rs`, with
+  `since` moved there so that `kept.rs` stays under 500 lines; `Shell::join` takes the channel's asks;
+  `shells@podssh` gives each shell's offset (`kept_shelf.rs`). The tests' helpers moved to
+  `crates/podssh-ssh/tests/kept_harness/mod.rs`, shared with `serve_keep.rs`.
+- The manual's note of `serve`, `docs/cli.md`, `docs/terminal.md`, `docs/STATUS.md`.
+- Prove: `cargo test -p podssh-ssh --test serve_attach_ticket`: UNVERIFIED. Its tests:
+  `the_ticket_is_the_key_and_the_name` (another key and a wrong name refused alike);
+  `a_count_in_the_ring_replays_from_there`;
+  `a_count_older_than_the_ring_or_a_reset_asked_gives_the_last_output` (more than 256 KiB of output,
+  then a count of 0 and `reset@podssh yes`). The second attach while one catches up:
+  `cargo test -p podssh-ssh --lib server::kept`
+  (`a_second_attach_while_one_catches_up_is_refused`, and the table of
+  `a_count_in_the_ring_replays_and_any_other_resets`): UNVERIFIED. `cargo test -p podssh-ssh --test
+  serve_keep` again, as its helpers moved: UNVERIFIED.
+- Waits: the client's count after a lost link (T-895); the planted servers (one that replays from a
+  count that the ring no longer holds, one that lets another key in) with the release check (T-251).
+
+# T-895: `podssh ssh --attach` gives the offset that it has after a lost link
+
+**Source:** T-833's Correction (2026-11-24): `podssh serve` takes `count@podssh OFFSET` and gives each
+kept shell's offset in `shells@podssh`, and T-158's client sends no count.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+A client whose link died past the resume deadline, with no `~d`, may have missed output that serve
+wrote into the dead channel. A new `podssh ssh --attach NAME` joins at the offset that serve counted
+at the loss, so those bytes never show.
+
+## Premise
+
+- Read: serve replays from `count@podssh OFFSET` where its ring holds it, and gives a reset where it
+  does not (`crates/podssh-ssh/src/server/kept_replay.rs`, T-833); `shells@podssh` gives each shell's
+  offset (`crates/podssh-ssh/src/server/kept_shelf.rs`).
+- Read: the client asks `attach@podssh`, `take@podssh` and `from@podssh` only
+  (`crates/podssh-ssh/src/keep.rs`), and keeps no count across its processes.
+
+## Approach
+
+1. The client counts the bytes of each kept shell's channel from the offset where its attach started
+   (the list's offset, read before the attach), and writes the sum, private, beside its other state
+   for that destination and name, when the session ends with no `~d`.
+2. `--attach NAME` sends `count@podssh` with that sum when one is kept for the destination and name,
+   and `--reset` sends `reset@podssh yes`. A count from another shell of the same name is refused by
+   serve's reset, never replayed wrong.
+3. The manual's note of `--attach`, and `docs/terminal.md`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test attach   # a lost link, then --attach: the bytes after the loss come back
 ```

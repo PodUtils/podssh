@@ -26,12 +26,15 @@ pub(super) fn join(open: &mut Open, shelf: &Shelf, owner: &str, channel: Channel
     if asked.from.as_deref() == Some(shell.id.as_str()) {
         return Err(format!("the attach comes from inside the shell {name}"));
     }
-    if open.started() {
-        return Err("a program runs on this channel already".into());
-    }
-    let joined = shell.join(asked.take, asked.lease)?;
     let Some(write) = open.write.take() else { return Err("a program runs on this channel already".into()) };
-    if let Some(old) = joined.old {
+    let mut joined = match shell.join(&asked) {
+        Ok(joined) => joined,
+        Err(why) => {
+            open.write = Some(write);
+            return Err(why);
+        }
+    };
+    if let Some(old) = joined.old.take() {
         old.told(format!("podssh serve: another client took the kept shell {name}\r\n"));
     }
     if let Some(size) = spare_pty(open) {
@@ -39,9 +42,9 @@ pub(super) fn join(open: &mut Open, shelf: &Shelf, owner: &str, channel: Channel
     }
     open.give_stdin(shell.writer(joined.held.generation));
     watch_close(&joined.held, open.closed.clone());
+    open.kept = Some(joined.held.clone());
     let attached = Attached::new(write, open.handle.clone(), channel);
-    tokio::spawn(shell.clone().catch_up(joined.held.generation, attached, joined.from));
-    open.kept = Some(joined.held);
+    tokio::spawn(shell.clone().catch_up(joined, attached));
     Ok(name)
 }
 

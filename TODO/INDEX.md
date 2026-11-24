@@ -903,3 +903,4 @@ repository and CI).
 | [T-875](mesh.md) | P3 | S | backlog | measurement | blocked | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
+| [T-895](resume.md) | P3 | S | backlog | feature | open | `podssh ssh --attach` gives the offset that it has after a lost link |

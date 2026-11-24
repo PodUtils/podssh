@@ -17,7 +17,7 @@ use super::super::kept::Keeper;
 use super::super::kept_join;
 use super::super::rules::{Asked as Wanted, Plan};
 use super::Served;
-use crate::keep::{check_name, ATTACH, DETACH, FROM, KEEP, LEASE, TAKE};
+use crate::keep::{check_name, ATTACH, COUNT, DETACH, FROM, KEEP, LEASE, RESET, TAKE};
 
 impl Served {
     /// An `env` request of podssh's own names, taken here before
@@ -32,7 +32,7 @@ impl Served {
         if name == DETACH {
             return Some(self.detach(channel, value, session));
         }
-        if ![ATTACH, TAKE, FROM, KEEP, LEASE].contains(&name) {
+        if ![ATTACH, TAKE, FROM, KEEP, LEASE, COUNT, RESET].contains(&name) {
             return None;
         }
         let keeps = !self.settings.keep_lease.is_zero() && self.viewer.is_none() && self.rules().is_ok();

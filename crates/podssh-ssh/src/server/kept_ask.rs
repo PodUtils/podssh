@@ -10,7 +10,7 @@ use std::ffi::OsString;
 use std::time::Duration;
 
 use super::kept_shelf::Shelf;
-use crate::keep::{check_name, ATTACH, FROM, KEEP, LEASE, SHELL_ID, TAKE};
+use crate::keep::{check_name, ATTACH, COUNT, FROM, KEEP, LEASE, RESET, SHELL_ID, TAKE};
 
 /// The longest lease that a client's `lease@podssh` may name: 30 days.
 const LONGEST_ASK: u64 = 30 * 24 * 60 * 60;
@@ -28,6 +28,10 @@ pub(super) struct Asked {
     pub(super) keep: Option<String>,
     /// `lease@podssh SECONDS`: a shorter lease than serve's.
     pub(super) lease: Option<Duration>,
+    /// `count@podssh OFFSET`: the shell's output that the client has (T-833).
+    pub(super) count: Option<u64>,
+    /// `reset@podssh yes`: the last output from a clean boundary (T-833).
+    pub(super) reset: bool,
 }
 
 impl Asked {
@@ -56,6 +60,17 @@ impl Asked {
                 self.take = value == "yes";
                 true
             }
+            RESET => {
+                self.reset = value == "yes";
+                true
+            }
+            COUNT => match value.parse::<u64>() {
+                Ok(count) => {
+                    self.count = Some(count);
+                    true
+                }
+                Err(_) => false,
+            },
             LEASE => match value.parse::<u64>() {
                 Ok(seconds) if (1..=LONGEST_ASK).contains(&seconds) => {
                     self.lease = Some(Duration::from_secs(seconds));

@@ -6723,8 +6723,19 @@ gives up each capability of the process (T-698), before it reads a file.
   kept) is refused, and so is one of another key: a shell is found by its
   key and its name alone (`kept_shelf.rs`). A refusal is SUCCESS for the
   shell request, then its words on stderr and status 1. The subsystem
-  `shells@podssh` lists the key's kept shells, `NAME attached` or `NAME
-  detached`, then `NAME lost` for each that the last run kept. A kept
+  `shells@podssh` lists the key's kept shells, `NAME attached OFFSET` or
+  `NAME detached OFFSET`, then `NAME lost` for each that the last run kept.
+  OFFSET counts the shell's output from its start: where it stands now, or
+  where it stood at the detach (T-833). Before an attach, `env
+  count@podssh OFFSET` replays from the offset that the client has, where
+  the ring holds it; an older offset, one past the output, or `env
+  reset@podssh yes` is a reset: one line on stderr that says so, then what
+  the ring holds from its first boundary. serve chooses the reset itself,
+  so a gap that cannot be served never repeats (EternalTerminal's running
+  client never asks for its reset, `kept_replay.rs`). One attach at a time:
+  a second one while the first one catches up is refused with a line, even
+  with `take@podssh`. A kept shell's ticket is its key and its name: no
+  secret of its own leaves serve, so none is carried, logged or shown. A kept
   shell waits `--keep-lease` (24 h by default, 30 days at most; 0 keeps
   none and names no `keep.v1`); `env lease@podssh SECONDS` asks for a
   shorter one. Its end hangs up the process group (SIGHUP, SIGCONT), then

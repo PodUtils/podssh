@@ -368,7 +368,10 @@ the client's host.
   channel, or refuses with its words on stderr and an exit status, which
   podssh exits with.
 - **`--attach DEST`.** The subsystem `shells@podssh`: one line for each
-  kept shell, its name and `attached` or `detached`.
+  kept shell, its name, `attached` or `detached`, and from `podssh serve`
+  its offset (T-833): the bytes of its output so far, or at the detach.
+  `env count@podssh OFFSET` before an attach replays from there, and `env
+  reset@podssh yes` asks for the last output from a clean boundary.
 - **The far end decides.** One client has a shell at a time; `--take`
   takes it, and the far end ends the other client's channel. The far end
   puts `PODSSH_SHELL_ID` in the environment of each shell that it starts,

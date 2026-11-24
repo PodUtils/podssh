@@ -45,6 +45,12 @@ pub const KEEP: &str = "keep@podssh";
 /// The `env` request that asks for a shorter lease, in seconds, than the
 /// far end's own (T-159).
 pub const LEASE: &str = "lease@podssh";
+/// The `env` request, before an attach, that gives the offset of the
+/// shell's output that the client has (T-833).
+pub const COUNT: &str = "count@podssh";
+/// The `env` request, before an attach, that asks for a reset: the last
+/// output from a clean boundary, not a replay from an offset (T-833).
+pub const RESET: &str = "reset@podssh";
 /// The subsystem that lists the kept shells.
 pub const LIST: &str = "shells@podssh";
 /// The variable that a far end that keeps shells puts in each shell: the
