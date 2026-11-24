@@ -2110,6 +2110,42 @@ may not delete leaves each object to the bucket's own lifecycle rule. The
 node serves one stream, as each carrier's node does: start it again for the
 next client.
 
+### A carrier in DNS (T-835, read on 2026-11-24)
+
+A last resort for a host that reaches a recursive resolver and nothing else:
+the stream goes up in the base32 labels of a name under a zone of the user's
+own, and comes down in TXT records, one datagram to a record. The full reading
+is [research/dns-carrier.md](research/dns-carrier.md). Its verdict:
+
+- **The road is built.** PodUtils/podcrates has it in `pod-link`, feature
+  `dns`: the names, the TXT answers, a poll that starts at 5 ms and doubles to
+  2 s, an authoritative responder, the answer's size (512 bytes with no OPT
+  record, 1232 with one), a cut answer, a selective-repeat ARQ and a TLS 1.3 with
+  a pinned key. podssh writes no codec. What it lacks is glue, a probe and two
+  rulings.
+- **It does not serve the target sandbox**, which refuses UDP and port 53
+  ([target-environment.md](target-environment.md)). It serves a captive or a
+  locked guest network that lets UDP 53 out and passes a zone that its resolver
+  does not know; a portal that answers every name itself ends it. Not measured.
+- **It is slow.** At its defaults (20 queries a second, a zone of
+  `t.example.com`) the ceilings are about 2.6 KB/s up and 18 KB/s down (7.8 KB/s
+  where a resolver strips OPT). A key typed answers in a resolver's round trip
+  and about 100 ms. Idle, it asks about 2,000 queries an hour. Arithmetic on
+  the code, **UNVERIFIED** by a run.
+- **The deployment is the user's**: a domain, an NS record and its glue for a
+  zone, a host with a public address and UDP 53 (or a redirect to a high port),
+  and a responder that the user starts on that host, as a node's listener only on
+  the user's word. The address is `KEY@ZONE`, the key pinned.
+- **It is seen.** A filter that classes "DNS Tunneling" as a threat (above, on
+  iroh's names) blocks the zone, or the client. A resolver's log shows long
+  random names under one zone.
+- **Not built until a host is known** (a user's report, or the probe of T-875 on
+  a real network), and not before the operator rules on UDP to a resolver (Q107,
+  a tenth exception of rule 2). A form over DNS over HTTPS stays inside rule 2
+  (one CONNECT to a resolver's name on 443) and needs a `Datagrams` over DoH in
+  podcrates. T-875 (the probe), T-876 (four findings for podcrates) and T-877
+  (the road) hold the work.
+
 ## Servers that a user runs
 
 Since Q66 (2026-11-02, [decisions.md](decisions.md)), podssh speaks, as a

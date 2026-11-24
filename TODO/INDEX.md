@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**824 entries: 19 open, 45 partial, 11 blocked, 749 done.**
+**827 entries: 20 open, 45 partial, 13 blocked, 749 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 19 | 11 | 6 | 347 | 383 |
-| **All** | 19 | 45 | 11 | 749 | 824 |
+| P3 | 20 | 11 | 8 | 347 | 386 |
+| **All** | 20 | 45 | 13 | 749 | 827 |
 
 ## Entries
 
@@ -900,3 +900,6 @@ repository and CI).
 | [T-867](cli.md) | P3 | S | M10 | defect | done | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
 | [T-868](cli.md) | P3 | M | M10 | defect | done | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | done | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |
+| [T-875](mesh.md) | P3 | S | backlog | measurement | blocked | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
+| [T-876](mesh.md) | P3 | S | backlog | chore | open | Four findings on pod-link's DNS carrier, written to podcrates |
+| [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |

@@ -1271,6 +1271,7 @@ The lines are `wc -l` of each crate's `src/` and `tests/` (2026-10-09, T-082;
 | `unreleased`: the gate passed each job at `f789df28` (2026-11-24, run 45309674786), with russh 0.65.4 (T-863) and T-859's pump; `upstream.yml` green by hand (run 45309689224) | **Works.** | the push to `main` |
 | `unreleased`: `serve --share`'s writer lease measured with two people typing, and `LEASE_IDLE` set to 400 ms from it (T-862, 2026-11-24) | **Measured**: over 62.6 s of two scripted typists for each span, 100 and 200 ms broke 41 of 46 words; 400 ms broke none with 26.2 s held (500 ms 29.4 s, 800 ms 42.8 s); the table is in `docs/terminal.md` | `cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture`; `--lib server::share`, `--test serve_share` |
 | `unreleased`: the gate passed each job at `45c17a57` (2026-11-24, run 45345487012), with T-859 to T-869 and the third black-box pass's repairs | **Works.** | the push to `main` |
+| `unreleased`: the research of a carrier in DNS (T-835, 2026-11-24, drafted by an agent): PodUtils/podcrates has the road already (`pod-link`, feature `dns`), so no codec is written; it is a last resort, built only when a host is known; filed T-875 to T-877 and Q107 (UDP datagrams to a resolver) | **Read.** No query was sent and nothing was built; the ceilings are arithmetic on the code, **UNVERIFIED** by a run; `cargo todo check` **UNVERIFIED** | `docs/research/dns-carrier.md`, `docs/carriers.md` ("A carrier in DNS") |
 
 ## Other TCP protocols, measured
 
