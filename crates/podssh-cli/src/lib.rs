@@ -49,6 +49,8 @@ pub mod containers;
 pub mod cp;
 pub mod detach;
 pub mod dispatch;
+// The resolver, the probe of UDP and the bound of the DNS road (T-875, T-877).
+pub mod dns_road;
 pub mod doctor;
 // `podssh each`: one command on many hosts at once (T-183).
 pub mod each;

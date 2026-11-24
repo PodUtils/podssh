@@ -95,7 +95,16 @@ LISTENERS = {
     # one socket of port 0 for its one connection, through pod-quic's
     # endpoint, wrapped in Salamander where the link names it (quic.rs); and
     # the tests of Salamander's wrapper, on the loopback.
+    # And the DNS road's lines in doctor (T-875, the owner's ruling Q107),
+    # only with `--dns-zone ZONE`: the probe of UDP, a socket of port 0
+    # connected to the resolver, which sends nothing (dns_road.rs); then two
+    # queries, each from a socket of port 0 connected to the resolver alone,
+    # 3 s each (doctor/dns_zone.rs); and their tests' stand-in resolvers on
+    # the loopback.
     "UdpSocket": [
+        "crates/podssh-cli/src/dns_road.rs",
+        "crates/podssh-cli/src/doctor/dns_zone.rs",
+        "crates/podssh-cli/src/doctor/dns_zone_tests.rs",
         "crates/podssh-ws/src/hysteria/probe.rs",
         "crates/podssh-relay/src/udp/flow.rs",
         "crates/podssh-relay/src/quick/quic.rs",
@@ -130,7 +139,11 @@ LISTENERS = {
     # doctor's line nat and its stand-ins (T-641), as above. And the Hysteria 2
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above. And the stand-in bucket (T-725), as above.
+    # And the DNS road's lines in doctor and their tests (T-875), as above.
     "bind(": [
+        "crates/podssh-cli/src/dns_road.rs",
+        "crates/podssh-cli/src/doctor/dns_zone.rs",
+        "crates/podssh-cli/src/doctor/dns_zone_tests.rs",
         "crates/podssh-cli/src/serve_listen.rs",
         "crates/podssh-cli/src/serve_listen_tests.rs",
         "crates/podssh-cli/src/exit/tunnel_tests.rs",

@@ -3334,6 +3334,22 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   of `--full` so lasts its hold at least, and its other sections' lines come
   first. With `--json`, each probe's line gives its numbers in `samples`,
   which the HTTP road of T-319 is to read.
+- **A resolver and the user's zone** (T-875, the owner's ruling Q107).
+  `--dns-zone ZONE` asks whether a resolver passes a TXT query for a zone of
+  the user's own, as the DNS road of `--carrier dns:FILE` needs. The resolver
+  is `--dns-server ADDR` (`IP`, `IP:PORT` or `[IPv6]:PORT`), else the first
+  nameserver of `/etc/resolv.conf`; a name is refused, as it would need the
+  resolver that it names. The line `dns resolver` opens a UDP socket toward
+  it, which sends nothing: a host that refuses UDP gets `FAIL` and nothing is
+  sent. Then `dns edns0` and `dns no edns0`, one query each for a random name
+  under ZONE (so no cache answers), with an OPT record of 1232 bytes and with
+  none, 3 s each: the RCODE, the time, the size, TC, what became of the OPT
+  record, and the records of another type in the answer. NOERROR and NXDOMAIN
+  are `ok`; SERVFAIL, REFUSED, silence and an address (a portal that answers
+  each name itself) are `FAIL`. A datagram that answers another query is not
+  taken, and is counted. `--dns-server` with no `--dns-zone`, a zone that
+  leaves no room for the probe's label, and a resolver that is not an
+  address are 64. Nothing is sent without `--dns-zone`, and offline nothing.
 
 ## `podssh status`
 

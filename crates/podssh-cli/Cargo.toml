@@ -109,6 +109,10 @@ podssh-ws = { path = "../podssh-ws", features = ["quic"] }
 # DERP map, the zone of OpenTunnel, the ACME directory, the relay of
 # `podssh ts`.
 pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+# The TXT query with an EDNS0 size and the reader of its answer, for doctor's
+# lines of the DNS road (`doctor --dns-zone`, T-875): `pod_dns::txt`, the
+# crate that podssh-ws builds already; no feature of its own.
+pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 # The ACME client of `relay serve --acme` (src/acme/): pod-acme of
 # PodUtils/podcrates (T-034 there); pod-core for the type of its lines.
 pod-acme = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
@@ -276,8 +280,9 @@ tokio-rustls = { workspace = true }
 pod-derp = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", features = ["standin"] }
 # The stand-in of the S3 API of `tests/carrier_s3.rs` (T-725): pod-link's
 # own (its feature `s3-standin`), which checks each request's SigV4; the
-# crate that podssh-relay's `bucket` builds already.
-pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", features = ["s3-standin"] }
+# crate that podssh-relay's `bucket` builds already. And its DNS responder
+# (feature `dns`), which `tests/doctor_dns.rs` asks (T-875).
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", features = ["s3-standin", "dns"] }
 
 # The pseudo console of `tests/console.rs` (T-132): the version above, with
 # the console's functions, which podssh-ssh builds too; and the job objects of

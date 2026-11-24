@@ -132,6 +132,8 @@ mod notes_devtunnel;
 mod notes_gsr;
 // The notes of --carrier s3:FILE, a bucket as a node's stream (T-725).
 mod notes_bucket;
+// The notes of the DNS road: doctor's --dns-zone (T-875).
+mod notes_dns;
 pub mod roff;
 
 use std::io::{BufRead, Write};
