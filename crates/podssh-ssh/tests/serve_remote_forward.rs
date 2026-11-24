@@ -45,11 +45,14 @@ impl Publish for StandIn {
     }
 }
 
+/// A forwarded channel the client took, with the address and port it names.
+type Forwarded = (Channel<client::Msg>, String, u32);
+
 /// The client: it trusts the host key, and keeps each forwarded channel
 /// with the address and port that it names.
 #[derive(Clone, Default)]
 struct Client {
-    channels: Arc<Mutex<Vec<(Channel<client::Msg>, String, u32)>>>,
+    channels: Arc<Mutex<Vec<Forwarded>>>,
 }
 
 impl client::Handler for Client {
@@ -99,7 +102,9 @@ async fn a_forward_is_published_and_its_sessions_reach_the_client() {
     let port = tokio::time::timeout(LIMIT, handle.tcpip_forward("127.0.0.1", 0)).await.expect("in time");
     assert_eq!(port.expect("granted"), GIVEN, "a request of port 0 is told the published port");
     let second = tokio::time::timeout(LIMIT, handle.tcpip_forward("localhost", 2201)).await.expect("in time");
-    assert_eq!(second.expect("granted"), 2201);
+    // RFC 4254, section 7.1: the success of a request that named its port
+    // carries no port, and russh's client reads that as 0.
+    assert_eq!(second.expect("granted"), 0, "a named port's success carries no port");
     let opener = {
         let asked = stand_in.asked.lock().unwrap();
         assert_eq!(asked.len(), 2);
@@ -146,11 +151,8 @@ async fn a_forward_is_published_and_its_sessions_reach_the_client() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn with_no_way_out_a_forward_is_refused() {
     let stand_in = StandIn::default();
-    let off = Settings {
-        no_forwarding: true,
-        remote: Some(Publisher(Arc::new(stand_in.clone()))),
-        ..Settings::default()
-    };
+    let off =
+        Settings { no_forwarding: true, remote: Some(Publisher(Arc::new(stand_in.clone()))), ..Settings::default() };
     for settings in [Settings::default(), off] {
         let connected = tokio::time::timeout(LIMIT, logged_in(settings, Client::default())).await;
         let (handle, _server) = connected.expect("in time");

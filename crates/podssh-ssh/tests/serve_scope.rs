@@ -58,6 +58,10 @@ fn the_call_asks_for_one_scope_holding_the_child() {
     assert!(a.starts_with(&prefix) && a.ends_with(".scope"), "{a}");
 }
 
+/// A case of the probe: its name, PATH's directory, the variable, what the
+/// stand-in tools answer, and the verdict.
+type Case<'a> = (&'a str, &'a Path, Option<&'a OsStr>, Box<dyn Fn(&str, &[&str]) -> scope::Ran>, Result<(), &'a str>);
+
 #[test]
 fn the_cgroup_file_names_the_scope_or_not() {
     let unit = "podssh-serve-7-1.scope";
@@ -91,7 +95,7 @@ fn the_probe_passes_only_a_manager_that_runs() {
     let path = bin.as_os_str();
     let none = dir.join("none");
     #[rustfmt::skip]
-    let cases: Vec<(&str, &Path, Option<&OsStr>, Box<dyn Fn(&str, &[&str]) -> scope::Ran>, Result<(), &str>)> = vec![
+    let cases: Vec<Case> = vec![
         ("no systemd", &none, Some(path), Box::new(says("running")), Err("not this host's service manager")),
         ("no busctl", &booted, Some(dir.as_os_str()), Box::new(says("running")), Err("no busctl on PATH")),
         ("no systemctl", &booted, Some(only_busctl.as_os_str()), Box::new(says("running")), Err("no systemctl on PATH")),

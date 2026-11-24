@@ -127,7 +127,7 @@ pub const SERVE: &[&str] = &[
     "With --shell-integration, a login shell on a tty is marked for the terminal: OSC 133 marks each prompt, command \
      and output, and OSC 7 names the directory. A terminal then jumps between commands, and opens a tab in the same \
      directory. On a pty, or a tty that serve answers, bash and zsh take the marks from their start. bash runs with \
-     --rcfile, a file of serve's own that reads the files of a login, then adds hooks. It is no login shell then, so \
+     an rc file of serve's own that reads the files of a login, then adds hooks. It is no login shell then, so \
      logout refuses; exit ends it. zsh runs with ZDOTDIR at a directory of serve's own. Its .zshenv gives ZDOTDIR \
      back, reads the user's .zshenv, and adds hooks. The files are in TMPDIR, else /tmp, and go when the session \
      ends. serve never writes a file of the user's. Another shell gets no marks, and stderr says so. On the line \
@@ -136,12 +136,12 @@ pub const SERVE: &[&str] = &[
     // Each pty child in a transient scope (T-122).
     "Where systemd is this host's service manager, each child on a pty runs in a transient scope of its own, as sshd \
      moves each session. A stop of serve's unit then leaves each user's shell, and its memory counts against the \
-     scope. At its start, serve checks /run/systemd/system, busctl and systemctl on PATH, and that systemctl --user \
-     is-system-running says running or degraded within 2 s. Where that fails, stderr says so once, and each child \
+     scope. At its start, serve checks /run/systemd/system, busctl and systemctl on PATH, and that the user's manager \
+     says running or degraded within 2 s. Where that fails, stderr says so once, and each child \
      starts where serve is. With systemd, the child waits between its fork and its exec until the user's manager has \
      moved it into podssh-serve-PID-N.scope. A move that fails, or takes past 2 s, lets the child go on where serve \
-     is, with one line on stderr. No session fails because systemd is absent or slow. systemctl --user list-units \
-     'podssh-serve-*' lists the scope of each open session. On another system there is no probe and no line.",
+     is, with one line on stderr. No session fails because systemd is absent or slow. The user's manager lists \
+     each open session's scope as podssh-serve-*. On another system there is no probe and no line.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it. So OpenSSH's \
      sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has no sftp-server, scp or \
      rsync. The files are reached as the user that runs serve, with no chroot: what that user may read and write, a \

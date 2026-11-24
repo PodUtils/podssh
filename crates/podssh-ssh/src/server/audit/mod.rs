@@ -182,16 +182,16 @@ fn write_each(path: &Path, jobs: &mpsc::Receiver<Job>, say: Option<&Say>) {
     while let Ok(job) = jobs.recv() {
         match job {
             Job::Line(event, level, fields) => {
-                if let Err(e) = append(path, &event, level, fields) {
-                    if !told {
-                        told = true;
-                        if let Some(Say(say)) = say {
-                            say(&format!(
-                                "the audit log {} could not be written ({e}); the sessions go on, and each later \
-                                 line is tried again",
-                                path.display()
-                            ));
-                        }
+                if let Err(e) = append(path, &event, level, fields)
+                    && !told
+                {
+                    told = true;
+                    if let Some(Say(say)) = say {
+                        say(&format!(
+                            "the audit log {} could not be written ({e}); the sessions go on, and each later line \
+                             is tried again",
+                            path.display()
+                        ));
                     }
                 }
             }

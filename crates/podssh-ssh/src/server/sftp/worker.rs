@@ -62,6 +62,8 @@ impl Worker {
     }
 
     /// Run `call` on the session's thread, and wait for it within the limit.
+    /// The session calls [`Worker::call_within`] with its own limit.
+    #[cfg(test)]
     pub(super) async fn call<T: Send + 'static>(
         &mut self,
         call: impl FnOnce() -> T + Send + 'static,

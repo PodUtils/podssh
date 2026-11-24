@@ -48,10 +48,10 @@ pub(super) fn start(
     };
     let shell = Shell::new(keeper, id, Box::new(Master(master.clone())), Box::new(resize), group);
     let held = shell.first(Attached::new(write, handle, channel, tally));
-    if let Some(name) = keeper.keep.as_deref() {
-        if let Err(why) = keeper.shelf.put(&shell, name) {
-            open.told = Some(format!("podssh serve: this shell is not kept: {why}\r\n"));
-        }
+    if let Some(name) = keeper.keep.as_deref()
+        && let Err(why) = keeper.shelf.put(&shell, name)
+    {
+        open.told = Some(format!("podssh serve: this shell is not kept: {why}\r\n"));
     }
     open.give_stdin(shell.writer(held.generation));
     watch_close(&held, open.closed.clone());

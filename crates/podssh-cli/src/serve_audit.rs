@@ -11,8 +11,8 @@ use std::sync::Arc;
 use podssh_ssh::server::audit::{chain, Audit};
 use podssh_ssh::server::Say;
 
-use crate::exitmap::sysexits::{EX_DATAERR, EX_NOINPUT};
 use crate::exit_codes::EXIT_USAGE;
+use crate::exitmap::sysexits::{EX_DATAERR, EX_NOINPUT};
 use crate::relay_settings::Refusal;
 use crate::serve::ServeArgs;
 
