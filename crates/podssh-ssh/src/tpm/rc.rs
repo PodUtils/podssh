@@ -136,3 +136,4 @@ pub(super) const AUTH_FAIL: u32 = 0x08E;
 pub(super) const AUTH_UNAVAILABLE: u32 = 0x12F;
 pub(super) const LOCKOUT: u32 = 0x921;
 pub(super) const PCR_CHANGED: u32 = 0x128;
+pub(super) const SIGNATURE: u32 = 0x09B;

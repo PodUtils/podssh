@@ -8,18 +8,23 @@
 //! TPM that made it (its private blob carries this TPM's seed), a key with
 //! no `userWithAuth` refuses the password session, a policy session signs
 //! only when its digest is the key's `authPolicy`, and `TPM2_PolicyPCR`
-//! with a digest that the PCRs do not hold is refused.
+//! with a digest that the PCRs do not hold is refused. For the signed
+//! policies: `TPM2_VerifySignature` checks ECDSA P-256 (the message, again,
+//! one of [`SoftTpm::messages`]), and `TPM2_PolicyAuthorize` outside a
+//! trial takes only the session's digest and a ticket that this TPM made.
 
 use std::collections::HashMap;
 
 use aws_lc_rs::rand::SystemRandom;
-use aws_lc_rs::signature::{EcdsaKeyPair, KeyPair, ECDSA_P256_SHA256_FIXED_SIGNING};
+use aws_lc_rs::signature::{EcdsaKeyPair, KeyPair, UnparsedPublicKey, ECDSA_P256_SHA256_FIXED};
+use aws_lc_rs::signature::ECDSA_P256_SHA256_FIXED_SIGNING;
 
+use super::authorize::{CC_LOAD_EXTERNAL, CC_POLICY_AUTHORIZE, CC_VERIFY_SIGNATURE, ST_VERIFIED};
 use super::cmd::*;
 use super::flow::Transport;
-use super::policy::{sha256, Pcrs, CC_POLICY_PCR};
-use super::public::{storage_template, EccPublic, USER_WITH_AUTH};
-use super::wire::{In, Out, RH_OWNER, RS_PW, ST_NO_SESSIONS, ST_SESSIONS};
+use super::policy::{sha256, Pcrs, ALG_SHA256, CC_POLICY_PCR};
+use super::public::{storage_template, EccPublic, ALG_ECDSA, SIGN, USER_WITH_AUTH};
+use super::wire::{In, Out, RH_NULL, RH_OWNER, RS_PW, ST_NO_SESSIONS, ST_SESSIONS};
 
 /// Response codes, as a TPM gives them with their place.
 pub(super) const RC_VALUE_P1: u32 = 0x1C4;
@@ -28,11 +33,19 @@ pub(super) const RC_INTEGRITY_P1: u32 = 0x1DF;
 pub(super) const RC_AUTH_UNAVAILABLE: u32 = 0x12F;
 const RC_HANDLE_H1: u32 = 0x18B;
 const RC_COMMAND_CODE: u32 = 0x143;
+/// TPM_RC_SIGNATURE and TPM_RC_SCHEME of parameter 2 (the signature), and
+/// TPM_RC_VALUE of parameter 4 (the ticket of TPM2_PolicyAuthorize).
+pub(super) const RC_SIGNATURE_P2: u32 = 0x2DB;
+const RC_SCHEME_P2: u32 = 0x2D2;
+pub(super) const RC_VALUE_P4: u32 = 0x4C4;
 
 enum Object {
     Storage,
     Key(usize),
     Session { trial: bool, digest: Vec<u8> },
+    /// A public key of TPM2_LoadExternal: its point, its name and its
+    /// hierarchy.
+    External { point: Vec<u8>, name: Vec<u8>, hierarchy: u32, sign: bool },
 }
 
 struct Key {
@@ -90,7 +103,7 @@ impl SoftTpm {
         let code = input.u32().map_err(|_| RC_COMMAND_CODE)?;
         let handles = match code {
             CC_CREATE_PRIMARY | CC_CREATE | CC_LOAD | CC_SIGN | CC_POLICY_PCR | CC_POLICY_GET_DIGEST => 1,
-            CC_PCR_EXTEND => 1,
+            CC_PCR_EXTEND | CC_VERIFY_SIGNATURE | CC_POLICY_AUTHORIZE => 1,
             CC_START_AUTH_SESSION => 2,
             _ => 0,
         };
@@ -222,8 +235,83 @@ impl SoftTpm {
                 self.objects.remove(&handle).map(|_| (vec![], vec![], false)).ok_or(0x1CB)
             }
             CC_SIGN => self.sign(found[0], auth.unwrap_or(0), p),
+            CC_LOAD_EXTERNAL => self.load_external(p),
+            CC_VERIFY_SIGNATURE => self.verify_signature(found[0], p),
+            CC_POLICY_AUTHORIZE => self.policy_authorize(found[0], p),
             _ => Err(RC_COMMAND_CODE),
         }
+    }
+
+    /// The ticket of a checked signature: a keyed hash that only this TPM
+    /// makes, as a TPM's HMAC with its hierarchy's proof is.
+    fn ticket(&self, hierarchy: u32, digest: &[u8], name: &[u8]) -> Vec<u8> {
+        let message = [&self.seed[..], &ST_VERIFIED.to_be_bytes(), &hierarchy.to_be_bytes(), digest, name].concat();
+        sha256(&message).to_vec()
+    }
+
+    fn load_external(&mut self, p: &mut In) -> Result<(Vec<u32>, Vec<u8>, bool), u32> {
+        let bad = |_: String| RC_COMMAND_CODE;
+        if !p.sized().map_err(bad)?.is_empty() {
+            return Err(RC_COMMAND_CODE);
+        }
+        let public = p.sized_whole().map_err(bad)?.to_vec();
+        let hierarchy = p.u32().map_err(bad)?;
+        let area = EccPublic::parse(&public).map_err(bad)?;
+        let point = area.point().map_err(bad)?;
+        let name = [&ALG_SHA256.to_be_bytes()[..], &sha256(&public[2..])].concat();
+        let object = Object::External { point, name: name.clone(), hierarchy, sign: area.attributes & SIGN != 0 };
+        let handle = self.handle(0x8000_0000, object);
+        let mut out = Out::default();
+        out.sized(&name);
+        Ok((vec![handle], out.finish().map_err(bad)?, false))
+    }
+
+    fn verify_signature(&mut self, key: u32, p: &mut In) -> Result<(Vec<u32>, Vec<u8>, bool), u32> {
+        let bad = |_: String| RC_COMMAND_CODE;
+        let Some(Object::External { point, name, hierarchy, sign }) = self.objects.get(&key) else {
+            return Err(RC_HANDLE_H1);
+        };
+        if !sign {
+            return Err(0x182);
+        }
+        let digest = p.sized().map_err(bad)?.to_vec();
+        let (alg, hash) = (p.u16().map_err(bad)?, p.u16().map_err(bad)?);
+        let (r, s) = (p.sized().map_err(bad)?, p.sized().map_err(bad)?);
+        if alg != ALG_ECDSA || hash != ALG_SHA256 || r.len() != 32 || s.len() != 32 {
+            return Err(RC_SCHEME_P2);
+        }
+        let message = self.messages.iter().find(|m| sha256(m).as_slice() == digest).ok_or(RC_SIGNATURE_P2)?;
+        let fixed = [r, s].concat();
+        UnparsedPublicKey::new(&ECDSA_P256_SHA256_FIXED, point).verify(message, &fixed).map_err(|_| RC_SIGNATURE_P2)?;
+        let ticket = if *hierarchy == RH_NULL { Vec::new() } else { self.ticket(*hierarchy, &digest, name) };
+        let mut out = Out::default();
+        out.u16(ST_VERIFIED).u32(*hierarchy).sized(&ticket);
+        Ok((vec![], out.finish().map_err(bad)?, false))
+    }
+
+    fn policy_authorize(&mut self, session: u32, p: &mut In) -> Result<(Vec<u32>, Vec<u8>, bool), u32> {
+        let bad = |_: String| RC_COMMAND_CODE;
+        let approved = p.sized().map_err(bad)?.to_vec();
+        let policy_ref = p.sized().map_err(bad)?.to_vec();
+        let name = p.sized().map_err(bad)?.to_vec();
+        let (tag, hierarchy) = (p.u16().map_err(bad)?, p.u32().map_err(bad)?);
+        let ticket = p.sized().map_err(bad)?.to_vec();
+        let a_hash = sha256(&[approved.as_slice(), &policy_ref].concat());
+        let expected = self.ticket(hierarchy, &a_hash, &name);
+        let Some(Object::Session { trial, digest }) = self.objects.get_mut(&session) else {
+            return Err(RC_HANDLE_H1);
+        };
+        if !*trial {
+            if *digest != approved {
+                return Err(RC_VALUE_P1);
+            }
+            if tag != ST_VERIFIED || hierarchy == RH_NULL || ticket != expected {
+                return Err(RC_VALUE_P4);
+            }
+        }
+        let first = sha256(&[vec![0u8; 32], CC_POLICY_AUTHORIZE.to_be_bytes().to_vec(), name].concat());
+        *digest = sha256(&[first.as_slice(), &policy_ref].concat()).to_vec();
+        Ok((vec![], vec![], false))
     }
 
     fn sign(&mut self, key: u32, auth: u32, p: &mut In) -> Result<(Vec<u32>, Vec<u8>, bool), u32> {

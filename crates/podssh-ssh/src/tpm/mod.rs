@@ -6,7 +6,10 @@
 //!
 //! The key's `authPolicy` is the digest of one `TPM2_PolicyPCR`, and it has
 //! no `userWithAuth`: the TPM takes no password for it, only a policy
-//! session that ran that command while the PCRs held those values. The file
+//! session that ran that command while the PCRs held those values. Or it is
+//! the digest of one `TPM2_PolicyAuthorize`: the key then takes each policy
+//! that a [`PolicyKey`], kept off the host, signed, and a new boot state
+//! needs a new signature, not a new key (the offline update). The file
 //! is the `TSS2 PRIVATE KEY` of the draft that openssl_tpm2_engine and
 //! ssh-tpm-agent read ([`KeyFile`]).
 //!
@@ -15,8 +18,10 @@
 //! commands are bytes in and bytes out ([`Transport`]), tested
 //! against a TPM in software that the tests script.
 
+mod authorize;
 mod cmd;
 mod flow;
+mod flow_signed;
 mod keyfile;
 #[cfg(unix)]
 #[path = "unix.rs"]
@@ -39,8 +44,9 @@ use russh::keys::ssh_key::Signature;
 use russh::keys::PublicKey;
 use signature::Verifier;
 
+pub use authorize::PolicyKey;
 pub use flow::Transport;
-pub use keyfile::KeyFile;
+pub use keyfile::{AuthPolicy, KeyFile};
 pub use policy::Pcrs;
 pub use public::EccPublic;
 
@@ -94,14 +100,66 @@ pub fn probe(named: Option<&Path>) -> Result<Device, String> {
 /// it signs a fresh challenge and the signature is checked: a key that
 /// cannot sign now is never written.
 pub fn make(device: &Device, pcrs: Pcrs, comment: &str) -> Result<(KeyFile, PublicKey), String> {
+    make_with(device, pcrs, comment, None)
+}
+
+/// [`make`]; with `policy_key`, the key takes each policy that it signs,
+/// and the file holds the first: `pcrs` as they are now.
+pub fn make_with(
+    device: &Device,
+    pcrs: Pcrs,
+    comment: &str,
+    policy_key: Option<&PolicyKey>,
+) -> Result<(KeyFile, PublicKey), String> {
     let mut transport = device.open()?;
-    let (file, area) = flow::make(&mut *transport, pcrs, comment, &rand::random())?;
+    let (file, area) = match policy_key {
+        None => flow::make(&mut *transport, pcrs, comment, &rand::random())?,
+        Some(key) => flow_signed::make(&mut *transport, pcrs, comment, &rand::random(), key, &rand::random())?,
+    };
     let public = area.public_key()?;
-    let challenge: [u8; 32] = rand::random();
-    let blob = sign_with(&mut *transport, &file, &challenge)
-        .map_err(|e| format!("the new key did not sign, so it is not kept: {e}"))?;
-    check(&public, &challenge, &blob).map_err(|e| format!("the new key's signature failed its check: {e}"))?;
+    signs_now(&mut *transport, &file, &public).map_err(|e| format!("the new key {e}, so it is not kept"))?;
     Ok((file, public))
+}
+
+/// `file` with a new signed policy, tried first: the PCRs of `pcrs` (else
+/// those of the file's newest signed policy, else [`DEFAULT_PCRS`]) as they
+/// are now on `device`, signed by `policy_key`. Before it is given, the key
+/// signs with it. Sign only a boot state whose change you know the reason
+/// of: the key then signs in it, a tampered one too.
+pub fn add_policy(
+    device: &Device,
+    file: &KeyFile,
+    pcrs: Option<Pcrs>,
+    policy_key: &PolicyKey,
+    name: Option<String>,
+) -> Result<KeyFile, String> {
+    let pcrs = match pcrs.or_else(|| flow_signed::newest_pcrs(file)) {
+        Some(pcrs) => pcrs,
+        None => Pcrs::parse(DEFAULT_PCRS)?,
+    };
+    let mut transport = device.open()?;
+    let new = flow_signed::add_policy(&mut *transport, file, pcrs, policy_key, name)?;
+    signs_now(&mut *transport, &new, &public_key(&new)?).map_err(|e| format!("with the new policy, the key {e}"))?;
+    Ok(new)
+}
+
+/// The PCRs of the newest signed policy of `file`, if it has one.
+pub fn signed_pcrs(file: &KeyFile) -> Option<Pcrs> {
+    flow_signed::newest_pcrs(file)
+}
+
+/// Whether the key of `file` takes signed policies (its policy begins
+/// with `TPM2_PolicyAuthorize`).
+pub fn takes_signed_policies(file: &KeyFile) -> bool {
+    matches!(flow_signed::head(file), Ok(Some(_)))
+}
+
+/// That the key of `file` signs a fresh challenge now, and ssh-key verifies
+/// the signature; else why not, as the end of a sentence.
+fn signs_now(transport: &mut dyn Transport, file: &KeyFile, public: &PublicKey) -> Result<(), String> {
+    let challenge: [u8; 32] = rand::random();
+    let blob = sign_with(transport, file, &challenge).map_err(|e| format!("did not sign: {e}"))?;
+    check(public, &challenge, &blob).map_err(|e| format!("gave a signature that failed its check: {e}"))
 }
 
 /// The signature of `data` with the key of `file`, as SSH carries it
@@ -190,5 +248,8 @@ mod codec_tests;
 #[cfg(test)]
 #[path = "flow_tests.rs"]
 mod flow_tests;
+#[cfg(test)]
+#[path = "signed_tests.rs"]
+mod signed_tests;
 #[cfg(test)]
 mod soft;

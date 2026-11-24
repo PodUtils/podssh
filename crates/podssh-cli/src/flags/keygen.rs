@@ -47,7 +47,7 @@ pub const KEYGEN_FLAGS: &[FlagRow] = &[
     row(Some('I'), "identity", Some("ID"), FlagKind::Supported,
         "with -s: the key id of the certificate; with -Y verify and match-principals: the principal to look for in the allowed signers", None),
     row(Some('O'), "option", Some("OPTION"), FlagKind::Supported,
-        "with -Y: hashalg=sha256 or sha512 (sign), verify-time=TIME and print-pubkey (verify); with -s: clear, permit-*, no-*, force-command=CMD, source-address=LIST, verify-required, extension:NAME[=VALUE], critical:NAME[=VALUE]; with -t ed25519-sk or ecdsa-sk: resident, application=ssh:NAME, user=NAME, no-touch-required, verify-required, device=PATH; with -t ecdsa-tpm: pcr=LIST (7 by default), device=PATH", None),
+        "with -Y: hashalg=sha256 or sha512 (sign), verify-time=TIME and print-pubkey (verify); with -s: clear, permit-*, no-*, force-command=CMD, source-address=LIST, verify-required, extension:NAME[=VALUE], critical:NAME[=VALUE]; with -t ed25519-sk or ecdsa-sk: resident, application=ssh:NAME, user=NAME, no-touch-required, verify-required, device=PATH; with -t ecdsa-tpm: pcr=LIST (7 by default), device=PATH, policy-key=FILE (an ecdsa key, kept off the host, that signs the boot states the key takes) and add-policy (sign the boot state of now into the key file of -f)", None),
     row(Some('U'), "agent-key", None, FlagKind::Supported,
         "the key is in the agent (SSH_AUTH_SOCK), which signs: the key of -f with -Y sign, the CA's with -s; the file may hold the public key", None),
     row(Some('V'), "validity", Some("INTERVAL"), FlagKind::Supported,

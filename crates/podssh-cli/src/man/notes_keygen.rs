@@ -57,6 +57,13 @@ pub const KEYGEN: &[&str] = &[
     "DSA keys are refused: OpenSSH 10 removed them. The default comment is USER@HOST, with the local \
      user's name as podssh ssh takes it: PODSSH_USER, USER, LOGNAME or USERNAME, else the user database's \
      entry (see ENVIRONMENT).",
+    "A key sealed to a TPM can also take signed boot states, so that a firmware's update needs no new key. \
+     podssh keygen -t ecdsa-tpm -O policy-key=FILE makes such a key. It signs in each boot state that the ECDSA \
+     P-256 key of FILE signed, and its file holds the first: the state of now. After an update that moved the PCRs, \
+     podssh keygen -t ecdsa-tpm -O add-policy -O policy-key=FILE -f KEY signs the state of now into KEY. The key \
+     then signs again, and -C names the new policy. Sign a new state only once you know why it changed: the key \
+     then signs in it, a tampered one too. Keep the policy key off the host, as whoever reads it can sign any boot \
+     state. A login tries the signed policies of the file, the newest first.",
 ];
 
 /// The note of `podssh status --keys`, beside keygen's, as both show the

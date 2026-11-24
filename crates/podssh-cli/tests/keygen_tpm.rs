@@ -4,10 +4,13 @@
 //! key file that go-tpm-keyfiles wrote; a login with such a file and no TPM
 //! skips the key and says why. PODSSH_TPM_DEVICE set to none stands in for
 //! a host with no TPM, which this test's host may not be. With swtpm, an
-//! ignored test makes a key through the binary and logs in with it.
+//! ignored test makes a key through the binary and logs in with it; and
+//! another logs in to OpenSSH's sshd with a key that takes signed policies,
+//! is refused after PCR 7 moved, and logs in again after `-O add-policy`.
 
 mod cleanup;
 mod keygen_support;
+mod live_harness;
 mod ssh_harness;
 
 use std::path::{Path, PathBuf};
@@ -42,7 +45,15 @@ fn keygen_of_a_sealed_key_with_no_tpm_refuses_and_writes_nothing() {
 fn keygen_of_a_sealed_key_checks_its_options_first() {
     let dir = scratch();
     let key = file(&dir, "id_ecdsa_tpm");
-    let cases: [&[&str]; 5] = [&["-O", "pcr=24"], &["-O", "pcr="], &["-O", "resident"], &["-m", "PEM"], &["-b", "384"]];
+    let cases: [&[&str]; 7] = [
+        &["-O", "pcr=24"],
+        &["-O", "pcr="],
+        &["-O", "resident"],
+        &["-m", "PEM"],
+        &["-b", "384"],
+        &["-O", "add-policy"],
+        &["-O", "policy-key="],
+    ];
     for args in cases {
         let mut all = vec!["keygen", "-t", "ecdsa-tpm", "-f", key.as_str()];
         all.extend_from_slice(args);
@@ -50,6 +61,29 @@ fn keygen_of_a_sealed_key_checks_its_options_first() {
         assert_eq!(run.code, 64, "{args:?}: {}", run.err);
         assert!(!Path::new(&key).exists());
     }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// `-O add-policy` with no TPM: the probe's reason (69), and the key file
+/// as it was; with no key file of a TPM at -f, one line and 1.
+#[test]
+fn add_policy_with_no_tpm_refuses_and_leaves_the_file() {
+    let dir = scratch();
+    let key = dir.join("foreign.tpm");
+    foreign_key_file(&key);
+    let before = std::fs::read(&key).unwrap();
+    let key = key.display().to_string();
+    let args = ["keygen", "-t", "ecdsa-tpm", "-O", "add-policy", "-O", "policy-key=absent", "-f", key.as_str()];
+    let run = podssh_with(&args, &NO_TPM);
+    assert_eq!(run.code, 69, "{}", run.err);
+    assert!(run.err.contains("no TPM: PODSSH_TPM_DEVICE is none"), "{}", run.err);
+    assert_eq!(std::fs::read(&key).unwrap(), before, "the file is unchanged");
+    let missing = file(&dir, "missing");
+    let args = ["keygen", "-t", "ecdsa-tpm", "-O", "add-policy", "-O", "policy-key=absent", "-f", missing.as_str()];
+    let run = podssh_with(&args, &NO_TPM);
+    assert_eq!(run.code, 1, "{}", run.err);
+    assert!(run.err.contains("no key file of a TPM") && run.err.lines().count() == 1, "{}", run.err);
+    assert!(!Path::new(&missing).exists());
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -168,6 +202,78 @@ fn a_key_made_in_swtpm_logs_in() {
     let err = String::from_utf8_lossy(&output.stderr);
     assert_eq!(output.status.code(), Some(0), "{err}");
     drop(runtime);
+    drop(tpm);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// `podssh ssh -i KEY` to this user at OpenSSH's sshd on `port`, which runs
+/// `echo sealed`.
+fn openssh_login(dir: &Path, port: u16, key: &str, vars: &[(&str, &str)]) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_podssh"))
+        .args(["ssh", "--direct", "-p", &port.to_string(), "-i", key])
+        .args(["-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "IdentityAgent=none"])
+        .args(["-o", "StrictHostKeyChecking=accept-new", "-o"])
+        .arg(format!("UserKnownHostsFile={}", dir.join("known_hosts").display()))
+        .arg(format!("{}@127.0.0.1", live_harness::this_user()))
+        .args(["echo", "sealed"])
+        .envs(vars.iter().copied())
+        .env("PODSSH_SSH_CONFIG", "none")
+        .env("PODSSH_SETTINGS", "none")
+        .env("HOME", dir)
+        .env_remove("SSH_AUTH_SOCK")
+        .env_remove("SSH_ASKPASS")
+        .env_remove("PODSSH_OFFLINE")
+        .env_remove("HTTPS_PROXY")
+        .env_remove("https_proxy")
+        .env_remove("ALL_PROXY")
+        .env_remove("all_proxy")
+        .stdin(Stdio::null())
+        .output()
+        .unwrap()
+}
+
+/// The interop of T-839: OpenSSH's sshd takes the TPM's signature for a
+/// login. The key takes signed policies: after PCR 7 moves, the login fails
+/// and says why; after `-O add-policy` with the policy key, it logs in
+/// again. Ignored: it needs swtpm; where no sshd runs, it says so and ends.
+#[test]
+#[ignore = "needs swtpm and OpenSSH's sshd"]
+fn a_sealed_key_logs_in_to_openssh_and_again_after_a_signed_policy() {
+    let dir = scratch();
+    let tpm = swtpm(&dir);
+    let socket = tpm.1.display().to_string();
+    let vars = [("PODSSH_TPM_DEVICE", socket.as_str())];
+    let policy = file(&dir, "policy_key");
+    assert_eq!(podssh(&["keygen", "-q", "-t", "ecdsa", "-N", "", "-f", &policy]).code, 0);
+    let with_policy = format!("policy-key={policy}");
+    let key = file(&dir, "id_ecdsa_tpm");
+    let made = podssh_with(&["keygen", "-t", "ecdsa-tpm", "-O", &with_policy, "-C", "test@lab", "-f", &key], &vars);
+    assert_eq!(made.code, 0, "{}", made.err);
+    let sshd = match live_harness::sshd::start(&dir, Path::new(&format!("{key}.pub"))) {
+        Ok(sshd) => sshd,
+        Err(why) => {
+            eprintln!("did not run: {why}");
+            return;
+        }
+    };
+    let first = openssh_login(&dir, sshd.port, &key, &vars);
+    assert_eq!(first.status.code(), Some(0), "{}", String::from_utf8_lossy(&first.stderr));
+    assert_eq!(String::from_utf8_lossy(&first.stdout).trim(), "sealed");
+
+    let device = podssh_ssh::tpm::probe(Some(&tpm.1)).unwrap();
+    podssh_ssh::tpm::testing::extend_pcr(&device, 7, &[0x5A; 32]).unwrap();
+    let refused = openssh_login(&dir, sshd.port, &key, &vars);
+    let err = String::from_utf8_lossy(&refused.stderr);
+    assert_eq!(refused.status.code(), Some(255), "{err}");
+    assert!(err.contains("hold other values than each signed policy"), "{err}");
+
+    let args = ["keygen", "-t", "ecdsa-tpm", "-O", "add-policy", "-O", with_policy.as_str(), "-f", key.as_str()];
+    let signed = podssh_with(&args, &vars);
+    assert_eq!(signed.code, 0, "{}", signed.err);
+    assert!(signed.out.contains("The file holds 2 signed policies"), "{}", signed.out);
+    let again = openssh_login(&dir, sshd.port, &key, &vars);
+    assert_eq!(again.status.code(), Some(0), "{}", String::from_utf8_lossy(&again.stderr));
+    drop(sshd);
     drop(tpm);
     std::fs::remove_dir_all(&dir).unwrap();
 }

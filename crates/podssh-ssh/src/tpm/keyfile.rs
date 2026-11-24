@@ -16,6 +16,8 @@
 //!   privkey     OCTET STRING }              -- TPM2B_PRIVATE
 //! TPMPolicy ::= SEQUENCE { commandCode [0] EXPLICIT INTEGER,
 //!                          commandPolicy [1] EXPLICIT OCTET STRING }
+//! TPMAuthPolicy ::= SEQUENCE { name [0] EXPLICIT UTF8String OPTIONAL,
+//!                              policy [1] EXPLICIT SEQUENCE OF TPMPolicy }
 //! ```
 //!
 //! The private part is the TPM's, wrapped under a key that never leaves
@@ -50,9 +52,10 @@ pub struct KeyFile {
     pub empty_auth: bool,
     /// The policy commands, in their order: each command's code and body.
     pub policy: Vec<(u32, Vec<u8>)>,
-    /// The file carries signed policies (`authPolicy`), which podssh does
-    /// not run (T-839, the offline update).
-    pub signed_policies: bool,
+    /// The signed policies (`authPolicy`), the newest first: each a list of
+    /// policy commands that ends with a signed `TPM2_PolicyAuthorize`
+    /// (T-839, the offline update).
+    pub auth_policies: Vec<AuthPolicy>,
     /// The file names an RSA parent, which podssh does not make.
     pub rsa_parent: bool,
     pub description: Option<String>,
@@ -63,6 +66,13 @@ pub struct KeyFile {
     pub public: Vec<u8>,
     /// TPM2B_PRIVATE, its length included.
     pub private: Vec<u8>,
+}
+
+/// One signed policy of a key file: a name to show, and its commands.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthPolicy {
+    pub name: Option<String>,
+    pub policy: Vec<(u32, Vec<u8>)>,
 }
 
 impl KeyFile {
@@ -99,13 +109,19 @@ impl KeyFile {
             body.extend(tlv(explicit(0), &tlv(BOOLEAN, &[0xFF])));
         }
         if !self.policy.is_empty() {
-            let mut steps = Vec::new();
-            for (code, command) in &self.policy {
-                let mut step = tlv(explicit(0), &integer(*code));
-                step.extend(tlv(explicit(1), &tlv(OCTETS, command)));
-                steps.extend(tlv(SEQUENCE, &step));
+            body.extend(tlv(explicit(1), &write_policies(&self.policy)));
+        }
+        if !self.auth_policies.is_empty() {
+            let mut list = Vec::new();
+            for signed in &self.auth_policies {
+                let mut one = Vec::new();
+                if let Some(name) = &signed.name {
+                    one.extend(tlv(explicit(0), &tlv(UTF8, name.as_bytes())));
+                }
+                one.extend(tlv(explicit(1), &write_policies(&signed.policy)));
+                list.extend(tlv(SEQUENCE, &one));
             }
-            body.extend(tlv(explicit(1), &tlv(SEQUENCE, &steps)));
+            body.extend(tlv(explicit(3), &tlv(SEQUENCE, &list)));
         }
         if let Some(text) = &self.description {
             body.extend(tlv(explicit(4), &tlv(UTF8, text.as_bytes())));
@@ -132,7 +148,7 @@ impl KeyFile {
         let mut file = KeyFile {
             empty_auth: false,
             policy: Vec::new(),
-            signed_policies: false,
+            auth_policies: Vec::new(),
             rsa_parent: false,
             description: None,
             parent: 0,
@@ -149,7 +165,7 @@ impl KeyFile {
                 0 => file.empty_auth = boolean(inner).ok_or_else(|| bad("emptyAuth"))?,
                 1 => file.policy = policies(inner).ok_or_else(|| bad("policy"))?,
                 2 => return Err("the key file of a TPM is an importable key (it has a secret)".into()),
-                3 => file.signed_policies = true,
+                3 => file.auth_policies = auth_policies(inner).ok_or_else(|| bad("authPolicy"))?,
                 4 => {
                     let (text, _) = element(inner, UTF8).ok_or_else(|| bad("description"))?;
                     file.description = Some(String::from_utf8(text.to_vec()).map_err(|_| bad("description"))?);
@@ -245,6 +261,44 @@ fn unsigned(contents: &[u8]) -> Option<u32> {
         return None;
     }
     Some(digits.iter().fold(0u32, |n, b| n << 8 | u32::from(*b)))
+}
+
+/// A SEQUENCE OF TPMPolicy.
+fn write_policies(steps: &[(u32, Vec<u8>)]) -> Vec<u8> {
+    let mut list = Vec::new();
+    for (code, command) in steps {
+        let mut step = tlv(explicit(0), &integer(*code));
+        step.extend(tlv(explicit(1), &tlv(OCTETS, command)));
+        list.extend(tlv(SEQUENCE, &step));
+    }
+    tlv(SEQUENCE, &list)
+}
+
+/// `[3] EXPLICIT SEQUENCE OF TPMAuthPolicy`'s contents; a signed policy
+/// with no command is malformed, as go-tpm-keyfiles reads it.
+fn auth_policies(inner: &[u8]) -> Option<Vec<AuthPolicy>> {
+    let (mut list, rest) = element(inner, SEQUENCE)?;
+    if !rest.is_empty() {
+        return None;
+    }
+    let mut out = Vec::new();
+    while !list.is_empty() {
+        let (mut one, after) = element(list, SEQUENCE)?;
+        list = after;
+        let mut name = None;
+        if let Some((named, after)) = element(one, explicit(0)) {
+            let (text, _) = element(named, UTF8)?;
+            name = Some(String::from_utf8(text.to_vec()).ok()?);
+            one = after;
+        }
+        let (steps, after) = element(one, explicit(1))?;
+        let policy = policies(steps)?;
+        if policy.is_empty() || !after.is_empty() {
+            return None;
+        }
+        out.push(AuthPolicy { name, policy });
+    }
+    Some(out)
 }
 
 /// `[1] EXPLICIT SEQUENCE OF TPMPolicy`'s contents.

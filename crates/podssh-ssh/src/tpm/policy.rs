@@ -11,6 +11,7 @@
 
 use sha2::{Digest, Sha256, Sha384};
 
+use super::authorize::{digest_after, CC_POLICY_AUTHORIZE};
 use super::wire::{In, Out};
 
 pub(super) const ALG_SHA256: u16 = 0x000B;
@@ -153,8 +154,8 @@ pub(super) fn split_pcr_body(body: &[u8]) -> Result<(Vec<u8>, Pcrs, Vec<u8>), St
 }
 
 /// The policy digest that `steps` reach, with the hash `alg`: the digest
-/// that a key's `authPolicy` must be. A step that podssh cannot recompute
-/// is refused.
+/// that a key's `authPolicy` must be, or the approved policy that a signed
+/// policy covers. A step that podssh cannot recompute is refused.
 pub(super) fn digest(alg: u16, steps: &[(u32, Vec<u8>)]) -> Result<Vec<u8>, String> {
     let size = match alg {
         ALG_SHA256 => 32,
@@ -163,8 +164,17 @@ pub(super) fn digest(alg: u16, steps: &[(u32, Vec<u8>)]) -> Result<Vec<u8>, Stri
             return Err(format!("a policy of hash algorithm {other:#06x}, where podssh knows SHA-256 and SHA-384"))
         }
     };
+    let hash = |message: &[u8]| match alg {
+        ALG_SHA384 => Sha384::digest(message).to_vec(),
+        _ => Sha256::digest(message).to_vec(),
+    };
     let mut current = vec![0u8; size];
     for (code, body) in steps {
+        // TPM2_PolicyAuthorize replaces the digest, where the others extend it.
+        if *code == CC_POLICY_AUTHORIZE {
+            current = digest_after(size, body, hash)?;
+            continue;
+        }
         let input: Vec<u8> = match *code {
             CC_POLICY_PCR => {
                 let (selection, _, digest) = split_pcr_body(body)?;
@@ -183,11 +193,7 @@ pub(super) fn digest(alg: u16, steps: &[(u32, Vec<u8>)]) -> Result<Vec<u8>, Stri
             other => return Err(format!("a policy command of code {other:#010x}, which podssh does not run")),
         };
         let code = if *code == CC_POLICY_PASSWORD { CC_POLICY_AUTH_VALUE } else { *code };
-        let message = [current.as_slice(), &code.to_be_bytes(), &input].concat();
-        current = match alg {
-            ALG_SHA384 => Sha384::digest(&message).to_vec(),
-            _ => Sha256::digest(&message).to_vec(),
-        };
+        current = hash(&[current.as_slice(), &code.to_be_bytes(), &input].concat());
     }
     Ok(current)
 }

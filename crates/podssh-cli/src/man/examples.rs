@@ -313,6 +313,14 @@ fn examples() -> Vec<(&'static str, String)> {
             "a key that signs only in this machine's TPM, while Secure Boot is as it is now",
             "podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm".into(),
         ),
+        (
+            "such a key that also signs in each boot state that a key kept off the host signs",
+            "podssh keygen -t ecdsa-tpm -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm".into(),
+        ),
+        (
+            "after a firmware's update, sign the new boot state into that key, so that it signs again",
+            "podssh keygen -t ecdsa-tpm -O add-policy -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm".into(),
+        ),
         ("this manual with no pager", "podssh man --no-pager".into()),
         ("one section of this manual", "podssh man environment".into()),
         ("this manual as a man page", "podssh man --roff > podssh.1 && man -l podssh.1".into()),
