@@ -23,7 +23,7 @@ Read on 2026-11-24.
    build image, live: Q88); T-106 (the operator's tailnet); T-660, T-666 and T-670 (their rows of the matrix); T-755 (its live run waits for a tester's tunnel, #215); T-791, T-793, T-809 and T-820 (`node_install/` on `pod-unit`, `pod_core::files::replace` for `keygen_cert.rs` and `known_hosts/edit.rs`, `pod_unit::install::install_system`, and Windows `known_hosts` lock entry 941); and T-598, T-710, T-718 and T-720.
 5. **Blocked entries** (13; each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox),
    T-328 and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
-   working Bare node, podcrates T-200), cfb's T-711, T-719, T-722, T-727 and T-729, and T-875 and T-877 (Q107). T-123 is partial and waits for Q108 (its draft `draft/d-t123`, unmerged). T-792 is done (2026-11-16: the
+   working Bare node, podcrates T-200), cfb's T-711, T-719, T-722, T-727 and T-729, and T-123 is partial; its draft `draft/d-t123` merges with Q108's flag. Q107 settled: T-875 and T-877 are open again. T-792 is done (2026-11-16: the
    sync's first real run, 0 faults, and its planted drift caught).
 6a. **Issues from outside the team** (the owner's rulings "Strangers" and "Issues"): the sync changes none until it has
    the label `confirmed`. On 2026-11-16 `record issues` (run 43881220151) found #18, #19, #20, #22, #24, #25 and #129 closed
@@ -131,7 +131,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 830 entries: 4 open, 49 partial, 13 blocked, 764 done.
+`TODO/INDEX.md` holds 830 entries: 6 open, 49 partial, 11 blocked, 764 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -251,7 +251,7 @@ it can start.
 
 ## Questions for the operator
 
-**Q108 (2026-11-24): a relay pair for each `ssh -R` that `podssh serve` takes (T-123).** T-123's Approach answers a
+**Q108 (2026-11-24): settled by the owner on 2026-11-24, as recommended** (the rule "Decisions", `docs/decisions.md`; T-123 goes on). **The question: a relay pair for each `ssh -R` that `podssh serve` takes (T-123).** T-123's Approach answers a
 stock client's `tcpip-forward` with a new pair at the relay, and its draft (`draft/d-t123`, `ef97ac0`, not merged)
 runs a node of that pair inside serve's process: for each forward, the pair's request, the node's socket for as long
 as the forward lives, and a `POST /v1/stop` at its end, one after another, each through `HTTPS_PROXY`; at most 8
@@ -263,7 +263,7 @@ today), the connections one after another for each forward, at most `--max-remot
 with its forward and its connection, the tokens never in output, and serve's log naming each pair as it is made and
 stopped.
 
-**Q107 (2026-11-24): UDP datagrams to a resolver, for a road in DNS (T-835).** The research of T-835
+**Q107 (2026-11-24): settled by the owner on 2026-11-24, as recommended** (the rule "Decisions", `docs/decisions.md`; T-875 and T-877 go on). **The question: UDP datagrams to a resolver, for a road in DNS (T-835).** The research of T-835
 (`docs/research/dns-carrier.md`) found that PodUtils/podcrates has a carrier in DNS already (`pod-link`, feature
 `dns`: base32 names up, TXT answers down, an ARQ, a pinned TLS). A client of it sends UDP datagrams to a recursive
 resolver, which are not through `HTTPS_PROXY`; none of the nine exceptions of rule 2 of `AGENTS.md` covers them

@@ -399,7 +399,7 @@ These rules come from [docs/decisions.md](docs/decisions.md).
    not bind, listen, or use loopback helpers. (`podssh doctor` binds a
    socket to test the host, listens once with a backlog of 1, accepts
    nothing, and closes it at once; never with `PODSSH_LISTEN=no`, Q53.)
-   Nine exceptions:
+   Eleven exceptions:
    1. a listener that the user asks for, when a probe at run time allows
       the bind;
    2. a race between relay hosts, which can open a second connection for a
@@ -423,7 +423,14 @@ These rules come from [docs/decisions.md](docs/decisions.md).
    9. a node's read of its signed net document again each TTL, only with
       `--net-url`: at most one GET through `HTTPS_PROXY` each TTL (never
       under 60 s, never while a read is open), the reply at most 64 KiB and
-      its signature checked against `--net-owner` (Q105).
+      its signature checked against `--net-owner` (Q105);
+   10. `podssh serve`'s relay pair for each `ssh -R` that a client asks, only
+      with serve's `--publish-remote`: the pair's request, its node and its
+      stop one after another through `HTTPS_PROXY`, at most 8 at once for a
+      connection (Q108);
+   11. UDP datagrams to a resolver for the DNS road, only with
+      `--carrier dns:FILE` or `doctor --dns-zone ZONE`, after a probe found
+      UDP out, at most 20 queries a second (Q107).
 3. Do not use `LD_PRELOAD` or shims in other processes. Start another
    program only when the user names it (`SSH_ASKPASS`, `PAGER`) or a probe
    found it (`less` for `podssh man` on a terminal). A tty in user space for

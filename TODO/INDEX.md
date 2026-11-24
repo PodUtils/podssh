@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**830 entries: 4 open, 49 partial, 13 blocked, 764 done.**
+**830 entries: 6 open, 49 partial, 11 blocked, 764 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 4 | 15 | 8 | 361 | 388 |
-| **All** | 4 | 49 | 13 | 764 | 830 |
+| P3 | 6 | 15 | 6 | 361 | 388 |
+| **All** | 6 | 49 | 11 | 764 | 830 |
 
 ## Entries
 
@@ -900,9 +900,9 @@ repository and CI).
 | [T-867](cli.md) | P3 | S | M10 | defect | done | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
 | [T-868](cli.md) | P3 | M | M10 | defect | done | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | done | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |
-| [T-875](mesh.md) | P3 | S | backlog | measurement | blocked | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
+| [T-875](mesh.md) | P3 | S | backlog | measurement | open | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
-| [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
+| [T-877](mesh.md) | P3 | M | backlog | feature | open | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
 | [T-896](resume.md) | P3 | M | backlog | feature | partial | Local echo from end to end, for kept and shared shells, and on the Windows console |
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
