@@ -4689,3 +4689,56 @@ body too; `docs/terminal.md` ("Limits", "What ends a transfer", and the cause in
   five CAN ended it at once with their line, the closed terminal, SIGHUP and SIGTERM each ended podssh within 0.1 s,
   and the limit's line came 40 s after the write began; the build at `55386459` ended none of Ctrl-C, CAN, the closed
   terminal and SIGHUP within 10 s, and outlived its closed terminal.
+
+# T-897: The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END`
+
+**Source:** the gate at `25ac08f` (run 45399604838), 2026-11-24: `windows` and `windows-arm` failed to build
+`podssh-ssh` (`pod_term` unresolved in `server/kept.rs`, `kept_replay.rs`, `kept_tests.rs`), and `macos` failed 3 of
+the 4 tests of `-p podssh-ssh --test serve_keep` ("no PID_ in time"). The Linux jobs passed. Both came with the merge
+of the serve drafts (`71f5af7`, T-159 and T-833).
+**Category:** defect
+**Milestone:** M10
+**Priority:** P1
+**Effort:** S
+**Status:** partial
+
+## Problem
+
+The gate is red on Windows and macOS since the kept shells of `podssh serve NAME` were merged.
+
+## Premise
+
+- `crates/podssh-ssh/Cargo.toml` linked `pod-term` under `[target.'cfg(unix)'.dependencies]`, while
+  `crates/podssh-ssh/src/server/mod.rs` builds `kept`, `kept_replay` and the kept shells' tests on each target.
+- `crates/podssh-ssh/tests/kept_harness/mod.rs` (`start_job`) sent `sleep 600 & echo PID_$!_END`. The job's log shows
+  macOS's `sh`, an interactive bash, answering `-sh: !_END: event not found`: its history expansion took `!_END` for
+  an event, so no pid was printed.
+
+## Approach
+
+1. Link `pod-term` on each target: it is bytes only (its one dependency is `unicode-width`).
+2. Read `$!` where a space follows it (`p=$! ; echo PID_${p}_END`), which no bash expands.
+3. Check the Windows build here: `cargo check --locked --tests --target x86_64-pc-windows-gnu` of the default members.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo check --locked --tests --target x86_64-pc-windows-gnu
+cargo test -p podssh-ssh --test serve_keep
+```
+
+And the gate's `windows`, `windows-arm` and `macos` jobs.
+
+## Done
+
+2026-11-24, Rust 1.99.1. `pod-term` moved to `[dependencies]` of podssh-ssh; `kept.rs` re-exports `Out` on Unix
+alone (its one user, `kept_run.rs`, is Unix's), and `UMASK_WINDOW` of `pipe/listen.rs`, which only the tests take on
+Windows, allows itself unused there (both were warnings of the Windows build). `start_job` reads `$!` before a space.
+Run here: `cargo check --locked --tests --target x86_64-pc-windows-gnu` (the default members, with
+`gcc-mingw-w64-x86-64`): clean, no warning but `vendor/h2`'s; `-p podssh-ssh -p podssh-cli --lib --tests` for Windows:
+clean. On Linux: `-p podssh-ssh --test serve_keep` 4, `serve_attach_ticket` 3, `serve_predict_kept` 2 and `--lib` 537
+passed; rustfmt and the gate's clippy clean. An interactive bash 5.2 with `set -H` prints the pid with the new line;
+this container's bash does not reproduce the old failure (macOS's `/bin/sh` is bash 3.2), so the gate's `macos` job
+proves step 2. Partial until the gate's `windows`, `windows-arm` and `macos` jobs pass.
+

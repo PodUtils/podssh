@@ -44,7 +44,10 @@ use crate::terminal::Size;
 mod flow;
 #[cfg(unix)]
 pub(super) use flow::falls_due;
-pub(super) use flow::{reports_for, watch_close, Out};
+pub(super) use flow::{reports_for, watch_close};
+// The output's writer, for the Unix-only start of a kept shell (`kept_run.rs`).
+#[cfg(unix)]
+pub(super) use flow::Out;
 
 /// The most kept shells of one key.
 pub const PER_KEY: usize = 4;

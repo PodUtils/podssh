@@ -2763,7 +2763,7 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 - Step 1: the bind is the probe, as `pipe`'s listeners decided (T-177,
   `crates/podssh-cli/src/pipe/listen.rs:1-6`): a probe socket bound and closed before the real bind
   adds a second listener and a race, and proves nothing that the bind does not. A refusal by the
-  host is 77, as `pipe` exits for it (`crates/podssh-cli/src/pipe/listen.rs:66-70`), not 69; another
+  host is 77, as `pipe` exits for it (`crates/podssh-cli/src/pipe/listen.rs:68-72`), not 69; another
   failure (a port in use) is 69.
 - Step 4: the cap on connections that have not logged in, and the deadline from the accept, are
   T-631's; this entry gives the cap on connections at once. russh's constant rejection time is

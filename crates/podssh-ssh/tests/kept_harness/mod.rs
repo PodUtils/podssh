@@ -105,9 +105,11 @@ pub async fn detach(seat: &Seat, name: &str) -> bool {
 }
 
 /// A job in the shell's own process group (`set +m`), and a line that the
-/// shell prints after `later` seconds: the job's pid.
+/// shell prints after `later` seconds: the job's pid. `$!` is read where a
+/// space follows it: bash's history expansion (macOS's `sh`) takes `!_END`
+/// for an event and prints no pid.
 pub async fn start_job(seat: &Seat, later: u32) -> i32 {
-    seat.send(b"set +m; sleep 600 & echo PID_$!_END\r").await;
+    seat.send(b"set +m; sleep 600 & p=$! ; echo PID_${p}_END\r").await;
     let pid: i32 = read_after(seat, "PID_", false).await.parse().unwrap();
     let line = format!("(sleep {later}; echo LATER_$((6*7))_END) &\r");
     seat.send(line.as_bytes()).await;

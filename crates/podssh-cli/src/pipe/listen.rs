@@ -25,6 +25,8 @@ pub const LISTEN_ENV: &str = "PODSSH_LISTEN";
 /// The process's umask is shared by its threads, so the short window of
 /// [`listen_file`] is serialised with anything else that makes files under
 /// a chosen mode. A poisoned lock is used anyway: the umask was put back.
+/// On Windows, which has no umask, only the tests take it.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub(crate) static UMASK_WINDOW: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// What needs no listener, for the line of a refused one.

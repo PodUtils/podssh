@@ -81,12 +81,14 @@ serde_json = { workspace = true }
 # screen, which its guesses are judged against and drawn over. The model of
 # the terminal oracle (T-200), pure Rust over vte; the lock has it already.
 vt100 = { workspace = true }
+# serve's line discipline where no pty opens (T-111): the cooked mode of
+# PodUtils/podcrates' pod-term, the tag of every podcrates crate. On each
+# target: a kept shell's ring (T-159) is built on Windows too, and the crate
+# is bytes only.
+pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }
-# serve's line discipline where no pty opens (T-111): the cooked mode of
-# PodUtils/podcrates' pod-term, the tag of every podcrates crate.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 
 [target.'cfg(windows)'.dependencies]
 # Security keys (T-229): the WebAuthn API of Windows (webauthn.dll), loaded

@@ -1419,7 +1419,7 @@ the request's target, would be the proxy that such a program points at.
   listen, and one side at most (`:59-73`, `:121-123`).
 - Read: a listener of `pipe` binds only an address that the user gives, never with
   `PODSSH_LISTEN=no` (78), and its bind is the probe; a socket is made mode 0600, and a client of
-  another user is closed (`crates/podssh-cli/src/pipe/listen.rs:1-13`, `:33-46`, `:100-113`). It
+  another user is closed (`crates/podssh-cli/src/pipe/listen.rs:1-13`, `:35-48`, `:102-115`). It
   takes one client by default, and with `--keep-listening` each client in turn, 8 at once at most,
   each joined to a new instance of the other side (`crates/podssh-cli/src/pipe/serve.rs:1-11`).
 - Read: the operator allows a listener that the user asks for, when a probe allows the bind, on

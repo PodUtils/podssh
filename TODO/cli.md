@@ -2470,14 +2470,14 @@ nothing.
 - Read: `crates/podssh-cli/src/doctor/mod.rs` line 15 at `48a8744` says "The bind probes here are the only place
   podssh calls". The listener scan of `scripts/check-repo.py` allows a `bind(` in 17 files
   (`scripts/check-repo.py:170-191`), and these listen, each when the user asks: `pipe`'s
-  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:145-159`, `:186-210`),
-  the control socket of `-M` (`:212-220`), `-L` and `-D` on a port or a path
+  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:147-161`, `:188-212`),
+  the control socket of `-M` (`:214-222`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:78-88`, `:111-128`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
   (`crates/podssh-cli/src/pipe/listen_win.rs:136`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
-  (`crates/podssh-cli/src/pipe/listen.rs:66-73`), and 255 in `-L` and `-D`, with the system's
+  (`crates/podssh-cli/src/pipe/listen.rs:68-75`), and 255 in `-L` and `-D`, with the system's
   words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:89-93`).
   The issue's amendment says that `-L` exits 77: it exits 255, as OpenSSH's ssh does for a
   failure of its own (`crates/podssh-ssh/src/run.rs:28`).
@@ -2597,8 +2597,8 @@ alone measures less than they use, so it cannot answer what a user asks it.
 1. After the bind, `listen(fd, 1)` on the same socket, then close: nothing is accepted, and
    nothing is left. For AF_INET on 127.0.0.1 port 0; for AF_UNIX on the file in the temporary
    directory, made mode 0600 as `pipe` makes its socket
-   (`crates/podssh-cli/src/pipe/listen.rs:222-239`), and on Linux on an abstract name. With
-   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-46`) no listen is made, and the
+   (`crates/podssh-cli/src/pipe/listen.rs:224-241`), and on Linux on an abstract name. With
+   `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-48`) no listen is made, and the
    line says so.
 2. The lines `listen AF_INET` and `listen AF_UNIX`, each with what happened: bound and listened;
    bound, and `listen()` refused with its error; or the bind refused. A refusal names the features
@@ -3320,9 +3320,9 @@ Read on 2026-11-01:
   of `crates/podssh-cli/src/detach/child.rs`; the line of `crates/podssh-cli/src/detach/mod.rs` that
   the Premise cites is `when_requested`, which makes no file. There was no lock, as it says.
 - The probe of a session's socket is the daemon's (`session serve`, which `start` runs), in `stale`
-  of `crates/podssh-cli/src/pipe/listen.rs:253`, inside the bind that the Premise cites. Two daemons
+  of `crates/podssh-cli/src/pipe/listen.rs:255`, inside the bind that the Premise cites. Two daemons
   can both pass it, and the race is worse than two copies: the second, whose bind failed, removes
-  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:206`), which then answers nobody.
+  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:208`), which then answers nobody.
 
 ## Done
 
