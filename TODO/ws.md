@@ -319,7 +319,7 @@ the configuration on each call (`crates/podssh-ws/src/client.rs` lines 187-207 a
 (`PodUtils/podssh:crates/podssh-relay/src/token.rs:95-100`), the pool refresh
 (`PodUtils/podssh:crates/podssh-relay/src/pool.rs:178-186`), and the `https_*` functions (`client.rs` lines
 261-287). podssh's configuration offers no ALPN (`tls.rs` lines 174-177 at `723d90b`), because the upgrade is
-HTTP/1.1 only (`docs/relay.md:788`). The `tls12` feature of `rustls` is on in the workspace
+HTTP/1.1 only (`docs/relay.md:790`). The `tls12` feature of `rustls` is on in the workspace
 (`[workspace.dependencies]` of `Cargo.toml`).
 
 ## Approach
@@ -3645,7 +3645,7 @@ two requests in two directions.
 - The split is a stream of two halves (`PodUtils/podcrates:crates/pod-egress/src/vless/split.rs`).
 - `docs/STATUS.md:313` records VLESS over XHTTP against Xray-core v26.10.21, shoes and nginx in
   front of Xray-core, in packet-up, stream-up and stream-one on HTTP/2, with HTTP/1.1 refused
-  with 78. That refusal is older than T-456: `docs/STATUS.md:1132` records packet-up and stream-up
+  with 78. That refusal is older than T-456: `docs/STATUS.md:1133` records packet-up and stream-up
   over HTTP/1.1 on two connections, and stream-one alone refused
   (`PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`, its reason at
   `PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`). The issue's "keep the 78 refusal" reads as:

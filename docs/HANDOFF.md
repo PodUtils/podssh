@@ -141,13 +141,19 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 
 ## Each podcrates take
 
-podssh pins every podcrates crate at `tag = "v0.82.0"` (`51c09390`, taken 2026-11-23 at `e728db9f`;
-before it `v0.81.0`, COORD-151, `v0.80.0`, COORD-150, `v0.79.0`, COORD-149, and `v0.78.1`,
+podssh pins every podcrates crate at `tag = "v0.82.1"` (`0d7832b9`, COORD-152, PodUtils/podcrates#257, taken
+2026-11-24 at `345d11fa`; before it `v0.82.0`, `51c09390`, taken 2026-11-23 at `e728db9f`, `v0.81.0`, COORD-151, `v0.80.0`, COORD-150, `v0.79.0`, COORD-149, and `v0.78.1`,
 COORD-129; the tag `v0.78.0` has no GitHub release). `v0.82.0` adds `pod-cover` for `relay serve
 --cover` (T-764 to T-768) and delivers `pod-ws`'s browser HTTP/2 shape, `pod-egress`'s VLESS
 coalescing, early data, and VMess nonce-wrap fix, `pod-testkit`'s conformance vectors (T-757 to
 T-763), and `pod_core::Class::{Permission, Suite}`. It took `pod-warp` at `v0.37.0` (COORD-075,
 PodUtils/podcrates#135; podssh's answer is COORD-050).
+`v0.82.1` (the content of `v0.82.0`, which has no GitHub release, with its assets) answers three asks of podssh's:
+the fork of `iroh-relay` at 1.4.2 (COORD-134, #341; the iroh family goes to iroh 1.4.2, iroh-base 1.5.0, iroh-dns 1.4.2,
+noq, noq-proto and noq-udp 1.5.0), the asks of COORD-135 (#342; `pod-unit`'s scan of secrets passes public keys and
+fingerprints, `Unit::older_mark`, `RemoveIPC` relaxed for a named account, `StartLimitInterval=0`, and
+`Replace::write_checked`, which `keygen_change.rs` takes; T-820), and `bind_staged` at a path of any length (COORD-136,
+#343; the control socket of `relay serve --cover` takes it, `control_link.rs` gone; T-857).
 
 - Taken: `pod-todo`, `pod-term`, `pod-identity`, `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`,
   `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`, `pod-session`, `pod-e2e`, `pod-relay`,

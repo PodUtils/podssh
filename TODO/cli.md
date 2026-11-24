@@ -1114,7 +1114,7 @@ the compare of step 4 and write a fresh key; the public-key test fails.
 
 ## Done
 
-2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:21-88`, their
+2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-89`, their
 flags at `crates/podssh-cli/src/flags/keygen.rs:21-26` and their refusals at
 `crates/podssh-cli/src/keygen.rs:137-144` and `:245-264`; `keygen::protect` keeps the comment
 (`crates/podssh-ssh/src/keygen.rs:90-103`).

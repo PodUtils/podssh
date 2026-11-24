@@ -6001,6 +6001,31 @@ on `PATH`, which the test's far side inherits; no code of the take touches the j
 change of the session's guard was refused). Decided by CI: the gate of Dependabot's #338 at `2ae2341` (`main` with its
 bump, run 44876039757) passed `gate (ssh)`, `job_far` among it; its one red job was `gate (m6)`, T-780.
 
+2026-11-24, podcrates `v0.82.1` (`0d7832b9`, COORD-152, PodUtils/podcrates#257), taken at `345d11fa`: the content of
+`v0.82.0` (which has a tag and no run of its release workflow: no GitHub release, no assets) with what `main` gained
+after it. Its `adoption/podssh/` holds `commit` and `repo` alone (podssh at `fd261a10`), no `.patch` or `.run`. Each
+dependency, the `[patch.crates-io]` fork of `iroh-relay` and `issue-sync.yml` (at `0d7832b9`, `podcrates_ref: v0.82.1`)
+name `v0.82.1`. It answers three asks of podssh's. (1) COORD-134 (#341, podcrates' entry 1102): the fork of `iroh-relay`
+at 1.4.2, so the iroh family of Dependabot's #339 goes in: iroh 1.4.2, iroh-base 1.5.0, iroh-dns 1.4.2, iroh-relay 1.4.2
+(the fork, built: `check-repo.py`'s check of the patches passes, no `[[patch.unused]]`), noq, noq-proto and noq-udp 1.5.0,
+netwatch 0.20.2, netdev 0.47.0; `podssh-relay`'s and `podssh-cli`'s requirements follow (`iroh-relay` 1.4.2, `iroh-base`
+1.5.0, `iroh-dns` 1.4.2, `iroh >=1.4.2, <1.5`), the lock resolved with cargo 1.99. (2) COORD-135 (#342): `keygen_change.rs`
+on `Replace::write_checked`, and a test of pod-unit's check of podssh's words (T-820; the renderers of `node_install/`
+stay, with why). (3) COORD-136 (#343): the control socket of `relay serve --cover` on `bind_staged`, `control_link.rs`
+gone (T-857). Its other breaks touch no API that podssh uses (`pod_enter::Plan`, `pod_control`, `pod_cloudflare`,
+`pod_job`); `pod_services` drops three `node-trojan-*` services and a relay of `syncthing-relay`, which podssh names
+nowhere; no script or workflow of podssh's reads a line that it changes. Run here (Linux, Rust 1.100, 2026-11-24):
+`cargo test --workspace --no-fail-fast` 408 suites, 4125 passed, 3 failed, 83 ignored; the 3 are `tests/job_far.rs`
+at the far side's `rm` under this container's stand-in of `rm` first on `PATH`, as at `v0.81.0`. The gate's m6 step
+(`cargo test --locked -p podssh-cli --features podssh-cli/iroh-test --test m6_exit -- --ignored --test-threads 1`): 11
+passed in 705 s. With the feature `iroh-test`: `--lib` 1272, `--test iroh_road` 4, `chat_iroh` 1, `iroh_cli` 6,
+`pipe_iroh` 2, `pipe_iroh_record` 2 passed; `-p podssh-relay --features serve,iroh-serve --test relay_meet` 4 passed (n0's
+clients of iroh-relay 1.4.2 through the role), `--features serve,derp,iroh-serve --lib` 260 passed. clippy of the
+workspace (all targets, `-D warnings -A clippy::collapsible_if`), of `podssh-cli` with `iroh-test` and of `podssh-relay`
+with `serve,derp,iroh-serve,plain-ws`: clean; `cargo fmt --check`, `python3 scripts/check-repo.py` and `cargo todo check`:
+pass. Not run here: the rest of the gate's iroh step (`podssh-cli`'s whole suite with `iroh-test`), the build image, and
+macOS (the bind of the control socket through a link under `/tmp`).
+
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 

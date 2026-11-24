@@ -412,7 +412,7 @@ podssh-ssh --test serve_pty --test serve_line`.
 ### C2. The relay's byte cap against the resumable layer's arithmetic (T-826, COORD-122/124/126)
 
 The live relay ends a link at 64 MiB both directions together (`1009 session byte cap`,
-`docs/relay.md:747`); the layer must move to a new link first. With a small cap (`podssh relay serve
+`docs/relay.md:749`); the layer must move to a new link first. With a small cap (`podssh relay serve
 --max-session-mib 1`, `crates/podssh-cli/tests/layer_cap.rs`, 3 MiB each way) the move threshold of
 three quarters plus a quarter of window in flight from each end is 5/4 of the cap, and on Windows
 the move began late by ~130 KiB. The test asserts no link ends with 1009 and no link's end is a

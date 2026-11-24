@@ -3720,7 +3720,7 @@ The draft's calls, 2026-11-02:
 4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:403`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
-   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:238`),
+   `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:235`),
    with `from` read by `brake::edge_visitor` (`crates/podssh-relay/src/serve/brake.rs:71`) from
    the `cf-connecting-ip` of the edge's own request, which reaches the node only on the
    connection that podssh dialed to the edge. Lost: the role reading that header itself when a
@@ -3775,7 +3775,7 @@ name. `/v1/pair` is answered in the reverse road, where `serve/mod.rs` routes it
 address to count by: at `33ccb11`,
 `podssh relay serve` dropped the peer of each connection that it accepted
 (`let Ok((tcp, _)) = accepted` in `crates/podssh-cli/src/relay_serve.rs`). So the brake stands in
-the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:238`), and
+the role's dispatch, before both paths (`crates/podssh-relay/src/serve/mod.rs:235`), and
 `serve_from` takes the address, which the listener gives. The Prove that runs, in place of the
 one above:
 
@@ -14016,7 +14016,7 @@ cannot be the meeting point of its own net. The ask: the same listener also spea
 
 ## Premise
 
-- `crates/podssh-relay/src/serve/mod.rs:227`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
+- `crates/podssh-relay/src/serve/mod.rs:224`-`256`: the routes are `/health`, `/v1/*`, `/relays.json`,
   `/trace`, `/llms-full.txt` and `/connect/`. No route speaks DERP or iroh's relay protocol.
 - `PodUtils/podcrates:crates/pod-derp/src/conn.rs`: podssh's DERP code is a client and the node's end of a link.
   It never forwards a frame between two other keys.
@@ -14219,7 +14219,7 @@ a hop of a chain, so a person cannot chain a node and a second jump host. `podss
 - `crates/podssh-cli/src/ssh/jump.rs:105`-`148`: the first hop can be `cf://`, `iap://`, `eice://`,
   `upterm://` as a `Tunnel`; a node is not a variant.
 - `crates/podssh-cli/src/ssh/node.rs:1`-`40`: `node://[user@]NAME[/ROUTE]` already makes a stream through
-  the operator's leg (`reach`, T-084), and `docs/relay.md:615` names `-J node://NAME` for IPv6 egress.
+  the operator's leg (`reach`, T-084), and `docs/relay.md:617` names `-J node://NAME` for IPv6 egress.
 - `crates/podssh-cli/src/mcp/allow.rs:1`-`40`: `--allow-host` patterns match `[USER@]HOST`; no rule
   names the `node://` form.
 
