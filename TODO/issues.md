@@ -327,7 +327,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #246 | COORD-069: podssh took podcrates v0.46.0 at 5ac90a3 (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.46.0` | T-684 |
 | #247 | COORD-070: pod-relay's run of a code fails over Nostr alone, though pod-wormhole's nostr pairs (to podcrates) | closed 2026-11-15: fixed in podcrates `v0.49.0` (its entry 634), taken by podssh | T-545 |
 | #248 | COORD-071: fast-track T-684: Q101's waves 3 and 4, the crates that still live in podssh (to podcrates) | closed 2026-11-24 (answered on 2026-11-15: podcrates fast-tracked the move, with its order and the first modules named; each tag is taken as it lands, and each take is its own COORD issue; followed in the record: T-684) |  |
-| #249 | Testers' guide: v1.1.0-beta.4 (in preparation) | open (2026-11-24: a placeholder: the guide comes with the beta, which waits for the move to podcrates, T-684, and for T-809) | T-446 |
+| #249 | Testers' guide for the next beta (a placeholder: written when the beta is tagged) | open (2026-11-24: a placeholder: the guide comes with the beta, which waits for the move to podcrates, T-684, and for T-809) | T-446 |
 | #250 | COORD-072: podssh took podcrates v0.47.0 at 568f9b2 (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.47.0` | T-684 |
 | #251 | COORD-073: podssh took podcrates v0.48.0 at 3e7c5a2 (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.48.0` | T-684 |
 | #252 | COORD-074: podssh took podcrates v0.49.0 at a99de1d (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.49.0` | T-545, T-684 |
