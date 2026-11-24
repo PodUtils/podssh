@@ -3,7 +3,7 @@
 //! runs (T-108) and its shell (T-222); whether a client may forward (T-109);
 //! whether a reload that takes a key out ends its sessions (T-842); a client
 //! policy (T-838); a shell shared by name (T-837); a unit of systemd that
-//! runs it (T-709).
+//! runs it (T-709); the message of the day (T-119).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -26,6 +26,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "run no command and no shell: each such request is refused, and no shell is looked for", None),
     row(None, "pty", Some("MODE"), FlagKind::Supported,
         "what a pty request meets where no pty opens: auto, a devpts instance of serve's own, then a tty whose calls serve answers (Linux); then serve as the line discipline on pipes (echo, editing, Ctrl-C to the command); notify, the tty that serve answers with no pty tried, else the request refused; line, the line discipline with no pty tried; no, the request refused (default: auto)", None),
+    // The message of the day of a login shell on a tty (T-119).
+    row(None, "motd", Some("FILE"), FlagKind::Supported,
+        "the message of the day: shown before each login shell on a tty, never for a command, and not when ~/.hushlogin exists; at most 64 KiB, with no control character but tab and newline (default: /etc/motd, where it is there)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
     row(None, "revoke-ends-sessions", None, FlagKind::Supported,

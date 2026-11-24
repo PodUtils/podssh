@@ -94,6 +94,9 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
     if let Some(file) = &args.policy {
         words.extend(["--policy".to_string(), absolute("--policy", file)?]);
     }
+    if let Some(file) = &args.motd {
+        words.extend(["--motd".to_string(), absolute("--motd", file)?]);
+    }
     for pattern in &args.accept_env {
         words.extend(["--accept-env".to_string(), pattern.clone()]);
     }

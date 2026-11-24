@@ -35,6 +35,7 @@ use std::sync::{Arc, Mutex};
 
 use pod_term::termios::{flags, Termios, Tty};
 use russh::ChannelId;
+use tokio::io::AsyncWriteExt;
 use tokio::sync::{mpsc, watch};
 
 use super::channel::{Open, Program};
@@ -162,8 +163,17 @@ pub(super) fn spawn(
     let mine = tokio::net::UnixStream::from_std(mine).map_err(|e| format!("the tty socket: {e}"))?;
     let (from_child, to_child) = mine.into_split();
     let (exited_tx, exited) = watch::channel(false);
-    let ends = run::Ends { keys, from_child, to_child, screen };
-    let task = tokio::spawn(run::run(shared, told, ends, size, exited, stop));
+    let mut ends = run::Ends { keys, from_child, to_child, screen };
+    // The message of the day comes before the child's first byte (T-119).
+    let motd = open.extras.motd.take();
+    let task = tokio::spawn(async move {
+        if let Some(motd) = motd
+            && ends.screen.write_all(&motd).await.is_err()
+        {
+            return;
+        }
+        run::run(shared, told, ends, size, exited, stop).await;
+    });
     tokio::spawn(running.finish(child, vec![task], exited_tx, open.closed.clone()));
     Ok(())
 }

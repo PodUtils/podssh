@@ -1,6 +1,10 @@
 //! The start of what a session channel runs, apart from the handler so that
 //! each file stays short: a program with the shell found at its start
-//! (T-108, T-222), or the SFTP server in the process (T-112).
+//! (T-108, T-222) and the parts of a login's start (T-119, `start.rs`), or
+//! the SFTP server in the process (T-112).
+
+#[cfg(unix)]
+use std::sync::Arc;
 
 use russh::server::Session;
 use russh::ChannelId;
@@ -44,16 +48,26 @@ pub(super) async fn start_program(
     program: Program<'_>,
     original: Option<Vec<u8>>,
 ) -> Result<(), String> {
-    use super::{child, env, shell};
+    use super::{child, env, shell, start};
     use std::os::unix::ffi::OsStringExt;
     let base = settings.base();
     let candidates = shell::candidates(settings.shell.as_deref(), env::lookup(&base, "SHELL"));
     let probe_env = env::without_credentials(&base);
-    let found = tokio::task::spawn_blocking(move || shell::find(&candidates, &probe_env))
-        .await
-        .map_err(|e| format!("the search for a shell failed: {e}"))?
-        .map_err(|none| none.to_string())?;
-    let child_env = env::child_env(&base, &found.path, &open.env);
+    let kind = start::Kind { login: matches!(program, Program::Login), tty: open.pty.is_some() || open.line.is_some() };
+    let (taken, held) = (open.env.clone(), Arc::new(settings.clone()));
+    // The parts of a login's start read files (T-119): on the same blocking
+    // thread as the search, after it.
+    let (found, child_env, (extras, said)) = tokio::task::spawn_blocking(move || {
+        let found = shell::find(&candidates, &probe_env)?;
+        let child_env = env::child_env(&base, &found.path, &taken);
+        let extras = start::extras(&held, kind, &child_env);
+        Ok::<_, shell::NoShell>((found, child_env, extras))
+    })
+    .await
+    .map_err(|e| format!("the search for a shell failed: {e}"))?
+    .map_err(|none| none.to_string())?;
+    said.iter().for_each(|line| settings.say(line));
+    open.extras = extras;
     let child_env = env::with_original(child_env, original.map(std::ffi::OsString::from_vec));
     child::spawn(open, id, &found.path, program, child_env)
 }

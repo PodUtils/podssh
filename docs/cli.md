@@ -6351,6 +6351,25 @@ gives up each capability of the process (T-698), before it reads a file.
   makes that refusal fatal under `-tt` (`PTY allocation request failed`,
   255); T-111 is the line discipline for that case. On Windows a pty
   request is refused.
+- **The message of the day (T-119, GitHub #19).** A login shell on a tty
+  (a pty, a tty that serve answers, or the line discipline) is shown the
+  message of the day before its first byte, as sshd shows it: the file of
+  `--motd FILE`, else `/etc/motd` where it is there
+  (`crates/podssh-ssh/src/server/motd.rs`). A command, a forced
+  `command=` and a subsystem are shown none, and neither is a user whose
+  `$HOME/.hushlogin` exists (the home from `HOME`; an empty or relative one
+  hushes nothing). At most 64 KiB of the file is read, and serve's stderr
+  says when the rest was cut; the text goes through
+  `podssh_ws::text::multi_line`, so each control character but tab and
+  newline is dropped, and each newline reaches the client as CR LF. A file
+  that is not a regular file is refused before a byte is read (a FIFO would
+  hold the login). The file is read again at each login, with no cache. A
+  `--motd FILE` that cannot be read at the start refuses the start (78);
+  later, a login goes on without it, and stderr says why. On a pty the text
+  is read by the output's pump ahead of the master, on the line discipline
+  it is drawn before the first prompt, and on a tty that serve answers it is
+  written before the discipline starts: in each case before any byte of the
+  shell.
 - **SFTP (T-112).** The `sftp` subsystem is served in the process
   (`crates/podssh-ssh/src/server/sftp/`): SFTP version 3 as OpenSSH's
   `sftp-server` speaks it, on russh-sftp's packets (the crate of podssh's

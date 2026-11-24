@@ -18,7 +18,7 @@ use std::task::{ready, Context, Poll};
 
 use russh::{ChannelId, Pty};
 use tokio::io::unix::AsyncFd;
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::sync::watch;
 
 use super::channel::{Open, Program};
@@ -117,6 +117,9 @@ pub(super) fn spawn(
     let (master, size) = (granted.master.clone(), granted.size);
     let (exited_tx, exited) = watch::channel(false);
     let to = running.write.make_writer();
+    // The message of the day comes before the child's first byte (T-119):
+    // the pty's own output is read after it. Its newlines are CR LF already.
+    let motd = std::io::Cursor::new(open.extras.motd.take().unwrap_or_default());
     // With --share, the login shell's input goes through the lease and its
     // output to each seat too (T-837); else straight, as before.
     let output = match open.offer.take() {
@@ -128,11 +131,11 @@ pub(super) fn spawn(
             let owner = open_hub(open, &shares, Box::new(Master(master.clone())), Box::new(resize), size);
             open.give_stdin(owner.writer());
             let tee = Tee::new(to, owner.hub.clone());
-            tokio::spawn(pump(Master(master), tee, exited))
+            tokio::spawn(pump(motd.chain(Master(master)), tee, exited))
         }
         None => {
             open.give_stdin(Box::new(Master(master.clone())));
-            tokio::spawn(pump(Master(master), to, exited))
+            tokio::spawn(pump(motd.chain(Master(master)), to, exited))
         }
     };
     tokio::spawn(running.finish(child, vec![output], exited_tx, open.closed.clone()));

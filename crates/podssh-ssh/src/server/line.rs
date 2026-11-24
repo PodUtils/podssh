@@ -114,7 +114,8 @@ pub(super) fn spawn(
     let session = Session::with_utf8(Facts { selected: true, ..Facts::default() }, utf8).sized(*size.borrow());
     // A command, not a shell: no prompt around its output, as on a pty (T-848).
     let session = if login { session } else { session.without_prompt() };
-    let line = Line { session, lines, group: open.group.clone(), login };
+    let motd = open.extras.motd.take().unwrap_or_default();
+    let line = Line { session, lines, group: open.group.clone(), login, motd };
     tasks.push(tokio::spawn(line.run(keys, [out, err], size, screen)));
     tokio::spawn(running.finish(child, tasks, exited_tx, open.closed.clone()));
     Ok(())
@@ -142,6 +143,8 @@ struct Line {
     lines: Option<mpsc::Sender<Vec<u8>>>,
     group: Arc<AtomicI32>,
     login: bool,
+    /// The message of the day (T-119), drawn before the first prompt.
+    motd: Vec<u8>,
 }
 
 impl Line {
@@ -157,7 +160,9 @@ impl Line {
     ) {
         if self.login {
             self.give_child(TRAP.to_vec()).await;
-            if screen.write_all(PROMPT).await.is_err() {
+            // Its rows end in CR LF, so the prompt starts a row of its own.
+            let motd = std::mem::take(&mut self.motd);
+            if screen.write_all(&motd).await.is_err() || screen.write_all(PROMPT).await.is_err() {
                 return;
             }
         }
