@@ -3350,7 +3350,7 @@ when a podcrates tag has `pod-session` with the held link.
 **Milestone:** none
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3469,6 +3469,9 @@ session with no change to its code. Written:
   2780 passed, 0 failed.
 - Waits, so the entry stays partial: the live run with a tester's tunnel from Actions, where a tester gives one
   (asked on #215).
+
+2026-11-24 (the owner's amendment of "Issues", `docs/decisions.md`): the road is done (`9fa5523`); what stays
+is its live run through a tester's throwaway tunnel, followed in T-899; this entry is done.
 
 # T-757: VLESS's first write coalesced to one write of 3,333 bytes, padded when short
 
@@ -4041,4 +4044,39 @@ Planted: the anonymous form sent where an access token was given, and the test f
 - Planted: the anonymous form sent where an access token was given: the access-token test failed (3 passed, 1 failed); restored.
 - `cargo test -p podssh-cli --features devtunnel --lib`: 1189 passed. Clippy: no warning in the changed files.
 
+# T-899: The live run of the Dev Tunnels road through a tester's tunnel
+
+**Source:** T-755's close (2026-11-24): the road is done; its live run waits for a tunnel.
+**Category:** measurement
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+The Dev Tunnels forward road (T-755, T-785) passes against its stand-in. It has not run through a real tunnel of
+Microsoft's relay.
+
+## Premise
+
+- T-755's `## Done`: the live run with a tester's tunnel from Actions waits for a tester to give one (asked on #215).
+
+## Approach
+
+1. A workflow that takes a tunnel's id and access token from the repository's secrets and runs
+   `podssh ssh` through the road to a port of the tunnel's host, short.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-relay --features devtunnel --test devtunnel -- --ignored
+```
+
+The live case passes through the tester's tunnel, and the same run with a wrong token exits with the road's refusal.
+
+## Blocker
+
+A tester or the operator: a throwaway Dev Tunnel and its access token in the repository's secrets (asked on #215).
 

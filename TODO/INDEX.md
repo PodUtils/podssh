@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**830 entries: 6 open, 49 partial, 11 blocked, 764 done.**
+**832 entries: 7 open, 46 partial, 12 blocked, 767 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
-| P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 6 | 15 | 6 | 361 | 388 |
-| **All** | 6 | 49 | 11 | 764 | 830 |
+| P2 | 0 | 22 | 2 | 308 | 332 |
+| P3 | 7 | 13 | 7 | 363 | 390 |
+| **All** | 7 | 46 | 12 | 767 | 832 |
 
 ## Entries
 
@@ -391,9 +391,9 @@ repository and CI).
 | [T-316](ws.md) | P2 | S | backlog | defect | done | `no_proxy` with CIDR blocks: an address inside a listed block goes through the proxy |
 | [T-317](ws.md) | P2 | S | backlog | defect | done | A proxy that answers `200` to CONNECT and then carries no SSH: `doctor` says that plain ssh can leave, and `--direct` ends with a bare reset |
 | [T-318](ws.md) | P3 | S | backlog | defect | done | A relay's name pinned to a loopback address goes to the proxy |
-| [T-319](roads.md) | P2 | L | M10 | feature | partial | An HTTP road for a proxy that refuses the WebSocket upgrade |
+| [T-319](roads.md) | P2 | L | M10 | feature | done | An HTTP road for a proxy that refuses the WebSocket upgrade |
 | [T-320](ws.md) | P3 | S | backlog | defect | done | A `407` names the proxy's authentication scheme |
-| [T-321](roads.md) | P3 | L | M10 | feature | partial | An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441) |
+| [T-321](roads.md) | P3 | L | M10 | feature | done | An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441) |
 | [T-322](multi.md) | P3 | S | backlog | feature | done | The emergency stop of the broadcast has a key that the user chooses |
 | [T-323](relay.md) | P3 | S | backlog | chore | done | A frame that `podssh ssh` sends to the relay stays under 64 KiB with room to spare |
 | [T-324](ws.md) | P3 | M | backlog | feature | done | `doctor` tells the three failures of the upgrade apart, and samples each probe |
@@ -785,7 +785,7 @@ repository and CI).
 | [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
 | [T-753](robustness.md) | P2 | M | M10 | defect | partial | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
-| [T-755](ws.md) | P3 | L | none | feature | partial | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
+| [T-755](ws.md) | P3 | L | none | feature | done | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
 | [T-756](robustness.md) | P2 | S | M10 | defect | partial | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |
 | [T-757](ws.md) | P3 | M | M10 | feature | done | VLESS's first write coalesced to one write of 3,333 bytes, padded when short |
 | [T-758](ws.md) | P3 | M | M10 | feature | done | A replay window for early data: each 0-RTT nonce kept 10 minutes, a repeat refused and the session at 1-RTT |
@@ -906,3 +906,5 @@ repository and CI).
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
 | [T-896](resume.md) | P3 | M | backlog | feature | partial | Local echo from end to end, for kept and shared shells, and on the Windows console |
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
+| [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
+| [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |

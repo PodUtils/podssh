@@ -3189,7 +3189,7 @@ documents that refusal for the names that it intercepts (T-311). GitHub #55
 **Milestone:** M10
 **Priority:** P2
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -3672,6 +3672,10 @@ Merged, built and run by the main session the same day, with two repairs of the 
 What stays of item 2: nothing of podssh's once the above passes; the HTTP road's own Prove of #55's
 invariant 5 against a path of a real proxy waits for the live runs (item 4, Q88).
 
+2026-11-24 (the owner's amendment of "Issues", `docs/decisions.md`): the road and its protocol are done; what
+stays is a measurement, the proof of #55's invariant 5 against a real proxy's path in the live runs, which waits until
+podssh is stable (Q88). It is followed in T-898; this entry is done.
+
 # T-321: An HTTP/2 road: the WebSocket over extended CONNECT (RFC 8441)
 
 **Source:** GitHub #51 (Nemo-010, 2026-10-30).
@@ -3679,7 +3683,7 @@ invariant 5 against a path of a real proxy waits for the live runs (item 4, Q88)
 **Milestone:** M10
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4044,6 +4048,10 @@ SETTINGS and a refusal on HTTP/2 are read in `pod-ws` alone: `a_server_that_offe
 and `a_403_on_the_connect_ends_the_session_with_the_relay_s_refusal` (PodUtils/podcrates, crates/pod-ws/tests/h2_road.rs) hold them.
 `t321-connection-unshared` is planted again in podssh's glue: a context of the relay client made new at each call
 (`crates/podssh-relay/src/context.rs`), so no session shares the pool; its run is the CLI's `h2_each_cli`.
+
+2026-11-24 (the owner's amendment of "Issues", `docs/decisions.md`): the road is done (in `v1.1.0-beta.2`);
+what stays is a measurement, the run against Apache's `H2WebSockets` in the build image and the live run, which wait
+until podssh is stable (Q88). It is followed in T-898; this entry is done.
 
 # T-329: Carry the patch of iroh-relay to iroh 1.4.1 (Azathothas/podssh#53)
 
@@ -10771,3 +10779,39 @@ log; the secret-grep step fails.
 The library is podcrates T-117 (the Access client of `cloudflared access tcp`, the login and the token
 cache). Podssh takes it at its release tag. A live run needs a Cloudflare account (no test accounts as CI
 secrets; owner, 2026-11-09), so the tests use a stand-in Access.
+
+# T-898: The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets`
+
+**Source:** T-319's and T-321's close (2026-11-24): the roads are done; their measurements against outside servers wait.
+**Category:** measurement
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+The split HTTP road (T-319) and the HTTP/2 road over extended CONNECT (T-321) pass against podssh's own relay role and
+stand-ins. Neither has run through a real proxy's path, nor against Apache with `H2WebSockets`.
+
+## Premise
+
+- T-319's `## Done`: the proof of #55's invariant 5 against a real proxy waits for the live runs (Q88).
+- T-321's `## Done`: the run against Apache's `H2WebSockets` in the build image and the live run wait (Q88).
+
+## Approach
+
+1. A run of the split road through a real HTTP proxy that refuses the upgrade (squid in the build image), proving
+   invariant 5 of #55: each chunk acknowledged before it is deleted, none lost across a reconnect.
+2. A run of the HTTP/2 road against Apache's `mod_http2` with `H2WebSockets on`.
+3. Each live run against the relay role, when podssh is called stable (Q88).
+
+## Prove
+
+```sh
+sh scripts/dev.sh check
+```
+
+With the release check (T-251): the two runs above pass, and a planted road that drops an unacknowledged chunk fails
+step 1.
+

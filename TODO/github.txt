@@ -56,11 +56,11 @@
 48 pull closed
 49 pull closed
 50 pull closed
-51 issue open
+51 issue closed
 52 pull closed
 53 pull closed
 54 issue closed
-55 issue open
+55 issue closed
 56 issue closed
 57 pull closed
 58 pull closed
@@ -220,7 +220,7 @@
 212 issue closed
 213 issue closed
 214 issue closed
-215 issue open
+215 issue closed
 216 issue closed
 217 issue closed
 218 issue closed

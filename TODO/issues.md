@@ -156,9 +156,9 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
-| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open (2026-11-24: the road is delivered, in `v1.1.0-beta.2`; open only for T-321's run against Apache's `H2WebSockets` and its live run, which wait until podssh is stable, Q88) | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
+| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | closed 2026-11-24: the HTTP/2 road over extended CONNECT is delivered (in `v1.1.0-beta.2`, T-321 done); its run against Apache's `H2WebSockets` and its live run are followed in the record (`T-898`) | T-321 |
 | #54 | `doctor` measures what the proxy does to a stream | closed | T-324 (the three failures of the upgrade, and samples with their loss; the commit "doctor samples each probe of TCP, and names three failures of the upgrade"); T-325 (buffering, a cap on bodies, an idle limit) is M10's, served by podssh's own relay role (Q63) |
-| #55 | The split road's wire protocol | open (2026-11-24: the road is delivered; open only for T-319's proof of invariant 5 against a real proxy, in the live runs, which wait until podssh is stable, Q88) | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
+| #55 | The split road's wire protocol | closed 2026-11-24: the split road and its wire protocol are delivered (T-319 done); the proof of invariant 5 against a real proxy is followed in the record (`T-898`) | T-319 |
 | #56 | A cleartext road on port 443, probed | closed 2026-11-09, T-326 done (`fddabaa3`) | T-326 (the operator allowed it with a token for one session, Q45, and it is M10's since Q63, served by podssh's own relay role) |
 | #59 | The forward road without the operator's relay: ways with no account to reach a `host:port` (research) | closed 2026-11-11, each road of its ranking done | T-162, T-169, T-347, T-348, T-351, T-352, T-353, T-369, T-370, T-371, T-372, T-373, T-374 (each road of its ranking, in the paragraph below) |
 | #60 | A relay template: a WebSocket forwarder that takes the destination from the URL | closed 2026-11-01, each entry done | T-369 (a forwarder that the user names); T-370 (the public forwarders in the binary, and a fallback to them, by the operator's ruling Q56) |
@@ -293,7 +293,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #212 | COORD-038: podssh took podcrates v0.30.0 at ef3666f (to podcrates) | closed (2026-11-12: podcrates recorded it in COORD-058) | T-684 |
 | #213 | COORD-039: pod-services: smee.io's server and hostc's server, for podssh's T-741 and T-742 (to podcrates) | closed (2026-11-12: `smee-io` and `hostc` in v0.32.0) | T-741, T-742 |
 | #214 | COORD-040: pod-proxy's stun: MESSAGE-INTEGRITY and FINGERPRINT, for podssh's TURN road T-621 (to podcrates) | closed (2026-11-12: `pod_proxy::stun` in v0.32.0; T-621 uses it) | T-621 |
-| #215 | relay: add a Dev Tunnels forward road (Nemo-010) | open (2026-11-24: delivered on `main` at `9fa5523`; open only for T-755's live run, which waits for a throwaway tunnel from the tester) | T-755 |
+| #215 | relay: add a Dev Tunnels forward road (Nemo-010) | closed 2026-11-24: the Dev Tunnels forward road is delivered (`9fa5523`, T-755 and T-785 done); its live run through a tester's tunnel is followed in the record (`T-899`, blocked on a tunnel) | T-755, T-785 |
 | #216 | COORD-041: pod-devtunnel, the client side of Microsoft Dev Tunnels' relay, for podssh's T-755 (#215) (to podcrates) | closed 2026-11-12: podcrates v0.33.0 has it, taken at `72d6a3d` | T-755 |
 | #217 | COORD-042: podssh took podcrates v0.31.0 at 02650f1 and v0.32.0 at 555fddc (to podcrates) | closed 2026-11-12: recorded in COORD-064 | T-684 |
 | #218 | COORD-043: podssh took podcrates v0.33.0 at 72d6a3d (to podcrates) | closed 2026-11-12: recorded in COORD-065 | T-684 |
