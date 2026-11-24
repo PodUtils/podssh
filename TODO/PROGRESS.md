@@ -45,11 +45,13 @@ Read on 2026-11-24.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** Two wait (2026-11-24), each a local branch of a worktree under `.claude/worktrees/`, pushed as
-   `draft/<branch>`, in this order: T-123 (`d-t123`, `ef97ac0`; Q108 is settled, so it merges with its flag; the merge
-   is on `draft/merge-123`) and T-161 (`d-t161`, `d41ef89`, WIP: the modes before a replay and a redraw; it builds only
-   once pod-term has COORD-140's `Modes`, #350). Each `draft/*`, `beta/*` and `release/*` branch on GitHub that is
-   already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses deletes).
+8. **Drafts.** Five wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-896 (`merge-896b`: the reports
+   of a shared shell, merged and its own tests pass; its whole suite ran here), T-123 (`merge-123`: the publisher of a
+   client's `-R` behind `--publish-remote`, Q108; not built yet), T-839 (`d-t839c`: `podssh agent` and serve's host key in
+   a TPM, Windows TBS; not built), T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built),
+   and T-161 (`d-t161`: builds only once pod-term has COORD-140's `Modes`, #350). Each `draft/*`, `beta/*` and `release/*`
+   branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
+   deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
    never files under it. Never amend a commit that was pushed, not even on a draft branch: the next push would be a
