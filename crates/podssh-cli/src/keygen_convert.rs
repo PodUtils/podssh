@@ -113,6 +113,11 @@ fn args_format_name(format: Format) -> &'static str {
 /// that `podssh ssh -i` reads (T-022), its passphrase asked when it has one.
 pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
     let shown = path.display();
+    // A key file of a TPM holds its public area in the clear (T-839).
+    if podssh_ssh::tpm::is_key_file(path) {
+        let file = podssh_ssh::tpm::read_key_file(path)?;
+        return podssh_ssh::tpm::public_key(&file).map(KeyFile::Public);
+    }
     let text = Zeroizing::new(std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?);
     if let Some(public) = crate::keygen_sign::public_line(&text) {
         if private {

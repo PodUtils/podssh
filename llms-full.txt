@@ -9746,6 +9746,20 @@ podssh keygen
   may reach, it says why, asks nothing and writes nothing (exit 1).
   PODSSH_SK_DEVICE set to none turns security keys off.
 
+  podssh keygen -t ecdsa-tpm makes an ECDSA P-256 key in this machine's TPM
+  2.0. The key never leaves the TPM, and a copy of its file is useless in
+  another TPM. The key is sealed to PCRs of the SHA-256 bank: PCR 7 by default,
+  the state of Secure Boot, or the list of -O pcr=LIST. The TPM signs with it
+  only while those PCRs hold the values that they held when the key was made.
+  After a boot that measured something else, the TPM refuses the key, and
+  podssh ssh -i says so and tries the next key. The key has no passphrase: the
+  TPM takes its policy and no password. The file is a TSS2 PRIVATE KEY, as
+  openssl_tpm2_engine and ssh-tpm-agent read it. podssh reaches the TPM through
+  /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). With no TPM
+  that podssh may reach, as in a container or a sandbox, it says why and writes
+  nothing (exit 69). Before the file is written, the new key signs once and the
+  signature is checked. -y and -l read the public key from the file.
+
   podssh asks for the passphrase two times, on the terminal or through
   SSH_ASKPASS. -N '' makes a key with no passphrase. A passphrase given with -N
   is refused, because each process on the host can read a command line. With no
@@ -9772,9 +9786,10 @@ podssh keygen
 
   Options:
     -t, --type TYPE
-        key type: ed25519 (the default), ecdsa or rsa, or ed25519-sk or
-        ecdsa-sk, a key of a security key (FIDO2); with -s, the signature of an
-        RSA CA: rsa-sha2-512 (the default) or rsa-sha2-256.
+        key type: ed25519 (the default), ecdsa or rsa; ed25519-sk or ecdsa-sk,
+        a key of a security key (FIDO2); ecdsa-tpm, a key sealed to this
+        machine's TPM 2.0; with -s, the signature of an RSA CA: rsa-sha2-512
+        (the default) or rsa-sha2-256.
     -b, --bits BITS
         key size: ecdsa 256 (the default), 384 or 521; rsa 2048, 3072 (the
         default), 4096 or 8192.
@@ -9833,7 +9848,8 @@ podssh keygen
         force-command=CMD, source-address=LIST, verify-required,
         extension:NAME[=VALUE], critical:NAME[=VALUE]; with -t ed25519-sk or
         ecdsa-sk: resident, application=ssh:NAME, user=NAME, no-touch-required,
-        verify-required, device=PATH.
+        verify-required, device=PATH; with -t ecdsa-tpm: pcr=LIST (7 by
+        default), device=PATH.
     -U, --agent-key
         the key is in the agent (SSH_AUTH_SOCK), which signs: the key of -f
         with -Y sign, the CA's with -s; the file may hold the public key.
@@ -9875,6 +9891,10 @@ podssh keygen
 
     the fingerprint of a key
         $ podssh keygen -l -f ~/.ssh/id_ed25519.pub
+
+    a key that signs only in this machine's TPM, while Secure Boot is as it is
+    now
+        $ podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm
 
 podssh ts
   the tailnet node and byte pipe, over DERP (not in this build).
@@ -12749,6 +12769,11 @@ ENVIRONMENT
       races the road last with it; and podssh doctor asks the relay at its
       shard (see FILES). Unset or empty: no secret. A build with the feature
       gsr; another build passes it over.
+  PODSSH_TPM_DEVICE
+      The TPM 2.0 that podssh keygen -t ecdsa-tpm and podssh ssh use: a device,
+      or the socket of a TPM in software (swtpm socket --server type=unixio).
+      none: podssh uses no TPM, and each use says so. Unset: /dev/tpmrm0, the
+      kernel's resource manager.
   PODSSH_NET
       The net's document of podssh net: the absolute path of its file, in place
       of net.doc in the cache's directory. no: the net is off; this way, no
@@ -13282,9 +13307,10 @@ EXIT STATUS
       has. podssh session: no session of that name answers, or its session
       ended (and the status that it ended with is said). podssh detached status
       and stop: no run of that name runs. podssh relay serve: the port of
-      --listen is in use. podssh ssh and health with --policy: a KEXINIT that
-      does not read gives no verdict. podssh health --policy also gives none
-      with no connection, or with a size that one exchange cannot measure.
+      --listen is in use. podssh keygen -t ecdsa-tpm: no TPM that podssh may
+      reach. podssh ssh and health with --policy: a KEXINIT that does not read
+      gives no verdict. podssh health --policy also gives none with no
+      connection, or with a size that one exchange cannot measure.
   70
       The command is not implemented yet, or podssh failed inside. podssh node
       and operator: the relay closed the node or the session for a fault (1003,
@@ -13671,6 +13697,10 @@ EXAMPLES
 
   the fingerprint of a key
       $ podssh keygen -l -f ~/.ssh/id_ed25519.pub
+
+  a key that signs only in this machine's TPM, while Secure Boot is as it is
+  now
+      $ podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm
 
   this manual with no pager
       $ podssh man --no-pager

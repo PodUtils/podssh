@@ -27,6 +27,8 @@
 //!   request on its connection ([`upgrade`]).
 //! - security keys (FIDO2 `sk-` keys): made, and signing in the device,
 //!   after a probe of the way to it ([`sk`]).
+//! - keys sealed to the machine: made in a TPM 2.0, and signing only while
+//!   the measured boot state is the recorded one ([`tpm`]).
 //! - the key that each host took last, signed in the first request of the
 //!   next login ([`accepted`]).
 //! - the server of `podssh serve`: russh's server over a stream it is
@@ -116,6 +118,8 @@ pub mod sshsig;
 pub mod sshsig_cert;
 pub mod tally;
 pub mod terminal;
+// Keys sealed to the machine: a TPM 2.0 key gated by PCRs (T-839).
+pub mod tpm;
 // One reading of a channel that did not open after the login (T-464).
 pub mod unopened;
 pub mod upgrade;

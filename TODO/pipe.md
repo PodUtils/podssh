@@ -1,11 +1,11 @@
 The work of milestone M7, `podssh pipe` and `--persist`, and the backlog of
 streams that `pipe` can carry: desktop streams and Telnet, a published HTTP
-service, serial devices and USB/IP. The design is `docs/design.md:1293-1361`;
+service, serial devices and USB/IP. The design is `docs/design.md:1338-1406`;
 the milestone is `docs/ROADMAP.md:238-247`.
 
 # T-174: `podssh pipe A B` with local addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1310-1361`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1355-1406`;
 GitHub #26 (Nemo-010, 2026-10-08). Measured here on `3ee70dc`.
 **Category:** feature
 **Milestone:** M7
@@ -33,7 +33,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
   `crates/podssh-ts/src/pipe.rs`; the new pump must not repeat it.
 - Read: `exec:` starts the user's own program. The operator accepted it on
   2026-10-08 (`docs/decisions.md`). On sandbox A, `/tmp` and `$HOME`
-  do not run programs (`docs/STATUS.md:538`).
+  do not run programs (`docs/STATUS.md:539`).
 
 ## Approach
 
@@ -69,9 +69,9 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
    shell gives. With no child, a clean end gives 0.
 7. In the same commit: `docs/cli.md`, the notes
    (`crates/podssh-cli/src/man/notes.rs:34-73`), two examples
-   (`crates/podssh-cli/src/man/examples.rs:8-316`; its test at
-   `crates/podssh-cli/src/man/examples.rs:439-465` learns the new variant),
-   `docs/design.md:1312-1321`, `docs/STATUS.md`. Each file stays under 500
+   (`crates/podssh-cli/src/man/examples.rs:8-320`; its test at
+   `crates/podssh-cli/src/man/examples.rs:443-469` learns the new variant),
+   `docs/design.md:1357-1366`, `docs/STATUS.md`. Each file stays under 500
    lines (`AGENTS.md:438-439`).
 
 ## Decision
@@ -136,7 +136,7 @@ pump of `podssh proxy` stays until T-175 moves it onto this one.
 
 # T-175: `podssh pipe` with remote addresses
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1317-1321`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:240-244`), `docs/design.md:1362-1366`;
 GitHub #26 (Nemo-010, 2026-10-08); the RustConn report in GitHub #24 (one
 address model across roads; read in the report, not verified here).
 **Category:** feature
@@ -161,12 +161,12 @@ local program to a target, and `podssh proxy` stays a second pump.
   its write side ends. That is right for SSH and wrong for a pipe: the relay
   has no half-close (`docs/relay.md:530-536`), so a Close cuts a reply on its
   way. Measured live for proxy: the full reply after stdin closed
-  (`docs/STATUS.md:443`).
+  (`docs/STATUS.md:444`).
 - Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-22`
   after the hops of `crates/podssh-ssh/src/run.rs:174-191`, but that code is
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
-  measured. Only exec is measured with digests (`docs/STATUS.md:254`); `-W`
+  measured. Only exec is measured with digests (`docs/STATUS.md:255`); `-W`
   was checked with a banner of 16 bytes (`scripts/interop.sh:357-359`).
 - Read: `node:` needs T-084 (M4) and `iroh:` needs T-163 (M6); both are done
   before M7 starts.
@@ -198,11 +198,11 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6944`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6989`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
-7. In the same commit: `docs/cli.md`, `docs/design.md:1312-1321`, the notes,
+7. In the same commit: `docs/cli.md`, `docs/design.md:1357-1366`, the notes,
    the examples, `docs/STATUS.md`.
 
 ## Decision
@@ -310,12 +310,12 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Measured: `podssh proxy unix-connect:/tmp/x.sock 1` exits 64
   (`':' is not allowed`): no command takes a socket path.
 - Read: podssh connects to a Unix socket only for the agent
-  (`crates/podssh-ssh/src/keys.rs:416-429`, `connect_agent`); on Windows the agent is a
-  named pipe (`crates/podssh-ssh/src/keys.rs:430-451`).
+  (`crates/podssh-ssh/src/keys.rs:432-445`, `connect_agent`); on Windows the agent is a
+  named pipe (`crates/podssh-ssh/src/keys.rs:446-467`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
   `crates/podssh-cli/src/doctor/unix.rs:235-240`).
-- Read: sandbox A allows an AF_UNIX bind (`docs/STATUS.md:538`); a connect
+- Read: sandbox A allows an AF_UNIX bind (`docs/STATUS.md:539`); a connect
   was not measured. The attempt is the probe, and its errno is the message.
 
 ## Approach
@@ -332,7 +332,7 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
    after a probe at run time; where one fails, exit 69 with the reason
    (the operator's ruling of 2026-10-08).
 5. T-040 gives the remote form: a socket on the server, through `-W`.
-6. In the same commit: `docs/cli.md`, `docs/design.md:1316`, the notes,
+6. In the same commit: `docs/cli.md`, `docs/design.md:1361`, the notes,
    `docs/STATUS.md`. With T-174 and T-175 done, the first item of ROADMAP M7
    is done.
 
@@ -389,7 +389,7 @@ ROADMAP M7 is done; T-040 gives the remote form.
 
 # T-177: `podssh pipe` with a local listener after a probe
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:243-244`), `docs/design.md:1355-1361`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:243-244`), `docs/design.md:1400-1406`;
 GitHub #26 (a local-only mode, as the `--local` of bunflared; read in the
 report, not verified here); sandbox A of T-001.
 **Category:** feature
@@ -401,9 +401,9 @@ report, not verified here); sandbox A of T-001.
 ## Problem
 
 Desktop clients, browsers and database clients call `connect()` themselves:
-they need a local port or socket (`docs/design.md:1358-1361`). podssh refuses
+they need a local port or socket (`docs/design.md:1403-1406`). podssh refuses
 each listener. The design allows one for `pipe`, locally, after a probe
-shows that an AF_UNIX or loopback bind works (`docs/design.md:1355-1357`).
+shows that an AF_UNIX or loopback bind works (`docs/design.md:1400-1402`).
 
 ## Premise
 
@@ -415,7 +415,7 @@ shows that an AF_UNIX or loopback bind works (`docs/design.md:1355-1357`).
   `AGENTS.md:398-426`, `docs/architecture.md:284-301`,
   `docs/target-environment.md:99-103`, `SECURITY.md:274-309`, `README.md:47-56`.
 - Read: sandbox A refuses an AF_INET bind and allows an AF_UNIX bind
-  (`docs/STATUS.md:538`). The box refuses each `bind`, AF_UNIX too
+  (`docs/STATUS.md:539`). The box refuses each `bind`, AF_UNIX too
   (`scripts/box/seccomp.json:11-18`), so it gives the refused case.
 - Read: doctor binds, closes, and never listens
   (`crates/podssh-cli/src/doctor/unix.rs` lines 137-231 at `48a8744`). A bind that works does
@@ -559,7 +559,7 @@ only the code of Windows builds a `SOCKADDR_UN`, in one function that
 
 # T-178: `--persist`: connect again and attach `tmux` again
 
-**Source:** ROADMAP M7 (`docs/ROADMAP.md:245-247`), `docs/design.md:803-820`;
+**Source:** ROADMAP M7 (`docs/ROADMAP.md:245-247`), `docs/design.md:848-865`;
 GitHub #19 (a lasting terminal through `tmux`, from the slingshot report:
 `ado11231/slingshot:crates/slingshot-agent/src/jobs.rs`; read in the
 report, not verified here).
@@ -573,9 +573,9 @@ report, not verified here).
 
 When the relay drops a session, `podssh ssh` exits 255 and the remote shell
 is gone (`docs/design.md:767`). Against a standard sshd only one end runs
-podssh, so the layer of M6 cannot help (`docs/design.md:803-805`). The
+podssh, so the layer of M6 cannot help (`docs/design.md:848-850`). The
 cheapest repair: connect again, and attach a `tmux` session that kept
-running on the server (`docs/design.md:806-810`).
+running on the server (`docs/design.md:851-855`).
 
 ## Premise
 
@@ -587,7 +587,7 @@ running on the server (`docs/design.md:806-810`).
   each session (`crates/podssh-ssh/src/session.rs:180-245`).
 - Read: the relay ends a session at 64 MiB (1009) or 12 h (1001)
   (`docs/relay.md:716-722`). Sandbox A measured the cap at 67,107,943 bytes,
-  and one close `1011` in 180 short sessions (`docs/STATUS.md:546-547`).
+  and one close `1011` in 180 short sessions (`docs/STATUS.md:547-548`).
 - Read: tmux is never assumed (`docs/target-environment.md:116-118`).
 
 ## Approach
@@ -610,9 +610,9 @@ running on the server (`docs/design.md:806-810`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7071-7073`). After the attach, send the window size again.
+   (`docs/cli.md:7116-7118`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
-   (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`), `docs/design.md:806-810`,
+   (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`), `docs/design.md:851-855`,
    `docs/STATUS.md`, and tmux in the interop image
    (`scripts/interop.sh:24-25`). T-025 shares the classes of close codes;
    T-153 replaces this loop when both ends run podssh.
@@ -725,12 +725,12 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 
 - Read: a byte pipe carries each TCP protocol
   (`crates/podssh-cli/src/man/notes.rs:241-251`); a client that calls
-  `connect()` itself needs a listener (`docs/design.md:1358-1361`), which
+  `connect()` itself needs a listener (`docs/design.md:1403-1406`), which
   T-177 adds where a probe allows it.
 - Read: 64 MiB for each session, both directions together
   (`docs/relay.md:638`), then Close 1009 (`docs/relay.md:720`); public
   targets only (`docs/relay.md:640`). Through the proxy of sandbox A: 0.5 to
-  0.7 MB/s (`docs/STATUS.md:545`).
+  0.7 MB/s (`docs/STATUS.md:546`).
 - Not measured: no RDP, VNC or Telnet client ran through podssh. Each claim
   about a client below is to verify.
 
@@ -754,9 +754,9 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
    `telnet 127.0.0.1 PORT`.
 4. Write a table "Other TCP protocols" after `README.md:220-225`: the
    protocol, what works now, what needs a listener, the 64 MiB limit. Add
-   form a to `crates/podssh-cli/src/man/examples.rs:8-316`; its ProxyCommand
-   parses (`crates/podssh-cli/src/man/examples.rs:416-423`). Link the table
-   from `docs/design.md:1358-1361`.
+   form a to `crates/podssh-cli/src/man/examples.rs:8-320`; its ProxyCommand
+   parses (`crates/podssh-cli/src/man/examples.rs:420-427`). Link the table
+   from `docs/design.md:1403-1406`.
 5. No code. Record the measurements in `docs/STATUS.md`.
 
 ## Prove
@@ -787,8 +787,8 @@ were found by their manuals (read on 2026-10-12, not run here): SSVNC's
 TigerVNC's `vncviewer` takes a Unix socket's path (its synopsis,
 `vncviewer [options] [unix socket]`). The second still needs a listener,
 but an AF_UNIX one, which sandbox A allows where it refuses AF_INET
-(`docs/STATUS.md:535`); there OpenSSH's form a fails before it binds, as
-`ssh` finds no entry for the user (`docs/STATUS.md:540`).
+(`docs/STATUS.md:536`); there OpenSSH's form a fails before it binds, as
+`ssh` finds no entry for the user (`docs/STATUS.md:541`).
 
 ## Done
 
@@ -802,7 +802,7 @@ but an AF_UNIX one, which sandbox A allows where it refuses AF_INET
 - The manual's example of form a, in
   `crates/podssh-cli/src/man/examples.rs`: OpenSSH's `ssh` with
   `-N -L 5901:127.0.0.1:5901` and `podssh proxy %h %p` as its
-  ProxyCommand. `docs/design.md:1317` links the table.
+  ProxyCommand. `docs/design.md:1362` links the table.
 - `scripts/interop-desktop.sh`, sourced by `scripts/interop.sh` after
   `scripts/interop-pipe.sh`, with 7 checks (the harness `desktop`, floor 7,
   in `scripts/interop-baseline.txt`): TigerVNC's `Xvnc` and BusyBox's
@@ -841,7 +841,7 @@ The calls made where the Approach left a choice:
 - The example puts `-N -L` before the ProxyCommand: the start of the
   manual keeps three first steps, and its filter takes each command that
   starts with "ssh -o ProxyCommand='podssh proxy"
-  (`crates/podssh-cli/src/man/examples.rs:319`). It has no
+  (`crates/podssh-cli/src/man/examples.rs:323`). It has no
   `ServerAliveInterval`, so that its line stays within rustfmt's 120
   columns; the note of proxy asks for it
   (`crates/podssh-cli/src/man/notes.rs:252`).
@@ -1219,7 +1219,7 @@ and with which limits.
 - Read in the report (not verified here): USBoverSSH carries USB/IP over an
   SSH exec channel, and says that USB/IP needs kernel modules on the server.
 - Read: an exec channel carries binary data with equal digests
-  (`docs/STATUS.md:254`), and `pipe` carries a TCP stream (T-174, T-175).
+  (`docs/STATUS.md:255`), and `pipe` carries a TCP stream (T-174, T-175).
 - Read: through the relay, a session ends at 64 MiB (`docs/relay.md:638`);
   the traffic of a USB disk reaches that in seconds.
 - Read: podssh cannot load a module or attach a device, and never assumes a
@@ -1298,10 +1298,10 @@ The calls made where the Approach left a choice:
   `torvalds/linux:tools/usb/usbip/src/usbip_attach.c`), so the device's
   traffic passes podssh for as long as the pipe's session lasts; the
   README says so. `usbip` dials TCP only, so a host that refuses an
-  AF_INET bind, as sandbox A does (`docs/STATUS.md:535`), cannot run the
+  AF_INET bind, as sandbox A does (`docs/STATUS.md:536`), cannot run the
   recipe, nor can one without the modules.
 - The row states the limit by the throughput measured through sandbox A's
-  proxy (`docs/STATUS.md:542`): 64 MiB is about 2 minutes of reads at
+  proxy (`docs/STATUS.md:543`): 64 MiB is about 2 minutes of reads at
   0.5 to 0.7 MB/s.
 
 What waits:
@@ -1779,7 +1779,7 @@ alone, so the form of `ssh:`, with its comma before the target, is found by tria
 - Read: the manual's example of the proxy is `podssh pipe http-listen:3128 relay:%h:%p`
   (`crates/podssh-cli/src/man/examples.rs:219`), and its notes give the forms in words
   (`crates/podssh-cli/src/man/notes_pipe.rs:31-34`); a test parses each example with the real
-  parser (`crates/podssh-cli/src/man/examples.rs:423`).
+  parser (`crates/podssh-cli/src/man/examples.rs:427`).
 - Read: `--help` of a verb gives its options, then its notes, and the notes have nothing for `pipe`
   (`crates/podssh-cli/src/help.rs`, lines 240-263 at `1769d79`).
 
@@ -1855,9 +1855,9 @@ of `ssh:a,b` fails.
   `curl --proxy http://127.0.0.1:3128 https://example.org/` and `HTTPS_PROXY` for a program; the
   notes and `docs/cli.md` say that a client of `http-listen:PATH` must speak to a proxy at a
   socket, which curl's `--unix-socket` does not.
-- `crates/podssh-cli/src/man/examples.rs:423` is a line of `podssh_lines`; the test that parses
+- `crates/podssh-cli/src/man/examples.rs:427` is a line of `podssh_lines`; the test that parses
   each example with the real parser is `each_example_parses_with_the_real_parser`
-  (`crates/podssh-cli/src/man/examples.rs:432`). The Premise holds.
+  (`crates/podssh-cli/src/man/examples.rs:436`). The Premise holds.
 
 ## Done
 

@@ -30,7 +30,7 @@ Read:
   never offers a key (`crates/podssh-ssh/src/auth.rs:124-126`).
 - The denial adds the notes of the keys with no condition
   (`crates/podssh-ssh/src/auth.rs` line 115 at `475aea9`). `PublicKeys::notes` writes "no key
-  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:150-169`).
+  was offered" when nothing was offered (`crates/podssh-ssh/src/keys.rs:163-182`).
 - The reporter's output (GitHub #7): the line
   `Permission denied (publickey,keyboard-interactive).`, the note about
   keyboard-interactive, then the wrong note.
@@ -52,9 +52,9 @@ Read:
 3. When the server does not accept `publickey`, say nothing about keys:
    `-i FILE` cannot help.
 4. Give the note about skipped encrypted keys
-   (`crates/podssh-ssh/src/keys.rs:170-176`) the same condition as step 1.
+   (`crates/podssh-ssh/src/keys.rs:183-189`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:7056-7116`
+   so that only the notes change. No document changes: `docs/cli.md:7101-7161`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:847`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:848`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6930-7030`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6975-7075`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6940-6943`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:6985-6988`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6930-7030`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6975-7075`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:7056-7116` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:7101-7161` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:899-910` and `docs/cli.md:5778-5790`, the manual's notes and an
+- `docs/cli.md:899-910` and `docs/cli.md:5823-5835`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1338,9 +1338,9 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:416-453`, `connect_agent`). It offers the agent's
-  keys first (`crates/podssh-ssh/src/keys.rs:218-287`), and skips the agent's
-  certificates (`crates/podssh-ssh/src/keys.rs:226-229`).
+  Pageant (`crates/podssh-ssh/src/keys.rs:432-469`, `connect_agent`). It offers the agent's
+  keys first (`crates/podssh-ssh/src/keys.rs:234-303`), and skips the agent's
+  certificates (`crates/podssh-ssh/src/keys.rs:242-245`).
 - Read: russh 0.64.1, which the binary links, has an agent server
   (`russh::keys::agent::server::serve`): identities, signatures, add and
   remove, lock, and the lifetime and confirm constraints. It has no handler
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:438-442`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:454-458`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:354-361`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -1776,7 +1776,7 @@ with the key file of one, and has no agent to hold one.
   them (`crates/podssh-ssh/src/known_hosts.rs:416-417`), and `ssh-key`
   0.7.0-rc.11 has their algorithms.
 - Read: podssh offers each key that an agent lists
-  (`crates/podssh-ssh/src/keys.rs:218-287`), so an `sk-` key in OpenSSH's
+  (`crates/podssh-ssh/src/keys.rs:234-303`), so an `sk-` key in OpenSSH's
   `ssh-agent`, with its device present, can work today. Not measured.
 - Read: `-I` (PKCS#11) is refused by name
   (`crates/podssh-cli/src/flags.rs:275-278`).
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:636`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:7079-7084`). A person who types slowly must not meet a limit
+  `docs/cli.md:7124-7129`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:7114-7116` asks for a limit on the whole operation.
+   `docs/cli.md:7159-7161` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2344,7 +2344,7 @@ makes its keys with the same crate.
 Read: `rsa` 0.10.0-rc.18 comes into `podssh-ssh` through russh 0.64.1 and
 ssh-key 0.7.0-rc.11 (`cargo tree -i rsa@0.10.0-rc.18`); `podssh keygen` makes
 an RSA key with `RsaKeypair::random` (`crates/podssh-ssh/src/keygen.rs`, line 67 at `ff75425`),
-and its default is Ed25519 (`crates/podssh-ssh/src/keygen.rs:35`). `rsa`
+and its default is Ed25519 (`crates/podssh-ssh/src/keygen.rs:37`). `rsa`
 0.9.10 comes into `podssh-ws`, which only verifies signatures with public keys
 (`PodUtils/podssh:crates/podssh-ws/src/crypto/rsa_sig.rs:10-12`): the attack needs the private
 key. The binary already links aws-lc-rs, whose RSA is constant-time, for the
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5676-5677` says that the key "is never used".
+called. `docs/cli.md:5721-5722` says that the key "is never used".
 
 ## Approach
 
@@ -2573,7 +2573,7 @@ its caller for a signature, it takes the caller's messages until one is a signat
 other (lines 287-299).
 
 Read: podssh offers the next key after a signature that failed
-(`crates/podssh-ssh/src/keys.rs:284`).
+(`crates/podssh-ssh/src/keys.rs:300`).
 
 ## Approach
 
@@ -2598,7 +2598,7 @@ the agent's error, as now; the test fails.
 that each server decodes and none verifies, of the key's own kind: Ed25519 64 bytes of zero, RSA
 zeros of the modulus's length, ECDSA r and s of 1 (`crates/podssh-ssh/src/answer.rs:48-106`); an
 empty one, the first try, made russh's server close the session, as it cannot decode it. The login
-says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:276`).
+says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:292`).
 - `cargo test -p podssh-ssh --lib -- agent_sign`: 1 passed, on Windows: for an Ed25519, an ECDSA
   and an RSA key whose agent refuses to sign, russh's server in the process refused the signature
   that stood in, and a key file logged in at once on the same connection. Planted: the agent's
@@ -2619,7 +2619,7 @@ says why at `-v` and goes on with the next key (`crates/podssh-ssh/src/keys.rs:2
 ## Problem
 
 `podssh ssh -i FILE` asks for the passphrase of a key only when russh says that it is encrypted
-(`crates/podssh-ssh/src/keys.rs:316-317`). russh says so for a key of OpenSSH and for an RSA key
+(`crates/podssh-ssh/src/keys.rs:332-333`). russh says so for a key of OpenSSH and for an RSA key
 in PEM, but not for three others. An encrypted key of PKCS#8 (`BEGIN ENCRYPTED PRIVATE KEY`) is
 read as a plain one, and fails on its DER. An encrypted key of PuTTY fails with ssh-key's "private
 key is encrypted". A key in PEM encrypted with another cipher than AES-128-CBC is read as a plain
@@ -2669,7 +2669,7 @@ Plant: answer as russh does, with no look at the text; the tests of the question
 ## Done
 
 2026-10-11. `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-42`) reads each key
-file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:313-358`), `podssh agent add` and
+file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:329-374`), `podssh agent add` and
 `add-passphrase`, and `podssh keygen -p` and `-c`. It finds an encrypted key by its text (a PEM key
 with `Proc-Type: 4,ENCRYPTED`, `BEGIN ENCRYPTED PRIVATE KEY`, a PuTTY key whose `Encryption` is
 not `none`) and answers "encrypted" with no passphrase. It decrypts a PEM key of AES-128-CBC,
@@ -3754,7 +3754,7 @@ name to give. OpenSSH on the same host connects.
   `docs/decisions.md`; T-222 (on hold) says the same of the shell of `podssh serve`.
 - Read: the same name is `%u`, `Match localuser` (`crates/podssh-cli/src/ssh/config/matching.rs:110`),
   the nick of `chat`, and the default comment of `keygen`, "never from the user database"
-  (`crates/podssh-cli/src/man/notes_keygen.rs:47-48`).
+  (`crates/podssh-cli/src/man/notes_keygen.rs:57-58`).
 - Read, against the report: the README of this repository holds no prompt with `ssh railway.new`
   (no line of `README.md` names Railway, at `01e371e` and at `35a0d19`); that one-liner is
   Railway's own page. Its L-02, Railway's refusal of each login of the day, is the service's state,
@@ -5869,7 +5869,7 @@ each call site of the Approach is done:
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -5912,6 +5912,40 @@ state gates.
    disk can do if it is not.
 4. The sandbox has no TPM: the backend is behind a probe, and the manual says so.
 
+## Decision
+
+- **Where the code lives: `crates/podssh-ssh/src/tpm/`, not `pod-identity`** (2026-11-24, the drafting
+  agent; see the Correction). The codec's files (`wire.rs`, `rc.rs`, `cmd.rs`, `policy.rs`,
+  `keyfile.rs`, `public.rs`, `flow.rs`, `unix.rs`) take no podssh type but russh's `PublicKey`, so a
+  move to a crate of PodUtils/podcrates is a copy; the login's signer (`signer.rs`, `crates/podssh-ssh/src/keys_tpm.rs`) and
+  `keygen -t ecdsa-tpm` stay podssh's. Lost: waiting for podcrates to make a TPM crate first (no
+  second user asks for one today, and the entry would block on another session); `pod-identity`
+  (it holds the relay end's Ed25519 seed, pins and allowlist, not SSH keys); `tss-esapi` of crates.io
+  (it links the C library tpm2-tss, against the static binary of each release); `tpm2-protocol`
+  1.2.4 of crates.io, a marshaller in pure Rust (updated on 2026-11-24, so younger than the two weeks
+  that a pin wants; the dozen commands here are about 200 lines, each pinned by a byte vector of
+  part 3). A crate of podcrates may take `tpm2-protocol` later.
+- **The command line: `-t ecdsa-tpm` with `-O pcr=LIST` and `-O device=PATH`**, where the Approach
+  wrote `--tpm --pcr 0,7,11`. Lost: new long flags, which `ssh-keygen` has none of; `-t` and `-O`
+  already carry the security keys' type and options, and one table (`crates/podssh-cli/src/flags/keygen.rs`) renders the
+  help and the manual.
+- **PCR 7 by default** (the state of Secure Boot, which a kernel's update leaves alone, and the
+  default of `systemd-cryptenroll`). Lost: `0,7` (PCR 0 moves with each firmware update, before the
+  offline update exists); no default (a sealed key needs some PCR).
+- **No TPM: exit 69** (`EX_UNAVAILABLE`), as the Approach says, where a missing security key exits
+  1 as `ssh-keygen` does: `ssh-keygen` has no TPM key to follow. Other failures exit 1.
+- **The file's `TPM2_PolicyPCR` body is the selection, then the digest**, the layout of
+  openssl_tpm2_engine's files: a file of go-tpm-keyfiles' tests has it, and its key's `authPolicy`
+  is `H(H(0 || 0x17F || body) || 0x16B)` with that body (computed with Python's `hashlib`,
+  2026-11-24). The draft's text names the TPM's order (digest first); podssh reads both.
+- **The key: ECDSA P-256 with SHA-256 in its scheme, `fixedTPM | fixedParent |
+  sensitiveDataOrigin | adminWithPolicy | noDA | sign`, no `userWithAuth`**, so the TPM itself
+  refuses the password (`TPM_RC_AUTH_UNAVAILABLE`). The parent: `0x40000001`, the H-2 P-256 storage
+  key with unique fields of length zero, as go-tpm-keyfiles' `ECCSRK_H2_Template` (read at
+  `8c9c2d10`).
+- **No encrypted or salted session**: no parameter of these commands is secret (`docs/design.md`,
+  "A key sealed to the machine").
+
 ## Prove
 
 ```sh
@@ -5922,3 +5956,86 @@ A test that does not exist yet: a key sealed to PCR 7 signs; after the PCR is ex
 file refuses (one line, not a panic); after a signed policy for the new value it signs again; a copy of
 the key file on a second `swtpm` does not sign. OpenSSH verifies the signature. A planted signer that
 authorises by a password and ignores the policy fails the PCR-changed case.
+
+## Correction
+
+Read on 2026-11-24 (PodUtils/podcrates:crates/pod-identity/README.md and PodUtils/podcrates:docs/design.md on `main`,
+by `fetch.web.pkgforge.dev`): the Premise's second item does not hold. `pod-identity` is the Ed25519
+identity of an end of a road (its seed, key files, pins and allowlist); the SSH client's keys, key
+files and signers are `crates/podssh-ssh/src/keygen.rs`, `crates/podssh-ssh/src/keys.rs` and
+`crates/podssh-ssh/src/sk/mod.rs`, which no crate of podcrates holds. No crate of podcrates speaks
+to a TPM (its list of 63 crates on 2026-11-24 has none). The Approach's step 2 is therefore an ask of
+whether podcrates takes the module (Done, below), not a backend that podssh waits for.
+
+## Done
+
+Drafted on 2026-11-24 (branch `d-t839`), a first part; merged by the main session on `main` after `c2ba3bb`, built
+and tested (2026-11-24, Rust 1.99.1). The merge added two `type`s for clippy's `type_complexity`, removed an unused line of
+`tests/tpm_key.rs`, ran rustfmt, moved `## Decision` before `## Prove`, and moved the citations. The whole suite:
+425 suites, 4264 passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as before).
+
+- The codec, sans-IO (`crates/podssh-ssh/src/tpm/`): the frame of a command and a response, sized
+  buffers, the response codes in one line each with their place (`wire.rs`, `rc.rs`); the commands
+  CreatePrimary, Create, Load, StartAuthSession, PolicyPCR, PolicyGetDigest, Sign, FlushContext,
+  PCR_Read, PCR_Extend and GetCapability (`cmd.rs`); the selection of PCRs and the policy digest
+  (`policy.rs`); the `TSS2 PRIVATE KEY` in DER and PEM (`keyfile.rs`); the public area, the two
+  templates and SSH's key and signature (`public.rs`); the sequences, which flush each handle on each
+  path (`flow.rs`). `cargo test -p podssh-ssh --lib tpm::codec_tests`: passed, in `--lib`'s 537 (byte vectors of
+  part 3 written by hand, the codes, the PCRs, the digest of PCR 7 of zeros, the key file of
+  go-tpm-keyfiles read, recomputed and written back byte for byte, cut and flipped files refused).
+- A TPM in software for the tests (`crates/podssh-ssh/src/tpm/soft.rs`): `cargo test -p podssh-ssh --lib tpm::flow_tests`,
+  passed (a key signs and ssh-key verifies it; after PCR 7 changes the same file is refused in
+  one line; a copy in another TPM does not load; the password signer and a policy of other PCRs are
+  refused; a trial digest that differs makes no key; 12 PCRs in two reads; no handle left).
+- The probe (`crates/podssh-ssh/src/tpm/unix.rs`, `crates/podssh-ssh/src/tpm/other.rs`, `tpm::probe`): `/dev/tpmrm0`, else a named device or a
+  socket; `/dev/tpm0` alone, no device, a plain file and `PODSSH_TPM_DEVICE=none` each refused with
+  one line that starts "no TPM: "; the TPM must answer GetCapability. Each command has 30 s
+  (`O_NONBLOCK` and `poll`).
+- `podssh keygen -t ecdsa-tpm [-O pcr=LIST] [-O device=PATH]` (`crates/podssh-cli/src/keygen_tpm.rs`):
+  probe (69), make, a signature of a fresh challenge checked before any write, `FILE` and `FILE.pub`;
+  `-y` and `-l` read the public key from the file. `cargo test -p podssh-cli --lib keygen_tpm`:
+  passed, in `--lib`'s 1280; `cargo test -p podssh-cli --test keygen_tpm`, 4 passed (no TPM: 69, one line, no
+  file; usage errors 64 first; `-y` and `-l` of go-tpm-keyfiles' file; a login with it and no TPM
+  exits 255 and names the reason and the file); with swtpm, `cargo test -p podssh-cli --test
+  keygen_tpm -- --ignored`, 1 passed with swtpm 0.7 of Ubuntu 24.04 (a key made through the binary logs in to russh's server).
+- The login (`crates/podssh-ssh/src/keys_tpm.rs`, `crates/podssh-ssh/src/tpm/signer.rs`): a key file of a TPM given with
+  `-i` is probed, skipped with its reason when no TPM answers, and signed in the TPM after the server
+  took the key; the tests of `keygen_tpm` above run it against russh's server.
+- The manual: the `-t` and `-O` rows, a note of `keygen`, an example, `PODSSH_TPM_DEVICE` in
+  ENVIRONMENT, and 69 in EXIT STATUS. `cargo test -p podssh-cli --lib man`: passed; `man_page` 11, `man_flag_parity` 6, `man_json` 4,
+  `flag_table` 9 passed; `llms-full.txt` written again. Documents:
+  `docs/cli.md` ("Keys sealed to a TPM"), `docs/design.md` ("A key sealed to the machine"),
+  `docs/STATUS.md` (a row, `unreleased`).
+- Against swtpm: `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test tpm_key -- --ignored`,
+  1 passed with swtpm (libtpms) and OpenSSH 9.6p1's `ssh-keygen` (a key sealed to PCR 7 signs and OpenSSH's `ssh-keygen -Y check-novalidate` verifies
+  it; the password signer gets `TPM_RC_AUTH_UNAVAILABLE`; a copy on a second swtpm does not load;
+  after `PCR_Extend` of PCR 7 the file is refused in one line).
+
+What the merge runs first: `cargo todo remap docs/cli.md docs/design.md docs/STATUS.md
+crates/podssh-ssh/src/keys.rs crates/podssh-ssh/src/keygen.rs crates/podssh-ssh/src/lib.rs
+crates/podssh-cli/src/keygen.rs crates/podssh-cli/src/keygen_convert.rs crates/podssh-cli/src/lib.rs
+crates/podssh-cli/src/flags/keygen.rs crates/podssh-cli/src/man/facts.rs
+crates/podssh-cli/src/man/notes_keygen.rs crates/podssh-cli/src/man/data.rs
+crates/podssh-cli/src/man/examples.rs`, then the tests above, clippy, and the plant of the Prove (the
+signer by password, `testing::sign_ignoring_policy`, must fail where the policy signer passes): each done; the
+planted signer gets `TPM_RC_AUTH_UNAVAILABLE` from swtpm, in the run above.
+
+What is left of the entry:
+
+1. The research of the Approach's step 1 and the offline update: `TPM2_PolicyAuthorize` over a
+   policy digest that a key kept offline signs (`TPM2_LoadExternal`, `TPM2_VerifySignature`, the
+   ticket), the file's `authPolicy` with signed policies, and `podssh keygen` to sign a policy for a
+   new boot state; the Prove's case "after a signed policy for the new value it signs again".
+2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM.
+3. Windows: TBS (`Tbsi_Context_Create`, `Tbsip_Submit_Command`) in the place of
+   `crates/podssh-ssh/src/tpm/other.rs`.
+4. A login through `podssh ssh -i` against OpenSSH's sshd with swtpm, in the interop harness.
+
+The ask of PodUtils/podcrates, filed as COORD-141 (#351) on 2026-11-24:
+"podssh drafted a TPM 2.0 codec and the key file `TSS2 PRIVATE KEY` in pure Rust
+(PodUtils/podssh `crates/podssh-ssh/src/tpm/`, T-839): the frame and the response codes, a dozen
+commands, the policy digest of `TPM2_PolicyPCR`, the key file, the sequences over a `Transport`, and
+the way through `/dev/tpmrm0` or a socket, with no podssh type but russh's `PublicKey`. No crate of
+podcrates speaks to a TPM. A key sealed to the machine is of use to podnet's and podvm's node keys
+too. Would podcrates take it as a crate (`pod-tpm`), with Windows' TBS beside it? Until it answers,
+the module stays in podssh, written so that a move is a copy."

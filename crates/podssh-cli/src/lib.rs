@@ -113,6 +113,8 @@ pub mod keygen_convert;
 pub mod keygen_hosts;
 pub mod keygen_sign;
 pub mod keygen_sk;
+// A key sealed to a TPM (T-839).
+pub mod keygen_tpm;
 pub(crate) mod layer_told;
 pub mod layered;
 pub(crate) mod leg_end;

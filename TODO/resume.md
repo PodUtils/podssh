@@ -6,7 +6,7 @@ on the layer, which wait in the backlog.
 
 # T-151: The resumable layer: its handshake and the byte offsets
 
-**Source:** ROADMAP M6 (the resumable stream layer); `docs/design.md:785-802`
+**Source:** ROADMAP M6 (the resumable stream layer); `docs/design.md:785-847`
 (layer 2, decided); GitHub #19 (Nemo-010, 2026-10-08: the quic-ssh, ssh-obi
 and fux reports) and GitHub #20 (a handshake with a version and a role).
 **Category:** feature
@@ -24,7 +24,7 @@ new connection (`docs/design.md:770-773`).
 ## Premise
 
 Read: the design is decided: offsets and acknowledgements in each direction,
-a session id and a 256-bit resume secret, under SSH (`docs/design.md:785-802`),
+a session id and a 256-bit resume secret, under SSH (`docs/design.md:785-847`),
 in a `session` module of `podssh-relay` (`docs/design.md:613-622`), a crate
 with no C. Measured: `grep -ril resum crates` finds only the IRC client.
 Today russh's bytes go through a pipe to the relay session
@@ -305,7 +305,7 @@ session_replay` there.
 # T-153: Resume through any road and relay host, with a session secret and a capped backoff
 
 **Source:** ROADMAP M6 (reconnection through each relay host);
-`docs/design.md:791-793`; GitHub #19 (Nemo-010, 2026-10-08: ssh-obi's policy,
+`docs/design.md:836-838`; GitHub #19 (Nemo-010, 2026-10-08: ssh-obi's policy,
 talaria0101's drops); GitHub #17 and #25 (a retry by the close reason).
 **Category:** feature
 **Milestone:** M6
@@ -354,7 +354,7 @@ the node then exits (docs/reverse.md, line 19 at `fb228e9`).
    `/v1/connect/<name>`. If none does, "each relay host" means each address of
    the control host (pins, resolver, DNS over HTTPS). Write it in
    `docs/relay.md`, with `docs/reverse.md` and the manual's relay section
-   (`crates/podssh-cli/src/man/facts.rs:312-466`).
+   (`crates/podssh-cli/src/man/facts.rs:313-467`).
 6. A node keeps the replay buffer of each session (T-152): with the relay's
    limit of 64 sessions and 4 MiB each, 256 MiB. Bound the node's whole
    replay memory (a session past the bound gets `REFUSE` busy, code 6), and
@@ -817,7 +817,7 @@ always runs the layer. The flag's row, the manual's note of `node`,
 
 # T-154: Heartbeats that also prevent the relay's idle cut
 
-**Source:** ROADMAP M6 (heartbeats); `docs/design.md:794-795`; GitHub #19
+**Source:** ROADMAP M6 (heartbeats); `docs/design.md:839-840`; GitHub #19
 (Nemo-010, 2026-10-08: ssh-obi pings each 15 s and wants a pong in 45 s).
 **Category:** feature
 **Milestone:** M6
@@ -858,8 +858,8 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 4. On the resumable road, do not print the warning of
    `crates/podssh-cli/src/ssh/resolve.rs:338-348` (the `warnings` of keepalives).
 5. In the same commit: "Liveness" and "Idle limit" in the manual
-   (`crates/podssh-cli/src/man/facts.rs:392-407`,
-   `crates/podssh-cli/src/man/facts.rs:427-436`), the note at
+   (`crates/podssh-cli/src/man/facts.rs:393-408`,
+   `crates/podssh-cli/src/man/facts.rs:428-437`), the note at
    `crates/podssh-cli/src/man/notes_ssh_more.rs:132`, `docs/relay.md`, `README.md`.
 
 ## Decision
@@ -946,7 +946,7 @@ before left in the same files.
 # T-155: Move a session to a new relay connection before the relay's limits
 
 **Source:** ROADMAP M6 (a new session before the relay's limits);
-`docs/design.md:796-797`; the report of sandbox A, 2026-10-08 (the `1009`
+`docs/design.md:841-842`; the report of sandbox A, 2026-10-08 (the `1009`
 close at the volume cap).
 **Category:** feature
 **Milestone:** M6
@@ -989,7 +989,7 @@ node's side (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:133-13
 6. When the client knows the expiry of the pair (from the node's ticket,
    T-163), it warns 1 h before; at the expiry the session ends with the reason.
 7. `-v` prints one line for each move. Docs: `docs/relay.md` ("Limits that
-   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:312-466`).
+   users see") and the manual (`crates/podssh-cli/src/man/facts.rs:313-467`).
 
 ## Decision
 
@@ -1067,7 +1067,7 @@ moved to `pod-session` with its name; run `cargo test -p pod-session --test sess
 
 # T-156: M6 exit: a session survives a stopped relay host, a new address and a stall of 3 minutes
 
-**Source:** ROADMAP M6, exit criteria; `docs/design.md:837-839` (the harness
+**Source:** ROADMAP M6, exit criteria; `docs/design.md:882-884` (the harness
 must grow for layer 2).
 **Category:** measurement
 **Milestone:** M6
@@ -1199,7 +1199,7 @@ road, and the same faults end a session of the forward road with 255
 # T-157: Throughput on each road and relay, by a committed method
 
 **Source:** ROADMAP M6 (throughput on each road and relay, in and out of a
-sandbox, before a default depends on it); `docs/design.md:1603-1623`; the two
+sandbox, before a default depends on it); `docs/design.md:1648-1668`; the two
 sandbox reports of 2026-10-08; GitHub #18 (warren's method) and GitHub #23
 (sshping: throughput up and down).
 **Category:** measurement
@@ -1223,7 +1223,7 @@ proxy (4 runs). Read in the report, not verified here: the script's target
 (thinkbroadband) gave `1011 write failed` and 0 bytes, and the relay's
 `/trace` showed that the relay could not reach it.
 Read: no iroh figure exists for a relay through a CONNECT proxy
-(`docs/design.md:1603-1623`). A session carries 64 MiB at most, both directions
+(`docs/design.md:1648-1668`). A session carries 64 MiB at most, both directions
 together (`docs/relay.md:638`).
 
 ## Approach
@@ -1692,7 +1692,7 @@ Drafted 2026-11-24 (not built here; the main session builds, tests and closes it
 
 # T-160: Local echo and prediction for high latency
 
-**Source:** `docs/design.md:834-835`; GitHub #19 and GitHub #18 (Nemo-010,
+**Source:** `docs/design.md:879-880`; GitHub #19 and GitHub #18 (Nemo-010,
 2026-10-08: quic-ssh's prediction, `VLOD-ZDOV/quic-ssh:src/client/predict.rs`;
 rose's prediction, GPL, of which only the specification may be read).
 **Category:** feature
@@ -1711,7 +1711,7 @@ later.
 
 Read: an interactive echo for high latency is a later option on top of layer
 2; it needs podssh at both ends, and it cannot use UDP here
-(`docs/design.md:834-835`). podssh passes the bytes of a remote pty unchanged
+(`docs/design.md:879-880`). podssh passes the bytes of a remote pty unchanged
 and has no model of the remote screen (`docs/terminal.md:20-25`). A
 prediction needs the place of the cursor, and needs to know when the far end
 echoed a key. Only a podssh far end can tell when a key reached the pty and
@@ -1754,7 +1754,7 @@ never show.
    russh's client answers with FAILURE and passes to no handler
    (`vendor/russh/src/client/encrypted.rs`, the arm of an unknown `CHANNEL_REQUEST`), so it
    needs a patch of russh; a frame of the resumable layer ("on top of layer 2",
-   `docs/design.md:871-872`), whose far end is a node that may sit in front of a standard sshd
+   `docs/design.md:916-917`), whose far end is a node that may sit in front of a standard sshd
    and see no pty, and which `--direct` does not have; bytes inside the data stream, which the
    far end's program could write itself and so forge.
 2. **The invariant of step 3 reads ICANON with ECHO.** A guess never shows while the pty reads
@@ -1828,8 +1828,8 @@ T-200 is `pod-testkit`'s (its feature `screen`), taken by the same tag.
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
 
-2026-11-24 (the draft). The Premise's `docs/design.md:834-835` moved: the text reads at
-`docs/design.md:871-872` ("An interactive echo for high latency"). The Start condition's "which
+2026-11-24 (the draft). The Premise's `docs/design.md:879-880` moved: the text reads at
+`docs/design.md:916-917` ("An interactive echo for high latency"). The Start condition's "which
 reports the input's offset and the ECHO flag" did not hold at `a64e47d`: serve's pty copied the
 master's output and nothing else (`crates/podssh-ssh/src/server/pty_child.rs`); the draft adds
 the reports, as step 3 asks. Step 3's invariant, "no prediction shows while ECHO is off", read
@@ -1905,7 +1905,7 @@ screen needs a terminal model on the far end.
 
 ## Premise
 
-Read: the resumable layer replays bytes, as decided (`docs/design.md:785-802`).
+Read: the resumable layer replays bytes, as decided (`docs/design.md:785-847`).
 That serves the same client process, whose terminal still holds the screen
 and its modes. A new process starts with an empty terminal. Read in the
 reports, not verified here: ssh-obi replays the byte stream and accepts
@@ -1982,7 +1982,7 @@ boundary.
 
 **Source:** GitHub #31 (2026-10-08: a rule for where a kept window may start),
 with the coordinator's reading of 2026-10-08, checked here against
-`docs/design.md:787-793`.
+`docs/design.md:787-838`.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P3
@@ -2001,7 +2001,7 @@ on the command line.
 
 Read: the layer keeps each byte that is not acknowledged, "with backpressure
 when it is full" (`docs/design.md:788-789`), and a resume sends again from the
-other side's offset (`docs/design.md:791-793`). Thus a resume in the buffer
+other side's offset (`docs/design.md:836-838`). Thus a resume in the buffer
 is byte-exact, and it cannot start in the middle of a sequence; T-152 tests
 that invariant. Bytes are dropped only where a client attaches after output
 that it never received: T-158, T-159 and T-161. The report puts the tracker
@@ -2143,7 +2143,7 @@ starts at the next newline.
 
 # T-302: A notice in the terminal while the far end is silent
 
-**Source:** T-171 (`docs/design.md:861-875`): Mosh shows a line at the top of the screen after
+**Source:** T-171 (`docs/design.md:906-920`): Mosh shows a line at the top of the screen after
 6.5 s with no word from the server.
 **Category:** feature
 **Milestone:** backlog
@@ -2165,7 +2165,7 @@ a full-screen program is written into its screen.
   30 s with nothing from the far end (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:62`,
   `PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`). The forward road's checks
   (`docs/design.md:763`).
-- Read in Mosh (`docs/design.md:861-875`): the notice comes after 6.5 s with no word from the
+- Read in Mosh (`docs/design.md:906-920`): the notice comes after 6.5 s with no word from the
   server, or 10 s with no acknowledged state; Mosh draws it over its own model of the screen,
   and removes it when the server answers.
 - Read: the client has no model of the screen yet; T-160 (item 1) makes one.
@@ -2328,7 +2328,7 @@ and ran each check below.
 
 # T-303: The latest screen on request: frames that let Ctrl-C show within a round trip
 
-**Source:** T-171 (`docs/design.md:861-875`): Mosh sends the difference of screens at most each
+**Source:** T-171 (`docs/design.md:906-920`): Mosh sends the difference of screens at most each
 half round trip, so Ctrl-C stops a flood within a round trip (its paper, §2.3).
 **Category:** feature
 **Milestone:** backlog
@@ -2346,12 +2346,12 @@ so Ctrl-C shows within a round trip.
 ## Premise
 
 - Read: the layer and SSH carry each byte in order, and only the end that runs the SSH server
-  sees the bytes of the pty in clear (`docs/design.md:852-859`).
+  sees the bytes of the pty in clear (`docs/design.md:897-904`).
 - Read: `podssh serve` with a pty is T-110, which the operator holds (Q32); a model of the far
   end's screen is item 3 of T-161, and the client's is item 1 of T-160.
-- Read in Mosh's paper (§2, §2.3), as the section of T-171 gives it (`docs/design.md:861-875`):
+- Read in Mosh's paper (§2, §2.3), as the section of T-171 gives it (`docs/design.md:906-920`):
   a frame at most each half round trip, from 20 to 250 ms, after 8 ms of collection; and frames
-  lose the scrollback of the output that they skip (`docs/design.md:879-883`).
+  lose the scrollback of the output that they skip (`docs/design.md:924-928`).
 - Not measured: how long Ctrl-C takes to show through podssh at 300 ms of latency and a limited
   rate.
 
@@ -2398,7 +2398,7 @@ far end's screen.
 
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
 
-**Source:** T-171 (`docs/design.md:861-875`): each datagram of Mosh is an idempotent difference
+**Source:** T-171 (`docs/design.md:906-920`): each datagram of Mosh is an idempotent difference
 from a numbered state, so a lost one costs only itself (its paper, §2.2).
 **Category:** feature
 **Milestone:** backlog
@@ -2419,7 +2419,7 @@ again: the next frame replaces it.
 - Not verified: whether iroh 1.3 lets its user send QUIC datagrams (RFC 9221).
 - Read: the fault harness shapes the TCP stream of the stand-in relay (T-203), where a loss is
   only a delay; no stand-in drops datagrams.
-- Read in Mosh's paper (§4), as the section of T-171 gives it (`docs/design.md:891-898`): with 29 %
+- Read in Mosh's paper (§4), as the section of T-171 gives it (`docs/design.md:936-943`): with 29 %
   loss each way, a mean response of 0.329 s for Mosh and 16.8 s for SSH over TCP. QUIC recovers a
   loss in another way than TCP; not measured.
 
@@ -2437,7 +2437,7 @@ again: the next frame replaces it.
    also go through the Noise channel of T-088, or carry a MAC of their own, this entry decides.
 6. Only when both ends name it in the layer's features, after the UDP probe.
 
-**The donor study (2026-11-18, PodUtils/podssh#317), report 20.** (hashicorp/yamux at its pinned commit). Each session is its own QUIC stream with a lane by priority (`docs/design.md:1574-1582`), so no multiplexer of podssh's own owns a per-lane window, and yamux's credit rule (hashicorp/yamux:stream.go, the update at a half window) is not needed. If this entry puts screen frames and keys beside the session's bytes on one stream, three rules of yamux are the checks: a frame longer than what was advertised ends the session, with its own reason code (not a reset of one lane); the end of a lane is ordered behind its queued bytes; and a keepalive reply is written on a path that does not queue behind data, with the miss reported as a write stall (the 60 s bound of T-598) and not as a dead peer. Datagrams, as this entry plans them, need none of these. Revisit if a second ask for several lanes in one stream comes: it is an ask of podcrates (`pod-session`), not code of podssh.
+**The donor study (2026-11-18, PodUtils/podssh#317), report 20.** (hashicorp/yamux at its pinned commit). Each session is its own QUIC stream with a lane by priority (`docs/design.md:1619-1627`), so no multiplexer of podssh's own owns a per-lane window, and yamux's credit rule (hashicorp/yamux:stream.go, the update at a half window) is not needed. If this entry puts screen frames and keys beside the session's bytes on one stream, three rules of yamux are the checks: a frame longer than what was advertised ends the session, with its own reason code (not a reset of one lane); the end of a lane is ordered behind its queued bytes; and a keepalive reply is written on a path that does not queue behind data, with the miss reported as a write stall (the 60 s bound of T-598) and not as a dead peer. Datagrams, as this entry plans them, need none of these. Revisit if a second ask for several lanes in one stream comes: it is an ask of podcrates (`pod-session`), not code of podssh.
 
 ## Prove
 
@@ -2465,7 +2465,7 @@ moved code then runs there.
 
 # T-305: Roam at once: a new link beside a silent one
 
-**Source:** T-171 (`docs/design.md:861-875`): Mosh's server follows the newest authentic datagram,
+**Source:** T-171 (`docs/design.md:906-920`): Mosh's server follows the newest authentic datagram,
 and its client takes a new source port after 10 s with no round trip.
 **Category:** feature
 **Milestone:** backlog
@@ -2482,14 +2482,14 @@ then resumes over a new one. For those 30 s, an interactive session shows nothin
 ## Premise
 
 - Read: a link with nothing from the far end for 30 s is dead
-  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:990-998`).
+  (`PodUtils/podssh:crates/podssh-relay/src/session/pump.rs:65`; `docs/design.md:1035-1043`).
 - Read: a resume can come while the far end still runs the old link; the old link stops, and the
-  new one goes on (`docs/design.md:1004-1006`). The far end lets the newest resume take a session
-  (`docs/design.md:1080-1082`).
+  new one goes on (`docs/design.md:1049-1051`). The far end lets the newest resume take a session
+  (`docs/design.md:1125-1127`).
 - Measured (T-156): a session on the layer and on the iroh road survives a new address of its
   client (`crates/podssh-cli/tests/m6_exit.rs:272`); the time that the resume took is not in the
   record.
-- Read in Mosh (`docs/design.md:861-875`): its client tries a new source port after 10 s with no
+- Read in Mosh (`docs/design.md:906-920`): its client tries a new source port after 10 s with no
   round trip, and its server follows each newer authentic datagram at once.
 
 ## Approach
@@ -2670,7 +2670,7 @@ and ran each check below.
 
 # T-306: A resume deadline that the user sets, for a host that sleeps
 
-**Source:** T-171 (`docs/design.md:861-875`): Mosh's server keeps a session until its client comes
+**Source:** T-171 (`docs/design.md:906-920`): Mosh's server keeps a session until its client comes
 back, with no limit by default (`MOSH_SERVER_NETWORK_TMOUT`).
 **Category:** feature
 **Milestone:** backlog
@@ -2686,17 +2686,17 @@ session 10 minutes after its link was lost. A session of Mosh waits.
 ## Premise
 
 - Read: the deadline is 10 minutes at both ends (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:44`;
-  `docs/design.md:999-1009`). T-153's Decision kept a deadline, as a node in a cage would keep
+  `docs/design.md:1044-1054`). T-153's Decision kept a deadline, as a node in a cage would keep
   connections for clients that never come back.
 - Read: a node keeps 64 MiB of replay buffers at most, a whole buffer for each session that it
-  keeps (`docs/design.md:1190-1193`); a pair expires after 72 h at most
-  (`docs/design.md:1111-1113`).
+  keeps (`docs/design.md:1235-1238`); a pair expires after 72 h at most
+  (`docs/design.md:1156-1158`).
 - Read: the client measures the deadline with `Instant`
   (`PodUtils/podssh:crates/podssh-relay/src/session/resume.rs:332`). Not verified: whether `Instant` counts the
   time that the host slept, on Linux, macOS and Windows. If it does not, a client that wakes
   counts too little, and tries to resume a session that the far end forgot; it then gets
   `REFUSE` with the code 1.
-- Read: the features of the layer are names only (`docs/design.md:914`, the section of T-151), so a
+- Read: the features of the layer are names only (`docs/design.md:959`, the section of T-151), so a
   limit needs a new feature or a new record.
 
 ## Approach

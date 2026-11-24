@@ -315,8 +315,8 @@ session to `github.com:22` and checks the host key against GitHub's published ke
 (`crates/podssh-cli/src/doctor/relay_checks.rs` lines 170-207 at `bd626c7`, keys at lines 30-34): that covers the
 banner step. The script's `ssh` steps trust the key on first use (`accept-new`, line 65), not by
 equality, and its `-tt` step never reaches a pty request: GitHub refuses the key before a
-channel opens. `keygen::generate` makes a key in memory (`crates/podssh-ssh/src/keygen.rs:76-88`),
-and `crates/podssh-ssh/src/keys.rs:111-143` offers a key to the server.
+channel opens. `keygen::generate` makes a key in memory (`crates/podssh-ssh/src/keygen.rs:81-94`),
+and `crates/podssh-ssh/src/keys.rs:124-156` offers a key to the server.
 
 ## Approach
 
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7058-7088`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7103-7133`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:90-107`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.

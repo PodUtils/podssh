@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**829 entries: 6 open, 48 partial, 13 blocked, 762 done.**
+**829 entries: 5 open, 49 partial, 13 blocked, 762 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 6 | 14 | 8 | 360 | 388 |
-| **All** | 6 | 48 | 13 | 762 | 829 |
+| P3 | 5 | 15 | 8 | 360 | 388 |
+| **All** | 5 | 49 | 13 | 762 | 829 |
 
 ## Entries
 
@@ -869,7 +869,7 @@ repository and CI).
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
-| [T-839](ssh.md) | P3 | L | backlog | feature | open | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
+| [T-839](ssh.md) | P3 | L | backlog | feature | partial | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |
 | [T-841](serve.md) | P3 | S | backlog | feature | done | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
 | [T-842](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: a key that a reload removes ends its open sessions when asked |

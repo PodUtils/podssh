@@ -191,7 +191,7 @@ remote host that must use the key, such as `git` on a build host.
   refuses, and the keyword is silent.
 - Read: podssh already connects to the local agent to log in: `SSH_AUTH_SOCK`
   on Unix; the named pipe of the OpenSSH agent, then Pageant, on Windows
-  (`crates/podssh-ssh/src/keys.rs:416-453`, `connect_agent`). That is a
+  (`crates/podssh-ssh/src/keys.rs:432-469`, `connect_agent`). That is a
   connection, not a listener.
 - Read: russh 0.64.1 has `Channel::agent_forward`
   (`auth-agent-req@openssh.com`), and its default handler accepts an
@@ -213,7 +213,7 @@ remote host that must use the key, such as `git` on a build host.
    Never to a jump hop.
 3. In the handler, accept `auth-agent@openssh.com` only when `-A` was given
    for this connection. For each such channel, connect to the agent with the
-   code of `crates/podssh-ssh/src/keys.rs:416-453` (`connect_agent`), then copy bytes. Reject
+   code of `crates/podssh-ssh/src/keys.rs:432-469` (`connect_agent`), then copy bytes. Reject
    the channel without `-A`, and warn, as OpenSSH does.
 4. Write the rule and the risk in the manual's notes and in `docs/cli.md`
    (section "Forwarding"): while the session lasts, root on the server can
@@ -371,7 +371,7 @@ X11 channel.
    (`crates/podssh-cli/src/flags.rs:235-236`).
 6. On Windows, a `DISPLAY` such as `localhost:0` (VcXsrv, X410) is TCP port
    6000. The X server's connection is local and named by the user, as the
-   agent's connection is (`crates/podssh-ssh/src/keys.rs:416-453`, `connect_agent`).
+   agent's connection is (`crates/podssh-ssh/src/keys.rs:432-469`, `connect_agent`).
 
 ## Decision
 
@@ -494,7 +494,7 @@ AF_UNIX.
 - Read: `AGENTS.md:398-426` (no bind, no listen),
   `docs/target-environment.md:99-103` (rule 3), `SECURITY.md:274-309` ("Nothing
   listens") and `README.md:47-56` state the rule from before the ruling.
-  `docs/design.md:1355-1357` already allows a local listener for `pipe` after
+  `docs/design.md:1400-1402` already allows a local listener for `pipe` after
   a probe.
 - Read: the Podman box refuses each `bind` (`scripts/box/seccomp.json:11-18`),
   so it tests the refusal.
@@ -1059,7 +1059,7 @@ Read: a drop ends the run with 255 (`crates/podssh-ssh/src/run.rs:66-87`,
 backs off with jitter, but only before a session exists
 (`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`,
 `PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). With `-N`, no command runs, so a
-new connection has no side effect on the server. `docs/design.md:803-810`
+new connection has no side effect on the server. `docs/design.md:848-855`
 puts a new connection with a new login in layer 3, for a standard sshd.
 T-153 (M6) resumes a session when both ends run podssh.
 
@@ -1633,7 +1633,7 @@ server (`remote_socket:host:hostport`), a socket on this host as the target
 (`[bind_address:]port:local_socket`, `remote_socket:local_socket`), and a SOCKS proxy that the
 server listens for and the client serves (`[bind_address:]port`). podssh refuses each by name, so
 a command line of OpenSSH fails with podssh. A server whose host refuses an AF_INET bind and
-allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:537`), can listen on a socket only; and
+allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:538`), can listen on a socket only; and
 the SOCKS form gives a server whose egress is closed a way out through the client.
 
 ## Premise

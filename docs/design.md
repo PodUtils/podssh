@@ -763,7 +763,7 @@ that crosses; by a channel to its agent, yes.
   signature: `Signer::auth_sign(key, hash_alg, to_sign)` (`src/auth.rs:170-179`,
   used by `authenticate_publickey_with`, `src/client/mod.rs:632-684`). The
   one signer that russh ships is an SSH agent over any stream (`auth.rs:261-275`),
-  and podssh's client already signs with it (`crates/podssh-ssh/src/keys.rs:138`).
+  and podssh's client already signs with it (`crates/podssh-ssh/src/keys.rs:151`).
 - A server can open a channel to the client's agent, once the client asked for
   agent forwarding with a channel request on a session
   (`encrypted.rs:1775-1789`, `src/server/session.rs:254-266`, `:1429-1430`).
@@ -787,6 +787,51 @@ that crosses; by a channel to its agent, yes.
   `src/server/mod.rs:335-347` gives the refusing default).
 
 The choice among the three paths is in the entry's `## Decision` (T-836).
+
+### A key sealed to the machine (T-839, drafted 2026-11-24)
+
+A key file that is copied works anywhere its passphrase is known. A key in a
+TPM 2.0 cannot be copied, and one sealed to PCRs cannot sign after a boot
+that measured something else. podssh makes such a key and signs with it in
+its own code: a codec of TPM 2.0's commands (bytes in, bytes out), a probe of
+`/dev/tpmrm0`, and the key file `TSS2 PRIVATE KEY` that openssl_tpm2_engine
+and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`).
+
+- **The seal.** The key's `authPolicy` is `H(0 || TPM_CC_PolicyPCR ||
+  selection || H(values))` over the SHA-256 bank, and the key has no
+  `userWithAuth`, so the TPM takes no password for it. A signature runs
+  `TPM2_PolicyPCR` with the recorded digest in a fresh policy session; the
+  TPM compares it with the PCRs of the moment, and refuses
+  (`TPM_RC_VALUE`) when they differ. A signer that skips the policy gets
+  `TPM_RC_AUTH_UNAVAILABLE`; one that runs another policy gets
+  `TPM_RC_POLICY_FAIL`. The donor (ssh-tpm-agent) signs by a password and
+  never runs its file's policy; this gate is podssh's own.
+- **The file's policy layout.** The key file keeps `TPM2_PolicyPCR`'s body as
+  the selection, then the digest, as the files of openssl_tpm2_engine do; the
+  draft's text names the TPM's order, digest first. podssh reads both, and
+  writes the first, whose bytes are those that the policy digest hashes. A
+  file of go-tpm-keyfiles' tests (SHA-384, PCR 16 and `PolicyAuthValue`) reads
+  to its key's `authPolicy` (`crates/podssh-ssh/src/tpm/codec_tests.rs`).
+- **The checks before a key is written.** The TPM's trial session must reach
+  podssh's digest, the public area must carry it and the attributes asked,
+  and the new key must sign a fresh challenge that ssh-key verifies.
+- **No encrypted session.** No parameter of these commands is secret: a
+  digest to sign, a signature, PCR values. The private part leaves the TPM
+  only wrapped under the storage key. An interposer on the TPM's bus can see
+  what is signed, as a server can, and cannot sign.
+- **The offline update (not built; T-839).** PCR 7 moves with a firmware's
+  update or a change of Secure Boot's keys, and a key sealed to it must then
+  be made again. `TPM2_PolicyAuthorize` lets a key's policy be "any policy
+  digest that this signing key signed", so a new boot state needs a new
+  signature, not a new key. The research of the entry's first step, on
+  swtpm with two boot states, is UNVERIFIED. The signing key of the policies
+  must be kept offline: a writer of the same disk who reads it can sign a
+  policy of the PCRs of any boot, a tampered one too, and the seal is then
+  worth nothing; with the key offline, that writer can only replace the key
+  file with one that the server does not know.
+- **The ways to the TPM.** Linux and FreeBSD through the kernel's resource
+  manager; a socket of a TPM in software that the user names. Windows' TBS
+  is not called (T-839).
 
 ## 5. Reliability: jitter, latency, drops, reconnections, changed addresses
 

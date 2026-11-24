@@ -41,6 +41,16 @@ pub const KEYGEN: &[&str] = &[
      user=NAME name the key. On Linux podssh reaches the device through /dev/hidraw (-O device=PATH names one); on \
      Windows, Windows shows its own dialog. With no device that podssh may reach, it says why, asks nothing and \
      writes nothing (exit 1). PODSSH_SK_DEVICE set to none turns security keys off.",
+    "podssh keygen -t ecdsa-tpm makes an ECDSA P-256 key in this machine's TPM 2.0. The key never leaves the \
+     TPM, and a copy of its file is useless in another TPM. The key is sealed to PCRs of the SHA-256 bank: PCR 7 \
+     by default, the state of Secure Boot, or the list of -O pcr=LIST. The TPM signs with it only while those PCRs \
+     hold the values that they held when the key was made. After a boot that measured something else, the TPM \
+     refuses the key, and podssh ssh -i says so and tries the next key. The key has no passphrase: the TPM takes \
+     its policy and no password. The file is a TSS2 PRIVATE KEY, as openssl_tpm2_engine and ssh-tpm-agent read it. \
+     podssh reaches the TPM through /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). With no TPM \
+     that podssh may reach, as in a container or a sandbox, it says why and writes nothing (exit 69). Before \
+     the file is written, the new key signs once and the signature is checked. -y and -l read the public key \
+     from the file.",
     "podssh asks for the passphrase two times, on the terminal or through SSH_ASKPASS. -N '' makes a key \
      with no passphrase. A passphrase given with -N is refused, because each process on the host can \
      read a command line. With no terminal and no SSH_ASKPASS, podssh stops at once and names -N ''.",
@@ -62,3 +72,11 @@ pub const STATUS_KEYS: &str = "With --keys, the line's keys lists the public par
      prints, or an account's thumbprint. iroh is an Ed25519 key in iroh's hex, the node's name on the iroh road. With \
      PODSSH_CACHE_DIR=none, each key is absent. --keys with a destination is refused (64); without --keys, keys is \
      null.";
+
+/// The variable of the TPM, in ENVIRONMENT.
+pub(super) const VARIABLES: &[(&[&str], &str)] = &[(
+    &["PODSSH_TPM_DEVICE"],
+    "The TPM 2.0 that podssh keygen -t ecdsa-tpm and podssh ssh use: a device, or the socket of a TPM in \
+      software (swtpm socket --server type=unixio). none: podssh uses no TPM, and each use says so. Unset: \
+      /dev/tpmrm0, the kernel's resource manager.",
+)];
