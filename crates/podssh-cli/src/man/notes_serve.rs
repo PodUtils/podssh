@@ -169,15 +169,16 @@ pub const SERVE: &[&str] = &[
      connection, and one more is refused as a resource shortage. --no-forwarding refuses each forward, \
      administratively prohibited, with the flag named.",
     "A client's -R (tcpip-forward) binds no socket. Without --publish-remote, serve refuses each one. With it, \
-     serve makes a pair for each at the relay (PODSSH_RELAY, else the default), runs the pair's node in its own process, and keeps the pair in its cache under a label, rPORT-XXXXXX. \
+     serve makes a pair for each at the relay (PODSSH_RELAY, else the default) and runs the pair's node in its own \
+     process. It keeps the pair in its cache under a label, rPORT-XXXXXX. \
      podssh operator LABEL on serve's host then reaches the client's service: each session opens a forwarded-tcpip \
      channel to the client, toward the address and port of its -R. Each runs the resumable layer and the end-to-end \
      channel, with a key of this forward alone. A request of port 0 is told a port from 49152 to 65535, which names \
      the forward and binds nothing. serve's stderr names the label, the pair and the key; no line holds a token. The \
-     client hears the name in an SSH_MSG_DEBUG, which OpenSSH shows at -v alone (Remote: ...), and on the stderr of \
-     its next session that runs a program. At most 8 are open on a connection. --no-forwarding, a key's \
-     no-port-forwarding, the same address and port twice, PODSSH_OFFLINE and a relay that takes no node within 20 s \
-     each refuse one, with serve's reason on its stderr (OpenSSH: remote port forwarding failed). A cancel, the \
+     client hears the name in a debug message of SSH, which OpenSSH shows at -v alone (Remote: ...), and on the \
+     stderr of its next session that runs a program. At most 8 are open on a connection. Each of these refuses one: \
+     --no-forwarding, a key's no-port-forwarding, the same address and port twice, PODSSH_OFFLINE, and a relay that \
+     takes no node within 20 s. serve's stderr says why; OpenSSH says remote port forwarding failed. A cancel, the \
      connection's end and serve's stop each stop the node, then the pair (POST /v1/stop), and forget its copy; where \
      the relay did not answer, serve's line names podssh relay revoke LABEL.",
     "The environment of a child is serve's own, as the cage gave it (PATH, HTTPS_PROXY and the rest stay). It goes \

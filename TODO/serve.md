@@ -2695,8 +2695,13 @@ Partial (WIP, drafted 2026-11-24; merged, built and tested by the main session, 
 - The manual says that a client's `-R` is refused, and why (`notes_serve.rs`; the draft below
   replaces that sentence).
 
-Drafted 2026-11-24 on the branch `d-t123` (not built; each result below UNVERIFIED until the main
-session's merge):
+Drafted 2026-11-24 on the branch `d-t123`; merged by the main session with Q108's flag, built and tested on `main`
+after the take of podcrates `v0.83.0` (2026-11-24, Rust 1.99.1). The merge put the publisher behind `--publish-remote` (off by
+default, Q108): without it each `-R` is refused with the line "serve binds no socket for -R; serve --publish-remote
+publishes it at the relay", as before T-123, and `serve_algorithms_openssh.rs` is as it was. A new test,
+`without_publish_remote_a_forward_is_refused_and_no_pair_is_made`, holds that. The merge also cut three sentences of
+the manual to 25 words, and named the debug message without the protocol's name of the message, which the manual's
+check read as a variable:
 
 - The CLI's publisher, steps 1 and 3: `crates/podssh-cli/src/serve_forward.rs` (a pair for each
   forward by `pod-relay`'s `pair::create`, stored under `rPORT-XXXXXX`; its node by
@@ -2715,41 +2720,35 @@ session's merge):
   `crates/podssh-ssh/tests/serve_remote_forward.rs` (a channel of the port-0 forward names the
   published port); `serve_forward.rs`'s own (the words of each end of a node, the label's shape, an
   end with no forward at once); `crates/podssh-cli/tests/serve_remote_forward.rs` (OpenSSH's
-  `ssh -v -N -R 0:127.0.0.1:PORT` through `serve --stdio` and the stand-in relay: serve's line, the
+  `ssh -v -N -R 0:127.0.0.1:PORT` through `serve --stdio --publish-remote` and the stand-in relay: serve's line, the
   pair stored, OpenSSH's `Allocated port` and `Remote: podssh serve: -R ... is published as LABEL`,
   no listening socket of serve, `podssh operator LABEL` reads the test server's banner, the client's
   end stops the pair (the stand-in's `reverse: stopped NAME`) and forgets the copy, no line holds a
   token; `PODSSH_OFFLINE` refuses the forward, 255 with `ExitOnForwardFailure`; the live relay,
-  ignored). `serve_algorithms_openssh.rs`: its `REQUEST_FAILURE` row now asks `-R` of a serve with
-  `--no-forwarding`, as a plain serve would publish it.
+  ignored).
 - The manual (`notes_serve.rs`, a note of its own), `docs/cli.md` (a bullet, and the row of
   `REQUEST_FAILURE`), `docs/STATUS.md` (the row).
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_remote_forward`: UNVERIFIED.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::remote_forward`: UNVERIFIED.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_forward`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_remote_forward`: 2 passed.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::remote_forward`: passed, in `--lib`'s 548.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_forward`: passed, in `--lib`'s 1287.
 - `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man::notes_serve` (the note names the cap):
-  UNVERIFIED.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward`: UNVERIFIED.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_algorithms_openssh`: UNVERIFIED.
+  passed; `man_page` 11, `man_flag_parity` 6, `flag_table` 9, `man_json` 4 passed.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward`: 4 passed, with OpenSSH 9.6p1.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_algorithms_openssh`: 4 passed.
 - `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward -- --ignored` (the live
-  relay): UNVERIFIED.
-- The types to check at the build: `ChannelStream<russh::server::Msg>` as a node handler's
-  `Stream` (`Send + Unpin + 'static`), and `Forward::run`'s future as `Send` for `tokio::spawn`
-  (it holds `&Context` and `PairContext` across awaits).
+  relay): not run here (this container's proxy passes HTTPS alone; it runs as a live test of the relay, T-251).
+- The types: the build holds both (`ChannelStream<russh::server::Msg>` as a node handler's `Stream`, and
+  `Forward::run`'s future as `Send`).
 - `cargo todo remap docs/cli.md` after the merge (a bullet added in the section of `podssh serve`).
   The citations of `crates/podssh-cli/src/node.rs`, `crates/podssh-cli/src/serve.rs` and
   `crates/podssh-ssh/src/server/handler.rs` were moved by hand, each line compared; a `cargo todo
   remap` of those files should change nothing.
 
-Left (the entry stays open): step 4, a listener on the node where serve's user asks for one,
+Left (the entry stays partial): step 4, a listener on the node where serve's user asks for one,
 behind T-124's bind (a flag, its rows in the flag table, the manual and the parity tests); the
-runs above.
+live run above.
 
-Waits for q108 (2026-11-24, `TODO/PROGRESS.md`): the operator. Step 1 makes a pair at the relay and runs its node inside
-serve for each forward that a client asks, up to 8 at once beside serve's own connection; none of the nine exceptions
-of rule 2 of `AGENTS.md` covers those connections. The draft of steps 1 to 3 (`draft/d-t123`, `ef97ac0`: the CLI's
-publisher on `pod-relay`, the name on the client's stderr and in an `SSH_MSG_DEBUG`, and a repair of the `Opener`'s
-port for a forward of port 0, which OpenSSH matches by the port it was told) waits for the ruling, unmerged.
+Q108 was settled by the owner on 2026-11-24, as recommended (`docs/decisions.md`, exception 10 of rule 2).
 
 # T-124: `podssh serve --listen`: SSH on a TCP port on a host that allows it
 

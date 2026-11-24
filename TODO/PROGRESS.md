@@ -20,8 +20,8 @@ Read on 2026-11-24.
    SFTP, the options of a key line, `--listen`, kept shells, `--audit-log` and `--totp`.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
    failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
-   its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions: T-123
-   (its draft waits for its merge), T-831, T-834, T-836, T-837, T-839. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
+   its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions: T-123 (step 4, a listener on the node),
+   T-831, T-834, T-836, T-837, T-839. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
@@ -45,8 +45,7 @@ Read on 2026-11-24.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** Four wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-123 (`merge-123`: the publisher of a
-   client's `-R` behind `--publish-remote`, Q108; not built yet), T-839 (`d-t839c`: `podssh agent` and serve's host key in
+8. **Drafts.** Three wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-839 (`d-t839c`: `podssh agent` and serve's host key in
    a TPM, Windows TBS; not built), T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built),
    and T-161 (`d-t161`: builds only once pod-term has COORD-140's `Modes`, #350). Each `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses

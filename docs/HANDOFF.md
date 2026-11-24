@@ -21,7 +21,6 @@ This page keeps no history: git does.
 
 | Branch on GitHub | Entry | State |
 | --- | --- | --- |
-| `draft/merge-123` | T-123 | the publisher of a client's `-R`, behind `--publish-remote` (Q108); not built |
 | `draft/d-t839c` | T-839 | `podssh agent` and serve's host key in a TPM, Windows TBS; not built |
 | `draft/d-t877` | T-875, T-877 | `doctor --dns-zone` and `--carrier dns:FILE` over `pod-link`; not built |
 | `draft/d-t161` | T-161 | builds only once pod-term has `Modes` and `Ring::modes_at` (COORD-140, #350) |

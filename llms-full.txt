@@ -11154,9 +11154,26 @@ podssh serve
   other open, and the TCP connection ends with its channel. At most 256
   forwards are open at once on one connection, and one more is refused as a
   resource shortage. --no-forwarding refuses each forward, administratively
-  prohibited, with the flag named. A client's -R (tcpip-forward) is refused,
-  and serve's stderr says why: serve binds no socket for it (OpenSSH: remote
-  port forwarding failed).
+  prohibited, with the flag named.
+
+  A client's -R (tcpip-forward) binds no socket. Without --publish-remote,
+  serve refuses each one. With it, serve makes a pair for each at the relay
+  (PODSSH_RELAY, else the default) and runs the pair's node in its own process.
+  It keeps the pair in its cache under a label, rPORT-XXXXXX. podssh operator
+  LABEL on serve's host then reaches the client's service: each session opens a
+  forwarded-tcpip channel to the client, toward the address and port of its -R.
+  Each runs the resumable layer and the end-to-end channel, with a key of this
+  forward alone. A request of port 0 is told a port from 49152 to 65535, which
+  names the forward and binds nothing. serve's stderr names the label, the pair
+  and the key; no line holds a token. The client hears the name in a debug
+  message of SSH, which OpenSSH shows at -v alone (Remote: ...), and on the
+  stderr of its next session that runs a program. At most 8 are open on a
+  connection. Each of these refuses one: --no-forwarding, a key's
+  no-port-forwarding, the same address and port twice, PODSSH_OFFLINE, and a
+  relay that takes no node within 20 s. serve's stderr says why; OpenSSH says
+  remote port forwarding failed. A cancel, the connection's end and serve's
+  stop each stop the node, then the pair (POST /v1/stop), and forget its copy;
+  where the relay did not answer, serve's line names podssh relay revoke LABEL.
 
   The environment of a child is serve's own, as the cage gave it (PATH,
   HTTPS_PROXY and the rest stay). It goes without podssh's credentials:
@@ -11411,6 +11428,10 @@ podssh serve
         and its directory (OSC 7): bash and zsh on a pty by a start file of
         serve's own that reads the user's, which serve never writes; the
         prompts and lines of serve's line discipline (default: no marks).
+    --publish-remote
+        answer a client's -R (tcpip-forward) with a pair of the relay for each,
+        at most 8 a connection, with no bind here (default: each -R is
+        refused).
     --no-forwarding
         open no forward: each direct-tcpip channel that a client opens is
         refused (default: each forward dials its host and port from this host).
