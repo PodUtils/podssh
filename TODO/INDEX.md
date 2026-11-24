@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**828 entries: 7 open, 47 partial, 13 blocked, 761 done.**
+**828 entries: 6 open, 48 partial, 13 blocked, 761 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 7 | 13 | 8 | 359 | 387 |
-| **All** | 7 | 47 | 13 | 761 | 828 |
+| P3 | 6 | 14 | 8 | 359 | 387 |
+| **All** | 6 | 48 | 13 | 761 | 828 |
 
 ## Entries
 
@@ -882,7 +882,7 @@ repository and CI).
 | [T-849](robustness.md) | P1 | S | M10 | defect | partial | `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS |
 | [T-850](release.md) | P2 | M | M10 | chore | done | `podssh update` on `pod-release` of PodUtils/podcrates; podssh's copy of the update goes |
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
-| [T-852](reverse.md) | P3 | S | M10 | measurement | open | An upgrade in place of a node on Windows with a session through a Unix route |
+| [T-852](reverse.md) | P3 | S | M10 | measurement | partial | An upgrade in place of a node on Windows with a session through a Unix route |
 | [T-853](robustness.md) | P1 | S | M10 | defect | done | `serve_shell`: a data file of the test met "Text file busy" at its start, once |
 | [T-854](serve.md) | P3 | S | backlog | defect | done | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
 | [T-855](serve.md) | P3 | S | backlog | feature | done | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |

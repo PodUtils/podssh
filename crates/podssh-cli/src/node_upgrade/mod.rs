@@ -323,12 +323,16 @@ pub(crate) async fn after() -> Option<i32> {
         Some(keeper) => keeper.hand_over().await,
         None => Vec::new(),
     };
-    let moved = handed.iter().filter(|h| h.target.is_ok()).count();
     for why in handed.iter().filter_map(|h| h.target.as_ref().err()).filter(|why| !why.is_empty()) {
         say(format!("a session ends at its resume: {why}"));
     }
-    let shown = pod_release::replace::shown(&binary);
-    say(format!("{moved} of {} sessions go to {shown}", handed.len()));
+    // On Windows the count comes once each socket's duplicate is made (T-852).
+    #[cfg(not(windows))]
+    {
+        let moved = handed.iter().filter(|h| h.target.is_ok()).count();
+        let shown = pod_release::replace::shown(&binary);
+        say(format!("{moved} of {} sessions go to {shown}", handed.len()));
+    }
     hand(binary, handed)
 }
 
@@ -352,11 +356,20 @@ fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
 }
 
 /// The new binary, this process's child, takes the sessions; this process
-/// waits for it and ends with its code, keeping the run's pid and locks.
+/// waits for it and ends with its code, keeping the run's pid and locks. A
+/// session whose socket WinSock did not duplicate is named, and ends at its
+/// resume there (T-852).
 #[cfg(windows)]
 fn hand(binary: PathBuf, handed: Vec<Handed>) -> Option<i32> {
     let shown = pod_release::replace::shown(&binary);
-    match pass_windows::hand_to_child(&binary, &crate::version::line(), handed, &parts::all()) {
+    let total = handed.len();
+    let went = |moved: usize, lost: &[String]| {
+        for why in lost {
+            say(format!("a session ends at its resume: {why}"));
+        }
+        say(format!("{moved} of {total} sessions go to {shown}"));
+    };
+    match pass_windows::hand_to_child(&binary, &crate::version::line(), handed, &parts::all(), &went) {
         Ok(code) => Some(code),
         Err((back, why)) => {
             say(format!("{shown} did not start ({why}): this binary serves its {} sessions again", back.len()));

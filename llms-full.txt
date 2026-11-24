@@ -5191,7 +5191,11 @@ podssh node
   record). It probes the binary as above, and starts it as its child with the
   same words. It hands it each target's socket and the sessions' state, and
   waits for it, ending with its code: the pid and the locks of the run stay the
-  first binary's, and a job ends the child should the first one be ended.
+  first binary's, and a job ends the child should the first one be ended. A
+  route's Unix socket goes to the child as a TCP one does. A session whose
+  socket Windows does not duplicate for the child ends at its resume: the first
+  binary serves nothing once the child runs. A line names the socket's family
+  and the error of Windows.
 
   The node reads the dialect of the reverse road that its relay speaks, the
   version of the relay's hello. It states its own on each upgrade, in the
