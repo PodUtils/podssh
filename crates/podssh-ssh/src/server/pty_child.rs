@@ -88,6 +88,10 @@ pub(super) fn spawn(
     let Some(slave) = granted.slave.take() else { return Err("a program ran on this pty already".into()) };
     let env = super::env::with_tty(env, &granted.term, granted.path.then_some(granted.name.as_str()));
     let mut cmd = command(shell, &program, env)?;
+    // The shell's start files of the marks (T-120), for a login shell.
+    if let Some(files) = open.extras.marks.as_ref() {
+        files.apply(&mut cmd);
+    }
     let copy = |what: &str| slave.try_clone().map_err(|e| format!("{}: {what}: {e}", granted.name));
     cmd.stdin(Stdio::from(copy("stdin")?)).stdout(Stdio::from(copy("stdout")?)).stderr(Stdio::from(copy("stderr")?));
     // A session of its own whose controlling terminal is the slave: Ctrl-C
@@ -138,7 +142,12 @@ pub(super) fn spawn(
             tokio::spawn(pump(motd.chain(Master(master)), to, exited))
         }
     };
-    tokio::spawn(running.finish(child, vec![output], exited_tx, open.closed.clone()));
+    // The files of the marks go when the session does.
+    let (marks, closed) = (open.extras.marks.take(), open.closed.clone());
+    tokio::spawn(async move {
+        running.finish(child, vec![output], exited_tx, closed).await;
+        drop(marks);
+    });
     Ok(())
 }
 

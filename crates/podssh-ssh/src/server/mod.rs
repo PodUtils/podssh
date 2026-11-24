@@ -20,7 +20,9 @@
 //! serve's own tty (T-861) is offered by two names, one that types and one that watches (T-837,
 //! `share.rs`); its owner deletes or rotates a name by the subsystem
 //! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a tty is shown
-//! the message of the day first (T-119, `motd.rs`).
+//! the message of the day first (T-119, `motd.rs`), and with
+//! `--shell-integration` its prompts and commands are marked (T-120,
+//! `marks.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -35,6 +37,7 @@ mod host_sign;
 #[cfg(unix)]
 mod line;
 pub mod live;
+pub mod marks;
 pub mod motd;
 #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
 pub mod notify;
@@ -166,6 +169,9 @@ pub struct Settings {
     /// `--motd FILE`, else `/etc/motd`. None shows none, as a test needs on
     /// a host whose `/etc/motd` it does not know.
     pub motd: Option<motd::Motd>,
+    /// `--shell-integration` (T-120): a login shell on a tty gets the marks
+    /// of OSC 133 and OSC 7. Off, nothing is added.
+    pub shell_integration: bool,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

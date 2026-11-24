@@ -11,7 +11,8 @@
 //! cannot all be honoured is passed over, and said. `--policy FILE` judges
 //! each client's KEXINIT before authentication (T-838). `--share` offers
 //! each login shell on a pty by two names (T-837). `--motd FILE` is the
-//! message of the day of a login shell on a tty (T-119).
+//! message of the day of a login shell on a tty (T-119); `--shell-integration`
+//! marks its prompts and commands (T-120).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -49,6 +50,8 @@ pub struct ServeArgs {
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
+    /// `--shell-integration`: the marks of a login shell (T-120).
+    pub shell_integration: bool,
     /// `--print-unit`, `--system` and `--run-as USER`: a unit of systemd
     /// that runs serve NAME, printed (T-709).
     pub print_unit: bool,
@@ -75,6 +78,7 @@ impl ServeArgs {
             share: matches.get_flag("share"),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
+            shell_integration: matches.get_flag("shell-integration"),
             print_unit: matches.get_flag("print-unit"),
             system: matches.get_flag("system"),
             run_as: matches.get_one::<String>("run-as").cloned(),
@@ -174,6 +178,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         policy,
         share: args.share,
         motd: Some(args.motd.as_ref().map_or_else(Motd::default_file, Motd::named)),
+        shell_integration: args.shell_integration,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

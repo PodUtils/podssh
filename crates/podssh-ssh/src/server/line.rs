@@ -11,7 +11,8 @@
 //! pipes, and its first line is a trap of SIGINT and SIGQUIT, so that the
 //! signal ends the command in the foreground and not the shell (a caught
 //! signal is the default again in the shell's children). The discipline
-//! draws the prompt.
+//! draws the prompt. With `--shell-integration` it marks each prompt and
+//! each line submitted (T-120, `marks.rs`).
 
 use std::ffi::OsString;
 use std::path::Path;
@@ -28,6 +29,7 @@ use tokio::sync::{mpsc, watch};
 
 use super::channel::{Open, Program};
 use super::child::{command, own_session, pump, Running};
+use super::marks;
 
 /// The first line of a login shell: Ctrl-C and Ctrl-\ end the command in
 /// the foreground, and the shell goes on.
@@ -115,7 +117,8 @@ pub(super) fn spawn(
     // A command, not a shell: no prompt around its output, as on a pty (T-848).
     let session = if login { session } else { session.without_prompt() };
     let motd = open.extras.motd.take().unwrap_or_default();
-    let line = Line { session, lines, group: open.group.clone(), login, motd };
+    let marks = open.extras.line_marks;
+    let line = Line { session, lines, group: open.group.clone(), login, motd, marks };
     tasks.push(tokio::spawn(line.run(keys, [out, err], size, screen)));
     tokio::spawn(running.finish(child, tasks, exited_tx, open.closed.clone()));
     Ok(())
@@ -145,6 +148,8 @@ struct Line {
     login: bool,
     /// The message of the day (T-119), drawn before the first prompt.
     motd: Vec<u8>,
+    /// `--shell-integration` (T-120): the prompts and the lines marked.
+    marks: bool,
 }
 
 impl Line {
@@ -162,7 +167,8 @@ impl Line {
             self.give_child(TRAP.to_vec()).await;
             // Its rows end in CR LF, so the prompt starts a row of its own.
             let motd = std::mem::take(&mut self.motd);
-            if screen.write_all(&motd).await.is_err() || screen.write_all(PROMPT).await.is_err() {
+            let prompt = if self.marks { marks::first_prompt(PROMPT) } else { PROMPT.to_vec() };
+            if screen.write_all(&motd).await.is_err() || screen.write_all(&prompt).await.is_err() {
                 return;
             }
         }
@@ -201,6 +207,7 @@ impl Line {
 
     /// Carry out the discipline's events; false once the screen is gone.
     async fn act(&mut self, events: Vec<Event>, screen: &mut (impl AsyncWrite + Unpin)) -> bool {
+        let events = if self.marks { marked(events) } else { events };
         for event in events {
             match event {
                 Event::ToLocal(bytes) => {
@@ -256,6 +263,22 @@ impl Line {
     }
 }
 
+/// The events with the echo of each submitted line marked (T-120): the
+/// discipline draws the next prompt in the echo that comes just before the
+/// line, so that echo takes the marks of the command and the next prompt.
+fn marked(mut events: Vec<Event>) -> Vec<Event> {
+    for i in 1..events.len() {
+        let echo = match (&events[i - 1], &events[i]) {
+            (Event::ToLocal(echo), Event::ToRemote(_)) => marks::submitted(echo, PROMPT),
+            _ => None,
+        };
+        if let Some(echo) = echo {
+            events[i - 1] = Event::ToLocal(echo);
+        }
+    }
+    events
+}
+
 /// The child's output of one read through the discipline; an end or an
 /// error of that output closes it.
 fn output(session: &mut Session, read: std::io::Result<usize>, buf: &[u8], open: &mut bool) -> Vec<Event> {
@@ -289,6 +312,19 @@ mod tests {
         assert!(full_screen(b"  /usr/bin/less /etc/os-release\n").is_some_and(|n| n.contains("less needs a pty")));
         assert_eq!(full_screen(b"echo vi\n"), None);
         assert_eq!(full_screen(b"\n"), None);
+    }
+
+    /// The echo before a submitted line takes the marks; any other echo,
+    /// and an echo with no line after it, does not (T-120).
+    #[test]
+    fn only_the_echo_of_a_submitted_line_is_marked() {
+        let line = || Event::ToRemote(b"ls\n".to_vec());
+        let echo = || Event::ToLocal(b"\r\n$ ".to_vec());
+        let marked_echo = [&b"\r\n"[..], marks::C, marks::D, marks::A, &b"$ "[..], marks::B].concat();
+        assert_eq!(marked(vec![echo(), line()]), vec![Event::ToLocal(marked_echo), line()]);
+        assert_eq!(marked(vec![echo()]), vec![echo()], "a redraw with no line");
+        let key = Event::ToLocal(b"l".to_vec());
+        assert_eq!(marked(vec![key.clone(), line()]), vec![key, line()], "an echo with no prompt");
     }
 
     #[test]
