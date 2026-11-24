@@ -6324,7 +6324,7 @@ gives up each capability of the process (T-698), before it reads a file.
   | --- | --- | --- |
   | `USERAUTH_FAILURE` | a key that no line lists, or that its line refuses now | `Permission denied (publickey)`, 255 |
   | `CHANNEL_FAILURE` | a channel request that serve does not serve: a subsystem other than `sftp`, `x11-req`, a refused `pty-req`, `exec` or `shell` (its reason on the channel's stderr first) | `subsystem request failed on channel 0`; `exec request failed` |
-  | `REQUEST_FAILURE` | a global request that serve does not serve: `tcpip-forward` (`-R`), `streamlocal-forward` | `Warning: remote port forwarding failed for listen port N` |
+  | `REQUEST_FAILURE` | a global request that serve does not serve, `streamlocal-forward`; a `tcpip-forward` (`-R`) that it refuses: `--no-forwarding`, a key's rule, or no relay to publish it (T-123) | `Warning: remote port forwarding failed for listen port N` |
   | `CHANNEL_OPEN_FAILURE` | a forward that `--no-forwarding` or a key's rule refuses, a dial that failed, X11, a Unix socket, more channels than the bound | `open failed: ...` (`serve_forward_openssh.rs`) |
   | `DISCONNECT` | a stop (SIGTERM, SIGINT); a key that a reload removed, with `--revoke-ends-sessions` (T-842); a client that `--policy` refuses (T-838) | `Received disconnect ...: podssh serve is stopping` (`serve_lifecycle_openssh.rs`); `... do not meet the policy` (`serve_policy_openssh.rs`) |
   | `UNIMPLEMENTED` | a message of a number that russh names no message of, before the login or after it, answered with that packet's sequence number (RFC 4253, section 11.4; podssh's patch `0014-unimplemented` of russh, T-854); a named message out of its place is passed over | none sends one; pinned by `vendor/russh/src/server/unimplemented.rs` |
@@ -6567,6 +6567,39 @@ gives up each capability of the process (T-698), before it reads a file.
   takes them (T-118, below): a target that reads slowly holds its forward
   alone. `--no-forwarding` refuses each forward with code 1,
   administratively prohibited, its reason naming the flag.
+- **A client's `-R` (T-123, GitHub #18).** serve binds no socket for a
+  `tcpip-forward`: it makes a pair for it at the relay's control host
+  (`PODSSH_RELAY`, else the default; `POST /v1/pair`, through
+  `HTTPS_PROXY`), runs the pair's node in its own process
+  (`crates/podssh-cli/src/serve_forward.rs`, over `pod-relay`'s node), and
+  keeps the pair in the cache under a label of its own, `rPORT-XXXXXX`, as
+  `podssh relay pair` keeps one. `podssh operator LABEL` on serve's host
+  then reaches the client's service: each session opens a
+  `forwarded-tcpip` channel to the client, toward the address and port of
+  its `-R`, with the resumable layer and the end-to-end channel, under a
+  node key of this forward alone, which the operator pins under the label.
+  The connect token is the door, as with `podssh node` and no `--allow`;
+  it is in serve's user's cache alone. A request of port 0 is told a port
+  from 49152 to 65535, which names the forward (OpenSSH matches each
+  `forwarded-tcpip` by it) and binds nothing. serve's stderr names the
+  label, the pair's name, its relay and the key; no line holds a token.
+  The client hears its forward's name twice: in an `SSH_MSG_DEBUG` with
+  `always_display` set at once, which OpenSSH shows at `-v` alone (it reads
+  the message's text and drops the flag: `debug1: Remote: podssh serve: -R
+  ...`), and on the stderr of its next session that runs a program. Under
+  `--stdio` as a ProxyCommand, serve's own stderr is the client's terminal.
+  At most 8 are open on a connection. `--no-forwarding`, a key's
+  `no-port-forwarding` or `restrict`, the same address and port twice,
+  `PODSSH_OFFLINE`, and a relay that takes no node within 20 s each refuse
+  one with serve's reason on its stderr (OpenSSH: `remote port forwarding
+  failed`); the publish holds the connection meanwhile, as russh reads the
+  next message after it. A `cancel-tcpip-forward`, the connection's end
+  and serve's stop each stop the node, then the pair (`POST /v1/stop`,
+  10 s), and forget the stored copy; a relay that did not answer leaves
+  the copy, and serve's line names `podssh relay revoke LABEL`. A node that
+  ends on its own (the pair expired, 72 h at most; stopped; `409`) says so
+  in serve's log; the client's next `-R` makes a new pair. Not yet: a
+  listener on the node where serve's user asks for one (T-123, step 4).
 - **The environment (T-108).** A child gets serve's own environment, as the
   cage gave it: `PATH`, `HTTPS_PROXY` and a library path are what no login
   database gives again, and a fresh environment, as sshd builds one, would

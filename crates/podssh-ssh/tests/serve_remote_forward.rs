@@ -1,6 +1,7 @@
 //! A stock client's `-R` through `podssh serve` (T-123), against a stand-in
 //! of the relay in memory: russh's client asks `tcpip-forward` for port 0
-//! and is told the port that the stand-in published; a session on the
+//! and is told the port that the stand-in published, which each of its
+//! channels names (OpenSSH matches by it); a session on the
 //! published name opens a `forwarded-tcpip` channel to the client, toward
 //! the address and port of the request, and bytes go both ways; a cancel
 //! stops the forward once, and the connection's end stops the rest. With no
@@ -41,7 +42,7 @@ impl Publish for StandIn {
         self.asked.lock().unwrap().push((asked, opener));
         let (stopped, gone) = (self.stopped.clone(), name.clone());
         let stop = Stop::new(move || stopped.lock().unwrap().push(gone));
-        Box::pin(async move { Ok(Published { name, port, stop }) })
+        Box::pin(async move { Ok(Published { name, port, reach: None, stop }) })
     }
 }
 
@@ -105,12 +106,27 @@ async fn a_forward_is_published_and_its_sessions_reach_the_client() {
     // RFC 4254, section 7.1: the success of a request that named its port
     // carries no port, and russh's client reads that as 0.
     assert_eq!(second.expect("granted"), 0, "a named port's success carries no port");
-    let opener = {
+    let (any, opener) = {
         let asked = stand_in.asked.lock().unwrap();
         assert_eq!(asked.len(), 2);
         assert_eq!((asked[0].0.address.as_str(), asked[0].0.port), ("127.0.0.1", 0));
-        asked[1].1.clone()
+        (asked[0].1.clone(), asked[1].1.clone())
     };
+    // A session of the port-0 forward names the port the client was told,
+    // as OpenSSH takes a forwarded channel by that port alone.
+    assert_eq!(any.port(), GIVEN);
+    let _first = tokio::time::timeout(LIMIT, any.open("192.0.2.7", 50_000)).await.expect("in time").expect("opened");
+    let (_, address, port) = tokio::time::timeout(LIMIT, async {
+        loop {
+            if let Some(one) = seen.channels.lock().unwrap().pop() {
+                return one;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("the client's channel");
+    assert_eq!((address.as_str(), port), ("127.0.0.1", GIVEN));
     // A session on the second name: the channel names its request.
     let opened = tokio::time::timeout(LIMIT, opener.open("192.0.2.7", 50_000)).await.expect("in time");
     let mut far = opened.expect("opened");

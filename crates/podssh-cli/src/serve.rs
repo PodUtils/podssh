@@ -19,6 +19,8 @@
 //! that the user asks for (T-124, `serve_listen.rs`). `--audit-log FILE`
 //! records each login, session and forward (T-116, `serve_audit.rs`).
 //! `--totp FILE` asks each key for a one-time code (T-115, `serve_totp.rs`).
+//! A client's `-R` is a pair of the relay, whose node runs here, with no
+//! bind (T-123, `serve_forward.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -234,8 +236,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         motd: Some(args.motd.as_ref().map_or_else(Motd::default_file, Motd::named)),
         shell_integration: args.shell_integration,
         scope: None,
-        // No relay publishes a client's -R yet: each is refused (T-123).
-        remote: None,
+        // A client's -R: a pair of the relay for each, with no bind (T-123).
+        remote: Some(crate::serve_forward::publisher()),
         keep_lease,
         audit: audit.clone(),
         totp,
@@ -321,6 +323,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     let stream = tokio::io::join(stdin, crate::flushing::stdout());
     let serving = serve_keys::serve_until_stopped(stream, input, key, keys, Arc::new(settings), &sources, err);
     let served = runtime.block_on(serving);
+    // Each -R's pair is stopped at the relay while the runtime runs (T-123).
+    runtime.block_on(crate::serve_forward::end_all());
     // The runtime goes first: each connection's last lines are queued
     // before the run's.
     drop(runtime);

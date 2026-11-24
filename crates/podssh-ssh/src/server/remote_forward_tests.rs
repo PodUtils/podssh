@@ -46,6 +46,7 @@ fn a_teardown_runs_once_as_its_forward_leaves() {
     let published = |port| Published {
         name: format!("p-{port}"),
         port,
+        reach: None,
         stop: Stop::new(|| {
             STOPPED.fetch_add(1, Ordering::SeqCst);
         }),
@@ -61,4 +62,20 @@ fn a_teardown_runs_once_as_its_forward_leaves() {
     drop(forwards);
     assert_eq!(STOPPED.load(Ordering::SeqCst), 2, "the connection's end stops the rest");
     drop(Stop::nothing());
+}
+
+/// The client's line names the forward, its name and the way in, on a
+/// line of its own for a raw terminal; the lines go once, the last kept.
+#[test]
+fn the_client_is_told_each_name_once() {
+    let reach = Some("podssh operator r2201-abc".to_string());
+    let with = Published { name: "r2201-abc".into(), port: 2201, reach, stop: Stop::nothing() };
+    let line = told("localhost", 2201, &with);
+    assert_eq!(line, "podssh serve: -R localhost:2201 is published as r2201-abc; podssh operator r2201-abc\r\n");
+    let bare = Published { reach: None, ..with };
+    assert_eq!(told("", 40_022, &bare), "podssh serve: -R :40022 is published as r2201-abc\r\n");
+    let mut forwards = Forwards::default();
+    forwards.untold = vec![line.clone()];
+    assert_eq!(forwards.untold(), vec![line]);
+    assert!(forwards.untold().is_empty(), "each line is shown once");
 }

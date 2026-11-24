@@ -42,7 +42,7 @@ fn home(tag: &str) -> Option<Scratch> {
 const REPLIES: &[(&str, &str, Option<&str>)] = &[
     ("USERAUTH_FAILURE", "a key that no line lists, or that its line refuses now", Some("Permission denied (publickey)")),
     ("CHANNEL_FAILURE", "a channel request that serve does not serve: a subsystem other than sftp", Some("subsystem request failed")),
-    ("REQUEST_FAILURE", "a global request that serve does not serve: tcpip-forward (-R)", Some("remote port forwarding failed for listen port")),
+    ("REQUEST_FAILURE", "a tcpip-forward (-R) that serve refuses: --no-forwarding, a key's rule, or no relay to publish it", Some("remote port forwarding failed for listen port")),
     // `serve_forward_openssh.rs`: `open failed: administratively prohibited`.
     ("CHANNEL_OPEN_FAILURE", "a forward that --no-forwarding or a key's rule refuses", None),
     // `serve_lifecycle_openssh.rs`: `Received disconnect ... podssh serve is stopping`;
@@ -148,10 +148,11 @@ fn each_refusal_that_openssh_can_cause_sends_its_reply() {
     let (code, err) = finish(openssh_with(home, &key, "accept-new", "", &["-s"], &["podssh-no-such-subsystem"]));
     assert_ne!(code, Some(0), "{err}");
     assert!(err.contains(words("CHANNEL_FAILURE")), "{err}");
-    // REQUEST_FAILURE: a listener on serve's side, which serve never opens;
-    // the session goes on, and OpenSSH warns.
+    // REQUEST_FAILURE: a -R that serve refuses (--no-forwarding here: with
+    // none, serve would publish it at the relay, T-123); the session goes
+    // on, and OpenSSH warns.
     let options = ["-R", "127.0.0.1:2222:127.0.0.1:1"];
-    let (code, err) = finish(openssh_with(home, &key, "accept-new", "", &options, &["sleep 1"]));
+    let (code, err) = finish(openssh_with(home, &key, "accept-new", " --no-forwarding", &options, &["sleep 1"]));
     assert_eq!(code, Some(0), "the session goes on: {err}");
     assert!(err.contains(words("REQUEST_FAILURE")), "{err}");
 }

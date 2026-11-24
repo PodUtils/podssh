@@ -223,7 +223,10 @@ pub(crate) fn run(
 ) -> i32 {
     let Bound { runtime, listening, limits } = bound;
     let served = Served { key, keys, settings: Arc::new(settings), control: Control::new(), gate: Gate::new(limits) };
-    runtime.block_on(serve(listening, served, sources, err))
+    let code = runtime.block_on(serve(listening, served, sources, err));
+    // Each -R's pair is stopped at the relay while the runtime runs (T-123).
+    runtime.block_on(crate::serve_forward::end_all());
+    code
 }
 
 /// What each connection is served with.
