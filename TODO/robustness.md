@@ -2801,6 +2801,7 @@ before the repair too, so the proof is the gate's. Then the gate ten times in a 
 2026-11-23, the gate at `444b5181` (run 45213300602), the first with `io/beside.rs`: each job green, `gate (m6)` among
 them: one of the ten in a row that this entry's Prove asks.
 The gate at `55386459` (run 45276783667): each job green, `gate (m6)` the second in a row.
+The gate at `f789df28` (run 45309674786, russh 0.65.4 and T-859's pump): each job green, `gate (m6)` the third.
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 
