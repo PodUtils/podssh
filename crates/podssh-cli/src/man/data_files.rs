@@ -352,6 +352,7 @@ pub fn files() -> Vec<(Vec<String>, String)> {
     rows.extend([
         super::super::notes_devtunnel::file(),
         super::super::notes_serve::file(),
+        super::super::notes_serve::motd_file(),
         super::super::notes_doctor::http_road_file(),
     ]);
     rows.push(super::super::notes_gsr::file());

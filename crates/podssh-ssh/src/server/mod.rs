@@ -19,7 +19,8 @@
 //! (T-838, `policy_gate.rs`). With `--share`, a login shell on a pty or on
 //! serve's own tty (T-861) is offered by two names, one that types and one that watches (T-837,
 //! `share.rs`); its owner deletes or rotates a name by the subsystem
-//! `share@podssh` (T-860, `share_ctl.rs`).
+//! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a tty is shown
+//! the message of the day first (T-119, `motd.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -34,6 +35,7 @@ mod host_sign;
 #[cfg(unix)]
 mod line;
 pub mod live;
+pub mod motd;
 #[cfg(all(target_os = "linux", any(target_arch = "x86_64", target_arch = "aarch64")))]
 pub mod notify;
 pub mod options;
@@ -56,6 +58,7 @@ pub mod share_measure;
 mod share_view;
 #[cfg(unix)]
 pub mod shell;
+mod start;
 pub mod stop;
 
 use std::borrow::Cow;
@@ -159,6 +162,10 @@ pub struct Settings {
     /// `--share` (T-837): each login shell on a pty is offered by two names,
     /// told once to its owner. Off, the login name selects nothing.
     pub share: bool,
+    /// The message of the day of a login shell on a tty (T-119): the CLI's
+    /// `--motd FILE`, else `/etc/motd`. None shows none, as a test needs on
+    /// a host whose `/etc/motd` it does not know.
+    pub motd: Option<motd::Motd>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

@@ -1873,6 +1873,31 @@ example, a notice that the host is a sandbox that expires.
    are removed with `podssh_ws::text::multi_line`.
 4. Same commit: the flag in `crates/podssh-cli/src/flags.rs`, the manual.
 
+## Decision
+
+2026-11-24 (draft). Each tty of serve takes the text: a pty, the line discipline of T-111, and the
+tty that serve answers (T-776, T-777). It is written on the screen side, before the child's first
+byte: on a pty the output's pump reads it ahead of the master (`AsyncReadExt::chain`); on the line
+discipline it is drawn before the first prompt; on the answered tty it is written before the
+discipline's task starts. Lost: writing it to the pty's slave before the child starts, which would
+wait on the slave's buffer (a few KiB) while nothing reads the master yet, so a file of 64 KiB could
+hold the session; and sending it through the channel from the handler, whose queue to the
+connection holds 10 messages while the connection waits on the handler.
+
+`podssh_ssh::server::Settings::motd` is None by default (no text), and the CLI gives it `--motd FILE`
+or `/etc/motd`. Lost: `/etc/motd` as the library's default, which would put the host's text in each
+test of a login shell on a host that has one.
+
+A `--motd FILE` that cannot be read at the start refuses the start (78), as a missing
+`--authorized-keys FILE` does; later, a login goes on without it and serve's stderr says why. The
+default file is missed in silence: a cage has none. Lost: a line at each login for a missing
+`/etc/motd`, which would be noise in each cage.
+
+A file that is not a regular file is refused before a byte is read; it is opened with `O_NONBLOCK`
+so that a FIFO cannot hold the open. A file with no last newline gets one, so that the prompt starts
+a row of its own (sshd prints the file as it is). The text is read as UTF-8 with U+FFFD for a byte
+that is not, and a character that the cap cut in two is dropped.
+
 ## Prove
 
 ```sh
@@ -1896,6 +1921,34 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (draft). The Premise's citation of `crates/podssh-ssh/src/handler.rs:212-215` has moved:
+`podssh_ws::text::multi_line` is at `crates/podssh-ssh/src/handler.rs:224` (`auth_banner`). The
+Approach's "the line discipline of T-111" is one of three ttys of serve now: the tty that serve
+answers (T-776, T-777) takes the text too (Decision). The flag's row is in
+`crates/podssh-cli/src/flags/serve.rs`, which `flags.rs` includes.
+
+## Done
+
+Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+
+- `crates/podssh-ssh/src/server/motd.rs`: the read (64 KiB, a regular file alone, no wait on a
+  FIFO), the bytes for the terminal (`multi_line`, CR LF, a last newline), `~/.hushlogin`, and the
+  check of the start. `crates/podssh-ssh/src/server/start.rs`: what a login shell's start adds,
+  read on the blocking thread of the search for the shell (`program.rs`), kept on the channel
+  (`channel.rs`, `Open::extras`) and taken by `pty_child.rs`, `line.rs` and `notify/mod.rs`.
+- The CLI: `--motd FILE` (`flags/serve.rs`, `serve.rs`, and `--print-unit`'s words in
+  `node_install/print.rs`), checked at the start (78). The manual: a note of `serve`
+  (`man/notes_serve.rs`) and a row of FILES (`/etc/motd`, `~/.hushlogin`). `docs/cli.md`, "The
+  message of the day (T-119, GitHub #19)". `docs/STATUS.md`: a row.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_motd`: UNVERIFIED (6 tests: the
+  table of the terminal's bytes, the cap, a FIFO and a directory, `.hushlogin`, the line discipline
+  with a shell, a command and `.hushlogin`, and a pty where one opens).
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man`: UNVERIFIED (the note and the row of
+  FILES).
+- Waits for T-251: the gate's `ssh -tt` through `podssh serve --stdio --motd FILE`, an exec with
+  none, `~/.hushlogin`, and the plant that prints it for exec.
+- `cargo todo remap docs/cli.md` after the merge: the bullet moved the lines after it.
 
 # T-120: `podssh serve`: shell integration marks, when asked
 

@@ -76,6 +76,8 @@ pub(super) struct Open {
     pub(super) seat: Option<Arc<super::share::Seat>>,
     /// A name's `pty-req`: the size that its seat starts with.
     pub(super) asked: Option<crate::terminal::Size>,
+    /// What a login shell's start adds (T-119), until its child takes it.
+    pub(super) extras: super::start::Extras,
 }
 
 impl Open {
@@ -102,6 +104,7 @@ impl Open {
             told: None,
             seat: None,
             asked: None,
+            extras: super::start::Extras::default(),
         }
     }
 

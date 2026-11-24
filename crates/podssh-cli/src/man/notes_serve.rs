@@ -2,8 +2,8 @@
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
-//! a removed key's sessions, T-842; a shell shared by name, T-837), and the
-//! row of its host key's file.
+//! a removed key's sessions, T-842; a shell shared by name, T-837; the
+//! message of the day, T-119), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -107,6 +107,13 @@ pub const SERVE: &[&str] = &[
      refuses such a request with its answer, and a command then runs on pipes (OpenSSH, with -tt, ends with PTY \
      allocation request failed); podssh doctor's lines pty, pty devpts and pty notify say which a client meets. On \
      Windows the request is refused.",
+    // The message of the day (T-119).
+    "A login shell on a tty, of any of the kinds above, is shown the message of the day first, as sshd shows it. The \
+     file is --motd FILE, else /etc/motd where it is there. A command, a forced command= and a subsystem are shown \
+     none. A user with ~/.hushlogin is shown none; serve takes the home from HOME. At most 64 KiB of the file is shown, \
+     and serve's stderr says when the rest was cut. Each control character but tab and newline is dropped, so the \
+     file cannot drive the terminal. The file is read again at each login. A --motd FILE that cannot be read refuses \
+     the start (78); later, a login goes on without it, and stderr says why.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it. So OpenSSH's \
      sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has no sftp-server, scp or \
      rsync. The files are reached as the user that runs serve, with no chroot: what that user may read and write, a \
@@ -208,6 +215,16 @@ pub fn file() -> (Vec<String>, String) {
          (Ed25519) that the first start makes, mode 0600 (on Windows, the access list of the cache); \
          each later start reads it; podssh never writes over it. Remove it to make a new host key, which \
          each client then sees as a changed one."
+            .to_string(),
+    )
+}
+
+/// The message of the day and `~/.hushlogin` (T-119), for FILES.
+pub fn motd_file() -> (Vec<String>, String) {
+    (
+        vec![podssh_ssh::server::motd::DEFAULT.to_string(), "~/.hushlogin".to_string()],
+        "The message of the day that podssh serve shows before a login shell on a tty, when no --motd names \
+         another file; a missing file shows none. A ~/.hushlogin in the user's home (HOME) shows none either."
             .to_string(),
     )
 }
