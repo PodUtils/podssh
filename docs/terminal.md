@@ -648,6 +648,49 @@ ends (T-307).
   that nothing echoed gave no notice, and under a pause of 20 s the notice
   came at 6.0 s and went before the echo at 20.1 s and 20.0 s.
 
+## The writer lease of a shared shell (T-862)
+
+With `podssh serve --share` (`docs/cli.md`, "A shell shared by name"),
+each writer of a shared shell types through one lease: the holder's bytes
+reach the pty, and another writer's wait until the holder was silent for
+`LEASE_IDLE` (`crates/podssh-ssh/src/server/share.rs`). Too short, and two
+people's keys mix within a word; too long, and the second writer waits
+after each of the holder's pauses.
+
+Measured on 2026-11-24 (Linux, the kernel's pty, russh's client over pipes
+in memory): two scripted typists under the `rw-` name of one shell under
+`cat` with no echo and no line buffer, so the output is the pty's input in
+the order the lease let it in. Each types words of 3 to 8 letters, 100 to
+400 ms between keys, 400 to 1500 ms between words and a pause of 2 to 4 s
+before one word in eight, from a fixed seed: 62.6 s of typing, 22 and 24
+words, for each span.
+
+| Lease | Words broken | Waits | Time held | Median | 95th | Longest |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 100 ms | 41 of 46 | 64 | 3.5 s | 54 ms | 101 ms | 157 ms |
+| 200 ms | 41 of 46 | 89 | 16.2 s | 160 ms | 470 ms | 664 ms |
+| **400 ms** | **0** | **34** | **26.2 s** | **825 ms** | **2193 ms** | **2319 ms** |
+| 500 ms | 0 | 34 | 29.4 s | 925 ms | 1890 ms | 2294 ms |
+| 600 ms | 0 | 31 | 37.8 s | 1109 ms | 5285 ms | 5445 ms |
+| 800 ms | 0 | 25 | 42.8 s | 1226 ms | 5316 ms | 5486 ms |
+
+A word is broken when a byte of the other typist lands between its first
+letter and its end; a wait is a write of a held writer, and its time runs
+from the first hold to the write. `LEASE_IDLE` is 400 ms: the least span
+that broke no word, and the least waiting of those. A span under the gaps
+between a person's keys hands the lease over inside a word, and so broke
+nearly every word typed while the other typed; each step past 400 ms only
+holds the second writer longer (to 5 s at the 95th from 600 ms, where the
+holder's gaps between words no longer pass it on). The margin at 400 ms is
+the script's own longest gap between keys; a person slower than that within
+a word can still be broken. The command:
+
+```sh
+cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
+```
+
+`PODSSH_MEASURE_SECS` sets the typing of each span (default 60 s).
+
 ## Tests
 
 Linux test hosts grant ptys, so a test must force the paths with no pty:

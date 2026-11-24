@@ -4001,8 +4001,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:87-108`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:71`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:89-110`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:73`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -4593,7 +4593,7 @@ name").
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4610,9 +4610,38 @@ interleave within a word; too long, and the second writer waits after each pause
    loopback; count interleaved words and the second writer's waits for 100, 200, 400 and 800 ms.
 2. Write the result in `docs/terminal.md`, and set the constant from it.
 
+## Decision
+
+`LEASE_IDLE` is 400 ms: of the spans measured, the least that broke no word, and so the least waiting of those (26.2 s
+held over 62.6 s of two people typing). Lost: 200 ms, the guess of T-837 (41 of 46 words broken: a span under the
+gaps between a person's keys hands the lease over inside a word); 500 ms (no word broken, 3.2 s more held, a margin
+of 100 ms past the script's longest gap between keys, but the rule of the entry is the least waiting); 600 and 800 ms
+(the second writer held to 5.3 s at the 95th, as the holder's gaps between words stop passing the lease). The hook
+of the measure is `server::share_measure` (hidden): a span in place of the constant and the waits kept only while a
+measure runs; off, `Lease::take` reads the constant through one atomic load.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --lib server::share
+cargo test -p podssh-ssh --test serve_share
+cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
 ```
+
+## Done
+
+2026-11-24 (Linux, the kernel's pty, russh's client over pipes in memory, worktree `draft-t862`):
+
+- The measure: `crates/podssh-ssh/tests/share_lease_measure.rs` (`#[ignore]`), two scripted typists under the
+  `rw-` name of one shell under `cat` (`stty -echo -icanon`), words of 3 to 8 letters, 100 to 400 ms between keys,
+  400 to 1500 ms between words, a pause of 2 to 4 s before one word in eight, seeded; the hook
+  `crates/podssh-ssh/src/server/share_measure.rs` sets the span and keeps each wait of a held writer.
+- The run (`cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture`, 1 passed in 384 s), 62.6 s
+  of typing and 46 words for each span: words broken / waits / time held / 95th wait: 100 ms 41 / 64 / 3.5 s /
+  101 ms; 200 ms 41 / 89 / 16.2 s / 470 ms; 400 ms 0 / 34 / 26.2 s / 2193 ms; 500 ms 0 / 34 / 29.4 s / 1890 ms;
+  600 ms 0 / 31 / 37.8 s / 5285 ms; 800 ms 0 / 25 / 42.8 s / 5316 ms. The table is in `docs/terminal.md`, "The
+  writer lease of a shared shell (T-862)".
+- `LEASE_IDLE` is now 400 ms (`## Decision`); `docs/cli.md` says so, and `serve_share`'s bound moved to 350 to 450 ms.
+- `cargo test -p podssh-ssh --lib server::share`: 7 passed. `--test serve_share`: 6 passed. `cargo clippy -p
+  podssh-ssh --all-targets -- -D warnings -A clippy::collapsible_if`: clean. `cargo fmt --check`: clean.

@@ -6482,8 +6482,9 @@ gives up each capability of the process (T-698), before it reads a file.
   may send its window size, and nothing else reaches the shell. Each
   writer, the owner among them, writes through one lease: the bytes of
   one writer reach the pty at a time, and another writer's bytes wait (in
-  serve, then in the client's window) until 200 ms passed with nothing
-  from the holder; no two writers' bytes interleave. The pty's size is the
+  serve, then in the client's window) until 400 ms passed with nothing
+  from the holder (measured with two people typing, T-862 in
+  `docs/terminal.md`); no two writers' bytes interleave. The pty's size is the
   least of the owner's and each seat's window. A seat reads the output
   from its attach on (there is no screen to replay before T-161); one that
   falls 64 chunks behind skips to the present, and none ever holds the

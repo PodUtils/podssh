@@ -51,6 +51,8 @@ pub mod rules;
 pub mod sftp;
 pub mod share;
 mod share_ctl;
+#[doc(hidden)]
+pub mod share_measure;
 mod share_view;
 #[cfg(unix)]
 pub mod shell;

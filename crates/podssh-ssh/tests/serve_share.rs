@@ -150,7 +150,8 @@ async fn without_share_a_name_is_a_wrong_key() {
     assert_eq!(server.control.shared(), 0);
     assert!(server.login("rw-00000000000000000000000000000000", &key()).await.is_none());
     let lease = share::LEASE_IDLE;
-    assert!(lease >= Duration::from_millis(150) && lease <= Duration::from_millis(250), "{lease:?}");
+    // T-862's measure: past the gaps between a person's keys.
+    assert!(lease >= Duration::from_millis(350) && lease <= Duration::from_millis(450), "{lease:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

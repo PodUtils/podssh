@@ -32,8 +32,10 @@ use super::channel::Input;
 use crate::terminal::Size;
 
 /// How long a writer's silence holds the lease: then another writer's
-/// bytes may claim it. The starting point of the entry, to measure.
-pub const LEASE_IDLE: Duration = Duration::from_millis(200);
+/// bytes may claim it. Measured with two people typing (T-862,
+/// `docs/terminal.md`): the least span that broke no word, as it outlasts
+/// the gaps between a person's keys; a shorter one breaks most words.
+pub const LEASE_IDLE: Duration = Duration::from_millis(400);
 
 /// The chunks of output that a watcher may fall behind before it skips to
 /// the present: with chunks of 32 KiB at most, 2 MiB for each shell.
@@ -201,13 +203,14 @@ impl Lease {
         }
     }
 
-    /// `seat` writes at `now`: it holds the lease for [`LEASE_IDLE`] more.
+    /// `seat` writes at `now`: it holds the lease for [`LEASE_IDLE`] more
+    /// (another span only under T-862's measure).
     pub(super) fn take(&mut self, seat: u64, now: Instant) {
         if self.holder != Some(seat) {
             self.holder = Some(seat);
             self.generation += 1;
         }
-        self.until = Some(now + LEASE_IDLE);
+        self.until = Some(now + super::share_measure::lease_idle());
     }
 }
 
@@ -297,6 +300,7 @@ impl Hub {
     /// Write `bytes` to the pty as `seat`, once it holds the lease; false
     /// once the shell ended or the pty refused them.
     async fn write_leased(&self, seat: u64, bytes: &[u8]) -> bool {
+        let mut held_since = None;
         loop {
             if self.ended.load(Ordering::SeqCst) {
                 return false;
@@ -304,8 +308,12 @@ impl Hub {
             let mut held = self.input.lock().await;
             if let Some(until) = held.0.busy(seat, Instant::now()) {
                 drop(held);
+                held_since.get_or_insert_with(Instant::now);
                 tokio::time::sleep_until(until).await;
                 continue;
+            }
+            if let Some(since) = held_since {
+                super::share_measure::waited(since.elapsed());
             }
             held.0.take(seat, Instant::now());
             let written = held.1.write_all(bytes).await.is_ok();
