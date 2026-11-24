@@ -1,12 +1,42 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-23, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-24, for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
-- **Read first, at the next session (the cloud session of 2026-11-23, after `e728db9f`):**
+- **Read first, at the next session (the cloud session of 2026-11-24, ended at the operator's word after `64e88d06`):**
+  1. **The draft stack `draft/merge-drafts` (`723c2710`, on GitHub) waits for its merge into `main`.** It holds eleven
+     drafts of 2026-11-24, applied on `64e88d06` with their conflicts resolved: T-150 (podssh's own SFTP digest
+     requests), T-119 (MOTD), T-120 (`--shell-integration`), T-122 (a transient scope per pty child), T-124
+     (`serve --listen`), T-631 (the login deadline), T-123 (WIP, serve's side of `ssh -R` only), T-159 (kept shells),
+     T-833 (the attach ticket; it files one more entry on the stack, the client's offset after a lost link), T-116 (`--audit-log`) and T-115 (`--totp`), and one commit of what the
+     build found. Measured on it (2026-11-24): `cargo build --workspace --tests` ok; `cargo test -p podssh-ssh --lib`
+     509 passed, and each new suite of podssh-ssh (`serve_attach_ticket` 3, `serve_audit` 3, `serve_keep` 4,
+     `serve_listen` 6, `serve_marks` 6, `serve_motd` 6, `serve_remote_forward` 2, `serve_scope` 5, `serve_totp` 2,
+     `sftp_extensions` 5) passed; `cargo test -p podssh-cli --lib` 1279 passed; `serve_audit_openssh` 2,
+     `serve_totp_openssh` 1, `serve_sftp_openssh` 3, `serve_openssh` 9, `man_page` 11, `man_flag_parity` 6,
+     `man_json` 4, `flag_table` 9 passed; clippy `-D warnings -A clippy::collapsible_if` clean on Rust 1.100;
+     `check-repo.py` ok; `cargo todo check` leaves only "a `## Done` on an entry that is open" for each of the eleven.
+     **Not yet run:** the whole `cargo test --workspace --no-fail-fast` on the stack, and the Windows and macOS builds
+     (the kept modules are meant to build there; `kept_run.rs` is Unix only). **To finish:** run the whole suite,
+     fill each UNVERIFIED of the eleven entries and their STATUS rows with the results above, close each entry
+     (`cargo todo set T-NNN done`, or `partial` where its `## Done` names a wait: T-123 stays partial), note in
+     PROGRESS's "Parked open work" that each started from its draft as T-114 did, fast-forward `main` to the stack,
+     push. Two calls of the merge to check: under `--listen` no shell is kept (`--keep-lease` with `--stdio` or
+     `--listen` refuses with 64); T-122 starts `busctl` only where its probe at start found it.
+  2. **The gate.** `deny` was red at `21dc2545` on `RUSTSEC-2026-0596` (etherparse 0.19.0 through
+     `vendor/tailscale-rs`'s `ts_dataplane`); etherparse 0.19.1 at `3e5dc748`, with Dependabot's #348 (cc, toml,
+     zerocopy) at `84f46b90`, tested here (408 suites, 4125 passed; 3 of `job_far` at this container's guard of
+     `rm`), pushed as `64e88d06`: `deny`, `secrets` and `issue-sync` green there; the `build` run 45365620442 was in
+     progress at the session's end. Read it first; T-780 counts its m6 job.
+  3. **T-835 is done** (the DNS carrier: `docs/research/dns-carrier.md`; `pod-link` has the road; filed T-875 to
+     T-877 and Q107, the UDP to a resolver, for the operator). **COORD-139** (#349, `to podcrates`) asks T-876's four
+     findings in `pod-link`'s DNS responder and a DoH `Datagrams`.
+  4. **Open COORD issues waiting on podcrates:** #340 (COORD-133), #346 (COORD-137, the pod-term codec), #347
+     (COORD-138, the take of `v0.82.1` and pod-unit's name bound), #349 (COORD-139).
+- **Read before, at the session (the cloud session of 2026-11-23, after `e728db9f`):**
   1. **The gate.** Green at `444b5181` (run 45213300602, each job; T-857 done). At `af95c50` it was red: `gate (m6)` (T-780's sixteenth hang), `macos`
      (`cover_credential`, T-857) and `windows` (`attach`, T-858). Each has its repair on `main`
      (T-780 `d3aba042`, T-857 `cae0bdd6`, T-858 `68228ea4`), each `partial` until the gate proves it:

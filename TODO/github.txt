@@ -353,5 +353,5 @@
 345 pull closed
 346 issue open
 347 issue open
-348 pull open
+348 pull closed
 349 issue open
