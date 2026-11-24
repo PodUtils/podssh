@@ -6,11 +6,15 @@
 //! the output up to an offset in the ring gets the rest from there; one
 //! whose offset the ring no longer holds, or that is past the output, or
 //! that asks, gets a reset: the ring from its first boundary of the grammar
-//! (T-221), after a line that says so. serve decides the reset itself, so a
-//! gap that cannot be served never repeats (the gap of EternalTerminal that
-//! T-833 read).
+//! (T-221), after a line that says so, with the offset where it starts. serve
+//! decides the reset itself, so a gap that cannot be served never repeats
+//! (the gap of EternalTerminal that T-833 read).
 
 use pod_term::grammar::Ring;
+
+// The lines of a reset and of a dropped part, which the client reads to
+// keep its offset (T-895): one wording for both ends.
+pub(super) use crate::keep_count::{dropped_line, reset_line};
 
 /// Where the replay starts, and whether it is a reset: from `count`, the
 /// client's offset, where the ring holds it; else from `base`, the offset
@@ -46,16 +50,6 @@ pub(super) fn since(ring: &Ring, from: u64) -> (Vec<u8>, u64) {
         Some(start) => (ring.kept(), start - from),
         None => (Vec::new(), end - from),
     }
-}
-
-/// The line of output that the ring dropped before a client had it.
-pub(super) fn dropped_line(bytes: u64) -> String {
-    format!("podssh serve: {bytes} bytes of this shell's output were dropped while no client had it\r\n")
-}
-
-/// The line of a reset, before the ring's bytes.
-pub(super) fn reset_line(name: &str) -> String {
-    format!("podssh serve: a reset of the kept shell {name}: its last output follows, from a clean boundary\r\n")
 }
 
 #[cfg(test)]

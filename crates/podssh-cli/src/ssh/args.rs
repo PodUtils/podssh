@@ -147,6 +147,9 @@ pub struct SshArgs {
     pub attach_list: bool,
     /// `--take`: take the kept shell from the client that has it.
     pub take: bool,
+    /// `--reset`: the kept shell's last output from a clean boundary, not
+    /// from the offset that this client has (T-895).
+    pub reset: bool,
     /// `--upgrade`: the session moves to a temporary node on the server
     /// (T-167).
     pub upgrade: bool,
@@ -412,6 +415,7 @@ impl SshArgs {
             attach: one("attach"),
             attach_list: false,
             take: flag("take"),
+            reset: flag("reset"),
             upgrade: flag("upgrade"),
             no_signal: flag("no-signal"),
             resume_deadline: one("resume-deadline"),

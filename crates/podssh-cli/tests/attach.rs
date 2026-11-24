@@ -9,7 +9,9 @@
 //! A planted far end that ends the shell on a detach fails that read. A far
 //! end that keeps no shells gets `~d` as two bytes and refuses `--attach`;
 //! the far end refuses an attach from inside the shell itself, and one to a
-//! shell that a client has, unless `--take`. Each check says that it did
+//! shell that a client has, unless `--take`. After a lost link, the next
+//! attach gets back the output that the far end counted and the dead
+//! channel never brought (T-895). Each check says that it did
 //! not run when this host has no Python or no openssl for the stand-in
 //! relay, and the checks of `~d` where the test has no terminal.
 
@@ -423,6 +425,47 @@ fn the_far_end_refuses_a_nested_attach_and_a_second_client_unless_take() {
     assert_eq!(code, Some(0), "{err}");
 }
 
+/// `--attach work` from a new process, then a link that dies past the
+/// resume deadline with output that the far end counted and never sent
+/// (`cut TEXT`): exit 255, and the stdout that came.
+fn attach_then_lose(stand: &Stand, text: &str) -> String {
+    let mut run = Run::start(stand, &["--attach", "work"], None);
+    run.wait_for("stdout", "[work] attached");
+    run.send("echo M=$MARK");
+    run.wait_for("stdout", "M=kept");
+    run.send(&format!("cut {text}"));
+    let (code, out, err) = run.end();
+    assert_eq!(code, Some(255), "a lost link: {err}");
+    out
+}
+
+/// A link lost with no `~d` (T-895): the output that the far end wrote
+/// into the dead channel comes back at the next `--attach` from this host,
+/// which gives the offset that the client kept, and only that output comes
+/// back, before the far end's word of the attach. A client that kept no
+/// offset starts where the far end counted, and misses it, as before.
+#[test]
+fn a_lost_link_then_attach_gives_back_the_bytes_after_the_loss() {
+    let Some(stand) = Stand::new("lost", Plant::None) else { return };
+    stand.shells.lock().unwrap().keep("work", "kept");
+    let record = stand.session.home.join("cache").join("podssh").join(podssh_ssh::keep_record::FILE);
+    attach_then_lose(&stand, "LOST_ONE");
+    assert!(record.exists(), "the offset is kept after the loss: {}", record.display());
+    std::fs::remove_file(&record).unwrap();
+    let out = attach_then_lose(&stand, "LOST_TWO");
+    assert!(!out.contains("LOST_ONE"), "no offset kept, no replay: {out:?}");
+    let mut back = Run::start(&stand, &["--attach", "work"], None);
+    back.wait_for("stdout", "[work] attached");
+    back.send("exit");
+    let (code, out, err) = back.end();
+    assert_eq!(code, Some(0), "{err}");
+    let lost = out.find("LOST_TWO").unwrap_or_else(|| panic!("the output after the loss came back: {out:?}; {err}"));
+    assert!(lost < out.find("[work] attached").unwrap(), "before the attach's word: {out:?}");
+    assert!(!out.contains("LOST_ONE") && !out.contains("M=kept"), "from the kept offset alone: {out:?}");
+    assert!(!err.contains("a reset"), "a replay, not a reset: {err}");
+    assert!(!record.exists() || !std::fs::read_to_string(&record).unwrap().contains(" work "), "an exit forgets it");
+}
+
 /// Each command line that `--attach` cannot serve exits 64 before anything
 /// connects: no relay, and no pair, is needed to tell.
 #[test]
@@ -435,6 +478,7 @@ fn attach_refuses_what_it_cannot_serve_before_anything_connects() {
         (vec!["--attach", "work", "-T", "node://lab"], "cannot be combined with -T"),
         (vec!["--attach", "a b", "node://lab"], "is not a name of a kept shell"),
         (vec!["--take", "node://lab"], "--take is for --attach NAME"),
+        (vec!["--reset", "node://lab"], "--reset is for --attach NAME"),
         (vec!["--attach", "work", "--persist", "node://lab"], "--persist is for a standard sshd"),
     ] {
         let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));

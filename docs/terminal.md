@@ -372,6 +372,27 @@ the client's host.
   its offset (T-833): the bytes of its output so far, or at the detach.
   `env count@podssh OFFSET` before an attach replays from there, and `env
   reset@podssh yes` asks for the last output from a clean boundary.
+- **The offset that the client has** (T-895). A session to a far end
+  that keeps shells counts the bytes of the shell's output that it got,
+  from where that output starts: 0 for a new shell; for an attach, the
+  offset that it gave. serve's line of a reset names the offset where the
+  replay starts, and its line of a dropped part names the bytes that it
+  skips; the client reads both on stderr. At the session's end the client
+  keeps the count in the cache (`kept-offsets.txt`), by a hash of the far
+  end's host key and the user and by the shell's name: after a lost link,
+  `~.`, a signal, or `~d` (under the name that the far end keeps the
+  shell as, since a detach can close the channel before the last bytes
+  that serve counted). It forgets it where the shell ended or another
+  client took it; a join that the far end refused, which got no output,
+  leaves it. `--attach NAME` gives the kept count with `env
+  count@podssh`, or, with none, reads `shells@podssh` first and gives the
+  listed offset, so that its own count starts where serve's replay does.
+  `--reset` sends `env reset@podssh yes` in its place. A far end that
+  refuses the count joins the shell as before, with no count kept. A
+  count from another shell of the same name (one that ended, and a new
+  one kept under its name) replays from that offset where the new shell's
+  output reaches it, and is a reset where it does not: the replay is the
+  new shell's own output either way.
 - **The far end decides.** One client has a shell at a time; `--take`
   takes it, and the far end ends the other client's channel. The far end
   puts `PODSSH_SHELL_ID` in the environment of each shell that it starts,
@@ -400,7 +421,9 @@ end in the test process: the layer as `podssh serve` speaks it, with
 node in plain mode on the stand-in relay. In a pseudo console on Windows,
 or a pty on Linux, it sets a variable in a shell, types `~d`, lists the
 kept shells, attaches by name from a new process, and reads the variable
-back.
+back. It also loses a link while the stand-in writes output that it never
+sends, and the next attach from the same cache gets that output back
+(T-895).
 
 ## Where kept output may start
 

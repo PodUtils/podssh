@@ -1,9 +1,10 @@
-//! `--attach` and `--take` (T-158): join a shell that the far end keeps
-//! after `~d`, or list the kept shells. Only a far end that names `keep.v1`
-//! in the resumable layer keeps shells, and only the road of a node
-//! (`node://NAME`) reads it, so each other destination is refused before
-//! anything connects. The far end decides who may join a shell, and says
-//! why it refuses (`podssh_ssh::keep`).
+//! `--attach`, `--take` and `--reset` (T-158, T-895): join a shell that the
+//! far end keeps after `~d`, or list the kept shells. Only a far end that
+//! names `keep.v1` in the resumable layer keeps shells, and only the road of
+//! a node (`node://NAME`) reads it, so each other destination is refused
+//! before anything connects. The far end decides who may join a shell, and
+//! says why it refuses (`podssh_ssh::keep`); the offset that this client
+//! has of the shell's output is `podssh_ssh::keep_count`'s.
 
 use podssh_ssh::keep::{self, Ask};
 use podssh_ssh::{Request, RequestTty};
@@ -29,12 +30,16 @@ pub fn listing(args: &SshArgs) -> Option<SshArgs> {
 /// pty for the shell to join, or the subsystem that lists the kept shells.
 pub fn check(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refusal> {
     let ask = match (&args.attach, args.attach_list) {
-        (Some(name), _) => Ask::Attach { name: name.clone(), take: args.take },
+        (Some(name), _) => Ask::Attach { name: name.clone(), take: args.take, reset: args.reset },
         (None, true) if args.take => {
             return Err("--take takes a kept shell from its client: give --attach NAME DEST".into());
         }
+        (None, true) if args.reset => {
+            return Err("--reset gives a kept shell's last output: give --attach NAME DEST".into());
+        }
         (None, true) => Ask::List,
         (None, false) if args.take => return Err("--take is for --attach NAME: give --attach too".into()),
+        (None, false) if args.reset => return Err("--reset is for --attach NAME: give --attach too".into()),
         (None, false) => return Ok(()),
     };
     if !matches!(resolved.transport, Transport::Node { .. }) {

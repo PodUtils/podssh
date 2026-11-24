@@ -106,6 +106,16 @@ pub fn files() -> Vec<(Vec<String>, String)> {
              where no pair is stored under it."
                 .to_string(),
         ),
+        // The offsets of kept shells (T-895).
+        (
+            vec![podssh_ssh::keep_record::FILE.to_string()],
+            "The offsets of kept shells that this client has, in the cache. For each far end and shell name, it \
+             holds the bytes of output that a session got. A session to a far end that keeps shells writes it at \
+             its end, while the shell may still be kept. The next --attach NAME gives that offset, and the far \
+             end replays what this client missed. A far end is named by a hash of its host key and the user. The \
+             file has mode 0600, holds no secret, and forgets an offset after 30 days."
+                .to_string(),
+        ),
         (
             vec![
                 podssh_relay::identity::file::node_file("NAME"),

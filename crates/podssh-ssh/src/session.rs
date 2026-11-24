@@ -67,6 +67,13 @@ pub async fn attach(
 ) -> Result<io::End, String> {
     // `--attach` needs a far end that keeps shells (T-158).
     opts.keep.check(host)?;
+    // The offset of a kept shell's output that this client has (T-895): the
+    // list's, read before the session's channel opens, where none is kept.
+    let counting = crate::keep_count::Counting::of(handle, opts);
+    let count = match (&counting, &opts.keep.ask) {
+        (Some(counting), Some(Ask::Attach { reset, .. })) => counting.to_give(handle, *reset, log).await,
+        _ => None,
+    };
     let mut channel = open_session(handle, opts.connect_timeout).await?;
     for (name, value) in environment(opts) {
         // No reply asked for: servers refuse unlisted variables silently.
@@ -120,8 +127,12 @@ pub async fn attach(
     // From here a drop is no failure to try again: the server may run it.
     crate::retry::reached(crate::retry::Phase::Requested);
     // `--attach NAME` (T-158): the shell request joins the kept shell.
-    if let Some(Ask::Attach { name, take }) = &opts.keep.ask {
-        crate::keep::ask_attach(&mut channel, &mut early, name, *take).await?;
+    if let Some(Ask::Attach { name, take, reset }) = &opts.keep.ask {
+        let joining = crate::keep::Joining { take: *take, reset: *reset, count };
+        let counted = crate::keep::ask_attach(&mut channel, &mut early, name, joining).await?;
+        if let (false, Some(counting)) = (counted, &counting) {
+            counting.counter.unknown();
+        }
     }
     let mut elevated = None;
     let what = match &opts.request {
@@ -216,6 +227,7 @@ pub async fn attach(
         asked,
         // Where the road tells no silence, nothing resumes its link (T-598).
         window_stall: !opts.silence.told_by_road(),
+        count: counting.as_ref().map(|counting| counting.counter.clone()),
     };
     // With no remote pty, Ctrl-C sends `signal INT` to a command or a shell
     // (T-293); a subsystem gets none, as sshd refuses it for one.
@@ -223,6 +235,9 @@ pub async fn attach(
     let interrupt = terminal::interrupt::Interrupt::for_session(!pty && runs && opts.interrupt_signal);
     let end = io::pump(handle, channel, early, escapes, pty, input, through, interrupt, log).await;
     drop(raw);
+    if let Some(counting) = &counting {
+        counting.ended(&end);
+    }
     if let io::End::Detached(name) = &end {
         log.info(&crate::keep::kept_line(name, host));
     }
