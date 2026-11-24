@@ -1033,9 +1033,8 @@ terminal always reads those bytes on the screen that the far end wrote.
   keys reached the pty, and whether the pty echoes, only the far end
   knows: `podssh ssh` asks with `env predict@podssh v1`, last before the
   shell or the command, and `podssh serve` takes it on a channel whose pty
-  it opened. A shell shared by name sends no reports, and its guesses
-  never show. Another server refuses the request, and nothing is guessed;
-  `-v` says so.
+  it opened, or on a shell shared by name (below). Another server refuses
+  the request, and nothing is guessed; `-v` says so.
 - **A kept shell (T-896).** A kept shell outlives its channels, so its
   reports cannot belong to its pump as a channel's own pty's do: each
   channel that asked, the first and each that joins with `--attach`, has
@@ -1044,6 +1043,23 @@ terminal always reads those bytes on the screen that the far end wrote.
   the reporter of the channel that has the shell then, after the output it
   read, and wakes at each attach to wait on the new channel's count, so a
   key with no echo is reported too (`crates/podssh-ssh/src/server/kept_flow.rs`).
+- **A shell shared by name (T-896).** Its owner and each seat that types
+  (a login under the `rw-` name) may ask; a seat that only watches is
+  refused, as its keys go nowhere. Each seat that asked gets the count of
+  its own bytes that the lease let through to the tty, from 0. The seats
+  read the output through the hub's broadcast, each at its own pace, so a
+  report of a task of its own could pass the echo that it counts. Each
+  item of the broadcast is output and then each asking seat's report at
+  the moment after it, made by the one task that reads the tty, after the
+  output that it read; a count that falls due with no output is an item
+  with no bytes from the same task. A seat writes its report after the
+  bytes before it, once per change; one that lags skips to an item that
+  holds the counts of now. The owner's reports ride the same broadcast.
+  On a kernel pty a byte counts once the master took it; on serve's own
+  tty (`--pty line`, `notify`) once the discipline read it, whose echo
+  the same loop writes before its next tick, and the flags are the
+  discipline's: always ECHO and ICANON on the line discipline, the
+  child's own under `notify` (`crates/podssh-ssh/src/server/share_told.rs`).
 - **The Windows console (T-896).** The guesses are drawn with `CSI C`,
   `CSI D`, `CSI X` and an underline, which a console reads only in its VT
   mode. Raw mode asks for that mode; the client reads the console's mode

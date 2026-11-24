@@ -159,15 +159,18 @@ pub(super) fn spawn(
         child
     };
     let running = Running::take(open, id, &mut child)?;
-    let (keys_in, keys) = tokio::io::duplex(PIPE);
-    // With --share, the seats type through the lease and see the screen (T-861).
-    let (input, screen) = super::share_view::offer_tty(open, Box::new(keys_in), running.writer());
+    // With --share, the seats type through the lease and see the screen
+    // (T-861), with the reports of each seat that asked, whose flags are the
+    // ones that the child set (T-896).
+    let modes = termios_flags(shared.clone());
+    let ends = super::share_view::offer_tty(open, tokio::io::duplex(PIPE), modes, &running.write, running.writer());
+    let super::share_view::TtyEnds { input, keys, screen, ticks } = ends;
     open.give_stdin(input);
     mine.set_nonblocking(true).map_err(|e| format!("the tty socket: {e}"))?;
     let mine = tokio::net::UnixStream::from_std(mine).map_err(|e| format!("the tty socket: {e}"))?;
     let (from_child, to_child) = mine.into_split();
     let (exited_tx, exited) = watch::channel(false);
-    let mut ends = run::Ends { keys, from_child, to_child, screen };
+    let mut ends = run::Ends { keys, from_child, to_child, screen, ticks };
     // The message of the day comes before the child's first byte (T-119).
     let motd = open.extras.motd.take();
     let task = tokio::spawn(async move {
@@ -185,4 +188,14 @@ pub(super) fn spawn(
         drop(marks);
     });
     Ok(())
+}
+
+/// The ECHO and ICANON flags that the child set, which local echo's
+/// reports of a shared shell carry (T-896): the termios state that serve
+/// answers the child's calls from, read at each report.
+fn termios_flags(shared: Arc<Mutex<Shared>>) -> super::share_told::FlagsOf {
+    Box::new(move || {
+        let lflag = shared.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).tty.state().lflag;
+        crate::predict::report::Flags { echo: lflag & flags::ECHO != 0, canonical: lflag & flags::ICANON != 0 }
+    })
 }

@@ -4,7 +4,8 @@
 pub const SSH_PREDICT: &str = "--predict shows each key that you type at once, underlined, where the far end \
      will echo it. When the echo comes, the underline goes. It works only to podssh serve with a pty, which tells \
      the client which keys reached the pty and whether the pty echoes. A kept shell tells the client that has it \
-     now; a shell shared by name tells nothing, and shows no guess. Another server refuses the ask, and -v says \
+     now. A shell shared by name tells its owner and each seat that types, each of its own keys; a seat that \
+     watches gets nothing. Another server refuses the ask, and -v says \
      so. A Windows console that takes no VT sequences shows no guess either, and -v says so. Guesses start to \
      show at a round trip of 120 ms, and stop below 80 ms. The guesses are printable \
      characters, Backspace and the left and right arrows, on the cursor's row. After each other key, a paste or a \

@@ -28,8 +28,10 @@ use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
 use tokio::sync::{mpsc, watch};
 
 use super::channel::{Open, Program};
-use super::child::{command, own_session, pump, Running};
+use super::child::{command, due_at, own_session, pump, Running};
 use super::marks;
+use super::share_told::Ticks;
+use super::share_view::{Keys, TtyEnds};
 
 /// The first line of a login shell: Ctrl-C and Ctrl-\ end the command in
 /// the foreground, and the shell goes on.
@@ -98,9 +100,11 @@ pub(super) fn spawn(
     own_session(&mut cmd);
     let mut child = cmd.spawn().map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
     let running = Running::take(open, id, &mut child)?;
-    let (keys_in, keys) = tokio::io::duplex(PIPE);
-    // With --share, the seats type through the lease and see the screen (T-861).
-    let (input, screen) = super::share_view::offer_tty(open, Box::new(keys_in), running.writer());
+    // With --share, the seats type through the lease and see the screen
+    // (T-861), with the reports of each seat that asked (T-896).
+    let flags = super::share_told::cooked();
+    let ends = super::share_view::offer_tty(open, tokio::io::duplex(PIPE), flags, &running.write, running.writer());
+    let TtyEnds { input, keys, screen, ticks } = ends;
     open.give_stdin(input);
     let (exited_tx, exited) = watch::channel(false);
     let (out_in, out) = tokio::io::duplex(PIPE);
@@ -119,7 +123,7 @@ pub(super) fn spawn(
     let motd = open.extras.motd.take().unwrap_or_default();
     let marks = open.extras.line_marks;
     let line = Line { session, lines, group: open.group.clone(), login, motd, marks };
-    tasks.push(tokio::spawn(line.run(keys, [out, err], size, screen)));
+    tasks.push(tokio::spawn(line.run(keys, [out, err], size, screen, ticks)));
     tokio::spawn(running.finish(child, tasks, exited_tx, open.closed.clone()));
     Ok(())
 }
@@ -155,13 +159,16 @@ struct Line {
 impl Line {
     /// Until both of the child's outputs end: the client's keys, the
     /// child's output, the window's size, and the pause that ends a key
-    /// left open, each through the discipline to the screen.
+    /// left open, each through the discipline to the screen. A shared
+    /// shell's report that falls due goes out between two turns (T-896),
+    /// so the echo of each key read is on the screen before it.
     async fn run(
         mut self,
-        mut keys: DuplexStream,
+        mut keys: Keys,
         [mut out, mut err]: [DuplexStream; 2],
         mut size: watch::Receiver<Size>,
         mut screen: impl AsyncWrite + Unpin,
+        ticks: Option<Ticks>,
     ) {
         if self.login {
             self.give_child(TRAP.to_vec()).await;
@@ -197,6 +204,12 @@ impl Line {
                     }
                 },
                 () = tokio::time::sleep(IDLE), if waiting => self.session.on_idle(),
+                () = due_at(ticks.as_ref().map(Ticks::falls_due)), if ticks.is_some() => {
+                    if let Some(ticks) = ticks.as_ref() {
+                        ticks.tick();
+                    }
+                    Vec::new()
+                }
             };
             if !self.act(events, &mut screen).await {
                 return;

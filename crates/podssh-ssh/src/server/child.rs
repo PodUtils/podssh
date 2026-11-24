@@ -336,7 +336,7 @@ async fn told(reporter: &mut Option<super::predict::Teller>) {
 }
 
 /// Until `due` ends, or for ever with none.
-async fn due_at(due: Option<impl std::future::Future<Output = ()>>) {
+pub(super) async fn due_at(due: Option<impl std::future::Future<Output = ()>>) {
     match due {
         Some(due) => due.await,
         None => std::future::pending().await,

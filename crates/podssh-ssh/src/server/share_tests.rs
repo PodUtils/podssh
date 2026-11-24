@@ -125,3 +125,39 @@ async fn a_second_writer_waits_for_the_first_ones_silence() {
     owner.hub.end();
     assert!(!owner.hub.write_leased(first.id, b"late").await, "no write after the end");
 }
+
+/// Each item of the broadcast carries the report of each seat that asked,
+/// after its bytes; a count ripens at the echo wait, and a tick carries
+/// it with no bytes, once. A seat that did not ask, or left, has none
+/// (T-896).
+#[tokio::test(start_paused = true)]
+async fn the_reports_ride_the_broadcast_after_the_output() {
+    use crate::predict::report::{Flags, Report, ECHO_WAIT};
+    let (table, kept, sizes) = (Shares::default(), Kept::default(), Arc::new(Mutex::new(Vec::new())));
+    let owner = shell(&table, &kept, &sizes);
+    let flags = Flags { echo: true, canonical: true };
+    owner.hub.tells.source(Box::new(move || flags), false);
+    let (writer, quiet) = (owner.hub.seat(None), owner.hub.seat(None));
+    owner.hub.tells.ask(writer.id);
+    let mut from = owner.hub.subscribe().expect("a running shell");
+    assert!(owner.hub.write_leased(writer.id, b"ab").await);
+    owner.hub.said(b"ab");
+    let said = from.recv().await.unwrap();
+    assert_eq!(&said.bytes[..], b"ab");
+    assert_eq!(said.told.as_deref(), Some(&[(writer.id, Report { offset: 0, flags })][..]), "not due yet");
+    owner.hub.tick();
+    assert!(from.try_recv().is_err(), "no change, no tick");
+
+    tokio::time::advance(ECHO_WAIT).await;
+    owner.hub.tick();
+    let said = from.recv().await.unwrap();
+    assert!(said.bytes.is_empty(), "a tick has no bytes");
+    assert_eq!(said.told.as_deref(), Some(&[(writer.id, Report { offset: 2, flags })][..]));
+    assert!(said.told.iter().flat_map(|t| t.iter()).all(|(seat, _)| *seat != quiet.id), "no ask, no report");
+    owner.hub.tick();
+    assert!(from.try_recv().is_err(), "once");
+
+    drop(writer);
+    owner.hub.said(b"c");
+    assert!(from.recv().await.unwrap().told.is_none(), "a seat that left gets none");
+}

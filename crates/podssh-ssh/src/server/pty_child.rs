@@ -22,10 +22,11 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::sync::watch;
 
 use super::channel::{Open, Program};
-use super::child::{command, pump, pump_told, Running};
+use super::child::{command, pump_told, Running};
 use super::predict::Teller;
 use super::pty::{self, Pair};
-use super::share_view::{open_hub, Tee};
+use super::share_told::Ticks;
+use super::share_view::{open_hub, Tee, Telling};
 use crate::terminal::Size;
 
 /// A pty granted to a channel, until its program starts; then its master
@@ -147,17 +148,23 @@ pub(super) fn spawn(
     // the pty's own output is read after it. Its newlines are CR LF already.
     let motd = std::io::Cursor::new(open.extras.motd.take().unwrap_or_default());
     // With --share, the login shell's input goes through the lease and its
-    // output to each seat too (T-837); else straight, as before.
+    // output to each seat too (T-837), with the reports of each seat that
+    // asked, made by this pump after the output that it read (T-896); else
+    // straight, as before.
     let output = match open.offer.take() {
         Some(shares) => {
             let fd = master.clone();
             let resize = move |size| {
                 let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
             };
-            let owner = open_hub(open, &shares, Box::new(Master(master.clone())), Box::new(resize), size);
+            let pty_of = master.clone();
+            let flags = Box::new(move || super::predict::master_flags(&pty_of));
+            let telling = Telling { flags, at_read: false, owner: &running.write };
+            let owner = open_hub(open, &shares, Box::new(Master(master.clone())), Box::new(resize), size, telling);
             open.give_stdin(owner.writer());
             let tee = Tee::new(to, owner.hub.clone());
-            tokio::spawn(pump(motd.chain(Master(master)), tee, exited))
+            let ticks = Teller::Shared(Ticks(owner.hub.clone()));
+            tokio::spawn(pump_told(motd.chain(Master(master)), tee, exited, Some(ticks)))
         }
         None => {
             if let (Some(keeper), Some(id)) = (open.keeper.take(), kept_id) {

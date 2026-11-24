@@ -15,18 +15,22 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::{mpsc, watch};
 use tokio::time::Instant;
 
-use super::super::child::{turned, AFTER_EXIT, QUIET};
+use super::super::child::{due_at, turned, AFTER_EXIT, QUIET};
+use super::super::share_told::Ticks;
 use super::answer::{Shared, Told};
 
 /// The lines that may wait for the child to read them.
 const LINES: usize = 128;
 
-/// The ends of the task.
+/// The ends of the task, and a shared shell's ticks of local echo's
+/// reports (T-896), which the loop makes between two turns, after the echo
+/// of each key that it read.
 pub struct Ends<K, R, W, S> {
     pub keys: K,
     pub from_child: R,
     pub to_child: W,
     pub screen: S,
+    pub ticks: Option<Ticks>,
 }
 
 /// What the task holds while it runs.
@@ -112,7 +116,7 @@ pub async fn run<K, R, W, S>(
     W: AsyncWrite + Unpin + Send + 'static,
     S: AsyncWrite + Unpin,
 {
-    let Ends { mut keys, mut from_child, to_child, mut screen } = ends;
+    let Ends { mut keys, mut from_child, to_child, mut screen, ticks } = ends;
     let mut state = State { shared, stopped: false, held: Vec::new(), lines: Some(feed(to_child)) };
     let (mut keys_open, mut size_open, mut told_open) = (true, true, true);
     let (mut a, mut b) = (vec![0u8; 4096], vec![0u8; 32 * 1024]);
@@ -177,6 +181,13 @@ pub async fn run<K, R, W, S>(
                 Vec::new()
             },
             () = tokio::time::sleep_until(quiet.unwrap_or_else(Instant::now)), if quiet.is_some() => break,
+            // Not while the output is held: its echo would come after.
+            () = due_at(ticks.as_ref().map(Ticks::falls_due)), if ticks.is_some() && !state.stopped => {
+                if let Some(ticks) = ticks.as_ref() {
+                    ticks.tick();
+                }
+                Vec::new()
+            }
         };
         if !state.act(events, &mut screen).await {
             break;
