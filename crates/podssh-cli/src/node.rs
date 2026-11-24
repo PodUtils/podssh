@@ -167,6 +167,8 @@ pub fn run_node(args: &NodeArgs, err: &mut dyn Write) -> i32 {
             Err(refusal) => refusal.report("node", err),
         };
     }
+    // The pairs of serve NAME's -R stop first (T-123); none elsewhere.
+    runtime.block_on(crate::serve_forward::end_all());
     // A session may still be closing; the node has ended, so none is waited for.
     runtime.shutdown_background();
     code

@@ -2584,18 +2584,69 @@ default of russh refuses each `tcpip-forward` with no reason.
   serve would not honour it while it binds nothing; a name per key (report 23) waits for the relay
   role's names (T-720).
 
+2026-11-24 (a drafting agent, the CLI's publisher).
+
+- One pair for each forward, made at the first host of `relay_settings::relays` (`PODSSH_RELAY`,
+  else the default), as step 1 says, over `pod-relay`'s `pair::create`, `reverse::run` and
+  `pair::stop` (taken; no copy). Lost: one pair for serve with a route of its node for each forward
+  (T-089), which would hold one socket for all, but a cancel could not stop a pair (step 3), a route
+  travels only in the end-to-end channel, and the one connect token would reach each forward of
+  each client.
+- Rule 2 (`AGENTS.md`): each forward is a session that the client asked for; its connections go
+  one after another (the pair, the node's socket, the stop), through `HTTPS_PROXY`, as `podssh node
+  --temporary` (T-167) makes them, and nothing binds. No new exception is written. If the operator
+  reads rule 2 as one connection for serve's whole process, the 8 forwards of a connection are 8
+  sockets: a question for `TODO/PROGRESS.md`, not raised here.
+- The way in for an operator: the pair is stored under a label of its own, `rPORT-XXXXXX` (24
+  random bits, drawn again where a stored pair holds it), so that `podssh operator LABEL` on serve's
+  host takes it as any stored pair; no token is printed. Lost: printing the operator's part (a
+  token in output); an operator file beside serve (a second place of a credential, and a path to
+  choose); a fixed label `rPORT` (two serves, or a crash, would meet a stored pair of another).
+- Each session runs `Layered` over `E2e`, as `podssh node`'s default does, with a key for this
+  forward alone (ephemeral; its fingerprint in serve's log) and the door of the connect token
+  (`channel::admit_of(None)`). Lost: `--plain` with no channel (an operator then needs `--no-e2e`,
+  and a service that waits for its client, as HTTP does, would stall the operator's wait for the
+  first byte); a key file in the cache for each forward (files left behind for one-off names).
+- Port 0: the publisher chooses a port from 49152 to 65535; the server keeps the choice in the
+  `Opener` (an `Arc<AtomicU32>` that the publish's answer sets), as OpenSSH's client matches a
+  `forwarded-tcpip` by the port that it was told (below). The merged
+  side named port 0 in each channel of such a forward: a defect, repaired here, and its test now
+  opens a channel of the port-0 forward. A port chosen that the connection holds already is refused,
+  the new forward stopped.
+- The publish bounds itself at 20 s (the pair, then the line `online` of its node), as russh reads
+  the next message after it; each early return drops the forward's stop, so the task stops what it
+  made. The node, the pair's stop and the forget of the stored copy are one task's, in that order.
+  serve's end (`--stdio`, `--listen`, NAME) waits for those tasks, 12 s at most, before its runtime
+  goes (`serve_forward::end_all`); without it a `--stdio` serve would end before `POST /v1/stop`.
+- The client's line: `SSH_MSG_DEBUG` with `always_display` at once, and the stderr of the next
+  session that runs a program (queued, 8 at most, each shown once). Read on 2026-11-24 at the
+  `master` of openssh/openssh-portable: `openssh/openssh-portable:packet.c:1923-1932` reads the
+  debug message's flag and drops it, and logs the text by `debug("Remote: %.900s")`, so it shows at
+  `-v` alone; `openssh/openssh-portable:ssh.c:2274` runs `ssh_init_forwarding` before
+  `openssh/openssh-portable:ssh.c:2322` opens the session, so a session rarely exists when a
+  forward is answered, hence the queue; and `openssh/openssh-portable:ssh.c:1969-1979` prints
+  `Allocated port N` and moves the forward's permission to that port, by which `forwarded-tcpip`
+  is matched. Under `--stdio` as a ProxyCommand, serve's stderr is
+  the client's terminal already. Lost: a line on a session's stderr at the moment of the publish
+  (none is open then); `always_display` alone (OpenSSH ignores it).
+- Step 4 (a listener on the node behind T-124's bind) is not in this draft: it needs a flag of its
+  own, its rows in the flag table, the manual and the parity tests; the entry stays partial for it.
+
 ## Prove
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_remote_forward
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_remote_forward -- --ignored
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward -- --ignored
 ```
 
 The first runs the mapping from a request to a pair and a channel, against a
-stand-in relay in memory. The second uses the live relay: OpenSSH's
-`ssh -R 0:127.0.0.1:2201` through `podssh serve --stdio`, then
-`podssh operator NAME` reads the banner of the client's port 2201. A planted
-serve that binds a socket fails a check that counts the open sockets of serve.
+stand-in relay in memory. The second runs OpenSSH's `ssh -R 0:127.0.0.1:PORT`
+through `podssh serve --stdio` and the stand-in relay of the reverse road, then
+`podssh operator LABEL` reads the banner of the client's service; the third
+does the same through the live relay (the Correction of 2026-11-24 moved both
+from `podssh-ssh`, as they need the binary). A planted serve that binds a
+socket fails a check that counts the listening sockets of serve.
 
 
 ## Start condition
@@ -2616,6 +2667,14 @@ the release on GitHub). The report's open question holds: russh gives the reques
 (`vendor/russh/src/server/encrypted.rs:1966-1985`). `docs/target-environment.md:25` and
 `scripts/box/probe.sh:109-117` were not read again.
 
+2026-11-24 (a drafting agent, the CLI's publisher). The Prove's second command cannot run in
+`podssh-ssh`: OpenSSH through `podssh serve --stdio` and `podssh operator` need the binary. The
+stand-in relay's run and the live one are `podssh-cli`'s
+`crates/podssh-cli/tests/serve_remote_forward.rs` (the live one ignored), with the count of serve's
+listening sockets from its descriptors and its TCP tables in /proc, where /proc gives them. The
+merged server's side named port 0 in each `forwarded-tcpip` of a port-0 forward, which OpenSSH
+matches by the allocated port: repaired (the Decision above).
+
 ## Done
 
 Partial (WIP, drafted 2026-11-24; merged, built and tested by the main session, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1):
@@ -2624,7 +2683,8 @@ Partial (WIP, drafted 2026-11-24; merged, built and tested by the main session, 
   `Opener`, `Published`, `Stop`, the table `Forwards` and its refusals), the handler's
   `tcpip_forward` and `cancel_tcpip_forward` (`crates/podssh-ssh/src/server/handler.rs`; its
   direct-tcpip body moved to `handler_forward.rs` so the file stays at 500 lines), and
-  `Settings::remote` (None in `podssh serve`, so each `-R` is refused with a line).
+  `Settings::remote` (None in `podssh serve`, so each `-R` is refused with a line; the draft below
+  gives it the relay's publisher).
 - Tests: `remote_forward_tests.rs` (each refusal before a publish, one table; a teardown runs once by
   a cancel or by the connection's end) and `crates/podssh-ssh/tests/serve_remote_forward.rs` (the
   Prove's first command: against a stand-in in memory, port 0 told the published port, a session's
@@ -2632,13 +2692,58 @@ Partial (WIP, drafted 2026-11-24; merged, built and tested by the main session, 
   the connection's end each stop once; no publisher and `--no-forwarding` refuse with nothing
   published). `cargo test -p podssh-ssh --test serve_remote_forward`: 2 passed;
   `cargo test -p podssh-ssh --lib server::remote_forward`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
-- The manual says that a client's `-R` is refused, and why (`notes_serve.rs`).
+- The manual says that a client's `-R` is refused, and why (`notes_serve.rs`; the draft below
+  replaces that sentence).
 
-Left (the entry stays open): the CLI's publisher on the relay's pair (step 1: a pair made at the
-relay for each forward, a node of it in serve's process whose `Handler::open` calls the `Opener`,
-the tokens never in output; step 3: `Stop` sends `POST /v1/stop`); the name on the client's stderr
-and OpenSSH's display of `SSH_MSG_DEBUG` (step 2); step 4's listener on the node behind T-124's bind;
-the live Prove (`-- --ignored`) and the count of serve's sockets.
+Drafted 2026-11-24 on the branch `d-t123` (not built; each result below UNVERIFIED until the main
+session's merge):
+
+- The CLI's publisher, steps 1 and 3: `crates/podssh-cli/src/serve_forward.rs` (a pair for each
+  forward by `pod-relay`'s `pair::create`, stored under `rPORT-XXXXXX`; its node by
+  `reverse::run` with `Layered` over `E2e` and a key of the forward alone; `ToClient`, whose
+  `Handler::open` calls the `Opener` within 8 s; the publish bounded at 20 s, answered at the
+  node's `online`; the `Stop` ends the node, then `POST /v1/stop` within 10 s, then forgets the
+  stored copy, or names `podssh relay revoke LABEL` where the relay did not answer; `end_all`, which
+  `serve --stdio`, `serve_listen::run` and `node::run_node` wait on before their runtime goes).
+  `serve.rs` sets `Settings::remote` to it.
+- The server's side: the `Opener`'s port is the one published (port 0 named 0 before: repaired);
+  a published port that the connection holds, or 0, or past 65535, is refused and stopped;
+  `Published::reach`, the operator's way in for the client's line; the line by `SSH_MSG_DEBUG`
+  (`handler_forward.rs`, where `tcpip_forward`'s body moved) and on the stderr of the next session
+  that runs a program (`Forwards::untold`, in `handler.rs`'s `start`).
+- Tests: `remote_forward_tests.rs` (the client's line and its one showing);
+  `crates/podssh-ssh/tests/serve_remote_forward.rs` (a channel of the port-0 forward names the
+  published port); `serve_forward.rs`'s own (the words of each end of a node, the label's shape, an
+  end with no forward at once); `crates/podssh-cli/tests/serve_remote_forward.rs` (OpenSSH's
+  `ssh -v -N -R 0:127.0.0.1:PORT` through `serve --stdio` and the stand-in relay: serve's line, the
+  pair stored, OpenSSH's `Allocated port` and `Remote: podssh serve: -R ... is published as LABEL`,
+  no listening socket of serve, `podssh operator LABEL` reads the test server's banner, the client's
+  end stops the pair (the stand-in's `reverse: stopped NAME`) and forgets the copy, no line holds a
+  token; `PODSSH_OFFLINE` refuses the forward, 255 with `ExitOnForwardFailure`; the live relay,
+  ignored). `serve_algorithms_openssh.rs`: its `REQUEST_FAILURE` row now asks `-R` of a serve with
+  `--no-forwarding`, as a plain serve would publish it.
+- The manual (`notes_serve.rs`, a note of its own), `docs/cli.md` (a bullet, and the row of
+  `REQUEST_FAILURE`), `docs/STATUS.md` (the row).
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_remote_forward`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::remote_forward`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_forward`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man::notes_serve` (the note names the cap):
+  UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_algorithms_openssh`: UNVERIFIED.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward -- --ignored` (the live
+  relay): UNVERIFIED.
+- The types to check at the build: `ChannelStream<russh::server::Msg>` as a node handler's
+  `Stream` (`Send + Unpin + 'static`), and `Forward::run`'s future as `Send` for `tokio::spawn`
+  (it holds `&Context` and `PairContext` across awaits).
+- `cargo todo remap docs/cli.md` after the merge (a bullet added in the section of `podssh serve`).
+  The citations of `crates/podssh-cli/src/node.rs`, `crates/podssh-cli/src/serve.rs` and
+  `crates/podssh-ssh/src/server/handler.rs` were moved by hand, each line compared; a `cargo todo
+  remap` of those files should change nothing.
+
+Left (the entry stays open): step 4, a listener on the node where serve's user asks for one,
+behind T-124's bind (a flag, its rows in the flag table, the manual and the parity tests); the
+runs above.
 
 Waits for q108 (2026-11-24, `TODO/PROGRESS.md`): the operator. Step 1 makes a pair at the relay and runs its node inside
 serve for each forward that a client asks, up to 8 at once beside serve's own connection; none of the nine exceptions
@@ -4366,7 +4471,7 @@ which of two writers' bytes reach the pty.
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
   nothing (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`,
-  `crates/podssh-ssh/src/server/handler.rs:343-366`); `--listen` is T-124, still open.
+  `crates/podssh-ssh/src/server/handler.rs:344-367`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
