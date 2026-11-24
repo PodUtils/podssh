@@ -7683,6 +7683,27 @@ its own decision. podcrates' entry 1107 changes nothing of podssh's today: podss
 podcrates, for the main session's COORD issue: a name of a unit up to the length that podssh takes, or a caller's
 limit (i). Then the move, with podssh's tests changed to the crate's texts, each changed line decided here.
 
+2026-11-24, `exitmap.rs` and `exit_codes.rs` against `pod_core::failure::Class::exit_code()` (`v0.82.1`). Each `Fault`
+of `crates/podssh-cli/src/exitmap.rs` names pod-core's class by its meaning (`Fault::origin`, `Fault::class`), never by
+its number, and takes `Class::exit_code()` where that is the code of the manual's EXIT STATUS: `Usage` (64),
+`RelayUnreachable` as `Unavailable` (69), `Auth` and `PairExpired` as `Refused` (77: the relay refuses a pair past its
+time, and a new pair works), `NoInput` as `NotFound` (66), `TimedOut` as `Timeout` (75) and `Config` (78). Where the
+class gives another code, podssh's documented code wins (a change of a code is the operator's, and a script reads the
+numbers), kept with its nearest class and a comment: `Revoked` 69 (pod-core's `Revoked` is 78), `Capability` 78
+(`Unsupported` is 80), `SessionFault` and `ChannelClosed` 70 (`Protocol` is 76; no class is 70), `CantCreate` 73 (no
+class), and `Remote(N)` the remote's status. `exit_codes.rs`: `EXIT_USAGE` is `Class::Usage`'s 64, held by a test, as
+`exit_code` is no `const fn` and the value stays a `const`; `EXIT_NOT_IMPLEMENTED` keeps 70 (`Unsupported` is 80). No
+exit code changes. Lost: (1) a class chosen by its number (`Capability` as `Config`, `Revoked` as `Unavailable`), which
+takes pod-core's code everywhere and hides each difference that a supervisor of both tools would meet; (2) podssh's
+codes changed to pod-core's (`Revoked` 78, `Capability` 80, a session fault 76), which changes the manual's table and
+each script that reads it; (3) `sysexits` as calls of `Class::exit_code()`, which patterns and other constants cannot
+read (no `const fn`): a test holds each value that a class has to the class instead. The asks of podcrates, for the
+main session's COORD issue `(to podcrates)`: (a) a class for an output that cannot be created (73, `EX_CANTCREAT`) and
+one for a fault inside the tool or a session cut short (70, `EX_SOFTWARE`), which podssh documents and pod-core has
+no class for; (b) pod-core's README names the codes that a consumer keeps where its class says another (podssh:
+`Revoked` 69, `Unsupported` 78 for a host that lacks what a mode needs and 70 for what a build lacks, `Protocol` 70), or
+`Class::exit_code` takes a caller's table, so that the one table of a supervisor says where podssh differs.
+
 ## Prove
 
 ```sh
@@ -7770,4 +7791,18 @@ at `v0.82.1`, and a token is still refused. Run here (2026-11-24, Linux, Rust 1.
 `install_system` of `node_install/` (items (i) to (iii) of the Decision; the next ask is a longer name of a unit),
 podcrates' entry 941 (the lock of `known_hosts` on Windows), entry 501 (`pod-turn`'s RFC 6062), entry 879
 (`pod-detach`), the rows of `pod-hostprobe` for `doctor/`, and podssh's own `exitmap.rs` and `exit_codes.rs`.
+Draft, 2026-11-24 (branch `d-t820`): podssh's own `exitmap.rs` and `exit_codes.rs` (the `## Decision`, its last
+paragraph). `crates/podssh-cli/src/exitmap.rs` gains `Origin`, `Fault::origin` and `Fault::class`, and `Fault::code`
+reads `Class::exit_code()` for each fault whose class agrees; its tests moved, unchanged, to
+`crates/podssh-cli/src/exitmap_tests.rs` (the file stays under 500 lines), with two new ones:
+`each_fault_takes_pod_core_s_code_where_they_agree_and_the_manual_s_always` (each row of `TABLE` is a code of the
+manual's EXIT STATUS, `man::data::exit_codes`; a fault on its class has that class's code; a kept fault's class gives
+another code, and a fault with no class has no class of its number) and
+`each_sysexits_value_is_pod_core_s_where_a_class_has_it`. `exit_codes::tests::the_codes_against_pod_core_s_classes`
+holds `EXIT_USAGE` to `Class::Usage` and keeps 70 apart from `Unsupported`. The citation of T-629 moved by hand to
+the new line (`TODO/relay.md`). No code that a user sees changes. Merged by the main session and run
+(2026-11-24, Rust 1.99.1): `cargo test -p podssh-cli --lib` 1283 passed (`exitmap` and `exit_codes` among them, the three
+new tests too), `--test man_page` 11 and `--test man_json` 4 passed; rustfmt and clippy of podssh-cli, all targets,
+`-D warnings`: clean; `cargo todo check` agrees. Still waiting: as the paragraph above says, and the asks (a) and (b) of
+the Decision, filed as COORD-142 (#352).
 

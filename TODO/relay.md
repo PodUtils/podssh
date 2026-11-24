@@ -4100,7 +4100,7 @@ Read at `2042200`:
   (Inferred from capabilities(7); not measured here).
 - `crates/podssh-cli/Cargo.toml:232` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
-- `crates/podssh-cli/src/exitmap.rs:139` says "Fault::Capability | Fault::Config => sysexits::EX_CONFIG":
+- `crates/podssh-cli/src/exitmap.rs:173` says "Fault::Capability => own(sysexits::EX_CONFIG, Some(Class::Unsupported))":
   78 is this host not set up for the mode.
 - The role behind a quick tunnel binds nothing (`crates/podssh-cli/src/node_quick_relay.rs`), so
   this is for `relay serve` alone.

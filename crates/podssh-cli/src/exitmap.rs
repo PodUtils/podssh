@@ -63,6 +63,21 @@ pub mod sysexits {
     pub const EX_CONFIG: i32 = 78;
 }
 
+// The classes of failure that podcrates shares (T-820): a fault takes its
+// class's code where that is the code podssh documents.
+use pod_core::failure::Class;
+
+/// Where a fault's exit code comes from.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Origin {
+    /// `Class::exit_code()` of pod-core, which is podssh's documented code too.
+    Pod(Class),
+    /// podssh's documented code, kept where pod-core's nearest class gives
+    /// another (or where no class of pod-core has this meaning). The manual's
+    /// EXIT STATUS wins: a script reads those numbers.
+    Own { code: i32, nearest: Option<Class> },
+}
+
 /// One row of the fault table.
 ///
 /// **`Fault` carries a reason and not a number**, so a fault cannot exist
@@ -120,24 +135,51 @@ impl Fault {
     /// the only value that legitimately returns `0`, and it returns it because
     /// the remote said so.**
     pub fn code(self) -> i32 {
+        match self.origin() {
+            Origin::Pod(class) => i32::from(class.exit_code()),
+            Origin::Own { code, .. } => code,
+        }
+    }
+
+    /// pod-core's class of this fault, by its meaning; `None` where pod-core
+    /// has none (a destination that cannot be written, a remote status).
+    pub fn class(self) -> Option<Class> {
+        match self.origin() {
+            Origin::Pod(class) => Some(class),
+            Origin::Own { nearest, .. } => nearest,
+        }
+    }
+
+    /// Where this fault's code comes from. The class is chosen by meaning,
+    /// never by its number, so that a difference stays visible.
+    pub fn origin(self) -> Origin {
+        let own = |code: i32, nearest: Option<Class>| Origin::Own { code, nearest };
         match self {
             // 64: the value of a usage error in `docs/cli.md` ("Exit codes"), and the one
             // the exit-code table gave `Usage`. See the module header for why `2`
             // lost and why `Config` is the row that moves instead.
-            Fault::Usage => sysexits::EX_USAGE,
-            // 69: there is no relay to talk to. `Revoked` shares it on
-            // purpose — see SHARED_CODES — and `Fault::name` names which.
-            Fault::RelayUnreachable | Fault::Revoked => sysexits::EX_UNAVAILABLE,
+            Fault::Usage => Origin::Pod(Class::Usage),
+            // 69: there is no relay to talk to.
+            Fault::RelayUnreachable => Origin::Pod(Class::Unavailable),
             // 77: the peer refused us. The two `1001` rows land apart from
-            // each other because the REASON decides, not the code.
-            Fault::Auth | Fault::PairExpired => sysexits::EX_NOPERM,
-            Fault::SessionFault | Fault::ChannelClosed => sysexits::EX_SOFTWARE,
-            Fault::NoInput => sysexits::EX_NOINPUT,
-            Fault::CantCreate => sysexits::EX_CANTCREAT,
-            Fault::TimedOut => sysexits::EX_TEMPFAIL,
+            // each other because the REASON decides, not the code. An expired
+            // pair is refused: a new pair works.
+            Fault::Auth | Fault::PairExpired => Origin::Pod(Class::Refused),
+            Fault::NoInput => Origin::Pod(Class::NotFound),
+            Fault::TimedOut => Origin::Pod(Class::Timeout),
             // 78: this machine is not set up for this mode. See SHARED_CODES.
-            Fault::Capability | Fault::Config => sysexits::EX_CONFIG,
-            Fault::Remote(status) => status as i32,
+            Fault::Config => Origin::Pod(Class::Config),
+            // Kept 78 (SHARED_CODES with `Config`): pod-core's `Unsupported` is 80.
+            Fault::Capability => own(sysexits::EX_CONFIG, Some(Class::Unsupported)),
+            // Kept 69: a stopped pair shares `RelayUnreachable`'s code on
+            // purpose (SHARED_CODES), and `Fault::name` names which; pod-core's
+            // `Revoked` is 78.
+            Fault::Revoked => own(sysexits::EX_UNAVAILABLE, Some(Class::Revoked)),
+            // Kept 70: pod-core's `Protocol` is 76, and none of its classes is 70.
+            Fault::SessionFault | Fault::ChannelClosed => own(sysexits::EX_SOFTWARE, Some(Class::Protocol)),
+            // Kept 73: none of pod-core's classes is `EX_CANTCREAT`.
+            Fault::CantCreate => own(sysexits::EX_CANTCREAT, None),
+            Fault::Remote(status) => own(status as i32, None),
         }
     }
 
@@ -260,217 +302,5 @@ pub fn usage_fork() -> Option<(i32, i32)> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// **THE DECISION, asserted.** This is the check that fails if somebody
-    /// re-types `2` into this crate, and it is the test the two agents who
-    /// flagged the fork needed.
-    #[test]
-    fn a_usage_error_is_sixty_four() {
-        assert_eq!(code(Fault::Usage), 64);
-        // Not 2. This assertion exists so that reverting to 2 breaks the
-        // suite loudly instead of silently re-creating the collision.
-        assert_ne!(code(Fault::Usage), 2);
-        assert_eq!(code(Fault::Usage), sysexits::EX_USAGE);
-    }
-
-    /// **The whole reason `Usage` is 64: it is the only row a script needs
-    /// to be certain of.** `2` is what a bare `test`, a `grep` miss and a
-    /// `diff` disagreement already return, so a status of `2` from any program
-    /// is not evidence of anything; `64` is.
-    #[test]
-    fn usage_does_not_collide_with_a_shell_status() {
-        for shell_status in [1, 2] {
-            assert_ne!(code(Fault::Usage), shell_status);
-            for (fault, _) in TABLE {
-                assert_ne!(code(*fault), shell_status, "{} uses a shell status", fault.name());
-            }
-        }
-    }
-
-    /// **`Config` moved off `2`.** That promotion is the whole of what `2`
-    /// losing amounts to, so it is asserted directly.
-    #[test]
-    fn config_is_no_longer_two() {
-        assert_eq!(code(Fault::Config), sysexits::EX_CONFIG);
-        assert_ne!(code(Fault::Config), 2);
-    }
-
-    /// **`TABLE` and [`code`] cannot disagree.** A row edited without the
-    /// match arm is a table that lies to each reader of it.
-    #[test]
-    fn table_agrees_with_code() {
-        for (fault, expected) in TABLE {
-            assert_eq!(code(*fault), *expected, "{} disagrees with TABLE", fault.name());
-            assert_ne!(*expected, 0, "{} would exit 0", fault.name());
-        }
-    }
-
-    /// **THE COLLISION GUARD, and it is planted in both directions.** Every
-    /// pair sharing a code must appear in [`SHARED_CODES`], and every declared
-    /// pair must actually share one — so neither a new accidental collision
-    /// nor a stale justification passes.
-    #[test]
-    fn no_undeclared_code_collisions() {
-        for (i, &(a, ca)) in TABLE.iter().enumerate() {
-            for &(b, cb) in &TABLE[i + 1..] {
-                if ca != cb {
-                    continue;
-                }
-                let declared = SHARED_CODES
-                    .iter()
-                    .any(|(c, names)| *c == ca && names.contains(&a.name()) && names.contains(&b.name()));
-                assert!(declared, "{} and {} both exit {} and SHARED_CODES does not say why", a.name(), b.name(), ca);
-            }
-        }
-        for (code_value, names) in SHARED_CODES {
-            for name in *names {
-                let row = TABLE.iter().find(|(f, _)| f.name() == *name);
-                assert!(row.is_some(), "SHARED_CODES names {name}, which TABLE does not");
-                assert_eq!(
-                    row.unwrap().1,
-                    *code_value,
-                    "SHARED_CODES claims {name} exits {code_value}, TABLE disagrees"
-                );
-            }
-        }
-    }
-
-    /// **A fault cannot exist without a name.** Each variant has one in
-    /// [`Fault::name`], and no variant returns an empty string.
-    #[test]
-    fn every_fault_has_a_name() {
-        for (fault, _) in TABLE {
-            assert!(!fault.name().is_empty());
-        }
-    }
-
-    /// **The two `1001` rows demand opposite actions, so the REASON decides.**
-    /// The relay's table "Reverse close codes": `operator stopped reverse relay` against `pair
-    /// expired`. A new pair, against a pair that is gone.
-    #[test]
-    fn a_1001_is_split_by_its_reason_not_its_code() {
-        let revoked = Fault::from_close(1001, "operator stopped reverse relay", true);
-        let expired = Fault::from_close(1001, "pair expired", true);
-        assert_ne!(revoked, expired);
-        assert_ne!(code(revoked), code(expired));
-        assert_eq!(code(revoked), sysexits::EX_UNAVAILABLE);
-        assert_eq!(code(expired), sysexits::EX_NOPERM);
-    }
-
-    /// **The sibling's defect #1, restated as a test.** `dropssh`
-    /// `src/connect.c:455-461` assigns no `rc` on `1003`/`1009` and returns 0.
-    #[test]
-    fn a_post_ready_fault_is_never_zero() {
-        for close in [1003u16, 1008, 1009, 1011, 1013] {
-            let f = Fault::from_close(close, "bad multiplex frame", true);
-            assert_ne!(code(f), 0, "close {close} reported success");
-            assert_eq!(f, Fault::SessionFault);
-        }
-    }
-
-    /// **`established` decides before the close code.** The close code is
-    /// identical in both rows and the outcome is not.
-    ///
-    /// **Two faults, two codes — and the difference is what the test first
-    /// got wrong.** `1000` before `ready` is a session that never existed, and
-    /// `1000` after it is a session that ended without delivering a status.
-    /// They are `SessionFault` and `ChannelClosed`, so they read 70 and 70.
-    /// **A collision with a declared reason, not an accident** — and the
-    /// declaration is the thing that makes reading the code enough to know
-    /// which case this is.
-    #[test]
-    fn established_decides_before_the_close_code() {
-        let before = Fault::from_close(1000, "", false);
-        let after = Fault::from_close(1000, "", true);
-        assert_ne!(before, after);
-        assert_ne!(code(before), 0);
-        // And the two codes are the same sysexits value on purpose — see
-        // SHARED_CODES. **Asserting they differ is what the first version of
-        // this test did, and it was the test that was wrong**: the fault is
-        // the same class either way, so demanding two numbers manufactures a
-        // fake distinction. The distinction that matters is the FAULT, and
-        // the two lines above assert it.
-        assert_eq!(code(before), sysexits::EX_SOFTWARE);
-        assert_eq!(code(after), sysexits::EX_SOFTWARE);
-    }
-
-    /// **The clean close that is a FAULT, which is the exit-code table's first trap.** A
-    /// `1000` before `ready` reads as a normal closure and the session never
-    /// worked. It must not be 0, and it must not be the clean-close row.
-    #[test]
-    fn a_clean_close_before_ready_is_a_fault_and_not_a_clean_close() {
-        let f = Fault::from_close(1000, "", false);
-        assert_ne!(code(f), 0);
-        assert_eq!(f, Fault::SessionFault);
-        assert_ne!(f, Fault::ChannelClosed);
-        assert_ne!(f, Fault::Remote(0));
-    }
-
-    /// **A truncation is `SessionFault`, never `ChannelClosed`.** Plant 7's
-    /// defect is a silent 0; a row that mapped a truncated tail onto the clean
-    /// close would reintroduce it with a different number in front of it.
-    #[test]
-    fn a_truncated_tail_is_never_the_clean_close_row() {
-        // The channel dies with no exit-status: the close never arrived at all.
-        let truncated = Fault::from_close(1009, "session byte cap", true);
-        assert_eq!(truncated, Fault::SessionFault);
-        assert_ne!(truncated, Fault::ChannelClosed);
-        assert_ne!(code(truncated), 0);
-    }
-
-    /// **`established_sensitive` is the predicate the caller needs, and it
-    /// must be true of both rows the `1000` split produces.** **This is the
-    /// test that pins what that method means**, because **a method that
-    /// answers `false` for a row that genuinely depends on `established` is the
-    /// bug it was written to prevent** — and it was **wrong in the first
-    /// version of this file**, which returned `true` for one of the two.
-    #[test]
-    fn both_rows_of_the_1000_split_depend_on_established() {
-        for established in [false, true] {
-            let f = Fault::from_close(1000, "", established);
-            assert!(f.established_sensitive(), "{f:?} at established={established} does not depend on established");
-        }
-        // And a fault that happens before any session exists does not.
-        for f in [Fault::Usage, Fault::Auth, Fault::Revoked, Fault::Config] {
-            assert!(!f.established_sensitive(), "{f:?} cannot depend on a session that never opened");
-        }
-    }
-
-    /// **`Remote(0)` is the only legitimate zero.** Plant 7 is a channel that
-    /// closes with no `exit-status`; that is `ChannelClosed`, and it is 70.
-    #[test]
-    fn only_a_delivered_status_reaches_zero() {
-        assert_eq!(code(Fault::Remote(0)), 0);
-        assert_eq!(code(Fault::Remote(7)), 7);
-        // The truncated tail: the silent-success bug.
-        assert_ne!(code(Fault::ChannelClosed), 0);
-        assert_ne!(code(Fault::SessionFault), 0);
-    }
-
-    /// **A remote `127` is propagated verbatim.** A script seeing 127 on
-    /// `ssh host cmd` means "command not found on the remote", and remapping
-    /// it onto a fault code destroys that.
-    #[test]
-    fn a_remote_127_is_not_remapped_onto_a_fault() {
-        for (fault, _) in TABLE {
-            assert_ne!(code(Fault::Remote(127)), code(*fault), "{} ate a remote 127", fault.name());
-        }
-    }
-
-    /// **The fork is closed, asserted so that reopening it is a deliberate act.**
-    /// Before 2026-10-06 this test asserted `Some((64, 2))` — the open fork —
-    /// and was written to FAIL the moment `EXIT_USAGE` became 64. The flip has
-    /// landed, so it now asserts `None`: the table's value and what the binary
-    /// emits agree. If they ever disagree again, this fails and names both sides.
-    #[test]
-    fn the_usage_fork_is_closed() {
-        assert_eq!(
-            usage_fork(),
-            None,
-            "the fork reopened: EXIT_USAGE in exit_codes.rs disagrees with \
-             sysexits::EX_USAGE (64); see docs/decisions.md (exit codes)"
-        );
-    }
-}
+#[path = "exitmap_tests.rs"]
+mod tests;

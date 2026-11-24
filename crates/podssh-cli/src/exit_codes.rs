@@ -34,11 +34,14 @@
 
 /// A usage error: bad flags, an unknown verb, a missing host. `EX_USAGE` (64).
 /// **The decision of 2026-10-05** (`docs/decisions.md`): `Usage` is 64, `Config` is 78.
-/// See the module header for why `2` lost.
+/// See the module header for why `2` lost. pod-core's `Class::Usage` gives 64
+/// too; this stays a `const`, as `Class::exit_code` is no `const fn`, and a
+/// test holds the two equal.
 pub const EXIT_USAGE: i32 = 64;
 
 /// The exit for `podssh` reaching a path that has no behaviour yet. Not 0 —
-/// `docs/cli.md`, "Exit codes".
+/// `docs/cli.md`, "Exit codes". Kept 70 as the manual says: pod-core's
+/// `Unsupported`, the class of what a build lacks, is 80.
 pub const EXIT_NOT_IMPLEMENTED: i32 = 70;
 
 /// `EX_SOFTWARE`, per the `SessionFault` row of `exitmap::TABLE`.
@@ -59,5 +62,17 @@ mod tests {
         assert_eq!(EXIT_USAGE, 64);
         assert_ne!(EXIT_USAGE, 0);
         assert_ne!(EXIT_USAGE, 2);
+    }
+
+    /// **The codes against pod-core's classes** (T-820): a usage error is
+    /// `Class::Usage`'s code; 70 stays podssh's while `Unsupported` differs,
+    /// and is taken from the class once the two agree.
+    #[test]
+    fn the_codes_against_pod_core_s_classes() {
+        use pod_core::failure::Class;
+        assert_eq!(EXIT_USAGE, i32::from(Class::Usage.exit_code()));
+        let unsupported = i32::from(Class::Unsupported.exit_code());
+        assert_ne!(EXIT_NOT_IMPLEMENTED, unsupported, "pod-core's Unsupported gives 70 now; take it");
+        assert_eq!(EXIT_SOFTWARE, EXIT_NOT_IMPLEMENTED);
     }
 }
