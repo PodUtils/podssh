@@ -76,6 +76,8 @@ mod notes_proxy;
 mod notes_serve;
 // `podssh serve --listen`: its addresses, the bind and the caps (T-124).
 mod notes_serve_listen;
+// The audit log of `podssh serve` (T-116).
+mod notes_serve_audit;
 // The Serveo road, a last fallback of Q78, before the ssh-j road (T-549).
 mod notes_serveo;
 // ssh's note on the public services that podssh tries last (T-533).

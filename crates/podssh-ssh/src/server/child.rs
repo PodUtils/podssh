@@ -121,6 +121,8 @@ pub(super) struct Running {
     handle: Handle,
     id: ChannelId,
     group: Arc<AtomicI32>,
+    /// The channel's counts, for the audit log (T-116).
+    tally: Arc<super::audit::Tally>,
 }
 
 impl Running {
@@ -135,26 +137,46 @@ impl Running {
         if let Some(pid) = child.id() {
             open.group.store(pid as i32, Ordering::SeqCst);
         }
-        Ok(Running { write, handle: open.handle.clone(), id, group: open.group.clone() })
+        Ok(Running { write, handle: open.handle.clone(), id, group: open.group.clone(), tally: open.tally.clone() })
+    }
+
+    /// A writer of data to the client, each byte counted (T-116).
+    pub(super) fn writer(&self) -> super::audit::Counted<impl AsyncWrite + Send + Unpin + 'static> {
+        self.tally.count(self.write.make_writer())
+    }
+
+    /// A writer of extended data 1 (stderr), each byte counted.
+    fn writer_ext(&self) -> super::audit::Counted<impl AsyncWrite + Send + Unpin + 'static> {
+        self.tally.count(self.write.make_writer_ext(Some(1)))
     }
 
     /// A program's side of a channel that joined it later: a kept shell's
-    /// (T-159), whose end goes to the channel that has it then.
-    pub(super) fn of(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId, group: Arc<AtomicI32>) -> Running {
-        Running { write, handle, id, group }
+    /// (T-159), whose end goes to the channel that has it then, and to that
+    /// channel's counts (T-116).
+    pub(super) fn of(
+        write: ChannelWriteHalf<Msg>,
+        handle: Handle,
+        id: ChannelId,
+        group: Arc<AtomicI32>,
+        tally: Arc<super::audit::Tally>,
+    ) -> Running {
+        Running { write, handle, id, group, tally }
     }
 
     /// Its parts, for a shell that may be kept (T-159), which no channel owns.
-    pub(super) fn into_parts(self) -> (ChannelWriteHalf<Msg>, Handle, ChannelId, Arc<AtomicI32>) {
-        (self.write, self.handle, self.id, self.group)
+    #[allow(clippy::type_complexity)]
+    pub(super) fn into_parts(
+        self,
+    ) -> (ChannelWriteHalf<Msg>, Handle, ChannelId, Arc<AtomicI32>, Arc<super::audit::Tally>) {
+        (self.write, self.handle, self.id, self.group, self.tally)
     }
 
     /// Pump stdout as data and stderr as extended data 1, then
     /// [`Running::finish`].
     async fn run(self, mut child: Child, closed: watch::Receiver<bool>) {
         let (exited_tx, exited) = watch::channel(false);
-        let out = child.stdout.take().map(|p| tokio::spawn(pump(p, self.write.make_writer(), exited.clone())));
-        let err = child.stderr.take().map(|p| tokio::spawn(pump(p, self.write.make_writer_ext(Some(1)), exited)));
+        let out = child.stdout.take().map(|p| tokio::spawn(pump(p, self.writer(), exited.clone())));
+        let err = child.stderr.take().map(|p| tokio::spawn(pump(p, self.writer_ext(), exited)));
         let pumps: Vec<_> = [out, err].into_iter().flatten().collect();
         self.finish(child, pumps, exited_tx, closed).await;
     }
@@ -208,11 +230,13 @@ impl Running {
             Some(number) => {
                 let core = status.as_ref().is_ok_and(ExitStatus::core_dumped);
                 let signal = crate::signals::from_number(number);
+                self.tally.exited(super::audit::Exit::Signal(crate::signals::name(&signal)));
                 let _ = self.handle.exit_signal_request(self.id, signal, core, String::new(), String::new()).await;
             }
             None => {
                 // A wait that failed has no status; 255 is OpenSSH's own.
                 let code = status.ok().and_then(|s| s.code()).unwrap_or(255);
+                self.tally.exited(super::audit::Exit::Status(code as u32));
                 let _ = self.write.exit_status(code as u32).await;
             }
         }

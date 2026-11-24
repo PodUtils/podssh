@@ -6748,8 +6748,41 @@ gives up each capability of the process (T-698), before it reads a file.
   0600, replaced whole by a rename from a name of random bits), and not
   during a stop, so that the next start says which shells ended with the
   last run. Under `--stdio` or `--listen` nothing is kept, and
-  `--keep-lease` there is 64. `crates/podssh-ssh/tests/serve_keep.rs` holds each rule with
-  russh's client.
+  `--keep-lease` there is 64. `crates/podssh-ssh/tests/serve_keep.rs`
+  holds each rule with russh's client.
+- **The audit log (T-116).** `--audit-log FILE` appends one JSON object
+  for each event (`server/audit/`): `serve.start` and `serve.stop` of a
+  run, `serve.conn.open` and `serve.conn.close`, `serve.auth.accepted`,
+  `serve.auth.refused` (a key offered or signed that serve refused, with
+  its reason), `serve.session.start`, `serve.session.end` (the exit status
+  or signal, the bytes each way, the duration), `serve.session.refused`,
+  and `serve.forward.open`, `serve.forward.refused` and
+  `serve.forward.close`. Each line has the keys of PodUtils' log schema
+  (`schema` first, then `time`, `level`, `event` and `fields`). The fields
+  hold the run's id (random, as two serve processes may share the file),
+  the connection's, the channel's number, the key's fingerprint, and the
+  login name, which is left out with `--share`, where a name of the table
+  is the right to a shell. A line never holds key material, a token, a
+  value of the environment or a session's bytes; a command line only with
+  `--audit-commands`. The file is made with mode 0600, and one that is
+  another user's, open to others or no regular file refuses the start
+  (78). The lines go to a thread of their own, which appends each under
+  the file's lock (`pod_core::lock`, 2 s at most); a write that fails is
+  said once on stderr and stops no session.
+- **The chain of the audit log (T-116, the donor study of #317).** Each
+  line's `fields.prev` is the SHA-256 of the line before it, whichever
+  process wrote that one; the file's first line holds 64 zeros. Each run's
+  `serve.start` holds a coverage map: `auth`, `channel` and
+  `forward.meta` are `recorded`; `exec` is `metadata`, or `recorded` with
+  `--audit-commands`; `pty.in`, `pty.out`, `sftp.meta`, `sftp.content`
+  and `forward.payload` are `declined`. `podssh serve --audit-verify FILE`
+  recomputes the chain, refuses a command line in a run whose map
+  declined it, names each run with no `serve.stop`, and prints the last
+  line's SHA-256: 0 when it holds, 65 when it does not, 66 when FILE does
+  not read. The chain finds an edit, an insertion, a removal and a cut of
+  the head; a cut of the tail reads only as an unfinished run, which a
+  copy of the last hash kept off the host finds. A write that a crash cut
+  short gets its newline from the next writer, and the check names it.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

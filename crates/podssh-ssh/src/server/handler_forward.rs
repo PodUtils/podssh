@@ -1,6 +1,6 @@
 //! The handler's answer to a direct-tcpip channel (T-109), apart from
 //! `handler.rs` so that each file stays short; `-R` is `remote_forward.rs`
-//! (T-123).
+//! (T-123). Each open, refusal and end is said in the audit log (T-116).
 
 use russh::server::{ChannelOpenHandle, Msg, Session};
 use russh::{Channel, ChannelOpenFailure};
@@ -22,6 +22,7 @@ impl Served {
         let port = match direct::check(self.settings.no_forwarding, host, port) {
             Ok(port) => port,
             Err(refusal) => {
+                self.trail.forward_refused(&self.who, host, port, refusal.description());
                 reply.reject(refusal).await;
                 return Ok(());
             }
@@ -33,14 +34,17 @@ impl Served {
         };
         if let Some(why) = refused {
             self.settings.say(&format!("key {}: refused: {why}", self.who));
+            self.trail.forward_refused(&self.who, host, port.into(), &why);
             reply.reject(direct::prohibited(&why)).await;
             return Ok(());
         }
         let Some(slot) = self.forwards.take() else {
+            self.trail.forward_refused(&self.who, host, port.into(), direct::FULL);
             reply.reject(ChannelOpenFailure::ResourceShortage).await;
             return Ok(());
         };
-        direct::open(channel, host.to_string(), port, reply, slot, session.handle());
+        let mark = self.trail.forward(&self.who, host, port.into());
+        direct::open(channel, host.to_string(), port, reply, slot, session.handle(), mark);
         Ok(())
     }
 }

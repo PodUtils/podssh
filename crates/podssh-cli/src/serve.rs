@@ -16,7 +16,8 @@
 //! (T-119); `--shell-integration` marks its prompts and commands (T-120).
 //! Where a probe finds systemd, each pty child runs in a transient scope of
 //! its own (T-122). `--listen ADDR` serves each connection of a listener
-//! that the user asks for (T-124, `serve_listen.rs`).
+//! that the user asks for (T-124, `serve_listen.rs`). `--audit-log FILE`
+//! records each login, session and forward (T-116, `serve_audit.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -60,6 +61,11 @@ pub struct ServeArgs {
     pub share: bool,
     /// `--keep-lease TIME`: how long a detached shell waits (T-159).
     pub keep_lease: Option<String>,
+    /// `--audit-log FILE`, `--audit-commands` and `--audit-verify FILE`
+    /// (T-116).
+    pub audit_log: Option<String>,
+    pub audit_commands: bool,
+    pub audit_verify: Option<String>,
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
@@ -94,6 +100,9 @@ impl ServeArgs {
             policy: matches.get_one::<String>("policy").cloned(),
             share: matches.get_flag("share"),
             keep_lease: matches.get_one::<String>("keep-lease").cloned(),
+            audit_log: matches.get_one::<String>("audit-log").cloned(),
+            audit_commands: matches.get_flag("audit-commands"),
+            audit_verify: matches.get_one::<String>("audit-verify").cloned(),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
@@ -188,6 +197,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(policy) => policy.map(Arc::new),
         Err(refusal) => return refused(err, refusal),
     };
+    let audit = match crate::serve_audit::open(args) {
+        Ok(audit) => audit,
+        Err(refusal) => return refused(err, refusal),
+    };
     let mut settings = Settings {
         accept_env: args.accept_env.clone(),
         shell: args.shell.as_ref().map(PathBuf::from),
@@ -214,6 +227,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         // No relay publishes a client's -R yet: each is refused (T-123).
         remote: None,
         keep_lease,
+        audit: audit.clone(),
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
@@ -245,6 +259,16 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Err(why) => return refused(err, Refusal::config(format!("the host key: {why}"))),
     };
     say_host_key(err, &key, &path, made);
+    // The run's first line, once it can serve; its last at each end below.
+    if let Some(audit) = &audit {
+        let mode = if args.stdio { "stdio" } else if bound.is_some() { "listen" } else { "node" };
+        audit.started(mode);
+    }
+    let stopped = |outcome: &str| {
+        if let Some(audit) = &audit {
+            audit.stopped(outcome);
+        }
+    };
     // NAME: a node of the pair, whose sessions this process answers.
     if let Some(name) = &args.name {
         let control = podssh_ssh::server::Control::new();
@@ -254,18 +278,26 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         let served = crate::node_serve::Served { key, keys, settings: Arc::new(settings), control, sources };
         if !crate::node_serve::set(served) {
             let _ = writeln!(err, "podssh serve: one node of serve in a process");
+            stopped("failed");
             return podssh_ssh::EXIT_FAILURE;
         }
         let node = crate::node::NodeArgs { name: Some(name.clone()), ..Default::default() };
-        return crate::node::run_node(&node, err);
+        let code = crate::node::run_node(&node, err);
+        stopped(if code == 0 { "ok" } else { "failed" });
+        return code;
     }
     if let Some(bound) = bound {
-        return crate::serve_listen::run(bound, key, keys, settings, &sources, err);
+        // serve_listen's runtime ends inside it: each connection's last
+        // lines are queued before the run's.
+        let code = crate::serve_listen::run(bound, key, keys, settings, &sources, err);
+        stopped(if code == 0 { "ok" } else { "failed" });
+        return code;
     }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
             let _ = writeln!(err, "podssh serve: no runtime: {e}");
+            stopped("failed");
             return EXIT_NOT_IMPLEMENTED;
         }
     };
@@ -273,10 +305,18 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     let (stdin, input) = crate::serve_end::watch(tokio::io::stdin(), true);
     let stream = tokio::io::join(stdin, crate::flushing::stdout());
     let serving = serve_keys::serve_until_stopped(stream, input, key, keys, Arc::new(settings), &sources, err);
-    match runtime.block_on(serving) {
-        Ok(()) => 0,
+    let served = runtime.block_on(serving);
+    // The runtime goes first: each connection's last lines are queued
+    // before the run's.
+    drop(runtime);
+    match served {
+        Ok(()) => {
+            stopped("ok");
+            0
+        }
         Err(why) => {
             let _ = writeln!(err, "podssh serve: {why}");
+            stopped("failed");
             podssh_ssh::EXIT_FAILURE
         }
     }
@@ -387,92 +427,5 @@ fn temporary(path: &Path) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::exitmap::sysexits::EX_CONFIG;
-
-    fn args(stdio: bool) -> ServeArgs {
-        ServeArgs { stdio, ..ServeArgs::default() }
-    }
-
-    #[test]
-    fn a_run_without_stdio_is_a_usage_error() {
-        let mut err = Vec::new();
-        let code = run(&args(false), &mut err);
-        let said = String::from_utf8_lossy(&err);
-        if cfg!(windows) {
-            assert_eq!(code, EXIT_NOT_IMPLEMENTED, "{said}");
-        } else {
-            assert_eq!(code, EXIT_USAGE, "{said}");
-            assert!(said.contains("--stdio") && said.contains("NAME"), "{said}");
-        }
-    }
-
-    /// One of --stdio, NAME and --listen, and --max-connections only with
-    /// --listen (T-124): one table, as the rule is one.
-    #[test]
-    fn one_mode_of_the_three_is_given() {
-        let (listen, name) = (vec!["2222".to_string()], Some("lab".to_string()));
-        let cases = [
-            (ServeArgs { listen: listen.clone(), ..args(true) }, Some("--stdio and --listen")),
-            (ServeArgs { listen: listen.clone(), name: name.clone(), ..args(false) }, Some("and --listen")),
-            (ServeArgs { name: name.clone(), ..args(true) }, Some("--stdio and NAME")),
-            (ServeArgs { max_connections: Some("4".into()), ..args(true) }, Some("--max-connections bounds")),
-            (ServeArgs { pending_max: Some("4".into()), ..args(true) }, Some("--pending-max bounds")),
-            (ServeArgs { login_timeout: Some("9".into()), name: name.clone(), ..args(false) }, Some("--login-timeout")),
-            (args(false), Some("or --listen ADDR")),
-            (ServeArgs { listen, max_connections: Some("4".into()), ..args(false) }, None),
-            (args(true), None),
-            (ServeArgs { name, ..args(false) }, None),
-        ];
-        for (a, words) in cases {
-            match (one_mode(&a), words) {
-                (Ok(()), None) => {}
-                (Err(refusal), Some(words)) => {
-                    assert_eq!(refusal.code, EXIT_USAGE, "{}", refusal.message);
-                    assert!(refusal.message.contains(words), "{words}: {}", refusal.message);
-                }
-                (got, want) => panic!("{a:?}: {got:?}, wanted {want:?}"),
-            }
-        }
-    }
-
-    #[test]
-    fn a_key_with_options_is_taken_and_one_it_cannot_honour_is_refused() {
-        let key = podssh_ssh::keygen::generate(podssh_ssh::keygen::KeyKind::Ed25519, "t").unwrap();
-        let line = key.public_key().to_openssh().unwrap();
-        let mut a = args(true);
-        a.authorized_key = vec![format!("no-pty,command=\"echo hi\" {line}")];
-        let found = authorized(&a, &mut Vec::new()).expect("a key with its rules");
-        assert!(found.allows(key.public_key()));
-        a.authorized_key = vec![format!("tunnel=\"0\" {line}")];
-        let refusal = authorized(&a, &mut Vec::new()).expect_err("refused");
-        assert_eq!(refusal.code, EXIT_USAGE, "{}", refusal.message);
-        assert!(refusal.message.contains("tunnel="), "the option is named: {}", refusal.message);
-        a.authorized_key = vec!["not a key".into()];
-        assert_eq!(authorized(&a, &mut Vec::new()).expect_err("refused").code, EXIT_USAGE);
-    }
-
-    #[test]
-    fn a_named_file_that_is_missing_is_a_setup_error() {
-        let mut a = args(true);
-        a.authorized_keys = vec!["/nonexistent/podssh/authorized_keys".into()];
-        let refusal = authorized(&a, &mut Vec::new()).expect_err("refused");
-        assert_eq!(refusal.code, EX_CONFIG, "{}", refusal.message);
-    }
-
-    #[test]
-    fn a_key_given_is_enough() {
-        let key = podssh_ssh::keygen::generate(podssh_ssh::keygen::KeyKind::Ed25519, "t").unwrap();
-        let mut a = args(true);
-        a.authorized_key = vec![key.public_key().to_openssh().unwrap()];
-        let found = authorized(&a, &mut Vec::new()).expect("a key");
-        assert!(found.allows(key.public_key()));
-    }
-
-    #[test]
-    fn the_temporary_places_are_known() {
-        assert!(temporary(Path::new("/tmp/podssh-1000/serve_host_ed25519_key")));
-        assert!(!temporary(Path::new("/home/u/.cache/podssh/serve_host_ed25519_key")));
-    }
-}
+#[path = "serve_tests.rs"]
+mod tests;

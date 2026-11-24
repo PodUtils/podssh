@@ -82,9 +82,11 @@ pub(in crate::server) fn start(open: &mut Open, settings: &Settings) -> Result<(
     let home = env::workdir(&settings.base());
     let limit = settings.sftp_limit.unwrap_or(CALL_LIMIT);
     let mut closed = open.closed.clone();
+    // The bytes each way and the status, for the audit log (T-116).
+    let tally = open.tally.clone();
     tokio::spawn(async move {
         let ended = tokio::select! {
-            ended = serve(from_client, write.make_writer(), home, limit) => ended,
+            ended = serve(from_client, tally.count(write.make_writer()), home, limit) => ended,
             // A client that closed the channel reads nothing more.
             () = super::child::turned(&mut closed) => return,
         };
@@ -96,6 +98,7 @@ pub(in crate::server) fn start(open: &mut Open, settings: &Settings) -> Result<(
         }
         // The status that sshd sends when sftp-server exits: a client that
         // has none says -1, and OpenSSH's scp then exits 1 after a copy.
+        tally.exited(crate::server::audit::Exit::Status(u32::from(ended.is_err())));
         let _ = write.exit_status(u32::from(ended.is_err())).await;
         let _ = write.eof().await;
         let _ = write.close().await;

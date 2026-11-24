@@ -222,6 +222,8 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Mcp(args) => crate::mcp::run(args, s.err),
         Parsed::Serve(args) if refusals("serve", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Serve(args) if args.print_unit => crate::node_install::print::serve(args, s.out, s.err),
+        // The check of an audit log: its verdict on stdout (T-116).
+        Parsed::Serve(args) if args.audit_verify.is_some() => crate::serve_audit::verify(args, s.out, s.err),
         // SSH is on the process's own stdin and stdout; its lines on stderr.
         Parsed::Serve(args) => crate::serve::run(args, s.err),
         Parsed::Session(args) if refusals("session", &args.refused, s.err) => EXIT_USAGE,

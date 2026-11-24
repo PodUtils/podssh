@@ -102,6 +102,9 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
     if let Some(file) = &args.motd {
         words.extend(["--motd".to_string(), absolute("--motd", file)?]);
     }
+    if let Some(file) = &args.audit_log {
+        words.extend(["--audit-log".to_string(), absolute("--audit-log", file)?]);
+    }
     for pattern in &args.accept_env {
         words.extend(["--accept-env".to_string(), pattern.clone()]);
     }
@@ -116,6 +119,7 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
         ("--revoke-ends-sessions", args.revoke_ends_sessions),
         ("--share", args.share),
         ("--shell-integration", args.shell_integration),
+        ("--audit-commands", args.audit_commands),
     ];
     for (flag, on) in switches {
         if on {

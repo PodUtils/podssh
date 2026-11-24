@@ -52,7 +52,7 @@ core: the handshake, a host key that does not change, and key authentication.
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:387-461` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:381-383`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/dispatch.rs:383-385`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:536`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:537`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:720`; measured: `docs/STATUS.md:544`). 200 MiB each way
+  (`docs/relay.md:720`; measured: `docs/STATUS.md:545`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -1449,10 +1449,56 @@ syslog and no `/var`. A record must not leak secrets or session data.
 
 **The donor study (2026-11-18, PodUtils/podssh#317), report 24.** (ssh-mitm/ssh-mitm at its pinned commit). Let the record say what it does not see. Write, before login, a first line or file that carries a coverage map: for each class (`auth`, `channel`, `exec`, `pty.in`, `pty.out`, `sftp.meta`, `sftp.content`, `forward.meta`, `forward.payload`) one of `recorded`, `metadata`, `lossy`, `not_visible`, `declined`, `truncated`. `pty.in` and `sftp.content` default to `declined` (the donor's own input log holds passwords, ssh-mitm/ssh-mitm:doc/audit_guide/sessions.rst:101), which agrees with step 3 here. Chain the lines: each carries the SHA-256 of the line before it, the first that of the manifest, and a last `session.close` line with the final counts; a missing last line reads as `unfinished`, since a chain detects edits and not truncation. A small `podssh serve audit verify FILE` recomputes the chain and refuses an event for a class that is `declined` or `not_visible`. The cast of `podssh play` may be linked, not hashed in. Add to the Prove the verifier's test with one planted edited line and one cut tail.
 
+## Decision
+
+2026-11-24, made with the draft (no build):
+
+- **One chain for each line, always on**, in the place of FeroSSH's seal each 10 s behind a flag
+  (`--audit-chain`, report 06). A line's `fields.prev` is the SHA-256 of the line before it, so an
+  edit shows at the next line, and a seal costs one hash of a short line. Lost: seals each N lines
+  (an edit between seals shows only at the seal, and a cut after the last seal shows nothing more);
+  a flag (one more way to run with no check); the index of finished logs (`log-index.chain`): the
+  log is one file that each run appends to, so there is no set of finished logs to link. The same
+  chain for `podssh play` recordings and `--detach` records stays the later entry that report 06
+  names.
+- **Several processes, one file.** `podssh serve --stdio` is one process for each connection, as
+  `sshd -i`, so two can append at once: each append takes the file's lock (`pod_core::lock`, at most
+  2 s), reads the last line from the file (at most 64 KiB of its end), and writes the new line in one
+  write. A run's id is 64 random bits, as a pid is not unique across PID namespaces. Lost: a chain
+  kept in the process (two processes would fork it), a file for each run (an operator would have to
+  find and order them).
+- **PodUtils' log schema** (`schemas/log.v1.schema.json` of PodUtils/podcrates: `schema`, `time`,
+  `level`, `event`, `fields`), with `prev`, the run and the connection inside `fields`, as the schema
+  allows no other key. Lost: a format of podssh's own, which no tool of PodUtils reads.
+- **A thread of its own** writes the lines, so that no session waits on another process's lock, and
+  a failed write is said once (the first), then each later line is tried again. Lost: a write in the
+  handler (a lock held by another process would hold the session), a write on tokio's blocking
+  threads (the order of the lines is then not the order of the events).
+- **The coverage map** of report 24 is the `coverage` of each `serve.start`: `exec` is `metadata`
+  unless `--audit-commands`, and `pty.in`, `pty.out`, `sftp.meta`, `sftp.content` and
+  `forward.payload` are `declined`, so `--audit-verify` refuses a line that holds a command line in a
+  run whose map declined it (the planted log of each command line fails there too). `not_visible`,
+  `lossy` and `truncated` are not used: serve sees each class, and records none in part.
+- **No login name with `--share`.** A name of the table is the right to the shell (T-837); a client
+  that types an old one would leave it in the file. Without `--share` the name is kept, bounded,
+  as sshd logs it.
+- **Exit codes of `--audit-verify`**: 0 when the chain holds, 65 (`EX_DATAERR`) when it does not, 66
+  (`EX_NOINPUT`) when the file does not read, 64 with a flag of a server. A run with no `serve.stop`
+  is named and is no failure: the server may still run.
+- **Shared code.** `pod_core::lock` (the lock), `pod_core::files::closed` (the mode check),
+  `pod_core::clock::rfc3339` (the time) and the schema's constant are taken from podcrates; the chain
+  is podssh's until a second project needs it (the later entry for `play` and `--detach` is podssh's
+  too). Then it is an ask of podcrates.
+
 ## Prove
 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_audit
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_audit_openssh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_audit
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_flag_parity --test man_json
 sh scripts/dev.sh check
 ```
 
@@ -1474,6 +1520,49 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24. The Premise and the Approach, read again at `e9db680f`:
+
+- T-107 to T-112 are partial (merged, each waiting for the build image), not done; the server that this
+  entry needs exists (`crates/podssh-ssh/src/server/`), as T-114 found, so the draft starts on it.
+- Premise item 1 holds: `crates/podssh-ssh/src/log.rs:46-62` writes lines with no structure, to stderr
+  or to a file. serve's own lines go through `Settings::say` to its stderr.
+- Premise item 2 no longer holds: `serde_json` is a dependency of `podssh-ssh` since T-838
+  (`crates/podssh-ssh/Cargo.toml`, the policy's JSON). Nothing is added.
+- Approach item 1's "session number": the run's id (random) and the connection's number in it, with
+  the channel's number, as two serve processes may append to one file. Its "the request" is the
+  request's kind and, for a subsystem, its name; a forward's target is its own field.
+- Approach item 2 adds `serve.session.refused` (a request that a key's rule or a failed start
+  refused), and splits a forward into open, refused and closed, as the forward's bytes are known
+  at its close.
+- The donor study's options are taken as the Decision says: the chain always on, the coverage map in
+  each run's first line, and `--audit-verify FILE` (not a subcommand `serve audit verify`: `serve`
+  takes flags alone).
+- The Prove adds the parts' own tests (`server::audit`, the chain against each kind of edit, and
+  `server::handler::record`), and OpenSSH's client through `podssh serve --stdio` in
+  `crates/podssh-cli/tests/serve_audit_openssh.rs`, as T-114 made its test of OpenSSH. The planted log
+  of each command line by default is caught twice: by the count of the marker, and by
+  `--audit-verify`'s refusal of a command line that the run's map declined.
+
+## Done
+
+Not done. Drafted 2026-11-24 on the branch `d-serve-auth` (no build, no test run): the sink, its thread
+and its lock in `crates/podssh-ssh/src/server/audit/mod.rs`; the chain and its check in `audit/chain.rs`;
+the lines of a connection, a session and a forward in `audit/marks.rs`, with each channel's counts
+(`Tally`, kept in `channel.rs`, counted by `child.rs`'s writers, SFTP's and a forward's); the logins
+moved out of `handler.rs` to `handler/auth.rs`, each with its line; the session's line in
+`handler/record.rs`; `--audit-log`, `--audit-commands` and `--audit-verify` in
+`crates/podssh-cli/src/flags/serve.rs`, `serve.rs`, `serve_audit.rs` and the unit's words
+(`node_install/print.rs`); the manual's note (`man/notes_serve_audit.rs`); `docs/cli.md` ("The audit
+log", "The chain of the audit log"); a row of `docs/STATUS.md`. Results:
+
+- `cargo test -p podssh-ssh --test serve_audit`: UNVERIFIED.
+- `cargo test -p podssh-ssh --lib server::`: UNVERIFIED.
+- `cargo test -p podssh-cli --test serve_audit_openssh` (OpenSSH's client): UNVERIFIED.
+- `cargo test -p podssh-cli --lib serve_audit`, `--lib man`, `man_page`, `man_flag_parity`, `man_json`:
+  UNVERIFIED.
+- Clippy and rustfmt: UNVERIFIED.
+- The planted log of each command line by default: UNVERIFIED (waits for T-251).
 
 # T-117: `podssh serve`: a clean stop, and SIGHUP reads the settings again
 
@@ -1773,8 +1862,8 @@ Correction):
   any channel holds some (`vendor/russh/src/server/session.rs:704` and `vendor/russh/src/server/session.rs:814`).
   But serve's output never puts data there: each output goes through a channel's writer, which waits
   for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
-  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:235`) reads 32 KiB, and reads
-  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:262`). Approach items 1 and 2
+  already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:249`) reads 32 KiB, and reads
+  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:276`). Approach items 1 and 2
   were done by T-108 and T-110; this entry proves them. A `Handle::data` loop is held too: russh's
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
@@ -2649,7 +2738,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:536`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:537`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2705,7 +2794,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:483`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:484`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2723,10 +2812,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:535` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:483`, `docs/STATUS.md:503`),
+- `docs/STATUS.md:536` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:484`, `docs/STATUS.md:504`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:481` is `docs/STATUS.md:483`.
+  The Prove's `docs/STATUS.md:482` is `docs/STATUS.md:484`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2785,10 +2874,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:536`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:537`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:499`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:500`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2872,8 +2961,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:535`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:498`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:536`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:499`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -4039,8 +4128,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler.rs:249-255`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler.rs:243-247`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler/auth.rs:60-69`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler/auth.rs:40-57`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -4185,7 +4274,8 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler.rs:249-255`, `:369-392`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler/auth.rs:60-69`,
+  `crates/podssh-ssh/src/server/handler.rs:328-351`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4342,8 +4432,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:89-110`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:73`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:91-112`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:75`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 

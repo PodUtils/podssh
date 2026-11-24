@@ -2,10 +2,11 @@
 //! environment, T-108; the shell, T-222; direct-tcpip, T-109; a pty,
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
-//! a removed key's sessions, T-842; a shell shared by name, T-837; the
-//! message of the day, T-119; the marks of a shell, T-120; the scope of a
-//! pty child, T-122; a listener, T-124, `notes_serve_listen`), and the row
-//! of its host key's file.
+//! a removed key's sessions, T-842; a shell shared by name, T-837; a shell
+//! kept for a lease, T-159; the message of the day, T-119; the marks of a
+//! shell, T-120; the scope of a pty child, T-122; a listener, T-124,
+//! `notes_serve_listen`; the audit log, T-116), and the row of its host
+//! key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -251,6 +252,8 @@ pub const SERVE: &[&str] = &[
      error (64).",
     // A client policy (T-838).
     super::notes_policy::SERVE_JUDGE,
+    // The audit log (T-116).
+    super::notes_serve_audit::AUDIT,
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
     "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \
