@@ -176,7 +176,7 @@ pub(super) fn cron_mark(kind: Kind, name: &str) -> String {
 /// The comment of T-121 above its one `@reboot` line, which `--uninstall`
 /// and a new `--install` still find.
 #[cfg_attr(windows, allow(dead_code))]
-fn old_cron_mark(kind: Kind, name: &str) -> String {
+pub(super) fn old_cron_mark(kind: Kind, name: &str) -> String {
     let (made, removes) = (kind.install_words(name), kind.uninstall_words(name));
     format!("# podssh {made} wrote the line below; podssh {removes} removes it")
 }

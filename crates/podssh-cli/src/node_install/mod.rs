@@ -43,6 +43,8 @@ mod unix;
 #[cfg(windows)]
 mod windows;
 
+#[cfg(all(test, unix))]
+mod pod_unit_tests;
 #[cfg(test)]
 mod system_tests;
 #[cfg(test)]

@@ -2346,7 +2346,7 @@ Read, wrong facts:
   `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt`).
 - crates/podssh-transport/src/backpressure/mod.rs lines 4-22 at `e8bbd4d` gives the reverse
   path's backpressure (1011, 1 MiB, the frame dropped: line 185 of that copy)
-  as the forward path's. For the forward path, `docs/relay.md:731-743` says
+  as the forward path's. For the forward path, `docs/relay.md:733-745` says
   1013 at 2 MiB, with no frame dropped. The comment on the SSH window said
   the same as `backpressure/mod.rs` (`crates/podssh-ssh/src/run.rs` lines
   25-28 at `80f20bf`); T-024 corrected it.
@@ -7278,7 +7278,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     written.is_err() || std::fs::rename(&part, path).is_err()` (line 333), with no sync at all.
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
-  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:131`,
+  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:133`,
   `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
   `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
@@ -7624,6 +7624,40 @@ of public keys). The link: podssh resolves it first (`canonicalize`), so pod-cor
 followed) acts on the target, as before; a certificate's link is replaced, as the rename before replaced it. On
 Windows pod-core's rename has POSIX semantics with a bounded retry, past an open handle of a reader.
 
+2026-11-24, podcrates `v0.82.1` (COORD-152), which answered asks (a) to (e) of COORD-135 (#342): podcrates' entry 1105
+(a public key of OpenSSH and a `SHA256:` or `MD5:` fingerprint pass the scan of secrets, and `Unit::public(WORD)`),
+entry 1106 (`Unit::older_mark`), entry 1107 (`RemoveIPC=yes` relaxed for `User=NAME` unless `service_account()`), entry 1108
+(`StartLimitInterval=0` in `[Service]`) and entry 1109 (`Replace::write_checked`). Taken now: (1) `keygen_change.rs`'s
+`replace` is `Replace::new(Mode::Private).write_checked(path, text, |tmp| same_key(..))`, as the notes name it; its
+own temporary file (`beside`, a pid and a nonce) and its rename are gone. The lines stay podssh's: a failed check is
+`PATH is unchanged: CAUSE` (the cause of `Step::Check`), a failed rename `PATH is unchanged: the new file could not take
+its place: CAUSE`, another step `PATH is unchanged: STEP: CAUSE` with pod-core's words of the step (was `PATH is
+unchanged: NEW could not be made: CAUSE` for the create, which named the temporary file). pod-core's temporary name
+is `.NAME.PID.N.tmp`, made with `create_new`: a pid of another PID namespace with the same name makes the create fail,
+and never takes or overwrites that file; the directory is synced after the rename (a commit that could not be
+confirmed still put the key in place, and is no failure). Lost: podssh's own write beside the file (the copy that the
+ruling ends). (2) A test pins what the asks answered for podssh's words (`node_install::pod_unit_tests`): 50 random
+keys, each as a fingerprint and as a key line of `--net-owner` and of serve's `--authorized-key`, pass
+`pod_unit::Unit::check` with each of podssh's older marks (`UNIT_MARK`, `PLIST_MARK`, `cron_mark`, `old_cron_mark`);
+a GitHub token in the words is still refused by its rule, and an older mark of 6 characters is refused. Its unit's
+mark is `podssh VERB NAME`: pod-unit's mark holds no `--`, so the first line of a unit that pod-unit renders cannot
+name `--install` as podssh's does; the older marks find what podssh wrote before.
+
+Still held (the renderers, the steps of each way, `install_system`): the asks that decided are answered, but the move
+changes the output of each form beyond what a mark explains, and two of the changes are not text alone. (i) A name of
+64 at most (`name_ok` of `Unit::check`, `podssh-node-` and a label of 52), where podssh takes longer names today: a
+longer node would be refused at `--install` after an upgrade. (ii) The user unit gains the lines of seccomp
+(`SystemCallFilter`, `RestrictAddressFamilies` and the rest of `hardening::LINES` with `Need::Seccomp`), whose
+families lack `AF_NETLINK` for `--exit`, `--routes` and `--iroh` unless podssh adds it with `Hardening::family`; no
+run of a real systemd user manager here measures what a node then still does. (iii) Each line of item 3 above
+(`Type=exec`, `Wants=`/`After=network-online.target`, `TimeoutStopSec`, `Environment="K=V"`, the relaxed wording,
+another mark of the crontab and of the task, `Umask` and `ExitTimeOut` in the plist) changes podssh's texts and needs
+its own decision. podcrates' entry 1107 changes nothing of podssh's today: podssh's system unit leaves `RemoveIPC` out with its reason
+(`LEFT_OUT` of `system_text.rs`); on pod-unit's renderer, `--run-as USER` gets it as a relaxed comment with no call of
+`service_account()`, as the notes say, and the test of the hardening's table keeps that a choice. Next ask of
+podcrates, for the main session's COORD issue: a name of a unit up to the length that podssh takes, or a caller's
+limit (i). Then the move, with podssh's tests changed to the crate's texts, each changed line decided here.
+
 ## Prove
 
 ```sh
@@ -7699,4 +7733,16 @@ before the rename), named in the COORD issue of the take. Still waiting for podc
 `pod-hostprobe` for `doctor/host.rs` and `doctor/unix.rs`; `exitmap.rs` and `exit_codes.rs` against
 `pod_core::failure::Class::exit_code()` are podssh's own work, still open here. Not every copy that podcrates holds
 today is ended.
+
+2026-11-24, the take of podcrates `v0.82.1` (`## Decision`, its last paragraph): `crates/podssh-cli/src/keygen_change.rs`
+writes through `pod_core::files::Replace::write_checked` (podcrates' entry 1109), its own temporary file and rename gone; its test
+`only_the_same_key_replaces_the_file` holds (another key and a wrong passphrase leave the file and nothing beside it)
+and checks the first words of the line and the mode 0600 of the new key. New test file
+`crates/podssh-cli/src/node_install/pod_unit_tests.rs` (2 tests): podssh's words and older marks pass pod-unit's check
+at `v0.82.1`, and a token is still refused. Run here (2026-11-24, Linux, Rust 1.100): podssh-cli's
+`--lib` 1266 passed (`keygen_change` 1, `node_install` 34, the 2 new among them), `--test keygen` 11, `keygen_cert` 5,
+`keygen_known_hosts` 4 and `serve_install` 9 passed; `-p podssh-ssh --lib known_hosts` passed in the workspace run. Still waiting: the renderers, the steps and
+`install_system` of `node_install/` (items (i) to (iii) of the Decision; the next ask is a longer name of a unit),
+podcrates' entry 941 (the lock of `known_hosts` on Windows), entry 501 (`pod-turn`'s RFC 6062), entry 879
+(`pod-detach`), the rows of `pod-hostprobe` for `doctor/`, and podssh's own `exitmap.rs` and `exit_codes.rs`.
 

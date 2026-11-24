@@ -8,8 +8,9 @@
 //! passphrase, or the lack of one, that the user wants gone.
 
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use pod_core::files::{Mode, Replace, Step};
 use podssh_ssh::keygen;
 use podssh_ssh::prompt;
 use podssh_ssh::russh::keys::{PrivateKey, PublicKey};
@@ -125,32 +126,25 @@ fn open(path: &Path, text: &str, given: NewPassphrase) -> Result<(PrivateKey, Ze
 }
 
 /// Put `key` in place of the file at `path`, whole or not at all, and only
-/// when it is the key of `original`: a new private file beside it, read back,
-/// opened with `passphrase` and compared, then renamed over the file. `text`
+/// when it is the key of `original`: pod-core's atomic replace with a check
+/// of its temporary file (private, beside the file), which is read back,
+/// opened with `passphrase` and compared before the rename (T-820). `text`
 /// is the key in OpenSSH's format, or in that of `-m` (T-022).
 fn replace(path: &Path, text: &str, original: &PublicKey, passphrase: &str) -> Result<(), String> {
     let shown = path.display();
-    let new = beside(path);
-    let mut file = podssh_relay::cache::create_new_private(&new)
-        .map_err(|e| format!("{shown} is unchanged: {} could not be made: {e}", new.display()))?;
-    let written = file.write_all(text.as_bytes()).and_then(|()| file.sync_all());
-    drop(file);
-    let checked = written.map_err(|e| e.to_string()).and_then(|()| same_key(&new, original, passphrase));
-    if let Err(why) = checked {
-        let _ = std::fs::remove_file(&new);
-        return Err(format!("{shown} is unchanged: {why}"));
-    }
-    std::fs::rename(&new, path).map_err(|e| {
-        let _ = std::fs::remove_file(&new);
-        format!("{shown} is unchanged: the new file could not take its place: {e}")
+    let check = |new: &Path| same_key(new, original, passphrase).map_err(std::io::Error::other);
+    // An unconfirmed sync of the directory still put the new key in place.
+    Replace::new(Mode::Private).write_checked(path, text.as_bytes(), check).map(drop).map_err(|e| {
+        let why = match pod_core::files::Failed::of(&e) {
+            Some(failed) if failed.step() == Step::Check => failed.cause().to_string(),
+            Some(failed) if failed.step() == Step::Rename => {
+                format!("the new file could not take its place: {}", failed.cause())
+            }
+            Some(failed) => format!("{}: {}", failed.step(), failed.cause()),
+            None => e.to_string(),
+        };
+        format!("{shown} is unchanged: {why}")
     })
-}
-
-/// The new file beside `path`: `.NAME.podssh-new-PID-NONCE`, as a pid
-/// repeats in each PID namespace.
-fn beside(path: &Path) -> PathBuf {
-    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    path.with_file_name(format!(".{name}.podssh-new-{}-{:08x}", std::process::id(), rand::random::<u32>()))
 }
 
 /// Whether the file at `new` holds the key of `original`, opened with
@@ -176,6 +170,7 @@ mod tests {
     use super::*;
     use podssh_ssh::keygen::{generate, KeyKind};
     use podssh_ssh::russh::keys::ssh_key::LineEnding;
+    use std::path::PathBuf;
 
     /// A directory of the test's own, private, removed at the end.
     fn scratch() -> PathBuf {
@@ -202,10 +197,17 @@ mod tests {
         let locked = locked.to_openssh(LineEnding::LF).unwrap();
         let refused = replace(&path, &locked, key.public_key(), "wrong").unwrap_err();
         assert!(refused.contains("does not open"), "{refused}");
+        assert!(refused.starts_with(&format!("{} is unchanged: ", path.display())), "{refused}");
         assert_eq!(std::fs::read(&path).unwrap(), text.as_bytes(), "the file changed");
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "a file was left beside the key");
         replace(&path, &locked, key.public_key(), "right").unwrap();
         assert_ne!(std::fs::read(&path).unwrap(), text.as_bytes());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o600, "the new key is private");
+        }
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1);
         std::fs::remove_dir_all(&dir).unwrap();
     }
