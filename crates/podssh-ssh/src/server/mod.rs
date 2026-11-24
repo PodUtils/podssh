@@ -22,7 +22,8 @@
 //! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a tty is shown
 //! the message of the day first (T-119, `motd.rs`), and with
 //! `--shell-integration` its prompts and commands are marked (T-120,
-//! `marks.rs`).
+//! `marks.rs`). Where systemd is there, each pty child runs in a transient
+//! scope of its own (T-122, `scope.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -52,6 +53,7 @@ mod pty_child;
 pub mod pty_devpts;
 mod pty_grant;
 pub mod rules;
+pub mod scope;
 #[cfg(unix)]
 pub mod sftp;
 pub mod share;
@@ -172,6 +174,10 @@ pub struct Settings {
     /// `--shell-integration` (T-120): a login shell on a tty gets the marks
     /// of OSC 133 and OSC 7. Off, nothing is added.
     pub shell_integration: bool,
+    /// What moves each pty child into a transient scope of its own (T-122):
+    /// found by the CLI's probe of systemd at the start. None starts each
+    /// child where serve is, as on a host with no systemd.
+    pub scope: Option<scope::Tool>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

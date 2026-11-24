@@ -6381,6 +6381,27 @@ gives up each capability of the process (T-698), before it reads a file.
   Another shell, and a command, get none. `docs/terminal.md`, "Shell
   integration marks of `podssh serve`", has each mark and what each shell
   loses.
+- **A transient scope for each pty child (T-122, GitHub #19 and #20).**
+  Where systemd is the service manager, each child on a pty (a login shell
+  or a command) runs in a scope of its own, `podssh-serve-PID-N.scope` of
+  the user's manager, as sshd moves each session out of its service: a stop
+  of serve's unit (T-121) leaves the users' shells, and their memory counts
+  against their scopes (`crates/podssh-ssh/src/server/scope.rs`). No systemd
+  is assumed: at its start, on Linux, serve checks that
+  `/run/systemd/system` is a directory, that `busctl` and `systemctl` are
+  on `PATH`, and that `systemctl --user is-system-running` says `running`
+  or `degraded` within 2 s; where that fails, one line says so
+  (`podssh serve: each session stays in serve's own cgroup: ...`) and each
+  child starts as before. With systemd, the child waits between its fork
+  and its exec while a thread of serve's reads its pid from a pipe, asks
+  the user's manager by `busctl --user call ... StartTransientUnit` (2 s at
+  most) and sees the child in the scope in `/proc/PID/cgroup` (1 s at
+  most), then lets it go: the scope holds the whole tree of the session
+  from its first instruction. A move that fails or takes too long lets the
+  child go on where serve is, with one line; no session fails because
+  systemd is absent or slow. `systemd-run --user --scope -- SHELL` is not
+  used: it would exec the shell itself, so its failure would be the
+  session's, and a login shell would lose its dash.
 - **SFTP (T-112).** The `sftp` subsystem is served in the process
   (`crates/podssh-ssh/src/server/sftp/`): SFTP version 3 as OpenSSH's
   `sftp-server` speaks it, on russh-sftp's packets (the crate of podssh's

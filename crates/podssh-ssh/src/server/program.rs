@@ -3,9 +3,6 @@
 //! (T-108, T-222) and the parts of a login's start (T-119, T-120, `start.rs`), or
 //! the SFTP server in the process (T-112).
 
-#[cfg(unix)]
-use std::sync::Arc;
-
 use russh::server::Session;
 use russh::ChannelId;
 
@@ -55,9 +52,9 @@ pub(super) async fn start_program(
     let probe_env = env::without_credentials(&base);
     let line = open.line.as_ref().is_some_and(|grant| !grant.notify);
     let tty = open.pty.is_some() || open.line.is_some();
-    let kind = start::Kind { login: matches!(program, Program::Login), tty, line };
-    let (taken, held) = (open.env.clone(), Arc::new(settings.clone()));
-    // The parts of a login's start read and write files (T-119, T-120): on
+    let kind = start::Kind { login: matches!(program, Program::Login), tty, line, pty: open.pty.is_some() };
+    let (taken, held) = (open.env.clone(), settings.clone());
+    // The parts of a start read and write files (T-119, T-120, T-122): on
     // the same blocking thread as the search, after it.
     let (found, child_env, (extras, said)) = tokio::task::spawn_blocking(move || {
         let found = shell::find(&candidates, &probe_env)?;
@@ -68,7 +65,7 @@ pub(super) async fn start_program(
     .await
     .map_err(|e| format!("the search for a shell failed: {e}"))?
     .map_err(|none| none.to_string())?;
-    said.iter().for_each(|line| settings.say(line));
+    said.iter().for_each(|told| settings.say(told));
     open.extras = extras;
     let child_env = env::with_original(child_env, original.map(std::ffi::OsString::from_vec));
     child::spawn(open, id, &found.path, program, child_env)

@@ -110,7 +110,15 @@ pub(super) fn spawn(
             Ok(())
         });
     }
+    // Where systemd is there, the child waits for its move into a scope of
+    // its own before its exec (T-122).
+    #[cfg(target_os = "linux")]
+    let moving = held(&mut cmd, &mut open.extras);
     let spawned = cmd.spawn();
+    #[cfg(target_os = "linux")]
+    if let Some(Err(why)) = moving.map(|moving| moving.finish()) {
+        say(&open.extras, &format!("the session stays in serve's own cgroup: {why}"));
+    }
     // Each copy of the slave in this process closes now, or the master
     // never sees the end of the child's output.
     drop(cmd);
@@ -149,6 +157,32 @@ pub(super) fn spawn(
         drop(marks);
     });
     Ok(())
+}
+
+/// The hold of the child for its move into a scope (T-122), armed on `cmd`
+/// where the probe found systemd. A hold that cannot be made starts the
+/// child where serve is, with one line.
+#[cfg(target_os = "linux")]
+fn held(cmd: &mut tokio::process::Command, extras: &mut super::start::Extras) -> Option<super::scope::Moving> {
+    let tool = extras.scope.take()?;
+    match super::scope::Hold::new(tool).and_then(super::scope::Hold::start) {
+        Ok(moving) => {
+            moving.arm(cmd);
+            Some(moving)
+        }
+        Err(why) => {
+            say(extras, &format!("the session stays in serve's own cgroup: {why}"));
+            None
+        }
+    }
+}
+
+/// A line for serve's log, where the settings say lines.
+#[cfg(target_os = "linux")]
+fn say(extras: &super::start::Extras, line: &str) {
+    if let Some(super::Say(say)) = extras.say.as_ref() {
+        say(line);
+    }
 }
 
 /// The master, read and written without blocking.
