@@ -6489,13 +6489,40 @@ gives up each capability of the process (T-698), before it reads a file.
   falls 64 chunks behind skips to the present, and none ever holds the
   owner's output. The names die when the shell's output ends; each seat
   then gets exit status 0, EOF and close. The owner leaving ends the
-  shell, as without `--share` (a kept shell is T-159). On serve's own tty
-  (`--pty line` or `notify`) the shell is not shared, and the owner is
-  told why. `Control::unshare` deletes a name (a seat that it opened
+  shell, as without `--share` (a kept shell is T-159). A shell on serve's
+  own tty (`--pty line` or `notify`, T-861) is shared the same way: the
+  discipline's input (pod-term's cooked mode, or the termios state that
+  serve answers) takes each writer's bytes through the lease, a watcher's
+  channel gets a sink there too, and the discipline's screen (its echo,
+  its prompt and the child's output) goes to each seat. The least size of
+  the seats goes to the discipline as a window change. The owner's EOF
+  (the channel's, not Ctrl-D) no longer ends the shell's input there, as
+  on a pty of the kernel it never did: Ctrl-D on an empty line, or `exit`,
+  does. `Control::unshare` deletes a name (a seat that it opened
   stays) and `Control::reshare` puts a new name of the same right in its
-  place, the other name left alone; no command line reaches them yet.
+  place, the other name left alone.
   `crates/podssh-ssh/tests/serve_share.rs` holds each rule with russh's
   client.
+- **The owner deletes or rotates a name (T-860).** The owner's session
+  asks serve by the subsystem `share@podssh` on a new session channel of
+  the connection that holds the shell (`share_ctl.rs`). Its input is one
+  line, `rotate WHICH` or `delete WHICH`, where WHICH is `rw`, `ro` or a
+  whole name; serve reads up to 256 bytes, for 10 s at most. `rotate`
+  answers with the new name on stdout, and the old name lets nobody in
+  from then on; `delete` answers with what it deleted. Each seat that a
+  name opened stays, and the other name is left alone. Exit status 0; a
+  refusal is one line on stderr, `podssh serve: ...`, and exit status 1.
+  `rw` or `ro` means the name of that right of the connection's one
+  shared shell; with two shared shells on one connection, the whole name
+  is needed. A name that no shell of this connection holds reads the same
+  whether another owner's shell holds it or none does. Only a connection
+  that holds the owner's seat may ask: a login under a name runs nothing
+  but its attach, and a second connection of the owner's key holds no
+  shell, so each gets a failure reply, one line and a close. serve's log
+  says that a key rotated or deleted a name, never which name. With
+  OpenSSH, the first login opens a master (`ssh -o ControlMaster=yes -o
+  ControlPath=SOCKET HOST`); then `echo rotate rw | ssh -S SOCKET -s HOST
+  share@podssh` asks on that same connection.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

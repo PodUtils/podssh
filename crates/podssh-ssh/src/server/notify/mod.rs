@@ -155,12 +155,14 @@ pub(super) fn spawn(
     };
     let running = Running::take(open, id, &mut child)?;
     let (keys_in, keys) = tokio::io::duplex(PIPE);
-    open.give_stdin(Box::new(keys_in));
+    // With --share, the seats type through the lease and see the screen (T-861).
+    let (input, screen) = super::share_view::offer_tty(open, Box::new(keys_in), running.write.make_writer());
+    open.give_stdin(input);
     mine.set_nonblocking(true).map_err(|e| format!("the tty socket: {e}"))?;
     let mine = tokio::net::UnixStream::from_std(mine).map_err(|e| format!("the tty socket: {e}"))?;
     let (from_child, to_child) = mine.into_split();
     let (exited_tx, exited) = watch::channel(false);
-    let ends = run::Ends { keys, from_child, to_child, screen: running.write.make_writer() };
+    let ends = run::Ends { keys, from_child, to_child, screen };
     let task = tokio::spawn(run::run(shared, told, ends, size, exited, stop));
     tokio::spawn(running.finish(child, vec![task], exited_tx, open.closed.clone()));
     Ok(())

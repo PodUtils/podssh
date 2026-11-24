@@ -174,8 +174,16 @@ pub const SERVE: &[&str] = &[
      pty: it may send only its window size. Writers, the owner among them, take turns: one writer's bytes reach the \
      pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat sees the output \
      from its attach on, and one that falls behind skips ahead. A name opens no forward and runs no command. The \
-     names die with the shell, and each seat then exits 0. Only a pty of the kernel is shared; on serve's own tty \
-     the owner is told why not.",
+     names die with the shell, and each seat then exits 0. A shell on serve's own tty (--pty line or notify) is \
+     shared the same way: each seat sees the screen that serve draws. There, the EOF of the owner's channel no longer \
+     ends the shell's input: Ctrl-D or exit does.",
+    // The owner's word to its shared shell (T-860).
+    "The owner deletes or rotates a name from a new channel of the same connection: the subsystem share@podssh reads \
+     one line. The line is rotate WHICH or delete WHICH, where WHICH is rw, ro or a whole name. rotate prints the new \
+     name, and the old one lets nobody in; delete prints what it deleted. Each seat that a name opened stays. A \
+     refusal is one line on stderr and exit status 1. Only the connection that holds the owner's shell may ask; a \
+     login under a name may not. With OpenSSH, open the first login with ControlMaster, then: echo rotate rw | ssh \
+     -S SOCKET -s HOST share@podssh.",
     // A client policy (T-838).
     super::notes_policy::SERVE_JUDGE,
     // A unit of systemd that runs serve NAME (T-709).

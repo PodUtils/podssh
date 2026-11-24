@@ -16,9 +16,10 @@
 //! that it offers are one stated set (T-841, `algorithms.rs`); an RSA host
 //! key signs through aws-lc-rs, never russh's `rsa` (T-856, `host_sign.rs`);
 //! a client policy refuses a client by its KEXINIT before authentication
-//! (T-838, `policy_gate.rs`). With `--share`, a login shell on a pty is
-//! offered by two names, one that types and one that watches (T-837,
-//! `share.rs`).
+//! (T-838, `policy_gate.rs`). With `--share`, a login shell on a pty or on
+//! serve's own tty (T-861) is offered by two names, one that types and one that watches (T-837,
+//! `share.rs`); its owner deletes or rotates a name by the subsystem
+//! `share@podssh` (T-860, `share_ctl.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -49,6 +50,7 @@ pub mod rules;
 #[cfg(unix)]
 pub mod sftp;
 pub mod share;
+mod share_ctl;
 mod share_view;
 #[cfg(unix)]
 pub mod shell;

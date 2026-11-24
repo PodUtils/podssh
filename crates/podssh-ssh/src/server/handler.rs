@@ -26,7 +26,7 @@ use super::pty_grant::{grant_pty, resize_pty, Asked};
 use super::rules::{Asked as Wanted, Context, Plan};
 use super::share::Pass;
 use super::stop::{Control, Keys, Stage};
-use super::{env, share_view, Rules, Settings};
+use super::{env, share_ctl, share_view, Rules, Settings};
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -476,13 +476,20 @@ impl russh::server::Handler for Served {
     }
 
     // SFTP in the process (T-112), or a key's forced command in its place
-    // (T-114); each other name is refused.
+    // (T-114); the owner's word to its shared shell (T-860), only from the
+    // connection that holds the shell; each other name is refused.
     async fn subsystem_request(
         &mut self,
         channel: ChannelId,
         name: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        if name == share_ctl::SUBSYSTEM {
+            let (shares, settings, who) = (self.control.live.shares.clone(), self.settings.clone(), self.who.clone());
+            let owned = self.rules().map(|_| share_ctl::owned(self.channels.values()));
+            let job = owned.map(|owned| share_ctl::Job { shares, owned, settings, who });
+            return share_ctl::answer(self.channels.get_mut(&channel), job, channel, session);
+        }
         if name != "sftp" {
             return Self::refuse(channel, session);
         }

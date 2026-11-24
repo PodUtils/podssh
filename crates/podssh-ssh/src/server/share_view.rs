@@ -1,5 +1,7 @@
 //! The channels of a shared shell (T-837): the owner's output copied to
-//! each watcher, and the one gate of a name's right.
+//! each watcher, and the one gate of a name's right. A shell on serve's own
+//! tty (T-861) is shared the same way: the discipline's input takes the
+//! writers' bytes through the lease, and its screen goes to each seat.
 //!
 //! The gate is the attach: a channel logged in under a name that only
 //! watches gets a sink for its input, so no byte of it (typed, pasted
@@ -23,7 +25,8 @@ use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::sync::{broadcast, watch};
 
 use super::channel::{Input, Open};
-use super::share::{Hub, Mode, Pass, Seat};
+use super::share::{Hub, Mode, Pass, Seat, Shares};
+use crate::terminal::Size;
 
 /// Why a name's channel runs nothing: it attaches, and that is all.
 pub(super) const RUNS_NOTHING: &str =
@@ -31,6 +34,53 @@ pub(super) const RUNS_NOTHING: &str =
 
 /// Why a name's shell request finds no shell.
 const ENDED: &str = "the shared shell ended";
+
+/// The owner's line where the names could not be drawn.
+const NO_RANDOM: &str = "podssh serve: this shell is not shared: the system gave no random bytes for its names\r\n";
+
+/// The screen of a shell on serve's own tty: the owner's channel, or a tee
+/// of it to each seat.
+pub(super) type Screen = Box<dyn AsyncWrite + Send + Unpin>;
+
+/// Open a shared shell with the owner's seat: `pty` takes the writers'
+/// bytes under the lease and `resize` sets the least size. Its names go
+/// to the owner's line, told once when the shell starts.
+pub(super) fn open_hub(
+    open: &mut Open,
+    shares: &Shares,
+    pty: Input,
+    resize: Box<dyn Fn(Size) + Send + Sync>,
+    size: Size,
+) -> Arc<Seat> {
+    let owner = Hub::open(shares, pty, resize, size);
+    open.told = Some(shares.mint(&owner.hub).map_or_else(|| NO_RANDOM.to_string(), |names| names.told()));
+    open.seat = Some(owner.clone());
+    owner
+}
+
+/// With `--share`, the login shell on serve's own tty (`--pty line` or
+/// `notify`, T-861): `keys`, the discipline's input, takes each writer's
+/// bytes through the lease, and `screen`, the discipline's output, goes to
+/// each seat too, its echo among it. The owner's input and screen; without
+/// an offer, `keys` and `screen` as they came.
+#[cfg(unix)]
+pub(super) fn offer_tty<W>(open: &mut Open, keys: Input, screen: W) -> (Input, Screen)
+where
+    W: AsyncWrite + Send + Unpin + 'static,
+{
+    let Some(shares) = open.offer.take() else { return (keys, Box::new(screen)) };
+    let Some(sizes) = open.line.as_ref().map(|grant| grant.size.clone()) else { return (keys, Box::new(screen)) };
+    let now = *sizes.borrow();
+    let size = Size { cols: now.cols.into(), rows: now.rows.into(), px_width: 0, px_height: 0 };
+    // The least size of the seats goes to the discipline, as a window
+    // change of the owner's does without --share.
+    let resize = move |least: Size| {
+        let next = super::line::size_of(least.cols, least.rows);
+        sizes.send_if_modified(|now| std::mem::replace(now, next) != next);
+    };
+    let owner = open_hub(open, &shares, keys, Box::new(resize), size);
+    (owner.writer(), Box::new(Tee::new(screen, owner.hub.clone())))
+}
 
 /// Attach the channel `open` to the shell of `pass`: its output from now
 /// on to the channel, and the channel's input to the pty only where the
@@ -65,22 +115,11 @@ pub(super) fn ask_pty(open: Option<&mut Open>, cols: u32, rows: u32, px_width: u
 }
 
 /// The owner's line after its shell started, once: the names, or why the
-/// shell is not shared although `--share` asked.
+/// shell is not shared although `--share` asked. An offer that no tty took
+/// (a shell on pipes, with no screen to share) goes unsaid.
 pub(super) fn told(open: &mut Open) -> Option<String> {
-    if let Some(told) = open.told.take() {
-        return Some(told);
-    }
-    // An offer that no pty took: a shell on a tty that serve answers.
-    #[cfg(unix)]
-    if open.offer.take().is_some() && open.line.is_some() {
-        return Some(
-            "podssh serve: this shell is not shared: serve answers its tty itself (no pty here), which --share does \
-             not serve\r\n"
-                .into(),
-        );
-    }
     open.offer = None;
-    None
+    open.told.take()
 }
 
 /// The owner's output: to the owner's channel, then a copy to each

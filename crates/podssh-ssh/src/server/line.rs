@@ -72,7 +72,7 @@ impl LineGrant {
 }
 
 /// The size of a request in pod-term's terms; zero is sshd's 80x24.
-fn size_of(cols: u32, rows: u32) -> Size {
+pub(super) fn size_of(cols: u32, rows: u32) -> Size {
     let cut = |v: u32, default: u16| if v == 0 { default } else { u16::try_from(v).unwrap_or(u16::MAX) };
     Size { rows: cut(rows, 24), cols: cut(cols, 80) }
 }
@@ -97,7 +97,9 @@ pub(super) fn spawn(
     let mut child = cmd.spawn().map_err(|e| format!("{}: {}", shell.display(), super::shell::not_started(&e)))?;
     let running = Running::take(open, id, &mut child)?;
     let (keys_in, keys) = tokio::io::duplex(PIPE);
-    open.give_stdin(Box::new(keys_in));
+    // With --share, the seats type through the lease and see the screen (T-861).
+    let (input, screen) = super::share_view::offer_tty(open, Box::new(keys_in), running.write.make_writer());
+    open.give_stdin(input);
     let (exited_tx, exited) = watch::channel(false);
     let (out_in, out) = tokio::io::duplex(PIPE);
     let (err_in, err) = tokio::io::duplex(PIPE);
@@ -113,7 +115,7 @@ pub(super) fn spawn(
     // A command, not a shell: no prompt around its output, as on a pty (T-848).
     let session = if login { session } else { session.without_prompt() };
     let line = Line { session, lines, group: open.group.clone(), login };
-    tasks.push(tokio::spawn(line.run(keys, [out, err], size, running.write.make_writer())));
+    tasks.push(tokio::spawn(line.run(keys, [out, err], size, screen)));
     tokio::spawn(running.finish(child, tasks, exited_tx, open.closed.clone()));
     Ok(())
 }

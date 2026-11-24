@@ -24,8 +24,7 @@ use tokio::sync::watch;
 use super::channel::{Open, Program};
 use super::child::{command, pump, Running};
 use super::pty::{self, Pair};
-use super::share::Hub;
-use super::share_view::Tee;
+use super::share_view::{open_hub, Tee};
 use crate::terminal::Size;
 
 /// A pty granted to a channel, until its program starts; then its master
@@ -126,16 +125,9 @@ pub(super) fn spawn(
             let resize = move |size| {
                 let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
             };
-            let owner = Hub::open(&shares, Box::new(Master(master.clone())), Box::new(resize), size);
-            open.told = Some(match shares.mint(&owner.hub) {
-                Some(names) => names.told(),
-                None => {
-                    "podssh serve: this shell is not shared: the system gave no random bytes for its names\r\n".into()
-                }
-            });
+            let owner = open_hub(open, &shares, Box::new(Master(master.clone())), Box::new(resize), size);
             open.give_stdin(owner.writer());
             let tee = Tee::new(to, owner.hub.clone());
-            open.seat = Some(owner);
             tokio::spawn(pump(Master(master), tee, exited))
         }
         None => {

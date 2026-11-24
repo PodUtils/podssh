@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**818 entries: 22 open, 45 partial, 11 blocked, 740 done.**
+**818 entries: 20 open, 45 partial, 11 blocked, 742 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 304 | 329 |
-| P3 | 22 | 11 | 6 | 341 | 380 |
-| **All** | 22 | 45 | 11 | 740 | 818 |
+| P3 | 20 | 11 | 6 | 343 | 380 |
+| **All** | 20 | 45 | 11 | 742 | 818 |
 
 ## Entries
 
@@ -890,7 +890,7 @@ repository and CI).
 | [T-857](relay.md) | P1 | S | M10 | defect | done | `relay serve --cover` on macOS refuses its control socket's long path, and `cover_credential` waits 30 s on the refusal unread |
 | [T-858](robustness.md) | P1 | S | M10 | defect | partial | `attach`: on Windows, the keys typed after `[shell] ready` brought no `~d`, once |
 | [T-859](robustness.md) | P1 | S | M10 | defect | done | A ZMODEM send stalled after its question and ignored its 40 s limit, Ctrl-C and CAN |
-| [T-860](serve.md) | P3 | S | backlog | feature | open | `podssh serve --share`: the owner deletes or rotates a name from the session |
-| [T-861](serve.md) | P3 | M | backlog | feature | open | `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`) |
+| [T-860](serve.md) | P3 | S | backlog | feature | done | `podssh serve --share`: the owner deletes or rotates a name from the session |
+| [T-861](serve.md) | P3 | M | backlog | feature | done | `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`) |
 | [T-862](serve.md) | P3 | S | backlog | measurement | open | A measure of `serve --share`'s writer lease with two people typing |
 | [T-863](ssh.md) | P1 | M | M10 | defect | done | russh 0.65.4 read: carried in the place of the copy, for six advisories on podssh's paths |

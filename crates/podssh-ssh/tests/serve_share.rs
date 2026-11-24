@@ -8,229 +8,85 @@
 //! line of one from the line of the other; a deleted name refuses a new
 //! login and leaves the seat that it opened; a name runs nothing else; the
 //! names die with the shell, whose seats then exit 0; without `--share`, a
-//! name is a wrong key. Where no pty opens here, each test says that it
-//! did not run.
+//! name is a wrong key. The owner rotates and deletes a name by the
+//! subsystem `share@podssh` (T-860), which a seat of a name and another
+//! connection of the owner's key may not use. The watcher, the writers and
+//! the end of the names run on each tty that the host gives (T-861): the
+//! kernel's pty, serve's line discipline, and the tty that serve answers by
+//! seccomp; a tty that the host does not give is said, and its cases do
+//! not run.
 
 #![cfg(unix)]
 
-use std::ffi::OsString;
-use std::sync::{Arc, Mutex};
+mod share_harness;
+
 use std::time::Duration;
 
-use podssh_ssh::keygen::{self, KeyKind};
-use podssh_ssh::russh::keys::{PrivateKey, PrivateKeyWithHashAlg};
-use podssh_ssh::russh::{self, client, ChannelMsg, ChannelWriteHalf};
-use podssh_ssh::server::{self, pty, share, Authorized, Control, Keys, Settings};
-
-/// A bound on each wait.
-const LIMIT: Duration = Duration::from_secs(30);
-
-fn key() -> PrivateKey {
-    keygen::generate(KeyKind::Ed25519, "test").unwrap()
-}
-
-/// Whether a pty opens here; else the line that says the test did not run.
-fn have_pty() -> bool {
-    match pty::open() {
-        Ok(_) => true,
-        Err(why) => {
-            eprintln!("did not run: no pty here: {why}");
-            false
-        }
-    }
-}
-
-struct Trusting;
-
-impl client::Handler for Trusting {
-    type Error = russh::Error;
-
-    async fn check_server_key(&mut self, _key: &russh::keys::PublicKeyOrCertificate) -> Result<bool, Self::Error> {
-        Ok(true)
-    }
-}
-
-/// One server: its keys, its control and its settings.
-struct Server {
-    keys: Keys,
-    control: Control,
-    settings: Arc<Settings>,
-    owner: PrivateKey,
-}
-
-impl Server {
-    fn new(share: bool) -> Server {
-        let owner = key();
-        let mut authorized = Authorized::new();
-        authorized.add(owner.public_key().key_data().clone());
-        let path = std::env::var_os("PATH").unwrap_or_else(|| "/usr/bin:/bin".into());
-        let base: Vec<(OsString, OsString)> = vec![("PATH".into(), path)];
-        let settings = Arc::new(Settings { base_env: Some(base), share, ..Settings::default() });
-        Server { keys: Keys::new(authorized), control: Control::new(), settings, owner }
-    }
-
-    /// A connection that logs in as `user` with `login`; None when refused.
-    async fn login(&self, user: &str, login: &PrivateKey) -> Option<client::Handle<Trusting>> {
-        // Room for a batch of each end: two russh loops on a small pipe stop
-        // each other (T-772).
-        let (near, far) = tokio::io::duplex(1 << 22);
-        let (keys, control) = (self.keys.clone(), self.control.clone());
-        tokio::spawn(server::serve_under(far, key(), keys, self.settings.clone(), control));
-        let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, Trusting).await.unwrap();
-        let signed = PrivateKeyWithHashAlg::new(Arc::new(login.clone()), None);
-        let ok = handle.authenticate_publickey(user, signed).await.unwrap().success();
-        ok.then_some(handle)
-    }
-}
-
-/// What a channel gave, read on a task of its own.
-#[derive(Debug, Default)]
-struct Seen {
-    out: Vec<u8>,
-    err: Vec<u8>,
-    replies: Vec<bool>,
-    status: Option<u32>,
-    closed: bool,
-}
-
-impl Seen {
-    fn text(&self) -> String {
-        String::from_utf8_lossy(&self.out).into_owned()
-    }
-
-    fn lines(&self) -> Vec<String> {
-        self.text().lines().map(|l| l.trim_end_matches('\r').to_string()).collect()
-    }
-}
-
-/// A channel's writing half, and what its reader saw.
-struct Seat {
-    write: ChannelWriteHalf<client::Msg>,
-    seen: Arc<Mutex<Seen>>,
-    _kept: client::Handle<Trusting>,
-}
-
-impl Seat {
-    /// A session channel of `handle`, read from now on.
-    async fn open(handle: client::Handle<Trusting>) -> Seat {
-        let (mut read, write) = handle.channel_open_session().await.unwrap().split();
-        let seen = Arc::new(Mutex::new(Seen::default()));
-        let into = seen.clone();
-        tokio::spawn(async move {
-            while let Some(message) = read.wait().await {
-                let mut seen = into.lock().unwrap();
-                match message {
-                    ChannelMsg::Data { data } => seen.out.extend_from_slice(&data),
-                    ChannelMsg::ExtendedData { data, .. } => seen.err.extend_from_slice(&data),
-                    ChannelMsg::Success => seen.replies.push(true),
-                    ChannelMsg::Failure => seen.replies.push(false),
-                    ChannelMsg::ExitStatus { exit_status } => seen.status = Some(exit_status),
-                    ChannelMsg::Close => {
-                        seen.closed = true;
-                        break;
-                    }
-                    _ => {}
-                }
-            }
-        });
-        Seat { write, seen, _kept: handle }
-    }
-
-    /// A pty of `cols` by `rows`, then the shell; both replies.
-    async fn shell(handle: client::Handle<Trusting>, cols: u32, rows: u32) -> Seat {
-        let seat = Seat::open(handle).await;
-        seat.write.request_pty(true, "vt100", cols, rows, 0, 0, &[]).await.unwrap();
-        seat.write.request_shell(true).await.unwrap();
-        seat.until("both replies", |seen| seen.replies.len() >= 2).await;
-        seat
-    }
-
-    async fn send(&self, bytes: &[u8]) {
-        self.write.data(bytes).await.unwrap();
-    }
-
-    /// Wait until `what` holds of what was seen.
-    async fn until(&self, name: &str, what: impl Fn(&Seen) -> bool) {
-        let waited = tokio::time::timeout(LIMIT, async {
-            while !what(&self.seen.lock().unwrap()) {
-                tokio::time::sleep(Duration::from_millis(20)).await;
-            }
-        })
-        .await;
-        assert!(waited.is_ok(), "no {name} in time: {:?}", self.seen.lock().unwrap());
-    }
-
-    /// Wait until the output holds `needle`.
-    async fn reads(&self, needle: &str) {
-        self.until(needle, |seen| seen.text().contains(needle)).await;
-    }
-}
-
-/// The owner's shell on a pty of 80x24, and its two names from its stderr.
-async fn owner(server: &Server) -> (Seat, String, String) {
-    let handle = server.login("owner", &server.owner).await.expect("the owner's key logs in");
-    let seat = Seat::shell(handle, 80, 24).await;
-    assert_eq!(seat.seen.lock().unwrap().replies, vec![true, true], "the pty, then the shell");
-    seat.until("the names", |seen| String::from_utf8_lossy(&seen.err).contains("watches it")).await;
-    let err = String::from_utf8_lossy(&seat.seen.lock().unwrap().err).into_owned();
-    let name = |prefix: &str| {
-        let word = err.split_whitespace().find(|w| w.starts_with(prefix)).unwrap_or_else(|| panic!("{prefix}: {err}"));
-        assert_eq!(word.len(), 3 + 32, "128 bits in hex: {word}");
-        word.to_string()
-    };
-    (seat, name("rw-"), name("ro-"))
-}
+use podssh_ssh::server::share;
+use share_harness::{ask, have_pty, key, owner, Seat, Server, Tty};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_watcher_reads_and_none_of_its_bytes_reach_the_pty() {
-    if !have_pty() {
-        return;
+async fn a_watcher_reads_and_none_of_its_bytes_reach_the_tty() {
+    for tty in Tty::here() {
+        watcher_on(tty).await;
     }
-    let server = Server::new(true);
+}
+
+async fn watcher_on(tty: Tty) {
+    let server = Server::on(tty);
     let (owner, _, read) = owner(&server).await;
     let handle = server.login(&read, &key()).await.expect("the name lets an unknown key in");
     let viewer = Seat::open(handle).await;
-    // The second path to the pty: bytes before the attach, kept for the
+    // The second path to the tty: bytes before the attach, kept for the
     // program that a channel runs.
     viewer.send(b"EARLY_PASTE\r").await;
     viewer.write.request_pty(true, "xterm", 100, 30, 0, 0, &[]).await.unwrap();
     viewer.write.request_shell(true).await.unwrap();
     viewer.until("both replies", |seen| seen.replies.len() >= 2).await;
-    assert_eq!(viewer.seen.lock().unwrap().replies, vec![true, true], "a name's pty and shell");
+    assert_eq!(viewer.seen.lock().unwrap().replies, vec![true, true], "{tty:?}: a name's pty and shell");
     viewer.send(b"VIEWER_KEYS\r").await;
     viewer.write.extended_data(1, &b"VIEWER_EXT\r"[..]).await.unwrap();
     viewer.write.window_change(40, 10, 0, 0).await.unwrap();
     tokio::time::sleep(Duration::from_millis(300)).await;
 
+    // On the line discipline the shell has no tty, and stty only fails.
     owner.send(b"stty size; echo OWNER_$((1+1))\r").await;
     owner.reads("OWNER_2").await;
     viewer.reads("OWNER_2").await;
     let (seen, watched) = (owner.seen.lock().unwrap().text(), viewer.seen.lock().unwrap().text());
-    assert!(seen.lines().any(|l| l.trim_end_matches('\r') == "10 40"), "the watcher's size counts: {seen}");
+    if tty.sized() {
+        let sized = seen.lines().any(|l| l.trim_end_matches('\r') == "10 40");
+        assert!(sized, "{tty:?}: the watcher's size counts: {seen}");
+    }
     for word in ["EARLY_PASTE", "VIEWER_KEYS", "VIEWER_EXT"] {
-        assert!(!seen.contains(word) && !watched.contains(word), "{word} reached the pty: {seen}");
+        assert!(!seen.contains(word) && !watched.contains(word), "{tty:?}: {word} reached the tty: {seen}");
     }
 
     // A name runs nothing else.
     let other = Seat::open(server.login(&read, &key()).await.expect("again")).await;
     other.write.exec(true, "echo RAN").await.unwrap();
     other.until("the refusal", |seen| !seen.replies.is_empty()).await;
-    assert_eq!(other.seen.lock().unwrap().replies, vec![false]);
-    assert!(String::from_utf8_lossy(&other.seen.lock().unwrap().err).contains("shared shell"));
+    assert_eq!(other.seen.lock().unwrap().replies, vec![false], "{tty:?}");
+    assert!(String::from_utf8_lossy(&other.seen.lock().unwrap().err).contains("shared shell"), "{tty:?}");
 
     // A deleted name lets no one new in, and the seat that it opened stays.
     assert!(server.control.unshare(&read));
-    assert!(server.login(&read, &key()).await.is_none(), "a deleted name is a wrong key");
+    assert!(server.login(&read, &key()).await.is_none(), "{tty:?}: a deleted name is a wrong key");
     owner.send(b"echo AFTER_$((2+3))\r").await;
     viewer.reads("AFTER_5").await;
+    owner.send(b"exit 0\r").await;
+    owner.until("the owner's end", |seen| seen.closed).await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn writers_take_turns_and_no_line_interleaves() {
-    if !have_pty() {
-        return;
+    for tty in Tty::here() {
+        writers_on(tty).await;
     }
-    let server = Server::new(true);
+}
+
+async fn writers_on(tty: Tty) {
+    let server = Server::on(tty);
     let (owner, write, _) = owner(&server).await;
     // The shell answers, then becomes cat; the owner's lease passes.
     owner.send(b"echo GO_$((1+2))\r").await;
@@ -246,33 +102,38 @@ async fn writers_take_turns_and_no_line_interleaves() {
     tokio::time::sleep(Duration::from_millis(40)).await;
     first.send(b"aaa\r").await;
     owner.until("cat's copy of each line", |seen| seen.text().matches("bbbbbb").count() >= 2).await;
-    let lines = owner.seen.lock().unwrap().lines();
-    assert!(lines.iter().any(|l| l == "aaaaaa"), "the first writer's line is whole: {lines:?}");
-    assert!(lines.iter().any(|l| l == "bbbbbb"), "the second writer's line is whole: {lines:?}");
-    let typed = lines.iter().filter(|l| l.contains("aaa") || l.contains("bbb"));
-    assert!(typed.clone().all(|l| l == "aaaaaa" || l == "bbbbbb"), "interleaved: {lines:?}");
-    assert_eq!(typed.count(), 4, "the echo and cat's copy of each line: {lines:?}");
+    // Whatever draws the line (the kernel, the discipline and its prompt),
+    // no byte of one writer sits beside a byte of the other.
+    let text = owner.seen.lock().unwrap().text();
+    let typed = &text[text.find("exec cat").map_or(0, |at| at + "exec cat".len())..];
+    assert!(typed.matches("aaaaaa").count() >= 2, "{tty:?}: the first writer's line is whole: {typed:?}");
+    assert!(!typed.contains("ab") && !typed.contains("ba"), "{tty:?}: interleaved: {typed:?}");
+    if tty != Tty::Line {
+        let lines = owner.seen.lock().unwrap().lines();
+        let typed = lines.iter().filter(|l| l.contains("aaa") || l.contains("bbb"));
+        assert!(typed.clone().all(|l| l == "aaaaaa" || l == "bbbbbb"), "{tty:?}: interleaved: {lines:?}");
+        assert_eq!(typed.count(), 4, "{tty:?}: the echo and cat's copy of each line: {lines:?}");
+    }
     second.reads("aaaaaa").await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_names_die_with_the_shell_and_each_seat_exits_0() {
-    if !have_pty() {
-        return;
+    for tty in Tty::here() {
+        let server = Server::on(tty);
+        let (owner, write, read) = owner(&server).await;
+        assert_eq!(server.control.shared(), 2, "{tty:?}");
+        let viewer = Seat::shell(server.login(&read, &key()).await.expect("a watcher"), 80, 24).await;
+        owner.send(b"exit 3\r").await;
+        owner.until("the owner's end", |seen| seen.closed).await;
+        viewer.until("the seat's end", |seen| seen.closed).await;
+        assert_eq!(viewer.seen.lock().unwrap().status, Some(0), "{tty:?}");
+        assert_eq!(server.control.shared(), 0, "{tty:?}");
+        for name in [&write, &read] {
+            assert!(server.login(name, &key()).await.is_none(), "{tty:?}: {name} died with its shell");
+        }
+        assert!(server.control.reshare(&read).is_none(), "{tty:?}");
     }
-    let server = Server::new(true);
-    let (owner, write, read) = owner(&server).await;
-    assert_eq!(server.control.shared(), 2);
-    let viewer = Seat::shell(server.login(&read, &key()).await.expect("a watcher"), 80, 24).await;
-    owner.send(b"exit 3\r").await;
-    owner.until("the owner's end", |seen| seen.closed).await;
-    viewer.until("the seat's end", |seen| seen.closed).await;
-    assert_eq!(viewer.seen.lock().unwrap().status, Some(0));
-    assert_eq!(server.control.shared(), 0);
-    for name in [&write, &read] {
-        assert!(server.login(name, &key()).await.is_none(), "{name} died with its shell");
-    }
-    assert!(server.control.reshare(&read).is_none());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -290,4 +151,62 @@ async fn without_share_a_name_is_a_wrong_key() {
     assert!(server.login("rw-00000000000000000000000000000000", &key()).await.is_none());
     let lease = share::LEASE_IDLE;
     assert!(lease >= Duration::from_millis(150) && lease <= Duration::from_millis(250), "{lease:?}");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_owner_rotates_and_deletes_a_name_and_the_open_seats_stay() {
+    // The kernel's pty where one opens, else the line discipline.
+    let server = Server::on(Tty::here()[0]);
+    let (owner, write, read) = owner(&server).await;
+    let writer = Seat::shell(server.login(&write, &key()).await.expect("a writer"), 80, 24).await;
+    let viewer = Seat::shell(server.login(&read, &key()).await.expect("a watcher"), 80, 24).await;
+
+    let rotated = ask(&owner.kept, "rotate rw\n").await;
+    assert_eq!((rotated.replies.clone(), rotated.status), (vec![true], Some(0)), "{rotated:?}");
+    let fresh = rotated.text().trim_end().to_string();
+    assert!(fresh.starts_with("rw-") && fresh.len() == 35 && fresh != write, "{rotated:?}");
+    assert!(server.login(&write, &key()).await.is_none(), "the old name is a wrong key");
+    let newcomer = Seat::shell(server.login(&fresh, &key()).await.expect("the new name lets in"), 80, 24).await;
+    // The seat that the old name opened still types; the other name stays.
+    writer.send(b"echo OLD_SEAT_$((2+2))\r").await;
+    owner.reads("OLD_SEAT_4").await;
+    newcomer.reads("OLD_SEAT_4").await;
+    assert!(server.login(&read, &key()).await.is_some(), "the ro- name is left alone");
+
+    let deleted = ask(&owner.kept, &format!("delete {read}\n")).await;
+    assert_eq!(deleted.status, Some(0), "{deleted:?}");
+    assert!(deleted.text().contains(&read), "{deleted:?}");
+    assert!(server.login(&read, &key()).await.is_none(), "a deleted name is a wrong key");
+    assert_eq!(server.control.shared(), 1);
+    owner.send(b"echo STILL_$((3+3))\r").await;
+    viewer.reads("STILL_6").await;
+
+    // A name that is gone, a line that is not a verb: one line and status 1.
+    for line in [format!("rotate {read}\n"), "delete ro\n".into(), "rename rw\n".into()] {
+        let refused = ask(&owner.kept, &line).await;
+        assert_eq!(refused.status, Some(1), "{line}: {refused:?}");
+        let err = String::from_utf8_lossy(&refused.err).into_owned();
+        assert!(err.starts_with("podssh serve: ") && err.lines().count() == 1, "{line}: {err}");
+        assert!(refused.out.is_empty(), "{line}: {refused:?}");
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn only_the_connection_that_owns_the_shell_rotates_a_name() {
+    // The kernel's pty where one opens, else the line discipline.
+    let server = Server::on(Tty::here()[0]);
+    let (_owner, write, read) = owner(&server).await;
+    // A seat of a name: refused, as each request of a name but its shell.
+    let writer = Seat::shell(server.login(&write, &key()).await.expect("a writer"), 80, 24).await;
+    // Another connection of the owner's own key holds no seat of the shell.
+    let other = server.login("owner", &server.owner).await.expect("the owner's key again");
+    for (who, handle) in [("a seat of a name", &writer.kept), ("another connection", &other)] {
+        let refused = ask(handle, "rotate rw\n").await;
+        assert_eq!(refused.replies, vec![false], "{who}: {refused:?}");
+        assert!(refused.closed && refused.status.is_none(), "{who}: {refused:?}");
+        assert!(String::from_utf8_lossy(&refused.err).starts_with("podssh serve: "), "{who}: {refused:?}");
+    }
+    for name in [&write, &read] {
+        assert!(server.login(name, &key()).await.is_some(), "{name} is unchanged");
+    }
 }

@@ -4001,8 +4001,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:85-106`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:69`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:87-108`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:71`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 
@@ -4427,7 +4427,7 @@ Draft, 2026-11-23 (no build, no test run):
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4447,12 +4447,69 @@ stays good until the shell ends.
 2. Only the connection that owns the shell may do it; a seat of a name may not.
 3. Same commit: the manual and `docs/cli.md`.
 
+## Decision
+
+Draft, 2026-11-23. The Premise holds: `Control::unshare` and `Control::reshare` are in
+`crates/podssh-ssh/src/server/share.rs`, and only `tests/serve_share.rs` calls them.
+
+- **The way: a subsystem request, `share@podssh`, on a new session channel of the owner's connection**
+  (`server/share_ctl.rs`). Its input is one line, `rotate WHICH` or `delete WHICH` (WHICH: `rw`, `ro` or a whole
+  name); the answer is the new name (or what was deleted) on stdout with status 0, or one line on stderr with
+  status 1. A subsystem reaches serve's handler (russh calls `subsystem_request`), OpenSSH's client sends one
+  with `-s` on a master's connection (`ssh -S SOCKET -s HOST share@podssh`), and its channel carries a whole
+  answer and a status. The name follows T-158's `shells@podssh` (RFC 4250's `name@domain` of podssh's own).
+  Lost:
+  - an `env` request on the shell's own channel, as `detach@podssh` is: OpenSSH's client sends `env` only
+    before the shell, the reply is SUCCESS or FAILURE with no room for the new name, and the name would then go
+    to the shell's stderr, in the middle of the screen;
+  - an `env` request on a new channel: the same reply with no data, and a channel that then runs nothing;
+  - a channel request or a global request of podssh's own type: russh answers a type it does not know with
+    FAILURE and calls no handler (`docs/terminal.md`, "The requests are `env` and `subsystem` requests");
+  - an `exec` of a fixed command: it would pass through a key's `command=` and `restrict`, and shadow a real
+    program of that name;
+  - an escape that serve reads in the owner's typed bytes: it steals bytes from the shell, and the owner's own
+    client sees `~` first (the entry's Approach item 1);
+  - the verb in the subsystem's name (`rotate-rw@podssh`): it cannot carry a whole name, which two shells on
+    one connection need.
+- **Who.** The connection that holds the owner's seat of the shell: its channels' seats name the shells it owns
+  (`share_ctl::owned`). A login under a name is refused as each of its requests but the attach is
+  (`share_view::RUNS_NOTHING`); a second connection of the owner's key holds no seat, so it owns no shell. Each
+  refusal before the line is a failure reply, one line on stderr and a close, as a program that did not start.
+  Lost: any connection of the owner's key (one key may serve several people; the seat is the proof).
+- **WHICH.** `rw` and `ro` mean that right's name of the connection's one shared shell; with two, the whole name
+  is asked for. A name that no shell of this connection holds says the same whether another owner's shell holds
+  it or none does, so a connection learns nothing of another's names.
+- **Bounds.** The line is at most 256 bytes and must come within 10 s; serve's log says that a key rotated or
+  deleted a name, never which (a name is a credential).
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_share
 ```
+
+## Done
+
+Draft, 2026-11-23: the subsystem `share@podssh` (`crates/podssh-ssh/src/server/share_ctl.rs`: the line, its parse,
+the owner's shells, `rotate` by `Shares::reshare` and `delete` by `Shares::unshare`, the answer and the status);
+`Shares::names_of` in `share.rs`; the hook in `handler.rs`'s `subsystem_request`; the manual's note of serve
+(`crates/podssh-cli/src/man/notes_serve.rs`) and `docs/cli.md` (section `podssh serve`, "The owner deletes or
+rotates a name"). The harness of `tests/serve_share.rs` moved to `tests/share_harness/mod.rs`, with `ask`, to keep
+the file short.
+
+- Unit tests (`server/share_ctl.rs`): the line as a table (verbs, `rw`, `ro`, a whole name, too few or too many
+  words, a verb in capitals, not UTF-8); a line read to its newline or its end, and one past 256 bytes refused; a
+  right resolved among one connection's shells, another owner's name read as no name, two shells asking for the
+  whole name, a rotation that leaves the other name, a delete, and an ended shell. Run here (2026-11-24, merged): passed.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share`: the owner rotates the `rw-` name (the old one
+  is a wrong key, the new one lets in, the seat that the old one opened still types, the `ro-` name is left
+  alone), deletes the `ro-` name by its whole name (a wrong key from then on, `shared()` is 1, its watcher still
+  reads), and a gone name, a gone right and an unknown verb each give one line and status 1; a seat of a name and
+  a second connection of the owner's key each get a failure reply and a close, and both names stay. Run here (2026-11-24,
+  merged, Linux, Rust 1.100): `--lib server::share` 7 passed, `--test serve_share` 6 passed, every podssh-ssh suite
+  passed, podssh-cli `--lib` 1257; clippy clean after two type aliases (`Case`), fmt clean.
+- `llms-full.txt` holds the manual: write it again after the build (`podssh man --llms full > llms-full.txt`).
 
 # T-861: `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`)
 
@@ -4461,7 +4518,7 @@ cargo test -p podssh-ssh --test serve_share
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4478,12 +4535,56 @@ shell on a kernel pty, so a host with no pty cannot share a shell.
    lease for writers.
 2. Same commit: the manual's note of `--share`.
 
+## Decision
+
+Draft, 2026-11-23. The Premise holds in substance: a seat subscribes to the hub's broadcast
+(`share_view::attach`), which only `pty_child.rs`'s tee of the kernel pty's output fed; a shell on serve's own tty
+told its owner that it was not shared (`share_view::told`).
+
+- **Where the share sits: around the discipline, not inside it.** `share_view::offer_tty` takes the discipline's
+  input pipe (the keys' end that `line.rs` and `notify/mod.rs` give the channel) as the hub's input, and wraps the
+  discipline's screen in the same tee as the kernel pty's output. So each writer's bytes, the owner's among them,
+  reach the discipline through the one lease; a watcher's channel gets the same sink at the same gate
+  (`share_view::attach`, unchanged); and each seat sees what the discipline draws: the echo, the prompt and the
+  child's output. Both ttys of serve (the line discipline on pipes and the tty answered by seccomp or ptrace) take
+  the one helper. Lost: a seat fed from the child's output alone, before the discipline (a seat would then miss
+  the echo of what a writer types, and a watcher would see a different screen from the owner's); a share inside
+  `pod_term` (the lease is serve's, T-837's Decision; nothing in the discipline needs to know of seats).
+- **The size.** The hub's least size goes to the grant's size channel, which the discipline already reads for a
+  window change; it sends only a change. A seat's window change goes to the hub, as on a kernel pty.
+- **The owner's EOF.** The discipline's input is now the hub's, held while any writer may type, so the EOF of the
+  owner's channel no longer ends the shell's input. On a kernel pty it never did (a pty has no half-close, and
+  serve keeps the master). Ctrl-D on an empty line, and `exit`, end it as before. Lost: closing the shared input
+  at the owner's EOF (a writer would then lose the shell while the owner merely closed its stdin, as `ssh -tt <
+  file` does).
+- **One helper for the hub.** `share_view::open_hub` opens the hub with the owner's seat and keeps the owner's line
+  of names; `pty_child.rs` and `offer_tty` both call it.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_share
 ```
+
+## Done
+
+Draft, 2026-11-23: `share_view::offer_tty` and `share_view::open_hub`
+(`crates/podssh-ssh/src/server/share_view.rs`), called by `line.rs` and `notify/mod.rs` (the discipline's input
+through the lease, its screen through the tee) and by `pty_child.rs` (the same hub as before); `line::size_of` is
+`pub(super)`; `share_view::told` no longer says that a shell on serve's own tty is not shared. The manual's note of
+`--share` (`crates/podssh-cli/src/man/notes_serve.rs`) and `docs/cli.md` (section `podssh serve`, "A shell shared by
+name").
+
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share`: the watcher (its paste, keys and extended data
+  never reach the tty; its window size counts where the shell has a tty to ask), the two writers (no byte of one
+  beside a byte of the other; on a tty with a canonical echo, whole lines), and the names' end with the shell, each
+  on each tty that the host gives (`Tty::here()` in `tests/share_harness/mod.rs`: the kernel's pty, `--pty line`,
+  and `--pty notify` where its probe passes; each one missing is said). The tests of T-860 run on the kernel's pty,
+  else on the line discipline. Run here (2026-11-24, merged): passed.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_line --test serve_pty`: the ttys without `--share`
+  are unchanged. Run here (2026-11-24, merged): passed.
+- `llms-full.txt` holds the manual: write it again after the build (`podssh man --llms full > llms-full.txt`).
 
 # T-862: A measure of `serve --share`'s writer lease with two people typing
 

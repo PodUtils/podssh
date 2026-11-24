@@ -1,5 +1,5 @@
 //! A live shell shared by name (T-837): with `--share`, the login shell of
-//! each pty is offered under two names, minted from 128 random bits each
+//! each pty (the kernel's, or serve's own tty, T-861) is offered under two names, minted from 128 random bits each
 //! and told once to its owner: one that types in it, one that watches it.
 //!
 //! A name is the SSH user of a later login: `ssh NAME@HOST`, by the same
@@ -163,6 +163,18 @@ impl Shares {
         names.retain(|n| n != name);
         names.push(fresh.clone());
         Some(fresh)
+    }
+
+    /// The names that let in to `hub` now, with their rights: none once
+    /// its shell ended.
+    pub(super) fn names_of(&self, hub: &Arc<Hub>) -> Vec<(String, Mode)> {
+        if hub.ended.load(Ordering::SeqCst) {
+            return Vec::new();
+        }
+        let shell = Arc::as_ptr(hub);
+        let table = self.table();
+        let mine = table.iter().filter(|(_, (weak, _))| std::ptr::eq(weak.as_ptr(), shell));
+        mine.map(|(name, (_, mode))| (name.clone(), *mode)).collect()
     }
 
     /// How many names let in now.
