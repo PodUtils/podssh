@@ -6027,6 +6027,18 @@ pass. Not run here: the rest of the gate's iroh step (`podssh-cli`'s whole suite
 macOS (the bind of the control socket through a link under `/tmp`).
 
 Next: `pod-cloudflare` and `pod-ts` as podcrates names them, then `pod-relay-serve`.
+
+2026-11-24, the take of podcrates `v0.83.0` (`5fd6fb7`, COORD-154, PodUtils/podcrates#259; no patch in
+`adoption/podssh/`): each `pod-*` dependency names `tag = "v0.83.0"`, and `issue-sync.yml` runs at `5fd6fb7`. Its steps for
+podssh: `pod-core`'s `Class::CantCreate` (73) and `Class::Internal` (70) are taken in `exitmap.rs` (T-820: `CantCreate`
+and a session cut short now take pod-core's code; its guard test moved with them) and in the Dev Tunnels road's map;
+the STUN default of `pod-services` has three servers (`stun.easybell.de` is new), and doctor's test names them;
+`pod-term`'s feature `transfer` is on (T-831) and `Modes` with `Ring::modes_at` are there (T-161); `Unit::NAME_MAX`
+needs no change here (podssh has no length check of its own); the DNS carrier's new fields touch only T-877's draft.
+Run here (Rust 1.99.1): `cargo test --workspace --no-fail-fast`, 428 suites, 4284 passed, 4 failed (the 3 of `job_far`
+at this container's `rm`, and `exitmap`'s guard, which named the new classes and is updated); rustfmt and the gate's
+clippy clean; `cargo check --locked --tests --target x86_64-pc-windows-gnu` clean.
+
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
 **Source:** the operator, 2026-11-05: "we use whatever is necessary, including c, zig, modern rust,

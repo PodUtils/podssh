@@ -53,8 +53,7 @@ whom to act on.
 
 ## Each podcrates take
 
-podssh pins each podcrates crate at `tag = "v0.82.1"` (`0d7832b9`, COORD-152 of podcrates, taken
-2026-11-24 at `345d11fa`). The crates in `Cargo.toml` at the tag: `pod-acme`, `pod-core`, `pod-cover`,
+podssh pins each podcrates crate at `tag = "v0.83.0"` (`5fd6fb7`, COORD-154 of podcrates, taken 2026-11-24). The crates in `Cargo.toml` at the tag: `pod-acme`, `pod-core`, `pod-cover`,
 `pod-derp`, `pod-devtunnel`, `pod-dns`, `pod-e2e`, `pod-egress`, `pod-gsr`, `pod-identity`, `pod-iroh`,
 `pod-link`, `pod-manual`, `pod-netstack`, `pod-opentunnel`, `pod-piping`, `pod-proxy`, `pod-quic`,
 `pod-relay`, `pod-release`, `pod-services`, `pod-session`, `pod-term`, `pod-testkit`, `pod-tls`,

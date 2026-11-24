@@ -352,9 +352,10 @@
 344 pull closed
 345 pull closed
 346 issue closed
-347 issue open
+347 issue closed
 348 pull closed
 349 issue open
-350 issue open
+350 issue closed
 351 issue open
 352 issue open
+353 issue open
