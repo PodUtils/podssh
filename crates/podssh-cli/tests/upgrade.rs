@@ -32,7 +32,7 @@ fn upgrade_refuses_what_two_connections_cannot_carry() {
     let home = pair_harness::scratch("upgrade-args");
     let mut cases = vec![
         (vec!["ssh", "--upgrade", "node://lab", "true"], "are podssh ends"),
-        (vec!["ssh", "--upgrade", "--persist", "example.org"], "give one"),
+        (vec!["ssh", "--upgrade", "--persist", "example.org"], "cannot be used together"),
         (vec!["ssh", "--upgrade", "-R", "8080:localhost:80", "example.org"], "no -R or RemoteForward"),
         (vec!["ssh", "--node-key", KEY, "--upgrade", "example.org"], "--node-key"),
         (vec!["node", "--temporary", "not-a-key"], "not a key"),

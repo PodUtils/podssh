@@ -72,12 +72,15 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   tag that is a number gets a note on stderr that `-p` is the port. For
   `cp`, `mv`, `scp` and `sftp`, `-P` is the port.
 - **No option is dropped silently.** An unknown flag is an error that names
-  the nearest real flag (exit 64). A known flag with no value names the flag,
+  the nearest real flag, when one is within three edits, else the command's
+  `--help` (exit 64, T-868). Its last line speaks of `-o` only when the
+  command line gave one. A known flag with no value names the flag,
   in both spellings, and the value that it needs (exit 64). A dropped option
   can disable a security check without a message. OpenSSH exits 255 with
   `Bad configuration option` for an unknown `-o` keyword, before it connects.
-  `podssh --help COMMAND` prints the help of COMMAND; each other word after
-  `--help` or `--version` is refused (exit 64).
+  `podssh --help COMMAND` and `podssh help COMMAND` print the help of
+  COMMAND; each other word after `--help`, `help` or `--version` is refused
+  (exit 64).
 - **The keywords of a restriction apply** (T-505, Q71). `Ciphers`, `MACs`,
   `KexAlgorithms`, `HostKeyAlgorithms`, `PubkeyAcceptedAlgorithms` (and its
   old name `PubkeyAcceptedKeyTypes`) and `CASignatureAlgorithms` filter what

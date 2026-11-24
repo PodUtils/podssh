@@ -77,8 +77,8 @@ pub fn summary(labels: &[String], ends: &[Ended]) -> Vec<String> {
     let failed = ends.iter().filter(|e| e.failed()).count();
     let skipped = ends.iter().filter(|e| **e == Ended::NotStarted).count();
     let mut lines = vec![format!(
-        "{} hosts: {} gave 0, {failed} failed, {skipped} not started",
-        labels.len(),
+        "{}: {} gave 0, {failed} failed, {skipped} not started",
+        hosts(labels.len()),
         labels.len() - failed - skipped
     )];
     for (label, end) in labels.iter().zip(ends) {
@@ -90,4 +90,12 @@ pub fn summary(labels: &[String], ends: &[Ended]) -> Vec<String> {
         lines.push(format!("  {label:width$}  {said}"));
     }
     lines
+}
+
+/// `n` hosts, with the noun in the number of `n`: "1 host", "2 hosts" (T-868).
+pub fn hosts(n: usize) -> String {
+    match n {
+        1 => "1 host".to_string(),
+        n => format!("{n} hosts"),
+    }
 }

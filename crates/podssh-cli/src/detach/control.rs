@@ -219,7 +219,7 @@ fn json_of(runs: &[Run], dir: Option<&Path>) -> Value {
 fn status(dir: &Path, name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let seen = Seen::of(dir, name);
     if seen.record.is_none() && !seen.running() {
-        let _ = writeln!(err, "podssh detached: no run named {name} is known in {}", dir.display());
+        let _ = writeln!(err, "{}", not_known(dir, name));
         return EX_UNAVAILABLE;
     }
     let shown = |pid: Option<u32>| pid.map_or_else(|| "-".to_string(), |p| p.to_string());
@@ -260,7 +260,13 @@ fn status(dir: &Path, name: &str, out: &mut dyn Write, err: &mut dyn Write) -> i
 fn stop(dir: &Path, name: &str, err: &mut dyn Write) -> i32 {
     let seen = Seen::of(dir, name);
     if !seen.running() {
-        let _ = writeln!(err, "podssh detached: no run named {name} runs ({})", seen.state());
+        // A name that never ran has no state to say: "(ended)" would not
+        // be true of it (T-868).
+        let line = match seen.record.is_none() && matches!((&seen.main, &seen.run), (Holder::Free, Holder::Free)) {
+            true => not_known(dir, name),
+            false => format!("podssh detached: no run named {name} runs ({})", seen.state()),
+        };
+        let _ = writeln!(err, "{line}");
         return EX_UNAVAILABLE;
     }
     let first = seen.holder_pid().or(seen.run_pid());
@@ -297,6 +303,11 @@ fn stop(dir: &Path, name: &str, err: &mut dyn Write) -> i32 {
          says more"
     );
     EX_TEMPFAIL
+}
+
+/// The line for a name that no record and no lock knows.
+fn not_known(dir: &Path, name: &str) -> String {
+    format!("podssh detached: no run named {name} is known in {}", dir.display())
 }
 
 /// Whether no lock of `name` is held within `wait`.

@@ -152,6 +152,18 @@ fn shares_prefix(a: &str, b: &str) -> bool {
     a.chars().take(n).eq(b.chars().take(n))
 }
 
+/// Whether clap's `suggested` flag is close enough to the unknown `given` to
+/// name: within [`DISTANCE_THRESHOLD`] edits, case aside, of the names
+/// without their dashes and value, and fewer edits than half the name.
+/// clap's similarity named `--log-file` for `--bogus-flag`, six edits away
+/// (T-868); a typo of a flag is a letter wrong, dropped, doubled or swapped.
+pub fn close_flag(given: &str, suggested: &str) -> bool {
+    let name = |t: &str| t.trim_start_matches('-').split('=').next().unwrap_or("").to_ascii_lowercase();
+    let (given, suggested) = (name(given), name(suggested));
+    let d = levenshtein(&given, &suggested);
+    !given.is_empty() && d <= DISTANCE_THRESHOLD && 2 * d < given.chars().count().max(suggested.chars().count())
+}
+
 /// Prefer a canonical verb name over an alias at equal distance.
 ///
 /// `sttau` is 3 from both `status` and `sftp`. `status` is the name
@@ -206,6 +218,24 @@ pub fn diagnose_no_subcommand(token: &str) -> NoSubcommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// One table, one rule: a flag's typo is named, a far name is not.
+    #[test]
+    fn a_flag_is_suggested_only_when_it_is_close() {
+        for (given, suggested, close) in [
+            ("--StrictHostKeyChekcing", "--StrictHostKeyChecking", true),
+            ("-StricthostKeyChekcing", "-StrictHostKeyChecking", true),
+            ("--StrictHostKeyChekcing=no", "--StrictHostKeyChecking", true),
+            ("--relay-hots", "--relay-host", true),
+            ("--verbos", "--verbose", true),
+            ("--bogus-flag", "--log-file", false),
+            ("--qqqqq", "--quiet", false),
+            ("--ab", "--ca", false),
+            ("--", "--help", false),
+        ] {
+            assert_eq!(close_flag(given, suggested), close, "{given} -> {suggested}");
+        }
+    }
 
     #[test]
     fn a_host_is_a_host_whatever_the_verb_list_says() {

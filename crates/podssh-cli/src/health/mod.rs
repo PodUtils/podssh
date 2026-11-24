@@ -128,8 +128,7 @@ pub fn run(args: &HealthArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let destination = format!("{}@{}", opts.user, opts.destination.host);
     if args.ssh.policy.is_some() {
         if args.preflight {
-            let why = "--policy probes with no login, and --preflight asks after one: give one";
-            return Refusal::usage(why).report("health", err);
+            return Refusal::usage(crate::refuse::apart("--policy", "--preflight")).report("health", err);
         }
         return policy::probe(resolved, &destination, out, err);
     }

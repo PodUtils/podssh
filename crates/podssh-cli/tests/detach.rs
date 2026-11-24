@@ -466,6 +466,12 @@ fn status_and_stop_read_the_lock_not_the_pid() {
     assert!(text.contains("state: ended"), "{text}");
     let out = ran(s.detached(&["stop", "ghost"]));
     assert_eq!(out.status.code(), Some(69), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("(ended)"), "{}", String::from_utf8_lossy(&out.stderr));
+    // A name that never ran is not known, and did not end (T-868).
+    let out = ran(s.detached(&["stop", "never-was"]));
+    let said = String::from_utf8_lossy(&out.stderr).into_owned();
+    assert_eq!(out.status.code(), Some(69), "{said}");
+    assert!(said.contains("no run named never-was is known in") && !said.contains("ended"), "{said}");
     let out = ran(s.detached(&["stop", "web"]));
     assert_eq!(out.status.code(), Some(0), "{}", String::from_utf8_lossy(&out.stderr));
     gone(child.0);

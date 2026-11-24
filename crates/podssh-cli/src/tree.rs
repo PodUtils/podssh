@@ -152,6 +152,8 @@ where
     // refused, never dropped (GitHub #10).
     match first.as_str() {
         "-h" | "--help" => return top_help(&first, &argv[1..]),
+        // `podssh help VERB`, as a user types it: VERB's help (T-868).
+        "help" => return top_help(&first, &argv[1..]),
         "-V" | "--version" => {
             return match argv.get(1) {
                 None => Parsed::Version,
@@ -164,7 +166,7 @@ where
     // A leading `-` at the top level names no verb and has no verb to name
     // a flag against, so it is reported with no guess rather than a wrong one.
     if first.starts_with('-') {
-        return Parsed::Usage(crate::refuse::unknown_flag("", &first, None));
+        return Parsed::Usage(crate::refuse::unknown_flag("", &first, None, given_o(&argv)));
     }
 
     let Some(verb) = crate::flags::verb_for(&first) else {
@@ -176,10 +178,22 @@ where
     parse_verb(verb, &argv[1..])
 }
 
+/// Whether the command line gave `-o` (`-o KEY=VALUE` or `-oKEY=VALUE`), so
+/// that a refusal speaks of `-o` only then (T-868). Each word after `--` is
+/// a command's.
+fn given_o(argv: &[std::ffi::OsString]) -> bool {
+    argv.iter()
+        .filter_map(|w| w.to_str())
+        .take_while(|w| *w != "--")
+        .any(|w| w.strip_prefix('-').is_some_and(|rest| !rest.starts_with('-') && rest.starts_with('o')))
+}
+
 /// `podssh --help` alone, or with one word that names a verb: that verb's
 /// help, as `podssh VERB --help` gives it. Any other word is refused.
 fn top_help(flag: &str, rest: &[std::ffi::OsString]) -> Parsed {
-    if let Some(json) = crate::help::json::of_top(&flag.into(), rest) {
+    // The word `help` is `--help` to the pair of `--help --json`.
+    let as_flag = if flag == "help" { "--help" } else { flag };
+    if let Some(json) = crate::help::json::of_top(&as_flag.into(), rest) {
         return json;
     }
     let mut words = rest.iter().map(|w| w.to_string_lossy().into_owned());
@@ -226,7 +240,7 @@ pub fn parse_verb(verb: &'static Verb, rest: &[std::ffi::OsString]) -> Parsed {
         .try_get_matches_from(std::iter::once(std::ffi::OsString::from(verb.name)).chain(rest.iter().cloned()))
     {
         Ok(m) => m,
-        Err(e) => return crate::clap_error::rebuild_error(verb.name, &e),
+        Err(e) => return crate::clap_error::rebuild_error(verb.name, &e, given_o(rest)),
     };
 
     if matches.get_flag("help") {

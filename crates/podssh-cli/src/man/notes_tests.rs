@@ -154,6 +154,18 @@ fn the_notes_say_what_users_found_by_trial() {
     }
 }
 
+/// What the third black-box pass looked for and did not find (T-868): an
+/// unmeasured size under podssh ssh --policy, and PODSSH_RELAY beside a
+/// node.
+#[test]
+fn the_manual_says_what_the_third_pass_looked_for() {
+    let has = |verb: &str, text: &str| for_verb(verb).iter().any(|n| n.contains(text));
+    assert!(has("ssh", "only podssh health exits 69 for it"), "the policy's unmeasured size under ssh");
+    let relay =
+        crate::man::facts::variables().find(|(names, _)| names.contains(&"PODSSH_RELAY")).expect("PODSSH_RELAY");
+    assert!(relay.1.contains("node://NAME") && relay.1.contains("(78)"), "{}", relay.1);
+}
+
 #[test]
 fn each_name_in_a_note_exists() {
     let p = problems();

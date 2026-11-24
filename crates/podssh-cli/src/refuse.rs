@@ -25,7 +25,7 @@ use crate::suggest::NoSubcommand;
 /// so it can name `-p` for a typo of `-P` on `ssh`; a hand-rolled search over a
 /// flat list would name a flag belonging to a different verb, which is the
 /// `cp`/`ssh` `-P` split made worse.
-pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>) -> String {
+pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>, given_o: bool) -> String {
     // **The last line is the same in both branches, and it was missing from
     // one.** A test caught it: with no suggestion the message ended at
     // *"Run 'podssh --help' for the flags this build accepts."* and never said
@@ -33,10 +33,11 @@ pub fn unknown_flag(verb: &str, token: &str, suggestion: Option<&str>) -> String
     // just mistyped `-o StrictHostKeyChecking=no` needs, because the failure
     // they are afraid of is a **silent** drop, and the branch that cannot
     // suggest anything is the branch most likely to be a genuinely unknown flag.
-    let last = if takes_o(verb) {
-        "Nothing was ignored: an unrecognised -o would drop a security setting."
+    let last = if given_o && takes_o(verb) {
+        "Nothing was ignored: the command did not run, and no -o setting was dropped."
     } else {
-        // A verb with no -o has no such setting to drop (T-828).
+        // A verb with no -o has no such setting to drop (T-828), and a
+        // command line with no -o has none to fear for (T-868).
         "Nothing was ignored: the command did not run."
     };
     match suggestion {
@@ -55,6 +56,24 @@ fn takes_o(verb: &str) -> bool {
     match VERBS.iter().find(|v| v.aliases.contains(&first)) {
         Some(v) => v.flags.iter().any(|f| f.short == Some('o')),
         None => true,
+    }
+}
+
+/// Two flags that do not go together, and why: one table, so that each
+/// such refusal says first what to do (T-868).
+pub const APART: &[(&str, &str, &str)] = &[
+    ("--policy", "--persist", "--policy ends a run at a mismatch, and --persist connects again"),
+    ("--policy", "--upgrade", "--upgrade moves the session to an end that the policy did not judge"),
+    ("--policy", "--preflight", "--policy probes with no login, and --preflight asks after one"),
+    ("--upgrade", "--persist", "each keeps a session across a lost link"),
+];
+
+/// The refusal of `a` beside `b`: "A and B cannot be used together: WHY",
+/// with the why of [`APART`] where it has the pair.
+pub fn apart(a: &str, b: &str) -> String {
+    match APART.iter().find(|(x, y, _)| (*x, *y) == (a, b) || (*x, *y) == (b, a)) {
+        Some((_, _, why)) => format!("{a} and {b} cannot be used together: {why}"),
+        None => format!("{a} and {b} cannot be used together"),
     }
 }
 
@@ -321,26 +340,42 @@ mod tests {
     /// ignored, because a silently-dropped `-o` is the spec's security bug.
     #[test]
     fn an_unknown_flag_names_the_given_and_the_nearest() {
-        let with = unknown_flag("ssh", "-StricthostKeyChekcing", Some("-StrictHostKeyChecking"));
+        let with = unknown_flag("ssh", "-StricthostKeyChekcing", Some("-StrictHostKeyChecking"), false);
         assert!(with.contains("-StricthostKeyChekcing"), "{with}");
         assert!(with.contains("Did you mean"), "{with}");
         assert!(with.contains("-StrictHostKeyChecking"), "{with}");
 
-        let without = unknown_flag("ssh", "--qqqqq", None);
+        let without = unknown_flag("ssh", "--qqqqq", None, false);
         assert!(without.contains("--qqqqq"), "{without}");
         assert!(without.contains("podssh ssh --help"), "the verb's own help: {without}");
-        assert!(unknown_flag("", "--x", None).contains("'podssh --help'"));
+        assert!(unknown_flag("", "--x", None, false).contains("'podssh --help'"));
         assert!(given_twice("relay serve", "--mint").contains("--mint is given more than once"));
         assert!(negative_value("play", "-1").contains("--FLAG=-1"));
         let bytes = bad_invocation("ssh", clap::error::ErrorKind::InvalidUtf8, "");
         assert!(bytes.contains("not UTF-8"), "{bytes}");
         assert!(without.contains("Nothing was ignored"), "{without}");
-        // The -o of the reassurance only where the verb takes -o (T-828).
-        assert!(without.contains("-o would drop"), "{without}");
-        let node = unknown_flag("node", "--relay-host", Some("--relay"));
-        assert!(node.contains("the command did not run") && !node.contains("-o"), "{node}");
+        // The -o of the reassurance only where the verb takes -o (T-828)
+        // and the command line gave one (T-868).
+        let rows = [("ssh", true, true), ("ssh", false, false), ("node", true, false), ("node", false, false)];
+        for (verb, given_o, says_o) in rows {
+            let m = unknown_flag(verb, "--qqqqq", None, given_o);
+            assert!(m.contains("the command did not run"), "{m}");
+            assert_eq!(m.contains("-o"), says_o, "{verb} given -o {given_o}: {m}");
+        }
         // Four lines: the flag, the next step, the reassurance, and nothing else.
         assert!(without.lines().count() <= 4, "{without}");
+    }
+
+    /// Each pair of [`APART`] says first that its two flags do not go
+    /// together, then why; a pair it lacks still says the first (T-868).
+    #[test]
+    fn a_pair_that_does_not_go_together_says_so_first() {
+        for (a, b, why) in APART {
+            let line = apart(a, b);
+            assert!(line.starts_with(&format!("{a} and {b} cannot be used together: ")), "{line}");
+            assert!(line.ends_with(why) && !line.contains("give one"), "{line}");
+        }
+        assert_eq!(apart("--x", "--y"), "--x and --y cannot be used together");
     }
 
     /// **A count that clap refuses is a count, never a flag.** No verb has a

@@ -55,7 +55,7 @@ pub fn check(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refusal> {
     // Each connection again would be judged, and a mismatch on one would
     // read as a lost link (T-838).
     if args.persist && args.policy.is_some() {
-        return Err("--policy ends a run at a mismatch, and --persist connects again after a loss: give one".into());
+        return Err(crate::refuse::apart("--policy", "--persist").into());
     }
     let name = match (args.persist, args.persist_name.as_deref()) {
         (false, None) => return Ok(()),

@@ -13,9 +13,10 @@ use super::data::Code;
 pub const SSH_JUDGE: &str = "POLICY: with --policy FILE, podssh ssh judges the destination's algorithms by an \
      algorithm policy. The verdict falls at the server's host key, before known_hosts is read and before any login. \
      A mismatch ends the run with exit 78, and a KEXINIT that does not read ends it with exit 69. Either way the \
-     verdict goes to stdout as one JSON object. A pass goes on to the login, and -v says the verdict. A host of -J is \
-     not judged. --policy goes with no --persist, --upgrade, -M, -S or -O (64); ControlPath of a file has no effect \
-     then.";
+     verdict goes to stdout as one JSON object. A pass goes on to the login, and -v says the verdict. So does a size \
+     that one exchange cannot measure: -v names it unmeasured, and only podssh health exits 69 for it. A host of -J \
+     is not judged. --policy goes with no --persist, --upgrade, -M, -S or -O (64); ControlPath of a file has no \
+     effect then.";
 
 /// The grammar of the file.
 pub const GRAMMAR: &str = "The file is in the grammar of ssh-audit, whose policy files load unchanged. Each line is \

@@ -30,7 +30,9 @@ use clap::error::{ContextKind, ContextValue, ErrorKind};
 /// machine's cargo registry. The two shapes read here are
 /// `ContextValue::String(_)` for the offending token and
 /// `ContextValue::StyledStrs(_)` for the suggestions `strsim` produced.
-pub fn rebuild_error(verb: &str, e: &clap::Error) -> Parsed {
+/// `given_o`: whether the command line gave `-o`, which the refusal of an
+/// unknown flag names only then (T-868).
+pub fn rebuild_error(verb: &str, e: &clap::Error, given_o: bool) -> Parsed {
     match e.kind() {
         ErrorKind::DisplayHelp => Parsed::Help(""),
         ErrorKind::DisplayVersion => Parsed::Version,
@@ -68,8 +70,8 @@ pub fn rebuild_error(verb: &str, e: &clap::Error) -> Parsed {
             if given.parse::<f64>().is_ok() {
                 return Parsed::Usage(crate::refuse::negative_value(verb, &given));
             }
-            let suggestion = string_ctx_opt(e, ContextKind::SuggestedArg);
-            Parsed::Usage(crate::refuse::unknown_flag(verb, &given, suggestion.as_deref()))
+            let suggestion = close_suggestion(e, &given);
+            Parsed::Usage(crate::refuse::unknown_flag(verb, &given, suggestion.as_deref(), given_o))
         }
         // A flag of one value given twice: clap names it with its value's
         // name (`--mint <WHO>`), which is no unknown flag (T-818).
@@ -79,7 +81,7 @@ pub fn rebuild_error(verb: &str, e: &clap::Error) -> Parsed {
             let other = string_ctx(e, ContextKind::PriorArg);
             match flag_shaped(&flag) && (other.is_empty() || other.split(' ').next() == Some(flag.as_str())) {
                 true => Parsed::Usage(crate::refuse::given_twice(verb, &flag)),
-                false => unknown(verb, e, &given),
+                false => unknown(verb, e, &given, given_o),
             }
         }
         // A known flag with no value: an invalid value that is empty, with
@@ -96,21 +98,28 @@ pub fn rebuild_error(verb: &str, e: &clap::Error) -> Parsed {
                     Parsed::Usage(crate::refuse::refused(verb, &r.usage_form(), r.instead.unwrap_or(""), r.help))
                 }
                 Some(r) => Parsed::Usage(crate::refuse::missing_value(verb, r)),
-                None => unknown(verb, e, &given),
+                None => unknown(verb, e, &given, given_o),
             }
         }
-        _ => unknown(verb, e, &string_ctx(e, ContextKind::InvalidArg)),
+        _ => unknown(verb, e, &string_ctx(e, ContextKind::InvalidArg), given_o),
     }
 }
 
 /// Today's message for any other error: an unknown flag when the token was
 /// written as a flag, else a bad invocation.
-fn unknown(verb: &str, e: &clap::Error, given: &str) -> Parsed {
+fn unknown(verb: &str, e: &clap::Error, given: &str, given_o: bool) -> Parsed {
     if !flag_shaped(given) {
         return Parsed::Usage(crate::refuse::bad_invocation(verb, e.kind(), given));
     }
-    let suggestion = string_ctx_opt(e, ContextKind::SuggestedArg);
-    Parsed::Usage(crate::refuse::unknown_flag(verb, given, suggestion.as_deref()))
+    let suggestion = close_suggestion(e, given);
+    Parsed::Usage(crate::refuse::unknown_flag(verb, given, suggestion.as_deref(), given_o))
+}
+
+/// clap's nearest flag, kept only when it is close to `given`: clap's
+/// similarity named `--log-file` for `--bogus-flag`, and a wrong
+/// suggestion is worse than none (T-868).
+fn close_suggestion(e: &clap::Error, given: &str) -> Option<String> {
+    string_ctx_opt(e, ContextKind::SuggestedArg).filter(|s| crate::suggest::close_flag(given, s))
 }
 
 /// **Whether a token was written as a flag.**

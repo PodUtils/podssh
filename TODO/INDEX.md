@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**824 entries: 21 open, 45 partial, 11 blocked, 747 done.**
+**824 entries: 20 open, 45 partial, 11 blocked, 748 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 21 | 11 | 6 | 345 | 383 |
-| **All** | 21 | 45 | 11 | 747 | 824 |
+| P3 | 20 | 11 | 6 | 346 | 383 |
+| **All** | 20 | 45 | 11 | 748 | 824 |
 
 ## Entries
 
@@ -898,5 +898,5 @@ repository and CI).
 | [T-865](cli.md) | P2 | S | M10 | defect | done | `podssh ping` to a destination that refuses its connection exits 69 with a dangling line, where the table says 255 |
 | [T-866](cli.md) | P2 | S | M10 | defect | done | `--result-file` with `-N` at Ctrl-C: no file, or `failed` where the manual says interrupted |
 | [T-867](cli.md) | P3 | S | M10 | defect | done | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
-| [T-868](cli.md) | P3 | M | M10 | defect | open | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
+| [T-868](cli.md) | P3 | M | M10 | defect | done | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | open | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |

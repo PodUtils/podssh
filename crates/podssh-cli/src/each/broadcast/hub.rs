@@ -85,8 +85,8 @@ impl Hub {
     /// The first words: the hosts, the commands and the stop.
     pub fn banner(&self) -> Vec<String> {
         vec![format!(
-            "each line goes to the {} hosts; :help lists the commands, and {} stops the broadcast at once",
-            self.hosts.len(),
+            "each line goes to the {}; :help lists the commands, and {} stops the broadcast at once",
+            crate::each::fan::hosts(self.hosts.len()),
             self.stop_key
         )]
     }

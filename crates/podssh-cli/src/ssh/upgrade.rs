@@ -59,9 +59,9 @@ pub(super) fn check(args: &SshArgs, env: &Env, resolved: &mut Resolved) -> Resul
     let why = if !matches!(resolved.transport, Transport::Relay { .. } | Transport::Direct) {
         Some("--upgrade starts from an sshd, on the forward road or --direct; node:// and iroh: are podssh ends")
     } else if args.persist {
-        Some("--upgrade and --persist each keep a session across a lost link: give one")
+        return Err(crate::refuse::apart("--upgrade", "--persist").into());
     } else if args.policy.is_some() {
-        Some("--policy judges the login's KEXINIT, and --upgrade moves the session to another end: give one")
+        return Err(crate::refuse::apart("--policy", "--upgrade").into());
     } else if !resolved.options.remote_forwards.is_empty() {
         Some("--upgrade carries no -R or RemoteForward yet: each would be asked on two connections")
     } else if resolved.control.command.is_some() {

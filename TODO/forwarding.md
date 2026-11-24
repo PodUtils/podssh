@@ -458,7 +458,7 @@ command line in `crates/podssh-cli/src/ssh/x11.rs:1-155`, the flags at
   this Xvfb takes an untrusted cookie of `xauth` at all
   (`scripts/interop-x11.sh:37-51`): env when it does not, a failure when it
   does and podssh's `-X` fails.
-- `docs/cli.md:1140-1163`, a note of the manual and the variable `XAUTHORITY`
+- `docs/cli.md:1143-1166`, a note of the manual and the variable `XAUTHORITY`
   say what the flags do, and the risk of `-Y`.
 - `cargo test -p podssh-ssh`: 155 passed; `cargo test -p podssh-cli`:
   577 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -861,7 +861,7 @@ Read:
 3. A server that refuses the channel (OpenSSH with
    `AllowStreamLocalForwarding no`) gives its reason, and 255, as for TCP.
 4. Change the help of the `-W` row (`crates/podssh-cli/src/flags.rs:143-144`)
-   and `docs/cli.md:203-212` (T-239 refuses a path there until this entry), and
+   and `docs/cli.md:206-215` (T-239 refuses a path there until this entry), and
    add an example to the manual. A local socket
    is the work of T-176 (`pipe`).
 
@@ -916,7 +916,7 @@ path at `crates/podssh-cli/src/ssh/hop.rs:92-95`, and the row of `-W` says so
   OpenSSH's sshd: `stdio.socket` (a Python echo server on a Unix socket of the
   box answers `ping`) and `stdio.socket_refused`. The gate runs them at this
   push.
-- `docs/cli.md:203-212`, a note and an example of the manual.
+- `docs/cli.md:206-215`, a note and an example of the manual.
 - `cargo test -p podssh-ssh`: 155 passed; `cargo test -p podssh-cli`:
   578 passed, 0 failed, 31 ignored; clippy; rustfmt.
 
@@ -1014,7 +1014,7 @@ and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
   -W` through OpenSSH's sshd to a TCP echo server, 262144 bytes each way) and
   `pty.forwards` (`scripts/interop-pty.py`, `~#` in a session with `-R
   0:127.0.0.1:2201`).
-- `docs/cli.md:934-941` and the manual's note of `-t` say what `~#` and `-v`
+- `docs/cli.md:937-944` and the manual's note of `-t` say what `~#` and `-v`
   print.
 - `cargo test -p podssh-ssh`: 158 passed; `cargo test -p podssh-cli`:
   578 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1236,7 +1236,7 @@ Read: `request` parses the value with `parse_hop`
    refuses `-W 5432`, whose meaning in OpenSSH is not known here.
 3. Keep `HOST:PORT` and `[v6]:PORT`. A `-J` hop keeps its own parse, where a
    host alone means port 22, as in OpenSSH.
-4. Add the rule to `docs/cli.md:203-212`. The help of the `-W` row
+4. Add the rule to `docs/cli.md:206-215`. The help of the `-W` row
    (`crates/podssh-cli/src/flags.rs:143-144`) already says `HOST:PORT`.
 
 ## Prove
@@ -1640,7 +1640,7 @@ the SOCKS form gives a server whose egress is closed a way out through the clien
 
 - Read: `crates/podssh-cli/src/ssh/forward.rs` line 43 at `6f6eda2` says "a Unix socket is not
   carried yet", and its line 49 says "the server's SOCKS proxy (-R [bind_address:]port) is not
-  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1078-1079` and
+  carried yet", for a spec of one or two fields (its lines 45-54); `docs/cli.md:1081-1082` and
   `crates/podssh-cli/src/man/notes_ssh_more.rs:6-7` say so too. `TODO/forwarding.md:52-54` says
   "until a later step" of both, in T-035.
 - Read: `RemoteForward` holds a port and a `host:host_port` only
@@ -1784,7 +1784,7 @@ With `--persist -N`, a forward outlives a lost link: its listener stays bound an
 
 ## Premise
 
-- Read: `-L` and `-D` keep their listeners across a loss, and a refused `-R` is asked again for 2 minutes at most (`docs/cli.md:765-770`). T-042 and T-391 did this.
+- Read: `-L` and `-D` keep their listeners across a loss, and a refused `-R` is asked again for 2 minutes at most (`docs/cli.md:768-773`). T-042 and T-391 did this.
 - Read: `~#` lists "the forwards of the session, with what each carried" (`crates/podssh-ssh/src/escape.rs:18`); T-041 counts connections and bytes and says nothing of state.
 - Not verified: which of the existing tables holds a place for a state; the reading of `crates/podssh-cli/src/ssh/persist.rs` and `crates/podssh-ssh/src/forward.rs` settles it.
 - mole's own policy is one integer that is also the supervision switch, so `0` supervises nothing after the first dial (davrodpin/mole:tunnel/tunnel.go:344-379). Do not copy that: the state word and the retry policy stay two things.
@@ -1793,7 +1793,7 @@ With `--persist -N`, a forward outlives a lost link: its listener stays bound an
 
 1. One enum for each forward: `bound` (listener or request made, no link), `waiting` (link lost, asking again), `up`, `refused` (with the server's reason when it gave one). Keep it in the forward's own atomics beside T-041's counts; no lock on the data path.
 2. Show it in `~#` and in the end-of-run `-v` lines of T-041, and in the machine-readable result of T-054 where the forwards are listed.
-3. Each change of state of a forward of `--persist` is one line on stderr, the line that names the hop that broke (`docs/cli.md:775-776`) extended with the forward.
+3. Each change of state of a forward of `--persist` is one line on stderr, the line that names the hop that broke (`docs/cli.md:778-779`) extended with the forward.
 4. Same commit: the manual (`~#`), `docs/cli.md`.
 5. Do not add a named tunnel record or a per-forward fail action: `ssh_config` names forwards, and `ExitOnForwardFailure` is the one policy. If a tester asks for a second, it is a new entry.
 

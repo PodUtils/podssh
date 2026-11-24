@@ -107,6 +107,9 @@ async fn fail_fast_starts_no_host_after_a_failure_and_the_running_ones_end() {
     assert_eq!((started, exit_status(&ends)), (vec![0, 1, 2], 0));
     let lines = summary(&["a".to_string(), "bb".to_string()], &[Ended::Status(3), Ended::NotStarted]);
     assert_eq!(lines, ["2 hosts: 0 gave 0, 1 failed, 1 not started", "  a   3", "  bb  not started (--fail-fast)"]);
+    // The noun in the number of the hosts (T-868).
+    let one = summary(&["a".to_string()], &[Ended::Status(0)]);
+    assert_eq!(one[0], "1 host: 1 gave 0, 0 failed, 0 not started");
 }
 
 /// `podssh each` with `args`, its home in `home`, with no settings file and

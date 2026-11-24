@@ -1676,9 +1676,10 @@ podssh ssh
   known_hosts is read and before any login. A mismatch ends the run with exit
   78, and a KEXINIT that does not read ends it with exit 69. Either way the
   verdict goes to stdout as one JSON object. A pass goes on to the login, and
-  -v says the verdict. A host of -J is not judged. --policy goes with no
-  --persist, --upgrade, -M, -S or -O (64); ControlPath of a file has no effect
-  then.
+  -v says the verdict. So does a size that one exchange cannot measure: -v
+  names it unmeasured, and only podssh health exits 69 for it. A host of -J is
+  not judged. --policy goes with no --persist, --upgrade, -M, -S or -O (64);
+  ControlPath of a file has no effect then.
 
   The file is in the grammar of ssh-audit, whose policy files load unchanged.
   Each line is KEY = VALUE, and a line that starts with # is a comment. name
@@ -9700,7 +9701,9 @@ podssh keygen
   (the default), PKCS8 or PEM; -i -m FORMAT -f FILE prints such a key as a line
   of OpenSSH. -m PEM or PKCS8 with a new key or -p writes the private key in
   that format. An Ed25519 key has a form of RFC4716 only. -y and -l read a key
-  in each format that podssh ssh -i reads.
+  in each format that podssh ssh -i reads. -l on a private key shows the
+  comment of FILE.pub, when that is the same key, as ssh-keygen -l does: a key
+  with a passphrase keeps its comment encrypted.
 
   podssh keygen -t ed25519-sk or -t ecdsa-sk makes a key in a security key
   (FIDO2), as ssh-keygen does: the device keeps the key, and the file holds the
@@ -11590,7 +11593,9 @@ ENVIRONMENT
       (10.0.0.0/8, fd7a::/16) matches each address inside it, never a name. A
       loopback address never goes through a proxy.
   PODSSH_RELAY
-      The relay hosts, as --relay-host. The flag wins.
+      The relay hosts, as --relay-host. The flag wins. node://NAME and --exit
+      NAME refuse it (78), saying that PODSSH_RELAY does not apply: the pair
+      names its relay.
   PODSSH_RELAY_FAILOVER
       How the relay hosts are tried, as --relay-failover: staggered (the
       default), parallel or serial. The flag wins; another word is a

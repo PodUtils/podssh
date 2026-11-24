@@ -32,7 +32,8 @@ pub const KEYGEN: &[&str] = &[
     "podssh keygen -e -m FORMAT -f FILE prints the public key of FILE as RFC4716 (the default), PKCS8 or \
      PEM; -i -m FORMAT -f FILE prints such a key as a line of OpenSSH. -m PEM or PKCS8 with a new key or -p \
      writes the private key in that format. An Ed25519 key has a form of RFC4716 only. -y and -l read a key \
-     in each format that podssh ssh -i reads.",
+     in each format that podssh ssh -i reads. -l on a private key shows the comment of FILE.pub, when that is \
+     the same key, as ssh-keygen -l does: a key with a passphrase keeps its comment encrypted.",
     "podssh keygen -t ed25519-sk or -t ecdsa-sk makes a key in a security key (FIDO2), as ssh-keygen does: the \
      device keeps the key, and the file holds the device's handle of it, in the format of OpenSSH. Each signature \
      needs a touch of the device, within 30 s. -O resident keeps the key in the device, -O verify-required asks the \

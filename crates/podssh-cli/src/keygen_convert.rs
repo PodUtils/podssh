@@ -12,7 +12,7 @@ use podssh_ssh::convert::{self, Format};
 use podssh_ssh::keygen::{self, KeyFile};
 use podssh_ssh::prompt;
 use podssh_ssh::russh::keys::ssh_key::LineEnding;
-use podssh_ssh::russh::keys::PrivateKey;
+use podssh_ssh::russh::keys::{PrivateKey, PublicKey};
 use zeroize::Zeroizing;
 
 use crate::exit_codes::EXIT_USAGE;
@@ -121,11 +121,12 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
         return Ok(KeyFile::Public(public));
     }
     if !private {
-        if let Ok(key) = PrivateKey::from_openssh(text.trim_start()) {
-            return Ok(KeyFile::Public(key.public_key().clone()));
-        }
         let beside = std::fs::read_to_string(keygen::public_path(path)).unwrap_or_default();
-        if let Some(public) = crate::keygen_sign::public_line(&beside) {
+        let beside = crate::keygen_sign::public_line(&beside);
+        if let Ok(key) = PrivateKey::from_openssh(text.trim_start()) {
+            return Ok(KeyFile::Public(half_or_beside(key.public_key(), beside)));
+        }
+        if let Some(public) = beside {
             return Ok(KeyFile::Public(public));
         }
     }
@@ -147,6 +148,17 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
             Ok(KeyFile::Private(PrivateKey::from(pair)))
         }
         Err(e) => Err(format!("{shown}: not a key that podssh reads: {e}")),
+    }
+}
+
+/// The public half of a private key, or `FILE.pub` beside it when that is
+/// the same key: an encrypted key keeps its comment in the encrypted part,
+/// so `ssh-keygen -l` reads it from `FILE.pub` first (T-868). A `FILE.pub`
+/// of another key is not this key, and its comment would not be true.
+fn half_or_beside(half: &PublicKey, beside: Option<PublicKey>) -> PublicKey {
+    match beside {
+        Some(public) if public.key_data() == half.key_data() => public,
+        _ => half.clone(),
     }
 }
 
@@ -179,5 +191,40 @@ mod tests {
         assert_eq!(pair.public.0, identity.public().0);
         assert!(seed_of(&hex[..62]).is_none());
         assert!(seed_of(&hex.replace('7', "g")).is_none());
+    }
+
+    /// `-l` on a private key: the comment of `FILE.pub` when it is the same
+    /// key, encrypted or not; the key's own half when `FILE.pub` is missing
+    /// or holds another key (T-868). One table, one rule.
+    #[test]
+    fn the_comment_of_l_comes_from_file_pub_when_it_is_the_same_key() {
+        use podssh_ssh::keygen::{generate, protect, KeyKind};
+        let dir = std::env::temp_dir().join(format!("podssh-l-comment-{}-{}", std::process::id(), line!()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let key = generate(KeyKind::Ed25519, "me@lab").unwrap();
+        let other = generate(KeyKind::Ed25519, "someone@else").unwrap();
+        let line = |k: &PrivateKey| k.public_key().to_openssh().unwrap();
+        let locked = protect(key.clone(), "right").unwrap();
+        let text = |k: &PrivateKey| k.to_openssh(LineEnding::LF).unwrap().to_string();
+        // (private key text, FILE.pub text or none, the comment shown)
+        let rows: Vec<(String, Option<String>, &str)> = vec![
+            (text(&locked), Some(line(&key)), "me@lab"),
+            (text(&locked), None, ""),
+            (text(&locked), Some(line(&other)), ""),
+            (text(&key), Some(line(&key)), "me@lab"),
+            (text(&key), None, "me@lab"),
+            (text(&key), Some(line(&other)), "me@lab"),
+        ];
+        for (i, (private, public, comment)) in rows.into_iter().enumerate() {
+            let path = dir.join(format!("key{i}"));
+            std::fs::write(&path, private).unwrap();
+            if let Some(public) = public {
+                std::fs::write(keygen::public_path(&path), public).unwrap();
+            }
+            let Ok(KeyFile::Public(shown)) = load_key(&path, false) else { panic!("row {i}: no public key") };
+            assert_eq!(shown.key_data(), key.public_key().key_data(), "row {i}: the key");
+            assert_eq!(shown.comment().as_str_lossy(), comment, "row {i}: the comment");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

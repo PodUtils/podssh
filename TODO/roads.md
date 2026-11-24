@@ -191,7 +191,7 @@ the file that `--ts-state` names (`crates/podssh-cli/src/flags.rs:383-384`,
    `podssh ssh iroh:TICKET` dials it (the address of `docs/design.md:1321`).
 6. Add the key files to FILES in the manual
    (`crates/podssh-cli/src/man/data_files.rs:13-352`), and each new variable to
-   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-280`).
+   `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`).
 
 ## Decision
 
@@ -519,9 +519,9 @@ in iroh's source at the pinned version.
    not in the list.
 6. `doctor`, with the feature, reports the `/ping` of each relay and the home
    relay.
-7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-280`),
+7. Add the variable to `VARIABLES` (`crates/podssh-cli/src/man/facts.rs:46-284`),
    the flag to the flag table, and the default to the relay section of the
-   manual (`crates/podssh-cli/src/man/facts.rs:308-462`). The tests compare
+   manual (`crates/podssh-cli/src/man/facts.rs:312-466`). The tests compare
    `VARIABLES` with the source in both directions
    (`crates/podssh-cli/src/man/facts.rs:44-45`), so a variable that only the
    feature reads is in the manual only with the feature.
@@ -4156,7 +4156,7 @@ the task (`transport::settle`); five commands do not.
   waits for it up to `CARRIAGE_WAIT`.
 - Read: `crates/podssh-cli/src/job/far.rs:64-82`,
   `crates/podssh-cli/src/pipe/ssh.rs:68-91`,
-  `crates/podssh-cli/src/health/mod.rs:182-190`,
+  `crates/podssh-cli/src/health/mod.rs:181-189`,
   `crates/podssh-cli/src/containers/mod.rs:186-197` and
   `crates/podssh-cli/src/ssh/upgrade.rs:93-108` take `reached.stream` and
   drop `reached.layer`.
@@ -4412,7 +4412,7 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:80`).
   (`crates/podssh-cli/src/ssh/hop.rs:58-60`); `jump_hop` refuses a node only (`:68-74`).
 - Read: a `cf://` destination refuses `-J`:
   `crates/podssh-cli/src/ssh/cloudflare.rs:72` says "a Cloudflare tunnel cannot be reached
-  through a -J hop yet", and `docs/cli.md:225-226` says so too.
+  through a -J hop yet", and `docs/cli.md:228-229` says so too.
 - Read: the road of a run is chosen for the first hop's host
   (`crates/podssh-cli/src/ssh/resolve.rs:260`), and each later hop runs in a `direct-tcpip`
   channel of the session before it (`crates/podssh-ssh/src/run.rs:178-190`;
@@ -10746,7 +10746,7 @@ can run. The owner wants the Access TCP client in podssh on each system it serve
 
 - `crates/podssh-cli/src/ssh/cloudflare.rs:1`-`10`, `:40`-`:41`: a token only, from a variable or file.
 - `PodUtils/podcrates:crates/pod-egress/src/cloudflare.rs`: the WebSocket client of an Access TCP rule.
-- `crates/podssh-cli/src/man/facts.rs:125`: the manual says that `cloudflared` prints the token.
+- `crates/podssh-cli/src/man/facts.rs:129`: the manual says that `cloudflared` prints the token.
 
 ## Approach
 

@@ -2378,7 +2378,7 @@ no reason (`docs/target-environment.md:88-89`).
    (`crates/podssh-cli/src/doctor/host.rs:12-28`) from the same function.
 6. T-108 runs the result. Never call `getpwuid`. Same commit: `--shell` in
    `crates/podssh-cli/src/flags.rs`, `SHELL` in
-   `crates/podssh-cli/src/man/facts.rs:46-280`, `docs/cli.md`.
+   `crates/podssh-cli/src/man/facts.rs:46-284`, `docs/cli.md`.
 
 ## Decision
 

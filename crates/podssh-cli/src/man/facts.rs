@@ -66,7 +66,11 @@ pub const VARIABLES: &[(&[&str], &str)] = &[
       * matches each host, and a block ADDR/BITS (10.0.0.0/8, fd7a::/16) matches each address inside \
       it, never a name. A loopback address never goes through a proxy.",
     ),
-    (&["PODSSH_RELAY"], "The relay hosts, as --relay-host. The flag wins."),
+    (
+        &["PODSSH_RELAY"],
+        "The relay hosts, as --relay-host. The flag wins. node://NAME and --exit NAME refuse it (78), \
+      saying that PODSSH_RELAY does not apply: the pair names its relay.",
+    ),
     (
         &["PODSSH_RELAY_FAILOVER"],
         "How the relay hosts are tried, as --relay-failover: staggered (the default), parallel or serial. \
