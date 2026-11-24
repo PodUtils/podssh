@@ -3,8 +3,8 @@
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
 //! a removed key's sessions, T-842; a shell shared by name, T-837; the
-//! message of the day, T-119; the marks of a shell, T-120), and the row of
-//! its host key's file.
+//! message of the day, T-119; the marks of a shell, T-120; the scope of a
+//! pty child, T-122), and the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -125,6 +125,15 @@ pub const SERVE: &[&str] = &[
      ends. serve never writes a file of the user's. Another shell gets no marks, and stderr says so. On the line \
      discipline, serve marks its own prompt and each line submitted. It cannot see a command end, so the output's \
      end comes at once, with no status. A command gets no marks.",
+    // Each pty child in a transient scope (T-122).
+    "Where systemd is this host's service manager, each child on a pty runs in a transient scope of its own, as sshd \
+     moves each session. A stop of serve's unit then leaves each user's shell, and its memory counts against the \
+     scope. At its start, serve checks /run/systemd/system, busctl and systemctl on PATH, and that systemctl --user \
+     is-system-running says running or degraded within 2 s. Where that fails, stderr says so once, and each child \
+     starts where serve is. With systemd, the child waits between its fork and its exec until the user's manager has \
+     moved it into podssh-serve-PID-N.scope. A move that fails, or takes past 2 s, lets the child go on where serve \
+     is, with one line on stderr. No session fails because systemd is absent or slow. systemctl --user list-units \
+     'podssh-serve-*' lists the scope of each open session. On another system there is no probe and no line.",
     "The sftp subsystem is served in the process: SFTP version 3 as OpenSSH's sftp-server speaks it. So OpenSSH's \
      sftp, its scp (SFTP is its mode since OpenSSH 9.0) and podssh cp reach a cage that has no sftp-server, scp or \
      rsync. The files are reached as the user that runs serve, with no chroot: what that user may read and write, a \

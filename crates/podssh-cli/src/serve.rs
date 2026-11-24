@@ -12,7 +12,8 @@
 //! each client's KEXINIT before authentication (T-838). `--share` offers
 //! each login shell on a pty by two names (T-837). `--motd FILE` is the
 //! message of the day of a login shell on a tty (T-119); `--shell-integration`
-//! marks its prompts and commands (T-120).
+//! marks its prompts and commands (T-120). Where a probe finds systemd, each
+//! pty child runs in a transient scope of its own (T-122).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -158,7 +159,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(policy) => policy.map(Arc::new),
         Err(refusal) => return refused(err, refusal),
     };
-    let settings = Settings {
+    let mut settings = Settings {
         accept_env: args.accept_env.clone(),
         shell: args.shell.as_ref().map(PathBuf::from),
         no_shell: args.no_shell,
@@ -179,6 +180,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         share: args.share,
         motd: Some(args.motd.as_ref().map_or_else(Motd::default_file, Motd::named)),
         shell_integration: args.shell_integration,
+        scope: None,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {
@@ -190,6 +192,16 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         && let Err(why) = motd::check(Path::new(file))
     {
         return refused(err, Refusal::config(format!("--motd {why}")));
+    }
+    // Each pty child in a transient scope of its own, where a probe finds
+    // systemd (T-122); else each stays in serve's cgroup, said once.
+    if cfg!(target_os = "linux") && !settings.no_shell {
+        match podssh_ssh::server::scope::probe() {
+            Ok(tool) => settings.scope = Some(tool),
+            Err(why) => {
+                let _ = writeln!(err, "podssh serve: each session stays in serve's own cgroup: {why}");
+            }
+        }
     }
     let found = match args.host_key.as_deref() {
         Some(file) => host_key::at(Path::new(file), &FILES),

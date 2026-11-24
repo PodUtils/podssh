@@ -2257,6 +2257,33 @@ own scope; serve does nothing like it.
    with one log line.
 5. Same commit: the serve notes, `docs/STATUS.md`.
 
+## Decision
+
+2026-11-24 (draft). The child is moved by the user's manager's `StartTransientUnit` with its pid,
+through `busctl`, while it is held between its fork and its exec (see Correction), not started
+through `systemd-run --user --scope -- SHELL`. Lost: `systemd-run`, because it execs the shell
+itself. A failure of it after a passing probe (a manager that refuses to move a process of a system
+unit's cgroup, a unit that exists) would print its words on the user's pty and end the session with
+status 1, which breaks Approach item 4: serve could not tell it from the shell's own end. And it
+cannot set argv\[0\], so a login shell would lose its dash. Lost too: moving the child after it
+started, with no hold, which leaves each process that the shell starts in its first milliseconds (a
+login's start files) in serve's cgroup.
+
+The hold: two pipes made with `O_CLOEXEC`; the child writes its pid on one and reads the other
+between its fork and its exec; a thread of serve's, started before the spawn (which returns only at
+the exec), reads the pid within 2 s, calls `busctl` within 2 s, waits up to 1 s for
+`/proc/PID/cgroup` to name the scope, and writes the byte that lets the child go, from a drop guard
+so that every path writes it. serve keeps its own ends open until the spawn returns, so the child's
+write never meets a closed pipe (its SIGPIPE would kill it), and the child closes serve's ends first.
+The handler waits in the spawn for at most those 5 s, which is the bound of a slow manager.
+
+Each child on a kernel pty takes a scope, a command with `-t` too ("each pty child"). A tty that
+serve answers (T-776) and the line discipline (T-111) keep their children in serve's cgroup: their
+children are not on a pty, and the hold beside the seccomp filter's own hand-over is left for a
+later entry if it is wanted. The probe runs on Linux alone, and is said once at the start where it
+fails; on another system there is no probe and no line, as systemd is not there to miss. With
+`--no-shell` nothing runs on a pty, and there is no probe.
+
 ## Prove
 
 ```sh
@@ -2280,6 +2307,36 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (draft). The Approach's probe of `systemd-run` on `PATH` becomes `busctl` (with
+`systemctl`, and `/run/systemd/system` as sd_booted checks it): the move is asked by `busctl`
+(Decision). Its item 2 (`systemd-run --user --scope --unit=podssh-serve-<session> -- SHELL`)
+becomes a hold of the child between its fork and its exec while `busctl --user call
+org.freedesktop.systemd1 ... StartTransientUnit` moves its pid into `podssh-serve-PID-N.scope`;
+the scope keeps the child's process tree, and `setsid` and the controlling tty work as before, as
+item 2 asks. The Premise's `AGENTS.md:396-433` is section 5's rules 1 to 3 (probe at run time, one
+connection, no helper but a program that a probe found); `busctl` is such a program.
+
+## Done
+
+Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+
+- `crates/podssh-ssh/src/server/scope.rs`: the probe (`probe`, `probe_with`), the unit's name, the
+  arguments of `busctl`, the reading of `/proc/PID/cgroup`, and (Linux) the hold of the child with
+  its thread. `start.rs` gives the tool to each child on a pty; `pty_child.rs` arms the hold around
+  the spawn and says a move that failed. `Settings::scope` (None by default).
+- The CLI: the probe at the start of `podssh serve` on Linux, and its one line where it fails
+  (`serve.rs`). The manual: a note of `serve`. `docs/cli.md`, a bullet; `docs/STATUS.md`, a row.
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_scope`: UNVERIFIED (the call's
+  arguments, the cgroup file, the probe's nine cases, a move that fails and one that hangs leaving
+  the session where serve is within the bound with one line, and a child in its scope on a host whose
+  user manager answers).
+- `sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh`: UNVERIFIED (the box
+  has no systemd: its serve steps work, and the start says `each session stays in serve's own
+  cgroup`).
+- On a host with systemd, `systemctl --user list-units 'podssh-serve-*'` during a session:
+  UNVERIFIED, to record in `docs/STATUS.md`.
+- `cargo todo remap docs/cli.md` after the merge.
 
 # T-123: `podssh serve` accepts `tcpip-forward` from a standard `ssh -R`
 

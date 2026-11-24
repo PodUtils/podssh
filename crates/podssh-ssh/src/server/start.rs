@@ -1,7 +1,8 @@
 //! What the start of a login shell adds to the child, apart from the child
 //! itself, so that each path of a tty (a pty, serve's line discipline, a tty
 //! that serve answers) takes the same: the message of the day (T-119) and
-//! the shell integration marks (T-120).
+//! the shell integration marks (T-120); and, for each child on a pty, the
+//! tool of its transient scope (T-122).
 //! Each part is read at the start of each session, with no cache, on the
 //! blocking thread of the search for the shell.
 
@@ -11,7 +12,7 @@
 use std::ffi::OsString;
 use std::path::Path;
 
-use super::{env, marks, motd, Settings};
+use super::{env, marks, motd, scope, Say, Settings};
 
 /// The parts of one start, kept on the channel until its child runs.
 #[derive(Debug, Default)]
@@ -24,6 +25,11 @@ pub(super) struct Extras {
     pub(super) marks: Option<marks::Files>,
     /// Whether serve's line discipline writes the marks itself (T-120).
     pub(super) line_marks: bool,
+    /// What moves a child on a pty into a scope of its own (T-122).
+    pub(super) scope: Option<scope::Tool>,
+    /// Where a start that the child takes later says a line: a move into a
+    /// scope that failed.
+    pub(super) say: Option<Say>,
 }
 
 /// What a start is: a login shell on a tty, or anything else.
@@ -36,19 +42,26 @@ pub(super) struct Kind {
     /// The tty is serve's line discipline on pipes (T-111), where serve
     /// draws the prompt; else a pty or a tty that serve answers.
     pub(super) line: bool,
+    /// The tty is a pty of the kernel's (T-110), whose child may move into
+    /// a scope (T-122).
+    pub(super) pty: bool,
 }
 
 /// The parts for a start of `kind` with the child's environment `env`, and
-/// the lines for serve's log. Only a login shell on a tty gets any, as sshd
-/// gives them.
+/// the lines for serve's log. Only a login shell on a tty gets a message of
+/// the day or marks, as sshd gives them; each child on a pty, a scope.
 pub(super) fn extras(
     settings: &Settings,
     kind: Kind,
     shell: &Path,
     env: &[(OsString, OsString)],
 ) -> (Extras, Vec<String>) {
-    let mut extras = Extras::default();
+    let mut extras = Extras { say: settings.say.clone(), ..Extras::default() };
     let mut said = Vec::new();
+    // Each child on a pty, a command too, as sshd moves each session.
+    if kind.pty {
+        extras.scope = settings.scope.clone();
+    }
     if !(kind.login && kind.tty) {
         return (extras, said);
     }
