@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**824 entries: 25 open, 45 partial, 11 blocked, 743 done.**
+**824 entries: 23 open, 45 partial, 11 blocked, 745 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
-| P2 | 3 | 23 | 2 | 304 | 332 |
-| P3 | 22 | 11 | 6 | 344 | 383 |
-| **All** | 25 | 45 | 11 | 743 | 824 |
+| P2 | 2 | 23 | 2 | 305 | 332 |
+| P3 | 21 | 11 | 6 | 345 | 383 |
+| **All** | 23 | 45 | 11 | 745 | 824 |
 
 ## Entries
 
@@ -894,9 +894,9 @@ repository and CI).
 | [T-861](serve.md) | P3 | M | backlog | feature | done | `podssh serve --share` for a shell on serve's own tty (`--pty line`, `notify`) |
 | [T-862](serve.md) | P3 | S | backlog | measurement | done | A measure of `serve --share`'s writer lease with two people typing |
 | [T-863](ssh.md) | P1 | M | M10 | defect | done | russh 0.65.4 read: carried in the place of the copy, for six advisories on podssh's paths |
-| [T-864](cli.md) | P2 | S | M10 | defect | open | The host picker's several hosts: the manual promises a command that no form can give |
+| [T-864](cli.md) | P2 | S | M10 | defect | done | The host picker's several hosts: the manual promises a command that no form can give |
 | [T-865](cli.md) | P2 | S | M10 | defect | open | `podssh ping` to a destination that refuses its connection exits 69 with a dangling line, where the table says 255 |
 | [T-866](cli.md) | P2 | S | M10 | defect | open | `--result-file` with `-N` at Ctrl-C: no file, or `failed` where the manual says interrupted |
-| [T-867](cli.md) | P3 | S | M10 | defect | open | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
+| [T-867](cli.md) | P3 | S | M10 | defect | done | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
 | [T-868](cli.md) | P3 | M | M10 | defect | open | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | open | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |

@@ -223,6 +223,14 @@ pub(super) const MORE: &[&str] = &[
      identity_files are the files that the login would try, expanded. proxy_jump and error are null when there is \
      none. Each object is what podssh ssh ALIAS resolves, with the other \
      flags of the command line, through the same code; an alias that resolves nothing has its reason in error and \
-     null in the other keys, and the list goes on (exit 0). It holds no key and no passphrase. A file that cannot \
-     be read, or that others may change, exits 78 with nothing on stdout; a destination or a command exits 64.",
+     null in the other keys, and the list goes on (exit 0). It holds no key and no passphrase. A destination or a \
+     command exits 64.",
+    "--list-hosts stops at a fault that each alias meets: exit 78, with nothing on stdout. It stops for a file of \
+     the list that cannot be read, and for an Include of any host that others may change. It stops for a bad line \
+     outside each block or under Host *, and for a bad variable, as PODSSH_RELAY. A fault in one alias's own block \
+     is that alias's error, and the list goes on (exit 0). Such faults are a bad value (Port 99999, HostName with \
+     no value), an Include of that block that others may change, and a usage fault. No name is resolved: \
+     HostName 300.1.1.1 is listed as written, and fails when podssh ssh connects. The file of -F or \
+     PODSSH_SSH_CONFIG is your choice: its owner and mode are not checked, as OpenSSH does not check them. Each \
+     file that it includes is checked.",
 ];

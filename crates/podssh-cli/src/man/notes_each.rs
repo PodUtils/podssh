@@ -34,6 +34,8 @@ pub const EACH: &[&str] = &[
      podssh ssh): the words after HOSTS fill {{1}} to {{9}}, and {{host}}, {{user}} and {{port}} are those of each \
      host. podssh shows each host and its command once, before anything connects and before a file of --output-dir \
      is made. It asks once for all the hosts; --yes runs them with no question.",
+    "-o RemoteCommand=COMMAND gives the command in place of -- COMMAND, as OpenSSH reads it. A command after HOSTS \
+     wins over it, and RemoteCommand none is no command (exit 64).",
     "At the end a summary on stderr gives each host and its status; -q leaves it out. The exit status is \
      the largest of the hosts': 0 only when each host gave 0, and 255 when one could not connect or log \
      in. With --fail-fast no host starts after one failed, and the hosts that run end as they end.",

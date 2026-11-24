@@ -218,8 +218,10 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
         (None, None, None, None) => env.login_user(None)?,
     };
     tokens.remote_user = user.clone();
-    let remote_command =
-        settings.remote_command.as_deref().map(|c| tokens.text("RemoteCommand ", c, &[])).transpose()?;
+    // `none` is no command, as OpenSSH clears it, and holds as a first
+    // value: `-o RemoteCommand=none` goes past a file's command.
+    let remote_command = settings.remote_command.as_deref().filter(|c| !c.eq_ignore_ascii_case("none"));
+    let remote_command = remote_command.map(|c| tokens.text("RemoteCommand ", c, &[])).transpose()?;
     let expand = |setting: &str, p: &str| tokens.expand(setting, p);
     let login = super::login::login(&args.identity_files, &settings, &tokens, env)?;
 

@@ -192,3 +192,65 @@ fn a_name_of_many_hosts_is_not_listed() {
     h.file(".ssh/config", "Host a,b web{1..2} @group plain\n");
     assert_eq!(names(&SshArgs::default(), &h.env()).unwrap(), ["plain"]);
 }
+
+/// With no destination, the first word after the flags is the destination,
+/// as in OpenSSH, so the command of several hosts comes by `-o
+/// RemoteCommand=COMMAND` or `--snippet NAME` (T-864). One table of command
+/// lines, each parsed as the binary parses it: whether several numbers are
+/// taken, and the request of each host that `podssh each` then runs.
+#[test]
+fn a_command_with_no_destination_comes_by_remote_command_or_a_snippet() {
+    use podssh_cli::each::{run_each, EachArgs};
+    use podssh_cli::ssh::picker::{given_command, to_each};
+    use podssh_ssh::Request;
+    let h = Home::new("form");
+    let cfg = h.file("cfg", "Host one\nHost two\n    RemoteCommand hostname\n");
+    // (the words after -F cfg, several hosts taken, the request of host two)
+    #[rustfmt::skip]
+    let table: [(&[&str], bool, Option<Request>); 5] = [
+        (&["-o", "RemoteCommand=uptime"], true, Some(Request::Exec("uptime".into()))),
+        (&["-o", "RemoteCommand uptime -a"], true, Some(Request::Exec("uptime -a".into()))),
+        // The settings file holds the snippet, which each reads; no request here.
+        (&["--snippet", "load"], true, None),
+        // none is no command, as OpenSSH clears it, and goes past the file's.
+        (&["-o", "RemoteCommand=none"], false, Some(Request::Shell)),
+        (&[], false, Some(Request::Exec("hostname".into()))),
+    ];
+    for (words, several, request) in table {
+        let mut argv = vec!["-F", cfg.as_str()];
+        argv.extend_from_slice(words);
+        let args = super::ssh(&argv);
+        assert_eq!(args.destination, None, "{words:?}");
+        assert_eq!(given_command(&args), several, "{words:?}");
+        let answers: &[&str] = if several { &["2 1"] } else { &["2 1", "2"] };
+        let mut keys = typed(answers);
+        let picked = pick(&args, BOTH, &h.env(), &mut keys).unwrap().expect("a pick");
+        let host_two = if several {
+            let each = to_each(&picked).unwrap_or_else(|| panic!("{words:?}: podssh each"));
+            assert_eq!(each.hosts.as_deref(), Some("two,one"), "{words:?}");
+            SshArgs { destination: Some("two".into()), ..each.ssh }
+        } else {
+            assert!(keys.prompts[1].contains("Several hosts take a command (-o RemoteCommand="), "{}", keys.prompts[1]);
+            assert_eq!(picked.destination.as_deref(), Some("two"), "{words:?}");
+            picked
+        };
+        if let Some(want) = request {
+            let resolved = resolve(&host_two, &h.env()).unwrap_or_else(|why| panic!("{words:?}: {why}"));
+            assert_eq!(resolved.options.request, want, "{words:?}");
+        }
+    }
+    // A word after the flags is the destination: no picker, as the pass saw.
+    let args = super::ssh(&["-F", cfg.as_str(), "echo", "hello"]);
+    assert_eq!((args.destination.as_deref(), args.command.clone()), (Some("echo"), vec!["hello".to_string()]));
+    assert!(!wanted(&args, BOTH));
+    // podssh each takes the same forms: with none of them it refuses (64)
+    // before anything connects.
+    for words in [&[][..], &["-o", "RemoteCommand=none"][..]] {
+        let mut argv = vec!["-F", cfg.as_str()];
+        argv.extend_from_slice(words);
+        let each = EachArgs { hosts: Some("one".into()), ssh: super::ssh(&argv), ..EachArgs::default() };
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        assert_eq!(run_each(&each, &mut out, &mut err), 64, "{words:?}: {}", String::from_utf8_lossy(&err));
+        assert!(String::from_utf8_lossy(&err).contains("give the command"), "{words:?}");
+    }
+}

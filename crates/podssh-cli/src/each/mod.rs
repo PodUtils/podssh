@@ -118,7 +118,9 @@ pub fn run_each(args: &EachArgs, out: &mut dyn Write, err: &mut dyn Write) -> i3
     let Some(word) = args.hosts.as_deref() else {
         return usage(err, "give the hosts and the command: podssh each HOSTS -- COMMAND".into());
     };
-    if args.ssh.command.is_empty() && args.ssh.snippet.is_none() {
+    // `-o RemoteCommand=COMMAND` is a command too, the one that the host
+    // picker's several hosts can carry (T-864).
+    if !crate::ssh::picker::given_command(&args.ssh) {
         return usage(err, "give the command to run on each host: podssh each HOSTS -- COMMAND".into());
     }
     let parallel = match parallel(args.parallel.as_deref()) {

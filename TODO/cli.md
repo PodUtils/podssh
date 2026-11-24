@@ -37,7 +37,7 @@ OpenSSH 10.3p1 (`ssh -G -F none`, offline) gives `hostname 2001:db8::1` for
 Read: `parse_hop` already removes the brackets
 (`crates/podssh-cli/src/ssh/hop.rs:30-75`). The refusal is `check_host`
 (`crates/podssh-ws/src/names.rs:8-32`, re-exported by `podssh_relay::relay`), called at
-`crates/podssh-cli/src/ssh/resolve.rs:302`, `crates/podssh-cli/src/proxy.rs:389`
+`crates/podssh-cli/src/ssh/resolve.rs:304`, `crates/podssh-cli/src/proxy.rs:389`
 and in `forward_path` (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:205-218`); since this
 entry, each calls `check_target` there. Tests assert the refusal:
 `PodUtils/podssh:crates/podssh-relay/src/relay.rs:351`, and `crates/podssh-cli/tests/proxy.rs`
@@ -62,7 +62,7 @@ GitHub #2, not verified here: the relay's `/trace` dials `[V6]:8079`.
    relay hosts, which are TLS names (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:190-203`,
    `PodUtils/podssh:crates/podssh-relay/src/pool.rs:148`).
 3. `forward_path` writes the literal in the measured form. `podssh ssh` uses
-   the new check at `crates/podssh-cli/src/ssh/resolve.rs:302`, and refuses
+   the new check at `crates/podssh-cli/src/ssh/resolve.rs:304`, and refuses
    `-4` with an IPv6 literal (64).
 4. `podssh proxy` (`crates/podssh-cli/src/proxy.rs:381-391`): `HOST PORT` takes
    a bare literal (the `%h %p` form) or `[V6]`. One word takes `[V6]:PORT` and
@@ -189,7 +189,7 @@ measured: the debug binary has no `ts`).
 1. In the `Parsed::Command` arm, refuse a verb of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs`, line 453 at `7aa955a`) before the gate. Keep one usage
    error first: a `--timeout` value that was given and does not parse is 64
-   (`docs/cli.md:6805-6806`).
+   (`docs/cli.md:6835-6836`).
 2. Give `require_timeout` the verb's name. The message names that verb, gives
    one true reason, and shows an example for that verb only. Replace
    `({attachment:?})` with words: "stdin or stdout is not a terminal", or
@@ -199,7 +199,7 @@ measured: the debug binary has no `ts`).
    (`crates/podssh-cli/src/dispatch.rs`, lines 424-477 at `7aa955a`,
    `crates/podssh-cli/tests/non_interactive.rs` lines 252-284 at `37ace00`). `ts` is the only verb
    that runs the gate today (`crates/podssh-cli/tests/ts_behave.rs:221-227`).
-5. Same commit: `docs/STATUS.md`. `docs/cli.md:6880` needs no change.
+5. Same commit: `docs/STATUS.md`. `docs/cli.md:6910` needs no change.
 
 ## Decision
 
@@ -606,7 +606,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    which `each_variable_in_the_source_is_documented` requires
    (`crates/podssh-cli/src/man/facts/tests.rs:68-81`); "default: env
    PODSSH_TIMEOUT" in the help of each `--timeout` row, as `--relay-host` says
-   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:6985-6987`;
+   it (`crates/podssh-cli/src/flags.rs:176-177`); `docs/cli.md:7015-7017`;
    `docs/STATUS.md`.
 5. Do this after T-008, so that a verb that does nothing still exits 70 first.
 
@@ -1037,7 +1037,7 @@ read in the report, not verified here.
 
 A host with no working `ssh-keygen` cannot change the passphrase or the
 comment of a key: the `ssh-keygen` of OpenSSH does not run without a user
-database entry (`docs/cli.md:3469-3470`). `podssh keygen -p` and `-c` exit 64
+database entry (`docs/cli.md:3499-3500`). `podssh keygen -p` and `-c` exit 64
 with "unknown flag", not a refusal by name. podssh's own message for a PEM key
 names `ssh-keygen -p -f FILE` as the remedy
 (`crates/podssh-ssh/src/keygen.rs`, lines 163-166 at `bdbe658`), a program that may not run there.
@@ -1069,13 +1069,13 @@ on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
 3. `-p`: ask for the new passphrase twice (or take `-N ''`), and encrypt with
    `keygen::protect`. `-c`: take `-C` or ask; refuse a control character, as
    `crates/podssh-cli/src/keygen.rs:289-292` does. Write the OpenSSH format.
-4. A new invariant beside "never over an existing file" (`docs/cli.md:3471`):
+4. A new invariant beside "never over an existing file" (`docs/cli.md:3501`):
    write a new file in the same directory (`create_new`, mode 0600), read it
    back, decrypt it with the new passphrase, compare its public key with the
    original, then rename it over the original. Never write a different key
    over the file. For `-c`, write `FILE.pub` again.
 5. Same commit: the PEM message at `crates/podssh-ssh/src/keygen.rs` (lines 184-187 at `8290fe1`)
-   names `podssh keygen -p`; `docs/cli.md:3464-3650`, the notes of `keygen`
+   names `podssh keygen -p`; `docs/cli.md:3494-3680`, the notes of `keygen`
    (`crates/podssh-cli/src/man/notes_keygen.rs:4-49`), `docs/STATUS.md`.
 
 ## Decision
@@ -1177,7 +1177,7 @@ Read: podssh matches hashed lines with HMAC-SHA1
 with their numbers (`scan`, `crates/podssh-ssh/src/known_hosts.rs:149-179`), and
 appends without a rewrite (`crates/podssh-ssh/src/known_hosts.rs`, lines 323-372 at `f6b7676`).
 The default files are the ones of `podssh ssh`
-(`crates/podssh-cli/src/man/data.rs:181`).
+(`crates/podssh-cli/src/man/data_files.rs:31`).
 
 ## Approach
 
@@ -1194,7 +1194,7 @@ The default files are the ones of `podssh ssh`
    it, and say so.
 4. `-H`: a random salt of 20 bytes and the HMAC-SHA1 of `hashed_matches`, so
    podssh and OpenSSH both find the result.
-5. Same commit: `docs/cli.md:3464-3650`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3494-3680`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfall: a rewrite can lose a key that `podssh ssh` appends at the same moment
 (T-029). Read the file again just before the rename, and refuse if it changed.
@@ -1316,7 +1316,7 @@ that crate as `russh::keys::ssh_key` (`crates/podssh-ssh/src/keygen.rs:11-13`).
    matcher of `known_hosts` (`crates/podssh-ssh/src/known_hosts.rs:311-333`).
    Print the lines and the exit codes of OpenSSH.
 4. Refuse `-r` (a key revocation list) by name until podssh reads one.
-5. Same commit: `docs/cli.md:3464-3650`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3494-3680`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: read the signed file as bytes, never as text. A namespace that does
 not match is a failure, never a warning.
@@ -1439,7 +1439,7 @@ as plain keys (`docs/STATUS.md`, section "Components"). T-027 covers that side.
    `force-command=`, `source-address=`, and the `no-` and `permit-` options;
    refuse the others by name.
 5. `-L`: print the certificate as `ssh-keygen -L` does.
-6. Same commit: `docs/cli.md:3464-3650`, the notes of `keygen`, `docs/STATUS.md`.
+6. Same commit: `docs/cli.md:3494-3680`, the notes of `keygen`, `docs/STATUS.md`.
 
 ## Decision
 
@@ -1567,7 +1567,7 @@ keys/format/mod.rs, read in the local cargo registry).
    public key in that format, and write the OpenSSH line to stdout.
 4. `-m` with a new key and with `-p` (T-018): write the private key in that
    format; use `encode_pkcs8_pem_encrypted` when there is a passphrase.
-5. Same commit: `docs/cli.md:3464-3650`, the notes of `keygen`, `docs/STATUS.md`.
+5. Same commit: `docs/cli.md:3494-3680`, the notes of `keygen`, `docs/STATUS.md`.
 
 Pitfalls: no new C dependency. A format that a key type does not have (PEM
 for Ed25519) is refused by name.
@@ -1764,7 +1764,7 @@ file); measured here on `3ee70dc`.
 A `PODSSH_RELAY` or `PODSSH_RELAY_ADDR` that cannot be used makes
 `podssh proxy`, `podssh ssh` and `podssh doctor` exit 64, the code of a usage
 error. The command line is correct; a setting of the environment is not.
-`docs/cli.md:6805-6806` and `docs/decisions.md` ("Exit codes") give 78
+`docs/cli.md:6835-6836` and `docs/decisions.md` ("Exit codes") give 78
 (`EX_CONFIG`) for a configuration error. A script that reads 64 looks for the
 fault in its arguments.
 
@@ -1879,7 +1879,7 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:368`,
 `crates/podssh-ssh/src/keys.rs:345` and `crates/podssh-cli/src/keygen.rs:382`.
-Its refusals name the real remedies (`docs/cli.md:6942-6944`). Commands use
+Its refusals name the real remedies (`docs/cli.md:6972-6974`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
 `parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:383-404`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
@@ -2487,7 +2487,7 @@ nothing.
   (`crates/podssh-cli/src/man/notes_pipe.rs:6`, where `pipe`'s notes moved from `notes.rs`).
 - Read: doctor's rule: a condition that podssh is built for, no listener among them, is a fact,
   reported `ok`, and `FAIL` is kept for what stops podssh or one of its fallbacks
-  (`crates/podssh-cli/src/doctor/mod.rs:6-9`); `docs/cli.md:2884-2914` says the same.
+  (`crates/podssh-cli/src/doctor/mod.rs:6-9`); `docs/cli.md:2914-2944` says the same.
 
 ## Approach
 
@@ -2512,7 +2512,7 @@ A refused bind stays `ok`, with the features named. `FAIL` lost: the hosts that 
 for refuse the bind (sandbox A for AF_INET, `docs/STATUS.md:536`; the measured cage by the
 operator's report, `docs/target-environment.md:25`), and doctor exits 1 on a `FAIL`, so each run
 there would fail where each road works (`crates/podssh-cli/src/doctor/mod.rs:6-9`). A fourth
-status lost: the report and its JSON have three (`docs/cli.md:3062-3065`). The issue's grade by a
+status lost: the report and its JSON have three (`docs/cli.md:3092-3095`). The issue's grade by a
 run for a listener feature lost: doctor is given no feature to check, and each feature refuses on
 its own, with the system's words.
 
@@ -3593,11 +3593,11 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   it. Inferred: a line shaped as OpenSSH's would make OpenSSH's server apply the quirks of its own
   client's versions to podssh, so the line stays podssh's. Against the report: the README says
   that podssh has "the options of OpenSSH" (`README.md:152`), not that it is OpenSSH.
-- Read (L-14): the side file of a broken copy is in FILES (`crates/podssh-cli/src/man/data.rs:229-230`)
+- Read (L-14): the side file of a broken copy is in FILES (`crates/podssh-cli/src/man/data_files.rs:81-82`)
   and in the notes (`crates/podssh-cli/src/man/notes.rs:170`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:91-93`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:89-91`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:400-401`).
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:241`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:109-124`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:107-122`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -3976,7 +3976,7 @@ system; the test's words are unchanged. `cargo test -p podssh-cli --test doctor_
 **Milestone:** M10
 **Priority:** P2
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3991,12 +3991,58 @@ The manual of `podssh ssh` says that with a command, several numbers of the pick
 1. Read how T-832's picker gets its command, and choose one form that gives a command with no destination (e.g. `--` with nothing before it, or `-o RemoteCommand=`), or change the manual to what exists. Write the call in a `## Decision`.
 2. A CLI test of the form, and the manual and `docs/cli.md` held to it.
 
+## Decision
+
+The form is `-o RemoteCommand=COMMAND` (and `--snippet NAME`, which already
+worked): `podssh ssh -o RemoteCommand=uptime`, then `1 3`. It is OpenSSH's
+own way to give a command with no word after the destination, it needs no
+new flag, and `podssh each` takes it in place of `-- COMMAND` as well
+(`picker::given_command`, shared by both). `RemoteCommand none` is no
+command, for the picker and for a run. Alternatives that lost:
+
+- `--` with nothing before it (`podssh ssh -- uptime`): OpenSSH reads `ssh --
+  host cmd` with the destination after `--`; a different meaning here would
+  break that form, and clap's matches cannot tell it apart.
+- An empty destination (`podssh ssh '' uptime`): an unset variable in a typed
+  line would open the picker and could fan the command out to several hosts;
+  a usage error is safer.
+- A flag of its own (`--command CMD`): a second spelling of what OpenSSH
+  already has, one more row of the flag tables and the manual.
+- The manual alone changed to `--snippet NAME`: a command of the moment would
+  need a settings file first.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test ssh_args
 ```
+
+## Correction
+
+Read in the code, 2026-11-24: the Premise holds. `crates/podssh-cli/src/positionals.rs`
+gives `ssh` a `destination` and then a trailing `remote-command`, so with no
+destination the first word after the flags is the destination, as OpenSSH
+parses it; `-- ''` is a destination of `""`. `picker::pick` took several
+hosts only with `args.command` or `--snippet`. So `--snippet NAME` was the one
+form that reached the path, and the manual did not name it. Found beside it:
+`RemoteCommand none` ran a command named `none`, where OpenSSH clears it
+(`readconf.c`, `fill_default_options`, `CLEAR_ON_NONE`); repaired here, as
+the form needs `none` to mean no command.
+
+## Done
+
+Draft, 2026-11-23: `picker::given_command` (the words after the destination,
+`--snippet`, or `-o RemoteCommand=COMMAND` that is not `none`) decides
+whether several numbers are taken, and `each::run_each` takes the same
+forms; the picker's line for several numbers names the form. `resolve`
+clears `RemoteCommand none`, as OpenSSH does. The manual (`notes_ssh.rs`,
+the picker's note; `notes_each.rs`, a note of `-o RemoteCommand`) and
+`docs/cli.md` ("The host picker") say what works. Test: `ssh_args`'s
+`ssh_picker::a_command_with_no_destination_comes_by_remote_command_or_a_snippet`,
+one table of five command lines parsed as the binary parses them, the
+first word as the destination, and `each`'s 64 with no form. Result:
+passed (merged and run here 2026-11-24: --test ssh_list_hosts, ssh_args, each; --lib 1257). `llms-full.txt` written again from the binary: done at the merge.
 
 
 # T-865: `podssh ping` to a destination that refuses its connection exits 69 with a dangling line, where the table says 255
@@ -4067,7 +4113,7 @@ cargo test -p podssh-cli --test ssh_result --test persist_forwards
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4083,12 +4129,66 @@ The manual says a file that cannot be read, or that others may change, exits 78.
 2. Which faults stop the list (78) and which are an alias's `error`, in one table of the manual and the test.
 3. T-832's tests extended.
 
+## Decision
+
+- **`-F` is not checked, and the manual says so.** Alternatives that lost:
+  check `-F` in `--list-hosts` alone (the list and a run would read the files
+  differently, against T-832's rule that they cannot differ); check `-F` in
+  `podssh ssh` too (a refusal that OpenSSH never gives, of a file the user
+  named on purpose, and a change of behaviour for each verb that reads
+  ssh_config, beyond this entry's scope).
+- **The line between "stops" and "error": whether each alias meets the
+  fault.** The names are read first, with each line that holds for any host
+  applied and each `Include` of any host read and checked: a fault there
+  stops the list (78). Then a host of no alias, `podssh-list-hosts.invalid`
+  (`.invalid` is reserved, RFC 2606), is resolved: a 78 there is a fault of
+  the environment (`PODSSH_RELAY`) or of a block for every host, and stops the
+  list. Each alias's own refusal, 64 or 78, is then its `error`. Alternatives
+  that lost: stop on any 78 (as before: one bad block hides each good alias);
+  never stop (a bad variable would give a list of N identical errors and exit
+  0, which a script reads as success); classify by the words of a message
+  (brittle, and wrong the day a message changes).
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test ssh_list_hosts
 ```
+
+## Correction
+
+Read in the code, 2026-11-24. The pass saw true things, with a different
+cause for the first:
+
+- `podssh ssh` itself does not check the file of `-F` (or of
+  `PODSSH_SSH_CONFIG`): `crates/podssh-cli/src/ssh/config.rs`, `Reader::file`,
+  checks `Kind::User` (`~/.ssh/config`) and `Kind::Included` only, and says
+  why in `files_of`: OpenSSH 10.3p1 reads `-F` with `SSHCONF_USERCONF` and no
+  `SSHCONF_CHECKPERM` (`ssh.c`, `process_config_files`), and checks each
+  `Include` (`readconf.c`, `oInclude`). `--list-hosts` reads through the same
+  reader, so it was right; the manual (`notes_ssh_more.rs`) was wrong to say
+  "a file ... that others may change exits 78" of each file.
+- The stop at a bad line: `list_hosts::record` turned each 78 of an alias's
+  resolve into the run's refusal, so a bad value in one alias's block stopped
+  the list, where a usage fault (64) of a block was that alias's `error`.
+- `HostName 300.1.1.1`: no name is resolved by a list (nothing connects, and
+  this host often cannot resolve at all); OpenSSH takes it too. No defect: the
+  manual now says it.
+
+## Done
+
+Draft, 2026-11-23: `list_hosts::records` resolves a host of no alias before
+the aliases and stops on its 78; `list_hosts::record` keeps each refusal,
+64 or 78, as the alias's `error` (it no longer returns a `Result`; the
+picker's `detail` follows). The manual's note under `--list-hosts` is split:
+a second note lists which faults stop (78) and which are an alias's `error`,
+says that no name is resolved, and that `-F` is not checked as in OpenSSH;
+`~/.ssh/config` in FILES (`man/data.rs`) says the same of `-F`. `docs/cli.md`
+holds the same table. Test: `ssh_list_hosts`'s
+`a_fault_that_each_alias_meets_stops_the_list_and_a_block_s_fault_is_its_error`,
+one table of 10 rows (3 Unix-only, for modes). Result: passed (merged and run here 2026-11-24: --test ssh_list_hosts, ssh_args, each; --lib 1257).
+`llms-full.txt` written again from the binary: done at the merge.
 
 
 # T-868: Words of the black-box pass: lines that are not true or not clear, and gaps in the manual

@@ -5,6 +5,10 @@
 //! a run cannot differ. The aliases are the picker's (T-188): no pattern, no
 //! negated name, and each `Include` read as the picker reads it. The picker
 //! shows the same records beside its names.
+//!
+//! A fault that each alias meets stops the list (78): a file of the list, a
+//! line that holds for any host, the environment. A fault that only some
+//! aliases meet, in their own blocks, is their record's `error` (T-867).
 
 use std::io::Write;
 
@@ -41,10 +45,15 @@ pub struct Fields {
     pub proxy_jump: Option<String>,
 }
 
+/// The host of no alias, which [`records`] resolves first: a fault that it
+/// meets is met by each alias too, as it comes from no alias's own block.
+/// `.invalid` is reserved (RFC 2606), so no real host is named.
+const NO_ALIAS: &str = "podssh-list-hosts.invalid";
+
 /// The record of `alias`, resolved with the rest of `args` as `podssh ssh
-/// ALIAS` resolves it. A fault of a file or of a variable (78) is the run's,
-/// not the record's: a list with a file that cannot be read is no list.
-pub fn record(args: &SshArgs, env: &Env, alias: &str) -> Result<Record, Refusal> {
+/// ALIAS` resolves it. Each refusal is the record's `error`, 64 and 78
+/// alike: [`records`] has already stopped on the faults of each alias.
+pub fn record(args: &SshArgs, env: &Env, alias: &str) -> Record {
     let one = SshArgs { destination: Some(alias.to_string()), list_hosts: false, ..args.clone() };
     match super::resolve::resolve_or_refuse(&one, env) {
         Ok(resolved) => {
@@ -56,18 +65,30 @@ pub fn record(args: &SshArgs, env: &Env, alias: &str) -> Result<Record, Refusal>
                 identity_files: options.identity_files.iter().map(|p| p.display().to_string()).collect(),
                 proxy_jump: resolved.shown.proxy_jump.clone(),
             };
-            Ok(Record { alias: alias.to_string(), resolved: Ok(fields) })
+            Record { alias: alias.to_string(), resolved: Ok(fields) }
         }
-        Err(refusal) if refusal.code == EX_CONFIG => Err(Refusal::config(format!("{alias}: {}", refusal.message))),
-        Err(refusal) => Ok(Record { alias: alias.to_string(), resolved: Err(refusal.message) }),
+        Err(refusal) => Record { alias: alias.to_string(), resolved: Err(refusal.message) },
     }
 }
 
 /// The record of each alias of the files of `args` and `env`, in the order
-/// of the files. A file that cannot be read is a refusal of 78.
+/// of the files. A refusal of 78 is a fault that each alias meets: a file
+/// that the list reads cannot be read or others may change it, a line
+/// that holds for any host is bad (both found while the names are read),
+/// or the environment is bad (found by a host of no alias).
 pub fn records(args: &SshArgs, env: &Env) -> Result<Vec<Record>, Refusal> {
     let names = super::picker::names(args, env).map_err(Refusal::config)?;
-    names.iter().map(|alias| record(args, env, alias)).collect()
+    if names.is_empty() {
+        return Ok(Vec::new());
+    }
+    let none = SshArgs { destination: Some(NO_ALIAS.to_string()), list_hosts: false, ..args.clone() };
+    if let Err(refusal) = super::resolve::resolve_or_refuse(&none, env) {
+        // A usage fault of the host of no alias is no fault of an alias.
+        if refusal.code == EX_CONFIG {
+            return Err(refusal);
+        }
+    }
+    Ok(names.iter().map(|alias| record(args, env, alias)).collect())
 }
 
 /// The JSON of `records`: an array, each object with the same keys, `null`
@@ -112,8 +133,8 @@ pub fn detail(f: &Fields) -> String {
 }
 
 /// Run `--list-hosts`: the array on `out`, exit 0; 64 with a destination
-/// or a command, which the list never uses; 78 for a file that cannot be
-/// read; 255 when `out` takes nothing.
+/// or a command, which the list never uses; 78 for a fault that each alias
+/// meets ([`records`]); 255 when `out` takes nothing.
 pub fn run(args: &SshArgs, env: &Env, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     if args.destination.is_some() || !args.command.is_empty() {
         let why = "--list-hosts lists the Host aliases of ssh_config, and takes no destination and no command";

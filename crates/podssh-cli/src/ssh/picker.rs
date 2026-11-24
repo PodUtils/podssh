@@ -7,7 +7,9 @@
 //! be hashed. Beside each name it shows what a connection to it resolves
 //! (T-832, [`super::list_hosts`]): the user, the host, a port that is not 22
 //! and the jump; a text narrows on all of them. Several numbers with a
-//! command hand the names to `podssh each`, which runs it on each.
+//! command hand the names to `podssh each`, which runs it on each. With no
+//! destination, a word after the flags is the destination, so the command
+//! comes by `-o RemoteCommand=COMMAND` or `--snippet NAME` (T-864).
 
 use podssh_ssh::Hop;
 
@@ -83,17 +85,37 @@ pub fn pick(args: &SshArgs, tty: Tty, env: &Env, keys: &mut dyn Keys) -> Result<
     let entries: Vec<Entry> = names.iter().map(entry).collect();
     // Several hosts take a command, which `podssh each` runs on each; a
     // shell needs this terminal alone.
-    let several = !args.command.is_empty() || args.snippet.is_some();
+    let several = given_command(args);
     let picked = choose_among(&entries, several, keys)?;
     Ok(Some(SshArgs { destination: Some(picked.join(",")), ..args.clone() }))
+}
+
+/// Whether the command line gives a command that `podssh each` can run on
+/// several hosts: the words after the destination, `--snippet NAME`, or
+/// `-o RemoteCommand=COMMAND`. With no destination, only the last two can
+/// be given: the first word after the flags is the destination, as in
+/// OpenSSH. `RemoteCommand none` is no command, as OpenSSH reads it.
+pub fn given_command(args: &SshArgs) -> bool {
+    !args.command.is_empty() || args.snippet.is_some() || remote_command(args).is_some()
+}
+
+/// The `RemoteCommand` of `-o` and of its long form, the first one given,
+/// when it is a command. A bad `-o` is skipped here: the run refuses it
+/// where it resolves, with its words.
+fn remote_command(args: &SshArgs) -> Option<String> {
+    let mut settings = Settings::default();
+    for raw in args.options.iter().chain(&args.long_options) {
+        let _ = settings.apply(raw);
+    }
+    settings.remote_command.filter(|c| !c.trim().is_empty() && !c.eq_ignore_ascii_case("none"))
 }
 
 /// What the list shows beside `name`: its record's user, host, port and
 /// jump, resolved as a run resolves them; nothing when it resolves none, as
 /// the run then says why.
 fn detail(args: &SshArgs, env: &Env, name: &str) -> String {
-    let record = super::list_hosts::record(args, env, name).ok();
-    record.and_then(|r| r.resolved.ok()).map(|f| super::list_hosts::detail(&f)).unwrap_or_default()
+    let record = super::list_hosts::record(args, env, name);
+    record.resolved.map(|f| super::list_hosts::detail(&f)).unwrap_or_default()
 }
 
 /// The run of `podssh each` for the names that the picker gave, when it
@@ -155,7 +177,8 @@ pub fn choose_among(entries: &[Entry], several: bool, keys: &mut dyn Keys) -> Re
             note = match outside {
                 Some(word) => format!("{word} is not a number of the list.\n"),
                 None if picked.len() > 1 && !several => {
-                    "Several hosts take a command, which podssh each runs on each; pick one host for a shell.\n"
+                    "Several hosts take a command (-o RemoteCommand=COMMAND), which podssh each runs on each; \
+                     pick one host for a shell.\n"
                         .to_string()
                 }
                 None => return Ok(picked),

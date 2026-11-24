@@ -1221,11 +1221,13 @@ podssh ssh
   those of -F, or of ~/.ssh/config and the system's file, with their Include
   lines. podssh logs in to the one picked, as if it were typed. A number picks;
   other text narrows the list to the names whose line holds it; an empty line
-  or the end of input picks none (exit 64). With a command, several numbers (1
-  3, or 1,3) run it on each host picked, as podssh each runs it. A pattern, a
-  negated name, a name of many hosts (a comma, a brace, a leading @) and a name
-  of known_hosts are never listed. In each other case, and with no name to
-  list, a missing destination is a usage error (exit 64).
+  or the end of input picks none (exit 64). The first word after the flags is
+  the destination, as in OpenSSH. So the command of several hosts comes by -o
+  RemoteCommand=COMMAND or --snippet NAME. Then several numbers (1 3, or 1,3)
+  run it on each host picked, as podssh each runs it; with neither, one host is
+  picked. A pattern, a negated name, a name of many hosts (a comma, a brace, a
+  leading @) and a name of known_hosts are never listed. In each other case,
+  and with no name to list, a missing destination is a usage error (exit 64).
 
   --record FILE keeps what the session showed, with its timing, as asciicast
   v2, for podssh play: never what was typed, and never the command line. The
@@ -1651,8 +1653,19 @@ podssh ssh
   resolves, with the other flags of the command line, through the same code; an
   alias that resolves nothing has its reason in error and null in the other
   keys, and the list goes on (exit 0). It holds no key and no passphrase. A
-  file that cannot be read, or that others may change, exits 78 with nothing on
-  stdout; a destination or a command exits 64.
+  destination or a command exits 64.
+
+  --list-hosts stops at a fault that each alias meets: exit 78, with nothing on
+  stdout. It stops for a file of the list that cannot be read, and for an
+  Include of any host that others may change. It stops for a bad line outside
+  each block or under Host *, and for a bad variable, as PODSSH_RELAY. A fault
+  in one alias's own block is that alias's error, and the list goes on (exit
+  0). Such faults are a bad value (Port 99999, HostName with no value), an
+  Include of that block that others may change, and a usage fault. No name is
+  resolved: HostName 300.1.1.1 is listed as written, and fails when podssh ssh
+  connects. The file of -F or PODSSH_SSH_CONFIG is your choice: its owner and
+  mode are not checked, as OpenSSH does not check them. Each file that it
+  includes is checked.
 
   POLICY: with --policy FILE, podssh ssh judges the destination's algorithms by
   an algorithm policy. The verdict falls at the server's host key, before
@@ -2565,6 +2578,10 @@ podssh each
   podssh shows each host and its command once, before anything connects and
   before a file of --output-dir is made. It asks once for all the hosts; --yes
   runs them with no question.
+
+  -o RemoteCommand=COMMAND gives the command in place of -- COMMAND, as OpenSSH
+  reads it. A command after HOSTS wins over it, and RemoteCommand none is no
+  command (exit 64).
 
   At the end a summary on stderr gives each host and its status; -q leaves it
   out. The exit status is the largest of the hosts': 0 only when each host gave
@@ -12612,17 +12629,19 @@ FILES
       error. A file that another user than you or root owns (on Windows, than
       you, SYSTEM or the Administrators) is refused. So is a file that others
       can change (on Windows, as its access list says), and so is each file
-      that an Include reads. Match is read as OpenSSH 10.3p1 reads it, but for
-      Match exec and Match localnetwork. These are refused by name, with the
-      file and the line, where they would decide, and run nothing. Each hop of
-      -J reads the blocks of its own name, as OpenSSH's jump host does; it logs
-      in as its user@, its User, else the local user. The first ProxyCommand
-      holds, as in OpenSSH: none, or podssh proxy %h %p, on the command line or
-      in an earlier block, goes past a later block's command. So -o
-      ProxyCommand=none goes past a Host * that names a jump host for OpenSSH,
-      and keeps the file's other settings. A later ProxyJump is not read, as
-      OpenSSH does not read it then; a command with no value before it is
-      refused with its file and line (exit 78).
+      that an Include reads. The file that -F or PODSSH_SSH_CONFIG names is
+      your choice, and is not checked, as OpenSSH does not check it. Match is
+      read as OpenSSH 10.3p1 reads it, but for Match exec and Match
+      localnetwork. These are refused by name, with the file and the line,
+      where they would decide, and run nothing. Each hop of -J reads the blocks
+      of its own name, as OpenSSH's jump host does; it logs in as its user@,
+      its User, else the local user. The first ProxyCommand holds, as in
+      OpenSSH: none, or podssh proxy %h %p, on the command line or in an
+      earlier block, goes past a later block's command. So -o ProxyCommand=none
+      goes past a Host * that names a jump host for OpenSSH, and keeps the
+      file's other settings. A later ProxyJump is not read, as OpenSSH does not
+      read it then; a command with no value before it is refused with its file
+      and line (exit 78).
   /etc/ssh/ssh_config
       The system's ssh_config, read after the user's, and not when -F or
       PODSSH_SSH_CONFIG names a file. A relative Include in it starts from its

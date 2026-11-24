@@ -1,7 +1,7 @@
 This file holds the work on configuration files: OpenSSH's `ssh_config` (`-F`, `Host`,
 `Include`, `Match` and `-G`), host lists from other clients, and a settings file for podssh's
 own options. The rules of OpenSSH that podssh follows were measured with `ssh -G` and are in
-`docs/cli.md:7027-7139`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
+`docs/cli.md:7057-7169`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
 
 # T-043: Read `ssh_config`: `~/.ssh/config`, `-F FILE`, `Host` patterns, and `Match` refused by name (GitHub #14, #22)
 
@@ -206,7 +206,7 @@ No glob code exists in podssh. `known_hosts::wildcard`
    stands, and `Match final all` applies after the last line and fills only unset values, as
    measured. Each other `Match` stays refused by name until T-045.
 6. Check each included file as T-043 checks the user file: its owner and its mode.
-7. Change `docs/cli.md:7027-7148`, FILES (`crates/podssh-cli/src/man/data.rs:163-500`) and the
+7. Change `docs/cli.md:7057-7178`, FILES (`crates/podssh-cli/src/man/data_files.rs:13-352`) and the
    `ssh` notes in the same commit.
 
 ## Prove
@@ -447,7 +447,7 @@ refused. ... podssh reads no ssh_config, so it has no configuration to print."
 lines of `keyword value`, the keyword in lower case: `port 2222`, `user alice`,
 `pubkeyauthentication true`, `batchmode no`, `connecttimeout none`, `serveraliveinterval 30`,
 `identityfile ~/.ssh/id_rsa` (with `~`), and others. Read: `resolve::resolve`
-(`crates/podssh-cli/src/ssh/resolve.rs:67-444`) decides each setting before any connection; its
+(`crates/podssh-cli/src/ssh/resolve.rs:67-446`) decides each setting before any connection; its
 result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the defaults included.
 
 ## Approach
@@ -946,7 +946,7 @@ try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:353-361`
 - `scripts/interop.sh:327-337`: `ssh.config.jump_alias`, `-F FILE -J openssh-alias dropbear-alias`
   with podssh and with OpenSSH's `ssh`, each to exit 6 (the floor of ssh is 72). The gate runs it
   at this push.
-- `docs/cli.md:163-169` and `docs/cli.md:7072-7084`, and the manual's file `~/.ssh/config`, say what
+- `docs/cli.md:163-169` and `docs/cli.md:7102-7114`, and the manual's file `~/.ssh/config`, say what
   a hop takes.
 - `cargo test -p podssh-ssh`: 142 passed; `cargo test -p podssh-cli`: 565 passed, 0 failed,
   31 ignored; clippy; rustfmt.
@@ -1470,7 +1470,7 @@ other block of the file too.
 - Read (L-07): T-043 decided to accept `ProxyCommand podssh proxy %h %p` with no effect, and to
   run no `ProxyCommand` (rule 3 of `AGENTS.md`), as `podssh ssh` is the program that it names; so
   `/nonexistent/podssh proxy %h %p`, accepted and never run, is that decision. Its note says "-o
-  ProxyCommand has no effect in podssh", at `-v` alone (`crates/podssh-cli/src/ssh/resolve.rs:337`).
+  ProxyCommand has no effect in podssh", at `-v` alone (`crates/podssh-cli/src/ssh/resolve.rs:339`).
 - Read: 78 is the exit of a configuration error (`docs/decisions.md`, 2026-10-05); the report asks
   for 255, or 64.
 
@@ -1596,7 +1596,7 @@ user asked for is gone with no sign, and an audit finds it.
   (`crates/podssh-cli/src/ssh/keywords.rs:119-132`), and the manual says "Accepted and ignored,
   because they change nothing that podssh does" (`crates/podssh-cli/src/man/model.rs:126-132`).
 - Read: each one is a note (`crates/podssh-cli/src/ssh/options.rs:272`), "-o NAME has no effect in
-  podssh" (`crates/podssh-cli/src/ssh/resolve.rs:337`), said at `-v` alone
+  podssh" (`crates/podssh-cli/src/ssh/resolve.rs:339`), said at `-v` alone
   (`crates/podssh-cli/src/ssh/mod.rs:299-301`): "-o" also for the line of a file, with no file and
   no line.
 - Read, against L-39: the two notes of each run come from Debian 13's `/etc/ssh/ssh_config`, whose

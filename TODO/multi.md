@@ -57,7 +57,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 4. No prompts: BatchMode is on (`crates/podssh-cli/src/ssh/login.rs:86`).
    An unknown host key refuses that host and gives its fingerprint and
    `-o StrictHostKeyChecking=accept-new`. stdin is not read
-   (`crates/podssh-cli/src/ssh/resolve.rs:381`).
+   (`crates/podssh-cli/src/ssh/resolve.rs:383`).
 5. Get the token once, before the fan-out. Serialize `known_hosts::append`
    in the process with a mutex; T-029 covers two processes.
 6. The exit status: the largest status of the hosts, and 255 for a host that
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:6811-6814`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6841-6844`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7027-7136`); they cannot define a group.
+  (`docs/cli.md:7057-7166`); they cannot define a group.
 
 ## Approach
 
@@ -1177,7 +1177,7 @@ name is copied by hand.
 ## Premise
 
 - Read: `podssh ssh -t HOST -- docker exec -it NAME sh` works today, as a
-  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:227-235`,
+  remote command with a pty (`crates/podssh-cli/src/ssh/resolve.rs:229-237`,
   `crates/podssh-cli/src/ssh/hop.rs:103-114`). Only the list is missing.
 - Read: podssh starts a program only when the user names it or a probe
   finds it (`AGENTS.md:427-433`). Here the programs run on the server, for a
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:631`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:6811-6814`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6841-6844`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:404-448`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:6811-6814`), which is not a failure of podssh.
+  status (`docs/cli.md:6841-6844`), which is not a failure of podssh.
 
 ## Approach
 
@@ -2017,7 +2017,7 @@ queue, no wait for a result, and no way to get the output back.
    gives one object.
 4. `job wait HOST ID [--timeout D]` reads `state` every 5 s until it is
    `done`, and exits with the job's status. When the limit passes first, it
-   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:19-154`.
+   exits 75; add the code to `crates/podssh-cli/src/man/data.rs:17-152`.
 5. `job fetch HOST ID [DIR]` copies `out`, and the files that `--files GLOB`
    names, with the engine of T-134; DIR is `./podssh-job-ID` by default.
 6. With a list of hosts (T-184), `submit` picks the host with the fewest
@@ -2086,7 +2086,7 @@ one running and two queued must fail.
 ## Correction
 
 2026-10-09 (T-134): 75 (`EX_TEMPFAIL`) is in the table of exit codes
-already (`crates/podssh-cli/src/man/data.rs:19-154`), for a `--timeout` of
+already (`crates/podssh-cli/src/man/data.rs:17-152`), for a `--timeout` of
 `cp` that passed; this entry adds its sentence for `job wait`.
 
 2026-10-13 (the draft of T-197): T-193 runs a job under tmux only; the
@@ -3032,7 +3032,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
 
 - Read: the rows of `each` have no `--json` and no `--result-file`
   (`crates/podssh-cli/src/flags/each.rs`); its summary is lines for people on stderr, above the
-  level quiet only (`crates/podssh-cli/src/each/mod.rs:184-188`,
+  level quiet only (`crates/podssh-cli/src/each/mod.rs:186-190`,
   `crates/podssh-cli/src/each/fan.rs:75-93`).
 - Read: a host ends with its status, the first line of its failure, or not started
   (`crates/podssh-cli/src/each/fan.rs:10-20`); its signal, its end, the class of its failure, its
@@ -3350,7 +3350,7 @@ host runs nothing anywhere.
 - Read: `podssh ssh` takes a word that is no pattern as one host
   (`crates/podssh-cli/src/hosts.rs:29-33`), so `a b` goes to the name check of the road (T-503).
 - Read: the hosts are expanded, then each is resolved, before anything connects
-  (`crates/podssh-cli/src/each/mod.rs:141-151`); the resolve of the direct road takes `a`, and the
+  (`crates/podssh-cli/src/each/mod.rs:143-153`); the resolve of the direct road takes `a`, and the
   relay road takes it too, so the blank is the only fault, and it is lost.
 
 ## Approach
@@ -3763,9 +3763,9 @@ tssh resolves each alias once and gives two views of the result: a JSON list and
 
 ## Premise
 
-- Read: the picker takes its names from `config::host_names` (`crates/podssh-cli/src/ssh/picker.rs:61`,
+- Read: the picker takes its names from `config::host_names` (`crates/podssh-cli/src/ssh/picker.rs:63`,
   `crates/podssh-cli/src/ssh/config.rs:128`): names only, no resolved field, and only when `podssh ssh`
-  has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:44`).
+  has no destination on a terminal (`crates/podssh-cli/src/ssh/picker.rs:46`).
 - Read in the donor report: tssh builds one record for each alias with its host, port, user, identity,
   proxy and labels; wildcard patterns stay out of the list; `--list-hosts` prints the same list as JSON
   (trzsz/trzsz-ssh:tssh/config.go:692, tssh/config.go:735, tssh/tools_list_hosts.go:34).

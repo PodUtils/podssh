@@ -2053,12 +2053,22 @@ literal `Host` names of `ssh_config` (T-188,
   set aside. An empty line, the end of input and a terminal that fails pick
   none (64). A number outside the list and a text that no name holds are
   said, and the question comes again, 20 times at most.
-- With a command (or `--snippet`), several numbers (`1 3` or `1,3`) pick
-  each of those hosts, once each, in the order typed, and the run is
-  `podssh each` over them with the same command and flags
-  (`picker::to_each`): the fan-out of `each`, not a loop of dials in the
-  picker. With no command, several numbers are said ("a shell takes one
-  host"), and the question comes again.
+- With a command, several numbers (`1 3` or `1,3`) pick each of those
+  hosts, once each, in the order typed, and the run is `podssh each` over
+  them with the same command and flags (`picker::to_each`): the fan-out of
+  `each`, not a loop of dials in the picker. With no command, several
+  numbers are said ("Several hosts take a command"), and the question
+  comes again.
+- With no destination, the first word after the flags is the destination,
+  as OpenSSH parses it: `podssh ssh -F cfg echo hello` logs in to `echo`,
+  and the picker is not shown. So the command of several hosts comes by
+  `-o RemoteCommand=COMMAND` (or `--snippet NAME`), which needs no
+  destination (`picker::given_command`, T-864):
+  `podssh ssh -o RemoteCommand=uptime`, then `1 3`. `podssh each` takes
+  `-o RemoteCommand=COMMAND` in place of `-- COMMAND` too. `RemoteCommand
+  none` is no command, as OpenSSH clears it, for `podssh ssh` as for the
+  picker. T-864's Decision names the forms that lost (`--` with nothing
+  before it, an empty destination `''`, a flag of its own).
 - The name picked takes the path of a typed destination: its `Host`
   blocks, the relay or `--direct`, and the rest of the command line.
 - With no name to list, or with stdin or stdout not a terminal, nothing is
@@ -2089,9 +2099,29 @@ differ:
   refuse it) keeps its place, with its reason in `error` and `null` in the
   other keys; the list still exits 0. Each object has the same keys.
 - No key, no passphrase and no password is in it: names, a port and paths.
-- A file that cannot be read, a missing `-F` file, a directory, or a file
-  that others may change exits 78 with nothing on stdout. A destination or
-  a command with `--list-hosts` exits 64.
+- A fault that each alias meets stops the list: exit 78, nothing on
+  stdout. A fault of one alias's own block is that alias's `error`, and
+  the list goes on (T-867). The same table is in the manual and in
+  `crates/podssh-cli/tests/ssh_list_hosts.rs`:
+
+  | Fault | Ends |
+  | --- | --- |
+  | A file of the list that cannot be read: a missing `-F` file, a directory, more than 4 MiB | 78 |
+  | An `Include` read for any host (outside each block, or under `Host *`) of a file that others may change | 78 |
+  | A bad line outside each block, or under `Host *` (`Port 99999`) | 78 |
+  | A bad variable (`PODSSH_RELAY=bad host!`), found by a host of no alias (`podssh-list-hosts.invalid`) | 78 |
+  | A bad line in one alias's block (`Port 99999`, `HostName` with no value) | that alias's `error` |
+  | An `Include` of one alias's block of a file that others may change | that alias's `error` |
+  | A usage fault of one alias (a name that starts with `-`) | that alias's `error` |
+  | `HostName 300.1.1.1`: no name is resolved, nothing connects | listed as written |
+  | The file of `-F` (or `PODSSH_SSH_CONFIG`) with mode 0666 | listed: not checked, as in OpenSSH |
+
+- The file of `-F` and of `PODSSH_SSH_CONFIG` is not checked for its owner
+  and mode, by `--list-hosts` as by `podssh ssh` itself: OpenSSH 10.3p1
+  checks `~/.ssh/config` and each file that an `Include` reads, and not the
+  file that `-F` names (`ssh.c`, `process_config_files`). The list and a
+  run read the files alike (T-867's Decision).
+- A destination or a command with `--list-hosts` exits 64.
 - A destination that is no alias and does not resolve does not open the
   picker (T-832's Decision): a destination given is an explicit ask, and
   this host often cannot resolve names at all (the relay dials them).
