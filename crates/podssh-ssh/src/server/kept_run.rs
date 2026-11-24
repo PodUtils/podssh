@@ -18,8 +18,9 @@ use tokio::sync::watch;
 use tokio::task::JoinHandle;
 
 use super::channel::Open;
-use super::child::{pump, turned, Running};
-use super::kept::{watch_close, Attached, Keeper, Out, Shell, KILL_AFTER};
+use super::child::{pump_told, turned, Running};
+use super::kept::{reports_for, watch_close, Attached, Keeper, Out, Shell, KILL_AFTER};
+use super::predict::Teller;
 use super::pty;
 use super::pty_child::Master;
 use super::stop::{to_group, HANGUP};
@@ -47,17 +48,22 @@ pub(super) fn start(
         let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
     };
     let shell = Shell::new(keeper, id, Box::new(Master(master.clone())), Box::new(resize), group);
-    let held = shell.first(Attached::new(write, handle, channel, tally));
+    shell.reports_from(master.clone());
+    // Local echo's reports, where the first channel asked (T-896).
+    let (told, count) = reports_for(&shell, open.predict, &write);
+    let held = shell.first(Attached::new(write, handle, channel, tally).with_reports(told));
     if let Some(name) = keeper.keep.as_deref()
         && let Err(why) = keeper.shelf.put(&shell, name)
     {
         open.told = Some(format!("podssh serve: this shell is not kept: {why}\r\n"));
     }
-    open.give_stdin(shell.writer(held.generation));
+    open.give_stdin(shell.writer(held.generation, count));
     watch_close(&held, open.closed.clone());
     open.kept = Some(held);
     let (exited_tx, exited) = watch::channel(false);
-    let output = tokio::spawn(pump(tokio::io::AsyncReadExt::chain(motd, Master(master)), Out(shell.clone()), exited));
+    // The pump tells the reports of the channel that has the shell then.
+    let (from, teller) = (tokio::io::AsyncReadExt::chain(motd, Master(master)), Some(Teller::Kept(shell.clone())));
+    let output = tokio::spawn(pump_told(from, Out(shell.clone()), exited, teller));
     tokio::spawn(async move {
         finish(shell, child, output, exited_tx).await;
         // The files of the marks go when the shell does.

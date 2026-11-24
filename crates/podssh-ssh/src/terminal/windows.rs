@@ -34,6 +34,17 @@ pub fn is_console(stderr: bool) -> bool {
     std_handle(if stderr { STD_ERROR_HANDLE } else { STD_OUTPUT_HANDLE }).and_then(console_mode).is_some()
 }
 
+/// Whether stdout reads VT sequences now (T-896): a console in the mode
+/// that [`RawMode::enter`] asks for, read back, as an old console refuses
+/// it and keeps its own; a terminal that is not a console (mintty's pipe)
+/// reads them itself.
+pub fn vt_output() -> bool {
+    match std_handle(STD_OUTPUT_HANDLE).and_then(console_mode) {
+        Some(mode) => mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING != 0,
+        None => true,
+    }
+}
+
 pub fn size() -> Option<Size> {
     let h = std_handle(STD_OUTPUT_HANDLE)?;
     // SAFETY: an all-zero CONSOLE_SCREEN_BUFFER_INFO is valid; the call only

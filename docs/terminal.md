@@ -1033,9 +1033,22 @@ terminal always reads those bytes on the screen that the far end wrote.
   keys reached the pty, and whether the pty echoes, only the far end
   knows: `podssh ssh` asks with `env predict@podssh v1`, last before the
   shell or the command, and `podssh serve` takes it on a channel whose pty
-  it opened. A shell shared by name and a kept shell send no reports, and
-  their guesses never show. Another server refuses the request, and
-  nothing is guessed; `-v` says so.
+  it opened. A shell shared by name sends no reports, and its guesses
+  never show. Another server refuses the request, and nothing is guessed;
+  `-v` says so.
+- **A kept shell (T-896).** A kept shell outlives its channels, so its
+  reports cannot belong to its pump as a channel's own pty's do: each
+  channel that asked, the first and each that joins with `--attach`, has
+  its own reporter and its own count of its bytes that reached the pty,
+  from 0 at its attach, as the client counts them. The shell's pump tells
+  the reporter of the channel that has the shell then, after the output it
+  read, and wakes at each attach to wait on the new channel's count, so a
+  key with no echo is reported too (`crates/podssh-ssh/src/server/kept_flow.rs`).
+- **The Windows console (T-896).** The guesses are drawn with `CSI C`,
+  `CSI D`, `CSI X` and an underline, which a console reads only in its VT
+  mode. Raw mode asks for that mode; the client reads the console's mode
+  back, and where an old console refused it, no guess shows, and `-v` says
+  so (`terminal::vt_output`).
 - **The reports.** serve counts the client's bytes that reached the pty's
   master, and sends the count that is 50 ms old (the time a program takes
   to echo, mosh's figure) and the pty's ECHO and ICANON flags, as 10 bytes
@@ -1078,6 +1091,13 @@ terminal always reads those bytes on the screen that the far end wrote.
   that counts bytes never sent and a report of another version. A resize
   takes the guesses off and starts a new epoch. `--expect`, `--sudo`,
   `--su`, `podssh each` and a session through a control master never ask.
+- **From end to end (T-896).** `cargo test -p podssh-cli --test
+  predict_e2e` runs `podssh ssh -t --predict` in a pty, through the
+  stand-in relay's 150 ms each way, to `podssh serve --listen`: once the
+  first key of a line was echoed, each key after it shows, underlined,
+  sooner than any echo can come back, and no key of a password read with
+  no echo shows in any byte that podssh writes. Its control runs without
+  `--predict`, where the same keys show only after the round trip.
 
 ## Tests
 

@@ -277,7 +277,7 @@ pub(super) async fn pump_told(
     mut pipe: impl AsyncRead + Unpin,
     mut to: impl AsyncWrite + Unpin,
     mut exited: watch::Receiver<bool>,
-    mut reporter: Option<super::predict::Reporter>,
+    mut reporter: Option<super::predict::Teller>,
 ) {
     let mut buf = vec![0u8; CHUNK];
     let mut cut: Option<Instant> = None;
@@ -293,7 +293,7 @@ pub(super) async fn pump_told(
             None => {
                 // When local echo's next report falls due: a write that
                 // makes no output wakes it too.
-                let due = reporter.as_ref().map(super::predict::Reporter::falls_due);
+                let due = reporter.as_ref().map(super::predict::Teller::falls_due);
                 let reporting = due.is_some();
                 tokio::select! {
                     // In this order: the child's end arms the cut at once,
@@ -325,7 +325,7 @@ pub(super) async fn pump_told(
 
 /// A report of local echo where one is due; a channel that is gone ends
 /// the reports, not the output.
-async fn told(reporter: &mut Option<super::predict::Reporter>) {
+async fn told(reporter: &mut Option<super::predict::Teller>) {
     let gone = match reporter.as_mut() {
         Some(r) => r.tell().await.is_err(),
         None => false,

@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:848`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:849`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -1173,7 +1173,7 @@ M1, and the NOPASSWD check fails.
 2026-10-11. The markers, the command and the filter in
 `crates/podssh-ssh/src/elevate.rs:1-395`. The session wraps the command
 (`crates/podssh-ssh/src/session.rs:147-162`, the question at
-`crates/podssh-ssh/src/session.rs:293-302`), and the pump filters the output,
+`crates/podssh-ssh/src/session.rs:295-304`), and the pump filters the output,
 asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:206-229`,
 `crates/podssh-ssh/src/io.rs:429-436`). The flags at
 `crates/podssh-cli/src/flags.rs:227-232`, and their check in
@@ -1220,7 +1220,7 @@ and no player.
 - Read: each output of a session passes `handle_msg`
   (`crates/podssh-ssh/src/io/msg.rs:11-46`), and each window change passes the
   resize branch (`crates/podssh-ssh/src/io.rs:378-383`). The size at the start
-  is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:82`).
+  is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:88`).
   `podssh-ssh` has no JSON dependency
   (`crates/podssh-ssh/Cargo.toml:14-34`).
 - Measured, offline: `podssh ssh --record /tmp/s.cast example.invalid` gives
@@ -4297,7 +4297,7 @@ The calls of the draft (2026-11-03), after the cause that the Correction names:
   and its time does not count against ConnectTimeout, as a prompt of the login, the agent's
   signing and a security key's touch do not (`docs/cli.md`, the note of `ConnectTimeout`). The
   question keeps its own bound: 60 s when none of stdin, stdout and stderr is a terminal
-  (`crates/podssh-ssh/src/terminal/mod.rs:94`), now on Windows' console too. Lost: the question
+  (`crates/podssh-ssh/src/terminal/mod.rs:100`), now on Windows' console too. Lost: the question
   inside the limit, which cuts a person who reads a fingerprint, and on a console that nobody sees
   lets the limit decide with words of no question; a cap on the time left out, which a person at
   the terminal would meet as a cut while reading.
@@ -4348,7 +4348,7 @@ Read on 2026-11-03 by the drafting agent, at `e176606` (the tree of `3bb42ea` wi
   `connect_stream`), so the question of a new key runs within ConnectTimeout. On Windows the
   question went to `CONOUT$`, not to stderr, and read `CONIN$` with no bound
   (`crates/podssh-ssh/src/terminal/windows.rs`, lines 158-199 at `3bb42ea`), where Unix bounds it to
-  60 s when stdin, stdout and stderr are all redirected (`crates/podssh-ssh/src/terminal/unix.rs:124`),
+  60 s when stdin, stdout and stderr are all redirected (`crates/podssh-ssh/src/terminal/unix.rs:129`),
   as `docs/cli.md` promised for each system. A console with no window, as an agent's process and a
   step of a runner have, opens: the question waited unseen for the whole ConnectTimeout, and the
   line said only that the handshake did not finish. That is the line of #114, and the same at

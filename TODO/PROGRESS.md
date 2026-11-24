@@ -23,7 +23,7 @@ Read on 2026-11-23.
    build image, live: Q88); T-106 (the operator's tailnet); T-660, T-666 and T-670 (their rows of the matrix); T-755 (its live run waits for a tester's tunnel, #215); T-791, T-793, T-809 and T-820 (`node_install/` on `pod-unit`, `pod_core::files::replace` for `keygen_cert.rs` and `known_hosts/edit.rs`, `pod_unit::install::install_system`, and Windows `known_hosts` lock entry 941); and T-598, T-710, T-718 and T-720.
 5. **Blocked entries** (13; each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox),
    T-328 and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-740 (a
-   working Bare node, podcrates T-200), cfb's T-711, T-719, T-722, T-727 and T-729, and T-875 and T-877 (Q107). T-792 is done (2026-11-16: the
+   working Bare node, podcrates T-200), cfb's T-711, T-719, T-722, T-727 and T-729, and T-875 and T-877 (Q107). T-123 is partial and waits for Q108 (its draft `draft/d-t123`, unmerged). T-792 is done (2026-11-16: the
    sync's first real run, 0 faults, and its planted drift caught).
 6a. **Issues from outside the team** (the owner's rulings "Strangers" and "Issues"): the sync changes none until it has
    the label `confirmed`. On 2026-11-16 `record issues` (run 43881220151) found #18, #19, #20, #22, #24, #25 and #129 closed
@@ -49,7 +49,7 @@ Read on 2026-11-23.
    `acme/mod.rs` of `podssh-cli`). Nothing is frozen now (2026-11-15). Taken on 2026-11-17 (`v0.65.0`): `pod-tor` and `pod-iroh`. Taken on 2026-11-19 (`v0.77.0`): `pod-release` (T-850: `podssh update` runs on it). Taken on 2026-11-23 (`v0.82.0`): `pod-cover` (T-764 to T-768).
    Next, as podcrates names them: `pod-cloudflare` and `pod-ts`; then
    `pod-relay-serve` last.
-8. **Drafts.** One waits (2026-11-24, each on the merged serve stack `a64e47d`, each a local branch of a worktree under `.claude/worktrees/`, pushed as `draft/<branch>`), in this order: T-161 (`d-t161`, `d41ef89`, WIP: the modes before a replay and a redraw; it builds only once pod-term has COORD-140's `Modes`, #350). None is built. Merged on 2026-11-24: T-820's exit codes on pod-core's classes (`d-t820`; COORD-142, #352), T-895 (`d-t895`), T-839 (`d-t839`, partial: its first part, tested against swtpm; COORD-141, #351), T-160 (`d-t160`, with a repair of serve's wake that its test found; T-896 filed), T-852 (`d-t852`, partial until the gate's `windows` job), and the stack `draft/merge-drafts` (T-150, T-119, T-120, T-122, T-124, T-631, T-123 partial, T-159, T-833, T-116, T-115), its whole suite run and each entry closed. Before it, none waited (2026-11-23). Merged on 2026-11-23, each built and tested here: T-820 (partial), T-832, T-838 (partial), T-840, T-841 and T-842, and the research steps of T-834 and T-836; T-841 and T-842 filed T-854, T-855 and T-856. Merged on 2026-11-18: `draft/take-v070` (the take of podcrates `v0.70.0`, T-828's lock) and the donor study's entries T-831 to T-842 (#317). Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** One waits (2026-11-24, each on the merged serve stack `a64e47d`, each a local branch of a worktree under `.claude/worktrees/`, pushed as `draft/<branch>`), in this order: T-161 (`d-t161`, `d41ef89`, WIP: the modes before a replay and a redraw; it builds only once pod-term has COORD-140's `Modes`, #350). None is built. Merged on 2026-11-24: T-896 (`d-t896`, partial: a shared shell's reports left), T-820's exit codes on pod-core's classes (`d-t820`; COORD-142, #352), T-895 (`d-t895`), T-839 (`d-t839`, partial: its first part, tested against swtpm; COORD-141, #351), T-160 (`d-t160`, with a repair of serve's wake that its test found; T-896 filed), T-852 (`d-t852`, partial until the gate's `windows` job), and the stack `draft/merge-drafts` (T-150, T-119, T-120, T-122, T-124, T-631, T-123 partial, T-159, T-833, T-116, T-115), its whole suite run and each entry closed. Before it, none waited (2026-11-23). Merged on 2026-11-23, each built and tested here: T-820 (partial), T-832, T-838 (partial), T-840, T-841 and T-842, and the research steps of T-834 and T-836; T-841 and T-842 filed T-854, T-855 and T-856. Merged on 2026-11-18: `draft/take-v070` (the take of podcrates `v0.70.0`, T-828's lock) and the donor study's entries T-831 to T-842 (#317). Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -131,7 +131,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 829 entries: 5 open, 49 partial, 13 blocked, 762 done.
+`TODO/INDEX.md` holds 829 entries: 4 open, 50 partial, 13 blocked, 762 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -250,6 +250,18 @@ it can start.
 | T-622 | T-319 is done: the HTTP road's split and serial forms exist |
 
 ## Questions for the operator
+
+**Q108 (2026-11-24): a relay pair for each `ssh -R` that `podssh serve` takes (T-123).** T-123's Approach answers a
+stock client's `tcpip-forward` with a new pair at the relay, and its draft (`draft/d-t123`, `ef97ac0`, not merged)
+runs a node of that pair inside serve's process: for each forward, the pair's request, the node's socket for as long
+as the forward lives, and a `POST /v1/stop` at its end, one after another, each through `HTTPS_PROXY`; at most 8
+forwards for each connection, so up to 8 node sockets at once beside serve's own. None of the nine exceptions of
+rule 2 of `AGENTS.md` covers them: the connections are asked by the client's user, not by serve's, and they last as
+long as the forward. Blocks T-123. Recommendation: allow it as a tenth exception, with serve's user asking for it:
+only with a new flag of serve (`--publish-remote`, off by default; without it each `-R` is refused with a line, as
+today), the connections one after another for each forward, at most `--max-remote-forwards` (8) at once, each ended
+with its forward and its connection, the tokens never in output, and serve's log naming each pair as it is made and
+stopped.
 
 **Q107 (2026-11-24): UDP datagrams to a resolver, for a road in DNS (T-835).** The research of T-835
 (`docs/research/dns-carrier.md`) found that PodUtils/podcrates has a carrier in DNS already (`pod-link`, feature

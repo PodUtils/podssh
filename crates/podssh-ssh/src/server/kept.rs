@@ -20,17 +20,16 @@
 // shell is ever kept there.
 #![cfg_attr(not(unix), allow(dead_code))]
 
-use std::io;
 use std::pin::Pin;
 use std::sync::atomic::AtomicI32;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::task::{Context, Poll, Waker};
-use std::time::{Duration, Instant};
+use std::task::Waker;
+use std::time::Duration;
 
 use pod_term::grammar::Ring;
 use russh::server::{Handle, Msg};
 use russh::{ChannelId, ChannelWriteHalf};
-use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
+use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::sync::watch;
 
 use super::audit::Tally;
@@ -39,6 +38,13 @@ pub(super) use super::kept_ask::{Asked, Keeper};
 use super::kept_replay::{dropped_line, replay_from, since};
 use super::kept_shelf::Shelf;
 use crate::terminal::Size;
+
+// The input, the output and local echo's reports (T-896).
+#[path = "kept_flow.rs"]
+mod flow;
+#[cfg(unix)]
+pub(super) use flow::falls_due;
+pub(super) use flow::{reports_for, watch_close, Out};
 
 /// The most kept shells of one key.
 pub const PER_KEY: usize = 4;
@@ -70,12 +76,14 @@ pub(super) struct Attached {
     /// The channel's counts for the audit log (T-116): its output, and
     /// the shell's end if it ends while this channel has it.
     tally: Arc<Tally>,
+    /// Local echo's reports, where the channel asked (T-896).
+    told: Option<flow::Told>,
 }
 
 impl Attached {
     pub(super) fn new(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId, tally: Arc<Tally>) -> Attached {
         let out: Pin<Box<dyn AsyncWrite + Send>> = Box::pin(tally.count(write.make_writer()));
-        Attached { write, handle, id, out, tally }
+        Attached { write, handle, id, out, tally, told: None }
     }
 
     /// Its parts, for the end of the program (`child::Running`).
@@ -159,6 +167,7 @@ pub(super) struct Shell {
     /// that was never kept.
     gone: watch::Sender<bool>,
     shelf: Shelf,
+    tells: flow::Tells,
 }
 
 impl Shell {
@@ -186,7 +195,8 @@ impl Shell {
         };
         let input = tokio::sync::Mutex::new(input);
         let (owner, shelf, cap) = (keeper.owner.clone(), keeper.shelf.clone(), keeper.cap);
-        Arc::new(Shell { id, owner, input, resize, group, cap, state: Mutex::new(state), gone, shelf })
+        let (state, tells) = (Mutex::new(state), flow::Tells::default());
+        Arc::new(Shell { id, owner, input, resize, group, cap, state, gone, shelf, tells })
     }
 
     fn state(&self) -> MutexGuard<'_, State> {
@@ -235,10 +245,11 @@ impl Shell {
     }
 
     /// Where the input of the channel of `generation` goes: to the pty
-    /// while that channel has the shell, then nowhere.
-    pub(super) fn writer(self: &Arc<Self>, generation: u64) -> Input {
+    /// while that channel has the shell, then nowhere; `count` counts each
+    /// write that the pty took, for local echo's reports.
+    pub(super) fn writer(self: &Arc<Self>, generation: u64, count: Option<flow::Count>) -> Input {
         let (near, far) = tokio::io::duplex(PASTE);
-        tokio::spawn(feed(self.clone(), generation, far));
+        tokio::spawn(flow::feed(self.clone(), generation, far, count));
         Box::new(near)
     }
 
@@ -371,6 +382,8 @@ impl Shell {
             if let Some(waker) = state.waker.take() {
                 waker.wake();
             }
+            // The pump waits on the new channel's reports from now on.
+            self.tells.attached.notify_one();
             return Turn::Joined(dropped);
         }
         *from = state.ring.end();
@@ -423,73 +436,6 @@ fn let_go(state: &mut State) {
     state.detached_at = state.ring.end();
     if let Some(waker) = state.waker.take() {
         waker.wake();
-    }
-}
-
-/// Copy a channel's input to the pty while its generation is the shell's;
-/// then the dropped pipe tells the channel's feeder, which drops the rest.
-async fn feed(shell: Arc<Shell>, generation: u64, mut from: DuplexStream) {
-    let mut buf = vec![0u8; PASTE];
-    loop {
-        let n = match from.read(&mut buf).await {
-            Ok(0) | Err(_) => return,
-            Ok(n) => n,
-        };
-        if !shell.current(generation) {
-            return;
-        }
-        let mut input = shell.input.lock().await;
-        if input.write_all(&buf[..n]).await.is_err() {
-            return;
-        }
-    }
-}
-
-/// When the channel of `held` closes, the shell lets it go.
-pub(super) fn watch_close(held: &Held, mut closed: watch::Receiver<bool>) {
-    let (shell, generation) = (held.shell.clone(), held.generation);
-    tokio::spawn(async move {
-        // The guard of `wait_for` is dropped in its statement: the task stays Send.
-        let _ = closed.wait_for(|closed| *closed).await;
-        shell.left(generation);
-    });
-}
-
-/// The shell's output: to the attached channel, and into the ring. It
-/// never fails, so the pump reads the pty to its end with no client too.
-pub(super) struct Out(pub(super) Arc<Shell>);
-
-impl AsyncWrite for Out {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
-        let mut guard = self.0.state();
-        let state = &mut *guard;
-        if let Some(attached) = state.attached.as_mut() {
-            match attached.out.as_mut().poll_write(cx, buf) {
-                Poll::Ready(Ok(n)) if n > 0 => {
-                    state.ring.push(&buf[..n], Instant::now());
-                    return Poll::Ready(Ok(n));
-                }
-                // The client's window holds the shell back, as without T-159.
-                Poll::Pending => {
-                    state.waker = Some(cx.waker().clone());
-                    return Poll::Pending;
-                }
-                // The channel is gone: its close follows, and the ring
-                // keeps the output until then.
-                _ => state.attached = None,
-            }
-        }
-        state.ring.push(buf, Instant::now());
-        Poll::Ready(Ok(buf.len()))
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
-    }
-
-    /// The channel's end is the program's status, sent at its end.
-    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
     }
 }
 

@@ -23,6 +23,7 @@ use tokio::sync::watch;
 
 use super::channel::{Open, Program};
 use super::child::{command, pump, pump_told, Running};
+use super::predict::Teller;
 use super::pty::{self, Pair};
 use super::share_view::{open_hub, Tee};
 use crate::terminal::Size;
@@ -170,7 +171,7 @@ pub(super) fn spawn(
                 Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
                 None => open.give_stdin(Box::new(Master(master.clone()))),
             }
-            tokio::spawn(pump_told(motd.chain(Master(master)), to, exited, reporter))
+            tokio::spawn(pump_told(motd.chain(Master(master)), to, exited, reporter.map(Teller::Own)))
         }
     };
     // The files of the marks go when the session does.

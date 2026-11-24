@@ -921,7 +921,7 @@ short numbered list helps a person; a script must still get the usage error.
 3. Read a number, or a text that filters the list, with `read_line`
    (`crates/podssh-ssh/src/terminal/mod.rs:28`). Empty input or Ctrl-D exits
    64. The prompt has the limit of a terminal that nobody watches
-   (`crates/podssh-ssh/src/terminal/mod.rs:84-95`).
+   (`crates/podssh-ssh/src/terminal/mod.rs:90-101`).
 4. The chosen name takes the normal path, as if the user typed it.
 5. In the same commit: the notes of ssh, `docs/cli.md`, `docs/STATUS.md`.
    This entry depends on T-043.

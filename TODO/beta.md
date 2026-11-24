@@ -296,8 +296,8 @@ Done in `eacd94e`:
    `getsid(0)`), and `tty_nr` not 0 in `/proc/self/stat`.
 2. `crates/podssh-ssh/src/prompt.rs:85-97` asks only on that terminal.
 3. With stdin, stdout and stderr all redirected, a prompt on the terminal
-   waits 60 s at most (`crates/podssh-ssh/src/terminal/mod.rs:90-96`), then
-   refuses with the remedy (`crates/podssh-ssh/src/terminal/unix.rs:109-173`).
+   waits 60 s at most (`crates/podssh-ssh/src/terminal/mod.rs:96-102`), then
+   refuses with the remedy (`crates/podssh-ssh/src/terminal/unix.rs:114-178`).
 
 Owed: the measurement in the box, with a `/dev/tty` that opens with no
 controlling terminal (a pty of the host bound to `/dev/tty` in the

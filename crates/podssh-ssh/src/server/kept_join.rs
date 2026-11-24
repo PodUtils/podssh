@@ -11,7 +11,7 @@
 use russh::ChannelId;
 
 use super::channel::Open;
-use super::kept::{watch_close, Attached};
+use super::kept::{reports_for, watch_close, Attached};
 use super::kept_shelf::Shelf;
 use crate::terminal::Size;
 
@@ -40,10 +40,13 @@ pub(super) fn join(open: &mut Open, shelf: &Shelf, owner: &str, channel: Channel
     if let Some(size) = spare_pty(open) {
         shell.resize(size);
     }
-    open.give_stdin(shell.writer(joined.held.generation));
+    // Local echo's reports, where this channel asked (T-896): its count of
+    // its own bytes starts at its attach, as the client's does.
+    let (told, count) = reports_for(&shell, open.predict, &write);
+    open.give_stdin(shell.writer(joined.held.generation, count));
     watch_close(&joined.held, open.closed.clone());
     open.kept = Some(joined.held.clone());
-    let attached = Attached::new(write, open.handle.clone(), channel, open.tally.clone());
+    let attached = Attached::new(write, open.handle.clone(), channel, open.tally.clone()).with_reports(told);
     tokio::spawn(shell.clone().catch_up(joined, attached));
     Ok(name)
 }

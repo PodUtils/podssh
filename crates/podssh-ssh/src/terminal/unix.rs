@@ -13,6 +13,11 @@ pub fn is_console(_stderr: bool) -> bool {
     false
 }
 
+/// A Unix terminal reads VT sequences: there is no other mode to ask for.
+pub fn vt_output() -> bool {
+    true
+}
+
 pub fn size() -> Option<Size> {
     [libc::STDOUT_FILENO, libc::STDIN_FILENO, libc::STDERR_FILENO].into_iter().find_map(size_of_fd)
 }

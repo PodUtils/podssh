@@ -7,8 +7,9 @@
 //! A report goes out of the task that copies the pty's output, after each
 //! write of output and when a count falls due, so it always follows the
 //! output that was read before it: the client judges its guesses against a
-//! screen that holds their echo. A shared or a kept shell sends none; its
-//! client's guesses then never show.
+//! screen that holds their echo. A kept shell's pump tells the reporter of
+//! the channel that has the shell then (`kept_flow.rs`, T-896). A shell
+//! shared by name sends none; its clients' guesses then never show.
 
 use std::collections::VecDeque;
 use std::io;
@@ -54,7 +55,7 @@ impl Applied {
         self.0.state.lock().unwrap_or_else(|p| p.into_inner())
     }
 
-    fn wrote(&self, n: usize, now: Instant) {
+    pub(super) fn wrote(&self, n: usize, now: Instant) {
         let mut state = self.state();
         state.offset += n as u64;
         let end = state.offset;
@@ -69,7 +70,7 @@ impl Applied {
 
     /// Until the oldest write not reported falls due, waiting for a write
     /// where none waits.
-    async fn fall_due(&self) {
+    pub(super) async fn fall_due(&self) {
         loop {
             match self.due() {
                 Some(at) => return tokio::time::sleep_until(at).await,
@@ -144,6 +145,12 @@ impl Reporter {
         Applying { inner, applied: self.applied.clone() }
     }
 
+    /// The count of the client's bytes, for a writer of its own: a kept
+    /// shell's input counts each write that the pty took (T-896).
+    pub(super) fn applied(&self) -> Applied {
+        self.applied.clone()
+    }
+
     /// Ends when the next report falls due: a write's count is
     /// [`ECHO_WAIT`] old. It owns what it reads, so the pump can wait on it
     /// beside its read of the output.
@@ -165,6 +172,36 @@ impl Reporter {
         self.out.write_all(&encode(report)).await?;
         self.told = Some(report);
         Ok(())
+    }
+}
+
+/// Who tells a pump's reports: a channel's own pty's reporter, or a kept
+/// shell, whose reports go to the channel that has it then (T-896).
+pub(super) enum Teller {
+    Own(Reporter),
+    Kept(Arc<super::kept::Shell>),
+}
+
+impl Teller {
+    /// Ends when the next report falls due; it owns what it reads.
+    pub(super) fn falls_due(&self) -> Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+        match self {
+            Teller::Own(reporter) => Box::pin(reporter.falls_due()),
+            Teller::Kept(shell) => Box::pin(super::kept::falls_due(shell.clone())),
+        }
+    }
+
+    /// A report where one is due. `Err`: the channel is gone, and the
+    /// pump tells no more; a kept shell's channel that is gone ends its
+    /// own reports alone.
+    pub(super) async fn tell(&mut self) -> io::Result<()> {
+        match self {
+            Teller::Own(reporter) => reporter.tell().await,
+            Teller::Kept(shell) => {
+                shell.tell().await;
+                Ok(())
+            }
+        }
     }
 }
 

@@ -78,6 +78,12 @@ pub fn is_console(stderr: bool) -> bool {
     platform::is_console(stderr)
 }
 
+/// Whether the terminal on stdout reads VT sequences now: always on Unix;
+/// on Windows, a console in its VT mode, which raw mode asks for (T-896).
+pub fn vt_output() -> bool {
+    platform::vt_output()
+}
+
 /// The terminal's size, if one can be measured.
 pub fn size() -> Option<Size> {
     platform::size()

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**829 entries: 5 open, 49 partial, 13 blocked, 762 done.**
+**829 entries: 4 open, 50 partial, 13 blocked, 762 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 5 | 15 | 8 | 360 | 388 |
-| **All** | 5 | 49 | 13 | 762 | 829 |
+| P3 | 4 | 16 | 8 | 360 | 388 |
+| **All** | 4 | 50 | 13 | 762 | 829 |
 
 ## Entries
 
@@ -904,4 +904,4 @@ repository and CI).
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
-| [T-896](resume.md) | P3 | M | backlog | feature | open | Local echo from end to end, for kept and shared shells, and on the Windows console |
+| [T-896](resume.md) | P3 | M | backlog | feature | partial | Local echo from end to end, for kept and shared shells, and on the Windows console |

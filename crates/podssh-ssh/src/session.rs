@@ -220,8 +220,10 @@ pub async fn attach(
     });
     // A notice while the far end is silent, where anything tells it (T-302).
     let notice = crate::notice::Notice::for_session(opts, host, raw.is_some(), pty);
-    // Local echo, on a raw terminal that the far end's pty serves (T-160).
-    let predict = rtt.filter(|_| pty && raw.is_some()).map(crate::predict::Predict::for_terminal);
+    // Local echo, on a raw terminal that the far end's pty serves (T-160)
+    // and that reads the VT moves of its drawing (T-896).
+    let drawn = |_: &Duration| pty && raw.is_some() && crate::predict::drawable(log);
+    let predict = rtt.filter(drawn).map(crate::predict::Predict::for_terminal);
     let through = io::Through {
         elevated,
         zmodem,

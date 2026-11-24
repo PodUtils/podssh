@@ -4780,7 +4780,7 @@ Drafted 2026-11-24 on T-833's draft; merged, built and tested by the main sessio
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -4803,10 +4803,110 @@ link from end to end.
    shell.
 3. On Windows, the console's VT mode where the console takes it, else no prediction with one line at `-v`.
 
+## Decision
+
+2026-11-24, in the draft (each call with the alternatives that lost).
+
+1. **Step 1's far end is `podssh serve --listen 127.0.0.1:0`**, not `--stdio`: the stand-in relay (T-203) dials a TCP
+   target, and `--listen` runs the same server on each connection (`serve_with`), so the test reaches serve by the
+   relay's road as a user does. The fault is `delay:150`, each byte 150 ms late each way: the round trip of 300 ms.
+   Lost: `--stdio` behind a TCP forwarder of the test's own, a second program in the path that the test would have
+   to write; the forward road to a node (`podssh serve NAME`), whose login shells are kept (see the Correction), so
+   the test of step 1 would hang on step 2.
+2. **What "show before the echo" means in the test**: the client's terminal is a pty of the test, read by the terminal
+   oracle (`vt100`) every 5 ms; once the first key of a line was echoed and its report came (the epoch's rule of
+   T-160), the keys typed after it show on the cursor's row, underlined, less than 250 ms after the last was typed,
+   where no echo can come back in less than 300 ms; once the echo came, no cell of the row is underlined. The
+   password: no byte of `qvwy` in what podssh writes after the question (none of them is in a sequence that the
+   drawing writes), and the row holds the question alone, for 1.5 s. The control runs the same keys without
+   `--predict` and needs them to show 250 ms or more after the last key, so a run whose delay was not there fails.
+   Lost: a check of the bytes alone (the guess and the echo are the same letter); a check of the time alone (a
+   late echo and an early guess differ only by the underline).
+3. **A kept shell's reports belong to each channel, not to the pump.** Each channel that asked (the one that started
+   the shell, and each that joins with `--attach`) gets a reporter of its own and a count of its own bytes that
+   reached the pty, from 0 at its attach, as the client counts its own; the shell's feed counts each write that the
+   pty took. The pump tells the reporter of the channel that has the shell then, after the output that it read,
+   taking it out of the shell's state for the write so that no lock is held across it, and putting it back only if
+   the same channel still has the shell; at each attach a `Notify` wakes the pump to wait on the new channel's count,
+   so a key that makes no output is reported too (`crates/podssh-ssh/src/server/kept_flow.rs`, `Teller` in
+   `crates/podssh-ssh/src/server/predict.rs`). Lost: one count of the shell's, set to 0 at each attach, which a write
+   of the old channel still in flight would raise past what the new client sent; reports from the channel's own
+   task, which would not follow the output that the pump read before them; reports while an attach catches up,
+   whose output is the replay and not the pump's.
+4. **The shared shell (T-837) waits**, as the rest of step 2 (the Done says what is left). Its seats read the output
+   through a broadcast that each seat's task copies at its own pace, so a report of a seat must ride the broadcast
+   in its place among the output, or it can come before the echo that it counts; that changes the hub of
+   `crates/podssh-ssh/src/server/share.rs`, its seats' writers through the lease, and the ask of a seat, which has no
+   pty of its own (`predict_ask.rs` takes the ask only on a channel's own pty).
+5. **The Windows console's mode is read back, not assumed**: raw mode already asks for
+   `ENABLE_VIRTUAL_TERMINAL_PROCESSING` (`terminal/windows.rs`); the client reads the output's mode after it
+   (`terminal::vt_output`), and where the flag is not there (an old console refused it), no guess shows, with one
+   line at `-v`. A terminal that is not a console (mintty's pipe) reads VT itself. Lost: a second `SetConsoleMode` of
+   local echo's own, which raw mode already made; a guess drawn with the console API (`SetConsoleCursorPosition`),
+   a second drawing that the far end's bytes, VT sequences on the same console, would not take off.
+6. **Shared code first.** Each piece is podssh's: the reports are a word between podssh's client and `podssh serve`,
+   the kept and the shared shells are serve's, and `pod-term` at `v0.82.1` holds no screen model or predictor (its
+   `docs/design.md`); the console's mode is podssh's raw mode. No ask is filed.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test predict_e2e
+cargo test -p podssh-ssh --test serve_predict_kept --test serve_predict --test serve_keep
 ```
 
+## Correction
+
+2026-11-24 (the draft). The Premise holds at `1c513c2`: `crates/podssh-ssh/src/server/predict.rs` said "A shared or
+a kept shell sends none", `crates/podssh-ssh/src/predict/draw.rs` draws with `CSI C`, `CSI D` and `CSI X`, and
+`crates/podssh-cli/tests/faults.rs` holds the harness. The Problem is larger than it says: under `podssh serve NAME`
+each login shell may be kept (`--keep-lease` defaults to a day, `crates/podssh-cli/src/serve_keep.rs`), so it took
+the kept path of `crates/podssh-ssh/src/server/pty_child.rs`, and `podssh ssh --predict node://NAME` to a login shell
+showed no guess at all; only a command, or a shell under `--stdio` or `--listen`, got reports. Step 1's `podssh serve
+--stdio` is `--listen` (Decision 1).
+
+## Done
+
+2026-11-24, drafted on the branch `d-t896`; merged by the main session on `main` after `25ac08f`, built and tested
+(Rust 1.99.1). Partial: steps 1 and 3, and the
+kept shell of step 2; the shared shell of step 2 is left. It holds:
+
+- Step 1: `crates/podssh-cli/tests/predict_e2e.rs`, two tests: `podssh ssh -t --predict` in a pty through the
+  stand-in relay's `delay:150` to `podssh serve --listen`: the keys after a line's first show, underlined, before any
+  echo can come back, then the far end's row with no underline; at a password with no echo no key shows in any byte,
+  and the far end reads 4. The control without `--predict`: the keys show only after the round trip.
+- Step 2, the kept shell: `crates/podssh-ssh/src/server/kept_flow.rs` (the feed, the output and `watch_close` moved
+  out of `kept.rs`, which was at 498 lines, with the reports: `reports_for`, `Shell::tell`, `falls_due`), `Teller` in
+  `crates/podssh-ssh/src/server/predict.rs`, `pump_told` of `server/child.rs` on a `Teller`, the wiring in
+  `server/kept_run.rs` and `server/kept_join.rs`, the wake at an attach in `server/kept.rs`; the test
+  `crates/podssh-ssh/tests/serve_predict_kept.rs` (each channel's own count, after the echo; a first channel that did
+  not ask gets none; a key with no echo is reported to a channel that joined).
+- Step 3: `terminal::vt_output` (`crates/podssh-ssh/src/terminal/mod.rs`, `unix.rs` and `windows.rs`) and
+  `predict::drawable` (`crates/podssh-ssh/src/predict/mod.rs`), asked in `crates/podssh-ssh/src/session.rs`.
+- The manual's note (`crates/podssh-cli/src/man/notes_predict.rs`, and `llms-full.txt` by hand at 79 columns),
+  `docs/terminal.md` ("A kept shell", "The Windows console", "From end to end"), a row of `docs/STATUS.md`, and the
+  citations of `TODO/` to the files changed, moved as `cargo todo remap` moves them (by a diff of each file).
+
+Results (2026-11-24, Rust 1.99.1):
+
+- `cargo test -p podssh-cli --test predict_e2e`: passed, both tests ran here (a pty, Python and openssl present):
+  `typed_letters_show_before_the_echo_and_a_password_never_shows` and its control
+  `without_predict_a_key_shows_only_after_the_round_trip`, 8.3 s.
+- `cargo test -p podssh-ssh --test serve_predict_kept`: 2 passed.
+- `cargo test -p podssh-ssh --test serve_predict --test serve_keep --test serve_attach_ticket --test serve_share`
+  (the pumps and the kept shells that changed): 3, 4, 3 and 6 passed.
+- `cargo test -p podssh-ssh --lib server::` and `--lib predict::`: passed, in `--lib`'s 537.
+- `cargo test -p podssh-cli --lib man::`, `--test man_page`, `--test man_json`; `llms-full.txt` against the manual's
+  own writer: passed; `llms.txt` and `llms-full.txt` written again by the binary.
+- The Windows build (`cargo check -p podssh-ssh --target x86_64-pc-windows-msvc`, or the gate's `windows` job):
+  waits for the gate's `windows` job; `kept.rs` and `kept_join.rs` build there, with the reports a type of no value (`Told`).
+- rustfmt and the gate's clippy: clean. The whole suite (with T-820's exit codes merged beside it): 427 suites, 4272
+  passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as before).
+
+Left: the shared shell of step 2 (Decision 4): a report of each writing seat that rides the hub's broadcast
+in its place among the output, the count of each seat's bytes that the lease let through to the pty, the owner's
+reports through its `Tee`, and the ask taken on a seat, which has no pty of its own; on serve's own tty (`--pty
+line`, `notify`) the flags come from the discipline, not from a master. The planted defects wait for T-251: a pump
+of a kept shell that tells the first channel's reporter after a join, and a client that draws on a console whose VT
+mode was refused.

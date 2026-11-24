@@ -215,6 +215,18 @@ pub(crate) fn wanted(opts: &crate::options::Options, want_pty: bool, stdin_tty: 
         && opts.feed.is_none()
 }
 
+/// Whether this terminal reads the moves that the guesses are drawn with
+/// (`CSI C`, `CSI D`, `CSI X`, an underline): a Windows console only in its
+/// VT mode, which raw mode asks for and an old console refuses (T-896).
+/// Else no guess shows, and -v says why.
+pub(crate) fn drawable(log: &crate::log::Log) -> bool {
+    if crate::terminal::vt_output() {
+        return true;
+    }
+    log.verbose("--predict: no local echo: this console takes no VT sequences, which the guesses are drawn with");
+    false
+}
+
 /// Ask the far end for its reports, before the shell or the command; the
 /// time of the ask, for the round trip, or `None` when it could not go.
 pub(crate) async fn ask(channel: &Channel<Msg>) -> Option<Instant> {
