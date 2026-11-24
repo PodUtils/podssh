@@ -3969,3 +3969,154 @@ races the client's hello: macOS answers that write with EPIPE (pod-proxy's `Cut:
 A gateway resets after it read the hello, and the stand-in now does so, so the client's read meets the RST on each
 system; the test's words are unchanged. `cargo test -p podssh-cli --test doctor_burst`: 4 passed, 3 runs in 3 on Linux.
 
+# T-864: The host picker's several hosts: the manual promises a command that no form can give
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 1.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The manual of `podssh ssh` says that with a command, several numbers of the picker (`1 3`, `1,3`) run it on each host picked, as `podssh each` does. With no destination the first word of a command becomes the destination (`podssh ssh -F cfg --direct echo hello`), and `-- ''` gives `"": no host` (64); picking `1 4` with no command re-prompts "Several hosts take a command...". No documented form reaches that path.
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. Read how T-832's picker gets its command, and choose one form that gives a command with no destination (e.g. `--` with nothing before it, or `-o RemoteCommand=`), or change the manual to what exists. Write the call in a `## Decision`.
+2. A CLI test of the form, and the manual and `docs/cli.md` held to it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ssh_args
+```
+
+
+# T-865: `podssh ping` to a destination that refuses its connection exits 69 with a dangling line, where the table says 255
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 2.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`podssh ping --direct -i KEY -p 22899 root@127.0.0.1` (nothing listens) printed `could not connect ... Connection refused`, then a line `ssh root@127.0.0.1: ` with nothing after it, and exited 69. The exit table names 255 for "the destination could not be reached or logged in to".
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. Read `podssh ping`'s path to its exit code and its lines; one line of the cause, and the table's code (or the table changed, with a `## Decision`).
+2. A table-driven CLI test of ping's error paths: refused, unreachable, a name with no answer, a login refused.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ping
+```
+
+
+# T-866: `--result-file` with `-N` at Ctrl-C: no file, or `failed` where the manual says interrupted
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 3, 4 and 5.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P2
+**Effort:** S
+**Status:** open
+
+## Problem
+
+With `-N -L ...` and SIGINT, podssh was killed (130) and wrote no file. With `--persist -N -L .. -R ..` and SIGINT while the forwards were up, it said `podssh: interrupted`, exited 255 and wrote `"end":"failed","failure":"connect"`. The manual says the file is written at the end of each run, and that a run with no pty ends at Ctrl-C as interrupted (`sleep 30` and SIGINT gives that, rightly). Also: a run that failed before connecting has no `forwards` key though it had forwards; and a forward that `~C` stopped keeps `"state":"up"` with `"closed":true` in the file, where `~#` says `closed` and the manual's list of words (bound, waiting, up, refused) names none.
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. `-N` and `--persist -N` take SIGINT as the end of the run: the file written with `end: interrupted`, exit 130.
+2. The file's `forwards` for a run that failed before its link (each forward `bound` or not made), and `closed` as a state of its own or the manual's list naming it (a `## Decision`).
+3. Tests: `--test ssh_result` and T-840's `persist_forwards` with SIGINT.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ssh_result --test persist_forwards
+```
+
+
+# T-867: `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 6.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+The manual says a file that cannot be read, or that others may change, exits 78. Only `~/.ssh/config` is checked: `-F` with a file of mode 0666, or one owned by `nobody`, gives 0. A syntax error (`HostName` with no value, `Port 99999`) exits 78 and stops the list, where per-alias errors go in `error` and the list goes on. `HostName 300.1.1.1` passes.
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. The same check of owner and mode for `-F` and each `Include` as for `~/.ssh/config` (as `podssh ssh` itself does, or the manual says the difference).
+2. Which faults stop the list (78) and which are an alias's `error`, in one table of the manual and the test.
+3. T-832's tests extended.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test ssh_list_hosts
+```
+
+
+# T-868: Words of the black-box pass: lines that are not true or not clear, and gaps in the manual
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 7, 8, 13, 14, 15, 16 and 17.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`PODSSH_RELAY does not apply to node://lab: the pair names its relay` is a refusal the manual never names. `keygen -l -f KEY` on a key with a passphrase shows `no comment` where `ssh-keygen -l` shows its comment. `ssh --policy` goes on at an unmeasured size (69 only for `health`), and the manual does not say. The refusals of `--policy` with `--persist`, `--upgrade` or `--preflight` end "give one", which reads unclear. `podssh help serve` says `unknown subcommand 'help'. Try: podssh health`. `detached stop NAME` for a name that never existed says `(ended)`. `each` says "1 hosts". The footer of an unknown flag speaks of `-o` where none was given. `ssh --bogus-flag` suggests `--log-file`. `ping --direct` with no destination pings the relay unasked.
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. Each line made true and clear, or the manual made to say what the binary does: one commit, the manual's tests (`--lib man`, `man_flag_parity`) and the CLI tests that pin each line, table-driven where lines share a rule.
+2. `podssh help VERB` as `VERB --help`, since a user types it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man
+```
+

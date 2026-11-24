@@ -7534,6 +7534,16 @@ does not name, a low byte cap's Close lost as a reset, a key file that others ma
 left the loopback, each documented: DNS over HTTPS where `--relay-addr` was left out by mistake, and the relay's dial
 of `ping`'s default target, github.com:22.
 
+2026-11-24, item 3, a third black-box pass (an agent with the debug binary of `8f5a6ce2`, `--help`, `podssh man` and
+README.md alone, no source; this host's loopback with an OpenSSH sshd, `podssh relay serve` and `serve --stdio` as a
+ProxyCommand; the default relay for `status`, `ping` and `doctor --quick` only; about 20 minutes). 17 findings, filed as
+T-864 to T-869: the picker's several hosts with no form to give their command (T-864), `ping`'s exit at a refused
+connect (T-865), `--result-file` at Ctrl-C under `-N` (T-866), `--list-hosts`' checks of `-F` (T-867), lines that are
+not true or not clear (T-868) and `serve`'s lines (T-869). What it checked worked as documented: `--list-hosts` and the
+picker otherwise, each form of `--policy` (ssh, health, doctor, serve), `serve --stdio` against OpenSSH (key options,
+host key rules, `--revoke-ends-sessions`, `--share` with its names and `share@podssh`), ZMODEM both ways, the forward
+state words, `keygen`'s forms, and each verb's 64 for an unknown flag, the help and `man --json` agreeing for 36 commands.
+
 # T-820: podssh's copies of shared code, as podcrates named them (COORD-131)
 
 **Source:** PodUtils/podcrates#221 (COORD-131, 2026-11-17, to all): the owner's ruling "Shared code" and podcrates'

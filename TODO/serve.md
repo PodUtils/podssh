@@ -4645,3 +4645,36 @@ cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
 - `LEASE_IDLE` is now 400 ms (`## Decision`); `docs/cli.md` says so, and `serve_share`'s bound moved to 350 to 450 ms.
 - `cargo test -p podssh-ssh --lib server::share`: 7 passed. `--test serve_share`: 6 passed. `cargo clippy -p
   podssh-ssh --all-targets -- -D warnings -A clippy::collapsible_if`: clean. `cargo fmt --check`: clean.
+
+# T-869: `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line
+
+**Source:** T-809's third black-box pass, 2026-11-24 (an agent with the debug binary of `8f5a6ce2`, `podssh man` and README.md alone, no source), finding 9, 10, 11 and 12.
+**Category:** defect
+**Milestone:** M10
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+`serve --stdio --host-key FILE` with a file of plain text says `PEM preamble contains invalid data (NUL byte)`, and the file holds none. Each OpenSSH ProxyCommand's teardown logs `SIGHUP: the authorized keys read again, N in all`, and after a refused pty or forward also `the SSH connection failed: Broken pipe` or `early eof`, at a normal end. `serve NAME`'s start-up warning says "whoever reaches this node's door ... reaches TARGET", and serve has no TARGET. `serve --policy`'s mismatch line doubles the field (`ciphers: ciphers expected X, got Y`) where doctor's is `FIELD: expected A,B, got C`.
+
+## Premise
+
+- Seen by the pass, not yet read in the code: the commands and outputs above. The first step reads the code.
+
+## Approach
+
+1. A host key file that is no key: one true line naming what it is not.
+2. Under `--stdio`, a SIGHUP that comes with the end of stdin is the client's end, not a reload; a broken pipe at the client's normal end says nothing (or one line that is true).
+3. `serve NAME`'s warning names what it serves.
+4. One formatter of a mismatch for serve, doctor and the JSON (T-838's `Verdict::line`).
+5. Tests pin each line.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --test serve_lifecycle
+```
+
