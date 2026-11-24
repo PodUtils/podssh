@@ -2735,6 +2735,8 @@ check read as a variable:
   passed; `man_page` 11, `man_flag_parity` 6, `flag_table` 9, `man_json` 4 passed.
 - `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward`: 4 passed, with OpenSSH 9.6p1.
 - `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_algorithms_openssh`: 4 passed.
+- The whole suite on `main` with the take of `v0.83.0`: 429 suites, 4294 passed, 3 failed (`job_far`, at this
+  container's stand-in of `rm`, as before).
 - `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_remote_forward -- --ignored` (the live
   relay): not run here (this container's proxy passes HTTPS alone; it runs as a live test of the relay, T-251).
 - The types: the build holds both (`ChannelStream<russh::server::Msg>` as a node handler's `Stream`, and
