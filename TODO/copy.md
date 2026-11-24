@@ -2148,6 +2148,23 @@ The SFTP server is in M5 (T-112), the client exists (T-133), and standard
 tools keep working. A protocol of its own lost: a second wire format to
 version, fuzz and test, which no standard tool can use.
 
+The names (2026-11-24, the drafting agent's call): `sha256@podssh` and
+`sha256-blocks@podssh`. podssh's own requests already take the form
+`NAME@podssh` (`detach@podssh`, `share@podssh`, the critical option
+`once@podssh`), so the domain is the one that the operator's earlier work
+chose. Lost: a domain name that podssh does not hold (SFTP's draft asks for a
+DNS name, but nothing checks it, and a name that another party holds could
+clash later); `NAME@openssh.com`, which only OpenSSH may define; and the
+draft's `check-file-handle`, which no server that podssh meets serves, and
+whose reply names no state of the file.
+
+One codec for both ends (`crates/podssh-ssh/src/sftp/sums.rs`), so that the
+client and the server cannot drift. A request that fails on a server that
+lists it gives way to the next way of T-134 (the digest command, then the
+second read), which then names a failure that is real. Lost: an error at
+once, which would stop a copy that the next way verifies. A wrong digest
+still fails the comparison (exit 70).
+
 ## Prove
 
 ```sh
@@ -2163,6 +2180,70 @@ returns a wrong digest; the copy must then fail with exit 70.
 ## Start condition
 
 T-112 is done: `podssh serve` has an SFTP server.
+
+## Correction
+
+2026-11-24, at `e9db680f`:
+
+- The start condition holds in substance: T-112's server is on `main`
+  (`crates/podssh-ssh/src/server/sftp/`), built and tested; T-112 stays
+  `partial` only for its run in the build image (T-251).
+- The Premise holds. The server lists `posix-rename@openssh.com`,
+  `fsync@openssh.com` and `limits@openssh.com` and no digest
+  (`crates/podssh-ssh/src/server/sftp/mod.rs`, `EXTENSIONS`). The client of
+  T-133 takes the far digest by a command, else by a second read
+  (`crates/podssh-cli/src/cp/transfer.rs`, `far_digest`).
+- The donor study's rule needs no new code on the server: it answers each
+  request in its order, after the call of the one before returned
+  (`serve` in `crates/podssh-ssh/src/server/sftp/mod.rs`), so a digest
+  covers each write that its handle took before it. The test pins it.
+- The server's calls had one limit of 20 s (`Worker::call`); a digest of a
+  long range needs a limit that grows with it, so the worker takes a limit
+  for each call (`Worker::call_within`).
+- Step 1's digests of blocks are served, and the client can ask for them
+  (`Sftp::sums` with a block); their user is T-142, which is open. This
+  entry's client uses the digest of a range alone: `far_digest`, and
+  `remove_far` of `podssh mv`.
+
+## Done
+
+Drafted 2026-11-24 (no build, no test run here):
+
+- The codec of both requests, the hash of a range, and the client's
+  `Sftp::sums`: `crates/podssh-ssh/src/sftp/sums.rs`, with its unit tests
+  (each range against the bytes, short reads, a broken request or reply).
+- The server: both names in `EXTENSIONS`, the answer in
+  `crates/podssh-ssh/src/server/sftp/answer.rs` (`Session::sums`), the hash
+  in `fs.rs` (`sum_file`), a limit for each call in `worker.rs`.
+- `podssh cp`'s far digest (`crates/podssh-cli/src/cp/digest.rs`,
+  `by_request`; `transfer.rs`, `far_digest`) and `podssh mv`'s check before
+  it deletes a far source (`moving.rs`, `remove_far`) take the request
+  first.
+- The test of the Prove, `crates/podssh-ssh/tests/sftp_extensions.rs`: each
+  digest against the disk; a digest in the same pipeline as a write; the
+  bounds, each refused while the session goes on; `None` from OpenSSH's
+  `sftp-server`; a reply that does not fit, a protocol error. A fuzz target
+  of the codec, `fuzz/fuzz_targets/sftp_sums.rs`.
+- The manual (`notes.rs`, `notes_serve.rs`), `docs/cli.md`, the wire format
+  in `docs/design.md` ("podssh's own SFTP requests"), a row of
+  `docs/STATUS.md`.
+
+Results:
+
+- `cargo test -p podssh-ssh --test sftp_extensions`: UNVERIFIED.
+- `cargo test -p podssh-ssh --lib sftp::sums` and `--lib server::`:
+  UNVERIFIED.
+- `cargo test -p podssh-cli --lib cp::digest`: UNVERIFIED.
+- `cargo test -p podssh-cli --test serve_sftp_openssh` (OpenSSH's `sftp` and
+  `scp` against `podssh serve`, still whole): UNVERIFIED.
+- The manual's tables (`--lib man`, `man_page`): UNVERIFIED.
+- Clippy, and `cargo todo remap` of `docs/design.md`, `docs/cli.md`,
+  `docs/STATUS.md` and the changed sources: UNVERIFIED.
+
+Left: the gate's check of `podssh cp` to `podssh serve` with one transfer by
+T-137's counter (`scripts/interop-cp.sh`), and the plant of a server that
+lists the request and returns a wrong digest (exit 70); both wait for T-251.
+The digests of blocks wait for their user, T-142.
 
 # T-267: A copy follows a source that grows, and does not end
 

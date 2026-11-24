@@ -146,7 +146,8 @@ pub(super) fn temp_name(name: &str) -> String {
     format!(".{name}.podssh-{:016x}.part", rand::random::<u64>())
 }
 
-/// The far digest: by a command when the server can, else by a second read.
+/// The far digest: by podssh's own request when the server lists it
+/// (T-150), else by a command when the server can, else by a second read.
 pub(crate) async fn far_digest(
     handle: &Connection,
     sftp: &Sftp,
@@ -154,6 +155,9 @@ pub(crate) async fn far_digest(
     size: u64,
     side: Side,
 ) -> Result<(Sum, String), Failed> {
+    if let Some(sum) = digest::by_request(sftp, path, size).await {
+        return Ok((sum, digest::BY_REQUEST.to_string()));
+    }
     if let Ok(absolute) = sftp.realpath(path).await {
         if let Some(found) = digest::by_command(handle, &absolute, size).await {
             return Ok(found);

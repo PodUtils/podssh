@@ -93,14 +93,22 @@ pub async fn remove_far(link: &Link, path: &str, before: &Before, done: &Done) -
     if &now != before {
         return Err(changed(path, "its size or time of change is not the one copied"));
     }
-    // The bytes too, where a digest command runs: a write in the same second
-    // keeps the size and the time.
+    // The bytes too, where podssh's own request (T-150) or a digest command
+    // runs: a write in the same second keeps the size and the time.
     if let Some(sum) = &done.sum {
-        let named = if path.starts_with('/') { path.to_string() } else { format!("./{path}") };
-        if let Some((now, _)) = digest::by_command(link.handle(), &named, done.bytes).await {
-            if &now != sum {
-                return Err(changed(path, "its bytes are not the ones copied"));
+        let asked = match &link.road {
+            Road::Sftp(sftp) => digest::by_request(sftp, path, done.bytes).await,
+            Road::Exec(_) => None,
+        };
+        let now = match asked {
+            Some(now) => Some(now),
+            None => {
+                let named = if path.starts_with('/') { path.to_string() } else { format!("./{path}") };
+                digest::by_command(link.handle(), &named, done.bytes).await.map(|(now, _)| now)
             }
+        };
+        if now.is_some_and(|now| &now != sum) {
+            return Err(changed(path, "its bytes are not the ones copied"));
         }
     }
     let gone = match &link.road {

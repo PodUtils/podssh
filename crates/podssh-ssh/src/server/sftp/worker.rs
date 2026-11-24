@@ -56,9 +56,24 @@ impl Worker {
         Ok(tx)
     }
 
+    /// The limit of each call that names no other.
+    pub(super) fn limit(&self) -> Duration {
+        self.limit
+    }
+
     /// Run `call` on the session's thread, and wait for it within the limit.
     pub(super) async fn call<T: Send + 'static>(
         &mut self,
+        call: impl FnOnce() -> T + Send + 'static,
+    ) -> Result<T, Failed> {
+        self.call_within(self.limit, call).await
+    }
+
+    /// [`Worker::call`] within `limit`: a digest of a long range reads at
+    /// the speed of the disk (T-150).
+    pub(super) async fn call_within<T: Send + 'static>(
+        &mut self,
+        limit: Duration,
         call: impl FnOnce() -> T + Send + 'static,
     ) -> Result<T, Failed> {
         let (tx, rx) = oneshot::channel();
@@ -80,7 +95,7 @@ impl Worker {
         if let Some(job) = unsent {
             tokio::task::spawn_blocking(job);
         }
-        match tokio::time::timeout(self.limit, rx).await {
+        match tokio::time::timeout(limit, rx).await {
             Ok(Ok(value)) => Ok(value),
             Ok(Err(_)) => Err(Failed::Lost("the call failed on its thread".into())),
             Err(_) => {
@@ -88,7 +103,7 @@ impl Worker {
                 // is gone.
                 self.jobs = None;
                 self.stuck += 1;
-                Err(Failed::Stuck(self.limit))
+                Err(Failed::Stuck(limit))
             }
         }
     }

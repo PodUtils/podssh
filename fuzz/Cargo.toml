@@ -143,3 +143,10 @@ path = "fuzz_targets/quick_control.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "sftp_sums"
+path = "fuzz_targets/sftp_sums.rs"
+test = false
+doc = false
+bench = false

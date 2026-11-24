@@ -14,6 +14,8 @@ use std::path::{Path, PathBuf};
 
 use russh_sftp::protocol::{File as Named, FileAttributes, OpenFlags, StatusCode};
 
+use crate::sftp::sums::Sum;
+
 /// The most names in one reply to a readdir, as `sftp-server` sends.
 pub const NAMES_PER_READ: usize = 100;
 
@@ -127,6 +129,20 @@ pub(super) fn read_at(file: &File, offset: u64, len: u32) -> io::Result<Vec<u8>>
 /// Each byte of `data` at `offset`.
 pub(super) fn write_at(file: &File, offset: u64, data: &[u8]) -> io::Result<()> {
     file.write_all_at(data, offset)
+}
+
+/// A file's size and time of change, as a digest's reply names them.
+pub(super) struct State {
+    pub(super) size: u64,
+    pub(super) mtime: u64,
+}
+
+/// The digests of `len` bytes of `file` from `offset` (T-150), and the
+/// file's state after the read: a write since then changes it.
+pub(super) fn sum_file(file: &File, offset: u64, len: u64, block: u32) -> io::Result<(u64, Vec<Sum>, State)> {
+    let (hashed, sums) = crate::sftp::sums::hash_range(|buf, at| file.read_at(buf, at), offset, len, block)?;
+    let m = file.metadata()?;
+    Ok((hashed, sums, State { size: m.size(), mtime: m.mtime().max(0) as u64 }))
 }
 
 /// A path as a C string, for the calls that std does not have.

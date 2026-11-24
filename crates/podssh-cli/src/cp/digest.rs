@@ -1,10 +1,11 @@
 //! The digests of a copy: the SHA-256 of what was sent, and of what the far
 //! side holds.
 //!
-//! The far digest comes from a digest command over exec when the server has
-//! one (`sha256sum`, `shasum -a 256`, `openssl dgst -sha256`), so the bytes
-//! are not read twice; else from a second read of the file over SFTP, which
-//! counts again against the relay's 64 MiB (T-137). The size and the MAC of
+//! The far digest comes from podssh's own SFTP request when the server lists
+//! it (`podssh serve`, T-150); else from a digest command over exec when the
+//! server has one (`sha256sum`, `shasum -a 256`, `openssl dgst -sha256`), so
+//! the bytes are not read twice; else from a second read of the file over
+//! SFTP, which counts again against the relay's 64 MiB (T-137). The size and the MAC of
 //! SSH alone miss a wrong offset, a short write, and a source that changed
 //! while it was read.
 
@@ -12,7 +13,7 @@ use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
-use podssh_ssh::sftp::{FileAttributes, OpenFlags, Pipeline, Reads, Sftp, SftpError};
+use podssh_ssh::sftp::{sums, FileAttributes, OpenFlags, Pipeline, Reads, Sftp, SftpError};
 use podssh_ssh::Connection;
 use sha2::{Digest, Sha256};
 
@@ -21,6 +22,8 @@ pub type Sum = [u8; 32];
 
 /// How the far digest was taken, when no command did it.
 pub const READ_AGAIN: &str = "read again";
+/// How the far digest was taken, when podssh's own request did it (T-150).
+pub const BY_REQUEST: &str = sums::SHA256;
 
 /// For a POSIX shell: the name of the first digest tool that the server has,
 /// on a line, then the digest of `$1` by it.
@@ -73,6 +76,23 @@ pub async fn by_command(handle: &Connection, path: &str, size: u64) -> Option<(S
         return None;
     }
     read_answer(&got.stdout)
+}
+
+/// The digest of `path` by podssh's own request (T-150), when the server
+/// lists it: the server reads the file once, with no exec and no byte over
+/// the relay. The range is the copy's `size` and one byte more, so that a far
+/// file that grows has another digest (T-267). `None` when the server does
+/// not list it, or the request failed: the next way then takes the digest,
+/// and names a failure that is real.
+pub async fn by_request(sftp: &Sftp, path: &str, size: u64) -> Option<Sum> {
+    if !sftp.has(sums::SHA256) {
+        return None;
+    }
+    let file = sftp.open_file(path, OpenFlags::READ, FileAttributes::default()).await.ok()?;
+    let got = sftp.sums(&file, 0, size.saturating_add(1), 0).await;
+    let _ = sftp.close(&file).await;
+    // The reply of a range carries one digest: `parse_reply` checks it.
+    got.ok()?.and_then(|reply| reply.sums.first().copied())
 }
 
 /// The digest of `path` on the server, by reading it again over SFTP, with
@@ -178,6 +198,35 @@ mod tests {
         .iter()
         .map(std::path::PathBuf::from)
         .find(|p| p.is_file())
+    }
+
+    /// podssh's own request against the SFTP server of `podssh serve`
+    /// (T-150): the digest of the copy's size and one byte more, as by
+    /// reading; a missing file gives way to the next way.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn the_digest_by_request_comes_from_podssh_serve_one_byte_past_the_copy() {
+        let dir = std::env::temp_dir().join(format!("podssh-digest-req-{:016x}", rand::random::<u64>()));
+        std::fs::create_dir(&dir).expect("a directory");
+        let data: Vec<u8> = (0..300_000u32).map(|i| (i.wrapping_mul(7) % 251) as u8).collect();
+        std::fs::write(dir.join("f"), &data).expect("written");
+        let (near, far) = tokio::io::duplex(1 << 20);
+        let (input, output) = tokio::io::split(far);
+        let limit = podssh_ssh::server::sftp::CALL_LIMIT;
+        tokio::spawn(podssh_ssh::server::sftp::serve(input, output, dir.clone(), limit));
+        let wait = Duration::from_secs(10);
+        let sftp = tokio::time::timeout(wait, Sftp::over(near, podssh_ssh::sftp::Limits::default()))
+            .await
+            .expect("within 10 s")
+            .expect("the version exchange");
+        let of = |bytes: &[u8]| -> Sum { Sha256::digest(bytes).into() };
+        let same = tokio::time::timeout(wait, by_request(&sftp, "f", data.len() as u64)).await.expect("within 10 s");
+        let longer = tokio::time::timeout(wait, by_request(&sftp, "f", 100_000)).await.expect("within 10 s");
+        let missing = tokio::time::timeout(wait, by_request(&sftp, "absent", 5)).await.expect("within 10 s");
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(same, Some(of(&data)), "a far file of the copy's size: its digest");
+        assert_eq!(longer, Some(of(&data[..100_001])), "a longer far file: one byte past the copy, no more");
+        assert_eq!(missing, None, "a request that fails gives way to the next way");
     }
 
     /// The digest by reading stops one byte past the copy's size: a far file

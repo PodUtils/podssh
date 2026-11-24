@@ -679,6 +679,43 @@ the decision "no LD_PRELOAD". podssh goes the other way: use the cage as a
 thin client and work on a real host over `podssh ssh -tt`, or give the cage a
 usable shell through `podssh serve`.
 
+### podssh's own SFTP requests (T-150)
+
+SFTP version 3 gives no digest of a file or of a range. Between two podssh
+ends (`podssh cp` against the SFTP server of `podssh serve`), podssh adds
+two requests of its own inside SFTP, under the names `NAME@podssh` that its
+other requests already use (`detach@podssh`, `share@podssh`). The server
+lists them in its version reply, with version `1`; a client sends them only
+to a server that lists them, else it takes T-134's ways (a digest tool by
+exec, or a second read). Standard clients pass them by. One codec serves
+both ends: `crates/podssh-ssh/src/sftp/sums.rs`.
+
+- **`sha256@podssh`**, an `SSH_FXP_EXTENDED` request with: string handle,
+  uint64 offset, uint64 length. The SHA-256 of the range.
+- **`sha256-blocks@podssh`**: the same fields and a uint32 block (1 KiB to
+  64 MiB). The SHA-256 of each block of the range, the last one short
+  (T-142).
+- **The reply**, an `SSH_FXP_EXTENDED_REPLY`: uint64 size, uint64 mtime
+  (the file's state after the read), uint64 hashed (the bytes read), uint32
+  block (0 for `sha256@podssh`), uint32 count, then count digests of 32
+  bytes. The count is 1 for a range, else the blocks of the hashed bytes,
+  8,000 at most so that a reply fits the packet of 256 KiB. A client takes
+  a reply that hashed more than asked, names another block, or has another
+  count or length as a broken protocol.
+- **The range.** Length 0 is the rest of the file as the server saw it
+  first. Else the server reads the range, or to the end of the file, and
+  one byte past the end that it saw first at most: a file that grows ends
+  the read, and the reply's size tells the rest. A range of blocks that
+  needs more than 8,000 is refused; the client asks a shorter one.
+- **The order.** The server answers each request in its order, after the
+  call of the one before ended; so a digest covers each write that the same
+  handle took before it, also in one pipeline (libfuse/sshfs orders a
+  request behind the handle's writes the same way). A write past its limit
+  closes the handle, and a digest on it then fails.
+- **The limit grows with the range**: the server's call has its limit of
+  20 s and one second more for each 32 MiB, and the client's wait its
+  limit of 30 s and the same; so the server's failure comes first.
+
 ### A gateway in front of private hosts: what the pinned russh allows (T-836, research of 2026-11-23)
 
 A gateway is `podssh serve` that picks an upstream from the login name and
