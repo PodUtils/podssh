@@ -4537,7 +4537,7 @@ that says why.
   is 1.91 or later was not read (T-343 checks it in the job). The notices of the licenses are
   made for the default features (`.github/workflows/release.yml:494`); `cargo deny` checks the
   licenses and the sources with each feature (`.github/workflows/deny.yml:49-51`).
-- Read: `docs/design.md:1380-1381` says "about 190 to 245 crates, and several megabytes" of iroh.
+- Read: `docs/design.md:1417-1418` says "about 190 to 245 crates, and several megabytes" of iroh.
 
 ## Approach
 
