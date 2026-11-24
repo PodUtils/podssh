@@ -1,12 +1,33 @@
 # Hand-off
 
-The facts that change from day to day, read on 2026-11-24, for a session with no memory of the last
+The facts that change from day to day, read on 2026-11-24 (the second session), for a session with no memory of the last
 one. Read `AGENTS.md` first. `TODO/PROGRESS.md` holds the state, tonight's queue and the work order;
 each entry's `## Done` is its own record. Where this page and an entry disagree, the entry is right.
 
 ## The state of `main`
 
-- **Read first, at the next session (the cloud session of 2026-11-24, ended at the operator's word after `64e88d06`):**
+- **Read first, at the next session (the second cloud session of 2026-11-24, after `702c450`):**
+  1. **The gate** was green at `702c450` (build run 45368834644). Each push after it cancelled the gate before: read
+     the gate of the session's last push first (T-852's new test runs in its `windows` job; T-839's codec in each).
+  2. **Merged this session, each built and tested here (Rust 1.99.1, the whole suite each time; only the 3 known
+     `job_far` failures of this container's `rm`):** the stack `draft/merge-drafts` (`71f5af7`: T-115, T-116, T-119,
+     T-120, T-122, T-124 with a new OpenSSH test `serve_listen_openssh`, T-631, T-150, T-159, T-833 done; T-123
+     partial; #18 and #129 closed); T-895 done (`3b5284d`); T-852 partial, its test in the gate's `windows` job
+     (`98e3cc5`); T-160 done with a repair that its test found (serve's pump now wakes at a key that makes no output;
+     `c2ba3bb`), T-896 filed for its rest; T-839 partial, its first part tested against swtpm and OpenSSH's
+     `ssh-keygen` (`5256c1a`).
+  3. **Drafts.** `d-t161` (`d41ef89`, `draft/d-t161` on GitHub, worktree `.claude/worktrees/agent-ad9389383d74cd2a0`)
+     waits for COORD-140 (#350): it builds only once pod-term has `Modes` and `Ring::modes_at`. Four more were being
+     drafted at the last write of this page (T-896, T-123's rest, T-839's rest, T-820's exit codes); `TODO/PROGRESS.md`,
+     "Drafts", names each that is on a branch.
+  4. **COORD.** New: #350 (COORD-140, pod-term's modes, T-161) and #351 (COORD-141, a crate `pod-tpm`?, T-839).
+     podcrates answered #346 by its COORD-153 (PodUtils/podcrates#258): the 7-bit transfer codec goes into
+     `pod-term` in its next tag; T-831 takes it then, and podssh writes no copy.
+  5. **This container** lacked `oathtool` and `swtpm`: `apt-get install oathtool swtpm swtpm-tools` before the runs of
+     `serve_totp_openssh` (it says "did not run" without them) and of the ignored swtpm tests of T-839.
+  6. **A lesson:** chain the push on `cargo todo check`'s exit code; `5256c1a` went out with 5 stale citations
+     (fixed in `1c513c2`).
+- **Read before, at the session (the cloud session of 2026-11-24, ended at the operator's word after `64e88d06`):**
   1. **The draft stack `draft/merge-drafts` (`723c2710`, on GitHub) waits for its merge into `main`.** It holds eleven
      drafts of 2026-11-24, applied on `64e88d06` with their conflicts resolved: T-150 (podssh's own SFTP digest
      requests), T-119 (MOTD), T-120 (`--shell-integration`), T-122 (a transient scope per pty child), T-124
