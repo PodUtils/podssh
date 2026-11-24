@@ -153,6 +153,9 @@ pub struct SshArgs {
     /// `--no-signal`: Ctrl-C with no remote pty sends no `signal INT`, and
     /// ends podssh at once (T-293).
     pub no_signal: bool,
+    /// `--predict`: local echo of the keys, where the far end reports them
+    /// (T-160).
+    pub predict: bool,
     /// `--resume-deadline TIME`: this client's own resume deadline, which
     /// only shortens the far end's (T-306), unparsed.
     pub resume_deadline: Option<String>,
@@ -414,6 +417,7 @@ impl SshArgs {
             take: flag("take"),
             upgrade: flag("upgrade"),
             no_signal: flag("no-signal"),
+            predict: flag("predict"),
             resume_deadline: one("resume-deadline"),
             no_resume: flag("no-resume"),
             grant: one("grant"),

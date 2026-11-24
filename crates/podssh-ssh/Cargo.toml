@@ -77,6 +77,10 @@ signature = { version = "3", default-features = false }
 # The size rules of an algorithm policy, JSON in ssh-audit's grammar, and
 # the verdict as JSON (T-838): the version that the workspace has.
 serde_json = { workspace = true }
+# Local echo for high latency (T-160): the client's model of the far end's
+# screen, which its guesses are judged against and drawn over. The model of
+# the terminal oracle (T-200), pure Rust over vte; the lock has it already.
+vt100 = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

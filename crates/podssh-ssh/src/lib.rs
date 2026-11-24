@@ -81,6 +81,8 @@ pub mod outcome;
 // Each channel's window, held while a key waits (T-661).
 pub mod pace;
 pub mod persist;
+// Local echo and its guesses for a far end with a high round trip (T-160).
+pub mod predict;
 // An algorithm policy and its verdict on a peer's KEXINIT (T-838).
 pub mod policy;
 // What the far server allows, for `podssh health --preflight` (T-482).

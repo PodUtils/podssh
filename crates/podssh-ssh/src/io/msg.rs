@@ -28,6 +28,10 @@ pub(super) async fn handle_msg(
                 out.gone = Some(tokio::time::Instant::now());
             }
         }
+        // A report of local echo's far end, which never shows (T-160).
+        ChannelMsg::ExtendedData { data, ext } if ext == crate::predict::EXT && through.predict.is_some() => {
+            crate::predict::reported(through.predict.as_mut(), &data).await;
+        }
         ChannelMsg::ExtendedData { data, .. } => {
             let data = out.consoles.text(true, through.out(&data, true, log));
             let _ = write_out(out.sink.as_ref(), &data, true).await;

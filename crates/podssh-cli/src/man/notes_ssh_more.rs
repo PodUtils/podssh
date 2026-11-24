@@ -232,4 +232,5 @@ pub(super) const MORE: &[&str] = &[
      HostName 300.1.1.1 is listed as written, and fails when podssh ssh connects. The file of -F or \
      PODSSH_SSH_CONFIG is your choice: its owner and mode are not checked, as OpenSSH does not check them. Each \
      file that it includes is checked.",
+    super::notes_predict::SSH_PREDICT,
 ];

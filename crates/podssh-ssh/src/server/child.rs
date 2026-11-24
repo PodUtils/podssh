@@ -267,10 +267,17 @@ async fn drained_all(pumps: &mut [tokio::task::JoinHandle<()>]) {
 /// Copy `pipe` to `to` until its end; after `exited` turns true, until a
 /// silence of [`QUIET`] or [`AFTER_EXIT`] in all. A write that fails (the
 /// channel is gone) ends it, and the dropped pipe tells the child.
-pub(super) async fn pump(
+pub(super) async fn pump(pipe: impl AsyncRead + Unpin, to: impl AsyncWrite + Unpin, exited: watch::Receiver<bool>) {
+    pump_told(pipe, to, exited, None).await;
+}
+
+/// [`pump`], with local echo's reports after each write of output and when
+/// one falls due (T-160): each report follows the output read before it.
+pub(super) async fn pump_told(
     mut pipe: impl AsyncRead + Unpin,
     mut to: impl AsyncWrite + Unpin,
     mut exited: watch::Receiver<bool>,
+    mut reporter: Option<super::predict::Reporter>,
 ) {
     let mut buf = vec![0u8; CHUNK];
     let mut cut: Option<Instant> = None;
@@ -283,13 +290,24 @@ pub(super) async fn pump(
                     Err(_) => return,
                 }
             }
-            None => tokio::select! {
-                read = pipe.read(&mut buf) => read,
-                () = turned(&mut exited) => {
-                    cut = Some(Instant::now() + AFTER_EXIT);
-                    continue;
+            None => {
+                // When local echo's next report falls due, if one waits.
+                let due = reporter.as_ref().and_then(super::predict::Reporter::due);
+                tokio::select! {
+                    // In this order: the child's end arms the cut at once,
+                    // and a report never goes ahead of output that waits.
+                    biased;
+                    () = turned(&mut exited) => {
+                        cut = Some(Instant::now() + AFTER_EXIT);
+                        continue;
+                    }
+                    read = pipe.read(&mut buf) => read,
+                    () = due_at(due), if due.is_some() => {
+                        told(&mut reporter).await;
+                        continue;
+                    }
                 }
-            },
+            }
         };
         match read {
             Ok(0) | Err(_) => return,
@@ -297,8 +315,29 @@ pub(super) async fn pump(
                 if to.write_all(&buf[..n]).await.is_err() {
                     return;
                 }
+                told(&mut reporter).await;
             }
         }
+    }
+}
+
+/// A report of local echo where one is due; a channel that is gone ends
+/// the reports, not the output.
+async fn told(reporter: &mut Option<super::predict::Reporter>) {
+    let gone = match reporter.as_mut() {
+        Some(r) => r.tell().await.is_err(),
+        None => false,
+    };
+    if gone {
+        *reporter = None;
+    }
+}
+
+/// Until `at`, or for ever with none.
+async fn due_at(at: Option<Instant>) {
+    match at {
+        Some(at) => tokio::time::sleep_until(at).await,
+        None => std::future::pending().await,
     }
 }
 

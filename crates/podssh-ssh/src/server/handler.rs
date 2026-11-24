@@ -40,6 +40,8 @@ mod forward;
 mod gate;
 #[path = "kept_asks.rs"]
 mod kept_asks;
+#[path = "predict_ask.rs"]
+mod predict_ask;
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -412,7 +414,11 @@ impl russh::server::Handler for Served {
         value: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        // podssh's own names of the kept shells, before --accept-env (T-159).
+        // Local echo's ask (T-160), and podssh's own names of the kept
+        // shells (T-159), before --accept-env.
+        if let Some(answered) = self.predict_env(channel, name, value, session) {
+            return answered;
+        }
         if let Some(answered) = self.keep_env(channel, name, value, session) {
             return answered;
         }

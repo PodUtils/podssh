@@ -135,6 +135,8 @@ impl Log {
                 let _ = file.write_all(text.as_bytes());
             }
             None => {
+                // The terminal's cursor moves where local echo's model does not know (T-160).
+                crate::predict::own_write();
                 let mut err = std::io::stderr();
                 let _ = err.write_all(text.as_bytes());
                 let _ = err.flush();

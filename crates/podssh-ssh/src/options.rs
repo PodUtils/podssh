@@ -306,6 +306,9 @@ pub struct Options {
     /// `signal INT` to it (T-293). Off here, as OpenSSH's client has it;
     /// `podssh ssh` turns it on, and `--no-signal` off again.
     pub interrupt_signal: bool,
+    /// `--predict`: local echo of the keys, where the far end tells it how
+    /// (`podssh serve` with a pty) and the round trip is long (T-160).
+    pub predict: bool,
     /// The destination's host key for the whole run, shared by each
     /// connection that a run opens again (`cp`, T-136); `None` for one
     /// connection.
@@ -412,6 +415,7 @@ impl Options {
             output: None,
             feed: None,
             interrupt_signal: false,
+            predict: false,
             host_key_pin: None,
             host_key_fingerprints: Vec::new(),
             remembered: None,

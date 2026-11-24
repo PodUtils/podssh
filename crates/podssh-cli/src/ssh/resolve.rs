@@ -383,6 +383,8 @@ pub fn resolve_or_refuse(args: &SshArgs, env: &Env) -> Result<Resolved, Refusal>
     options.stdin_null = args.stdin_null || settings.stdin_null.unwrap_or(false);
     // Ctrl-C with no remote pty sends `signal INT` first (T-293).
     options.interrupt_signal = !args.no_signal;
+    // Local echo, asked of the far end at the session's start (T-160).
+    options.predict = args.predict;
     let stream = matches!(options.request, Request::StdioForward(_));
     let permit = settings.permit_local_command;
     options.local_command = super::local_command::plan(settings.local_command.as_deref(), permit, &tokens, stream)?;

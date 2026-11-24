@@ -107,6 +107,8 @@ mod notes_share;
 mod notes_spares;
 mod notes_ssh;
 mod notes_ssh_more;
+// The note of --predict (T-160).
+mod notes_predict;
 // The notes of --tuic (T-581).
 mod notes_tuic;
 // A unit read before it is installed, and a system unit (T-709).

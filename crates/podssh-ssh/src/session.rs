@@ -123,6 +123,10 @@ pub async fn attach(
     if let Some(Ask::Attach { name, take }) = &opts.keep.ask {
         crate::keep::ask_attach(&mut channel, &mut early, name, *take).await?;
     }
+    // `--predict` (T-160): asked last before the session's request, so that
+    // its answer comes after the pty's, which may wait as long.
+    let wanted = crate::predict::wanted(opts, want_pty, stdin_tty);
+    let predict_at = if wanted { crate::predict::ask(&channel).await } else { None };
     let mut elevated = None;
     let what = match &opts.request {
         Request::Shell => {
@@ -155,6 +159,7 @@ pub async fn attach(
     if together {
         pty = granted(&mut channel, &mut early, log).await?;
     }
+    let rtt = crate::predict::answered(&mut channel, &mut early, predict_at, log).await?;
     if !wait_reply(&mut channel, &mut early).await? {
         return Err(format!("the server refused to start {what}"));
     }
@@ -204,6 +209,8 @@ pub async fn attach(
     });
     // A notice while the far end is silent, where anything tells it (T-302).
     let notice = crate::notice::Notice::for_session(opts, host, raw.is_some(), pty);
+    // Local echo, on a raw terminal that the far end's pty serves (T-160).
+    let predict = rtt.filter(|_| pty && raw.is_some()).map(crate::predict::Predict::for_terminal);
     let through = io::Through {
         elevated,
         zmodem,
@@ -216,6 +223,7 @@ pub async fn attach(
         asked,
         // Where the road tells no silence, nothing resumes its link (T-598).
         window_stall: !opts.silence.told_by_road(),
+        predict,
     };
     // With no remote pty, Ctrl-C sends `signal INT` to a command or a shell
     // (T-293); a subsystem gets none, as sshd refuses it for one.

@@ -145,6 +145,8 @@ pub struct Through {
     /// (T-598): on a road that resumes no link (`--direct`); the resumable
     /// layer's own silence resumes the link, and a stall there is survived.
     pub window_stall: bool,
+    /// Local echo of the keys, for a far end that reports them (T-160).
+    pub predict: Option<crate::predict::Predict>,
 }
 
 impl Through {
@@ -164,12 +166,20 @@ impl Through {
         };
         let data = self.recorded(data, log);
         // A notice of silence goes before the far end's next bytes (T-302).
-        match self.notice.as_mut().map(|notice| notice.before_output(&data, stderr)) {
+        let data = match self.notice.as_mut().map(|notice| notice.before_output(&data, stderr)) {
             Some(mut first) if !first.is_empty() => {
                 first.extend_from_slice(&data);
                 first
             }
             _ => data,
+        };
+        // Local echo's guesses off the far end's screen, and on again after
+        // it (T-160); a transfer of ZMODEM ends them.
+        let zmodem = self.zmodem.as_ref().is_some_and(Zmodem::busy);
+        match self.predict.as_mut() {
+            Some(p) if zmodem => [p.stop(), data].concat(),
+            Some(p) => p.output(&data),
+            None => data,
         }
     }
 
@@ -262,6 +272,7 @@ pub async fn pump(
                     };
                     if !data.is_empty() {
                         crate::outcome::stdin(data.len());
+                        crate::predict::typed(through.predict.as_mut(), &data).await;
                         // A key on a pty holds the bulk until its echo (T-661).
                         if pty {
                             crate::pace::key();
@@ -278,6 +289,10 @@ pub async fn pump(
                         if through.asked.as_ref().is_some_and(|a| a.key(ping.is_some())) {
                             ping = Some(Box::pin(handle.send_ping()));
                         }
+                    }
+                    // An escape writes podssh's own words: local echo ends first.
+                    if !commands.is_empty() {
+                        crate::predict::halted(through.predict.as_mut()).await;
                     }
                     for command in commands {
                         match command {
@@ -367,6 +382,7 @@ pub async fn pump(
             },
             Some(size) = resize.next() => {
                 busy.at("a change of the terminal's size");
+                crate::predict::resized(through.predict.as_mut(), size).await;
                 let change = writer.window_change(size.cols, size.rows, size.px_width, size.px_height);
                 let _ = beside(change, &mut reader, &mut aside, &mark).await;
                 if let Some(r) = through.record.as_mut() {
