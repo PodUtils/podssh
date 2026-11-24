@@ -63,6 +63,9 @@ pub mod notify;
 pub mod options;
 mod policy_gate;
 mod program;
+// The reports of local echo, from a pty's channel (T-160).
+#[cfg(unix)]
+mod predict;
 #[cfg(unix)]
 pub mod pty;
 #[cfg(unix)]

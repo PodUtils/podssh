@@ -28,8 +28,8 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 - Measured: `podssh each a,b -- true` exits 64 (`unknown subcommand 'each'`),
   and `podssh ssh 'web1,web2' true` exits 64 (`',' is not allowed`).
 - Read: remote output goes straight to the stdout and stderr of the process
-  (`crates/podssh-ssh/src/io/msg.rs:86-103`), and podssh's own messages go to
-  stderr with one `podssh: ` prefix (`crates/podssh-ssh/src/log.rs:123-143`).
+  (`crates/podssh-ssh/src/io/msg.rs:90-107`), and podssh's own messages go to
+  stderr with one `podssh: ` prefix (`crates/podssh-ssh/src/log.rs:123-145`).
   Two hosts cannot be told apart.
 - Read: a host-key prompt waits for the user
   (`crates/podssh-ssh/src/hostkey.rs:208-247`); N prompts at once cannot
@@ -49,7 +49,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 2. One runtime, one task for each host, each on the existing path: the relay
    open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:329-411`,
    `crates/podssh-ssh/src/run.rs:39-89`). Invariant: no second SSH client.
-3. Sinks: give `crates/podssh-ssh/src/io.rs:189-466` (and `crates/podssh-ssh/src/io/msg.rs:11-103`) a sink for stdout and
+3. Sinks: give `crates/podssh-ssh/src/io.rs:199-482` (and `crates/podssh-ssh/src/io/msg.rs:11-107`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
    (`crates/podssh-ssh/src/log.rs:32-38`). Each line gets `HOST: `. With
    `--output-dir`, the bytes go unchanged to `HOST.out` and `HOST.err`, and
@@ -64,7 +64,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    could not connect or log in; 0 only when each host gave 0. `--fail-fast`
    starts no new host after a failure, and the running ones finish. A
    summary on stderr gives each host and its status.
-7. In the same commit: `crates/podssh-cli/src/flags.rs:391-461`,
+7. In the same commit: `crates/podssh-cli/src/flags.rs:392-462`,
    `crates/podssh-cli/src/positionals.rs:7-281`, a `Parsed` variant,
    `crates/podssh-cli/tests/flag_table.rs:110-146`, the notes, an example,
    `docs/cli.md`, `docs/STATUS.md`. T-013 can then group the commands.
@@ -291,7 +291,7 @@ a broadcast needs a stop that works at once.
 
 - Read: a session reads stdin on its own task and sends each chunk to one
   channel (`crates/podssh-ssh/src/io/input.rs:102-122`,
-  `crates/podssh-ssh/src/io.rs:253-325`).
+  `crates/podssh-ssh/src/io.rs:263-340`).
 - Read: escapes work only at the start of a line, and only with a pty
   (`crates/podssh-ssh/src/escape.rs:1-8`).
 - Read: each session can live in one process, so a broadcast needs no
@@ -1029,8 +1029,8 @@ that can be missing. `podssh doctor` checks only this host.
 ## Premise
 
 - Read: an exec request runs one command through the shell of the server
-  (`crates/podssh-ssh/src/session.rs:143-158`), and its output goes to stdout
-  (`crates/podssh-ssh/src/io/msg.rs:73-91`); podssh cannot read it.
+  (`crates/podssh-ssh/src/session.rs:147-162`), and its output goes to stdout
+  (`crates/podssh-ssh/src/io/msg.rs:77-95`); podssh cannot read it.
 - Read: on Linux, `/proc/loadavg`, `/proc/meminfo`, `/proc/uptime` and
   `/proc/net/dev` hold the facts, and a POSIX shell reads them with `read`,
   with no other tool.
@@ -1044,7 +1044,7 @@ that can be missing. `podssh doctor` checks only this host.
    built-ins of the shell, and `df -P` only when `command -v df` finds it.
    No text of the user goes into the script.
 3. Read the output with the sink of T-183
-   (`crates/podssh-ssh/src/io.rs:183-458`), parse it, and print one line for
+   (`crates/podssh-ssh/src/io.rs:193-474`), parse it, and print one line for
    each fact: load, memory and swap, uptime, network bytes (two samples,
    1 s apart), disk, processes. `--json` gives one object, in the shape of
    T-049.
@@ -1350,7 +1350,7 @@ expect rule.
   prints `-o LocalCommand has no effect in podssh`, and the same for
   `PermitLocalCommand` (`crates/podssh-cli/src/ssh/keywords.rs` lines 93-94 at `61e55d1`).
 - Read: remote output arrives at `crates/podssh-ssh/src/io/msg.rs:11-34`, and
-  input leaves at `crates/podssh-ssh/src/io.rs:253-309`. An expect rule goes
+  input leaves at `crates/podssh-ssh/src/io.rs:263-324`. An expect rule goes
   between them.
 - Read from memory, to verify against OpenSSH 10.3p1: OpenSSH runs
   `LocalCommand` after the connection, with the user's shell, only with
@@ -1811,7 +1811,7 @@ a ticket, or a tool that asks an AI.
 - Read: podssh's messages leave through two writers: `Streams.err` in the
   command line (`crates/podssh-cli/src/dispatch.rs:26-29`), and `Log`, which
   writes to the stderr of the process itself
-  (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
+  (`crates/podssh-ssh/src/log.rs:123-145`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:408-452`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
   status (`docs/cli.md:6940-6943`), which is not a failure of podssh.
@@ -1921,7 +1921,7 @@ program for each exit that is not 0; the remote `exit 3` check must fail.
 ## Correction
 
 The premise of two writers is not whole. `Log` writes to the file of `-E`
-in place of stderr when it is given (`crates/podssh-ssh/src/log.rs:123-143`),
+in place of stderr when it is given (`crates/podssh-ssh/src/log.rs:123-145`),
 and `podssh node`, `operator`, `chat`, `pipe` and `agent` write their lines
 while they serve with `eprintln!`, which is neither writer
 (`crates/podssh-cli/src/node.rs:358`). The report keeps what goes through
@@ -2851,7 +2851,7 @@ relay reaches; nothing reports the far side.
   (`crates/podssh-ssh/src/sftp/mod.rs:234-237`), the request of a remote forward
   (`crates/podssh-ssh/src/remote.rs:130-144`), a channel `direct-tcpip`
   (`crates/podssh-ssh/src/local.rs:79`), keepalives each 60 s by default
-  (`crates/podssh-ssh/src/options.rs:391-392`), and the relay's cap on a session
+  (`crates/podssh-ssh/src/options.rs:394-395`), and the relay's cap on a session
   (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:23-25`).
 - Read in the issue: a Go SSH server's keepalive reply ended each idle session at 60 s (#83); it
   refused `tcpip-forward` (#85) and had no `direct-tcpip` (#86); its SFTP server had no

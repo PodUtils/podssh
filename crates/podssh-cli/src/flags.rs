@@ -217,7 +217,7 @@ pub const SSH_FLAGS: &[FlagRow] = &[
         "the tmux session of --persist: letters, digits, _ and -, 32 at most (default podssh)", None),
     row(None, "persist-forever", None, FlagKind::Supported,
         "with --persist: connect again after each loss, and after a first connection that failed, with no limit of attempts or of time", None),
-    node::SSH_INSTALL, node::SSH_UNINSTALL, node::SSH_ENV_FILE, attach::ATTACH, attach::TAKE, attach::RESET,
+    node::SSH_INSTALL, node::SSH_UNINSTALL, node::SSH_ENV_FILE, attach::ATTACH, attach::TAKE, attach::RESET, predict::PREDICT,
     // The hosts that get the headers of Cloudflare Access on the relay's roads (T-718).
     node::ACCESS_HOST,
     expect::EXPECT, expect::SEND, expect::EXPECT_TIMEOUT,
@@ -329,6 +329,7 @@ mod ping;
 mod pipe;
 mod play;
 mod policy;
+mod predict;
 mod funnel;
 mod relay;
 mod run;

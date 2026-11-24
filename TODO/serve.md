@@ -50,7 +50,7 @@ core: the handshake, a host key that does not change, and key authentication.
    `$HOME/.ssh/authorized_keys`. Lines with options wait for T-114. No usable
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
-5. The verb: rows in `crates/podssh-cli/src/flags.rs:387-461` and
+5. The verb: rows in `crates/podssh-cli/src/flags.rs:388-462` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
    `crates/podssh-cli/src/dispatch.rs:385-387`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
@@ -226,7 +226,7 @@ and stderr apart, and an environment that a cage can give.
   lines 601-667). russh also gives each data message to the kept `Channel`,
   and waits when 100 wait unread (`Eugeny/russh:russh/src/server/encrypted.rs`,
   lines 1350-1356): an unread channel stops the whole connection.
-- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-84`;
+- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-88`;
   `crates/podssh-ssh/src/signals.rs:70-79` maps names to numbers only;
   `tokio` with `process` is a dependency (`crates/podssh-ssh/Cargo.toml:19`).
 
@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:538`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:539`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:720`; measured: `docs/STATUS.md:546`). 200 MiB each way
+  (`docs/relay.md:720`; measured: `docs/STATUS.md:547`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -1944,7 +1944,7 @@ Correction):
   But serve's output never puts data there: each output goes through a channel's writer, which waits
   for that channel's window (`vendor/russh/src/channels/io/tx.rs:82`, `poll_writable`), and T-108
   already wrote it so: `pump` (`crates/podssh-ssh/src/server/child.rs:249`) reads 32 KiB, and reads
-  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:276`). Approach items 1 and 2
+  again only after `write_all` (`crates/podssh-ssh/src/server/child.rs:283`). Approach items 1 and 2
   were done by T-108 and T-110; this entry proves them. A `Handle::data` loop is held too: russh's
   loop stops taking from the `Handle` while data waits, so the Prove's planted `Session::data` loop
   would grow no memory and pass. The plant of the memory bound is a read-ahead instead: a buffer of
@@ -2818,11 +2818,11 @@ no reason (`docs/target-environment.md:88-89`).
 ## Premise
 
 - Read: no source in `crates/` reads `SHELL` or selects a shell; `serve` is
-  not a verb (`crates/podssh-cli/src/flags.rs:387-461`). The line numbers in
+  not a verb (`crates/podssh-cli/src/flags.rs:388-462`). The line numbers in
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:538`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:539`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2878,7 +2878,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:485`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:486`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2896,10 +2896,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:537` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:485`, `docs/STATUS.md:505`),
+- `docs/STATUS.md:538` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:486`, `docs/STATUS.md:506`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:483` is `docs/STATUS.md:485`.
+  The Prove's `docs/STATUS.md:484` is `docs/STATUS.md:486`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2958,10 +2958,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:538`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:539`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:501`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:502`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -3045,8 +3045,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:537`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:500`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:538`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:501`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -4359,7 +4359,7 @@ which of two writers' bytes reach the pty.
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
   nothing (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`,
-  `crates/podssh-ssh/src/server/handler.rs:341-364`); `--listen` is T-124, still open.
+  `crates/podssh-ssh/src/server/handler.rs:343-366`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4516,8 +4516,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:93-114`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:77`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:96-117`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:80`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 

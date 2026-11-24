@@ -32,6 +32,10 @@ pub(super) async fn handle_msg(
                 out.gone = Some(tokio::time::Instant::now());
             }
         }
+        // A report of local echo's far end, which never shows (T-160).
+        ChannelMsg::ExtendedData { data, ext } if ext == crate::predict::EXT && through.predict.is_some() => {
+            crate::predict::reported(through.predict.as_mut(), &data).await;
+        }
         ChannelMsg::ExtendedData { data, ext } => {
             // serve says a reset, and a part that its ring dropped, here.
             if let (Some(count), 1) = (&through.count, ext) {

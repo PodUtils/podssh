@@ -89,6 +89,9 @@ pub(super) struct Open {
     /// The audit log's mark of the session that runs here: its drop, at
     /// the channel's close, writes the session's end.
     pub(super) mark: Option<super::audit::Session>,
+    /// `env predict@podssh v1` was taken: the pty's output carries local
+    /// echo's reports (T-160).
+    pub(super) predict: bool,
 }
 
 impl Open {
@@ -122,6 +125,7 @@ impl Open {
             kept: None,
             tally,
             mark: None,
+            predict: false,
         }
     }
 

@@ -839,7 +839,7 @@ Read: a read waits 90 s at most (`crates/podssh-ws/src/client.rs:31-33`, set at
 frame each 25 s. The ping watcher acts only after a first Pong
 (`PodUtils/podssh:crates/podssh-ws/src/session.rs:296-334`); Pongs and the idle cut on reverse
 sockets are not measured (T-061). russh sends a keepalive each 60 s and ends
-the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:352-392`).
+the session after 3 with no answer (`crates/podssh-ssh/src/options.rs:355-395`).
 Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 `-o ServerAliveInterval=0` prints the warning of
 `crates/podssh-cli/src/ssh/resolve.rs:338-348` (the `warnings` of keepalives), and `podssh ssh` exits 255.
@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:189`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:194`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -1699,7 +1699,7 @@ rose's prediction, GPL, of which only the specification may be read).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1738,6 +1738,58 @@ never show.
 
 **The donor study (2026-11-18, PodUtils/podssh#317), report 07.** (mobile-shell/mosh at decd9b7). Details of mosh's overlay that step 2 and step 4 do not give, for the design before the code: (a) each predicted cell holds the state number after which it is judged (`local_frame_sent + 1`) and what it replaced, so a prediction is checked against a state, not against a clock (mobile-shell/mosh:src/frontend/terminaloverlay.cc:762, src/frontend/terminaloverlay.h:57-64); (b) the far end tells the client the number of the last input it applied, after 50 ms of batching, and the client gets the echo ack from that number (mobile-shell/mosh:src/statesync/completeterminal.cc:132-136, src/frontend/mosh-server.cc:799-801), which is the "input offset that reached the pty" of step 3; (c) a wrong tentative guess kills its epoch, and a wrong confirmed guess resets the whole engine, which makes right guesses elsewhere flash (mobile-shell/mosh:src/frontend/terminaloverlay.cc:468-482, src/frontend/terminaloverlay.cc:502-507); consider resetting the row only; (d) wide characters and non-printing input are tentative, and a read over 100 bytes is a paste that resets prediction (mobile-shell/mosh:src/frontend/terminaloverlay.cc:712-714, src/frontend/stmclient.cc:331-335); (e) overlays are drawn on a copy of the screen and the copy is diffed to the display, so the model that the far end sends never holds a guess (mobile-shell/mosh:src/frontend/stmclient.cc:281-288). The decision to take before T-160 and T-161 are written separately: mosh's framebuffer holds exactly `height` rows and no history (mobile-shell/mosh:src/terminal/terminalframebuffer.h:396-420), so the object that is numbered and diffed must be larger than the viewport, or the scrollback needs a stream of its own; write the choice in T-161's Decision. T-303 and T-304 then follow: the latest screen is the newest state number, and the datagram is only the carriage.
 
+## Decision
+
+2026-11-24, in the draft (each call with the alternatives that lost).
+
+1. **The far end's word rides the SSH channel.** `podssh ssh --predict` asks with `env
+   predict@podssh v1` and a reply, last before the shell or the command, so its answer comes
+   after the pty's; `podssh serve` takes it on a channel whose pty it opened, and then sends
+   each report as 10 bytes of extended data of the code `0xFE504F44`, in the range that RFC
+   4250 leaves for private use (section 4.4.3, read on 2026-11-24 through
+   `fetch.web.pkgforge.dev`): the version, ECHO and ICANON, and the count of the client's bytes
+   that reached the pty's master 50 ms ago (`crates/podssh-ssh/src/predict/report.rs`). Each
+   report goes out of the task that copies the pty's output, after the output read before it
+   (`crates/podssh-ssh/src/server/predict.rs`). Lost: a channel request from serve, which
+   russh's client answers with FAILURE and passes to no handler
+   (`vendor/russh/src/client/encrypted.rs`, the arm of an unknown `CHANNEL_REQUEST`), so it
+   needs a patch of russh; a frame of the resumable layer ("on top of layer 2",
+   `docs/design.md:871-872`), whose far end is a node that may sit in front of a standard sshd
+   and see no pty, and which `--direct` does not have; bytes inside the data stream, which the
+   far end's program could write itself and so forge.
+2. **The invariant of step 3 reads ICANON with ECHO.** A guess never shows while the pty reads
+   a line with no echo (ICANON on, ECHO off). In raw mode a guess shows only in an epoch whose
+   first guess the far end echoed, and a change of the flags, a new row of the cursor, Enter
+   and each key that is not guessed start a new epoch. Lost: ECHO off alone, which turns local
+   echo off under readline, zsh, fish and vim, each of which runs with ECHO off and echoes
+   itself; the epoch alone (mosh reads no flag), which shows a guess on a confirmed line until
+   the far end's report when a program stops echoing with no other sign.
+3. **The model is `vt100`**, at run time in podssh-ssh: the model of the terminal oracle
+   (T-200), pure Rust over vte, MIT, in the lock already (podssh-cli's `session capture` runs
+   it). Lost: `pod-term`'s grammar, which finds boundaries and keeps no grid; a model of
+   another crate, which the oracle would then judge with a second parser.
+4. **Guesses are drawn over the terminal and taken off before each byte of the far end**, by
+   moves along the cursor's row only (`crates/podssh-ssh/src/predict/draw.rs`). Lost: mosh's
+   display, a frame buffer of the client diffed to the terminal, which would make podssh
+   redraw the far end's screen itself (the frames of T-303); a move to a place on the screen,
+   which the origin mode would shift where the model does not say.
+5. **The round trip's line**: guesses show from a smoothed round trip of 120 ms (step 5) and
+   stop under 80 ms, so that a link near the line does not make them come and go; the first
+   sample is the reply to the ask, the next ones the reports, less the far end's 50 ms. Lost:
+   mosh's 30 ms and its 250 ms of a guess that waited (`docs/design.md`, "Local echo"), lower
+   than the entry's 120 ms.
+6. **A wrong guess resets the row**, which holds each guess (report 07, item c); with it, each
+   guess of the epoch goes, and nothing is guessed until the far end has read each key sent.
+7. **A line of podssh's own on the terminal stops local echo for the session**: it moves the
+   cursor where the model does not know it. Lost: asking the terminal where its cursor is,
+   whose answer comes among the keys (as "A notice while the far end is silent" found in
+   `docs/terminal.md`).
+8. **Shared code first.** The predictor is podssh's: `pod-term` holds the line discipline and
+   the grammar of boundaries, and no crate of PodUtils/podcrates at `v0.82.1` holds a screen
+   model or a predictor (its `docs/design.md`, the table of crates); no sibling runs an
+   interactive client on a link of a long round trip, and the reports are a word between
+   podssh's client and `podssh serve`. No ask is filed.
+
 ## Prove
 
 ```sh
@@ -1775,6 +1827,61 @@ T-200 is `pod-testkit`'s (its feature `screen`), taken by the same tag.
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (the draft). The Premise's `docs/design.md:834-835` moved: the text reads at
+`docs/design.md:871-872` ("An interactive echo for high latency"). The Start condition's "which
+reports the input's offset and the ECHO flag" did not hold at `a64e47d`: serve's pty copied the
+master's output and nothing else (`crates/podssh-ssh/src/server/pty_child.rs`); the draft adds
+the reports, as step 3 asks. Step 3's invariant, "no prediction shows while ECHO is off", read
+alone, turns local echo off under each line editor, which runs with ECHO off and echoes itself
+(readline, zsh, fish, vim); it holds as Decision 2 reads it. So the Prove's plant changes: a
+predictor that ignores the ECHO flag alone still shows no password, as the epoch and the reset
+at a change of the flags each hold it; the plant that fails the second check ignores the flag
+and shows guesses of an epoch that no echo confirmed. Step 6's oracle is `vt100`, the model of
+`pod-testkit`'s feature `screen`, which the test reads directly.
+
+## Done
+
+2026-11-24, drafted on the branch `d-t160`; merged by the main session on `main` after `98e3cc5`, built and
+tested (Rust 1.99.1). It holds:
+
+- The client: `crates/podssh-ssh/src/predict/` (`engine.rs`, the guesses with no I/O, and its
+  table of runs; `keys.rs`; `draw.rs`, the drawing and its undo; `report.rs`, the wire; `mod.rs`,
+  the model and the glue), wired in `crates/podssh-ssh/src/io.rs` (the keys, the escapes, a
+  resize, the output), `crates/podssh-ssh/src/io/msg.rs` (the reports),
+  `crates/podssh-ssh/src/session.rs` (the ask) and `crates/podssh-ssh/src/log.rs` (podssh's
+  own lines); `--predict` in `crates/podssh-cli/src/flags/predict.rs`, the parser and the
+  options; the manual's note `crates/podssh-cli/src/man/notes_predict.rs`; `llms-full.txt` by
+  hand.
+- The far end: `crates/podssh-ssh/src/server/predict.rs` and
+  `crates/podssh-ssh/src/server/predict_ask.rs`; `pump_told` in
+  `crates/podssh-ssh/src/server/child.rs`, whose select is now biased (the child's end, the
+  output, then a report); the pty's own path in `crates/podssh-ssh/src/server/pty_child.rs`.
+- `docs/terminal.md`, "Local echo for high latency (T-160)", and a row of `docs/STATUS.md`.
+
+Results (2026-11-24, Rust 1.99.1):
+
+- `cargo test -p podssh-ssh --test predict` (the Prove: a simulated link of 300 ms between two vt100 models; letters
+  show before the echo, and none with ECHO off): 4 passed.
+- `cargo test -p podssh-ssh --test serve_predict`: 3 passed, after a repair that its test found. As drafted, serve's
+  pump read when the next report fell due only before it waited on the pty, so a key that made no output (a line
+  with no echo) woke nothing and its report never came: `a_line_with_no_echo_is_reported_and_shows_no_key` failed
+  at its 30 s limit, with the report of offset 0 alone. Now the writer of the keys wakes the pump
+  (`Applied::fall_due` on a `Notify`, `server/predict.rs`), and the unit test
+  `a_write_while_nothing_is_due_wakes_the_wait` holds it. The failing run is the planted defect of that check.
+- `cargo test -p podssh-ssh --lib` (`predict::` and `server::` among them): 521 passed.
+- `cargo test -p podssh-cli --lib` 1279 passed; `flag_table` 9, `man_flag_parity` 6, `man_page` 11, `man_json` 4
+  passed; `llms.txt` and `llms-full.txt` written again from the manual.
+- The whole suite, as the pump of each serve channel changed (its select is biased): `cargo test --workspace
+  --no-fail-fast`, 423 suites, 4243 passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as before).
+- rustfmt, and the gate's clippy with `-D warnings -A clippy::collapsible_if`: clean. The merge resolved the
+  draft's four places beside T-895's counter (`io.rs`, `io/msg.rs`, `session.rs`, `flags.rs`) as both, and moved
+  the citations (`cargo todo remap`).
+
+Waits for T-251: the planted predictor of the Correction. Filed as T-896, the rest that the draft names: the run
+from end to end through the fault harness's 300 ms (T-203), `podssh ssh --predict` to `podssh serve` in a test of
+podssh-cli; reports from a shared shell (T-837) and from a kept shell (T-159), whose guesses never show; and the
+Windows console, whose VT mode the drawing needs (`CSI C`, `CSI D`, `CSI X`).
 
 # T-161: Screen state and scrollback when a client attaches
 
@@ -4277,7 +4384,7 @@ same setting.
   `crates/podssh-cli/src/ssh/cloudflare.rs:200` returns `layer: Some(done)`. The greeting is known
   only after the connection, so the list at `resolve.rs:375` cannot decide it.
 - The guard at `crates/podssh-cli/src/ssh/tries.rs:52` removes the keepalives only when
-  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:426` sets when the user
+  `resolved.alive_default` holds, which `crates/podssh-cli/src/ssh/resolve.rs:428` sets when the user
   named no interval.
 - T-300 chose "SSH's keepalives off there unless `ServerAliveInterval` is given"
   (`TODO/roads.md:2031-2032`). T-154's Correction (`TODO/resume.md:891-895`) says that the resumable
@@ -4665,3 +4772,41 @@ Drafted 2026-11-24 on T-833's draft; merged, built and tested by the main sessio
 - Waits: the
   planted client that gives no count (the replay check of the Prove fails) with the release check
   (T-251); a run against `podssh serve NAME` through the relay, as T-159's Done says.
+
+# T-896: Local echo from end to end, for kept and shared shells, and on the Windows console
+
+**Source:** T-160's close (2026-11-24): its draft names what it does not hold.
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+`podssh ssh --predict` shows a typed key at once where `podssh serve` reports the keys that reached its pty (T-160).
+Three cases get no guess: a kept shell (T-159) and a shared shell (T-837) send no report, and the Windows console
+is not put in the VT mode that the drawing needs. No test runs the client against `podssh serve` through a slow
+link from end to end.
+
+## Premise
+
+- `crates/podssh-ssh/src/server/predict.rs`: "A shared or a kept shell sends none".
+- `crates/podssh-ssh/src/predict/draw.rs` draws with `CSI C`, `CSI D` and `CSI X`.
+- `crates/podssh-cli/tests/faults.rs` holds the fault harness of T-203.
+
+## Approach
+
+1. A test of podssh-cli: `podssh ssh --predict` to `podssh serve --stdio` through the fault harness's 300 ms; typed
+   letters show before the echo, and none at a password prompt.
+2. The reports from a kept shell's pty (its count of the attached client's bytes) and from the writer of a shared
+   shell.
+3. On Windows, the console's VT mode where the console takes it, else no prediction with one line at `-v`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test predict_e2e
+```
+

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**828 entries: 6 open, 48 partial, 13 blocked, 761 done.**
+**829 entries: 6 open, 48 partial, 13 blocked, 762 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 6 | 14 | 8 | 359 | 387 |
-| **All** | 6 | 48 | 13 | 761 | 828 |
+| P3 | 6 | 14 | 8 | 360 | 388 |
+| **All** | 6 | 48 | 13 | 762 | 829 |
 
 ## Entries
 
@@ -234,7 +234,7 @@ repository and CI).
 | [T-157](resume.md) | P2 | M | M6 | measurement | done | Throughput on each road and relay, by a committed method |
 | [T-158](resume.md) | P3 | M | backlog | feature | done | Detach and attach again |
 | [T-159](resume.md) | P3 | M | backlog | feature | done | Sessions on the far end that outlive the client |
-| [T-160](resume.md) | P3 | L | backlog | feature | open | Local echo and prediction for high latency |
+| [T-160](resume.md) | P3 | L | backlog | feature | done | Local echo and prediction for high latency |
 | [T-161](resume.md) | P3 | L | backlog | research | open | Screen state and scrollback when a client attaches |
 | [T-162](roads.md) | P2 | L | M6 | feature | done | The iroh road behind the cargo feature `iroh` |
 | [T-163](roads.md) | P2 | S | M6 | feature | done | iroh tickets and node keys |
@@ -904,3 +904,4 @@ repository and CI).
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
+| [T-896](resume.md) | P3 | M | backlog | feature | open | Local echo from end to end, for kept and shared shells, and on the Windows console |

@@ -1018,6 +1018,67 @@ by default, it adds nothing (`crates/podssh-ssh/src/server/marks.rs`).
   directory.
 - **A command** (`exec`, a forced `command=`) gets no marks.
 
+## Local echo for high latency (T-160)
+
+Through the relay, each typed key shows only after a round trip. With
+`--predict`, podssh shows each key at once, underlined, where the far end
+will echo it, and takes the guess off when the echo comes, as mosh does.
+podssh passes the far end's bytes unchanged, so the guesses are drawn over
+the terminal and taken off again before each byte of the far end: the
+terminal always reads those bytes on the screen that the far end wrote.
+
+- **What podssh knows.** A model of the far end's screen (the `vt100`
+  crate, the model of the oracle below) reads each byte of the far end's
+  output and nothing else (`crates/podssh-ssh/src/predict/mod.rs`). Which
+  keys reached the pty, and whether the pty echoes, only the far end
+  knows: `podssh ssh` asks with `env predict@podssh v1`, last before the
+  shell or the command, and `podssh serve` takes it on a channel whose pty
+  it opened. A shell shared by name and a kept shell send no reports, and
+  their guesses never show. Another server refuses the request, and
+  nothing is guessed; `-v` says so.
+- **The reports.** serve counts the client's bytes that reached the pty's
+  master, and sends the count that is 50 ms old (the time a program takes
+  to echo, mosh's figure) and the pty's ECHO and ICANON flags, as 10 bytes
+  of extended data of the code `0xFE504F44`: RFC 4250 leaves 0xFE000000 to
+  0xFFFFFFFF for private use (section 4.4.3). A report goes out of the
+  task that copies the pty's output, after each write of output and when a
+  count falls due, so it follows each byte of output read before it
+  (`crates/podssh-ssh/src/server/predict.rs`). The client judges each guess
+  against its model when a report reaches its key, never against a clock.
+- **What is guessed.** Printable ASCII, Backspace (DEL or BS) and the left
+  and right arrows, on the cursor's row only; the text after the cursor
+  moves as a line editor moves it. Nothing in the last column, nothing over
+  a wide character. Each other key (Enter, Tab, a control key, another
+  sequence, a character that is not ASCII), a read of more than 100 bytes (a
+  paste), a wrong guess, a new row of the cursor and a change of the pty's
+  flags start a new epoch, and nothing is guessed until the far end has
+  read each key sent before.
+- **When a guess shows.** Only in an epoch whose first guess the far end
+  confirmed: the first key after Enter waits for its echo, and the keys
+  typed after that echo show at once. Only while the smoothed round trip is
+  120 ms or more, and until it drops under 80 ms. Never while the pty reads
+  a line with no echo (ICANON on, ECHO off: getpass, sudo, ssh, `read -s`),
+  so a password never shows; never while the far end hides the cursor, and
+  never inside a sequence that the far end's last bytes left open.
+- **Why not the ECHO flag alone.** A line editor turns ECHO off and echoes
+  each key itself: bash's readline, zsh, fish and vim all run with ECHO off.
+  Read alone, the flag would turn local echo off where it is wanted most.
+  So a line with no echo is ICANON with ECHO off, and a program in raw mode
+  that echoes nothing (a password read raw, vim's normal mode) is held by
+  the epoch: its first key is never confirmed, so nothing of it shows.
+- **How it draws.** Each move is relative, along the cursor's row (`CSI n
+  C`, `CSI n D`), never to a place on the screen, which the origin mode
+  would move. A guess takes the far end's pen and an underline; taking it
+  off writes the model's cell with its own pen, or erases it again (`CSI X`)
+  where the far end left it empty, then puts back the far end's pen and
+  cursor (`crates/podssh-ssh/src/predict/draw.rs`).
+- **When it stops.** A line of podssh's own on the terminal (a message, an
+  escape's words, ZMODEM) moves the cursor where the model does not know
+  it, so local echo stops for the rest of the session. So do a far end
+  that counts bytes never sent and a report of another version. A resize
+  takes the guesses off and starts a new epoch. `--expect`, `--sudo`,
+  `--su`, `podssh each` and a session through a control master never ask.
+
 ## Tests
 
 Linux test hosts grant ptys, so a test must force the paths with no pty:
@@ -1056,6 +1117,16 @@ cursor and the attributes of cells:
   byte, on the reverse road (T-302) and the forward road (T-307); keys
   that nothing echoes give no notice on the forward road; and the end of a
   forward session on a link that stays silent.
+- `cargo test -p podssh-ssh --test predict`: local echo against a far
+  end in the test at a round trip that the test sets, on the test's own
+  clock (T-160). After each step each row but the cursor's is the far end's
+  own, and each cell of the cursor's row that differs is an underlined
+  guess; once each key was answered, the terminal is the far end's screen,
+  cell for cell. At 300 ms a typed letter shows before its echo; after a
+  question for a password, or with a program that echoes nothing, no typed
+  letter shows. `cargo test -p podssh-ssh --test serve_predict` reads
+  serve's reports from a real pty, each after the echo of the keys it
+  counts.
 
 The model must agree with tmux before it judges podssh: each sequence of a
 fixed corpus (`PodUtils/podssh:crates/podssh-terminal/tests/screen/corpus.txt`) goes

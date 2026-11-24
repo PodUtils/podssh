@@ -209,7 +209,7 @@ remote host that must use the key, such as `git` on a build host.
    (`crates/podssh-cli/src/ssh/keywords.rs:25-132`). Change the help of `-a`
    (`crates/podssh-cli/src/flags.rs:240-241`, the row `no-agent-forwarding`).
 2. On the destination's session channel, send `auth-agent-req@openssh.com`
-   before the shell or exec request (`crates/podssh-ssh/src/session.rs:138-164`).
+   before the shell or exec request (`crates/podssh-ssh/src/session.rs:142-168`).
    Never to a jump hop.
 3. In the handler, accept `auth-agent@openssh.com` only when `-A` was given
    for this connection. For each such channel, connect to the agent with the
@@ -999,7 +999,7 @@ count each chunk twice, and the unit test fails.
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
 `crates/podssh-ssh/src/forward.rs:42` and
 `crates/podssh-ssh/src/forward.rs:83`; `~#` at
-`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:299`,
+`crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:314`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
   1000 down through a forward's copy, counted once, with one connection; one
@@ -1142,7 +1142,7 @@ link: the mode at `crates/podssh-cli/src/ssh/persist.rs:38-45` and
 serves `-L` and `-D`, and tells a loss from an end
 (`crates/podssh-ssh/src/persist.rs:62-67`); a refused `-R` asked again in
 `crates/podssh-ssh/src/remote.rs:51-209`, as `Options::forwards_again` says
-(`crates/podssh-ssh/src/options.rs:334-346`), which the loop sets after the
+(`crates/podssh-ssh/src/options.rs:337-349`), which the loop sets after the
 first loss (`crates/podssh-cli/src/ssh/persist.rs:184-194`); the rule of
 `STEADY` at `crates/podssh-cli/src/ssh/persist.rs:156-162`.
 - `cargo test -p podssh-cli --test persist`: 5 passed. The new test runs
@@ -1633,7 +1633,7 @@ server (`remote_socket:host:hostport`), a socket on this host as the target
 (`[bind_address:]port:local_socket`, `remote_socket:local_socket`), and a SOCKS proxy that the
 server listens for and the client serves (`[bind_address:]port`). podssh refuses each by name, so
 a command line of OpenSSH fails with podssh. A server whose host refuses an AF_INET bind and
-allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:536`), can listen on a socket only; and
+allows an AF_UNIX one, as sandbox A does (`docs/STATUS.md:537`), can listen on a socket only; and
 the SOCKS form gives a server whose egress is closed a way out through the client.
 
 ## Premise

@@ -181,7 +181,7 @@ Read:
    `scripts/interop-faults.sh:261` looks for `1009 session byte cap`.
 6. Correct the comment on the window (`crates/podssh-ssh/src/run.rs` lines
    25-29 at `80f20bf`). The window of 512 KiB stays: it is below both limits.
-7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:846`. T-025 uses the
+7. Update `docs/relay.md` (lines 155-158 at `80f20bf`) and `docs/STATUS.md:847`. T-025 uses the
    classification for its retry rule. T-227 is a different path
    (`--direct`).
 
@@ -263,7 +263,7 @@ Read:
   which only the SSH handshake prints (`crates/podssh-ssh/src/run.rs:386-414`).
   At that point no request has reached the server.
 - The command starts with the exec, shell or subsystem request
-  (`crates/podssh-ssh/src/session.rs:138-171`). `-W` reads stdin only after its
+  (`crates/podssh-ssh/src/session.rs:142-176`). `-W` reads stdin only after its
   channel opens (`crates/podssh-ssh/src/forward.rs:64-100`). `-N` never reads
   stdin (`crates/podssh-ssh/src/run.rs:230-235`).
 - Measured by the reporter (read in the reports, not verified here): on one
@@ -289,7 +289,7 @@ Read:
    `1001`, `1009` or `1013`.
 4. Wait with the jittered backoff that exists
    (`PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). Bound the whole by the rounds
-   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:414`) and
+   of `ConnectionAttempts` (`crates/podssh-cli/src/ssh/resolve.rs:416`) and
    the deadline of each host.
 5. Never prompt again without a person: under `BatchMode`, or with no
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
@@ -388,7 +388,7 @@ Read:
   (`crates/podssh-ssh/src/io.rs`, line 226 at `8cf2587`,
   `crates/podssh-ssh/src/session.rs:19-20`,
   `crates/podssh-ssh/src/session.rs:41`). A channel that ends with no Close
-  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:342`,
+  is `Lost`: an error, and 255 (`crates/podssh-ssh/src/io.rs:357`,
   `crates/podssh-ssh/src/session.rs:42`).
 - A closed stdout (EPIPE) gives the status so far, or 0 when none came
   (`crates/podssh-ssh/src/io.rs`, lines 200-204 at `8cf2587`).
@@ -1007,9 +1007,9 @@ and no other.
 
 1. Add the long flag `--host-key-fingerprint SHA256:B64[,SHA256:B64...]` to
    `SSH_FLAGS` (`crates/podssh-cli/src/flags.rs:116-299`), and to `ONCE`
-   (`crates/podssh-cli/src/ssh/args.rs:226-276`). Refuse a malformed value with
+   (`crates/podssh-cli/src/ssh/args.rs:229-279`). Refuse a malformed value with
    exit 64 before anything connects.
-2. Carry it in `Options` (`crates/podssh-ssh/src/options.rs:195-332`) and
+2. Carry it in `Options` (`crates/podssh-ssh/src/options.rs:195-335`) and
    `Policy` (`crates/podssh-ssh/src/hostkey.rs:19-39`), for the destination
    only, as `HostKeyAlias` (`crates/podssh-ssh/src/run.rs:309-314`).
 3. In `Policy::check`, refuse a revoked key and a changed key first, as today
@@ -1103,7 +1103,7 @@ acceptable.
 - Read: podssh asks for passwords on the terminal or through `SSH_ASKPASS`
   (`crates/podssh-ssh/src/prompt.rs:50-73`), and refuses when nobody can
   answer (`crates/podssh-ssh/src/prompt.rs:83-93`). A remote command is one
-  string for the remote shell (`crates/podssh-ssh/src/session.rs:143-158`).
+  string for the remote shell (`crates/podssh-ssh/src/session.rs:147-162`).
   Local stdin goes to the channel only after the exec request
   (`crates/podssh-ssh/src/io.rs`, lines 148-157 at `3e42773`).
 - Measured, offline: `podssh ssh --sudo example.invalid id` gives
@@ -1124,8 +1124,8 @@ acceptable.
    the password only for a prompt that ends the output with no newline after
    it, before M2, and once.
 5. Put the filter in a new module, crates/podssh-ssh/src/elevate.rs. Hook it
-   into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-84`) and the stdin
-   branch (`crates/podssh-ssh/src/io.rs:239-325`), and keep `io.rs` under 500
+   into `handle_msg` (`crates/podssh-ssh/src/io/msg.rs:11-88`) and the stdin
+   branch (`crates/podssh-ssh/src/io.rs:249-340`), and keep `io.rs` under 500
    lines.
 6. Pitfalls: with a NOPASSWD rule, M1 never comes, so no password is sent;
    `-k` makes `sudo` ask also with cached credentials; the remote login shell
@@ -1172,10 +1172,10 @@ M1, and the NOPASSWD check fails.
 
 2026-10-11. The markers, the command and the filter in
 `crates/podssh-ssh/src/elevate.rs:1-395`. The session wraps the command
-(`crates/podssh-ssh/src/session.rs:143-158`, the question at
-`crates/podssh-ssh/src/session.rs:285-294`), and the pump filters the output,
-asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:196-219`,
-`crates/podssh-ssh/src/io.rs:413-420`). The flags at
+(`crates/podssh-ssh/src/session.rs:147-162`, the question at
+`crates/podssh-ssh/src/session.rs:293-302`), and the pump filters the output,
+asks, and holds its input until the start (`crates/podssh-ssh/src/io.rs:206-229`,
+`crates/podssh-ssh/src/io.rs:429-436`). The flags at
 `crates/podssh-cli/src/flags.rs:227-232`, and their check in
 `crates/podssh-cli/src/ssh/elevate.rs:1-43`.
 - `cargo test -p podssh-ssh -- elevate`: 5 passed: the quoting of the
@@ -1218,8 +1218,8 @@ and no player.
 ## Premise
 
 - Read: each output of a session passes `handle_msg`
-  (`crates/podssh-ssh/src/io/msg.rs:11-42`), and each window change passes the
-  resize branch (`crates/podssh-ssh/src/io.rs:363-368`). The size at the start
+  (`crates/podssh-ssh/src/io/msg.rs:11-46`), and each window change passes the
+  resize branch (`crates/podssh-ssh/src/io.rs:378-383`). The size at the start
   is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:82`).
   `podssh-ssh` has no JSON dependency
   (`crates/podssh-ssh/Cargo.toml:14-34`).
@@ -1241,7 +1241,7 @@ and no player.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
    suggestion step would mix them (`docs/cli.md:2360-2369`). Add it to `VERBS`
-   (`crates/podssh-cli/src/flags.rs:391-461`), to
+   (`crates/podssh-cli/src/flags.rs:392-462`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 5. Refuse a file whose header is not version 2. Skip unknown event types.
@@ -1281,8 +1281,8 @@ byte boundary, and the UTF-8 test fails.
 
 2026-10-11. The recorder in `crates/podssh-ssh/src/record.rs:1-153`, which a
 session starts with the size of its start
-(`crates/podssh-ssh/src/session.rs:195-202`) and its output passes through
-(`crates/podssh-ssh/src/io.rs:125-186`). The flag at
+(`crates/podssh-ssh/src/session.rs:200-207`) and its output passes through
+(`crates/podssh-ssh/src/io.rs:125-196`). The flag at
 `crates/podssh-cli/src/flags.rs:229-230`, its check and its file in
 `crates/podssh-cli/src/ssh/recording.rs:1-42`; the verb in
 `crates/podssh-cli/src/play.rs:1-86`, its flags in
@@ -1373,7 +1373,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 6. When the probe fails, refuse with the reason and the other ways: key
    files with `-i`, and the helper of T-228.
 7. In the same commit: the verb in `VERBS`
-   (`crates/podssh-cli/src/flags.rs:391-461`), in
+   (`crates/podssh-cli/src/flags.rs:392-462`), in
    `crates/podssh-cli/src/positionals.rs` and in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`); `docs/cli.md`;
    "Nothing listens" in `SECURITY.md:274-309`; `docs/STATUS.md`.
@@ -1543,7 +1543,7 @@ Read:
 3. The other change: set `inactivity_timeout` at
    `crates/podssh-ssh/src/run_config.rs:74`. russh resets that timer only in a loop
    round that sent no keepalive, podssh's keepalive interval is also 60 s
-   (`crates/podssh-ssh/src/options.rs:391`), and the timer also ends a
+   (`crates/podssh-ssh/src/options.rs:394`), and the timer also ends a
    session that is only idle. Measure an idle session with
    `ServerAliveInterval=0` before this choice.
 4. Keep the forwarder as a fault in `scripts/interop-faults.sh`, with the
@@ -2440,7 +2440,7 @@ user sees a session that hangs.
 Measured: a hung run of the control held no TCP connection (the relay
 host's reset had come through), and `-vv` printed nothing after the login.
 Read at `b62d657`: the session's loop awaited each send of stdin's bytes on
-the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:265-279`),
+the channel inside its `select!` (now `crates/podssh-ssh/src/io.rs:275-290`),
 and a send waits for the channel's window; while it waited, the loop read
 none of the channel's messages, which carry the end. And in the relay
 stream, the task that sends stopped reading the pipe when a send failed,
@@ -2474,7 +2474,7 @@ hang. Plant: the relay stream's receiving task with no stop fails its test.
 ## Done
 
 2026-10-10. The session's loop reads the channel's messages while a send
-waits for the window (`crates/podssh-ssh/src/io.rs:265-279`), and in the
+waits for the window (`crates/podssh-ssh/src/io.rs:275-290`), and in the
 relay stream each task's end with the link stops the other
 (`crates/podssh-ssh/src/relay_stream.rs:205-302`).
 - T-156's control of a stopped relay host (the forward road, 20 MiB up and
@@ -2943,11 +2943,11 @@ either reply: `client_global_request_reply` calls the callback of the request, a
 registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_reply` and
 `server_alive_check`).
 
-- Read: keepalives are on by default, each 60 s (`crates/podssh-ssh/src/options.rs:391`), as
+- Read: keepalives are on by default, each 60 s (`crates/podssh-ssh/src/options.rs:394`), as
   russh's own (`crates/podssh-ssh/src/run_config.rs:72-73`), so that the relay's idle cut never
   meets a quiet session; `-o ServerAliveInterval=0` turns them off, with the warning of the cut
   (`crates/podssh-cli/src/ssh/resolve.rs:344-347`) that #83's comment reads. T-332's question on
-  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:277`), which the same reply ends.
+  `--direct` sends russh's ping (`crates/podssh-ssh/src/io.rs:288`), which the same reply ends.
 - Read: the handler keeps russh's error in podssh's words, and a lost session names it
   (`crates/podssh-ssh/src/handler.rs:231`, `crates/podssh-ssh/src/session.rs:30-33`); a decode
   error has no words of podssh's (`crates/podssh-ssh/src/run_words.rs:34`), so #83 read russh's.
@@ -3306,7 +3306,7 @@ hop's answer with no limit.
   a refusal is named at once in the hop's words (`crates/podssh-ssh/src/forward.rs:19-21`), which
   `crates/podssh-cli/tests/jump_hop.rs:180` tests ("administratively prohibited").
 - Read: "SSH handshake with" is said once the channel opened (`crates/podssh-ssh/src/run.rs:382`),
-  and its limit, ConnectTimeout (60 s by default, `crates/podssh-ssh/src/options.rs:393`), gives a
+  and its limit, ConnectTimeout (60 s by default, `crates/podssh-ssh/src/options.rs:396`), gives a
   line with the next hop's label alone (`crates/podssh-ssh/src/run.rs:387-388`).
 - Inferred, against the issue's reading: #86's hop opened the channel, as the handshake's line
   came, and nothing of an SSH server answered on it within 60 s. A hop with no `direct-tcpip`
@@ -3906,7 +3906,7 @@ asked.
   channel and keeps the pty open, so su waits, and podssh with it.
 - Read: with no way to ask, podssh says so, ends the input and keeps the deadline
   (`crates/podssh-ssh/src/elevate.rs:325-332`); at 30 s its line says that the command "neither
-  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:357-361`), though it asked.
+  asked for a password nor started" (`crates/podssh-ssh/src/io.rs:372-376`), though it asked.
 - Read: the tests run `--su` with a right and a wrong password, and with no helper that fails
   (`crates/podssh-cli/tests/ssh_sudo.rs:202-264`).
 - Read (L-11): `--sudo` under a `NOPASSWD` rule sends no password, by design

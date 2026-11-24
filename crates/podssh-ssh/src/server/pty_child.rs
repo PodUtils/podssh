@@ -22,7 +22,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tokio::sync::watch;
 
 use super::channel::{Open, Program};
-use super::child::{command, pump, Running};
+use super::child::{command, pump, pump_told, Running};
 use super::pty::{self, Pair};
 use super::share_view::{open_hub, Tee};
 use crate::terminal::Size;
@@ -164,8 +164,13 @@ pub(super) fn spawn(
                 super::kept_run::start(open, &keeper, id, running, (master, child), motd, marks);
                 return Ok(());
             }
-            open.give_stdin(Box::new(Master(master.clone())));
-            tokio::spawn(pump(motd.chain(Master(master)), to, exited))
+            // Local echo's reports, where the client asked for them (T-160).
+            let reporter = open.predict.then(|| super::predict::Reporter::new(&running.write, master.clone()));
+            match reporter.as_ref() {
+                Some(r) => open.give_stdin(Box::new(r.applying(Master(master.clone())))),
+                None => open.give_stdin(Box::new(Master(master.clone()))),
+            }
+            tokio::spawn(pump_told(motd.chain(Master(master)), to, exited, reporter))
         }
     };
     // The files of the marks go when the session does.

@@ -447,7 +447,7 @@ refused. ... podssh reads no ssh_config, so it has no configuration to print."
 lines of `keyword value`, the keyword in lower case: `port 2222`, `user alice`,
 `pubkeyauthentication true`, `batchmode no`, `connecttimeout none`, `serveraliveinterval 30`,
 `identityfile ~/.ssh/id_rsa` (with `~`), and others. Read: `resolve::resolve`
-(`crates/podssh-cli/src/ssh/resolve.rs:67-446`) decides each setting before any connection; its
+(`crates/podssh-cli/src/ssh/resolve.rs:67-448`) decides each setting before any connection; its
 result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the defaults included.
 
 ## Approach
@@ -541,7 +541,7 @@ work.
 
 ## Premise
 
-Read: podssh has no import and no `config` command (`crates/podssh-cli/src/flags.rs:391-461`).
+Read: podssh has no import and no `config` command (`crates/podssh-cli/src/flags.rs:392-462`).
 `serde_json` is a dependency of the binary (`crates/podssh-cli/Cargo.toml:179`), so a JSON
 export needs no new crate. XML and YAML need a parser that the binary does not have. The export
 formats of the other clients were not read here. Each step below starts from a real export of
@@ -564,7 +564,7 @@ that client: bytes captured from the real program (`AGENTS.md`, section 6, rule 
    a comment line. Never drop it silently.
 6. The output must read with the reader of T-043 and with OpenSSH.
 7. Add the verb to the tables: `VERBS`, and `VERB_OWNER` or a dispatch arm
-   (`crates/podssh-cli/src/flags.rs:389-469`), the arguments, `usage_tail`
+   (`crates/podssh-cli/src/flags.rs:390-470`), the arguments, `usage_tail`
    (`crates/podssh-cli/src/help.rs:63-90`), the manual's notes and examples, and
    `DISPATCHED` (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 
@@ -624,7 +624,7 @@ output. Planted defect: copy the password field into a comment; the secret test 
 `crates/podssh-cli/src/config_import/mod.rs:171-175` and the options of
 `ansible_ssh_common_args` at
 `crates/podssh-cli/src/config_import/mod.rs:177-230`; the verb in the
-tables at `crates/podssh-cli/src/flags.rs:451-452`,
+tables at `crates/podssh-cli/src/flags.rs:452-453`,
 `crates/podssh-cli/src/positionals.rs:241-246`,
 `crates/podssh-cli/src/tree.rs:368-374` and
 `crates/podssh-cli/src/dispatch.rs:218-219`.
@@ -934,7 +934,7 @@ login, made as the destination's, in `crates/podssh-cli/src/ssh/login.rs:1-96`. 
 each hop are `Options::jump_options` (`crates/podssh-ssh/src/options.rs:220-224`), which
 `connect_hops` gives each hop with the run's memory of its logins
 (`crates/podssh-ssh/src/run.rs:165-193`, `crates/podssh-ssh/src/run.rs:290-301`); `BatchMode` of a
-try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:353-361`).
+try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:356-364`).
 - `cargo test -p podssh-cli --test ssh_config_file -- jump`: 2 passed. `-J bastion` takes the
   bastion's `HostName`, `Port`, `User`, `IdentityFile` and `HostKeyAlias` and the command line's
   `StrictHostKeyChecking`, and neither the destination's key nor its alias; a hop with no user

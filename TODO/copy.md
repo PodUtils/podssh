@@ -64,7 +64,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
    extension list for T-134.
 6. Each `SSH_FX_*` status gives a sentence with the path; the server's text
    goes through `podssh_ws::text::one_line`
-   (`crates/podssh-ssh/src/io/msg.rs:55`).
+   (`crates/podssh-ssh/src/io/msg.rs:59`).
 7. No EOF before the last reply. Fail at once on a reply id that no request
    has, and on a `READ` reply longer than its request.
 
@@ -183,12 +183,12 @@ leave a short or wrong file under the destination's name.
 ## Approach
 
 1. `CpArgs` in a new module crates/podssh-cli/src/cp/, read as `SshArgs` is
-   (`crates/podssh-cli/src/ssh/args.rs:295-450`). An operand is remote when a
+   (`crates/podssh-cli/src/ssh/args.rs:298-454`). An operand is remote when a
    `:` comes before any `/`; on Windows, `C:\x` is local. Fewer than two
    operands, or none remote, exit 64.
 2. Build an `SshArgs` (host, `-P` as the port, `-i`, `-o`) for
    `crate::ssh::resolve::resolve`
-   (`crates/podssh-cli/src/ssh/resolve.rs:67-446`), so `-F` follows the rule
+   (`crates/podssh-cli/src/ssh/resolve.rs:67-448`), so `-F` follows the rule
    of `ssh`. Add `-o`, `-J`, `-v`, `-q` and the relay rows of `ssh`
    (`--relay-host`, `--relay-addr`, `--ca-file`, `--direct`) to `CP_FLAGS`.
 3. Split `crates/podssh-cli/src/ssh/mod.rs` lines 73-151 at `6483366` so that the relay (with
@@ -332,8 +332,8 @@ a script expects, and its login shell may not be a POSIX shell.
 
 - Read: an exec with no pty carries bytes unchanged: 262144, 262145 and
   5,000,000 bytes up and back with equal digests on OpenSSH and Dropbear
-  (`docs/STATUS.md:253`, `scripts/interop.sh:139-154`), and 300 KB up and
-  5 MB down through the relay (`docs/STATUS.md:257`).
+  (`docs/STATUS.md:254`, `scripts/interop.sh:139-154`), and 300 KB up and
+  5 MB down through the relay (`docs/STATUS.md:258`).
 - Read: a command goes as one string, never as a shell request
   (`crates/podssh-ssh/src/options.rs:63-64`), with no pty when stdin is not
   a terminal (`crates/podssh-ssh/src/session.rs:84-94`).
@@ -480,7 +480,7 @@ GitHub #17 (talaria0101, 2026-10-08: drops that repeat on one target).
 A dropped relay session ends a copy, and a new run sends the whole file
 again. On a link that drops every few minutes, a large file never arrives.
 GitHub #17 measured one drop (`1011`) in 180 short sessions from one edge
-(`docs/STATUS.md:545`), and drops that came back 3 times of 3 on one target.
+(`docs/STATUS.md:546`), and drops that came back 3 times of 3 on one target.
 
 ## Premise
 
@@ -637,7 +637,7 @@ old writer can race the new one.
 
 - Read: the pinned contract gives the same caps
   (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:233-235`).
-- Measured in the KTM sandbox (`docs/STATUS.md:544`; the 99 s are in the
+- Measured in the KTM sandbox (`docs/STATUS.md:545`; the 99 s are in the
   report): `podssh proxy` received 67,107,943 bytes, then the relay closed
   with `1009 session byte cap`, 921 bytes short of 64 MiB on that side.
 - Read: `podssh-relay` has a constant for the idle cut only
@@ -755,7 +755,7 @@ relay's limits, and logs in as the first session did".
 
 **Source:** ROADMAP M5 ("Across hosts, `mv` is copy, verify, delete; podssh
 says first that it is not atomic"); the description of `mv` in
-`crates/podssh-cli/src/flags.rs:427-428`.
+`crates/podssh-cli/src/flags.rs:428-429`.
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -773,7 +773,7 @@ user must know this before the move starts.
 
 - Measured on `3ee70dc`, offline: `podssh mv --timeout 30s a b` exits 70
   (`'mv' is not implemented yet; nothing was done.`).
-- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:427-428`),
+- Read: `mv` shares `CP_FLAGS` (`crates/podssh-cli/src/flags.rs:428-429`),
   so the operands and options of T-134 apply.
 - Measured (T-133's offline probe): `posix-rename@openssh.com` replaces in
   one step; `SSH_FXP_RENAME` refuses an existing target.
@@ -800,7 +800,7 @@ user must know this before the move starts.
 6. Directories wait for T-143 (exit 64); two local paths exit 64 (T-134).
 7. Same commit: the `mv` row of `VERB_OWNER`
    (`crates/podssh-cli/src/flags.rs` line 436 at `8848781`), the manual,
-   `docs/cli.md` and `docs/STATUS.md:214`.
+   `docs/cli.md` and `docs/STATUS.md:215`.
 
 ## Decision
 
@@ -1065,7 +1065,7 @@ trip is long, so such a copy uses a small part of what the path carries.
   (`crates/podssh-ssh/src/run.rs:30-33`): `docs/relay.md:733-745` gives
   2 MiB, `1013` and no drop. The window can grow only after that is
   settled; T-062 measures the `1013`.
-- Measured in two sandboxes (`docs/STATUS.md:543`): 20 MiB through the
+- Measured in two sandboxes (`docs/STATUS.md:544`): 20 MiB through the
   relay with `podssh proxy` (no SSH window in the path) at 0.5 to 0.7 MB/s
   through a CONNECT proxy, and 1.8 to 6.9 MiB/s with no proxy. SFTP through
   the relay is not measured.
@@ -1273,7 +1273,7 @@ differ", and the destination was not changed. The measurement:
 
 A copy over an older version of the same file sends each byte again.
 Through the relay that costs a new session for each 60 MiB (T-137), at 0.5
-to 0.7 MB/s in the KTM sandbox (`docs/STATUS.md:543`).
+to 0.7 MB/s in the KTM sandbox (`docs/STATUS.md:544`).
 
 ## Premise
 
@@ -1546,7 +1546,7 @@ in the issues; the `-l limit` of OpenSSH's `scp` and `sftp` (T-139).
 ## Problem
 
 A copy through the relay can take minutes (0.5 to 0.7 MB/s in the KTM
-sandbox, `docs/STATUS.md:543`). podssh would show no progress, a Ctrl-C
+sandbox, `docs/STATUS.md:544`). podssh would show no progress, a Ctrl-C
 would leave a temporary file with no word, and one copy can take the whole
 uplink of a shared host.
 
@@ -1852,7 +1852,7 @@ which needs support in the terminal client.
 
 - Read: `podssh ssh` writes the remote output to stdout as it comes
   (`crates/podssh-ssh/src/io/msg.rs:11-34`) and passes the local keys through
-  the escape filter (`crates/podssh-ssh/src/io.rs:253-325`). Nothing looks
+  the escape filter (`crates/podssh-ssh/src/io.rs:263-340`). Nothing looks
   for a ZMODEM header.
 - Not verified here: ZMODEM escapes its control bytes, so it crosses a pty;
   whether a ZMODEM crate in pure Rust exists and is maintained.
@@ -2018,7 +2018,7 @@ host, and the copy back then destroys that change with no word.
 
 ## Approach
 
-1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:391-461`),
+1. A new verb `edit` in `VERBS` (`crates/podssh-cli/src/flags.rs:392-462`),
    with the connection flags that T-134 gives `cp`. It needs a terminal on
    stdin and stdout; else exit 64.
 2. Download with T-134 into a new directory of mode 0700 in the cache
@@ -2997,7 +2997,7 @@ the names, with no word.
 - Read: `ls` takes `-1afhlnrSt` and keeps `l`, `n` and `a` alone
   (`crates/podssh-cli/src/sftp/commands.rs`, lines 201-205 at `582b1bf`): `-n` is `-l`, and `-f`,
   `-h`, `-r`, `-S` and `-t` do nothing. `docs/cli.md` (line 1916 at `582b1bf`) names `ls [-la]`.
-- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:426`); the
+- Read: the about of `sftp` says "as OpenSSH's sftp" (`crates/podssh-cli/src/flags.rs:427`); the
   issue names it the README's.
 - Read: `Sftp::read_dir` keeps the name and the attributes of each entry, and drops the long name
   that the server sends with each (`crates/podssh-ssh/src/sftp/mod.rs`, lines 71-78 and 426-441
