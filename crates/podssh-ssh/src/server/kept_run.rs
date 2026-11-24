@@ -47,6 +47,11 @@ pub(super) fn start(
         let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
     };
     let shell = Shell::new(keeper, id, Box::new(Master(master.clone())), Box::new(resize), group);
+    // The size that the pty starts with, which a later attach's redraw
+    // nudges and puts back (T-161); setting it again sends no signal.
+    if let Some(size) = crate::terminal::size_of_fd(master.get_ref().as_raw_fd()) {
+        shell.resize(size);
+    }
     let held = shell.first(Attached::new(write, handle, channel, tally));
     if let Some(name) = keeper.keep.as_deref()
         && let Err(why) = keeper.shelf.put(&shell, name)

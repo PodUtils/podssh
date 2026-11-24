@@ -1835,6 +1835,47 @@ end, and it keeps the model of the layer. Use a snapshot only if the
 measurement shows broken screens. The alternative, a snapshot first, puts a
 terminal model into each `podssh serve`.
 
+2026-11-24, the calls of the draft (steps 1 and 2, and the test of the Prove), each with what lost:
+
+- Who gets the modes and the redraw: each attach but one from a count that the ring holds
+  (`crates/podssh-ssh/src/server/kept_screen.rs`, `fresh`). Such a client has each byte before its
+  count, so its terminal holds the screen and the modes, and T-833 serves it byte for byte
+  (`crates/podssh-ssh/tests/serve_attach_ticket.rs` checks that its replay starts at the count). An
+  attach with no count, or a reset, may come from a new process on another host. Both on each attach
+  lost: the count's replay would no longer be exact. Neither with no count lost: T-158's `--attach` from
+  a new terminal would find an empty screen under a program that sat still.
+- The modes go before the replay, as they stood at its first byte, not after it as they stand at the
+  end: `ESC [ ? 1049 h` on a terminal on the alternate screen clears it (xterm's rule; vt100, the oracle,
+  does the same), so after the replay it would erase what the replay drew; before it, the redraw that
+  follows fills the cleared screen. They are taken under the same lock as the first bytes, at the offset
+  where those bytes start (after the bytes that the ring lost), so no cut moves between the two
+  (`crates/podssh-ssh/src/server/kept_catch.rs`, `turn`).
+- The modes at an offset are `pod-term`'s: the ring keeps the modes of the bytes that it drops, and
+  `Ring::modes_at` gives them at an offset that it holds (the ask in the Done). A tracker of the modes
+  in podssh lost (Shared code first: the grammar of the output and its ring are `pod-term`'s, and
+  podvm's server can keep shells too); a second tracker in serve fed with each byte lost too: it knows
+  only the modes at the end, which are wrong for a replay that starts before a later change of them.
+- Each mode is written set or reset, not only the ones that differ from a terminal's defaults: the
+  client's terminal may hold the modes of an earlier program (a vi that `~d` left in that window on the
+  alternate screen). A full reset first (`ESC c`) lost: some terminals clear their scrollback with it,
+  which ssh-obi's design keeps. The alternate screen goes off as `?47l`, which moves no cursor; `?1049l`
+  lost: it restores a cursor that a new terminal never saved, and so moves the replay over the top of
+  the user's own screen.
+- The redraw: the pty one row shorter, 100 ms, then its size again (`REDRAW_PAUSE`). The kernel signals
+  the pty's foreground group only when the size changes, so setting the same size does nothing. A
+  SIGWINCH sent to the shell's group alone lost (dtach's way): the shell's group is not the group of a
+  job that job control runs, and a program that redraws only when its size differs does nothing. A
+  Ctrl-L typed into the pty lost: it is input to whatever reads, and a `cat` would get it. A change of
+  the columns lost: a line editor at its prompt can wrap its line anew. The pause lets a program read
+  the first change before the second comes; two signals in one wait are one.
+- The size that a redraw nudges is the one that serve set last (`Shell::resize` keeps it), read from the
+  pty at the shell's start (`crates/podssh-ssh/src/server/kept_run.rs`); a window change during the
+  pause wins, and the size always comes back, also when another client took the shell meanwhile.
+- `crates/podssh-ssh/src/server/kept.rs` had 498 lines: the catch-up moved to `kept_catch.rs`, a child
+  module of `kept.rs` (it reads the shell's private state), so that each file stays under 500.
+- Step 3, a snapshot of a model on the far end, is not built: the Decision above keeps it for a measured
+  broken screen, and the comparison of step 4 says what it would cost.
+
 ## Prove
 
 ```sh
@@ -1870,6 +1911,74 @@ boundary.
 (T-684), and the terminal oracle of T-200 that the Approach names is `pod-testkit`'s (its feature
 `screen`), both taken by the git tag `v0.1.0`. A change of that code is done in PodUtils/podcrates
 (Rule Q3, `docs/decisions.md`), and podssh takes it by the next tag.
+
+2026-11-24, read before the draft, on T-159's and T-833's drafts (the branch `merge-drafts` at
+`a64e47d`):
+
+- The Premise holds: the layer's replay (`docs/design.md`, section 5, item 2) sends again what the other
+  side did not acknowledge, for the same process, and an attach of T-158 is a new SSH login from a new
+  process. A far end that keeps shells exists now: `podssh serve NAME` (T-159), with its ring of 256 KiB,
+  a count that replays from an offset, and a reset that gives the ring from its first boundary (T-833).
+  The Start condition's "no far end keeps a shell" holds no more.
+- `pod-term` at the tag that podssh takes (`v0.82.1`, its `README.md` read through
+  fetch.web.pkgforge.dev) has the grammar, its ring with offsets (`Ring::start`, `Ring::end`), the
+  disciplines and the escape parser, and no reader of the modes and no model of a screen. Step 2 needs
+  one: an ask of podcrates (the Done), not a copy here.
+- The donor note's "the offset counter belongs to `pod-term`/`pod-session`: ask podcrates" is met:
+  T-833's offsets are `pod-term`'s `Ring::end`, and no ask is needed for them.
+- Step 3's "the parser of T-160" is the client's; a snapshot on the far end would need a model of the
+  screen in `pod-term` (the oracle's `vt100` is in tests only), an ask of its own if a measure ever
+  calls for it.
+- The test of the Prove runs a stand-in full-screen program in `sh`, which a host with no `vi` has too,
+  and `vi` where the host has it (a line says where it does not).
+
+## Done
+
+Drafted 2026-11-24 as a first part (not built here; the main session builds, tests and closes it), on
+T-159's and T-833's drafts: steps 1 and 2 and the test of the Prove. It does not build until
+`pod-term` has the interface of the ask below.
+
+- The server: `crates/podssh-ssh/src/server/kept_screen.rs` (who gets the modes and the redraw, the
+  modes before an offset, the nudged size, and their unit tests); `kept_catch.rs` (the catch-up, moved
+  out of `kept.rs`: the modes before the first bytes, the redraw after the join); `kept.rs` (`Joined`'s
+  `fresh`, the size that serve set last); `kept_run.rs` (the pty's size at the start); `kept_tests.rs`.
+- The manual's note of `serve` (`crates/podssh-cli/src/man/notes_serve.rs`); `docs/terminal.md`
+  ("Screen on attach", with the comparison of step 4 read from the designs), `docs/cli.md`,
+  `docs/STATUS.md`.
+- Prove: `cargo test -p podssh-ssh --test attach_screen`: UNVERIFIED;
+  `grep -n 'Screen on attach' docs/terminal.md`: the section is there. The unit tests:
+  `cargo test -p podssh-ssh --lib server::kept_screen server::kept`: UNVERIFIED (the modes before a
+  cut ring against the oracle, which needs the ask). `cargo test -p podssh-ssh --test
+  serve_attach_ticket --test serve_keep` again, as the catch-up moved: UNVERIFIED. The manual's tests
+  of `podssh-cli`: UNVERIFIED.
+- The ask of PodUtils/podcrates, for the main session to file as a COORD issue `(to podcrates)`:
+  "pod-term: the modes of a terminal's output, and the modes at an offset of a Ring. podssh serve's kept
+  shells (PodUtils/podssh T-161) send a client whose terminal is new the modes in effect at the first
+  byte of its replay. (1) `pod_term::modes::Modes` (Clone, Debug, Default, PartialEq), sans-IO:
+  `Modes::new()`, `feed(&mut self, chunk: &[u8])`, and `restore(&self) -> Vec<u8>`. It reads the DEC
+  private modes 1 (cursor keys), 6 (origin), 7 (autowrap), 25 (cursor shown), 47, 1047 and 1049 (the
+  alternate screen), 1000, 1002 and 1003 (mouse reports), 1004 (focus), 1005, 1006 and 1015 (mouse
+  encodings) and 2004 (bracketed paste), with several parameters in one CSI (`CSI ? 1 ; 2004 h`); the
+  keypad (`ESC =`, `ESC >`); the G0 set (`ESC ( 0`, `ESC ( B`); and RIS (`ESC c`) as each mode at its
+  default. `restore` writes each mode it reads, set or reset, so that a terminal in any state ends in
+  this one: the alternate screen's reset as `CSI ? 47 l` (no cursor restored), its set as
+  `CSI ? 1049 h`, the mouse's resets before its set. (2) `Ring::modes_at(&self, at: u64) ->
+  Option<Modes>`: the modes that the stream set before the offset `at`, for `start() <= at <= end()`
+  (and `at == end()` with no start), None outside; the ring keeps one `Modes` of the bytes that it
+  drops. A test: the oracle (`pod-testkit`, `screen`) reads `restore()` of `modes_at(start)` and then
+  `kept()`, and shows the modes of a terminal that read the whole stream, for a cut at each offset of the
+  captures of T-221 (vim, less, top)." podssh's side uses `Ring::modes_at` and `Modes::restore` alone
+  (`kept_screen.rs`, `modes_before`).
+- Left, in order: file the ask, take its tag, build, and run the tests above; step 1's measure with vi,
+  less, top and a shell through the oracle, and the measured row of the comparison in
+  `docs/terminal.md`; step 3's cost of a snapshot (the memory of a model of the screen for each shell,
+  wide characters, the alternate screen), only as the comparison's numbers; step 5, the recommendation
+  in `docs/design.md` section 5; the planted defects of the Prove (a replay from a random offset, a
+  replay with no modes) with the release check (T-251); `llms-full.txt` written again from the manual
+  (`podssh man --llms full > llms-full.txt`); `cargo todo remap` of `docs/terminal.md`, `docs/cli.md`,
+  `crates/podssh-ssh/src/server/mod.rs` and `TODO/resume.md`, which this change moved. The seats of
+  `--share` (T-837's hub) find no screen on their attach either; T-159's Decision names T-161 as the
+  place to make the hub and the kept shell one, which this part does not do.
 
 # T-221: Replayed output after dropped bytes starts at a boundary of the terminal grammar (GitHub #31)
 

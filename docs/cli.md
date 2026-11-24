@@ -6732,7 +6732,12 @@ gives up each capability of the process (T-698), before it reads a file.
   reset@podssh yes` is a reset: one line on stderr that says so, then what
   the ring holds from its first boundary. serve chooses the reset itself,
   so a gap that cannot be served never repeats (EternalTerminal's running
-  client never asks for its reset, `kept_replay.rs`). One attach at a time:
+  client never asks for its reset, `kept_replay.rs`). An attach with no
+  offset, or a reset, first gets the modes in effect at the replay's first
+  byte, and once it has the shell, the pty one row shorter for 100 ms and
+  then its size again, so that the program draws its screen again; an
+  offset that the ring holds gets the bytes alone (T-161, `kept_screen.rs`,
+  "Screen on attach" in `docs/terminal.md`). One attach at a time:
   a second one while the first one catches up is refused with a line, even
   with `take@podssh`. A kept shell's ticket is its key and its name: no
   secret of its own leaves serve, so none is carried, logged or shown. A kept

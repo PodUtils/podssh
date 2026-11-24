@@ -3,8 +3,9 @@
 //! T-110; SFTP, T-112; the options of a key line, T-114; the stop and
 //! SIGHUP, T-117; a slow client, T-118; the algorithms, T-841; the end of
 //! a removed key's sessions, T-842; a shell shared by name, T-837; a shell
-//! kept for a lease, T-159; the message of the day, T-119; the marks of a
-//! shell, T-120; the scope of a pty child, T-122; a listener, T-124,
+//! kept for a lease, T-159; its screen on an attach, T-161; the message of
+//! the day, T-119; the marks of a shell, T-120; the scope of a pty child,
+//! T-122; a listener, T-124,
 //! `notes_serve_listen`; the audit log, T-116; a one-time code, T-115), and
 //! the row of its host key's file.
 
@@ -246,6 +247,12 @@ pub const SERVE: &[&str] = &[
      reset@podssh yes, gives a reset. serve says so on stderr, then gives the last output from a clean boundary. \
      serve decides the reset itself, so a gap never repeats. One attach at a time: a second one while the first \
      catches up is refused with a line.",
+    // The screen that a client from a new terminal finds (T-161).
+    "An attach with no offset, or a reset, may come from a new terminal. serve first sends it the program's modes \
+     where the replay starts: the alternate screen, the keys, bracketed paste and the mouse. Once the client has the \
+     shell, serve sets the pty one row shorter for 100 ms, then its size again. The program on it then draws its \
+     screen again. An offset that the ring holds gets the bytes alone. A program that ignores a window change shows \
+     the replay alone.",
     "A stop or a restart of serve, or of its host, ends each kept shell: a process does not outlive either. serve \
      writes the names of its kept shells to serve-NAME.kept beside its host key, mode 0600. The next start says \
      which shells ended with the last run, and shells@podssh lists them as lost. Under --stdio no shell is kept: \

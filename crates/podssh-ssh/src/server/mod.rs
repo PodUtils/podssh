@@ -23,7 +23,9 @@
 //! `share.rs`); its owner deletes or rotates a name by the subsystem
 //! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a pty can
 //! outlive its channel when its client asks: it is kept for a lease, and a
-//! later login of the same key joins it by name (T-159, `kept.rs`). A login
+//! later login of the same key joins it by name (T-159, `kept.rs`), with
+//! the modes and a redraw where its terminal may be new (T-161,
+//! `kept_screen.rs`). A login
 //! shell on a tty is shown the message of the day first (T-119, `motd.rs`),
 //! and with `--shell-integration` its prompts and commands are marked
 //! (T-120, `marks.rs`). Where systemd is there, each pty child runs in a
@@ -49,6 +51,7 @@ mod kept_ask;
 mod kept_join;
 mod kept_record;
 mod kept_replay;
+mod kept_screen;
 #[cfg(unix)]
 mod kept_run;
 mod kept_shelf;
