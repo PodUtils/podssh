@@ -1,5 +1,5 @@
 //! The addresses, the caps and the binds of `podssh serve --listen`
-//! (T-124).
+//! (T-124), and its deadline's value (T-631).
 
 use std::path::PathBuf;
 
@@ -74,18 +74,36 @@ fn a_cap_is_a_whole_number_in_its_bounds() {
 #[test]
 fn a_plan_takes_each_address_once_and_its_caps() {
     let words = |values: &[&str]| values.iter().map(|v| v.to_string()).collect::<Vec<_>>();
-    assert_eq!(Plan::of(&[], None).unwrap(), None, "no --listen, no plan");
+    let none = Caps::default();
+    assert_eq!(Plan::of(&[], &none).unwrap(), None, "no --listen, no plan");
     // PODSSH_LISTEN=no would refuse here; a test does not set the
     // process's variables, so the plan is read with listening allowed.
     if pipe_listen::allowed().is_err() {
         return;
     }
-    let plan = Plan::of(&words(&["2222", "unix:/tmp/s", "0", "0"]), Some("8")).unwrap().unwrap();
+    let caps = Caps { max_connections: Some("8"), pending_max: Some("2"), login_timeout: Some("30") };
+    let plan = Plan::of(&words(&["2222", "unix:/tmp/s", "0", "0"]), &caps).unwrap().unwrap();
     assert_eq!(plan.listen.len(), 4, "port 0 twice is two ports");
-    assert_eq!(plan.limits, Limits { connections: 8 });
-    let twice = Plan::of(&words(&["2222", "127.0.0.1:2222"]), None).expect_err("the same address twice");
+    assert_eq!(plan.limits, Limits { connections: 8, pending: 2, login: Duration::from_secs(30) });
+    let twice = Plan::of(&words(&["2222", "127.0.0.1:2222"]), &none).expect_err("the same address twice");
     assert!(twice.message.contains("given twice"), "{}", twice.message);
-    assert_eq!(Plan::of(&words(&["1"]), None).unwrap().unwrap().limits.connections, listen::CONNECTIONS);
+    assert_eq!(Plan::of(&words(&["1"]), &none).unwrap().unwrap().limits, Limits::default());
+    let bad = Caps { login_timeout: Some("0"), ..none };
+    assert!(Plan::of(&words(&["1"]), &bad).expect_err("0 s").message.contains("--login-timeout"));
+}
+
+/// `--login-timeout`: whole seconds in bounds; 0 is no limit to OpenSSH,
+/// and refused here (T-631).
+#[test]
+fn a_login_timeout_is_whole_seconds_in_its_bounds() {
+    for (value, want) in [("1", 1), ("60", 60), (" 90 ", 90), ("3600", 3600)] {
+        assert_eq!(seconds(value).unwrap(), Duration::from_secs(want), "{value}");
+    }
+    for value in ["0", "3601", "1.5", "-1", "1m", ""] {
+        let refusal = seconds(value).expect_err(value);
+        assert_eq!(refusal.code, EX_USAGE);
+        assert!(refusal.message.contains("from 1 to 3600"), "{}", refusal.message);
+    }
 }
 
 /// A refused bind names the address and the system's words; the host's

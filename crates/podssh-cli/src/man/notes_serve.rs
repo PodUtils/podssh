@@ -31,6 +31,7 @@ pub const SERVE: &[&str] = &[
     super::notes_serve_listen::LISTEN,
     super::notes_serve_listen::BIND,
     super::notes_serve_listen::CAPS,
+    super::notes_serve_listen::DEADLINE,
     // The algorithms (T-841): the test below holds each name against the
     // server's constant, so the note and the set cannot part.
     "The algorithms are one stated set, the same at each start, never russh's default of the day. Key exchanges: \

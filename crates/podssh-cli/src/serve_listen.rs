@@ -14,7 +14,8 @@
 //! Each connection accepted takes a place under the caps of
 //! `podssh_ssh::server::listen` before a byte of it is read, then goes to
 //! the server of `--stdio`, with the client's address for `from=` where a
-//! TCP socket gives one. SIGTERM and SIGINT close the listeners and stop
+//! TCP socket gives one, and a deadline from its accept for its login
+//! (T-631): each one reaped is a line of serve's log. SIGTERM and SIGINT close the listeners and stop
 //! each connection as `--stdio` stops its one; SIGHUP reads the keys again
 //! for each connection.
 
@@ -48,6 +49,15 @@ const STOP_LIMIT: Duration = Duration::from_secs(15);
 /// The ways that need no listener, for the line of a refused bind.
 const INSTEAD: &str = "--stdio and podssh serve NAME need no listener";
 
+/// The caps as typed: `--max-connections`, `--pending-max` and
+/// `--login-timeout` (T-631).
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct Caps<'a> {
+    pub max_connections: Option<&'a str>,
+    pub pending_max: Option<&'a str>,
+    pub login_timeout: Option<&'a str>,
+}
+
 /// What `--listen` asks: each address, and the caps.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Plan {
@@ -58,7 +68,7 @@ pub(crate) struct Plan {
 impl Plan {
     /// None with no `--listen`; else each address checked in order, and
     /// the caps. `PODSSH_LISTEN=no` is a refusal (78) before any bind.
-    pub(crate) fn of(values: &[String], max_connections: Option<&str>) -> Result<Option<Plan>, Refusal> {
+    pub(crate) fn of(values: &[String], caps: &Caps<'_>) -> Result<Option<Plan>, Refusal> {
         if values.is_empty() {
             return Ok(None);
         }
@@ -73,11 +83,15 @@ impl Plan {
             }
             listen.push(address);
         }
-        let connections = match max_connections {
-            None => listen::CONNECTIONS,
-            Some(value) => cap("--max-connections", value)?,
+        let connections = caps.max_connections.map(|v| cap("--max-connections", v)).transpose()?;
+        let pending = caps.pending_max.map(|v| cap("--pending-max", v)).transpose()?;
+        let login = caps.login_timeout.map(seconds).transpose()?;
+        let limits = Limits {
+            connections: connections.unwrap_or(listen::CONNECTIONS),
+            pending: pending.unwrap_or(listen::PENDING),
+            login: login.unwrap_or(listen::LOGIN),
         };
-        Ok(Some(Plan { listen, limits: Limits { connections } }))
+        Ok(Some(Plan { listen, limits }))
     }
 }
 
@@ -99,6 +113,16 @@ pub(crate) fn cap(flag: &str, value: &str) -> Result<usize, Refusal> {
     match value.trim().parse::<usize>() {
         Ok(n) if (1..=listen::CAP_MAX).contains(&n) => Ok(n),
         _ => Err(Refusal::usage(format!("{flag} {value:?}: a whole number from 1 to {}", listen::CAP_MAX))),
+    }
+}
+
+/// `--login-timeout SECS`: whole seconds from 1 to [`listen::LOGIN_MAX`]; 0,
+/// which OpenSSH reads as no limit, is refused, as a listener needs one.
+pub(crate) fn seconds(value: &str) -> Result<Duration, Refusal> {
+    let most = listen::LOGIN_MAX.as_secs();
+    match value.trim().parse::<u64>() {
+        Ok(n) if (1..=most).contains(&n) => Ok(Duration::from_secs(n)),
+        _ => Err(Refusal::usage(format!("--login-timeout {value:?}: whole seconds from 1 to {most}"))),
     }
 }
 
@@ -328,8 +352,9 @@ fn admit(accepted: Accepted, served: &Served, running: &mut JoinSet<()>, quiet: 
             own.peer = peer;
             let (key, keys, control) = (served.key.clone(), served.keys.clone(), served.control.clone());
             running.spawn(async move {
-                let ended = server::serve_under(stream, key, keys, Arc::new(own), control).await;
-                drop(place);
+                // The places go back as the connection ends; past its
+                // deadline the line says so (T-631).
+                let ended = server::serve_admitted(stream, key, keys, Arc::new(own), control, place).await;
                 if let Err(why) = ended {
                     podssh_ssh::err_line!("podssh serve: {from}: {why}");
                 }

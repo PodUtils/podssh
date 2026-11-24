@@ -6111,9 +6111,27 @@ gives up each capability of the process (T-698), before it reads a file.
   `unix:`). SIGTERM and SIGINT close each listener (a socket's file goes),
   then stop each connection as `--stdio` stops; SIGHUP reloads the keys for
   each. A listener whose accept fails 10 times in a row listens no more;
-  with none left, serve exits 69. Not yet: SSH and TLS on one port (the
-  entry's step 5), and a unit of systemd for a listener (`--print-unit` with
+  with none left, serve exits 69. SSH and TLS on one port is the relay
+  role's `--sshd 127.0.0.1:PORT` (T-644) in front of `--listen PORT`; a
+  unit of systemd for a listener is not made (`--print-unit` with
   `--listen` is 64).
+- **The deadline of a login (T-631).** Each connection that a listener let
+  in must log in within `--login-timeout SECS` (default 60, 1 to 3600) of
+  its accept, counted from the accept and not from the last byte, so a
+  client that sends a byte now and then ends at the same time
+  (`crates/podssh-ssh/src/server/listen.rs`, `reaped`; russh bounds only
+  the version line, by its inactivity timer, which serve turns off). The
+  deadline wraps russh's wait for the client's version line, and then
+  waits beside the session: past it the client gets `DISCONNECT`
+  `BY_APPLICATION` with `podssh serve: no login within 60 s of the
+  connection (--login-timeout)`, and serve's log one line; a client that
+  sent no version line yet is closed with none. The first accepted login
+  cancels it and ends the waiter, so a quick login keeps no timer.
+  `--pending-max N` (default 16) caps the connections not yet logged in; one
+  more reads the same refusal as past `--max-connections`, naming
+  `--pending-max`, and a login gives its place back at once. `--stdio`,
+  NAME and the operator's road have no listener and no deadline. The three
+  caps without `--listen` are 64.
 
 - **Authentication.** Public keys alone. The keys are each
   `--authorized-key KEY` (a line of `authorized_keys`), and each line of

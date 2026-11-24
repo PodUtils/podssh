@@ -41,6 +41,9 @@ pub struct ServeArgs {
     pub listen: Vec<String>,
     /// `--max-connections N` (T-124).
     pub max_connections: Option<String>,
+    /// `--pending-max N` and `--login-timeout SECS` (T-631).
+    pub pending_max: Option<String>,
+    pub login_timeout: Option<String>,
     pub host_key: Option<String>,
     pub authorized_key: Vec<String>,
     pub authorized_keys: Vec<String>,
@@ -75,6 +78,8 @@ impl ServeArgs {
             name: matches.get_one::<String>("name").cloned(),
             listen: many("listen"),
             max_connections: matches.get_one::<String>("max-connections").cloned(),
+            pending_max: matches.get_one::<String>("pending-max").cloned(),
+            login_timeout: matches.get_one::<String>("login-timeout").cloned(),
             host_key: matches.get_one::<String>("host-key").cloned(),
             authorized_key: many("authorized-key"),
             authorized_keys: many("authorized-keys"),
@@ -114,7 +119,12 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         return refused(err, refusal);
     }
     // The addresses and the caps are checked before anything binds or reads.
-    let listening = match crate::serve_listen::Plan::of(&args.listen, args.max_connections.as_deref()) {
+    let caps = crate::serve_listen::Caps {
+        max_connections: args.max_connections.as_deref(),
+        pending_max: args.pending_max.as_deref(),
+        login_timeout: args.login_timeout.as_deref(),
+    };
+    let listening = match crate::serve_listen::Plan::of(&args.listen, &caps) {
         Ok(plan) => plan,
         Err(refusal) => return refused(err, refusal),
     };
@@ -269,10 +279,18 @@ fn one_mode(args: &ServeArgs) -> Result<(), Refusal> {
         (true, Some(name), _) => Err(Refusal::usage(format!("--stdio and NAME {name:?}: give one of them"))),
         (true, None, true) => Err(Refusal::usage("--stdio and --listen: give one of them")),
         (false, Some(name), true) => Err(Refusal::usage(format!("NAME {name:?} and --listen: give one of them"))),
-        _ if !listen && args.max_connections.is_some() => {
-            Err(Refusal::usage("--max-connections bounds a listener: give --listen ADDR with it"))
-        }
-        _ => Ok(()),
+        _ if listen => Ok(()),
+        _ => match [
+            ("--max-connections", &args.max_connections),
+            ("--pending-max", &args.pending_max),
+            ("--login-timeout", &args.login_timeout),
+        ]
+        .into_iter()
+        .find(|(_, value)| value.is_some())
+        {
+            Some((flag, _)) => Err(Refusal::usage(format!("{flag} bounds a listener: give --listen ADDR with it"))),
+            None => Ok(()),
+        },
     }
 }
 
@@ -386,6 +404,8 @@ mod tests {
             (ServeArgs { listen: listen.clone(), name: name.clone(), ..args(false) }, Some("and --listen")),
             (ServeArgs { name: name.clone(), ..args(true) }, Some("--stdio and NAME")),
             (ServeArgs { max_connections: Some("4".into()), ..args(true) }, Some("--max-connections bounds")),
+            (ServeArgs { pending_max: Some("4".into()), ..args(true) }, Some("--pending-max bounds")),
+            (ServeArgs { login_timeout: Some("9".into()), name: name.clone(), ..args(false) }, Some("--login-timeout")),
             (args(false), Some("or --listen ADDR")),
             (ServeArgs { listen, max_connections: Some("4".into()), ..args(false) }, None),
             (args(true), None),

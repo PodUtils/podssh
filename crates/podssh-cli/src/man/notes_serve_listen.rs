@@ -1,5 +1,5 @@
 //! The notes of `podssh serve --listen` (T-124): its addresses, the bind
-//! as the probe, the caps, and the stop. Apart from `notes_serve` so that
+//! as the probe, the caps, and the stop; the deadline of a login (T-631). Apart from `notes_serve` so that
 //! each file stays short; `notes_serve` names these paragraphs.
 
 /// `--listen ADDR`: the addresses, and who can connect.
@@ -27,3 +27,12 @@ pub const CAPS: &str = "Each connection takes a place under --max-connections (6
      its connection ends. SIGTERM or SIGINT closes each listener, and its socket's file goes. Then each connection \
      stops as under --stdio, and serve exits 0. SIGHUP reads the keys again for each connection. A listener whose \
      accept fails 10 times in a row listens no more; with none left, serve exits 69.";
+
+/// The deadline from the accept, and the cap on those not logged in.
+pub const DEADLINE: &str = "Each connection must log in within --login-timeout SECS of its accept (60 by default, 1 \
+     to 3600). The time is counted from the accept, not from the last byte: a client that sends a byte now and then \
+     ends at the same time. Past it, serve sends a disconnect: podssh serve: no login within 60 s of the connection \
+     (--login-timeout). A client that sent no version line yet is closed with no disconnect. Each end is one line of \
+     serve's log. A login in time cancels the deadline. --pending-max N (16 by default) caps the connections that \
+     have not logged in. One more is refused as past --max-connections, with --pending-max named. A login gives its \
+     place back at once.";
