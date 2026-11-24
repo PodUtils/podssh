@@ -2156,6 +2156,19 @@ is [research/dns-carrier.md](research/dns-carrier.md). Its verdict:
   name that is not one of its own datagrams (T-876, finding 1), so a zone that
   it serves meets silence until podcrates answers. The result of two real
   networks goes here; none was run (UNVERIFIED).
+- **The road** (T-877, drafted 2026-11-24): `--carrier dns:FILE` at both
+  ends, pod-link's carrier with podssh's glue. FILE names the `zone`, the
+  client's `resolver` (an address, or the first nameserver of
+  `/etc/resolv.conf`), the node's `listen`, this end's `key-file` and the
+  other end's `peer`; the TLS under the ARQ pins each key, and the
+  end-to-end channel runs above it as on each carrier. A UDP socket toward
+  the resolver, which sends nothing, is the client's probe (69 with nothing
+  sent where UDP is refused), and FILE may lower Q107's 20 queries a second
+  and 8 in flight, never raise them. The node's listener is one that the
+  user asks for (exception 1), and it serves one stream. The deployment is
+  the table of the research's section 6. Tested against stand-in resolvers
+  on the loopback in front of pod-link's responder (UNVERIFIED); through
+  `unbound`, and the rates, not run.
 
 ## Servers that a user runs
 

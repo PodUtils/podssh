@@ -5688,6 +5688,7 @@ dependencies = [
  "pod-services",
  "pod-term",
  "pod-testkit",
+ "pod-tls",
  "pod-tor",
  "pod-unit",
  "pod-ws",

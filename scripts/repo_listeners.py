@@ -100,8 +100,13 @@ LISTENERS = {
     # connected to the resolver, which sends nothing (dns_road.rs); then two
     # queries, each from a socket of port 0 connected to the resolver alone,
     # 3 s each (doctor/dns_zone.rs); and their tests' stand-in resolvers on
-    # the loopback.
+    # the loopback. And the DNS road (T-877, Q107), only with `--carrier
+    # dns:FILE`: the client's probe as above, then pod-link's one socket of
+    # port 0 toward the resolver; the node's UDP listener at FILE's `listen`,
+    # which the user asks for, after PODSSH_LISTEN, the bind its probe
+    # (carrier_dns.rs); and its tests' silent socket on the loopback.
     "UdpSocket": [
+        "crates/podssh-cli/src/carrier_dns_tests.rs",
         "crates/podssh-cli/src/dns_road.rs",
         "crates/podssh-cli/src/doctor/dns_zone.rs",
         "crates/podssh-cli/src/doctor/dns_zone_tests.rs",
@@ -139,8 +144,11 @@ LISTENERS = {
     # doctor's line nat and its stand-ins (T-641), as above. And the Hysteria 2
     # road's probe, its connection's socket and the tests of Salamander's
     # wrapper (T-580), as above. And the stand-in bucket (T-725), as above.
-    # And the DNS road's lines in doctor and their tests (T-875), as above.
+    # And the DNS road's lines in doctor and their tests (T-875), and the
+    # road's node and its tests (T-877), as above.
     "bind(": [
+        "crates/podssh-cli/src/carrier_dns.rs",
+        "crates/podssh-cli/src/carrier_dns_tests.rs",
         "crates/podssh-cli/src/dns_road.rs",
         "crates/podssh-cli/src/doctor/dns_zone.rs",
         "crates/podssh-cli/src/doctor/dns_zone_tests.rs",

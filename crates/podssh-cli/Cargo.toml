@@ -113,6 +113,13 @@ pod-services = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" 
 # lines of the DNS road (`doctor --dns-zone`, T-875): `pod_dns::txt`, the
 # crate that podssh-ws builds already; no feature of its own.
 pod-dns = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
+# The DNS road (`--carrier dns:FILE`, T-877): pod-link's DNS carrier (its
+# feature `dns`: base32 names up, TXT answers down, the ARQ and TLS 1.3 with
+# pinned keys), the crate that podssh-relay's `bucket` builds already; and
+# pod-tls for the set of client keys that a node of the road takes
+# (`peer::Keys`), the crate that podssh-ws builds already. No C.
+pod-link = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1", features = ["dns"] }
+pod-tls = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
 # The ACME client of `relay serve --acme` (src/acme/): pod-acme of
 # PodUtils/podcrates (T-034 there); pod-core for the type of its lines.
 pod-acme = { git = "https://github.com/PodUtils/podcrates", tag = "v0.82.1" }
