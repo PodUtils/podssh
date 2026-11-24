@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**827 entries: 18 open, 46 partial, 13 blocked, 750 done.**
+**828 entries: 19 open, 46 partial, 13 blocked, 750 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 18 | 12 | 8 | 348 | 386 |
-| **All** | 18 | 46 | 13 | 750 | 827 |
+| P3 | 19 | 12 | 8 | 348 | 387 |
+| **All** | 19 | 46 | 13 | 750 | 828 |
 
 ## Entries
 
