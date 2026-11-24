@@ -4,7 +4,8 @@
 //!
 //! It never listens: the stream is the caller's (stdin and stdout for
 //! `--stdio`, as `sshd -i`; a node's session; a connection that the
-//! listener of `--listen` accepted, under the caps of `listen.rs`, T-124). A command and a shell
+//! listener of `--listen` accepted, under the caps and the deadline of
+//! `listen.rs`, T-124 and T-631). A command and a shell
 //! run on pipes (T-108), with the shell that T-222 finds, or on a pty where
 //! a master opens at the request (T-110); direct-tcpip dials from this host
 //! (T-109); the `sftp` subsystem is served in the process (T-112). Where no
@@ -275,6 +276,41 @@ pub async fn serve_under<S>(
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
+    serve_inner(stream, host_key, keys, settings, control, None).await
+}
+
+/// [`serve_under`] for a connection that a listener let in (T-124,
+/// T-631): its places under the caps are held for its life, and with no
+/// login by its deadline it ends, the client told why. That end is `Err`,
+/// a line for serve's log.
+pub async fn serve_admitted<S>(
+    stream: S,
+    host_key: PrivateKey,
+    keys: Keys,
+    settings: Arc<Settings>,
+    control: Control,
+    admitted: listen::Admitted,
+) -> Result<(), String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let listen::Admitted { all, login } = admitted;
+    let ended = serve_inner(stream, host_key, keys, settings, control, Some(login)).await;
+    drop(all);
+    ended
+}
+
+async fn serve_inner<S>(
+    stream: S,
+    host_key: PrivateKey,
+    keys: Keys,
+    settings: Arc<Settings>,
+    control: Control,
+    login: Option<listen::Login>,
+) -> Result<(), String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     // No key, no login: the caller refuses the start first, and this holds
     // it for each other caller.
     if keys.is_empty() {
@@ -293,8 +329,16 @@ where
     // refusal ends the connection as a revoke does.
     let stream = policy_gate::Gated::new(stream, &conn, &settings);
     let served = handler::Served::new(keys, settings, control.clone(), conn.clone());
-    let mut running = russh::server::run_stream(config, stream, served).await.map_err(|e| ended(&e))?;
+    let started = russh::server::run_stream(config, stream, served);
+    // A listener's deadline holds from the accept: russh waits for the
+    // client's version line with no bound of its own here (T-631).
+    let started = match login.as_ref().map(|login| (login.at, login.silent())) {
+        None => started.await,
+        Some((at, silent)) => tokio::time::timeout_at(at, started).await.map_err(|_| silent)?,
+    };
+    let mut running = started.map_err(|e| ended(&e))?;
     let handle = running.handle();
+    let reaped = listen::reaped(login, conn.logged_in());
     let result = tokio::select! {
         result = &mut running => result,
         () = stop::reached(&mut stage, Stage::Stopping) => {
@@ -306,6 +350,12 @@ where
         told = live::ended(&mut revoked) => {
             stop::wind_down(handle, &control, conn.groups(), &told, running).await;
             return Ok(());
+        }
+        // No login by the listener's deadline: the client hears the limit,
+        // and serve's log gets the same line.
+        told = reaped => {
+            stop::wind_down(handle, &control, conn.groups(), &told, running).await;
+            return Err(format!("{}: closed", told.trim_start_matches("podssh serve: ")));
         }
     };
     match result {

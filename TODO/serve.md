@@ -3116,6 +3116,50 @@ as a timer of inactivity, and the test of the byte each second fails.
 T-124 is done: `podssh serve --listen` exists, with the server of T-107 whose session the deadline
 follows and the test of the listener that this Prove extends. T-124 waits for T-107 to T-112.
 
+## Correction
+
+2026-11-24 (a drafting agent), read at `e9db680f`: each line of the Premise holds there
+(`vendor/russh/src/server/mod.rs:1189` and `:1179`, `vendor/russh/src/server/session.rs:858-864`,
+`vendor/russh/src/server/session.rs:475`, `vendor/russh/src/lib_inner.rs:315`), and the server of
+T-107 is `crates/podssh-ssh/src/server/`. Drafted with T-124 in one worktree, as its Start condition
+asks for T-124's listener and test: this entry's commit comes after T-124's. Two refinements of the
+Approach:
+
+- Step 1's refusal past the cap is serve's version line and a DISCONNECT of reason 12 in the clear,
+  written by `server::listen::refuse` before russh starts (T-124's Decision), not
+  `Handle::disconnect`, which needs the client's version line and comes after russh's KEXINIT.
+- Step 2's waiter is a branch of the session's own `select!` (`listen::reaped` in
+  `crates/podssh-ssh/src/server/mod.rs`), not a task: it ends with the session, and the first login
+  ends its timer and gives back the place among those not logged in. The login is told by a watch
+  beside the flag of T-869 (`Conn::logged_in` in `crates/podssh-ssh/src/server/live.rs`).
+
+## Done
+
+UNVERIFIED (drafted 2026-11-24, not built; the main session builds and fills each result).
+
+- The cap and the deadline: `Limits { pending, login }`, `Gate::pending`, `Login`, `reaped` in
+  `crates/podssh-ssh/src/server/listen.rs`; `server::serve_admitted` and the deadline over russh's
+  `run_stream` and beside the session in `crates/podssh-ssh/src/server/mod.rs`; the watch of the
+  first login in `crates/podssh-ssh/src/server/live.rs`. Unit tests in `listen_tests.rs` on a paused
+  clock (the pending cap refuses and a login gives its place back; the deadline passes at its time
+  and not after a login; no deadline never passes). `cargo test -p podssh-ssh --lib server::listen`:
+  UNVERIFIED.
+- `crates/podssh-ssh/tests/serve_listen.rs`: a silent client and one that sends a byte each 200 ms
+  are gone between 2 s and 7 s with the line naming `--login-timeout`, the places back at 0; a
+  client past its version line hears `no login within 2 s of the connection (--login-timeout)` in a
+  disconnect; a login in time outlives the deadline and its pending place came back; a client past
+  `--pending-max` reads the refusal before any key exchange. `cargo test -p podssh-ssh --test
+  serve_listen`: UNVERIFIED.
+- The command line: `--pending-max N` and `--login-timeout SECS`
+  (`crates/podssh-cli/src/flags/serve.rs`, `Caps` and `seconds` in
+  `crates/podssh-cli/src/serve_listen.rs`, each with `--listen` alone: `one_mode` of `serve.rs`);
+  each reaped connection is a line of serve's log (`admit`). `cargo test -p podssh-cli --lib serve`:
+  UNVERIFIED.
+- The manual (`DEADLINE` of `crates/podssh-cli/src/man/notes_serve_listen.rs`), `docs/cli.md`
+  (the bullet of the deadline) and a row of `docs/STATUS.md`.
+- Left for the main session: the planted defect of the Prove (the deadline as a timer of
+  inactivity, which the test of the byte each 200 ms must catch) waits for T-251.
+
 # T-698: `podssh serve` drops each capability of its start, with the relay role's drop in a module that both share
 
 **Source:** GitHub #168 (2026-11-07).

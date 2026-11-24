@@ -18,6 +18,11 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "serve each SSH connection that comes on ADDR: PORT on 127.0.0.1, ADDR:PORT on an address of this host ([::1]:PORT for IPv6), or unix:PATH, a socket of mode 0600; may be repeated; never with PODSSH_LISTEN=no", None),
     row(None, "max-connections", Some("N"), FlagKind::Supported,
         "with --listen: the connections at once, logged in or not; one more is refused with a disconnect, too many connections (default: 64)", None),
+    // A deadline from the accept, and a cap on the clients not logged in (T-631).
+    row(None, "pending-max", Some("N"), FlagKind::Supported,
+        "with --listen: the connections at once that have not logged in; one more is refused as with --max-connections (default: 16)", None),
+    row(None, "login-timeout", Some("SECS"), FlagKind::Supported,
+        "with --listen: the seconds from a connection to its login, 1 to 3600; past them it ends, told why, however busy the client is (default: 60)", None),
     row(None, "host-key", Some("FILE"), FlagKind::Supported,
         "the host key: an OpenSSH private key with no passphrase, made there (Ed25519, mode 0600) when missing, never overwritten (default: serve_host_ed25519_key in the cache)", None),
     row(None, "authorized-key", Some("KEY"), FlagKind::Supported,

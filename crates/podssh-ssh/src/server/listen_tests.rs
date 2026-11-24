@@ -1,4 +1,5 @@
-//! The caps of a listener and the bytes of a refusal (T-124).
+//! The caps of a listener and the bytes of a refusal (T-124); the cap on
+//! connections not logged in and the deadline from the accept (T-631).
 
 use super::*;
 
@@ -51,7 +52,7 @@ fn a_refusal_is_the_version_line_then_the_packet() {
 /// own cap, and gives each place back as its holder drops.
 #[test]
 fn the_cap_lets_in_its_number_and_gives_places_back() {
-    let gate = Gate::new(Limits { connections: 2 });
+    let gate = Gate::new(Limits { connections: 2, ..Limits::default() });
     let first = gate.enter();
     let second = gate.enter();
     assert!(matches!((&first, &second), (Entry::Admitted(_), Entry::Admitted(_))));
@@ -76,15 +77,17 @@ fn the_cap_lets_in_its_number_and_gives_places_back() {
 
 #[test]
 fn a_cap_out_of_bounds_is_held_in_them() {
-    assert_eq!(Gate::new(Limits { connections: 0 }).limits().connections, 1);
-    assert_eq!(Gate::new(Limits { connections: usize::MAX }).limits().connections, CAP_MAX);
+    let low = Gate::new(Limits { connections: 0, pending: 0, login: Duration::ZERO }).limits();
+    assert_eq!(low, Limits { connections: 1, pending: 1, login: Duration::from_secs(1) });
+    let high = Gate::new(Limits { connections: usize::MAX, pending: usize::MAX, login: Duration::MAX }).limits();
+    assert_eq!(high, Limits { connections: CAP_MAX, pending: CAP_MAX, login: LOGIN_MAX });
 }
 
 /// A refusal over a pipe: the client reads the words, and the refusal ends
 /// at the client's end with no wait for [`REFUSE_LIMIT`].
 #[tokio::test]
 async fn a_refusal_ends_at_the_clients_end() {
-    let gate = Gate::new(Limits { connections: 1 });
+    let gate = Gate::new(Limits { connections: 1, ..Limits::default() });
     let _held = gate.enter();
     let Entry::Full(full) = gate.enter() else { panic!("a refusal") };
     let (mut near, far) = tokio::io::duplex(1 << 16);
@@ -96,4 +99,50 @@ async fn a_refusal_ends_at_the_clients_end() {
     drop(near);
     tokio::time::timeout(Duration::from_secs(5), refusing).await.expect("the refusal ends").unwrap();
     assert!(matches!(gate.enter(), Entry::Full(_)), "the refusal's place came back");
+}
+
+/// The cap on connections not logged in refuses with its own words, under
+/// the cap on all; a place comes back at the first login.
+#[tokio::test(start_paused = true)]
+async fn the_pending_cap_refuses_and_a_login_gives_its_place_back() {
+    let gate = Gate::new(Limits { connections: 4, pending: 1, login: LOGIN });
+    let Entry::Admitted(first) = gate.enter() else { panic!("the first is let in") };
+    match gate.enter() {
+        Entry::Full(full) => {
+            assert_eq!(full.why, Why::Pending(1));
+            assert!(full.why.words().contains("--pending-max"), "{}", full.why.words());
+        }
+        other => panic!("a refusal, not {other:?}"),
+    }
+    assert_eq!((gate.open(), gate.pending()), (1, 1), "a refusal holds no place of a connection");
+    let (told, seen) = watch::channel(false);
+    let waiter = tokio::spawn(reaped(Some(first.login), seen));
+    tokio::time::sleep(Duration::from_millis(5)).await;
+    told.send_replace(true);
+    tokio::time::sleep(Duration::from_millis(5)).await;
+    assert_eq!((gate.open(), gate.pending()), (1, 0), "the login gave its pending place back");
+    assert!(matches!(gate.enter(), Entry::Admitted(_)), "and a new one takes it");
+    // Past the deadline the waiter still waits: the login cancelled it.
+    tokio::time::sleep(LOGIN * 2).await;
+    assert!(!waiter.is_finished(), "a deadline after a login");
+    waiter.abort();
+    drop(first.all);
+}
+
+/// No login: the deadline passes at its time from the accept, whatever
+/// came between, with the words that name the limit; no deadline at all
+/// never passes.
+#[tokio::test(start_paused = true)]
+async fn the_deadline_passes_at_its_time_with_no_login() {
+    let limit = Duration::from_secs(7);
+    let gate = Gate::new(Limits { login: limit, ..Limits::default() });
+    let Entry::Admitted(admitted) = gate.enter() else { panic!("let in") };
+    let start = Instant::now();
+    let (_told, seen) = watch::channel(false);
+    let words = reaped(Some(admitted.login), seen).await;
+    assert_eq!(start.elapsed(), limit, "at the deadline, not after a silence");
+    assert_eq!(words, "podssh serve: no login within 7 s of the connection (--login-timeout)");
+    let (_told, seen) = watch::channel(false);
+    let none = tokio::time::timeout(LOGIN_MAX, reaped(None, seen)).await;
+    assert!(none.is_err(), "no deadline never passes");
 }

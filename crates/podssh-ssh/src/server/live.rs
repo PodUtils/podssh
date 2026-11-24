@@ -74,6 +74,9 @@ struct State {
     /// A login was accepted, by a key or by a shared shell's name: the
     /// client's close of the stream after it is its end (T-869).
     accepted: AtomicBool,
+    /// The same, told to a listener's deadline, which the first login
+    /// cancels (T-631).
+    logged_in: watch::Sender<bool>,
     /// The client's address, for the `from=` of the new set.
     peer: Option<IpAddr>,
     /// This connection's children, beside the server's list of them all.
@@ -98,6 +101,12 @@ impl Conn {
     /// A login was accepted on this connection, by a key or by a name.
     pub(super) fn accept(&self) {
         self.0.accepted.store(true, Ordering::Relaxed);
+        self.0.logged_in.send_replace(true);
+    }
+
+    /// Told once a login is accepted on this connection (T-631).
+    pub(super) fn logged_in(&self) -> watch::Receiver<bool> {
+        self.0.logged_in.subscribe()
     }
 
     /// Whether a login was accepted on this connection.
@@ -164,6 +173,7 @@ impl Live {
         let state = Arc::new(State {
             who: Mutex::new(None),
             accepted: AtomicBool::new(false),
+            logged_in: watch::channel(false).0,
             peer,
             groups: Groups::default(),
             ended,

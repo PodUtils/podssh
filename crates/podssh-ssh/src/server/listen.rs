@@ -1,8 +1,14 @@
 //! The limits of a listener of `podssh serve --listen` (T-124): a cap on
-//! the connections at once, taken at the accept before a byte is read, and
-//! the refusal past it. The listener and its bind are the caller's; each
-//! connection let in goes to [`super::serve_under`] with its [`Admitted`]
-//! held for its life.
+//! the connections at once, and one on those that have not logged in
+//! (T-631), each taken at the accept before a byte is read, and the refusal
+//! past them. The listener and its bind are the caller's; each connection
+//! let in goes to [`super::serve_admitted`] with its [`Admitted`].
+//!
+//! A connection let in has a deadline from its accept (T-631): no login by
+//! then, and it ends, whether the client said nothing or a byte now and
+//! then. The first login cancels it and gives back the place among those
+//! not logged in; the waiter ends with the session, so a quick login keeps
+//! no timer.
 //!
 //! A refusal is serve's version line and one DISCONNECT in the clear with
 //! the reason `TooManyConnections` (RFC 4253, 11.1; RFC 4250, 4.2.2), as a
@@ -17,10 +23,18 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::sync::{OwnedSemaphorePermit, Semaphore};
+use tokio::sync::{watch, OwnedSemaphorePermit, Semaphore};
+use tokio::time::Instant;
 
 /// The connections at once by default (`--max-connections`).
 pub const CONNECTIONS: usize = 64;
+/// The connections not yet logged in by default (`--pending-max`).
+pub const PENDING: usize = 16;
+/// The time from the accept to a login by default (`--login-timeout`):
+/// half of OpenSSH's `LoginGraceTime`, as a sandbox's link is short.
+pub const LOGIN: Duration = Duration::from_secs(60);
+/// The longest `--login-timeout`: past it the limit holds nobody off.
+pub const LOGIN_MAX: Duration = Duration::from_secs(3600);
 /// The most a cap may be: past it a cap is no bound that a host can hold.
 pub const CAP_MAX: usize = 65_536;
 /// The refusals under way at once; past it a connection is closed at once.
@@ -42,11 +56,15 @@ const CLEAR_BLOCK: usize = 8;
 pub struct Limits {
     /// The connections at once, logged in or not.
     pub connections: usize,
+    /// The connections at once that have not logged in.
+    pub pending: usize,
+    /// The time from the accept to the first login.
+    pub login: Duration,
 }
 
 impl Default for Limits {
     fn default() -> Self {
-        Limits { connections: CONNECTIONS }
+        Limits { connections: CONNECTIONS, pending: PENDING, login: LOGIN }
     }
 }
 
@@ -55,6 +73,8 @@ impl Default for Limits {
 pub enum Why {
     /// The cap of `--max-connections` was reached.
     Connections(usize),
+    /// The cap of `--pending-max` was reached.
+    Pending(usize),
 }
 
 impl Why {
@@ -62,6 +82,9 @@ impl Why {
     pub fn words(&self) -> String {
         match self {
             Why::Connections(n) => format!("{n} connections at once already (--max-connections); try again later"),
+            Why::Pending(n) => {
+                format!("{n} connections that have not logged in already (--pending-max); try again later")
+            }
         }
     }
 
@@ -72,10 +95,51 @@ impl Why {
 }
 
 /// A connection let in: the place that it holds under the caps, given back
-/// when it drops with the connection.
+/// when it drops with the connection, and its deadline.
 #[derive(Debug)]
 pub struct Admitted {
-    _all: OwnedSemaphorePermit,
+    pub(super) all: OwnedSemaphorePermit,
+    pub(super) login: Login,
+}
+
+/// The deadline of one connection from its accept, and its place among the
+/// connections not logged in.
+#[derive(Debug)]
+pub(super) struct Login {
+    pub(super) at: Instant,
+    limit: Duration,
+    pending: Option<OwnedSemaphorePermit>,
+}
+
+impl Login {
+    /// What the client and the log are told when the deadline passes.
+    pub(super) fn told(&self) -> String {
+        format!("podssh serve: no login within {} s of the connection (--login-timeout)", self.limit.as_secs())
+    }
+
+    /// The same, before the client's version line came.
+    pub(super) fn silent(&self) -> String {
+        format!("no SSH version line within {} s of the connection (--login-timeout): closed", self.limit.as_secs())
+    }
+}
+
+/// Wait for the deadline of `login`: the words of its end when it passes
+/// first; never when the first login comes first, whose place among the
+/// connections not logged in then comes back. No deadline: never.
+pub(super) async fn reaped(login: Option<Login>, mut logged_in: watch::Receiver<bool>) -> String {
+    let Some(mut login) = login else { return std::future::pending().await };
+    let passed = tokio::select! {
+        // The guard of `wait_for` goes inside its block: a guard held on
+        // would make the connection's future not Send. A sender gone is a
+        // connection gone, which no deadline need end.
+        _ = async { logged_in.wait_for(|in_| *in_).await.is_ok() } => false,
+        () = tokio::time::sleep_until(login.at) => true,
+    };
+    if passed {
+        return login.told();
+    }
+    drop(login.pending.take());
+    std::future::pending().await
 }
 
 /// A connection over a cap, with its place among the refusals.
@@ -101,16 +165,21 @@ pub enum Entry {
 pub struct Gate {
     limits: Limits,
     all: Arc<Semaphore>,
+    pending: Arc<Semaphore>,
     refusing: Arc<Semaphore>,
 }
 
 impl Gate {
-    /// The caps of `limits`; each is 1 at least, and [`CAP_MAX`] at most.
+    /// The caps of `limits`; each is 1 at least, and [`CAP_MAX`] at most;
+    /// the deadline 1 s at least, and [`LOGIN_MAX`] at most.
     pub fn new(limits: Limits) -> Gate {
         let connections = limits.connections.clamp(1, CAP_MAX);
+        let pending = limits.pending.clamp(1, CAP_MAX);
+        let login = limits.login.clamp(Duration::from_secs(1), LOGIN_MAX);
         Gate {
-            limits: Limits { connections },
+            limits: Limits { connections, pending, login },
             all: Arc::new(Semaphore::new(connections)),
+            pending: Arc::new(Semaphore::new(pending)),
             refusing: Arc::new(Semaphore::new(REFUSING)),
         }
     }
@@ -120,12 +189,18 @@ impl Gate {
         self.limits
     }
 
-    /// Place a connection just accepted, before a byte of it is read.
+    /// Place a connection just accepted, before a byte of it is read: its
+    /// deadline starts now.
     pub fn enter(&self) -> Entry {
-        match self.all.clone().try_acquire_owned() {
-            Ok(all) => Entry::Admitted(Admitted { _all: all }),
-            Err(_) => self.full(Why::Connections(self.limits.connections)),
-        }
+        let at = Instant::now() + self.limits.login;
+        let Ok(all) = self.all.clone().try_acquire_owned() else {
+            return self.full(Why::Connections(self.limits.connections));
+        };
+        let Ok(pending) = self.pending.clone().try_acquire_owned() else {
+            return self.full(Why::Pending(self.limits.pending));
+        };
+        let login = Login { at, limit: self.limits.login, pending: Some(pending) };
+        Entry::Admitted(Admitted { all, login })
     }
 
     fn full(&self, why: Why) -> Entry {
@@ -138,6 +213,11 @@ impl Gate {
     /// The connections let in that are still open.
     pub fn open(&self) -> usize {
         self.limits.connections - self.all.available_permits()
+    }
+
+    /// The connections let in that have not logged in.
+    pub fn pending(&self) -> usize {
+        self.limits.pending - self.pending.available_permits()
     }
 }
 
