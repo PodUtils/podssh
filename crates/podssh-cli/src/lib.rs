@@ -350,6 +350,8 @@ mod serve_audit;
 mod serve_totp;
 // `podssh serve NAME`: a pair's node whose sessions serve answers (T-107).
 mod node_serve;
+// A client's `-R` under `podssh serve`, published as a pair's node (T-123).
+mod serve_forward;
 // `podssh session`: a session that outlives each call of an agent (T-186).
 pub mod session;
 // `podssh run`: copy a project, then run a command in it (T-192).

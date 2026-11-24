@@ -1765,10 +1765,10 @@ operator's at `PodUtils/podssh:crates/podssh-relay/src/e2e/ends.rs` at `cbaa806`
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:33-64` and
 `PodUtils/podssh:crates/podssh-relay/src/identity/allow.rs:114-122`. The routes of a node,
 their check and their dial in `PodUtils/podssh:crates/podssh-relay/src/reverse/routes.rs:1-178`.
-The command line: the targets at `crates/podssh-cli/src/node.rs:249-286`,
-`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:288-303`, the dial of each
+The command line: the targets at `crates/podssh-cli/src/node.rs:251-288`,
+`NAME/ROUTE` at `crates/podssh-cli/src/node.rs:290-305`, the dial of each
 target at `crates/podssh-cli/src/node_target.rs:18-43`, the routes at
-`crates/podssh-cli/src/node.rs:303-311`; the channel's glue at
+`crates/podssh-cli/src/node.rs:305-313`; the channel's glue at
 `crates/podssh-cli/src/channel.rs:376-385` and
 `crates/podssh-cli/src/channel.rs:430-454`; `node://NAME/ROUTE` at
 `crates/podssh-cli/src/ssh/node.rs:36-67`, and `iroh:TICKET/ROUTE` at
@@ -2231,7 +2231,7 @@ session through a node loses a link that it need not lose.
 - Measured: CI's step `m6` at `a220c13` failed in that test with `relay close 1011: node
   unavailable`; the step had passed at each push since T-156.
 - Read: `podssh node` prints its `serving` line after its probe of TARGET, before its socket to
-  the relay opens (`crates/podssh-cli/src/node.rs:348-353`), and the tests waited for that line
+  the relay opens (`crates/podssh-cli/src/node.rs:350-355`), and the tests waited for that line
   (`crates/podssh-cli/tests/m6_exit.rs:99`, `crates/podssh-cli/tests/node_plain.rs:41`,
   `crates/podssh-cli/tests/pipe_remote.rs:194`).
 - Measured, native, 2026-10-10: on a host at 42 % of its CPU, the control lost a link in each of
@@ -2313,7 +2313,7 @@ podssh knew in advance, and said nowhere.
 ## Premise
 
 - Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:136`).
-- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:379`, `repair:
+- Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:381`, `repair:
   None`).
 
 ## Approach

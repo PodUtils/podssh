@@ -122,6 +122,7 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
         ("--revoke-ends-sessions", args.revoke_ends_sessions),
         ("--share", args.share),
         ("--shell-integration", args.shell_integration),
+        ("--publish-remote", args.publish_remote),
         ("--audit-commands", args.audit_commands),
     ];
     for (flag, on) in switches {

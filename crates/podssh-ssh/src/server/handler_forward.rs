@@ -1,6 +1,7 @@
-//! The handler's answer to a direct-tcpip channel (T-109), apart from
-//! `handler.rs` so that each file stays short; `-R` is `remote_forward.rs`
-//! (T-123). Each open, refusal and end is said in the audit log (T-116).
+//! The handler's answer to a direct-tcpip channel (T-109), and to a
+//! `tcpip-forward` (T-123, whose table is `remote_forward.rs`), apart from
+//! `handler.rs` so that each file stays short. Each direct-tcpip open,
+//! refusal and end is said in the audit log (T-116).
 
 use russh::server::{ChannelOpenHandle, Msg, Session};
 use russh::{Channel, ChannelOpenFailure};
@@ -46,5 +47,23 @@ impl Served {
         let mark = self.trail.forward(&self.who, host, port.into());
         direct::open(channel, host.to_string(), port, reply, slot, session.handle(), mark);
         Ok(())
+    }
+
+    /// A stock `ssh -R` (T-123): published with no bind where the settings
+    /// give a way, else refused. The client hears its name at once by
+    /// `SSH_MSG_DEBUG`, and on the stderr of its next session.
+    pub(super) async fn remote_forward(
+        &mut self,
+        address: &str,
+        port: &mut u32,
+        session: &mut Session,
+    ) -> Result<bool, russh::Error> {
+        let rules = self.rules();
+        let told = self.remote.ask(&self.settings, rules, &self.who, address, port, session.handle()).await;
+        let Some(line) = told else { return Ok(false) };
+        // OpenSSH shows it at -v alone, as "Remote: ...": the session's
+        // stderr is the line that a user sees.
+        session.debug(true, line.trim_end(), "")?;
+        Ok(true)
     }
 }

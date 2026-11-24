@@ -210,7 +210,9 @@ impl Served {
         match started {
             Ok(()) => {
                 session.channel_success(id)?;
-                told.map_or(Ok(()), |told| session.extended_data(id, 1, told.into_bytes()))
+                // The names of -R that no session showed yet (T-123), then its own.
+                let told: String = self.remote.untold().into_iter().chain(told).collect();
+                if told.is_empty() { Ok(()) } else { session.extended_data(id, 1, told.into_bytes()) }
             }
             // A channel whose program did not start can run nothing else,
             // so it ends here: the client waits for no close of its own.
@@ -309,8 +311,7 @@ impl russh::server::Handler for Served {
         port: &mut u32,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        let rules = self.rules();
-        Ok(self.remote.ask(&self.settings, rules, &self.who, address, port, session.handle()).await)
+        self.remote_forward(address, port, session).await
     }
 
     async fn cancel_tcpip_forward(&mut self, address: &str, port: u32, _: &mut Session) -> Result<bool, Self::Error> {

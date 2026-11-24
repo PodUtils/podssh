@@ -44,6 +44,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
     // The marks of OSC 133 and OSC 7 for a terminal (T-120).
     row(None, "shell-integration", None, FlagKind::Supported,
         "mark each login shell's prompts and commands for the terminal (OSC 133) and its directory (OSC 7): bash and zsh on a pty by a start file of serve's own that reads the user's, which serve never writes; the prompts and lines of serve's line discipline (default: no marks)", None),
+    // A client's -R published at the relay, a pair for each (T-123, Q108).
+    row(None, "publish-remote", None, FlagKind::Supported,
+        "answer a client's -R (tcpip-forward) with a pair of the relay for each forward, at most 8 for a connection, with no bind on this host (default: each -R is refused)", None),
     row(None, "no-forwarding", None, FlagKind::Supported,
         "open no forward: each direct-tcpip channel that a client opens is refused (default: each forward dials its host and port from this host)", None),
     row(None, "revoke-ends-sessions", None, FlagKind::Supported,
