@@ -30,7 +30,8 @@
 //! transient scope of its own (T-122, `scope.rs`). A client's `-R` is
 //! published with no bind where the settings give a way (T-123,
 //! `remote_forward.rs`). `--audit-log FILE` records the logins, sessions
-//! and forwards as chained JSON lines (T-116, `audit/`).
+//! and forwards as chained JSON lines (T-116, `audit/`); `--totp FILE` asks
+//! each key for a one-time code after it (T-115, `totp/`).
 
 pub mod algorithms;
 pub mod audit;
@@ -83,6 +84,7 @@ mod share_view;
 pub mod shell;
 mod start;
 pub mod stop;
+pub mod totp;
 
 use std::borrow::Cow;
 use std::ffi::OsString;
@@ -209,6 +211,9 @@ pub struct Settings {
     /// `--audit-log FILE` (T-116): each login, session and forward as a
     /// chained JSON line. None records nothing.
     pub audit: Option<Arc<audit::Audit>>,
+    /// `--totp FILE` (T-115): a key that passed must give a one-time code
+    /// by keyboard-interactive. None asks for none.
+    pub totp: Option<Arc<totp::Totp>>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

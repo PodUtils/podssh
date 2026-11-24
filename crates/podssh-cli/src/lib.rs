@@ -344,6 +344,8 @@ mod serve_listen;
 mod serve_end;
 // The audit log of `podssh serve`, opened at its start and checked by --audit-verify (T-116).
 mod serve_audit;
+// The one-time code of `podssh serve --totp`, and --totp-new (T-115).
+mod serve_totp;
 // `podssh serve NAME`: a pair's node whose sessions serve answers (T-107).
 mod node_serve;
 // `podssh session`: a session that outlives each call of an agent (T-186).
