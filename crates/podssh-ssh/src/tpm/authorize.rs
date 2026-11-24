@@ -17,9 +17,9 @@
 //! files says (4.2.1): TPM2B_PUBLIC keySign, TPM2B_DIGEST policyRef, then a
 //! TPMT_SIGNATURE, empty (TPM_ALG_NULL) in the key's own policy.
 
+use russh::keys::ssh_key::private::{EcdsaKeypair, KeypairData};
 use russh::keys::ssh_key::{Algorithm, EcdsaCurve};
 use russh::keys::PrivateKey;
-use signature::Signer;
 
 use super::policy::{sha256, ALG_SHA256};
 use super::public::{ALG_ECC, ALG_ECDSA, ALG_NULL, CURVE_P256, DECRYPT, SIGN, USER_WITH_AUTH};
@@ -216,23 +216,22 @@ impl PolicyKey {
     /// TPMT_SIGNATURE of `message`: ECDSA over its SHA-256, which is the
     /// TPM's `aHash` when `message` is `approvedPolicy || policyRef`.
     pub(super) fn sign(&self, message: &[u8]) -> Result<Vec<u8>, String> {
-        let signature = self.key.try_sign(message).map_err(|e| format!("the policy key did not sign: {e}"))?;
-        // SSH's form: r and s as mpints (RFC 5656).
-        let mut input = In::new(signature.as_bytes());
+        // p256 signs the digest itself: a generic signer of an SSH key could
+        // reach the `rsa` crate's private operation (T-257), and `new` let
+        // in an ECDSA P-256 key alone.
+        use p256::ecdsa::signature::hazmat::PrehashSigner;
+        use sha2::Digest;
+        let KeypairData::Ecdsa(EcdsaKeypair::NistP256 { private, .. }) = self.key.key_data() else {
+            return Err("the policy key is not an open ECDSA P-256 key".into());
+        };
+        let signer = p256::ecdsa::SigningKey::from_slice(private.as_slice())
+            .map_err(|e| format!("the policy key cannot sign: {e}"))?;
+        let digest = sha2::Sha256::digest(message);
+        let signature: p256::ecdsa::Signature =
+            signer.sign_prehash(&digest).map_err(|e| format!("the policy key did not sign: {e}"))?;
+        let (r, s) = signature.split_bytes();
         let mut out = Out::default();
-        out.u16(ALG_ECDSA).u16(ALG_SHA256);
-        for _ in 0..2 {
-            let n = input.u32()? as usize;
-            let number = input.take(n)?;
-            let zeros = number.iter().take_while(|b| **b == 0).count();
-            let number = &number[zeros..];
-            if number.len() > 32 {
-                return Err("the policy key's signature has an r or an s of more than 32 bytes".into());
-            }
-            let mut fixed = vec![0u8; 32 - number.len()];
-            fixed.extend_from_slice(number);
-            out.sized(&fixed);
-        }
+        out.u16(ALG_ECDSA).u16(ALG_SHA256).sized(&r).sized(&s);
         out.finish()
     }
 }

@@ -69,6 +69,8 @@ pkcs8 = { version = "0.11", default-features = false, features = ["encryption"] 
 # (RUSTSEC-2026-0543, T-808): it reads the system's time zone with no
 # unsound call, and on Windows its bundled database.
 sha2 = { workspace = true }
+# The ECDSA P-256 signature of a TPM's policy (T-839), made by p256 itself.
+p256 = { workspace = true }
 jiff = "1.0.0"
 # The signer that ssh-key's certificate builder calls (T-021): an RSA CA
 # signs through aws-lc-rs, and a CA in an agent through the agent. The

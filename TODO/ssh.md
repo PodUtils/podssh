@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7380-7381`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7381-7382`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -6139,3 +6139,13 @@ the way through `/dev/tpmrm0` or a socket, with no podssh type but russh's `Publ
 podcrates speaks to a TPM. A key sealed to the machine is of use to podnet's and podvm's node keys
 too. Would podcrates take it as a crate (`pod-tpm`), with Windows' TBS beside it? Until it answers,
 the module stays in podssh, written so that a move is a copy."
+
+2026-11-24, a defect of the merge of `d-t839b` (`59778bd`), found by the whole suite: `tpm/authorize.rs` signed a
+policy with `PrivateKey::try_sign`, which `crates/podssh-ssh/tests/no_rsa_private_op.rs` (T-257) forbids outside
+`rsa_key.rs`, as a generic signer of an SSH key can reach the `rsa` crate's private operation. The merge had run
+the TPM's own tests alone. Repaired: `PolicyKey::sign` takes the key's ECDSA P-256 scalar and signs the SHA-256 of the
+message with `p256`'s prehash signer (`p256` declared in podssh-ssh; the lock gains its edge). Run here (Rust 1.99.1):
+`--test no_rsa_private_op` 2 passed; `--lib` 543 passed; with swtpm, `--test tpm_key -- --ignored` 2 passed (the TPM
+checks the new signature of a policy) and `podssh-cli --test keygen_tpm -- --ignored` 2 passed (the login to sshd
+after a signed policy); clippy, rustfmt and the Windows check clean.
+

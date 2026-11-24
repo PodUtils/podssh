@@ -5822,6 +5822,7 @@ dependencies = [
  "jiff 1.0.2",
  "libc",
  "md5 0.8.1",
+ "p256 0.14.0",
  "pageant",
  "pkcs5",
  "pkcs8 0.11.0",
