@@ -3858,13 +3858,35 @@ that they held when the key was made. Each use probes the TPM first:
   writes nothing (exit 69), and a login skips the key before the server
   sees it, with the reason under `-v` and in the message of a login that
   fails. On Windows podssh has no way to the TPM (TBS) and says so.
+- The offline update: `-O policy-key=FILE` names an ECDSA P-256 key of
+  SSH (`podssh keygen -t ecdsa`), kept off the host. The key's policy is
+  then one `TPM2_PolicyAuthorize` that names that key and a policyRef of
+  32 random bytes, and the file's `authPolicy` holds the signed policies,
+  as the draft of the key files writes them: each a `TPM2_PolicyPCR`,
+  then a `TPM2_PolicyAuthorize` whose signature covers the PCR policy's
+  digest and the policyRef. The file holds the first, the PCRs of now.
+  After a firmware's update moved PCR 7, `podssh keygen -t ecdsa-tpm -O
+  add-policy -O policy-key=FILE -f KEY` signs the PCRs of now into `KEY`,
+  first, and the key signs again; `-C` names the policy, and `-O pcr=LIST`
+  names other PCRs than those of the newest policy. The file is replaced
+  whole or not at all, and only once the key signed with the new policy.
+  A login tries each signed policy, the newest first: the TPM checks its
+  signature (`TPM2_LoadExternal` of the policy key in the owner's
+  hierarchy, `TPM2_VerifySignature`), and its ticket lets
+  `TPM2_PolicyAuthorize` put the key's digest in the session. A signature
+  that the file's writer changed, or one of another key, is refused by the
+  TPM's own check. The public area of the policy key is the one that
+  openssl_tpm2_engine gives an outside ECC key, so both tools name the
+  same key alike.
 - What a writer of the same disk can do: replace the key file with one of
   its own key, which the server does not know; or wait for a boot whose
   PCRs match. It cannot make the TPM sign with this key under another
-  boot state, nor carry the key to another machine. A kernel's update
+  boot state, nor carry the key to another machine; nor, with the policy
+  key off the host, sign a policy for a boot state. A kernel's update
   leaves PCR 7 alone; a firmware's update or a change of Secure Boot's
-  keys moves it, and the key is then made again (the offline update by a
-  signed policy, `TPM2_PolicyAuthorize`, is T-839's later part).
+  keys moves it: a key of PCRs alone is then made again, and a key of a
+  policy key takes a new signed policy. Sign a new state only once you
+  know why it changed: the key then signs in it, a tampered one too.
 
 ## `podssh node`, `podssh operator` and `podssh relay`
 

@@ -302,8 +302,8 @@ fn generate(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
             }
         },
     };
-    // Before asking for a passphrase that would then be thrown away.
-    if path.exists() {
+    // Before asking for a passphrase that would be thrown away; add-policy changes a TPM's key file.
+    if path.exists() && !crate::keygen_tpm::adds_policy(kind, &args.options) {
         let _ = writeln!(
             err,
             "podssh keygen: {} already exists; podssh keygen never overwrites a key (remove it, or choose another -f)",

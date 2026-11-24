@@ -24,7 +24,10 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
      podcrates answered #346 by its COORD-153 (PodUtils/podcrates#258): the 7-bit transfer codec goes into
      `pod-term` in its next tag; T-831 takes it then, and podssh writes no copy.
   5. **This container** lacked `oathtool` and `swtpm`: `apt-get install oathtool swtpm swtpm-tools` before the runs of
-     `serve_totp_openssh` (it says "did not run" without them) and of the ignored swtpm tests of T-839.
+     `serve_totp_openssh` (it says "did not run" without them) and of the ignored swtpm tests of T-839. The sshd of the
+     live harness needs `/run/sshd` (`mkdir -p /run/sshd`), else T-839's sshd test says "did not run". The Windows build is
+     checked here with `rustup target add x86_64-pc-windows-gnu`, `apt-get install gcc-mingw-w64-x86-64`, then
+     `cargo check --locked --tests --target x86_64-pc-windows-gnu` (the default members).
   6. **A lesson:** chain the push on `cargo todo check`'s exit code; `5256c1a` went out with 5 stale citations
      (fixed in `1c513c2`).
 - **Read before, at the session (the cloud session of 2026-11-24, ended at the operator's word after `64e88d06`):**

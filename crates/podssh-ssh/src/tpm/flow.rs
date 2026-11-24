@@ -17,7 +17,11 @@ pub trait Transport {
 
 /// A command's response, read with `handles` handles: its handles and its
 /// parameters, or the fault.
-fn run<T: Transport + ?Sized>(t: &mut T, command: &[u8], handles: usize) -> Result<(Vec<u32>, Vec<u8>), Fault> {
+pub(super) fn run<T: Transport + ?Sized>(
+    t: &mut T,
+    command: &[u8],
+    handles: usize,
+) -> Result<(Vec<u32>, Vec<u8>), Fault> {
     let bytes = t.transact(command).map_err(Fault::Malformed)?;
     let answer = response(&bytes, handles)?;
     Ok((answer.handles, answer.params.rest().to_vec()))
@@ -25,7 +29,7 @@ fn run<T: Transport + ?Sized>(t: &mut T, command: &[u8], handles: usize) -> Resu
 
 /// Flush a handle; a failure is passed over, as the resource manager
 /// flushes each handle of a closed connection too.
-fn flush<T: Transport + ?Sized>(t: &mut T, handle: u32) {
+pub(super) fn flush<T: Transport + ?Sized>(t: &mut T, handle: u32) {
     if let Ok(command) = cmd::flush(handle) {
         let _ = run(t, &command, 0);
     }
@@ -100,13 +104,44 @@ pub(super) fn make<T: Transport + ?Sized>(
 ) -> Result<(KeyFile, EccPublic), String> {
     let values = read_pcrs(t, pcrs)?;
     let body = policy::pcr_body(pcrs, &values);
+    let (selection, _, digest) = policy::split_pcr_body(&body)?;
     let steps = vec![(CC_POLICY_PCR, body)];
     let wanted = policy::digest(ALG_SHA256, &steps)?;
-    let trial = trial_digest(t, &steps[0].1, nonce)?;
+    let trial = trial_digest(t, nonce, |session| cmd::policy_pcr(session, &digest, &selection))?;
     if trial != wanted {
         return Err("the TPM's digest of the policy is not podssh's: no key is made".into());
     }
-    let template = public::sealed_template(&wanted)?;
+    let (private, public_area, area) = create_sealed(t, &wanted)?;
+    Ok((sealed_file(steps, description, public_area, private), area))
+}
+
+/// The key file of a key that podssh made under the owner's storage key.
+pub(super) fn sealed_file(
+    policy: Vec<(u32, Vec<u8>)>,
+    description: &str,
+    public: Vec<u8>,
+    private: Vec<u8>,
+) -> KeyFile {
+    KeyFile {
+        empty_auth: true,
+        policy,
+        auth_policies: Vec::new(),
+        rsa_parent: false,
+        description: (!description.is_empty()).then(|| description.to_string()),
+        parent: RH_OWNER,
+        public,
+        private,
+    }
+}
+
+/// A new sealed key of the policy digest `wanted`: its private and public
+/// parts as a key file keeps them, and its public area as read, which must
+/// carry that digest and the attributes asked.
+pub(super) fn create_sealed<T: Transport + ?Sized>(
+    t: &mut T,
+    wanted: &[u8],
+) -> Result<(Vec<u8>, Vec<u8>, EccPublic), String> {
+    let template = public::sealed_template(wanted)?;
     let storage = storage_key(t)?;
     let made = cmd::create(storage, &template).map_err(Fault::Malformed).and_then(|command| run(t, &command, 0));
     flush(t, storage);
@@ -117,26 +152,19 @@ pub(super) fn make<T: Transport + ?Sized>(
     if area.auth_policy != wanted || area.attributes != public::SEALED {
         return Err("the TPM made a key of another policy or other attributes than asked".into());
     }
-    let file = KeyFile {
-        empty_auth: true,
-        policy: steps,
-        signed_policies: false,
-        rsa_parent: false,
-        description: (!description.is_empty()).then(|| description.to_string()),
-        parent: RH_OWNER,
-        public: public_area,
-        private,
-    };
-    Ok((file, area))
+    Ok((private, public_area, area))
 }
 
-/// The digest that the TPM reaches for a PolicyPCR of `body` in a trial
-/// session.
-fn trial_digest<T: Transport + ?Sized>(t: &mut T, body: &[u8], nonce: &[u8; 32]) -> Result<Vec<u8>, String> {
+/// The digest that the TPM reaches in a trial session for the one policy
+/// command that `policy_command` makes for the session's handle.
+pub(super) fn trial_digest<T: Transport + ?Sized>(
+    t: &mut T,
+    nonce: &[u8; 32],
+    policy_command: impl FnOnce(u32) -> Result<Vec<u8>, String>,
+) -> Result<Vec<u8>, String> {
     let session = start_session(t, cmd::SE_TRIAL, nonce)?;
     let digest = (|| -> Result<Vec<u8>, String> {
-        let (selection, _, values) = policy::split_pcr_body(body)?;
-        let command = cmd::policy_pcr(session, &values, &selection)?;
+        let command = policy_command(session)?;
         run(t, &command, 0).map_err(|e| format!("the TPM's trial of the policy failed: {e}"))?;
         let command = cmd::policy_get_digest(session)?;
         let (_, params) = run(t, &command, 0).map_err(|e| format!("the TPM gave no digest of the policy: {e}"))?;
@@ -146,7 +174,7 @@ fn trial_digest<T: Transport + ?Sized>(t: &mut T, body: &[u8], nonce: &[u8; 32])
     digest
 }
 
-fn start_session<T: Transport + ?Sized>(t: &mut T, kind: u8, nonce: &[u8; 32]) -> Result<u32, String> {
+pub(super) fn start_session<T: Transport + ?Sized>(t: &mut T, kind: u8, nonce: &[u8; 32]) -> Result<u32, String> {
     let command = cmd::start_session(kind, nonce)?;
     let (handles, _) = run(t, &command, 1).map_err(|e| format!("the TPM did not start a session: {e}"))?;
     handles.first().copied().ok_or_else(|| "the TPM gave no handle of its session".into())
@@ -185,11 +213,14 @@ pub(super) fn sign<T: Transport + ?Sized>(
     digest: &[u8; 32],
     nonces: [&[u8; 32]; 2],
 ) -> Result<Vec<u8>, String> {
-    if !file.empty_auth || file.signed_policies {
-        return Err("the key needs a password or a signed policy, which podssh does not give".into());
+    if !file.empty_auth {
+        return Err("the key needs a password, which podssh does not give".into());
     }
     if file.policy.is_empty() {
         return Err("the key file has no policy: podssh signs with sealed keys only".into());
+    }
+    if let Some(head) = super::flow_signed::head(file)? {
+        return super::flow_signed::sign(t, file, &head, digest, nonces);
     }
     let key = load(t, file)?;
     let session = match start_session(t, cmd::SE_POLICY, nonces[0]) {
@@ -201,11 +232,9 @@ pub(super) fn sign<T: Transport + ?Sized>(
     };
     let signed = (|| -> Result<Vec<u8>, String> {
         for (code, body) in &file.policy {
-            run_step(t, session, *code, body)?;
+            run_step(t, session, *code, body).map_err(Unmet::line)?;
         }
-        let command = cmd::sign(key, session, nonces[1], digest)?;
-        let (_, params) = run(t, &command, 0).map_err(|e| refused(e, "the TPM did not sign"))?;
-        public::signature_blob(&mut In::new(&params)).map_err(|e| format!("the TPM's signature cannot be read: {e}"))
+        sign_in(t, key, session, nonces[1], digest)
     })();
     // A session used with continueSession clear ended with a signature
     // that succeeded; after a failure it is still there.
@@ -216,16 +245,47 @@ pub(super) fn sign<T: Transport + ?Sized>(
     signed
 }
 
-/// One policy command of the file, in `session`.
-fn run_step<T: Transport + ?Sized>(t: &mut T, session: u32, code: u32, body: &[u8]) -> Result<(), String> {
-    if code != CC_POLICY_PCR {
-        return Err(format!("the key's policy has the command {code:#010x}, which podssh does not run"));
+/// TPM2_Sign of `digest` with the loaded `key` in the policy `session`,
+/// whose policy ran: the signature as SSH carries it.
+pub(super) fn sign_in<T: Transport + ?Sized>(
+    t: &mut T,
+    key: u32,
+    session: u32,
+    nonce: &[u8; 32],
+    digest: &[u8; 32],
+) -> Result<Vec<u8>, String> {
+    let command = cmd::sign(key, session, nonce, digest)?;
+    let (_, params) = run(t, &command, 0).map_err(|e| refused(e, "the TPM did not sign"))?;
+    public::signature_blob(&mut In::new(&params)).map_err(|e| format!("the TPM's signature cannot be read: {e}"))
+}
+
+/// Why a policy was not met: the PCRs that it names moved, or another
+/// fault, in its line.
+#[derive(Debug)]
+pub(super) enum Unmet {
+    Changed(Pcrs),
+    Other(String),
+}
+
+impl Unmet {
+    pub fn line(self) -> String {
+        match self {
+            Unmet::Changed(pcrs) => changed(pcrs),
+            Unmet::Other(why) => why,
+        }
     }
-    let (selection, pcrs, values) = policy::split_pcr_body(body)?;
-    let command = cmd::policy_pcr(session, &values, &selection)?;
+}
+
+/// One policy command of the file, in `session`.
+pub(super) fn run_step<T: Transport + ?Sized>(t: &mut T, session: u32, code: u32, body: &[u8]) -> Result<(), Unmet> {
+    if code != CC_POLICY_PCR {
+        return Err(Unmet::Other(format!("the key's policy has the command {code:#010x}, which podssh does not run")));
+    }
+    let (selection, pcrs, values) = policy::split_pcr_body(body).map_err(Unmet::Other)?;
+    let command = cmd::policy_pcr(session, &values, &selection).map_err(Unmet::Other)?;
     run(t, &command, 0).map(|_| ()).map_err(|e| match e {
-        Fault::Tpm(code) if rc::base(code) == rc::VALUE => changed(pcrs),
-        other => refused(other, "the TPM did not run the key's policy"),
+        Fault::Tpm(code) if rc::base(code) == rc::VALUE => Unmet::Changed(pcrs),
+        other => Unmet::Other(refused(other, "the TPM did not run the key's policy")),
     })
 }
 
@@ -238,7 +298,7 @@ fn changed(pcrs: Pcrs) -> String {
 }
 
 /// The line of a fault, with a word for the codes that a sealed key gives.
-fn refused(fault: Fault, what: &str) -> String {
+pub(super) fn refused(fault: Fault, what: &str) -> String {
     match fault {
         Fault::Tpm(code) => match rc::base(code) {
             rc::POLICY_FAIL => format!("{what}: the key's policy was not met ({fault})"),

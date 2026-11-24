@@ -819,16 +819,16 @@ and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`).
   digest to sign, a signature, PCR values. The private part leaves the TPM
   only wrapped under the storage key. An interposer on the TPM's bus can see
   what is signed, as a server can, and cannot sign.
-- **The offline update (not built; T-839).** PCR 7 moves with a firmware's
-  update or a change of Secure Boot's keys, and a key sealed to it must then
-  be made again. `TPM2_PolicyAuthorize` lets a key's policy be "any policy
-  digest that this signing key signed", so a new boot state needs a new
-  signature, not a new key. The research of the entry's first step, on
-  swtpm with two boot states, is UNVERIFIED. The signing key of the policies
-  must be kept offline: a writer of the same disk who reads it can sign a
-  policy of the PCRs of any boot, a tampered one too, and the seal is then
-  worth nothing; with the key offline, that writer can only replace the key
-  file with one that the server does not know.
+- **The offline update (drafted 2026-11-24; T-839).** With `-O policy-key`,
+  the key's `authPolicy` is `H(H(0 || TPM_CC_PolicyAuthorize || name) ||
+  policyRef)`, and each signed policy of the file's `authPolicy` is a
+  `TPM2_PolicyPCR` and a signature over `H(approvedPolicy || policyRef)`;
+  the TPM checks it (`TPM2_VerifySignature` of the policy key that
+  `TPM2_LoadExternal` put in the owner's hierarchy, as a NULL hierarchy
+  gives a NULL ticket). On swtpm with two boot states: UNVERIFIED. The
+  policy key must be kept off the host: a writer of the disk who reads it
+  can sign a policy of any boot, a tampered one too; without it, that
+  writer can only replace the key file with one the server does not know.
 - **The ways to the TPM.** Linux and FreeBSD through the kernel's resource
   manager; a socket of a TPM in software that the user names. Windows' TBS
   is not called (T-839).

@@ -9771,6 +9771,17 @@ podssh keygen
   USER@HOST, with the local user's name as podssh ssh takes it: PODSSH_USER,
   USER, LOGNAME or USERNAME, else the user database's entry (see ENVIRONMENT).
 
+  A key sealed to a TPM can also take signed boot states, so that a firmware's
+  update needs no new key. podssh keygen -t ecdsa-tpm -O policy-key=FILE makes
+  such a key. It signs in each boot state that the ECDSA P-256 key of FILE
+  signed, and its file holds the first: the state of now. After an update that
+  moved the PCRs, podssh keygen -t ecdsa-tpm -O add-policy -O policy-key=FILE
+  -f KEY signs the state of now into KEY. The key then signs again, and -C
+  names the new policy. Sign a new state only once you know why it changed: the
+  key then signs in it, a tampered one too. Keep the policy key off the host,
+  as whoever reads it can sign any boot state. A login tries the signed
+  policies of the file, the newest first.
+
   -V here is the validity of a certificate, with -s. podssh -V prints the
   version.
 
@@ -9851,7 +9862,8 @@ podssh keygen
         extension:NAME[=VALUE], critical:NAME[=VALUE]; with -t ed25519-sk or
         ecdsa-sk: resident, application=ssh:NAME, user=NAME, no-touch-required,
         verify-required, device=PATH; with -t ecdsa-tpm: pcr=LIST (7 by
-        default), device=PATH.
+        default), device=PATH, policy-key=FILE (a key kept off the host) and
+        add-policy (the boot state of now, signed into -f's file).
     -U, --agent-key
         the key is in the agent (SSH_AUTH_SOCK), which signs: the key of -f
         with -Y sign, the CA's with -s; the file may hold the public key.
@@ -9897,6 +9909,14 @@ podssh keygen
     a key that signs only in this machine's TPM, while Secure Boot is as it is
     now
         $ podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm
+
+    such a key that also signs in each boot state that a key kept off the host
+    signs
+        $ podssh keygen -t ecdsa-tpm -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm
+
+    after a firmware's update, sign the new boot state into that key, so that
+    it signs again
+        $ podssh keygen -t ecdsa-tpm -O add-policy -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm
 
 podssh ts
   the tailnet node and byte pipe, over DERP (not in this build).
@@ -13703,6 +13723,14 @@ EXAMPLES
   a key that signs only in this machine's TPM, while Secure Boot is as it is
   now
       $ podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm
+
+  such a key that also signs in each boot state that a key kept off the host
+  signs
+      $ podssh keygen -t ecdsa-tpm -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm
+
+  after a firmware's update, sign the new boot state into that key, so that it
+  signs again
+      $ podssh keygen -t ecdsa-tpm -O add-policy -O policy-key=/mnt/usb/policy_key -f ~/.ssh/id_ecdsa_tpm
 
   this manual with no pager
       $ podssh man --no-pager

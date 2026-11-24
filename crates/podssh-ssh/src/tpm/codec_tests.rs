@@ -2,8 +2,9 @@
 //! responses and their codes, the selection of PCRs and the policy digest,
 //! and a key file that another program wrote.
 
+use super::authorize::{self, Authorize, CC_POLICY_AUTHORIZE};
 use super::cmd;
-use super::keyfile::{is_pem, KeyFile};
+use super::keyfile::{is_pem, AuthPolicy, KeyFile};
 use super::policy::{self, Pcrs, ALG_SHA384, CC_POLICY_AUTH_VALUE, CC_POLICY_PCR};
 use super::public::{self, EccPublic};
 use super::rc;
@@ -153,7 +154,7 @@ fn a_key_file_of_go_tpm_keyfiles_is_read_and_written_back() {
     let foreign = foreign();
     assert!(is_pem(foreign.as_bytes()));
     let file = KeyFile::from_pem(&foreign).unwrap();
-    assert!(file.empty_auth && !file.signed_policies && !file.rsa_parent);
+    assert!(file.empty_auth && file.auth_policies.is_empty() && !file.rsa_parent);
     assert_eq!(file.parent, 0x4000_0001);
     let codes: Vec<u32> = file.policy.iter().map(|(code, _)| *code).collect();
     assert_eq!(codes, vec![CC_POLICY_PCR, CC_POLICY_AUTH_VALUE]);
@@ -214,4 +215,85 @@ fn a_signature_of_the_tpm_is_sshs() {
     assert!(public::signature_blob(&mut In::new(&unhex("0014 000b 0000 0000"))).is_err(), "RSASSA");
     assert!(public::signature_blob(&mut In::new(&unhex("0018 0004 0000 0000"))).is_err(), "SHA-1");
     assert!(public::signature_blob(&mut In::new(&unhex("0018 000b 0000 0000"))).is_err(), "r of zero");
+}
+
+/// The parts of the offline update, each field where part 3 puts it: the
+/// policy key's public area, its name and the digest of a key's
+/// `TPM2_PolicyAuthorize` (computed outside podssh, with Python's hashlib:
+/// `H(H(0 || 0x16A || name) || policyRef)`), and the three commands.
+#[test]
+fn the_parts_of_a_signed_policy_are_the_bytes_of_part_3() {
+    let (x, y, r, d) = ("11".repeat(32), "22".repeat(32), "33".repeat(32), "44".repeat(32));
+    let area = format!("0056 0023 000b 00060040 0000 0010 0010 0003 0010 0020 {x} 0020 {y}");
+    let point = unhex(&format!("04 {x} {y}"));
+    let public = authorize::signer_public(&point).unwrap();
+    assert_eq!(public, unhex(&area));
+    let named = "000b5b685f1846a972347b5dd1c29006510804caf58a5981ab0b44288538c20f4b17";
+    let name = authorize::name(&public).unwrap();
+    assert_eq!(name, unhex(named));
+    let reference = unhex(&r);
+    let head = Authorize { public: public.clone(), policy_ref: reference.clone(), signature: vec![0x00, 0x10] };
+    let body = head.to_bytes().unwrap();
+    assert_eq!(body, unhex(&format!("{area} 0020 {r} 0010")));
+    assert_eq!(Authorize::parse(&body).unwrap(), head);
+    let digest = policy::digest(policy::ALG_SHA256, &[(CC_POLICY_AUTHORIZE, body.clone())]).unwrap();
+    assert_eq!(digest, unhex("c35d02a67214c72b587ae44ed2f127e0beb02ce6b5844180470624b7b02a1ea7"));
+    // TPM2_PolicyAuthorize starts again: what came before it is gone.
+    let pcr = policy::pcr_body(Pcrs::parse("7").unwrap(), &[[0; 32]]);
+    let after_pcr = [(CC_POLICY_PCR, pcr), (CC_POLICY_AUTHORIZE, body)];
+    assert_eq!(policy::digest(policy::ALG_SHA256, &after_pcr).unwrap(), digest);
+
+    let trial = format!("8001 0000005e 0000016a 03000000 0000 0020 {r} 0022 {named} 8022 40000007 0000");
+    let load = format!("8001 00000068 00000167 0000 {area} 40000001");
+    let verify = format!("8001 00000032 00000177 80000002 0020 {d} 0010");
+    let (trial, load, verify, digest_44) = (trial.as_str(), load.as_str(), verify.as_str(), unhex(&d));
+    let cases: &[Command] = &[
+        (
+            "PolicyAuthorize in a trial, with the ticket of nothing",
+            authorize::policy_authorize(0x0300_0000, &[], &reference, &name, &authorize::null_ticket()),
+            trial,
+        ),
+        ("LoadExternal of the public area alone, in the owner's hierarchy", authorize::load_external(&public), load),
+        ("VerifySignature", authorize::verify_signature(0x8000_0002, &digest_44, authorize::NULL_SIGNATURE), verify),
+    ];
+    for (what, made, want) in cases {
+        let made = made.clone().unwrap_or_else(|e| panic!("{what}: {e}"));
+        assert_eq!(made, unhex(want), "{what}");
+    }
+    let ticket = authorize::ticket(&mut In::new(&unhex("8022 40000001 0002 abcd 99"))).unwrap();
+    assert_eq!(ticket, unhex("8022 40000001 0002 abcd"));
+    assert!(authorize::ticket(&mut In::new(&unhex("8021 40000001 0000"))).is_err(), "another tag");
+    for bad in ["0000 0000 0099", "0000 0000 0014", "0000 0000 0010 00", "0000 00"] {
+        assert!(Authorize::parse(&unhex(bad)).is_err(), "{bad}");
+    }
+}
+
+/// A key file with signed policies, its DER written out by hand from the
+/// draft: a TPMAuthPolicy of a name and two commands, after the key's own
+/// policy. One with no command is refused, as go-tpm-keyfiles refuses it.
+#[test]
+fn signed_policies_are_written_as_the_draft_says() {
+    let signed = AuthPolicy {
+        name: Some("a".into()),
+        policy: vec![(CC_POLICY_PCR, vec![0xBB]), (CC_POLICY_AUTHORIZE, vec![0xCC])],
+    };
+    let file = KeyFile {
+        empty_auth: true,
+        policy: vec![(CC_POLICY_AUTHORIZE, vec![0xAA])],
+        auth_policies: vec![signed],
+        rsa_parent: false,
+        description: None,
+        parent: 0x4000_0001,
+        public: vec![0, 0],
+        private: vec![0, 0],
+    };
+    let want = unhex(
+        "3055 06066781050a0103 a0030101ff a10f300d300ba0040202016aa1030401aa \
+         a327 3025 3023 a0030c0161 a11c301a 300ba0040202017fa1030401bb 300ba0040202016aa1030401cc \
+         020440000001 04020000 04020000",
+    );
+    assert_eq!(file.to_der(), want);
+    assert_eq!(KeyFile::from_der(&want).unwrap(), file);
+    let empty = unhex("3025 06066781050a0103 a0030101ff a308300630 04a1023000 020440000001 04020000 04020000");
+    assert!(KeyFile::from_der(&empty).unwrap_err().contains("authPolicy"));
 }

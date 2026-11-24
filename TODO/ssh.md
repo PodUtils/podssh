@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:183-189`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:7101-7161`
+   so that only the notes change. No document changes: `docs/cli.md:7123-7183`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:6975-7075`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:6997-7097`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:6985-6988`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:7007-7010`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:6975-7075`, and the measurement in
+5. Write the measured rule in `docs/cli.md:6997-7097`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:7101-7161` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:7123-7183` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:899-910` and `docs/cli.md:5823-5835`, the manual's notes and an
+- `docs/cli.md:899-910` and `docs/cli.md:5845-5857`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:636`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:7124-7129`). A person who types slowly must not meet a limit
+  `docs/cli.md:7146-7151`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:7159-7161` asks for a limit on the whole operation.
+   `docs/cli.md:7181-7183` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5721-5722` says that the key "is never used".
+called. `docs/cli.md:5743-5744` says that the key "is never used".
 
 ## Approach
 
@@ -5945,6 +5945,55 @@ state gates.
   `8c9c2d10`).
 - **No encrypted or salted session**: no parameter of these commands is secret (`docs/design.md`,
   "A key sealed to the machine").
+- **The offline update: the layout of the draft of the key files** (2026-11-24, the second drafting
+  agent; read at <https://www.hansenpartnership.com/draft-bottomley-tpm2-keys.txt>, 4.2.1 and 5, by
+  `fetch.web.pkgforge.dev`). The key's own policy is one `TPM2_PolicyAuthorize` whose body is
+  TPM2B_PUBLIC keySign, TPM2B_DIGEST policyRef and an empty TPMT_SIGNATURE (`TPM_ALG_NULL`); each
+  signed policy of `authPolicy` is a `TPM2_PolicyPCR`, then a `TPM2_PolicyAuthorize` whose signature
+  covers `H(approvedPolicy || policyRef)`. openssl_tpm2_engine writes and runs it so
+  (kernelorg-mirror/linux_kernel_git_jejb_openssl_tpm2_engine:src/libcommon/tpm2-common.c, read on
+  2026-11-24), and go-tpm-keyfiles parses and writes the field. Lost: a layout of podssh's own (no
+  other reader could use the key).
+- **The policy key: an ECDSA P-256 key of SSH** (`podssh keygen -t ecdsa`, in each format that
+  `podssh ssh -i` reads, its passphrase asked). Lost: Ed25519 (no TPM checks it); RSA (a TPM checks
+  RSASSA, but podssh would sign a prehash through aws-lc-rs with more code; a file whose policies
+  another tool signed with RSA is passed to the TPM as the file holds it).
+- **Its public area: openssl_tpm2_engine's template of an outside ECC key** (the attributes
+  `sign`, `decrypt` and `userWithAuth`, no scheme, a SHA-256 name, coordinates of 32 bytes), so
+  that both tools give the same key the same name and the same `authPolicy`. Lost: `sign` alone with
+  an ECDSA scheme (another name for the same key).
+- **`TPM2_LoadExternal` in the owner's hierarchy**: `TPM2_VerifySignature` gives a NULL ticket for a
+  key of the NULL hierarchy, and `TPM2_PolicyAuthorize` refuses it (read on 2026-11-24 in
+  microsoft/ms-tpm-20-ref:TPMCmd/tpm/src/command/Signature/VerifySignature.c and
+  microsoft/ms-tpm-20-ref:TPMCmd/tpm/src/command/EA/PolicyAuthorize.c). A
+  public area alone needs no authorization there. Lost: the NULL hierarchy.
+- **A policyRef of 32 random bytes for each key** (the draft, 5.2.3): a policy signed for one key does
+  not open another key of the same policy key. Lost: an empty policyRef, as systemd's.
+- **The first signed policy is made with the key**, so `-O policy-key=FILE` takes the private key:
+  the key signs a challenge before its file is written, as each sealed key does. Lost: the public key
+  alone, which would make a key that cannot sign until a policy is added.
+- **The command line: `-O add-policy` with `-O policy-key=FILE` and `-f KEY`, under `-t ecdsa-tpm`.**
+  The file is replaced whole by pod-core's atomic replace, once the key signed with the new policy;
+  `-C` names the policy; `-O pcr=LIST` names other PCRs than those of the newest policy. Lost: a long
+  flag (`ssh-keygen` has none; `-O` carries the options of a key type); a change implied by an
+  existing `-f` (a typing error would make a new key, or change one); `-s` (the certificates' flag).
+- **The new state is the PCRs of now, read in this TPM**, so the policy key comes to the host for the
+  moment of the signature. Lost: values given ahead (`-O pcr7=HEX`), which need a predictor podssh
+  lacks (systemd-pcrlock predicts others). The manual says to sign a state only once its change is
+  understood: the key then signs in it, a tampered one too.
+- **The newest first, the older kept**: a new policy goes first, and one of the same PCRs and values
+  replaces the older (a signature of ECDSA differs each time). The older stay, so that a return to an
+  older firmware still signs. Lost: one policy only.
+- **Each signed policy in a fresh session**, flushed when it fails, where openssl_tpm2_engine uses
+  `TPM2_PolicyRestart`: one path that flushes on each failure, at the cost of one
+  `TPM2_StartAuthSession` for each policy tried.
+- **`approvedPolicy` from podssh's digest**, where openssl_tpm2_engine reads it with
+  `TPM2_PolicyGetDigest`: the TPM compares it with the session's digest (`TPM_RC_VALUE`), and the
+  digest is the one that the signature covers.
+- **The login against OpenSSH (item 4) in `crates/podssh-cli/tests/keygen_tpm.rs`**, with the sshd of
+  `crates/podssh-cli/tests/live_harness/sshd.rs`, ignored as it needs swtpm, and ended with a line
+  where no sshd runs. Lost: `scripts/interop-keygen.sh`, whose build image has no swtpm and whose
+  baseline (`scripts/interop-baseline.txt`) would take new ids that wait for a run.
 
 ## Prove
 
@@ -6026,10 +6075,61 @@ What is left of the entry:
    policy digest that a key kept offline signs (`TPM2_LoadExternal`, `TPM2_VerifySignature`, the
    ticket), the file's `authPolicy` with signed policies, and `podssh keygen` to sign a policy for a
    new boot state; the Prove's case "after a signed policy for the new value it signs again".
-2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM.
+   Done (below), 2026-11-24.
+2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM. Not drafted: later.
 3. Windows: TBS (`Tbsi_Context_Create`, `Tbsip_Submit_Command`) in the place of
-   `crates/podssh-ssh/src/tpm/other.rs`.
+   `crates/podssh-ssh/src/tpm/other.rs`. Not drafted: later.
 4. A login through `podssh ssh -i` against OpenSSH's sshd with swtpm, in the interop harness.
+   Done (below), 2026-11-24.
+
+Drafted on 2026-11-24 (branch `d-t839b`, on `main` at `1c513c2`), items 1 and 4; merged by the main session
+on `main` after `dd1f9a9`, built and tested (2026-11-24, Rust 1.99.1). The merge cut the `-O` row's sentence of 35
+words that the manual's check found to 25 or fewer, and wrote `llms-full.txt` again:
+
+- The offline update in the codec (`crates/podssh-ssh/src/tpm/authorize.rs`): the policy key's
+  public area and name, the body of `TPM2_PolicyAuthorize` in the file, its digest in
+  `crates/podssh-ssh/src/tpm/policy.rs` (it starts again from zeros), and the commands
+  `TPM2_LoadExternal`, `TPM2_VerifySignature` (with its ticket) and `TPM2_PolicyAuthorize`; the
+  key file's `authPolicy` read and written (`crates/podssh-ssh/src/tpm/keyfile.rs`, `AuthPolicy`).
+  `cargo test -p podssh-ssh --lib tpm::codec_tests`: passed, in `--lib`'s 543 (byte vectors by hand from part 3,
+  and the name and the digest of a key's `TPM2_PolicyAuthorize` computed with Python's hashlib:
+  `000b5b68...`, `c35d02a6...`; the DER of a file with a named signed policy by hand).
+- The sequences (`crates/podssh-ssh/src/tpm/flow_signed.rs`): a key of a policy key, its trial
+  of the policy with the ticket of nothing, and its first signed policy; a signature that tries each
+  signed policy, the newest first, in a fresh session; a new signed policy for the PCRs of now. The
+  TPM in software (`crates/podssh-ssh/src/tpm/soft.rs`) checks ECDSA in `TPM2_VerifySignature`, makes
+  tickets of its own seed, and takes in `TPM2_PolicyAuthorize` only the session's digest and its own
+  ticket. `cargo test -p podssh-ssh --lib tpm::signed_tests`: passed (signs; refused in one line
+  after PCR 7 moved; signs again after a signed policy of the new value; another policy key, a
+  swapped signature and a policy moved to PCR 0 are refused; the planted flow, a ticket of nothing
+  outside a trial, gets `TPM_RC_VALUE` of parameter 4; an Ed25519 policy key and a key of PCRs alone
+  are refused; no handle is left).
+- `podssh keygen -t ecdsa-tpm -O policy-key=FILE` and `-O add-policy`
+  (`crates/podssh-cli/src/keygen_tpm.rs`; `crates/podssh-cli/src/keygen.rs` lets `-O add-policy`
+  past its check of an existing file). `cargo test -p podssh-cli --lib keygen_tpm` and `cargo test -p
+  podssh-cli --test keygen_tpm`: passed, `--lib` 1283 and `keygen_tpm` 5 (`-O add-policy` with no TPM exits 69 and leaves the file
+  as it was; with no key file of a TPM at `-f`, one line and 1; without `-O policy-key`, 64).
+- Against swtpm: `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test tpm_key -- --ignored`:
+  2 passed with swtpm and OpenSSH 9.6p1's `ssh-keygen` (the new test: a key of a policy key signs; after `PCR_Extend` of PCR 7 it is refused in
+  one line; another policy key cannot add a policy; after `tpm::add_policy` it signs again and
+  OpenSSH's `ssh-keygen` verifies it; one bit changed in the policy's signature is refused by
+  `TPM2_VerifySignature`, the plant of the TPM's own check).
+- Item 4, against swtpm and OpenSSH's sshd: `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test
+  keygen_tpm -- --ignored`: 2 passed with swtpm and OpenSSH 9.6p1's sshd (`/run/sshd` made first; without it the
+  test says "did not run" and passes) (the new test: `podssh keygen -t ecdsa-tpm -O policy-key=`,
+  `podssh ssh -i` to sshd runs `echo sealed`; after PCR 7 moved it exits 255 and says why; after
+  `-O add-policy` it logs in again).
+- The manual: the `-O` row, a note of `keygen`, two examples. `cargo test -p podssh-cli --lib man`
+  and `--test man_page --test man_flag_parity --test flag_table`: passed; `keygen` 11, `keygen_cert` 5,
+  `keygen_known_hosts` 4 passed; rustfmt and the gate's clippy clean; the default members checked for Windows
+  (`--target x86_64-pc-windows-gnu`). Documents:
+  `docs/cli.md` ("Keys sealed to a TPM"), `docs/design.md` (the offline update), `docs/STATUS.md`.
+
+What the merge runs first: `cargo todo remap docs/cli.md docs/design.md docs/STATUS.md
+crates/podssh-cli/src/keygen.rs crates/podssh-cli/src/flags/keygen.rs
+crates/podssh-cli/src/man/notes_keygen.rs crates/podssh-cli/src/man/examples.rs`; rustfmt;
+`podssh man --llms index > llms.txt` and `podssh man --llms full > llms-full.txt`; the tests above,
+clippy, and each file at 500 lines or fewer (each is now).
 
 The ask of PodUtils/podcrates, filed as COORD-141 (#351) on 2026-11-24:
 "podssh drafted a TPM 2.0 codec and the key file `TSS2 PRIVATE KEY` in pure Rust
