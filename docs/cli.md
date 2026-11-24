@@ -6083,6 +6083,38 @@ with OpenSSH and no port (`crates/podssh-cli/tests/serve_stdio.rs`). It runs
 as the user that started it and needs no passwd entry; at its start it
 gives up each capability of the process (T-698), before it reads a file.
 
+- **`--listen ADDR` (T-124).** The same server on a listener that the user
+  asks for (rule 2 of `AGENTS.md`, its first exception; the operator's
+  ruling on Q1). `PORT` is `127.0.0.1:PORT`, `ADDR:PORT` an address of this
+  host as `pipe`'s `tcp-listen:` reads it (`[ADDR]:PORT` for IPv6, no name
+  resolved), and `unix:PATH` a socket of mode 0600 whose other users'
+  clients are closed (`crates/podssh-cli/src/serve_listen.rs`, on
+  `pipe::listen`). The flag may be repeated, and each address binds at the
+  start, in order, before the drop of the capabilities, as the relay role
+  binds (a port under 1024 then needs only `cap_net_bind_service`).
+  **The bind is the probe:** no second socket tests it first. A refused
+  bind ends the start with one line, `podssh serve: cannot listen on
+  127.0.0.1:2222: Permission denied (os error 13); this host refuses the
+  listener; --stdio and podssh serve NAME need no listener`, and 77 (as
+  `pipe` exits); another failure (a port in use) is 69, and
+  `PODSSH_LISTEN=no` is 78 before any bind. `--stdio`, NAME and `--listen`
+  are one of the three (64), and `--max-connections` goes with `--listen`
+  alone (64). Each connection takes a place under `--max-connections N`
+  (default 64, 1 to 65536) at its accept, before a byte is read
+  (`crates/podssh-ssh/src/server/listen.rs`); one more reads serve's version
+  line and an `SSH_MSG_DISCONNECT` in the clear with the reason
+  `TOO_MANY_CONNECTIONS` (12) and `podssh serve: N connections at once
+  already (--max-connections); try again later`, before any key exchange.
+  Past 16 refusals under way a connection is closed with no word, and one
+  line a second says so. A connection let in is served as `--stdio` serves
+  its one, with the client's address of a TCP socket for `from=` (none on
+  `unix:`). SIGTERM and SIGINT close each listener (a socket's file goes),
+  then stop each connection as `--stdio` stops; SIGHUP reloads the keys for
+  each. A listener whose accept fails 10 times in a row listens no more;
+  with none left, serve exits 69. Not yet: SSH and TLS on one port (the
+  entry's step 5), and a unit of systemd for a listener (`--print-unit` with
+  `--listen` is 64).
+
 - **Authentication.** Public keys alone. The keys are each
   `--authorized-key KEY` (a line of `authorized_keys`), and each line of
   each `--authorized-keys FILE`; with neither flag, `~/.ssh/authorized_keys`.

@@ -200,7 +200,7 @@ fn ssh(rest: &str) -> Result<Address, Refusal> {
 /// The PATH of `unix-connect:` and `unix-listen:`: a name that fits a
 /// socket's address, checked before the call; `@NAME` on Linux alone. A
 /// named pipe of Windows has room for more.
-pub(super) fn socket_name(kind: &str, rest: &str) -> Result<String, Refusal> {
+pub(crate) fn socket_name(kind: &str, rest: &str) -> Result<String, Refusal> {
     if rest.is_empty() {
         return Err(Refusal::usage(format!("{kind}: names no socket")));
     }
@@ -221,7 +221,7 @@ pub(super) fn socket_name(kind: &str, rest: &str) -> Result<String, Refusal> {
 /// of this host: an IP literal (an IPv6 one in brackets) or `localhost`.
 /// Port 0 asks the system for a free one, and podssh says which. `kind` is
 /// the address's, for its lines: `http-listen:` takes a port so too.
-pub(super) fn tcp_port(kind: &str, rest: &str) -> Result<Address, Refusal> {
+pub(crate) fn tcp_port(kind: &str, rest: &str) -> Result<Address, Refusal> {
     let bad = |why: &str| Refusal::usage(format!("{kind}:{rest}: {why}"));
     let (host, port) = match rest.rsplit_once(':') {
         None => ("127.0.0.1", rest),

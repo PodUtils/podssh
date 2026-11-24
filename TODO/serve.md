@@ -2468,6 +2468,36 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
    `AGENTS.md:398-426` and `docs/architecture.md:284-301`, which then name this
    exception and the ruling.
 
+## Decision
+
+2026-11-24 (a drafting agent).
+
+- The accept loop serves each connection through `server::serve_under` under one `Control` and one
+  `Keys` for the whole listener, as `podssh serve NAME` does (`crates/podssh-cli/src/node_serve.rs`),
+  so a stop, a reload and `--revoke-ends-sessions` span each connection. Lost: russh's
+  `run_on_socket`, which owns its accept and its handler factory and knows nothing of serve's table
+  of live connections (T-842), its stop (T-117) or the client's address for `from=`.
+- The binds reuse `pipe`'s: its address grammar (`tcp_port`, `socket_name` of
+  `crates/podssh-cli/src/pipe/address.rs`) and its socket of mode 0600 with the check of the peer's uid
+  (`pipe::listen::Listener`); TCP binds with tokio as `ssh -L` does
+  (`crates/podssh-cli/src/ssh/local_bind.rs`), for the client's address. Lost: a third listener
+  module. PodUtils/podcrates has no listener of this shape (`pod-link`'s tcp carrier listens for
+  its own TLS), so nothing is asked there.
+- The binds come before the drop of the capabilities (`harden::Moment::AfterBind`), in a runtime of
+  one thread, as the relay role binds before its drop. Lost: the drop at the start, as `--stdio`
+  drops, which would refuse each port under 1024 even where the start holds
+  `cap_net_bind_service`.
+- `--max-connections N` (default 64, 1 to 65536): a client past it reads serve's version line and
+  a DISCONNECT of reason 12 in the clear, then serve reads its bytes until its end (at most 64 KiB
+  and 5 s) so the close sends no reset ahead of the words. At most 16 such refusals at once; past
+  them a connection is closed with no word, and one line a second says so. Lost: a close with no
+  word for each (OpenSSH's `MaxStartups`), which tells the client nothing; a DISCONNECT through
+  russh, which first needs the client's version line and sends its KEXINIT, so the refusal would
+  come after the key exchange began and cost a task for each.
+- `--no-listen` is not added: no settings keyword asks serve to listen (T-048's keywords are the
+  relay's), so it would turn off nothing; `PODSSH_LISTEN=no` is the switch, refused with 78 before
+  any bind. Lost: a flag that does nothing, which the manual would have to explain.
+
 ## Prove
 
 ```sh
@@ -2493,6 +2523,54 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (a drafting agent), read at `e9db680f`:
+
+- The Premise's "the rules still say that podssh never listens" no longer holds: rule 2 of
+  `AGENTS.md`, section 5, names as its first exception "a listener that the user asks for, when a
+  probe at run time allows the bind". Step 6 changes no rule of `AGENTS.md`; the list of listeners
+  that the user asks for in `docs/architecture.md:290-291` names `podssh serve --listen`.
+- Step 1: the bind is the probe, as `pipe`'s listeners decided (T-177,
+  `crates/podssh-cli/src/pipe/listen.rs:1-6`): a probe socket bound and closed before the real bind
+  adds a second listener and a race, and proves nothing that the bind does not. A refusal by the
+  host is 77, as `pipe` exits for it (`crates/podssh-cli/src/pipe/listen.rs:66-70`), not 69; another
+  failure (a port in use) is 69.
+- Step 4: the cap on connections that have not logged in, and the deadline from the accept, are
+  T-631's; this entry gives the cap on connections at once. russh's constant rejection time is
+  already in serve's settings (`auth_rejection_time`, russh's 1 s, with the first `none` at 0:
+  `crates/podssh-ssh/src/server/mod.rs`, `config`).
+- Step 5 (SSH and TLS on one port) is the relay role's `--sshd ADDR:PORT` (T-644, done), which
+  peeks the first bytes and hands `SSH-` to an sshd: `podssh relay serve --sshd 127.0.0.1:2222` in
+  front of `podssh serve --listen 2222` serves both on 443. Not written a second time in serve
+  (shared code first).
+
+## Done
+
+UNVERIFIED (drafted 2026-11-24, not built; the main session builds and fills each result).
+
+- The listener: `crates/podssh-cli/src/serve_listen.rs` (`Plan::of`, `Bound::all`, `run`), with its
+  unit tests in `crates/podssh-cli/src/serve_listen_tests.rs` (each `--listen` value and its words,
+  the cap's bounds, a plan with an address twice, the line of a failed bind, a bind of port 0 and a
+  socket of mode 0600 whose file goes with it, a port taken is 69). `cargo test -p podssh-cli --lib
+  serve_listen`: UNVERIFIED.
+- The caps and the refusal: `crates/podssh-ssh/src/server/listen.rs` (`Gate`, `Entry`, `refuse`,
+  the DISCONNECT packet in the clear), its tests in `listen_tests.rs` (each length of a reason reads
+  back, the cap and the refusals' cap give their places back, a refusal ends at the client's end).
+  `cargo test -p podssh-ssh --lib server::listen`: UNVERIFIED.
+- `crates/podssh-ssh/tests/serve_listen.rs`: russh's client over a loopback port and a Unix socket,
+  `from="127.0.0.1"` met and `from="10.0.0.0/8"` not, the third client of a cap of 2 reads the
+  version line and a DISCONNECT of reason 12 with no KEXINIT before it, and a place comes back.
+  `cargo test -p podssh-ssh --test serve_listen`: UNVERIFIED.
+- The command line: `--listen ADDR` (repeated: `crates/podssh-cli/src/tree.rs`, `appended_in`) and
+  `--max-connections N` (`crates/podssh-cli/src/flags/serve.rs`); one of `--stdio`, NAME and
+  `--listen` (`one_mode` in `crates/podssh-cli/src/serve.rs`, its table test); `--print-unit` with
+  `--listen` is 64. `cargo test -p podssh-cli --lib serve`: UNVERIFIED.
+- The manual (`crates/podssh-cli/src/man/notes_serve_listen.rs`), `docs/cli.md` ("`podssh serve`",
+  the bullet of `--listen`), `docs/architecture.md`, and a row of `docs/STATUS.md`.
+- Left for the main session: the Prove's gate run (OpenSSH's `ssh -p PORT` logs in to
+  `podssh serve --listen PORT`, a test of `crates/podssh-cli/tests/` beside `serve_stdio.rs`), the
+  box's refused bind (`scripts/test_in_box.sh`, exit 77 and the line), and the planted serve that
+  binds with no `--listen` (T-251).
 
 # T-222: `podssh serve` finds a shell with no passwd entry and no `/etc/shells`, and names each candidate that failed (GitHub #32)
 

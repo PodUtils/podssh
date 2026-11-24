@@ -42,6 +42,12 @@ fn appended(long: &str) -> bool {
     ];
     EACH.contains(&long)
 }
+/// Value flags that one verb alone keeps each value of: `serve --listen`
+/// binds each address (T-124), where another verb's `--listen` is one.
+fn appended_in(verb: &str, long: &str) -> bool {
+    matches!((verb, long), ("serve", "listen"))
+}
+
 /// Value flags whose value may start with `-`, as getopt takes the next
 /// word whatever it is: `keygen -V -5m:+1h` (T-021), where clap read the
 /// value as flags and refused it with 64.
@@ -101,7 +107,7 @@ pub fn verb_command(verb: &'static Verb) -> Command {
             .help(crate::flags::HELP_FLAG.help),
     );
     for row in verb.flags {
-        cmd = add_flag(cmd, row, verb.name == "ssh");
+        cmd = add_flag(cmd, row, verb.name == "ssh" || appended_in(verb.name, row.long));
     }
     cmd = crate::positionals::add(cmd, verb.name);
     for alias in verb.aliases {

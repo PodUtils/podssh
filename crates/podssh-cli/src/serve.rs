@@ -13,7 +13,9 @@
 //! each login shell on a pty by two names (T-837). `--motd FILE` is the
 //! message of the day of a login shell on a tty (T-119); `--shell-integration`
 //! marks its prompts and commands (T-120). Where a probe finds systemd, each
-//! pty child runs in a transient scope of its own (T-122).
+//! pty child runs in a transient scope of its own (T-122). `--listen ADDR`
+//! serves each connection of a listener that the user asks for (T-124,
+//! `serve_listen.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -35,6 +37,10 @@ pub struct ServeArgs {
     /// `podssh serve NAME`: the label of a pair, whose node this serves
     /// (T-107, Approach item 5).
     pub name: Option<String>,
+    /// `--listen ADDR`, each one bound (T-124).
+    pub listen: Vec<String>,
+    /// `--max-connections N` (T-124).
+    pub max_connections: Option<String>,
     pub host_key: Option<String>,
     pub authorized_key: Vec<String>,
     pub authorized_keys: Vec<String>,
@@ -67,6 +73,8 @@ impl ServeArgs {
         ServeArgs {
             stdio: matches.get_flag("stdio"),
             name: matches.get_one::<String>("name").cloned(),
+            listen: many("listen"),
+            max_connections: matches.get_one::<String>("max-connections").cloned(),
             host_key: matches.get_one::<String>("host-key").cloned(),
             authorized_key: many("authorized-key"),
             authorized_keys: many("authorized-keys"),
@@ -102,21 +110,14 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         let _ = writeln!(err, "podssh serve: not on Windows: it serves a Unix host");
         return EXIT_NOT_IMPLEMENTED;
     }
-    match (args.stdio, &args.name) {
-        (false, None) => {
-            let _ = writeln!(
-                err,
-                "podssh serve: give --stdio, one SSH connection on stdin and stdout as the ProxyCommand of a \
-                 client, or NAME, the label of a pair whose node this serves"
-            );
-            return EXIT_USAGE;
-        }
-        (true, Some(name)) => {
-            let _ = writeln!(err, "podssh serve: --stdio and NAME {name:?}: give one of them");
-            return EXIT_USAGE;
-        }
-        _ => {}
+    if let Err(refusal) = one_mode(args) {
+        return refused(err, refusal);
     }
+    // The addresses and the caps are checked before anything binds or reads.
+    let listening = match crate::serve_listen::Plan::of(&args.listen, args.max_connections.as_deref()) {
+        Ok(plan) => plan,
+        Err(refusal) => return refused(err, refusal),
+    };
     let pty = match args.pty.as_deref().map(|v| (v, PtyMode::parse(v))) {
         None => PtyMode::Auto,
         Some((_, Some(mode))) => mode,
@@ -136,9 +137,19 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         );
         return EXIT_USAGE;
     }
-    // Nothing of the start needs a privilege: each one held is dropped
+    // A listener binds first, as the relay role does: a port under 1024
+    // needs the one capability that the drop takes (T-124).
+    let bound = match listening.as_ref().map(crate::serve_listen::Bound::all).transpose() {
+        Ok(bound) => bound,
+        Err((code, line)) => {
+            let _ = writeln!(err, "podssh serve: {line}");
+            return code;
+        }
+    };
+    let moment = if bound.is_some() { crate::harden::Moment::AfterBind } else { crate::harden::Moment::AtStart };
+    // Nothing else of the start needs a privilege: each one held is dropped
     // before a file is read and before the runtime makes its threads.
-    match crate::harden::give_up_at(&[], crate::harden::Moment::AtStart) {
+    match crate::harden::give_up_at(&[], moment) {
         // The words are the tail of a line: here they stand alone.
         Ok(Some(line)) => {
             let line = line.trim_start_matches([',', ' ']);
@@ -170,6 +181,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         devpts: None,
         pty,
         sftp_limit: None,
+        // A listener's connection gets its own peer at its accept.
         peer: if args.stdio { peer_of_stdin() } else { None },
         // A refusal by a key's rules is said where serve's other lines go.
         say: Some(Say(Arc::new(|line: &str| {
@@ -223,6 +235,9 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         let node = crate::node::NodeArgs { name: Some(name.clone()), ..Default::default() };
         return crate::node::run_node(&node, err);
     }
+    if let Some(bound) = bound {
+        return crate::serve_listen::run(bound, key, keys, settings, &sources, err);
+    }
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
@@ -240,6 +255,24 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             let _ = writeln!(err, "podssh serve: {why}");
             podssh_ssh::EXIT_FAILURE
         }
+    }
+}
+
+/// One of `--stdio`, NAME and `--listen` (T-124), else a usage error.
+fn one_mode(args: &ServeArgs) -> Result<(), Refusal> {
+    let listen = !args.listen.is_empty();
+    match (args.stdio, &args.name, listen) {
+        (false, None, false) => Err(Refusal::usage(
+            "give --stdio, one SSH connection on stdin and stdout as the ProxyCommand of a client; NAME, the label of \
+             a pair whose node this serves; or --listen ADDR",
+        )),
+        (true, Some(name), _) => Err(Refusal::usage(format!("--stdio and NAME {name:?}: give one of them"))),
+        (true, None, true) => Err(Refusal::usage("--stdio and --listen: give one of them")),
+        (false, Some(name), true) => Err(Refusal::usage(format!("NAME {name:?} and --listen: give one of them"))),
+        _ if !listen && args.max_connections.is_some() => {
+            Err(Refusal::usage("--max-connections bounds a listener: give --listen ADDR with it"))
+        }
+        _ => Ok(()),
     }
 }
 
@@ -340,6 +373,33 @@ mod tests {
         } else {
             assert_eq!(code, EXIT_USAGE, "{said}");
             assert!(said.contains("--stdio") && said.contains("NAME"), "{said}");
+        }
+    }
+
+    /// One of --stdio, NAME and --listen, and --max-connections only with
+    /// --listen (T-124): one table, as the rule is one.
+    #[test]
+    fn one_mode_of_the_three_is_given() {
+        let (listen, name) = (vec!["2222".to_string()], Some("lab".to_string()));
+        let cases = [
+            (ServeArgs { listen: listen.clone(), ..args(true) }, Some("--stdio and --listen")),
+            (ServeArgs { listen: listen.clone(), name: name.clone(), ..args(false) }, Some("and --listen")),
+            (ServeArgs { name: name.clone(), ..args(true) }, Some("--stdio and NAME")),
+            (ServeArgs { max_connections: Some("4".into()), ..args(true) }, Some("--max-connections bounds")),
+            (args(false), Some("or --listen ADDR")),
+            (ServeArgs { listen, max_connections: Some("4".into()), ..args(false) }, None),
+            (args(true), None),
+            (ServeArgs { name, ..args(false) }, None),
+        ];
+        for (a, words) in cases {
+            match (one_mode(&a), words) {
+                (Ok(()), None) => {}
+                (Err(refusal), Some(words)) => {
+                    assert_eq!(refusal.code, EXIT_USAGE, "{}", refusal.message);
+                    assert!(refusal.message.contains(words), "{words}: {}", refusal.message);
+                }
+                (got, want) => panic!("{a:?}: {got:?}, wanted {want:?}"),
+            }
         }
     }
 

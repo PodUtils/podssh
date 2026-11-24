@@ -64,8 +64,8 @@ pub(crate) fn control_socket(path: &str) -> Result<tokio::net::UnixListener, Unb
 }
 
 /// A refused bind is a refusal of this host (77); the others are out of
-/// reach (69).
-pub(super) fn code(e: &io::Error) -> i32 {
+/// reach (69). `serve --listen` maps its binds the same (T-124).
+pub(crate) fn code(e: &io::Error) -> i32 {
     match e.kind() {
         io::ErrorKind::PermissionDenied => EX_NOPERM,
         _ => EX_UNAVAILABLE,
