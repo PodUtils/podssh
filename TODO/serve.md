@@ -1342,7 +1342,7 @@ run in the build image (T-251).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1478,13 +1478,13 @@ audit log of T-116, never the code); `--totp` and `--totp-new` in `crates/podssh
 (`man/notes_serve_totp.rs`); `docs/cli.md` ("A one-time code after the key"); a row of `docs/STATUS.md`.
 Results:
 
-- `cargo test -p podssh-ssh --lib server::totp`: UNVERIFIED.
-- `cargo test -p podssh-ssh --test serve_totp`: UNVERIFIED.
-- `cargo test -p podssh-cli --test serve_totp_openssh` (OpenSSH's client, `oathtool`): UNVERIFIED.
+- `cargo test -p podssh-ssh --lib server::totp`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- `cargo test -p podssh-ssh --test serve_totp`: 2 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- `cargo test -p podssh-cli --test serve_totp_openssh` (OpenSSH's client, `oathtool`): 1 passed with OpenSSH 9.6p1 and oathtool, 7.2 s (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1; the whole suite's run said "did not run" until `oathtool` was installed).
 - `cargo test -p podssh-cli --lib serve_totp`, `--lib man`, `man_page`, `man_flag_parity`, `man_json`:
-  UNVERIFIED.
-- Clippy and rustfmt: UNVERIFIED.
-- The planted check that ignores the step: UNVERIFIED (waits for T-251).
+  passed (in `cargo test -p podssh-cli --lib`: 1279 passed; `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- Clippy and rustfmt: clean (`cargo fmt -- --check`, and `cargo clippy --locked --all-targets` of the gate's packages with `-D warnings -A clippy::collapsible_if`, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- The planted check that ignores the step: waits for T-251.
 
 # T-116: `podssh serve`: an audit log
 
@@ -1493,7 +1493,7 @@ Results:
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1637,13 +1637,13 @@ moved out of `handler.rs` to `handler/auth.rs`, each with its line; the session'
 (`node_install/print.rs`); the manual's note (`man/notes_serve_audit.rs`); `docs/cli.md` ("The audit
 log", "The chain of the audit log"); a row of `docs/STATUS.md`. Results:
 
-- `cargo test -p podssh-ssh --test serve_audit`: UNVERIFIED.
-- `cargo test -p podssh-ssh --lib server::`: UNVERIFIED.
-- `cargo test -p podssh-cli --test serve_audit_openssh` (OpenSSH's client): UNVERIFIED.
+- `cargo test -p podssh-ssh --test serve_audit`: 3 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- `cargo test -p podssh-ssh --lib server::`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- `cargo test -p podssh-cli --test serve_audit_openssh` (OpenSSH's client): 2 passed with OpenSSH 9.6p1 (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - `cargo test -p podssh-cli --lib serve_audit`, `--lib man`, `man_page`, `man_flag_parity`, `man_json`:
-  UNVERIFIED.
-- Clippy and rustfmt: UNVERIFIED.
-- The planted log of each command line by default: UNVERIFIED (waits for T-251).
+  passed (in `cargo test -p podssh-cli --lib`: 1279 passed; `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- Clippy and rustfmt: clean (`cargo fmt -- --check`, and `cargo clippy --locked --all-targets` of the gate's packages with `-D warnings -A clippy::collapsible_if`, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- The planted log of each command line by default: waits for T-251.
 
 # T-117: `podssh serve`: a clean stop, and SIGHUP reads the settings again
 
@@ -2015,7 +2015,7 @@ and `~/.hushlogin`).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2100,7 +2100,7 @@ answers (T-776, T-777) takes the text too (Decision). The flag's row is in
 
 ## Done
 
-Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+Drafted 2026-11-24 on the branch `d-serve-start`; merged, built and tested by the main session (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 
 - `crates/podssh-ssh/src/server/motd.rs`: the read (64 KiB, a regular file alone, no wait on a
   FIFO), the bytes for the terminal (`multi_line`, CR LF, a last newline), `~/.hushlogin`, and the
@@ -2111,10 +2111,10 @@ Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main sess
   `node_install/print.rs`), checked at the start (78). The manual: a note of `serve`
   (`man/notes_serve.rs`) and a row of FILES (`/etc/motd`, `~/.hushlogin`). `docs/cli.md`, "The
   message of the day (T-119, GitHub #19)". `docs/STATUS.md`: a row.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_motd`: UNVERIFIED (6 tests: the
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_motd`: 6 passed (6 tests: the
   table of the terminal's bytes, the cap, a FIFO and a directory, `.hushlogin`, the line discipline
   with a shell, a command and `.hushlogin`, and a pty where one opens).
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man`: UNVERIFIED (the note and the row of
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man`: passed (in `cargo test -p podssh-cli --lib`: 1279 passed; `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1) (the note and the row of
   FILES).
 - Waits for T-251: the gate's `ssh -tt` through `podssh serve --stdio --motd FILE`, an exec with
   none, `~/.hushlogin`, and the plant that prints it for exec.
@@ -2128,7 +2128,7 @@ Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main sess
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2230,7 +2230,7 @@ its `ZDOTDIR` is read for each later start file, so serve's `.zshenv` gives the 
 
 ## Done
 
-Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+Drafted 2026-11-24 on the branch `d-serve-start`; merged, built and tested by the main session (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 
 - `crates/podssh-ssh/src/server/marks.rs`: the marks' bytes, the marked echo of a submitted line, the
   start files of bash (`marks/bash-rc.sh`) and zsh (`marks/zshenv.sh`, after a line that gives
@@ -2240,10 +2240,10 @@ Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main sess
 - The CLI: `--shell-integration` (`flags/serve.rs`, `serve.rs`, `--print-unit`'s words). The manual: a
   note of `serve`. `docs/terminal.md`, "Shell integration marks of `podssh serve` (T-120)";
   `docs/cli.md`, a bullet; `docs/STATUS.md`, a row.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_marks`: UNVERIFIED (the marks' bytes,
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_marks`: 6 passed (the marks' bytes,
   the files of bash and zsh, the line discipline with and without the flag, bash and zsh on a pty
   where this host has them, another shell and no flag).
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::line`: UNVERIFIED (only the echo of a
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::line`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1) (only the echo of a
   submitted line is marked).
 - Waits for T-251: the gate's `ssh -tt` through `podssh serve --stdio --shell-integration` to bash
   (`ESC ] 133;A`, `ESC ] 7;file://`, the SHA-256 of `~/.bashrc` the same), no mark without the
@@ -2394,7 +2394,7 @@ no systemd assumption).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2489,7 +2489,7 @@ connection, no helper but a program that a probe found); `busctl` is such a prog
 
 ## Done
 
-Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main session builds it.
+Drafted 2026-11-24 on the branch `d-serve-start`; merged, built and tested by the main session (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 
 - `crates/podssh-ssh/src/server/scope.rs`: the probe (`probe`, `probe_with`), the unit's name, the
   arguments of `busctl`, the reading of `/proc/PID/cgroup`, and (Linux) the hold of the child with
@@ -2497,15 +2497,15 @@ Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main sess
   the spawn and says a move that failed. `Settings::scope` (None by default).
 - The CLI: the probe at the start of `podssh serve` on Linux, and its one line where it fails
   (`serve.rs`). The manual: a note of `serve`. `docs/cli.md`, a bullet; `docs/STATUS.md`, a row.
-- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_scope`: UNVERIFIED (the call's
+- `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_scope`: 5 passed, this container having no user manager (the call's
   arguments, the cgroup file, the probe's nine cases, a move that fails and one that hangs leaving
   the session where serve is within the bound with one line, and a child in its scope on a host whose
   user manager answers).
-- `sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh`: UNVERIFIED (the box
+- `sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh`: waits for T-251 (the box
   has no systemd: its serve steps work, and the start says `each session stays in serve's own
   cgroup`).
 - On a host with systemd, `systemctl --user list-units 'podssh-serve-*'` during a session:
-  UNVERIFIED, to record in `docs/STATUS.md`.
+  waits for a host with a user manager (this container has none), to record in `docs/STATUS.md`.
 - `cargo todo remap docs/cli.md` after the merge.
 
 # T-123: `podssh serve` accepts `tcpip-forward` from a standard `ssh -R`
@@ -2516,7 +2516,7 @@ Drafted 2026-11-24 on the branch `d-serve-start`; UNVERIFIED until the main sess
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** partial
 
 ## Problem
 
@@ -2617,7 +2617,7 @@ the release on GitHub). The report's open question holds: russh gives the reques
 
 ## Done
 
-Partial (WIP, drafted 2026-11-24, not built). Done here, each result UNVERIFIED:
+Partial (WIP, drafted 2026-11-24; merged, built and tested by the main session, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1):
 
 - The server's side: `crates/podssh-ssh/src/server/remote_forward.rs` (`Publish`, `Publisher`,
   `Opener`, `Published`, `Stop`, the table `Forwards` and its refusals), the handler's
@@ -2629,8 +2629,8 @@ Partial (WIP, drafted 2026-11-24, not built). Done here, each result UNVERIFIED:
   Prove's first command: against a stand-in in memory, port 0 told the published port, a session's
   channel names its request and carries bytes both ways, the same forward twice refused, a cancel and
   the connection's end each stop once; no publisher and `--no-forwarding` refuse with nothing
-  published). `cargo test -p podssh-ssh --test serve_remote_forward`: UNVERIFIED;
-  `cargo test -p podssh-ssh --lib server::remote_forward`: UNVERIFIED.
+  published). `cargo test -p podssh-ssh --test serve_remote_forward`: 2 passed;
+  `cargo test -p podssh-ssh --lib server::remote_forward`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The manual says that a client's `-R` is refused, and why (`notes_serve.rs`).
 
 Left (the entry stays open): the CLI's publisher on the relay's pair (step 1: a pair made at the
@@ -2648,7 +2648,7 @@ the operator's ruling on Q1 (2026-10-08).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2769,31 +2769,34 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 
 ## Done
 
-UNVERIFIED (drafted 2026-11-24, not built; the main session builds and fills each result).
+Drafted 2026-11-24; merged, built and tested by the main session (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 
 - The listener: `crates/podssh-cli/src/serve_listen.rs` (`Plan::of`, `Bound::all`, `run`), with its
   unit tests in `crates/podssh-cli/src/serve_listen_tests.rs` (each `--listen` value and its words,
   the cap's bounds, a plan with an address twice, the line of a failed bind, a bind of port 0 and a
   socket of mode 0600 whose file goes with it, a port taken is 69). `cargo test -p podssh-cli --lib
-  serve_listen`: UNVERIFIED.
+  serve_listen`: passed (in `cargo test -p podssh-cli --lib`: 1279 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The caps and the refusal: `crates/podssh-ssh/src/server/listen.rs` (`Gate`, `Entry`, `refuse`,
   the DISCONNECT packet in the clear), its tests in `listen_tests.rs` (each length of a reason reads
   back, the cap and the refusals' cap give their places back, a refusal ends at the client's end).
-  `cargo test -p podssh-ssh --lib server::listen`: UNVERIFIED.
+  `cargo test -p podssh-ssh --lib server::listen`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - `crates/podssh-ssh/tests/serve_listen.rs`: russh's client over a loopback port and a Unix socket,
   `from="127.0.0.1"` met and `from="10.0.0.0/8"` not, the third client of a cap of 2 reads the
   version line and a DISCONNECT of reason 12 with no KEXINIT before it, and a place comes back.
-  `cargo test -p podssh-ssh --test serve_listen`: UNVERIFIED.
+  `cargo test -p podssh-ssh --test serve_listen`: 6 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The command line: `--listen ADDR` (repeated: `crates/podssh-cli/src/tree.rs`, `appended_in`) and
   `--max-connections N` (`crates/podssh-cli/src/flags/serve.rs`); one of `--stdio`, NAME and
   `--listen` (`one_mode` in `crates/podssh-cli/src/serve.rs`, its table test); `--print-unit` with
-  `--listen` is 64. `cargo test -p podssh-cli --lib serve`: UNVERIFIED.
+  `--listen` is 64. `cargo test -p podssh-cli --lib serve`: passed (in `cargo test -p podssh-cli --lib`: 1279 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The manual (`crates/podssh-cli/src/man/notes_serve_listen.rs`), `docs/cli.md` ("`podssh serve`",
   the bullet of `--listen`), `docs/architecture.md`, and a row of `docs/STATUS.md`.
-- Left for the main session: the Prove's gate run (OpenSSH's `ssh -p PORT` logs in to
-  `podssh serve --listen PORT`, a test of `crates/podssh-cli/tests/` beside `serve_stdio.rs`), the
-  box's refused bind (`scripts/test_in_box.sh`, exit 77 and the line), and the planted serve that
-  binds with no `--listen` (T-251).
+- The main session added the Prove's login by OpenSSH: `crates/podssh-cli/tests/serve_listen_openssh.rs`
+  (`podssh serve --listen 127.0.0.1:0`, the port read back from serve's line; OpenSSH's `ssh -p PORT`
+  runs `echo; exit 7` and gets its output and 7; a key that is not listed gets 255 and "Permission
+  denied"; serve ends on SIGTERM). `cargo test -p podssh-cli --test serve_listen_openssh`: 1 passed with
+  OpenSSH 9.6p1, 1.2 s (2026-11-24); clippy and rustfmt clean.
+- Waits for T-251: the box's refused bind (`scripts/test_in_box.sh`, exit 77 and the line), and the
+  planted serve that binds with no `--listen`.
 
 # T-222: `podssh serve` finds a shell with no passwd entry and no `/etc/shells`, and names each candidate that failed (GitHub #32)
 
@@ -3265,7 +3268,7 @@ refuses, became two.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -3358,7 +3361,7 @@ Approach:
 
 ## Done
 
-UNVERIFIED (drafted 2026-11-24, not built; the main session builds and fills each result).
+Drafted 2026-11-24; merged, built and tested by the main session (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 
 - The cap and the deadline: `Limits { pending, login }`, `Gate::pending`, `Login`, `reaped` in
   `crates/podssh-ssh/src/server/listen.rs`; `server::serve_admitted` and the deadline over russh's
@@ -3366,18 +3369,18 @@ UNVERIFIED (drafted 2026-11-24, not built; the main session builds and fills eac
   first login in `crates/podssh-ssh/src/server/live.rs`. Unit tests in `listen_tests.rs` on a paused
   clock (the pending cap refuses and a login gives its place back; the deadline passes at its time
   and not after a login; no deadline never passes). `cargo test -p podssh-ssh --lib server::listen`:
-  UNVERIFIED.
+  passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - `crates/podssh-ssh/tests/serve_listen.rs`: a silent client and one that sends a byte each 200 ms
   are gone between 2 s and 7 s with the line naming `--login-timeout`, the places back at 0; a
   client past its version line hears `no login within 2 s of the connection (--login-timeout)` in a
   disconnect; a login in time outlives the deadline and its pending place came back; a client past
   `--pending-max` reads the refusal before any key exchange. `cargo test -p podssh-ssh --test
-  serve_listen`: UNVERIFIED.
+  serve_listen`: 6 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The command line: `--pending-max N` and `--login-timeout SECS`
   (`crates/podssh-cli/src/flags/serve.rs`, `Caps` and `seconds` in
   `crates/podssh-cli/src/serve_listen.rs`, each with `--listen` alone: `one_mode` of `serve.rs`);
   each reaped connection is a line of serve's log (`admit`). `cargo test -p podssh-cli --lib serve`:
-  UNVERIFIED.
+  passed (in `cargo test -p podssh-cli --lib`: 1279 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - The manual (`DEADLINE` of `crates/podssh-cli/src/man/notes_serve_listen.rs`), `docs/cli.md`
   (the bullet of the deadline) and a row of `docs/STATUS.md`.
 - Left for the main session: the planted defect of the Prove (the deadline as a timer of

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**828 entries: 19 open, 46 partial, 13 blocked, 750 done.**
+**828 entries: 8 open, 47 partial, 13 blocked, 760 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 19 | 12 | 8 | 348 | 387 |
-| **All** | 19 | 46 | 13 | 750 | 828 |
+| P3 | 8 | 13 | 8 | 358 | 387 |
+| **All** | 8 | 47 | 13 | 760 | 828 |
 
 ## Entries
 
@@ -189,16 +189,16 @@ repository and CI).
 | [T-112](serve.md) | P2 | M | M5 | feature | partial | An SFTP server in `podssh serve` |
 | [T-113](serve.md) | P2 | M | M5 | measurement | blocked | M5 exit: a usable shell and 200 MiB each way from a sealed sandbox |
 | [T-114](serve.md) | P2 | M | backlog | feature | partial | `podssh serve`: access rules for each key and command |
-| [T-115](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: a TOTP second factor |
-| [T-116](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: an audit log |
+| [T-115](serve.md) | P3 | M | backlog | feature | done | `podssh serve`: a TOTP second factor |
+| [T-116](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: an audit log |
 | [T-117](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: a clean stop, and SIGHUP reads the settings again |
 | [T-118](serve.md) | P2 | S | M5 | feature | partial | `podssh serve`: a slow client cannot stall a pty or fill the memory |
-| [T-119](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: the MOTD and `~/.hushlogin` |
-| [T-120](serve.md) | P3 | M | backlog | feature | open | `podssh serve`: shell integration marks, when asked |
+| [T-119](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: the MOTD and `~/.hushlogin` |
+| [T-120](serve.md) | P3 | M | backlog | feature | done | `podssh serve`: shell integration marks, when asked |
 | [T-121](serve.md) | P3 | M | backlog | feature | done | Install `podssh serve` or `podssh node` as a service with no privileges |
-| [T-122](serve.md) | P3 | S | backlog | feature | open | `podssh serve`: each pty child in its own transient scope when systemd is there |
-| [T-123](serve.md) | P3 | M | backlog | feature | open | `podssh serve` accepts `tcpip-forward` from a standard `ssh -R` |
-| [T-124](serve.md) | P3 | M | backlog | feature | open | `podssh serve --listen`: SSH on a TCP port on a host that allows it |
+| [T-122](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: each pty child in its own transient scope when systemd is there |
+| [T-123](serve.md) | P3 | M | backlog | feature | partial | `podssh serve` accepts `tcpip-forward` from a standard `ssh -R` |
+| [T-124](serve.md) | P3 | M | backlog | feature | done | `podssh serve --listen`: SSH on a TCP port on a host that allows it |
 | [T-125](terminal.md) | P2 | S | M5 | defect | done | L1: the mode selection of the line discipline is the wrong way round |
 | [T-126](terminal.md) | P2 | M | M5 | defect | done | L2: the line discipline has no raw mode and no window size |
 | [T-127](terminal.md) | P2 | S | M5 | defect | done | L3: the cursor counts bytes, not characters |
@@ -224,7 +224,7 @@ repository and CI).
 | [T-147](copy.md) | P3 | S | backlog | feature | done | `podssh cp --inplace` |
 | [T-148](copy.md) | P3 | M | backlog | feature | done | ZMODEM in a terminal session |
 | [T-149](copy.md) | P3 | M | backlog | feature | done | `podssh edit HOST:PATH` |
-| [T-150](copy.md) | P3 | M | backlog | feature | open | A copy protocol between two podssh ends |
+| [T-150](copy.md) | P3 | M | backlog | feature | done | A copy protocol between two podssh ends |
 | [T-151](resume.md) | P2 | L | M6 | feature | done | The resumable layer: its handshake and the byte offsets |
 | [T-152](resume.md) | P2 | M | M6 | feature | done | The replay buffer, limited, with backpressure |
 | [T-153](resume.md) | P2 | L | M6 | feature | done | Resume through any road and relay host, with a session secret and a capped backoff |
@@ -233,7 +233,7 @@ repository and CI).
 | [T-156](resume.md) | P2 | M | M6 | measurement | done | M6 exit: a session survives a stopped relay host, a new address and a stall of 3 minutes |
 | [T-157](resume.md) | P2 | M | M6 | measurement | done | Throughput on each road and relay, by a committed method |
 | [T-158](resume.md) | P3 | M | backlog | feature | done | Detach and attach again |
-| [T-159](resume.md) | P3 | M | backlog | feature | open | Sessions on the far end that outlive the client |
+| [T-159](resume.md) | P3 | M | backlog | feature | done | Sessions on the far end that outlive the client |
 | [T-160](resume.md) | P3 | L | backlog | feature | open | Local echo and prediction for high latency |
 | [T-161](resume.md) | P3 | L | backlog | research | open | Screen state and scrollback when a client attaches |
 | [T-162](roads.md) | P2 | L | M6 | feature | done | The iroh road behind the cargo feature `iroh` |
@@ -670,7 +670,7 @@ repository and CI).
 | [T-628](mesh.md) | P1 | S | M10 | defect | done | The relay role's refusal of a target names the address that its name resolved to, so a holder of a token maps the role's network |
 | [T-629](relay.md) | P2 | S | M10 | feature | done | `podssh relay serve` keeps each capability of its start after the bind, while it serves each client |
 | [T-630](reverse.md) | P2 | S | M10 | feature | done | The relay role's table of 4096 pairs keeps no share for each key, so one key of a list can take each place |
-| [T-631](serve.md) | P3 | S | backlog | feature | open | `podssh serve --listen`: a deadline from the accept for a client that never logs in, and a cap on those that have not |
+| [T-631](serve.md) | P3 | S | backlog | feature | done | `podssh serve --listen`: a deadline from the accept for a client that never logs in, and a cap on those that have not |
 | [T-632](resume.md) | P2 | S | none | feature | done | The resumable layer has no record that ends one direction, so a half-close ends the whole session where no channel runs above it |
 | [T-633](reverse.md) | P3 | S | M10 | feature | done | No rule, written once, for a member of an answer that is absent where it carries a guarantee, and no helper that reads `None` and `false` alike |
 | [T-634](cli.md) | P3 | S | none | feature | done | A `PODSSH_*` variable that a release stopped reading is ignored in silence; there is no table of retired names |
@@ -863,7 +863,7 @@ repository and CI).
 | [T-830](robustness.md) | P1 | S | M10 | defect | done | `podssh operator` loses the tail of a session's bytes on Windows: a write to stdout left in its thread |
 | [T-831](copy.md) | P3 | M | backlog | research | partial | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
-| [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
+| [T-833](resume.md) | P3 | M | backlog | feature | done | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |

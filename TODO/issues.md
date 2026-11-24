@@ -46,7 +46,7 @@ T-168. A Cloudflare quick tunnel, made by podssh itself: T-170 (the research, do
 (the measurement), T-300 and T-301. QUIC between peers with a relay
 fallback and an allowlist: T-162, T-087. The sandbox limits (no UDP, port 22
 refused, only CONNECT): already a decision (probe, never assume;
-`docs/decisions.md`, 2026-10-05). Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); T-124 stays open in the record.
+`docs/decisions.md`, 2026-10-05). Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); closed on 2026-11-24, when T-124 was done (the merge of the serve drafts of 2026-11-24).
 
 **#19, the reverse road and sessions that survive.** A receiving mode: T-079,
 T-083. Resume by byte offset with a limited replay ring: T-151, T-152,
@@ -202,7 +202,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #126 | `relay serve`: a policy refusal names the address that a target resolved to | closed 2026-11-04 (`45a3447`), its entry done | T-628 |
 | #127 | `relay serve` keeps each capability of its start after the bind | closed 2026-11-04 (`ce411ac`), its entry done | T-629 (dropped by default after the bind, before the runtime; no flag to keep them) |
 | #128 | The relay role's 4096 pairs have no share for each key | closed 2026-11-04 (`4ae2284`), its entry done | T-630 (a reserve for each key that a busy key may borrow past, not the issue's ceiling) |
-| #129 | `serve --listen`: an absolute deadline from the accept | open 2026-11-15 (closed 2026-11-11 as stale; T-631 stays open, parked until T-124; open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done)) | T-631 (backlog, parked until T-124, whose listener it bounds: no server of `podssh serve` exists yet) |
+| #129 | `serve --listen`: an absolute deadline from the accept | closed 2026-11-24, T-631 done (the merge of the serve drafts of 2026-11-24; closed 2026-11-11 as stale and open again from 2026-11-15, by the owner's ruling "Issues") | T-631 |
 | #130 | A record of the resumable layer that ends one direction | closed 2026-11-05 (`c3a9b89`, done 2026-11-04), its entry done | T-632 (also the relay role's layer road for a standard sshd, which `proxy` takes unasked by Q96; consent by the layer's own features, not the node's `hello`) |
 | #131 | One rule for an absent member that carries a guarantee, and a helper | closed 2026-11-05 (`0289b6d`), its entry done | T-633 (each reader that exists is right; the rule and the helper are new) |
 | #132 | Refuse a retired `PODSSH_*` variable by name | closed 2026-11-04 (`91669ae`), its entry done | T-634 (the manual's check of variables runs both ways already, which the issue missed) |

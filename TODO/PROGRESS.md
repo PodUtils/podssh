@@ -49,7 +49,7 @@ Read on 2026-11-23.
    `acme/mod.rs` of `podssh-cli`). Nothing is frozen now (2026-11-15). Taken on 2026-11-17 (`v0.65.0`): `pod-tor` and `pod-iroh`. Taken on 2026-11-19 (`v0.77.0`): `pod-release` (T-850: `podssh update` runs on it). Taken on 2026-11-23 (`v0.82.0`): `pod-cover` (T-764 to T-768).
    Next, as podcrates names them: `pod-cloudflare` and `pod-ts`; then
    `pod-relay-serve` last.
-8. **Drafts.** One stack waits (2026-11-24): `draft/merge-drafts` at `723c2710` on GitHub, eleven drafts on `64e88d06` (T-150, T-119, T-120, T-122, T-124, T-631, T-123 WIP, T-159, T-833, T-116, T-115), merged and built, each own suite green; what remains is in `docs/HANDOFF.md`, item 1. Its drafting worktrees and `d-*` branches are removed: each commit is in the stack. Before it, none waited (2026-11-23). Merged on 2026-11-23, each built and tested here: T-820 (partial), T-832, T-838 (partial), T-840, T-841 and T-842, and the research steps of T-834 and T-836; T-841 and T-842 filed T-854, T-855 and T-856. Merged on 2026-11-18: `draft/take-v070` (the take of podcrates `v0.70.0`, T-828's lock) and the donor study's entries T-831 to T-842 (#317). Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
+8. **Drafts.** Five wait (2026-11-24, each on the merged serve stack `a64e47d`, each a local branch of a worktree under `.claude/worktrees/`, pushed as `draft/<branch>`), in this order: T-895 (`d-t895`, `d0fec08`: the client's offset after a lost link, `--reset`), T-852 (`d-t852`, `cb5b6be`: a Unix route's session across a node's upgrade on Windows; proven only by the gate's `windows` job), T-160 (`d-t160`, `c68dd07`: `podssh ssh --predict`, serve's reports of the keys that reached its pty), T-839 (`d-t839`, `3d1a804`, WIP: the TPM 2.0 codec, `keygen -t ecdsa-tpm`, the key's login), and T-161 (`d-t161`, `d41ef89`, WIP: the modes before a replay and a redraw; it builds only once pod-term has COORD-140's `Modes`, #350). None is built. Merged on 2026-11-24: the stack `draft/merge-drafts` (T-150, T-119, T-120, T-122, T-124, T-631, T-123 partial, T-159, T-833, T-116, T-115), its whole suite run and each entry closed. Before it, none waited (2026-11-23). Merged on 2026-11-23, each built and tested here: T-820 (partial), T-832, T-838 (partial), T-840, T-841 and T-842, and the research steps of T-834 and T-836; T-841 and T-842 filed T-854, T-855 and T-856. Merged on 2026-11-18: `draft/take-v070` (the take of podcrates `v0.70.0`, T-828's lock) and the donor study's entries T-831 to T-842 (#317). Before it, none waits (2026-11-17). Merged on 2026-11-16 and 17: T-709, T-710, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-720, T-721, T-723, T-725, T-790 (its writers), T-798, T-801 and T-805; their `draft/*` branches on GitHub are each in `main` (the owner deletes them by hand). Superseded: `draft/t791-lane` (its commands 5 and 6 are in `scripts/pod-lab-serve-lane.sh`, 2026-11-16; the owner deletes the branch by hand). Merged on 2026-11-16: T-790's model on pod-manual and the five drafts of its long sentences. Merged on 2026-11-15: T-790's sentences of the manual at 25 words or fewer. Merged on 2026-11-14: T-707's (`c2c0097`, the GSRN road; partial for Q106), T-532's (with a repair of the OpenTunnel road's end of a connection). Merged on 2026-11-13: T-567's, T-566's, T-611's, T-774's, T-248's study (its entries T-775 to T-778 filed),
    T-118's, T-117's, T-114's, T-112's,
    T-110's, T-109's, T-108's with T-222, T-107's, T-771's, T-773's, T-738's second and third, T-321's
    CLI test of `podssh each`, T-319's item 2, and the takes of podcrates v0.36.0 to v0.39.0 and
@@ -64,6 +64,8 @@ Read on 2026-11-23.
    local branch `merge-NNN`, never on `main`.
 
 ## Tonight
+
+**Cloud session of 2026-11-24, the second (after `702c450`).** The gate is green at `702c450` (build run 45368834644). The stack `draft/merge-drafts` is merged: `cargo test --workspace --no-fail-fast` on it, 420 suites, 4222 passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as before), 83 ignored, 35 min; rustfmt and the gate's clippy clean on Rust 1.99.1; `serve_totp_openssh` run again with `oathtool` installed (passed); T-124's login by OpenSSH added (`serve_listen_openssh`). Closed: T-115, T-116, T-119, T-120, T-122, T-124, T-631, T-150, T-159, T-833; T-123 partial; #18 and #129 closed in the record. Five drafting agents drafted T-895, T-852, T-160, T-839 (WIP) and T-161 (WIP); COORD-140 (#350) asks pod-term's `Modes` for T-161.
 
 **Cloud session of 2026-11-24 (after `e9db680f`), ended at the operator's word.** Done: Dependabot's #348 and etherparse 0.19.1 for `RUSTSEC-2026-0596` (the red `deny` at `21dc2545`), tested and pushed as `64e88d06`; #345 and #348 recorded closed; T-835 done (filed T-875 to T-877, Q107); COORD-139 (#349) for T-876. Six drafting agents drafted T-115, T-116, T-119, T-120, T-122, T-123 (WIP), T-124, T-631, T-150, T-159 and T-833 (which files one more entry, on the stack: the client's offset after a lost link); their stack is `draft/merge-drafts` (`723c2710`), built, its own suites green, and waits for the whole suite and the close of each entry (`docs/HANDOFF.md`, item 1). Open, in order: the `build` run of `64e88d06`; the merge of `draft/merge-drafts`; podcrates' answers to #340, #346, #347 and #349; T-684's next takes; T-791 / T-793 / T-809 before `T-446`.
 
@@ -129,7 +131,7 @@ Measured on 2026-10-09 after T-060, on Windows 11 with native cargo 1.98.0 and
 
 ## Counts
 
-`TODO/INDEX.md` holds 828 entries: 19 open, 46 partial, 13 blocked, 750 done.
+`TODO/INDEX.md` holds 828 entries: 8 open, 47 partial, 13 blocked, 760 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -234,19 +236,10 @@ it can start.
 
 | Entry | Start condition |
 | --- | --- |
-| T-150 | T-112 is done: `podssh serve` has an SFTP server |
 | T-114 | Started on 2026-11-13 from its draft, before T-107 to T-112 closed: the parts of `podssh serve` that it needs are on `main` |
-| T-115 | T-107 to T-112 are done: `podssh serve` exists |
-| T-116 | T-107 to T-112 are done: `podssh serve` exists |
-| T-119 | T-107 to T-112 are done: `podssh serve` exists |
-| T-120 | T-107 to T-112 are done: `podssh serve` exists |
-| T-122 | T-107 to T-112 are done: `podssh serve` exists |
-| T-123 | T-107 to T-112 are done: `podssh serve` exists |
-| T-124 | T-107 to T-112 are done: `podssh serve` exists |
-| T-631 | T-124 is done: `podssh serve --listen` exists |
-| T-159 | T-107, T-108, T-110 and T-117 are done: `podssh serve` runs a shell on a pty, and stops its process group |
-| T-160 | T-107 and T-110 are done: `podssh serve` runs a shell on a pty, which reports the input's offset and the ECHO flag |
-| T-161 | T-159 is done: a far end keeps a shell, its ring and its pty after the client leaves |
+| T-123 | Started on 2026-11-24 from its draft (partial), as T-114: the parts of `podssh serve` that it needs are on `main` |
+| T-160 | Drafted on 2026-11-24 (`d-t160`): T-107 and T-110 are on `main`; the draft adds serve's reports of the input's offset and the ECHO flag |
+| T-161 | T-159 is done (2026-11-24); its draft (`d-t161`, WIP) waits for COORD-140 (#350) |
 | T-303 | T-110 is done: `podssh serve` has a pty; and T-161 has a model of the far end's screen |
 | T-304 | T-303 is done: frames of the screen exist |
 | T-532 | Started on 2026-11-14 from its draft: T-180 and T-530 are done, so `podssh funnel` and OpenTunnel's link exist |

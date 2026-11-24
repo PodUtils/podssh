@@ -23,7 +23,7 @@
 15 issue deleted
 16 issue deleted
 17 issue deleted
-18 issue open
+18 issue closed
 19 issue open
 20 issue open
 21 issue closed
@@ -134,7 +134,7 @@
 126 issue closed
 127 issue closed
 128 issue closed
-129 issue open
+129 issue closed
 130 issue closed
 131 issue closed
 132 issue closed

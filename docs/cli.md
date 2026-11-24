@@ -6125,9 +6125,9 @@ gives up each capability of the process (T-698), before it reads a file.
   waits beside the session: past it the client gets `DISCONNECT`
   `BY_APPLICATION` with `podssh serve: no login within 60 s of the
   connection (--login-timeout)`, and serve's log one line; a client that
-  sent no version line yet is closed with none. The first accepted login
+  has sent no version line is closed with none. The first accepted login
   cancels it and ends the waiter, so a quick login keeps no timer.
-  `--pending-max N` (default 16) caps the connections not yet logged in; one
+  `--pending-max N` (default 16) caps the connections that have not logged in; one
   more reads the same refusal as past `--max-connections`, naming
   `--pending-max`, and a login gives its place back at once. `--stdio`,
   NAME and the operator's road have no listener and no deadline. The three

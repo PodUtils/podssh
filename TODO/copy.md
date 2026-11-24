@@ -2107,7 +2107,7 @@ and GitHub #21 (parsync's internal helper,
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -2230,15 +2230,15 @@ Drafted 2026-11-24 (no build, no test run here):
 
 Results:
 
-- `cargo test -p podssh-ssh --test sftp_extensions`: UNVERIFIED.
+- `cargo test -p podssh-ssh --test sftp_extensions`: 5 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - `cargo test -p podssh-ssh --lib sftp::sums` and `--lib server::`:
-  UNVERIFIED.
-- `cargo test -p podssh-cli --lib cp::digest`: UNVERIFIED.
+  passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- `cargo test -p podssh-cli --lib cp::digest`: passed (in `cargo test -p podssh-cli --lib`: 1279 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - `cargo test -p podssh-cli --test serve_sftp_openssh` (OpenSSH's `sftp` and
-  `scp` against `podssh serve`, still whole): UNVERIFIED.
-- The manual's tables (`--lib man`, `man_page`): UNVERIFIED.
+  `scp` against `podssh serve`, still whole): 3 passed with OpenSSH 9.6p1 (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
+- The manual's tables (`--lib man`, `man_page`): passed (in `cargo test -p podssh-cli --lib`: 1279 passed; `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1).
 - Clippy, and `cargo todo remap` of `docs/design.md`, `docs/cli.md`,
-  `docs/STATUS.md` and the changed sources: UNVERIFIED.
+  `docs/STATUS.md` and the changed sources: clean (`cargo fmt -- --check`, and `cargo clippy --locked --all-targets` of the gate's packages with `-D warnings -A clippy::collapsible_if`, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1); `cargo todo check` agrees after the merge.
 
 Left: the gate's check of `podssh cp` to `podssh serve` with one transfer by
 T-137's counter (`scripts/interop-cp.sh`), and the plant of a server that

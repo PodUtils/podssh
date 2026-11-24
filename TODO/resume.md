@@ -1513,7 +1513,7 @@ detached pty kept for 5 minutes).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -1675,16 +1675,16 @@ Drafted 2026-11-24 (not built here; the main session builds, tests and closes it
   (`node_serve::keeps`); `--print-unit` passes `--keep-lease`. The manual: a note and a FILES row of
   `serve` (`crates/podssh-cli/src/man/notes_serve.rs`). `docs/cli.md`, `docs/terminal.md`,
   `docs/design.md`, `docs/STATUS.md`.
-- Prove: `cargo test -p podssh-ssh --test serve_keep`: UNVERIFIED. Its tests:
+- Prove: `cargo test -p podssh-ssh --test serve_keep`: 4 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1). Its tests:
   `a_kept_shell_keeps_its_job_and_is_joined_again_by_name` (the job runs on, the line that came with
   no client replayed, the list, a second client, an attach from inside and another key's refused,
   `--take`, the status to the client that has the shell);
   `a_lease_that_runs_out_ends_the_process_group` (a lease of 2 s);
   `a_shell_is_kept_only_when_its_client_asked` (no `~d`: hung up as before; `keep@podssh`: kept
   after a lost connection); `a_server_that_keeps_no_shells_refuses_each_request`. The unit tests:
-  `cargo test -p podssh-ssh --lib server::kept server::kept_record`: UNVERIFIED;
-  `cargo test -p podssh-cli --lib serve_keep`: UNVERIFIED; the manual's and the flags' tests of
-  `podssh-cli`: UNVERIFIED.
+  `cargo test -p podssh-ssh --lib server::kept server::kept_record`: passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1);
+  `cargo test -p podssh-cli --lib serve_keep`: passed (in `--lib`, 1279 passed); the manual's and the flags' tests of
+  `podssh-cli`: `man_page` 11, `man_flag_parity` 6, `man_json` 4, `flag_table` 9 passed.
 - Waits: the run of T-158's `crates/podssh-cli/tests/attach.rs` against `podssh serve NAME` in the
   place of its stand-in, and live through the relay; the planted servers of the Prove (one that keeps
   nothing, one with no lease) with the release check (T-251); the remap of the cited files that this
@@ -4429,7 +4429,7 @@ tunnels of HTTP keep their own rule (no spare links through a third party's tunn
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4526,15 +4526,15 @@ Drafted 2026-11-24 (not built here; the main session builds, tests and closes it
   `shells@podssh` gives each shell's offset (`kept_shelf.rs`). The tests' helpers moved to
   `crates/podssh-ssh/tests/kept_harness/mod.rs`, shared with `serve_keep.rs`.
 - The manual's note of `serve`, `docs/cli.md`, `docs/terminal.md`, `docs/STATUS.md`.
-- Prove: `cargo test -p podssh-ssh --test serve_attach_ticket`: UNVERIFIED. Its tests:
+- Prove: `cargo test -p podssh-ssh --test serve_attach_ticket`: 3 passed (2026-11-24, on the stack at `a64e47d`, Rust 1.99.1). Its tests:
   `the_ticket_is_the_key_and_the_name` (another key and a wrong name refused alike);
   `a_count_in_the_ring_replays_from_there`;
   `a_count_older_than_the_ring_or_a_reset_asked_gives_the_last_output` (more than 256 KiB of output,
   then a count of 0 and `reset@podssh yes`). The second attach while one catches up:
   `cargo test -p podssh-ssh --lib server::kept`
   (`a_second_attach_while_one_catches_up_is_refused`, and the table of
-  `a_count_in_the_ring_replays_and_any_other_resets`): UNVERIFIED. `cargo test -p podssh-ssh --test
-  serve_keep` again, as its helpers moved: UNVERIFIED.
+  `a_count_in_the_ring_replays_and_any_other_resets`): passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1). `cargo test -p podssh-ssh --test
+  serve_keep` again, as its helpers moved: 4 passed.
 - Waits: the client's count after a lost link (T-895); the planted servers (one that replays from a
   count that the ring no longer holds, one that lets another key in) with the release check (T-251).
 
