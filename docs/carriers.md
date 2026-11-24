@@ -408,8 +408,7 @@ Ruled out:
   podssh ends through podssh's own relay role (T-319), not a file host.
 
 What follows: T-347 is open; T-351 waits for Q51, and T-352 and T-353 for
-Q52 ([TODO/PROGRESS.md](../TODO/PROGRESS.md), "Questions for the
-operator").
+Q52 (settled; [docs/decisions.md](decisions.md)).
 
 The pool of the default relay, read again by the sweep of 2026-11-02
 [W1]: `/relays.json` held 37 hosts, and 36 answered `/health`. Each is a

@@ -2457,7 +2457,7 @@ T-303 is done: frames of the screen exist.
 ## Correction
 
 2026-11-05. The code of this entry (`podssh-iroh`) goes to `pod-iroh` of PodUtils/podcrates (T-684;
-the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the

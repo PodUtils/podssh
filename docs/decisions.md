@@ -177,6 +177,45 @@ The newest decision is first in each section.
 | standing | **Agents never call `wsl.exe`**, and never `wsl --shutdown`, `--terminate` or `--unregister`. These commands act on each distribution of the machine. Linux builds use `sh scripts/dev.sh`. |
 | standing | **`.tmp/` holds read-only copies of other projects.** Do not change, commit or rebase in them. Make sure that the directory exists before you use it. |
 
+## The crates of PodUtils/podcrates: Q101
+
+The list that podssh's and podnet's sessions agreed on 2026-11-05, as the owner settled it. T-684 follows its waves.
+
+**Q101 (2026-11-05): the crates of PodUtils/podcrates, agreed with podnet's session.** The operator
+moves podssh to PodUtils/podssh (T-683) and puts the shared crates in PodUtils/podcrates (T-684);
+podnet's session and this one agreed one list on 2026-11-05 (podnet's operator ruled that podnet's
+WARP and Cloudflare adapters move there, and that podnet copies no podssh code). Recommendation:
+accept it as written. **Settled 2026-11-05** by the owner's acts and rulings (`docs/decisions.md`,
+"The crates of PodUtils/podcrates"): PodUtils/podcrates exists, its session builds the crates, and
+`v0.1.0` is out; three rules of the list below changed: each crate may link C (T-685), declares
+Rust 1.97 and edition 2024, and podssh takes it by a git tag of PodUtils/podcrates (Q1).
+
+- Crates of podcrates (each name answered 404 at crates.io's index on 2026-11-05): `pod-todo`,
+  `pod-testkit`, `pod-tls`, `pod-dns`, `pod-proxy`, `pod-ws`, `pod-identity`, `pod-term`,
+  `pod-netstack`, `pod-wg`, `pod-relay`, `pod-relay-serve`, `pod-session`, `pod-e2e`,
+  `pod-wormhole`, `pod-transit`, `pod-warp`, `pod-cloudflare`, `pod-derp`, `pod-acme`, `pod-egress`,
+  `pod-iroh`, `pod-ts`, `pod-tor`, `pod-piping`, `pod-opentunnel`.
+- Names held, no crate: `pod-wireguard`, `pod-quick`, `pod-udp`, `pod-mailbox`, `pod-reverse`,
+  `podcrates`, `podutils`, `pod-utils`.
+- Waves: 1, `pod-todo`, `pod-tls`, `pod-dns`, `pod-proxy`, `pod-ws`, `pod-identity`, `pod-term`, and
+  `pod-testkit` with the russh harness; 2, `pod-netstack`, `pod-wg`, `pod-relay`, `pod-session`,
+  `pod-e2e`; 3, `pod-warp` (with the stand-in edge into `pod-testkit`), `pod-cloudflare`,
+  `pod-wormhole`, `pod-transit`; 4, `pod-relay-serve`, `pod-derp`, `pod-acme`, `pod-egress`,
+  `pod-iroh`, `pod-ts` (with the headscale harness), `pod-tor`, `pod-piping`, `pod-opentunnel`.
+- The rules of each crate (as changed on 2026-11-05 by T-685 and the owner's rulings; the first
+  text said no C, crates.io only and Rust 1.89):
+  no `podssh-ws` type; the binary passes a rustls `CryptoProvider` and a dialer; each crate may link
+  C and declares Rust 1.97, edition 2024; podssh takes it by a git tag of PodUtils/podcrates, not
+  from crates.io; podssh's pure-Rust provider and the RSA verifier (rsa 0.9) stay behind a feature
+  of `pod-tls`; `pod-relay` keeps the `blocking` facade for podvm; a name of the wire may change,
+  with no test against a released binary (the operator, 2026-11-05: no compatibility with the
+  released binaries for now).
+- Who builds: a new session in PodUtils/podcrates, fed by both repositories; neither podssh's
+  session nor podnet's edits podcrates.
+- podssh keeps: `podssh-cli`, `podssh-ssh` (it takes the patched russh and ssh-key), the IRC of
+  `podssh-core`, `podssh-probe`. podnet keeps its CLI, `podnet-core`, `podnet-netns`,
+  `podnet-vnet` and `podnet-serve`. Blocks T-684.
+
 ## Superseded
 
 | Date | Decision | Replaced by |

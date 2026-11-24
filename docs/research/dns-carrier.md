@@ -40,7 +40,7 @@ of [relay-measurement.md](relay-measurement.md):
    The responder is a listener that the user starts, which exception 1 already
    covers when a probe allows the bind. The client's datagrams to a resolver are not
    covered: they are not through `HTTPS_PROXY`, and they are not a listener. This is
-   Q107 in `TODO/PROGRESS.md`. A form over DNS over HTTPS (section 5) needs none.
+   Q107, settled on 2026-11-24 (`docs/decisions.md`, exception 11 of rule 2). A form over DNS over HTTPS (section 5) needs none.
 4. **The road has a deployment cost that the user pays**: a domain, a delegation, a
    host with a public address and UDP 53, and a responder that runs. Section 6.
 5. **Three faults and a gap in `pod-link`'s responder** are filed for podcrates
@@ -193,7 +193,7 @@ It is a lead for a host that needs it, not a plan: it is entry T-877's second fo
 | A host with a public address and UDP 53 | Port 53 needs a privilege to bind. dnstt's README redirects 53 to a high port with `iptables`. podssh's rule 1 asks no privilege of the client; the responder's host is the user's own. |
 | A responder that runs | Started by the user, never inside `serve` or a node's listener set (a listener only on the user's word, exception 1 of rule 2). A node on the public host runs it, and the client that dials needs only the zone and the node's key. |
 | The address of the road | `KEY@ZONE`, with the key pinned: no certificate authority and no account. |
-| The abuse footing | Cloudflare Gateway and similar filters class "DNS Tunneling" as a threat (`docs/carriers.md:721-723`). A resolver's operator sees about 2,000 odd queries an hour while idle and up to 20 a second under load, and can block the zone or the client. dnstt has no limit; `pod-link` limits the dialer to 20 a second. A zone of the user's own is the user's risk. The road is a last resort, and `podssh doctor` should say so. |
+| The abuse footing | Cloudflare Gateway and similar filters class "DNS Tunneling" as a threat (`docs/carriers.md:720-722`). A resolver's operator sees about 2,000 odd queries an hour while idle and up to 20 a second under load, and can block the zone or the client. dnstt has no limit; `pod-link` limits the dialer to 20 a second. A zone of the user's own is the user's risk. The road is a last resort, and `podssh doctor` should say so. |
 
 ## 7. The measurement of step 1, and why it is not here
 

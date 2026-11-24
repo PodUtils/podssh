@@ -931,7 +931,7 @@ with the two kept state files and the real tailnet, the first command and the re
 `ts_live_status_prints_the_node_line` exit 0.
 
 2026-11-05. The code of this entry (`podssh-ts` and its fork) goes to `pod-ts` of PodUtils/podcrates
-(T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+(T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the

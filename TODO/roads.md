@@ -3433,7 +3433,7 @@ runner where `podssh relay serve` runs.
 
 2026-11-05. The code of this entry (the HTTP road (`podssh-relay`'s `http_road/`, the role's
 `serve/` and `podssh-ws`'s `meek.rs`)) goes to `pod-relay`, `pod-relay-serve` and `pod-egress` of
-PodUtils/podcrates (T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+PodUtils/podcrates (T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
@@ -3916,7 +3916,7 @@ of the test's CA.
 
 2026-11-05. The code of this entry (the HTTP/2 road (`podssh-ws`'s `h2_road/`, `podssh-relay`'s
 `h2_road.rs` and the role's `serve/`)) goes to `pod-ws`, `pod-relay` and `pod-relay-serve` of
-PodUtils/podcrates (T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+PodUtils/podcrates (T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
@@ -9121,7 +9121,7 @@ re-terminates TLS or WARP's own side can show it, and that a second try tells th
 side passes on a later try, a proxy fails each time).
 
 2026-11-05. The code of this entry (`podssh-warp`'s road, which retires) goes to `pod-warp` of
-PodUtils/podcrates (T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+PodUtils/podcrates (T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
@@ -9520,7 +9520,7 @@ T-319 is done: the HTTP road's split and serial forms exist.
 
 2026-11-05. The code of this entry (the HTTP road (`podssh-relay`'s `http_road/` and the role's
 `serve/`)) goes to `pod-relay` and `pod-relay-serve` of PodUtils/podcrates (T-684; the waves are in
-Q101 of `TODO/PROGRESS.md`, and the module map is `PodUtils/podcrates:docs/design.md`). Rule Q3
+Q101 of `docs/decisions.md`, and the module map is `PodUtils/podcrates:docs/design.md`). Rule Q3
 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh makes
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
@@ -9666,7 +9666,7 @@ The A/B runs, with their commands in `docs/STATUS.md`.
 ## Correction
 
 2026-11-05. The code of this entry (`podssh-iroh`'s tuning) goes to `pod-iroh` of PodUtils/podcrates
-(T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+(T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the
@@ -9799,7 +9799,7 @@ T-660's echo under load with a copy beside the terminal: lower than on one strea
 
 2026-11-05. The code of this entry (`podssh-iroh`'s streams, the resumable layer (`podssh-relay`'s
 `session/`) and the HTTP/2 road) goes to `pod-iroh`, `pod-session` and `pod-ws` of
-PodUtils/podcrates (T-684; the waves are in Q101 of `TODO/PROGRESS.md`, and the module map is
+PodUtils/podcrates (T-684; the waves are in Q101 of `docs/decisions.md`, and the module map is
 `PodUtils/podcrates:docs/design.md`). Rule Q3 (`docs/decisions.md`, "The crates of
 PodUtils/podcrates") applies: from the import podssh makes fixes only, and once podssh takes the
 crate the work is done in PodUtils/podcrates, which podssh takes by the next tag; a test of the

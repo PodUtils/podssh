@@ -1008,7 +1008,7 @@ printed `https://` name.
 
 2026-11-05. The code of this entry (the quick tunnel's node (`podssh-relay`'s `quick/`) and the HTTP
 heads of `podssh-ws`) goes to `pod-cloudflare` and `pod-proxy` of PodUtils/podcrates (T-684; the
-waves are in Q101 of `TODO/PROGRESS.md`, and the module map is `PodUtils/podcrates:docs/design.md`).
+waves are in Q101 of `docs/decisions.md`, and the module map is `PodUtils/podcrates:docs/design.md`).
 Rule Q3 (`docs/decisions.md`, "The crates of PodUtils/podcrates") applies: from the import podssh
 makes fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which
 podssh takes by the next tag; a test of the moved code then runs there.

@@ -265,7 +265,7 @@ bytes. See [reverse.md](reverse.md).
 | `podssh-warp` | WARP's road (feature `warp`), glue over `pod-warp` (podcrates): podssh's way out for the API and the session, a stream inside the tunnel | `podssh-ws`, `pod-warp` |
 | `podssh-tor` | The Tor road through Arti (feature `tor`) | `podssh-ws` |
 | `podssh-todo` | `cargo todo`: a wrapper of `pod-todo` (PodUtils/podcrates) with `TODO/todo.toml`, and `cargo todo interop` | none |
-| Crates of PodUtils/podcrates (T-684) | Taken by git tag: `pod-todo`, `pod-term`, `pod-identity`, `pod-core` and, in dev-dependencies, `pod-testkit`, and `pod-tls` (podssh-ws's TLS, behind thin wrappers); the others are Q101's waves (`TODO/PROGRESS.md`). From a module's import podssh changes it for fixes only (Rule Q3, `docs/decisions.md`) | none |
+| Crates of PodUtils/podcrates (T-684) | Taken by git tag: `pod-todo`, `pod-term`, `pod-identity`, `pod-core` and, in dev-dependencies, `pod-testkit`, and `pod-tls` (podssh-ws's TLS, behind thin wrappers); the others are Q101's waves (`docs/decisions.md`). From a module's import podssh changes it for fixes only (Rule Q3, `docs/decisions.md`) | none |
 
 ## Design rules
 
