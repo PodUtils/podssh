@@ -18,6 +18,7 @@
 //! its own (T-122). `--listen ADDR` serves each connection of a listener
 //! that the user asks for (T-124, `serve_listen.rs`). `--audit-log FILE`
 //! records each login, session and forward (T-116, `serve_audit.rs`).
+//! `--totp FILE` asks each key for a one-time code (T-115, `serve_totp.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -66,6 +67,9 @@ pub struct ServeArgs {
     pub audit_log: Option<String>,
     pub audit_commands: bool,
     pub audit_verify: Option<String>,
+    /// `--totp FILE` and `--totp-new FILE` (T-115).
+    pub totp: Option<String>,
+    pub totp_new: Option<String>,
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
@@ -103,6 +107,8 @@ impl ServeArgs {
             audit_log: matches.get_one::<String>("audit-log").cloned(),
             audit_commands: matches.get_flag("audit-commands"),
             audit_verify: matches.get_one::<String>("audit-verify").cloned(),
+            totp: matches.get_one::<String>("totp").cloned(),
+            totp_new: matches.get_one::<String>("totp-new").cloned(),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
@@ -201,6 +207,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(audit) => audit,
         Err(refusal) => return refused(err, refusal),
     };
+    let totp = match crate::serve_totp::open(args) {
+        Ok(totp) => totp,
+        Err(refusal) => return refused(err, refusal),
+    };
     let mut settings = Settings {
         accept_env: args.accept_env.clone(),
         shell: args.shell.as_ref().map(PathBuf::from),
@@ -228,6 +238,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         remote: None,
         keep_lease,
         audit: audit.clone(),
+        totp,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

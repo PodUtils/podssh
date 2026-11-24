@@ -5,8 +5,8 @@
 //! a removed key's sessions, T-842; a shell shared by name, T-837; a shell
 //! kept for a lease, T-159; the message of the day, T-119; the marks of a
 //! shell, T-120; the scope of a pty child, T-122; a listener, T-124,
-//! `notes_serve_listen`; the audit log, T-116), and the row of its host
-//! key's file.
+//! `notes_serve_listen`; the audit log, T-116; a one-time code, T-115), and
+//! the row of its host key's file.
 
 pub const SERVE: &[&str] = &[
     "podssh serve --stdio is an SSH server for one connection on stdin and stdout, as sshd -i: OpenSSH's \
@@ -22,8 +22,9 @@ pub const SERVE: &[&str] = &[
      lines say serving podssh serve, in this process. Whoever holds the pair's connect token reaches serve, whose \
      authorized keys alone guard each login. SIGHUP reads the keys again for each session of the node, as \
      with --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.",
-    "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
-     file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
+    "Only public keys log in, with a one-time code after the key where --totp asks for one (below). The keys \
+     are each --authorized-key, and the lines of each --authorized-keys file; with neither, \
+     ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
      nothing, but a name of --share (below). The options before a key are its rules (below); a line whose options serve cannot all \
      honour, and a line that is no key, are passed over, and said with their number and why. A file that \
      is a symbolic link, another user's, or one that others can change is refused (78). With no key at \
@@ -254,6 +255,8 @@ pub const SERVE: &[&str] = &[
     super::notes_policy::SERVE_JUDGE,
     // The audit log (T-116).
     super::notes_serve_audit::AUDIT,
+    // A one-time code after the key (T-115).
+    super::notes_serve_totp::TOTP,
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
     "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \

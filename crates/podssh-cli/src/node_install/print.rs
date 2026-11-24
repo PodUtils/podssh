@@ -105,6 +105,9 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
     if let Some(file) = &args.audit_log {
         words.extend(["--audit-log".to_string(), absolute("--audit-log", file)?]);
     }
+    if let Some(file) = &args.totp {
+        words.extend(["--totp".to_string(), absolute("--totp", file)?]);
+    }
     for pattern in &args.accept_env {
         words.extend(["--accept-env".to_string(), pattern.clone()]);
     }

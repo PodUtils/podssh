@@ -5,7 +5,7 @@
 //! policy (T-838); a shell shared by name (T-837); a shell kept for a lease
 //! (T-159); a unit of systemd that runs it (T-709); the message of the day
 //! (T-119); the marks of a shell (T-120); listeners that the user asks for
-//! (T-124); an audit log (T-116).
+//! (T-124); an audit log (T-116); a one-time code (T-115).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -61,6 +61,11 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "append one JSON line for each login, session, forward, start and stop to FILE, mode 0600, each line chained to the one before by SHA-256; never a key, a token, the environment or session data", None),
     row(None, "audit-commands", None, FlagKind::Supported,
         "with --audit-log: also record each command line, which can hold a password (default: a command is recorded without its words)", None),
+    // A one-time code after the key (T-115).
+    row(None, "totp", Some("FILE"), FlagKind::Supported,
+        "after a key, ask for the one-time code of the secret in FILE (base32, mode 0600) by keyboard-interactive: RFC 6238, 30 s, six digits, each code taken once", None),
+    row(None, "totp-new", Some("FILE"), FlagKind::Supported,
+        "make a new secret in FILE, mode 0600, never over a file that is there, print its path alone, and exit", None),
     row(None, "audit-verify", Some("FILE"), FlagKind::Supported,
         "check the chain of the audit log FILE, print what it found and the last line's SHA-256, and exit: 0 when it holds, 65 when a line was changed, 66 when FILE cannot be read", None),
     // A unit of systemd that runs serve NAME, printed (T-709).

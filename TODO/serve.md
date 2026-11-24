@@ -52,7 +52,7 @@ core: the handshake, a host key that does not change, and key authentication.
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:387-461` and
    `crates/podssh-cli/src/positionals.rs:8-281`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:383-385`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/dispatch.rs:385-387`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:537`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:538`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:110`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:720`; measured: `docs/STATUS.md:545`). 200 MiB each way
+  (`docs/relay.md:720`; measured: `docs/STATUS.md:546`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -1379,10 +1379,51 @@ one-time code (TOTP) needs only a shared secret and a clock.
 5. Same commit: the flags in `crates/podssh-cli/src/flags.rs`, the manual,
    `docs/cli.md`.
 
+## Decision
+
+2026-11-24, made with the draft (no build):
+
+- **The state is a file beside the secret, `FILE.used`**, read and replaced whole under the lock of
+  FILE (`pod_core::lock`, `pod_core::files::replace`), because `podssh serve --stdio` is a process for
+  each connection: a replay guard in memory would let the second login take the first one's code, which
+  the Prove's own check refutes. It keeps the last step taken (a code of that step or before is refused,
+  RFC 6238 section 5.2) and each key's failures. Lost: the state in the secret's file, as
+  google-authenticator's PAM module keeps it (each login would rewrite the secret); a state in memory
+  (it holds for `serve NAME` alone); the cache directory (a second secret file would share it). The
+  start reads and writes it once, so a directory where it cannot be written refuses the start (78),
+  not each login.
+- **A state that does not read refuses each code**, and says to remove it: taking it as empty would
+  let a code be taken twice. Removing it lets a code of the last minute in once more, which the words
+  say.
+- **The wait after failures holds across connections**: a key that failed waits 1 s, then twice as
+  long after each failure, at most 60 s, and no code of it is judged meanwhile (it is refused with the
+  wait), as each connection of `--stdio` is a new process and a wait in one would not stop another.
+  Failures an hour old are forgotten, at most 64 keys are kept. Three wrong codes on one connection send
+  the client back to its keys (a failure with no partial success), as russh counts no refusal that
+  carries a partial success. Lost: a sleep before the reply (connections in parallel each sleep and
+  each guess), a lockout of the key (a stranger with the key could lock its owner out for good).
+- **The answer of a key that passes**: `Auth::Reject` with partial success and the method set
+  `keyboard-interactive`, as russh's server has no other form of a partial success; russh dispatches
+  each method whatever the set says, so the handler holds the key that passed (`Pending`), bound to
+  its login name as RFC 4252 binds it, and a `keyboard-interactive` with nothing pending goes back to
+  the keys.
+- **A name of `--share` logs in with no code**: its right is the name, which any key may use (T-837);
+  a code of the owner's would add nothing for a watcher, who has none.
+- **80 bits at least**, not RFC 4226's 128: many apps make secrets of 80 bits, and an operator who
+  loads one must not be refused; `--totp-new` makes 160, as RFC 4226 recommends.
+- **The code is podssh's own** (`server/totp/code.rs`, HMAC-SHA-1 with the `hmac` and `sha1` that the
+  crate has, base32 of RFC 4648): no crate of podcrates has a one-time code, and none of the siblings
+  needs one; a second project that does is an ask of podcrates then.
+
 ## Prove
 
 ```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::totp
 CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_totp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_totp_openssh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_totp
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib man
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_page --test man_flag_parity --test man_json
 sh scripts/dev.sh check
 ```
 
@@ -1404,6 +1445,46 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24. The Premise and the Approach, read again at `e9db680f`:
+
+- T-107 to T-112 are partial (merged, each waiting for the build image), not done; the server exists
+  (`crates/podssh-ssh/src/server/`), so the draft starts on it, as T-114's did.
+- Premise item 1 holds in russh 0.65.4 (`vendor/russh/src/server/mod.rs:202-226`, `Auth::Reject` with
+  `partial_success` and `Auth::Partial`; `auth_keyboard_interactive` at
+  `vendor/russh/src/server/mod.rs:384-391`), with one fact the entry did not say: russh does not check that a method is in the set it sent
+  (`vendor/russh/src/server/encrypted.rs:1124-1146`), so the handler keeps which key passed (Decision).
+- Premise item 2 moved: podssh's client answers keyboard-interactive after a partial success at
+  `crates/podssh-ssh/src/auth.rs:146-157` and `crates/podssh-ssh/src/auth.rs:242-326`, as cited; it holds.
+- Premise item 3 holds at `crates/podssh-ssh/Cargo.toml:22-25` (`hmac` and `sha1`).
+- Approach item 2's "prints only the path" holds; the file is the secret's one line in base32, which an
+  app takes, and `--totp-new` runs alone (64 with `--stdio`, NAME or `--totp`).
+- Approach item 4 is the state file of the Decision: the replay guard and the waits must hold across
+  the serve processes of `--stdio`, one for each connection.
+- The Prove adds the unit tests of the code and of the state (`server::totp`: RFC 6238's and RFC 4226's
+  vectors, the window, the replay, the waits, two values of one file), and the CLI's
+  (`serve_totp_openssh.rs`, OpenSSH's client with `SSH_ASKPASS` running `oathtool --totp -b`, which a
+  host without it skips, saying so). The planted check that ignores the step is caught by
+  `a_code_is_never_taken_twice` and by the second login of the OpenSSH test.
+
+## Done
+
+Not done. Drafted 2026-11-24 on the branch `d-serve-auth` (no build, no test run): the code in
+`crates/podssh-ssh/src/server/totp/code.rs`, the state and its judge in `totp/state.rs`, the secret's
+file, its lock and its state file in `totp/mod.rs`; the partial success and keyboard-interactive in
+`crates/podssh-ssh/src/server/handler/auth.rs` (each code refused said on serve's stderr and in the
+audit log of T-116, never the code); `--totp` and `--totp-new` in `crates/podssh-cli/src/flags/serve.rs`,
+`serve.rs`, `serve_totp.rs` and the unit's words (`node_install/print.rs`); the manual's note
+(`man/notes_serve_totp.rs`); `docs/cli.md` ("A one-time code after the key"); a row of `docs/STATUS.md`.
+Results:
+
+- `cargo test -p podssh-ssh --lib server::totp`: UNVERIFIED.
+- `cargo test -p podssh-ssh --test serve_totp`: UNVERIFIED.
+- `cargo test -p podssh-cli --test serve_totp_openssh` (OpenSSH's client, `oathtool`): UNVERIFIED.
+- `cargo test -p podssh-cli --lib serve_totp`, `--lib man`, `man_page`, `man_flag_parity`, `man_json`:
+  UNVERIFIED.
+- Clippy and rustfmt: UNVERIFIED.
+- The planted check that ignores the step: UNVERIFIED (waits for T-251).
 
 # T-116: `podssh serve`: an audit log
 
@@ -2738,7 +2819,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:537`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:538`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -2794,7 +2875,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:484`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:485`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -2812,10 +2893,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:536` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:484`, `docs/STATUS.md:504`),
+- `docs/STATUS.md:537` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:485`, `docs/STATUS.md:505`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:482` is `docs/STATUS.md:484`.
+  The Prove's `docs/STATUS.md:483` is `docs/STATUS.md:485`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -2874,10 +2955,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:537`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:538`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:500`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:501`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -2961,8 +3042,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:536`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:499`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:537`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:500`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -4128,8 +4209,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler/auth.rs:60-69`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler/auth.rs:40-57`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler/auth.rs:75-92`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -4274,8 +4355,8 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler/auth.rs:60-69`,
-  `crates/podssh-ssh/src/server/handler.rs:328-351`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`,
+  `crates/podssh-ssh/src/server/handler.rs:341-364`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4432,8 +4513,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:91-112`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:75`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:93-114`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:77`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 

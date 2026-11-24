@@ -1,17 +1,52 @@
 //! The logins of one connection (T-107, T-114, T-774, T-837), apart from
 //! the handler so that each file stays short; each said in the audit log
-//! (T-116), with the key's fingerprint and why a refusal refused.
+//! (T-116), with the key's fingerprint and why a refusal refused. With
+//! `--totp` (T-115), a key that passes gets a partial success, and the
+//! one-time code comes by keyboard-interactive, as sshd with PAM asks.
 
+use std::borrow::Cow;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 use russh::keys::{Algorithm, PublicKey};
-use russh::server::{Auth, PublicKeyOffer, VerifiedPublicKey};
+use russh::server::{Auth, PublicKeyOffer, Response, VerifiedPublicKey};
+use russh::{MethodKind, MethodSet};
+use zeroize::Zeroizing;
 
 use super::Served;
 use crate::server::audit::Verdict;
 use crate::server::authorized::Admission;
 use crate::server::rules::Context;
+use crate::server::totp::{self, Checked};
 use crate::server::Rules;
+
+/// The method of a login with a key and a code, in the audit log.
+const BOTH: &str = "publickey,keyboard-interactive";
+
+/// The codes that one key may get wrong on one connection before it must
+/// sign again, as sshd's PAM conversation ends after three.
+pub const MOST_TRIES: u32 = 3;
+
+/// The one prompt, with no echo.
+const PROMPTS: &[(Cow<'static, str>, bool)] = &[(Cow::Borrowed(totp::PROMPT), false)];
+
+/// A key that passed, whose code is still to come; bound to the login
+/// name it came with, as RFC 4252 binds a partial success.
+pub(super) struct Pending {
+    user: String,
+    rules: Arc<Rules>,
+    who: String,
+    tries: u32,
+}
+
+fn methods(kind: MethodKind) -> MethodSet {
+    MethodSet::from(&[kind][..])
+}
+
+/// A refusal that sends the client back to its keys.
+fn back_to_keys() -> Auth {
+    Auth::Reject { proceed_with_methods: Some(methods(MethodKind::PublicKey)), partial_success: false }
+}
 
 /// The audit log's words for a key that no line lists.
 const UNLISTED: &str = "not an authorized key";
@@ -97,9 +132,64 @@ impl Served {
             self.conn.log_out();
             return Auth::reject();
         }
+        // With --totp, the key alone is half: the code comes next.
+        if self.settings.totp.is_some() {
+            self.trail.auth(Verdict::Partial, user, Some(&who), "publickey", None);
+            self.pending = Some(Pending { user: user.to_string(), rules, who, tries: 0 });
+            let next = Some(methods(MethodKind::KeyboardInteractive));
+            return Auth::Reject { proceed_with_methods: next, partial_success: true };
+        }
         self.trail.auth(Verdict::Accepted, user, Some(&who), "publickey", None);
         self.log_in(rules, who);
         Auth::Accept
+    }
+
+    /// keyboard-interactive: the prompt of the code, then its check, for a
+    /// key that passed under the same login name; for anything else, back
+    /// to the keys. The check reads and writes the state under a lock that
+    /// another serve may hold, so it runs on a blocking thread.
+    pub(super) async fn interactive(&mut self, user: &str, response: Option<Response<'_>>) -> Auth {
+        let live = self.conn.ended().is_none();
+        let who = self.pending.as_ref().filter(|p| live && p.user == user).map(|p| p.who.clone());
+        let (Some(totp), Some(who)) = (self.settings.totp.clone(), who) else {
+            self.pending = None;
+            return back_to_keys();
+        };
+        let answer = match response {
+            None => {
+                let (name, instructions) = (Cow::Borrowed(""), Cow::Borrowed(""));
+                return Auth::Partial { name, instructions, prompts: Cow::Borrowed(PROMPTS) };
+            }
+            Some(mut given) => Zeroizing::new(given.next().map(|b| b.to_vec()).unwrap_or_default()),
+        };
+        let key = who.clone();
+        let judged = tokio::task::spawn_blocking(move || totp.check(&key, &answer, SystemTime::now())).await;
+        match judged.map_err(|e| e.to_string()).and_then(|checked| checked) {
+            Ok(Checked::Accepted) => {
+                let Some(pending) = self.pending.take() else { return back_to_keys() };
+                self.trail.auth(Verdict::Accepted, user, Some(&who), BOTH, None);
+                self.log_in(pending.rules, pending.who);
+                Auth::Accept
+            }
+            Ok(refused) => self.refuse_code(user, &refused.says(), false),
+            // The state cannot be read or written: no code can be judged.
+            Err(why) => self.refuse_code(user, &format!("the one-time codes cannot be checked: {why}"), true),
+        }
+    }
+
+    /// A code refused, said on serve's stderr and in the audit log (never
+    /// the code); after [`MOST_TRIES`], or at `last`, back to the keys.
+    fn refuse_code(&mut self, user: &str, why: &str, last: bool) -> Auth {
+        let Some(pending) = self.pending.as_mut() else { return back_to_keys() };
+        pending.tries += 1;
+        self.settings.say(&format!("key {}: one-time code refused: {why}", pending.who));
+        self.trail.auth(Verdict::Refused, user, Some(&pending.who), BOTH, Some(why));
+        if last || pending.tries >= MOST_TRIES {
+            self.pending = None;
+            self.conn.log_out();
+            return back_to_keys();
+        }
+        Auth::Reject { proceed_with_methods: Some(methods(MethodKind::KeyboardInteractive)), partial_success: true }
     }
 
     /// The login of a key under `rules`: its expiry timer where asked, and

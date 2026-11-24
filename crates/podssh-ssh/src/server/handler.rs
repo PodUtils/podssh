@@ -19,7 +19,7 @@ mod record;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
+use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Response, Session, VerifiedPublicKey};
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
 use super::audit::Trail;
@@ -70,6 +70,8 @@ pub struct Served {
     /// A login under a shared shell's name (T-837): it attaches, and no key
     /// rules it.
     viewer: Option<Pass>,
+    /// A key that passed, whose one-time code is still to come (T-115).
+    pending: Option<auth::Pending>,
     /// The audit log's lines of this connection (T-116); last, so that the
     /// end of each session is written before the connection's.
     trail: Trail,
@@ -88,8 +90,22 @@ impl Served {
     pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control, conn: Conn) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
         let (rules, who, channels, expiry, viewer) = (None, String::new(), HashMap::new(), None, None);
-        let (remote, trail) = (Forwards::default(), Trail::open(&settings));
-        Served { authorized, settings, channels, forwards, remote, rules, who, control, conn, expiry, viewer, trail }
+        let (remote, pending, trail) = (Forwards::default(), None, Trail::open(&settings));
+        Served {
+            authorized,
+            settings,
+            channels,
+            forwards,
+            remote,
+            rules,
+            who,
+            control,
+            conn,
+            expiry,
+            viewer,
+            pending,
+            trail,
+        }
     }
 
     /// Refuse a request on `channel` for a key's rule: `why` on the
@@ -219,6 +235,16 @@ impl russh::server::Handler for Served {
     // The key decides, or a shared shell's name (T-837): `handler/auth.rs`.
     async fn auth_publickey(&mut self, user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
         Ok(self.verified(user, key))
+    }
+
+    // The one-time code after a key, with --totp (T-115); none else.
+    async fn auth_keyboard_interactive<'a>(
+        &'a mut self,
+        user: &str,
+        _submethods: &str,
+        response: Option<Response<'a>>,
+    ) -> Result<Auth, Self::Error> {
+        Ok(self.interactive(user, response).await)
     }
 
     // A session channel opens, and a task reads it from now on: russh

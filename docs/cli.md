@@ -6783,6 +6783,30 @@ gives up each capability of the process (T-698), before it reads a file.
   the head; a cut of the tail reads only as an unfinished run, which a
   copy of the last hash kept off the host finds. A write that a crash cut
   short gets its newline from the next writer, and the check names it.
+- **A one-time code after the key (T-115).** `--totp FILE` makes a key
+  that passes half of a login (`server/totp/`, `handler/auth.rs`): russh
+  answers it with a partial success and `keyboard-interactive` next, and
+  serve sends one prompt, `One-time code: `, with no echo. The code is RFC
+  6238's (HMAC-SHA-1, 30 s, six digits; RFC 6238's and RFC 4226's vectors
+  are unit tests), from the step before now to the step after it. FILE
+  holds one secret in base32 (80 bits at least; spaces, dashes, case and
+  `=` do not count); it is read as a key is (this user's, closed to
+  others, no link), and one that is not a secret refuses the start (78),
+  with no word of its text. The state is `FILE.used` (mode 0600, replaced
+  whole under the lock of FILE): the last step whose code let a login in,
+  so that no code of it or before it is taken again across the serve
+  processes of `--stdio`, and each key's failures. A key that failed waits
+  1 s, then twice as long after each failure, at most 60 s, and no code of
+  it is judged meanwhile; failures an hour old are forgotten. Three wrong
+  codes on one connection send the client back to its keys. A state that
+  does not read refuses each code and says to remove it, as taking it as
+  empty would take a code again. A partial success is bound to its login
+  name, as RFC 4252 binds it; a `keyboard-interactive` with no key before
+  it goes back to the keys. A name of `--share` logs in with no code. The
+  check runs on a blocking thread, as another serve may hold the lock (2 s
+  at most). `podssh serve --totp-new FILE` makes 160 random bits there,
+  mode 0600, never over a file that is there (73), and prints its path
+  alone: no secret goes to a terminal, a log or a command line.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or
