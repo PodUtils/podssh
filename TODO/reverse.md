@@ -5469,6 +5469,21 @@ carries it to the new process is untried.
 2. Where the duplicate fails, the node says so and keeps the session in the old process (as for a target that it
    cannot hand on), or refuses the upgrade with one line.
 
+## Decision
+
+Where WinSock does not duplicate a session's socket, that session goes to the new binary as one whose socket did
+not come, and ends at its client's resume with why; the node names it in one line (the socket's family and
+WinSock's error), and its count of the sessions that went is said after the duplicates, so it is true. The other
+sessions and the upgrade go on.
+
+- Lost: keep the session in the old process. On Windows the old process starts its child, hands over and waits for
+  it: its road has ended and its link to the relay is the child's, so nothing there would carry the session.
+- Lost: refuse the upgrade with one line (kill the child, which still waits on the pipe, and serve on, as for a
+  child that does not start). A duplicate needs the child's pid, so the child must start first; and one session
+  through a route whose socket does not move would hold back each upgrade, also a signed fix, for as long as it
+  lives, while the upgrade's other sessions could move. A session that cannot move ends at its resume on Unix too
+  (`Keeper::hand_over_with` of `pod-session`), so both systems do one thing.
+
 ## Prove
 
 ```sh
@@ -5477,3 +5492,40 @@ cargo test -p podssh-cli --test node_upgrade_windows
 ```
 
 On the gate's `windows` job.
+
+## Correction
+
+The Premise holds (2026-11-24): `a_unix_route_s_session_goes_on_across_the_node_s_upgrade` is `#[cfg(unix)]`
+(`crates/podssh-cli/tests/node_unix_route.rs`), and `node_upgrade_windows.rs` had the TCP target's case alone.
+Approach step 2 does not: on neither system does a session stay in the old process. A target that the keeper cannot
+move goes as a closed session and ends at its resume in the new binary. On Windows, a failed `WSADuplicateSocketW` was
+silent: the session went with no socket, the node had already said "1 of 1 sessions go to", and the new binary ended
+it with an empty why. The Decision says what the node does instead. The `sock` module of `node_unix_route.rs` is now
+`crates/podssh-cli/tests/unix_sock/mod.rs`, which both tests take.
+
+## Done
+
+Drafted 2026-11-24 (branch `d-t852`; not built).
+
+- `crates/podssh-cli/src/node_upgrade/pass_windows.rs`: `duplicate` gives a socket's duplicate for the child or why
+  not (the socket's family from `getsockname`, and WinSock's error); `hand_to_child` takes `went`, which hears the
+  count of the sockets that went and the why of each other once the pipe's bytes are written. The child names a
+  session that came with no socket ("the binary before this one handed over no socket for it") instead of an empty
+  why.
+- `crates/podssh-cli/src/node_upgrade/mod.rs`: on Windows the line "N of M sessions go to" comes from `hand`, after
+  the duplicates, with a line "a session ends at its resume: its Unix socket did not go to the new binary (WinSock's
+  error N)" before it for each that failed; both before the pipe's end, which the child waits for, so they come before
+  the child's "took N of M sessions over". Unix is unchanged: `after` says the count before `become_binary`.
+- The test `a_unix_route_s_session_goes_on_across_the_node_s_upgrade_on_windows`
+  (`crates/podssh-cli/tests/node_upgrade_windows.rs`): a service on an AF_UNIX socket by WinSock writes 32 MiB
+  through `podssh operator lab/src`; at a quarter the node's event of an upgrade is set; it must say "1 of 1 sessions
+  go to" (a failed duplicate's line comes first, and the test fails with it), the child "took 1 of 1 sessions over",
+  and the 32 MiB must come whole with exit 0. The listener moved to `crates/podssh-cli/tests/unix_sock/mod.rs`.
+- The manual: the notes of a node's upgrade (`crates/podssh-cli/src/man/notes_upgrade.rs`) say that a route's Unix
+  socket goes to the child as a TCP one does, and what happens to a session whose socket Windows does not duplicate.
+- UNVERIFIED: `cargo test -p podssh-cli --test node_upgrade_windows` on the gate's `windows` job (2 tests), and whether
+  WinSock's duplicate carries an AF_UNIX socket at all; the native `cargo test -p podssh-cli --test node_unix_route`
+  after the move of its listener; `cargo test -p podssh-cli --lib man::` for the manual's note; clippy and rustfmt
+  of the Windows code (`cargo clippy --target x86_64-pc-windows-msvc -p podssh-cli --tests`, or the gate's job).
+- UNVERIFIED, planted: `duplicate` made to fail always (its call's result taken as an error) must make the new test
+  fail with the line "its Unix socket did not go to the new binary".

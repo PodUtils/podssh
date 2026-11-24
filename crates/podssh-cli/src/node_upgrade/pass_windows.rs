@@ -6,7 +6,10 @@
 //! with its code. So the pid that a supervisor or `podssh detached` knows,
 //! and the locks of the run, stay this process's; a job closes the child
 //! with it, should this process be ended. A child that does not start gives
-//! the sessions back: each socket is still this process's.
+//! the sessions back: each socket is still this process's. A socket that
+//! WinSock does not duplicate (a Unix route's is AF_UNIX, T-852) ends its
+//! session at its resume, and a line names it with WinSock's error: the
+//! old process serves nothing once its child runs.
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -16,8 +19,8 @@ use std::path::Path;
 use podssh_relay::session::handover::{Handed, LayerState, Moved};
 use windows_sys::Win32::Foundation::{CloseHandle, SetHandleInformation, HANDLE, HANDLE_FLAG_INHERIT};
 use windows_sys::Win32::Networking::WinSock::{
-    WSADuplicateSocketW, WSAGetLastError, WSASocketW, WSAStartup, FROM_PROTOCOL_INFO, INVALID_SOCKET, WSADATA,
-    WSAPROTOCOL_INFOW, WSA_FLAG_OVERLAPPED,
+    getsockname, WSADuplicateSocketW, WSAGetLastError, WSASocketW, WSAStartup, AF_INET, AF_INET6, AF_UNIX,
+    FROM_PROTOCOL_INFO, INVALID_SOCKET, SOCKADDR_STORAGE, WSADATA, WSAPROTOCOL_INFOW, WSA_FLAG_OVERLAPPED,
 };
 use windows_sys::Win32::Security::SECURITY_ATTRIBUTES;
 use windows_sys::Win32::System::JobObjects::{
@@ -114,7 +117,8 @@ pub fn read(value: &str) -> Result<Taken, String> {
         let state = LayerState::decode(&layer).map_err(|e| e.to_string())?;
         let target = match socket.and_then(|i| usize::try_from(i).ok()).and_then(|i| infos.get(i)) {
             Some(info) => adopt(info).map(|socket| Moved { socket, channel }),
-            None => Err(String::new()),
+            // Its duplicate failed there, and that binary said why.
+            None => Err("the binary before this one handed over no socket for it".to_string()),
         };
         handed.push(Handed { state, target });
     }
@@ -143,6 +147,36 @@ fn adopt(info: &WSAPROTOCOL_INFOW) -> Result<std::net::TcpStream, String> {
     }
     // SAFETY: a socket that this process just made and owns alone.
     Ok(unsafe { std::net::TcpStream::from_raw_socket(socket as u64) })
+}
+
+/// The duplicate of `socket` for the process `pid`, or why there is none:
+/// WinSock's error, and the socket's family.
+fn duplicate(socket: &std::net::TcpStream, pid: u32) -> Result<WSAPROTOCOL_INFOW, String> {
+    let raw = socket.as_raw_socket() as usize;
+    // SAFETY: a zeroed out value, which the call fills.
+    let mut info: WSAPROTOCOL_INFOW = unsafe { std::mem::zeroed() };
+    // SAFETY: a socket of this process, and the child's pid.
+    if unsafe { WSADuplicateSocketW(raw, pid, &mut info) } == 0 {
+        return Ok(info);
+    }
+    // SAFETY: the error of the call above, on this thread, read before any other.
+    let code = unsafe { WSAGetLastError() };
+    Err(format!("its {}socket did not go to the new binary (WinSock's error {code})", family(raw)))
+}
+
+/// The family of a target's socket, as a line names it: a Unix route's
+/// socket is an AF_UNIX one of WinSock (T-852).
+fn family(socket: usize) -> &'static str {
+    // SAFETY: a zeroed SOCKADDR_STORAGE is a valid out value.
+    let mut name: SOCKADDR_STORAGE = unsafe { std::mem::zeroed() };
+    let mut len = std::mem::size_of::<SOCKADDR_STORAGE>() as i32;
+    // SAFETY: a socket of this process, and an out value of `len` bytes.
+    let got = unsafe { getsockname(socket, (&mut name as *mut SOCKADDR_STORAGE).cast(), &mut len) };
+    match (got, name.ss_family) {
+        (0, AF_UNIX) => "Unix ",
+        (0, AF_INET | AF_INET6) => "TCP ",
+        _ => "",
+    }
 }
 
 /// A pipe whose read end the child inherits and whose write end it does
@@ -201,13 +235,16 @@ fn tie(child: &std::process::Child) {
 pub const ROOT_VARIABLE: &str = "PODSSH_HANDOVER_ROOT";
 
 /// Hand `handed` and the run's `parts` to `binary`, started as this
-/// process's child with this run's words, and wait for it: its code. When
-/// it does not start: the sessions back, as they were, and why.
+/// process's child with this run's words, and wait for it: its code. Once
+/// the child has them, `went` hears how many sockets went and why each
+/// other did not. When it does not start: the sessions back, as they were,
+/// and why.
 pub fn hand_to_child(
     binary: &Path,
     from: &str,
     handed: Vec<Handed>,
     parts: &[Part],
+    went: &dyn Fn(usize, &[String]),
 ) -> Result<i32, (Vec<Handed>, String)> {
     let (read, mut write) = match pipe() {
         Ok(ends) => ends,
@@ -227,29 +264,32 @@ pub fn hand_to_child(
     tie(&child);
     let mut sessions = Vec::with_capacity(handed.len());
     let mut infos = Vec::new();
-    let mut sockets = Vec::new();
+    let mut lost = Vec::new();
     for Handed { state, target } in &handed {
         let index = match target {
-            Ok(Moved { socket, .. }) => {
-                // SAFETY: a zeroed out value, which the call fills.
-                let mut info: WSAPROTOCOL_INFOW = unsafe { std::mem::zeroed() };
-                // SAFETY: a socket of this process, and the child's pid.
-                let done = unsafe { WSADuplicateSocketW(socket.as_raw_socket() as usize, child.id(), &mut info) };
-                if done == 0 {
+            // A session whose socket did not go ends at its resume there.
+            Ok(Moved { socket, .. }) => match duplicate(socket, child.id()) {
+                Ok(info) => {
                     infos.push(info);
                     Some((infos.len() - 1) as i32)
-                } else {
+                }
+                Err(why) => {
+                    lost.push(why);
                     None
                 }
-            }
+            },
             Err(_) => None,
         };
         let channel = target.as_ref().ok().and_then(|m| m.channel.clone());
         sessions.push(Session { layer: state.encode(), socket: index, channel });
-        sockets.push(index.is_some());
     }
     let bytes = state::encode(from, &sessions, parts);
     let sent = write.write_all(&frame(nonce, &bytes, &infos)).and_then(|()| write.flush());
+    if sent.is_ok() {
+        // Before the pipe's end, which the child waits for: these lines come
+        // before the child's own.
+        went(infos.len(), &lost);
+    }
     drop(write);
     if let Err(e) = sent {
         let _ = child.kill();
@@ -257,7 +297,8 @@ pub fn hand_to_child(
         return Err((handed, format!("its handover's pipe: {e}")));
     }
     // The child holds each socket now: this process's copies close, which
-    // leaves the connections open while the child's are.
+    // leaves the connections open while the child's are, and ends each that
+    // did not go.
     drop(handed);
     match child.wait() {
         Ok(status) => Ok(status.code().unwrap_or(1)),

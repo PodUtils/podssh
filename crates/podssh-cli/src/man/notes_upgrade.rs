@@ -36,7 +36,9 @@ pub(super) const NODE: &str = "SIGUSR2 asks a node to take the binary now at its
      (podssh-node-upgrade-PID, PID the one of its run's record). It probes the binary as above, and starts it as \
      its child with the same words. It hands it each target's socket and the sessions' state, and waits for it, \
      ending with its code: the pid and the locks of the run stay the first binary's, and a job ends the child \
-     should the first one be ended.";
+     should the first one be ended. A route's Unix socket goes to the child as a TCP one does. A session whose \
+     socket Windows does not duplicate for the child ends at its resume: the first binary serves nothing once \
+     the child runs. A line names the socket's family and the error of Windows.";
 
 /// What `podssh update` does to the nodes that run.
 pub(super) const UPDATE: &str = "Once the binary is replaced, each node of --detach of this user that takes the \
