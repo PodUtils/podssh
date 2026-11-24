@@ -84,6 +84,11 @@ pub(super) struct Open {
     pub(super) keeper: Option<super::kept::Keeper>,
     /// The kept shell that this channel has, and its generation then.
     pub(super) kept: Option<super::kept::Held>,
+    /// The bytes each way and the program's end, for the audit log (T-116).
+    pub(super) tally: Arc<super::audit::Tally>,
+    /// The audit log's mark of the session that runs here: its drop, at
+    /// the channel's close, writes the session's end.
+    pub(super) mark: Option<super::audit::Session>,
 }
 
 impl Open {
@@ -94,7 +99,8 @@ impl Open {
         let (read, write) = channel.split();
         let (stdin_tx, stdin_rx) = oneshot::channel();
         let (closed_tx, closed) = watch::channel(false);
-        tokio::spawn(read_channel(read, stdin_rx, closed_tx, window));
+        let tally = Arc::new(super::audit::Tally::default());
+        tokio::spawn(read_channel(read, stdin_rx, closed_tx, window, tally.clone()));
         Open {
             write: Some(write),
             handle,
@@ -114,6 +120,8 @@ impl Open {
             keep: super::kept::Asked::default(),
             keeper: None,
             kept: None,
+            tally,
+            mark: None,
         }
     }
 
@@ -170,7 +178,7 @@ impl Window {
 }
 
 /// The task of a channel: its data to the child's stdin once there is one
-/// (kept until then, up to [`EARLY_INPUT`]), its EOF as the end of that
+/// (kept until then, up to [`EARLY_INPUT`]), counted in `tally`, its EOF as the end of that
 /// stdin, and its close as the end of the task. Each byte that no one will
 /// read (extended data, data with no program, past what is kept early) is
 /// given back to the window at once, so that the client never waits on it.
@@ -179,6 +187,7 @@ async fn read_channel(
     mut stdin: oneshot::Receiver<Input>,
     closed: watch::Sender<bool>,
     window: Window,
+    tally: Arc<super::audit::Tally>,
 ) {
     // The bytes of russh's messages, kept as they came.
     let mut early = Vec::new();
@@ -211,6 +220,7 @@ async fn read_channel(
             }
             message = read.wait() => match message {
                 Some(ChannelMsg::Data { data }) => {
+                    tally.took(data.len());
                     if let Some(tx) = queue.as_ref() {
                         // The feeder drains its queue even after a broken
                         // pipe, and grants each chunk back, so this send

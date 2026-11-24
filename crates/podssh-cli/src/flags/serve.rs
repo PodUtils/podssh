@@ -5,7 +5,7 @@
 //! policy (T-838); a shell shared by name (T-837); a shell kept for a lease
 //! (T-159); a unit of systemd that runs it (T-709); the message of the day
 //! (T-119); the marks of a shell (T-120); listeners that the user asks for
-//! (T-124).
+//! (T-124); an audit log (T-116).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -56,6 +56,13 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "with NAME: how long a shell that its client detached (~d of podssh ssh) waits for a client, as 90s, 30m, 8h or 2d, 30 days at most; 0 keeps no shell (default: 24h)", None),
     // A client policy on each client's KEXINIT (T-838).
     super::policy::SERVE_POLICY,
+    // The audit log, chained JSON lines (T-116).
+    row(None, "audit-log", Some("FILE"), FlagKind::Supported,
+        "append one JSON line for each login, session, forward, start and stop to FILE, mode 0600, each line chained to the one before by SHA-256; never a key, a token, the environment or session data", None),
+    row(None, "audit-commands", None, FlagKind::Supported,
+        "with --audit-log: also record each command line, which can hold a password (default: a command is recorded without its words)", None),
+    row(None, "audit-verify", Some("FILE"), FlagKind::Supported,
+        "check the chain of the audit log FILE, print what it found and the last line's SHA-256, and exit: 0 when it holds, 65 when a line was changed, 66 when FILE cannot be read", None),
     // A unit of systemd that runs serve NAME, printed (T-709).
     row(None, "print-unit", None, FlagKind::Supported,
         "with NAME: print a unit of systemd that runs serve NAME with these flags, on stdout, and write nothing: a user unit, or with --system --run-as USER a system unit", None),

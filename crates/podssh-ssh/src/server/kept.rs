@@ -33,10 +33,11 @@ use russh::{ChannelId, ChannelWriteHalf};
 use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
 use tokio::sync::watch;
 
+use super::audit::Tally;
 use super::channel::Input;
+pub(super) use super::kept_ask::{Asked, Keeper};
 use super::kept_replay::{dropped_line, replay_from, since};
 use super::kept_shelf::Shelf;
-pub(super) use super::kept_ask::{Asked, Keeper};
 use crate::terminal::Size;
 
 /// The most kept shells of one key.
@@ -66,17 +67,20 @@ pub(super) struct Attached {
     handle: Handle,
     id: ChannelId,
     out: Pin<Box<dyn AsyncWrite + Send>>,
+    /// The channel's counts for the audit log (T-116): its output, and
+    /// the shell's end if it ends while this channel has it.
+    tally: Arc<Tally>,
 }
 
 impl Attached {
-    pub(super) fn new(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId) -> Attached {
-        let out: Pin<Box<dyn AsyncWrite + Send>> = Box::pin(write.make_writer());
-        Attached { write, handle, id, out }
+    pub(super) fn new(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId, tally: Arc<Tally>) -> Attached {
+        let out: Pin<Box<dyn AsyncWrite + Send>> = Box::pin(tally.count(write.make_writer()));
+        Attached { write, handle, id, out, tally }
     }
 
     /// Its parts, for the end of the program (`child::Running`).
-    pub(super) fn into_parts(self) -> (ChannelWriteHalf<Msg>, Handle, ChannelId) {
-        (self.write, self.handle, self.id)
+    pub(super) fn into_parts(self) -> (ChannelWriteHalf<Msg>, Handle, ChannelId, Arc<Tally>) {
+        (self.write, self.handle, self.id, self.tally)
     }
 
     /// `why` on its stderr, then its end with no status: the client says

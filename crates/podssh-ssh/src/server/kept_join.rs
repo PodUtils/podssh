@@ -43,7 +43,7 @@ pub(super) fn join(open: &mut Open, shelf: &Shelf, owner: &str, channel: Channel
     open.give_stdin(shell.writer(joined.held.generation));
     watch_close(&joined.held, open.closed.clone());
     open.kept = Some(joined.held.clone());
-    let attached = Attached::new(write, open.handle.clone(), channel);
+    let attached = Attached::new(write, open.handle.clone(), channel, open.tally.clone());
     tokio::spawn(shell.clone().catch_up(joined, attached));
     Ok(name)
 }

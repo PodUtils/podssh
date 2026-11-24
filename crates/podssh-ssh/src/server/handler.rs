@@ -6,24 +6,29 @@
 //! a login under a shared shell's name, which attaches under its right
 //! (T-837); the requests of the kept shells (T-159, `kept_asks.rs`); and a
 //! clean refusal of each request that a later entry serves.
+//! The logins are `handler/auth.rs`; the audit log's lines (T-116),
+//! `handler/record.rs`.
 //! russh's defaults send no reply to a channel request, and a client then
 //! waits (podssh's own for 30 s): each request here is answered, in the
 //! order the requests came, as the handler answers each before russh reads
 //! the next.
 
+mod auth;
+mod record;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use russh::keys::Algorithm;
 use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
+use super::audit::Trail;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
-use super::remote_forward::Forwards;
-use super::live::{self, Conn};
+use super::live::Conn;
 use super::program::{self, start_program};
 use super::pty_grant::{grant_pty, resize_pty, Asked};
+use super::remote_forward::Forwards;
 use super::rules::{Asked as Wanted, Plan};
 use super::share::Pass;
 use super::stop::{Control, Keys, Stage};
@@ -65,6 +70,9 @@ pub struct Served {
     /// A login under a shared shell's name (T-837): it attaches, and no key
     /// rules it.
     viewer: Option<Pass>,
+    /// The audit log's lines of this connection (T-116); last, so that the
+    /// end of each session is written before the connection's.
+    trail: Trail,
 }
 
 impl Drop for Served {
@@ -79,8 +87,9 @@ impl Drop for Served {
 impl Served {
     pub(super) fn new(authorized: Keys, settings: Arc<Settings>, control: Control, conn: Conn) -> Served {
         let forwards = Slots::new(settings.max_forwards.unwrap_or(direct::MAX_FORWARDS));
-        let (rules, who, channels, expiry, remote) = (None, String::new(), HashMap::new(), None, Forwards::default());
-        Served { authorized, settings, channels, forwards, remote, rules, who, control, conn, expiry, viewer: None }
+        let (rules, who, channels, expiry, viewer) = (None, String::new(), HashMap::new(), None, None);
+        let (remote, trail) = (Forwards::default(), Trail::open(&settings));
+        Served { authorized, settings, channels, forwards, remote, rules, who, control, conn, expiry, viewer, trail }
     }
 
     /// Refuse a request on `channel` for a key's rule: `why` on the
@@ -103,7 +112,11 @@ impl Served {
     ) -> Result<(), russh::Error> {
         // A shell request that joins a kept shell (T-158, T-159).
         if matches!(wanted, Wanted::Shell) && self.viewer.is_none() && self.joins(channel) {
-            return self.join_kept(channel, session);
+            let answered = self.join_kept(channel, session);
+            // In the audit log as a shell's session, or as one that did not
+            // start, whose line went to the client (T-116).
+            self.record(channel, wanted, &Plan::Shell);
+            return answered;
         }
         let plan = match (self.rules(), self.viewer.clone()) {
             // The one gate of a name's right (T-837): its shell request
@@ -119,23 +132,25 @@ impl Served {
             (Ok(rules), _) => rules.plan(wanted),
             (Err(why), _) => Plan::Refuse(why),
         };
-        match plan {
+        let answered = match &plan {
             Plan::Command(command, original) => {
-                self.start(channel, Program::Command(&command), original, session).await
+                self.start(channel, Program::Command(command), original.clone(), session).await
             }
             Plan::Shell => self.start(channel, Program::Login, None, session).await,
             Plan::Sftp => program::sftp(self.channels.get_mut(&channel), &self.settings, channel, session),
             // As a program that did not start: the channel runs nothing
             // else, so it ends here.
             Plan::Refuse(why) => {
-                self.refuse_for(channel, &why, session)?;
+                self.refuse_for(channel, why, session)?;
                 if self.channels.get(&channel).is_some_and(|open| !open.started()) {
                     session.eof(channel)?;
                     session.close(channel)?;
                 }
                 Ok(())
             }
-        }
+        };
+        self.record(channel, wanted, &plan);
+        answered
     }
 
     /// Refuse a request on `channel`, with the reply that the client waits
@@ -198,50 +213,12 @@ impl russh::server::Handler for Served {
     // expiry-time=), is refused before the client signs with it; so is
     // each key of a connection that a client policy ended (T-838).
     async fn auth_publickey_offered(&mut self, user: &str, offer: PublicKeyOffer<'_>) -> Result<Auth, Self::Error> {
-        let named = self.control.live.shares.find(user).is_some();
-        let ok = self.conn.ended().is_none() && (named || self.admit(offer.public_key).is_some());
-        Ok(if ok { Auth::Accept } else { Auth::reject() })
+        Ok(self.offered(user, offer))
     }
 
-    // The login name selects nothing but a shared shell's name (T-837),
-    // which lets any key attach under its right; a name that the table
-    // lacks falls to the keys, as a wrong key does. Else the key decides,
-    // and its line's rules hold for the whole connection. A security key's signature must
-    // carry the flags that its line asks for (T-774), as sshd checks them:
-    // the line that admitted the key decides, and no later line is tried.
-    // The key is in the server's table before it is checked (T-842): a
-    // reload then either comes first and refuses it here, or finds it.
+    // The key decides, or a shared shell's name (T-837): `handler/auth.rs`.
     async fn auth_publickey(&mut self, user: &str, key: VerifiedPublicKey<'_>) -> Result<Auth, Self::Error> {
-        if self.conn.ended().is_some() {
-            return Ok(Auth::reject());
-        }
-        // Out of the table's logins: a reload of the keys never ends it.
-        if let Some(pass) = self.control.live.shares.find(user) {
-            self.who = crate::known_hosts::fingerprint(key.public_key);
-            self.settings.say(&format!("key {}: logged in to a shared shell, {}", self.who, pass.mode.says()));
-            self.viewer = Some(pass);
-            self.conn.accept();
-            return Ok(Auth::Accept);
-        }
-        self.conn.log_in(key.public_key);
-        let Some(rules) = self.admit(key.public_key) else {
-            self.conn.log_out();
-            return Ok(Auth::reject());
-        };
-        let sk = matches!(key.public_key.algorithm(), Algorithm::SkEd25519 | Algorithm::SkEcdsaSha2NistP256);
-        if let Some(why) = rules.sk_refusal(sk, key.sk_flags) {
-            let who = crate::known_hosts::fingerprint(key.public_key);
-            self.settings.say(&format!("key {who} refused: {why}"));
-            self.conn.log_out();
-            return Ok(Auth::reject());
-        }
-        if let Some(expiry) = rules.expiry.filter(|_| self.settings.revoke_ends_sessions) {
-            self.expiry = Some(live::end_at_expiry(&self.conn, expiry, self.settings.clone()));
-        }
-        self.rules = Some(rules);
-        self.who = crate::known_hosts::fingerprint(key.public_key);
-        self.conn.accept();
-        Ok(Auth::Accept)
+        Ok(self.verified(user, key))
     }
 
     // A session channel opens, and a task reads it from now on: russh

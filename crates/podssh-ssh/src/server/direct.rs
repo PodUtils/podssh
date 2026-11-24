@@ -39,6 +39,9 @@ const CONNECT_FAILED: u32 = 2;
 /// The longest reason sent: a proxy's reason phrase is the far side's text.
 const MOST_WORDS: usize = 512;
 
+/// The audit log's words for a forward past [`MAX_FORWARDS`] (T-116).
+pub(super) const FULL: &str = "too many forwards open on this connection";
+
 /// The forwards of one connection: how many are open, and the bound.
 #[derive(Debug, Clone)]
 pub(super) struct Slots {
@@ -114,7 +117,8 @@ pub(super) fn check(no_forwarding: bool, host: &str, port: u32) -> Result<u16, C
 /// Dial `host:port` on a task of its own, then accept the channel and carry
 /// it, or refuse it with the dial's error in words. `slot` is held until
 /// the forward ends. `handle` opens the channel's window as the target
-/// takes the bytes (T-118).
+/// takes the bytes (T-118). `mark` says the open or the dial's refusal,
+/// then the end with the bytes each way, in the audit log (T-116).
 pub(super) fn open(
     channel: Channel<Msg>,
     host: String,
@@ -122,6 +126,7 @@ pub(super) fn open(
     reply: ChannelOpenHandle,
     slot: Slot,
     handle: Handle,
+    mut mark: Option<super::audit::Forward>,
 ) {
     tokio::spawn(async move {
         let _slot = slot;
@@ -129,9 +134,22 @@ pub(super) fn open(
             Ok(tcp) => {
                 reply.accept().await;
                 let window = Window { handle, id: channel.id() };
-                carry(channel, tcp, window).await;
+                let tally = match mark.as_mut() {
+                    Some(mark) => {
+                        mark.opened();
+                        mark.tally()
+                    }
+                    None => Arc::default(),
+                };
+                carry(channel, tcp, window, tally).await;
             }
-            Err(e) => reply.reject(connect_failed(&e.to_string())).await,
+            Err(e) => {
+                let words = e.to_string();
+                if let Some(mark) = mark.as_mut() {
+                    mark.refused(&words);
+                }
+                reply.reject(connect_failed(&words)).await;
+            }
         }
     });
 }
@@ -153,11 +171,13 @@ async fn client_side(
     mut to_far: OwnedWriteHalf,
     eof: oneshot::Sender<()>,
     window: Window,
+    tally: Arc<super::audit::Tally>,
 ) -> Up {
     let mut eof = Some(eof);
     while let Some(message) = read.wait().await {
         match message {
             ChannelMsg::Data { data } => {
+                tally.took(data.len());
                 if to_far.write_all(&data).await.is_err() {
                     return Up::Failed;
                 }
@@ -185,15 +205,15 @@ async fn client_side(
 ///
 /// The bytes for the target are written as they come, and the channel's
 /// window opens as the target takes them (T-118): a target that reads
-/// slowly holds this forward alone.
-pub(super) async fn carry(channel: Channel<Msg>, tcp: TcpStream, window: Window) {
+/// slowly holds this forward alone. `tally` counts the bytes each way.
+pub(super) async fn carry(channel: Channel<Msg>, tcp: TcpStream, window: Window, tally: Arc<super::audit::Tally>) {
     // Each keystroke of a forwarded session goes at once.
     let _ = tcp.set_nodelay(true);
     let (read, write) = channel.split();
     let (mut from_far, to_far) = tcp.into_split();
     let (eof_tx, mut eof_rx) = oneshot::channel();
-    let mut up = tokio::spawn(client_side(read, to_far, eof_tx, window));
-    let mut writer = write.make_writer();
+    let mut up = tokio::spawn(client_side(read, to_far, eof_tx, window, tally.clone()));
+    let mut writer = tally.count(write.make_writer());
     let down = async move { tokio::io::copy(&mut from_far, &mut writer).await.is_ok() };
     tokio::pin!(down);
     let (mut down_done, mut client_eof, mut eof_known) = (false, false, false);

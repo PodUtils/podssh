@@ -41,13 +41,13 @@ pub(super) fn start(
     marks: Option<super::marks::Files>,
 ) {
     let (master, child) = pair;
-    let (write, handle, channel, group) = running.into_parts();
+    let (write, handle, channel, group, tally) = running.into_parts();
     let fd = master.clone();
     let resize = move |size: Size| {
         let _ = pty::set_size(fd.get_ref().as_raw_fd(), size);
     };
     let shell = Shell::new(keeper, id, Box::new(Master(master.clone())), Box::new(resize), group);
-    let held = shell.first(Attached::new(write, handle, channel));
+    let held = shell.first(Attached::new(write, handle, channel, tally));
     if let Some(name) = keeper.keep.as_deref() {
         if let Err(why) = keeper.shelf.put(&shell, name) {
             open.told = Some(format!("podssh serve: this shell is not kept: {why}\r\n"));
@@ -91,8 +91,8 @@ async fn finish(shell: Arc<Shell>, mut child: Child, output: JoinHandle<()>, exi
     }
     let code = status.as_ref().ok().and_then(|s| s.code()).and_then(|c| u32::try_from(c).ok());
     if let Some(attached) = shell.ended_with(code) {
-        let (write, handle, id) = attached.into_parts();
-        Running::of(write, handle, id, shell.group.clone()).end(status).await;
+        let (write, handle, id, tally) = attached.into_parts();
+        Running::of(write, handle, id, shell.group.clone(), tally).end(status).await;
     }
 }
 

@@ -29,9 +29,11 @@
 //! (T-120, `marks.rs`). Where systemd is there, each pty child runs in a
 //! transient scope of its own (T-122, `scope.rs`). A client's `-R` is
 //! published with no bind where the settings give a way (T-123,
-//! `remote_forward.rs`).
+//! `remote_forward.rs`). `--audit-log FILE` records the logins, sessions
+//! and forwards as chained JSON lines (T-116, `audit/`).
 
 pub mod algorithms;
+pub mod audit;
 mod authorized;
 mod channel;
 #[cfg(unix)]
@@ -204,6 +206,9 @@ pub struct Settings {
     /// `--keep-lease` (T-159): how long a login shell on a pty that its
     /// client detached waits for a client; zero keeps no shell.
     pub keep_lease: Duration,
+    /// `--audit-log FILE` (T-116): each login, session and forward as a
+    /// chained JSON line. None records nothing.
+    pub audit: Option<Arc<audit::Audit>>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

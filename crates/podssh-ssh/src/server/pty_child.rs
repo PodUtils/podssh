@@ -141,7 +141,7 @@ pub(super) fn spawn(
     let Some(granted) = open.pty.as_ref() else { return Err("no pty on this channel".into()) };
     let (master, size) = (granted.master.clone(), granted.size);
     let (exited_tx, exited) = watch::channel(false);
-    let to = running.write.make_writer();
+    let to = running.writer();
     // The message of the day comes before the child's first byte (T-119):
     // the pty's own output is read after it. Its newlines are CR LF already.
     let motd = std::io::Cursor::new(open.extras.motd.take().unwrap_or_default());
