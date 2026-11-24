@@ -66,6 +66,8 @@ mod program;
 // The reports of local echo, from a pty's channel (T-160).
 #[cfg(unix)]
 mod predict;
+// The count of local echo, which a shared shell's seats take too (T-896).
+mod predict_count;
 #[cfg(unix)]
 pub mod pty;
 #[cfg(unix)]
@@ -82,6 +84,8 @@ pub mod share;
 mod share_ctl;
 #[doc(hidden)]
 pub mod share_measure;
+// Local echo's reports from a shell shared by name (T-896).
+mod share_told;
 mod share_view;
 #[cfg(unix)]
 pub mod shell;

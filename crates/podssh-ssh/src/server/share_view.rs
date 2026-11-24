@@ -2,6 +2,8 @@
 //! each watcher, and the one gate of a name's right. A shell on serve's own
 //! tty (T-861) is shared the same way: the discipline's input takes the
 //! writers' bytes through the lease, and its screen goes to each seat.
+//! Each seat that asked gets local echo's reports among its output
+//! (`share_told.rs`, T-896).
 //!
 //! The gate is the attach: a channel logged in under a name that only
 //! watches gets a sink for its input, so no byte of it (typed, pasted
@@ -18,14 +20,14 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{ready, Context, Poll};
 
-use bytes::Bytes;
 use russh::server::Msg;
 use russh::ChannelWriteHalf;
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::sync::{broadcast, watch};
 
 use super::channel::{Input, Open};
 use super::share::{Hub, Mode, Pass, Seat, Shares};
+use super::share_told::{FlagsOf, Said, SeatTold, Ticks};
 use crate::terminal::Size;
 
 /// Why a name's channel runs nothing: it attaches, and that is all.
@@ -42,34 +44,77 @@ const NO_RANDOM: &str = "podssh serve: this shell is not shared: the system gave
 /// of it to each seat.
 pub(super) type Screen = Box<dyn AsyncWrite + Send + Unpin>;
 
+/// The discipline's input on serve's own tty: the keys as they came, or
+/// counted for each seat as the discipline reads them (T-896).
+pub(super) type Keys = Box<dyn AsyncRead + Send + Unpin>;
+
+/// Where a shared shell's reports come from (T-896): its flags, whether a
+/// byte counts once the discipline read it (serve's own tty) or once the
+/// master took it, and the owner's channel, for its reports where it asked.
+pub(super) struct Telling<'a> {
+    pub(super) flags: FlagsOf,
+    pub(super) at_read: bool,
+    pub(super) owner: &'a ChannelWriteHalf<Msg>,
+}
+
 /// Open a shared shell with the owner's seat: `pty` takes the writers'
 /// bytes under the lease and `resize` sets the least size. Its names go
-/// to the owner's line, told once when the shell starts.
+/// to the owner's line, told once when the shell starts. The owner's
+/// reports, where it asked, ride the broadcast from the start.
 pub(super) fn open_hub(
     open: &mut Open,
     shares: &Shares,
     pty: Input,
     resize: Box<dyn Fn(Size) + Send + Sync>,
     size: Size,
+    telling: Telling<'_>,
 ) -> Arc<Seat> {
     let owner = Hub::open(shares, pty, resize, size);
+    owner.hub.tells.source(telling.flags, telling.at_read);
+    if open.predict
+        && let Some(from) = owner.hub.subscribe()
+    {
+        owner.hub.tells.ask(owner.id());
+        let told = SeatTold::new(telling.owner, owner.id());
+        tokio::spawn(super::share_told::owner_tells(from, told, open.closed.clone()));
+    }
     open.told = Some(shares.mint(&owner.hub).map_or_else(|| NO_RANDOM.to_string(), |names| names.told()));
     open.seat = Some(owner.clone());
     owner
 }
 
+/// What the discipline on serve's own tty runs with: the owner's input,
+/// the keys that it reads, its screen, and with `--share` the ticks of the
+/// seats' reports, which its loop makes after the echo of each key read.
+pub(super) struct TtyEnds {
+    pub(super) input: Input,
+    pub(super) keys: Keys,
+    pub(super) screen: Screen,
+    pub(super) ticks: Option<Ticks>,
+}
+
 /// With `--share`, the login shell on serve's own tty (`--pty line` or
 /// `notify`, T-861): `keys`, the discipline's input, takes each writer's
 /// bytes through the lease, and `screen`, the discipline's output, goes to
-/// each seat too, its echo among it. The owner's input and screen; without
-/// an offer, `keys` and `screen` as they came.
+/// each seat too, its echo among it, with the reports of each seat that
+/// asked: `flags` reads the discipline's ECHO and ICANON, and `owner` is
+/// the owner's channel (T-896). Without an offer, `keys` and `screen` as
+/// they came.
 #[cfg(unix)]
-pub(super) fn offer_tty<W>(open: &mut Open, keys: Input, screen: W) -> (Input, Screen)
+pub(super) fn offer_tty<W>(
+    open: &mut Open,
+    (keys_in, keys): (tokio::io::DuplexStream, tokio::io::DuplexStream),
+    flags: FlagsOf,
+    owner: &ChannelWriteHalf<Msg>,
+    screen: W,
+) -> TtyEnds
 where
     W: AsyncWrite + Send + Unpin + 'static,
 {
-    let Some(shares) = open.offer.take() else { return (keys, Box::new(screen)) };
-    let Some(sizes) = open.line.as_ref().map(|grant| grant.size.clone()) else { return (keys, Box::new(screen)) };
+    let sizes = open.line.as_ref().map(|grant| grant.size.clone());
+    let (Some(shares), Some(sizes)) = (open.offer.take(), sizes) else {
+        return TtyEnds { input: Box::new(keys_in), keys: Box::new(keys), screen: Box::new(screen), ticks: None };
+    };
     let now = *sizes.borrow();
     let size = Size { cols: now.cols.into(), rows: now.rows.into(), px_width: 0, px_height: 0 };
     // The least size of the seats goes to the discipline, as a window
@@ -78,8 +123,15 @@ where
         let next = super::line::size_of(least.cols, least.rows);
         sizes.send_if_modified(|now| std::mem::replace(now, next) != next);
     };
-    let owner = open_hub(open, &shares, keys, Box::new(resize), size);
-    (owner.writer(), Box::new(Tee::new(screen, owner.hub.clone())))
+    let telling = Telling { flags, at_read: true, owner };
+    let owner = open_hub(open, &shares, Box::new(keys_in), Box::new(resize), size, telling);
+    let hub = owner.hub.clone();
+    TtyEnds {
+        input: owner.writer(),
+        keys: Box::new(super::share_told::Taken { inner: keys, hub: hub.clone() }),
+        screen: Box::new(Tee::new(screen, hub.clone())),
+        ticks: Some(Ticks(hub)),
+    }
 }
 
 /// Attach the channel `open` to the shell of `pass`: its output from now
@@ -92,6 +144,12 @@ pub(super) fn attach(open: &mut Open, pass: &Pass) -> Result<(), String> {
     let Some(from) = pass.hub.subscribe() else { return Err(ENDED.into()) };
     let Some(write) = open.write.take() else { return Err(ENDED.into()) };
     let seat = pass.hub.seat(open.asked.take());
+    // Local echo's reports of this seat's own bytes, where it asked; only a
+    // writer's ask is taken (T-896). Counted from before its first byte.
+    let told = (open.predict && pass.mode == Mode::Write).then(|| {
+        pass.hub.tells.ask(seat.id());
+        SeatTold::new(&write, seat.id())
+    });
     let input: Input = match pass.mode {
         Mode::Write => seat.writer(),
         // A watcher's bytes go nowhere: its channel never holds the pty.
@@ -99,7 +157,7 @@ pub(super) fn attach(open: &mut Open, pass: &Pass) -> Result<(), String> {
     };
     open.give_input(input);
     open.seat = Some(seat.clone());
-    tokio::spawn(view(from, write, open.closed.clone(), seat));
+    tokio::spawn(view(from, write, open.closed.clone(), seat, told));
     Ok(())
 }
 
@@ -160,12 +218,15 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for Tee<W> {
 
 /// A seat's view: the shell's output to its channel until the shell ends,
 /// then a status of 0, EOF and close; a channel that closes first ends it.
-/// A seat that falls behind skips to the present.
+/// A seat that falls behind skips to the present. Its reports, where it
+/// asked, follow the output of each item; one that cannot be written ends
+/// the reports, not the output.
 async fn view(
-    mut from: broadcast::Receiver<Bytes>,
+    mut from: broadcast::Receiver<Said>,
     write: ChannelWriteHalf<Msg>,
     mut closed: watch::Receiver<bool>,
     seat: Arc<Seat>,
+    mut told: Option<SeatTold>,
 ) {
     let mut to = write.make_writer();
     loop {
@@ -174,11 +235,20 @@ async fn view(
             () = gone(&mut closed) => return,
         };
         match next {
-            Ok(bytes) => {
-                if to.write_all(&bytes).await.is_err() {
+            Ok(said) => {
+                // A tick has no bytes, and a channel takes no empty data.
+                if !said.bytes.is_empty() && to.write_all(&said.bytes).await.is_err() {
                     return;
                 }
+                let gone = match told.as_mut() {
+                    Some(reports) => reports.tell(&said).await.is_err(),
+                    None => false,
+                };
+                if gone {
+                    told = None;
+                }
             }
+            // The next item holds the counts of now.
             Err(broadcast::error::RecvError::Lagged(_)) => continue,
             Err(broadcast::error::RecvError::Closed) => break,
         }
@@ -191,6 +261,6 @@ async fn view(
 
 /// Wait until the channel closed. The guard of `wait_for` is dropped in
 /// its statement, so the task stays Send.
-async fn gone(closed: &mut watch::Receiver<bool>) {
+pub(super) async fn gone(closed: &mut watch::Receiver<bool>) {
     let _ = closed.wait_for(|closed| *closed).await;
 }

@@ -4847,6 +4847,37 @@ link from end to end.
 6. **Shared code first.** Each piece is podssh's: the reports are a word between podssh's client and `podssh serve`,
    the kept and the shared shells are serve's, and `pod-term` at `v0.82.1` holds no screen model or predictor (its
    `docs/design.md`); the console's mode is podssh's raw mode. No ask is filed.
+7. **A shared shell's reports ride its broadcast, one item for output and the reports after it** (the draft `d-t896b`).
+   Each item of the hub's broadcast is `Said { bytes, told }`: the output, then each asking seat's report at the
+   moment after it, made under the output's lock by the one task that reads the tty, after the output that it read. A
+   count that falls due with no output is an item with no bytes from the same task (`Ticks`: the pump's `Teller` on a
+   kernel pty, a branch of the discipline's loop on serve's own tty). Each seat's view writes its report after the
+   item's bytes, once per change; a seat that lags skips to an item that holds the counts of now
+   (`crates/podssh-ssh/src/server/share_told.rs`). Lost: a report task of each seat's own, which can pass an echo
+   still in the broadcast or in the pump; a report as an item of its own after each output item, which doubles the
+   items and fills the 64 of the backlog twice as fast; reports only where they changed, which a lagging seat would
+   lose until its next key.
+8. **Each seat counts its own bytes at one place, the lease**: `write_leased` counts the bytes of the seat that holds
+   the lease, from 0 at its seat, as its client counts them. On a kernel pty a byte counts once the master took it. On
+   serve's own tty it counts once the discipline read it: the lease notes each write's seat and length, in the order
+   of the discipline's input, and the discipline's input (`Taken`) gives each seat its part of each read; the same
+   loop writes the echo before its next tick, so no report passes it. Lost: a count at the lease's write into the
+   discipline's pipe, which a tick can pass while the discipline is busy; a count by the discipline of its own, which
+   does not know whose byte it read.
+9. **The owner's reports ride the same broadcast**, read by a task of the owner's: its output reached its channel
+   before the item was made, so each report follows it, on each tty alike. Lost: the owner's reports from the pump's
+   `Teller` (`Own`), which serve's own tty has no pump for; a report written inside the `Tee`'s `poll_write`, a second
+   write of another stream inside a write.
+10. **The ask on a seat**: a login under the `rw-` name takes it after its `pty-req` (its size is all it has), before
+    its shell request; a watcher's is refused, as its keys go nowhere and no report could count them. The owner's is
+    taken on a pty of serve's own, and on serve's own tty only under `--share`; a command there is not shared and
+    sends none, and its client then shows no guess, as it shows none before the first report. Lost: a watcher that
+    takes the ask and gets reports of 0, which tell its client nothing; the owner's ask on serve's own tty without
+    `--share`, which no report would follow.
+11. **The flags of serve's own tty come from the discipline**: always ECHO and ICANON on the line discipline (T-111),
+    whose program on pipes cannot turn either off; under `notify` the lflag of the termios state that serve answers
+    the child from. The ticks wait while `notify` holds the output (Ctrl-S), whose echo would come after them. Lost:
+    the cooked discipline's own state (`pod_term`'s is private to its crate, and it has no ECHO to turn off).
 
 ## Prove
 
@@ -4854,6 +4885,7 @@ link from end to end.
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test predict_e2e
 cargo test -p podssh-ssh --test serve_predict_kept --test serve_predict --test serve_keep
+cargo test -p podssh-ssh --test serve_predict_share --test serve_share
 ```
 
 ## Correction
@@ -4904,9 +4936,34 @@ Results (2026-11-24, Rust 1.99.1):
 - rustfmt and the gate's clippy: clean. The whole suite (with T-820's exit codes merged beside it): 427 suites, 4272
   passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as before).
 
-Left: the shared shell of step 2 (Decision 4): a report of each writing seat that rides the hub's broadcast
-in its place among the output, the count of each seat's bytes that the lease let through to the pty, the owner's
-reports through its `Tee`, and the ask taken on a seat, which has no pty of its own; on serve's own tty (`--pty
-line`, `notify`) the flags come from the discipline, not from a master. The planted defects wait for T-251: a pump
-of a kept shell that tells the first channel's reporter after a join, and a client that draws on a console whose VT
-mode was refused.
+2026-11-24, the shared shell of step 2 drafted on the branch `d-t896b` (Decisions 7 to 11), not built:
+
+- `crates/podssh-ssh/src/server/share_told.rs` (new: `Said`, `Tells`, `Ticks`, `Taken`, `SeatTold`, the owner's
+  reports), `crates/podssh-ssh/src/server/predict_count.rs` (new: `Applied` moved out of `predict.rs`, so that the
+  seats count on each system), the hub's broadcast of `Said` and the count at the lease in
+  `crates/podssh-ssh/src/server/share.rs`, the views and `offer_tty` in `crates/podssh-ssh/src/server/share_view.rs`,
+  `Teller::Shared` in `crates/podssh-ssh/src/server/predict.rs`, the ticks in the loops of
+  `crates/podssh-ssh/src/server/line.rs` and `crates/podssh-ssh/src/server/notify/run.rs`, the flags of `notify` in
+  `crates/podssh-ssh/src/server/notify/mod.rs`, the shared pump in `crates/podssh-ssh/src/server/pty_child.rs`, the
+  ask on a seat in `crates/podssh-ssh/src/server/predict_ask.rs`.
+- Tests: `crates/podssh-ssh/tests/serve_predict_share.rs` (on each tty that the host gives: the owner and a writer
+  that asked each get their own count, each report after the echo of each key that it counts; a writer that did not
+  ask and a watcher get none, the watcher's ask refused; a key with no echo is reported to the seat that typed it);
+  `share_told_tests.rs` (the count at the discipline's read, a change told once, the wait) and a case of
+  `share_tests.rs` (the reports ride the broadcast after the output, and a tick once).
+- The manual's note (`crates/podssh-cli/src/man/notes_predict.rs`, and `llms-full.txt` by hand at 79 columns),
+  `docs/terminal.md` ("A shell shared by name"), the row of `docs/STATUS.md`; the citations of
+  `crates/podssh-ssh/src/server/mod.rs` in `TODO/serve.md` moved by hand as the remap would move them.
+
+Results of the draft, each UNVERIFIED:
+
+- `cargo test -p podssh-ssh --test serve_predict_share`: UNVERIFIED.
+- `cargo test -p podssh-ssh --test serve_share --test serve_predict --test serve_predict_kept`: UNVERIFIED.
+- `cargo test -p podssh-ssh --lib server::share` and `--lib server::predict_count`: UNVERIFIED.
+- `cargo test -p podssh-cli --lib man::`, `--test man_page`; `llms-full.txt` against the manual's writer: UNVERIFIED.
+- The Windows build (`share_told.rs` and `predict_count.rs` build there, unused): UNVERIFIED.
+- rustfmt and the gate's clippy; `cargo todo check`; `python scripts/check-repo.py`: UNVERIFIED.
+
+Left: the merge and the runs above. The planted defects wait for T-251: a pump of a kept shell that tells the first
+channel's reporter after a join, a client that draws on a console whose VT mode was refused, and a seat's report
+told from a task of its own (not in the broadcast), which `serve_predict_share` must fail.

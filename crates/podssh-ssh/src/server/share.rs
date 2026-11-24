@@ -29,6 +29,7 @@ use tokio::sync::broadcast;
 use tokio::time::Instant;
 
 use super::channel::Input;
+use super::share_told::{Said, Tells};
 use crate::terminal::Size;
 
 /// How long a writer's silence holds the lease: then another writer's
@@ -217,7 +218,7 @@ impl Lease {
 /// One shared shell: its output to each watcher, its pty's input under the
 /// lease, and its size as the least of each seat's.
 pub(super) struct Hub {
-    output: Mutex<Option<broadcast::Sender<Bytes>>>,
+    output: Mutex<Option<broadcast::Sender<Said>>>,
     input: tokio::sync::Mutex<(Lease, Input)>,
     sizes: Mutex<BTreeMap<u64, Size>>,
     resize: Box<dyn Fn(Size) + Send + Sync>,
@@ -225,6 +226,8 @@ pub(super) struct Hub {
     names: Mutex<Vec<String>>,
     table: Shares,
     ended: AtomicBool,
+    /// Local echo's reports of the seats that asked (T-896).
+    pub(super) tells: Tells,
 }
 
 /// One seat at a shell: the owner's, or a login's under a name. Its size
@@ -248,6 +251,7 @@ impl Hub {
             names: Mutex::new(Vec::new()),
             table: table.clone(),
             ended: AtomicBool::new(false),
+            tells: Tells::default(),
         });
         hub.seat(Some(size))
     }
@@ -263,15 +267,28 @@ impl Hub {
     }
 
     /// The output from now on, or None once the shell ended.
-    pub(super) fn subscribe(&self) -> Option<broadcast::Receiver<Bytes>> {
+    pub(super) fn subscribe(&self) -> Option<broadcast::Receiver<Said>> {
         self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(broadcast::Sender::subscribe)
     }
 
-    /// A copy of the owner's output for each watcher; a watcher that lags
-    /// skips, and none holds the owner.
+    /// A copy of the owner's output for each watcher, and after it each
+    /// asking seat's report (T-896); a watcher that lags skips, and none
+    /// holds the owner. The reports are made under the output's lock, so
+    /// that no item goes ahead of one made before it.
     pub(super) fn said(&self, bytes: &[u8]) {
         if let Some(output) = self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
-            let _ = output.send(Bytes::copy_from_slice(bytes));
+            let told = self.tells.reports(true);
+            let _ = output.send(Said { bytes: Bytes::copy_from_slice(bytes), told });
+        }
+    }
+
+    /// A count fell due with no output: the reports that changed, as an
+    /// item with no bytes, from the task that reads the tty (T-896).
+    pub(super) fn tick(&self) {
+        if let Some(output) = self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref()
+            && let Some(told) = self.tells.reports(false)
+        {
+            let _ = output.send(Said { bytes: Bytes::new(), told: Some(told) });
         }
     }
 
@@ -316,7 +333,12 @@ impl Hub {
                 super::share_measure::waited(since.elapsed());
             }
             held.0.take(seat, Instant::now());
+            // Local echo counts each seat's bytes that reached the tty (T-896).
+            self.tells.before(seat, bytes.len());
             let written = held.1.write_all(bytes).await.is_ok();
+            if written {
+                self.tells.wrote(seat, bytes.len());
+            }
             // The silence counts from the end of the write.
             held.0.take(seat, Instant::now());
             return written;
@@ -330,6 +352,11 @@ impl Hub {
 }
 
 impl Seat {
+    /// This seat's number at its shell, which its reports carry (T-896).
+    pub(super) fn id(&self) -> u64 {
+        self.id
+    }
+
     /// A new size of this seat's window.
     pub(super) fn resize(&self, size: Size) {
         self.hub.set_size(self.id, Some(size));
@@ -345,9 +372,10 @@ impl Seat {
 }
 
 impl Drop for Seat {
-    // A seat that leaves no longer holds the size down.
+    // A seat that leaves no longer holds the size down, nor gets reports.
     fn drop(&mut self) {
         self.hub.set_size(self.id, None);
+        self.hub.tells.leave(self.id);
     }
 }
 
