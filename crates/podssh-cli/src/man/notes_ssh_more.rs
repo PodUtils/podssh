@@ -18,13 +18,13 @@ pub(super) const MORE: &[&str] = &[
      SSH_ASKPASS_REQUIRE is force and SSH_ASKPASS names a program to ask. With no forward, or \
      --persist-name, -N with --persist is refused (exit 64).",
     "Each forward has a state word. It follows the counts in ~# and in the lines of -v, and is state in \
-     --result-file. bound: the listener is bound or the request made, and no link carries it yet. waiting: the link \
-     was lost, and --persist connects again or asks again for a refused remote forward. up: it serves on the link. \
-     refused: the server's policy refused it, as AllowTcpForwarding no does. A refused channel gives the server's \
-     reason in parentheses; a refused remote forward has none, as SSH sends none. A target that is down fails one \
-     connection and leaves the word. A forward that ~C stopped says closed instead. With --persist, each change of a \
-     word is one line on stderr, NAME: WORD; waiting ends with the loss that names the hop that broke. At the end of \
-     a run each word is the last one that the forward had.",
+     --result-file. bound: the listener is bound, or the remote forward is asked for, and no link carries it yet. \
+     waiting: the link was lost, and --persist connects again or asks again for a refused remote forward. up: it \
+     serves on the link. refused: the server's policy refused it, as AllowTcpForwarding no does. A refused channel \
+     gives the server's reason in parentheses; a refused remote forward has none, as SSH sends none. A target that \
+     is down fails one connection and leaves the word. A forward that ~C stopped says closed instead, in \
+     --result-file too. With --persist, each change of a word is one line on stderr, NAME: WORD; waiting ends with \
+     the loss that names the hop that broke. At the end of a run each word is the last one that the forward had.",
     "~C, in a session with a pty, opens the command line of OpenSSH, ssh>, on the terminal. -L, -D or -R \
      with a spec of the command line adds that forward to the running session: the listeners of -L and -D are made as \
      those of the command line are (the probe, -g, PODSSH_LISTEN). -R asks the server and waits 20 s at most for its \
@@ -149,24 +149,23 @@ pub(super) const MORE: &[&str] = &[
      dials an IPv6 target where its host routes IPv6 out. Where it does not, it refuses the target before the upgrade \
      (502, this relay's host has no IPv6 route out). So the next relay host is tried at once. --direct needs no \
      relay.",
-    "--result-file FILE writes one JSON object to FILE at the end of each run, also of one that failed \
-     before it connected: schema; exit (the code that podssh exits with); status (the remote exit status, or null); \
-     signal (its name and core_dumped, or null); end (status, signal, no-status, lost, escaped, terminated, detached, \
-     interrupted, failed or shared; interrupted is Ctrl-C with no pty and no end of the command; shared is a run \
-     through a control master, which tells the exit code alone; null with no session, as with -W); failure (connect, \
-     host-key, auth, forward, policy, relay, session, usage, config or not-built, or null); bytes (stdin, stdout and stderr, \
-     as they passed; null through a control master, \
-     which carries them), duration_ms, and relay (its host, close_code and reason, or null with no relay). \
-     A run with forwards adds forwards, one object for each: name as written, state (bound, waiting, up or \
-     refused), reason (the server's, or null), closed (stopped by ~C), connections, open, failed, bytes_up and \
-     bytes_down. \
-     A link lost after the remote exit status and before the end of the output ends lost, with exit 255 \
-     and the status kept. stdout and stderr stay as they are; the command's output never goes into the \
-     file. A new file is made \
+    "--result-file FILE writes one JSON object to FILE at the end of each run, also of one that failed before it \
+     connected: schema; exit (the code that podssh exits with); status (the remote exit status, or null); signal \
+     (its name and core_dumped, or null); end (status, signal, no-status, lost, escaped, terminated, detached, \
+     interrupted, failed or shared; interrupted is Ctrl-C with no pty and no end of the command, or of -N; shared \
+     is a run through a control master, which tells the exit code alone; null with no session, as with -W); failure \
+     (connect, host-key, auth, forward, policy, relay, session, usage, config or not-built, or null); bytes (stdin, \
+     stdout and stderr, as they passed; null through a control master, which carries them), duration_ms, and relay \
+     (its host, close_code and reason, or null with no relay). A run with forwards adds forwards, also one that \
+     failed before its link. Each object has name as written, state (bound, waiting, up, refused or closed) and \
+     reason (the server's, or null). It also has closed (stopped by ~C), connections, open, failed, bytes_up and \
+     bytes_down. A link \
+     lost after the remote exit status and before the end of the output ends lost, with exit 255 and the status \
+     kept. stdout and stderr stay as they are; the command's output never goes into the file. A new file is made \
      for its owner alone; - is refused (exit 64). No file is written after a flag that podssh does not know, which \
-     ends it before it reads the others. Nor is one written when a signal kills podssh: only a session on a terminal \
-     ends at SIGTERM or SIGHUP, as terminated. One with no pty ends at Ctrl-C, by the command's end or as \
-     interrupted.",
+     ends it before it reads the others. Nor is one written when a signal kills podssh: only a session on a \
+     terminal ends at SIGTERM or SIGHUP, as terminated. One with no pty ends at Ctrl-C, by the command's end or as \
+     interrupted. A run of -N, also with --persist, ends at Ctrl-C as interrupted, with 130 and its file.",
     "--install NAME, with -N, --persist and a forward, makes the tunnel a service of this user. The service starts it \
      again whenever it ends, as podssh node --install makes a node's, by the same ways: a user \
      unit of systemd (podssh-ssh-NAME.service), a LaunchAgent (dev.podssh.ssh.NAME), two lines of the \

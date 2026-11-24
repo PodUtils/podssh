@@ -48,13 +48,13 @@ pub fn object(exit: i32, started: Instant) -> Value {
     object
 }
 
-/// One forward: its name as written, its state word (T-840) with the
-/// server's reason of a refusal, whether `~C` stopped it, and its counts
-/// (T-041).
+/// One forward: its name as written, its state word (T-840; `closed` once
+/// `~C` stopped it, T-866) with the server's reason of a refusal, whether
+/// `~C` stopped it, and its counts (T-041).
 pub(crate) fn forward(f: &podssh_ssh::tally::Forward) -> Value {
     json!({
         "name": f.name,
-        "state": f.state.word(),
+        "state": f.word(),
         "reason": f.reason,
         "closed": f.closed,
         "connections": f.opened,
@@ -63,6 +63,21 @@ pub(crate) fn forward(f: &podssh_ssh::tally::Forward) -> Value {
         "bytes_up": f.up,
         "bytes_down": f.down,
     })
+}
+
+/// Each forward of the command line, named in the table before anything
+/// connects (T-866): a run that fails before its link lists them too, each
+/// `bound`, as its listener is or its request is asked for.
+pub(crate) fn name_forwards(opts: &podssh_ssh::Options) {
+    for forward in &opts.local_forwards {
+        podssh_ssh::tally::of(&forward.shown);
+    }
+    for forward in &opts.remote_forwards {
+        podssh_ssh::tally::of(&podssh_ssh::remote::name(forward));
+    }
+    if let podssh_ssh::Request::StdioForward(target) = &opts.request {
+        podssh_ssh::tally::of(&podssh_ssh::forward::stdio_name(target));
+    }
 }
 
 /// The class of a run that ended with `exit` and no session: a refusal of

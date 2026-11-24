@@ -100,4 +100,8 @@ fn escape_list_tilde_hash_says_each_state() {
     assert!(of(stopped).ends_with("; closed"), "{lines:?}");
     let snapshot = crate::tally::snapshots().into_iter().find(|f| f.name == stopped).expect("listed");
     assert!(snapshot.closed && snapshot.reason.is_none(), "{snapshot:?}");
+    // The result file's word is the listing's (T-866): `closed`, not the state under it.
+    assert_eq!(snapshot.word(), "closed", "{snapshot:?}");
+    let open = crate::tally::snapshots().into_iter().find(|f| f.name == up).expect("listed");
+    assert_eq!(open.word(), open.state.word(), "{open:?}");
 }

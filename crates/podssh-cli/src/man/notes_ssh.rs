@@ -396,7 +396,9 @@ const FIRST: &[&str] = &[
      Ctrl-C, or the end of the wait with no end, ends podssh with 130; -v says each step. A server may \
      ignore the request: Dropbear signals only the process that it started. --no-signal keeps OpenSSH's \
      way: no request, and Ctrl-C ends podssh at once. A SIGINT that was ignored when podssh started stays \
-     ignored. With a pty, Ctrl-C is a byte for the remote pty, as before.",
+     ignored. With a pty, Ctrl-C is a byte for the remote pty, as before. Ctrl-C ends a run of -N, also with \
+     --persist, as interrupted with 130; no request goes. --no-signal there keeps SIGINT's default, which kills \
+     podssh.",
     "ZMODEM, for a server that gives a shell and nothing else: in a session with a pty and a local \
      terminal, podssh watches the output for the start of sz or rz of lrzsz. When sz sends, podssh asks \
      where the files go (Enter takes the directory of the last answer, at first the current one; Ctrl-C \

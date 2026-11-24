@@ -5,6 +5,8 @@
 //! `kill NAME` ends with a signal, `cat` echoes, the socket `/echo` of `-W`
 //! sends back what it gets, a user `key-...` needs a key that the test
 //! does not have, and `cut N` cuts the link after the status (T-461).
+//! A run of `-N` lists its forwards also when it fails before its link, and
+//! ends at Ctrl-C as `interrupted`, with 130 and its file (T-866).
 
 mod cleanup;
 mod ssh_harness;
@@ -171,4 +173,116 @@ fn dash_is_refused_and_a_usage_error_is_a_result() {
     assert_eq!(out.status.code(), Some(64));
     let r: Value = serde_json::from_str(&std::fs::read_to_string(&file).unwrap()).unwrap();
     assert_eq!((&r["exit"], &r["end"], &r["failure"]), (&json!(64), &json!("failed"), &json!("usage")), "{r}");
+}
+
+/// A loopback port that nothing listens on now.
+fn free_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port()
+}
+
+/// A run of `-N` that fails before its link lists each forward of its
+/// command line, `bound`, as its listener is or its request is asked for
+/// (T-866); before, the file had no `forwards`.
+#[test]
+fn a_run_that_fails_before_its_link_lists_its_forwards() {
+    let (dir, _port, _runtime) = server("unlinked");
+    let closed = free_port();
+    let local = format!("{}:127.0.0.1:9", free_port());
+    let remote = "0:127.0.0.1:9";
+    let (code, _, err, r) = run(&dir, closed, &["-N", "-L", &local, "-R", remote], "u", &[], b"");
+    assert_eq!(code, Some(255), "{err}");
+    assert_eq!((&r["end"], &r["failure"]), (&json!("failed"), &json!("connect")), "{r}");
+    let forwards = r["forwards"].as_array().unwrap_or_else(|| panic!("no forwards: {r}"));
+    assert_eq!(forwards.len(), 2, "{r}");
+    for (f, spec) in forwards.iter().zip([local.as_str(), remote]) {
+        let name = f["name"].as_str().unwrap_or_default();
+        assert!(name.ends_with(spec), "{spec}: {f}");
+        assert_eq!((&f["state"], &f["closed"], &f["connections"]), (&json!("bound"), &json!(false), &json!(0)), "{f}");
+    }
+}
+
+#[cfg(unix)]
+mod unix {
+    use super::*;
+    use std::io::Read;
+    use std::time::{Duration, Instant};
+
+    const LIMIT: Duration = Duration::from_secs(30);
+
+    /// An echo server on the loopback, for the target of `-L`.
+    fn echo() -> u16 {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                std::thread::spawn(move || {
+                    let (mut from, mut to) = (stream.try_clone().unwrap(), stream);
+                    let _ = std::io::copy(&mut from, &mut to);
+                });
+            }
+        });
+        port
+    }
+
+    /// Whether bytes go through the listener at `port` and come back: the
+    /// forward is up on a link that logged in.
+    fn echoes(port: u16) -> bool {
+        let Ok(mut stream) = std::net::TcpStream::connect(("127.0.0.1", port)) else { return false };
+        let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+        if std::io::Write::write_all(&mut stream, b"ping").is_err() {
+            return false;
+        }
+        let mut back = [0u8; 4];
+        stream.read_exact(&mut back).is_ok() && &back == b"ping"
+    }
+
+    /// Ctrl-C ends a run of `-N` (T-866): before, SIGINT's default action
+    /// killed podssh, and no file was written. Now the file says
+    /// `interrupted`, with no failure, and podssh exits 130, as a run with
+    /// no pty does at Ctrl-C.
+    #[test]
+    fn ctrl_c_ends_n_as_interrupted_with_its_file() {
+        let (dir, port, _runtime) = server("n-int");
+        let (target, local) = (echo(), free_port());
+        let spec = format!("{local}:127.0.0.1:{target}");
+        let result = dir.join("n-int.json");
+        let mut cmd = Command::new(env!("CARGO_BIN_EXE_podssh"));
+        cmd.args(["ssh", "--direct", "-p", &port.to_string(), "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes"]);
+        cmd.args(["-o", "IdentityAgent=none", "-o", "StrictHostKeyChecking=accept-new", "-o"]);
+        cmd.arg(format!("UserKnownHostsFile={}", dir.join("known_hosts").display()));
+        cmd.args(["-N", "-L", &spec, "--result-file"]).arg(&result).arg("u@127.0.0.1");
+        cmd.env("PODSSH_SSH_CONFIG", "none").env("PODSSH_SETTINGS", "none").env("HOME", &dir);
+        for name in ["PODSSH_OFFLINE", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy", "SSH_AUTH_SOCK"] {
+            cmd.env_remove(name);
+        }
+        let mut child = cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        let deadline = Instant::now() + LIMIT;
+        while !echoes(local) {
+            if Instant::now() > deadline || child.try_wait().unwrap().is_some() {
+                let _ = child.kill();
+                panic!("the forward of -N never carried");
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        }
+        // SAFETY: kill sends a signal to podssh's process and does nothing else.
+        let sent = unsafe { libc::kill(child.id() as libc::pid_t, libc::SIGINT) };
+        assert_eq!(sent, 0, "kill: {}", std::io::Error::last_os_error());
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() > deadline {
+                let _ = child.kill();
+                panic!("podssh -N did not end at SIGINT");
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        assert_eq!(status.code(), Some(130), "{status:?}");
+        let text = std::fs::read_to_string(&result).unwrap_or_else(|e| panic!("no result file: {e}"));
+        let r: Value = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}: {text}"));
+        assert_eq!((&r["exit"], &r["end"], &r["failure"]), (&json!(130), &json!("interrupted"), &Value::Null), "{r}");
+        let f = &r["forwards"][0];
+        assert!(f["name"].as_str().is_some_and(|name| name.ends_with(&spec)), "{r}");
+        assert_eq!(f["state"], json!("up"), "{r}");
+    }
 }

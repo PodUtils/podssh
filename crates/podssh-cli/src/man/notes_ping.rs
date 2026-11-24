@@ -8,14 +8,17 @@ pub const PING: &[&str] = &[
      pings, each with its send time in its payload and matched to its pong. They give the minimum, p50, p95 and \
      maximum in milliseconds, and the pings that had no pong in time. The target is --target, else github.com port \
      22, which podssh doctor reaches too; never the destination, whose server would see a connection that sends no \
-     SSH bytes: OpenSSH's PerSourcePenalties count those against the relay's address, which other users share.",
+     SSH bytes: OpenSSH's PerSourcePenalties count those against the relay's address, which other users share. \
+     --direct with no destination is refused (64): it has no relay leg to measure, and no host.",
     "With a destination, the run is resolved as podssh ssh resolves it (ssh_config, -J, -i, --direct). The relay leg \
      is followed by the time to log in. Then comes the echo of one byte at a time through cat, --count times. One \
      echo before them is not counted, as the first can wait for cat to start. Then comes the throughput down and up \
      of --size bytes, which stay under the relay's limit of one session in both ways together. Down reads what head \
      writes from /dev/zero, and up writes into cat > /dev/null; each line names the remote command that ran. These \
      programs are an assumption about the host, so they run only for a destination. A program that the host lacks \
-     ends the run with its status, never with a hang: each step and the whole run have a limit.",
+     ends the run with its status, never with a hang: each step and the whole run have a limit. A destination \
+     that cannot be reached or logged in to ends the run with 255, as podssh ssh ends. Its line on stdout says \
+     why, or that each try is said on stderr.",
     "podssh ping can take node://NAME, or the name alone of a member of the net with the role node. It then measures \
      the roads that podssh ssh races to that node, as tailscale ping names the path that answered: in the order of \
      the race and with its delays, each road that starts runs on to the far end's first bytes. A line for each says \

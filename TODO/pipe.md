@@ -163,7 +163,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   way. Measured live for proxy: the full reply after stdin closed
   (`docs/STATUS.md:440`).
 - Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-22`
-  after the hops of `crates/podssh-ssh/src/run.rs:170-187`, but that code is
+  after the hops of `crates/podssh-ssh/src/run.rs:174-191`, but that code is
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
   measured. Only exec is measured with digests (`docs/STATUS.md:251`); `-W`
@@ -189,7 +189,7 @@ local program to a target, and `podssh proxy` stays a second pump.
    other item a hop, read as `-J` reads it
    (`crates/podssh-cli/src/ssh/resolve.rs:168-172`,
    `crates/podssh-cli/src/ssh/hop.rs:30-75`). Make
-   `crates/podssh-ssh/src/run.rs:170-187` a public `connect_chain` that `-W`
+   `crates/podssh-ssh/src/run.rs:174-191` a public `connect_chain` that `-W`
    and the pipe both use; keep each handle alive until the pipe ends. The
    options: `-i`, `-o NAME=VALUE` through
    `crates/podssh-cli/src/ssh/options.rs:107-280` (a keyword of a session,
@@ -198,9 +198,9 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6845`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:6855`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
-   `crates/podssh-ssh/src/run.rs:352-470` a typed error, so that 77 is not
+   `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
 7. In the same commit: `docs/cli.md`, `docs/design.md:1312-1321`, the notes,
    the examples, `docs/STATUS.md`.
@@ -241,7 +241,7 @@ a reply that comes within 15 s of silence; a target that waits for the end of
 its input sees no end.
 
 2026-10-09 (T-133): the hop chain is a public function now,
-`podssh_ssh::run::connect_hops` (`crates/podssh-ssh/src/run.rs:165-189`): it
+`podssh_ssh::run::connect_hops` (`crates/podssh-ssh/src/run.rs:169-193`): it
 returns each handle, authenticated, for `ssh` and for SFTP. So the Premise's
 "that code is private" no longer holds, and the step that makes it a public
 `connect_chain` is done under that name.
@@ -610,9 +610,9 @@ running on the server (`docs/design.md:806-810`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:6972-6974`). After the attach, send the window size again.
+   (`docs/cli.md:6982-6984`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
-   (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-186`), `docs/design.md:806-810`,
+   (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-185`), `docs/design.md:806-810`,
    `docs/STATUS.md`, and tmux in the interop image
    (`scripts/interop.sh:24-25`). T-025 shares the classes of close codes;
    T-153 replaces this loop when both ends run podssh.

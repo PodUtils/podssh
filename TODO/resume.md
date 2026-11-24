@@ -188,7 +188,7 @@ an escape sequence of GitHub #31 needs dropped bytes (T-221). The reverse road
 drops a frame and closes with `1011 relay backpressure` above 1 MiB queued
 (`crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`); the buffer
 turns that close into a resume. The SSH window is 512 KiB for each channel
-(`crates/podssh-ssh/src/run.rs:26-30`). Do not bring back the backpressure module of
+(`crates/podssh-ssh/src/run.rs:30-34`). Do not bring back the backpressure module of
 `podssh-transport`, which T-074 removed (`docs/design.md:629-630`).
 
 ## Approach

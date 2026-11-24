@@ -18,10 +18,11 @@ use podssh_relay::relay::RelayList;
 use podssh_ssh::Log;
 use podssh_ws::Trust;
 
-use crate::exitmap::sysexits::EX_UNAVAILABLE;
+use crate::exitmap::sysexits::{EX_UNAVAILABLE, EX_USAGE};
 use crate::relay_settings::Refusal;
 use crate::ssh::args::SshArgs;
 use crate::ssh::resolve::{self, Env, Transport};
+use crate::ssh::transport::NotReached;
 use stats::Summary;
 
 /// The default and the largest `--count`.
@@ -89,8 +90,9 @@ struct Far {
 
 /// Run `podssh ping`: 0 when the path works (a relay host gave its
 /// measures, or with a destination each measure has its number); 64 for a
-/// bad flag, before anything connects; 69 when no relay host answers, or
-/// with `PODSSH_OFFLINE`; with a destination, `podssh ssh`'s code when it
+/// bad flag, before anything connects (also `--direct` with no destination,
+/// which has no leg to measure); 69 when no relay host answers, or with
+/// `PODSSH_OFFLINE`; with a destination, 255 as `podssh ssh` gives it when it
 /// cannot be reached or logged in to, a remote program's status when one
 /// fails (127 when the host lacks it), and 255 when a measure breaks.
 pub fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -110,6 +112,12 @@ pub fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Ok(plan) => plan,
         Err(why) => return Refusal::usage(why).report("ping", err),
     };
+    // `--direct` names the road to a host; with none, it would measure the
+    // relay that it asked to avoid.
+    if args.ssh.direct && args.ssh.destination.is_none() {
+        let why = "--direct reaches a destination without the relay: name one; with none, ping measures the relay";
+        return Refusal::usage(why.to_string()).report("ping", err);
+    }
     let target = match args.target.as_deref() {
         Some(text) => match crate::proxy::parse_target(Some(text), None) {
             Ok(target) => target,
@@ -222,6 +230,27 @@ fn far_code(far: &Far) -> i32 {
     }
 }
 
+/// The words of a destination not reached whose road logged each try
+/// already, and gave no line of its own.
+const NOT_REACHED: &str = "not reached; each try is said on stderr";
+
+/// The code and the words of a destination not reached, as `podssh ssh`
+/// gives the code: 255, but 64 for a target that the relay cannot carry,
+/// which is the command line's fault. Never an empty line.
+/// A cause on one line: its own lines (a hint under it) joined by "; ".
+fn one_line(why: &str) -> String {
+    why.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("; ")
+}
+
+fn unreached(not: &NotReached) -> (i32, String) {
+    let code = if not.code == EX_USAGE { EX_USAGE } else { podssh_ssh::EXIT_FAILURE };
+    // A line of the client can hold its own hint on a second line (the keys
+    // that were tried): ping's result is one line, so each part is joined.
+    let lines: Vec<&str> = not.lines.iter().flat_map(|l| l.lines()).map(str::trim).filter(|l| !l.is_empty()).collect();
+    let why = if lines.is_empty() { NOT_REACHED.to_string() } else { lines.join("; ") };
+    (code, why)
+}
+
 /// The cold connects when asked, then log in: the echo and the throughput,
 /// or the keys under load in their place.
 async fn destination(resolved: &resolve::Resolved, plan: feel::Plan, size: u64, count: usize, log: &Arc<Log>) -> Far {
@@ -241,8 +270,9 @@ async fn destination(resolved: &resolve::Resolved, plan: feel::Plan, size: u64, 
     let reached = match feel::reach(resolved, log).await {
         Ok(reached) => reached,
         Err(not) => {
-            far.unreached = Some(not.code);
-            far.failed = Some(not.lines.join("; "));
+            let (code, why) = unreached(&not);
+            far.unreached = Some(code);
+            far.failed = Some(why);
             return far;
         }
     };
@@ -315,7 +345,8 @@ fn say_far(far: &Far, size: u64, json: bool, out: &mut dyn Write) {
         (Some(login), _) => {
             lines.push(format!("ssh {}: login {:.0} ms", far.destination, login.as_secs_f64() * 1000.0))
         }
-        (None, Some(why)) => lines.push(format!("ssh {}: {why}", far.destination)),
+        // One line: a cause can carry its hint on a line of its own.
+        (None, Some(why)) => lines.push(format!("ssh {}: {}", far.destination, one_line(why))),
         (None, None) => {}
     }
     lines.extend(far.connect.as_ref().and_then(cold::Cold::line));
@@ -339,7 +370,7 @@ fn say_far(far: &Far, size: u64, json: bool, out: &mut dyn Write) {
         }
     }
     if let (Some(_), Some(why)) = (&far.login, &far.failed) {
-        lines.push(why.clone());
+        lines.push(one_line(why));
     }
     for line in lines {
         let _ = writeln!(out, "{line}");

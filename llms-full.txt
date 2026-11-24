@@ -1169,7 +1169,9 @@ podssh ssh
   A server may ignore the request: Dropbear signals only the process that it
   started. --no-signal keeps OpenSSH's way: no request, and Ctrl-C ends podssh
   at once. A SIGINT that was ignored when podssh started stays ignored. With a
-  pty, Ctrl-C is a byte for the remote pty, as before.
+  pty, Ctrl-C is a byte for the remote pty, as before. Ctrl-C ends a run of -N,
+  also with --persist, as interrupted with 130; no request goes. --no-signal
+  there keeps SIGINT's default, which kills podssh.
 
   ZMODEM, for a server that gives a shell and nothing else: in a session with a
   pty and a local terminal, podssh watches the output for the start of sz or rz
@@ -1329,17 +1331,17 @@ podssh ssh
   refused (exit 64).
 
   Each forward has a state word. It follows the counts in ~# and in the lines
-  of -v, and is state in --result-file. bound: the listener is bound or the
-  request made, and no link carries it yet. waiting: the link was lost, and
-  --persist connects again or asks again for a refused remote forward. up: it
-  serves on the link. refused: the server's policy refused it, as
-  AllowTcpForwarding no does. A refused channel gives the server's reason in
+  of -v, and is state in --result-file. bound: the listener is bound, or the
+  remote forward is asked for, and no link carries it yet. waiting: the link
+  was lost, and --persist connects again or asks again for a refused remote
+  forward. up: it serves on the link. refused: the server's policy refused it,
+  as AllowTcpForwarding no does. A refused channel gives the server's reason in
   parentheses; a refused remote forward has none, as SSH sends none. A target
   that is down fails one connection and leaves the word. A forward that ~C
-  stopped says closed instead. With --persist, each change of a word is one
-  line on stderr, NAME: WORD; waiting ends with the loss that names the hop
-  that broke. At the end of a run each word is the last one that the forward
-  had.
+  stopped says closed instead, in --result-file too. With --persist, each
+  change of a word is one line on stderr, NAME: WORD; waiting ends with the
+  loss that names the hop that broke. At the end of a run each word is the last
+  one that the forward had.
 
   ~C, in a session with a pty, opens the command line of OpenSSH, ssh>, on the
   terminal. -L, -D or -R with a spec of the command line adds that forward to
@@ -1526,23 +1528,25 @@ podssh ssh
   podssh exits with); status (the remote exit status, or null); signal (its
   name and core_dumped, or null); end (status, signal, no-status, lost,
   escaped, terminated, detached, interrupted, failed or shared; interrupted is
-  Ctrl-C with no pty and no end of the command; shared is a run through a
-  control master, which tells the exit code alone; null with no session, as
-  with -W); failure (connect, host-key, auth, forward, policy, relay, session,
-  usage, config or not-built, or null); bytes (stdin, stdout and stderr, as
-  they passed; null through a control master, which carries them), duration_ms,
-  and relay (its host, close_code and reason, or null with no relay). A run
-  with forwards adds forwards, one object for each: name as written, state
-  (bound, waiting, up or refused), reason (the server's, or null), closed
-  (stopped by ~C), connections, open, failed, bytes_up and bytes_down. A link
-  lost after the remote exit status and before the end of the output ends lost,
-  with exit 255 and the status kept. stdout and stderr stay as they are; the
-  command's output never goes into the file. A new file is made for its owner
-  alone; - is refused (exit 64). No file is written after a flag that podssh
-  does not know, which ends it before it reads the others. Nor is one written
-  when a signal kills podssh: only a session on a terminal ends at SIGTERM or
-  SIGHUP, as terminated. One with no pty ends at Ctrl-C, by the command's end
-  or as interrupted.
+  Ctrl-C with no pty and no end of the command, or of -N; shared is a run
+  through a control master, which tells the exit code alone; null with no
+  session, as with -W); failure (connect, host-key, auth, forward, policy,
+  relay, session, usage, config or not-built, or null); bytes (stdin, stdout
+  and stderr, as they passed; null through a control master, which carries
+  them), duration_ms, and relay (its host, close_code and reason, or null with
+  no relay). A run with forwards adds forwards, also one that failed before its
+  link. Each object has name as written, state (bound, waiting, up, refused or
+  closed) and reason (the server's, or null). It also has closed (stopped by
+  ~C), connections, open, failed, bytes_up and bytes_down. A link lost after
+  the remote exit status and before the end of the output ends lost, with exit
+  255 and the status kept. stdout and stderr stay as they are; the command's
+  output never goes into the file. A new file is made for its owner alone; - is
+  refused (exit 64). No file is written after a flag that podssh does not know,
+  which ends it before it reads the others. Nor is one written when a signal
+  kills podssh: only a session on a terminal ends at SIGTERM or SIGHUP, as
+  terminated. One with no pty ends at Ctrl-C, by the command's end or as
+  interrupted. A run of -N, also with --persist, ends at Ctrl-C as interrupted,
+  with 130 and its file.
 
   --install NAME, with -N, --persist and a forward, makes the tunnel a service
   of this user. The service starts it again whenever it ends, as podssh node
@@ -9928,7 +9932,8 @@ podssh ping
   else github.com port 22, which podssh doctor reaches too; never the
   destination, whose server would see a connection that sends no SSH bytes:
   OpenSSH's PerSourcePenalties count those against the relay's address, which
-  other users share.
+  other users share. --direct with no destination is refused (64): it has no
+  relay leg to measure, and no host.
 
   With a destination, the run is resolved as podssh ssh resolves it
   (ssh_config, -J, -i, --direct). The relay leg is followed by the time to log
@@ -9940,7 +9945,9 @@ podssh ping
   the remote command that ran. These programs are an assumption about the host,
   so they run only for a destination. A program that the host lacks ends the
   run with its status, never with a hang: each step and the whole run have a
-  limit.
+  limit. A destination that cannot be reached or logged in to ends the run with
+  255, as podssh ssh ends. Its line on stdout says why, or that each try is
+  said on stderr.
 
   podssh ping can take node://NAME, or the name alone of a member of the net
   with the role node. It then measures the roads that podssh ssh races to that

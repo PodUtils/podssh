@@ -381,7 +381,7 @@ sandbox can block what iroh needs, so the fallback is necessary
 6. With `-v`, print the road that won and its time.
 7. Each resume of T-153 runs the same race.
 8. Docs: the rule of the race in `docs/design.md` section 2, and the notes of
-   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-496` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-186`).
+   `ssh` in the manual (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-185`).
 
 ## Decision
 
@@ -681,7 +681,7 @@ not verified here: iroh-ssh checks that a local sshd answers before it accepts
 Recommendation: the client records the host key of sshd under the name that
 the user gives to `podssh ssh` (the roost's name), as OpenSSH does for a host
 with a `ProxyCommand`. `podssh ssh` names a host this way today
-(`crates/podssh-ssh/src/run.rs:383-393`). The alternative, the address of sshd
+(`crates/podssh-ssh/src/run.rs:350-360`). The alternative, the address of sshd
 behind the roost (`127.0.0.1`), lost: each roost would share one name, and one
 key would replace another.
 
@@ -4415,7 +4415,7 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:80`).
   through a -J hop yet", and `docs/cli.md:225-226` says so too.
 - Read: the road of a run is chosen for the first hop's host
   (`crates/podssh-cli/src/ssh/resolve.rs:260`), and each later hop runs in a `direct-tcpip`
-  channel of the session before it (`crates/podssh-ssh/src/run.rs:174-186`;
+  channel of the session before it (`crates/podssh-ssh/src/run.rs:178-190`;
   `crates/podssh-ssh/src/forward.rs:14-22`).
 - Read: the `cf://` road opens the WebSocket of `cloudflared access tcp` through `HTTPS_PROXY`,
   and a node behind it greets with the resumable layer first

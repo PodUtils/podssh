@@ -19,6 +19,10 @@ use crate::relay_stream::{RelayEnd, RelayStatus};
 use crate::retry::{Phase, Retry};
 use crate::{auth, forward, retry, session};
 
+// The wait of -N, and its end at Ctrl-C (T-866).
+#[path = "run_wait.rs"]
+mod wait;
+
 /// podssh's own failures, as OpenSSH's: connection, host key, authentication,
 /// and a session that ends without an exit status.
 pub const EXIT_FAILURE: i32 = 255;
@@ -227,44 +231,7 @@ pub(crate) async fn run_handles(
             // The wait of -N is its request: a drop after it is no failure
             // to try again.
             retry::reached(Phase::Requested);
-            let mut handle = handles.pop().expect("the destination");
-            // -L, -D and a control master serve while -N waits for the end
-            // (T-038, T-039); a master may end the run itself.
-            if !opts.local_forwards.is_empty() || masters(opts) {
-                let wait = crate::local::alongside(&handle, &opts.local_forwards, log, crate::local::closed(&handle));
-                let closed = with_master(
-                    &handle,
-                    opts,
-                    log,
-                    async {
-                        wait.await;
-                        true
-                    },
-                    false,
-                )
-                .await;
-                if !closed {
-                    handles.push(handle);
-                    disconnect_all(&handles).await;
-                    return Ok(0);
-                }
-            }
-            let ended = (&mut handle).await;
-            handles.push(handle);
-            // -N ends only when the server or the network ends it, never
-            // as a success: OpenSSH says so too, with 255 (T-026).
-            match ended {
-                Ok(()) => {
-                    crate::outcome::ended(&crate::io::End::Lost);
-                    let said = crate::handler::take_last_disconnect().map(|s| format!(": {s}")).unwrap_or_default();
-                    log.error(&format!("the server ended the connection to {host}{said}"));
-                    Ok(EXIT_FAILURE)
-                }
-                Err(e) => Err(format!(
-                    "connection to {host} lost: {}",
-                    crate::handler::take_last_error().unwrap_or_else(|| describe(&e))
-                )),
-            }
+            wait::nothing(&mut handles, opts, log, &host).await
         }
         _ => {
             let handle = handles.last().expect("the destination");

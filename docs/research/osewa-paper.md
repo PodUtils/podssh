@@ -51,7 +51,7 @@ For both projects:
    - **Fast liveness.** A connection is suspect after max(3 RTT, 1 s) with input unacknowledged.
 
    podssh has measured none of these four. Its SSH receive window is a fixed 512 KiB
-   (`crates/podssh-ssh/src/run.rs:26-30`). At 100 ms RTT that caps one channel near 5 MiB/s. On a
+   (`crates/podssh-ssh/src/run.rs:30-34`). At 100 ms RTT that caps one channel near 5 MiB/s. On a
    slow link it lets up to 512 KiB queue ahead of an echo: 0.4 s at 10 Mbit/s and 4 s at 1 Mbit/s
    (INFERRED).
 3. **Much of the paper's evidence is weak.**
@@ -358,7 +358,7 @@ against 27.6 for ssh (RESULTS.md, not on the paper page).
 | Time to resume after a move | 0.4 s, lab (MEASURED by osewa) | 3.0 to 3.2 s on a stand-in, `--move`, with spare links (T-305, `TODO/resume.md:2316-2325`); 17 to 40 s before T-305 (`docs/STATUS.md:886`); never measured on a real roaming client | **osewa ahead** (G5) |
 | Dead-path detection | max(3 RTT, 1 s) with input unacknowledged; 5 s ping | Spare link at a 3 s question or 20 s of quiet (T-305); forward road ping each 10 s, dead at 30 to 40 s (`docs/design.md:763`) | **osewa ahead** (G5) |
 | Far-end restart | Sessions survive a server restart or compatible update | A node's restart ends its sessions and their sshd connections (INFERRED from `crates/podssh-relay/src/session/keep.rs` being in memory; T-159 is held, Q32) | **osewa ahead** (G8) |
-| Echo under load, priority, flight control | Priority classes, credit, BDP + 40 ms while typing, `NOTSENT_LOWAT` 16 KiB, `TCP_INFO`, BBR; MEASURED | Fixed SSH window 512 KiB (`crates/podssh-ssh/src/run.rs:26-30`); russh grants the window on receipt (`vendor/russh/src/client/encrypted.rs:632-652`); the relay role's `NOTSENT_LOWAT` 128 KiB (`docs/relay.md:74-79`); the default relay buffers without bound (`docs/architecture.md:370`, 47 MiB measured); **no measurement** | **osewa far ahead** (G1, G2) |
+| Echo under load, priority, flight control | Priority classes, credit, BDP + 40 ms while typing, `NOTSENT_LOWAT` 16 KiB, `TCP_INFO`, BBR; MEASURED | Fixed SSH window 512 KiB (`crates/podssh-ssh/src/run.rs:30-34`); russh grants the window on receipt (`vendor/russh/src/client/encrypted.rs:632-652`); the relay role's `NOTSENT_LOWAT` 128 KiB (`docs/relay.md:74-79`); the default relay buffers without bound (`docs/architecture.md:370`, 47 MiB measured); **no measurement** | **osewa far ahead** (G1, G2) |
 | Cold connect plus a command | About 3 RTT; 311 ms at 100 ms (MEASURED) | About 8 to 10 RTT through proxy, relay and SSH (INFERRED); never measured; T-444 resumes TLS within a process | **osewa ahead** (G4) |
 | Bulk throughput on a long path | 27 to 40 MB/s at about 100 ms | ≤ about 5 MiB/s for each channel at 100 ms with a 512 KiB window (INFERRED); 1.8 MiB/s SFTP through a 100 ms stand-in (`docs/STATUS.md:662-663`); relay roads 1 to 2.4 MiB/s; n0 relay about 1 MiB/s; the direct WAN road not measured (`docs/STATUS.md:638-642`) | **osewa far ahead** on direct roads (G3) |
 | HoL between channels | QUIC lane per channel, with a residue in the writer | One SSH byte stream; on iroh one QUIC stream for each session; on HTTP/2 up to 16 sessions on one TCP (`docs/architecture.md:240`) | **osewa ahead** (G7) |

@@ -114,6 +114,18 @@ pub struct Forward {
     pub down: u64,
 }
 
+impl Forward {
+    /// Its word in `--result-file`: `closed` for a forward that `~C`
+    /// stopped, as `~#` and the lines of `-v` say it (T-866), else its state.
+    pub fn word(&self) -> &'static str {
+        if self.closed {
+            "closed"
+        } else {
+            self.state.word()
+        }
+    }
+}
+
 /// A connection of a forward: it ends when dropped.
 pub struct Connection(Arc<Counts>);
 

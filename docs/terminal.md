@@ -321,6 +321,11 @@ What podssh does since T-293 (`crates/podssh-ssh/src/terminal/interrupt.rs`):
   ignores Ctrl-C gets no event.
 - A session through a control master is the master's: its client ends at
   SIGINT with 255, as before (T-039).
+- A run of `-N`, with or without `--persist`, takes SIGINT too (T-866): it
+  sends no request, as there is no command, and ends at once as
+  `interrupted`, with 130, so that `--result-file` is written. Before, the
+  signal's default action killed podssh with no file; `--no-signal` keeps
+  that.
 
 `crates/podssh-cli/tests/ssh_interrupt.rs` runs podssh against the test's
 server on the loopback, whose command writes each `signal` request that it

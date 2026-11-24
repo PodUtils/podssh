@@ -8,6 +8,8 @@
 //! prohibited)`), as `--result-file` lists them. `-N` has no pty and so no
 //! `~#`: the lines of `--persist` and the result file carry the words. A
 //! host with no sshd skips each test with a line, as its neighbours do.
+//! Ctrl-C ends `--persist -N` as `interrupted`, with 130 and its result
+//! file, both while the forwards are up and in the wait after a loss (T-866).
 #![cfg(unix)]
 
 mod cleanup;
@@ -286,4 +288,63 @@ fn finished(cmd: Command, result: &Path, code: Option<i32>) -> serde_json::Value
     assert_eq!(status.code(), code, "{}", run.err());
     let text = std::fs::read_to_string(result).unwrap_or_else(|e| panic!("no result file ({e}): {}", run.err()));
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}: {text}"))
+}
+
+/// SIGINT to `run`, as a terminal sends it at Ctrl-C; then its exit code
+/// within [`LIMIT`].
+fn ctrl_c(run: &mut Running) -> Option<i32> {
+    // SAFETY: kill sends a signal to podssh's process and does nothing else.
+    let sent = unsafe { libc::kill(run.child.id() as libc::pid_t, libc::SIGINT) };
+    assert_eq!(sent, 0, "kill: {}", std::io::Error::last_os_error());
+    let deadline = Instant::now() + LIMIT;
+    loop {
+        if let Some(status) = run.child.try_wait().unwrap() {
+            return status.code();
+        }
+        assert!(Instant::now() < deadline, "podssh did not end at SIGINT: {}", run.err());
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// The object of the result file at `path`.
+fn result_of(path: &Path, err: &str) -> serde_json::Value {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("no result file ({e}): {err}"));
+    serde_json::from_str(&text).unwrap_or_else(|e| panic!("{e}: {text}"))
+}
+
+/// Ctrl-C ends `--persist -N` as `interrupted`, with 130 (T-866): while the
+/// forward is up, and in the wait after a loss, where a failed try came
+/// before it and is no cause of the end. Before, the file said `failed`
+/// and `connect`, and podssh exited 255.
+#[test]
+fn ctrl_c_ends_persist_n_as_interrupted_up_and_waiting() {
+    let dir = scratch("int");
+    let Some((key, sshd)) = server(&dir, "") else { return };
+    let echo = live_harness::echo_server();
+    for waiting in [false, true] {
+        let gate = Gate::new(sshd.port);
+        let local = free_port();
+        let spec = format!("{local}:127.0.0.1:{echo}");
+        let result = dir.join(format!("int-{waiting}.json"));
+        let path = result.to_str().unwrap();
+        let flags = ["--persist", "-N", "-L", spec.as_str(), "--result-file", path];
+        let mut run = Running::start(podssh(&dir, &key, gate.port, &flags));
+        let at = run.line_with(&format!("{spec}: up"), 0);
+        if waiting {
+            gate.cut();
+            run.line_with(&format!("{spec}: waiting: "), at);
+        }
+        let code = ctrl_c(&mut run);
+        let err = run.err();
+        assert_eq!(code, Some(130), "waiting {waiting}: {err}");
+        let r = result_of(&result, &err);
+        let got = (&r["exit"], &r["end"], &r["failure"]);
+        assert_eq!(got, (&serde_json::json!(130), &serde_json::json!("interrupted"), &serde_json::Value::Null), "{r}");
+        let f = &r["forwards"][0];
+        let word = if waiting { "waiting" } else { "up" };
+        assert!(f["name"].as_str().is_some_and(|name| name.ends_with(&spec)), "{r}");
+        assert_eq!(f["state"].as_str(), Some(word), "waiting {waiting}: {r}");
+        drop(run);
+        gate.open();
+    }
 }

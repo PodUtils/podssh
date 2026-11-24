@@ -19,6 +19,7 @@ use crate::options::Options;
 use crate::relay_stream::{RelayEnd, RelayStatus};
 use crate::run::{connect_hops, disconnect_all, display, failure_lines, HopError, EXIT_FAILURE};
 use crate::session;
+use crate::terminal::interrupt::{Interrupt, INTERRUPTED};
 
 /// How long a probe for tmux may take.
 const PROBE_WAIT: Duration = Duration::from_secs(30);
@@ -123,7 +124,20 @@ where
     } else {
         log.info(&format!("connected to {host} again; its forwards serve again"));
     }
-    crate::local::alongside(handle, &opts.local_forwards, log, crate::local::closed(handle)).await;
+    // Ctrl-C ends the run as interrupted, as without --persist (T-866);
+    // `--no-signal` leaves it to SIGINT's default action.
+    let mut interrupt = Interrupt::for_session(opts.interrupt_signal);
+    let serving = crate::local::alongside(handle, &opts.local_forwards, log, crate::local::closed(handle));
+    let interrupted = tokio::select! {
+        _ = serving => false,
+        _ = Interrupt::next(&mut interrupt) => true,
+    };
+    if interrupted {
+        crate::outcome::ended(&End::Interrupted);
+        log.verbose("Ctrl-C: the run of -N ends");
+        disconnect_all(&handles).await;
+        return Attempt::Ended(INTERRUPTED);
+    }
     let lost = match (crate::handler::take_last_disconnect(), crate::handler::take_last_error()) {
         (Some(said), _) => format!("the server ended the connection to {host}: {said}"),
         (None, Some(error)) => format!("connection to {host} lost: {error}"),

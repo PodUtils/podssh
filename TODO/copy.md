@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:381-402` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6835-6838`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6845-6848`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -1056,13 +1056,13 @@ trip is long, so such a copy uses a small part of what the path carries.
 - Measured (T-133's offline probe): OpenSSH's `sftp-server` takes reads and
   writes of 261120 bytes, the 255 KiB that bssh uses.
 - Read: podssh gives the server an SSH window of 512 KiB
-  (`crates/podssh-ssh/src/run.rs:30`), so a download has 512 KiB in flight
+  (`crates/podssh-ssh/src/run.rs:34`), so a download has 512 KiB in flight
   at most, whatever the number of requests: two reads of 255 KiB fill it.
 - Read: the comment on the window quoted a row of the reverse close codes
   (1 MiB queued, `1011`, a dropped frame;
   `crates/podssh-probe/tests/spec/relay-spec-2026-10-03-r2.txt:185`). T-024
   corrected it to the forward path's rule
-  (`crates/podssh-ssh/src/run.rs:26-29`): `docs/relay.md:731-743` gives
+  (`crates/podssh-ssh/src/run.rs:30-33`): `docs/relay.md:731-743` gives
   2 MiB, `1013` and no drop. The window can grow only after that is
   settled; T-062 measures the `1013`.
 - Measured in two sandboxes (`docs/STATUS.md:541`): 20 MiB through the
@@ -1099,7 +1099,7 @@ trip is long, so such a copy uses a small part of what the path carries.
   bytes. russh-sftp's own limit on each request, from its start, is then a
   backstop of 64 times the limit, which each wait of podssh bounds first.
 - The bound is 512 KiB in flight both ways, the window that podssh gives a
-  server (`crates/podssh-ssh/src/run.rs:30`). The server's window, which
+  server (`crates/podssh-ssh/src/run.rs:34`). The server's window, which
   an upload's invariant names, is not known through russh; russh never
   sends past it, so a write beyond it waits in podssh, not on the wire.
 - The default is OpenSSH's: 64 requests, each of the server's size, as many
@@ -2782,7 +2782,7 @@ full copy, and said nothing. After the run, the user cannot tell whether the del
 3. With `--jsonl`, the `done` object of each copy with `--delta` gains `"delta"`:
    `{"blocks": N, "sent": K, "bytes": B}` after a delta, or `{"full": "REASON"}` after a full copy.
 4. The row of `--delta` (`crates/podssh-cli/src/flags/copy.rs:44-45`), the manual,
-   `docs/cli.md:2454-2465` and `docs/STATUS.md`.
+   `docs/cli.md:2460-2471` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -2952,7 +2952,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2754-2760` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2760-2766` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3121,7 +3121,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2572-2612`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2578-2618`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3457,7 +3457,7 @@ waits minutes: 100 files of 2 bytes took 210 s with the default.
 4. T-417's line about `--parallel` is not said when the default applies, nor after
    `--parallel 1`, which the user chose.
 5. The row of `--parallel` names the default; the manual, README.md (its copies, with the
-   measured numbers), `docs/cli.md:2419-2453` and `docs/STATUS.md`.
+   measured numbers), `docs/cli.md:2425-2459` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3624,7 +3624,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2475-2491`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2481-2497`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).
@@ -3790,7 +3790,7 @@ Planted: the new field read as required: the test of `scp` with no terminal fail
 
 2026-11-03, the draft: item 4's 255 is `ssh`'s code. `podssh scp` exits with `cp`'s sysexits
 (EXIT STATUS), and a handshake that ConnectTimeout ends is a hop that could not be reached
-(`crates/podssh-ssh/src/run.rs:426` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
+(`crates/podssh-ssh/src/run.rs:393` says "Err(timed_out) => return Err(HopError::Unreachable(timed_out)),"),
 which a copy takes as a server that cannot be reached, 69
 (`crates/podssh-cli/src/cp/link.rs:245`). Read, not measured; the test asks for 69 within 10 s.
 The field of the row is `FlagRow::optional` (`crates/podssh-cli/src/flags.rs`), set by
@@ -4131,7 +4131,7 @@ second channel. It is not measured whether podssh's ZMODEM fails in these places
 ## Premise
 
 - Read: the start of a transfer is found in the output by `crates/podssh-ssh/src/zmodem/detect.rs:1`;
-  the keys, the question and the transfer belong to the session (`docs/terminal.md:438`).
+  the keys, the question and the transfer belong to the session (`docs/terminal.md:443`).
 - Read: T-148's Correction says the gate has no `sz` or `rz`, so no run of ZMODEM through tmux or a
   container exists in the record.
 - Read in the donor report, not verified here: trzsz's lines are `#KIND:` plus base64, resynchronized

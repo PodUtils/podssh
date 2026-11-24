@@ -28,7 +28,7 @@ core: the handshake, a host key that does not change, and key authentication.
   server module on each target except wasm, with no feature
   (`Eugeny/russh:russh/src/lib_inner.rs`, lines 69-70 at `22c3b88`), so
   `crates/podssh-ssh/Cargo.toml:15` has it. `run_stream` serves one
-  connection over any stream, as `crates/podssh-ssh/src/run.rs:32-37` does.
+  connection over any stream, as `crates/podssh-ssh/src/run.rs:36-41` does.
   To reuse: `crates/podssh-ssh/src/keygen.rs:74-158` (a key, mode 0600, never
   over a file), `crates/podssh-ssh/src/known_hosts.rs:266-271` (a key line),
   `crates/podssh-relay/src/cache/dirs.rs:136-241` (the directories).
@@ -40,7 +40,7 @@ core: the handshake, a host key that does not change, and key authentication.
    Each request handler answers: russh's defaults send no reply, and a client
    waits (podssh: 30 s, `crates/podssh-ssh/src/session.rs:19-22`).
 2. russh settings: `publickey` only (the default also offers `password`);
-   the 512 KiB window of `crates/podssh-ssh/src/run.rs:26-30`; no inactivity
+   the 512 KiB window of `crates/podssh-ssh/src/run.rs:30-34`; no inactivity
    cut (russh: 600 s); a keepalive every 60 s (`docs/relay.md:717`).
 3. Host key: `--host-key FILE`, else a file in the first usable directory of
    the cache chain, made with `keygen::generate` and `keygen::write_pair`.
@@ -383,7 +383,7 @@ tells the user nothing.
   limit; `HTTPS_PROXY` when it is set) and
   `PodUtils/podssh:crates/podssh-ws/src/dial.rs:105-112` (loopback never through a proxy).
   The client copies a forward with half-close in
-  `crates/podssh-ssh/src/forward.rs:58-134`.
+  `crates/podssh-ssh/src/forward.rs:64-140`.
 - Read: in the measured sandbox, `connect()` to loopback failed with `EACCES`
   (`docs/target-environment.md:22`). Such a refusal must reach the client
   with its reason.
@@ -395,7 +395,7 @@ tells the user nothing.
    Do not add a second dialer.
 2. On success, accept, then copy between `channel.into_stream()` and the TCP
    stream in both directions. An EOF in one direction keeps the other open,
-   as `crates/podssh-ssh/src/forward.rs:58-134` does.
+   as `crates/podssh-ssh/src/forward.rs:64-140` does.
 3. On failure, reject with code 2 (connect failed) and the dial error in
    words: the errno, or the proxy's status and reason.
 4. Limits: 20 s for the dial; a stated maximum of open forwards for each
@@ -484,7 +484,7 @@ the entry joins the work order by its priority.
   ("invalid destination: ... is not a host name") reach the client as any dial's do. A dial's words
   are `DialError`'s own: "could not connect to HOST:PORT: Connection refused (os error 111)", the
   proxy's "refused CONNECT HOST:PORT: STATUS REASON", or "timed out after 20s".
-- `crates/podssh-ssh/src/forward.rs:58-134` is the client's `-W` on stdin and stdout, not a copy
+- `crates/podssh-ssh/src/forward.rs:64-140` is the client's `-W` on stdin and stdout, not a copy
   with half-close to reuse: the server's copy is its own (`crates/podssh-ssh/src/server/direct.rs`),
   as it must tell the client's EOF from its close, which russh's channel stream reads alike; it ends
   the TCP connection when the client closes the channel, as `agent_forward::splice` ends its socket.
@@ -1789,7 +1789,7 @@ Correction):
 - Approach item 3: a write of output that fails ends its pump, and the dropped pipe ends a writer
   with EPIPE; the pty's master closes with its channel. The hangup of the group is T-117's
   (its Decision): sent when the channel closes or the connection ends.
-- The relay's comment (`crates/podssh-ssh/src/run.rs:26-30`) holds as T-024 corrected it; the window
+- The relay's comment (`crates/podssh-ssh/src/run.rs:30-34`) holds as T-024 corrected it; the window
   of serve's channels is that `WINDOW`.
 - "In the gate" is the CLI crate's test crates/podssh-cli/tests/serve_pressure_openssh.rs, as T-107 to
   T-112 made theirs, run where the host has OpenSSH's client; it reads serve's memory in its own

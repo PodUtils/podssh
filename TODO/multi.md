@@ -47,8 +47,8 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
    flags), and `--parallel N` (default 8, 64 at most), `--fail-fast`,
    `--output-dir DIR`.
 2. One runtime, one task for each host, each on the existing path: the relay
-   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:329-408`,
-   `crates/podssh-ssh/src/run.rs:35-85`). Invariant: no second SSH client.
+   open and `podssh_ssh::run` (`crates/podssh-cli/src/ssh/mod.rs:329-411`,
+   `crates/podssh-ssh/src/run.rs:39-89`). Invariant: no second SSH client.
 3. Sinks: give `crates/podssh-ssh/src/io.rs:187-464` (and `crates/podssh-ssh/src/io/msg.rs:11-95`) a sink for stdout and
    stderr in place of the streams of the process, and give `Log` a prefix
    (`crates/podssh-ssh/src/log.rs:32-38`). Each line gets `HOST: `. With
@@ -72,7 +72,7 @@ succeeded. `podssh ssh` takes one destination, as OpenSSH does.
 ## Decision
 
 Recommendation: a new verb, because `podssh ssh` keeps the command line and
-the exit codes of OpenSSH for one host (`docs/cli.md:6841-6844`), and a list
+the exit codes of OpenSSH for one host (`docs/cli.md:6851-6854`), and a list
 of hosts changes both. The alternative, `podssh ssh --hosts LIST`, lost: one
 flag would change what the exit status means.
 
@@ -184,7 +184,7 @@ is not a shell. A set of hosts has no name.
   (`crates/podssh-cli/src/ssh/hop.rs:30-75`,
   `crates/podssh-ws/src/names.rs:10-32`).
 - Read: the `Host` lines of ssh_config are patterns, not lists
-  (`docs/cli.md:7057-7166`); they cannot define a group.
+  (`docs/cli.md:7067-7176`); they cannot define a group.
 
 ## Approach
 
@@ -1547,7 +1547,7 @@ of the command.
    quoted for a POSIX shell (T-187). When the copy used most of the 64 MiB
    (`docs/relay.md:631`), run the exec on a new session (T-137).
 4. The exit status: the command's, with the rules of `podssh ssh`
-   (`docs/cli.md:6841-6844`). A failed copy exits 255 and runs nothing.
+   (`docs/cli.md:6851-6854`). A failed copy exits 255 and runs nothing.
 5. In the same commit: the rows, the notes, an example, `docs/cli.md`,
    `docs/STATUS.md`. This entry depends on T-134 and T-143.
 
@@ -1814,7 +1814,7 @@ a ticket, or a tool that asks an AI.
   (`crates/podssh-ssh/src/log.rs:123-143`). The exit code leaves through
   `crates/podssh-cli/src/dispatch.rs:404-448`.
 - Read: for `podssh ssh`, an exit that is not 0 can be the remote command's
-  status (`docs/cli.md:6841-6844`), which is not a failure of podssh.
+  status (`docs/cli.md:6851-6854`), which is not a failure of podssh.
 
 ## Approach
 
@@ -3039,7 +3039,7 @@ failure's words, no signal and no time. The other surfaces give one object (`ssh
   bytes and its time are not kept.
 - Read: the record of a run of `ssh`, which `--result-file` writes, is the process's
   (`crates/podssh-ssh/src/outcome.rs`, lines 1-6 at `b02d8c4`), and `run_outcome` gives back a
-  code, a retry and lines only (`crates/podssh-ssh/src/run.rs:50-54`). T-183's Done says that
+  code, a retry and lines only (`crates/podssh-ssh/src/run.rs:54-58`). T-183's Done says that
   each host's session takes
   the process's records, so that a lost session's words may name another host's error, and that
   `each` writes no `--result-file`.

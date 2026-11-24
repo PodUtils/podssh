@@ -55,10 +55,16 @@ fn refusal_words(target: &StdioTarget, e: &russh::Error) -> String {
     }
 }
 
+/// The name of the forward of `-W`, as its counts and `--result-file`
+/// give it: one name from before the link to its end (T-866).
+pub fn stdio_name(target: &StdioTarget) -> String {
+    format!("-W {}", target.shown())
+}
+
 /// Copy stdin to the stream and the stream to stdout until the far side
 /// closes. Returns the exit code: 0 for a normal close.
 pub async fn stdio(handle: &Handle<Client>, target: &StdioTarget, log: &Log) -> i32 {
-    let name = format!("-W {}", target.shown());
+    let name = stdio_name(target);
     let counts = crate::tally::of(&name);
     let stream = match open_raw(handle, target).await {
         Ok(s) => s,

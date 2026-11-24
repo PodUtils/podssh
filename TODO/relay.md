@@ -635,7 +635,7 @@ so the comment applied a rule of the reverse path to the forward path.
    operator approves.
 4. The other direction (`target write backlog`) needs a slow target; record it as not measured
    when none is at hand.
-5. Write the result into the comment on the window (`crates/podssh-ssh/src/run.rs:26-30`) and
+5. Write the result into the comment on the window (`crates/podssh-ssh/src/run.rs:30-34`) and
    into `docs/relay.md:731-743`. Change the window (512 KiB) only if the result asks for it.
 
 ## Decision
@@ -670,7 +670,7 @@ size, which shows that the target and the path work. The slow run then gives the
 
 2026-10-08, T-024: the comment on the SSH window now gives the forward path's rule that
 `docs/relay.md:720` reads from the relay's source: `1013` when 2 MiB wait, and no frame dropped
-(`crates/podssh-ssh/src/run.rs:26-29`). The two texts agree now. The question of this entry
+(`crates/podssh-ssh/src/run.rs:30-33`). The two texts agree now. The question of this entry
 stays: whether the relay's check operates at all (it reads `bufferedAmount`,
 `docs/relay.md:731-743`).
 
@@ -734,7 +734,7 @@ from GitHub Actions, with no proxy (`.github/workflows/relay-live.yml`, run
 - The remedy of a `1013 client receive backlog` says what makes it, in
   place of `podssh doctor` (`crates/podssh-ws/src/session.rs`, with its
   unit test).
-- The comment on the window (`crates/podssh-ssh/src/run.rs:26-30`),
+- The comment on the window (`crates/podssh-ssh/src/run.rs:30-34`),
   `docs/relay.md` ("Backpressure") and the limits of `docs/architecture.md`
   give the result; `docs/STATUS.md` records it.
 - Not measured: the other direction (`target write backlog`), as no slow
@@ -3163,7 +3163,7 @@ URL written into each result, and a download target that is no test target of `A
 
 - Read: `podssh ping` times the token, the dial, TLS and the upgrade of one host, then its
   WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), one host after another
-  (`crates/podssh-cli/src/ping/mod.rs:172-177`), with `--json`.
+  (`crates/podssh-cli/src/ping/mod.rs:180-185`), with `--json`.
 - Read: `doctor`'s `forward` proves both legs by one of GitHub's published host keys
   (`crates/podssh-cli/src/doctor/relay_checks.rs:218-254`); `--quick` keeps the relay's sections and
   `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:229-234`).
@@ -3318,7 +3318,7 @@ working hosts, which a measurement can make.
   latency.
 - Read: `podssh ping`'s leg times the token, the dial, TLS and the upgrade of one host, and its
   WebSocket pings (`crates/podssh-cli/src/ping/relay.rs:107-155`), and `ping` runs the legs one after
-  another (`crates/podssh-cli/src/ping/mod.rs:172-177`); the module is private to `ping`
+  another (`crates/podssh-cli/src/ping/mod.rs:180-185`); the module is private to `ping`
   (`crates/podssh-cli/src/ping/mod.rs:9`).
 - Read: the record of failures is a file of the cache, `PodUtils/podssh:crates/podssh-relay/src/failures.rs:27`
   says "pub const FILE: &str", and `order` keeps the list's order within each of its groups
@@ -3835,10 +3835,10 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3766-3772`.
+  `docs/cli.md:3776-3782`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
-  3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:172-177`),
+  3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:180-185`),
   not the 37 hosts of the pool, which only `relay rank` measures.
 - Read: the order that a run of the default list takes, in a word, is `order_now`
   (`PodUtils/podssh:crates/podssh-relay/src/rank_list.rs:195-212`), and the list in that order `placed_now`
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3808`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3818`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,

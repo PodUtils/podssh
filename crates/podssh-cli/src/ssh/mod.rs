@@ -369,6 +369,9 @@ pub(crate) async fn connect_and_run(mut resolved: Resolved, log: Arc<Log>) -> i3
             }
         }
     }
+    // Each forward in the result file, also of a run that fails before its
+    // link (T-866).
+    result::name_forwards(&resolved.options);
     // ~C adds forwards as the command line does (T-291).
     resolved.options.command_line = Some(local_bind::command_line(resolved.gateway_ports, log.clone()));
     if let Some(kept) = resolved.persist.clone() {

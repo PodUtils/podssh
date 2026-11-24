@@ -117,14 +117,9 @@ fn keep_forwards(args: &SshArgs, resolved: &mut Resolved) -> Result<(), Refusal>
 
 /// Run the session of `--persist` until it ends: its exit code.
 pub async fn run(resolved: &Resolved, kept: &Kept, log: Arc<Log>) -> i32 {
-    // Each forward is `bound` before the first link, and each change of its
-    // state is a line from now on (T-840).
-    for forward in &resolved.options.local_forwards {
-        podssh_ssh::tally::of(&forward.shown);
-    }
-    for forward in &resolved.options.remote_forwards {
-        podssh_ssh::tally::of(&podssh_ssh::remote::name(forward));
-    }
+    // Each forward is `bound` before the first link (named by the caller,
+    // `result::name_forwards`), and each change of its state is a line from
+    // now on (T-840).
     podssh_ssh::tally::announce(Some(log.clone()));
     let code = keep(resolved, kept, &log).await;
     podssh_ssh::tally::announce(None);
@@ -152,10 +147,7 @@ async fn keep(resolved: &Resolved, kept: &Kept, log: &Arc<Log>) -> i32 {
         let began = Instant::now();
         let attempt = tokio::select! {
             attempt = one(resolved, &opts, kept, !attached, &mut input, log) => attempt,
-            _ = Interrupt::next(&mut interrupt) => {
-                log.error("interrupted");
-                return EXIT_FAILURE;
-            }
+            _ = Interrupt::next(&mut interrupt) => return interrupted(log, "interrupted"),
         };
         let why = match attempt {
             Attempt::Ended(code) => return code,
@@ -183,6 +175,9 @@ async fn keep(resolved: &Resolved, kept: &Kept, log: &Arc<Log>) -> i32 {
                 wait.as_secs_f64()
             ));
         }
+        // Ctrl-C is podssh's own from here on, before the line of the wait
+        // that a person, or a test, acts on (T-866).
+        interrupt.get_or_insert_with(Interrupt::new);
         // Each forward waits for the link, said after the hop that broke
         // (T-840); a run that gives up says no wait.
         podssh_ssh::tally::waiting(&why);
@@ -197,13 +192,9 @@ async fn keep(resolved: &Resolved, kept: &Kept, log: &Arc<Log>) -> i32 {
         if *kept == Kept::Forwards {
             opts.forwards_again = Some(Again { within: FORWARDS_AGAIN, wait: podssh_relay::open::backoff });
         }
-        interrupt.get_or_insert_with(Interrupt::new);
         tokio::select! {
             _ = tokio::time::sleep(wait) => {}
-            _ = Interrupt::next(&mut interrupt) => {
-                log.error("interrupted while connecting again");
-                return EXIT_FAILURE;
-            }
+            _ = Interrupt::next(&mut interrupt) => return interrupted(log, "interrupted while connecting again"),
             _ = input.queue() => {}
         }
         let dropped = input.take_dropped();
@@ -211,6 +202,16 @@ async fn keep(resolved: &Resolved, kept: &Kept, log: &Arc<Log>) -> i32 {
             log.info(&format!("{dropped} bytes typed meanwhile did not fit the queue of {} KiB", QUEUE / 1024));
         }
     }
+}
+
+/// Ctrl-C ended the run (T-866): its line, and the end `interrupted` with
+/// no failure of a try before it, as Ctrl-C is the cause; 130, as a run of
+/// `-N` without `--persist` exits.
+fn interrupted(log: &Log, line: &str) -> i32 {
+    log.error(line);
+    podssh_ssh::outcome::fresh();
+    podssh_ssh::outcome::ended(&podssh_ssh::io::End::Interrupted);
+    podssh_ssh::terminal::interrupt::INTERRUPTED
 }
 
 /// The wait before attempt `tries + 1`, `spent` after the loss; `None`:

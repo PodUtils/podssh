@@ -53,7 +53,7 @@ pub async fn runs(resolved: &Resolved, runs: usize, log: &Arc<Log>) -> Result<Co
 /// next starts, so a run never meets the one before it.
 async fn one(resolved: &Resolved, log: &Arc<Log>) -> Result<Duration, (i32, String)> {
     let started = Instant::now();
-    let reached = super::feel::reach(resolved, log).await.map_err(|not| (not.code, not.lines.join("; ")))?;
+    let reached = super::feel::reach(resolved, log).await.map_err(|not| super::unreached(&not))?;
     let handles = match podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log).await {
         Ok(handles) => handles,
         Err(e) => return Err((EXIT_FAILURE, e.to_string())),

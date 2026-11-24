@@ -1408,7 +1408,7 @@ reach, as `tailscale status`, `ping` and `netcheck` show.
 - **`ping` is entered at `crates/podssh-cli/src/ping/node.rs`**, which hands each destination that
   is no node to `ping::run`; a destination is a node when `podssh ssh` would read it as one
   (`node://NAME`, a member's name with the role node, a group of one of them). Lost: a branch
-  inside `ping::run`, whose lines entries cite (`crates/podssh-cli/src/ping/mod.rs:172-177`).
+  inside `ping::run`, whose lines entries cite (`crates/podssh-cli/src/ping/mod.rs:180-185`).
 - **The record of the roads is the client's**, `net-roads.json` in the cache, by the node's label:
   each race's winner writes it (`road_link::winner`, so each resume of `ssh` too), and so do
   `ping`, the pair's road alone in `crates/podssh-cli/src/ssh/node.rs` (`ssh` and the copies take

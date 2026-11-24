@@ -851,13 +851,17 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   no session for another cause), `bytes` (`stdin`, `stdout`
   and `stderr`, as they passed), `duration_ms`, and `relay` (`host`,
   `close_code` and `reason`, or null with no relay). A run with forwards
-  adds `forwards` (T-840), one object for each in the order of its first
-  use: `name` as written, `state` (`bound`, `waiting`, `up` or `refused`),
+  adds `forwards` (T-840), one object for each (`-L` and `-D`, then `-R`
+  and `-W`, then each that `~C` adds), also for a run that failed before its link
+  (T-866): `name` as written, `state` (`bound`, `waiting`, `up`, `refused`
+  or `closed`, which a forward that `~C` stopped says, as in `~#`),
   `reason` (the server's, or null), `closed` (stopped by `~C`),
   `connections`, `open`, `failed`, `bytes_up` and `bytes_down`; a run with
   none has no such key. A signal ends with
   128 + its number, as in OpenSSH, and `status` is then null. `-N` ends
-  `lost` when the server or the network ends the connection. A link lost
+  `lost` when the server or the network ends the connection, and at Ctrl-C
+  `interrupted` with 130, also with `--persist` and in its wait after a
+  loss, with no failure (T-866). A link lost
   after the remote exit status and before the end of the output ends
   `lost` with `exit` 255, and `status` keeps the remote status (T-461). A run through
   a control master (T-039) ends `shared`: the master tells the exit code
@@ -965,7 +969,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   of its line.
 - **Each forward has a state word** (T-840), at the end of its line of `~#`
   and of `-v`, and as `state` in `--result-file`: `bound` (its listener is
-  bound or its request made, and no link carries it), `waiting` (the
+  bound, or the remote forward is asked for, and no link carries it),
+  `waiting` (the
   link was lost, and `--persist` connects again, or asks the server again
   for a refused `-R`), `up` (it serves on the link), or `refused`, with the
   server's reason in parentheses when it gave one: a channel of `-L`, `-D`
@@ -973,7 +978,8 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   `refused (administratively prohibited)`), or a kind of channel that it
   lacks; a refused `-R` has no reason, as SSH's answer carries none. A
   target that is down fails one connection and leaves the word as it was.
-  A forward that `~C` stopped says `closed` instead. With `--persist`, each
+  A forward that `~C` stopped says `closed` instead, in `--result-file`
+  too (T-866). With `--persist`, each
   change of a word is one line on stderr, `NAME: WORD`, and `waiting` ends
   with the line of the loss that names the hop that broke:
   `-L 8080:db:5432: waiting: connection to db.example lost: ...`. At the
@@ -3389,10 +3395,14 @@ GitHub #23): the time of each step, the round trip, and the throughput.
   and `max_ms`, `pings_lost` and `error`), `destination` and `exit`.
 - 0 when the path works: a relay host gave its measures, or each measure
   through the destination has its number. 64 for a bad flag, before
-  anything connects; 69 when no relay host answered, or with
-  `PODSSH_OFFLINE`. With a destination: the code of `podssh ssh` when it
-  cannot be reached or logged in to, the status of a remote program that
-  failed, and 255 for a measure that broke.
+  anything connects, and for `--direct` with no destination (T-865: it
+  has no relay leg to measure); 69 when no relay host answered, or with
+  `PODSSH_OFFLINE`. With a destination: 255 as `podssh ssh` gives it when
+  it cannot be reached or logged in to (64 for a target that the relay
+  cannot carry), with one line of the cause on stdout, or of where it is
+  said (`not reached; each try is said on stderr`, for a road that logged
+  each try); the status of a remote program that failed, and 255 for a
+  measure that broke.
 - A list of nodes (T-717): `--nodes NAME,NAME,...` (or `node://NAME`),
   or `--net`, each member of the net held with the role `node`, in place
   of a destination. Each node is measured as `ping node://NAME` measures

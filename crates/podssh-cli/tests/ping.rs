@@ -7,6 +7,8 @@
 //! each ping, alone and with a destination; those checks say that they did
 //! not run when this host has no Python or no openssl for the stand-in. What
 //! a user feels, `--under-load` and `--connect-runs` (T-660), is `ping_feel`.
+//! A destination not reached or not logged in to exits 255, as `podssh ssh`
+//! does, with one line that says why (T-865).
 
 // What a user feels (T-660).
 mod held_port;
@@ -107,13 +109,15 @@ fn bad_flags_are_refused_before_anything_connects() {
     let s = Session::start("ping-refuse");
     let (port, reached) = counting_listener();
     let relay = format!("127.0.0.1:{port}");
-    let cases: [(&[&str], &str); 6] = [
+    let cases: [(&[&str], &str); 7] = [
         (&["--size", "40M"], "at most 30M"),
         (&["--size", "0"], "more than 0 bytes"),
         (&["--size", "lots"], "a number of bytes"),
         (&["--count", "0"], "from 1 to 100"),
         (&["--count", "101"], "from 1 to 100"),
         (&["--target", "example.org"], "missing PORT"),
+        // No destination: --direct has no road to measure (T-865, T-868).
+        (&["--direct"], "--direct reaches a destination without the relay"),
     ];
     for (flags, says) in cases {
         let mut args: Vec<String> = flags.iter().map(|f| f.to_string()).collect();
@@ -303,4 +307,54 @@ fn a_destination_through_the_stand_in_relay_is_measured_after_the_leg() {
     assert!(lines[0].contains("; 3 pings: min "), "{stdout}");
     assert!(lines[1].starts_with("ssh tester@127.0.0.1: login "), "{stdout}");
     assert!(lines[4].starts_with("up (cat > /dev/null): 1.0 MiB in "), "{stdout}");
+}
+
+/// Each way a destination is not reached or not logged in to ends as
+/// `podssh ssh` ends (255), with one line of the cause: never a line that
+/// names the host and nothing after it (T-865). The refused port, the
+/// address with no route (RFC 6666's discard prefix) and the name with no
+/// answer dial nothing that answers; the login is the test's server's
+/// refusal of a user with no key.
+#[test]
+fn a_destination_not_reached_or_refused_exits_255_with_its_cause() {
+    let s = Session::start("ping-unreached");
+    let (refused, _held) = held_port::refusing();
+    let (refused, port) = (refused.to_string(), s.port.to_string());
+    // The user and host, the port, where stderr names the try, and whether
+    // the JSON run of the case is checked too.
+    let cases: [(&str, &str, Option<&str>, bool); 4] = [
+        ("root@127.0.0.1", &refused, Some("127.0.0.1"), true),
+        ("root@100::1", "22", Some("100::1"), false),
+        ("root@no-such-host.invalid", "22", Some("no-such-host.invalid"), false),
+        ("key-nobody@127.0.0.1", &port, None, true),
+    ];
+    for (destination, at, tried, json) in cases {
+        let args = |extra: &[&str]| {
+            let mut args = s.common();
+            args.extend(["--direct", "-p", at, "--count", "2", "--size", "64K"].map(String::from));
+            args.extend(extra.iter().map(|a| a.to_string()));
+            args.push(destination.to_string());
+            args
+        };
+        let out = ran(ping(&s, &args(&[])));
+        let (stdout, stderr) = (text(&out.stdout), text(&out.stderr));
+        assert_eq!(out.status.code(), Some(255), "{destination}: stdout: {stdout}\nstderr: {stderr}");
+        let lines: Vec<&str> = stdout.lines().collect();
+        assert_eq!(lines.len(), 1, "{destination}: one line: {stdout}");
+        let why = lines[0].strip_prefix(&format!("ssh {destination}: ")).unwrap_or_else(|| panic!("{stdout}"));
+        assert!(!why.trim().is_empty(), "{destination}: a line with no cause: {stdout:?}");
+        if let Some(tried) = tried {
+            assert!(stderr.contains(tried) || why.contains(tried), "{destination}: the try is named: {stderr}");
+        }
+        if !json {
+            continue;
+        }
+        let out = ran(ping(&s, &args(&["--json"])));
+        assert_eq!(out.status.code(), Some(255), "{destination}: {}", text(&out.stderr));
+        let doc: serde_json::Value = serde_json::from_slice(&out.stdout).expect("one JSON document");
+        assert_eq!(doc["exit"], 255, "{doc}");
+        let error = doc["destination"]["error"].as_str().unwrap_or_default();
+        assert!(!error.trim().is_empty(), "{destination}: {doc}");
+        assert!(doc["destination"]["login_ms"].is_null(), "{doc}");
+    }
 }
