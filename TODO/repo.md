@@ -4777,7 +4777,7 @@ red: a session that reads the map to learn which requests wait does not see them
 - Read, on GitHub on 2026-10-31: #59 is a survey of the carriers that need no relay of the
   operator's, and #60 to #63 are its four requests (a relay template, SSH on port 443 as a hop, a
   Shadowsocks road, and WARP and Arti). The map names none of them, and its line of pull requests
-  names #52, #53, #57, #58 and #64 to #68 (`TODO/issues.md:130-133`). The issue's amendment says
+  names #52, #53, #57, #58 and #64 to #68 (`TODO/issues.md:143-146`). The issue's amendment says
   that #59 to #63 have entries, T-352 and T-353: those two come from the study of carriers of
   2026-10-31 (`docs/carriers.md`), name no issue, and hold #63's two roads; #59 to #62 have none.
 - Read: a weekly job of CI already reads the network for a watch of the tree, and stays red until

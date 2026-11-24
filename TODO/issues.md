@@ -50,17 +50,26 @@ refused, only CONNECT): already a decision (probe, never assume;
 
 **#19, the reverse road and sessions that survive.** A receiving mode: T-079,
 T-083. Resume by byte offset with a limited replay ring: T-151, T-152,
-T-153. Byte replay or screen state: T-152 and T-161. The reconnection policy:
+T-153. Byte replay or screen state: T-152 (the byte replay that the reporter asked for; the screen state is
+`T-161`). The reconnection policy:
 T-153, T-154. A start over a standard sshd: T-167. A lasting terminal through
-`tmux`: T-178. A clean server life cycle: T-117. Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); T-117 and T-161 stay open in the record.
+`tmux`: T-178. A clean server life cycle: `T-117`. Closed on 2026-11-24, when each ask was delivered (the
+record's rule "an issue is open exactly while one of its entries is not done" now applies to the entries that
+answer the ask, and an entry that waits only on an internal check does not keep a reporter's issue open).
+Followed in the record, no longer mapped here: `T-117` (merged; it waits for its run in the build image, T-251) and
+`T-161` (the screen of a new client; it is mapped to #20).
 
-**#20, `podssh serve` and the pty in the cage.** The server: T-107, T-108,
-T-109, T-110, T-111, T-112, T-113. A session that outlives the window: T-159.
-Line discipline and copy mode: T-111, T-125 to T-129, T-161. Backpressure:
-T-118. A handshake with version and role: T-151. An install with no
+**#20, `podssh serve` and the pty in the cage.** The server: `T-107`, `T-108`,
+`T-109`, `T-110`, `T-111`, `T-112`, `T-113`. A session that outlives the window: T-159.
+Line discipline and copy mode: `T-111`, T-125 to T-129, T-161. Backpressure:
+`T-118`. A handshake with version and role: T-151. An install with no
 privileges: T-121; an agent, a credential helper and hardware keys, inside
 podssh: T-034, T-228, T-229. The host key of each hop: T-030.
-A limit on each wait: T-110, T-111, T-112, T-133. Transient scopes: T-122. Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); the entries of `podssh serve` stay open (T-107 to T-113, T-118, T-122, T-159, T-161) in the record.
+A limit on each wait: `T-110`, `T-111`, `T-112`, T-133. Transient scopes: T-122. Kept open on 2026-11-24 for the
+one ask that is not delivered: T-161 (a new client's screen and its history on attach; its draft waits for
+COORD-140, #350). The rest is delivered: `podssh serve` is merged. Followed in the record, no longer mapped here:
+`T-107` to `T-113`, `T-117` and `T-118` (merged; each waits for its run in the build image, T-251, and `T-113` for
+the operator's run in a sealed sandbox).
 
 **#21, file copy.** Resume with a side file: T-136. Delta, parallel and the
 copy options: T-141, T-142, T-143, T-144. A fast road with a fallback: T-164.
@@ -75,7 +84,8 @@ settings in effect (`-G`): T-046. `Match`: T-045. `-F` and the port forms of
 copy tools: T-043, T-139. Repeated flags: T-017 (done). Values that start with
 `-`: T-011. A Mosh transport for each host (SSHub's report): no road runs
 `mosh-server` (`docs/decisions.md`); the functions of Mosh: T-171 (the map, done), then T-302,
-T-303, T-304, T-305 and T-306. Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); T-303 and T-304 stay open in the record.
+`T-303`, `T-304`, T-305 and T-306. Closed on 2026-11-24, when each ask of the report was delivered. Followed in the
+record, no longer mapped here: `T-303` and `T-304` (two functions of Mosh, backlog).
 
 **#23, output for machines.** JSON on each surface: T-049, T-050, T-051,
 T-054. Latency and throughput, and a short preflight: T-053. The health of
@@ -88,16 +98,19 @@ and commits, all in `v1.0.0-beta.1`.
 T-185, T-187. A control surface for agents: T-186; over stdio: T-055.
 Host groups and per-host settings: T-184, T-043. Session recording: T-033.
 Fan-out with an exit rule: T-183. Import and export: T-047, T-292 (PuTTY,
-MobaXterm, Remmina), T-327 (mRemoteNG) and T-328 (FinalShell, Termius; it
-waits for the operator's exports). Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); T-328 stays open, waiting for the operator's exports in the record.
+MobaXterm, Remmina), T-327 (mRemoteNG) and `T-328` (FinalShell, Termius; it
+waits for the operator's exports). Closed on 2026-11-24, when each ask was delivered. Followed in the record, no
+longer mapped here: `T-328` (the import from FinalShell and Termius; no program of theirs wrote a published
+export).
 
 **#25, robustness and releases.** A circuit breaker: T-059; the retry policy:
-T-025. Rate limits and quotas: T-169 (in podssh's own relay role, M10, Q63), T-114 (in `serve`),
+T-025. Rate limits and quotas: T-169 (in podssh's own relay role, M10, Q63), `T-114` (in `serve`),
 T-145 (a bandwidth limit). Resource limits: T-201. Connection sharing: T-039.
 A scored interop harness: T-199. Fuzzing and a terminal oracle: T-198,
 T-200. An audit log: T-116. Live tests kept out of the default run: already
 so (the live tests are `#[ignore]`; `docs/STATUS.md`, "Measure again").
-Provenance of releases: T-210, T-211. Closed on 2026-11-11 as stale, with a comment that names the entries done, and open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done); T-114 and T-116 stay open in the record.
+Provenance of releases: T-210, T-211. Closed on 2026-11-24, when each ask was delivered. Followed in the record,
+no longer mapped here: `T-114` (the access rules of `serve`; merged, it waits for its run in the build image, T-251).
 
 **#26, streams that are not SSH.** A binary protocol through `-W` or exec:
 already works (`docs/STATUS.md`: 262144, 262145 and 5,000,000 bytes with
@@ -143,9 +156,9 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 
 | Issue | Subject | State | Entries |
 | --- | --- | --- | --- |
-| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open (2026-11-13: commented where it stands, T-321 partial: Apache's `H2WebSockets` and the live run wait until stable, Q88) | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
+| #51 | An HTTP/2 road over extended CONNECT (RFC 8441) | open (2026-11-24: the road is delivered, in `v1.1.0-beta.2`; open only for T-321's run against Apache's `H2WebSockets` and its live run, which wait until podssh is stable, Q88) | T-321 (M10, on podssh's own relay role's listener since Q63; the default relay's edge chose `h2` and did not offer extended CONNECT, measured on 2026-10-30) |
 | #54 | `doctor` measures what the proxy does to a stream | closed | T-324 (the three failures of the upgrade, and samples with their loss; the commit "doctor samples each probe of TCP, and names three failures of the upgrade"); T-325 (buffering, a cap on bodies, an idle limit) is M10's, served by podssh's own relay role (Q63) |
-| #55 | The split road's wire protocol | open (2026-11-13: commented where it stands, T-319 partial: invariant 5 against a real proxy waits for the live runs, Q88) | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
+| #55 | The split road's wire protocol | open (2026-11-24: the road is delivered; open only for T-319's proof of invariant 5 against a real proxy, in the live runs, which wait until podssh is stable, Q88) | T-319 (its Approach holds the protocol; the operator allowed its second connection, Q44, and it is M10's since Q63, served by podssh's own relay role) |
 | #56 | A cleartext road on port 443, probed | closed 2026-11-09, T-326 done (`fddabaa3`) | T-326 (the operator allowed it with a token for one session, Q45, and it is M10's since Q63, served by podssh's own relay role) |
 | #59 | The forward road without the operator's relay: ways with no account to reach a `host:port` (research) | closed 2026-11-11, each road of its ranking done | T-162, T-169, T-347, T-348, T-351, T-352, T-353, T-369, T-370, T-371, T-372, T-373, T-374 (each road of its ranking, in the paragraph below) |
 | #60 | A relay template: a WebSocket forwarder that takes the destination from the URL | closed 2026-11-01, each entry done | T-369 (a forwarder that the user names); T-370 (the public forwarders in the binary, and a fallback to them, by the operator's ruling Q56) |
@@ -237,9 +250,9 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #163 | [gh action] requested: `PodUtils/podcrates:.github/workflows/live.yml`, the main DERP fleet from GitHub Actions | closed 2026-11-09, the run passed (42290196915, `8c7519c0`) | T-534 (step 1's run from Actions) |
 | #164 | The GSRN road: accountless SRP authentication on one TCP connection to port 443 | closed 2026-11-11 as stale; T-707 stays open until the owner takes up `pod-gsr` | T-707 (blocked: the owner deferred `pod-gsr` on 2026-11-09) |
 | #165 | Forwarder roads re-derive the half-close discipline per road | closed 2026-11-09 (`cdb46f81`), its entry done | T-699 |
-| #166 | `doctor`: one verdict of the host's capabilities that names what each restriction closes | open 2026-11-15 (closed 2026-11-09, its entry done; open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done)) | T-706 (M5, beside T-248) |
+| #166 | `doctor`: one verdict of the host's capabilities that names what each restriction closes | closed 2026-11-24 (the ask is delivered: `doctor --tier`, T-706; closed 2026-11-09, open again from 2026-11-15 by the owner's ruling "Issues", closed again now that no entry that answers the ask is open; followed in the record: T-248, the study of the serve-side tty routes, which waits for its entries T-775 to T-778) | T-706 (M5) |
 | #167 | `sftp` prints no near-cap line before a budget stop, and the reverse node discards the close reason | closed | T-700 (sftp), T-701 (the node) |
-| #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | open 2026-11-15 (closed 2026-11-13 as stale: T-698 done (`565accd`), serve calls the drop (T-107); T-631 stays open, parked until T-124; open again from 2026-11-15, by the owner's ruling "Issues" (an issue is open while one of its entries is not done)) | T-698 (the drop; T-107 depends on it); the bound of the accept path is T-631 (#129) |
+| #168 | `serve`: inherit the relay role's capability drop, and bound the accept path before authentication | closed 2026-11-24 (the ask is delivered: the capability drop in T-698, and the bound of the accept path in T-631; followed in the record: T-107, which waits for its run in the build image, T-251) | T-698 (the drop), T-631 (#129, the bound of the accept path) |
 | #169 | `relay serve`: the contract's limits are fixed constants; only `--keepalive` is configurable | closed 2026-11-09, its entry done | T-704, T-732 (a defect of the byte cap, found by its test) |
 | #170 | `ssh`: the direct road's banner check and the roost's sshd check give opposite verdicts on the same bytes | closed 2026-11-09, its entry done | T-702 |
 | #171 | `ssh`: `--relay-host` and `--relay-failover` are dropped in silence for a node destination | closed 2026-11-09 (`cbb31bc0`), its entry done | T-697 |
@@ -266,7 +279,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #192 | COORD-025: podssh took podcrates v0.24.0; podcrates writes pod-relay's patch (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
 | #193 | COORD-026: podssh took podcrates v0.25.0 at f029594d; the pod-relay cut stays frozen (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
 | #194 | COORD-027: podssh took podcrates v0.26.0 at ff2f7bac; Pinggy's reader reads url-skip (to podcrates) | closed (2026-11-12: podcrates recorded the later takes, to v0.28.0 in COORD-054) | T-684 |
-| #195 | cfb asks: tracker for the 22 asks of cfb owned by podssh (from podcrates#35) | open (2026-11-12: each ask an entry already) | T-708, T-709, T-710, T-711, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-719, T-720, T-721, T-722, T-723, T-724, T-725, T-726, T-727, T-728, T-729, T-730, T-731 |
+| #195 | cfb asks: tracker for the 22 asks of cfb owned by podssh (from podcrates#35) | open 2026-11-24: 15 of 22 asks are done; four are not built (T-711, T-719 and T-722 wait for tags of podcrates; T-727 waits for the Access certificate login and a Cloudflare account), and T-729, the CLI part of A-N-07, waits for the Access client; T-718 waits for its live step; followed in the record: T-710, which waits for the beta's notes, and T-720, which waits for an end-to-end test | T-708, T-709, T-711, T-712, T-713, T-714, T-715, T-716, T-717, T-718, T-719, T-721, T-722, T-723, T-724, T-725, T-726, T-727, T-728, T-729, T-730, T-731 |
 | #196 | COORD-028: a service of Tox's TCP relays on 443 in pod-services, for podssh's T-734 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-734 |
 | #203 | COORD-029: a service of Yggdrasil's public wss:// peers on 443 in pod-services, for podssh's T-735 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-735 |
 | #204 | COORD-030: a service of HyperDHT's public bootstrap nodes in pod-services, for podssh's T-736 (to podcrates) | closed 2026-11-12: in pod-services of podcrates v0.28.0, taken | T-736 |
@@ -280,7 +293,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #212 | COORD-038: podssh took podcrates v0.30.0 at ef3666f (to podcrates) | closed (2026-11-12: podcrates recorded it in COORD-058) | T-684 |
 | #213 | COORD-039: pod-services: smee.io's server and hostc's server, for podssh's T-741 and T-742 (to podcrates) | closed (2026-11-12: `smee-io` and `hostc` in v0.32.0) | T-741, T-742 |
 | #214 | COORD-040: pod-proxy's stun: MESSAGE-INTEGRITY and FINGERPRINT, for podssh's TURN road T-621 (to podcrates) | closed (2026-11-12: `pod_proxy::stun` in v0.32.0; T-621 uses it) | T-621 |
-| #215 | relay: add a Dev Tunnels forward road (Nemo-010) | open (2026-11-12: T-755 on `main` at `9fa5523`; a tunnel for its live run asked of the tester) | T-755 |
+| #215 | relay: add a Dev Tunnels forward road (Nemo-010) | open (2026-11-24: delivered on `main` at `9fa5523`; open only for T-755's live run, which waits for a throwaway tunnel from the tester) | T-755 |
 | #216 | COORD-041: pod-devtunnel, the client side of Microsoft Dev Tunnels' relay, for podssh's T-755 (#215) (to podcrates) | closed 2026-11-12: podcrates v0.33.0 has it, taken at `72d6a3d` | T-755 |
 | #217 | COORD-042: podssh took podcrates v0.31.0 at 02650f1 and v0.32.0 at 555fddc (to podcrates) | closed 2026-11-12: recorded in COORD-064 | T-684 |
 | #218 | COORD-043: podssh took podcrates v0.33.0 at 72d6a3d (to podcrates) | closed 2026-11-12: recorded in COORD-065 | T-684 |
@@ -313,8 +326,8 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #245 | COORD-068: podssh took podcrates v0.45.0 at 16d53cb (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.45.0` | T-684 |
 | #246 | COORD-069: podssh took podcrates v0.46.0 at 5ac90a3 (to podcrates) | closed 2026-11-14: podcrates recorded the take of `v0.46.0` | T-684 |
 | #247 | COORD-070: pod-relay's run of a code fails over Nostr alone, though pod-wormhole's nostr pairs (to podcrates) | closed 2026-11-15: fixed in podcrates `v0.49.0` (its entry 634), taken by podssh | T-545 |
-| #248 | COORD-071: fast-track T-684: Q101's waves 3 and 4, the crates that still live in podssh (to podcrates) | open (2026-11-15: podcrates fast-tracked it; step 1 frozen at `b9c04657`, step 2 at `2ffb7cd7`, podssh's answer on its glue in the body) | T-684 |
-| #249 | Testers' guide: v1.1.0-beta.4 (in preparation) | open (2026-11-15: posted; updated when the beta is tagged) | T-446 |
+| #248 | COORD-071: fast-track T-684: Q101's waves 3 and 4, the crates that still live in podssh (to podcrates) | closed 2026-11-24 (answered on 2026-11-15: podcrates fast-tracked the move, with its order and the first modules named; each tag is taken as it lands, and each take is its own COORD issue; followed in the record: T-684) |  |
+| #249 | Testers' guide: v1.1.0-beta.4 (in preparation) | open (2026-11-24: a placeholder: the guide comes with the beta, which waits for the move to podcrates, T-684, and for T-809) | T-446 |
 | #250 | COORD-072: podssh took podcrates v0.47.0 at 568f9b2 (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.47.0` | T-684 |
 | #251 | COORD-073: podssh took podcrates v0.48.0 at 3e7c5a2 (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.48.0` | T-684 |
 | #252 | COORD-074: podssh took podcrates v0.49.0 at a99de1d (to podcrates) | closed 2026-11-15: podcrates recorded the take of `v0.49.0` | T-545, T-684 |
@@ -344,7 +357,7 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #280 | COORD-088: podssh took podcrates v0.59.0 at 763cac5 (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684 |
 | #281 | COORD-089: podssh took podcrates v0.60.0 at cbef76d (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684 |
 | #282 | COORD-090: pod-lab's network labs: a proxy that reaches a server of the command's own, for podssh's lane (to podcrates) | closed 2026-11-16: podcrates `v0.62.0` gives `podlab run --serve` (its T-759) and sets the other proxy variables (T-760); podssh's lane passed behind five classes with it (`dda86c2`) | T-791 |
-| #283 | COORD-091: pod-session: a resume that the client calls done, after which the session never moves (six failures in podssh's gate) (to podcrates) | open 2026-11-16: until podcrates answers | T-780 |
+| #283 | COORD-091: pod-session: a resume that the client calls done, after which the session never moves (six failures in podssh's gate) (to podcrates) | closed 2026-11-24 (podcrates gave asks 1 and 5; podssh found the hold in its own SSH client, so asks 2 to 4 are withdrawn, and its repair is on `main` (T-780); followed in the record: T-780, which waits for ten green runs of the gate's m6 step) |  |
 | #284 | COORD-092: podssh took podcrates v0.61.0 at d13ab01, with the installer core of the tag (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-793 |
 | #285 | COORD-093: podssh took podcrates v0.62.0 at 9151ebc (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-780, T-791 |
 | #286 | COORD-094: podssh took podcrates v0.63.0 at 5340fbb, with the installer core of the tag (to podcrates) | closed 2026-11-18: podcrates recorded the take (its COORD issue closed, 2026-11-18) | T-684, T-793 |
@@ -367,17 +380,17 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #308 | COORD-111: podssh's answer to podnet's QA round: what its gate proves, and what not (to podnet) | closed 2026-11-23: by the operator: podnet closed COORD-102 (PodUtils/podnet#649) on 2026-11-20 after its T-450 to T-455; podssh's QA gate stays T-809 and T-446 | T-809 |
 | #309 | COORD-112: pod-relay: OpenError::lines says one cause twice (to podcrates) | closed 2026-11-20: answered by podcrates' entry 869 in `v0.70.0` (PodUtils/podcrates#222), taken at `99e9fd5`; the relay's lost cause is T-843 (done) | T-809 |
 | #310 | COORD-113: pod-ws: a shared HTTP/2 connection dies with the runtime that opened it (to podcrates) | closed 2026-11-18: podcrates' fix (its entry 871) taken in `v0.70.0` (COORD-119); T-811 done | T-811 |
-| #311 | COORD-114: podssh's answer to podvm's COORD-180: its temp files and edges, and its black-box pass (to podvm) | open 2026-11-17: until podvm reads it | T-819 |
+| #311 | COORD-114: podssh's answer to podvm's COORD-180: its temp files and edges, and its black-box pass (to podvm) | closed 2026-11-24 (the answer is posted and each of its points is done, T-819; podvm's COORD-180 stays open in podvm's repository) | T-819 |
 | #312 | COORD-115: podssh's answer to COORD-131: the rulings in AGENTS.md, and its copies of shared code (to podcrates) | closed 2026-11-23: by the operator: podcrates read it (PodUtils/podcrates#221); `Interrupts` public since `v0.78.1`, podssh's copy gone; the copies left are T-820's, and the takes' issues (#335, #337, #340) | T-820 |
 | #313 | COORD-116: two messages of pod-dns and pod-relay that podssh's black-box pass found (to podcrates) | closed 2026-11-20: answered by podcrates' entries 903 and 904 in `v0.70.0` (PodUtils/podcrates#222), taken at `99e9fd5`; T-818 done | T-818 |
 | #314 | COORD-117: pod-session keeps a write's error over the relay's Close, and the layer's link budget ignores a small cap (to podcrates) | closed 2026-11-19: both asks answered (podcrates entries 908 and 909, then 953 and 958) and taken at `ba19367`; T-826's rest is COORD-126's | T-826 |
 | #315 | COORD-118: three lines of pod-proxy, pod-session and pod-relay that podssh's black-box pass found untrue or short (to podcrates) | closed 2026-11-20: answered by podcrates' entries 911, 912 and 913 in `v0.71.0` (PodUtils/podcrates#228), taken at `a6a3a3e`; T-828 done | T-828 |
 | #316 | COORD-120: podssh's answer to COORD-134: podrunner first; cfb's asks in podssh wait for podcrates T-110, T-111, T-112 and T-117 (to podcrates) | closed 2026-11-23: by the operator: podcrates closed COORD-134 (PodUtils/podcrates#225) and answered asks 1 and 2 in COORD-136 (PodUtils/podcrates#227); cfb's blocked entries stay in #195 | T-711, T-719, T-722, T-729 |
-| #317 | Donor study of 2026-11-18: 24 outside projects, one mechanism each that podssh lacks (tracker) | open 2026-11-18: until each of its entries is done | T-831, T-832, T-833, T-834, T-835, T-836, T-837, T-838, T-839, T-840, T-841, T-842, plus the existing entries that got additions: T-116, T-123, T-150, T-159, T-160, T-161, T-303, T-304 |
+| #317 | Donor study of 2026-11-18: 24 outside projects, one mechanism each that podssh lacks (tracker) | open 2026-11-24: until the mechanisms that are not built are done: T-831 (its codec waits for a tag of podcrates), T-834, T-836, T-837's viewport, T-839 (the TPM codec; #351 asks podcrates), T-123, T-161, T-303 and T-304; the others are done | T-831, T-832, T-833, T-834, T-835, T-836, T-837, T-838, T-839, T-840, T-841, T-842, plus the existing entries that got additions: T-116, T-123, T-150, T-159, T-160, T-161, T-303, T-304 |
 | #318 | COORD-119: podssh took podcrates v0.70.0 at 99e9fd5; a policy refusal lost the relay's cause (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#222) and answered T-843's ask by its entry 926 in `v0.71.0` (#228), taken at `a6a3a3e`; T-828 and T-843 done | T-684, T-828, T-843 |
 | #319 | COORD-121: podssh took podcrates v0.71.0 at a6a3a3e (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#228) | T-684, T-826 |
 | #320 | COORD-122: podssh took podcrates v0.73.0 at bcd2b2f; under a 1 MiB cap a new link sends again more than the cap (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#229, #231) and answered its ask by its entry 953 in `v0.74.0` (#237), taken at `9989ae6` | T-684, T-780, T-826 |
-| #322 | COORD-123: podssh's entry for the ruling "ghcr.io": T-847, the job image of release.yml in the form of C789 (to podcrates) | open 2026-11-19: until T-847's first push at a tag | T-847 |
+| #322 | COORD-123: podssh's entry for the ruling "ghcr.io": T-847, the job image of release.yml in the form of C789 (to podcrates) | closed 2026-11-24 (the entry is written and its dry run passed; the first push to ghcr.io waits for podssh's next release tag; followed in the record: T-847) |  |
 | #325 | COORD-124: podssh took podcrates v0.74.0 at 9989ae6; a move at three quarters of the cap still comes after it (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#237) and answered its ask by its entry 958 in `v0.75.0` (#238), taken at `ba19367` | T-684, T-826 |
 | #326 | COORD-125: pod-term: a cooked session with no prompt, for an exec'd command (to podcrates) | closed 2026-11-19: answered in podcrates `v0.77.0` (its entry 960), taken at `b3005e5`; T-848 done | T-848 |
 | #327 | COORD-126: podssh took podcrates v0.75.0 at ba19367; on Windows a move began late and met the cap once (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#238) and answered its ask by its entry 962 in `v0.76.0` (#239), taken at `5975bb0`; T-826 done | T-684, T-826 |
@@ -389,12 +402,12 @@ the four once `main` held them, and opened #301 for webpki-roots 1.0.12 alone, a
 | #334 | COORD-130: podssh took podcrates v0.79.0 at 4552b86; a leaf's line of pod-release names an empty subject (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#245) and did the ask as its entry 1016, on its `main` for the next tag | T-684 |
 | #335 | COORD-131: podssh took podcrates v0.80.0 at 77c63da (to podcrates) | closed 2026-11-20: podcrates recorded the take (PodUtils/podcrates#250) | T-684, T-820 |
 | #337 | COORD-132: podssh took podcrates v0.81.0 at 467274b (to podcrates) | closed 2026-11-21: podcrates recorded the take (PodUtils/podcrates#254) | T-684, T-820 |
-| #340 | COORD-133: podssh took podcrates v0.82.0 at e728db9 (to podcrates) | open 2026-11-23: until podcrates records the take | T-684 |
-| #341 | COORD-134: carry vendor/iroh-relay to 1.4.2, for iroh 1.4.2 (to podcrates) | open 2026-11-23: podcrates answered in v0.82.1 (COORD-152), taken at 345d11fa; closes when podcrates records the take | T-684 |
-| #342 | COORD-135: what keeps podssh's node_install off pod-unit, and one step of pod_core::files (to podcrates) | open 2026-11-23: podcrates answered in v0.82.1 (COORD-152), taken at 345d11fa; closes when podcrates records the take | T-820 |
-| #343 | COORD-136: pod_core::files::bind_staged binds at the path past sun_path's room (to podcrates) | open 2026-11-23: podcrates answered in v0.82.1 (COORD-152), taken at 345d11fa; closes when podcrates records the take | T-857 |
-| #346 | COORD-137: a sans-IO 7-bit transfer envelope for a pty that damages ZMODEM: pod-term or podssh? (to podcrates) | open 2026-11-24: answered by podcrates' COORD-153 (PodUtils/podcrates#258): the codec goes into `pod-term` (done in podcrates, in its next tag), podssh writes no copy; open until podssh takes that tag (T-831) | T-831 |
-| #347 | COORD-138: podssh took podcrates v0.82.1 at 17999753; one more ask of pod-unit: a unit name past 64 (to podcrates) | open 2026-11-24: until podcrates records the take and answers the ask | T-684, T-820 |
+| #340 | COORD-133: podssh took podcrates v0.82.0 at e728db9 (to podcrates) | closed 2026-11-24 (podcrates recorded the take of `v0.82.0` in its COORD-152, PodUtils/podcrates#257; followed in the record: T-684) |  |
+| #341 | COORD-134: carry vendor/iroh-relay to 1.4.2, for iroh 1.4.2 (to podcrates) | closed 2026-11-24 (podcrates answered in `v0.82.1` (COORD-152): the fork of iroh-relay at 1.4.2 and `pod-iroh` on iroh 1.4.2; podssh took it at 17999753, with the iroh family of #339; followed in the record: T-684) |  |
+| #342 | COORD-135: what keeps podssh's node_install off pod-unit, and one step of pod_core::files (to podcrates) | closed 2026-11-24 (podcrates answered asks (a) to (e) in `v0.82.1` (COORD-152); podssh took the tag at 17999753 and `Replace::write_checked` at `ea4c2905`; moving `node_install/` onto the renderers of pod-unit is followed in the record: T-820) |  |
+| #343 | COORD-136: pod_core::files::bind_staged binds at the path past sun_path's room (to podcrates) | closed 2026-11-24 (podcrates answered in `v0.82.1` (COORD-152): `bind_staged` binds a path past `sun_path`; podssh uses it at `84aa97d3` and dropped `control_link.rs`) | T-857 |
+| #346 | COORD-137: a sans-IO 7-bit transfer envelope for a pty that damages ZMODEM: pod-term or podssh? (to podcrates) | closed 2026-11-24 (answered by podcrates' COORD-153, PodUtils/podcrates#258: the codec goes into `pod-term` and podcrates writes it; podssh wrote it no copy and published its design in `docs/terminal.md`; taking the tag is followed in the record: T-831) |  |
+| #347 | COORD-138: podssh took podcrates v0.82.1 at 17999753; one more ask of pod-unit: a unit name past 64 (to podcrates) | open 2026-11-24: podcrates recorded the take of `v0.82.1` (COORD-152); open until podcrates answers the ask of a unit name past 64 (and `AF_NETLINK` in a user unit) | T-820 |
 | #349 | COORD-139: four findings on pod-link's DNS carrier, and a DoH Datagrams (to podcrates) | open 2026-11-24: until podcrates answers each finding (a fix, or a reason) | T-876 |
 | #350 | COORD-140: pod-term: the modes of a terminal's output, and the modes at an offset of a Ring (to podcrates) | open 2026-11-24: until podcrates answers (a tag with `pod_term::modes::Modes` and `Ring::modes_at`, or a reason) | T-161 |
 | #351 | COORD-141: a TPM 2.0 codec and the TSS2 key file in pure Rust: a crate pod-tpm? (to podcrates) | open 2026-11-24: until podcrates answers (it takes the module as `pod-tpm`, or says why not) | T-839 |

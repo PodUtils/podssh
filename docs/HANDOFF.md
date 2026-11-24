@@ -34,18 +34,14 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 
 | Issue | Waits for |
 | --- | --- |
-| #248 (COORD-071) | podcrates' order of Q101's waves 3 and 4; then each tag, taken at once (T-684) |
-| #283 (COORD-091) | podcrates' answers to T-780's asks |
-| #311 (COORD-114, to podvm) | podvm reading it (T-819) |
-| #322 (COORD-123) | T-847's first push at a release tag |
-| #340 (COORD-133) | podcrates recording the take of `v0.82.0` (T-684) |
-| #341 (COORD-134), #342 (COORD-135), #343 (COORD-136) | podcrates recording the take of `v0.82.1`, which answered each (T-684, T-820, T-857) |
-| #346 (COORD-137) | podssh taking the tag with `pod-term`'s 7-bit codec (T-831); podcrates answered by its COORD-153 (PodUtils/podcrates#258) |
-| #347 (COORD-138) | podcrates recording the take of `v0.82.1` and answering the ask on `pod-unit`'s name bound (T-684, T-820) |
-| #349 (COORD-139) | podcrates answering T-876's four findings in `pod-link`'s DNS responder, and a DoH `Datagrams` |
+| #347 (COORD-138) | podcrates' answer to the ask of a unit name past 64 in `pod-unit` (T-820) |
+| #349 (COORD-139) | podcrates' answer to T-876's four findings in `pod-link`'s DNS responder, and a DoH `Datagrams` |
 | #350 (COORD-140) | podcrates' `pod_term::modes::Modes` and `Ring::modes_at` (T-161) |
 | #351 (COORD-141) | podcrates' answer on a crate `pod-tpm` (T-839) |
 | #352 (COORD-142) | podcrates' answers to asks (a) and (b) on `pod_core::failure` (T-820) |
+
+Closed on 2026-11-24, each answered or done: #248, #283, #311, #322, #340 to #343, #346 (podcrates' COORD-153 answered
+it: the 7-bit codec comes in `pod-term`'s next tag, T-831 takes it then).
 
 ## The sessions of PodUtils
 
