@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**832 entries: 7 open, 46 partial, 12 blocked, 767 done.**
+**832 entries: 7 open, 45 partial, 12 blocked, 768 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 7 | 13 | 7 | 363 | 390 |
-| **All** | 7 | 46 | 12 | 767 | 832 |
+| P3 | 7 | 12 | 7 | 364 | 390 |
+| **All** | 7 | 45 | 12 | 768 | 832 |
 
 ## Entries
 
@@ -904,7 +904,7 @@ repository and CI).
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | open | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
-| [T-896](resume.md) | P3 | M | backlog | feature | partial | Local echo from end to end, for kept and shared shells, and on the Windows console |
+| [T-896](resume.md) | P3 | M | backlog | feature | done | Local echo from end to end, for kept and shared shells, and on the Windows console |
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |

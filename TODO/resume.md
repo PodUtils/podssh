@@ -4780,7 +4780,7 @@ Drafted 2026-11-24 on T-833's draft; merged, built and tested by the main sessio
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4955,15 +4955,16 @@ Results (2026-11-24, Rust 1.99.1):
   `docs/terminal.md` ("A shell shared by name"), the row of `docs/STATUS.md`; the citations of
   `crates/podssh-ssh/src/server/mod.rs` in `TODO/serve.md` moved by hand as the remap would move them.
 
-Results of the draft, each UNVERIFIED:
+Results (2026-11-24, Rust 1.99.1, merged by the main session on `main` after `4d76d55`):
 
-- `cargo test -p podssh-ssh --test serve_predict_share`: UNVERIFIED.
-- `cargo test -p podssh-ssh --test serve_share --test serve_predict --test serve_predict_kept`: UNVERIFIED.
-- `cargo test -p podssh-ssh --lib server::share` and `--lib server::predict_count`: UNVERIFIED.
-- `cargo test -p podssh-cli --lib man::`, `--test man_page`; `llms-full.txt` against the manual's writer: UNVERIFIED.
-- The Windows build (`share_told.rs` and `predict_count.rs` build there, unused): UNVERIFIED.
-- rustfmt and the gate's clippy; `cargo todo check`; `python scripts/check-repo.py`: UNVERIFIED.
+- `cargo test -p podssh-ssh --test serve_predict_share`: 2 passed.
+- `cargo test -p podssh-ssh --test serve_share --test serve_predict --test serve_predict_kept`: 6, 3 and 2 passed.
+- `cargo test -p podssh-ssh --lib server::share` and `--lib server::predict_count`: passed, in `--lib`'s 547.
+- `cargo test -p podssh-cli --lib man::`, `--test man_page`; `llms-full.txt` against the manual's writer: passed; `llms.txt` and `llms-full.txt` written again by the binary.
+- The Windows build (`share_told.rs` and `predict_count.rs` build there, unused): `cargo check --locked --tests --target x86_64-pc-windows-gnu`, clean.
+- rustfmt and the gate's clippy; `cargo todo check`; `python scripts/check-repo.py`: clean. The whole suite: 428 suites, 4285 passed, 3 failed (`job_far`, at this
+  container's stand-in of `rm`, as before).
 
-Left: the merge and the runs above. The planted defects wait for T-251: a pump of a kept shell that tells the first
+The planted defects wait for T-251: a pump of a kept shell that tells the first
 channel's reporter after a join, a client that draws on a console whose VT mode was refused, and a seat's report
 told from a task of its own (not in the broadcast), which `serve_predict_share` must fail.
