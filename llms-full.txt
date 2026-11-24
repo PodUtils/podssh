@@ -8195,23 +8195,24 @@ podssh relay
   /trace, /llms-full.txt, /relays.json and /v1/probe/* answer the site's 404
   there. --control-socket PATH (required with --cover, mode 0600) serves them
   on a Unix socket of the owner's instead. A socket's address holds 103 bytes
-  on macOS and 107 on Linux. A longer PATH is bound there through a short link
-  to its directory under /tmp. The first line then says that a client needs a
-  shorter way to it. A PATH that no link serves is refused (78). /v1/mint stays
-  public, and a POST with a body alone: another method is 405 with Allow: POST,
-  an empty body 400. A client that authenticated with a token at POST
-  /v1/delegate gets a temporary credential of the same name and chain. It is
-  bound to the TLS exporter of the connection. podssh-ws checks its issuer,
-  name, window and binding, and refuses another issuer, a lapsed window or
-  another chain by name. This is an application-layer credential, not RFC 9345
-  and not a TLS delegated credential: no CertificateVerify, no certificate
-  extension, and the TLS stack still authenticates the certificate. One name
-  for each deployment: a certificate whose leaf names a wildcard, or not the
-  name that --acme asked for, is refused (78) in both modes. A leaf of more
-  than one name is a warning. Under --cover each name that the role terminates
-  must be given by --cover-name (repeatable, the first is the role's name). A
-  --cover-name that the certificate does not hold is refused (78), and one that
-  is also a --publish name is refused (64). --cover-name without --cover, and
+  on macOS and 107 on Linux. A longer PATH is bound through a short way to it:
+  /proc/self/fd on Linux, else a link under /tmp or /var/tmp. The first line
+  then says that a client needs a shorter way to it. A PATH that no short way
+  serves is refused (78). /v1/mint stays public, and a POST with a body alone:
+  another method is 405 with Allow: POST, an empty body 400. A client that
+  authenticated with a token at POST /v1/delegate gets a temporary credential
+  of the same name and chain. It is bound to the TLS exporter of the
+  connection. podssh-ws checks its issuer, name, window and binding, and
+  refuses another issuer, a lapsed window or another chain by name. This is an
+  application-layer credential, not RFC 9345 and not a TLS delegated
+  credential: no CertificateVerify, no certificate extension, and the TLS stack
+  still authenticates the certificate. One name for each deployment: a
+  certificate whose leaf names a wildcard, or not the name that --acme asked
+  for, is refused (78) in both modes. A leaf of more than one name is a
+  warning. Under --cover each name that the role terminates must be given by
+  --cover-name (repeatable, the first is the role's name). A --cover-name that
+  the certificate does not hold is refused (78), and one that is also a
+  --publish name is refused (64). --cover-name without --cover, and
   --cover-script without --cover, are refused (64). --cover-script FILE loads a
   TOML measurement and refuses a missing script or one with no date (78); it is
   checked at the start, and the tunnel's records are not shaped by it yet,
@@ -8928,9 +8929,9 @@ podssh relay
         /trace, /llms-full.txt, /relays.json and /v1/probe/* while the public
         listener answers the site; required with --cover; a path that exists
         already is refused. A socket's address holds 103 bytes on macOS and the
-        BSDs, 107 on Linux. A longer path is bound through a short link to its
-        directory under /tmp or /var/tmp, which the first line says. A path
-        that no link serves is refused (78).
+        BSDs, 107 on Linux. A longer path is bound through a short way to it
+        (/proc/self/fd, else a link under /tmp or /var/tmp), which the first
+        line says. A path that no short way serves is refused (78).
     --derp-keys FILE
         serve: serve DERP at /derp, over a WebSocket of the subprotocol derp,
         as Tailscale's derper does; for the node keys in FILE, one a line

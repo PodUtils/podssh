@@ -191,9 +191,11 @@ curl --unix-socket ./relay.sock http://relay/health
 
 A socket's address holds 103 bytes of path on macOS and the BSDs and 107 on
 Linux. A longer `PATH` (a scratch directory under macOS's `$TMPDIR` passes it)
-is bound at `PATH` through a short link to its directory under `/tmp`, and the
+is bound at `PATH` through a short way to it (pod-core's `bind_staged`:
+`/proc/self/fd` on Linux, else a link under `/tmp` or `/var/tmp`), and the
 first line says so: a client then reaches it by a shorter way, a relative path
-or a link of its own. A path that no link serves is refused (78), on one line.
+or a link of its own. A path that no short way serves is refused (78), on one
+line.
 
 `/v1/mint` stays public, and under `--cover` it answers a `POST` with a body
 alone: another method gets `405` with `Allow: POST`, and an empty body gets
