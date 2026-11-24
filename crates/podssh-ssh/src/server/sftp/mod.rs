@@ -39,6 +39,7 @@ use russh_sftp::protocol::{Packet, StatusCode, Version};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use super::channel::Open;
+use crate::sftp::sums::{SHA256, SHA256_BLOCKS};
 use super::{env, Settings};
 use answer::{status, Session};
 use worker::Worker;
@@ -61,8 +62,10 @@ pub const POSIX_RENAME: &str = "posix-rename@openssh.com";
 pub const FSYNC: &str = "fsync@openssh.com";
 /// The limits above, so that a client sends reads and writes of their size.
 pub const LIMITS: &str = "limits@openssh.com";
-/// The extensions of the version reply, with their versions.
-pub const EXTENSIONS: &[(&str, &str)] = &[(POSIX_RENAME, "1"), (FSYNC, "1"), (LIMITS, "1")];
+/// The extensions of the version reply, with their versions; podssh's own
+/// digests (T-150) are for podssh's client, and other clients pass them by.
+pub const EXTENSIONS: &[(&str, &str)] =
+    &[(POSIX_RENAME, "1"), (FSYNC, "1"), (LIMITS, "1"), (SHA256, "1"), (SHA256_BLOCKS, "1")];
 
 const SSH_FXP_INIT: u8 = 1;
 const SSH_FXP_EXTENDED: u8 = 200;

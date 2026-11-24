@@ -98,8 +98,9 @@ const CP: &[&str] = &[
      sent is compared with the far side's; then the file takes the source's permission bits and is \
      renamed onto the destination, at once where the server has posix-rename. A failure removes the \
      temporary file and leaves the destination as it was.",
-    "The far side's digest comes from sha256sum, shasum or openssl dgst on the server, when one runs \
-     there; else podssh reads the file again over SFTP, which counts again against the relay's limits. \
+    "The far side's digest comes first from podssh's own SFTP request, when the server is podssh serve. Else it \
+     comes from sha256sum, shasum or openssl dgst on the server, when one runs there. Else podssh reads the file \
+     again over SFTP, which counts again against the relay's limits. \
      With --jsonl each file gives one JSON object: done, with the bytes, the SHA-256 and how the far \
      side was checked, or error, with the exit code.",
     "At its end a run of podssh cp or mv says on one line what it did: the files copied and their bytes; those that \

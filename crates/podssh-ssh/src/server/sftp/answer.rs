@@ -14,6 +14,7 @@ use russh_sftp::protocol::{
 use super::fs::{self, Dir};
 use super::worker::{Failed, Worker};
 use super::{FSYNC, LIMITS, MAX_HANDLES, MAX_PACKET, MAX_READ, POSIX_RENAME};
+use crate::sftp::sums::{self, Sums, SHA256, SHA256_BLOCKS};
 
 /// A status that is no success: its code and its words.
 #[derive(Debug, Clone, PartialEq)]
@@ -153,7 +154,19 @@ impl Session {
         handle: Option<&str>,
         call: impl FnOnce() -> io::Result<T> + Send + 'static,
     ) -> Result<T, Refusal> {
-        match self.worker.call(call).await {
+        let limit = self.worker.limit();
+        self.run_within(limit, what, handle, call).await
+    }
+
+    /// [`Session::run`] within `limit`.
+    async fn run_within<T: Send + 'static>(
+        &mut self,
+        limit: std::time::Duration,
+        what: &str,
+        handle: Option<&str>,
+        call: impl FnOnce() -> io::Result<T> + Send + 'static,
+    ) -> Result<T, Refusal> {
+        match self.worker.call_within(limit, call).await {
             Ok(Ok(value)) => Ok(value),
             Ok(Err(e)) => Err(Refusal::io(what, &e)),
             Err(Failed::Stuck(limit)) => {
@@ -341,8 +354,51 @@ impl Session {
                 }
                 Ok(Packet::ExtendedReply(ExtendedReply { id, data }))
             }
+            SHA256 | SHA256_BLOCKS => self.sums(id, request, data).await,
             other => Err(Refusal::new(StatusCode::OpUnsupported, format!("the extension {other} is not served here"))),
         }
+    }
+}
+
+impl Session {
+    /// podssh's own digest requests (T-150). The file's size first, for the
+    /// limit and for the end of a range of length 0; then the hash, within a
+    /// limit that grows with the range. Requests are answered in their
+    /// order, so a digest covers each write that the handle took before it.
+    async fn sums(&mut self, id: u32, request: &str, data: &[u8]) -> Result<Packet, Refusal> {
+        let asked = sums::parse_request(data, request == SHA256_BLOCKS)
+            .map_err(|why| Refusal::new(StatusCode::BadMessage, format!("{request}: {why}")))?;
+        let file = self.handles.file(&asked.handle)?;
+        let first = file.clone();
+        let size = self.run(request, Some(&asked.handle), move || first.metadata()).await?.len();
+        let (offset, block) = (asked.offset, asked.block);
+        let end = match asked.len {
+            0 => size,
+            n => offset.saturating_add(n),
+        };
+        // The bytes that the file holds in the range now, and one more at
+        // most: a file that grows ends the read, and the size of the reply
+        // tells the rest. A file that grows cannot hold the call past its
+        // limit.
+        let reach = end.min(size).saturating_sub(offset);
+        let mut len = end.saturating_sub(offset).min(reach.saturating_add(1));
+        if block != 0 {
+            let count = sums::blocks_of(reach, block);
+            if count > sums::MAX_BLOCKS {
+                let most = sums::MAX_BLOCKS;
+                return Err(Refusal::new(
+                    StatusCode::Failure,
+                    format!("{request}: {count} blocks, where a reply carries {most}: ask a shorter range"),
+                ));
+            }
+            len = len.min(sums::MAX_BLOCKS * u64::from(block));
+        }
+        let limit = sums::reply_limit(self.worker.limit(), len);
+        let what = format!("{request} of {len} bytes at {offset}");
+        let call = move || fs::sum_file(&file, offset, len, block);
+        let (hashed, digests, state) = self.run_within(limit, &what, Some(&asked.handle), call).await?;
+        let sums = Sums { size: state.size, mtime: state.mtime, hashed, block, sums: digests };
+        Ok(Packet::ExtendedReply(ExtendedReply { id, data: sums::encode_reply(&sums) }))
     }
 }
 

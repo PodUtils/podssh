@@ -22,6 +22,7 @@ mod error;
 pub mod long;
 mod names;
 mod pipeline;
+pub mod sums;
 
 pub use error::{sentence, SftpError};
 pub use names::{Names, USERS_GROUPS};

@@ -2467,9 +2467,13 @@ SFTP, through the relay or with `--direct`, with the connection flags of
   onto the destination, at once with `posix-rename@openssh.com`. Without it,
   an existing destination is removed first, and podssh says that the
   replace was not atomic. A failure removes the temporary file.
-- The far digest comes from `sha256sum`, `shasum -a 256` or
-  `openssl dgst -sha256` over exec, when the server runs one; else from a
-  second read over SFTP (`ForceCommand internal-sftp` runs no command).
+- The far digest comes from podssh's own request `sha256@podssh` when the
+  server lists it (`podssh serve`, T-150: no exec and no second read; its
+  JSON names it as how the far side was checked); else from `sha256sum`,
+  `shasum -a 256` or `openssl dgst -sha256` over exec, when the server runs
+  one; else from a second read over SFTP (`ForceCommand internal-sftp` runs
+  no command). A request that fails on a server that lists it gives way to
+  the next of these, which names a failure that is real.
   The size and the MAC of SSH alone miss a wrong offset, a short write, and
   a source that changed while it was read.
 - Several sources go into a directory. A copy from server to server goes
@@ -6363,7 +6367,11 @@ gives up each capability of the process (T-698), before it reads a file.
   exists), mkdir, rmdir, realpath (its last part may be missing), readlink
   and symlink (the target first, in OpenSSH's order); and the extensions
   `posix-rename@openssh.com` (a rename over a name, which `podssh cp`
-  needs), `fsync@openssh.com` and `limits@openssh.com`. Another extension
+  needs), `fsync@openssh.com` and `limits@openssh.com`; and podssh's own
+  `sha256@podssh` and `sha256-blocks@podssh` (T-150, the digest of a range
+  of an open file and of each block of it, wire format in
+  [design.md](design.md), "podssh's own SFTP requests"), which `podssh cp`
+  takes first for its far digest. Another extension
   or packet type is answered as unsupported, with its id. A failure is its
   status code, as `sftp-server` maps each errno (no such file, permission
   denied, bad message, failure), with the step, the path and the system's

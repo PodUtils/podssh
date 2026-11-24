@@ -132,7 +132,7 @@ fn said(reply: &Packet) -> (StatusCode, String) {
 }
 
 #[tokio::test]
-async fn the_version_reply_names_three_extensions_and_version_3() {
+async fn the_version_reply_names_its_extensions_and_version_3() {
     let home = scratch("version");
     let (mut stream, far) = tokio::io::duplex(1 << 16);
     let (input, output) = tokio::io::split(far);
@@ -146,8 +146,8 @@ async fn the_version_reply_names_three_extensions_and_version_3() {
     match Packet::try_from(&mut Bytes::from(body)).unwrap() {
         Packet::Version(v) => {
             assert_eq!(v.version, 3);
-            for name in [POSIX_RENAME, FSYNC, LIMITS] {
-                assert_eq!(v.extensions.get(name).map(String::as_str), Some("1"), "{name}");
+            for (name, _) in EXTENSIONS {
+                assert_eq!(v.extensions.get(*name).map(String::as_str), Some("1"), "{name}");
             }
         }
         other => panic!("{other:?}"),

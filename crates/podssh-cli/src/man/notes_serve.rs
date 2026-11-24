@@ -113,7 +113,10 @@ pub const SERVE: &[&str] = &[
      client may. A path is taken as the client gives it, and a relative one starts at HOME (/ with none). Served: \
      open, read, write, close, stat, lstat, fstat, setstat, fsetstat, opendir, readdir, remove, and rename (never over \
      a name that exists). Served too: mkdir, rmdir, realpath, readlink and symlink, and the extensions \
-     posix-rename@openssh.com (a rename over a name), fsync@openssh.com and limits@openssh.com. A failure is its \
+     posix-rename@openssh.com (a rename over a name), fsync@openssh.com and limits@openssh.com. Two more are \
+     podssh's own: sha256@podssh, the SHA-256 of a byte range of an open file, and sha256-blocks@podssh, that of \
+     each block. So podssh cp checks a copy with no second read and no exec; other clients pass them by. \
+     A digest has 20 s, and one second more for each 32 MiB of its range. A failure is its \
      status code with the path and the system's words (no such file, permission denied, failure). Each call on the \
      file system has 20 s: past it the reply is a failure that says so, and the handle that it used is closed. The \
      session goes on, so a FIFO with no writer or a dead mount cannot stop it; a session that left 8 such calls ends. \
