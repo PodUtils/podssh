@@ -9,8 +9,10 @@
 //! reload that takes one of two keys out ends that key's session, with its
 //! name to the client and its child gone, and the other key's goes on;
 //! without the flag neither ends; a key's `expiry-time=` ends its session
-//! at that second. The same against OpenSSH's client and a SIGTERM or a
-//! SIGHUP: `podssh-cli`'s `tests/serve_lifecycle_openssh.rs`.
+//! at that second. A client that leaves with no DISCONNECT after its login
+//! ends its connection as its own end (T-869). The same against OpenSSH's
+//! client and a SIGTERM or a SIGHUP: `podssh-cli`'s
+//! `tests/serve_lifecycle_openssh.rs` and `tests/serve_end_openssh.rs`.
 
 #![cfg(unix)]
 
@@ -356,4 +358,41 @@ async fn a_key_that_expires_ends_its_session_at_its_time_when_asked() {
     let heard = heard.lock().unwrap().join("\n");
     let who = podssh_ssh::known_hosts::fingerprint(login.public_key());
     assert!(heard.contains(&who) && heard.contains("expiry-time"), "one line names the key: {heard}");
+}
+
+/// A client that leaves with no DISCONNECT (OpenSSH after a refused
+/// forward, or a client whose link dropped) ends its connection: after its
+/// login that is its own end, `Ok` with no failure line; before its login,
+/// one true line that says so, never "the SSH connection failed" (T-869).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_client_that_leaves_with_no_disconnect_ends_its_connection() {
+    for logs_in in [true, false] {
+        let login = key();
+        let (keys, control) = (Keys::new(only(&login)), Control::new());
+        // A pump between the two ends: its abort drops both of its sides,
+        // as a client gone at once.
+        let (near, client_side) = tokio::io::duplex(1 << 22);
+        let (server_side, far) = tokio::io::duplex(1 << 22);
+        let served = tokio::spawn(server::serve_under(far, key(), keys, settings(), control));
+        let pump = tokio::spawn(async move {
+            let (mut a, mut b) = (client_side, server_side);
+            let _ = tokio::io::copy_bidirectional(&mut a, &mut b).await;
+        });
+        let mut handle = client::connect_stream(Arc::new(client::Config::default()), near, Client::default())
+            .await
+            .expect("the key exchange");
+        if logs_in {
+            let signed = PrivateKeyWithHashAlg::new(Arc::new(login.clone()), None);
+            assert!(handle.authenticate_publickey("anyone", signed).await.unwrap().success());
+        }
+        pump.abort();
+        let ended = tokio::time::timeout(LIMIT, served).await.expect("serve ends in time").expect("joined");
+        if logs_in {
+            assert_eq!(ended, Ok(()), "the client's own end");
+        } else {
+            let why = ended.expect_err("no login");
+            assert!(why.starts_with("the client closed the connection before it logged in"), "{why}");
+        }
+        drop(handle);
+    }
 }

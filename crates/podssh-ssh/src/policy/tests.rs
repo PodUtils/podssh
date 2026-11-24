@@ -184,6 +184,51 @@ fn a_mismatch_says_what_was_expected_and_what_came() {
     assert_eq!(verdict.unmeasured, vec!["host key size ssh-ed25519".to_string()]);
 }
 
+/// One form of a mismatch for each line (doctor's, serve's, T-869): the
+/// field once, then what was expected and what came; the detail of a
+/// verdict says each field once, and a verdict with no mismatch keeps its
+/// summary.
+#[test]
+fn a_mismatch_has_one_form_and_the_detail_names_each_field_once() {
+    let one = |field: &str, expected: &[&str], optional: &[&str], actual: &[&str]| Mismatch {
+        field: field.into(),
+        expected: expected.iter().map(|s| s.to_string()).collect(),
+        optional: optional.iter().map(|s| s.to_string()).collect(),
+        actual: actual.iter().map(|s| s.to_string()).collect(),
+    };
+    let cases = [
+        (
+            one("ciphers", &["aes128-ctr"], &[], &["aes128-ctr", "3des-cbc"]),
+            "ciphers: expected aes128-ctr, got aes128-ctr,3des-cbc",
+        ),
+        (
+            one("macs", &["hmac-sha2-256"], &["umac-128@openssh.com"], &[]),
+            "macs: expected hmac-sha2-256 (optional umac-128@openssh.com), got nothing",
+        ),
+        (
+            one("host key size rsa-sha2-512", &["3072"], &[], &["2048"]),
+            "host key size rsa-sha2-512: expected 3072, got 2048",
+        ),
+    ];
+    for (mismatch, want) in &cases {
+        assert_eq!(mismatch.line(), *want);
+    }
+    let verdict = Verdict {
+        policy: "p".into(),
+        version: 1,
+        mismatches: cases.iter().map(|(m, _)| m.clone()).collect(),
+        unmeasured: Vec::new(),
+    };
+    let detail = verdict.detail();
+    assert!(detail.starts_with("the policy \"p\" found 3 mismatch(es): ciphers: expected"), "{detail}");
+    for (mismatch, want) in &cases {
+        assert_eq!(detail.matches(mismatch.field.as_str()).count(), 1, "{detail}");
+        assert!(detail.contains(want), "{detail}");
+    }
+    let passed = Verdict { mismatches: Vec::new(), ..verdict };
+    assert_eq!(passed.detail(), passed.line());
+}
+
 /// The same policy judges Dropbear by its own lists: each that differs is
 /// named, and a subset policy passes it.
 #[test]

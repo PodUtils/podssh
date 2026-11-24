@@ -10834,8 +10834,10 @@ podssh serve
   sshd, which may not listen, gives a shell and its files this way. The keys,
   the host key and the other flags are those of --stdio; --stdio and NAME are
   one of the two (64). The node's lines say serving podssh serve, in this
-  process. SIGHUP reads the keys again for each session of the node, as with
-  --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.
+  process. Whoever holds the pair's connect token reaches serve, whose
+  authorized keys alone guard each login. SIGHUP reads the keys again for each
+  session of the node, as with --stdio, and --revoke-ends-sessions ends a
+  removed key's sessions there too.
 
   Only public keys log in. The keys are each --authorized-key, and the lines of
   each --authorized-keys file; with neither, ~/.ssh/authorized_keys. A key is
@@ -11049,7 +11051,11 @@ podssh serve
   under the rules it logged in with. A file that is gone or cannot be read, or
   no key at all, keeps the set before, and one line on stderr says why; a
   reload that took says how many lines are used now. The other settings are the
-  command line's, and a restart changes them.
+  command line's, and a restart changes them. Under --stdio, a SIGHUP that
+  comes with the end of the input is the client's end, as OpenSSH hangs up its
+  ProxyCommand when it exits: it reads nothing and says nothing. A client that
+  closes the connection after its login, with or without a disconnect, ends it
+  with no line.
 
   With --revoke-ends-sessions, a reload that takes a key out also ends that
   key's open sessions. A key whose line now refuses it (from=, expiry-time=)
@@ -11088,8 +11094,9 @@ podssh serve
   key exchanges, host keys, and the ciphers, MACs and compressions it sends
   with. A mismatch, or a KEXINIT that does not read, ends the connection. The
   client gets a disconnect that names the policy, and no key logs in. One line
-  on stderr names the client's address and each mismatch. A client offers no
-  host key, so a size rule never refuses one.
+  on stderr names the client's address and each mismatch, as doctor does:
+  FIELD: expected A,B, got C. A client offers no host key, so a size rule never
+  refuses one.
 
   serve NAME --print-unit prints a unit of systemd that runs serve NAME with
   these flags, each file by its absolute path, and writes nothing. It is a user

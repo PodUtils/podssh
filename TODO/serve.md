@@ -3698,8 +3698,8 @@ a pair, and no gateway that routes a stock `ssh` client by its user name.
 ## Premise
 
 - Read: `podssh serve` ignores the login name: "the login name selects nothing: the key alone decides"
-  (`crates/podssh-ssh/src/server/handler.rs:248-254`). It refuses a key before a signature
-  (`crates/podssh-ssh/src/server/handler.rs:243-246`), which is the check that sshpiper lacks.
+  (`crates/podssh-ssh/src/server/handler.rs:249-255`). It refuses a key before a signature
+  (`crates/podssh-ssh/src/server/handler.rs:243-247`), which is the check that sshpiper lacks.
 - Read: who may reach which node is the net's policy (T-430), signed by its owner; a gateway's table
   would be a second table.
 - Read in the report, not verified here: sshpiper stops the downstream handshake after the service
@@ -3844,7 +3844,7 @@ which of two writers' bytes reach the pty.
 ## Premise
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
-  nothing (`crates/podssh-ssh/src/server/handler.rs:248-254`, `:367-390`); `--listen` is T-124, still open.
+  nothing (`crates/podssh-ssh/src/server/handler.rs:249-255`, `:369-392`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4653,7 +4653,7 @@ cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4671,10 +4671,86 @@ cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture
 4. One formatter of a mismatch for serve, doctor and the JSON (T-838's `Verdict::line`).
 5. Tests pin each line.
 
+## Decision
+
+- The premise holds, read in the code: (1) `host_key::parse` gave ssh-key's error as it came, and pem-rfc7468's
+  `strip_preamble` says `Error::Preamble` ("PEM preamble contains invalid data (NUL byte)") for any text with no
+  `-----BEGIN` boundary, NUL or not; (2) `serve_until_stopped` took each SIGHUP as a reload, and OpenSSH's `ssh.c`
+  closes its packet's descriptors, then sends its ProxyCommand SIGHUP; `serve_under` mapped each `russh::Error::IO`
+  to `the SSH connection failed: E`, so a client that left with no DISCONNECT (OpenSSH's fatal exit after a refused
+  `-W`) or before reading serve's last bytes was a failure (exit 1); (3) `channel.rs`'s `OPEN_DOOR` is the line of
+  a node with a TARGET, said for `serve NAME` too, which has no TARGET, no `--allow` and no `--carrier`; (4)
+  `policy_gate.rs` joined `Verdict::line` (which lists the fields) with its own `words` (each field again, with no
+  colon), and doctor had a third form.
+- The client's end under `--stdio`: a SIGHUP waits up to 250 ms (`serve_end::GRACE`) for the end of the input, seen
+  where russh reads it and asked of descriptor 0 by `poll` (POLLHUP) besides; at the end it reloads nothing and says
+  nothing. Lost: ignoring SIGHUP under `--stdio` (T-117 makes it the reload there too, and an operator's reload of a
+  live session must stay); reloading and saying nothing (a reload at a logout still reads the files, and with
+  `--revoke-ends-sessions` it could end what is ending anyway); a wait for the connection's end alone (russh's last
+  write is bounded by 10 s, `FINAL_WRITE`, past which no end is sure; the end of the input comes first).
+- An I/O error of a client's close (`UnexpectedEof`, `BrokenPipe`, `ConnectionReset`, `ConnectionAborted`) after a
+  login (by a key or a share's name, `Conn::accept`) is the client's end, `Ok`; before a login it is one line, `the
+  client closed the connection before it logged in (E)`, still a failure (1), as nobody logged in. Lost: each close
+  `Ok` (a client that drops in the key exchange, or a host key that its user refused, is worth the operator's line);
+  keeping the failure after a login (the finding: each OpenSSH `-W` refusal said `early eof` at a normal end).
+- One form of a mismatch, `Mismatch::line` (doctor's `FIELD: expected A,B (optional C), got D`, `nothing` for an
+  empty list), and `Verdict::detail` for serve, which says each field once. The JSON keeps its fields: a client
+  reads them as data, and a schema change for a line's words is a change of no use. Lost: serve's `none` for an
+  empty list (doctor's `nothing` is the documented form).
+- A host key file with no OpenSSH PEM block is named for what it holds (empty, binary, a public key, a PEM block of
+  another label, a PuTTY key, other text), then what serve takes. Reading a PKCS#8 or PuTTY host key was not taken:
+  serve's manual names one format, and a second is a feature, not this defect.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_lifecycle
+cargo test -p podssh-ssh --test serve_auth
+cargo test -p podssh-ssh --lib server::tests
+cargo test -p podssh-ssh --lib server::policy_gate
+cargo test -p podssh-ssh --lib policy::tests
+cargo test -p podssh-cli --lib serve_end
+cargo test -p podssh-cli --lib node_serve
+cargo test -p podssh-cli --lib doctor::policy
+cargo test -p podssh-cli --test serve_end_openssh
+cargo test -p podssh-cli --test serve_lifecycle_openssh
+cargo test -p podssh-cli --test serve_policy_openssh
+cargo test -p podssh-cli --test serve_options_openssh
+cargo test -p podssh-cli --test serve_node_reload
 ```
 
+## Done
+
+Draft, 2026-11-24 (worktree `serve-lines`, not built):
+
+- (1) `crates/podssh-ssh/src/server/host_key.rs`: `parse` names what a file with no `-----BEGIN OPENSSH PRIVATE
+  KEY-----` line holds, in one line, before ssh-key reads it; a comment before the block still reads. Pinned by
+  `serve_auth`'s `a_host_key_file_that_is_no_key_says_what_it_holds` (a table of six).
+- (2) `crates/podssh-cli/src/serve_end.rs` (new): the input's end, watched where it is read and asked of descriptor
+  0; `serve_keys::serve_until_stopped` takes a SIGHUP at the end of the input as the client's end. Unit tests
+  `serve_end::tests` (2). `crates/podssh-ssh/src/server/mod.rs`: `closed` maps a client's close after a
+  login to `Ok`, before one to one line; `live::Conn::accept` marks the login (`handler.rs`, by a key and by a
+  share's name). Pinned by `server::tests::a_close_by_the_client_after_its_login_is_its_end` and
+  `serve_lifecycle`'s `a_client_that_leaves_with_no_disconnect_ends_its_connection` (after a login and before one).
+  Against OpenSSH, with no wrapper so that its own SIGHUP reaches serve:
+  `crates/podssh-cli/tests/serve_end_openssh.rs` (a command, a pty refused by `no-pty`, `-W` refused by `restrict`
+  and by `--no-forwarding`: no `SIGHUP`, `the SSH connection failed`, `Broken pipe` or `early eof` line of serve).
+  The operator's reload stays: `serve_lifecycle_openssh` (T-117's SIGHUP on a live session still says
+  `read again`, and T-842's revoke) and `serve_node_reload` (T-855, unchanged path).
+- (3) `crates/podssh-cli/src/node_serve.rs`: `open_door` gives `serve NAME` its own line (no TARGET, no `--allow`,
+  no `--carrier`); `channel.rs` calls it. Pinned by `node_serve::tests`.
+- (4) `crates/podssh-ssh/src/policy/verdict.rs`: `Mismatch::line` and `Verdict::detail`; `policy_gate.rs` and
+  `doctor/policy.rs` use them. Pinned by `policy::tests::a_mismatch_has_one_form_and_the_detail_names_each_field_once`,
+  `policy_gate`'s table (each field once, `FIELD: expected`), `doctor::policy`'s table (unchanged words) and
+  `serve_policy_openssh` (`key exchanges: expected ...`, once).
+- The manual (`man/notes_serve.rs`, `man/notes_policy.rs`) and `docs/cli.md` say each line. (run at the merge, below): `cargo fmt
+  --check`, clippy, `python scripts/check-repo.py`, `cargo todo check`.
+
+Merged and run here (2026-11-24, Linux, Rust 1.100, OpenSSH 9.6p1): podssh-ssh `--test serve_lifecycle` 8, `serve_auth` 9,
+`--lib` 470 (`server::tests`, `server::policy_gate`, `policy::tests` among them); podssh-cli `--lib` 1264 (`serve_end`,
+`node_serve`, `doctor::policy`); `--test serve_end_openssh` 1 passed three times, `serve_lifecycle_openssh` 2,
+`serve_policy_openssh` 3, `serve_options_openssh` 5, `serve_node_reload` 3, `serve_openssh` 9. Two repairs at the merge:
+the new test's row of a refused pty expected 0, where OpenSSH ends a session whose forced pty was refused with 255 (as
+`serve_options_openssh` pins); and one sentence of the manual was cut to 25 words or fewer. clippy (one redundant borrow
+removed) and fmt clean; `llms-full.txt` written again.

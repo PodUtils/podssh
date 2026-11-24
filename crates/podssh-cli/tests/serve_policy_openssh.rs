@@ -64,7 +64,8 @@ fn a_client_inside_the_policy_logs_in_and_one_outside_is_refused_before_authenti
     assert!(err.contains("do not meet the policy \"curve only\""), "the client hears the policy: {err}");
     let line = err.lines().find(|l| l.contains("refused before authentication")).unwrap_or_default();
     assert!(line.starts_with("podssh serve: client with no address (a pipe)"), "serve's line: {err}");
-    assert!(line.contains("key exchanges expected curve25519-sha256, got "), "the mismatch is named: {err}");
+    assert!(line.contains("key exchanges: expected curve25519-sha256, got "), "the mismatch is named: {err}");
+    assert_eq!(line.matches("key exchanges").count(), 1, "the field is said once (T-869): {line}");
     assert!(!err.contains("Authenticated"), "no key logged in: {err}");
 }
 

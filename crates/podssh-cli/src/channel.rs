@@ -321,7 +321,7 @@ pub fn node(label: &str, key: file::Key, allow: Option<PathBuf>, err: &mut dyn W
     // The pair's token alone as the door leaves a TARGET that is not SSH with
     // no gate of its own (T-226).
     if allow.is_none() && member.is_none() {
-        let _ = writeln!(err, "podssh node: {label}: {OPEN_DOOR}");
+        let _ = writeln!(err, "podssh node: {label}: {}", crate::node_serve::open_door(OPEN_DOOR));
     }
     let _ = writeln!(err, "podssh node: {label}: {}", crate::grants::line(label, allow.as_deref()));
     let redeem = crate::grants::door(label, me, allow.clone());

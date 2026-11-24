@@ -64,11 +64,9 @@ pub(super) fn line(reading: Result<Judged, String>, name: &str) -> Verdict {
 }
 
 /// One mismatch: `FIELD: expected A,B, got C`, with the names that the
-/// policy allows besides.
+/// policy allows besides; the one form that serve's line takes too.
 fn mismatch(m: &Mismatch) -> String {
-    let names = |list: &[String]| if list.is_empty() { "nothing".to_string() } else { list.join(",") };
-    let optional = if m.optional.is_empty() { String::new() } else { format!(" (optional {})", m.optional.join(",")) };
-    format!("{}: expected {}{optional}, got {}", m.field, names(&m.expected), names(&m.actual))
+    m.line()
 }
 
 #[cfg(test)]

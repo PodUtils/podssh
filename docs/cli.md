@@ -3641,7 +3641,8 @@ judges what the peer offers.
   (`handler.rs`). One line on stderr names the client's address (`with no
   address (a pipe)` for `serve NAME` and a ProxyCommand) and each
   mismatch: `podssh serve: client ADDR: refused before authentication:
-  the policy "NAME" found N mismatch(es): ...: FIELD expected A,B, got C`.
+  the policy "NAME" found N mismatch(es): FIELD: expected A,B, got C; ...`,
+  each mismatch in doctor's words, its field once (T-869).
   A client offers no host key, so a size rule is unmeasured there and
   never refuses. `ext-info-c` and `kex-strict-c-v00@openssh.com` are
   markers, judged only by a policy that names one, as on a server.
@@ -6068,7 +6069,11 @@ NAME on the relay's road whose sessions serve answers in its process
 (`crates/podssh-cli/src/node_serve.rs`): each session is one end of a pipe,
 serve speaks SSH on the other, and no TARGET is dialled; an operator reaches
 it as any node (`podssh ssh node://user@NAME`, `podssh cp`), with the
-node's channel and resumable layer. `--stdio` and NAME together are 64. Nothing listens: OpenSSH's client, or
+node's channel and resumable layer. Its start says who reaches it (T-869):
+`whoever holds the pair's connect token reaches this node's door, and
+podssh serve in this process answers each session there: its authorized
+keys alone guard each login`, in the place of a node's warning of a TARGET
+that serve does not have. `--stdio` and NAME together are 64. Nothing listens: OpenSSH's client, or
 `podssh ssh`, reaches it through its `ProxyCommand`, so the gate tests it
 with OpenSSH and no port (`crates/podssh-cli/tests/serve_stdio.rs`). It runs
 as the user that started it and needs no passwd entry; at its start it
@@ -6164,7 +6169,13 @@ gives up each capability of the process (T-698), before it reads a file.
   with (not Ed25519, ECDSA or RSA), is refused at the start with one line
   and 78: `podssh serve: the host key: FILE: it is an RSA key of 1024 bits;
   podssh signs with RSA keys of 2048 to 8192 bits, through aws-lc-rs; use an
-  Ed25519 key (podssh keygen -t ed25519)`. The key that serve makes is
+  Ed25519 key (podssh keygen -t ed25519)`. A file with no `-----BEGIN
+  OPENSSH PRIVATE KEY-----` line is named for what it holds (T-869): empty,
+  binary data, a public key, a PEM block of another label, a PuTTY key, or
+  text with no private key in it, then what serve takes, in one line
+  (`podssh serve: the host key: FILE: the file holds a public key, not a
+  private key: serve takes an OpenSSH private key ...`), never ssh-key's
+  words of a NUL byte that the file does not hold. The key that serve makes is
   Ed25519, which russh signs.
 - **The algorithms (T-841).** One stated set
   (`crates/podssh-ssh/src/server/algorithms.rs`), given to russh's server
@@ -6477,6 +6488,17 @@ gives up each capability of the process (T-698), before it reads a file.
   on stderr that says why (`podssh serve: SIGHUP: FILE: no such file; the
   set before stays, 1 keys`), as a reload must not lock each new login out.
   serve reads no settings file: its other settings are the command line's.
+  Under `--stdio`, a SIGHUP that comes with the end of the input, or up to
+  250 ms before it, is the client's end, not a reload (T-869): OpenSSH
+  closes its ProxyCommand's pipes as it exits, then sends it SIGHUP. Such
+  a signal reads nothing and says nothing (`crates/podssh-cli/src/serve_end.rs`,
+  which sees the end where russh reads, and asks descriptor 0 besides); an
+  operator's SIGHUP on a live connection reloads 250 ms later. A client
+  that closes the stream after its login, with no DISCONNECT (OpenSSH after
+  a refused `-W`) or before it read serve's last bytes, ends the connection
+  as its own end: no `early eof` or `Broken pipe` line, exit 0; before a
+  login it is one line, `the client closed the connection before it logged
+  in (...)` (`crates/podssh-cli/tests/serve_end_openssh.rs`).
 - **A key that a reload takes out (T-842).** With `--revoke-ends-sessions`
   (off by default, so that T-117's rule stands without it), a reload that
   took also ends each session whose key the new set does not let in now:

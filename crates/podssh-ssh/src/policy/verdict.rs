@@ -70,6 +70,18 @@ pub struct Mismatch {
     pub actual: Vec<String>,
 }
 
+impl Mismatch {
+    /// One mismatch in words, the one form of doctor, serve and each other
+    /// line: `FIELD: expected A,B (optional C), got D`, `nothing` for an
+    /// empty list.
+    pub fn line(&self) -> String {
+        let names = |list: &[String]| if list.is_empty() { "nothing".to_string() } else { list.join(",") };
+        let optional =
+            if self.optional.is_empty() { String::new() } else { format!(" (optional {})", self.optional.join(",")) };
+        format!("{}: expected {}{optional}, got {}", self.field, names(&self.expected), names(&self.actual))
+    }
+}
+
 /// The judgment: each mismatch, and each check that this reading could not
 /// make (a size of a host key type that the exchange did not request).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -129,6 +141,18 @@ impl Verdict {
                 format!("the policy {:?} found no mismatch; not measured: {}", self.policy, self.unmeasured.join(", "))
             }
         }
+    }
+}
+
+impl Verdict {
+    /// [`Verdict::line`] with each mismatch in words ([`Mismatch::line`]) in
+    /// the place of its field alone, so that no field is named twice.
+    pub fn detail(&self) -> String {
+        if self.exit() != EXIT_MISMATCH {
+            return self.line();
+        }
+        let each: Vec<String> = self.mismatches.iter().map(Mismatch::line).collect();
+        format!("the policy {:?} found {} mismatch(es): {}", self.policy, each.len(), each.join("; "))
     }
 }
 

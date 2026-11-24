@@ -144,6 +144,32 @@ fn a_host_key_with_a_passphrase_is_refused() {
     assert!(host_key::parse("not a key").is_err());
 }
 
+/// A host key file that holds no OpenSSH private key is named for what it
+/// holds, in one line, never with ssh-key's words of a NUL byte that is not
+/// there (T-869); a key with a comment before its PEM block still reads.
+#[test]
+fn a_host_key_file_that_is_no_key_says_what_it_holds() {
+    let host = key();
+    let public = line_of(&host);
+    let private = host.to_openssh(russh::keys::ssh_key::LineEnding::LF).unwrap();
+    let cases: [(&str, String, &str); 6] = [
+        ("plain text", "hello\nthis is no key\n".into(), "text with no private key in it"),
+        ("empty", "\n  \n".into(), "the file is empty"),
+        ("a public key", format!("{public}\n"), "a public key, not a private key"),
+        ("PKCS#8", "-----BEGIN PRIVATE KEY-----\nMC4CAQ==\n-----END PRIVATE KEY-----\n".into(), "\"PRIVATE KEY\""),
+        ("PuTTY", "PuTTY-User-Key-File-3: ssh-ed25519\n".into(), "a PuTTY key"),
+        ("a NUL", "a\0b\n".into(), "binary data"),
+    ];
+    for (case, text, words) in &cases {
+        let why = host_key::parse(text).expect_err(case);
+        assert!(why.contains(words), "{case}: {why}");
+        assert!(why.contains("BEGIN OPENSSH PRIVATE KEY"), "{case}: names what serve takes: {why}");
+        assert!(!why.contains("NUL byte") && !why.contains('\n'), "{case}: one true line: {why}");
+    }
+    let commented = format!("# the host key of the box\n{}", *private);
+    assert_eq!(host_key::parse(&commented).unwrap().public_key(), host.public_key());
+}
+
 /// An RSA host key signs through aws-lc-rs (T-856): a key that it takes
 /// (2048 to 8192 bits) is read as before, and one that it refuses is
 /// refused at the start with one line that names the size and the way out,

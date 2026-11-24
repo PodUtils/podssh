@@ -16,7 +16,8 @@ pub const SERVE: &[&str] = &[
      node://user@NAME, podssh cp or sftp to node://NAME. That goes through the relay, with the node's end-to-end \
      channel and resumable layer. A host with no sshd, which may not listen, gives a shell and its files this way. The \
      keys, the host key and the other flags are those of --stdio; --stdio and NAME are one of the two (64). The node's \
-     lines say serving podssh serve, in this process. SIGHUP reads the keys again for each session of the node, as \
+     lines say serving podssh serve, in this process. Whoever holds the pair's connect token reaches serve, whose \
+     authorized keys alone guard each login. SIGHUP reads the keys again for each session of the node, as \
      with --stdio, and --revoke-ends-sessions ends a removed key's sessions there too.",
     "Only public keys log in. The keys are each --authorized-key, and the lines of each --authorized-keys \
      file; with neither, ~/.ssh/authorized_keys. A key is compared by its key alone: the login name selects \
@@ -161,7 +162,10 @@ pub const SERVE: &[&str] = &[
      not used is passed over and said. The next login meets the new set; a session that logged in goes \
      on, under the rules it logged in with. A file that is gone or cannot be read, or no key at all, \
      keeps the set before, and one line on stderr says why; a reload that took says how many lines are \
-     used now. The other settings are the command line's, and a restart changes them.",
+     used now. The other settings are the command line's, and a restart changes them. Under --stdio, a SIGHUP \
+     that comes with the end of the input is the client's end, as OpenSSH hangs up its ProxyCommand when it \
+     exits: it reads nothing and says nothing. A client that closes the connection after its login, with or \
+     without a disconnect, ends it with no line.",
     "With --revoke-ends-sessions, a reload that takes a key out also ends that key's open sessions. A key whose \
      line now refuses it (from=, expiry-time=) counts as out. The client gets a disconnect that names the key \
      (OpenSSH prints it), and its children are hung up as at a stop. One line on stderr names each key. A key's \

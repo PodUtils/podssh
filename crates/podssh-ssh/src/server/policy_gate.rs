@@ -19,7 +19,7 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use super::live::Conn;
 use super::Settings;
 use crate::handshake::side::Side;
-use crate::policy::{evaluate, observe_client, Mismatch, Policy};
+use crate::policy::{evaluate, observe_client, Policy};
 
 /// What the client is told: the policy's name, never its lines.
 pub(super) fn told(policy: &Policy) -> String {
@@ -79,15 +79,9 @@ impl Gate {
         if verdict.passed() {
             return None;
         }
-        let each: Vec<String> = verdict.mismatches.iter().map(words).collect();
-        Some(format!("{}: {}", verdict.line(), each.join("; ")))
+        // Each field once, in doctor's words (T-869).
+        Some(verdict.detail())
     }
-}
-
-/// One mismatch in words: the field, what was expected, what came.
-pub(super) fn words(m: &Mismatch) -> String {
-    let list = |names: &[String]| if names.is_empty() { "none".to_string() } else { names.join(",") };
-    format!("{} expected {}, got {}", m.field, list(&m.expected), list(&m.actual))
 }
 
 impl<S: AsyncRead + Unpin> AsyncRead for Gated<S> {

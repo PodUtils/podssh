@@ -288,11 +288,53 @@ where
         Ok(()) => Ok(()),
         // The client's own end of the connection.
         Err(russh::Error::Disconnect | russh::Error::HUP) => Ok(()),
+        Err(russh::Error::IO(e)) => closed(&e, conn.accepted()),
         Err(e) => Err(ended(&e)),
+    }
+}
+
+/// An I/O error at the end of a connection (T-869). A client that closed
+/// the stream after its login ended it: OpenSSH closes with no DISCONNECT
+/// after a refused forward (`early eof`), and leaves before reading serve's
+/// last bytes (`Broken pipe`), each at a normal end. Before a login it is
+/// one true line; any other error is a failure.
+fn closed(e: &std::io::Error, accepted: bool) -> Result<(), String> {
+    use std::io::ErrorKind::{BrokenPipe, ConnectionAborted, ConnectionReset, UnexpectedEof};
+    match e.kind() {
+        BrokenPipe | ConnectionAborted | ConnectionReset | UnexpectedEof if accepted => Ok(()),
+        BrokenPipe | ConnectionAborted | ConnectionReset | UnexpectedEof => {
+            Err(format!("the client closed the connection before it logged in ({e})"))
+        }
+        _ => Err(format!("the SSH connection failed: {e}")),
     }
 }
 
 /// The words of a connection that failed.
 fn ended(e: &russh::Error) -> String {
     format!("the SSH connection failed: {e}")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{Error, ErrorKind};
+
+    use super::closed;
+
+    /// Each kind of a client's close, after a login and before one; any
+    /// other error stays a failure (T-869).
+    #[test]
+    fn a_close_by_the_client_after_its_login_is_its_end() {
+        let kinds =
+            [ErrorKind::UnexpectedEof, ErrorKind::BrokenPipe, ErrorKind::ConnectionReset, ErrorKind::ConnectionAborted];
+        for kind in kinds {
+            let e = Error::new(kind, "the words");
+            assert_eq!(closed(&e, true), Ok(()), "{kind:?}");
+            let said = closed(&e, false).expect_err("before a login");
+            assert!(said.starts_with("the client closed the connection before it logged in"), "{kind:?}: {said}");
+        }
+        for accepted in [true, false] {
+            let said = closed(&Error::new(ErrorKind::InvalidData, "bad mac"), accepted).expect_err("a failure");
+            assert_eq!(said, "the SSH connection failed: bad mac");
+        }
+    }
 }

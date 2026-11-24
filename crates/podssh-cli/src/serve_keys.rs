@@ -2,7 +2,8 @@
 //! keys come from, read at the start and again on SIGHUP, each line with
 //! its rules; and the signals of a running server: SIGTERM and SIGINT stop
 //! it cleanly (a second one kills each child at once), SIGHUP reads the
-//! authorized keys again.
+//! authorized keys again; under `--stdio`, one at the end of the input is
+//! the client's end, and reads nothing (T-869, `serve_end.rs`).
 //!
 //! A reload reads each line as the start does: a line that is not used (no
 //! key, or options that serve cannot all honour) is passed over and said,
@@ -232,9 +233,12 @@ impl Signals {
 }
 
 /// Serve `stream` until the client leaves or a signal stops the server;
-/// each SIGHUP in between reads the keys again. A stop is a clean end (0).
+/// each SIGHUP in between reads the keys again, but one that comes with the
+/// end of `input`, the client's end, reads nothing and says nothing
+/// (T-869). A stop is a clean end (0).
 pub async fn serve_until_stopped<S>(
     stream: S,
+    input: crate::serve_end::Input,
     key: PrivateKey,
     keys: Keys,
     settings: Arc<Settings>,
@@ -251,12 +255,24 @@ where
     let serving = server::serve_under(stream, key, keys.clone(), settings, control.clone());
     tokio::pin!(serving);
     loop {
-        tokio::select! {
+        let asked = tokio::select! {
             ended = &mut serving => return ended,
-            asked = signals.next() => match asked {
-                Asked::Stop => control.stop(),
-                Asked::Reload => reload(sources, &keys, &control, ends, err),
-            },
+            asked = signals.next() => asked,
+        };
+        match asked {
+            Asked::Stop => control.stop(),
+            Asked::Reload => {
+                // OpenSSH closes its ProxyCommand's pipes, then hangs it up:
+                // a SIGHUP at the end of the input is the client's end, and
+                // the connection ends with it.
+                let at_end = tokio::select! {
+                    ended = &mut serving => return ended,
+                    at_end = input.ends_within(crate::serve_end::GRACE) => at_end,
+                };
+                if !at_end {
+                    reload(sources, &keys, &control, ends, err);
+                }
+            }
         }
     }
 }

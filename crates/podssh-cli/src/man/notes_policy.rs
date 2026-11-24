@@ -53,7 +53,8 @@ pub const SERVE_JUDGE: &str = "POLICY: with --policy FILE, podssh serve judges e
      authentication. The file must say client policy = true; another is refused at the start (78). The policy reads \
      the client's first KEXINIT: its key exchanges, host keys, and the ciphers, MACs and compressions it sends with. \
      A mismatch, or a KEXINIT that does not read, ends the connection. The client gets a disconnect that names the \
-     policy, and no key logs in. One line on stderr names the client's address and each mismatch. A client offers \
+     policy, and no key logs in. One line on stderr names the client's address and each mismatch, as doctor does: \
+     FIELD: expected A,B, got C. A client offers \
      no host key, so a size rule never refuses one.";
 
 /// `podssh doctor --hop HOST --policy FILE`: one line of the report.

@@ -241,6 +241,7 @@ impl russh::server::Handler for Served {
             self.who = crate::known_hosts::fingerprint(key.public_key);
             self.settings.say(&format!("key {}: logged in to a shared shell, {}", self.who, pass.mode.says()));
             self.viewer = Some(pass);
+            self.conn.accept();
             return Ok(Auth::Accept);
         }
         self.conn.log_in(key.public_key);
@@ -260,6 +261,7 @@ impl russh::server::Handler for Served {
         }
         self.rules = Some(rules);
         self.who = crate::known_hosts::fingerprint(key.public_key);
+        self.conn.accept();
         Ok(Auth::Accept)
     }
 

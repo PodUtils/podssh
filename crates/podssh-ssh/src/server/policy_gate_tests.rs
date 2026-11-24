@@ -116,7 +116,10 @@ async fn the_gate_of_each_case() {
         assert_eq!(lines.len(), 1, "{case}: one line: {lines:?}");
         assert!(lines[0].starts_with("client with no address (a pipe): refused before authentication"), "{case}");
         for field in *fields {
-            assert!(lines[0].contains(&format!("{field} expected")), "{case}: names {field}: {}", lines[0]);
+            assert!(lines[0].contains(&format!("{field}: expected")), "{case}: names {field}: {}", lines[0]);
+            // Each field once: the summary's list of fields is not said
+            // beside each mismatch's own words (T-869).
+            assert_eq!(lines[0].matches(*field).count(), 1, "{case}: {field} said once: {}", lines[0]);
         }
     }
 }

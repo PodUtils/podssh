@@ -14,6 +14,7 @@
 //! no reload ends it; its name, and its shell's end, do.
 
 use std::net::IpAddr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
@@ -70,6 +71,9 @@ pub fn reload(keys: &Keys, control: &Control, set: Authorized, ends: bool) -> Re
 struct State {
     /// The key of the login and its fingerprint; None before a login.
     who: Mutex<Option<(PublicKey, String)>>,
+    /// A login was accepted, by a key or by a shared shell's name: the
+    /// client's close of the stream after it is its end (T-869).
+    accepted: AtomicBool,
     /// The client's address, for the `from=` of the new set.
     peer: Option<IpAddr>,
     /// This connection's children, beside the server's list of them all.
@@ -89,6 +93,16 @@ impl Conn {
     pub(super) fn log_in(&self, key: &PublicKey) {
         let who = Some((key.clone(), crate::known_hosts::fingerprint(key)));
         *self.0.who.lock().unwrap_or_else(|p| p.into_inner()) = who;
+    }
+
+    /// A login was accepted on this connection, by a key or by a name.
+    pub(super) fn accept(&self) {
+        self.0.accepted.store(true, Ordering::Relaxed);
+    }
+
+    /// Whether a login was accepted on this connection.
+    pub(super) fn accepted(&self) -> bool {
+        self.0.accepted.load(Ordering::Relaxed)
     }
 
     /// The key was refused: no login to end.
@@ -147,7 +161,13 @@ impl Live {
     /// drops it.
     pub(super) fn join(&self, peer: Option<IpAddr>) -> Conn {
         let (ended, _) = watch::channel(None);
-        let state = Arc::new(State { who: Mutex::new(None), peer, groups: Groups::default(), ended });
+        let state = Arc::new(State {
+            who: Mutex::new(None),
+            accepted: AtomicBool::new(false),
+            peer,
+            groups: Groups::default(),
+            ended,
+        });
         let mut all = self.conns.lock().unwrap_or_else(|p| p.into_inner());
         all.retain(|weak| weak.strong_count() > 0);
         all.push(Arc::downgrade(&state));

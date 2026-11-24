@@ -200,8 +200,10 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
             return EXIT_NOT_IMPLEMENTED;
         }
     };
-    let stream = tokio::io::join(tokio::io::stdin(), crate::flushing::stdout());
-    let serving = serve_keys::serve_until_stopped(stream, key, keys, Arc::new(settings), &sources, err);
+    // Its end tells OpenSSH's SIGHUP at a logout from an operator's (T-869).
+    let (stdin, input) = crate::serve_end::watch(tokio::io::stdin(), true);
+    let stream = tokio::io::join(stdin, crate::flushing::stdout());
+    let serving = serve_keys::serve_until_stopped(stream, input, key, keys, Arc::new(settings), &sources, err);
     match runtime.block_on(serving) {
         Ok(()) => 0,
         Err(why) => {

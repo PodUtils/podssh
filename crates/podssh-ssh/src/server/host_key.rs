@@ -94,12 +94,51 @@ pub fn in_first(read_dirs: &[PathBuf], dirs: &[PathBuf], files: &StateFiles) -> 
 /// passphrase, as nobody is there to type one, that serve can sign with
 /// ([`check`]).
 pub fn parse(text: &str) -> Result<PrivateKey, String> {
+    // ssh-key's words for a file with no PEM block name a NUL byte that is
+    // not there (T-869): what the file is comes first, in words of its own.
+    if !text.contains(OPENSSH_BEGIN) {
+        return Err(not_openssh(text));
+    }
     let key = PrivateKey::from_openssh(text).map_err(|e| format!("not an OpenSSH private key: {e}"))?;
     if key.is_encrypted() {
         return Err("the key has a passphrase, which nobody can type at a server's start: use a key without one".into());
     }
     check(&key)?;
     Ok(key)
+}
+
+/// The first line of an OpenSSH private key.
+const OPENSSH_BEGIN: &str = "-----BEGIN OPENSSH PRIVATE KEY-----";
+
+/// What a file that holds no OpenSSH private key holds instead, in one
+/// line: nothing, a public key, a key in another format, or other text.
+fn not_openssh(text: &str) -> String {
+    const WANT: &str = "serve takes an OpenSSH private key (-----BEGIN OPENSSH PRIVATE KEY-----, as podssh keygen \
+                        -t ed25519 writes it)";
+    let start = text.trim_start_matches(['\u{feff}', ' ', '\t', '\r', '\n']);
+    let first = start.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with('#'));
+    let what = match first {
+        None => "the file is empty".to_string(),
+        Some(_) if text.contains('\0') => "the file holds binary data, not text".to_string(),
+        Some(line) if line.starts_with("-----BEGIN ") => {
+            let label = line.trim_start_matches("-----BEGIN ").trim_end_matches('-').trim();
+            format!("the file holds a PEM block of {:?}, not an OpenSSH private key", one_line(label))
+        }
+        Some(line) if line.starts_with("PuTTY-User-Key-File-") => {
+            "the file holds a PuTTY key, not an OpenSSH private key".to_string()
+        }
+        Some(line) if russh::keys::PublicKey::from_openssh(line).is_ok() => {
+            "the file holds a public key, not a private key".to_string()
+        }
+        Some(_) => "the file holds text with no private key in it".to_string(),
+    };
+    format!("{what}: {WANT}")
+}
+
+/// At most 60 characters of `text`, with no control character: a label
+/// read from a file goes into one line.
+fn one_line(text: &str) -> String {
+    text.chars().filter(|c| !c.is_control()).take(60).collect()
 }
 
 /// Whether serve can sign each key exchange with `key`: Ed25519 and ECDSA

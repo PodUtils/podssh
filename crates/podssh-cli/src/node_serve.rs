@@ -60,6 +60,27 @@ pub(crate) fn hangups() -> crate::serve_keys::Hangups {
     }
 }
 
+/// What `podssh serve NAME` says of a door that is the pair's connect
+/// token alone: serve has no TARGET, no `--allow` and no `--carrier`; its
+/// own logins guard each session (T-869).
+const SERVE_DOOR: &str = "whoever holds the pair's connect token reaches this node's door, and podssh serve in this \
+                          process answers each session there: its authorized keys alone guard each login";
+
+/// The line of a node whose door is the pair's connect token alone:
+/// serve's own where this process's node is `podssh serve NAME`, else
+/// `other`, the line of a node with a TARGET.
+pub(crate) fn open_door(other: &'static str) -> &'static str {
+    door_of(serving(), other)
+}
+
+fn door_of(serving: bool, other: &'static str) -> &'static str {
+    if serving {
+        SERVE_DOOR
+    } else {
+        other
+    }
+}
+
 /// Each session: one end of a pipe, whose other end serve answers.
 pub(crate) struct Sessions;
 
@@ -104,5 +125,23 @@ where
             let handler = Arc::new(Layered::with_keeper(E2e::new(inner, node), settings, budget, keeper));
             Box::pin(reverse::run(config, handler, stop())).await
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// serve NAME's line names what it serves, and no flag that it lacks;
+    /// a node with a TARGET keeps its own line.
+    #[test]
+    fn the_door_line_of_serve_names_serve_and_no_target() {
+        let other = "warning: ... reaches TARGET ...";
+        let line = door_of(true, other);
+        for absent in ["TARGET", "--allow", "--carrier"] {
+            assert!(!line.contains(absent), "{absent}: {line}");
+        }
+        assert!(line.contains("podssh serve") && line.contains("authorized keys"), "{line}");
+        assert_eq!(door_of(false, other), other);
     }
 }
