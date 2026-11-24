@@ -378,10 +378,18 @@ the client's host.
   of russh's server sees. russh 0.64.1 answers a channel request or a
   global request of another name with FAILURE and calls no handler, so a
   request of podssh's own type would never reach `podssh serve`.
-- **Where shells are kept.** `podssh serve` (T-107 to T-110, which the
-  operator holds) keeps them, with the lease and the limits of T-159; the
-  screen that a client finds on an attach is T-161's. Against a standard
-  sshd, `--persist` keeps the shell in tmux (T-178).
+- **Where shells are kept.** `podssh serve NAME` keeps them (T-159): a
+  login shell on a pty of the kernel, for `--keep-lease` (24 h by
+  default), 4 for each key and 32 in all, found by its key and its name.
+  `env keep@podssh NAME` before the shell keeps it if the client is lost
+  with no `~d`, and `env lease@podssh SECONDS` asks for a shorter lease. A
+  kept shell's output with no client goes to a ring of 256 KiB, and an
+  attach gets what came since the detach, from a boundary of the grammar
+  where the ring dropped a part (said on stderr). The screen that a
+  client finds is T-161's. A lease's end hangs up the shell's process
+  group and kills it 10 s later; a restart of serve ends each kept shell,
+  and the next start names them from its record (`serve-NAME.kept`).
+  Against a standard sshd, `--persist` keeps the shell in tmux (T-178).
 
 `crates/podssh-cli/tests/attach.rs` tests it with a stand-in of the far
 end in the test process: the layer as `podssh serve` speaks it, with
@@ -393,8 +401,10 @@ back.
 
 ## Where kept output may start
 
-A far end that keeps a shell keeps a ring of its recent output (T-159),
-and a client that attaches gets what the ring holds (T-161). A full ring
+A far end that keeps a shell keeps a ring of its recent output (T-159:
+`podssh serve`'s ring of 256 KiB, `crates/podssh-ssh/src/server/kept.rs`),
+and a client that attaches gets what came since its detach, or what the
+ring holds where it dropped a part (T-161 decides the screen). A full ring
 drops its oldest bytes, and its first byte could then be inside an escape
 sequence or a UTF-8 character: the terminal would show the end of the
 sequence as text, a full-screen program would draw wrongly, or a part of a
@@ -429,8 +439,8 @@ real programs wrote (vim, and an interactive bash whose prompt sets the
 title; `scripts/capture-terminal.py` adds less and top from a pty of
 Linux) at each offset, and checks the first byte kept against anstyle-parse,
 vte's parser: a terminal that starts there does what the terminal that read
-the whole stream does. No far end keeps a shell yet: `podssh serve` will
-hold a ring for each kept shell (T-159).
+the whole stream does. `podssh serve` holds a ring for each kept shell
+(T-159).
 
 `podssh session` (T-186) uses the grammar on this side of a session that
 it holds for an agent. `capture --raw` gives the bytes of such a ring of

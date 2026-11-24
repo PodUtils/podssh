@@ -225,6 +225,23 @@ pub const SERVE: &[&str] = &[
      refusal is one line on stderr and exit status 1. Only the connection that holds the owner's shell may ask; a \
      login under a name may not. With OpenSSH, open the first login with ControlMaster, then: echo rotate rw | ssh \
      -S SOCKET -s HOST share@podssh.",
+    // A shell kept after its client leaves (T-159).
+    "Under NAME, a login shell on a pty can outlive its client. podssh ssh's ~d keeps it under a name, and \
+     --attach NAME joins it again from a new login. Only the key that kept it finds it, by that name. serve's layer \
+     then names keep.v1, and podssh ssh offers ~d only where it does. env keep@podssh NAME before the shell keeps \
+     it as NAME if its client is lost with no ~d. Only a shell on a pty of the kernel is kept, and none with \
+     --share. A kept shell waits --keep-lease for a client (24 h by default, 30 days at most); env lease@podssh \
+     SECONDS asks for less. Its output with no client goes to a ring of 256 KiB, and an attach gets what came since \
+     the detach. A ring that dropped a part says how many bytes, and gives the rest from a clean boundary. One \
+     client has the shell at a time; --take takes it, and the other client's channel ends with a line. A key keeps \
+     4 shells at most, and serve 32. At the end of a lease, serve hangs up the shell's process group, and kills it \
+     10 s later. A job in a process group of its own, as job control makes, is the user's to leave behind, as under \
+     sshd. A shell that its client leaves with no ~d and no keep@podssh is hung up, as before.",
+    "A stop or a restart of serve, or of its host, ends each kept shell: a process does not outlive either. serve \
+     writes the names of its kept shells to serve-NAME.kept beside its host key, mode 0600. The next start says \
+     which shells ended with the last run, and shells@podssh lists them as lost. Under --stdio no shell is kept: \
+     serve ends with its one connection. Under --listen none is kept either. --keep-lease with either is a usage \
+     error (64).",
     // A client policy (T-838).
     super::notes_policy::SERVE_JUDGE,
     // A unit of systemd that runs serve NAME (T-709).
@@ -252,6 +269,17 @@ pub fn motd_file() -> (Vec<String>, String) {
         vec![podssh_ssh::server::motd::DEFAULT.to_string(), "~/.hushlogin".to_string()],
         "The message of the day that podssh serve shows before a login shell on a tty, when no --motd names \
          another file; a missing file shows none. A ~/.hushlogin in the user's home (HOME) shows none either."
+            .to_string(),
+    )
+}
+
+/// The record of the kept shells, for FILES (T-159).
+pub fn kept_file() -> (Vec<String>, String) {
+    (
+        vec![crate::serve_keep::record_name("NAME")],
+        "The names of the shells that podssh serve NAME keeps, beside its host key: on each line, the fingerprint \
+         of the key that kept one and its name. Mode 0600, replaced whole at each change. The next start reads it, \
+         says which shells ended with the last run, and lists them as lost. It holds no output."
             .to_string(),
     )
 }

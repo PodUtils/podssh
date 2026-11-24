@@ -21,12 +21,15 @@
 //! (T-838, `policy_gate.rs`). With `--share`, a login shell on a pty or on
 //! serve's own tty (T-861) is offered by two names, one that types and one that watches (T-837,
 //! `share.rs`); its owner deletes or rotates a name by the subsystem
-//! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a tty is shown
-//! the message of the day first (T-119, `motd.rs`), and with
-//! `--shell-integration` its prompts and commands are marked (T-120,
-//! `marks.rs`). Where systemd is there, each pty child runs in a transient
-//! scope of its own (T-122, `scope.rs`). A client's `-R` is published
-//! with no bind where the settings give a way (T-123, `remote_forward.rs`).
+//! `share@podssh` (T-860, `share_ctl.rs`). A login shell on a pty can
+//! outlive its channel when its client asks: it is kept for a lease, and a
+//! later login of the same key joins it by name (T-159, `kept.rs`). A login
+//! shell on a tty is shown the message of the day first (T-119, `motd.rs`),
+//! and with `--shell-integration` its prompts and commands are marked
+//! (T-120, `marks.rs`). Where systemd is there, each pty child runs in a
+//! transient scope of its own (T-122, `scope.rs`). A client's `-R` is
+//! published with no bind where the settings give a way (T-123,
+//! `remote_forward.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -38,6 +41,13 @@ pub mod env;
 mod handler;
 pub mod host_key;
 mod host_sign;
+mod kept;
+mod kept_ask;
+mod kept_join;
+mod kept_record;
+#[cfg(unix)]
+mod kept_run;
+mod kept_shelf;
 #[cfg(unix)]
 mod line;
 pub mod listen;
@@ -85,6 +95,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 pub use authorized::{parse_line, Admission, Authorized, Line, Read};
 pub use direct::{DIAL_LIMIT, MAX_FORWARDS};
 pub use host_key::{HostKey, StateFiles};
+pub use kept::{KILL_AFTER, PER_KEY, RING, TOTAL};
 pub use live::{Ended, Reloaded};
 pub use options::{Permit, Rules};
 pub use rules::Context;
@@ -189,6 +200,9 @@ pub struct Settings {
     /// What publishes a client's `-R` with no bind (T-123); None refuses
     /// each `tcpip-forward`, as russh's default did.
     pub remote: Option<remote_forward::Publisher>,
+    /// `--keep-lease` (T-159): how long a login shell on a pty that its
+    /// client detached waits for a client; zero keeps no shell.
+    pub keep_lease: Duration,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

@@ -2,9 +2,10 @@
 //! and stdout, its host key, and the keys that may log in; what a session
 //! runs (T-108) and its shell (T-222); whether a client may forward (T-109);
 //! whether a reload that takes a key out ends its sessions (T-842); a client
-//! policy (T-838); a shell shared by name (T-837); a unit of systemd that
-//! runs it (T-709); the message of the day (T-119); the marks of a shell
-//! (T-120); listeners that the user asks for (T-124).
+//! policy (T-838); a shell shared by name (T-837); a shell kept for a lease
+//! (T-159); a unit of systemd that runs it (T-709); the message of the day
+//! (T-119); the marks of a shell (T-120); listeners that the user asks for
+//! (T-124).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -50,6 +51,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
     // A login shell offered by two names, typed in or watched (T-837).
     row(None, "share", None, FlagKind::Supported,
         "offer each login shell on a pty by two names told once to its owner: one types in it, one watches it; each dies with the shell", None),
+    // A shell kept after its client detached, for a lease (T-159).
+    row(None, "keep-lease", Some("TIME"), FlagKind::Supported,
+        "with NAME: how long a shell that its client detached (~d of podssh ssh) waits for a client, as 90s, 30m, 8h or 2d, 30 days at most; 0 keeps no shell (default: 24h)", None),
     // A client policy on each client's KEXINIT (T-838).
     super::policy::SERVE_POLICY,
     // A unit of systemd that runs serve NAME, printed (T-709).

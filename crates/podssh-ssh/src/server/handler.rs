@@ -4,7 +4,8 @@
 //! the rules of the key that logged in (T-114: `command=`, `no-pty`,
 //! `permitopen=` and the rest, each refusal with its reason on the channel);
 //! a login under a shared shell's name, which attaches under its right
-//! (T-837); and a clean refusal of each request that a later entry serves.
+//! (T-837); the requests of the kept shells (T-159, `kept_asks.rs`); and a
+//! clean refusal of each request that a later entry serves.
 //! russh's defaults send no reply to a channel request, and a client then
 //! waits (podssh's own for 30 s): each request here is answered, in the
 //! order the requests came, as the handler answers each before russh reads
@@ -17,20 +18,23 @@ use russh::keys::Algorithm;
 use russh::server::{Auth, ChannelOpenHandle, Msg, PublicKeyOffer, Session, VerifiedPublicKey};
 use russh::{Channel, ChannelId, ChannelOpenFailure, Pty, Sig};
 
-use super::authorized::Admission;
 use super::channel::{Open, Program};
 use super::direct::{self, Slots};
 use super::remote_forward::Forwards;
 use super::live::{self, Conn};
 use super::program::{self, start_program};
 use super::pty_grant::{grant_pty, resize_pty, Asked};
-use super::rules::{Asked as Wanted, Context, Plan};
+use super::rules::{Asked as Wanted, Plan};
 use super::share::Pass;
 use super::stop::{Control, Keys, Stage};
 use super::{env, share_ctl, share_view, Rules, Settings};
 
 #[path = "handler_forward.rs"]
 mod forward;
+#[path = "handler_gate.rs"]
+mod gate;
+#[path = "kept_asks.rs"]
+mod kept_asks;
 
 /// The most session channels open at once on one connection, as OpenSSH's
 /// `MaxSessions` bounds them.
@@ -79,44 +83,6 @@ impl Served {
         Served { authorized, settings, channels, forwards, remote, rules, who, control, conn, expiry, viewer: None }
     }
 
-    /// The rules under which `key` logs in now, or None; a key that lines
-    /// name and refuse is said with each line's reason, as the client hears
-    /// only "Permission denied".
-    fn admit(&self, key: &russh::keys::PublicKey) -> Option<Arc<Rules>> {
-        match self.authorized.admit(key, &Context::now(self.settings.peer)) {
-            Admission::Admitted(rules) => Some(rules),
-            Admission::Unlisted => None,
-            Admission::Refused(reasons) => {
-                let who = crate::known_hosts::fingerprint(key);
-                for why in reasons {
-                    self.settings.say(&format!("key {who} refused: {why}"));
-                }
-                None
-            }
-        }
-    }
-
-    /// Whether the server serves and this connection was not ended.
-    fn serving(&self) -> bool {
-        self.control.stage() == Stage::Serving && self.conn.ended().is_none()
-    }
-
-    /// The rules in force, or the words of a refusal: before a login, or
-    /// once the server stops (T-117), which takes no new request.
-    fn rules(&self) -> Result<Arc<Rules>, String> {
-        if self.control.stage() != Stage::Serving {
-            return Err(super::stop::STOPPING.to_string());
-        }
-        // A key that a reload took out runs nothing more (T-842).
-        if let Some(told) = self.conn.ended() {
-            return Err(told);
-        }
-        if self.viewer.is_some() {
-            return Err(share_view::RUNS_NOTHING.to_string());
-        }
-        self.rules.clone().ok_or_else(|| "no key logged in".to_string())
-    }
-
     /// Refuse a request on `channel` for a key's rule: `why` on the
     /// channel's stderr and in serve's log, then the failure.
     fn refuse_for(&self, channel: ChannelId, why: &str, session: &mut Session) -> Result<(), russh::Error> {
@@ -135,6 +101,10 @@ impl Served {
         wanted: Wanted<'_>,
         session: &mut Session,
     ) -> Result<(), russh::Error> {
+        // A shell request that joins a kept shell (T-158, T-159).
+        if matches!(wanted, Wanted::Shell) && self.viewer.is_none() && self.joins(channel) {
+            return self.join_kept(channel, session);
+        }
         let plan = match (self.rules(), self.viewer.clone()) {
             // The one gate of a name's right (T-837): its shell request
             // attaches, under that right; each other request is refused.
@@ -186,6 +156,8 @@ impl Served {
     ) -> Result<(), russh::Error> {
         let settings = self.settings.clone();
         let shares = self.control.live.shares.clone();
+        // A login shell on a pty may be kept (T-159).
+        let keeper = if matches!(program, Program::Login) { self.keeper(id) } else { None };
         let Some(open) = self.channels.get_mut(&id) else { return Self::refuse(id, session) };
         // A channel runs one program, as RFC 4254 has it.
         if open.started() {
@@ -195,6 +167,7 @@ impl Served {
         if settings.share && matches!(program, Program::Login) {
             open.offer = Some(shares);
         }
+        open.keeper = keeper;
         let started = if settings.no_shell {
             Err("--no-shell: this server runs no command and no shell".to_string())
         } else {
@@ -436,6 +409,10 @@ impl russh::server::Handler for Served {
         value: &str,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        // podssh's own names of the kept shells, before --accept-env (T-159).
+        if let Some(answered) = self.keep_env(channel, name, value, session) {
+            return answered;
+        }
         let patterns = env::patterns(&self.settings.accept_env);
         let taken = match self.channels.get_mut(&channel) {
             Some(open)
@@ -490,6 +467,10 @@ impl russh::server::Handler for Served {
             let owned = self.rules().map(|_| share_ctl::owned(self.channels.values()));
             let job = owned.map(|owned| share_ctl::Job { shares, owned, settings, who });
             return share_ctl::answer(self.channels.get_mut(&channel), job, channel, session);
+        }
+        // The kept shells of this key (T-158, T-159).
+        if name == crate::keep::LIST {
+            return self.list_kept(channel, session);
         }
         if name != "sftp" {
             return Self::refuse(channel, session);

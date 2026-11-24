@@ -1197,8 +1197,8 @@ version, 5 the role, 6 busy, 7 a record out of its place, 0 another reason.
   stays 30 s, as a spare link replaces a silent link before it.
 - **Kept shells** (T-158), when both sides name `keep.v1`: `podssh ssh`
   names it, and a far end that keeps a shell after its client leaves, as
-  `podssh serve` will (T-159); a node never names it, as its SSH server is
-  another program. The layer carries nothing more for it: the road reads
+  `podssh serve NAME` does where its `--keep-lease` is not 0 (T-159); a node
+  with a TARGET never names it, as its SSH server is another program. The layer carries nothing more for it: the road reads
   the offer from the handshake, then SSH asks the far end to keep a shell
   (`~d`) or to join one (`--attach`), with requests of its own
   (`docs/terminal.md`, "Detach and attach again").

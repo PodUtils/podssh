@@ -355,6 +355,7 @@ pub fn files() -> Vec<(Vec<String>, String)> {
         super::super::notes_serve::motd_file(),
         super::super::notes_doctor::http_road_file(),
     ]);
+    rows.push(super::super::notes_serve::kept_file());
     rows.push(super::super::notes_gsr::file());
     rows.push(super::super::notes_bucket::file());
     rows

@@ -138,6 +138,17 @@ impl Running {
         Ok(Running { write, handle: open.handle.clone(), id, group: open.group.clone() })
     }
 
+    /// A program's side of a channel that joined it later: a kept shell's
+    /// (T-159), whose end goes to the channel that has it then.
+    pub(super) fn of(write: ChannelWriteHalf<Msg>, handle: Handle, id: ChannelId, group: Arc<AtomicI32>) -> Running {
+        Running { write, handle, id, group }
+    }
+
+    /// Its parts, for a shell that may be kept (T-159), which no channel owns.
+    pub(super) fn into_parts(self) -> (ChannelWriteHalf<Msg>, Handle, ChannelId, Arc<AtomicI32>) {
+        (self.write, self.handle, self.id, self.group)
+    }
+
     /// Pump stdout as data and stderr as extended data 1, then
     /// [`Running::finish`].
     async fn run(self, mut child: Child, closed: watch::Receiver<bool>) {
@@ -192,7 +203,7 @@ impl Running {
     /// The end of the channel: one of `exit-status` and `exit-signal`
     /// always comes before the close, so that a client never has to guess
     /// (T-026 reads it); then EOF and close.
-    async fn end(self, status: std::io::Result<ExitStatus>) {
+    pub(super) async fn end(self, status: std::io::Result<ExitStatus>) {
         match status.as_ref().ok().and_then(ExitStatus::signal) {
             Some(number) => {
                 let core = status.as_ref().is_ok_and(ExitStatus::core_dumped);
