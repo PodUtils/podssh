@@ -49,9 +49,9 @@ pub fn parse_lease(text: &str) -> Result<Duration, String> {
 /// lease given is a usage error (64).
 pub fn lease(given: Option<&str>, named: bool) -> Result<Duration, Refusal> {
     match (given, named) {
-        (Some(_), false) => Err(Refusal::usage(
-            "--keep-lease needs NAME: under --stdio or --listen, serve keeps no shell".to_string(),
-        )),
+        (Some(_), false) => {
+            Err(Refusal::usage("--keep-lease needs NAME: under --stdio or --listen, serve keeps no shell".to_string()))
+        }
         (None, false) => Ok(Duration::ZERO),
         (Some(text), true) => parse_lease(text).map_err(Refusal::usage),
         (None, true) => Ok(DEFAULT_LEASE),

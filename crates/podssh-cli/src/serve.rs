@@ -272,7 +272,11 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     say_host_key(err, &key, &path, made);
     // The run's first line, once it can serve; its last at each end below.
     if let Some(audit) = &audit {
-        let mode = if args.stdio { "stdio" } else if bound.is_some() { "listen" } else { "node" };
+        let mode = match (args.stdio, bound.is_some()) {
+            (true, _) => "stdio",
+            (false, true) => "listen",
+            (false, false) => "node",
+        };
         audit.started(mode);
     }
     let stopped = |outcome: &str| {
