@@ -105,7 +105,10 @@ async fn writers_on(tty: Tty) {
     // Whatever draws the line (the kernel, the discipline and its prompt),
     // no byte of one writer sits beside a byte of the other.
     let text = owner.seen.lock().unwrap().text();
-    let typed = &text[text.find("exec cat").map_or(0, |at| at + "exec cat".len())..];
+    // From the first writer's own bytes: a shell's line editor may redraw the
+    // typed command (`exec ca`, an erase, `t` on macOS), and a prompt can hold
+    // `ab` (the host's name), so neither marks where the writers begin.
+    let typed = &text[text.find("aaa").unwrap_or(0)..];
     assert!(typed.matches("aaaaaa").count() >= 2, "{tty:?}: the first writer's line is whole: {typed:?}");
     assert!(!typed.contains("ab") && !typed.contains("ba"), "{tty:?}: interleaved: {typed:?}");
     if tty != Tty::Line {

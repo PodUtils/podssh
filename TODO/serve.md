@@ -4586,6 +4586,11 @@ name").
   are unchanged. Run here (2026-11-24, merged): passed.
 - `llms-full.txt` holds the manual: write it again after the build (`podssh man --llms full > llms-full.txt`).
 
+2026-11-24, the gate at `84b2f435` (run 45321305649), job `macos`: `writers_take_turns_and_no_line_interleaves` failed on its
+own reading, not on the lease: macOS's shell redrew the typed `exec cat` (`exec ca`, an erase, `t`), so the test found no
+`exec cat`, read from the start, and met `ab` in the runner's host name in the prompt. The test now reads from the first
+writer's own bytes; `--test serve_share` 6 passed three times here.
+
 # T-862: A measure of `serve --share`'s writer lease with two people typing
 
 **Source:** T-837's merge, 2026-11-23: `LEASE_IDLE` (200 ms) is a guess.
