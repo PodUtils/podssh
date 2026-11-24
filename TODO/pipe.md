@@ -70,7 +70,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 7. In the same commit: `docs/cli.md`, the notes
    (`crates/podssh-cli/src/man/notes.rs:34-73`), two examples
    (`crates/podssh-cli/src/man/examples.rs:8-320`; its test at
-   `crates/podssh-cli/src/man/examples.rs:443-469` learns the new variant),
+   `crates/podssh-cli/src/man/examples_tests.rs:101-127` learns the new variant),
    `docs/design.md:1357-1366`, `docs/STATUS.md`. Each file stays under 500
    lines (`AGENTS.md:438-439`).
 
@@ -755,7 +755,7 @@ no listener, or that the relay ends a desktop stream after 64 MiB.
 4. Write a table "Other TCP protocols" after `README.md:220-225`: the
    protocol, what works now, what needs a listener, the 64 MiB limit. Add
    form a to `crates/podssh-cli/src/man/examples.rs:8-320`; its ProxyCommand
-   parses (`crates/podssh-cli/src/man/examples.rs:420-427`). Link the table
+   parses (`crates/podssh-cli/src/man/examples_tests.rs:78-85`). Link the table
    from `docs/design.md:1403-1406`.
 5. No code. Record the measurements in `docs/STATUS.md`.
 
@@ -1779,7 +1779,7 @@ alone, so the form of `ssh:`, with its comma before the target, is found by tria
 - Read: the manual's example of the proxy is `podssh pipe http-listen:3128 relay:%h:%p`
   (`crates/podssh-cli/src/man/examples.rs:219`), and its notes give the forms in words
   (`crates/podssh-cli/src/man/notes_pipe.rs:31-34`); a test parses each example with the real
-  parser (`crates/podssh-cli/src/man/examples.rs:427`).
+  parser (`crates/podssh-cli/src/man/examples_tests.rs:85`).
 - Read: `--help` of a verb gives its options, then its notes, and the notes have nothing for `pipe`
   (`crates/podssh-cli/src/help.rs`, lines 240-263 at `1769d79`).
 
@@ -1855,9 +1855,9 @@ of `ssh:a,b` fails.
   `curl --proxy http://127.0.0.1:3128 https://example.org/` and `HTTPS_PROXY` for a program; the
   notes and `docs/cli.md` say that a client of `http-listen:PATH` must speak to a proxy at a
   socket, which curl's `--unix-socket` does not.
-- `crates/podssh-cli/src/man/examples.rs:427` is a line of `podssh_lines`; the test that parses
+- `crates/podssh-cli/src/man/examples_tests.rs:85` is a line of `podssh_lines`; the test that parses
   each example with the real parser is `each_example_parses_with_the_real_parser`
-  (`crates/podssh-cli/src/man/examples.rs:436`). The Premise holds.
+  (`crates/podssh-cli/src/man/examples_tests.rs:94`). The Premise holds.
 
 ## Done
 
