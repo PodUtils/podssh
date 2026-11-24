@@ -22,6 +22,8 @@ pub enum KeyKind {
     Rsa(usize),
     /// A key of a security key (T-229), which the device makes: never here.
     Sk(crate::sk::Alg),
+    /// An ECDSA P-256 key sealed to a TPM (T-839), which the TPM makes.
+    Tpm,
 }
 
 impl KeyKind {
@@ -46,9 +48,13 @@ impl KeyKind {
             ("ed25519-sk", None | Some(256)) => Ok(KeyKind::Sk(crate::sk::Alg::Ed25519)),
             ("ecdsa-sk", None | Some(256)) => Ok(KeyKind::Sk(crate::sk::Alg::EcdsaP256)),
             (sk @ ("ed25519-sk" | "ecdsa-sk"), Some(b)) => Err(format!("an {sk} key has 256 bits, not {b}")),
+            ("ecdsa-tpm", None | Some(256)) => Ok(KeyKind::Tpm),
+            ("ecdsa-tpm", Some(b)) => Err(format!("an ecdsa-tpm key has 256 bits, not {b}")),
             ("dsa", _) => Err("DSA keys are not made: OpenSSH 10 removed DSA".into()),
             (other, _) => {
-                Err(format!("unknown key type {other:?}: ed25519 (the default), ecdsa, rsa, ed25519-sk or ecdsa-sk"))
+                Err(format!(
+                    "unknown key type {other:?}: ed25519 (the default), ecdsa, rsa, ed25519-sk, ecdsa-sk or ecdsa-tpm"
+                ))
             }
         }
     }
@@ -61,6 +67,7 @@ impl KeyKind {
             KeyKind::Rsa(_) => "rsa",
             KeyKind::Sk(crate::sk::Alg::Ed25519) => "ed25519-sk",
             KeyKind::Sk(crate::sk::Alg::EcdsaP256) => "ecdsa-sk",
+            KeyKind::Tpm => "ecdsa-tpm",
         }
     }
 
@@ -82,6 +89,7 @@ pub fn generate(kind: KeyKind, comment: &str) -> Result<PrivateKey, String> {
         // aws-lc-rs makes it, never the `rsa` crate (T-257).
         KeyKind::Rsa(bits) => PrivateKey::from(crate::rsa_key::generate(bits)?),
         KeyKind::Sk(_) => return Err("a key of a security key is made in its device, not here".into()),
+        KeyKind::Tpm => return Err("a key sealed to a TPM is made in the TPM, not here".into()),
     };
     key.set_comment(comment);
     Ok(key)
@@ -291,6 +299,9 @@ mod tests {
         assert_eq!(KeyKind::parse(Some("ECDSA-SK"), Some("256")).unwrap(), KeyKind::Sk(crate::sk::Alg::EcdsaP256));
         assert_eq!(KeyKind::parse(Some("ecdsa-sk"), None).unwrap().default_file(), "id_ecdsa_sk");
         assert!(generate(KeyKind::Sk(crate::sk::Alg::Ed25519), "").is_err(), "made in a device only");
+        assert_eq!(KeyKind::parse(Some("ecdsa-tpm"), None).unwrap().default_file(), "id_ecdsa_tpm");
+        assert!(KeyKind::parse(Some("ecdsa-tpm"), Some("384")).is_err());
+        assert!(generate(KeyKind::Tpm, "").is_err(), "made in a TPM only");
         for (t, b) in [
             ("ed25519", "255"),
             ("ecdsa", "300"),

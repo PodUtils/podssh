@@ -5922,3 +5922,116 @@ A test that does not exist yet: a key sealed to PCR 7 signs; after the PCR is ex
 file refuses (one line, not a panic); after a signed policy for the new value it signs again; a copy of
 the key file on a second `swtpm` does not sign. OpenSSH verifies the signature. A planted signer that
 authorises by a password and ignores the policy fails the PCR-changed case.
+
+## Decision
+
+- **Where the code lives: `crates/podssh-ssh/src/tpm/`, not `pod-identity`** (2026-11-24, the drafting
+  agent; see the Correction). The codec's files (`wire.rs`, `rc.rs`, `cmd.rs`, `policy.rs`,
+  `keyfile.rs`, `public.rs`, `flow.rs`, `unix.rs`) take no podssh type but russh's `PublicKey`, so a
+  move to a crate of PodUtils/podcrates is a copy; the login's signer (`signer.rs`, `crates/podssh-ssh/src/keys_tpm.rs`) and
+  `keygen -t ecdsa-tpm` stay podssh's. Lost: waiting for podcrates to make a TPM crate first (no
+  second user asks for one today, and the entry would block on another session); `pod-identity`
+  (it holds the relay end's Ed25519 seed, pins and allowlist, not SSH keys); `tss-esapi` of crates.io
+  (it links the C library tpm2-tss, against the static binary of each release); `tpm2-protocol`
+  1.2.4 of crates.io, a marshaller in pure Rust (updated on 2026-11-24, so younger than the two weeks
+  that a pin wants; the dozen commands here are about 200 lines, each pinned by a byte vector of
+  part 3). A crate of podcrates may take `tpm2-protocol` later.
+- **The command line: `-t ecdsa-tpm` with `-O pcr=LIST` and `-O device=PATH`**, where the Approach
+  wrote `--tpm --pcr 0,7,11`. Lost: new long flags, which `ssh-keygen` has none of; `-t` and `-O`
+  already carry the security keys' type and options, and one table (`crates/podssh-cli/src/flags/keygen.rs`) renders the
+  help and the manual.
+- **PCR 7 by default** (the state of Secure Boot, which a kernel's update leaves alone, and the
+  default of `systemd-cryptenroll`). Lost: `0,7` (PCR 0 moves with each firmware update, before the
+  offline update exists); no default (a sealed key needs some PCR).
+- **No TPM: exit 69** (`EX_UNAVAILABLE`), as the Approach says, where a missing security key exits
+  1 as `ssh-keygen` does: `ssh-keygen` has no TPM key to follow. Other failures exit 1.
+- **The file's `TPM2_PolicyPCR` body is the selection, then the digest**, the layout of
+  openssl_tpm2_engine's files: a file of go-tpm-keyfiles' tests has it, and its key's `authPolicy`
+  is `H(H(0 || 0x17F || body) || 0x16B)` with that body (computed with Python's `hashlib`,
+  2026-11-24). The draft's text names the TPM's order (digest first); podssh reads both.
+- **The key: ECDSA P-256 with SHA-256 in its scheme, `fixedTPM | fixedParent |
+  sensitiveDataOrigin | adminWithPolicy | noDA | sign`, no `userWithAuth`**, so the TPM itself
+  refuses the password (`TPM_RC_AUTH_UNAVAILABLE`). The parent: `0x40000001`, the H-2 P-256 storage
+  key with unique fields of length zero, as go-tpm-keyfiles' `ECCSRK_H2_Template` (read at
+  `8c9c2d10`).
+- **No encrypted or salted session**: no parameter of these commands is secret (`docs/design.md`,
+  "A key sealed to the machine").
+
+## Correction
+
+Read on 2026-11-24 (PodUtils/podcrates:crates/pod-identity/README.md and PodUtils/podcrates:docs/design.md on `main`,
+by `fetch.web.pkgforge.dev`): the Premise's second item does not hold. `pod-identity` is the Ed25519
+identity of an end of a road (its seed, key files, pins and allowlist); the SSH client's keys, key
+files and signers are `crates/podssh-ssh/src/keygen.rs`, `crates/podssh-ssh/src/keys.rs` and
+`crates/podssh-ssh/src/sk/mod.rs`, which no crate of podcrates holds. No crate of podcrates speaks
+to a TPM (its list of 63 crates on 2026-11-24 has none). The Approach's step 2 is therefore an ask of
+whether podcrates takes the module (Done, below), not a backend that podssh waits for.
+
+## Done
+
+Drafted on 2026-11-24 (branch `d-t839`), a first part. Nothing was built or run by the drafting
+agent: each result below is UNVERIFIED until the merge runs it.
+
+- The codec, sans-IO (`crates/podssh-ssh/src/tpm/`): the frame of a command and a response, sized
+  buffers, the response codes in one line each with their place (`wire.rs`, `rc.rs`); the commands
+  CreatePrimary, Create, Load, StartAuthSession, PolicyPCR, PolicyGetDigest, Sign, FlushContext,
+  PCR_Read, PCR_Extend and GetCapability (`cmd.rs`); the selection of PCRs and the policy digest
+  (`policy.rs`); the `TSS2 PRIVATE KEY` in DER and PEM (`keyfile.rs`); the public area, the two
+  templates and SSH's key and signature (`public.rs`); the sequences, which flush each handle on each
+  path (`flow.rs`). `cargo test -p podssh-ssh --lib tpm::codec_tests`: UNVERIFIED (byte vectors of
+  part 3 written by hand, the codes, the PCRs, the digest of PCR 7 of zeros, the key file of
+  go-tpm-keyfiles read, recomputed and written back byte for byte, cut and flipped files refused).
+- A TPM in software for the tests (`crates/podssh-ssh/src/tpm/soft.rs`): `cargo test -p podssh-ssh --lib tpm::flow_tests`,
+  UNVERIFIED (a key signs and ssh-key verifies it; after PCR 7 changes the same file is refused in
+  one line; a copy in another TPM does not load; the password signer and a policy of other PCRs are
+  refused; a trial digest that differs makes no key; 12 PCRs in two reads; no handle left).
+- The probe (`crates/podssh-ssh/src/tpm/unix.rs`, `crates/podssh-ssh/src/tpm/other.rs`, `tpm::probe`): `/dev/tpmrm0`, else a named device or a
+  socket; `/dev/tpm0` alone, no device, a plain file and `PODSSH_TPM_DEVICE=none` each refused with
+  one line that starts "no TPM: "; the TPM must answer GetCapability. Each command has 30 s
+  (`O_NONBLOCK` and `poll`).
+- `podssh keygen -t ecdsa-tpm [-O pcr=LIST] [-O device=PATH]` (`crates/podssh-cli/src/keygen_tpm.rs`):
+  probe (69), make, a signature of a fresh challenge checked before any write, `FILE` and `FILE.pub`;
+  `-y` and `-l` read the public key from the file. `cargo test -p podssh-cli --lib keygen_tpm`:
+  UNVERIFIED; `cargo test -p podssh-cli --test keygen_tpm`, UNVERIFIED (no TPM: 69, one line, no
+  file; usage errors 64 first; `-y` and `-l` of go-tpm-keyfiles' file; a login with it and no TPM
+  exits 255 and names the reason and the file); with swtpm, `cargo test -p podssh-cli --test
+  keygen_tpm -- --ignored`, UNVERIFIED (a key made through the binary logs in to russh's server).
+- The login (`crates/podssh-ssh/src/keys_tpm.rs`, `crates/podssh-ssh/src/tpm/signer.rs`): a key file of a TPM given with
+  `-i` is probed, skipped with its reason when no TPM answers, and signed in the TPM after the server
+  took the key; the tests of `keygen_tpm` above run it against russh's server.
+- The manual: the `-t` and `-O` rows, a note of `keygen`, an example, `PODSSH_TPM_DEVICE` in
+  ENVIRONMENT, and 69 in EXIT STATUS. `cargo test -p podssh-cli --lib man`: UNVERIFIED. Documents:
+  `docs/cli.md` ("Keys sealed to a TPM"), `docs/design.md` ("A key sealed to the machine"),
+  `docs/STATUS.md` (a row, `unreleased`).
+- Against swtpm: `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test tpm_key -- --ignored`,
+  UNVERIFIED (a key sealed to PCR 7 signs and OpenSSH's `ssh-keygen -Y check-novalidate` verifies
+  it; the password signer gets `TPM_RC_AUTH_UNAVAILABLE`; a copy on a second swtpm does not load;
+  after `PCR_Extend` of PCR 7 the file is refused in one line).
+
+What the merge runs first: `cargo todo remap docs/cli.md docs/design.md docs/STATUS.md
+crates/podssh-ssh/src/keys.rs crates/podssh-ssh/src/keygen.rs crates/podssh-ssh/src/lib.rs
+crates/podssh-cli/src/keygen.rs crates/podssh-cli/src/keygen_convert.rs crates/podssh-cli/src/lib.rs
+crates/podssh-cli/src/flags/keygen.rs crates/podssh-cli/src/man/facts.rs
+crates/podssh-cli/src/man/notes_keygen.rs crates/podssh-cli/src/man/data.rs
+crates/podssh-cli/src/man/examples.rs`, then the tests above, clippy, and the plant of the Prove (the
+signer by password, `testing::sign_ignoring_policy`, must fail where the policy signer passes).
+
+What is left of the entry:
+
+1. The research of the Approach's step 1 and the offline update: `TPM2_PolicyAuthorize` over a
+   policy digest that a key kept offline signs (`TPM2_LoadExternal`, `TPM2_VerifySignature`, the
+   ticket), the file's `authPolicy` with signed policies, and `podssh keygen` to sign a policy for a
+   new boot state; the Prove's case "after a signed policy for the new value it signs again".
+2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM.
+3. Windows: TBS (`Tbsi_Context_Create`, `Tbsip_Submit_Command`) in the place of
+   `crates/podssh-ssh/src/tpm/other.rs`.
+4. A login through `podssh ssh -i` against OpenSSH's sshd with swtpm, in the interop harness.
+
+The ask of PodUtils/podcrates, for the main session to file as a COORD issue `(to podcrates)`:
+"podssh drafted a TPM 2.0 codec and the key file `TSS2 PRIVATE KEY` in pure Rust
+(PodUtils/podssh `crates/podssh-ssh/src/tpm/`, T-839): the frame and the response codes, a dozen
+commands, the policy digest of `TPM2_PolicyPCR`, the key file, the sequences over a `Transport`, and
+the way through `/dev/tpmrm0` or a socket, with no podssh type but russh's `PublicKey`. No crate of
+podcrates speaks to a TPM. A key sealed to the machine is of use to podnet's and podvm's node keys
+too. Would podcrates take it as a crate (`pod-tpm`), with Windows' TBS beside it? Until it answers,
+the module stays in podssh, written so that a move is a copy."

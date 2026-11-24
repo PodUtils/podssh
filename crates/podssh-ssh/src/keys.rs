@@ -2,7 +2,8 @@
 //! files, each key at most once (a key both in the agent and on disk is
 //! offered once). With `IdentitiesOnly`, agent keys are offered only when they
 //! match a configured key file. A key file of a security key signs in its
-//! device, after a probe of the way to it (T-229).
+//! device, after a probe of the way to it (T-229); a key file of a TPM
+//! signs in the TPM, after a probe of it (T-839).
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -31,6 +32,9 @@ type DynAgent = AgentClient<Box<dyn AgentStream + Send + Unpin + 'static>>;
 // The key that a host took last, signed in the first request (T-664).
 #[path = "keys_at_once.rs"]
 mod at_once;
+// A key file sealed to a TPM (T-839).
+#[path = "keys_tpm.rs"]
+mod tpm_key;
 
 enum AgentState {
     NotTried,
@@ -53,6 +57,8 @@ pub(crate) struct PublicKeys {
     /// The key files of security keys that no device could sign with, and
     /// why.
     skipped_sk: Vec<String>,
+    /// The key files of a TPM that no TPM here could sign with, and why.
+    skipped_tpm: Vec<String>,
     /// The limit on each answer of the server (`ConnectTimeout`), and the
     /// host's name for its message.
     limit: Duration,
@@ -80,6 +86,7 @@ impl PublicKeys {
             rsa_hash: None,
             skipped_encrypted: Vec::new(),
             skipped_sk: Vec::new(),
+            skipped_tpm: Vec::new(),
             limit: opts.connect_timeout,
             host: host.to_string(),
             accepted: crate::algorithms::UserKeys::of(&opts.algorithms),
@@ -92,6 +99,12 @@ impl PublicKeys {
             return Ok(step);
         }
         while let Some(path) = self.files.pop_front() {
+            if crate::tpm::is_key_file(&path) {
+                match self.try_tpm_key(handle, user, &path).await? {
+                    Some(step) => return Ok(step),
+                    None => continue,
+                }
+            }
             let Some(key) = self.load(&path).await else { continue };
             let public = key.public_key().clone();
             if self.offered.iter().any(|k| k.key_data() == public.key_data()) {
@@ -176,6 +189,9 @@ impl PublicKeys {
         }
         if !self.skipped_sk.is_empty() {
             notes.push(format!("skipped the key(s) of a security key: {}", self.skipped_sk.join("; ")));
+        }
+        if !self.skipped_tpm.is_empty() {
+            notes.push(format!("skipped the key(s) sealed to a TPM: {}", self.skipped_tpm.join("; ")));
         }
         notes
     }

@@ -63,7 +63,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              none of docker, podman and kubectl, one of them failed, or --exec names no container that a \
              list has. podssh session: no session of that name answers, or its session ended (and the \
              status that it ended with is said). podssh detached status and stop: no run of that name \
-             runs. podssh relay serve: the port of --listen is in use.",
+             runs. podssh relay serve: the port of --listen is in use. podssh keygen -t ecdsa-tpm: no TPM \
+             that podssh may reach.",
         ),
         row(
             crate::exit_codes::EXIT_NOT_IMPLEMENTED,

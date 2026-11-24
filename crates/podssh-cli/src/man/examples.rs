@@ -309,6 +309,10 @@ fn examples() -> Vec<(&'static str, String)> {
         ("a key with no passphrase, for a script", "podssh keygen -N '' -f ./deploy_key".into()),
         ("the public key of a private key", "podssh keygen -y -f ~/.ssh/id_ed25519".into()),
         ("the fingerprint of a key", "podssh keygen -l -f ~/.ssh/id_ed25519.pub".into()),
+        (
+            "a key that signs only in this machine's TPM, while Secure Boot is as it is now",
+            "podssh keygen -t ecdsa-tpm -O pcr=7 -f ~/.ssh/id_ecdsa_tpm".into(),
+        ),
         ("this manual with no pager", "podssh man --no-pager".into()),
         ("one section of this manual", "podssh man environment".into()),
         ("this manual as a man page", "podssh man --roff > podssh.1 && man -l podssh.1".into()),

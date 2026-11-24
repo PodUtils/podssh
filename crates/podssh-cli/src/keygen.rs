@@ -177,8 +177,9 @@ pub fn run_keygen(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -
         let _ = writeln!(err, "podssh keygen: {flag} goes with -s (a certificate)");
         return EXIT_USAGE;
     }
-    // -O also gives the options of a new key of a security key (T-229).
-    let security_key = matches!(KeyKind::parse(args.key_type.as_deref(), None), Ok(KeyKind::Sk(_)));
+    // -O also gives the options of a new key of a security key (T-229), and
+    // of a key sealed to a TPM (T-839).
+    let security_key = matches!(KeyKind::parse(args.key_type.as_deref(), None), Ok(KeyKind::Sk(_) | KeyKind::Tpm));
     let lone = [
         (args.namespace.is_some(), "-n"),
         (args.identity.is_some(), "-I"),
@@ -313,6 +314,9 @@ fn generate(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
     if let KeyKind::Sk(alg) = kind {
         return crate::keygen_sk::make(args, alg, &path, &comment, out, err);
     }
+    if kind == KeyKind::Tpm {
+        return crate::keygen_tpm::make(args, &path, &comment, out, err);
+    }
     let passphrase = match args.passphrase {
         NewPassphrase::Absent => match ask_new_passphrase("Enter passphrase (empty for no passphrase): ") {
             Ok(p) => p,
@@ -402,14 +406,16 @@ pub(crate) fn ask_new_passphrase(first: &str) -> Result<Zeroizing<String>, Strin
 /// it is encrypted, so the line printed is derived from the private key.
 fn print_public(path: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let key = match crate::keygen_convert::load_key(path, true) {
-        Ok(KeyFile::Private(key)) => key,
+        Ok(KeyFile::Private(key)) => key.public_key().clone(),
+        // A key file of a TPM: the public area that it holds (T-839).
+        Ok(KeyFile::Public(key)) if podssh_ssh::tpm::is_key_file(path) => key,
         Ok(KeyFile::Public(_)) => return EXIT_FAILED,
         Err(why) => {
             let _ = writeln!(err, "podssh keygen: {why}");
             return EXIT_FAILED;
         }
     };
-    match key.public_key().to_openssh() {
+    match key.to_openssh() {
         Ok(line) => {
             let _ = writeln!(out, "{line}");
             0

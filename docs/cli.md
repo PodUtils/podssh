@@ -3759,6 +3759,10 @@ judges what the peer offers.
   first: with no device that podssh may reach, `keygen` names the reason
   and exits 1, before it asks a passphrase or writes a file. See
   "Security keys" below.
+- `-t ecdsa-tpm` makes an ECDSA P-256 key in the machine's TPM 2.0, sealed
+  to the PCRs of `-O pcr=LIST` (7 by default); `-O device=PATH` names the
+  TPM. With no TPM, `keygen` exits 69 and writes nothing (T-839). See "Keys
+  sealed to a TPM" below.
 - DSA is refused, because OpenSSH 10 removed it.
 - An RSA key is made by aws-lc-rs, whose RSA is constant-time, never by the
   `rsa` crate, whose private-key operations are not (RUSTSEC-2023-0071, the
@@ -3809,6 +3813,47 @@ assumes one:
   device's signature, then the flags and the counter that the device
   signed. The tests check it against signatures that OpenSSH made, the
   vectors of ssh-key 0.7.0-rc.11.
+
+### Keys sealed to a TPM
+
+`podssh keygen -t ecdsa-tpm` makes an ECDSA P-256 key in the machine's TPM
+2.0, sealed to PCRs of the SHA-256 bank (T-839): PCR 7 by default, the
+state of Secure Boot, or the list of `-O pcr=LIST`. The key never leaves
+the TPM, and the TPM signs with it only while those PCRs hold the values
+that they held when the key was made. Each use probes the TPM first:
+
+- The key's `authPolicy` is the digest of one `TPM2_PolicyPCR`, and the key
+  has no `userWithAuth`: the TPM takes no password for it, only a policy
+  session that ran that command while the PCRs held those values. A boot
+  that measured something else (another boot loader, Secure Boot turned
+  off) makes the TPM refuse the key; `podssh ssh -i` says so in one line
+  and tries the next key.
+- The file is a `TSS2 PRIVATE KEY` (the draft of James Bottomley that
+  openssl_tpm2_engine, tpm2-openssl and ssh-tpm-agent read); its parent is
+  the owner's P-256 storage key of the TCG's H-2 template, which each
+  reader makes again from the TPM's seed. A copy of the file on another
+  TPM does not load. `FILE.pub` holds the public key, as OpenSSH writes it.
+- Before the file is written, podssh reads the policy in a trial session
+  of the TPM and compares it with its own digest, and the new key signs
+  once and the signature is checked: a key that cannot sign now is never
+  written.
+- podssh reaches the TPM through `/dev/tpmrm0`, the kernel's resource
+  manager, which keeps each connection's handles apart; podssh also
+  flushes each handle that it made on each path. `-O device=PATH` or
+  `PODSSH_TPM_DEVICE` names another device, or the socket of a TPM in
+  software (`swtpm socket --server type=unixio`); `none` turns TPM keys
+  off. A command has 30 s.
+- With no TPM, as in a container or a sandbox, `keygen` says why and
+  writes nothing (exit 69), and a login skips the key before the server
+  sees it, with the reason under `-v` and in the message of a login that
+  fails. On Windows podssh has no way to the TPM (TBS) and says so.
+- What a writer of the same disk can do: replace the key file with one of
+  its own key, which the server does not know; or wait for a boot whose
+  PCRs match. It cannot make the TPM sign with this key under another
+  boot state, nor carry the key to another machine. A kernel's update
+  leaves PCR 7 alone; a firmware's update or a change of Secure Boot's
+  keys moves it, and the key is then made again (the offline update by a
+  signed policy, `TPM2_PolicyAuthorize`, is T-839's later part).
 
 ## `podssh node`, `podssh operator` and `podssh relay`
 

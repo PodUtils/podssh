@@ -295,6 +295,7 @@ pub fn variables() -> impl Iterator<Item = &'static (&'static [&'static str], &'
         .chain(turn::VARIABLES)
         .chain(super::notes_devtunnel::VARIABLES)
         .chain(super::notes_gsr::VARIABLES)
+        .chain(super::notes_keygen::VARIABLES)
         .chain(net::VARIABLES)
         .chain(terminal::VARIABLES)
 }
