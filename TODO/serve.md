@@ -2392,6 +2392,28 @@ default of russh refuses each `tcpip-forward` with no reason.
 
 **The donor study (2026-11-18, PodUtils/podssh#317), report 23.** (pgrok/pgrok at its pinned commit). If a node ever routes HTTP by name to a `-R` forward, take three rules of pgrok: the forward's listener is on `127.0.0.1` only, never `0.0.0.0`, so the port is not a second, unauthenticated entrance; the name is kept in the per-forward record, not in a field of the connection, so a connection with several forwards cannot orphan one (pgrok/pgrok:internal/sshd/, the registry of a Host to a forward); and the Host is lowercased and cut of its port once, on both sides of the lookup. The name belongs to the authenticated key; the SSH user name, which stock OpenSSH always sends, can be a label under that key (`ssh -R 0:localhost:3000 staging@node` binds "staging" for the key), so no client of podssh's own is needed. The ingress listener only looks up the Host and proxies, and is fronted by T-631's deadline and cap. Step 1 (no bind in the cage) is unchanged: the registry maps a name to the relay pair, not to a socket. The relay role (T-720) already names nodes, so the name registry is asked of it, not written beside it.
 
+## Decision
+
+2026-11-24 (a drafting agent).
+
+- The seam: `podssh_ssh::server::remote_forward::Publish`, a trait of `Settings::remote`, publishes
+  each forward and is given an `Opener` that opens a `forwarded-tcpip` channel toward the request's
+  address and port for each session that comes. The server keeps the table of a connection's forwards
+  (`Forwards` in the handler) and refuses before any publish (`--no-forwarding`, the key's
+  `no-port-forwarding` or `restrict`, a port past 65535, an address that is no name, more than
+  `MAX_REMOTE_FORWARDS` = 8, the same address and port twice). One teardown, `Stop`, runs once when
+  a forward leaves its table: by `cancel-tcpip-forward`, or by the connection's end (report 11, rule
+  c). Lost: the relay's pair made in `podssh-ssh`, which does not depend on `podssh-relay`'s pairs
+  and would bind the server to one road; a listener on the node, which step 4 keeps for later.
+- No publisher, which is serve's default today, refuses each request with a line of serve's log, as
+  russh's default refused it with none.
+- A publish runs inside russh's session loop (`vendor/russh/src/server/encrypted.rs:1966-1974`
+  awaits `tcpip_forward` before the next message), so the CLI's publisher must bound its time; the
+  relay's pair request has the bounds of the relay client.
+- Kept out: `permitlisten=` stays a line unused (`crates/podssh-ssh/src/server/options.rs:56`), as
+  serve would not honour it while it binds nothing; a name per key (report 23) waits for the relay
+  role's names (T-720).
+
 ## Prove
 
 ```sh
@@ -2415,6 +2437,37 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 2026-11-05. The Start condition's "the operator holds them (Q32)" no longer holds: Q92 (2026-11-03,
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
+
+2026-11-24 (a drafting agent), read at `e9db680f`: russh's default `tcpip_forward` answers false in
+the vendored copy at `vendor/russh/src/server/mod.rs:857-865` (the Premise's lines 771-779 are of
+the release on GitHub). The report's open question holds: russh gives the request's address to
+`tcpip_forward` unchanged, and sends the port that the handler sets for a request of port 0
+(`vendor/russh/src/server/encrypted.rs:1966-1985`). `docs/target-environment.md:25` and
+`scripts/box/probe.sh:109-117` were not read again.
+
+## Done
+
+Partial (WIP, drafted 2026-11-24, not built). Done here, each result UNVERIFIED:
+
+- The server's side: `crates/podssh-ssh/src/server/remote_forward.rs` (`Publish`, `Publisher`,
+  `Opener`, `Published`, `Stop`, the table `Forwards` and its refusals), the handler's
+  `tcpip_forward` and `cancel_tcpip_forward` (`crates/podssh-ssh/src/server/handler.rs`; its
+  direct-tcpip body moved to `handler_forward.rs` so the file stays at 500 lines), and
+  `Settings::remote` (None in `podssh serve`, so each `-R` is refused with a line).
+- Tests: `remote_forward_tests.rs` (each refusal before a publish, one table; a teardown runs once by
+  a cancel or by the connection's end) and `crates/podssh-ssh/tests/serve_remote_forward.rs` (the
+  Prove's first command: against a stand-in in memory, port 0 told the published port, a session's
+  channel names its request and carries bytes both ways, the same forward twice refused, a cancel and
+  the connection's end each stop once; no publisher and `--no-forwarding` refuse with nothing
+  published). `cargo test -p podssh-ssh --test serve_remote_forward`: UNVERIFIED;
+  `cargo test -p podssh-ssh --lib server::remote_forward`: UNVERIFIED.
+- The manual says that a client's `-R` is refused, and why (`notes_serve.rs`).
+
+Left (the entry stays open): the CLI's publisher on the relay's pair (step 1: a pair made at the
+relay for each forward, a node of it in serve's process whose `Handler::open` calls the `Opener`,
+the tokens never in output; step 3: `Stop` sends `POST /v1/stop`); the name on the client's stderr
+and OpenSSH's display of `SSH_MSG_DEBUG` (step 2); step 4's listener on the node behind T-124's bind;
+the live Prove (`-- --ignored`) and the count of serve's sockets.
 
 # T-124: `podssh serve --listen`: SSH on a TCP port on a host that allows it
 

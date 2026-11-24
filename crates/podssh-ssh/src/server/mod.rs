@@ -25,7 +25,8 @@
 //! the message of the day first (T-119, `motd.rs`), and with
 //! `--shell-integration` its prompts and commands are marked (T-120,
 //! `marks.rs`). Where systemd is there, each pty child runs in a transient
-//! scope of its own (T-122, `scope.rs`).
+//! scope of its own (T-122, `scope.rs`). A client's `-R` is published
+//! with no bind where the settings give a way (T-123, `remote_forward.rs`).
 
 pub mod algorithms;
 mod authorized;
@@ -55,6 +56,7 @@ mod pty_child;
 #[cfg(target_os = "linux")]
 pub mod pty_devpts;
 mod pty_grant;
+pub mod remote_forward;
 pub mod rules;
 pub mod scope;
 #[cfg(unix)]
@@ -184,6 +186,9 @@ pub struct Settings {
     /// found by the CLI's probe of systemd at the start. None starts each
     /// child where serve is, as on a host with no systemd.
     pub scope: Option<scope::Tool>,
+    /// What publishes a client's `-R` with no bind (T-123); None refuses
+    /// each `tcpip-forward`, as russh's default did.
+    pub remote: Option<remote_forward::Publisher>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).

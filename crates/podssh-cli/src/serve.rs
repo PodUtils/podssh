@@ -203,6 +203,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         motd: Some(args.motd.as_ref().map_or_else(Motd::default_file, Motd::named)),
         shell_integration: args.shell_integration,
         scope: None,
+        // No relay publishes a client's -R yet: each is refused (T-123).
+        remote: None,
     };
     // Before the host key, so a start that cannot serve makes none.
     if let Err(refusal) = crate::serve_shell::at_start(&settings, err) {

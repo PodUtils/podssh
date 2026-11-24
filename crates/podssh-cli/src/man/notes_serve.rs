@@ -164,7 +164,8 @@ pub const SERVE: &[&str] = &[
      127.0.0.1:1: Connection refused); a port of 0 or past 65535 too. The bytes go both ways, an end of one way keeps \
      the other open, and the TCP connection ends with its channel. At most 256 forwards are open at once on one \
      connection, and one more is refused as a resource shortage. --no-forwarding refuses each forward, \
-     administratively prohibited, with the flag named.",
+     administratively prohibited, with the flag named. A client's -R (tcpip-forward) is refused, and serve's stderr \
+     says why: serve binds no socket for it (OpenSSH: remote port forwarding failed).",
     "The environment of a child is serve's own, as the cage gave it (PATH, HTTPS_PROXY and the rest stay). It goes \
      without podssh's credentials: PODSSH_RELAY_TOKEN, the secrets of Cloudflare Access, and each variable of podssh \
      whose name holds TOKEN, SECRET, PASSWORD or PASSPHRASE. Of those, the ones that name a file stay. It adds USER \
