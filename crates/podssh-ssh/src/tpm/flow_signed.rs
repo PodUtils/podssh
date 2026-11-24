@@ -38,8 +38,8 @@ pub(super) fn make<T: Transport + ?Sized>(
     // The first policy is signed before the key exists: a signer that
     // fails leaves nothing in the TPM to flush.
     let first = signed_now(t, pcrs, key, policy_ref, None)?;
-    let (private, public_area, area) = flow::create_sealed(t, &wanted)?;
-    let mut file = flow::sealed_file(steps, description, public_area, private);
+    let (private, public_area, area, parent) = flow::create_sealed(t, &wanted)?;
+    let mut file = flow::sealed_file(steps, description, public_area, private, parent);
     file.auth_policies.push(first);
     Ok((file, area))
 }

@@ -5994,6 +5994,48 @@ state gates.
   `crates/podssh-cli/tests/live_harness/sshd.rs`, ignored as it needs swtpm, and ended with a line
   where no sshd runs. Lost: `scripts/interop-keygen.sh`, whose build image has no swtpm and whose
   baseline (`scripts/interop-baseline.txt`) would take new ids that wait for a run.
+- **`podssh agent`: the extension `tpm-add-key` in the layout of ssh-tpm-agent's `ssh-tpm-add`**
+  (2026-11-24, the third drafting agent; read at Foxboron/ssh-tpm-agent:agent/client.go and
+  Foxboron/ssh-tpm-agent:agent/agent.go on `master` at `a9d3ab36`, and golang/crypto:ssh/agent/client.go
+  for the extension's frame, by `fetch.web.pkgforge.dev`): the extension's name, then the code 17, the
+  string `TPMKEY`, the key file in PEM, a certificate, then the constraints. So `ssh-tpm-add` works
+  with podssh's agent and `podssh agent add` with ssh-tpm-agent. The front keeps the keys as it keeps
+  the security keys (`crates/podssh-ssh/src/sk/agent.rs`). Lost: an add of podssh's own name (no other
+  tool would speak it); the file's path alone (the agent would read a file that the client named, and
+  a client of another directory could not add); russh's `AgentClient::extension`, which writes the
+  frame's length at its end and the contents as a string (podssh writes the frame itself).
+- **The agent keeps a key only once it signed a fresh challenge in the TPM**, as `keygen` does: a key of
+  another TPM or of a changed boot state is refused at the add, with the reason on the agent's stderr,
+  not at the first login. Lost: no check (ssh-tpm-agent's way; a key that cannot sign would be listed).
+  A certificate is refused (EXTENSION_FAILURE): the agent does not yet list a certificate of such a key.
+- **serve's host key: a stand-in, no patch of russh.** russh's server keeps `PrivateKey`s and asks
+  `Config::host_key_signer` first (patch 0015, T-856). The stand-in is the TPM's public key with a scalar
+  of zeros, which p256's `SigningKey::from_slice` refuses, so a path that missed the signer fails and
+  never signs wrong; serve's signer finds the TPM by the public key in a table of the process
+  (`crates/podssh-ssh/src/tpm/host.rs`), so no type of serve's many paths changes. Lost: a patch of russh
+  for a host key with no private part (an enum in `Config::keys`, through each negotiation: a larger
+  patch, for what the existing seam already gives); a type of serve's own beside `PrivateKey` through
+  `serve_listen`, `node_serve` and `serve_keys` (many signatures for one key). The TPM signs on the
+  thread of the exchange (the signer's trait is synchronous): a second or so, once for each exchange.
+  No TPM, or a key that does not sign at the start, exits 78 as any host key that serve cannot use,
+  where `keygen` exits 69.
+- **Windows: tbs.dll loaded at run time** (`LoadLibraryExW` from System32, `GetProcAddress`), as
+  webauthn.dll is for a security key, with the types of windows-sys's `Win32_System_TpmBaseServices`.
+  Lost: windows-sys's own declarations, which import tbs.dll at the start of the process (a Windows
+  without it would not run podssh). The probe asks `Tbsi_GetDeviceInfo` for a TPM 2.0; a device named on
+  Windows is refused ("no TPM: "). Each command runs on a thread of its own for 30 s; past it,
+  `Tbsip_Cancel_Commands`, 5 s more, then the thread is left and the context takes no more. Lost: the
+  submit on the caller's thread (TBS has no limit that podssh can set). The codes and the bound are in
+  `crates/podssh-ssh/src/tpm/tbs.rs`, built on each system so that Linux's tests check them.
+- **Where the owner's hierarchy has a password, the storage key kept at `0x81000001`.** Windows 10 1607
+  and later set the owner's password at random and keep none (Microsoft's "Change the TPM owner
+  password", read on 2026-11-24 by `read.web.pkgforge.dev`), so `TPM2_CreatePrimary` under the owner
+  fails there and the TBS way alone could make no key. On `TPM_RC_BAD_AUTH`, the key is made under the
+  persistent handle that the TCG's provisioning guidance gives the SRK, and the file names it; a load
+  takes a parent of `0x81000000` to `0x81FFFFFF` as is. Lost: asking for the owner's password (Windows
+  keeps none); Windows' Platform Crypto Provider (NCrypt; another key format, which no reader of the
+  draft takes). Not measured on a Windows with a TPM: whether 0x81000001 is there and takes an empty
+  password, as the TCG's guidance says.
 
 ## Prove
 
@@ -6076,9 +6118,10 @@ What is left of the entry:
    ticket), the file's `authPolicy` with signed policies, and `podssh keygen` to sign a policy for a
    new boot state; the Prove's case "after a signed policy for the new value it signs again".
    Done (below), 2026-11-24.
-2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM. Not drafted: later.
+2. `podssh agent` holding a key of a TPM, and `serve`'s host key in a TPM. Drafted (below),
+   2026-11-24, UNVERIFIED.
 3. Windows: TBS (`Tbsi_Context_Create`, `Tbsip_Submit_Command`) in the place of
-   `crates/podssh-ssh/src/tpm/other.rs`. Not drafted: later.
+   `crates/podssh-ssh/src/tpm/other.rs`. Drafted (below), 2026-11-24, UNVERIFIED.
 4. A login through `podssh ssh -i` against OpenSSH's sshd with swtpm, in the interop harness.
    Done (below), 2026-11-24.
 
@@ -6139,3 +6182,54 @@ the way through `/dev/tpmrm0` or a socket, with no podssh type but russh's `Publ
 podcrates speaks to a TPM. A key sealed to the machine is of use to podnet's and podvm's node keys
 too. Would podcrates take it as a crate (`pod-tpm`), with Windows' TBS beside it? Until it answers,
 the module stays in podssh, written so that a move is a copy."
+
+Drafted on 2026-11-24 (branch `d-t839c`, on `merge-839b` at `1d5070b`), items 2 and 3; not built (the
+drafting agent runs no cargo). Each result below is UNVERIFIED until the main session runs it:
+
+- The software TPM signs any digest that it is given (aws-lc-rs's `sign_digest`), as a TPM does, and
+  can have an owner's password and a storage key kept at `0x81000001`
+  (`crates/podssh-ssh/src/tpm/soft.rs`). The flows make a key under that kept key when
+  `TPM2_CreatePrimary` meets `TPM_RC_BAD_AUTH`, and load a key of a persistent parent
+  (`crates/podssh-ssh/src/tpm/flow.rs`). `cargo test -p podssh-ssh --lib tpm::flow_tests`:
+  UNVERIFIED (the new test: no kept key, one line that names both; with it, the file names
+  `0x81000001`, signs, and is refused after PCR 7 moved; a parent of neither kind is refused before a
+  command is sent).
+- `podssh agent` (`crates/podssh-ssh/src/tpm/agent.rs`, chained in the front of
+  `crates/podssh-ssh/src/credential_store.rs` after the security keys; `podssh agent add` and `remove`
+  of a key file of a TPM in `crates/podssh-cli/src/agent/keys.rs`). `cargo test -p podssh-ssh --lib
+  tpm::agent`: UNVERIFIED (added, listed after russh's key, signed and verified, refused while locked,
+  removed; a changed boot state fails the signature and the add; a file of another TPM and no TPM are
+  refused at the add; a certificate, a confirmation, an unknown constraint, another type and a cut
+  request are refused; a lifetime ends; `tpm::agent::add` through `serve_client`).
+- serve's host key (`crates/podssh-ssh/src/tpm/host.rs`; `crates/podssh-ssh/src/server/host_sign.rs`
+  signs a stand-in in its TPM, and refuses one that no TPM holds; `crates/podssh-ssh/src/server/host_key.rs`
+  reads a key file of a TPM; serve says so at its start). `cargo test -p podssh-ssh --lib tpm::host`:
+  UNVERIFIED (the stand-in carries the TPM's public key and passes `host_key::check`; serve's signer
+  signs an exchange hash that ssh-key verifies, and refuses after PCR 7 moved; the plants: ssh-key's own
+  signing of the zero scalar fails, and an orphan stand-in is refused by serve's signer; an Ed25519 key
+  stays russh's; no TPM, a changed boot state and a file of another TPM refuse the key at the start).
+- Windows (`crates/podssh-ssh/src/tpm/windows.rs`, `crates/podssh-ssh/src/tpm/tbs.rs`; the feature
+  `Win32_System_TpmBaseServices` of windows-sys in `crates/podssh-ssh/Cargo.toml`). `cargo test -p
+  podssh-ssh --lib tpm::tbs`: UNVERIFIED on Linux (each code of TBS gives one line of "no TPM: "; a
+  command in time gives its answer; a late one is cancelled and said late; one that never ends is left
+  behind; a failed thread is no answer). In the gate's `windows` job, `cargo test -p podssh-ssh --test
+  tpm_key on_windows_tbs_answers_or_says_there_is_no_tpm`: UNVERIFIED (a TPM 2.0 answers, or one line
+  "no TPM: "; a named device is refused); the build for Windows: `cargo check -p podssh-ssh --target
+  x86_64-pc-windows-gnu`, UNVERIFIED.
+- Against swtpm: `CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test tpm_key -- --ignored`: UNVERIFIED
+  (the new tests: russh's client takes an exchange that swtpm signed, and meets the TPM's key; after
+  PCR 7 moved the host key is refused at the start; the agent's front signs with a key of swtpm, and
+  OpenSSH's `ssh-keygen` verifies it).
+- The manual: the notes of `agent`, `serve` and `keygen`, and `PODSSH_TPM_DEVICE`. `cargo test -p
+  podssh-cli --lib man` and `--test man_page --test man_flag_parity --test flag_table`: UNVERIFIED.
+  Documents: `docs/cli.md` ("Keys sealed to a TPM"), `docs/STATUS.md`.
+
+What the merge runs first: `cargo todo remap docs/cli.md docs/STATUS.md crates/podssh-ssh/src/tpm/flow.rs
+crates/podssh-ssh/src/tpm/mod.rs crates/podssh-ssh/src/credential_store.rs
+crates/podssh-ssh/src/server/host_key.rs crates/podssh-ssh/src/server/host_sign.rs
+crates/podssh-cli/src/agent/keys.rs crates/podssh-cli/src/serve.rs crates/podssh-cli/src/man/notes.rs
+crates/podssh-cli/src/man/notes_serve.rs crates/podssh-cli/src/man/notes_keygen.rs`; rustfmt;
+`podssh man --llms index > llms.txt` and `podssh man --llms full > llms-full.txt`; the tests above,
+clippy (also `--target x86_64-pc-windows-gnu`), and each file at 500 lines or fewer. Not measured: a
+Windows with a TPM (the runner of the gate may have none), and whether its `0x81000001` takes an empty
+password; the entry stays partial until the main session has run the above.

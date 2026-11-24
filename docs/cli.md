@@ -3857,7 +3857,39 @@ that they held when the key was made. Each use probes the TPM first:
 - With no TPM, as in a container or a sandbox, `keygen` says why and
   writes nothing (exit 69), and a login skips the key before the server
   sees it, with the reason under `-v` and in the message of a login that
-  fails. On Windows podssh has no way to the TPM (TBS) and says so.
+  fails.
+- On Windows podssh reaches the TPM through the TPM Base Services
+  (`tbs.dll`, loaded at run time, which is the probe): `Tbsi_GetDeviceInfo`
+  must name a TPM 2.0, and each context's handles are its own, as with
+  `/dev/tpmrm0`. Each command runs on a thread of its own for 30 s; past
+  that, `Tbsip_Cancel_Commands` cancels it and the context takes no more.
+  A device or a socket named there is refused. Windows 10 1607 and later
+  set the owner's password at random and keep none (Microsoft's "Change
+  the TPM owner password"), so the owner's storage key cannot be made: a
+  key is then made under the storage key that the TPM keeps at
+  `0x81000001`, and its file names that parent, which other readers of the
+  draft load as is. This holds on any TPM whose owner has a password.
+- `podssh agent` holds a key sealed to a TPM: `podssh agent add FILE`
+  sends the extension `tpm-add-key` in the layout of ssh-tpm-agent's
+  `ssh-tpm-add` (the code 17, `TPMKEY`, the file in PEM, an empty
+  certificate, the constraints), so `ssh-tpm-add` works with podssh's
+  agent too, and OpenSSH's agent refuses it. The agent keeps the file only
+  once the key signed a fresh challenge in the TPM; it lists the key after
+  russh's keys and the security keys, signs each request in the TPM (one
+  operation at a time, on a thread that may wait), and removes it. A
+  certificate, a confirmation of each use and an unknown constraint are
+  refused; a locked agent signs and lists none. It never holds a private
+  scalar: the file's private part loads only in that TPM.
+- `podssh serve --host-key FILE` takes a key file of a TPM. russh's server
+  takes its host keys as private keys and asks serve's own signer first
+  (podssh's patch 0015 of russh, `Config::host_key_signer`), so russh gets
+  a stand-in: the TPM's public key with a private scalar of zeros, which
+  p256 refuses to sign with. serve's signer finds the TPM by the public key
+  and signs each exchange hash there; a stand-in that no TPM holds is
+  refused, never left to russh, and no patch of russh was needed. The key
+  must sign at the start, else serve does not start (78). The TPM's
+  signature waits on the thread of the exchange: a second or so, once for
+  each key exchange.
 - The offline update: `-O policy-key=FILE` names an ECDSA P-256 key of
   SSH (`podssh keygen -t ecdsa`), kept off the host. The key's policy is
   then one `TPM2_PolicyAuthorize` that names that key and a policyRef of

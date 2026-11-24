@@ -2,7 +2,8 @@
 //! `lock` and `unlock`, to the agent of `SSH_AUTH_SOCK`, podssh's or
 //! OpenSSH's, with the words of `ssh-add`. A passphrase or a lock password
 //! is asked on the terminal or through `SSH_ASKPASS`, and lives in memory
-//! that is wiped.
+//! that is wiped. A key file of a TPM goes to the agent whole: its private
+//! part is of use only in that TPM (T-839).
 
 use std::io::Write;
 use std::path::Path;
@@ -47,6 +48,14 @@ pub async fn add(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write) ->
     };
     let lifetime: Option<u32> = args.lifetime.as_deref().and_then(|s| s.parse().ok());
     for file in &args.args {
+        // A key file of a TPM goes as ssh-tpm-agent's ssh-tpm-add gives one
+        // (T-839): only podssh agent and ssh-tpm-agent keep it.
+        if podssh_ssh::tpm::is_key_file(Path::new(file)) {
+            match add_tpm(Path::new(file), lifetime, err).await {
+                0 => continue,
+                code => return code,
+            }
+        }
         let key = match load(Path::new(file), err).await {
             Ok(key) => key,
             Err(code) => return code,
@@ -77,6 +86,33 @@ pub async fn add(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write) ->
         if let Some(seconds) = lifetime {
             let _ = writeln!(err, "Lifetime set to {seconds} seconds");
         }
+    }
+    0
+}
+
+/// The key file of a TPM at `path`, to the agent of `SSH_AUTH_SOCK` on a
+/// connection of its own. The agent signs once in the TPM before it keeps
+/// the key, so the answer can take seconds.
+async fn add_tpm(path: &Path, lifetime: Option<u32>, err: &mut dyn Write) -> i32 {
+    let file = match podssh_ssh::tpm::read_key_file(path) {
+        Ok(file) => file,
+        Err(why) => {
+            let _ = writeln!(err, "podssh agent: {why}");
+            return EX_NOINPUT;
+        }
+    };
+    let mut stream = match connect(err).await {
+        Ok(agent) => agent.into_inner(),
+        Err(code) => return code,
+    };
+    if let Err(why) = podssh_ssh::tpm::agent::add(&mut stream, &file, lifetime).await {
+        let _ = writeln!(err, "podssh agent: the agent refused {}: {why}", path.display());
+        return EX_SOFTWARE;
+    }
+    let comment = file.description.as_deref().unwrap_or("sealed to the TPM");
+    let _ = writeln!(err, "Identity added: {} ({comment})", path.display());
+    if let Some(seconds) = lifetime {
+        let _ = writeln!(err, "Lifetime set to {seconds} seconds");
     }
     0
 }
@@ -229,6 +265,15 @@ async fn public_of(path: &Path, err: &mut dyn Write) -> Result<PublicKey, i32> {
     pub_file.push(".pub");
     if let Ok(public) = podssh_ssh::russh::keys::load_public_key(&pub_file) {
         return Ok(public);
+    }
+    // A key file of a TPM holds its public key in the clear.
+    if podssh_ssh::tpm::is_key_file(path) {
+        return podssh_ssh::tpm::read_key_file(path).and_then(|file| podssh_ssh::tpm::public_key(&file)).map_err(
+            |why| {
+                let _ = writeln!(err, "podssh agent: {why}");
+                EX_NOINPUT
+            },
+        );
     }
     load(path, err).await.map(|key| key.public_key().clone())
 }

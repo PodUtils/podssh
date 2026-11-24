@@ -47,7 +47,9 @@ pub const KEYGEN: &[&str] = &[
      hold the values that they held when the key was made. After a boot that measured something else, the TPM \
      refuses the key, and podssh ssh -i says so and tries the next key. The key has no passphrase: the TPM takes \
      its policy and no password. The file is a TSS2 PRIVATE KEY, as openssl_tpm2_engine and ssh-tpm-agent read it. \
-     podssh reaches the TPM through /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). With no TPM \
+     podssh reaches the TPM through /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). On Windows \
+     it reaches the TPM through the TPM Base Services. Where the owner's hierarchy has a password, as Windows sets \
+     it, the key is made under the storage key that the TPM keeps (0x81000001). With no TPM \
      that podssh may reach, as in a container or a sandbox, it says why and writes nothing (exit 69). Before \
      the file is written, the new key signs once and the signature is checked. -y and -l read the public key \
      from the file.",
@@ -85,5 +87,6 @@ pub(super) const VARIABLES: &[(&[&str], &str)] = &[(
     &["PODSSH_TPM_DEVICE"],
     "The TPM 2.0 that podssh keygen -t ecdsa-tpm and podssh ssh use: a device, or the socket of a TPM in \
       software (swtpm socket --server type=unixio). none: podssh uses no TPM, and each use says so. Unset: \
-      /dev/tpmrm0, the kernel's resource manager.",
+      /dev/tpmrm0, the kernel's resource manager. On Windows: the TPM Base Services, and a device or a socket \
+      is refused.",
 )];

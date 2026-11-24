@@ -12,9 +12,13 @@
 //! policies: `TPM2_VerifySignature` checks ECDSA P-256 (the message, again,
 //! one of [`SoftTpm::messages`]), and `TPM2_PolicyAuthorize` outside a
 //! trial takes only the session's digest and a ticket that this TPM made.
+//! As Windows leaves a TPM, its owner's hierarchy can have a password that
+//! nobody knows, beside a storage key kept at 0x81000001.
 
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
+use aws_lc_rs::digest::{Digest, SHA256};
 use aws_lc_rs::rand::SystemRandom;
 use aws_lc_rs::signature::ECDSA_P256_SHA256_FIXED_SIGNING;
 use aws_lc_rs::signature::{EcdsaKeyPair, KeyPair, UnparsedPublicKey, ECDSA_P256_SHA256_FIXED};
@@ -32,6 +36,10 @@ pub(super) const RC_POLICY_FAIL_S1: u32 = 0x99D;
 pub(super) const RC_INTEGRITY_P1: u32 = 0x1DF;
 pub(super) const RC_AUTH_UNAVAILABLE: u32 = 0x12F;
 const RC_HANDLE_H1: u32 = 0x18B;
+/// TPM_RC_BAD_AUTH of the first session: the owner's password is not empty.
+const RC_BAD_AUTH_S1: u32 = 0x9A2;
+/// The handle of the storage key that a TPM keeps, as Windows makes one.
+const PERSISTENT_SRK: u32 = 0x8100_0001;
 const RC_COMMAND_CODE: u32 = 0x143;
 /// TPM_RC_SIGNATURE and TPM_RC_SCHEME of parameter 2 (the signature), and
 /// TPM_RC_VALUE of parameter 4 (the ticket of TPM2_PolicyAuthorize).
@@ -71,6 +79,10 @@ pub(super) struct SoftTpm {
     pub messages: Vec<Vec<u8>>,
     /// Each command, as it came.
     pub sent: Vec<Vec<u8>>,
+    /// The owner's hierarchy has a password: TPM2_CreatePrimary is refused.
+    pub owner_password: bool,
+    /// A storage key is kept at 0x81000001.
+    pub persistent_srk: bool,
 }
 
 impl SoftTpm {
@@ -83,7 +95,14 @@ impl SoftTpm {
             keys: Vec::new(),
             messages: Vec::new(),
             sent: Vec::new(),
+            owner_password: false,
+            persistent_srk: false,
         }
+    }
+
+    /// Whether `handle` is a storage key: one made here, or the one kept.
+    fn is_storage(&self, handle: u32) -> bool {
+        matches!(self.objects.get(&handle), Some(Object::Storage)) || (handle == PERSISTENT_SRK && self.persistent_srk)
     }
 
     /// Extend a PCR of the SHA-256 bank, as a boot measures.
@@ -160,11 +179,14 @@ impl SoftTpm {
                 if found[0] != RH_OWNER || template != storage_template().map_err(bad)?.as_slice() {
                     return Err(RC_HANDLE_H1);
                 }
+                if self.owner_password {
+                    return Err(RC_BAD_AUTH_S1);
+                }
                 let handle = self.handle(0x8000_0000, Object::Storage);
                 Ok((vec![handle], vec![], true))
             }
             CC_CREATE => {
-                if !matches!(self.objects.get(&found[0]), Some(Object::Storage)) {
+                if !self.is_storage(found[0]) {
                     return Err(RC_HANDLE_H1);
                 }
                 p.take(6).map_err(bad)?;
@@ -188,7 +210,7 @@ impl SoftTpm {
                 Ok((vec![], out.finish().map_err(bad)?, true))
             }
             CC_LOAD => {
-                if !matches!(self.objects.get(&found[0]), Some(Object::Storage)) {
+                if !self.is_storage(found[0]) {
                     return Err(RC_HANDLE_H1);
                 }
                 let private = p.sized().map_err(bad)?;
@@ -337,8 +359,13 @@ impl SoftTpm {
             }
         }
         let digest = p.sized().map_err(|_| RC_COMMAND_CODE)?;
-        let message = self.messages.iter().find(|m| sha256(m).as_slice() == digest).ok_or(RC_COMMAND_CODE)?;
-        let signature = key.pair.sign(&SystemRandom::new(), message).map_err(|_| RC_COMMAND_CODE)?;
+        let signature = match self.messages.iter().find(|m| sha256(m).as_slice() == digest) {
+            Some(message) => key.pair.sign(&SystemRandom::new(), message),
+            // Any other digest is signed as given, as a TPM signs it: a
+            // check of a key signs a random challenge.
+            None => Digest::import_less_safe(digest, &SHA256).and_then(|d| key.pair.sign_digest(&d)),
+        }
+        .map_err(|_| RC_COMMAND_CODE)?;
         let (r, s) = signature.as_ref().split_at(32);
         let mut out = Out::default();
         out.u16(0x0018).u16(0x000B).sized(r).sized(s);
@@ -373,5 +400,22 @@ impl Transport for SoftTpm {
             }
         }
         out.finish()
+    }
+}
+
+/// A TPM in software that each operation of a test opens again, as a
+/// device is: the TPM to look at, and the way to it.
+pub(super) fn shared(tpm: SoftTpm) -> (Arc<Mutex<SoftTpm>>, super::Opener) {
+    let tpm = Arc::new(Mutex::new(tpm));
+    let reach = tpm.clone();
+    let open: super::Opener = Arc::new(move || Ok(Box::new(Shared(reach.clone())) as Box<dyn Transport>));
+    (tpm, open)
+}
+
+struct Shared(Arc<Mutex<SoftTpm>>);
+
+impl Transport for Shared {
+    fn transact(&mut self, command: &[u8]) -> Result<Vec<u8>, String> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner()).transact(command)
     }
 }

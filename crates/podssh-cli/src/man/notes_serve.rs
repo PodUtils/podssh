@@ -74,7 +74,9 @@ pub const SERVE: &[&str] = &[
      then meet a new host key. A key file with a passphrase is refused (78). An RSA key signs through \
      aws-lc-rs, whose RSA is constant-time, with SHA-2 alone (rsa-sha2-512, rsa-sha2-256), never through \
      russh's rsa crate. An RSA key outside 2048 to 8192 bits, or a key that is not Ed25519, ECDSA or RSA, \
-     is refused (78).",
+     is refused (78). --host-key also takes a key file of a TPM (podssh keygen -t ecdsa-tpm): the TPM signs each \
+     key exchange, and serve holds no private key. Such a key must sign at the start: with no TPM, or after the \
+     boot state changed, serve does not start (78).",
     "A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as a login shell (its argv[0] the \
      shell's name after a dash). Each runs as the user that runs serve, on three pipes: stdout comes as data and \
      stderr as extended data, apart. Each child leads a session of its own (setsid), in HOME when it is a directory, \

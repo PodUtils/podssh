@@ -421,6 +421,9 @@ fn say_host_key(err: &mut dyn Write, key: &podssh_ssh::russh::keys::PrivateKey, 
     let fingerprint = podssh_ssh::known_hosts::fingerprint(key.public_key());
     let now = if made { ", made now" } else { "" };
     let _ = writeln!(err, "podssh serve: host key {fingerprint} ({}{now})", path.display());
+    if podssh_ssh::tpm::host::is_stand_in(key) {
+        let _ = writeln!(err, "podssh serve: the host key is sealed to the TPM, which signs each key exchange");
+    }
     if temporary(path) {
         let _ = writeln!(
             err,

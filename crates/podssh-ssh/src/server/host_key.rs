@@ -1,7 +1,8 @@
 //! The host key of `podssh serve` (T-107): one Ed25519 key in a state file,
 //! made at the first start and read at each later one, so that a client's
 //! `known_hosts` holds it once. Never overwritten: of two starts at once,
-//! one makes the file, and the other reads that key.
+//! one makes the file, and the other reads that key. A key file of a TPM
+//! named with `--host-key` is read too: the TPM signs for it (T-839).
 //!
 //! The files are made by the caller's functions, as [`crate::keygen::KeyFiles`]
 //! does it: podssh-relay's cache makes a private file whole or not at all,
@@ -14,6 +15,7 @@ use russh::keys::{Algorithm, PrivateKey};
 use zeroize::Zeroizing;
 
 use crate::keygen::{self, KeyKind};
+use crate::tpm;
 
 /// The file's name in a directory of the cache.
 pub const FILE: &str = "serve_host_ed25519_key";
@@ -47,7 +49,10 @@ pub fn at(path: &Path, files: &StateFiles) -> Result<HostKey, String> {
     // winner's key on its second turn.
     for _ in 0..2 {
         if let Some(text) = (files.read)(path)? {
-            let key = parse(&Zeroizing::new(text)).map_err(|why| format!("{}: {why}", path.display()))?;
+            let text = Zeroizing::new(text);
+            // A key file of a TPM (T-839): the TPM signs for its stand-in.
+            let read = if tpm::host::is_key_text(&text) { tpm::host::stand_in(&text) } else { parse(&text) };
+            let key = read.map_err(|why| format!("{}: {why}", path.display()))?;
             return Ok(HostKey { key, path: path.to_path_buf(), made: false });
         }
         let key = keygen::generate(KeyKind::Ed25519, COMMENT)?;

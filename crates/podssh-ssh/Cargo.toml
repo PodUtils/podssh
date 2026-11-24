@@ -93,7 +93,8 @@ libc = { workspace = true }
 [target.'cfg(windows)'.dependencies]
 # Security keys (T-229): the WebAuthn API of Windows (webauthn.dll), loaded
 # at run time through the library loader, and the window that owns its
-# dialog. The version above, so no crate is added.
+# dialog. Keys sealed to a TPM (T-839): the types of the TPM Base Services
+# (tbs.dll), loaded the same way. The version above, so no crate is added.
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Networking_WindowsWebServices",
@@ -101,6 +102,7 @@ windows-sys = { version = "0.61", features = [
     "Win32_System_Console",
     "Win32_System_IO",
     "Win32_System_LibraryLoader",
+    "Win32_System_TpmBaseServices",
     "Win32_UI_WindowsAndMessaging",
 ] }
 # Whether Pageant runs (T-228): russh's stream to Pageant opens when none
