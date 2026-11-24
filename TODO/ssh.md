@@ -5635,7 +5635,7 @@ podssh-ssh`: each suite passed (`cold_connect`, `loop_step`, `serve_algorithms`,
 `cargo test -p podssh-cli`: 246 suites, 2512 passed, 3 failed: `tests/job_far.rs` at the container's stand-in of `rm`,
 as at the baseline. clippy (the gate's lints) and rustfmt clean. `python3 scripts/check-vendored.py` could not reach
 crates.io through this container's proxy (403, exit 2: a check that could not run): `upstream.yml` by hand on `main`
-after the push is its proof.
+at `f789df28` (run 45309689224) passed.
 
 # T-838: An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file
 
