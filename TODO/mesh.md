@@ -16372,7 +16372,7 @@ Partial (2026-11-13): drafted (DRAFT T-773), not built, not run.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -16456,12 +16456,12 @@ where the `-udp` check is near line 1062; each claim holds there (dnstt answers 
 10 s with a doubling, and left rate limiting unaddressed). The closing condition of Prove, "`docs/carriers.md`
 holds the measurement of step 1 and the operator's ruling of step 3", is replaced: the research step is done when
 the document and the section of `docs/carriers.md` hold the verdict, Q107 is asked, and T-875 to T-877 are
-filed; the measurement and the ruling ride on T-875 and Q107.
+filed; the measurement and the ruling ride on T-875 and Q107. The test target `dns_carrier` of Prove moved to T-877, as `carrier_dns`, with the road itself.
 
 ## Done
 
-Research step, 2026-11-24 (a drafting agent; nothing built or run; **UNVERIFIED** by `cargo todo check`, which
-this agent could not run):
+Research step, 2026-11-24 (drafted by an agent, merged at the main session; `cargo todo check`: the record agrees,
+827 entries; `python scripts/check-repo.py`: ok):
 
 - Wrote [docs/research/dns-carrier.md](../docs/research/dns-carrier.md): what dnstt and `pod-link` do (read in
   their sources), the arithmetic on the carrier's ceilings (about 2.6 KB/s up, 18 KB/s down, 7.8 KB/s down where a
@@ -16513,11 +16513,6 @@ know, keeps the OPT record, and answers whole. T-835 could not measure it: a dra
 3. Write the result of two real networks in `docs/carriers.md` (T-835's section), and the line in the manual (each
    sentence 25 words or fewer).
 
-## Blocker
-
-The operator: Q107 (`TODO/PROGRESS.md`), a tenth exception of rule 2 for UDP datagrams to a resolver. Unblocked
-when it is answered; a refusal turns this entry into a probe of DNS over HTTPS only.
-
 ## Prove
 
 ```sh
@@ -16527,6 +16522,11 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test doctor_dns
 A test against a responder of `pod-link` on the loopback, and against a stand-in that strips OPT, one that sets TC
 and one that answers each name with an address: each gives its own true line. The planted defect: the probe reads
 an answer of another query as its own.
+
+## Blocker
+
+The operator: Q107 (`TODO/PROGRESS.md`), a tenth exception of rule 2 for UDP datagrams to a resolver. Unblocked
+when it is answered; a refusal turns this entry into a probe of DNS over HTTPS only.
 
 # T-876: Four findings on pod-link's DNS carrier, written to podcrates
 
@@ -16562,12 +16562,12 @@ podcrates, not a change here.
 
 ## Prove
 
-The issue exists, is mapped, and each finding has an answer of podcrates (a fix, or a reason). A test that does not
+The issue exists and is mapped (`cargo todo issues --block 349`), and each finding has an answer of podcrates (a fix, or a reason). A test that does not
 exist yet: faults 1 and 2 against the responder, each with its answer read.
 
 ## Done
 
-Step 1 on 2026-11-24: COORD-139 (PodUtils/podssh#349) asks podcrates the four findings, the test through `unbound` and a DoH `Datagrams`; findings 1 and 2 were read again in `crates/pod-link/src/dns/server.rs` at `v0.82.1` (`0d7832b`, `answer`) before it was sent. Steps 2 and 3 wait for podcrates' answer.
+Step 1 on 2026-11-24: COORD-139 (PodUtils/podssh#349) asks podcrates the four findings, the test through `unbound` and a DoH `Datagrams`; findings 1 and 2 were read again in pod-link's DNS server module at `v0.82.1` (`0d7832b`, its function `answer`) before it was sent. Steps 2 and 3 wait for podcrates' answer.
 
 # T-877: The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it
 
@@ -16605,11 +16605,6 @@ A host that reaches a resolver and nothing else has no road. `pod-link` has the 
    podcrates has the `Datagrams` that T-876 asks for.
 5. `docs/carriers.md`: the measurement of T-875 and the deployment; the manual page of `--carrier`.
 
-## Blocker
-
-The operator: Q107 (a tenth exception of rule 2), and T-875's result that a host exists. Also T-876's answers when
-they change the code that this glue takes.
-
 ## Prove
 
 ```sh
@@ -16619,3 +16614,9 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
 A session through `unbound` as the recursor and a responder behind it, 1 MiB each way, with query-name
 minimisation on and off; a planted resolver that strips OPT and one that sets TC, each ending in one true line
 with its exit code; the rates of section 3 of the research document measured and written beside the arithmetic.
+
+## Blocker
+
+The operator: Q107 (a tenth exception of rule 2), and T-875's result that a host exists. Also T-876's answers when
+they change the code that this glue takes.
+

@@ -144,7 +144,7 @@ clients, or a path with loss and a timeout of 2 s for each lost query, lowers th
 | A cut answer (TC) | Not read | The whole records before the cut; the ARQ sends the rest again | A resolver that sets TC to the client of a UDP query for an answer under 512. |
 | No TCP retry | The server has no TCP listener | The same | A resolver that asks the responder again over TCP after a TC, and gives its client SERVFAIL when the TCP port is closed. The responder keeps each answer under the size that was asked, so it never sets TC itself (Read, `drain`). |
 | A cache by name | Random padding in each name | A counter in each name | A resolver that caches a negative answer, or that rewrites the case of a name (the responder lowers the case: Read, `decode_query`). |
-| A 429 of a DoH resolver | The client's own concern | Not applicable: the dialer sends UDP | A DoH form needs a pause on 429 and a retry; none exists yet. |
+| A 429 of a DoH resolver | The client's own concern | Not applicable: the dialer sends UDP | A DoH form needs a pause on 429 and a retry; T-876 asks podcrates for one. |
 | QNAME minimisation (RFC 9156) | Not read | See fault 1 below | Whether unbound, BIND and the public resolvers fall back to the full name when a partial one gets no answer. |
 
 ### Three faults and a gap in the responder (for podcrates)

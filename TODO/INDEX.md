@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**827 entries: 20 open, 45 partial, 13 blocked, 749 done.**
+**827 entries: 18 open, 46 partial, 13 blocked, 750 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 20 | 11 | 8 | 347 | 386 |
-| **All** | 20 | 45 | 13 | 749 | 827 |
+| P3 | 18 | 12 | 8 | 348 | 386 |
+| **All** | 18 | 46 | 13 | 750 | 827 |
 
 ## Entries
 
@@ -865,7 +865,7 @@ repository and CI).
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | open | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
-| [T-835](mesh.md) | P3 | M | backlog | research | open | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
+| [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
@@ -901,5 +901,5 @@ repository and CI).
 | [T-868](cli.md) | P3 | M | M10 | defect | done | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | done | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |
 | [T-875](mesh.md) | P3 | S | backlog | measurement | blocked | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
-| [T-876](mesh.md) | P3 | S | backlog | chore | open | Four findings on pod-link's DNS carrier, written to podcrates |
+| [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
