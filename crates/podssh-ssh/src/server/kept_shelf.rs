@@ -89,15 +89,16 @@ impl Shelf {
         }
     }
 
-    /// The lines of `shells@podssh` for `owner`: each kept shell's name and
-    /// `attached` or `detached`, then each name of the last run, `lost`.
+    /// The lines of `shells@podssh` for `owner`: each kept shell's name,
+    /// `attached` or `detached` and its offset (T-833), then each name of
+    /// the last run, `lost`.
     pub(super) fn lines(&self, owner: &str) -> String {
         let shelved = self.lock();
         let mut out = String::new();
         for shell in shelved.shells.iter().filter(|s| s.owner == owner && !s.ended()) {
             if let Some(name) = shell.name() {
-                let state = if shell.has_client() { "attached" } else { "detached" };
-                out.push_str(&format!("{name} {state}\n"));
+                let (state, offset) = shell.listed();
+                out.push_str(&format!("{name} {state} {offset}\n"));
             }
         }
         for (_, name) in shelved.lost.iter().filter(|(o, _)| o == owner) {

@@ -12,108 +12,14 @@
 
 #![cfg(unix)]
 
+mod kept_harness;
 mod share_harness;
 
-use std::ffi::OsString;
-use std::sync::Arc;
 use std::time::Duration;
 
-use podssh_ssh::russh::keys::PrivateKey;
+use kept_harness::{detach, gone_within, list, read_after, runs, server, shell_with, start_job, states};
 use podssh_ssh::russh::{client, Disconnect};
-use podssh_ssh::server::{Authorized, Control, Keys, PtyMode, Settings};
-use share_harness::{have_pty, key, Seat, Seen, Server, Trusting, LIMIT};
-
-/// A server whose shells run on a pty of the kernel, kept for `lease`,
-/// with each key of `keys` authorized; the first is the owner.
-fn server(lease: Duration, keys: &[&PrivateKey]) -> Server {
-    let mut authorized = Authorized::new();
-    for key in keys {
-        authorized.add(key.public_key().key_data().clone());
-    }
-    let path = std::env::var_os("PATH").unwrap_or_else(|| "/usr/bin:/bin".into());
-    let base: Vec<(OsString, OsString)> = vec![("PATH".into(), path)];
-    let settings = Settings { base_env: Some(base), pty: PtyMode::No, keep_lease: lease, ..Settings::default() };
-    let owner = keys[0].clone();
-    Server { keys: Keys::new(authorized), control: Control::new(), settings: Arc::new(settings), owner }
-}
-
-/// The number after `tag` and before `_END` in the output: the echo of
-/// the typed line holds `$`, not digits, so only the shell's answer counts.
-fn after(seen: &Seen, tag: &str, hex: bool) -> Option<String> {
-    let text = seen.text();
-    text.split(tag).skip(1).find_map(|rest| {
-        let digits: String =
-            rest.chars().take_while(|c| if hex { c.is_ascii_hexdigit() } else { c.is_ascii_digit() }).collect();
-        (!digits.is_empty() && rest[digits.len()..].starts_with("_END")).then_some(digits)
-    })
-}
-
-/// Wait for `tag`'s number in the output of `seat`.
-async fn read_after(seat: &Seat, tag: &str, hex: bool) -> String {
-    seat.until(tag, |seen| after(seen, tag, hex).is_some()).await;
-    after(&seat.seen.lock().unwrap(), tag, hex).unwrap()
-}
-
-/// Whether the process `pid` runs (or is a zombie not yet reaped).
-fn runs(pid: i32) -> bool {
-    // SAFETY: a signal of 0 checks the process and sends nothing.
-    unsafe { libc::kill(pid, 0) == 0 }
-}
-
-/// Wait until `pid` is gone, within `limit`.
-async fn gone_within(pid: i32, limit: Duration) -> bool {
-    let end = tokio::time::Instant::now() + limit;
-    while tokio::time::Instant::now() < end {
-        if !runs(pid) {
-            return true;
-        }
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    false
-}
-
-/// A login shell of `login` on a pty, after the `env` requests `asks`.
-async fn shell_with(server: &Server, login: &PrivateKey, asks: &[(&str, &str)]) -> Seat {
-    let handle = server.login("user", login).await.expect("the key logs in");
-    let seat = Seat::open(handle).await;
-    seat.write.request_pty(true, "vt100", 80, 24, 0, 0, &[]).await.unwrap();
-    for (name, value) in asks {
-        seat.write.set_env(true, *name, *value).await.unwrap();
-    }
-    seat.write.request_shell(true).await.unwrap();
-    seat.until("each reply", |seen| seen.replies.len() > asks.len() + 1).await;
-    seat
-}
-
-/// The lines of `shells@podssh` for `login`.
-async fn list(server: &Server, login: &PrivateKey) -> String {
-    let handle = server.login("user", login).await.expect("the key logs in");
-    let seat = Seat::open(handle).await;
-    seat.write.request_subsystem(true, "shells@podssh").await.unwrap();
-    seat.until("the list's end", |seen| seen.closed).await;
-    let seen = seat.seen.lock().unwrap();
-    assert_eq!(seen.status, Some(0), "{seen:?}");
-    seen.text()
-}
-
-/// Ask the far end to keep the shell of `seat` as `name`: its reply.
-async fn detach(seat: &Seat, name: &str) -> bool {
-    let before = seat.seen.lock().unwrap().replies.len();
-    seat.write.set_env(true, "detach@podssh", name).await.unwrap();
-    seat.until("the detach's reply", |seen| seen.replies.len() > before).await;
-    let replies = seat.seen.lock().unwrap().replies.clone();
-    replies[before]
-}
-
-/// A job in the shell's own process group (`set +m`), and a line that the
-/// shell prints after `later` seconds: the job's pid.
-async fn start_job(seat: &Seat, later: u32) -> i32 {
-    seat.send(b"set +m; sleep 600 & echo PID_$!_END\r").await;
-    let pid: i32 = read_after(seat, "PID_", false).await.parse().unwrap();
-    let line = format!("(sleep {later}; echo LATER_$((6*7))_END) &\r");
-    seat.send(line.as_bytes()).await;
-    pid
-}
+use share_harness::{have_pty, key, Seat, Trusting, LIMIT};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_kept_shell_keeps_its_job_and_is_joined_again_by_name() {
@@ -131,7 +37,7 @@ async fn a_kept_shell_keeps_its_job_and_is_joined_again_by_name() {
     assert!(detach(&first, "work").await, "the far end keeps the shell");
     first.until("the channel's close", |seen| seen.closed).await;
     assert!(runs(pid), "the job runs on with no client");
-    assert_eq!(list(&server, &owner).await, "work detached\n");
+    assert_eq!(states(&server, &owner).await, ["work detached"]);
     assert_eq!(list(&server, &other).await, "", "another key's list names no shell of this one");
     tokio::time::sleep(Duration::from_secs(3)).await;
 
@@ -141,7 +47,7 @@ async fn a_kept_shell_keeps_its_job_and_is_joined_again_by_name() {
     second.reads("LATER_42_END").await;
     second.send(format!("kill -0 {pid} && echo ALIVE_$((1+1))_END\r").as_bytes()).await;
     second.reads("ALIVE_2_END").await;
-    assert_eq!(list(&server, &owner).await, "work attached\n");
+    assert_eq!(states(&server, &owner).await, ["work attached"]);
 
     // A second client is refused, as is one inside the shell, and another
     // key, each with its words and the status 1.
@@ -214,8 +120,8 @@ async fn a_shell_is_kept_only_when_its_client_asked() {
     let _ = kept.kept.disconnect(Disconnect::ByApplication, "", "").await;
     let listed = tokio::time::timeout(LIMIT, async {
         loop {
-            let lines = list(&server, &owner).await;
-            if lines == "lab detached\n" {
+            let lines = states(&server, &owner).await;
+            if lines == ["lab detached"] {
                 return lines;
             }
             tokio::time::sleep(Duration::from_millis(100)).await;

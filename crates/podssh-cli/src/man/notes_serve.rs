@@ -237,6 +237,13 @@ pub const SERVE: &[&str] = &[
      4 shells at most, and serve 32. At the end of a lease, serve hangs up the shell's process group, and kills it \
      10 s later. A job in a process group of its own, as job control makes, is the user's to leave behind, as under \
      sshd. A shell that its client leaves with no ~d and no keep@podssh is hung up, as before.",
+    // Who may join a kept shell, and replay or reset (T-833).
+    "A kept shell's ticket is its key and its name: another key, or a name that this key does not keep, is refused \
+     alike. shells@podssh gives each shell's offset, the bytes of its output so far. Before an attach, env \
+     count@podssh OFFSET replays from the offset that the client has. An offset that the ring no longer holds, or env \
+     reset@podssh yes, gives a reset. serve says so on stderr, then gives the last output from a clean boundary. \
+     serve decides the reset itself, so a gap never repeats. One attach at a time: a second one while the first \
+     catches up is refused with a line.",
     "A stop or a restart of serve, or of its host, ends each kept shell: a process does not outlive either. serve \
      writes the names of its kept shells to serve-NAME.kept beside its host key, mode 0600. The next start says \
      which shells ended with the last run, and shells@podssh lists them as lost. Under --stdio no shell is kept: \

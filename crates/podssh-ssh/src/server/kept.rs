@@ -34,6 +34,7 @@ use tokio::io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, DuplexStream};
 use tokio::sync::watch;
 
 use super::channel::Input;
+use super::kept_replay::{dropped_line, replay_from, since};
 use super::kept_shelf::Shelf;
 pub(super) use super::kept_ask::{Asked, Keeper};
 use crate::terminal::Size;
@@ -109,6 +110,8 @@ pub(super) struct Held {
 pub(super) struct Joined {
     pub(super) held: Held,
     pub(super) from: u64,
+    /// The replay is the ring from its first boundary, not from an offset.
+    pub(super) reset: bool,
     pub(super) old: Option<Attached>,
 }
 
@@ -195,10 +198,16 @@ impl Shell {
         self.state().name = Some(name.to_string());
     }
 
-    /// Whether a client has it, or joins it now.
-    pub(super) fn has_client(&self) -> bool {
+    /// Its line's words in `shells@podssh` (T-833): `attached` and where
+    /// the output stands, or `detached` and the offset at the detach, where
+    /// an attach with no count starts.
+    pub(super) fn listed(&self) -> (&'static str, u64) {
         let state = self.state();
-        state.attached.is_some() || state.joining
+        if state.attached.is_some() || state.joining {
+            ("attached", state.ring.end())
+        } else {
+            ("detached", state.detached_at)
+        }
     }
 
     pub(super) fn ended(&self) -> bool {
@@ -268,9 +277,10 @@ impl Shell {
         self.gone.send_replace(true);
     }
 
-    /// A new client joins, taking the shell from one that has it when
-    /// `take`; `lease` is its ask of a shorter lease for later.
-    pub(super) fn join(self: &Arc<Self>, take: bool, lease: Option<Duration>) -> Result<Joined, String> {
+    /// A new client joins with its `asked`: it takes the shell from one
+    /// that has it with `take@podssh`, asks for a shorter lease, and gives
+    /// the offset that it has, or asks for a reset (T-833).
+    pub(super) fn join(self: &Arc<Self>, asked: &Asked) -> Result<Joined, String> {
         let mut state = self.state();
         let name = state.name.clone().unwrap_or_default();
         if state.ended {
@@ -279,29 +289,36 @@ impl Shell {
         if state.joining {
             return Err(format!("another client is attaching the shell {name}; try again"));
         }
-        if state.attached.is_some() && !take {
+        if state.attached.is_some() && !asked.take {
             return Err(format!("the shell {name} has a client; --take takes it"));
         }
         let old = state.attached.take();
         // A client that had the shell saw its output: the new one starts now.
-        let from = if old.is_some() { state.ring.end() } else { state.detached_at };
+        let base = if old.is_some() { state.ring.end() } else { state.detached_at };
+        let (from, reset) = replay_from(&state.ring, base, asked.count, asked.reset);
         let_go(&mut state);
         if let Some(timer) = state.timer.take() {
             timer.abort();
         }
-        if let Some(lease) = lease {
+        if let Some(lease) = asked.lease {
             state.lease = lease.min(self.cap);
         }
         state.joining = true;
-        Ok(Joined { held: Held { shell: self.clone(), generation: state.generation }, from, old })
+        let held = Held { shell: self.clone(), generation: state.generation };
+        Ok(Joined { held, from, reset, old })
     }
 
     /// Send the joined channel what came since `from`, then make it the
     /// shell's. The output that comes meanwhile goes into the ring and out
     /// in the next turn, so its order holds; past [`CATCH_UP`] turns, the
     /// rest is dropped and said.
-    pub(super) async fn catch_up(self: Arc<Self>, generation: u64, attached: Attached, mut from: u64) {
+    pub(super) async fn catch_up(self: Arc<Self>, joined: Joined, attached: Attached) {
+        let (generation, mut from) = (joined.held.generation, joined.from);
         let (handle, id) = (attached.handle.clone(), attached.id);
+        if joined.reset {
+            let line = super::kept_replay::reset_line(&self.name().unwrap_or_default());
+            let _ = handle.extended_data(id, 1, line.into_bytes()).await;
+        }
         let mut slot = Some(attached);
         for turn in 1..=CATCH_UP {
             match self.turn(generation, &mut from, turn == CATCH_UP, &mut slot) {
@@ -402,29 +419,6 @@ fn let_go(state: &mut State) {
     state.detached_at = state.ring.end();
     if let Some(waker) = state.waker.take() {
         waker.wake();
-    }
-}
-
-fn dropped_line(bytes: u64) -> String {
-    format!("podssh serve: {bytes} bytes of this shell's output were dropped while no client had it\r\n")
-}
-
-/// The bytes of `ring` from the offset `from` on, and how many before them
-/// are lost: a ring that dropped past `from` gives its bytes from its first
-/// boundary instead (T-221), so that no part of a sequence shows as text.
-pub(super) fn since(ring: &Ring, from: u64) -> (Vec<u8>, u64) {
-    let end = ring.end();
-    if from >= end {
-        return (Vec::new(), 0);
-    }
-    match ring.start() {
-        Some(start) if start <= from => {
-            let kept = ring.kept();
-            let skip = usize::try_from(from - start).unwrap_or(usize::MAX).min(kept.len());
-            (kept[skip..].to_vec(), 0)
-        }
-        Some(start) => (ring.kept(), start - from),
-        None => (Vec::new(), end - from),
     }
 }
 

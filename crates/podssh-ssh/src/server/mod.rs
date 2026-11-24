@@ -45,6 +45,7 @@ mod kept;
 mod kept_ask;
 mod kept_join;
 mod kept_record;
+mod kept_replay;
 #[cfg(unix)]
 mod kept_run;
 mod kept_shelf;
