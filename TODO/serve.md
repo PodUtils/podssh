@@ -3286,7 +3286,7 @@ Read at `2042200`:
   `vendor/russh/src/server/mod.rs:1179` spawns.
 - In the session, the inactivity timer starts again at each event
   (`vendor/russh/src/server/session.rs:860-864`): a cut for silence, not a deadline.
-- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2297-2298` says "a cap on connections at
+- T-124's step 4 asks for a cap with no time: `TODO/serve.md:2686-2687` says "a cap on connections at
   once and on connections that have not authenticated".
 - What a deadline needs is there: `vendor/russh/src/server/session.rs:475` (`Handle::disconnect`) and
   `vendor/russh/src/lib_inner.rs:315` says "TooManyConnections = 12,".
