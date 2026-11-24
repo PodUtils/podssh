@@ -69,10 +69,11 @@ async fn a_count_in_the_ring_replays_from_there() {
     let count = mark.to_string();
     let back = shell_with(&server, &owner, &[("count@podssh", count.as_str()), ("attach@podssh", "work")]).await;
     back.reads("MARK_49_END").await;
-    let seen = back.seen.lock().unwrap();
-    assert!(seen.out.starts_with(b"MARK_49_END"), "the replay starts at the count: {seen:?}");
-    assert!(!String::from_utf8_lossy(&seen.err).contains("reset"), "no reset: {seen:?}");
-    drop(seen);
+    {
+        let seen = back.seen.lock().unwrap();
+        assert!(seen.out.starts_with(b"MARK_49_END"), "the replay starts at the count: {seen:?}");
+        assert!(!String::from_utf8_lossy(&seen.err).contains("reset"), "no reset: {seen:?}");
+    }
     back.send(b"exit 0\r").await;
     back.until("the shell's end", |seen| seen.closed).await;
 }
@@ -97,10 +98,9 @@ async fn a_count_older_than_the_ring_or_a_reset_asked_gives_the_last_output() {
         let back = shell_with(&server, &owner, &asks).await;
         back.until("the reset's line", |seen| String::from_utf8_lossy(&seen.err).contains("a reset")).await;
         back.reads("FILLED_64_END").await;
-        let seen = back.seen.lock().unwrap();
         // The ring, and room for a prompt that comes after it.
-        assert!(seen.out.len() <= RING + 1024, "{asks:?}: about the ring at most: {} bytes", seen.out.len());
-        drop(seen);
+        let got = back.seen.lock().unwrap().out.len();
+        assert!(got <= RING + 1024, "{asks:?}: about the ring at most: {got} bytes");
         assert!(detach(&back, "work").await, "{asks:?}");
     }
     let last = shell_with(&server, &owner, &[("attach@podssh", "work")]).await;

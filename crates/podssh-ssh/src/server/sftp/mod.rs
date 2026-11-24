@@ -39,8 +39,8 @@ use russh_sftp::protocol::{Packet, StatusCode, Version};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use super::channel::Open;
-use crate::sftp::sums::{SHA256, SHA256_BLOCKS};
 use super::{env, Settings};
+use crate::sftp::sums::{SHA256, SHA256_BLOCKS};
 use answer::{status, Session};
 use worker::Worker;
 

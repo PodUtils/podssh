@@ -166,7 +166,7 @@ pub fn parse_reply(data: &[u8], asked: &Asked) -> Result<Sums, String> {
     if data.len() as u64 != want {
         return Err(format!("a reply of {} bytes, where its count makes {want}", data.len()));
     }
-    let sums = data[HEAD..].chunks_exact(32).map(|c| c.try_into().unwrap_or([0; 32])).collect();
+    let sums = data[HEAD..].as_chunks::<32>().0.to_vec();
     Ok(Sums { size, mtime, hashed, block, sums })
 }
 

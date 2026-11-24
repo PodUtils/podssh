@@ -187,7 +187,7 @@ mod tests {
     /// steps off is not.
     #[test]
     fn a_code_one_step_off_is_taken_and_two_are_not() {
-        let now = 1_800_000_015;
+        let now: u64 = 1_800_000_015;
         for (off, taken) in [(-60i64, false), (-30, true), (0, true), (30, true), (60, false)] {
             let mut state = State::default();
             let answer = code_at(now.saturating_add_signed(off));

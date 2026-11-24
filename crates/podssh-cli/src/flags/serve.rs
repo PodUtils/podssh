@@ -53,7 +53,7 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "offer each login shell on a pty by two names told once to its owner: one types in it, one watches it; each dies with the shell", None),
     // A shell kept after its client detached, for a lease (T-159).
     row(None, "keep-lease", Some("TIME"), FlagKind::Supported,
-        "with NAME: how long a shell that its client detached (~d of podssh ssh) waits for a client, as 90s, 30m, 8h or 2d, 30 days at most; 0 keeps no shell (default: 24h)", None),
+        "with NAME: how long a shell that its client detached (~d of podssh ssh) waits for a client, as 90s, 30m or 8h, 30 days at most; 0 keeps no shell (default: 24h)", None),
     // A client policy on each client's KEXINIT (T-838).
     super::policy::SERVE_POLICY,
     // The audit log, chained JSON lines (T-116).
