@@ -4700,7 +4700,7 @@ of the serve drafts (`71f5af7`, T-159 and T-833).
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4740,5 +4740,6 @@ Run here: `cargo check --locked --tests --target x86_64-pc-windows-gnu` (the def
 clean. On Linux: `-p podssh-ssh --test serve_keep` 4, `serve_attach_ticket` 3, `serve_predict_kept` 2 and `--lib` 537
 passed; rustfmt and the gate's clippy clean. An interactive bash 5.2 with `set -H` prints the pid with the new line;
 this container's bash does not reproduce the old failure (macOS's `/bin/sh` is bash 3.2), so the gate's `macos` job
-proves step 2. Partial until the gate's `windows`, `windows-arm` and `macos` jobs pass.
+proves step 2. The gate at `dd1f9a9` (run 45413276289, 2026-11-24) passed each job: `windows`, `windows-arm` and
+`macos` among them, `-p podssh-ssh --test serve_keep` on macOS too.
 

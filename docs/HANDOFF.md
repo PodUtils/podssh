@@ -7,8 +7,9 @@ each entry's `## Done` is its own record. Where this page and an entry disagree,
 ## The state of `main`
 
 - **Read first, at the next session (the second cloud session of 2026-11-24, after `702c450`):**
-  1. **The gate** was green at `702c450` (build run 45368834644). Each push after it cancelled the gate before: read
-     the gate of the session's last push first (T-852's new test runs in its `windows` job; T-839's codec in each).
+  1. **The gate** is green at `dd1f9a9` (run 45413276289, each job). At `25ac08f` it was red on Windows and macOS (the
+     kept shells' `pod-term` and macOS's bash history expansion), repaired by T-897. Read the gate of the session's last
+     push first.
   2. **Merged this session, each built and tested here (Rust 1.99.1, the whole suite each time; only the 3 known
      `job_far` failures of this container's `rm`):** the stack `draft/merge-drafts` (`71f5af7`: T-115, T-116, T-119,
      T-120, T-122, T-124 with a new OpenSSH test `serve_listen_openssh`, T-631, T-150, T-159, T-833 done; T-123

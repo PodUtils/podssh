@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**830 entries: 4 open, 51 partial, 13 blocked, 762 done.**
+**830 entries: 4 open, 49 partial, 13 blocked, 764 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 12 | 3 | 94 | 109 |
+| P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 4 | 16 | 8 | 360 | 388 |
-| **All** | 4 | 51 | 13 | 762 | 830 |
+| P3 | 4 | 15 | 8 | 361 | 388 |
+| **All** | 4 | 49 | 13 | 764 | 830 |
 
 ## Entries
 
@@ -882,7 +882,7 @@ repository and CI).
 | [T-849](robustness.md) | P1 | S | M10 | defect | partial | `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS |
 | [T-850](release.md) | P2 | M | M10 | chore | done | `podssh update` on `pod-release` of PodUtils/podcrates; podssh's copy of the update goes |
 | [T-851](robustness.md) | P1 | S | M10 | defect | done | `shadowsocks_cli`: the second `ssserver` of a subscription's test lost its free port to another test |
-| [T-852](reverse.md) | P3 | S | M10 | measurement | partial | An upgrade in place of a node on Windows with a session through a Unix route |
+| [T-852](reverse.md) | P3 | S | M10 | measurement | done | An upgrade in place of a node on Windows with a session through a Unix route |
 | [T-853](robustness.md) | P1 | S | M10 | defect | done | `serve_shell`: a data file of the test met "Text file busy" at its start, once |
 | [T-854](serve.md) | P3 | S | backlog | defect | done | `podssh serve` answers a message that it does not know with `UNIMPLEMENTED` |
 | [T-855](serve.md) | P3 | S | backlog | feature | done | `podssh serve NAME` reads its keys again on SIGHUP, as `--stdio` does |
@@ -905,4 +905,4 @@ repository and CI).
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
 | [T-896](resume.md) | P3 | M | backlog | feature | partial | Local echo from end to end, for kept and shared shells, and on the Windows console |
-| [T-897](robustness.md) | P1 | S | M10 | defect | partial | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
+| [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |

@@ -5448,7 +5448,7 @@ are podcrates'. The Windows job of the gate runs the other three on AF_UNIX; an 
 **Milestone:** M10
 **Priority:** P3
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -5507,7 +5507,10 @@ it with an empty why. The Decision says what the node does instead. The `sock` m
 
 Drafted 2026-11-24 (branch `d-t852`); merged by the main session on `main` after `71f5af7`, built on Linux and tested
 there (2026-11-24, Rust 1.99.1): the whole suite, 421 suites, 4228 passed (3 of `job_far` at the container's `rm`,
-as before). Partial: its own test runs only on Windows, in the gate's `windows` job.
+as before). Its own test runs on Windows alone: it passed in the gate's `windows` job at `dd1f9a9` (run 45413276289, job
+138514787020, 2026-11-24): `node_upgrade_windows` 3 passed, among them
+`a_unix_route_s_session_goes_on_across_the_node_s_upgrade_on_windows`, so WinSock's duplicate carries an AF_UNIX
+socket to the new process, as the manual says.
 
 - `crates/podssh-cli/src/node_upgrade/pass_windows.rs`: `duplicate` gives a socket's duplicate for the child or why
   not (the socket's family from `getsockname`, and WinSock's error); `hand_to_child` takes `went`, which hears the
@@ -5528,8 +5531,8 @@ as before). Partial: its own test runs only on Windows, in the gate's `windows` 
 - Native, passed (2026-11-24): `cargo test -p podssh-cli --test node_unix_route` after the move of its listener (4
   passed); `cargo test -p podssh-cli --lib man::` (71 passed, `llms-full.txt` written again for the note); rustfmt and
   the gate's clippy on Linux.
-- Waits for the gate's `windows` job: `cargo test -p podssh-cli --test node_upgrade_windows` (2 tests), whether
-  WinSock's duplicate carries an AF_UNIX socket at all, and the clippy of the Windows code. Where the duplicate
+- The gate's `windows` job: `cargo test -p podssh-cli --test node_upgrade_windows` passed (above), and the build of
+  the Windows code (also checked here with `--target x86_64-pc-windows-gnu`). Where the duplicate
   fails, the test fails with the node's WinSock line, and the manual's sentence that a route's Unix socket goes to
   the child as a TCP one does changes with the result.
 - Waits for T-251, planted: `duplicate` made to fail always (its call's result taken as an error) must make the new test
