@@ -2803,6 +2803,7 @@ them: one of the ten in a row that this entry's Prove asks.
 The gate at `55386459` (run 45276783667): each job green, `gate (m6)` the second in a row.
 The gate at `f789df28` (run 45309674786, russh 0.65.4 and T-859's pump): each job green, `gate (m6)` the third.
 The gate at `a8397ea9` (run 45315562024): each job green, `gate (m6)` the fourth.
+The gate at `45c17a57` (run 45345487012): each job green, `gate (m6)` the fifth (`84b2f435`'s run failed on macOS alone, T-861's test).
 
 # T-781: A session through a tunnel of HTTP alone made no progress at localhost.run, as each spare link replayed the same bytes
 

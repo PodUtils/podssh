@@ -1269,6 +1269,7 @@ The lines are `wc -l` of each crate's `src/` and `tests/` (2026-10-09, T-082;
 | `unreleased`: `serve --share`: the owner rotates or deletes a name by the subsystem `share@podssh` of its own connection (T-860), and a shell on serve's own tty (`--pty line`, `notify`) is shared too (T-861), 2026-11-24 | **Works**: through russh's client, the old name refused and the new one let in with the open seats kept, a seat of a name and another connection of the owner's key refused; the watcher, writer and names cases on each tty that this host has; 7 and 6 passed | `cargo test -p podssh-ssh --lib server::share`, `--test serve_share` |
 | `unreleased`: the gate passed each job at `f789df28` (2026-11-24, run 45309674786), with russh 0.65.4 (T-863) and T-859's pump; `upstream.yml` green by hand (run 45309689224) | **Works.** | the push to `main` |
 | `unreleased`: `serve --share`'s writer lease measured with two people typing, and `LEASE_IDLE` set to 400 ms from it (T-862, 2026-11-24) | **Measured**: over 62.6 s of two scripted typists for each span, 100 and 200 ms broke 41 of 46 words; 400 ms broke none with 26.2 s held (500 ms 29.4 s, 800 ms 42.8 s); the table is in `docs/terminal.md` | `cargo test -p podssh-ssh --test share_lease_measure -- --ignored --nocapture`; `--lib server::share`, `--test serve_share` |
+| `unreleased`: the gate passed each job at `45c17a57` (2026-11-24, run 45345487012), with T-859 to T-869 and the third black-box pass's repairs | **Works.** | the push to `main` |
 
 ## Other TCP protocols, measured
 
