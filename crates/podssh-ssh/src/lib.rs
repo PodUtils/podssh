@@ -63,6 +63,9 @@ pub mod hostkey;
 mod hop;
 pub mod io;
 pub mod keep;
+// The offset of a kept shell's output that this client has (T-895).
+pub mod keep_count;
+pub mod keep_record;
 pub mod key_file;
 pub mod keygen;
 pub mod keys;

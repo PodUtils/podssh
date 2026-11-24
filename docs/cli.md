@@ -801,7 +801,14 @@ scripts. The facts about OpenSSH on this page were measured with OpenSSH
   prints the name that it keeps it as, and exits 0; elsewhere `~d` goes to
   the server as typed ([terminal.md](terminal.md), "Detach and attach
   again"). The far end gives a shell to one client at a time: `--take`
-  takes it from the client that has it, whose session ends. It refuses an
+  takes it from the client that has it, whose session ends. A session
+  there counts the shell's output that it got, and keeps that offset in
+  the cache after a lost link, `~.`, a signal or `~d` (T-895); the next
+  `--attach NAME` from this host gives it, and the far end replays what
+  this client missed, or gives a reset where its ring no longer holds the
+  offset. With none kept, podssh reads the list first. `--reset` asks for
+  the last output from a clean boundary in any case, and without
+  `--attach NAME` it is a usage error (64). The far end refuses an
   attach from inside the shell itself, which `PODSSH_SHELL_ID` names. Its
   refusal is its words on stderr and its exit status. With a command,
   `-N`, `-W`, `-s`, `-T`, `RemoteCommand` or `--persist`, `--attach` is a

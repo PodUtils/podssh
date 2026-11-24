@@ -1367,7 +1367,13 @@ podssh ssh
   ~d asks the far end to keep the shell. It prints the name that it keeps it
   as, and exits 0; elsewhere ~d is sent as typed. The far end gives a shell to
   one client at a time: --take takes it from the client that has it, whose
-  session ends. It refuses an attach from inside the shell itself: it puts
+  session ends. A session there counts the shell's output that it got. After a
+  lost link, ~., a signal or ~d, podssh keeps that offset in the cache. The
+  next --attach NAME from this host gives it, and the far end replays what this
+  client missed. With no offset kept, podssh reads the far end's list first.
+  Where the far end's ring no longer holds the offset, it says so and gives the
+  last output. --reset asks for that last output from a clean boundary in any
+  case. The far end refuses an attach from inside the shell itself: it puts
   PODSSH_SHELL_ID in each shell's environment, and podssh sends that value. A
   refusal of the far end comes as its words on stderr and its exit status.
   Another destination, a command, -N, -W, -s, -T or --persist with --attach is
@@ -2118,6 +2124,9 @@ podssh ssh
     --take
         with --attach NAME: take the shell from the client that has it, whose
         session ends.
+    --reset
+        with --attach NAME: the shell's last output from a clean boundary, not
+        the output from where this client left.
     --access-host HOST
         the relay's roads to HOST carry the credentials of Cloudflare Access in
         their headers, in the place of AccessHost of the settings; HOST[,...],
@@ -11197,9 +11206,10 @@ podssh serve
   offset, the bytes of its output so far. Before an attach, env count@podssh
   OFFSET replays from the offset that the client has. An offset that the ring
   no longer holds, or env reset@podssh yes, gives a reset. serve says so on
-  stderr, then gives the last output from a clean boundary. serve decides the
-  reset itself, so a gap never repeats. One attach at a time: a second one
-  while the first catches up is refused with a line.
+  stderr, with the offset where it starts, then gives the last output from a
+  clean boundary. serve decides the reset itself, so a gap never repeats. One
+  attach at a time: a second one while the first catches up is refused with a
+  line.
 
   A stop or a restart of serve, or of its host, ends each kept shell: a process
   does not outlive either. serve writes the names of its kept shells to
@@ -12915,6 +12925,14 @@ FILES
       expiry, as JSON with mode 0600, replaced by the next join under NAME.
       podssh operator, podssh ssh node:// and podssh relay status find it by
       NAME where no pair is stored under it.
+  kept-offsets.txt
+      The offsets of kept shells that this client has, in the cache. For each
+      far end and shell name, it holds the bytes of output that a session got.
+      A session to a far end that keeps shells writes it at its end, while the
+      shell may still be kept. The next --attach NAME gives that offset, and
+      the far end replays what this client missed. A far end is named by a hash
+      of its host key and the user. The file has mode 0600, holds no secret,
+      and forgets an offset after 30 days.
   node-name.key, client.key
       The keys of the ends of a road between two podssh ends, in the cache, the
       same on each road: a node's under its NAME, and this user's as a client;

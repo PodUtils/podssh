@@ -320,7 +320,7 @@ impl Shell {
         let (generation, mut from) = (joined.held.generation, joined.from);
         let (handle, id) = (attached.handle.clone(), attached.id);
         if joined.reset {
-            let line = super::kept_replay::reset_line(&self.name().unwrap_or_default());
+            let line = super::kept_replay::reset_line(&self.name().unwrap_or_default(), from);
             let _ = handle.extended_data(id, 1, line.into_bytes()).await;
         }
         let mut slot = Some(attached);

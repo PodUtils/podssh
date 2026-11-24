@@ -14,3 +14,9 @@ pub const ATTACH: FlagRow = row(None, "attach", Some("NAME"), FlagKind::Supporte
 #[rustfmt::skip]
 pub const TAKE: FlagRow = row(None, "take", None, FlagKind::Supported,
     "with --attach NAME: take the shell from the client that has it, whose session ends", None);
+
+/// `--reset`: the kept shell's last output, not a replay from the offset
+/// that this client has (T-895).
+#[rustfmt::skip]
+pub const RESET: FlagRow = row(None, "reset", None, FlagKind::Supported,
+    "with --attach NAME: the shell's last output from a clean boundary, not the output from where this client left", None);

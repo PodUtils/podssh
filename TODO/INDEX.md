@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**828 entries: 8 open, 47 partial, 13 blocked, 760 done.**
+**828 entries: 7 open, 47 partial, 13 blocked, 761 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 94 | 108 |
 | P2 | 0 | 23 | 2 | 307 | 332 |
-| P3 | 8 | 13 | 8 | 358 | 387 |
-| **All** | 8 | 47 | 13 | 760 | 828 |
+| P3 | 7 | 13 | 8 | 359 | 387 |
+| **All** | 7 | 47 | 13 | 761 | 828 |
 
 ## Entries
 
@@ -903,4 +903,4 @@ repository and CI).
 | [T-875](mesh.md) | P3 | S | backlog | measurement | blocked | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
 | [T-877](mesh.md) | P3 | M | backlog | feature | blocked | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
-| [T-895](resume.md) | P3 | S | backlog | feature | open | `podssh ssh --attach` gives the offset that it has after a lost link |
+| [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |

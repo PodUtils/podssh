@@ -132,7 +132,7 @@ pub fn host_id(user: &str, host_key: &[u8]) -> String {
     hash.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
-fn valid_host(host: &str) -> bool {
+pub(crate) fn valid_host(host: &str) -> bool {
     host.len() == 64 && host.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
 }
 
@@ -194,7 +194,7 @@ pub fn refused(id: &str) {
     change(|kept| kept.forget(id));
 }
 
-fn now_ms() -> i64 {
+pub(crate) fn now_ms() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(i64::MAX))
 }
 

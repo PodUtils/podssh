@@ -36,6 +36,8 @@ pub fn apply(flag: Option<&str>) -> Result<(), Refusal> {
     podssh_ssh::accepted::keep_in(Box::new(AcceptedInCache));
     // The first names of each host's last KEXINIT, for a guess (T-752).
     podssh_ssh::kex_first::keep_in(Box::new(KexFirstInCache));
+    // The offsets of kept shells that this client has, for --attach (T-895).
+    podssh_ssh::keep_record::keep_in(Box::new(OffsetsInCache));
     Ok(())
 }
 
@@ -78,5 +80,21 @@ impl podssh_ssh::accepted::KeptFile for KexFirstInCache {
     fn store(&self, text: &[u8]) {
         // A record that cannot be kept costs the next login a round trip.
         let _ = podssh_relay::cache::store_file(podssh_ssh::kex_first::FILE, text);
+    }
+}
+
+/// The offsets of kept shells that this client has, a private file of the
+/// cache (T-895).
+struct OffsetsInCache;
+
+impl podssh_ssh::accepted::KeptFile for OffsetsInCache {
+    fn load(&self) -> Option<String> {
+        podssh_relay::cache::load_file(podssh_ssh::keep_record::FILE)
+    }
+
+    fn store(&self, text: &[u8]) {
+        // A record that cannot be kept costs the next attach its replay of
+        // the output that this client missed.
+        let _ = podssh_relay::cache::store_file(podssh_ssh::keep_record::FILE, text);
     }
 }

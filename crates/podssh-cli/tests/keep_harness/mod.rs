@@ -8,8 +8,14 @@
 //! The requests are those of `podssh_ssh::keep`: `detach@podssh` keeps the
 //! shell as a name, `attach@podssh`, `take@podssh` and `from@podssh` join it
 //! again, and the subsystem `shells@podssh` lists the kept shells. A
-//! refusal is its words on stderr and the status 1. The plants: `Forget`
-//! answers a detach and ends the shell, and `NoOffer` names no `keep.v1`.
+//! refusal is its words on stderr and the status 1. As `podssh serve`,
+//! it counts each shell's output from its start (T-833): the list gives
+//! each offset, `count@podssh OFFSET` replays from there, and an offset
+//! past the output, or `reset@podssh yes`, gives serve's line of a reset
+//! and the output from its start. `cut TEXT` writes TEXT into the shell's
+//! output and ends the connection before it is sent, as a link that died
+//! past the resume deadline (T-895). The plants: `Forget` answers a detach
+//! and ends the shell, and `NoOffer` names no `keep.v1`.
 
 // Each test binary uses a part of it.
 #![allow(dead_code)]
@@ -22,6 +28,7 @@ use std::time::Duration;
 
 use podssh_relay::session::keep::Keeper;
 use podssh_relay::session::{far, Role, Settings, FEATURES, SHELL_FEATURES};
+use podssh_ssh::keep_count::reset_line;
 use russh::server::{self, Auth, Msg, Session};
 use russh::{Channel, ChannelId, Pty};
 use tokio::io::DuplexStream;
@@ -41,12 +48,14 @@ pub enum Plant {
     NoOffer,
 }
 
-/// One shell: its id, the name that it is kept as, its variable, and the
-/// client that has it (a connection's number, its handle and its channel).
+/// One shell: its id, the name that it is kept as, its variable, its
+/// output from its start, and the client that has it (a connection's
+/// number, its handle and its channel).
 pub struct Shell {
     pub id: String,
     pub name: Option<String>,
     pub mark: Option<String>,
+    pub output: Vec<u8>,
     holder: Option<(u64, server::Handle, ChannelId)>,
 }
 
@@ -80,7 +89,8 @@ impl Shells {
     pub fn keep(&mut self, name: &str, mark: &str) -> String {
         self.next += 1;
         let id = format!("shell-{}", self.next);
-        let shell = Shell { id: id.clone(), name: Some(name.into()), mark: Some(mark.into()), holder: None };
+        let (name, mark) = (Some(name.into()), Some(mark.into()));
+        let shell = Shell { id: id.clone(), name, mark, output: Vec::new(), holder: None };
         self.all.push(shell);
         id
     }
@@ -96,6 +106,14 @@ struct Asked {
     attach: Option<String>,
     take: bool,
     from: Option<String>,
+    count: Option<u64>,
+    reset: bool,
+}
+
+/// `text` as the shell's output: counted, and sent on `channel`.
+fn say(shell: &mut Shell, session: &mut Session, channel: ChannelId, text: &str) -> Result<(), russh::Error> {
+    shell.output.extend_from_slice(text.as_bytes());
+    session.data(channel, text.as_bytes().to_vec())
 }
 
 /// One connection: its number, the asks of each channel, and the channel
@@ -170,13 +188,22 @@ impl Far {
         if !shells.all[at].held_by(self.conn, channel) {
             return Ok(false);
         }
+        let shell = &mut shells.all[at];
         if let Some(value) = text.strip_prefix("MARK=") {
-            shells.all[at].mark = Some(value.to_string());
+            shell.mark = Some(value.to_string());
         } else if text == "echo M=$MARK" {
-            let mark = shells.all[at].mark.clone().unwrap_or_default();
-            session.data(channel, format!("M={mark}\r\n").into_bytes())?;
+            let mark = shell.mark.clone().unwrap_or_default();
+            say(shell, session, channel, &format!("M={mark}\r\n"))?;
         } else if text == "echo S=$PODSSH_SHELL_ID" {
-            session.data(channel, format!("S={id}\r\n").into_bytes())?;
+            say(shell, session, channel, &format!("S={id}\r\n"))?;
+        } else if let Some(lost) = text.strip_prefix("cut ") {
+            // Output that the dead channel never brings: the far end counted
+            // it, and keeps the shell for the next client.
+            shell.output.extend_from_slice(format!("{lost}\r\n").as_bytes());
+            shell.holder = None;
+            drop(shells);
+            self.running.remove(&channel);
+            return Err(russh::Error::Disconnect);
         } else if text == "exit" {
             shells.all.remove(at);
             drop(shells);
@@ -184,7 +211,7 @@ impl Far {
             finish(session, channel, "", "", 0)?;
             return Ok(true);
         } else {
-            session.data(channel, format!("{text}: not found\r\n").into_bytes())?;
+            say(shell, session, channel, &format!("{text}: not found\r\n"))?;
         }
         Ok(false)
     }
@@ -245,6 +272,11 @@ impl server::Handler for Far {
             "attach@podssh" => asked.attach = Some(value.to_string()),
             "take@podssh" => asked.take = true,
             "from@podssh" => asked.from = Some(value.to_string()),
+            "count@podssh" => match value.parse() {
+                Ok(count) => asked.count = Some(count),
+                Err(_) => return session.channel_failure(channel),
+            },
+            "reset@podssh" => asked.reset = value == "yes",
             // The client's own variables: this server keeps none.
             _ => return session.channel_failure(channel),
         }
@@ -259,11 +291,13 @@ impl server::Handler for Far {
         let Some(name) = asked.attach else {
             shells.next += 1;
             let id = format!("shell-{}", shells.next);
-            let shell = Shell { id: id.clone(), name: None, mark: None, holder: Some((self.conn, handle, channel)) };
+            let holder = Some((self.conn, handle, channel));
+            let mut shell = Shell { id: id.clone(), name: None, mark: None, output: Vec::new(), holder };
+            say(&mut shell, session, channel, "[shell] ready\r\n")?;
             shells.all.push(shell);
             drop(shells);
             self.running.insert(channel, (id, Vec::new()));
-            return session.data(channel, b"[shell] ready\r\n".to_vec());
+            return Ok(());
         };
         let refusal = match shells.kept(&name) {
             None => Some(format!("no kept shell named {name}")),
@@ -293,9 +327,26 @@ impl server::Handler for Far {
                 let _ = old.close(old_channel).await;
             });
         }
+        // Where the replay starts, as serve chooses: the client's count in
+        // the output, else a reset; with no count, where the output stands.
+        let end = shell.output.len() as u64;
+        let (from, reset) = match asked.count {
+            _ if asked.reset => (0, true),
+            Some(count) if count <= end => (count, false),
+            Some(_) => (0, true),
+            None => (end, false),
+        };
+        if reset {
+            session.extended_data(channel, 1, reset_line(&name, from).into_bytes())?;
+        }
+        let replay = shell.output[usize::try_from(from).unwrap()..].to_vec();
+        if !replay.is_empty() {
+            session.data(channel, replay)?;
+        }
+        say(shell, session, channel, &format!("[{name}] attached\r\n"))?;
         drop(shells);
         self.running.insert(channel, (id, Vec::new()));
-        session.data(channel, format!("[{name}] attached\r\n").into_bytes())
+        Ok(())
     }
 
     async fn subsystem_request(
@@ -311,7 +362,8 @@ impl server::Handler for Far {
         let mut lines = String::new();
         for shell in lock(&self.shells).all.iter() {
             if let Some(name) = &shell.name {
-                lines.push_str(&format!("{name} {}\n", if shell.attached() { "attached" } else { "detached" }));
+                let state = if shell.attached() { "attached" } else { "detached" };
+                lines.push_str(&format!("{name} {state} {}\n", shell.output.len()));
             }
         }
         finish(session, channel, &lines, "", 0)

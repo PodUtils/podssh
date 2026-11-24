@@ -21,6 +21,10 @@ pub(super) async fn handle_msg(
     }
     match msg {
         ChannelMsg::Data { data } => {
+            // The shell's output as the far end counts it, before any filter.
+            if let Some(count) = &through.count {
+                count.data(data.len());
+            }
             let data = out.consoles.text(false, through.out(&data, false, log));
             // Whoever reads our stdout has gone (EPIPE): the data goes
             // nowhere, and the exit status is awaited (T-026).
@@ -28,7 +32,11 @@ pub(super) async fn handle_msg(
                 out.gone = Some(tokio::time::Instant::now());
             }
         }
-        ChannelMsg::ExtendedData { data, .. } => {
+        ChannelMsg::ExtendedData { data, ext } => {
+            // serve says a reset, and a part that its ring dropped, here.
+            if let (Some(count), 1) = (&through.count, ext) {
+                count.stderr(&data);
+            }
             let data = out.consoles.text(true, through.out(&data, true, log));
             let _ = write_out(out.sink.as_ref(), &data, true).await;
         }

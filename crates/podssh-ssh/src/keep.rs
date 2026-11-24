@@ -19,7 +19,9 @@
 //! - `env attach@podssh NAME`, before `shell` on a channel with a pty: the
 //!   shell request joins NAME to the channel. Before it, `env take@podssh
 //!   yes` takes NAME from a client that has it, and `env from@podssh ID`
-//!   names the shell that this podssh runs in, from [`SHELL_ID`].
+//!   names the shell that this podssh runs in, from [`SHELL_ID`]. Then
+//!   `env count@podssh OFFSET`, the shell's output that this client has
+//!   (T-895, `keep_count`), or with `--reset` `env reset@podssh yes`.
 //! - The subsystem `shells@podssh`: the kept shells, one line each.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -78,8 +80,10 @@ impl Offer {
 /// What the user asked of the kept shells.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ask {
-    /// `--attach NAME`, with `--take`: join the shell NAME.
-    Attach { name: String, take: bool },
+    /// `--attach NAME`, with `--take`: join the shell NAME; with
+    /// `--reset`, from a clean boundary, not from the offset that this
+    /// client has (T-895).
+    Attach { name: String, take: bool, reset: bool },
     /// `--attach DEST`: list the kept shells.
     List,
 }
@@ -144,31 +148,54 @@ pub fn kept_line(name: &str, host: &str) -> String {
     format!("{host} keeps the shell as {name}; podssh ssh --attach {name} with this destination joins it again")
 }
 
+/// What an attach asks of the far end besides the name (T-158, T-895).
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct Joining {
+    /// `--take`: from the client that has the shell.
+    pub take: bool,
+    /// `--reset`: the last output from a clean boundary.
+    pub reset: bool,
+    /// The offset of the shell's output that this client has.
+    pub count: Option<u64>,
+}
+
 /// Before `shell`, on a new session's channel with a pty: ask the far end
-/// to join the kept shell `name` to it, and to take it when `take`. Each
-/// request waits for its answer; a FAILURE is a far end that takes none.
+/// to join the kept shell `name` to it, as `joining` says. Each request
+/// waits for its answer; a FAILURE is a far end that takes none, but for
+/// the count, which a far end may not know: whether it took the count.
 pub(crate) async fn ask_attach(
     channel: &mut Channel<Msg>,
     early: &mut Vec<ChannelMsg>,
     name: &str,
-    take: bool,
-) -> Result<(), String> {
+    joining: Joining,
+) -> Result<bool, String> {
     let mut asks: Vec<(&str, String)> = Vec::new();
     // The shell that this podssh runs in, if a far end keeps it.
     if let Some(id) = std::env::var(SHELL_ID).ok().filter(|id| !id.is_empty()) {
         asks.push((FROM, id));
     }
-    if take {
+    if joining.take {
         asks.push((TAKE, "yes".to_string()));
     }
+    if joining.reset {
+        asks.push((RESET, "yes".to_string()));
+    } else if let Some(count) = joining.count {
+        asks.push((COUNT, count.to_string()));
+    }
     asks.push((ATTACH, name.to_string()));
+    let mut counted = joining.count.is_some() && !joining.reset;
     for (request, value) in asks {
         channel.set_env(true, request, value).await.map_err(|e| format!("could not ask to attach {name}: {e}"))?;
         if !crate::session::wait_reply(channel, early).await? {
+            // A far end that knows no count starts where it counted.
+            if request == COUNT {
+                counted = false;
+                continue;
+            }
             return Err(format!("the far end refused {request} for the kept shell {name}"));
         }
     }
-    Ok(())
+    Ok(counted)
 }
 
 /// A detach in a session: the name that `~d` keeps the shell as, and
@@ -247,7 +274,7 @@ mod tests {
         keep.offer.set();
         assert_eq!(keep.detach_name(false), None);
         assert_eq!(keep.detach_name(true).map(|n| n.len()), Some(8));
-        keep.ask = Some(Ask::Attach { name: "work".into(), take: false });
+        keep.ask = Some(Ask::Attach { name: "work".into(), take: false, reset: false });
         assert_eq!(keep.detach_name(true).as_deref(), Some("work"));
         keep.ask = Some(Ask::List);
         assert_eq!(keep.detach_name(true), None);

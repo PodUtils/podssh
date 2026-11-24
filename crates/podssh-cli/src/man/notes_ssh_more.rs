@@ -42,8 +42,13 @@ pub(super) const MORE: &[&str] = &[
      then --attach ends with 255 before a session opens. In a session with a pty there, ~d asks the far end to keep \
      the shell. It prints the name that it keeps it as, and exits 0; elsewhere ~d is sent as \
      typed. The far end gives a shell to one client at a time: --take takes it from the client that has \
-     it, whose session ends. It refuses an attach from inside the shell itself: it puts PODSSH_SHELL_ID \
-     in each shell's environment, and podssh sends that value. A refusal of the far end comes as its \
+     it, whose session ends. A session there counts the shell's output that it got. After a lost link, ~., \
+     a signal or ~d, podssh keeps that offset in the cache. The next --attach NAME from this host gives it, \
+     and the far end replays what this client missed. With no offset kept, podssh reads the far end's list \
+     first. Where the far end's ring no longer holds the offset, it says so and gives the last output. \
+     --reset asks for that last output from a clean boundary in any case. The far end refuses an attach from \
+     inside the shell itself: it puts PODSSH_SHELL_ID in each shell's environment, and podssh sends that \
+     value. A refusal of the far end comes as its \
      words on stderr and its exit status. Another destination, a command, -N, -W, -s, -T or --persist \
      with --attach is refused (exit 64). Against a standard sshd, --persist keeps the shell in tmux.",
     "A first relay host may offer the resumable layer in its /relays.json, as podssh relay serve does. podssh reads \

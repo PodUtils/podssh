@@ -371,7 +371,7 @@ Read:
    in the gate's container (installed with apk, as `scripts/interop-man.sh:22`
    installs groff) and through `vt100`. The two must give the same screens
    before the model judges podssh.
-6. docs/terminal.md, section "Tests" (`docs/terminal.md:946`), names the
+6. docs/terminal.md, section "Tests" (`docs/terminal.md:969`), names the
    oracle.
 
 ## Decision
@@ -988,12 +988,12 @@ Read, each claim of GitHub #34 at the lines as they are now:
   `openssh-keygen` and others, but no client package. No harness ran the stock `ssh`; only
   `scripts/sandbox-check.sh:318-331` does, in a sandbox. Nobody knows whether
   the gate's image has `/usr/bin/ssh`.
-- `crates/podssh-ssh/src/io/msg.rs:35-42`, with `crates/podssh-ssh/src/io.rs:80-82`,
+- `crates/podssh-ssh/src/io/msg.rs:43-50`, with `crates/podssh-ssh/src/io.rs:80-82`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:253`, `docs/STATUS.md:259`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:6935-6936` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:6942-6943` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:6935-6936`). A difference that the table does not name fails,
+   `docs/cli.md:6942-6943`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:6935-6936` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:6942-6943` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1032,7 +1032,7 @@ sh scripts/dev.sh check     # interop: for each case, the code of OpenSSH, of po
 
 The interop section shows, for each case, the reference code, podssh's code
 and the literal, and the signal row as a named difference. Planted defect 1:
-map an exit signal to 255 at `crates/podssh-ssh/src/io/msg.rs:42`; the literal
+map an exit signal to 255 at `crates/podssh-ssh/src/io/msg.rs:50`; the literal
 check of 143 must fail, and the table must report its signal row as broken.
 Planted defect 2: let the reference run `true` in place of `exit 3`; the
 derived check must fail.
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:5883-5884` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:5890-5891` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:5883-5884`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:5890-5891`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -1103,7 +1103,7 @@ has three rows.
 
 A defect found and repaired: `ssh.hostkey.strict_known` gave
 `-o StrictHostKeyChecking=yes` to `p`, whose `accept-new` came first, and
-the first value of a keyword wins (`docs/cli.md:1038` says "the first value
+the first value of a keyword wins (`docs/cli.md:1045` says "the first value
 of each"), so the check ran under `accept-new`. It now names each option
 itself, through `direct_ref`, with the run's `known_hosts`, which OpenSSH
 reads too.
@@ -1140,7 +1140,7 @@ source: a signal (OpenSSH 255, podssh 143, on both servers), a changed key
 under `StrictHostKeyChecking=no` (OpenSSH 0, podssh 255), and a directory
 as `known_hosts` (OpenSSH 0, podssh 255). `docs/STATUS.md` has each code.
 Planted, in one run: the signal mapped to 255 at
-`crates/podssh-ssh/src/io/msg.rs:42`, and OpenSSH's code for `exit 3` given
+`crates/podssh-ssh/src/io/msg.rs:50`, and OpenSSH's code for `exit 3` given
 as 0 in `stock_raw`. 8 checks failed, as due: `ssh.exit.openssh.143` and
 `ssh.exit.dropbear.143` ("wanted exit 143, got 255"), `result.*.signal`,
 `ref.exit.*.143` ("the row 'signal' is broken") and `ref.exit.*.3` ("the
@@ -2749,7 +2749,7 @@ Facts, read at `35d51884`:
   busy watch and the pipe's, which did print. So the thread was not held, and the joined task was polled within each
   20 s (the layer's and the channel's timers wake it), each poll of SSH's part returning at once. `tokio::join!` polls
   each part that has not ended at each wake (`ssh/iroh/dial.rs:213-220`), so SSH's future was polled; had the pump been
-  in its select, each poll would have polled its wait of the channel (`crates/podssh-ssh/src/io.rs:303`), whose time
+  in its select, each poll would have polled its wait of the channel (`crates/podssh-ssh/src/io.rs:305`), whose time
   the busy watch keeps. The wait was not polled: **the pump was not in its select**, and not in a step that it names
   (the line is the idle one, `io/busy.rs:57-66`).
 - The pump marks a step only in the input's `Some` arm, the channel's arm and `send`. The input's `None` arm, the end of
@@ -4514,24 +4514,24 @@ was lost: the keys never read by the client, `~d` not taken as an escape, or the
 - `[shell] ready` is the far end's word, sent at its answer to the shell request
   (`crates/podssh-cli/tests/keep_harness/mod.rs:266`); it says nothing of the client's input. The stand-in shell answers
   a line it does not know with "TEXT: not found" (`crates/podssh-cli/tests/keep_harness/mod.rs:187`), and echoes none.
-- The client enters raw mode (`crates/podssh-ssh/src/session.rs:165`) after the shell's answer
-  (`crates/podssh-ssh/src/session.rs:158`) and before the pump draws the early output
-  (`crates/podssh-ssh/src/io.rs:204`); stdin's reader starts at the pump's first wait
-  (`crates/podssh-ssh/src/io.rs:234`, `crates/podssh-ssh/src/io/input.rs:62`). By the code, a key typed after `[shell]
+- The client enters raw mode (`crates/podssh-ssh/src/session.rs:176`) after the shell's answer
+  (`crates/podssh-ssh/src/session.rs:169`) and before the pump draws the early output
+  (`crates/podssh-ssh/src/io.rs:206`); stdin's reader starts at the pump's first wait
+  (`crates/podssh-ssh/src/io.rs:236`, `crates/podssh-ssh/src/io/input.rs:62`). By the code, a key typed after `[shell]
   ready` waits in the console's input buffer, in raw mode, for that reader; nothing found in the client drops it.
 - `~` is an escape at the start of a line (`crates/podssh-ssh/src/escape.rs:94`): after `MARK=kept\r` it is one.
-- `detach` (`crates/podssh-cli/tests/attach.rs:307`) typed at `[shell] ready` with no sign that a key reaches the shell,
+- `detach` (`crates/podssh-cli/tests/attach.rs:309`) typed at `[shell] ready` with no sign that a key reaches the shell,
   and `tilde_d_as_bytes` did the same.
 
 ## Approach
 
-1. One helper, `shell` (`crates/podssh-cli/tests/attach.rs:279`), starts each test that types into a shell: after
+1. One helper, `shell` (`crates/podssh-cli/tests/attach.rs:281`), starts each test that types into a shell: after
    `[shell] ready` it types `probeN\r` until the far shell answers "probeN: not found", a new probe each 2 s, within the
    limit of 30 s; a probe that needed more than one try is said on stderr (a client that loses the first keys would lose
    a user's too), and no answer at all fails with "the client read no keys".
 2. `detach` reads the variable back (`echo M=$MARK`, "M=kept") before it types `~d`, so that a failure after it is the
    detach's, not the input's.
-3. Each failure's message, `shown` (`crates/podssh-cli/tests/attach.rs:263`), gives the console's bytes with their
+3. Each failure's message, `shown` (`crates/podssh-cli/tests/attach.rs:265`), gives the console's bytes with their
    escape sequences too (`Console::bytes` in `crates/podssh-cli/tests/conpty_harness/mod.rs`), which say what the
    pseudo console asked of its terminal.
 4. At the next failure, or at a gate whose log says that a probe needed more than one try, repair the step that it
@@ -4620,7 +4620,7 @@ second, with the file open at offset 851968. A user's terminal hangs, and the pr
   time. Lost: a deadline of the sans-IO sender while it streams, which cannot know when the channel took its bytes.
 - Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:212`), end a transfer as
   five from the server do (7.2); fewer are dropped as each other key is.
-- The end of the local input while ZMODEM holds the keys ends the session (`crates/podssh-ssh/src/io.rs:315`,
+- The end of the local input while ZMODEM holds the keys ends the session (`crates/podssh-ssh/src/io.rs:317`,
   `crates/podssh-ssh/src/io/transfer.rs:62`): nobody is left to answer or to see, as with SIGHUP, so it exits 255 as
   `End::Terminated` does. No cancel sequence is written then: the far pty hangs up when the connection closes, and a
   write could wait on the far end that stopped.

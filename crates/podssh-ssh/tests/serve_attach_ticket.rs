@@ -4,7 +4,8 @@
 //! that gives the offset that it has (`count@podssh`) gets the output from
 //! there; one whose offset the ring no longer holds, or that asks for a
 //! reset (`reset@podssh`), gets a line that says so and the last output
-//! from a clean boundary, never more than the ring. One attach at a time is
+//! from a clean boundary, never more than the ring; the client's count from
+//! that line's offset is the far end's (T-895). One attach at a time is
 //! `kept.rs`'s unit test; a later one that takes the shell is
 //! `serve_keep.rs`'s. Each case needs a pty; a host with none says so.
 
@@ -16,6 +17,7 @@ mod share_harness;
 use std::time::Duration;
 
 use kept_harness::{detach, list, server, shell_with};
+use podssh_ssh::keep_count::{listed_offset, Counter};
 use podssh_ssh::server::RING;
 use share_harness::{have_pty, key};
 
@@ -101,6 +103,22 @@ async fn a_count_older_than_the_ring_or_a_reset_asked_gives_the_last_output() {
         // The ring, and room for a prompt that comes after it.
         let got = back.seen.lock().unwrap().out.len();
         assert!(got <= RING + 1024, "{asks:?}: about the ring at most: {got} bytes");
+        // The client's count (T-895): the reset's offset on stderr and each
+        // byte since, which is where the output stands once the shell is
+        // quiet.
+        back.send(b"echo QUIET_$((5*5))_END\r").await;
+        back.reads("QUIET_25_END").await;
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        let counted = {
+            let seen = back.seen.lock().unwrap();
+            let counter = Counter::starting(None);
+            counter.stderr(&seen.err);
+            counter.data(seen.out.len());
+            counter.at()
+        };
+        let listed = listed_offset(&list(&server, &owner).await, "work");
+        assert!(counted.is_some(), "{asks:?}: the reset's line gives its offset");
+        assert_eq!(counted, listed, "{asks:?}: the client's count is the far end's offset");
         assert!(detach(&back, "work").await, "{asks:?}");
     }
     let last = shell_with(&server, &owner, &[("attach@podssh", "work")]).await;

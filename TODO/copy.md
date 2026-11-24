@@ -64,7 +64,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
    extension list for T-134.
 6. Each `SSH_FX_*` status gives a sentence with the path; the server's text
    goes through `podssh_ws::text::one_line`
-   (`crates/podssh-ssh/src/io/msg.rs:47`).
+   (`crates/podssh-ssh/src/io/msg.rs:55`).
 7. No EOF before the last reply. Fail at once on a reply id that no request
    has, and on a `READ` reply longer than its request.
 
@@ -183,7 +183,7 @@ leave a short or wrong file under the destination's name.
 ## Approach
 
 1. `CpArgs` in a new module crates/podssh-cli/src/cp/, read as `SshArgs` is
-   (`crates/podssh-cli/src/ssh/args.rs:292-446`). An operand is remote when a
+   (`crates/podssh-cli/src/ssh/args.rs:295-450`). An operand is remote when a
    `:` comes before any `/`; on Windows, `C:\x` is local. Fewer than two
    operands, or none remote, exit 64.
 2. Build an `SshArgs` (host, `-P` as the port, `-i`, `-o`) for
@@ -336,7 +336,7 @@ a script expects, and its login shell may not be a POSIX shell.
   5 MB down through the relay (`docs/STATUS.md:257`).
 - Read: a command goes as one string, never as a shell request
   (`crates/podssh-ssh/src/options.rs:63-64`), with no pty when stdin is not
-  a terminal (`crates/podssh-ssh/src/session.rs:77-87`).
+  a terminal (`crates/podssh-ssh/src/session.rs:84-94`).
 - Read: the gate's Dropbear has no SFTP setting (`scripts/interop.sh:83-85`);
   whether it finds an `sftp-server` is not measured.
 - Not measured: the login shell runs the command, so a start-up file that
@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:385-406` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6927-6930`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:6934-6937`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -1851,8 +1851,8 @@ which needs support in the terminal client.
 ## Premise
 
 - Read: `podssh ssh` writes the remote output to stdout as it comes
-  (`crates/podssh-ssh/src/io/msg.rs:11-30`) and passes the local keys through
-  the escape filter (`crates/podssh-ssh/src/io.rs:251-323`). Nothing looks
+  (`crates/podssh-ssh/src/io/msg.rs:11-34`) and passes the local keys through
+  the escape filter (`crates/podssh-ssh/src/io.rs:253-325`). Nothing looks
   for a ZMODEM header.
 - Not verified here: ZMODEM escapes its control bytes, so it crosses a pty;
   whether a ZMODEM crate in pure Rust exists and is maintained.
@@ -2863,7 +2863,7 @@ full copy, and said nothing. After the run, the user cannot tell whether the del
 3. With `--jsonl`, the `done` object of each copy with `--delta` gains `"delta"`:
    `{"blocks": N, "sent": K, "bytes": B}` after a delta, or `{"full": "REASON"}` after a full copy.
 4. The row of `--delta` (`crates/podssh-cli/src/flags/copy.rs:44-45`), the manual,
-   `docs/cli.md:2463-2474` and `docs/STATUS.md`.
+   `docs/cli.md:2470-2481` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3033,7 +3033,7 @@ the names, with no word.
    reverse order, `-S` by size, `-t` by time of change, `-1` one name a line; without `-l` or
    `-1`, the names in columns, as OpenSSH's.
 4. The listing goes into a module of its own, so that `crates/podssh-cli/src/sftp/run.rs` stays
-   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2763-2769` and
+   well under 500 lines. The `help` of `sftp`'s commands, the manual, `docs/cli.md:2770-2776` and
    `docs/STATUS.md`.
 
 ## Decision
@@ -3202,7 +3202,7 @@ with no word, which reads as a hang.
 4. `run` says its summary before the command starts, on stderr, so that the command's stdout stays
    its own; with T-475, the paths that the ignores left out.
 5. `scp` and `sftp` keep the output of OpenSSH's, with no summary. The manual,
-   `docs/cli.md:2581-2621`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
+   `docs/cli.md:2588-2628`, `docs/STATUS.md`, and `crates/podssh-cli/tests/run_far.rs`, which reads
    the summary in place of the line of `-v`.
 
 ## Decision
@@ -3538,7 +3538,7 @@ waits minutes: 100 files of 2 bytes took 210 s with the default.
 4. T-417's line about `--parallel` is not said when the default applies, nor after
    `--parallel 1`, which the user chose.
 5. The row of `--parallel` names the default; the manual, README.md (its copies, with the
-   measured numbers), `docs/cli.md:2428-2462` and `docs/STATUS.md`.
+   measured numbers), `docs/cli.md:2435-2469` and `docs/STATUS.md`.
 
 ## Decision
 
@@ -3705,7 +3705,7 @@ step reads as a failure, and each `podssh run`, which then runs no command.
    link that cannot be read, a name that is not UTF-8, and a refused name (70).
 4. The comments that say that a skip makes the exit not zero
    (`crates/podssh-cli/src/cp/tree.rs:57-58`, and the module comment of
-   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2484-2500`,
+   `crates/podssh-cli/src/cp/tree_copy.rs`), the row of `-r`, the manual, `docs/cli.md:2491-2507`,
    `docs/STATUS.md`, and `scripts/interop-cp.sh`: `cp.tree.up` asks for 0 and the note once, and
    `cp.delete.failed` takes its failed copy from a far directory at the name of a source file (the
    rename onto it fails, 73, as T-297's test makes one fail).
@@ -4212,7 +4212,7 @@ second channel. It is not measured whether podssh's ZMODEM fails in these places
 ## Premise
 
 - Read: the start of a transfer is found in the output by `crates/podssh-ssh/src/zmodem/detect.rs:1`;
-  the keys, the question and the transfer belong to the session (`docs/terminal.md:443`).
+  the keys, the question and the transfer belong to the session (`docs/terminal.md:466`).
 - Read: T-148's Correction says the gate has no `sz` or `rz`, so no run of ZMODEM through tmux or a
   container exists in the record.
 - Read in the donor report, not verified here: trzsz's lines are `#KIND:` plus base64, resynchronized

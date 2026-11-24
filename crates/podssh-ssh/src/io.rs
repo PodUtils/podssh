@@ -145,6 +145,8 @@ pub struct Through {
     /// (T-598): on a road that resumes no link (`--direct`); the resumable
     /// layer's own silence resumes the link, and a stall there is survived.
     pub window_stall: bool,
+    /// The count of a kept shell's output that this client has (T-895).
+    pub count: Option<crate::keep_count::Counter>,
 }
 
 impl Through {

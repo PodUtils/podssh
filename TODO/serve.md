@@ -226,7 +226,7 @@ and stderr apart, and an environment that a cage can give.
   lines 601-667). russh also gives each data message to the kept `Channel`,
   and waits when 100 wait unread (`Eugeny/russh:russh/src/server/encrypted.rs`,
   lines 1350-1356): an unread channel stops the whole connection.
-- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-76`;
+- Read: the client side to match is `crates/podssh-ssh/src/io/msg.rs:11-84`;
   `crates/podssh-ssh/src/signals.rs:70-79` maps names to numbers only;
   `tokio` with `process` is a dependency (`crates/podssh-ssh/Cargo.toml:19`).
 
@@ -554,7 +554,7 @@ it there.
   read in reverse on the server; a second table would drift.
 - Read: doctor already opens a pty to test the host
   (`crates/podssh-cli/src/doctor/unix.rs` lines 95-154 at `32bf8af`). The client continues
-  without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:88-103`).
+  without a pty when the server refuses (`crates/podssh-ssh/src/session.rs:95-110`).
 - Read: the measured sandbox has no `/dev/ptmx` and no `/dev/pts`
   (`docs/target-environment.md:26`); there, T-111 applies.
 
@@ -649,7 +649,7 @@ the entry joins the work order by its priority.
   and the doctor's line `pty` calls it with the same words. The probe opens each master by path
   (`/dev/ptmx`, then `/dev/pts/ptmx`) where doctor called `posix_openpt`, which opens `/dev/ptmx` alone.
 - The client's answer to a refused pty moved: since T-664 it may read the answer after the session's
-  request (`crates/podssh-ssh/src/session.rs:94-103`); it still runs without a pty after a refusal.
+  request (`crates/podssh-ssh/src/session.rs:101-110`); it still runs without a pty after a refusal.
 - `TERM`'s default is `crates/podssh-ssh/src/terminal/mod.rs:115-120` now.
 - Approach item 1's "Failure: T-111, or failure until T-111 exists": until T-111 the refusal stays, as
   T-108 made it; this entry does not do T-111.

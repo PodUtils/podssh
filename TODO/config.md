@@ -1,7 +1,7 @@
 This file holds the work on configuration files: OpenSSH's `ssh_config` (`-F`, `Host`,
 `Include`, `Match` and `-G`), host lists from other clients, and a settings file for podssh's
 own options. The rules of OpenSSH that podssh follows were measured with `ssh -G` and are in
-`docs/cli.md:7149-7261`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
+`docs/cli.md:7156-7268`. Since T-043, `podssh ssh` reads `~/.ssh/config` and the file of `-F`.
 
 # T-043: Read `ssh_config`: `~/.ssh/config`, `-F FILE`, `Host` patterns, and `Match` refused by name (GitHub #14, #22)
 
@@ -206,7 +206,7 @@ No glob code exists in podssh. `known_hosts::wildcard`
    stands, and `Match final all` applies after the last line and fills only unset values, as
    measured. Each other `Match` stays refused by name until T-045.
 6. Check each included file as T-043 checks the user file: its owner and its mode.
-7. Change `docs/cli.md:7149-7270`, FILES (`crates/podssh-cli/src/man/data_files.rs:13-352`) and the
+7. Change `docs/cli.md:7156-7277`, FILES (`crates/podssh-cli/src/man/data_files.rs:13-362`) and the
    `ssh` notes in the same commit.
 
 ## Prove
@@ -464,7 +464,7 @@ result, `Resolved` (lines 27-41 at `22c3b88`), holds the settings in effect, the
    `serveraliveinterval 60` (the relay's idle cut, `docs/relay.md:636`) and `connecttimeout 60`.
 6. It does not wait for T-043: with no file, `-G` shows the effect of `-o`. After T-043 and
    T-044, `-v` names the files that were read, on stderr.
-7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-185`) and `docs/cli.md:66-1019`
+7. Change the `ssh` notes (`crates/podssh-cli/src/man/notes_ssh.rs:4-498` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`) and `docs/cli.md:66-1026`
    in the same commit.
 
 ## Decision
@@ -677,7 +677,7 @@ go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67
 `crates/podssh-cli/src/proxy.rs:279-282`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
 `crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:205-224` and
 `crates/podssh-cli/src/proxy.rs`, lines 100-104 at `99743e6`. The pins of the flag and of the variable add up
-(`crates/podssh-cli/src/pins.rs:15-40`). The token cache uses the user's
+(`crates/podssh-cli/src/pins.rs:15-42`). The token cache uses the user's
 cache directory first, after the directory of `PODSSH_CACHE_DIR` (T-243;
 `crates/podssh-relay/src/cache/dirs.rs:145-241`). The decision named the
 configuration directory first; the operator corrected it on 2026-10-08 (`docs/decisions.md:113`, T-243).
@@ -760,7 +760,7 @@ its places at `crates/podssh-cli/src/settings.rs:147-170`, its checks at
 failover below the flag and the variable at
 `crates/podssh-cli/src/relay_settings.rs:73-88` and
 `crates/podssh-cli/src/relay_settings.rs:129-139`, the pins and the refusal
-of a bad file at `crates/podssh-cli/src/pins.rs:13-40`, the CA file at
+of a bad file at `crates/podssh-cli/src/pins.rs:13-42`, the CA file at
 `crates/podssh-cli/src/settings.rs:361-371` and, for `podssh ssh`,
 `crates/podssh-cli/src/ssh/resolve.rs:95-99`; `status` at
 `crates/podssh-cli/src/status.rs:76` and
@@ -946,7 +946,7 @@ try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:353-361`
 - `scripts/interop.sh:327-337`: `ssh.config.jump_alias`, `-F FILE -J openssh-alias dropbear-alias`
   with podssh and with OpenSSH's `ssh`, each to exit 6 (the floor of ssh is 72). The gate runs it
   at this push.
-- `docs/cli.md:166-172` and `docs/cli.md:7194-7206`, and the manual's file `~/.ssh/config`, say what
+- `docs/cli.md:166-172` and `docs/cli.md:7201-7213`, and the manual's file `~/.ssh/config`, say what
   a hop takes.
 - `cargo test -p podssh-ssh`: 142 passed; `cargo test -p podssh-cli`: 565 passed, 0 failed,
   31 ignored; clippy; rustfmt.
@@ -1614,7 +1614,7 @@ user asked for is gone with no sign, and an audit finds it.
   `HostbasedAcceptedAlgorithms` restricts a hostbased login, which podssh does not make, so it is
   inert here.
 - Read (L-09): `-G` prints the keywords that podssh applies (`crates/podssh-cli/src/ssh/dump.rs:1-7`),
-  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:84-88`), so it has no line for
+  as its manual says (`crates/podssh-cli/src/man/notes_ssh_more.rs:89-93`), so it has no line for
   an algorithm list.
 
 ## Approach

@@ -860,7 +860,7 @@ Measured on `3ee70dc`, offline (`PODSSH_OFFLINE=1`, a `.invalid` host):
 5. In the same commit: "Liveness" and "Idle limit" in the manual
    (`crates/podssh-cli/src/man/facts.rs:392-407`,
    `crates/podssh-cli/src/man/facts.rs:427-436`), the note at
-   `crates/podssh-cli/src/man/notes_ssh_more.rs:127`, `docs/relay.md`, `README.md`.
+   `crates/podssh-cli/src/man/notes_ssh_more.rs:132`, `docs/relay.md`, `README.md`.
 
 ## Decision
 
@@ -1418,7 +1418,7 @@ the shell on a detach fails it.
   `env` requests of podssh's own names and a subsystem, which the handler
   sees (`crates/podssh-ssh/src/keep.rs`).
 - An escape needs a pty and a terminal on stdin
-  (`crates/podssh-ssh/src/session.rs:178`), so a test cannot type `~d`
+  (`crates/podssh-ssh/src/session.rs:189`), so a test cannot type `~d`
   through a pipe: the attach test types it in a pseudo console on Windows
   (`crates/podssh-cli/tests/conpty_harness/mod.rs`) and in a pty on Linux
   (`crates/podssh-cli/tests/pty_harness/mod.rs`, new).
@@ -4535,8 +4535,8 @@ Drafted 2026-11-24 (not built here; the main session builds, tests and closes it
   (`a_second_attach_while_one_catches_up_is_refused`, and the table of
   `a_count_in_the_ring_replays_and_any_other_resets`): passed (in `cargo test -p podssh-ssh --lib`: 509 passed, 2026-11-24, on the stack at `a64e47d`, Rust 1.99.1). `cargo test -p podssh-ssh --test
   serve_keep` again, as its helpers moved: 4 passed.
-- Waits: the client's count after a lost link (T-895); the planted servers (one that replays from a
-  count that the ring no longer holds, one that lets another key in) with the release check (T-251).
+- Waits: the planted servers (one that replays from a
+  count that the ring no longer holds, one that lets another key in) with the release check (T-251). The client's count after a lost link is T-895 (done 2026-11-24).
 
 # T-895: `podssh ssh --attach` gives the offset that it has after a lost link
 
@@ -4546,7 +4546,7 @@ kept shell's offset in `shells@podssh`, and T-158's client sends no count.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -4572,9 +4572,96 @@ at the loss, so those bytes never show.
    serve's reset, never replayed wrong.
 3. The manual's note of `--attach`, and `docs/terminal.md`.
 
+## Decision
+
+2026-11-24, the calls of the draft, each with what lost:
+
+- Where an attach's count starts: the count that it gives. With none kept, the client reads
+  `shells@podssh` first, on a channel of its own, and gives the listed offset back as its count, so
+  that serve's replay starts where the client's count does, also with `--take` (where serve's own
+  start moves with the other client's output). Reading the list and not giving it lost: serve's start
+  then moves between the list and the join. Reading it before each attach lost: a round trip for a
+  count that the record already has.
+- A reset's start: serve's line of a reset names the offset where its replay starts, and the client
+  reads it on the channel's stderr, as it reads the size of a part that the ring dropped. A channel
+  request of serve's own lost: russh's client answers a request that it does not know and hands it
+  to no handler, so it needs a patch of `vendor/russh`. No count after a reset lost: a second loss
+  would lose the bytes again. The line is one function for both ends (`keep_count::reset_line`), and a
+  table pins its read back.
+- The record: one private file of the cache, `kept-offsets.txt`, a line for each far end and shell
+  name, the far end known by `accepted::host_id` of its host key and the user, as the keys that hosts
+  took are kept (T-664); 64 lines, 30 days, the longest lease. By the destination's words lost:
+  `node://lab` can name another far end later, and the host key names this one. By the shell's id
+  lost: the client never learns it, as `PODSSH_SHELL_ID` lives in the shell.
+- When it is kept: at each end where the shell may still be kept (a lost link, `~.`, a signal), and
+  also after `~d`, under the name that the far end keeps the shell as. Only with no `~d`, as the
+  Approach says, lost: serve's SUCCESS and close of a detach go out from its handler, while the
+  shell's output goes through the handle's queue, so the offset at the detach can be past the bytes
+  that the client got (`crates/podssh-ssh/tests/serve_attach_ticket.rs` asserts `>=` for it).
+  It is forgotten where the shell ended (a status), where another client took it (no status), and
+  where the count is unknown. A session whose count never moved leaves the record as it was: a join
+  that serve refuses ends with the status 1 and no output (one while serve still holds the dead
+  client's channel, before `--take`), and forgetting there would lose the count that the next attach
+  needs.
+- `--reset` is a flag of its own, refused without `--attach NAME` (64) as `--take` is. A far end
+  that refuses `count@podssh` (one from before T-833) joins as before, and the count is unknown; a
+  far end that refuses `reset@podssh` fails the attach, as the user asked for it.
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-cli --test attach   # a lost link, then --attach: the bytes after the loss come back
 ```
+
+## Correction
+
+2026-11-24, read before the draft. The Premise holds: serve's choice is `replay_from` in
+`crates/podssh-ssh/src/server/kept_replay.rs`, the list's offset is `Shell::listed` through
+`Shelf::lines`, and the client's requests are `ask_attach` in `crates/podssh-ssh/src/keep.rs`. Three
+parts of the Approach change:
+
+- Item 1's "when the session ends with no `~d`": after `~d` too (Decision).
+- Item 1's start of an attach's count: the list's offset is given back as the count, and a reset's
+  start is the offset that serve's line of a reset now names; the line of T-833's draft named none,
+  so the client could not know where a reset's replay starts.
+- Item 2's "A count from another shell of the same name is refused by serve's reset, never replayed
+  wrong": only where the new shell's output does not reach that offset. Where it does, serve replays
+  the new shell's output from there, as `replay_from` cannot tell two shells apart by an offset. The
+  bytes are the new shell's own, never another's; the record is forgotten when the old shell ends
+  while this client has it, and an offset older than 30 days is dropped.
+
+## Done
+
+Drafted 2026-11-24 on T-833's draft; merged, built and tested by the main session (2026-11-24, Rust 1.99.1, on `main` at `71f5af7` with the draft). The merge added a `type` for the cases of `keep_count_tests.rs` (clippy's `type_complexity`), rustfmt's form of one `let ... else`, `llms-full.txt` written again, and the remap of the moved citations.
+
+- The client: `crates/podssh-ssh/src/keep_count.rs` (the counter that the pump feeds, serve's two
+  lines and their read, the list's offset, the start and end of a session's count) and
+  `crates/podssh-ssh/src/keep_record.rs` (the record, as `accepted.rs` keeps its own, whose
+  `valid_host` and `now_ms` it shares); `keep.rs`'s `ask_attach` sends `count@podssh` or
+  `reset@podssh` (`Joining`); `session.rs` counts each session to a far end that keeps shells;
+  `io.rs` and `io/msg.rs` feed the counter with the output and stderr. serve's reset line names its
+  offset (`kept.rs`, `kept_replay.rs`).
+- The command line: `--reset` (`crates/podssh-cli/src/flags/attach.rs`, `ssh/args.rs`,
+  `ssh/attach.rs`); the record in the cache (`pins.rs`). The manual: the note of `--attach`, the
+  T-833 note of `serve`, and a FILES row. `docs/cli.md`, `docs/terminal.md`, `docs/STATUS.md`.
+- The stand-in far end of `crates/podssh-cli/tests/keep_harness/mod.rs` counts each shell's output,
+  lists the offsets, takes `count@podssh` and `reset@podssh`, and `cut TEXT` writes TEXT into the
+  output and ends the connection before it is sent.
+- Prove: `cargo test -p podssh-cli --test attach`: 7 passed. Its new test
+  `a_lost_link_then_attach_gives_back_the_bytes_after_the_loss` (an attach, a lost link with
+  `LOST_ONE` unsent, the record kept; the record removed, and the next attach does not get
+  `LOST_ONE`; a lost link with `LOST_TWO`; the next attach gets `LOST_TWO` before its word, and
+  nothing before it; its exit forgets the record), and the row of `--reset` alone (64): passed.
+  The test's assumption holds: the stand-in layer ends the client's session when its SSH server drops
+  the connection, so the client reads a lost link (255) and not a resume.
+- `cargo test -p podssh-ssh --lib keep_count` (`serve_s_lines_read_back_to_their_offsets`,
+  `the_count_follows_the_output_and_serve_s_lines`, `the_list_gives_a_shell_s_offset`,
+  `the_record_reads_back_what_it_kept`, `a_session_s_end_keeps_or_forgets_the_offset`): passed (in `cargo test -p podssh-ssh --lib`, 514 passed).
+- `cargo test -p podssh-ssh --test serve_attach_ticket`: against `podssh serve` itself, the client's
+  count from the reset's line and the bytes after it equals the listed offset: 3 passed; `serve_keep` 4 passed.
+- The manual's and the flags' tests: `cargo test -p podssh-cli --lib` 1279 passed; `man_page` 11, `man_flag_parity`
+  6, `man_json` 4, `flag_table` 9 passed; rustfmt and the gate's clippy clean.
+- Waits: the
+  planted client that gives no count (the replay check of the Prove fails) with the release check
+  (T-251); a run against `podssh serve NAME` through the relay, as T-159's Done says.
