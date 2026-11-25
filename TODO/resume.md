@@ -2123,6 +2123,10 @@ same screen at each change, keeps the comparison row for row, and a plant with n
 --test attach_screen`, passed twice with this container's `vi` and three times with BusyBox's (`busybox vi` first on
 `PATH`).
 
+2026-11-25, the gate at `0c6e9c4` failed `gate (lint)` alone, on the format of one line of `attach_screen.rs` (the case
+of `vi`'s filter); each other job passed, `gate (ssh)` with this test. Formatted by rustfmt; `cargo fmt -p podssh-ssh
+-- --check`: clean.
+
 # T-221: Replayed output after dropped bytes starts at a boundary of the terminal grammar (GitHub #31)
 
 **Source:** GitHub #31 (2026-10-08: a rule for where a kept window may start),
