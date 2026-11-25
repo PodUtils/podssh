@@ -33,7 +33,17 @@ follow it" and nothing more: this file is then your whole instruction.
 
 **Work unattended** (the operator's standing instruction): work for as long
 as you can. Do not stop to ask, and do not wait for a reply. Stop only when
-the operator interrupts you, or when the goal is reached.
+the operator interrupts you, or when the goal is reached. A green gate, a
+pushed record, a hard entry or a long context is no reason to stop: make
+the call (below), keep the turn active while a run goes, and take the next
+entry.
+
+**Lead and workers** (the owner's ruling, 2026-11-25): a session is a lead
+that uses subagents. It gives independent entries to parallel workers, each
+in a worktree of its own, with a model and an effort for its assignment,
+and integrates, checks and records their work.
+[docs/hosted-sessions.md](docs/hosted-sessions.md) ("Lead and workers")
+says how; "Drafting agents" below gives the rules of a worker.
 
 **The goal.** Each entry of `TODO/` is done, except the entries that the
 operator holds (`TODO/PROGRESS.md`). Each test passes, and the gate is green
@@ -97,6 +107,9 @@ After a compaction of your context, read this file again, then
 ### Drafting agents
 
 While the main session merges and tests, subagents draft the next entries.
+This is how each session works, not an option (the ruling "Lead and
+workers"): start workers as soon as the order has entries that no one
+holds.
 
 - **A drafting agent** works in a git worktree of its own under
   `.claude/worktrees/` (excluded from git), on a local branch. It reads

@@ -27,6 +27,51 @@ dependencies from `Cargo.lock`. The default tool and dependency caches are
 under ignored `.work/cloud/`. Warm setup uses those caches. For system
 packages and the container gate, use the [full setup](development.md#a-linux-host-or-a-cloud-session).
 
+## Lead and workers
+
+A hosted session is a lead with workers (the owner's ruling "Lead and
+workers", `docs/decisions.md`). The lead does not work alone through the
+order: it gives independent source tasks to parallel workers, and keeps
+the integration, the record and the checks.
+
+Select the model and reasoning effort for each assignment. Use a fresh
+brief for each worker.
+
+| Assignment | Claude Code | Codex |
+| --- | --- | --- |
+| Implementation and other work that needs deeper reasoning | Opus 5.5, medium or high | GPT-6.2 Sol, high or xhigh |
+| Housekeeping, QA, and other work | Sonnet 5.5, high | GPT-6.2 Sol, medium |
+| Hardest or apparently impossible tasks, and advisors | Fable 5.2, high | GPT-6.2 Astra, high |
+
+Each worker uses a local branch and worktree under `.claude/worktrees/`.
+Give each worker its task (the entry), its file scope, its proof (the
+entry's Prove), the rules of `AGENTS.md` that it needs (the web services
+first, no push, no credential in output), and the shared resource limits.
+Give workers entries of different areas, so that their changes touch
+different files. A tester of a candidate gets the binary and the
+documents alone (T-809's black-box pass), not a source worktree.
+
+The lead schedules one Cargo build at a time across the worktrees of this
+repository (`AGENTS.md`, section 4): a worker builds only when the lead
+gives it the build, else it writes the code and leaves UNVERIFIED where a
+result goes (`AGENTS.md`, "Drafting agents"). Each live or container run
+has a time limit and a cleanup check. Workers report their changes,
+evidence, and anything left undone. The lead checks for conflicts,
+integrates on `main`, and runs the checks on the combined changes. The
+lead owns the record, each push, each COORD issue, and the follow-up
+checks.
+
+While workers run, the lead works too: it merges the drafts that came
+back, reads CI and the watchers, and takes the entries that no worker
+holds. When the work waits for a known Actions run, keep the turn active
+and wait on the run (the watchers' logs, or `gh run watch RUN_ID --repo
+PodUtils/podssh --exit-status`); never end the turn to wait. A session
+ends only when the operator interrupts it or the goal of `AGENTS.md` is
+reached: a green gate, a pushed record, a hard entry or a long context is
+no reason to stop (the context is summarized as it grows).
+
+## Tests in a hosted container
+
 In Codex Cloud, use a short, owned temporary directory for Unix socket
 tests. The default suite also runs SSH cases whose input is built into the
 test. Use the documented `PODSSH_SSH_CONFIG=none` override for that run

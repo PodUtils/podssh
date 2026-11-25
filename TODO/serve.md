@@ -698,7 +698,7 @@ The record's part of it is done (2026-11-14: `cargo todo check` and `cargo todo 
 # T-111: `podssh serve` with no `/dev/ptmx`: the line discipline, and Ctrl-C to the child's process group
 
 **Source:** `docs/ROADMAP.md:190-195`, `docs/design.md:663-667`,
-`docs/decisions.md:115`; GitHub #20 (fux line-discipline notes).
+`docs/decisions.md:116`; GitHub #20 (fux line-discipline notes).
 **Category:** feature
 **Milestone:** M5
 **Priority:** P2
@@ -1063,7 +1063,7 @@ out with matching digests.
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
   `docs/STATUS.md:536`). With no pty device, no podssh code can give the child
-  a tty: shims are excluded (`docs/decisions.md:114`).
+  a tty: shims are excluded (`docs/decisions.md:115`).
 - Read: one relay session carries 64 MiB, both directions together
   (`docs/relay.md:720`; measured: `docs/STATUS.md:544`). 200 MiB each way
   needs the new sessions of T-137.
@@ -1118,7 +1118,7 @@ live relay, and prints one line for each step; the box and this cloud container 
 The premise that no podssh code can give the child a tty where `/dev/ptmx` is
 missing is too strong. The operator allows two routes, each after a probe at
 run time (Q11, 2026-10-08), and T-248 studies them. The ban on `LD_PRELOAD`
-stays (`docs/decisions.md:114`).
+stays (`docs/decisions.md:115`).
 
 2026-11-03. The blocker cleared: the operator released the hold (Q92, `docs/decisions.md`);
 the entry joins the work order by its priority.
@@ -2270,8 +2270,8 @@ with no privileges needs a way that the host allows, found by a probe.
 ## Premise
 
 - Read: podssh never assumes a tool or a privilege; it starts a program only
-  when a probe found it (`AGENTS.md:389-433`).
-- Read: a credential never goes on argv or into output (`AGENTS.md:332-337`).
+  when a probe found it (`AGENTS.md:402-446`).
+- Read: a credential never goes on argv or into output (`AGENTS.md:345-350`).
   The command line of a unit file is argv, so it must hold no token.
 - Read in the reports of GitHub #20 and #18, not verified here: tty7, zuko
   and iroh-ssh install services, and iroh-ssh adds a firewall rule (which
@@ -2406,7 +2406,7 @@ own scope; serve does nothing like it.
 ## Premise
 
 - Read: podssh must not assume systemd, and starts a program only when a probe
-  found it (`AGENTS.md:389-433`, `docs/target-environment.md:116-118`).
+  found it (`AGENTS.md:402-446`, `docs/target-environment.md:116-118`).
 - Read: T-110 and T-111 start each child with `setsid`, in serve's cgroup.
 - Read in the report of GitHub #19, not verified here: ssh-obi moves its pty
   children into a transient scope when systemd is there, and works without
@@ -2484,7 +2484,7 @@ request. The operator holds them (Q32, `docs/decisions.md`), so this entry waits
 becomes a hold of the child between its fork and its exec while `busctl --user call
 org.freedesktop.systemd1 ... StartTransientUnit` moves its pid into `podssh-serve-PID-N.scope`;
 the scope keeps the child's process tree, and `setsid` and the controlling tty work as before, as
-item 2 asks. The Premise's `AGENTS.md:389-433` is section 5's rules 1 to 3 (probe at run time, one
+item 2 asks. The Premise's `AGENTS.md:402-446` is section 5's rules 1 to 3 (probe at run time, one
 connection, no helper but a program that a probe found); `busctl` is such a program.
 
 ## Done
@@ -2793,7 +2793,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
   when the user asks for it and a probe at run time allows the bind. The
   default is loopback and AF_UNIX; the user can set the address and can turn
   listening off. The rules still say that podssh never listens
-  (`AGENTS.md:391-419`, `docs/architecture.md:284-301`).
+  (`AGENTS.md:404-432`, `docs/architecture.md:284-301`).
 - Read: russh has the listener: `Server::run_on_socket` and `run_on_address`
   (`Eugeny/russh:russh/src/server/mod.rs`, lines 900-1010 at `22c3b88`). doctor binds a
   TCP and an AF_UNIX socket to test the host, listens once on each, and closes them at once
@@ -2819,7 +2819,7 @@ a VM with no sshd, or on a network that lets only port 443 in. Without
 5. Later step: SSH and TLS on one port. Read the first bytes: `SSH-2.0-` goes
    to SSH; a TLS ClientHello (0x16) is refused.
 6. Same commit: the flags, the manual, `docs/cli.md`, and the rules in
-   `AGENTS.md:391-419` and `docs/architecture.md:284-301`, which then name this
+   `AGENTS.md:404-432` and `docs/architecture.md:284-301`, which then name this
    exception and the ruling.
 
 ## Decision
