@@ -41,11 +41,13 @@ const FILE_MOST: u64 = 64 * 1024;
 /// Each direction of the pipe between the role and the road.
 const PIPE: usize = 256 * 1024;
 
-/// What `--carrier` names: a stream of `pipe`'s words, or a bucket.
+/// What `--carrier` names: a stream of `pipe`'s words, a bucket, or the
+/// DNS road (T-877).
 #[derive(Clone, Debug)]
 pub(crate) enum Found {
     Stream(Address),
     Bucket(Arc<Spec>),
+    Dns(Arc<crate::carrier_dns::Spec>),
 }
 
 impl PartialEq for Found {
@@ -53,6 +55,7 @@ impl PartialEq for Found {
         match (self, other) {
             (Found::Stream(a), Found::Stream(b)) => a == b,
             (Found::Bucket(a), Found::Bucket(b)) => a.file == b.file,
+            (Found::Dns(a), Found::Dns(b)) => a.file == b.file,
             _ => false,
         }
     }

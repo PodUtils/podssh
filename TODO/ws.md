@@ -1988,7 +1988,7 @@ command says what to do. Four of the eight release binaries are for Windows and 
 - Read: `windows-sys` 0.61 is already a dependency of `podssh-relay` on Windows
   (`crates/podssh-relay/Cargo.toml:290-291`), a crate with no C; `rustls-native-certs` 0.8.4,
   `schannel` and `security-framework` are in the lock through other crates
-  (`Cargo.lock:6560-6561`).
+  (`Cargo.lock:6563-6564`).
 - Read: one proxy that re-terminates TLS was measured, with its CA in `SSL_CERT_FILE` and in the
   system's store of Linux (`docs/target-environment.md:61-67`).
 - Inferred: on macOS, `/etc/ssl/cert.pem` lacks a root that an administrator added to a keychain;
@@ -2333,7 +2333,7 @@ and each other command print rustls's words alone. An error should tell what to 
 - Read: the other commands print the error's text: `PodUtils/podssh:crates/podssh-ws/src/client.rs:142` says "TLS
   with the relay failed: {why}"; the TLS of IRC and of the quick tunnel's edge gives the text of
   `PodUtils/podssh:crates/podssh-ws/src/tls.rs:151` (`crates/podssh-relay/src/quick/edge.rs:111-113`).
-- Read: rustls 0.23.46 (`Cargo.lock:6510-6511`) has the errors `Expired`, `ExpiredContext`,
+- Read: rustls 0.23.46 (`Cargo.lock:6513-6514`) has the errors `Expired`, `ExpiredContext`,
   `NotValidYet` and `NotValidYetContext`, and writes the two with a context as "certificate
   expired: verification time" and "certificate not valid yet: verification time" (its
   `src/error.rs`, read in cargo's registry); doctor's match of the text ("expired", "not valid
@@ -2907,7 +2907,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:401-405`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:412-416`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3653,7 +3653,7 @@ two requests in two directions.
   (`PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`, its reason at
   `PodUtils/podcrates:crates/pod-egress/src/vless/h1_modes.rs`). The issue's "keep the 78 refusal" reads as:
   keep stream-one's refusal, and say why in `doctor`.
-- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:99-100`).
+- `podssh doctor --vless` exists (`crates/podssh-cli/src/doctor/mod.rs:101-102`).
 
 ## Approach
 
@@ -3803,7 +3803,7 @@ of UDP only from the source. The tester accepts either outcome: UDP associate bu
 
 - `PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs` says "is not spoken" of UDP's command, and the
   request writes CONNECT alone (`PodUtils/podcrates:crates/pod-egress/src/trojan/request.rs`).
-- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:99-100`)
+- `podssh doctor` has a section for VLESS's servers (`crates/podssh-cli/src/doctor/mod.rs:101-102`)
   and none that names Trojan (no file of `crates/podssh-cli/src/doctor/` names it, searched
   2026-11-13).
 

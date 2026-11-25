@@ -4,7 +4,9 @@
 //! ADDR` names it at either end, in `pipe`'s words: `stdio` (or `-`), `fd:N`
 //! (Unix) or `exec:CMD`, a program that the end which names it starts, with
 //! no shell; or `s3:FILE`, a bucket of the S3 API that FILE describes, each
-//! end writing one prefix and reading the other (T-725, `crate::carrier_bucket`).
+//! end writing one prefix and reading the other (T-725, `crate::carrier_bucket`);
+//! or `dns:FILE`, names and TXT answers of a zone of the user's own (T-877,
+//! `crate::carrier_dns`).
 //! The node (`node_carrier`) runs its socket of the reverse road on
 //! the stream; the client's end runs the relay role's side of that socket in
 //! its own process (`podssh_relay::serve::reverse::carrier`), and each
@@ -34,7 +36,7 @@ use crate::pipe::address::{self, Address};
 use crate::relay_settings::Refusal;
 
 /// The kinds of a carrier, as the refusals name them.
-const KINDS: &str = "stdio (or -), fd:N (Unix), exec:CMD or s3:FILE";
+const KINDS: &str = "stdio (or -), fd:N (Unix), exec:CMD, s3:FILE or dns:FILE";
 /// How long the node may take to read a stream that was just started: a
 /// program that logs in somewhere first, and a node that dials its TARGET.
 const READY_LIMIT: Duration = Duration::from_secs(60);
@@ -55,6 +57,9 @@ static SHARED: Mutex<Option<Arc<Client>>> = Mutex::new(None);
 pub(crate) fn parse(text: &str) -> Result<Found, Refusal> {
     if let Some(path) = text.strip_prefix(crate::carrier_bucket::SCHEME) {
         return crate::carrier_bucket::read(path).map(|spec| Found::Bucket(std::sync::Arc::new(spec)));
+    }
+    if let Some(path) = text.strip_prefix(crate::carrier_dns::SCHEME) {
+        return crate::carrier_dns::read(path).map(|spec| Found::Dns(std::sync::Arc::new(spec)));
     }
     match address::parse(text) {
         Ok(found @ (Address::Stdio | Address::Fd(_) | Address::Exec(_))) => Ok(Found::Stream(found)),
@@ -101,6 +106,8 @@ pub(crate) fn open(found: &Found, side: Side) -> Result<(Link, Option<Child>), R
             crate::leg_end::set(podssh_relay::bucket::LEG_END);
             return Ok((crate::carrier_bucket::open(spec.clone(), side), None));
         }
+        // The client's probe of UDP and its key come first, as refusals.
+        Found::Dns(spec) => return Ok((crate::carrier_dns::open(spec.clone(), side)?, None)),
     };
     let end = crate::pipe::local::open(found)
         .map_err(|unopened| Refusal { message: format!("the carrier: {}", unopened.why), code: unopened.code })?;
@@ -167,7 +174,8 @@ impl Client {
         // first bytes come at the pace of a poll.
         let (ready, close) = match found {
             Found::Bucket(_) => (podssh_relay::bucket::READY_LIMIT, podssh_relay::bucket::CLOSE_LIMIT),
-            Found::Stream(_) => (READY_LIMIT, CLOSE_LIMIT),
+            // The DNS road's handshake takes seconds, within the node's 60.
+            Found::Stream(_) | Found::Dns(_) => (READY_LIMIT, CLOSE_LIMIT),
         };
         Ok(Client { door: Door::of(role), child, relay, trust, ctx, one_life, ready, close })
     }
@@ -211,6 +219,8 @@ impl Client {
         self.door.role().close(self.close).await;
         // A bucket's Close is a note that a task still puts (T-725).
         crate::carrier_bucket::settled(self.close).await;
+        // So is a DNS link's, in its queue and in its ARQ (T-877).
+        crate::carrier_dns::settled(self.close).await;
         let child = lock(&self.child).take();
         if let Some(mut child) = child {
             if tokio::time::timeout(CHILD_LIMIT, child.wait()).await.is_err() {

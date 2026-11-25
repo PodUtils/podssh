@@ -45,6 +45,8 @@ pub(super) struct Checks<'a> {
     pub(super) cover: Option<&'a str>,
     /// The exit of `--exit NAME` (T-458).
     pub(super) exit: Option<&'a super::exit::Plan>,
+    /// The zone of `--dns-zone` and its resolver (T-875).
+    pub(super) dns: Option<&'a super::dns_zone::Plan>,
     /// `--quick`: the roads that the run did not ask for are left out.
     pub(super) quick: bool,
     /// How many sections start together.
@@ -77,6 +79,8 @@ pub(super) enum Kind {
     Turn,
     /// The tunnel of `--devtunnel`, a road over TCP (T-755).
     Devtunnel,
+    /// A resolver's TXT query for the zone of `--dns-zone`, over UDP (T-875).
+    Dns,
     /// The exit of `--exit NAME` (T-458).
     Exit,
     /// What the path does to a stream (T-325).
@@ -112,6 +116,7 @@ impl Kind {
             Kind::Tuic => "tuic",
             Kind::Turn => "turn",
             Kind::Devtunnel => "devtunnel",
+            Kind::Dns => "dns",
             Kind::Exit => "exit",
             Kind::Stream => "stream",
             #[cfg(feature = "iroh")]
@@ -196,6 +201,12 @@ pub(super) async fn network(report: &mut Report<'_>, checks: &Checks<'_>) {
         let after = kinds.iter().rposition(before).map_or(kinds.len(), |at| at + 1);
         kinds.insert(after, Kind::Tuic);
     }
+    // The DNS road's queries last of the roads that the run names (T-875).
+    if checks.dns.is_some() {
+        let before = |k: &Kind| over_tcp(k) || matches!(k, Kind::Hysteria | Kind::Tuic);
+        let after = kinds.iter().rposition(before).map_or(kinds.len(), |at| at + 1);
+        kinds.insert(after, Kind::Dns);
+    }
     let json = report.json;
     let start = |i: usize, seat: Seat| part(kinds[i], seat, json, checks);
     let ended = parts::run(&mut *report.out, kinds.len(), checks.jobs, start).await;
@@ -279,6 +290,11 @@ async fn checks_of(kind: Kind, report: &mut Report<'_>, checks: &Checks<'_>) {
         Kind::Devtunnel => {
             if let Some(target) = checks.devtunnel {
                 super::devtunnel::check(report, target, trust).await;
+            }
+        }
+        Kind::Dns => {
+            if let Some(plan) = checks.dns {
+                super::dns_zone::check(report, plan).await;
             }
         }
         Kind::Exit => {

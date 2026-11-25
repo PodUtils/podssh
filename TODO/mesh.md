@@ -10524,9 +10524,9 @@ the roads over TCP.
 ## Premise
 
 - `docs/decisions.md:43` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:2319-2320` says "a client's first request is an HTTP/3", a `POST /auth` with
-  `Hysteria-Auth`; `docs/carriers.md:2321` says "answers status 233", then each TCP stream opens
-  with a request of ID 0x401 and the address; `docs/carriers.md:2315` says "UDP alone, which the
+- `docs/carriers.md:2345-2346` says "a client's first request is an HTTP/3", a `POST /auth` with
+  `Hysteria-Auth`; `docs/carriers.md:2347` says "answers status 233", then each TCP stream opens
+  with a request of ID 0x401 and the address; `docs/carriers.md:2341` says "UDP alone, which the
   hosts of podssh's design do not have".
 - `crates/podssh-relay/src/quick/probe.rs:1` says "The probe of UDP before QUIC (T-400): one QUIC
   packet of a reserved", and `crates/podssh-relay/Cargo.toml:64` says "The quick tunnel over
@@ -10654,9 +10654,9 @@ road with no relay. podssh does not speak it (Q82).
 ## Premise
 
 - `docs/decisions.md:43` says "Q82: roads over UDP where UDP passes".
-- `docs/carriers.md:2327-2328` says "a token of 32 bytes that the TLS keying material exporter
-  derives", and `docs/carriers.md:2330-2331` says "as the server never answers a command";
-  `docs/carriers.md:2333` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
+- `docs/carriers.md:2353-2354` says "a token of 32 bytes that the TLS keying material exporter
+  derives", and `docs/carriers.md:2356-2357` says "as the server never answers a command";
+  `docs/carriers.md:2359` says "are mihomo, shoes, sing-box and Itsusinn's tuic".
 - `crates/podssh-relay/Cargo.toml:64` says "The quick tunnel over QUIC (src/quick/quic.rs,
   T-301): noq, the QUIC of the".
 
@@ -10718,7 +10718,7 @@ exporter's label and context swapped, and the test of the banner fails.
 fixes only, and once podssh takes the crate the work is done in PodUtils/podcrates, which podssh
 takes by the next tag; a test of the moved code then runs there.
 
-2026-11-12. The Premise holds: `docs/decisions.md:43`, `docs/carriers.md:2327-2333` and
+2026-11-12. The Premise holds: `docs/decisions.md:43`, `docs/carriers.md:2353-2359` and
 `crates/podssh-relay/Cargo.toml:64` say what it quotes. `pod-egress` is not taken (`TODO/PROGRESS.md`,
 State, item 7), so the road is in `podssh-ws` (`tuic/`, behind its feature `quic`) until it is, as T-739's
 VMess is; podcrates imports it with the other roads of `pod-egress`. The QUIC that it needs is `pod-quic`'s,
@@ -11110,7 +11110,7 @@ through a relay. A feature of the mesh (Q63; Q77, the fallbacks that exist).
 - Read: `pipe` does not refuse a terminal on stdin (no such check in `crates/podssh-cli/src/pipe/`
   at `3bb42ea`); the issue's "as `pipe` does" is not this code's.
 - Read: the exit lends its egress on the node's roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:304-314`); a carrier is one more road for it (T-596).
+  (`crates/podssh-cli/src/man/notes_pair.rs:305-315`); a carrier is one more road for it (T-596).
 
 ## Approach
 
@@ -11464,8 +11464,8 @@ roads, and a carrier must be one of them.
 ## Premise
 
 - Read: the exit goes on the pair's, the iroh, the DERP, the transit and the Piping Server roads
-  (`crates/podssh-cli/src/man/notes_pair.rs:313-314`), and needs the net's role exit, signed by
-  its owner (`:310-311`).
+  (`crates/podssh-cli/src/man/notes_pair.rs:314-315`), and needs the net's role exit, signed by
+  its owner (`:311-312`).
 - Read: `podssh exit NAME --listen` gives SOCKS5, SOCKS4a and HTTP CONNECT on a loopback address
   (`docs/STATUS.md:172`).
 - In the issue's case the end with egress starts the channel (`ssh -T sandbox CMD`), so the node
@@ -16485,7 +16485,7 @@ Research step, 2026-11-24 (drafted by an agent, merged at the main session; `car
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -16513,6 +16513,33 @@ know, keeps the OPT record, and answers whole. T-835 could not measure it: a dra
 3. Write the result of two real networks in `docs/carriers.md` (T-835's section), and the line in the manual (each
    sentence 25 words or fewer).
 
+## Decision
+
+The draft's calls, 2026-11-24, each with what lost:
+
+1. **A section `dns` of its own**, after each road that the run names, which `--quick` keeps as it keeps each named
+   road. Lost: lines in `egress` (the road is one that the user names, as `--hysteria` is, and `egress` holds what
+   each run needs).
+2. **The probe of UDP is a socket connected to the resolver, which sends nothing** (`dns_road::udp_out`). Lost: a
+   first datagram to a known server (a datagram unasked, against Q107), and a read of the seccomp filter (no
+   portable way, and a refusal at `connect` or `send` still gives its own line).
+3. **`/etc/resolv.conf` is read here, its first `nameserver` whose address reads** (`dns_road::first_nameserver`,
+   ten lines, a zone's link-local address passed over). Lost: `pod-hostprobe`, which counts the lines and gives no
+   address; the ask for a reader of addresses goes to podcrates (`## Done`), and this copy goes when it comes.
+4. **Records of another type are counted as the answer section's count less the records that `pod_dns::txt::read`
+   kept** (TXT and CNAME), only in an answer that is not cut. Lost: a second reader of records in podssh. The ask for
+   `txt::Answer` to keep the types of the others goes to podcrates.
+5. **NOERROR and NXDOMAIN are `ok`** (the resolver recursed for the zone); **SERVFAIL, REFUSED, silence and an
+   address are `FAIL`**, as the road cannot pass. Lost: `????` for silence, which would hide a path that drops the
+   queries of a road that the user named; `--hysteria`'s silent probe is a `FAIL` too.
+6. **The probe's name is random, `podssh-` and 16 hex digits under the zone**, so no cache answers and a resolver's
+   log tells it. Lost: a poll of pod-link's own form, whose encoder is private to the crate, and which would take
+   one of the responder's 64 handshake slots for 20 s (T-876, finding 2). So pod-link's responder at `v0.82.1`
+   answers the probe with silence (finding 1); the test pins that, and changes when podcrates answers.
+7. **A datagram whose ID is the query's but which does not read is kept for the line and the wait goes on**; any
+   other datagram is counted and not taken. Lost: ending at the first datagram, which a spoof or a late answer of
+   another query would win.
+
 ## Prove
 
 ```sh
@@ -16529,6 +16556,43 @@ an answer of another query as its own.
 `AGENTS.md`): UDP to a resolver only with `--carrier dns:FILE` or `doctor --dns-zone ZONE`, after a probe found UDP
 out, at most 20 queries a second and 8 in flight. The entry is open again. Its blocker was: The operator: Q107 (`TODO/PROGRESS.md`), a tenth exception of rule 2 for UDP datagrams to a resolver. Unblocked
 when it is answered; a refusal turns this entry into a probe of DNS over HTTPS only.
+
+2026-11-24 (the draft): the Premise's second item is half right. `pod_dns::txt` has the query, `read` and
+`asked_size` (PodUtils/podcrates:crates/pod-dns/src/txt.rs at `v0.82.1`), but `pod-hostprobe` only counts the
+`nameserver` lines of `resolv.conf` (`nameservers`, PodUtils/podcrates:crates/pod-hostprobe/src/probes/network.rs)
+and gives no address: podssh reads the first one itself (Decision 3). And `txt::read` keeps TXT and CNAME records
+alone, so an address in the answer is found by the count (Decision 4). Also, pod-link's responder answers no name
+that does not decode as its own datagram (T-876, finding 1), so the Prove's test against it reads silence.
+
+## Done
+
+2026-11-25, drafted on 2026-11-24 and merged in the main session:
+
+- `crates/podssh-cli/src/dns_road.rs`: the resolver (`system` or an address; a name refused), the first nameserver
+  of `/etc/resolv.conf`, the probe of UDP that sends nothing, and Q107's bound (20 queries a second, 8 in flight),
+  which T-877 takes too.
+- `crates/podssh-cli/src/doctor/dns_zone.rs` and its tests: the flags, the two queries, each line; the section in
+  `crates/podssh-cli/src/doctor/sections.rs`, the flags' rows (`crates/podssh-cli/src/flags/dns.rs`, the help of
+  `--dns-zone` cut to 25 words), the parse, the offline line, and the manual's note
+  (`crates/podssh-cli/src/man/notes_dns.rs`).
+- `crates/podssh-cli/tests/doctor_dns.rs`: offline; a bad flag 64; six stand-in resolvers on the loopback (whole,
+  OPT stripped, cut, a portal's address, SERVFAIL, another query's answer then silence) and pod-link's responder,
+  which at podcrates `v0.83.0` answers the probe's random name with an empty NOERROR (T-876, finding 1): its line is
+  ok now, and the test says so.
+- `scripts/repo_listeners.py`: the three files with a UDP socket. `docs/cli.md` ("podssh doctor"),
+  `docs/carriers.md`, `docs/STATUS.md`.
+
+Results: `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib dns_` passes (the resolver's table, the first
+nameserver, the probe that sends nothing, the flags, the table of verdicts); `CARGO_BUILD_JOBS=4 cargo test -p
+podssh-cli --test doctor_dns` passes (4 tests); the planted defect (in `ask`, each datagram taken as this query's
+answer by its ID) fails `against_stand_ins_each_answer_has_its_own_true_line`; `--lib man::` passes with
+`llms-full.txt` written again. What waits: the result of two real networks for `docs/carriers.md` (step 3), which
+needs a zone delegated to a host of the operator's.
+
+For podcrates (amended into COORD-139, PodUtils/podssh#349): (a) a reader of the addresses of `resolv.conf`'s
+`nameserver` lines, beside `pod-hostprobe`'s count, or in `pod-dns`; (b) `pod_dns::txt::Answer` to keep the type of
+each record that it does not read, so a caller sees an address in an answer to a TXT question. The third ask (an
+empty NOERROR for a name that is no datagram) is answered at `v0.83.0` (podcrates' HANDOFF, the DNS listener's empty answers).
 
 # T-876: Four findings on pod-link's DNS carrier, written to podcrates
 
@@ -16571,6 +16635,13 @@ exist yet: faults 1 and 2 against the responder, each with its answer read.
 
 Step 1 on 2026-11-24: COORD-139 (PodUtils/podssh#349) asks podcrates the four findings, the test through `unbound` and a DoH `Datagrams`; findings 1 and 2 were read again in pod-link's DNS server module at `v0.82.1` (`0d7832b`, its function `answer`) before it was sent. Steps 2 and 3 wait for podcrates' answer.
 
+2026-11-25: podcrates `v0.83.0` answers findings 1 to 3 (an empty NOERROR for a name that is no datagram; a
+handshake slot only for a part of a ClientHello, with `Dns::handshake_quiet`; a held poll, `DnsSettings::hold`), and
+podssh took the tag (T-877's `## Correction` names what its glue sets for the last two). COORD-139's body now holds
+finding 4, the DoH `Datagrams` (for T-900), the run through `unbound` in podcrates' CI (podssh runs one natively), and
+three asks of the merge (the zone's characters, the addresses of `resolv.conf`, the record types of a TXT answer).
+Step 3 goes on with each answer.
+
 # T-877: The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it
 
 **Source:** T-835 ([docs/research/dns-carrier.md](../docs/research/dns-carrier.md))
@@ -16578,7 +16649,7 @@ Step 1 on 2026-11-24: COORD-139 (PodUtils/podssh#349) asks podcrates the four fi
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -16607,6 +16678,35 @@ A host that reaches a resolver and nothing else has no road. `pod-link` has the 
    podcrates has the `Datagrams` that T-876 asks for.
 5. `docs/carriers.md`: the measurement of T-875 and the deployment; the manual page of `--carrier`.
 
+## Decision
+
+The draft's calls, 2026-11-24, each with what lost:
+
+1. **Built now, before a host is known** (step 1). The owner's rule "Decisions" (`docs/decisions.md`, 2026-11-24)
+   takes the option that adds a feature behind an opt-in, and Q107's settlement says this entry goes on; the road
+   sends nothing unless a user names `dns:FILE`. Lost: waiting for a report, which leaves a user who has such a host
+   with no road.
+2. **Each end's FILE holds its own `key-file` and the other end's `peer`.** pod-link's TLS under the ARQ needs an
+   Ed25519 key at each end, and its listener takes only the client keys that it names (`with_clients`). Lost: the
+   node's key of the end-to-end channel and the client's `client.key`, which would thread `--key`,
+   `--ephemeral-key` and `--client-key` through each of the commands that start a carrier's client, and an ephemeral
+   client key can be no node's peer; a listener that takes any key, which pod-tls's set has not, and which would let
+   a stranger take the node's one stream. So two files, not one shared as the bucket's is. A key file that is
+   missing is made private, and a line gives its key for the other end's `peer`.
+3. **The client's checks before the pipe, the handshake in its task.** One peer, the resolver, the probe of UDP and
+   the key are refusals with their codes (78, 69) before any datagram; the handshake runs in the task of the pipe,
+   as the bucket's link does, and a failure is a line and the stream's end (69). Lost: holding the role until the
+   handshake ends, which the role's pings at once do not allow.
+4. **Q107's bound is refused, not lowered, in FILE** (`queries-per-second` over 20, `in-flight` over 8: 78), and
+   held again over pod-link's defaults. Lost: a silent clamp, which leaves a user believing in a rate that is not
+   sent.
+5. **The node's failed handshakes are said, the first ten and then each 100th.** Lost: each one (a stranger's names
+   would fill a journal) and none (a wrong pin would be silent).
+6. **The zone's characters are checked here** (letters, digits, `-` and `_`): pod-link checks the labels' lengths
+   alone. The ask goes to podcrates (`## Done`).
+7. **The form over DNS over HTTPS (step 4) is not drafted**: it waits for podcrates' `Datagrams` over DoH, the
+   fifth ask of COORD-139 (#349).
+
 ## Prove
 
 ```sh
@@ -16623,3 +16723,95 @@ with its exit code; the rates of section 3 of the research document measured and
 `AGENTS.md`): UDP to a resolver only with `--carrier dns:FILE` or `doctor --dns-zone ZONE`, after a probe found UDP
 out, at most 20 queries a second and 8 in flight. The entry is open again. Its blocker was: The operator: Q107 (a tenth exception of rule 2), and T-875's result that a host exists. Also T-876's answers when
 they change the code that this glue takes.
+
+2026-11-24 (the draft): the Premise holds at its lines (`crates/podssh-cli/src/carrier.rs:1`,
+`crates/podssh-cli/src/carrier_bucket.rs:1`, `crates/podssh-relay/Cargo.toml:114`), and pod-link's `Dns` has
+`bind`, the dial of `KEY@ZONE` and `with_way` at `v0.82.1`. It also needs more than the Approach's one `key`: each
+end presents a key of its own, and the listener takes only the client keys that it is given (Decision 2). And the
+Prove's resolver that strips OPT does not end the road: pod-link answers within 512 bytes then, so the stream
+passes, slower; the resolver that sets TC on each answer is the one that ends it (69). The test holds both.
+
+2026-11-25 (the merge): three things the draft could not see. (1) The client exited before its link carried the
+role's Close: the node waited 30 s for a ping and exited 69. The bucket's road had met the same (T-725); the DNS
+client now has its own `settled`, called from `Client::end`: the road's task moves what the pipe still holds, then
+shuts the link (TLS's close_notify, then the ARQ's FIN), within the close's limit. (2) podcrates `v0.83.0` added
+`Dns::handshake_quiet` (5 s: a session that sends nothing before its handshake ends is dropped) and
+`DnsSettings::hold` (1 s, below `query_timeout`): a node's quiet is now at least its `poll-max` and 1 s, and a
+`query-timeout` under 2 s takes a hold of half of it, where `check` would else refuse the file. (3) Step 4, the
+form over DNS over HTTPS, waits for podcrates' `Datagrams` over DoH (COORD-139's fifth ask): it is T-900, so that
+this entry closes on the UDP form.
+
+## Done
+
+2026-11-25, drafted on 2026-11-24 and merged in the main session:
+
+- `crates/podssh-cli/src/carrier_dns.rs` and its tests: FILE (`zone`, `resolver`, `listen`, `key-file`, `peer`,
+  and the settings within Q107's bound and their own), the client's pipe and its checks, its end (`settled`), the
+  node's listener and its accept; `Found::Dns` in `crates/podssh-cli/src/carrier_bucket.rs`, its parse, its open and
+  its end in `crates/podssh-cli/src/carrier.rs`, the node's wait in `crates/podssh-cli/src/node_carrier.rs`.
+- The flags' words of `--carrier` (node, operator, proxy, ssh, pipe), the manual's note of the node and FILE in
+  FILES (`crates/podssh-cli/src/man/notes_dns.rs`).
+- `crates/podssh-cli/tests/carrier_dns.rs`: a node and an operator through a stand-in resolver on the loopback in
+  front of pod-link's responder: 16 KiB back whole, both ends 0; 4 KiB through a resolver that strips OPT; a
+  resolver that cuts each answer, and a pin of another key, each the client's own line and 69; a file over Q107's
+  bound 78 at either end; and, where the host has `unbound`, 4 KiB each way through it as the recursor (a stub zone
+  toward the node), with query-name minimisation on and off, both ends 0.
+- pod-link (feature `dns`) and pod-tls are dependencies of podssh-cli. `scripts/repo_listeners.py` names the
+  files. `docs/cli.md`, `docs/carriers.md`, `docs/STATUS.md`.
+
+Results (this host, `unbound` 1.19 installed by apt for the run): `CARGO_BUILD_JOBS=4 cargo test -p podssh-cli
+--test carrier_dns` passes (5 tests, 41 s); `--lib carrier_dns` passes (4 tests). Planted: without the client's
+`settled` the node exits 69 (the draft's own state); without the hold's cut, a `query-timeout` of 0.8 is refused;
+without the node's quiet, a `poll-max` of 30 keeps the 5 s quiet; unbound's stub pointed at a wrong port fails the
+unbound case. What waits: 1 MiB each way and the rates of section 3 of the research measured beside the
+arithmetic (at 20 queries a second, a run of more than a few minutes: the release checks, Q88); a run in the box
+whose profile refuses UDP; a real network with a delegated zone.
+The whole suite of podssh-cli with the merge (`CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --no-fail-fast`, 2026-11-25):
+256 suites, 2588 passed, 3 failed, the three of `job_far` at this container's stand-in of `rm`, as in the baseline.
+
+For podcrates (amended into COORD-139, PodUtils/podssh#349): (d) the zone of `Dns::address` and `Dns::zone`
+checked for letters, digits, `-` and `_` (`zone_wire` checks the lengths alone); finding 4 of T-876 (an ARQ with no
+TLS under it, where the caller seals above); the `Datagrams` over DNS over HTTPS for T-900. Finding 2 is answered
+at `v0.83.0` (podcrates' HANDOFF: a query of junk holds no handshake slot).
+
+# T-900: The DNS road over DNS over HTTPS, through `HTTPS_PROXY`
+
+**Source:** T-877, step 4 (its `## Correction` of 2026-11-25)
+**Category:** feature
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`--carrier dns:FILE` needs UDP to a resolver (Q107). A host whose only way out is an HTTP proxy has no UDP, so the
+DNS road is no road there; DNS over HTTPS (RFC 8484) is one connection through `HTTPS_PROXY` to a resolver's name on
+443, which rule 2 allows with no new exception.
+
+## Premise
+
+- Read: the client opens `pod_link::dns::Dns::connect`, which binds a UDP socket of the system
+  (`crates/podssh-cli/src/carrier_dns.rs:273`); `connect_over` takes any `Datagrams`, so a `Datagrams` over DoH
+  plugs in with no change of the road.
+- Read: pod-link has no `Datagrams` over DoH at podcrates `v0.83.0`; `pod-dns` has a DoH client of its own
+  (PodUtils/podcrates:crates/pod-dns/src/doh.rs), for lookups, not for a stream of datagrams.
+
+## Approach
+
+1. When podcrates gives the `Datagrams` over DoH (COORD-139's fifth ask, PodUtils/podssh#349), take its tag.
+2. FILE's `resolver` takes `https://NAME/PATH`: the client's queries go as DoH through `podssh-ws`'s way out (the
+   proxy, the TLS of podssh), with a pause on 429; no UDP probe and no Q107 bound beyond the rate.
+3. The test: the stand-in resolver of `tests/carrier_dns.rs` behind a small DoH front, through a CONNECT proxy.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
+```
+
+A session through a DoH front and a CONNECT proxy, both ends 0, with no UDP socket opened by the client.
+
+## Blocker
+
+PodUtils/podcrates: a `Datagrams` over DNS over HTTPS in pod-link (the fifth ask of COORD-139, PodUtils/podssh#349).

@@ -60,6 +60,8 @@ pub struct DoctorArgs {
     pub stream_idle: Option<String>,
     /// `--exit NAME`, `--exit-target` and `--client-key` (T-458).
     pub exit: ExitFlags,
+    /// `--dns-zone ZONE` and `--dns-server ADDR` (T-875).
+    pub dns: super::DnsFlags,
 }
 
 /// The parse of `doctor`, kept here so that `tree` stays a dispatcher of
@@ -93,6 +95,7 @@ pub fn parsed(m: &clap::ArgMatches, refused: Vec<(String, &'static str, &'static
         stream: get("stream"),
         stream_idle: get("stream-idle"),
         exit: ExitFlags { name: get("exit"), target: get("exit-target"), client_key: get("client-key") },
+        dns: super::DnsFlags { zone: get("dns-zone"), server: get("dns-server") },
         refused,
     }
 }

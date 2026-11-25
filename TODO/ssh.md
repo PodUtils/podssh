@@ -54,7 +54,7 @@ Read:
 4. Give the note about skipped encrypted keys
    (`crates/podssh-ssh/src/keys.rs:183-189`) the same condition as step 1.
 5. Keep `PublicKeys::new` for each login (`crates/podssh-ssh/src/auth.rs:107`),
-   so that only the notes change. No document changes: `docs/cli.md:7161-7221`
+   so that only the notes change. No document changes: `docs/cli.md:7197-7257`
    already says that a refusal names the remedy.
 
 ## Prove
@@ -295,13 +295,13 @@ Read:
    terminal and no `SSH_ASKPASS`, a retry that needs a prompt stops. Keep a
    typed password in memory (zeroized) for the retry; do not ask twice.
 6. Say each retry on stderr, with the hop and the reason. Document the rule
-   in `docs/cli.md:7035-7135`, and add a row to `docs/STATUS.md`.
+   in `docs/cli.md:7071-7171`, and add a row to `docs/STATUS.md`.
 
 ## Decision
 
 Recommendation: retry inside podssh, and only before the session request.
 Only podssh knows whether the request was sent, and `podssh ssh` keeps the
-exit code 255 of OpenSSH (`docs/cli.md:7045-7048`). The alternative, a distinct
+exit code 255 of OpenSSH (`docs/cli.md:7081-7084`). The alternative, a distinct
 exit code for the caller to retry on, lost: it breaks scripts that expect
 OpenSSH's codes, and a caller that retries each 255 runs a command twice.
 
@@ -420,7 +420,7 @@ Read:
    measured code.
 4. Make the mapping from `io::End` to an exit code a pure function in
    `crates/podssh-ssh/src/session.rs`, with a test for each variant.
-5. Write the measured rule in `docs/cli.md:7035-7135`, and the measurement in
+5. Write the measured rule in `docs/cli.md:7071-7171`, and the measurement in
    `docs/STATUS.md`.
 
 ## Prove
@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7384-7385`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7387-7388`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -704,7 +704,7 @@ Not measured here: each case needs a server.
    (`HOME` is not set, `UserKnownHostsFile none`, or the write error); the
    next run cannot detect a changed key.
 4. Check the file type before the open: a FIFO blocks an open for reading.
-5. Update `docs/cli.md:7161-7221` (one line) and the manual's note on host keys
+5. Update `docs/cli.md:7197-7257` (one line) and the manual's note on host keys
    (`crates/podssh-cli/src/man/notes.rs`, lines 60-66 at `33c9a31`).
 
 ## Decision
@@ -1241,7 +1241,7 @@ and no player.
 4. Playback: a new verb `podssh play FILE`, with `--speed` and
    `--idle-limit`. Not `replay`: it is one edit from `relay`, and the
    suggestion step would mix them (`docs/cli.md:2360-2369`). Add it to `VERBS`
-   (`crates/podssh-cli/src/flags.rs:392-462`), to
+   (`crates/podssh-cli/src/flags.rs:394-464`), to
    `crates/podssh-cli/src/positionals.rs`, to dispatch, and to `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`).
 5. Refuse a file whose header is not version 2. Skip unknown event types.
@@ -1308,7 +1308,7 @@ session starts with the size of its start
   place of the one of `scripts/interop.sh`. The next commit names that helper
   `ping_via` (`scripts/interop-ping.sh:10-16`), so that each later harness
   gets `podssh ssh`.
-- `docs/cli.md:899-910` and `docs/cli.md:5877-5889`, the manual's notes and an
+- `docs/cli.md:899-910` and `docs/cli.md:5913-5925`, the manual's notes and an
   example, say what the flag and the verb do, and their risks.
 - `cargo test -p podssh-ssh`: 151 passed; `cargo test -p podssh-cli`:
   574 passed, 0 failed, 31 ignored; clippy; rustfmt.
@@ -1373,7 +1373,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 6. When the probe fails, refuse with the reason and the other ways: key
    files with `-i`, and the helper of T-228.
 7. In the same commit: the verb in `VERBS`
-   (`crates/podssh-cli/src/flags.rs:392-462`), in
+   (`crates/podssh-cli/src/flags.rs:394-464`), in
    `crates/podssh-cli/src/positionals.rs` and in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-146`); `docs/cli.md`;
    "Nothing listens" in `SECURITY.md:274-309`; `docs/STATUS.md`.
@@ -2041,7 +2041,7 @@ Read, at `9fefff2`:
   the session after 180 s with no payload (`docs/relay.md:636`). The relay's
   own keepalive frames keep the ping watcher content meanwhile.
 - A prompt has its own limit when nobody watches the terminal (60 s, T-005;
-  `docs/cli.md:7184-7189`). A person who types slowly must not meet a limit
+  `docs/cli.md:7220-7225`). A person who types slowly must not meet a limit
   of the server.
 
 Not measured: it needs a server that stalls.
@@ -2065,7 +2065,7 @@ Not measured: it needs a server that stalls.
 5. Make the comment and the manual (`crates/podssh-cli/src/ssh/keywords.rs:39-40`,
    `crates/podssh-cli/src/flags.rs:174-175`) say the same: the handshake, and
    each answer during the authentication.
-   `docs/cli.md:7219-7221` asks for a limit on the whole operation.
+   `docs/cli.md:7255-7257` asks for a limit on the whole operation.
 
 ## Decision
 
@@ -2514,7 +2514,7 @@ constraint of a key (lines 296-297), and when a request to sign names such a key
 that is always ready with `true`; it never calls the agent's `confirm` (lines 348-356).
 
 Read: podssh's `confirm` refuses (`crates/podssh-cli/src/agent/serve.rs:186-189`), and is never
-called. `docs/cli.md:5775-5776` says that the key "is never used".
+called. `docs/cli.md:5811-5812` says that the key "is never used".
 
 ## Approach
 
@@ -5869,7 +5869,7 @@ each call site of the Approach is done:
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** L
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -6246,3 +6246,8 @@ crates/podssh-cli/src/man/notes_serve.rs crates/podssh-cli/src/man/notes_keygen.
 clippy (also `--target x86_64-pc-windows-gnu`), and each file at 500 lines or fewer. Not measured: a
 Windows with a TPM (the runner of the gate may have none), and whether its `0x81000001` takes an empty
 password; the entry stays partial until the gate's `windows` job runs its test of TBS.
+
+2026-11-25: the gate at `0c6e9c4` (run 45527696631) ran it: in the `windows` job (windows-2025), `tpm_key`'s
+`on_windows_tbs_answers_or_says_there_is_no_tpm` passed, and the agent's tests said "no TPM: none here" there; the
+`macos`, `windows-arm` and `gate (ssh)` jobs passed too. The entry is done. Not measured, as above: a Windows whose
+TPM answers, and its `0x81000001` with an empty password (a tester's machine; the runner has no TPM).

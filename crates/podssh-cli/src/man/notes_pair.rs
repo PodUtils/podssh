@@ -235,6 +235,7 @@ pub(super) const NODE: &[&str] = &[
     super::notes_bore::NODE,
     super::notes_gsr::NODE,
     super::notes_bucket::NODE,
+    super::notes_dns::NODE,
     super::notes_frp::NODE,
     // Grants used once (T-226).
     super::notes_grant::NODE,

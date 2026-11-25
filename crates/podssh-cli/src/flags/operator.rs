@@ -32,23 +32,23 @@ pub const PAIR_FLAGS: &[FlagRow] = &[
     OPERATOR_CONNECT_TIMEOUT, TIMEOUT,
     // The node at the other end of a stream that exists already (T-595).
     row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-        "reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair: exec:CMD, a program started with no shell, as exec:'ssh -T HOST podssh node --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's bucket of the S3 API (see FILES); NAME is then the label under which the node's key is pinned", None),
+        "reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair: exec:CMD, a program started with no shell, as exec:'ssh -T HOST podssh node --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's bucket of the S3 API (see FILES); or dns:FILE, the node's DNS road (see FILES); NAME is then the label under which the node's key is pinned", None),
 ];
 
 /// `--carrier ADDR` of `ssh`, `cp`, `mv`, `scp` and `sftp` (T-595), and of
 /// their `--exit NAME` (T-614).
 pub const SSH_CARRIER: FlagRow = row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-    "node://NAME: reach the node at the other end of ADDR, a stream that exists already, as its one road, with no relay and no pair: exec:CMD, a program started with no shell, as exec:'ssh -T HOST podssh node --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's bucket of the S3 API; NAME is then the label under which the node's key is pinned; with --exit NAME, the exit at the other end of ADDR dials the host", None);
+    "node://NAME: reach the node at the other end of ADDR, a stream that exists already, as its one road, with no relay and no pair: exec:CMD, a program started with no shell, as exec:'ssh -T HOST podssh node --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then the label under which the node's key is pinned; with --exit NAME, the exit at the other end of ADDR dials the host", None);
 
 /// `--carrier ADDR` of `proxy node://NAME` (T-595), as `operator` takes it,
 /// and of `proxy --exit NAME` (T-614).
 pub const PROXY_CARRIER: FlagRow = row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-    "node://NAME: reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair, as podssh operator --carrier does: exec:CMD, a program started with no shell, fd:N (Unix), or s3:FILE; NAME is then the label under which the node's key is pinned; with --exit NAME HOST PORT, the exit at the other end of ADDR dials HOST PORT", None);
+    "node://NAME: reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair, as podssh operator --carrier does: exec:CMD, a program started with no shell, fd:N (Unix), s3:FILE or dns:FILE; NAME is then the label under which the node's key is pinned; with --exit NAME HOST PORT, the exit at the other end of ADDR dials HOST PORT", None);
 
 /// `--carrier ADDR` of `pipe`'s `node:` side (T-595), and of its exit
 /// (T-614).
 pub const PIPE_CARRIER: FlagRow = row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-    "node: and udp:node:: reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair, as podssh operator --carrier does: exec:CMD, a program started with no shell, fd:N (Unix), or s3:FILE; each client of a listening side is a session of the one stream; with --exit NAME, relay: starts at the exit at the other end of ADDR, with no node: side", None);
+    "node: and udp:node:: reach the node at the other end of ADDR, a stream that exists already, with no relay and no pair, as podssh operator --carrier does: exec:CMD, a program started with no shell, fd:N (Unix), s3:FILE or dns:FILE; each client of a listening side is a session of the one stream; with --exit NAME, relay: starts at the exit at the other end of ADDR, with no node: side", None);
 
 /// `--ConnectTimeout` of `operator` (T-589).
 pub const OPERATOR_CONNECT_TIMEOUT: FlagRow = row(None, "ConnectTimeout", Some("SECONDS"), FlagKind::Supported,

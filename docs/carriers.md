@@ -2138,12 +2138,38 @@ is [research/dns-carrier.md](research/dns-carrier.md). Its verdict:
 - **It is seen.** A filter that classes "DNS Tunneling" as a threat (above, on
   iroh's names) blocks the zone, or the client. A resolver's log shows long
   random names under one zone.
-- **Not built until a host is known** (a user's report, or the probe of T-875 on
-  a real network), and not before the operator rules on UDP to a resolver (Q107,
-  a tenth exception of rule 2). A form over DNS over HTTPS stays inside rule 2
-  (one CONNECT to a resolver's name on 443) and needs a `Datagrams` over DoH in
-  podcrates. T-875 (the probe), T-876 (four findings for podcrates) and T-877
-  (the road) hold the work.
+- **The owner allowed UDP to a resolver** on 2026-11-24 (Q107, exception 11 of
+  rule 2): only with `--carrier dns:FILE` or `doctor --dns-zone ZONE`, after a
+  probe found UDP out, at most 20 queries a second and 8 in flight. A form over
+  DNS over HTTPS stays inside rule 2 (one CONNECT to a resolver's name on 443)
+  and needs a `Datagrams` over DoH in podcrates. T-875 (the probe), T-876 (four
+  findings for podcrates) and T-877 (the road) hold the work.
+- **The probe** (T-875, 2026-11-25): `podssh doctor --dns-zone ZONE
+  [--dns-server ADDR]` opens a UDP socket toward the resolver (the one named,
+  else the first nameserver of `/etc/resolv.conf`), which sends nothing; a host
+  that refuses UDP gets one `FAIL` and nothing is sent. Then it asks a TXT query
+  for a random name under ZONE with an OPT record of 1232 bytes, and one with
+  none, 3 s each. Each line says the RCODE, the time, the size, TC, whether the
+  OPT record came back, and any record of another type, as a portal that
+  answers each name itself gives. pod-link's responder at podcrates `v0.83.0`
+  answers a name that is not one of its own datagrams with an empty NOERROR
+  (T-876, finding 1), so a zone that it serves reads `ok`. Tested against six
+  stand-in resolvers and pod-link's responder; no real network was measured.
+- **The road** (T-877, 2026-11-25): `--carrier dns:FILE` at both
+  ends, pod-link's carrier with podssh's glue. FILE names the `zone`, the
+  client's `resolver` (an address, or the first nameserver of
+  `/etc/resolv.conf`), the node's `listen`, this end's `key-file` and the
+  other end's `peer`; the TLS under the ARQ pins each key, and the
+  end-to-end channel runs above it as on each carrier. A UDP socket toward
+  the resolver, which sends nothing, is the client's probe (69 with nothing
+  sent where UDP is refused), and FILE may lower Q107's 20 queries a second
+  and 8 in flight, never raise them. The node's listener is one that the
+  user asks for (exception 1), and it serves one stream. The deployment is
+  the table of the research's section 6. Tested against stand-in resolvers
+  on the loopback in front of pod-link's responder, and through `unbound` as
+  the recursor with query-name minimisation on and off (4 KiB each way, both
+  ends 0). The rates above, and a run of 1 MiB, are not measured. The form over
+  DoH is T-900.
 
 ## Servers that a user runs
 

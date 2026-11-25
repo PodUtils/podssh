@@ -45,22 +45,24 @@ Read on 2026-11-24.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** One waits (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built). Each `draft/*`, `beta/*` and `release/*`
+8. **Drafts.** None waits (2026-11-25): `d-t877` (T-875 and T-877) is merged. Each `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
    never files under it. Never amend a commit that was pushed, not even on a draft branch: the next push would be a
    force-push. A merge in progress waits on a local branch `merge-NNN`, never on `main`. Chain a push on
-   `cargo todo check`'s exit code: a commit once went out with 5 stale citations.
+   `cargo todo check --base HEAD~1`'s own exit code, never a pipe's (`| tail` gives 0): commits went out with stale
+   citations twice. Run the gate's `cargo fmt $PKGS --
+   --check` and `cargo test --no-fail-fast` (a plain run stops at `job_far`'s known failures) before a push (a test's long line once turned lint red), and never `cargo fmt --all`, which formats
+   `vendor/`.
 
 ## Tonight
 
-Cloud sessions of 2026-11-24. Done: Dependabot's #348 and etherparse 0.19.1 (`RUSTSEC-2026-0596`); T-835 done (T-875
-to T-877 filed); podcrates `v0.82.1` taken; the stack `draft/merge-drafts` merged (T-115, T-116, T-119, T-120, T-122,
-T-124, T-631, T-150, T-159, T-833 done; T-123 partial), then T-895, T-160, T-852, T-897 done and T-820's exit codes,
-T-839 and T-896 partial; the gate is green at `dd1f9a9`. Q107 and Q108 were settled by the owner. Open, in order: the
-gate of the last push; the merge of `d-t123`; T-875 and T-877; podcrates' answers to the COORD issues of
+Cloud sessions of 2026-11-24 and 2026-11-25. Done on 2026-11-25: T-839 done (TPM keys; Windows'
+TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-900, its form over DoH, waits for podcrates),
+podcrates `v0.83.0` taken. Open, in order: the gate of the last push (lint was red at `0c6e9c4` on the format of
+`attach_screen.rs` alone); T-161, T-123 and T-831 (partial); podcrates' answers to the COORD issues of
 `docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
 clean**).
 
@@ -72,7 +74,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 832 entries: 6 open, 46 partial, 12 blocked, 768 done.
+`TODO/INDEX.md` holds 833 entries: 4 open, 45 partial, 13 blocked, 771 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -118,8 +120,8 @@ operator interrupts it.
 2. The net: T-106 (the live test of `podssh ts` with two nodes, on the operator's tailnet).
 3. Exit, routes, share and funnel: done.
 4. The public carriers of Q65 to Q78 and what their research filed: done but for T-738 (file hosts as the last carrier,
-   partial), T-740 (Bare servers as a hop, blocked) and T-499 (parked). The DNS carrier (Q107) is T-875 and T-877,
-   then.
+   partial), T-740 (Bare servers as a hop, blocked) and T-499 (parked). The DNS carrier (Q107) is done (2026-11-25); its form
+   over DoH, T-900, waits for podcrates.
 5. T-446: the next beta `v1.1.0-beta.N` when podssh is nearly complete, and `v1.1.0` at the end, once the migration is
    done.
 

@@ -3,11 +3,13 @@
 //! out is closed: stdin and stdout, as the exec channel of a platform's own
 //! SSH gives them to the program that it starts; a descriptor; a program
 //! that the node starts; or a bucket of the S3 API (`s3:FILE`, T-725), whose
-//! stream opens when a client's hello comes. The other end (`podssh operator --carrier`) serves
-//! the relay's side of the socket in its own process (`crate::carrier`). No
-//! relay, no pair and no token: the stream is the door, and NAME is a label
-//! alone, for the node's key. One stream for the node's life: at its end the
-//! sessions end, and the node exits 0 after its client's Close, or 69 for a
+//! stream opens when a client's hello comes; or the DNS road (`dns:FILE`,
+//! T-877), whose stream opens when a client's handshake is done. The other
+//! end (`podssh operator --carrier`) serves the relay's side of the socket
+//! in its own process (`crate::carrier`). No relay, no pair and no token:
+//! the stream is the door, and NAME is a label alone, for the node's key.
+//! One stream for the node's life: at its end the sessions end, and the
+//! node exits 0 after its client's Close, or 69 for a
 //! stream that failed. TARGET, the routes, a roost, a UDP TARGET, the layer
 //! and the end-to-end channel are as on the pair's road, and so is the exit
 //! (`--exit`, T-596), whose client is `podssh exit --listen --carrier`, or
@@ -190,6 +192,12 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         Found::Bucket(spec) => {
             let _ = writeln!(err, "podssh node: {label}: waiting at the bucket for a client's hello");
             crate::carrier_bucket::accept(spec).await.map(|link| (link, None))
+        }
+        // The DNS road's stream starts once a client of a pinned key
+        // finished its handshake (T-877).
+        Found::Dns(spec) => {
+            let _ = writeln!(err, "podssh node: {label}: waiting for a client of the DNS road");
+            crate::carrier_dns::accept(spec).await.map(|link| (link, None))
         }
         Found::Stream(_) => crate::carrier::open(&found, Side::Node),
     };

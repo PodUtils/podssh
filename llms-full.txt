@@ -2086,9 +2086,9 @@ podssh ssh
         exists already, as its one road, with no relay and no pair: exec:CMD, a
         program started with no shell, as exec:'ssh -T HOST podssh node
         --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's
-        bucket of the S3 API; NAME is then the label under which the node's key
-        is pinned; with --exit NAME, the exit at the other end of ADDR dials
-        the host.
+        bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then
+        the label under which the node's key is pinned; with --exit NAME, the
+        exit at the other end of ADDR dials the host.
     --gsr-secret-file FILE
         node://NAME: race the GSRN road last, to the node that serves it with
         the secret of FILE, a private file of yours (default: env
@@ -3804,10 +3804,10 @@ podssh proxy
     --carrier ADDR
         node://NAME: reach the node at the other end of ADDR, a stream that
         exists already, with no relay and no pair, as podssh operator --carrier
-        does: exec:CMD, a program started with no shell, fd:N (Unix), or
-        s3:FILE; NAME is then the label under which the node's key is pinned;
-        with --exit NAME HOST PORT, the exit at the other end of ADDR dials
-        HOST PORT.
+        does: exec:CMD, a program started with no shell, fd:N (Unix), s3:FILE
+        or dns:FILE; NAME is then the label under which the node's key is
+        pinned; with --exit NAME HOST PORT, the exit at the other end of ADDR
+        dials HOST PORT.
     --ConnectTimeout SECONDS
         the bound on the time to the session's open, 1 to 86400: the relay's
         answer (each host's dial, TLS, the upgrade, its dial of HOST), or that
@@ -4167,9 +4167,9 @@ podssh pipe
         node: and udp:node:: reach the node at the other end of ADDR, a stream
         that exists already, with no relay and no pair, as podssh operator
         --carrier does: exec:CMD, a program started with no shell, fd:N (Unix),
-        or s3:FILE; each client of a listening side is a session of the one
-        stream; with --exit NAME, relay: starts at the exit at the other end of
-        ADDR, with no node: side.
+        s3:FILE or dns:FILE; each client of a listening side is a session of
+        the one stream; with --exit NAME, relay: starts at the exit at the
+        other end of ADDR, with no node: side.
     --no-resume
         node:, udp:node: and iroh:: no resume, as with operator's: each session
         ends with its link, and the node keeps nothing of it after a loss.
@@ -4979,6 +4979,22 @@ podssh node
   each end polls each 2 to 3 s, and each request is billed at most providers.
   podssh names no provider; the endpoint is yours.
 
+  --carrier dns:FILE carries the node's stream in DNS, for a host that reaches
+  a resolver and nothing else. The client's bytes go up in names under a zone
+  of your own; the node's come down in TXT records. The road is pod-link's: an
+  ARQ, and TLS 1.3 with each end's key pinned by the other. The node needs a
+  public address and UDP, and the zone delegated to it by an NS record. It
+  answers at FILE's listen, a listener that you ask for; PODSSH_LISTEN=no
+  refuses it (78). It takes the first client whose key is a peer of FILE, then
+  serves that one stream. The client sends to its resolver: resolver of FILE,
+  else the first nameserver of /etc/resolv.conf. A UDP socket toward it, which
+  sends nothing, comes first. Where the host refuses UDP, the run ends with one
+  line (69), and nothing is sent. At most 20 queries a second and 8 in flight;
+  FILE may lower them, never raise them (78). The road is slow: about 2.6 KB/s
+  up and 18 KB/s down at best. A resolver's operator sees about 2,000 queries
+  an hour while it is idle, and can block the zone. It is a last resort; podssh
+  doctor --dns-zone says whether a resolver passes the zone.
+
   With --frp FILE, the node serves TARGET through the user's own frps, as an
   frpc of it does, with no relay and no pair: it logs in with frps's token, and
   registers an STCP service of NAME (or of the file's name line) with the
@@ -5439,11 +5455,12 @@ podssh node
         serve TARGET over ADDR, a stream that exists already, with no relay and
         no pair: stdio (or -), as the exec channel of a platform's own SSH
         gives it, fd:N (Unix), or exec:CMD, a program started with no shell; or
-        s3:FILE, a bucket of the S3 API that FILE describes (see FILES); the
-        other end runs podssh operator --carrier, or proxy, ssh, cp, scp or
-        sftp --carrier to node://NAME; or for --exit, podssh exit NAME --listen
-        ADDR:PORT --carrier, or ssh, proxy or pipe with --exit NAME --carrier;
-        stdin may not be a terminal.
+        s3:FILE, a bucket of the S3 API that FILE describes (see FILES); or
+        dns:FILE, names and TXT answers of DNS under a zone of your own (see
+        FILES); the other end runs podssh operator --carrier, or proxy, ssh,
+        cp, scp or sftp --carrier to node://NAME; or for --exit, podssh exit
+        NAME --listen ADDR:PORT --carrier, or ssh, proxy or pipe with --exit
+        NAME --carrier; stdin may not be a terminal.
     --iroh
         serve TARGET over the iroh road, with no pair: a client dials the
         ticket that the node prints; a build with the feature iroh.
@@ -5969,8 +5986,9 @@ podssh operator
         reach the node at the other end of ADDR, a stream that exists already,
         with no relay and no pair: exec:CMD, a program started with no shell,
         as exec:'ssh -T HOST podssh node --carrier stdio NAME TARGET', or fd:N
-        (Unix); or s3:FILE, the node's bucket of the S3 API (see FILES); NAME
-        is then the label under which the node's key is pinned.
+        (Unix); or s3:FILE, the node's bucket of the S3 API (see FILES); or
+        dns:FILE, the node's DNS road (see FILES); NAME is then the label under
+        which the node's key is pinned.
     --help
         Print help for this subcommand and exit.
 
@@ -6326,9 +6344,10 @@ podssh exit
         already; with no relay and no pair (podssh node NAME --exit --carrier):
         stdio (or -), as the exec channel of a platform's own SSH gives it,
         fd:N (Unix), or exec:CMD, a program started with no shell; or s3:FILE,
-        a bucket of the S3 API (see FILES); each connection is a session of the
-        one stream; a stream of stdio or fd:N ends the proxy when its node
-        leaves; stdin may not be a terminal.
+        a bucket of the S3 API (see FILES); or dns:FILE, names and TXT answers
+        of DNS under a zone of your own (see FILES); each connection is a
+        session of the one stream; a stream of stdio or fd:N ends the proxy
+        when its node leaves; stdin may not be a terminal.
     -q, --quiet
         no line for each connection; errors still go to stderr.
     --help
@@ -7020,9 +7039,9 @@ podssh cp
         exists already, as its one road, with no relay and no pair: exec:CMD, a
         program started with no shell, as exec:'ssh -T HOST podssh node
         --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's
-        bucket of the S3 API; NAME is then the label under which the node's key
-        is pinned; with --exit NAME, the exit at the other end of ADDR dials
-        the host.
+        bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then
+        the label under which the node's key is pinned; with --exit NAME, the
+        exit at the other end of ADDR dials the host.
     --no-resume
         node://NAME, iroh:TICKET, derp:TICKET, a node's cf://HOST and --exit
         NAME: no resume; the session ends with its link, and the node, asked
@@ -7249,9 +7268,9 @@ podssh scp
         exists already, as its one road, with no relay and no pair: exec:CMD, a
         program started with no shell, as exec:'ssh -T HOST podssh node
         --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's
-        bucket of the S3 API; NAME is then the label under which the node's key
-        is pinned; with --exit NAME, the exit at the other end of ADDR dials
-        the host.
+        bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then
+        the label under which the node's key is pinned; with --exit NAME, the
+        exit at the other end of ADDR dials the host.
     --no-resume
         node://NAME, iroh:TICKET, derp:TICKET, a node's cf://HOST and --exit
         NAME: no resume; the session ends with its link, and the node, asked
@@ -7494,9 +7513,9 @@ podssh sftp
         exists already, as its one road, with no relay and no pair: exec:CMD, a
         program started with no shell, as exec:'ssh -T HOST podssh node
         --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's
-        bucket of the S3 API; NAME is then the label under which the node's key
-        is pinned; with --exit NAME, the exit at the other end of ADDR dials
-        the host.
+        bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then
+        the label under which the node's key is pinned; with --exit NAME, the
+        exit at the other end of ADDR dials the host.
     --no-resume
         node://NAME, iroh:TICKET, derp:TICKET, a node's cf://HOST and --exit
         NAME: no resume; the session ends with its link, and the node, asked
@@ -7729,9 +7748,9 @@ podssh mv
         exists already, as its one road, with no relay and no pair: exec:CMD, a
         program started with no shell, as exec:'ssh -T HOST podssh node
         --carrier stdio NAME TARGET', or fd:N (Unix); or s3:FILE, the node's
-        bucket of the S3 API; NAME is then the label under which the node's key
-        is pinned; with --exit NAME, the exit at the other end of ADDR dials
-        the host.
+        bucket of the S3 API; or dns:FILE, the node's DNS road; NAME is then
+        the label under which the node's key is pinned; with --exit NAME, the
+        exit at the other end of ADDR dials the host.
     --no-resume
         node://NAME, iroh:TICKET, derp:TICKET, a node's cf://HOST and --exit
         NAME: no resume; the session ends with its link, and the node, asked
@@ -9531,6 +9550,22 @@ podssh doctor
   way cuts a quiet tunnel before the road's keepalive. With no secret named, no
   byte goes to the relay.
 
+  With --dns-zone ZONE, the section dns asks whether a resolver passes a TXT
+  query for a zone of your own, as the DNS road needs. The resolver is
+  --dns-server ADDR, else the first nameserver of /etc/resolv.conf. First a UDP
+  socket is opened toward it, which sends nothing. Where the host refuses UDP,
+  the line dns resolver says so, and nothing is sent. Then two queries go, each
+  for a random name under ZONE, so that no cache answers. The first has an OPT
+  record of EDNS0 of 1232 bytes, the second none; each waits 3 s. Each line
+  gives the RCODE, the time, the size and the TC bit. It says whether the OPT
+  record came back, and counts records of another type. NOERROR and NXDOMAIN
+  are ok: the resolver answered for the zone. SERVFAIL, REFUSED, silence and an
+  address in the answer are FAIL. A portal that answers each name itself gives
+  that address. A datagram that answers another query is not taken. No HTTP
+  proxy carries UDP, so the queries go straight to the resolver. Nothing is
+  sent without --dns-zone. The DNS road is a last resort: slow, and plain to
+  the resolver's operator.
+
   With --json, the report is one JSON object on stdout when every check has
   run: schema (1), podssh, os, arch, checks (each with section, check, status
   and detail; status is ok, FAIL or unknown), counts (ok, fail, unknown) and
@@ -9640,6 +9675,14 @@ podssh doctor
     --tuic FILE
         also check each TUIC server of FILE: whether UDP reaches its port, then
         one of GitHub's published host keys on github.com port 22 through it.
+    --dns-zone ZONE
+        also ask a resolver whether a TXT query under ZONE, a zone of your own,
+        gets through, as --carrier dns:FILE needs. After a probe that UDP
+        opens, two queries of 3 s each go; each line gives the RCODE, the time
+        and the size.
+    --dns-server ADDR
+        the resolver that --dns-zone asks: IP, IP:PORT or [IPv6]:PORT (default:
+        the first nameserver of /etc/resolv.conf).
     --via https://[USER@]HOST[:PORT]
         also check this forward proxy over TLS: TLS to it, the version of HTTP
         that it chose, then one of GitHub's published host keys on github.com
@@ -13324,6 +13367,17 @@ FILES
       least 16 bytes that both ends hold. A relative path is read beside FILE.
       No key goes in FILE itself; a name that is no setting is refused (78), in
       words that never hold a key.
+  the file of --carrier dns:FILE
+      The DNS road of a carrier: NAME = VALUE lines, # for a comment. zone, the
+      zone whose names carry the stream. resolver, the client's: system (the
+      default) or IP[:PORT]. listen, the node's IP:PORT of UDP. key-file, this
+      end's key, made private when missing; a line then gives its key for the
+      other end. peer, the other end's key: on a client the node's, on a node
+      each client's, by spaces or commas. queries-per-second (20 at most),
+      in-flight (8 at most), query-timeout and poll-max in seconds, and answer
+      in bytes, 512 to 4096 (1232 by default). A relative path is read beside
+      FILE. A name that is no setting, and a value out of its bound, are
+      refused (78).
 
 EXIT STATUS
   0
