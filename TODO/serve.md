@@ -4432,10 +4432,12 @@ What step 3 and the Prove need, found by the research:
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test gateway_route
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib server::gateway
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib serve_gateway
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_gateway_openssh
 ```
 
-A test that does not exist yet: OpenSSH's `ssh user-a@gateway` and `ssh user-b@gateway` reach two
+The last is drafted, not yet run (see `## Correction` of 2026-11-25): OpenSSH's `ssh user-a@gateway` and `ssh user-b@gateway` reach two
 OpenSSH servers; a user name with no route is refused (255, one true line); an upstream key that is not
 pinned is refused; a client that offers 20 keys and signs none causes no upstream connection. A planted
 gateway that dials on the key query fails the last check.
@@ -4457,6 +4459,25 @@ gateway that dials on the key query fails the last check.
   russh does not cap the offers: a probe answered `PK_OK` is not a rejection (`encrypted.rs:63-80`, `:247-267`).
   A cap on the offers, if wanted, is the gateway's.
 
+2026-11-25, from the draft of steps 3 and 4:
+
+- The Decision's "the certificate is `pod-relay`'s `Mint`" does not fit a stock upstream: `Mint::sign`
+  writes no extension, as `ssh-keygen -O clear` makes a certificate (PodUtils/podcrates v0.83.0,
+  pod-relay's `src/grant/cert.rs`, `sign`), and OpenSSH's sshd then refuses a pty and each forward
+  to it. The draft signs with podssh's own `cert::certify` (`crates/podssh-ssh/src/cert.rs`, the signer of
+  `podssh keygen -s`, T-021), which writes `permit-pty` and `permit-port-forwarding`, takes an RSA or ECDSA
+  CA too, and returns russh's own `Certificate`, so the Done's open question of a lossless conversion of
+  `Cert::blob()` does not arise. No second copy was written: the ask to podcrates is in Done.
+- The Prove's test is `crates/podssh-cli/tests/serve_gateway_openssh.rs`, not `--test gateway_route` of
+  `podssh-ssh`: it runs the binary as OpenSSH's ProxyCommand, as each other test of serve against OpenSSH
+  does, and starts the upstreams with `crates/podssh-cli/tests/live_harness/sshd.rs`. The route table's
+  own test is a unit test of `podssh-ssh`. The Prove becomes `cargo test -p podssh-ssh --lib
+  server::gateway`, `cargo test -p podssh-cli --lib serve_gateway` and `cargo test -p podssh-cli --test
+  serve_gateway_openssh`.
+- Step 3's "owned by the net's policy where one exists (T-430)" is not drafted: the table is a file of
+  `--gateway`. A route in the net's signed document is a later step, and its own entry once T-430's
+  policy can name an upstream.
+
 ## Done
 
 Research step, 2026-11-23: wrote the two answers of step 1 in `docs/design.md`, section 4 ("A gateway in
@@ -4469,6 +4490,64 @@ read in the worktree and in PodUtils/podcrates v0.82.0. Not read: OpenSSH's own 
 its log line (stated from its documented behaviour, to be checked against a stock sshd in step 2's test),
 and whether `pod-relay`'s `Cert::blob()` converts to russh's `ssh_key::Certificate` without a loss (to be
 tried at the first build). The entry stays partial for steps 3 to 5.
+
+Draft of steps 3 and 4 and of the forwarding, 2026-11-25 (written, never built or run; each result is
+UNVERIFIED until the main session builds and runs it):
+
+- The route table, `crates/podssh-ssh/src/server/gateway/routes.rs`: blocks of `route PATTERN` with
+  `upstream`, `host-key` (pinned), `principal`, `ca-key`, one `key` line for each key, and an optional
+  `source-address`; the first match decides, a key that the route does not list is refused with no later
+  route tried, and an unmatched name is refused. A missing part, a part twice, an unknown word or a bad
+  value refuses the file with its line. `gateway/mod.rs` reads it as `authorized_keys` is read
+  (`pod_core::files::read_own`, others may read and not write), each CA key closed to others with no
+  passphrase and no security key, refuses an empty table, and reads it again on SIGHUP
+  (`crates/podssh-cli/src/serve_keys.rs`, `reload`). `podssh serve --gateway FILE`
+  (`crates/podssh-cli/src/serve_gateway.rs`, a row in `crates/podssh-cli/src/flags/serve.rs`) refuses
+  the table at the start (78) and the flags of serve's own sessions (64); it runs no shell here.
+  Table-driven test: `routes_tests.rs`, 26 files; `serve_gateway.rs`'s test, 9 refusals. UNVERIFIED.
+- The login, `gateway/handler.rs` and `gateway/upstream.rs`: `auth_publickey_offered` reads the table
+  and never dials; `auth_publickey` checks the route and its keys (a security key must be touched), makes
+  a fresh Ed25519 key, signs its certificate with the route's CA (the principal alone, 60 s back to 30 s
+  ahead, `permit-pty` and `permit-port-forwarding`, the route's `source-address`, key id
+  `podssh-gateway route=PATTERN user=NAME key=SHA256:...`), dials as a forward dials (through
+  `HTTPS_PROXY`), checks the upstream's host key against the pin, and logs in with
+  `authenticate_openssh_cert`, all within 20 s; any failure is one line on serve's stderr, a refused
+  login, and an audit line. The upstream's end ends the client's connection (`Conn::end`); the client's
+  end disconnects the upstream. `crates/podssh-ssh/src/server/mod.rs` chooses the handler by
+  `Settings::gateway` and drives either one with the same stop, reload and deadline (`drive`). UNVERIFIED.
+- The forwarding, `gateway/pump.rs`: each session channel opens a twin at the upstream before the
+  client's open is answered; pty, shell, exec, subsystem and env requests are sent with a reply wanted and
+  answered with the upstream's reply, in order, within 20 s (a lost reply closes the pair); window changes
+  and signals are sent on; data, stderr, EOF, exit status, exit signal and close come back; each
+  `direct-tcpip` opens at the upstream on a task, counted in the audit log. The client's window opens as
+  the upstream takes its bytes. X11, agent forwarding, `-R` and Unix sockets are refused. UNVERIFIED.
+- Tests against OpenSSH (`crates/podssh-cli/tests/serve_gateway_openssh.rs`): `user-a@` and `user-b@`
+  reach two stock sshd with `TrustedUserCAKeys` and no key of their own, each by its `SSH_CONNECTION`
+  port and the certificate's key id in its log; a name with no route and an upstream key that the route
+  does not pin are refused (255, one line); 20 keys of the route behind a passphrase that batch mode does
+  not ask are each offered and accepted, and no certificate reaches the upstream. A host with no sshd says
+  the test did not run. UNVERIFIED. The planted gateway that dials in `auth_publickey_offered` must fail
+  the last test: waits for T-251.
+- The manual's note (`crates/podssh-cli/src/man/notes_serve_gateway.rs`), the flag row, `docs/cli.md`
+  (section `podssh serve`) and a row of `docs/STATUS.md` (`unreleased`, UNVERIFIED).
+- What the main session checks at the build: the russh client calls inferred from `vendor/russh`
+  (`authenticate_openssh_cert`, `channel_open_direct_tcpip`, the split halves' `data_bytes` and
+  `extended_data_bytes`, `Handle::exit_signal_request`), the generic `drive` in `server/mod.rs`, the
+  `ask!` macro's borrows, ssh-key's `Certificate` getters in `upstream.rs`'s test, and
+  `cargo todo remap` of `docs/cli.md`, `crates/podssh-ssh/src/server/mod.rs` and
+  `crates/podssh-cli/src/serve.rs`, which entries cite at lines.
+- Known limits of the draft: the upstream's channels open their windows as russh's client does (on
+  arrival), so a client that reads slowly holds the upstream's connection once a channel's queue is full;
+  and a request that waits for the upstream's reply holds the client's connection for 20 s at most. Each
+  is bounded, and said here for the measurement.
+- For podcrates, a COORD issue `(to podcrates)` that the main session files: "pod-relay's `Mint` writes
+  no extension, so a certificate that it signs cannot open a pty or a forward at a stock sshd; podssh's
+  gateway (T-836) signs with its own `cert::certify` for that. If a second project needs a short-lived
+  user certificate for a stock sshd, `Mint` could take the extensions, and podssh would take it from
+  there." Nothing is asked of `pod-identity`: the route table and its CA keys are podssh's alone today.
+
+The entry stays partial: the build, the tests, the planted gateway, and step 3's route in the net's
+policy remain.
 
 # T-837: A live shell shared by name: a read-only name, and one writer at a time
 

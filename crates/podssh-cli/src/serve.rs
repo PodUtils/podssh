@@ -20,7 +20,8 @@
 //! records each login, session and forward (T-116, `serve_audit.rs`).
 //! `--totp FILE` asks each key for a one-time code (T-115, `serve_totp.rs`).
 //! A client's `-R` is a pair of the relay, whose node runs here, with no
-//! bind (T-123, `serve_forward.rs`).
+//! bind (T-123, `serve_forward.rs`). `--gateway FILE` sends each login to
+//! the upstream of its route (T-836, `serve_gateway.rs`).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -33,7 +34,7 @@ use podssh_ssh::server::{host_key, HostKey, Keys, PtyMode, Say, Settings, StateF
 
 use crate::exit_codes::{EXIT_NOT_IMPLEMENTED, EXIT_USAGE};
 use crate::relay_settings::Refusal;
-use crate::serve_keys::{self, Sources};
+use crate::serve_keys;
 
 /// Every value `podssh serve` accepts, as typed.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -72,6 +73,8 @@ pub struct ServeArgs {
     /// `--totp FILE` and `--totp-new FILE` (T-115).
     pub totp: Option<String>,
     pub totp_new: Option<String>,
+    /// `--gateway FILE`: the route table of a gateway (T-836).
+    pub gateway: Option<String>,
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
@@ -116,6 +119,7 @@ impl ServeArgs {
             audit_verify: matches.get_one::<String>("audit-verify").cloned(),
             totp: matches.get_one::<String>("totp").cloned(),
             totp_new: matches.get_one::<String>("totp-new").cloned(),
+            gateway: matches.get_one::<String>("gateway").cloned(),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
@@ -200,7 +204,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         Ok(None) => {}
         Err(refusal) => return refused(err, refusal),
     }
-    let sources = match Sources::of(&args.authorized_key, &args.authorized_keys, default_file()) {
+    let sources = match crate::serve_gateway::sources(args, default_file()) {
         Ok(sources) => sources,
         Err(refusal) => return refused(err, refusal),
     };
@@ -223,7 +227,8 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     let mut settings = Settings {
         accept_env: args.accept_env.clone(),
         shell: args.shell.as_ref().map(PathBuf::from),
-        no_shell: args.no_shell,
+        // A gateway runs nothing here, whatever else is asked (T-836).
+        no_shell: args.no_shell || args.gateway.is_some(),
         base_env: None,
         no_forwarding: args.no_forwarding,
         max_forwards: None,
@@ -254,6 +259,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
         keep_lease,
         audit: audit.clone(),
         totp,
+        gateway: sources.table(),
     };
     // A listener for -R that PODSSH_LISTEN refuses: 78 before any client.
     if args.remote_listen
@@ -410,7 +416,7 @@ fn refused(err: &mut dyn Write, refusal: Refusal) -> i32 {
 /// its rules (T-114). None at all refuses the start (78).
 #[cfg(test)]
 fn authorized(args: &ServeArgs, err: &mut dyn Write) -> Result<podssh_ssh::server::Authorized, Refusal> {
-    Sources::of(&args.authorized_key, &args.authorized_keys, default_file())?.read(err)
+    serve_keys::Sources::of(&args.authorized_key, &args.authorized_keys, default_file())?.read(err)
 }
 
 /// The address of the client where stdin is a TCP socket (an inetd or a

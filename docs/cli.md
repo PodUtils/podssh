@@ -7007,10 +7007,46 @@ gives up each capability of the process (T-698), before it reads a file.
   at most). `podssh serve --totp-new FILE` makes 160 random bits there,
   mode 0600, never over a file that is there (73), and prints its path
   alone: no secret goes to a terminal, a log or a command line.
+- **A gateway in front of private hosts (T-836, drafted 2026-11-25).**
+  `--gateway FILE` makes serve pick an upstream by the login name
+  (`server/gateway/`). FILE is a list of blocks: `route PATTERN` (`*` and
+  `?`), then `upstream HOST[:PORT]`, `host-key TYPE BASE64` (pinned),
+  `principal NAME`, `ca-key FILE` (no passphrase, closed to others; beside
+  FILE when relative), one `key TYPE BASE64` for each key that may take the
+  route, and an optional `source-address LIST`. It is read as
+  `authorized_keys` is (this user's, no link, writable by none else); a
+  route that lacks a part, a part twice, an unknown word or a value that
+  does not read refuses the whole file (78), with its line. The first
+  route that matches decides; a key that it does not list is refused, and
+  no later route is tried; a name that no route matches is refused, never
+  sent on as `none`. `auth_publickey_offered` reads the table and dials
+  nothing; `auth_publickey`, after russh verified the signature, makes a
+  fresh Ed25519 key, has the route's CA sign a user certificate of it
+  (podssh's own `cert::certify`, as `keygen -s`: the route's principal
+  alone, from 60 s before now to 30 s after, `permit-pty` and
+  `permit-port-forwarding` alone, the route's `source-address`), dials the
+  upstream as a forward is dialed, checks its host key against the pin,
+  and logs in with the certificate, all within 20 s; any failure refuses
+  the login with one line on serve's stderr. The key id,
+  `podssh-gateway route=PATTERN user=NAME key=SHA256:...`, is the line
+  that the upstream's log ties to the user. Each session channel then has
+  a twin at the upstream: pty, shell, exec, subsystem and env requests are
+  sent on and answered with the upstream's own reply (20 s at most, after
+  which the channel closes), window changes and signals are sent on, and
+  data, stderr, EOF, the exit status, the exit signal and the close come
+  back (`gateway/pump.rs`); each `direct-tcpip` is opened by the upstream.
+  The client's window opens as the upstream takes its bytes. X11, agent
+  forwarding, `-R` and Unix sockets are refused. The upstream's end ends
+  the client's connection. SIGHUP reads FILE again, keeping the routes
+  before when it does not read. The flags of serve's own sessions are a
+  usage error with it (64). A compromised gateway holds each route's CA:
+  it can mint a login for that principal until the upstream drops the CA,
+  and holds no key of a user (T-836's Decision).
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or
-  with `--shell` and `--no-shell`; 78 as above; 70 on Windows.
+  with `--shell` and `--no-shell`, or `--gateway` with a flag of serve's
+  own sessions; 78 as above; 70 on Windows.
 
 ## `podssh session`
 

@@ -35,6 +35,9 @@ use crate::relay_settings::Refusal;
 pub struct Sources {
     given: Authorized,
     files: Vec<(PathBuf, bool)>,
+    /// `--gateway FILE` (T-836): the routes are the keys; a reload reads
+    /// them again, and no authorized key is read.
+    gateway: Option<Arc<server::gateway::Table>>,
 }
 
 impl Sources {
@@ -56,13 +59,27 @@ impl Sources {
         if keys.is_empty() && named.is_empty() {
             named.extend(default.map(|f| (f, false)));
         }
-        Ok(Sources { given, files: named })
+        Ok(Sources { given, files: named, gateway: None })
+    }
+
+    /// The sources of a gateway: its route table alone (T-836).
+    pub fn gateway(table: Arc<server::gateway::Table>) -> Sources {
+        Sources { gateway: Some(table), ..Sources::default() }
+    }
+
+    /// The route table of `--gateway`, for the server's settings.
+    pub fn table(&self) -> Option<Arc<server::gateway::Table>> {
+        self.gateway.clone()
     }
 
     /// The keys of each source now, each line that is not used said on
     /// `err` and passed over (T-114). No key at all is a refusal (78): a
     /// server that nobody can log in to is a setup that went wrong.
     pub fn read(&self, err: &mut dyn Write) -> Result<Authorized, Refusal> {
+        // A gateway's routes list its keys, and refused an empty table.
+        if self.gateway.is_some() {
+            return Ok(Authorized::new());
+        }
         let mut authorized = self.given.clone();
         let mut passed = 0;
         for (file, named) in &self.files {
@@ -97,6 +114,16 @@ impl Sources {
 /// stays. With `ends` (`--revoke-ends-sessions`), each session of `control`
 /// whose key the new set takes out ends, and one more line names each key.
 pub fn reload(sources: &Sources, keys: &Keys, control: &Control, ends: bool, err: &mut dyn Write) {
+    // A gateway reads its routes again; a table that does not read keeps
+    // the one before (T-836).
+    if let Some(table) = &sources.gateway {
+        let line = match table.reload() {
+            Ok(count) => format!("SIGHUP: the routes of {} read again, {count} in all", table.path().display()),
+            Err(why) => format!("SIGHUP: {why}; the routes before stay, {}", table.now().len()),
+        };
+        let _ = writeln!(err, "podssh serve: {line}");
+        return;
+    }
     let (line, ended) = match sources.read(err) {
         Ok(set) => {
             let count = set.len();
