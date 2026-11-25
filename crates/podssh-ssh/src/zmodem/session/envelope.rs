@@ -295,7 +295,7 @@ impl Envelope {
                 self.codec.take();
             }
             Err(e) => {
-                self.say(&format!("skipped {}: {e}", shown(&name)));
+                self.say(&format!("skipped {}: {}", shown(&name), files::cannot_create(&self.into, &e)));
                 self.codec.skip(&format!("{name} cannot be written here"));
             }
         }

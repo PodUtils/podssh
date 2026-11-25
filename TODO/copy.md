@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:390-411` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7199-7202`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7205-7208`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -4357,3 +4357,230 @@ draft names no tag: the main session takes `v0.84.0`), UNVERIFIED, not built:
 - The draft's own planted defects (the trigger shown, a key passed in a transfer, the rename before
   `Verified`) wait for T-251, as each planted run does until podssh is stable (Q88).
 - The draft asked nothing of podcrates; the merge asks the pane's rows (above).
+
+
+# T-919: `podssh tx`: the manual names the rule of each end for a name that exists, and its usage shows one argument
+
+**Source:** the black-box pass of 2026-11-25 on `podssh tx` (T-831), findings 4 and 15.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Finding 4: `tx send data.bin` into a near directory that has `data.bin` asks "podssh: /tmp/qa4/near/data.bin exists. Replace it?
+[y/N]" and replaces on `y`; with no answer it waits with no limit. The manual's notes said only "a name that DIR has already is never
+replaced", which is the far end's rule of `receive`; the near end's question was in `docs/cli.md` alone.
+
+Finding 15: `podssh tx --help` showed `[FILE | DIR]...` (repeatable), but a second argument is refused with 64.
+
+## Premise
+
+- The near end asks, and replaces only after `y`: `crates/podssh-ssh/src/zmodem/session/envelope.rs:283` says "exists. Replace it?
+  [y/N]" in the question; the far end never replaces: `crates/podssh-ssh/src/zmodem/far.rs:237` says "exists, and was not
+  replaced" and the end is `Failure::Stopped`, exit 75.
+- The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:242`, and `ask` in `crates/podssh-cli/src/tx.rs`
+  refused a second one, so the help's "..." promised what the run refused.
+
+## Approach
+
+1. The notes of `tx` (`crates/podssh-cli/src/man/notes_tx.rs`) say both rules: `receive` never replaces a name that DIR has, it
+   skips the file and exits 75; at the near end a name that exists asks `Replace it? [y/N]`, and only `y` replaces it.
+2. The positional takes at most one word (`num_args(0..=1)`), so the help shows no "..." and clap refuses a second word with 64
+   before `ask`. The usage reads `send FILE | receive [DIR]`.
+3. `docs/cli.md` says the same, and that the near end's question has no limit by design.
+
+## Decision
+
+- **The near end's wait for an answer keeps no limit.** The design of the envelope has the near end tell the far end that it
+  waits (`HOLD`, `docs/terminal.md`, "The 7-bit envelope (T-831, step 2)"): a person answers, and a limit would abandon a
+  transfer that a person is about to allow. The alternative, a limit of minutes that counts as "no", loses a file silently
+  for a person who stepped away; Ctrl-C at the near end already ends the wait at will. It is now documented in the manual and
+  in `docs/cli.md`.
+- **The usage reads `send FILE | receive [DIR]`**, as the finding asked, in place of `SUBCOMMAND [FILE | DIR]`; the argument list
+  still names SUBCOMMAND and `FILE | DIR`, each once, with no "...".
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib tx::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_flag_parity --test man_json --test man_page --test flag_table
+```
+
+`podssh tx --help` shows `Usage: podssh tx send FILE | receive [DIR]` and `[FILE | DIR]` with no dots; `podssh tx send a b` exits 64.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/man/notes_tx.rs`,
+`crates/podssh-cli/src/positionals.rs`, `crates/podssh-cli/src/help.rs` (the usage), `docs/cli.md`, `llms-full.txt` (edited by hand;
+write it again with the manual's generator). Test: `the_help_shows_one_argument_and_the_parser_takes_one` in
+`crates/podssh-cli/src/tx.rs`. UNVERIFIED: that every sentence of the notes is 25 words or fewer in the test's count, and that clap's
+refusal of a second word gives `Parsed::Usage`.
+
+Merged by the main session on 2026-11-25 (after `08abb98`) and run: `cargo test -p podssh-cli --lib` 1319 passed,
+`--test flag_table`, `man_flag_parity`, `man_json` and `man_page` passed, `-p podssh-ssh --lib` 556, `--test
+pty_envelope` 11, `--test zmodem` 23; `scripts/interop-pty.py` against OpenSSH 9.6p1 through tmux 3.4,
+`pty.envelope.*` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`) and rustfmt clean.
+
+# T-920: `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented
+
+**Source:** the black-box pass of 2026-11-25 on `podssh tx` (T-831), finding 17.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+With the near end not watching (`PODSSH_ZMODEM=off`), `tx` exits 75 "no answer from the peer in time" after 120 s, which is right, but
+the raw `#PODSSH-TX2:S:...` and `#STOP:...` lines stay on the screen. After Ctrl-C at the near end inside tmux, frame text stays
+visible. The manual said only that the near end removes the first line.
+
+## Premise
+
+- The far end writes the trigger and its frames to its own terminal and nothing else: `crates/podssh-ssh/src/zmodem/far.rs:292`
+  (`put`) writes each frame in parts of half the pane; its last frame goes at the end in `drive`
+  (`crates/podssh-ssh/src/zmodem/far.rs:122`). It keeps no count of the rows that a terminal gave them.
+- The near end removes the trigger line from its screen only while it watches; with `PODSSH_ZMODEM=off`, or through a control master,
+  it watches for nothing.
+
+## Approach
+
+Say it in the manual and in `docs/terminal.md`: a transfer that the near end never took, or that Ctrl-C stopped, leaves the far end's
+lines; `clear` or Ctrl-L removes them.
+
+## Decision
+
+- **Documented, not erased.** An erase by cursor moves ("move up and clear the lines it wrote") needs the number of rows that the
+  terminal between the far end and the near end gave the lines, and the far end cannot know it: a line wraps by the pane's width
+  (which a resize changes), tmux repaints and skips what scrolls off (`docs/terminal.md`, "tmux skips what scrolls off"), and a
+  status line can sit in a frame. A wrong count would clear rows of the shell's own screen, the user's earlier output; lines that stay
+  are a smaller harm than output erased. A carriage return and a clear of the current line erases one row at most, so it does
+  not help. The alternative, reading the cursor position (`CSI 6n`) before and after, asks the terminal for a reply that a
+  terminal in between may drop, and adds a wait to each end.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_flag_parity --test man_json --test man_page
+```
+
+The notes of `podssh man tx` and `podssh tx --help` say that the lines stay and that `clear` or Ctrl-L removes them.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/man/notes_tx.rs`,
+`docs/cli.md`, `docs/terminal.md` ("What a transfer that the near end never took leaves"), `llms-full.txt` (edited by hand; write it
+again with the manual's generator). No code changed. UNVERIFIED: the manual's sentence limit in the test's count.
+
+Merged by the main session on 2026-11-25 (after `08abb98`) and run: `cargo test -p podssh-cli --lib` 1319 passed,
+`--test flag_table`, `man_flag_parity`, `man_json` and `man_page` passed, `-p podssh-ssh --lib` 556, `--test
+pty_envelope` 11, `--test zmodem` 23; `scripts/interop-pty.py` against OpenSSH 9.6p1 through tmux 3.4,
+`pty.envelope.*` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`) and rustfmt clean.
+
+# T-921: `podssh tx receive` into a directory that takes no file says that a file could not be created in it
+
+**Source:** the black-box pass of 2026-11-25 on `podssh tx` (T-831), finding 18b.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`tx receive /proc` ended with "podssh tx: /proc/up.bin: No such file or directory (os error 2)" and exit 73. The code is right; the
+line is not true to the user: the directory exists, and what failed was the creation of a temporary file in it, whose name the user
+never saw.
+
+## Premise
+
+- `crates/podssh-ssh/src/zmodem/files.rs:74` (`Incoming::create`) opens `.NAME.podssh-RANDOM.part` in DIR with `create_new`, so its
+  error is about that file; the far end printed the error behind the final name (`dest`).
+- The near end's download had the same shape: its line of a file that could not start (`crates/podssh-ssh/src/zmodem/session/envelope.rs:298`) put the error behind the final name.
+
+## Approach
+
+One function, `files::cannot_create(dir, error)`, gives "a file could not be created in DIR: " and the system's words; the far end's
+failure (`crates/podssh-ssh/src/zmodem/far.rs:246`) and the near end's line (`crates/podssh-ssh/src/zmodem/session/envelope.rs:298`) both
+use it. The exit code stays 73, and the manual's sentence says "cannot be created in DIR, written or kept".
+
+## Decision
+
+- **The line names DIR, not the file.** The final name is one the user typed (or the near end chose); the temporary name is an
+  implementation detail that the user cannot act on. The alternative, naming both, makes a long line with a name that is not
+  there at the end of the run.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --lib zmodem::files
+```
+
+In a shell on Linux, `podssh tx receive /proc` in a session whose near end sends a file ends with "podssh tx: a file could not be
+created in /proc: ..." and exit 73.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-ssh/src/zmodem/files.rs`,
+`crates/podssh-ssh/src/zmodem/far.rs`, `crates/podssh-ssh/src/zmodem/session/envelope.rs`, `crates/podssh-cli/src/man/notes_tx.rs`,
+`docs/cli.md`. Test: `a_copy_that_cannot_start_names_the_directory` in `crates/podssh-ssh/src/zmodem/files.rs`. UNVERIFIED: that the
+test compiles (`Offer`'s four fields, `Incoming` without `Debug`) and that nothing else asserts the old words.
+
+Merged by the main session on 2026-11-25 (after `08abb98`) and run: `cargo test -p podssh-cli --lib` 1319 passed,
+`--test flag_table`, `man_flag_parity`, `man_json` and `man_page` passed, `-p podssh-ssh --lib` 556, `--test
+pty_envelope` 11, `--test zmodem` 23; `scripts/interop-pty.py` against OpenSSH 9.6p1 through tmux 3.4,
+`pty.envelope.*` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`) and rustfmt clean.
+
+# T-922: `podssh help` is a documented word, as `podssh help COMMAND` is
+
+**Source:** the black-box pass of 2026-11-25 on `podssh tx` (T-831), finding 18a.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh help` prints the help and exits 0, though `help` is not a listed command, and the manual says that an unknown command is 64.
+
+## Premise
+
+- `crates/podssh-cli/src/tree.rs:162` answers the word `help` as `--help` does (T-868, in `TODO/cli.md`), and `docs/cli.md` says that
+  `podssh help COMMAND` prints the help of COMMAND; the manual's options list and its `--help` said only `--help COMMAND`
+  (`crates/podssh-cli/src/flags.rs:474`).
+
+## Approach
+
+Name the word where the options before a command are listed: "Print help; --help COMMAND or help COMMAND prints the help of one
+command". It is no row of the table of verbs, so that `help` is no verb with flags, and no dispatch changes.
+
+## Decision
+
+- **Document it; do not refuse it.** The owner's rule is to add features and remove none, and a user types `podssh help VERB` (the
+  reason of T-868). The alternative, a refusal with 64, would break that, and would leave `podssh help tx` to work in no
+  tool the user knows. `help` joins the top-level options' text instead of the list of commands, so that the list of commands
+  stays the verbs that run.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib help::
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test man_flag_parity --test man_json --test man_page --test flag_table
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (nothing was built or run). Files: `crates/podssh-cli/src/flags.rs` (`TOP_OPTIONS`),
+`crates/podssh-cli/src/help.rs` (its test of the sentence, and `help_is_a_documented_word`), `llms-full.txt` (edited by hand; write it
+again with the manual's generator). UNVERIFIED: that no other test or `scripts/` check holds the old sentence of `-h, --help`
+(a search of `crates`, `docs` and the root files found none beyond the two edited).
+
+Merged by the main session on 2026-11-25 (after `08abb98`) and run: `cargo test -p podssh-cli --lib` 1319 passed,
+`--test flag_table`, `man_flag_parity`, `man_json` and `man_page` passed, `-p podssh-ssh --lib` 556, `--test
+pty_envelope` 11, `--test zmodem` 23; `scripts/interop-pty.py` against OpenSSH 9.6p1 through tmux 3.4,
+`pty.envelope.*` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`) and rustfmt clean.

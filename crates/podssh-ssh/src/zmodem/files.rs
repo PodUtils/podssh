@@ -258,3 +258,27 @@ pub fn read_at(file: &mut File, offset: u64, buf: &mut [u8]) -> std::io::Result<
     }
     Ok(n)
 }
+
+/// The line for a copy that could not be started in `dir`. The error names
+/// the temporary file, a name that nobody typed, and in a directory that
+/// exists but takes no file (`/proc`) it can say "No such file".
+pub fn cannot_create(dir: &Path, error: &std::io::Error) -> String {
+    format!("a file could not be created in {}: {error}", podssh_ws::text::one_line(&dir.display().to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The line names the directory and the system's words, and never the
+    /// temporary name of the copy.
+    #[test]
+    fn a_copy_that_cannot_start_names_the_directory() {
+        let dir = Path::new("/nonexistent-podssh-dir");
+        let offer = Offer { name: "up.bin".into(), size: Some(1), mtime: None, mode: None };
+        let Err(error) = Incoming::create(dir, "up.bin", &offer, false) else { return };
+        let line = cannot_create(dir, &error);
+        assert!(line.starts_with("a file could not be created in /nonexistent-podssh-dir: "), "{line}");
+        assert!(line.ends_with(&error.to_string()) && !line.contains(".part"), "{line}");
+    }
+}

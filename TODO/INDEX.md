@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**838 entries: 4 open, 38 partial, 13 blocked, 783 done.**
+**842 entries: 4 open, 38 partial, 13 blocked, 787 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 96 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 4 | 6 | 8 | 377 | 395 |
-| **All** | 4 | 38 | 13 | 783 | 838 |
+| P3 | 4 | 6 | 8 | 381 | 399 |
+| **All** | 4 | 38 | 13 | 787 | 842 |
 
 ## Entries
 
@@ -914,3 +914,7 @@ repository and CI).
 | [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |
 | [T-905](robustness.md) | P3 | S | backlog | defect | blocked | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
+| [T-919](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the manual names the rule of each end for a name that exists, and its usage shows one argument |
+| [T-920](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented |
+| [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |
+| [T-922](copy.md) | P3 | S | backlog | defect | done | `podssh help` is a documented word, as `podssh help COMMAND` is |

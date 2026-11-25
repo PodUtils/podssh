@@ -118,6 +118,20 @@ mod tests {
         }
     }
 
+    /// The help's usage shows what the parser takes: one argument at most,
+    /// and the parser refuses a second one before `ask` is reached.
+    #[test]
+    fn the_help_shows_one_argument_and_the_parser_takes_one() {
+        let verb = crate::flags::verb_for("tx").expect("the verb tx");
+        let help = crate::help::verb_help(verb).split_whitespace().collect::<Vec<_>>().join(" ");
+        assert!(help.contains("Usage: podssh tx send FILE | receive [DIR]"), "{help}");
+        assert!(!help.contains("[FILE | DIR]..."), "{help}");
+        for words in [["tx", "send", "a", "b"], ["tx", "receive", "a", "b"]] {
+            assert!(matches!(crate::tree::parse(words), crate::tree::Parsed::Usage(_)), "{words:?}");
+        }
+        assert!(matches!(crate::tree::parse(["tx", "receive", "a"]), crate::tree::Parsed::Tx(_)));
+    }
+
     /// Each failure has its own documented code, none of them 0, 1 or 2.
     #[test]
     fn each_failure_has_its_code() {

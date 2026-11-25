@@ -70,7 +70,7 @@ pub fn usage_tail(verb: &Verb) -> &'static str {
         "cp" | "mv" | "scp" => "[OPTIONS] SRC... DST",
         "sftp" => "[OPTIONS] DESTINATION",
         "edit" => "[OPTIONS] [user@]host:PATH",
-        "tx" => "SUBCOMMAND [FILE | DIR]",
+        "tx" => "send FILE | receive [DIR]",
         "chat" => "[OPTIONS] PEER",
         "man" => "[OPTIONS] [SECTION]",
         "relay" => "[OPTIONS] SUBCOMMAND [NAME | HOST PORT]",
@@ -117,13 +117,22 @@ mod tests {
         }
     }
 
+    /// `help` is a command word of the top level, not an unknown verb: the
+    /// options' text names it, and it parses as `--help` does.
+    #[test]
+    fn help_is_a_documented_word() {
+        assert!(squeeze(&top_level_help()).contains("help COMMAND prints the help of one command"));
+        assert!(matches!(crate::tree::parse(["help"]), crate::tree::Parsed::Help("")));
+        assert!(matches!(crate::tree::parse(["help", "tx"]), crate::tree::Parsed::Help("tx")));
+    }
+
     /// The options before a command are an item each: the spellings on a
     /// line of their own, then the sentence.
     #[test]
     fn each_top_level_option_is_its_term_then_its_sentence() {
         let h = top_level_help();
         for (term, sentence) in [
-            ("-h, --help", "Print help; --help COMMAND prints the help of one command."),
+            ("-h, --help", "Print help; --help COMMAND or help COMMAND prints the help of one command."),
             ("-V, --version", "Print the version, and the commit of a release build."),
         ] {
             assert!(h.lines().any(|l| l == format!("    {term}")), "{term:?} is not a line of its own:\n{h}");

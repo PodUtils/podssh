@@ -242,7 +242,7 @@ pub fn add(cmd: Command, name: &str) -> Command {
         "tx" => cmd.arg(Arg::new("subcommand").value_name("SUBCOMMAND").help("send or receive")).arg(
             Arg::new("args")
                 .value_name("FILE | DIR")
-                .num_args(0..)
+                .num_args(0..=1)
                 .help("send: the file that the near end receives; receive: the directory that the file comes into, the current one with none"),
         ),
         "config" => cmd.arg(Arg::new("subcommand").value_name("SUBCOMMAND").help("import")).arg(

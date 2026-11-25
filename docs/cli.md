@@ -3004,20 +3004,26 @@ session's own watch, which asks where a file goes, or which file goes, as it ask
 `rz`.
 
 - **The words.** `send` takes one file; `receive` takes one directory at most, the current one with
-  none. Any other shape is 64 before the terminal is touched. It has no flag.
+  none. Any other shape is 64 before the terminal is touched. Its usage reads `send FILE | receive
+  [DIR]`, one argument at most. It has no flag.
 - **Each byte is printable ASCII, CR or LF**: the codec `pod_term::transfer` of PodUtils/podcrates,
   as `docs/terminal.md` ("The 7-bit envelope (T-831, step 2)") designs it. Nothing listens and
   nothing connects (`AGENTS.md`, rule 2): the session's terminal carries it all.
 - **The file** comes as `cp` writes a copy: a temporary name beside it, the size and the SHA-256,
-  then the rename. A name that the far DIR has is never replaced; at the near end it is, after `y`.
+  then the rename. At the far end `receive` never replaces a name that DIR has: it skips it and
+  exits 75. At the near end a name that exists asks `Replace it? [y/N]`, and only `y` replaces it.
 - **The limits.** A terminal of 48 columns at least; each wait 20 s, the first 120 s; Ctrl-C or
   five CAN at the near end stop it at both ends. A question at the near end has no limit: the
   near end tells the far end that it waits (the frame `HOLD`). After a file is kept, `receive`
   waits 25 s more, reading its terminal, so that a confirmation that the terminal lost goes again;
   Ctrl-C or Ctrl-D ends that wait at once.
+  The near end's question has no limit by design (`HOLD`): a person may be away, and the far end
+  waits as long as `HOLD` keeps coming. A transfer that the near end never took, or that Ctrl-C
+  stopped, leaves the far end's trigger and `STOP` lines on the screen (`docs/terminal.md`, "What a
+  transfer that the near end never took leaves"); `clear` or Ctrl-L removes them.
 - **Exit codes** (sysexits): 0 the file was kept; 64 a usage error, no terminal, or one too
   narrow; 65 the size or the SHA-256 differs, or the other end broke the protocol; 66 FILE or DIR
-  cannot be read; 73 the file that came cannot be written or kept; 75 refused, skipped, cancelled,
+  cannot be read; 73 the file that came cannot be created in DIR, written or kept; 75 refused, skipped, cancelled,
   or no answer in time. The last line on stderr says which. A `send` whose file and SHA-256
   went, but whose confirmation did not come back in 20 s, exits 0 and says so.
 

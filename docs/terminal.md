@@ -1071,6 +1071,12 @@ podssh wires both ends of `pod_term::transfer` (version 2, podcrates `v0.84.0`, 
   in parts of half its pane with 40 ms between them, so a skip over two parts still leaves both on
   the screen that tmux redraws: 1 MiB then crossed tmux intact in 52 s, about 20 KiB/s. A codec
   that kept each frame within the pane would need no pause; that is `pod-term`'s to give.
+- **What a transfer that the near end never took leaves.** The far end draws the trigger line and,
+  at its end, a `STOP` line; the near end removes only the trigger line, and only while it watches.
+  When it never answered (`PODSSH_ZMODEM=off`, a control master, Ctrl-C, or a pane that scrolled),
+  `tx` exits 75 and those lines stay. The far end cannot know how many rows a terminal in between
+  gave them (wrapping, a repaint, a status line), so an erase by cursor moves would clear rows that
+  are not its own. The manual says that the lines stay, and that `clear` or Ctrl-L removes them.
 
 ## A notice while the far end is silent
 

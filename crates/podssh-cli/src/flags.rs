@@ -472,7 +472,7 @@ pub const VERBS: &[Verb] = &[
 /// The options read before any verb (`tree::parse`), for `--help` and the
 /// manual.
 pub const TOP_OPTIONS: &[(&str, &str, &str)] = &[
-    ("-h", "--help", "Print help; --help COMMAND prints the help of one command"),
+    ("-h", "--help", "Print help; --help COMMAND or help COMMAND prints the help of one command"),
     ("-V", "--version", "Print the version, and the commit of a release build"),
 ];
 

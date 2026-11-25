@@ -112,7 +112,8 @@ SYNOPSIS
 
   Options:
     -h, --help
-        Print help; --help COMMAND prints the help of one command.
+        Print help; --help COMMAND or help COMMAND prints the help of one
+        command.
     -V, --version
         Print the version, and the commit of a release build.
 
@@ -7991,8 +7992,9 @@ podssh tx
   podssh tx send FILE sends FILE to podssh ssh at the near end, which asks
   where it goes, as it asks for sz. podssh tx receive [DIR] waits for a file
   from the near end, which asks which file to send, as it asks for rz; the file
-  comes into DIR, the current directory with none, and a name that DIR has
-  already is never replaced.
+  comes into DIR, the current directory with none. podssh tx receive never
+  replaces a name that DIR has: it skips that file and exits 75. At the near
+  end, a name that exists asks Replace it? [y/N], and only y replaces it.
 
   Each byte that crosses is printable ASCII, CR or LF. A first line starts the
   transfer, and the near end removes it from its screen. Then come frames of
@@ -8009,24 +8011,26 @@ podssh tx
   question at the near end. Ctrl-C at the near end, or five Ctrl-X typed in a
   row, stops the transfer at both ends. No file that did not end is kept. A
   question at the near end has no limit: the near end tells the far end that it
-  waits. After the file is kept, podssh tx receive waits 25 s more for a
-  confirmation that the terminal lost; Ctrl-C or Ctrl-D ends that wait. It
-  exits 0 when the file was kept, with one line on stderr. It also exits 0 when
-  podssh tx send sent the file and its SHA-256 and no confirmation came, which
-  the line says. It exits 64 with no terminal, one too narrow, or a word wrong;
-  65 when the size or the SHA-256 differs, or the other end broke the protocol;
-  66 when FILE or DIR cannot be read; 73 when the file that came cannot be
-  written or kept; 75 when it was refused, skipped, cancelled or got no answer
-  in time. The near end is podssh ssh with a pty and a local terminal; with
+  waits. A transfer that the near end never took, or that Ctrl-C stopped,
+  leaves its lines on the screen; clear it with clear or Ctrl-L. After the file
+  is kept, podssh tx receive waits 25 s more for a confirmation that the
+  terminal lost; Ctrl-C or Ctrl-D ends that wait. It exits 0 when the file was
+  kept, with one line on stderr. It also exits 0 when podssh tx send sent the
+  file and its SHA-256 and no confirmation came, which the line says. It exits
+  64 with no terminal, one too narrow, or a word wrong; 65 when the size or the
+  SHA-256 differs, or the other end broke the protocol; 66 when FILE or DIR
+  cannot be read; 73 when the file that came cannot be created in DIR, written
+  or kept; 75 when it was refused, skipped, cancelled or got no answer in time.
+  The near end is podssh ssh with a pty and a local terminal; with
   PODSSH_ZMODEM set to off, or through a control master, it watches for neither
   ZMODEM nor this.
 
-  Usage: podssh tx SUBCOMMAND [FILE | DIR]
+  Usage: podssh tx send FILE | receive [DIR]
 
   Arguments:
     [SUBCOMMAND]
         send or receive.
-    [FILE | DIR]...
+    [FILE | DIR]
         send: the file that the near end receives; receive: the directory that
         the file comes into, the current one with none.
 

@@ -243,7 +243,7 @@ impl Far {
                 self.codec.take();
             }
             Err(e) => {
-                self.failure = Some(Failure::CantCreate(format!("{}: {e}", dest.display())));
+                self.failure = Some(Failure::CantCreate(files::cannot_create(&self.dir, &e)));
                 self.codec.skip(&format!("{name} cannot be written there"));
             }
         }
