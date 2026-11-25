@@ -356,9 +356,10 @@
 348 pull closed
 349 issue open
 350 issue closed
-351 issue open
-352 issue open
-353 issue open
-354 issue open
-355 issue open
-356 issue open
+351 issue closed
+352 issue closed
+353 issue closed
+354 issue closed
+355 issue closed
+356 issue closed
+357 issue open

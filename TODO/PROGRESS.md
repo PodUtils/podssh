@@ -8,9 +8,9 @@ this page keeps no history (git does).
 
 Read on 2026-11-25.
 
-1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job), with the DNS road, `serve --remote-listen`,
-   the screen on attach, and the gateway (T-836, T-902). Read the gate of the last push first: a push cancels the
-   gate of the one before it. Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** Green at `6cef237` (2026-11-25, run 45566736621, each job). The take of `v0.84.0` (`806e0a4`) and the
+   record after it were pushed at the end of the session; read their gate first (a push cancels the gate of the one
+   before it). Earlier green runs are in `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
@@ -21,11 +21,11 @@ Read on 2026-11-25.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
    failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
-   T-831. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
+   T-831 (its step 2 drafted on `draft/d-t831`, item 8). The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
-   and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-899 (a tester's Dev Tunnel, #215), T-834 (podcrates: COORD-145, #355), T-900 (podcrates: a DoH `Datagrams`), T-740 (a working Bare
+   and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-899 (a tester's Dev Tunnel, #215), T-740 (a working Bare
    node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **Issues and the sessions of PodUtils.** An issue from outside the team is changed by the sync only once it has the
    label `confirmed` (the owner's rulings "Strangers" and "Issues"). Each session writes to another by a COORD issue in
@@ -48,29 +48,30 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** None waits (2026-11-25): `d-t902` (T-902), `d-t836` (T-836, the gateway) and `d-t877` (T-875, T-877) are merged. Each
-   `draft/*`, `beta/*` and `release/*`
-   branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
-   deletes).
+8. **Drafts.** One waits (2026-11-25): T-831's step 2 on `draft/d-t831` (`975d98c`), written by a drafting agent
+   against codec version 2 of `pod-term` (`v0.84.0`, taken), not built. Merge it first: `git diff 53553d4 975d98c`,
+   then `git apply --3way` on `main`; its nine checks at the build are in T-831's `## Done`. Each `draft/*`, `beta/*`
+   and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud
+   session refuses deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
-   never files under it. Never amend a commit that was pushed, not even on a draft branch: the next push would be a
-   force-push. A merge in progress waits on a local branch `merge-NNN`, never on `main`. Chain a push on
-   `cargo todo check --base HEAD~1`'s own exit code, never a pipe's (`| tail` gives 0): commits went out with stale
-   citations twice. Run the gate's `cargo fmt $PKGS --
-   --check` and `cargo test --no-fail-fast` (a plain run stops at `job_far`'s known failures) before a push (a test's long line once turned lint red), and never `cargo fmt --all`, which formats
-   `vendor/`.
+   never files under it (it reached 46 GB on 2026-11-25). Never amend a commit that was pushed, not even on a draft
+   branch. A merge in progress waits on a local branch `merge-NNN`, never on `main`. Push through a guard that runs
+   `cargo todo check --base HEAD~1`, `python scripts/check-repo.py` and the gate's `cargo fmt $PKGS -- --check`, each by
+   its own exit code (a pipe's `| tail` gives 0: stale citations went out twice); never `cargo fmt --all`, which formats
+   `vendor/`. Run a package's tests with `--no-fail-fast`: a plain run stops at `job_far`'s three known failures here.
+   A test that dials a closed port dials port 1, never a port it freed (T-904).
 
 ## Tonight
 
-Cloud sessions of 2026-11-24 and 2026-11-25. Done on 2026-11-25: T-839 done (TPM keys; Windows'
-TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-900, its form over DoH, waits for podcrates), T-123 done
-(`serve --remote-listen`), T-161 and T-901 done (a new client's
-screen, measured, and given to a shell at a still prompt and a seat of `--share`; GitHub #20 closed), T-836 done
-(`serve --gateway`; T-903 filed), T-902 done (its routes in the net's signed document), T-904 (a test's freed port, which turned `gate (ts)` red at `7c4442e`),
-podcrates `v0.83.0` taken; the gate green at `6cef237`. Open, in order: T-831 (partial); podcrates' answers to the COORD issues of
-`docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
-clean**).
+The session of 2026-11-24 and 2026-11-25 ended here; the next one starts fresh. Done on 2026-11-25: T-839 (TPM keys),
+T-896, T-875 and T-877 (the DNS road), T-123 (`serve --remote-listen`), T-161 and T-901 (a new client's screen; GitHub
+#20 closed), T-836, T-902 and T-903 (`serve --gateway`, its routes in the net's document, its certificate by `Mint`),
+T-837, T-904; podcrates `v0.83.0` and then `v0.84.0` taken (`806e0a4`: `pod-tpm`, `pod-h2`, `Class::Data`). The next
+session, in order: the gate of the last push; the merge of `draft/d-t831` (item 8), then podcrates' COORD-153 told its
+commit; T-834 (the bearer) and T-900 (the DNS road over DoH and bare), both open on `v0.84.0`; podcrates' answers to
+COORD-147 (#357) and COORD-139 (#349); T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the
+black-box pass is clean**).
 
 ## Baseline
 

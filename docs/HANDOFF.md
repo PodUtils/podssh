@@ -21,10 +21,11 @@ This page keeps no history: git does.
 
 | Branch on GitHub | Entry | State |
 | --- | --- | --- |
-| none | | `d-t877` (T-875, T-877) was merged on 2026-11-25 |
+| `draft/d-t831` (`975d98c`) | T-831, step 2 | the 7-bit envelope over codec version 2 of `pod-term` (`v0.84.0`): `podssh tx send` and `receive` at the far end, the session's watch at the near end, `pty_envelope`'s vectors, T-859's ends, a model of tmux, `pty.envelope.*` in tmux; written by a drafting agent, not built: its report's nine checks are in T-831's `## Done` |
 
 `TODO/PROGRESS.md`, "Drafts", is the record. A draft lives on one machine until its branch is on
-GitHub as `draft/<branch>`.
+GitHub as `draft/<branch>`. Merged on 2026-11-25: `d-t877`, `d-t836`, `d-t902`; the take of `v0.84.0` went
+straight to `main` (`806e0a4`).
 
 ## Open COORD issues
 
@@ -33,16 +34,12 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 
 | Issue | Waits for |
 | --- | --- |
-| #349 (COORD-139) | podcrates' finding 4 (an ARQ with no TLS), a DoH `Datagrams` (T-900), a run through unbound in its CI, three small asks of T-875 and T-877; findings 1 to 3 answered in `v0.83.0` |
-| #351 (COORD-141) | podcrates' answer on a crate `pod-tpm` (T-839) |
-| #352 (COORD-142) | podcrates' answers to asks (a) and (b) on `pod_core::failure` (T-820) |
-| #353 (COORD-143) | podcrates' reading of podssh's two answers to COORD-154 (T-831, T-839) |
-| #354 (COORD-144) | podcrates' record of podssh's take of `v0.83.0` (T-684) |
-| #355 (COORD-145) | podcrates' binding of the end-to-end channel to the grant's check, and a bearer grant with its verifier (T-834) |
-| #356 (COORD-146) | podcrates' `Mint` with extensions, so that the gateway (T-836) signs with it (T-903) |
+| #349 (COORD-139) | podcrates' run of the DNS carrier through unbound in its CI, and three small asks of T-875 and T-877; the findings and the DoH `Datagrams` are answered in `v0.83.0` and `v0.84.0` |
+| #357 (COORD-147) | podcrates' record of the take of `v0.84.0` (`806e0a4`), and four asks: `pod-tpm`'s TBS with a bound and a cancel, an owner password in `SoftTpm`, the list of `pod-tpm.run`, `Mint` with an issuer that is not Ed25519 |
 
-Closed on 2026-11-24, each answered or done: #248, #283, #311, #322, #340 to #343, #346 (podcrates' COORD-153 answered
-it: the 7-bit codec comes in `pod-term`'s next tag, T-831 takes it then), #347 and #350 (answered in `v0.83.0`).
+Closed on 2026-11-25, each answered or done: #351 to #356 (answered in `v0.84.0` and taken at `806e0a4`). Earlier:
+#248, #283, #311, #322, #340 to #343, #346, #347, #350. podcrates' COORD-153 (PodUtils/podcrates#258) waits for the
+commit of T-831 that wires the codec.
 
 ## The sessions of PodUtils
 
