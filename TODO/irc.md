@@ -1230,7 +1230,7 @@ ends the listener, and the listener does not say why it left.
   peer comes", which the issue's first run shows too.
 - Read: a conversation that sends no one thing runs until stdin ends and each message and file
   went, or until the peer leaves (`crates/podssh-cli/src/chat/converse.rs:27-28`); at the input's
-  end the loop stops reading it (`crates/podssh-cli/src/chat/converse.rs:179`), and `finished`
+  end the loop stops reading it (`crates/podssh-cli/src/chat/converse.rs:181`), and `finished`
   then ends the conversation (`crates/podssh-cli/src/chat/converse.rs`, line 159 at `1769d79`).
 - Read: after a peer left, the listener goes on only while input may still come
   (`crates/podssh-cli/src/chat/run.rs`, lines 155-156 at `1769d79`;

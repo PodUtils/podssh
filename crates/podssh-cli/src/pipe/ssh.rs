@@ -75,7 +75,7 @@ pub async fn open(
     let opts = crate::ssh::window::on(&resolved.options, crate::ssh::window::road(&resolved.transport, &reached));
     crate::ssh::transport::keep(reached.layer);
     let handles = podssh_ssh::run::connect_hops(reached.stream, &opts, &log).await.map_err(|e| {
-        say(&e.to_string());
+        say(&podssh_ws::text::said(&e));
         hop_code(&e)
     })?;
     let last_hop = handles.last().expect("the last hop's connection");

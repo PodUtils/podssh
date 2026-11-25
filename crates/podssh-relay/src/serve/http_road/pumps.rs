@@ -65,7 +65,7 @@ async fn write_up<W: AsyncWrite + Unpin>(session: Arc<Session>, mut to: W) {
                     take
                 });
                 if let Err(e) = to.write_all(&batch[..take]).await {
-                    return session.end(1011, format!("write failed: {e}"));
+                    return session.end(1011, format!("write failed: {}", podssh_ws::text::said(&e)));
                 }
                 session.meter.up(take);
                 session.with(|st| {
@@ -119,7 +119,7 @@ async fn read_down<R: AsyncRead + Unpin>(session: Arc<Session>, mut from: R) {
                     return session.end(1009, "session byte cap");
                 }
             }
-            Err(e) => return session.end(1011, format!("target read failed: {e}")),
+            Err(e) => return session.end(1011, format!("target read failed: {}", podssh_ws::text::said(&e))),
         }
     }
 }

@@ -62,7 +62,7 @@ impl HttpHost {
             let answer =
                 pod_proxy::http::exchange(&mut io, USER_AGENT, method, &authority, &path, headers, body, most).await;
             let _ = io.shutdown().await;
-            answer.map_err(|e| Refusal::Failed(format!("{id}: {e}")))
+            answer.map_err(|e| Refusal::Failed(format!("{id}: {}", podssh_ws::text::said(&e))))
         };
         match tokio::time::timeout(REQUEST_LIMIT, asking).await {
             Ok(answer) => answer,

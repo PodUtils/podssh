@@ -126,7 +126,7 @@ where
                 return;
             }
             if let Err(e) = up_session.send_binary(&buf[..n]).await {
-                up_status.set_once(Ended::Failed(format!("sending failed: {e}")));
+                up_status.set_once(Ended::Failed(format!("sending failed: {}", podssh_ws::text::said(&e))));
                 up_failed_tx.notify_one();
                 return;
             }
@@ -154,7 +154,7 @@ where
                     break;
                 }
                 Err(e) => {
-                    down_status.set_once(Ended::Failed(e.to_string()));
+                    down_status.set_once(Ended::Failed(podssh_ws::text::said(&e)));
                     break;
                 }
             };

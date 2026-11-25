@@ -83,7 +83,7 @@ pub(super) fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> 
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
-            let _ = writeln!(err, "podssh ping: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh ping: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return podssh_ssh::EXIT_FAILURE;
         }
     };

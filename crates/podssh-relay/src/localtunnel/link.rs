@@ -59,7 +59,7 @@ where
     match tokio::time::timeout(timeout, client::upgrade_with(stream, &request, &key)).await {
         Err(_) => Err(format!("{host}: no answer to the WebSocket upgrade within {} s", timeout.as_secs())),
         Ok(Err(ConnectError::Refused { status, body })) => Err(refusal(host, status, &body)),
-        Ok(Err(e)) => Err(format!("{host}: {e}")),
+        Ok(Err(e)) => Err(format!("{host}: {}", podssh_ws::text::said(&e))),
         Ok(Ok((stream, pending))) => {
             Ok(RelaySession::new(stream, pending, Some(client::DEFAULT_IDLE_TIMEOUT), WRITE_TIMEOUT))
         }
@@ -76,7 +76,9 @@ pub async fn open(
 ) -> Result<RelaySession<RelayStream>, String> {
     let (name, port) = crate::pinggy::host_port(host, "the localtunnel road")?;
     let port = port.unwrap_or(super::PORT);
-    let tls = client::open_tls(&name, port, &name, trust, proxy, timeout).await.map_err(|e| format!("{host}: {e}"))?;
+    let tls = client::open_tls(&name, port, &name, trust, proxy, timeout)
+        .await
+        .map_err(|e| format!("{host}: {}", podssh_ws::text::said(&e)))?;
     over(tls, host, timeout).await
 }
 

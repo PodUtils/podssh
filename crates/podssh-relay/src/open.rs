@@ -56,8 +56,11 @@ pub fn words(failure: &Failure, target: &str) -> Vec<String> {
         .lines(target)
         .into_iter()
         .map(|line| {
-            line.replace(GENERIC_OFFLINE, &format!("{OFFLINE_ENV} is set, so no connection goes anywhere"))
-                .replace(GENERIC_TOKEN, &format!("the token in {} was rejected", crate::token::TOKEN_ENV))
+            let line = line
+                .replace(GENERIC_OFFLINE, &format!("{OFFLINE_ENV} is set, so no connection goes anywhere"))
+                .replace(GENERIC_TOKEN, &format!("the token in {} was rejected", crate::token::TOKEN_ENV));
+            // A dial's error of I/O ends in Rust's "(os error N)" inside the crate's line.
+            podssh_ws::text::plain(&line)
         })
         .collect()
 }

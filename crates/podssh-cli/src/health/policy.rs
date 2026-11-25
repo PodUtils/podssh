@@ -47,7 +47,7 @@ pub fn probe(mut resolved: Resolved, destination: &str, out: &mut dyn Write, err
             runtime.shutdown_background();
             judged.unwrap_or_else(|_| format!("the probe passed its limit of {} s", LIMIT.as_secs()))
         }
-        Err(e) => format!("could not start the async runtime: {e}"),
+        Err(e) => format!("could not start the async runtime: {}", podssh_ws::text::said(&e)),
     };
     let (doc, code) = judge.report(&why);
     let _ = writeln!(out, "{doc}");
@@ -82,7 +82,7 @@ async fn reach_and_judge(resolved: &Resolved, log: &Arc<Log>) -> String {
         }
         Err(e) => {
             crate::ssh::transport::settle(reached.layer).await;
-            crate::layer_told::failed(e.to_string(), log)
+            crate::layer_told::failed(podssh_ws::text::said(&e), log)
         }
     }
 }

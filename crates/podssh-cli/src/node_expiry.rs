@@ -260,7 +260,7 @@ impl Renewer {
             Ok(Renewed::Until(_)) => Tried::Again("the relay kept the same end".into()),
             Ok(Renewed::NotServed) => Tried::NotServed,
             Err(PairError::Forbidden) => Tried::Refused,
-            Err(e) => Tried::Again(e.to_string()),
+            Err(e) => Tried::Again(podssh_ws::text::said(&e)),
         };
         (pair.name.clone(), tried)
     }
@@ -285,7 +285,10 @@ impl Renewer {
             utc(until)
         );
         match (stored, unkept) {
-            (true, Some(e)) => line.push_str(&format!("; the store took no write ({e}), so it names the old end")),
+            (true, Some(e)) => line.push_str(&format!(
+                "; the store took no write ({}), so it names the old end",
+                podssh_ws::text::said(&e)
+            )),
             (false, _) => line.push_str("; this node's --pair-file names the old end, which a new start would read"),
             (true, None) => {}
         }

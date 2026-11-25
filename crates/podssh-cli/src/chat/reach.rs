@@ -154,11 +154,12 @@ async fn leg<W: AsyncWrite + Unpin>(
                 if !*said {
                     *said = true;
                     let line = format!(
-                        "the peer is not there ({e}); podssh tries again each {} s, and the lines typed meanwhile \
+                        "the peer is not there ({}); podssh tries again each {} s, and the lines typed meanwhile \
                          wait, {MAX_LINES} lines or 1 MiB at most",
+                        podssh_ws::text::said(&e),
                         RETRY.as_secs()
                     );
-                    out.notice("waiting", json!({ "why": e.to_string() }), line).await;
+                    out.notice("waiting", json!({ "why": podssh_ws::text::said(&e) }), line).await;
                 }
                 tokio::select! {
                     () = tokio::time::sleep(RETRY) => {}

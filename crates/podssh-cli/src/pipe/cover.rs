@@ -35,7 +35,8 @@ impl Cover {
     /// DIR resolved, or 64 when it is no directory: a typo is said at the
     /// start, not to each visitor.
     pub fn open(dir: &str) -> Result<Cover, Refusal> {
-        let root = std::fs::canonicalize(dir).map_err(|e| Refusal::usage(format!("{FLAG} {dir}: {e}")))?;
+        let root = std::fs::canonicalize(dir)
+            .map_err(|e| Refusal::usage(format!("{FLAG} {dir}: {}", podssh_ws::text::said(&e))))?;
         if !root.is_dir() {
             return Err(Refusal::usage(format!("{FLAG} {dir}: not a directory")));
         }

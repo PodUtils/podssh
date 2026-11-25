@@ -108,7 +108,9 @@ pub(super) async fn read_head(client: &mut End) -> Result<(Request, Vec<u8>), Re
         Ok(Err(RequestError::Gone(why))) => {
             Err(Refused { answer: None, line: format!("left before its request ended: {why}") })
         }
-        Ok(Err(e)) => Err(refuse(e.status().unwrap_or(400), &e.to_string(), &[], e.to_string())),
+        Ok(Err(e)) => {
+            Err(refuse(e.status().unwrap_or(400), &podssh_ws::text::said(&e), &[], podssh_ws::text::said(&e)))
+        }
         Ok(Ok(read)) => Ok(read),
     }
 }

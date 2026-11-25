@@ -102,7 +102,7 @@ pub(crate) fn road(label: &str, pair: &Pair, stored: bool, trust: &Trust, url: W
     let side = match Side::random(&mut OsEntropy) {
         Ok(side) => side,
         Err(e) => {
-            say(format!("no transit road: {e}"));
+            say(format!("no transit road: {}", podssh_ws::text::said(&e)));
             return None;
         }
     };
@@ -247,7 +247,7 @@ pub(crate) fn dialer(url: WsUrl, part: &OperatorPart, trust: &Trust, log: &Arc<L
     match Dialer::new(transit::config(url, &trust, &ProxyChoice::FromEnvironment, say), keys) {
         Ok(dialer) => Some(dialer),
         Err(e) => {
-            log.verbose(&format!("{shown}: no transit road: {e}"));
+            log.verbose(&format!("{shown}: no transit road: {}", podssh_ws::text::said(&e)));
             None
         }
     }

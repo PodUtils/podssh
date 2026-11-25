@@ -116,7 +116,7 @@ impl<S: AsyncRead + Unpin> AsyncRead for Traced<S> {
             Poll::Ready(Ok(())) if n == 0 && buf.remaining() > 0 => {
                 self.counts.ended(|| "the visitor's end of input came".into())
             }
-            Poll::Ready(Err(e)) => self.counts.ended(|| format!("a read failed: {e}")),
+            Poll::Ready(Err(e)) => self.counts.ended(|| format!("a read failed: {}", podssh_ws::text::said(&e))),
             _ => {}
         }
         polled
@@ -147,7 +147,7 @@ impl<S: AsyncWrite + Unpin> AsyncWrite for Traced<S> {
             Poll::Ready(Ok(n)) => {
                 self.counts.written.fetch_add(*n as u64, Ordering::Relaxed);
             }
-            Poll::Ready(Err(e)) => self.counts.ended(|| format!("a write failed: {e}")),
+            Poll::Ready(Err(e)) => self.counts.ended(|| format!("a write failed: {}", podssh_ws::text::said(&e))),
             Poll::Pending => {}
         }
         polled

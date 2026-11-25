@@ -132,7 +132,7 @@ pub async fn leg_with(relay: &Relay, trust: &Trust, target: (&str, u16), query: 
         let token = match token::obtain(&ctx, fresh).await {
             Ok(token) => token,
             Err(e) => {
-                leg.failed = Some(format!("the relay token: {e}"));
+                leg.failed = Some(format!("the relay token: {}", podssh_ws::text::said(&e)));
                 return leg;
             }
         };
@@ -145,7 +145,7 @@ pub async fn leg_with(relay: &Relay, trust: &Trust, target: (&str, u16), query: 
                 fresh = true;
             }
             Err(e) => {
-                leg.failed = Some(e.to_string());
+                leg.failed = Some(podssh_ws::text::said(&e));
                 return leg;
             }
         }
@@ -179,7 +179,7 @@ async fn open(
     let started = Instant::now();
     let tcp = podssh_ws::dial::dial(&relay.host, relay.port, &ProxyChoice::FromEnvironment, STEP)
         .await
-        .map_err(|e| ConnectError::Upgrade(format!("{how}: {e}")))?;
+        .map_err(|e| ConnectError::Upgrade(format!("{how}: {}", podssh_ws::text::said(&e))))?;
     leg.connect = Some((how, started.elapsed()));
     let peer = tcp.peer_addr().ok();
     let started = Instant::now();
@@ -215,7 +215,7 @@ async fn pings(leg: &mut Leg, session: Arc<RelaySession>, count: usize) {
         payload.extend_from_slice(&seq.to_be_bytes());
         payload.extend_from_slice(&(sent.as_nanos() as u64).to_be_bytes());
         if let Err(e) = session.send_ping(&payload).await {
-            leg.failed = Some(format!("a ping could not be sent: {e}"));
+            leg.failed = Some(format!("a ping could not be sent: {}", podssh_ws::text::said(&e)));
             break;
         }
         let deadline = tokio::time::Instant::now() + PING_WAIT;

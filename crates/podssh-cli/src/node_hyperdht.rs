@@ -74,7 +74,7 @@ where
     let end = match join(&road.bootstrap, Some(node_keys(&road.name, &road.token))).await {
         Ok(end) => end,
         Err(e) => {
-            lines(format!("{e}; the node serves its other roads"));
+            lines(format!("{}; the node serves its other roads", podssh_ws::text::said(&e)));
             return std::future::pending().await;
         }
     };

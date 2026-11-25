@@ -31,7 +31,7 @@ pub(crate) async fn quiet(plan: &Plan, offers: &Offers, token: &str) -> Vec<Chec
     };
     let started = Instant::now();
     let session = match podssh_relay::relay::forward_path(host, *port) {
-        Ok(path) => upgrade(plan, &path, Some(token)).await.map_err(|e| e.to_string()),
+        Ok(path) => upgrade(plan, &path, Some(token)).await.map_err(|e| podssh_ws::text::said(&e)),
         Err(why) => Err(why),
     };
     let session = match session {
@@ -53,7 +53,7 @@ pub(crate) async fn quiet(plan: &Plan, offers: &Offers, token: &str) -> Vec<Chec
         }
         match tokio::time::timeout(left, session.read_frame()).await {
             Err(_) => break Err("no Close".to_string()),
-            Ok(Err(e)) => break Err(e.to_string()),
+            Ok(Err(e)) => break Err(podssh_ws::text::said(&e)),
             Ok(Ok(f)) if f.opcode == OPCODE_CLOSE => break Ok(close_code_and_reason(&f.payload)),
             Ok(Ok(f)) if matches!(f.opcode, OPCODE_BINARY | OPCODE_CONTINUATION) && f.payload.is_empty() => {
                 keepalive.get_or_insert(started.elapsed());

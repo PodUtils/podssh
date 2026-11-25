@@ -142,7 +142,7 @@ pub fn run(args: &HealthArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh health: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh health: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return podssh_ssh::EXIT_FAILURE;
         }
     };
@@ -190,7 +190,7 @@ async fn login(resolved: &Resolved, log: &Arc<Log>) -> Result<(Vec<Connection>, 
         Err(e) => {
             // The road's cause once, not the client's echo of it (T-824).
             crate::ssh::transport::settle(reached.layer).await;
-            return Err(Failure::new(crate::layer_told::failed(e.to_string(), log)));
+            return Err(Failure::new(crate::layer_told::failed(podssh_ws::text::said(&e), log)));
         }
     };
     crate::layer_told::release(log);
@@ -210,7 +210,7 @@ async fn ask(resolved: &Resolved, destination: &str, log: &Arc<Log>, preflight: 
     let got = podssh_ssh::exec::capture(handle, &script::command(), script::LIMIT, script::CAP).await;
     let facts = match got {
         Ok(got) => parse::answer(&got).map_err(Failure::new),
-        Err(e) => Err(Failure::new(format!("the facts: {e}"))),
+        Err(e) => Err(Failure::new(format!("the facts: {}", podssh_ws::text::said(&e)))),
     };
     let checks = match preflight {
         true => {

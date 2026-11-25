@@ -286,7 +286,7 @@ pub async fn request(
     let post = move || async move {
         podssh_ws::client::https_post_json(host(), api().port(), path(), b"", trust, proxy, TIMEOUT)
             .await
-            .map_err(|e| format!("the request for a quick tunnel to {} failed: {e}", host()))
+            .map_err(|e| format!("the request for a quick tunnel to {} failed: {}", host(), podssh_ws::text::said(&e)))
     };
     ask(post, say, unix_now).await
 }

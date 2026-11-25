@@ -200,10 +200,10 @@ impl Ipv6Out {
     /// `e`; a fault that says no route out is kept, and named.
     pub fn missed(&self, address: &SocketAddr, e: &std::io::Error) -> String {
         if out_of_host(address).is_none() || !unrouted(e) {
-            return format!("{address}: {e}");
+            return format!("{address}: {}", podssh_ws::text::said(&e));
         }
         *self.0.unrouted.lock().unwrap_or_else(PoisonError::into_inner) = Some(Instant::now());
-        format!("{NO_IPV6_ROUTE} ({address}: {e})")
+        format!("{NO_IPV6_ROUTE} ({address}: {})", podssh_ws::text::said(&e))
     }
 
     /// The role's word in `/relays.json`: whether its host routes IPv6 out,

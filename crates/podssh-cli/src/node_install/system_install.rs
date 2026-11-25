@@ -101,12 +101,12 @@ fn write_env(path: &Path, body: &[u8], account: &Account) -> Result<(), String> 
         Ok(meta) if meta.is_dir() => {}
         Ok(_) => return Err(format!("{} is there and is no directory", dir.display())),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            std::fs::create_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+            std::fs::create_dir(dir).map_err(|e| format!("{}: {}", dir.display(), podssh_ws::text::said(&e)))?;
         }
-        Err(e) => return Err(format!("{}: {e}", dir.display())),
+        Err(e) => return Err(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
     }
     // The parent is root's, so the directory checked is the one changed.
-    let shown = |e: std::io::Error| format!("{}: {e}", dir.display());
+    let shown = |e: std::io::Error| format!("{}: {}", dir.display(), podssh_ws::text::said(&e));
     std::os::unix::fs::lchown(dir, Some(account.uid), Some(account.gid)).map_err(shown)?;
     std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700)).map_err(shown)?;
     let name = path.file_name().ok_or("no file name")?.to_string_lossy().into_owned();
@@ -117,14 +117,14 @@ fn write_env(path: &Path, body: &[u8], account: &Account) -> Result<(), String> 
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&new)
-        .map_err(|e| format!("{}: {e}", new.display()))?;
+        .map_err(|e| format!("{}: {}", new.display(), podssh_ws::text::said(&e)))?;
     let written = std::os::unix::fs::fchown(&made, Some(account.uid), Some(account.gid))
         .and_then(|()| (&made).write_all(body))
         .and_then(|()| made.sync_all())
         .and_then(|()| std::fs::rename(&new, path));
     if let Err(e) = written {
         let _ = std::fs::remove_file(&new);
-        return Err(e.to_string());
+        return Err(podssh_ws::text::said(&e));
     }
     Ok(())
 }
@@ -139,7 +139,7 @@ fn write_unit(path: &Path, text: &str) -> Result<(), Refusal> {
         }
         Ok(_) => {}
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(e) => return Err(refused(e.to_string())),
+        Err(e) => return Err(refused(podssh_ws::text::said(&e))),
     }
     let mut new = path.as_os_str().to_owned();
     new.push(".podssh-new");
@@ -149,7 +149,7 @@ fn write_unit(path: &Path, text: &str) -> Result<(), Refusal> {
         .and_then(|()| std::fs::rename(&new, path));
     if let Err(e) = written {
         let _ = std::fs::remove_file(&new);
-        return Err(refused(e.to_string()));
+        return Err(refused(podssh_ws::text::said(&e)));
     }
     Ok(())
 }

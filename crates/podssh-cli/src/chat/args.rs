@@ -161,10 +161,10 @@ pub(super) fn plan(args: &ChatArgs) -> Result<Plan, Refusal> {
         linger: args.linger,
     };
     let input = match (&args.sendfile, &opts.once) {
-        (Some(path), _) => Input::File(
-            std::fs::File::open(path)
-                .map_err(|e| Refusal { message: format!("--sendfile {path}: {e}"), code: EX_NOINPUT })?,
-        ),
+        (Some(path), _) => Input::File(std::fs::File::open(path).map_err(|e| Refusal {
+            message: format!("--sendfile {path}: {}", podssh_ws::text::said(&e)),
+            code: EX_NOINPUT,
+        })?),
         (None, Once::No) => Input::Stdin,
         (None, _) => Input::None,
     };
@@ -257,6 +257,6 @@ fn once(args: &ChatArgs) -> Result<Once, Refusal> {
     match std::fs::metadata(path) {
         Ok(meta) if meta.is_file() => Ok(Once::File(PathBuf::from(path))),
         Ok(_) => Err(Refusal { message: format!("--file {path}: not a regular file"), code: EX_NOINPUT }),
-        Err(e) => Err(Refusal { message: format!("--file {path}: {e}"), code: EX_NOINPUT }),
+        Err(e) => Err(Refusal { message: format!("--file {path}: {}", podssh_ws::text::said(&e)), code: EX_NOINPUT }),
     }
 }

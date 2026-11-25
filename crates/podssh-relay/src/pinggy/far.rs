@@ -108,7 +108,7 @@ pub async fn serve<A, O, F>(
                         far::serve(tls, Role::NODE, settings, &keeper, budget, open).await;
                         None
                     }
-                    Ok(Err(e)) => Some(format!("TLS failed: {e}")),
+                    Ok(Err(e)) => Some(format!("TLS failed: {}", podssh_ws::text::said(&e))),
                     Err(_) => Some(format!("no TLS within {} s", TLS_LIMIT.as_secs())),
                 },
                 None => {

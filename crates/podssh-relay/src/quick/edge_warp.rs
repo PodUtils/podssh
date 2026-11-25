@@ -35,7 +35,7 @@ pub async fn connect(warp: &dyn Dial, edge: &Edge, trust: &Trust) -> Result<Box<
         };
         match podssh_ws::tls::connect_over(stream, server_name(), trust, DIAL_LIMIT).await {
             Ok(tls) => return Ok(Box::new(tls)),
-            Err(e) => failed.push(format!("{region}:{port}: {e}")),
+            Err(e) => failed.push(format!("{region}:{port}: {}", podssh_ws::text::said(&e))),
         }
     }
     Err(format!("no region of the edge answered inside WARP's tunnel: {}", failed.join("; ")))

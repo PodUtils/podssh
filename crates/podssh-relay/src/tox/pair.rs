@@ -91,7 +91,10 @@ pub async fn serve(dial: Dial, relay: [u8; KEY], node: Keys, visitors: mpsc::Sen
                                 (dial.clone(), sender.clone(), visitors.clone(), say.clone());
                             tokio::spawn(async move {
                                 if let Err(e) = session(dial, relay, from, sender, visitors).await {
-                                    say(format!("a session on the Tox relay did not start: {e}"));
+                                    say(format!(
+                                        "a session on the Tox relay did not start: {}",
+                                        podssh_ws::text::said(&e)
+                                    ));
                                 }
                             });
                         }
@@ -102,7 +105,7 @@ pub async fn serve(dial: Dial, relay: [u8; KEY], node: Keys, visitors: mpsc::Sen
                         }
                         Ok(_) => {}
                         Err(e) => {
-                            say(format!("its connection to the Tox relay ended: {e}"));
+                            say(format!("its connection to the Tox relay ended: {}", podssh_ws::text::said(&e)));
                             break;
                         }
                     }
@@ -111,7 +114,7 @@ pub async fn serve(dial: Dial, relay: [u8; KEY], node: Keys, visitors: mpsc::Sen
                     }
                 }
             }
-            Err(e) => say(format!("the Tox relay did not take its connection: {e}")),
+            Err(e) => say(format!("the Tox relay did not take its connection: {}", podssh_ws::text::said(&e))),
         }
         if visitors.is_closed() {
             return;

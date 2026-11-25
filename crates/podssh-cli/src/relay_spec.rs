@@ -44,7 +44,10 @@ pub fn run(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let observed = match args.document.as_deref() {
         Some(file) => match std::fs::read(file) {
             Ok(bytes) => Observed { version: None, document: Some(String::from_utf8_lossy(&bytes).into_owned()) },
-            Err(e) => return Refusal::config(format!("--document {file}: {e}")).report("relay", err),
+            Err(e) => {
+                return Refusal::config(format!("--document {file}: {}", podssh_ws::text::said(&e)))
+                    .report("relay", err)
+            }
         },
         None => match live(args, err) {
             Ok(observed) => observed,
@@ -87,7 +90,7 @@ fn live(args: &RelayArgs, err: &mut dyn Write) -> Result<Observed, Refusal> {
             None
         }
         Err(e) => {
-            said(&format!("/health: {e}"));
+            said(&format!("/health: {}", podssh_ws::text::said(&e)));
             None
         }
     };
@@ -98,7 +101,7 @@ fn live(args: &RelayArgs, err: &mut dyn Write) -> Result<Observed, Refusal> {
             None
         }
         Err(e) => {
-            said(&format!("/llms-full.txt: {e}"));
+            said(&format!("/llms-full.txt: {}", podssh_ws::text::said(&e)));
             None
         }
     };

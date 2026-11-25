@@ -120,7 +120,8 @@ impl Slots {
         }
         held.failed_said = Some(now);
         Some(format!(
-            "the listener could not accept ({why}); it pauses {} ms after each failure",
+            "the listener could not accept ({}); it pauses {} ms after each failure",
+            podssh_ws::text::said(why),
             ACCEPT_PAUSE.as_millis()
         ))
     }

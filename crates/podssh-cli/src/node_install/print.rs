@@ -34,7 +34,8 @@ fn say(printed: Result<String, Refusal>, verb: &str, out: &mut dyn Write, err: &
             Ok(()) => 0,
             // A closed stdout, as `| head` makes, is no failure of the unit.
             Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => 0,
-            Err(e) => Refusal { message: format!("stdout: {e}"), code: EX_CANTCREAT }.report(verb, err),
+            Err(e) => Refusal { message: format!("stdout: {}", podssh_ws::text::said(&e)), code: EX_CANTCREAT }
+                .report(verb, err),
         },
         Err(refusal) => refusal.report(verb, err),
     }
@@ -84,7 +85,7 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
     let absolute = |flag: &str, value: &str| {
         std::path::absolute(value)
             .map(|path| path.display().to_string())
-            .map_err(|e| Refusal::config(format!("{flag} {value}: {e}")))
+            .map_err(|e| Refusal::config(format!("{flag} {value}: {}", podssh_ws::text::said(&e))))
     };
     let mut words = vec!["serve".to_string(), name.to_string()];
     if let Some(file) = &args.host_key {

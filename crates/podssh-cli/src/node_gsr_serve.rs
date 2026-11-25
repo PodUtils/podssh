@@ -121,7 +121,8 @@ pub(crate) async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
         Ok(Ok(stream)) => Box::pin(std::future::ready(Ok(stream))) as Opening,
         Ok(Err(failure)) if podssh_gsr::no_peer_yet(&failure) => open(),
         Ok(Err(failure)) => {
-            return failed(format!("no GSRN road through {host}: {}", failure.chain())).report("node", err);
+            return failed(format!("no GSRN road through {host}: {}", podssh_ws::text::said(&failure.chain())))
+                .report("node", err);
         }
     };
     let identity = Arc::new(key.identity);

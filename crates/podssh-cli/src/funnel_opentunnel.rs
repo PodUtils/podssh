@@ -168,7 +168,7 @@ async fn visit(acceptor: TlsAcceptor, origin: Arc<dyn Origin>, say: opentunnel::
     let peer = visitor.peer.clone();
     let tls = match tokio::time::timeout(TLS_LIMIT, acceptor.accept(visitor)).await {
         Ok(Ok(tls)) => tls,
-        Ok(Err(e)) => return say(format!("a visitor from {peer}: TLS failed: {e}")),
+        Ok(Err(e)) => return say(format!("a visitor from {peer}: TLS failed: {}", podssh_ws::text::said(&e))),
         Err(_) => return say(format!("a visitor from {peer}: no TLS within {} s", TLS_LIMIT.as_secs())),
     };
     pump(tls, origin.connect(None)).await;

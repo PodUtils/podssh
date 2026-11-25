@@ -248,7 +248,8 @@ pub async fn read_answer<R: AsyncRead + Unpin>(from: &mut R) -> Result<(Answer, 
         if got.len() > MAX_HEAD {
             return Err(format!("no end of the origin's head within {} KiB", MAX_HEAD / 1024));
         }
-        let n = from.read(&mut chunk).await.map_err(|e| format!("the origin's answer: {e}"))?;
+        let n =
+            from.read(&mut chunk).await.map_err(|e| format!("the origin's answer: {}", podssh_ws::text::said(&e)))?;
         if n == 0 {
             return Err("the origin closed before its answer".into());
         }

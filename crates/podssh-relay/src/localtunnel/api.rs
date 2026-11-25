@@ -87,10 +87,12 @@ pub fn tls(trust: Trust, proxy: ProxyChoice) -> Dial {
             let host = service.host.as_str();
             if !service.tls {
                 let tcp = podssh_ws::dial::dial(host, service.port, &ProxyChoice::Direct, CONNECT_LIMIT).await;
-                return tcp.map(|tcp| Box::new(tcp) as BoxIo).map_err(|e| format!("{service}: {e}"));
+                return tcp
+                    .map(|tcp| Box::new(tcp) as BoxIo)
+                    .map_err(|e| format!("{service}: {}", podssh_ws::text::said(&e)));
             }
             let opened = podssh_ws::client::open_tls(host, service.port, host, &trust, &proxy, CONNECT_LIMIT);
-            let tls = opened.await.map_err(|e| format!("{service}: {e}"))?;
+            let tls = opened.await.map_err(|e| format!("{service}: {}", podssh_ws::text::said(&e)))?;
             Ok(Box::new(tls) as BoxIo)
         })
     })
@@ -117,7 +119,7 @@ pub async fn ask(service: &Service, dial: &Dial, asked: Option<&str>) -> Result<
     let asking = podssh_ws::http::exchange(&mut io, "GET", &authority, &path, &headers, b"", MAX_BODY);
     let response = match tokio::time::timeout(REQUEST_LIMIT, asking).await {
         Err(_) => return Err(Failed::ForNow(format!("{shown}: no answer within {} s", REQUEST_LIMIT.as_secs()))),
-        Ok(Err(e)) => return Err(Failed::ForNow(format!("{shown}: {e}"))),
+        Ok(Err(e)) => return Err(Failed::ForNow(format!("{shown}: {}", podssh_ws::text::said(&e)))),
         Ok(Ok(response)) => response,
     };
     let words = || message(&response.body);

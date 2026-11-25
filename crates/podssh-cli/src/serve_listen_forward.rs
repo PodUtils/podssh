@@ -50,14 +50,17 @@ impl Publish for Listened {
             let bound = match TcpListener::bind(at).await {
                 Ok(listener) => listener,
                 Err(e) => {
-                    let why = format!("the bind of {at} failed: {e}");
+                    let why = format!("the bind of {at} failed: {}", podssh_ws::text::said(&e));
                     return match fallback {
                         Some(relay) => relay.publish(asked, opener).await.map_err(|other| format!("{why}; {other}")),
                         None => Err(why),
                     };
                 }
             };
-            let port = bound.local_addr().map_err(|e| format!("the listener of {at} has no address: {e}"))?.port();
+            let port = bound
+                .local_addr()
+                .map_err(|e| format!("the listener of {at} has no address: {}", podssh_ws::text::said(&e)))?
+                .port();
             let task = tokio::spawn(serve(bound, opener));
             Ok(Published {
                 name: format!("127.0.0.1:{port}"),

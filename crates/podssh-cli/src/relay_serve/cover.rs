@@ -88,7 +88,8 @@ pub(super) fn issuer(key: Option<&str>, public: Option<&str>) -> Result<Issuer, 
             None => Ok(Issuer::random()),
         };
     };
-    let text = std::fs::read_to_string(path).map_err(|e| Refusal::config(format!("--cover-issuer-key {path}: {e}")))?;
+    let text = std::fs::read_to_string(path)
+        .map_err(|e| Refusal::config(format!("--cover-issuer-key {path}: {}", podssh_ws::text::said(&e))))?;
     let signing = podssh_ws::delegated::parse_issuer_seed(&text)
         .map_err(|why| Refusal::config(format!("--cover-issuer-key {path}: {why}")))?;
     let issuer = Issuer::from_signing(signing);
@@ -155,7 +156,7 @@ pub(super) fn open(
     if !Path::new(dir).is_dir() {
         return Err(Refusal::config(format!("{FLAG} {dir}: not a directory")));
     }
-    let site = Site::load(dir).map_err(|e| Refusal::config(format!("{FLAG} {dir}: {e}")))?;
+    let site = Site::load(dir).map_err(|e| Refusal::config(format!("{FLAG} {dir}: {}", podssh_ws::text::said(&e))))?;
     let (name, owned) = names.split_first().expect("a cover has a name");
     Cover::new_covered(site, name, owned, issuer, server, script)
         .map_err(|why| Refusal::usage(format!("{FLAG} {dir}: {why}")))

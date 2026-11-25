@@ -308,7 +308,7 @@ The relay sends no keepalives on reverse sockets (`docs/reverse.md:39-49`).
 Read: the codecs: `encode_operator_frame` and `chunk_for_bare`
 (crates/podssh-transport/src/framing/legs.rs lines 60-76 at `e8bbd4d`, lines 125-133), and `parse_operator_control`
 (crates/podssh-transport/src/control.rs lines 223-230 at `e8bbd4d`). `podssh proxy` has the pump to follow: stdin and
-stdout, liveness, the close reason (`crates/podssh-cli/src/pipe/relay.rs:118-259`).
+stdout, liveness, the close reason (`crates/podssh-cli/src/pipe/relay.rs:118-260`).
 
 Read in a local copy of podbox at `5bd8cb0`: `run_operator` waits 20 s for `ready`, queues at most
 1 MiB of input before it, sends a Close after the end of input and waits 10 s for the answer, and
@@ -910,7 +910,7 @@ host, never the relay's name (`SECURITY.md:263-273`); `HostKeyAlias` exists
 
 1. `podssh operator NAME`: load the operator's part of the pair under NAME (T-078, T-083), and run
    `operator::run` (T-080) on stdin and stdout: a byte pipe as `podssh proxy`
-   (`crates/podssh-cli/src/pipe/relay.rs:118-259`). stdout carries data only; never 0 without `ready`.
+   (`crates/podssh-cli/src/pipe/relay.rs:118-260`). stdout carries data only; never 0 without `ready`.
 2. `podssh ssh node://[user@]NAME`: `parse_hop` reads `node://` as it reads `ssh://`; add
    `Transport::Node` (`crates/podssh-cli/src/ssh/transport_kind.rs:9-74`).
 3. For a node, `connect_and_run` opens the operator leg and waits for `ready` (T-080), then gives
@@ -1950,7 +1950,7 @@ T-107), and the relay stays a separate project (`docs/decisions.md`). The two sh
    start of the session: a change of the framing in crates/podssh-transport/src/framing/legs.rs lines 60-76 at `e8bbd4d`. The
    node checks the grant before it dials the TARGET, so the dial moves after `ready` (`docs/reverse.md:16`):
    the seam of T-088 and T-089. Spent nonces are create-new private files
-   (`crates/podssh-relay/src/cache.rs:272-290`).
+   (`crates/podssh-relay/src/cache.rs:276-294`).
 3. Both shapes: an SSHSIG signature in a fixed podssh namespace, which `ssh-keygen -Y verify` can check
    (T-020), with the keys of T-087, in pure Rust (`AGENTS.md:447-450`).
 4. Relations: T-078 makes the pair that a grant protects; T-086 can deliver a grant in place of the
@@ -2042,7 +2042,7 @@ parts, and the Decision above (the relay's shape, by the relay's operator) gives
   window that it must have, a random serial, and the critical option `once@podssh`. OpenSSH's
   `ssh-keygen -s ... -O critical:once@podssh` mints one, and so does `podssh keygen -s`
   (`crates/podssh-cli/src/keygen_cert.rs:1-6`). The node checks it before it dials, records the
-  serial in a create-new private file (`crates/podssh-relay/src/cache.rs:272-278`), and refuses
+  serial in a create-new private file (`crates/podssh-relay/src/cache.rs:276-282`), and refuses
   a second use. Bound to the grantee's key, a leaked grant is worth nothing without that key,
   which answers the reporter's correction; a resume of the layer runs no new handshake, so a
   used grant ends no resumed session.
@@ -2312,7 +2312,7 @@ podssh knew in advance, and said nowhere.
 
 ## Premise
 
-- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:136`).
+- Read, at `ea2bd4f`: a unit of T-121 does not restart after 77 (`crates/podssh-cli/src/node_install/text.rs:137`).
 - Read: the node's hook for a new pair is unset (`crates/podssh-cli/src/node.rs:381`, `repair:
   None`).
 
@@ -5738,7 +5738,7 @@ answered. The manual's EXIT STATUS gives 77 to a refusal of the relay, and the s
   (PodUtils/podcrates:crates/pod-relay/src/token.rs, `TokenError`).
 - Read: `sysexit` (`crates/podssh-cli/src/proxy.rs:487`) mapped `TokenError::Failed` to `EX_UNAVAILABLE` (69); a
   `401` or `403` of the upgrade was `EX_NOPERM` (77). `relay_layer.rs` already reads a mint's `401`/`403` as a refusal
-  (`crates/podssh-cli/src/relay_layer.rs:386`). `ssh`, `pipe`, `chat` and the layer take the same map.
+  (`crates/podssh-cli/src/relay_layer.rs:387`). `ssh`, `pipe`, `chat` and the layer take the same map.
 
 ## Approach
 
@@ -5873,7 +5873,7 @@ Windows check clean; `llms.txt` and `llms-full.txt` written again.
   (`crates/podssh-cli/src/relay_serve.rs:234`).
 - Read: `derp::of` mapped each failure of the file to `Refusal::usage` (`crates/podssh-cli/src/relay_serve/derp.rs:15`);
   `cover::of` said a missing directory with `Refusal::usage`.
-- Read: T-827 chose a warning for a key that others may read (`crates/podssh-cli/src/relay_serve/certs.rs:167`); its
+- Read: T-827 chose a warning for a key that others may read (`crates/podssh-cli/src/relay_serve/certs.rs:169`); its
   record says the help's words allow it.
 
 ## Approach
@@ -6167,7 +6167,7 @@ Windows check clean; `llms.txt` and `llms-full.txt` written again.
 - Read: `pod-relay`'s `file_name` puts "the label " before `pod-core`'s "the pair name is empty"
   (PodUtils/podcrates:crates/pod-relay/src/pair.rs, `file_name`; crates/pod-core/src/names.rs, `check_node_name`);
   podssh said it as it came (`crates/podssh-cli/src/pairs.rs:37`).
-- Read: the refusal of `--sshd` with `--cover` (`crates/podssh-cli/src/relay_serve/cover.rs:198`).
+- Read: the refusal of `--sshd` with `--cover` (`crates/podssh-cli/src/relay_serve/cover.rs:199`).
 - Read: ping joined the lines of a cause with "; " (`crates/podssh-cli/src/ping/mod.rs:248`), after a line of the
   host key's refusal that ends with ".".
 

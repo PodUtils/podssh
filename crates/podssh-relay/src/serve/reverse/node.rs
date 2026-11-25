@@ -191,7 +191,7 @@ async fn socket<S>(
                     // After the role's own Close, the end of the link is
                     // expected, not a loss.
                     if closing.is_none() {
-                        lost = Some(e.to_string());
+                        lost = Some(podssh_ws::text::said(&e));
                     }
                     break;
                 }

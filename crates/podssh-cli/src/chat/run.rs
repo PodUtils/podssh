@@ -55,7 +55,7 @@ pub fn run_chat(
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh chat: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh chat: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Fault::SessionFault.code();
         }
     };
@@ -113,7 +113,7 @@ async fn drive(
     let mut lines = match read {
         Ok(lines) => lines,
         Err(e) => {
-            let _ = writeln!(err, "podssh chat: {label}: the input could not be read: {e}");
+            let _ = writeln!(err, "podssh chat: {label}: the input could not be read: {}", podssh_ws::text::said(&e));
             return EX_SOFTWARE;
         }
     };

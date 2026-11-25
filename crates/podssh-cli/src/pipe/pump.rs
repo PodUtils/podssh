@@ -114,7 +114,7 @@ pub async fn copy(mut from: Reader, mut to: Writer, count: &AtomicU64, input: &s
                 let carried = count.load(Ordering::Relaxed);
                 let how = match shut {
                     Ok(()) => "shut down".to_owned(),
-                    Err(e) => format!("not shut down: {e}"),
+                    Err(e) => format!("not shut down: {}", podssh_ws::text::said(&e)),
                 };
                 let ended = match &failed {
                     None => "ended".to_owned(),

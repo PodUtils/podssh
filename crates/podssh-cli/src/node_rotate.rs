@@ -262,7 +262,7 @@ async fn once(label: &str, held: &Held, by: &ByStop) -> Turned {
         Ok(Rotated::Asked) => {}
         Ok(Rotated::NotServed) => return Turned::NotServed,
         Err(PairError::Forbidden) => return Turned::Refused,
-        Err(e) => return Turned::Again(e.to_string()),
+        Err(e) => return Turned::Again(podssh_ws::text::said(&e)),
     }
     // Kept before its first use: from here the relay takes it as the one to
     // come, and the node holds it.
@@ -282,7 +282,7 @@ async fn once(label: &str, held: &Held, by: &ByStop) -> Turned {
             let kept = back.err().map(|why| format!(", which the store took no write of ({why})")).unwrap_or_default();
             Turned::Again(format!("the relay refused the new token at its first use, so the one before stays{kept}"))
         }
-        Err(e) => Turned::Kept(e.to_string()),
+        Err(e) => Turned::Kept(podssh_ws::text::said(&e)),
     }
 }
 
@@ -290,10 +290,10 @@ async fn once(label: &str, held: &Held, by: &ByStop) -> Turned {
 fn keep(label: &str, name: &str, stop_token: &str) -> Result<(), String> {
     match pair::load(label) {
         Ok(Some(stored)) if stored.name == name => {
-            pair::store(label, &stored.with_stop(stop_token)).map(|_| ()).map_err(|e| e.to_string())
+            pair::store(label, &stored.with_stop(stop_token)).map(|_| ()).map_err(|e| podssh_ws::text::said(&e))
         }
         Ok(_) => Err(format!("the store holds no copy of this pair under {label:?}")),
-        Err(e) => Err(e.to_string()),
+        Err(e) => Err(podssh_ws::text::said(&e)),
     }
 }
 

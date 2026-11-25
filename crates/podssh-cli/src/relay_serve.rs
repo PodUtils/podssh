@@ -164,7 +164,7 @@ fn prepare(s: &ServeArgs, ca_file: Option<&str>) -> Result<Prepared, Refusal> {
         crate::harden::give_up(&[])
     })?;
     let sessions = quic::offered(sessions, &udp);
-    let bound = listener.local_addr().map_err(|e| Refusal::config(e.to_string()))?;
+    let bound = listener.local_addr().map_err(|e| Refusal::config(podssh_ws::text::said(&e)))?;
     // The owner's socket of the documents that a cover moves, after the
     // capability drop: it is a file of this user (T-767).
     let control = match (s.control_socket.as_deref(), cover.is_some()) {
@@ -235,8 +235,10 @@ fn bind_then_drop(
     listen: &str,
     give_up: impl FnOnce(&std::net::TcpListener) -> Result<Option<String>, Refusal>,
 ) -> Result<(std::net::TcpListener, Option<String>), Refusal> {
-    let listener = std::net::TcpListener::bind(listen)
-        .map_err(|e| Refusal { message: format!("cannot listen on {listen}: {e}"), code: EX_UNAVAILABLE })?;
+    let listener = std::net::TcpListener::bind(listen).map_err(|e| Refusal {
+        message: format!("cannot listen on {listen}: {}", podssh_ws::text::said(&e)),
+        code: EX_UNAVAILABLE,
+    })?;
     let dropped = give_up(&listener)?;
     Ok((listener, dropped))
 }
@@ -349,7 +351,8 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh relay serve: could not start the async runtime: {e}");
+            let _ =
+                writeln!(err, "podssh relay serve: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EX_CONFIG;
         }
     };
@@ -363,7 +366,7 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
     };
     if let Some((path, port)) = port_file {
         if let Err(e) = std::fs::write(&path, port.to_string()) {
-            let _ = writeln!(err, "podssh relay serve: {path}: {e}");
+            let _ = writeln!(err, "podssh relay serve: {path}: {}", podssh_ws::text::said(&e));
             return EX_CONFIG;
         }
     }
@@ -372,7 +375,7 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
         if listener.set_nonblocking(true).is_err() {
             return Err("the listener cannot be made non-blocking".to_string());
         }
-        let listener = tokio::net::TcpListener::from_std(listener).map_err(|e| e.to_string())?;
+        let listener = tokio::net::TcpListener::from_std(listener).map_err(|e| podssh_ws::text::said(&e))?;
         // QUIC beside the listener, with the certificate that it presents.
         if let Some(socket) = udp {
             quic::spawn(socket, kept.served.clone(), cfg.clone())?;
@@ -452,7 +455,7 @@ fn serve_until_stopped(prepared: Prepared, err: &mut dyn Write) -> i32 {
                 }
                 ended = &mut keeper => {
                     // No certificate to serve: the first order failed.
-                    return Err(ended.unwrap_or_else(|e| format!("the certificate's keeper stopped: {e}")));
+                    return Err(ended.unwrap_or_else(|e| format!("the certificate's keeper stopped: {}", podssh_ws::text::said(&e))));
                 }
                 _ = stopped::stopped() => {
                     // A planned stop: each reverse socket hears 1012, which

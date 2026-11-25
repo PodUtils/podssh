@@ -72,7 +72,7 @@ async fn read_control(mut read: ReadHalf<Stream>, answers: mpsc::Sender<Vec<u8>>
                 }
             }
             Err(e) => {
-                note(&format!("the TURN server ended the allocation's control connection: {e}"));
+                note(&format!("the TURN server ended the allocation's control connection: {}", crate::text::said(&e)));
                 return;
             }
         }
@@ -109,8 +109,8 @@ async fn refresh_once(
     for round in 0..2 {
         let id = client::transaction_id().map_err(|e| e.to_string())?;
         let request = auth.sign(REFRESH, &id, &[]);
-        write.write_all(&request).await.map_err(|e| format!("a write failed: {e}"))?;
-        write.flush().await.map_err(|e| format!("a write failed: {e}"))?;
+        write.write_all(&request).await.map_err(|e| format!("a write failed: {}", crate::text::said(&e)))?;
+        write.flush().await.map_err(|e| format!("a write failed: {}", crate::text::said(&e)))?;
         let answer = tokio::time::timeout(ANSWER_WAIT, wait_for(inbox, &id))
             .await
             .map_err(|_| format!("no answer in {} s", ANSWER_WAIT.as_secs()))??;

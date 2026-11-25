@@ -76,7 +76,7 @@ pub async fn read_message<S: AsyncRead + Unpin>(stream: &mut S) -> Result<Vec<u8
 fn closed(e: &std::io::Error) -> TurnError {
     match e.kind() {
         std::io::ErrorKind::UnexpectedEof => TurnError::Protocol("it closed the connection".into()),
-        _ => TurnError::Protocol(format!("the connection failed: {e}")),
+        _ => TurnError::Protocol(format!("the connection failed: {}", crate::text::said(&e))),
     }
 }
 

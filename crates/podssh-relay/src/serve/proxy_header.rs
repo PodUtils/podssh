@@ -97,7 +97,7 @@ async fn begins_header(tcp: &TcpStream, wait: Duration) -> bool {
 /// The header at the start of `from`, read to its last byte and no further.
 pub async fn read<R: AsyncRead + Unpin>(from: &mut R) -> Result<Said, String> {
     let mut first = [0u8; 1];
-    from.read_exact(&mut first).await.map_err(|e| format!("the PROXY header: {e}"))?;
+    from.read_exact(&mut first).await.map_err(|e| format!("the PROXY header: {}", podssh_ws::text::said(&e)))?;
     match first[0] {
         b'P' => v1(from).await,
         b'\r' => v2(from).await,
@@ -113,7 +113,7 @@ async fn v1<R: AsyncRead + Unpin>(from: &mut R) -> Result<Said, String> {
         if line.len() >= V1_MAX {
             return Err(format!("a PROXY line longer than {V1_MAX} bytes"));
         }
-        from.read_exact(&mut byte).await.map_err(|e| format!("the PROXY line: {e}"))?;
+        from.read_exact(&mut byte).await.map_err(|e| format!("the PROXY line: {}", podssh_ws::text::said(&e)))?;
         line.push(byte[0]);
     }
     parse_v1(&line[..line.len() - 2])
@@ -141,7 +141,7 @@ pub fn parse_v1(line: &[u8]) -> Result<Said, String> {
 /// Version 2, after its first `\r`.
 async fn v2<R: AsyncRead + Unpin>(from: &mut R) -> Result<Said, String> {
     let mut head = [0u8; 15];
-    from.read_exact(&mut head).await.map_err(|e| format!("the PROXY header: {e}"))?;
+    from.read_exact(&mut head).await.map_err(|e| format!("the PROXY header: {}", podssh_ws::text::said(&e)))?;
     if head[..11] != V2_SIGNATURE[1..] {
         return Err("a header that begins as PROXY's version 2 and is not".into());
     }
@@ -150,7 +150,7 @@ async fn v2<R: AsyncRead + Unpin>(from: &mut R) -> Result<Said, String> {
         return Err(format!("a PROXY header of {length} bytes of addresses, past {V2_MAX}"));
     }
     let mut rest = vec![0u8; length];
-    from.read_exact(&mut rest).await.map_err(|e| format!("the PROXY header: {e}"))?;
+    from.read_exact(&mut rest).await.map_err(|e| format!("the PROXY header: {}", podssh_ws::text::said(&e)))?;
     parse_v2(head[11], head[12], &rest)
 }
 

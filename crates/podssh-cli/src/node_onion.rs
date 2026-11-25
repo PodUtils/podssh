@@ -134,7 +134,7 @@ where
     let mut onion = match tor.serve_onion(&options) {
         Ok(onion) => onion,
         Err(failure) => {
-            line(format!("{failure}; the node serves its other roads"));
+            line(format!("{}; the node serves its other roads", podssh_ws::text::said(&failure)));
             return std::future::pending().await;
         }
     };
@@ -156,10 +156,10 @@ where
                 break;
             }
             Err(failure) if failure.detail == pod_tor::onion::STOPPED => {
-                line(format!("{failure}; the node serves its other roads"));
+                line(format!("{}; the node serves its other roads", podssh_ws::text::said(&failure)));
                 return std::future::pending().await;
             }
-            Err(failure) => line(format!("{failure}; it goes on trying")),
+            Err(failure) => line(format!("{}; it goes on trying", podssh_ws::text::said(&failure))),
         }
     }
     let (queue, visitors) = tokio::sync::mpsc::channel::<Visitor>(64);

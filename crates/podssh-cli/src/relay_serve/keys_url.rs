@@ -111,7 +111,7 @@ pub(crate) fn first(mint: &Mint) -> Result<String, Refusal> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Refusal::config(format!("could not start the async runtime: {e}")))?;
+        .map_err(|e| Refusal::config(format!("could not start the async runtime: {}", podssh_ws::text::said(&e))))?;
     let came = runtime.block_on(copy.refresh());
     runtime.shutdown_timeout(FETCH_TIMEOUT);
     let list = came.map_err(|why| Refusal::config(format!("--mint keys:{}: {why}", copy.shown())))?;

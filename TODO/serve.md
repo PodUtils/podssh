@@ -123,7 +123,7 @@ on T-698.
   `VERB_OWNER` moved to `crates/podssh-cli/src/flags/availability.rs` beside it.
 - `keygen::write_pair` does not keep Approach item 3's invariant: it writes `FILE.pub` too, and a
   second start that reads between its create and its write reads half a key. The host key is made
-  with `podssh_relay::cache::create_private` (`crates/podssh-relay/src/cache/own.rs:67`): a whole
+  with `podssh_relay::cache::create_private` (`crates/podssh-relay/src/cache/own.rs:68`): a whole
   private file through a hard link, never over one that is there, so of two starts one makes it and
   the other reads it. `podssh-ssh` does not depend on `podssh-relay`, so the caller passes the
   functions (`StateFiles`), as it passes `KeyFiles` to keygen. No `.pub` file is written: the
@@ -3266,10 +3266,10 @@ logon after a reboot; and a reverse tunnel of `podssh ssh -N -R --persist` canno
 ## Premise
 
 - Read: `Restart=on-failure`, `RestartSec=10`, no `StartLimitIntervalSec`
-  (`crates/podssh-cli/src/node_install/text.rs:152`).
+  (`crates/podssh-cli/src/node_install/text.rs:153`).
 - Read: the cron line is `@reboot` alone (`crates/podssh-cli/src/node_install/unix.rs:137`).
 - Read: the Windows task restarts each minute, 999 times, at a logon
-  (`crates/podssh-cli/src/node_install/text.rs:255`).
+  (`crates/podssh-cli/src/node_install/text.rs:256`).
 
 ## Approach
 
@@ -3538,7 +3538,7 @@ connection.
 
 - `crates/podssh-cli/src/relay_serve.rs` said `mod harden;` before this entry: the drop was private to
   `relay_serve`. Its only call is `crates/podssh-cli/src/relay_serve.rs:167`
-  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:137` only reads
+  (`harden::give_up()`); `crates/podssh-cli/src/relay_serve/certs.rs:139` only reads
   `harden::dropped()`. The files are `harden.rs` (284 lines), `harden_sys.rs` (118) and
   `harden_tests.rs` (228).
 - `crates/podssh-cli/src/first_thread.rs` and `crates/podssh-cli/src/main.rs:32` hold the hand-off
@@ -3653,7 +3653,7 @@ without a user manager gets a cron line. The unit has no hardening.
   (`crates/podssh-cli/src/node_install/unix.rs:19-27`); the units go to `~/.config/systemd/user`
   (`unix.rs:29-36`).
 - Read: the unit has `Restart=always` and no `User=`, `NoNewPrivileges` or `ProtectSystem`
-  (`crates/podssh-cli/src/node_install/text.rs:133-161`).
+  (`crates/podssh-cli/src/node_install/text.rs:134-162`).
 - Read: no token is in a unit now. The variables go to a private file beside the pair, and a secret is
   never carried (`crates/podssh-cli/src/node_install/env.rs:38`, `:7-9`). Keep that.
 - Read: T-593 made the cache follow `HOME` into another user's home; a system unit of a named user must name

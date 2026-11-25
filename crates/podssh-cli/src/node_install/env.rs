@@ -164,7 +164,8 @@ pub(super) fn planned(kind: Kind, label: &str) -> Result<PathBuf, Refusal> {
 
 /// Read FILE, a private file, and set each of its variables in this process.
 pub(super) fn apply(path: &Path) -> Result<(), Refusal> {
-    let text = podssh_relay::cache::read_private(path).map_err(|e| Refusal::config(format!("--env-file: {e}")))?;
+    let text = podssh_relay::cache::read_private(path)
+        .map_err(|e| Refusal::config(format!("--env-file: {}", podssh_ws::text::said(&e))))?;
     let vars = parse(&text).map_err(|e| Refusal::config(format!("--env-file {}: {e}", path.display())))?;
     for (name, value) in vars {
         // The first thing that the node does, while this process has one

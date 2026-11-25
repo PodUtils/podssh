@@ -58,10 +58,16 @@ pub(crate) async fn probe(target: &Route, limit: Duration) -> Result<(), Refusal
     match flow::probe(&*podssh_ws::resolve::resolver(), &target.host, target.port, limit).await {
         Ok(_) => Ok(()),
         Err(e) if e.host_refuses() => Err(Refusal {
-            message: format!("TARGET {shown}: {e}; a node that sends UDP needs a host that allows it"),
+            message: format!(
+                "TARGET {shown}: {}; a node that sends UDP needs a host that allows it",
+                podssh_ws::text::said(&e)
+            ),
             code: Fault::Capability.code(),
         }),
-        Err(e) => Err(Refusal { message: format!("TARGET {shown}: {e}"), code: Fault::RelayUnreachable.code() }),
+        Err(e) => Err(Refusal {
+            message: format!("TARGET {shown}: {}", podssh_ws::text::said(&e)),
+            code: Fault::RelayUnreachable.code(),
+        }),
     }
 }
 

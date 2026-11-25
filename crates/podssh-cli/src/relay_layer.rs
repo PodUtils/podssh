@@ -257,7 +257,8 @@ pub async fn run(relays: &RelayList, trust: &Trust, (host, port): (&str, u16), e
                 say(err, &no_room_line(&at, words));
                 return None;
             }
-            let _ = writeln!(err, "podssh: {at}: the resumable layer's handshake failed: {e}");
+            let _ =
+                writeln!(err, "podssh: {at}: the resumable layer's handshake failed: {}", podssh_ws::text::said(&e));
             return Some(EX_UNAVAILABLE);
         }
         None => {
@@ -393,7 +394,7 @@ pub(crate) fn dead_alone(relays: &RelayList, missed: &Missed) -> bool {
 /// get again ends the run with its lines and code; another failure leaves
 /// the session to the contract's road, which may try another host.
 fn refused(relays: &RelayList, missed: &Missed, dialer: &Dialer, at: &str, err: &mut dyn Write) -> Option<i32> {
-    let lines = missed.lines(dialer.target());
+    let lines: Vec<String> = missed.lines(dialer.target()).iter().map(|line| podssh_ws::text::plain(line)).collect();
     if (missed.is_final() || dead_alone(relays, missed)) && !way_refused(missed) {
         for line in &lines {
             let _ = writeln!(err, "podssh: {line}");

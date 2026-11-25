@@ -282,7 +282,7 @@ pub(crate) fn operator(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wr
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh {verb}: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh {verb}: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Fault::SessionFault.code();
         }
     };
@@ -378,7 +378,7 @@ pub(crate) fn refusal_of(e: &ConnectError) -> Refusal {
         ConnectError::Config(_) => Fault::Config.code(),
         _ => Fault::RelayUnreachable.code(),
     };
-    Refusal { message: e.to_string(), code }
+    Refusal { message: podssh_ws::text::said(&e), code }
 }
 
 /// How a session over a carrier ended: the exit code and the line that says

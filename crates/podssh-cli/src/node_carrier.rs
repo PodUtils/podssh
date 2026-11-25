@@ -112,7 +112,7 @@ pub(crate) fn run(args: &NodeArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh node: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh node: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Fault::SessionFault.code();
         }
     };
@@ -217,7 +217,7 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     let session = carrier::node_socket(link);
     // The node's first frame: the client opens no session before it.
     if let Err(e) = carrier::greet(&session).await {
-        let _ = writeln!(err, "podssh node: {label}: the carrier {text} failed at once: {e}");
+        let _ = writeln!(err, "podssh node: {label}: the carrier {text} failed at once: {}", podssh_ws::text::said(&e));
         return finish(child, Fault::RelayUnreachable.code()).await;
     }
     let _ = writeln!(err, "podssh node: {label}: online: the carrier's client takes this node's sessions");
@@ -300,7 +300,7 @@ fn ended(end: End) -> (i32, String) {
             let reason = podssh_ws::text::one_line(&close.reason);
             (unreachable, format!("the carrier's client closed the stream ({} {reason})", close.code))
         }
-        End::Failed(e) => (unreachable, format!("the carrier's stream failed: {e}")),
+        End::Failed(e) => (unreachable, format!("the carrier's stream failed: {}", podssh_ws::text::said(&e))),
         // A client of another dialect of the reverse road (T-643): a new
         // stream of the same client would say the same.
         End::Unread(why) => (Fault::Config.code(), why),

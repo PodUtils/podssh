@@ -197,7 +197,7 @@ impl Talk<'_> {
                 let _ = self.tx.send(wire.into_bytes());
                 self.state.last_send = Instant::now();
             }
-            Err(e) => self.out_of_band.push(format!("a line was not sent: {e}")),
+            Err(e) => self.out_of_band.push(format!("a line was not sent: {}", podssh_ws::text::said(&e))),
         }
     }
 
@@ -271,7 +271,7 @@ impl Talk<'_> {
             self.state.join_sent = true;
             match self.session.send_join(&self.opts.channel, None) {
                 Ok(join) => self.send_all(join),
-                Err(e) => return Some(Ended::Refused(format!("{}: {e}", self.opts.channel))),
+                Err(e) => return Some(Ended::Refused(format!("{}: {}", self.opts.channel, podssh_ws::text::said(&e)))),
             }
         }
         for why in std::mem::take(&mut self.out_of_band) {
@@ -351,7 +351,7 @@ impl Talk<'_> {
                 }
             }
             Err(e) => {
-                let why = format!("not sent: {e}");
+                let why = format!("not sent: {}", podssh_ws::text::said(&e));
                 out.notice("error", json!({ "error": why }), why.clone()).await;
             }
         }

@@ -72,7 +72,9 @@ async fn open_unix(
     if !admit() {
         return Err(NodeRefusal::Other(NO_ROOM.to_string()));
     }
-    let failed = |e: io::Error| NodeRefusal::NoTarget(format!("{}{}: {e}", node_unix::PREFIX, route.path));
+    let failed = |e: io::Error| {
+        NodeRefusal::NoTarget(format!("{}{}: {}", node_unix::PREFIX, route.path, podssh_ws::text::said(&e)))
+    };
     let mut stream = connect(&route.path).await.map_err(failed)?;
     if route.caller_line {
         // Before any byte of the session: the service reads one line, then the stream.

@@ -124,7 +124,7 @@ pub async fn open(server: &Server, host: &str, port: u16, dial: &Dial) -> Result
     session
         .send_binary(&request)
         .await
-        .map_err(|e| VlessError::Carry(format!("sending VLESS's request failed: {e}")))?;
+        .map_err(|e| VlessError::Carry(format!("sending VLESS's request failed: {}", crate::text::said(&e))))?;
     let mut stream = Answered::new(spawn(session, dial.at_end));
     let answered = match tokio::time::timeout(dial.answer, stream.answer()).await {
         Ok(Ok(())) => true,
@@ -196,7 +196,9 @@ async fn link(
     // the request of a 1-RTT session. `flush` drives the handshake to its end
     // and replays the write at 1-RTT on this connection where the server
     // refused it, so the write happens once and is never sent twice.
-    tls.write_all(frame).await.map_err(|e| VlessError::Carry(format!("sending the upgrade failed: {e}")))?;
+    tls.write_all(frame)
+        .await
+        .map_err(|e| VlessError::Carry(format!("sending the upgrade failed: {}", crate::text::said(&e))))?;
     tls.flush().await.map_err(|e| VlessError::Carry(format!("TLS: {}", crate::tls::handshake_failure(&e))))?;
     let accepted = send.then(|| tls.get_ref().1.is_early_data_accepted());
     let (tls, pending) = client::upgrade_with(tls, &[], key).await.map_err(|e| upgrade_failed(e, &server.path))?;

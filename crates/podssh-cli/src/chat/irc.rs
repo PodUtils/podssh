@@ -145,7 +145,7 @@ async fn connect(ready: &Ready) -> Result<Box<dyn Bytes>, Unreached> {
         match podssh_ws::dial::dial(&ready.plan.server, ready.plan.port, &proxy, DIAL_LIMIT).await {
             Ok(tcp) => Box::new(tcp),
             Err(podssh_ws::DialError::BadProxy(why)) => return Err(Unreached::Final(EX_CONFIG, why)),
-            Err(e) => return Err(Unreached::Again(format!("{target}: {e}"))),
+            Err(e) => return Err(Unreached::Again(format!("{target}: {}", podssh_ws::text::said(&e)))),
         }
     } else {
         let request = Request {
@@ -161,7 +161,7 @@ async fn connect(ready: &Ready) -> Result<Box<dyn Bytes>, Unreached> {
                 .await
                 .map_err(|failure| {
                     let code = crate::proxy::sysexit(failure.last());
-                    let why = failure.lines(target).join("; ");
+                    let why = podssh_ws::text::plain(&failure.lines(target).join("; "));
                     if code == EX_UNAVAILABLE {
                         Unreached::Again(why)
                     } else {

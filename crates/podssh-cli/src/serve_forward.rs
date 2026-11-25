@@ -150,7 +150,7 @@ impl Forward {
             }
         };
         if let Err(e) = pair::store(&label, &made) {
-            let _ = ready.send(Err(format!("the forward's pair could not be kept: {e}")));
+            let _ = ready.send(Err(format!("the forward's pair could not be kept: {}", podssh_ws::text::said(&e))));
             end(&ctx, &made, &label).await;
             return;
         }

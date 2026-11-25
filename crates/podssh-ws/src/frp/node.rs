@@ -91,7 +91,9 @@ where
         let started = Instant::now();
         match once(&road, &name, &say, work.clone()).await {
             Err(e) if e.is_bad_token() => return e.to_string(),
-            Err(e) => say(format!("the road through {} ended: {e}; trying again", road.server.shown())),
+            Err(e) => {
+                say(format!("the road through {} ended: {}; trying again", road.server.shown(), crate::text::said(&e)))
+            }
             Ok(()) => {}
         }
         if started.elapsed() >= STEADY {
@@ -161,7 +163,7 @@ where
                 tokio::spawn(async move {
                     match Session::work_conn(&mux, &token, &run_id).await {
                         Ok((stream, _start)) => work(stream).await,
-                        Err(e) => say(format!("a work connection failed: {e}")),
+                        Err(e) => say(format!("a work connection failed: {}", crate::text::said(&e))),
                     }
                 });
             }

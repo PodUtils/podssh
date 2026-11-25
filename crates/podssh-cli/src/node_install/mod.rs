@@ -246,7 +246,7 @@ fn label(args: &NodeArgs, flag: &str) -> Result<String, Refusal> {
 pub(crate) fn this_binary() -> Result<PathBuf, Refusal> {
     std::env::current_exe()
         .and_then(std::path::absolute)
-        .map_err(|e| Refusal::config(format!("the path of this podssh is not known: {e}")))
+        .map_err(|e| Refusal::config(format!("the path of this podssh is not known: {}", podssh_ws::text::said(&e))))
 }
 
 /// The private file of the variables of `kind`'s service NAME, written now,
@@ -255,7 +255,7 @@ pub(crate) fn env_file(kind: Kind, name: &str, notes: &mut Vec<String>) -> Resul
     let (body, left) = env::body();
     note_left(left, notes);
     let file = podssh_relay::cache::store_file(&env::file_name(kind, name), body.as_bytes())
-        .map_err(|e| Refusal::config(format!("the file of the service's variables: {e}")))?;
+        .map_err(|e| Refusal::config(format!("the file of the service's variables: {}", podssh_ws::text::said(&e))))?;
     notes.push(format!(
         "its variables are in {}, a private file (a proxy's password too, when its URL has one)",
         file.display()
@@ -397,7 +397,7 @@ pub(crate) fn run(cmd: &mut Command) -> Result<Output, String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("{shown}: {e}"))?;
+        .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     // Read as the program writes, so that a long answer cannot hold it.
     let reader = |pipe: Option<Box<dyn Read + Send>>| {
         std::thread::spawn(move || {
@@ -420,7 +420,7 @@ pub(crate) fn run(cmd: &mut Command) -> Result<Output, String> {
                 let _ = child.wait();
                 return Err(format!("{shown} did not end within {} s", PROGRAM_LIMIT.as_secs()));
             }
-            Err(e) => return Err(format!("{shown}: {e}")),
+            Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
         }
     };
     Ok(Output { status, stdout: stdout.join().unwrap_or_default(), stderr: stderr.join().unwrap_or_default() })

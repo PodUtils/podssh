@@ -163,7 +163,7 @@ impl Bound {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .map_err(|e| (EXIT_NOT_IMPLEMENTED, format!("no runtime: {e}")))?;
+            .map_err(|e| (EXIT_NOT_IMPLEMENTED, format!("no runtime: {}", podssh_ws::text::said(&e))))?;
         let listening = runtime.block_on(async {
             let mut listening = Vec::new();
             for address in &plan.listen {
@@ -179,9 +179,9 @@ async fn bind(address: &Address) -> Result<Listening, (i32, String)> {
     match address {
         Address::TcpListen { host, port } => {
             let shown = podssh_ws::dial::authority(host, *port);
-            let listener = tokio::net::TcpListener::bind((host.as_str(), *port))
-                .await
-                .map_err(|e| (pipe_listen::code(&e), cannot(&shown, &e.to_string(), pipe_listen::code(&e))))?;
+            let listener = tokio::net::TcpListener::bind((host.as_str(), *port)).await.map_err(|e| {
+                (pipe_listen::code(&e), cannot(&shown, &podssh_ws::text::said(&e), pipe_listen::code(&e)))
+            })?;
             let at = listener.local_addr().map(|a| a.to_string()).unwrap_or(shown);
             let loopback = host.parse::<IpAddr>().is_ok_and(|ip| ip.is_loopback());
             let who = if loopback { "each user of this host can connect" } else { "other hosts can connect" };
@@ -308,7 +308,7 @@ async fn accept_each(mut listening: Listening, tx: mpsc::Sender<Accepted>) {
             }
             Err(e) => {
                 failed += 1;
-                podssh_ssh::err_line!("podssh serve: {at}: an accept failed: {e}");
+                podssh_ssh::err_line!("podssh serve: {at}: an accept failed: {}", podssh_ws::text::said(&e));
                 if failed >= FAILED_ACCEPTS {
                     let gone = format!("{FAILED_ACCEPTS} accepts failed in a row: it listens no more");
                     podssh_ssh::err_line!("podssh serve: {at}: {gone}");

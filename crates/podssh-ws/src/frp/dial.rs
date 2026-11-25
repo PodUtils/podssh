@@ -93,10 +93,13 @@ pub async fn connect(
     let shown = server.shown();
     match server {
         Server::Tls { host, port } => {
-            let mut tcp = dial::dial(host, *port, proxy, timeout).await.map_err(|e| format!("{shown}: {e}"))?;
-            tcp.write_all(&[TLS_HEAD_BYTE]).await.map_err(|e| format!("{shown}: {e}"))?;
-            let tls =
-                crate::tls_wrap::tls_over(tcp, host, trust, timeout).await.map_err(|e| format!("{shown}: {e}"))?;
+            let mut tcp = dial::dial(host, *port, proxy, timeout)
+                .await
+                .map_err(|e| format!("{shown}: {}", crate::text::said(&e)))?;
+            tcp.write_all(&[TLS_HEAD_BYTE]).await.map_err(|e| format!("{shown}: {}", crate::text::said(&e)))?;
+            let tls = crate::tls_wrap::tls_over(tcp, host, trust, timeout)
+                .await
+                .map_err(|e| format!("{shown}: {}", crate::text::said(&e)))?;
             Ok(Box::new(tls))
         }
         Server::WebSocket(url) => {

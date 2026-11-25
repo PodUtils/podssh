@@ -188,7 +188,7 @@ fn looks_like_a_key(value: &str) -> bool {
 /// is the node's allowlist. The rule is the settings file's.
 #[cfg(unix)]
 fn owner_alone(path: &std::path::Path, opened: &std::fs::File) -> Result<(), String> {
-    let meta = opened.metadata().map_err(|e| format!("the file: {e}"))?;
+    let meta = opened.metadata().map_err(|e| format!("the file: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err("not a regular file".into());
     }
@@ -201,7 +201,7 @@ fn owner_alone(path: &std::path::Path, opened: &std::fs::File) -> Result<(), Str
 /// Windows keeps the writers in an access list; the rule is Unix's alone.
 #[cfg(not(unix))]
 fn owner_alone(_path: &std::path::Path, opened: &std::fs::File) -> Result<(), String> {
-    let meta = opened.metadata().map_err(|e| format!("the file: {e}"))?;
+    let meta = opened.metadata().map_err(|e| format!("the file: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err("not a regular file".into());
     }
@@ -213,10 +213,14 @@ fn owner_alone(_path: &std::path::Path, opened: &std::fs::File) -> Result<(), St
 pub(crate) fn read(file: &str) -> Result<Spec, Refusal> {
     use std::io::Read as _;
     let path = PathBuf::from(file);
-    let opened = std::fs::File::open(&path).map_err(|e| config(file, format!("the file: {e}")))?;
+    let opened =
+        std::fs::File::open(&path).map_err(|e| config(file, format!("the file: {}", podssh_ws::text::said(&e))))?;
     owner_alone(&path, &opened).map_err(|why| config(file, why))?;
     let mut bytes = Vec::new();
-    opened.take(FILE_MOST + 1).read_to_end(&mut bytes).map_err(|e| config(file, format!("the file: {e}")))?;
+    opened
+        .take(FILE_MOST + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| config(file, format!("the file: {}", podssh_ws::text::said(&e))))?;
     if bytes.len() as u64 > FILE_MOST {
         return Err(config(file, format!("the file is over {FILE_MOST} bytes")));
     }

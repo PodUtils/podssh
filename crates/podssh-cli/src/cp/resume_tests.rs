@@ -157,10 +157,11 @@ fn a_copy_that_another_runs_now_keeps_no_side_file() {
 /// that an earlier podssh wrote in Rust's `Debug` form is still read.
 #[test]
 fn a_state_has_a_stable_form_and_the_old_one_is_still_read() {
-    let at = UNIX_EPOCH + std::time::Duration::from_nanos(1_700_000_000_123_456_789);
+    // A whole 100 ns: Windows keeps a time in units of 100 ns.
+    let at = UNIX_EPOCH + std::time::Duration::from_nanos(1_700_000_000_123_456_700);
     let local = Before::Local { len: 3, modified: Some(at), id: Some((65024, 819359)) };
     let cases = [
-        (local, "local 3 1700000000123456789 65024:819359"),
+        (local, "local 3 1700000000123456700 65024:819359"),
         (Before::Local { len: 0, modified: None, id: None }, "local 0 - -"),
         (Before::Sftp { size: Some(7), mtime: Some(9) }, "sftp 7 9"),
         (Before::Sftp { size: None, mtime: Some(9) }, "sftp - 9"),

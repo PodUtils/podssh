@@ -139,7 +139,7 @@ pub fn run_pipe(args: &PipeArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh pipe: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh pipe: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_SOFTWARE;
         }
     };

@@ -129,16 +129,16 @@ async fn carry(mut edge: DuplexStream, dial: Dial, own: bool) -> Result<(), Stri
         let switched = status_of(&head) == Some(101);
         if own && !switched {
             // The visitor reads TARGET's framing itself; its connection ends here.
-            to_edge.write_all(&closing(&head)).await.map_err(|e| e.to_string())?;
-            to_edge.write_all(&rest).await.map_err(|e| e.to_string())?;
+            to_edge.write_all(&closing(&head)).await.map_err(|e| podssh_ws::text::said(&e))?;
+            to_edge.write_all(&rest).await.map_err(|e| podssh_ws::text::said(&e))?;
             let _ = tokio::io::copy(&mut from_target, &mut to_edge).await;
         } else if switched || !chunked(&head) {
             // A length, an end at the close, or a WebSocket's frames: as they are.
-            to_edge.write_all(&head).await.map_err(|e| e.to_string())?;
-            to_edge.write_all(&rest).await.map_err(|e| e.to_string())?;
+            to_edge.write_all(&head).await.map_err(|e| podssh_ws::text::said(&e))?;
+            to_edge.write_all(&rest).await.map_err(|e| podssh_ws::text::said(&e))?;
             let _ = tokio::io::copy(&mut from_target, &mut to_edge).await;
         } else {
-            to_edge.write_all(&unchunked(&head)).await.map_err(|e| e.to_string())?;
+            to_edge.write_all(&unchunked(&head)).await.map_err(|e| podssh_ws::text::said(&e))?;
             decode(rest, &mut from_target, &mut to_edge).await?;
         }
         let _ = to_edge.shutdown().await;
@@ -159,7 +159,7 @@ async fn read_head<R: AsyncRead + Unpin>(from: &mut R) -> Result<(Vec<u8>, Vec<u
         if got.len() > MAX_HEAD {
             return Err(format!("no end of a head within {} KiB", MAX_HEAD / 1024));
         }
-        let n = from.read(&mut chunk).await.map_err(|e| e.to_string())?;
+        let n = from.read(&mut chunk).await.map_err(|e| podssh_ws::text::said(&e))?;
         if n == 0 {
             return Err("the connection closed before a whole head".into());
         }
@@ -180,7 +180,7 @@ async fn answer_head<R: AsyncRead + Unpin>(from: &mut R) -> Result<(Vec<u8>, Vec
             }
             None => {
                 let mut joined = Chained { first: std::mem::take(&mut carried), from: &mut *from };
-                read_head(&mut joined).await.map_err(|e| format!("TARGET's answer: {e}"))?
+                read_head(&mut joined).await.map_err(|e| format!("TARGET's answer: {}", podssh_ws::text::said(&e)))?
             }
         };
         match status_of(&head) {
@@ -284,13 +284,13 @@ where
     loop {
         chunks.feed(&input, &mut out).map_err(|e| format!("TARGET's chunked body: {e}"))?;
         if !out.is_empty() {
-            to.write_all(&out).await.map_err(|e| e.to_string())?;
+            to.write_all(&out).await.map_err(|e| podssh_ws::text::said(&e))?;
             out.clear();
         }
         if chunks.done() {
             return Ok(());
         }
-        let n = from.read(&mut buf).await.map_err(|e| e.to_string())?;
+        let n = from.read(&mut buf).await.map_err(|e| podssh_ws::text::said(&e))?;
         if n == 0 {
             return Err("TARGET closed within its chunked body".into());
         }

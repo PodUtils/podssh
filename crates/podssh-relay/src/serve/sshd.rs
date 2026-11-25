@@ -108,7 +108,7 @@ pub async fn serve(mut client: TcpStream, sshd: SocketAddr, cfg: Arc<Config>) {
     let started = Instant::now();
     let ended = match tokio::io::copy_bidirectional(&mut client, &mut far).await {
         Ok((up, down)) => format!("{up} bytes up and {down} down"),
-        Err(e) => format!("cut: {e}"),
+        Err(e) => format!("cut: {}", podssh_ws::text::said(&e)),
     };
     cfg.event(&format!("sshd from {peer} ended after {} s, {ended}", started.elapsed().as_secs()));
 }

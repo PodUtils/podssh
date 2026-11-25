@@ -57,8 +57,8 @@ pub fn frame<T: Serialize>(message: &T) -> Result<Vec<u8>, String> {
 /// Write `message` as one frame.
 pub async fn send<W: AsyncWrite + Unpin, T: Serialize>(to: &mut W, message: &T) -> Result<(), String> {
     let bytes = frame(message)?;
-    to.write_all(&bytes).await.map_err(|e| format!("sending to the server: {e}"))?;
-    to.flush().await.map_err(|e| format!("sending to the server: {e}"))
+    to.write_all(&bytes).await.map_err(|e| format!("sending to the server: {}", podssh_ws::text::said(&e)))?;
+    to.flush().await.map_err(|e| format!("sending to the server: {}", podssh_ws::text::said(&e)))
 }
 
 /// The next frame of `from`, read up to its zero byte and no further; none
@@ -69,7 +69,7 @@ pub async fn next_frame<R: AsyncRead + Unpin>(from: &mut R) -> Result<Option<Vec
         let byte = match from.read_u8().await {
             Ok(byte) => byte,
             Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof && bytes.is_empty() => return Ok(None),
-            Err(e) => return Err(format!("reading from the server: {e}")),
+            Err(e) => return Err(format!("reading from the server: {}", podssh_ws::text::said(&e))),
         };
         match byte {
             0 if bytes.is_empty() => continue,

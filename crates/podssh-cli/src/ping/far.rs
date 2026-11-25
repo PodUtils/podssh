@@ -50,7 +50,9 @@ impl std::fmt::Display for Failed {
 
 /// A session channel running `command`, once the server took it.
 pub(super) async fn open(handle: &Handle<Client>, command: &str) -> Result<Channel<Msg>, Failed> {
-    let broke = |what: &str, e: &dyn std::fmt::Display| Failed::Broke(format!("{command}: {what}: {e}"));
+    let broke = |what: &str, e: &dyn std::fmt::Display| {
+        Failed::Broke(format!("{command}: {what}: {}", podssh_ws::text::said(e)))
+    };
     let mut channel = match handle.channel_open_session().await {
         Ok(channel) => channel,
         // A refusal told from a connection that ended first (T-464).

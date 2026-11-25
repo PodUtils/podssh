@@ -69,7 +69,7 @@ pub(crate) fn routes_of(targets: &[Route], grant: Arc<Grant>, roost: bool, me: O
 /// and what installs or starts one (T-590): the dial's words alone read as
 /// a firewall or a wrong port. They stay first, as they are true.
 fn failed(shown: &str, t: &Route, roost: bool, e: &DialError) -> String {
-    let words = format!("TARGET {shown}: {e}");
+    let words = format!("TARGET {shown}: {}", podssh_ws::text::said(&e));
     // Each address refused, or none answered: on the loopback, no listener.
     let nothing = matches!(e, DialError::Connect { .. }) && podssh_ws::dial::is_loopback(&t.host);
     if !roost || !nothing {

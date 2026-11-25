@@ -142,7 +142,7 @@ fn read_text(file: &str) -> Result<String, Refusal> {
     if !path.exists() {
         return Err(no_input(format!("{file}: no such file")));
     }
-    let bytes = std::fs::read(path).map_err(|e| no_input(format!("{file}: {e}")))?;
+    let bytes = std::fs::read(path).map_err(|e| no_input(format!("{file}: {}", podssh_ws::text::said(&e))))?;
     if bytes.len() > MAX_DOC {
         return Err(data(format!("{file} has {} bytes, more than a net's document holds", bytes.len())));
     }

@@ -192,7 +192,10 @@ impl Ending for Session {
                     verdict.map(|(code, why)| (code, vec![format!("{shown}: {why}")]))
                 }
                 Ok(None) => None,
-                Err(e) => Some((EXIT_SOFTWARE, vec![format!("{shown}: the session's task failed: {e}")])),
+                Err(e) => Some((
+                    EXIT_SOFTWARE,
+                    vec![format!("{shown}: the session's task failed: {}", podssh_ws::text::said(&e))],
+                )),
             }
         })
     }

@@ -109,10 +109,10 @@ pub fn dial(trust: Trust, proxy: ProxyChoice) -> Dial {
             let host = peer.host.as_str();
             if peer.tls {
                 let opened = podssh_ws::client::open_tls(host, peer.port, host, &trust, &proxy, CONNECT_LIMIT);
-                Ok(Box::new(opened.await.map_err(|e| format!("{peer}: {e}"))?) as BoxIo)
+                Ok(Box::new(opened.await.map_err(|e| format!("{peer}: {}", podssh_ws::text::said(&e)))?) as BoxIo)
             } else {
                 let tcp = podssh_ws::dial::dial(host, peer.port, &proxy, CONNECT_LIMIT).await;
-                Ok(Box::new(tcp.map_err(|e| format!("{peer}: {e}"))?) as BoxIo)
+                Ok(Box::new(tcp.map_err(|e| format!("{peer}: {}", podssh_ws::text::said(&e)))?) as BoxIo)
             }
         })
     })
@@ -138,15 +138,16 @@ pub async fn open(peer: &Peer, dial: &Dial, secret: &SigningKey) -> Result<(Meta
     let asked = podssh_ws::client::upgrade_with(io, &ask, &key);
     let (io, pending) = match tokio::time::timeout(CONNECT_LIMIT, asked).await {
         Err(_) => return Err(format!("{peer} did not answer the upgrade within {} s", CONNECT_LIMIT.as_secs())),
-        Ok(Err(e)) => return Err(format!("{peer} refused Yggdrasil's WebSocket: {e}")),
+        Ok(Err(e)) => return Err(format!("{peer} refused Yggdrasil's WebSocket: {}", podssh_ws::text::said(&e))),
         Ok(Ok(upgraded)) => upgraded,
     };
     let session = RelaySession::new(io, pending, Some(IDLE_LIMIT), WRITE_LIMIT).without_pings();
     session.set_receive_cap(RECEIVE_CAP);
     let mut stream = pump(Arc::new(session));
     let met = tokio::time::timeout(HANDSHAKE_LIMIT, meta::exchange(&mut stream, secret, 0)).await;
-    let meta =
-        met.map_err(|_| format!("{peer} did not finish the handshake in time"))?.map_err(|e| format!("{peer}: {e}"))?;
+    let meta = met
+        .map_err(|_| format!("{peer} did not finish the handshake in time"))?
+        .map_err(|e| format!("{peer}: {}", podssh_ws::text::said(&e)))?;
     Ok((meta, stream))
 }
 

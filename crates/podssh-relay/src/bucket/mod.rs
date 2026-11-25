@@ -129,7 +129,7 @@ pub fn dial_of(endpoint: &Endpoint, trust: podssh_ws::Trust, proxy: podssh_ws::P
         Box::pin(async move {
             let tcp = podssh_ws::dial::dial(&server.host, server.port, &proxy, CONNECT_LIMIT)
                 .await
-                .map_err(|e| format!("{}:{}: {e}", server.host, server.port))?;
+                .map_err(|e| format!("{}:{}: {}", server.host, server.port, podssh_ws::text::said(&e)))?;
             Ok((Box::new(tcp) as BoxIo, Proto::H1))
         })
     })

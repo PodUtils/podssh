@@ -33,7 +33,7 @@ pub fn read_own(path: &Path, others: Others) -> Result<Option<String>, String> {
         Err(e) if matches!(e.kind(), std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory) => {
             return Ok(None)
         }
-        Err(e) => return Err(format!("{shown}: {e}")),
+        Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
         // A process substitution, as `--allow <(...)`, gives such a link
         // (`/dev/fd/63` on Linux), which a user finds only by trial.
         Ok(meta) if meta.file_type().is_symlink() => {
@@ -44,8 +44,8 @@ pub fn read_own(path: &Path, others: Others) -> Result<Option<String>, String> {
         }
         Ok(_) => {}
     }
-    let file = open_no_follow(path).map_err(|e| format!("{shown}: {e}"))?;
-    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    let file = open_no_follow(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if !meta.is_file() {
         return Err(format!("{shown} is not a regular file: name one (a process substitution, <(...), gives a pipe)"));
     }
@@ -54,7 +54,8 @@ pub fn read_own(path: &Path, others: Others) -> Result<Option<String>, String> {
     }
     closed(path, &file, others)?;
     let mut text = String::new();
-    std::io::Read::read_to_string(&mut &file, &mut text).map_err(|e| format!("{shown}: {e}"))?;
+    std::io::Read::read_to_string(&mut &file, &mut text)
+        .map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     Ok(Some(text))
 }
 
@@ -118,7 +119,7 @@ pub fn create_file_in_first(dirs: &[PathBuf], name: &str, body: &[u8]) -> Result
         let path = dir.join(name);
         match make_private_dir(dir).and_then(|()| create_private(&path, body)) {
             Ok(made) => return Ok((path, made)),
-            Err(e) => reasons.push(format!("{}: {e}", dir.display())),
+            Err(e) => reasons.push(format!("{}: {}", dir.display(), podssh_ws::text::said(&e))),
         }
     }
     Err(format!("no directory would take {name} ({})", reasons.join("; ")))

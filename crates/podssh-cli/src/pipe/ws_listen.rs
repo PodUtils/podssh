@@ -167,7 +167,7 @@ pub async fn client(
         Ok(ws) => ws,
         Err(e) => {
             abandon(other).await;
-            let _ = writeln!(err, "{prefix}: the client left before its session opened: {e}");
+            let _ = writeln!(err, "{prefix}: the client left before its session opened: {}", podssh_ws::text::said(&e));
             return;
         }
     };
@@ -204,7 +204,7 @@ pub(super) async fn first(
         let mut client = match accepted {
             Ok(client) => client,
             Err(e) => {
-                let _ = writeln!(err, "podssh pipe: the listener failed: {e}");
+                let _ = writeln!(err, "podssh pipe: the listener failed: {}", podssh_ws::text::said(&e));
                 return EX_UNAVAILABLE;
             }
         };
@@ -234,7 +234,8 @@ pub(super) async fn first(
         Ok(ws) => ws,
         Err(e) => {
             abandon(other).await;
-            let _ = writeln!(err, "podssh pipe: the client left before its session opened: {e}");
+            let _ =
+                writeln!(err, "podssh pipe: the client left before its session opened: {}", podssh_ws::text::said(&e));
             return EX_UNAVAILABLE;
         }
     };

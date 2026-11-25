@@ -90,7 +90,10 @@ fn with_socketpair(
     theirs: std::os::unix::net::UnixStream,
 ) -> Result<End, Unopened> {
     use std::os::fd::OwnedFd;
-    let failed = |e: io::Error| Unopened { code: 126, why: format!("exec:{}: a socketpair: {e}", words[0]) };
+    let failed = |e: io::Error| Unopened {
+        code: 126,
+        why: format!("exec:{}: a socketpair: {}", words[0], podssh_ws::text::said(&e)),
+    };
     let theirs_out = theirs.try_clone().map_err(failed)?;
     cmd.stdin(Stdio::from(OwnedFd::from(theirs))).stdout(Stdio::from(OwnedFd::from(theirs_out)));
     let child = cmd.spawn().map_err(|e| not_started(&words[0], e))?;
@@ -119,7 +122,7 @@ fn child_end(read: super::pump::Reader, write: super::pump::Writer, child: tokio
 /// found, else 126.
 pub(super) fn not_started(program: &str, e: io::Error) -> Unopened {
     let code = if e.kind() == io::ErrorKind::NotFound { 127 } else { 126 };
-    Unopened { code, why: format!("exec:{program}: {e}") }
+    Unopened { code, why: format!("exec:{program}: {}", podssh_ws::text::said(&e)) }
 }
 
 /// The exit code of a child, as a shell gives it: its own, or 128 + the

@@ -88,7 +88,7 @@ pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option
     // What `doctor --stream` measured there, else the defaults (#55's
     // invariant 5: the batch and the wait come from the path's probe).
     let (tuning, _) = crate::http_road_path::tuning_for(relay);
-    let mut token = token::obtain(&ctx, false).await.map_err(|e| e.to_string())?;
+    let mut token = token::obtain(&ctx, false).await.map_err(|e| podssh_ws::text::said(&e))?;
     let mut opened = client::open(&road, &target, token.secret(), form, tuning).await;
     // A cached token that the role no longer takes: minted once more, as
     // the WebSocket road does; never for a refusal by policy.
@@ -96,7 +96,7 @@ pub async fn open(relay: &Relay, trust: &Trust, target: Target<'_>, form: Option
         if !podssh_relay::open::is_policy_refusal(body));
     if stale && token.origin == Origin::Cache {
         podssh_relay::cache::remove(&token::token_key(relay));
-        token = token::obtain(&ctx, true).await.map_err(|e| e.to_string())?;
+        token = token::obtain(&ctx, true).await.map_err(|e| podssh_ws::text::said(&e))?;
         opened = client::open(&road, &target, token.secret(), form, tuning).await;
     }
     drop(token);
@@ -109,7 +109,7 @@ fn words(relay: &Relay, e: &ConnectError) -> String {
         ConnectError::Refused { status: status @ (404 | 405), .. } => {
             format!("{} serves no HTTP road (it answered {status}); podssh relay serve serves one", relay.host)
         }
-        e => e.to_string(),
+        e => podssh_ws::text::said(&e),
     }
 }
 

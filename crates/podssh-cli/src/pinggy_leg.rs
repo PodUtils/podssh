@@ -165,7 +165,7 @@ where
                 "{service} presented the host key {key}, not the pinned {pinned} (pod-services): a proxy or another \
                  server answered"
             ),
-            _ => format!("{service}: SSH: {e}"),
+            _ => format!("{service}: SSH: {}", podssh_ws::text::said(&e)),
         })),
         Ok(None) => Err(failed(format!("{service}: no SSH version line within {} s", VERSION_LIMIT.as_secs()))),
         Err(_) => Err(failed(format!("{service}: no SSH within {} s", CONNECT_LIMIT.as_secs()))),
@@ -185,7 +185,7 @@ pub(crate) async fn open(
     let dial = || async {
         podssh_ws::dial::dial(&service.host, service.port, proxy, CONNECT_LIMIT)
             .await
-            .map_err(|e| format!("{service}: {e}"))
+            .map_err(|e| format!("{service}: {}", podssh_ws::text::said(&e)))
     };
     // A dial that fails would fail the same for TLS: same host, port, proxy.
     let heard = Arc::new(AtomicBool::new(false));
@@ -197,7 +197,7 @@ pub(crate) async fn open(
             say(format!("raw SSH to {service} failed before SSH's version line ({raw}); SSH inside TLS now"));
             let tls = podssh_ws::tls_over(dial().await?, &service.host, trust, CONNECT_LIMIT)
                 .await
-                .map_err(|e| format!("raw SSH: {raw}; then TLS with {service}: {e}"))?;
+                .map_err(|e| format!("raw SSH: {raw}; then TLS with {service}: {}", podssh_ws::text::said(&e)))?;
             match handshake(tls, service, visitors, None).await {
                 Ok((handle, key)) => (handle, key, "SSH inside TLS, verified by this host's trust"),
                 Err(failed) => return Err(format!("raw SSH: {raw}; then SSH inside TLS: {}", failed.why)),
@@ -212,12 +212,12 @@ pub(crate) async fn open(
     handle
         .tcpip_forward(pinggy::FORWARD_ADDRESS, 0)
         .await
-        .map_err(|e| format!("{service} refused the tunnel's forward: {e}"))?;
+        .map_err(|e| format!("{service} refused the tunnel's forward: {}", podssh_ws::text::said(&e)))?;
     let session = handle
         .channel_open_session()
         .await
         .map_err(|e| format!("{service}: a session: {}", podssh_ssh::run::describe(&e)))?;
-    session.request_shell(false).await.map_err(|e| format!("{service}: a shell: {e}"))?;
+    session.request_shell(false).await.map_err(|e| format!("{service}: a shell: {}", podssh_ws::text::said(&e)))?;
     let (text, heard) = watch::channel(String::new());
     tokio::spawn(drain(session, text));
     let skips = pinggy::skips();
@@ -242,7 +242,7 @@ pub(crate) async fn open(
 /// Serveo's road (T-549) and the ssh-j road's leg (T-570, `crate::sshj::leg`),
 /// whose handler is its own, log in so too.
 pub(crate) async fn login<H: client::Handler>(handle: &mut client::Handle<H>, user: &str) -> Result<(), String> {
-    let word = |e: russh::Error| format!("the login: {e}");
+    let word = |e: russh::Error| format!("the login: {}", podssh_ws::text::said(&e));
     if handle.authenticate_none(user).await.map_err(word)?.success() {
         return Ok(());
     }
@@ -262,7 +262,7 @@ pub(crate) async fn login<H: client::Handler>(handle: &mut client::Handle<H>, us
     }
     // Sandhole lets any key in but asks for one (T-743): a key made for this
     // login alone, never the node's, so that no key of the host goes to it.
-    let key = podssh_ssh::throwaway_login_key().map_err(|e| format!("the login: {e}"))?;
+    let key = podssh_ssh::throwaway_login_key().map_err(|e| format!("the login: {}", podssh_ws::text::said(&e)))?;
     if handle.authenticate_publickey(user, key).await.map_err(word)?.success() {
         return Ok(());
     }

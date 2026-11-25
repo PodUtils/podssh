@@ -242,7 +242,7 @@ where
         Ok(client) => client,
         Err(e) => {
             return Carried {
-                why: Some(e.to_string()),
+                why: Some(podssh_ws::text::said(&e)),
                 leg: last(&legs).await,
                 channel: None,
                 cut: false,
@@ -431,8 +431,8 @@ async fn next_leg(
             *lock(legs) = Some(handle);
             Next::Link(link)
         }
-        Err(e) if is_final(&e) => Next::Stop(e.to_string()),
-        Err(e) => Next::Retry(e.to_string()),
+        Err(e) if is_final(&e) => Next::Stop(podssh_ws::text::said(&e)),
+        Err(e) => Next::Retry(podssh_ws::text::said(&e)),
     }
 }
 

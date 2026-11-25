@@ -306,7 +306,7 @@ async fn dial_each(shown: &str, addresses: Vec<SocketAddr>, ranges: &[Range]) ->
                     None => return Ok(stream),
                 }
             }
-            Err(e) => last = e.to_string(),
+            Err(e) => last = podssh_ws::text::said(&e),
         }
     }
     Err(NodeRefusal::NoTarget(format!("{shown}: {last}")))

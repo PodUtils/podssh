@@ -62,7 +62,7 @@ impl Dialer {
         match tokio::time::timeout(self.wait, stream.read_exact(&mut heard)).await {
             Ok(Ok(_)) if heard == self.hello => Ok(stream),
             Ok(Ok(_)) => Err(format!("{shown} is another tunnel's: its first bytes are not the node's hello")),
-            Ok(Err(e)) => Err(format!("{shown} ended before the node's hello: {e}")),
+            Ok(Err(e)) => Err(format!("{shown} ended before the node's hello: {}", podssh_ws::text::said(&e))),
             Err(_) => Err(format!("{shown} gave no hello within {} s", self.wait.as_secs())),
         }
     }

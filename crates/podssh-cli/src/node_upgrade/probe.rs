@@ -36,7 +36,7 @@ pub fn probe(path: &Path) -> Result<String, String> {
                 let _ = child.wait();
                 return Err(format!("it did not end within {} s", LIMIT.as_secs()));
             }
-            Err(e) => return Err(format!("its wait: {e}")),
+            Err(e) => return Err(format!("its wait: {}", podssh_ws::text::said(&e))),
         }
     };
     let said = String::from_utf8_lossy(&reader.join().unwrap_or_default()).into_owned();
@@ -77,7 +77,7 @@ fn spawn(path: &Path) -> Result<std::process::Child, String> {
         match cmd.spawn() {
             Ok(child) => return Ok(child),
             Err(e) if busy(&e) && Instant::now() < deadline => std::thread::sleep(Duration::from_millis(50)),
-            Err(e) => return Err(format!("it does not start here: {e}")),
+            Err(e) => return Err(format!("it does not start here: {}", podssh_ws::text::said(&e))),
         }
     }
 }

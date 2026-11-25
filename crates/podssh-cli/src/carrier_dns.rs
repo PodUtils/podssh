@@ -133,7 +133,7 @@ pub(crate) fn open(spec: Arc<Spec>, side: Side) -> Result<Link, Refusal> {
                 };
                 match dns.connect(&spec.zone, &peer).await {
                     Ok((link, _)) => carry_until_settled(far, link).await,
-                    Err(e) => say(format!("{}: {e}", spec.file)),
+                    Err(e) => say(format!("{}: {}", spec.file, podssh_ws::text::said(&e))),
                 }
             });
         }
@@ -144,7 +144,7 @@ pub(crate) fn open(spec: Arc<Spec>, side: Side) -> Result<Link, Refusal> {
             tokio::spawn(async move {
                 match dns.connect(&spec.zone, &peer).await {
                     Ok((link, _)) => carry_until_settled(far, link).await,
-                    Err(e) => say(format!("{}: {e}", spec.file)),
+                    Err(e) => say(format!("{}: {}", spec.file, podssh_ws::text::said(&e))),
                 }
             });
         }
@@ -270,7 +270,11 @@ pub(crate) async fn bind(spec: &Spec) -> Result<Bound, Refusal> {
         let refused = bind_code(e.kind) == EX_NOPERM;
         let why = if refused { "; this host refuses the listener" } else { "" };
         Refusal {
-            message: format!("the carrier dns:{}: cannot listen on {listen} (UDP): {e}{why}", spec.file),
+            message: format!(
+                "the carrier dns:{}: cannot listen on {listen} (UDP): {}{why}",
+                spec.file,
+                podssh_ws::text::said(&e)
+            ),
             code: bind_code(e.kind),
         }
     })?;
@@ -294,14 +298,17 @@ pub(crate) async fn accept(spec: &Spec, bound: Bound) -> Result<Link, Refusal> {
             }
             // The listener's own task ended: no client can come.
             Err(e) if e.kind == CarrierErrorKind::Io(std::io::ErrorKind::BrokenPipe) => {
-                return Err(Refusal { message: format!("the carrier dns:{}: {e}", spec.file), code: unavailable });
+                return Err(Refusal {
+                    message: format!("the carrier dns:{}: {}", spec.file, podssh_ws::text::said(&e)),
+                    code: unavailable,
+                });
             }
             // One peer's handshake: a stranger's name costs a line, not the
             // node; a flood of them is said each 100th.
             Err(e) => {
                 failed += 1;
                 if failed <= SAID_FAILURES || failed.is_multiple_of(100) {
-                    say(format!("{}: a handshake failed ({failed} so far): {e}", spec.file));
+                    say(format!("{}: a handshake failed ({failed} so far): {}", spec.file, podssh_ws::text::said(&e)));
                 }
             }
         }

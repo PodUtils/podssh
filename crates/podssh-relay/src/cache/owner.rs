@@ -110,7 +110,7 @@ fn owner_of(path: &Path) -> Result<Option<u32>, String> {
     let link = match std::fs::symlink_metadata(path) {
         Ok(meta) => meta,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(format!("{shown}: {e}")),
+        Err(e) => return Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
     };
     if !link.file_type().is_symlink() {
         return Ok(Some(link.uid()));
@@ -119,7 +119,7 @@ fn owner_of(path: &Path) -> Result<Option<u32>, String> {
         Ok(target) if link.uid() != ROOT && link.uid() != target.uid() => Ok(Some(link.uid())),
         Ok(target) => Ok(Some(target.uid())),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(format!("{shown} is a symbolic link to nothing")),
-        Err(e) => Err(format!("{shown}: {e}")),
+        Err(e) => Err(format!("{shown}: {}", podssh_ws::text::said(&e))),
     }
 }
 

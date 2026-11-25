@@ -140,7 +140,7 @@ async fn fetch(list: &List, trust: &Trust) -> Result<Listed, String> {
         &ProxyChoice::FromEnvironment,
         FETCH_WAIT,
     );
-    let response = get.await.map_err(|e| format!("the list at {}: {e}", list.host))?;
+    let response = get.await.map_err(|e| format!("the list at {}: {}", list.host, podssh_ws::text::said(&e)))?;
     if response.status != 200 {
         return Err(format!("the list at {}: HTTP {}", list.host, response.status));
     }

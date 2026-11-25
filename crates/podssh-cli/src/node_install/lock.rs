@@ -43,7 +43,7 @@ pub(crate) enum Tried {
 /// when no lock can be had here, as on a file system that takes none. The
 /// open and the try are pod-core's (a link at `path` is refused, 0600).
 pub(crate) fn try_hold(path: &Path) -> Result<Tried, String> {
-    match FileLock::try_lock(path, Mode::Exclusive).map_err(|e| e.to_string())? {
+    match FileLock::try_lock(path, Mode::Exclusive).map_err(|e| podssh_ws::text::said(&e))? {
         Some(lock) => {
             // The pid is for a person who reads the file; the lock is the
             // kernel's, and needs none. A file of another user is read only,

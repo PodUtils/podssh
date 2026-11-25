@@ -81,7 +81,7 @@ pub async fn open(road: &Road<'_>, host: &str, port: u16, say: &mut dyn FnMut(&s
         Err(failure) => failure,
     };
     for line in failure.lines(&target) {
-        say(&line);
+        say(&podssh_ws::text::plain(&line));
     }
     // The HTTP road at a host whose upgrade the way refused, as `proxy`
     // and `ssh` take it (T-319).
@@ -144,7 +144,8 @@ fn carried(
                 return;
             }
             if let Err(e) = up_session.send_binary(&buf[..n]).await {
-                up_status.set_once(Ended::Failed(format!("sending to the relay failed: {e}")));
+                up_status
+                    .set_once(Ended::Failed(format!("sending to the relay failed: {}", podssh_ws::text::said(&e))));
                 up_failed_tx.notify_one();
                 return;
             }
@@ -172,7 +173,7 @@ fn carried(
                     break;
                 }
                 Err(e) => {
-                    down_status.set_once(Ended::Failed(e.to_string()));
+                    down_status.set_once(Ended::Failed(podssh_ws::text::said(&e)));
                     break;
                 }
             };

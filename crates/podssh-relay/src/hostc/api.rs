@@ -48,10 +48,14 @@ pub fn tls(trust: Trust, proxy: ProxyChoice) -> Dial {
             let limit = crate::opentunnel::dial::CONNECT_LIMIT;
             if !tls {
                 let tcp = podssh_ws::dial::dial(&host, port, &ProxyChoice::Direct, limit).await;
-                return tcp.map(|tcp| Box::new(tcp) as BoxIo).map_err(|e| format!("{host}:{port}: {e}"));
+                return tcp
+                    .map(|tcp| Box::new(tcp) as BoxIo)
+                    .map_err(|e| format!("{host}:{port}: {}", podssh_ws::text::said(&e)));
             }
             let opened = client::open_tls(&host, port, &host, &trust, &proxy, limit).await;
-            opened.map(|tls| Box::new(tls) as BoxIo).map_err(|e| format!("{host}:{port}: {e}"))
+            opened
+                .map(|tls| Box::new(tls) as BoxIo)
+                .map_err(|e| format!("{host}:{port}: {}", podssh_ws::text::said(&e)))
         })
     })
 }
@@ -139,7 +143,7 @@ pub async fn create(service: &Service, dial: &Dial) -> Result<Tunnel, Failed> {
         // No body: the server takes none as no prefix (`index.ts`).
         let authority = service.authority();
         let exchange = podssh_ws::http::exchange(&mut io, "POST", &authority, TUNNELS, &headers, b"", MAX_BODY);
-        exchange.await.map_err(|e| Failed::ForNow(format!("{service}: {e}")))
+        exchange.await.map_err(|e| Failed::ForNow(format!("{service}: {}", podssh_ws::text::said(&e))))
     };
     let response = tokio::time::timeout(CALL_LIMIT, asking)
         .await
@@ -235,7 +239,7 @@ pub async fn connect(service: &Service, tunnel: &Tunnel, dial: &Dial) -> Result<
         match client::upgrade_with(io, &connect_request(tunnel, &key), &key).await {
             Ok(opened) => Ok(opened),
             Err(ConnectError::Refused { status, body }) => Err(failed(service, status, body.as_bytes())),
-            Err(e) => Err(Failed::ForNow(format!("{service}: the tunnel's socket: {e}"))),
+            Err(e) => Err(Failed::ForNow(format!("{service}: the tunnel's socket: {}", podssh_ws::text::said(&e)))),
         }
     };
     tokio::time::timeout(CALL_LIMIT, opening)

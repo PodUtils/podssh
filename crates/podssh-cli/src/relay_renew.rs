@@ -61,9 +61,10 @@ fn kept(label: &str, stored: &Pair, until: i64, out: &mut dyn Write, err: &mut d
     let host = &stored.relay.host;
     if let Err(e) = pair::store(label, &stored.with_expiry(until)) {
         return Err(Refusal::config(format!(
-            "the relay {host} renewed the pair until {}, but the store took no write ({e}); its copy names the old \
+            "the relay {host} renewed the pair until {}, but the store took no write ({}); its copy names the old \
              end, which a new start of its node reads",
-            pairs::utc(until)
+            pairs::utc(until),
+            podssh_ws::text::said(&e)
         )));
     }
     let _ = writeln!(out, "{label}: expires {}", pairs::utc(until));

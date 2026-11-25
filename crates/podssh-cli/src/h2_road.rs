@@ -64,9 +64,10 @@ pub async fn open(req: &Request<'_>, notes: &mut (dyn FnMut(&str) + Send)) -> Re
             .map(|session| (session, None))
             .map_err(|error| match error {
                 podssh_ws::client::CoverError::Connect(error) => error,
-                podssh_ws::client::CoverError::Credential(error) => {
-                    podssh_ws::client::ConnectError::Http(format!("the cover credential: {error}"))
-                }
+                podssh_ws::client::CoverError::Credential(error) => podssh_ws::client::ConnectError::Http(format!(
+                    "the cover credential: {}",
+                    podssh_ws::text::said(&error)
+                )),
             }),
     };
     match opened {

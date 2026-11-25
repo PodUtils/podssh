@@ -117,7 +117,9 @@ where
     let conversation = run(talk, from_peer, lines, chunks, out, until);
     let (written, summary) = tokio::join!(writer, conversation);
     match (written, summary.ended.clone()) {
-        (Err(e), Ended::Done) => Summary { ended: Ended::Failed(format!("the stream failed: {e}")), ..summary },
+        (Err(e), Ended::Done) => {
+            Summary { ended: Ended::Failed(format!("the stream failed: {}", podssh_ws::text::said(&e))), ..summary }
+        }
         _ => summary,
     }
 }
@@ -186,7 +188,7 @@ where
                         break ended;
                     }
                 }
-                Err(e) => break Ended::Failed(format!("the stream failed: {e}")),
+                Err(e) => break Ended::Failed(format!("the stream failed: {}", podssh_ws::text::said(&e))),
             },
             permit = chunks.reserve(), if talk.sending() => match permit {
                 Ok(permit) => match talk.next_chunk().await {
@@ -212,7 +214,7 @@ impl Sending {
     /// The next `want` bytes of the file, at most a chunk.
     pub async fn read(&mut self, want: u64) -> Result<Vec<u8>, String> {
         let mut data = vec![0u8; (want as usize).min(MAX_CHUNK)];
-        self.file.read_exact(&mut data).await.map_err(|e| format!("a file to send: {e}"))?;
+        self.file.read_exact(&mut data).await.map_err(|e| format!("a file to send: {}", podssh_ws::text::said(&e)))?;
         Ok(data)
     }
 }

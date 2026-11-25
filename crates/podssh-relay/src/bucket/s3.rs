@@ -127,7 +127,9 @@ impl Bucket {
                     }
                     // A kept connection that the server closed meanwhile is
                     // made again once; a fresh one that fails is the answer.
-                    Err(e) if fresh => return Err(format!("{method} on {}: {e}", self.shown())),
+                    Err(e) if fresh => {
+                        return Err(format!("{method} on {}: {}", self.shown(), podssh_ws::text::said(&e)))
+                    }
                     Err(_) => continue,
                 }
             }

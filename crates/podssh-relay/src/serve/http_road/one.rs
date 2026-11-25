@@ -159,13 +159,16 @@ where
         }
         while left > 0 {
             let want = (left as usize).min(READ);
-            let n = body.read(&mut buf[..want]).await.map_err(|e| format!("client read failed: {e}"))?;
+            let n = body
+                .read(&mut buf[..want])
+                .await
+                .map_err(|e| format!("client read failed: {}", podssh_ws::text::said(&e)))?;
             if n == 0 {
                 return Err("the client cut its body".into());
             }
             left -= n as u64;
             let take = moved.take(n, cap);
-            to.write_all(&buf[..take]).await.map_err(|e| format!("write failed: {e}"))?;
+            to.write_all(&buf[..take]).await.map_err(|e| format!("write failed: {}", podssh_ws::text::said(&e)))?;
             meter.up(take);
             if take < n {
                 return Err("session byte cap".into());
@@ -202,7 +205,7 @@ where
                 return "the target ended".into();
             }
             Ok(n) => n,
-            Err(e) => return format!("target read failed: {e}"),
+            Err(e) => return format!("target read failed: {}", podssh_ws::text::said(&e)),
         };
         let take = moved.take(n, cap);
         if to.write_all(&chunk(&buf[..take])).await.is_err() || to.flush().await.is_err() {
@@ -236,7 +239,10 @@ async fn limits(moved: &Moved, cfg: &Config) -> String {
 async fn line<R: AsyncRead + Unpin>(body: &mut BufReader<R>) -> Result<String, String> {
     let mut out = Vec::new();
     let mut limited = (&mut *body).take(LINE_MAX as u64 + 2);
-    let n = limited.read_until(b'\n', &mut out).await.map_err(|e| format!("client read failed: {e}"))?;
+    let n = limited
+        .read_until(b'\n', &mut out)
+        .await
+        .map_err(|e| format!("client read failed: {}", podssh_ws::text::said(&e)))?;
     if n == 0 || !out.ends_with(b"\n") {
         return Err("the client cut its body".into());
     }

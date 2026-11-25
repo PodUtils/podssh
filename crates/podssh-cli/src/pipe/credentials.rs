@@ -34,7 +34,7 @@ impl Credentials {
     /// no `:` in USER, and the blanks at its ends are not a part of it.
     pub fn read(path: &str) -> Result<Credentials, Refusal> {
         let text = podssh_relay::cache::read_private(std::path::Path::new(path))
-            .map_err(|e| Refusal::config(format!("{FLAG}: {e}")))?;
+            .map_err(|e| Refusal::config(format!("{FLAG}: {}", podssh_ws::text::said(&e))))?;
         Credentials::parse(&Zeroizing::new(text), path)
     }
 

@@ -3717,7 +3717,7 @@ The draft's calls, 2026-11-02:
    each socket of both roads, which needs a token or a pair that the brake let through and is
    checked with a MAC or a digest and no state. Lost: a brake of the upgrades with no token, as
    the default relay counts them: the role's refusal of one costs less than the count.
-4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:404`), never a
+4. The address: the listener's TCP peer (`crates/podssh-cli/src/relay_serve.rs:407`), never a
    header, which each client of a listener writes, and would make up anew for each request.
    Behind the quick tunnel (T-428) the peer is Cloudflare's edge, so the hook for T-428 is
    `serve::serve_from(stream, cfg, sni, from)` (`crates/podssh-relay/src/serve/mod.rs:235`),
@@ -13764,7 +13764,7 @@ that a person copies (`net join`, `net invite`).
   (`crates/podssh-cli/src/flags/node.rs:142`, `crates/podssh-cli/src/node_members.rs:1-10`,
   `crates/podssh-cli/src/net/store.rs:62`).
 - Read: `store::take(signed, owner, now)` verifies a document against its owner's key and its end
-  (`crates/podssh-cli/src/net/store.rs:171`); the document is signed (`crates/podssh-cli/src/net/sign.rs`).
+  (`crates/podssh-cli/src/net/store.rs:172`); the document is signed (`crates/podssh-cli/src/net/sign.rs`).
 - Read: the relay role reads a list from a file or an `https://` URL with `--list-ttl` and `--list-stale`
   (T-646, `TODO/relay.md`): a copy older than TTL plus stale limit lets no one in. The source is a trait with
   a file and a URL behind it. Reuse it.
@@ -16985,7 +16985,7 @@ does not name, while `pipe` says "The bind is the probe: a host that refuses it 
 ## Approach
 
 1. Split the node's side in two: `bind` (`crates/podssh-cli/src/carrier_dns.rs:259`) checks FILE for its end,
-   `PODSSH_LISTEN` (78), reads the key (78) and binds; `accept` (`crates/podssh-cli/src/carrier_dns.rs:284`) waits
+   `PODSSH_LISTEN` (78), reads the key (78) and binds; `accept` (`crates/podssh-cli/src/carrier_dns.rs:288`) waits
    on that listener. `serve` calls `bind` before its serving line (`crates/podssh-cli/src/node_carrier.rs:179`).
 2. `bind_code` (`crates/podssh-cli/src/carrier_dns.rs:249`) maps as `pipe` does: a bind that the host refuses
    (pod-link's `Refused`, or PermissionDenied) is 77 with "this host refuses the listener"; an address in use, or
@@ -17107,9 +17107,9 @@ for the test's table of cases) and rustfmt clean; `cargo check --tests --target 
 
 ## Approach
 
-1. The shared reader becomes `numbered` (`crates/podssh-cli/src/carrier_bucket.rs:107`), with `lines` a wrapper of
+1. The shared reader becomes `numbered` (`crates/podssh-cli/src/carrier_bucket.rs:110`), with `lines` a wrapper of
    it: it skips a BOM, refuses an empty name ("no name before ="), says "NAME is given twice (lines A and B)", and
-   keeps each line's number. `visible` (`crates/podssh-cli/src/carrier_bucket.rs:146`) shows a control or bidi
+   keeps each line's number. `visible` (`crates/podssh-cli/src/carrier_bucket.rs:149`) shows a control or bidi
    character escaped (`\u{0}`), where `one_line` dropped it. Both FILEs want each change; the S3 FILE's test of a
    name twice moves to the new words.
 2. The DNS FILE names the line of an unknown name and of a value that holds ` #`; a missing key-file says it is
@@ -17170,7 +17170,7 @@ wrong FILE to an end, or thought the setting worked, was not told.
 
 ## Approach
 
-`Spec` keeps the line of `resolver` and of `listen`. `for_side` (`crates/podssh-cli/src/carrier_dns_file.rs:294`)
+`Spec` keeps the line of `resolver` and of `listen`. `for_side` (`crates/podssh-cli/src/carrier_dns_file.rs:298`)
 refuses the other end's setting (78): "line N: listen is the node's setting, which a client's file does not take;
 remove it", and the reverse. The client calls it first (`crates/podssh-cli/src/carrier_dns.rs:95`), the node in
 `bind`, before anything is sent or bound.

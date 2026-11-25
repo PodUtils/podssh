@@ -123,13 +123,13 @@ mod unix {
             let whose = meta.map_or_else(String::new, |m| {
                 format!("; the device is mode {:04o}, of uid {} and gid {}", m.mode() & 0o7777, m.uid(), m.gid())
             });
-            return Unopened { code: EX_NOPERM, why: format!("{shown}: {e}{whose}") };
+            return Unopened { code: EX_NOPERM, why: format!("{shown}: {}{whose}", podssh_ws::text::said(&e)) };
         }
-        Unopened { code: EX_UNAVAILABLE, why: format!("{shown}: {e}") }
+        Unopened { code: EX_UNAVAILABLE, why: format!("{shown}: {}", podssh_ws::text::said(&e)) }
     }
 
     fn failed(shown: &str, doing: &str, e: io::Error) -> Unopened {
-        Unopened { code: EX_UNAVAILABLE, why: format!("{shown}: {doing}: {e}") }
+        Unopened { code: EX_UNAVAILABLE, why: format!("{shown}: {doing}: {}", podssh_ws::text::said(&e)) }
     }
 
     /// Raw mode at `speed`: 8 data bits, no parity, 1 stop bit, no flow
@@ -246,7 +246,7 @@ mod unix {
     fn note(failure: &Failure, e: &io::Error) {
         let mut slot = failure.lock().unwrap_or_else(|p| p.into_inner());
         if slot.is_none() {
-            *slot = Some(e.to_string());
+            *slot = Some(podssh_ws::text::said(&e));
         }
     }
 
@@ -324,7 +324,8 @@ mod unix {
         fn finish(self: Box<Self>) -> Pin<Box<dyn Future<Output = Verdict> + Send>> {
             let Failed { shown, failure } = *self;
             let failed = failure.lock().unwrap_or_else(|p| p.into_inner()).take();
-            let verdict = failed.map(|e| (EX_UNAVAILABLE, vec![format!("{shown}: the line failed: {e}")]));
+            let verdict = failed
+                .map(|e| (EX_UNAVAILABLE, vec![format!("{shown}: the line failed: {}", podssh_ws::text::said(&e))]));
             Box::pin(std::future::ready(verdict))
         }
     }

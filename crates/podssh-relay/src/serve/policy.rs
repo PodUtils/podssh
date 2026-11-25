@@ -141,7 +141,10 @@ impl Policy {
             Ok(ip) => vec![SocketAddr::new(ip, port)],
             Err(_) => tokio::net::lookup_host((host, port))
                 .await
-                .map_err(|e| Refused::NotDialed { target: target.clone(), why: format!("no address: {e}") })?
+                .map_err(|e| Refused::NotDialed {
+                    target: target.clone(),
+                    why: format!("no address: {}", podssh_ws::text::said(&e)),
+                })?
                 .collect(),
         };
         let wanted: Vec<SocketAddr> = found

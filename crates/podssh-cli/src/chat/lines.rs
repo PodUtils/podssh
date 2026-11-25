@@ -157,7 +157,7 @@ fn read_lines<R: BufRead>(mut input: R, tx: &mpsc::Sender<String>, room: &Room, 
             Ok(n) => n,
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(e) => {
-                say(format!("the input could not be read: {e}"));
+                say(format!("the input could not be read: {}", podssh_ws::text::said(&e)));
                 return;
             }
         };

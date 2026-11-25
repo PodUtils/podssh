@@ -65,7 +65,7 @@ pub(super) fn systemd(spec: &Spec) -> Made {
     let unit = unit_name(spec.kind, &spec.name);
     let path = dir.join(&unit);
     if let Err(e) = std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, text::unit(spec))) {
-        return failed(&path.display().to_string(), e.to_string());
+        return failed(&path.display().to_string(), podssh_ws::text::said(&e));
     }
     let steps: [&[&str]; 3] = [&["daemon-reload"], &["enable", &unit], &["restart", &unit]];
     for args in steps {

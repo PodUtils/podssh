@@ -2268,7 +2268,7 @@ write the key with `OpenOptions`, as now; the test fails.
 `KeyFiles` (`crates/podssh-ssh/src/keygen.rs:118-179`), and the CLI passes podssh-relay's
 (`crates/podssh-cli/src/keygen.rs:375-382`): the private key by `create_new_private`, a missing
 directory by `private_dir`, and `FILE.pub` by the new `create_new_public`
-(`crates/podssh-relay/src/cache.rs:292-311`), on Windows with an access list of its own that lets
+(`crates/podssh-relay/src/cache.rs:296-315`), on Windows with an access list of its own that lets
 Everyone read it, as OpenSSH's `ssh-keygen` makes it. `FILE.pub` is removed and made again, so
 that it never keeps a list that lets others change it, also after `-c`.
 - `cargo test -p podssh-cli --test keygen -- private`: 2 passed. On Windows the test opened the
@@ -2470,12 +2470,12 @@ nothing.
 - Read: `crates/podssh-cli/src/doctor/mod.rs` line 15 at `48a8744` says "The bind probes here are the only place
   podssh calls". The listener scan of `scripts/check-repo.py` allows a `bind(` in 17 files
   (`scripts/check-repo.py:170-191`), and these listen, each when the user asks: `pipe`'s
-  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:147-161`, `:188-212`),
-  the control socket of `-M` (`:214-222`), `-L` and `-D` on a port or a path
+  `tcp-listen:` and `unix-listen:` (`crates/podssh-cli/src/pipe/listen.rs:149-163`, `:190-214`),
+  the control socket of `-M` (`:216-224`), `-L` and `-D` on a port or a path
   (`crates/podssh-cli/src/ssh/local_bind.rs:78-88`, `:111-128`), `podssh agent`
   (`crates/podssh-cli/src/agent/serve.rs:41-44`) and `podssh session`
   (`crates/podssh-cli/src/session/daemon.rs:171`); on Windows, `bind` and `listen` together
-  (`crates/podssh-cli/src/pipe/listen_win.rs:136`).
+  (`crates/podssh-cli/src/pipe/listen_win.rs:147`).
 - Read: a refused listener exits 77 in `pipe`, `podssh agent` and `podssh session`
   (`crates/podssh-cli/src/pipe/listen.rs:68-75`), and 255 in `-L` and `-D`, with the system's
   words and "this host refuses the listener" (`crates/podssh-cli/src/ssh/local_bind.rs:89-93`).
@@ -2597,7 +2597,7 @@ alone measures less than they use, so it cannot answer what a user asks it.
 1. After the bind, `listen(fd, 1)` on the same socket, then close: nothing is accepted, and
    nothing is left. For AF_INET on 127.0.0.1 port 0; for AF_UNIX on the file in the temporary
    directory, made mode 0600 as `pipe` makes its socket
-   (`crates/podssh-cli/src/pipe/listen.rs:224-241`), and on Linux on an abstract name. With
+   (`crates/podssh-cli/src/pipe/listen.rs:226-243`), and on Linux on an abstract name. With
    `PODSSH_LISTEN=no` (`crates/podssh-cli/src/pipe/listen.rs:22-48`) no listen is made, and the
    line says so.
 2. The lines `listen AF_INET` and `listen AF_UNIX`, each with what happened: bound and listened;
@@ -3320,9 +3320,9 @@ Read on 2026-11-01:
   of `crates/podssh-cli/src/detach/child.rs`; the line of `crates/podssh-cli/src/detach/mod.rs` that
   the Premise cites is `when_requested`, which makes no file. There was no lock, as it says.
 - The probe of a session's socket is the daemon's (`session serve`, which `start` runs), in `stale`
-  of `crates/podssh-cli/src/pipe/listen.rs:255`, inside the bind that the Premise cites. Two daemons
+  of `crates/podssh-cli/src/pipe/listen.rs:257`, inside the bind that the Premise cites. Two daemons
   can both pass it, and the race is worse than two copies: the second, whose bind failed, removes
-  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:208`), which then answers nobody.
+  the first one's socket (`crates/podssh-cli/src/pipe/listen.rs:210`), which then answers nobody.
 
 ## Done
 
@@ -3379,7 +3379,7 @@ each check of T-390 and T-392, and serves nothing.
 ## Premise
 
 - Read: neither T-380 nor a unit of T-121 has a watchdog; a unit restarts only a process that ended
-  (`crates/podssh-cli/src/node_install/text.rs:152`).
+  (`crates/podssh-cli/src/node_install/text.rs:153`).
 
 ## Approach
 
@@ -3429,7 +3429,7 @@ T-390 is done: a supervisor exists.
 
 Read on 2026-11-01: the line that the Premise cites in `crates/podssh-cli/src/node_install/text.rs`
 is the unit's `ExecStart`; its `Restart=always`, which restarts only a process that ended, is at
-`crates/podssh-cli/src/node_install/text.rs:154`, and the unit has no `WatchdogSec`. The Premise
+`crates/podssh-cli/src/node_install/text.rs:155`, and the unit has no `WatchdogSec`. The Premise
 holds.
 
 ## Done

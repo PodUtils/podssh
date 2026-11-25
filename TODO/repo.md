@@ -1278,7 +1278,7 @@ Read:
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
 - The code for Windows: `crates/podssh-ssh/src/terminal/windows.rs`,
   `crates/podssh-ssh/src/prompt.rs:100`, and the `cfg(not(unix))` branches of
-  `crates/podssh-relay/src/cache.rs:264-398`.
+  `crates/podssh-relay/src/cache.rs:268-402`.
 
 ## Approach
 
@@ -7368,7 +7368,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     path.with_file_name(format!(".{name}.{}.tmp", std::process::id()));` ... `std::fs::rename(&tmp, path)` (line 121).
   - `crates/podssh-cli/src/share/file.rs:305` `fn replace` (a node's share file): the same body, the rename at line
     315.
-  - `crates/podssh-relay/src/cache.rs:230` `fn write_private` (each file of the cache: the pool, `store_file`, the net's
+  - `crates/podssh-relay/src/cache.rs:231` `fn write_private` (each file of the cache: the pool, `store_file`, the net's
     document in the cache): `let tmp = dir.join(format!(".{name}.{}.tmp", std::process::id()));` ...
     `std::fs::rename(&tmp, &final_path)` (line 240).
   - `crates/podssh-relay/src/serve/reverse/pairs.rs:455` `pub(crate) fn write_private` (the relay role's file of pairs,
@@ -7381,7 +7381,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
   `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
   `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,
-  `crates/podssh-relay/src/cache/own.rs:67` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
+  `crates/podssh-relay/src/cache/own.rs:68` (`create_private`, a hard link), `crates/podssh-cli/src/relay_code.rs:151`
   (an append), `crates/podssh-cli/src/pinggy_cert.rs:56` (`create_new_private`, never a replace).
 
 ## Approach

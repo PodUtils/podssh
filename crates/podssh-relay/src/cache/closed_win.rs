@@ -43,15 +43,16 @@ const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
 
 /// Whether `file` is this user's and closed to others beyond `others`.
 pub(crate) fn closed(file: &File, others: Others) -> Result<(), String> {
-    let user = user_sid().map_err(|e| format!("this user's SID cannot be read: {e}"))?;
-    let acl = acl_of(file).map_err(|e| format!("its owner and access list cannot be read: {e}"))?;
+    let user = user_sid().map_err(|e| format!("this user's SID cannot be read: {}", podssh_ws::text::said(&e)))?;
+    let acl =
+        acl_of(file).map_err(|e| format!("its owner and access list cannot be read: {}", podssh_ws::text::said(&e)))?;
     judge(&acl, user, others)
 }
 
 /// This user's SID, read once.
 fn user_sid() -> Result<&'static str, String> {
     static USER: OnceLock<Result<String, String>> = OnceLock::new();
-    USER.get_or_init(|| read_user_sid().map_err(|e| e.to_string())).as_deref().map_err(Clone::clone)
+    USER.get_or_init(|| read_user_sid().map_err(|e| podssh_ws::text::said(&e))).as_deref().map_err(Clone::clone)
 }
 
 fn read_user_sid() -> io::Result<String> {

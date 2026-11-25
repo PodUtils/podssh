@@ -91,12 +91,15 @@ pub fn first_nameserver(text: &str) -> Option<SocketAddr> {
 pub fn system() -> Result<SocketAddr, String> {
     use std::io::Read as _;
     let file = std::fs::File::open(RESOLV_CONF).map_err(|e| {
-        format!("{RESOLV_CONF}: {e}; name the resolver (doctor --dns-server ADDR, or resolver = ADDR in FILE)")
+        format!(
+            "{RESOLV_CONF}: {}; name the resolver (doctor --dns-server ADDR, or resolver = ADDR in FILE)",
+            podssh_ws::text::said(&e)
+        )
     })?;
     let mut text = String::new();
     file.take(RESOLV_MOST + 1)
         .read_to_string(&mut text)
-        .map_err(|e| format!("{RESOLV_CONF}: {e}; name the resolver"))?;
+        .map_err(|e| format!("{RESOLV_CONF}: {}; name the resolver", podssh_ws::text::said(&e)))?;
     if text.len() as u64 > RESOLV_MOST {
         return Err(format!("{RESOLV_CONF} is over {RESOLV_MOST} bytes; name the resolver"));
     }
@@ -113,7 +116,9 @@ pub fn udp_out(server: SocketAddr) -> Result<(), String> {
         SocketAddr::V4(_) => (Ipv4Addr::UNSPECIFIED, 0).into(),
         SocketAddr::V6(_) => (Ipv6Addr::UNSPECIFIED, 0).into(),
     };
-    let refused = |e: std::io::Error| format!("UDP toward {server} is refused here ({e}), so nothing was sent");
+    let refused = |e: std::io::Error| {
+        format!("UDP toward {server} is refused here ({}), so nothing was sent", podssh_ws::text::said(&e))
+    };
     let socket = std::net::UdpSocket::bind(any).map_err(refused)?;
     socket.connect(server).map_err(refused)
 }

@@ -617,7 +617,7 @@ The test target `limits` of `podssh-ws` moved to `pod-ws` of PodUtils/podcrates 
   covers both reads.
 - A pool body past its bound, and a file of the cache past its bound, are dropped with no word:
   the refresh's error goes nowhere (`PodUtils/podssh:crates/podssh-relay/src/open.rs:417`), and the cache reads a
-  file that it cannot use as none (`crates/podssh-relay/src/cache.rs:226-228`). Each is made again,
+  file that it cannot use as none (`crates/podssh-relay/src/cache.rs:227-229`). Each is made again,
   so the table says so, and nothing is added.
 - `PODSSH_REPLAY_BUFFER` above 16 MiB gives 4 MiB, the default, not 16 MiB
   (`PodUtils/podssh:crates/podssh-relay/src/session/replay.rs:27-31`), as its comment says: another value is
@@ -1776,8 +1776,8 @@ Read at `2042200`:
   line to stderr, and `crates/podssh-ssh/src/log.rs:32-37` holds a level and stderr or a file; the
   level stops in the process.
 - `crates/podssh-cli/src/flags.rs:298` says "podssh does not write to syslog", for `-y`.
-- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:154`)
-  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:156` says
+- The unit that the install writes restarts the node (`crates/podssh-cli/src/node_install/text.rs:155`)
+  and stops on 64 and 78 (`crates/podssh-cli/src/node_install/text.rs:157` says
   "RestartPreventExitStatus=64 78"): a fault of the journal must never become one of those.
 - No source reads `JOURNAL_STREAM` (searched).
 
@@ -5067,7 +5067,7 @@ end sends while podssh waits.
 ## Premise
 
 - Read: `crates/podssh-ssh/src/exec.rs:184` awaits `channel.eof()` with no bound after an upload that read nothing.
-- Read: `crates/podssh-ssh/src/elevate.rs:313` and `:358`; `crates/podssh-cli/src/ping/far.rs:122` and `:184`;
+- Read: `crates/podssh-ssh/src/elevate.rs:313` and `:358`; `crates/podssh-cli/src/ping/far.rs:124` and `:186`;
   `crates/podssh-cli/src/ping/load.rs:80`; `crates/podssh-ssh/src/server/gateway/pump.rs:125`.
 - Read: `crates/podssh-ssh/src/io/beside.rs` takes the channel's messages while a write waits, and the test
   `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` holds the pump's waits to it.
@@ -5196,3 +5196,33 @@ the table test `the_os_error_suffix_leaves_and_the_words_stay`), which the file 
 pipe's line of a failed read uses it. `cargo test -p podssh-ws --lib text` 7 passed, `-p podssh-cli --lib cp::` 136 and
 `pipe::pump` 4; clippy clean. Each area takes it as the sixth black-box pass's fixes go in (the SSH client, the local
 tools, the commands that run work); the entry stays partial until a scan of the lines finds no suffix.
+
+2026-11-25, merged from a worker's draft and built: the lines that show an `std::io::Error`
+(or an error that wraps one) take `podssh_ws::text::said(&e)` (`crate::text::said` inside `podssh-ws`) in place of `{e}`
+and `e.to_string()`, in `crates/podssh-cli/src/` for `node*`, `operator*`, `relay*` (with `relay_serve/`,
+`relay_layer/`), `proxy*`, `chat/`, `funnel*`, `serve*`, `net/`, `pipe/`, `health/`, `ping*`, `pinggy_*`, `forwarder/`,
+`carrier*`, `layered.rs`, `h2_road.rs`, `http_road*`, `dns_road.rs` (127 files, about 330 sites; "could not start the
+async runtime" alone is 22); in `podssh-relay` (54 files: the cache's reads and writes, the roads' pumps, the tunnels'
+links, the quick tunnel, the serve role's dials and `Slots::accept_failed`); in `podssh-ws` (19 files: the frp, TURN,
+TUIC, Hysteria and VLESS roads). Three places carry the suffix through a typed error that podssh does not own, so
+the lines are passed through `podssh_ws::text::plain` where they are built: `podssh_relay::open::words` (the lines of
+a relay failure, for each command that dials by the relay), and the loops over `failure.lines(target)` of `proxy`,
+`pipe`'s relay road, `chat`'s IRC road and the resumable layer's first link. `docs/cli.md` loses the suffix from its
+example of `serve --listen`'s refused bind. A pin: `crates/podssh-cli/tests/io_error_lines.rs` scans the sources of
+the areas above (outside their test blocks) for `{e}`, `{err}`, `{error}` and `e.to_string()`, fails on a hit that is
+not in its table `NOT_IO` (27 lines of parsers, JSON, keys and session records, each with its whole line), fails on a
+table line that is gone, and has a test of the scan on planted shapes. It sees the usual names only: a value named
+otherwise (`why`, `failure`) was read by hand, and the strings that lower layers build (`cache::read_private`,
+`Table::open`) were fixed where they are built. Left to the other workers: `ssh/` (and `podssh-ssh`), `agent*`,
+`keygen*`, `doctor/`, `update/`, `config_import/`, `man/`, `status*`, and the commands that run work (`run_cmd*`,
+`each/`, `job/`, `session/`, `detach/`, `containers/`, `mcp/`, `play/`); each joins the scan's scope (`in_scope` of
+the test) as it is done. Not touched: the `{e}` of values that are not I/O errors (serde, key parsers, rustls, the
+random source, session records), the relay and ws crates' remaining `e.to_string()` of such values, and `client::start`
+errors of the bore, croc, pinggy and smee roads (their type is `pod-session`'s). Run here (Linux): `cargo clippy --locked
+-p podssh-ws -p podssh-relay -p podssh-cli --all-targets -- -D warnings -A clippy::collapsible_if` clean, and the same
+for `--target x86_64-pc-windows-gnu` clean (the `cfg(windows)` sites); `cargo test --locked -p podssh-ws -p podssh-relay
+-p podssh-cli --lib --test io_error_lines` 1356, 3, 451 and 92 passed; `--tests --no-fail-fast` 341 binaries passed, and
+`job_far`'s three stops failed only on this session's own `rm` guard, first on `PATH` (11 passed without it). With it,
+two tests that the gate at `07d7d9b` (run 45692616657) failed: `derp_net`'s refusal of the pair, which T-938 made name
+the relay's own words (`(403: reverse: forbidden)`), and `cp::resume`'s stable form, whose time had nanoseconds that
+Windows keeps in units of 100 ns.

@@ -44,7 +44,7 @@ pub(crate) async fn pairs(identity: &Identity, own: &Relay, trust: &Trust, say: 
                 say(format!("and at the net's relay member {at}, by this node's key"));
                 made.push(pair);
             }
-            Err(e) => say(format!("no pair at the net's relay member {at}: {e}")),
+            Err(e) => say(format!("no pair at the net's relay member {at}: {}", podssh_ws::text::said(&e))),
         }
     }
     made

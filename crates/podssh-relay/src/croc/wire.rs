@@ -81,7 +81,7 @@ where
 
     /// `body` as one frame, in one message.
     pub async fn send(&self, body: &[u8]) -> Result<(), Cut> {
-        self.session.send_binary(&encode(body)).await.map_err(|e| Cut::Broken(e.to_string()))
+        self.session.send_binary(&encode(body)).await.map_err(|e| Cut::Broken(podssh_ws::text::said(&e)))
     }
 
     /// The next frame, of `most` bytes at most.
@@ -111,7 +111,7 @@ where
         let f = match read {
             Ok(f) => f,
             Err(SessionError::ClosedWithoutClose(why)) => return Err(Cut::Dropped(why)),
-            Err(e) => return Err(Cut::Broken(e.to_string())),
+            Err(e) => return Err(Cut::Broken(podssh_ws::text::said(&e))),
         };
         match f.opcode {
             ws::OPCODE_BINARY | ws::OPCODE_TEXT => {

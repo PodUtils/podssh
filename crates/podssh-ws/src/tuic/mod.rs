@@ -161,10 +161,10 @@ pub async fn open(server: &Server, host: &str, port: u16, dial: &Dial<'_>) -> Re
     // checked (`SPEC.md`, "Authentication").
     let sent = async {
         let mut auth = connection.open_uni().await.map_err(|e| lost(&e))?;
-        auth.write_all(&command::authenticate(&server.uuid, &token)).await.map_err(|e| e.to_string())?;
+        auth.write_all(&command::authenticate(&server.uuid, &token)).await.map_err(|e| crate::text::said(&e))?;
         let _ = auth.finish();
         let (mut send, recv) = connection.open_bi().await.map_err(|e| lost(&e))?;
-        send.write_all(&connect).await.map_err(|e| e.to_string())?;
+        send.write_all(&connect).await.map_err(|e| crate::text::said(&e))?;
         Ok::<_, String>((send, recv))
     };
     let (send, recv) = match tokio::time::timeout(dial.timeout, sent).await {
@@ -203,7 +203,7 @@ pub async fn open(server: &Server, host: &str, port: u16, dial: &Dial<'_>) -> Re
 
 /// The words of a stream that could not open on a lost connection.
 fn lost(e: &ConnectionError) -> String {
-    format!("the connection ended: {e}")
+    format!("the connection ended: {}", crate::text::said(&e))
 }
 
 /// The connection's end, if it ended, as the cause of a failure.

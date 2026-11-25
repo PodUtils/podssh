@@ -306,7 +306,7 @@ impl Usage {
         };
         let written = serde_json::to_vec(&File { keys })
             .map_err(|e| e.to_string())
-            .and_then(|body| super::reverse::pairs::write_private(path, &body).map_err(|e| e.to_string()));
+            .and_then(|body| super::reverse::pairs::write_private(path, &body).map_err(|e| podssh_ws::text::said(&e)));
         if let Ok(Some(note)) = &written
             && !self.0.unconfirmed.swap(true, Ordering::SeqCst)
         {

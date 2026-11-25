@@ -213,7 +213,7 @@ impl Body {
     /// More bytes from the pipe; false at its end.
     async fn fill<R: AsyncRead + Unpin>(&mut self, from: &mut R) -> Result<bool, String> {
         let mut chunk = vec![0u8; 16 * 1024];
-        let n = from.read(&mut chunk).await.map_err(|e| format!("the node's answer: {e}"))?;
+        let n = from.read(&mut chunk).await.map_err(|e| format!("the node's answer: {}", podssh_ws::text::said(&e)))?;
         self.buf.extend_from_slice(&chunk[..n]);
         Ok(n > 0)
     }

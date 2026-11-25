@@ -279,7 +279,7 @@ pub(super) async fn pump<S, R, W>(
                         }
                         let take = charge(&moved, f.payload.len(), cap);
                         if let Err(e) = to_target.write_all(&f.payload[..take]).await {
-                            return End::Close(1011, format!("write failed: {e}"));
+                            return End::Close(1011, format!("write failed: {}", podssh_ws::text::said(&e)));
                         }
                         meter.up(take);
                         stamp(&heard);
@@ -316,7 +316,7 @@ pub(super) async fn pump<S, R, W>(
                 let n = match from_target.read(&mut buf).await {
                     Ok(0) => return End::Close(1000, "target closed".into()),
                     Ok(n) => n,
-                    Err(e) => return End::Close(1011, format!("target read failed: {e}")),
+                    Err(e) => return End::Close(1011, format!("target read failed: {}", podssh_ws::text::said(&e))),
                 };
                 let take = charge(&moved, n, cap);
                 if session.send_binary(&buf[..take]).await.is_err() {

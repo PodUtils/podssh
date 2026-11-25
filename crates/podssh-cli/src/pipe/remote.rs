@@ -257,7 +257,7 @@ pub(crate) async fn tcp_dial(host: &str, port: u16) -> Result<End, Option<podssh
 pub(crate) fn tcp_failure(host: &str, port: u16, e: Option<&podssh_ws::DialError>) -> String {
     match e {
         None => format!("{} is set, so podssh does not connect anywhere", podssh_relay::open::OFFLINE_ENV),
-        Some(e) => could_not_connect(&podssh_ws::dial::authority(host, port), e.to_string()),
+        Some(e) => could_not_connect(&podssh_ws::dial::authority(host, port), podssh_ws::text::said(&e)),
     }
 }
 

@@ -171,7 +171,7 @@ pub fn run(args: &PingArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh ping: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh ping: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return podssh_ssh::EXIT_FAILURE;
         }
     };
@@ -311,7 +311,7 @@ async fn destination(resolved: &resolve::Resolved, plan: feel::Plan, size: u64, 
     let handles = match podssh_ssh::run::connect_hops(reached.stream, opts, log).await {
         Ok(handles) => handles,
         Err(e) => {
-            far.failed = Some(e.to_string());
+            far.failed = Some(podssh_ws::text::said(&e));
             return far;
         }
     };
@@ -355,10 +355,10 @@ async fn plain(
     if far.failed.is_none() {
         let (command, result) = far::down(handle, size).await;
         far.status = far.status.or(result.as_ref().err().and_then(far::Failed::status));
-        far.down = Some((command, result.map_err(|e| e.to_string())));
+        far.down = Some((command, result.map_err(|e| podssh_ws::text::said(&e))));
         let (command, result) = far::up(handle, size).await;
         far.status = far.status.or(result.as_ref().err().and_then(far::Failed::status));
-        far.up = Some((command, result.map_err(|e| e.to_string())));
+        far.up = Some((command, result.map_err(|e| podssh_ws::text::said(&e))));
     }
 }
 

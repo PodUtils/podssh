@@ -172,7 +172,7 @@ async fn through(proxy: &Proxy, host: &str, port: u16, deadline: Instant) -> Res
     let left = deadline.saturating_duration_since(Instant::now());
     ws::dial(host, port, &ProxyChoice::Via(proxy.clone()), left)
         .await
-        .map_err(|e| Missed { said: said(proxy.kind, &e), line: Some(e.to_string()) })
+        .map_err(|e| Missed { said: said(proxy.kind, &e), line: Some(podssh_ws::text::said(&e)) })
 }
 
 /// The client's words for a fault of the dial through the proxy: what the

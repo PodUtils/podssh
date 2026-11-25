@@ -38,11 +38,15 @@ pub(crate) async fn run(plan: &Plan, offers: &Offers, report: &mut Report) {
         Ok(made) => made,
         // A relay that pairs for keys alone, or for no one, pairs no stranger.
         Err(e @ (PairError::NotIssued { .. } | PairError::Failed { status: 401, .. })) => {
-            report.push(Check::skip("pair", clause::REVERSE, format!("{e}; the reverse road is not checked")));
+            report.push(Check::skip(
+                "pair",
+                clause::REVERSE,
+                format!("{}; the reverse road is not checked", podssh_ws::text::said(&e)),
+            ));
             return;
         }
         Err(e) => {
-            report.push(Check::fail("pair", clause::REVERSE, e.to_string(), started));
+            report.push(Check::fail("pair", clause::REVERSE, podssh_ws::text::said(&e), started));
             return;
         }
     };
@@ -60,14 +64,14 @@ pub(crate) async fn run(plan: &Plan, offers: &Offers, report: &mut Report) {
     let stopped = tokio::time::timeout(STEP * 2, pair::stop(&ctx, &made)).await;
     report.push(match stopped {
         Ok(Ok(answer)) => Check::pass("stop", clause::REVERSE, format!("stopped: {}", answer.stopped), started),
-        Ok(Err(e)) => Check::fail("stop", clause::REVERSE, e.to_string(), started),
+        Ok(Err(e)) => Check::fail("stop", clause::REVERSE, podssh_ws::text::said(&e), started),
         Err(_) => Check::fail("stop", clause::REVERSE, "no answer to the stop", started),
     });
     let started = Instant::now();
     report.push(match pair::status(&ctx, &OperatorPart::of(&made)).await {
         Err(PairError::Forbidden) => Check::pass("stopped", clause::REVERSE, "403 for the connect token", started),
         Ok(_) => Check::fail("stopped", clause::REVERSE, "the connect token still works after the stop", started),
-        Err(e) => Check::fail("stopped", clause::REVERSE, format!("not 403: {e}"), started),
+        Err(e) => Check::fail("stopped", clause::REVERSE, format!("not 403: {}", podssh_ws::text::said(&e)), started),
     });
 }
 
@@ -103,7 +107,7 @@ async fn use_pair(plan: &Plan, offers: &Offers, ctx: &PairContext<'_>, made: &Pa
             Check::pass("status", clause::REVERSE, format!("online, {} sessions", p.sessions), started)
         }
         Ok(_) => Check::fail("status", clause::REVERSE, "the node is joined, and the status says offline", started),
-        Err(e) => Check::fail("status", clause::REVERSE, e.to_string(), started),
+        Err(e) => Check::fail("status", clause::REVERSE, podssh_ws::text::said(&e), started),
     });
     checks.push(wrong_stop(plan, made).await);
     checks.extend(extensions(offers, &hello, ctx, made).await);
@@ -125,7 +129,9 @@ async fn leg(plan: &Plan, node: &RelaySession, made: &Pair, checks: &mut Vec<Che
     let readied = async {
         let open = text(node, "open").await?;
         let id = open["id"].as_str().filter(|id| id.len() == ID_LEN).ok_or("an open with no id of 32 characters")?;
-        node.send_text(&json!({ "type": "ready", "id": id }).to_string()).await.map_err(|e| e.to_string())?;
+        node.send_text(&json!({ "type": "ready", "id": id }).to_string())
+            .await
+            .map_err(|e| podssh_ws::text::said(&e))?;
         Ok::<_, String>(id.to_string())
     };
     let (operator, id) = match tokio::join!(operator, readied) {
@@ -165,14 +171,14 @@ async fn leg(plan: &Plan, node: &RelaySession, made: &Pair, checks: &mut Vec<Che
 /// The operator's bytes reach the node after the id; the node's reach the
 /// operator with no framing.
 async fn bytes(node: &RelaySession, operator: &RelaySession, id: &str) -> Result<(), String> {
-    operator.send_binary(UP).await.map_err(|e| e.to_string())?;
+    operator.send_binary(UP).await.map_err(|e| podssh_ws::text::said(&e))?;
     let up = binary(node).await?;
     if up.len() < ID_LEN || &up[..ID_LEN] != id.as_bytes() || &up[ID_LEN..] != UP {
         return Err("the node's frame is not the id and the operator's bytes".into());
     }
     let mut down = id.as_bytes().to_vec();
     down.extend_from_slice(DOWN);
-    node.send_binary(&down).await.map_err(|e| e.to_string())?;
+    node.send_binary(&down).await.map_err(|e| podssh_ws::text::said(&e))?;
     match binary(operator).await? {
         got if got == DOWN => Ok(()),
         _ => Err("the operator's frame is not the node's bytes alone".into()),
@@ -201,7 +207,7 @@ async fn wrong_stop(plan: &Plan, made: &Pair) -> Check {
     match asked.await {
         Ok(r) if r.status == 403 => Check::pass("stop-wrong-token", clause::REVERSE, "403", started),
         Ok(r) => Check::fail("stop-wrong-token", clause::REVERSE, format!("HTTP {}, not 403", r.status), started),
-        Err(e) => Check::fail("stop-wrong-token", clause::REVERSE, e.to_string(), started),
+        Err(e) => Check::fail("stop-wrong-token", clause::REVERSE, podssh_ws::text::said(&e), started),
     }
 }
 
@@ -217,7 +223,7 @@ async fn extensions(offers: &Offers, hello: &Value, ctx: &PairContext<'_>, made:
         Ok(Renewed::NotServed) => {
             Check::skip("ext.renew", clause::ROLE_REVERSE, "no renewal (404, 405, or the list of its paths)")
         }
-        Err(e) => Check::fail("ext.renew", clause::ROLE_REVERSE, e.to_string(), started),
+        Err(e) => Check::fail("ext.renew", clause::ROLE_REVERSE, podssh_ws::text::said(&e), started),
     });
     let started = Instant::now();
     if offers.halt || hello["halt"].as_bool() == Some(true) {
@@ -225,10 +231,10 @@ async fn extensions(offers: &Offers, hello: &Value, ctx: &PairContext<'_>, made:
             Ok(Halted::Now { .. }) => match halt::resume(ctx, made).await {
                 Ok(Resumed::Now) => Ok(()),
                 Ok(other) => Err(format!("the resume answered {other:?}")),
-                Err(e) => Err(e.to_string()),
+                Err(e) => Err(podssh_ws::text::said(&e)),
             },
             Ok(other) => Err(format!("offered, and the halt answered {other:?}")),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(podssh_ws::text::said(&e)),
         };
         checks.push(match done {
             Ok(()) => Check::pass("ext.halt", clause::ROLE_REVERSE, "halted, then resumed", started),
@@ -260,7 +266,7 @@ async fn socket(plan: &Plan, path: Result<String, String>, token: &str) -> Resul
         idle_timeout: None,
         proxy: ProxyChoice::FromEnvironment,
     };
-    podssh_ws::connect(&config, token).await.map_err(|e| e.to_string())
+    podssh_ws::connect(&config, token).await.map_err(|e| podssh_ws::text::said(&e))
 }
 
 /// The next text frame of `kind` within [`STEP`]; others of the relay's
@@ -268,7 +274,7 @@ async fn socket(plan: &Plan, path: Result<String, String>, token: &str) -> Resul
 async fn text(session: &RelaySession, kind: &str) -> Result<Value, String> {
     let read = async {
         loop {
-            let f = session.read_frame().await.map_err(|e| e.to_string())?;
+            let f = session.read_frame().await.map_err(|e| podssh_ws::text::said(&e))?;
             match f.opcode {
                 OPCODE_TEXT => {
                     let v: Value = serde_json::from_slice(&f.payload).map_err(|_| "a text frame that is not JSON")?;
@@ -288,7 +294,7 @@ async fn text(session: &RelaySession, kind: &str) -> Result<Value, String> {
 async fn binary(session: &RelaySession) -> Result<Vec<u8>, String> {
     let read = async {
         loop {
-            let f = session.read_frame().await.map_err(|e| e.to_string())?;
+            let f = session.read_frame().await.map_err(|e| podssh_ws::text::said(&e))?;
             match f.opcode {
                 OPCODE_BINARY if !f.payload.is_empty() => return Ok(f.payload),
                 OPCODE_CLOSE => return Err(format!("the relay closed the socket: {}", words(&f.payload))),

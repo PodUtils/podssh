@@ -111,7 +111,7 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh funnel: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh funnel: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Fault::SessionFault.code();
         }
     };
@@ -122,8 +122,8 @@ pub fn run(args: &FunnelArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
 
 /// The tunnel of a token file: its own user's file, as a key is.
 fn read_token(path: &str) -> Result<api::Tunnel, Refusal> {
-    let text =
-        std::fs::read_to_string(path).map_err(|e| Refusal::config(format!("--tunnel-token-file {path}: {e}")))?;
+    let text = std::fs::read_to_string(path)
+        .map_err(|e| Refusal::config(format!("--tunnel-token-file {path}: {}", podssh_ws::text::said(&e))))?;
     token::read(&text).map_err(|why| Refusal::config(format!("--tunnel-token-file {path}: {why}")))
 }
 
@@ -268,9 +268,9 @@ async fn open(target: &Address) -> Result<Box<dyn Stream>, String> {
         Address::Tcp { host, port } => crate::pipe::remote::tcp_dial(host, *port)
             .await
             .map_err(|e| crate::pipe::remote::tcp_failure(host, *port, e.as_ref()))?,
-        Address::Unix(path) => {
-            crate::pipe::unix::connect(path).await.map_err(|e| format!("unix-connect:{path}: {e}"))?
-        }
+        Address::Unix(path) => crate::pipe::unix::connect(path)
+            .await
+            .map_err(|e| format!("unix-connect:{path}: {}", podssh_ws::text::said(&e)))?,
         Address::Exec(words) => {
             crate::pipe::local::exec(words, &crate::pipe::local::socketpair).map_err(|unopened| unopened.why)?
         }

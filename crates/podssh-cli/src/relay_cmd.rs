@@ -232,7 +232,7 @@ pub fn run_relay(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> 
 /// A current-thread runtime for one call.
 pub(crate) fn block_on<T>(work: impl std::future::Future<Output = T>) -> Result<T, Refusal> {
     let runtime = tokio::runtime::Builder::new_current_thread().enable_all().build().map_err(|e| Refusal {
-        message: format!("could not start the async runtime: {e}"),
+        message: format!("could not start the async runtime: {}", podssh_ws::text::said(&e)),
         code: Fault::SessionFault.code(),
     })?;
     let done = runtime.block_on(work);
@@ -340,10 +340,10 @@ fn old_enough() -> i64 {
 
 /// Store `pair` under `label`, then write its operator's part.
 fn keep(label: &str, pair: &Pair, operator_file: Option<&str>) -> Result<(), String> {
-    pair::store(label, pair).map_err(|e| e.to_string())?;
+    pair::store(label, pair).map_err(|e| podssh_ws::text::said(&e))?;
     if let Some(file) = operator_file {
         pair::write_operator_file(std::path::Path::new(file), pair)
-            .map_err(|e| format!("--operator-file {file}: {e}"))?;
+            .map_err(|e| format!("--operator-file {file}: {}", podssh_ws::text::said(&e)))?;
     }
     Ok(())
 }

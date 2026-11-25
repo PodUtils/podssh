@@ -124,7 +124,9 @@ pub async fn serve(
             let event = match next_event_capped(&mut buf, READ_CAP) {
                 Ok(Some(event)) => event,
                 Ok(None) => break,
-                Err(e) => break 'socket protocol(&outbox, format!("the socket's frame: {e}")).await,
+                Err(e) => {
+                    break 'socket protocol(&outbox, format!("the socket's frame: {}", podssh_ws::text::said(&e))).await
+                }
             };
             deadline = None;
             let message = match event {
@@ -158,7 +160,7 @@ pub async fn serve(
             read = from.read(&mut chunk) => match read {
                 Ok(0) => break Ended::Dropped("the server ended the socket".into()),
                 Ok(n) => buf.extend_from_slice(&chunk[..n]),
-                Err(e) => break Ended::Dropped(format!("the socket: {e}")),
+                Err(e) => break Ended::Dropped(format!("the socket: {}", podssh_ws::text::said(&e))),
             },
             _ = ticks.tick() => {
                 let _ = outbox.send(Out::Ping).await;

@@ -76,7 +76,7 @@ pub fn tcp(proxy: ProxyChoice) -> Dial {
         Box::pin(async move {
             let tcp = podssh_ws::dial::dial(&host, port, &proxy, CONNECT_LIMIT)
                 .await
-                .map_err(|e| format!("{}: {e}", podssh_ws::dial::authority(&host, port)))?;
+                .map_err(|e| format!("{}: {}", podssh_ws::dial::authority(&host, port), podssh_ws::text::said(&e)))?;
             Ok(Box::new(tcp) as BoxIo)
         })
     })

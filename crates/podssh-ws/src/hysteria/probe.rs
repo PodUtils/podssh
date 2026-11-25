@@ -98,8 +98,8 @@ pub async fn probe(
             Ok((addr, Ok(Some(Probed::Answered(took))))) => return Ok((addr, took)),
             Ok((addr, Ok(Some(Probed::Refused)))) => said.push(format!("{addr} refused it, as no server is there")),
             Ok((addr, Ok(None))) => said.push(format!("{addr} said nothing within {} ms", wait.as_millis())),
-            Ok((addr, Err(e))) => said.push(format!("{addr}: {e}")),
-            Err(e) => said.push(format!("a probe ended: {e}")),
+            Ok((addr, Err(e))) => said.push(format!("{addr}: {}", crate::text::said(&e))),
+            Err(e) => said.push(format!("a probe ended: {}", crate::text::said(&e))),
         }
     }
     Err(said.join("; "))

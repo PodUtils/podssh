@@ -78,8 +78,10 @@ pub(crate) fn code(e: &io::Error) -> i32 {
 /// the host refused it.
 pub(super) fn refused(shown: &str, e: &io::Error) -> String {
     match e.kind() {
-        io::ErrorKind::PermissionDenied => format!("{shown}: {e}; this host refuses the listener: {INSTEAD}"),
-        _ => format!("{shown}: {e}"),
+        io::ErrorKind::PermissionDenied => {
+            format!("{shown}: {}; this host refuses the listener: {INSTEAD}", podssh_ws::text::said(&e))
+        }
+        _ => format!("{shown}: {}", podssh_ws::text::said(&e)),
     }
 }
 
@@ -255,7 +257,7 @@ mod unix {
     fn stale(file: &Path) -> Result<(), (i32, String)> {
         let meta = match std::fs::symlink_metadata(file) {
             Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-            Err(e) => return Err((code(&e), e.to_string())),
+            Err(e) => return Err((code(&e), podssh_ws::text::said(&e))),
             Ok(meta) => meta,
         };
         if !meta.file_type().is_socket() {
@@ -266,10 +268,9 @@ mod unix {
         }
         match std::os::unix::net::UnixStream::connect(file) {
             Ok(_) => Err((EX_UNAVAILABLE, "a program listens on it already".into())),
-            Err(e) if e.kind() == io::ErrorKind::ConnectionRefused => {
-                std::fs::remove_file(file).map_err(|e| (code(&e), format!("a socket that nobody serves: {e}")))
-            }
-            Err(e) => Err((code(&e), e.to_string())),
+            Err(e) if e.kind() == io::ErrorKind::ConnectionRefused => std::fs::remove_file(file)
+                .map_err(|e| (code(&e), format!("a socket that nobody serves: {}", podssh_ws::text::said(&e)))),
+            Err(e) => Err((code(&e), podssh_ws::text::said(&e))),
         }
     }
 
@@ -287,7 +288,7 @@ mod unix {
                     Ok(cred) => {
                         say(&format!("closed a client of uid {}: this socket is for uid {}", cred.uid(), self.uid))
                     }
-                    Err(e) => say(&format!("closed a client whose user is not known: {e}")),
+                    Err(e) => say(&format!("closed a client whose user is not known: {}", podssh_ws::text::said(&e))),
                 }
             }
         }

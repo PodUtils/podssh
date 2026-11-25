@@ -181,7 +181,7 @@ fn private_file() -> Result<OwnedFd, String> {
         .create_new(true)
         .mode(0o600)
         .open(&path)
-        .map_err(|e| format!("{}: {e}", path.display()))?;
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     let _ = std::fs::remove_file(&path);
     Ok(OwnedFd::from(file))
 }

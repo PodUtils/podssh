@@ -111,7 +111,8 @@ fn key_of(hex: &str) -> Option<Key> {
 
 /// The keys of the file at `path`, read now.
 pub(crate) fn read_keys(path: &Path) -> Result<Vec<Key>, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let text =
+        std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     parse_keys(&text).map_err(|why| format!("{}: {why}", path.display()))
 }
 

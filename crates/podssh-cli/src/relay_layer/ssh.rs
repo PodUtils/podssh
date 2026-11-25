@@ -166,7 +166,7 @@ async fn carried(road: Road, tell: oneshot::Sender<Begun>) {
                     Begun::Contract
                 }
                 None => {
-                    let line = format!("{at}: the resumable layer's handshake failed: {e}");
+                    let line = format!("{at}: the resumable layer's handshake failed: {}", podssh_ws::text::said(&e));
                     Begun::Failed(NotReached { lines: vec![line], code: sysexits::EX_UNAVAILABLE })
                 }
             };

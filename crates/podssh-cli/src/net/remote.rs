@@ -384,7 +384,7 @@ pub(crate) fn start_as(args: &NodeArgs, reader: Reader) -> Result<(), Refusal> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
-        .map_err(|e| Refusal::config(format!("could not start the async runtime: {e}")))?;
+        .map_err(|e| Refusal::config(format!("could not start the async runtime: {}", podssh_ws::text::said(&e))))?;
     let fresh = reader.fresh_enough && remote.age_s().is_some_and(|age| age < i64::try_from(ttl).unwrap_or(i64::MAX));
     let first = if fresh { None } else { Some(runtime.block_on(remote.refresh())) };
     runtime.shutdown_timeout(Duration::from_secs(1));
@@ -413,7 +413,9 @@ pub(crate) fn start_as(args: &NodeArgs, reader: Reader) -> Result<(), Refusal> {
             let Ok(runtime) = tokio::runtime::Builder::new_current_thread().enable_all().build() else { return };
             runtime.block_on(remote.keep(say));
         })
-        .map_err(|e| Refusal::config(format!("could not start the fetches of --net-url: {e}")))?;
+        .map_err(|e| {
+            Refusal::config(format!("could not start the fetches of --net-url: {}", podssh_ws::text::said(&e)))
+        })?;
     Ok(())
 }
 

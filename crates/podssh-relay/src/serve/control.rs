@@ -53,7 +53,7 @@ mod unix {
             // Mode 0600 from the first instant: no window of the umask's mode.
             let listener = pod_core::files::bind_staged(where_, 0o600).map_err(|e| {
                 // pod-core's own lines of a name or a race name the path.
-                let why = e.to_string();
+                let why = podssh_ws::text::said(&e);
                 if why.starts_with(path) {
                     why
                 } else {

@@ -59,7 +59,7 @@ pub enum MsgError {
 impl std::fmt::Display for MsgError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MsgError::Io(e) => write!(f, "{e}"),
+            MsgError::Io(e) => write!(f, "{}", crate::text::said(&e)),
             MsgError::Kind(b) => write!(f, "a message of the type {b:#04x}, which frp's wire v1 does not have"),
             MsgError::Length(n) => write!(f, "a message of {n} bytes, where frp reads {MAX_LEN} at most"),
             MsgError::Json(e) => write!(f, "a message whose body is no JSON: {e}"),

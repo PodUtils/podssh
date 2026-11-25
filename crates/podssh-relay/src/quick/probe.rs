@@ -40,7 +40,7 @@ pub async fn edge(found: &Edge, wait: Duration) -> Result<(SocketAddr, Duration)
                 }
                 unresolved.push(format!("{region}: no address"));
             }
-            Err(e) => unresolved.push(format!("{region}: {e}")),
+            Err(e) => unresolved.push(format!("{region}: {}", podssh_ws::text::said(&e))),
         }
     }
     Err(format!("UDP to the edge was not probed: no region resolved: {}", unresolved.join("; ")))

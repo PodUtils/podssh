@@ -98,13 +98,13 @@ impl Ended {
 impl std::fmt::Display for Ended {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Ended::Http2(e) => write!(f, "HTTP/2 to the edge failed: {e}"),
+            Ended::Http2(e) => write!(f, "HTTP/2 to the edge failed: {}", podssh_ws::text::said(&e)),
             Ended::Control(e) => write!(f, "{e}"),
             Ended::Refused { cause, .. } => write!(f, "the edge refused the connection: {cause}"),
             Ended::Closed => write!(f, "the edge closed the connection"),
             Ended::Silent => write!(f, "the edge stopped answering"),
             Ended::GoingAway => write!(f, "the edge takes no new visitor on this connection (GOAWAY)"),
-            Ended::Quic(e) => write!(f, "QUIC to the edge failed: {e}"),
+            Ended::Quic(e) => write!(f, "QUIC to the edge failed: {}", podssh_ws::text::said(&e)),
         }
     }
 }

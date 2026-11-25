@@ -6422,7 +6422,7 @@ gives up each capability of the process (T-698), before it reads a file.
   binds (a port under 1024 then needs only `cap_net_bind_service`).
   **The bind is the probe:** no second socket tests it first. A refused
   bind ends the start with one line, `podssh serve: cannot listen on
-  127.0.0.1:2222: Permission denied (os error 13); this host refuses the
+  127.0.0.1:2222: Permission denied; this host refuses the
   listener; --stdio and podssh serve NAME need no listener`, and 77 (as
   `pipe` exits); another failure (a port in use) is 69, and
   `PODSSH_LISTEN=no` is 78 before any bind. `--stdio`, NAME and `--listen`

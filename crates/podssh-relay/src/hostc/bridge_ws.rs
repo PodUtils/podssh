@@ -39,7 +39,7 @@ const READ_CAP: usize = 16 * 1024 * 1024;
 pub(super) async fn run(mut parts: Parts) {
     let key = match handshake::generate_key() {
         Ok(key) => key,
-        Err(e) => return parts.reset(&format!("a key of the upgrade: {e}")).await,
+        Err(e) => return parts.reset(&format!("a key of the upgrade: {}", podssh_ws::text::said(&e))).await,
     };
     let open = &parts.open;
     let mut headers: Vec<(String, String)> =
@@ -119,7 +119,7 @@ pub(super) async fn run(mut parts: Parts) {
         loop {
             let decoded = match frame::decode_capped(&buf, Role::Server, READ_CAP) {
                 Ok(decoded) => decoded,
-                Err(e) => return wire::close(1002, &format!("the node's frame: {e}")),
+                Err(e) => return wire::close(1002, &format!("the node's frame: {}", podssh_ws::text::said(&e))),
             };
             let Some((f, used)) = decoded else {
                 match from_pipe.read(&mut chunk).await {

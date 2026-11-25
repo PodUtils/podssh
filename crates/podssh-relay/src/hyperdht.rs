@@ -83,7 +83,7 @@ pub async fn join(bootstrap: &[String], keys: Option<KeyPair>) -> io::Result<End
     let started = tokio::time::timeout(BOOTSTRAP_LIMIT, peeroxide::spawn(config)).await;
     let (task, handle, connections) = match started {
         Err(_) => return Err(not_passed()),
-        Ok(Err(e)) => return Err(io::Error::other(format!("HyperDHT: {e}"))),
+        Ok(Err(e)) => return Err(io::Error::other(format!("HyperDHT: {}", podssh_ws::text::said(&e)))),
         Ok(Ok(started)) => started,
     };
     let end = End { handle, task, connections };
@@ -102,12 +102,12 @@ impl End {
         let mut opts = JoinOpts::default();
         opts.client = false;
         if let Err(e) = self.handle.join(topic(&me), opts).await {
-            say(format!("HyperDHT did not take the node's topic: {e}"));
+            say(format!("HyperDHT did not take the node's topic: {}", podssh_ws::text::said(&e)));
             return;
         }
         // The announce reaches the DHT before the node says that it waits.
         if let Err(e) = self.handle.flush().await {
-            say(format!("HyperDHT did not take the node's announce: {e}"));
+            say(format!("HyperDHT did not take the node's announce: {}", podssh_ws::text::said(&e)));
         }
         say("waits for its operators in HyperDHT".into());
         while let Some(connection) = self.connections.recv().await {
@@ -128,7 +128,10 @@ impl End {
         while tokio::time::Instant::now() < deadline {
             let mut opts = JoinOpts::default();
             opts.server = false;
-            self.handle.join(topic, opts).await.map_err(|e| io::Error::other(format!("HyperDHT: {e}")))?;
+            self.handle
+                .join(topic, opts)
+                .await
+                .map_err(|e| io::Error::other(format!("HyperDHT: {}", podssh_ws::text::said(&e))))?;
             let round = (tokio::time::Instant::now() + LOOK_AGAIN).min(deadline);
             let found = tokio::time::timeout_at(round, async {
                 while let Some(connection) = self.connections.recv().await {

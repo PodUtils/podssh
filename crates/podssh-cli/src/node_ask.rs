@@ -101,7 +101,10 @@ fn asker(label: String) -> Arc<Asker> {
     let started = std::thread::Builder::new().name("podssh-ask".into()).spawn(move || read_lines(&reader, tx));
     if let Err(e) = started {
         // Its sender went with the thread that never ran: each question is a no.
-        podssh_ssh::err_line!("podssh node: {label}: stdin cannot be read ({e}): each operator key is refused");
+        podssh_ssh::err_line!(
+            "podssh node: {label}: stdin cannot be read ({}): each operator key is refused",
+            podssh_ws::text::said(&e)
+        );
     }
     let lines: Arc<Lines> = Arc::new(Mutex::new(rx));
     Arc::new(move |question: Question| -> Answer {

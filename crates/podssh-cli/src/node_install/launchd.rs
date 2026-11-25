@@ -49,7 +49,7 @@ fn log_file(spec: &Spec) -> Result<PathBuf, String> {
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    options.open(&path).map(|_| path.clone()).map_err(|e| format!("{}: {e}", path.display()))
+    options.open(&path).map(|_| path.clone()).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
 }
 
 /// The LaunchAgent, written, and loaded now in this user's session: one
@@ -69,7 +69,7 @@ pub(super) fn launchd(spec: &Spec) -> Made {
     };
     let written = std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&path, text::plist(spec, &label, &log)));
     if let Err(e) = written {
-        return failed(&path.display().to_string(), e.to_string());
+        return failed(&path.display().to_string(), podssh_ws::text::said(&e));
     }
     // launchd refuses a plist that others may write.
     {

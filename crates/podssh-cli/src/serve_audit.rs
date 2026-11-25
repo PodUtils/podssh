@@ -45,7 +45,7 @@ pub fn verify(args: &ServeArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
     let verdict = match verdict {
         Ok(verdict) => verdict,
         Err(e) => {
-            let _ = writeln!(err, "podssh serve: --audit-verify {file}: {e}");
+            let _ = writeln!(err, "podssh serve: --audit-verify {file}: {}", podssh_ws::text::said(&e));
             return EX_NOINPUT;
         }
     };

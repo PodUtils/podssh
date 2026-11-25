@@ -147,7 +147,7 @@ impl Dialer {
                      60 minutes, and the next has a new name), or a proxy ended it"
                 ))
             }
-            Err(e) => Err(format!("{name}: {e}")),
+            Err(e) => Err(format!("{name}: {}", podssh_ws::text::said(&e))),
         }
     }
 }

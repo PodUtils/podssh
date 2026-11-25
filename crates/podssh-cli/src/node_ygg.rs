@@ -77,7 +77,7 @@ where
     let router = match crate::yggdrasil::router(node_secret(&road.name, &road.token), &road.peer, lines) {
         Ok(router) => router,
         Err(e) => {
-            (road.say)(format!("Yggdrasil's road: {e}"));
+            (road.say)(format!("Yggdrasil's road: {}", podssh_ws::text::said(&e)));
             return std::future::pending().await;
         }
     };

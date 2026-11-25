@@ -342,7 +342,7 @@ pub fn run(args: &ServeArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
-            let _ = writeln!(err, "podssh serve: no runtime: {e}");
+            let _ = writeln!(err, "podssh serve: no runtime: {}", podssh_ws::text::said(&e));
             stopped("failed");
             return EXIT_NOT_IMPLEMENTED;
         }

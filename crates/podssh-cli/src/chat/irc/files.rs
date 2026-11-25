@@ -266,8 +266,8 @@ impl Files {
             Err(e) => {
                 return vec![notice(
                     "error",
-                    json!({ "error": e.to_string() }),
-                    format!("{}: {e}", ours.path.display()),
+                    json!({ "error": podssh_ws::text::said(&e) }),
+                    format!("{}: {}", ours.path.display(), podssh_ws::text::said(&e)),
                 )]
             }
         };
@@ -307,7 +307,7 @@ impl Files {
             going.file.read_exact(&mut bytes).await
         };
         if let Err(e) = read.await {
-            let why = format!("{}: {e}", going.ours.path.display());
+            let why = format!("{}: {}", going.ours.path.display(), podssh_ws::text::said(&e));
             self.going = None;
             return vec![notice("error", json!({ "error": why }), why.clone())];
         }

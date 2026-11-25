@@ -48,8 +48,8 @@ pub async fn serve(
     let visitor = origin::visitor_of(asked.headers.iter().map(|(n, v)| (n.as_str(), v.as_str())));
     let mut conn = server.connect(visitor);
     let answered = async {
-        conn.write_all(&head).await.map_err(|e| e.to_string())?;
-        conn.write_all(&body).await.map_err(|e| e.to_string())?;
+        conn.write_all(&head).await.map_err(|e| podssh_ws::text::said(&e))?;
+        conn.write_all(&body).await.map_err(|e| podssh_ws::text::said(&e))?;
         origin::read_answer(&mut conn).await
     };
     // An origin that gives no answer: 502, as cloudflared's for its origin.

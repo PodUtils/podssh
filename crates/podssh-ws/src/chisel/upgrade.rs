@@ -30,7 +30,7 @@ pub async fn upgrade<S>(mut stream: S, request: &[u8], key: &str) -> Result<(S, 
 where
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    let io = |e: std::io::Error| ChiselError::Connect(ConnectError::Upgrade(e.to_string()));
+    let io = |e: std::io::Error| ChiselError::Connect(ConnectError::Upgrade(crate::text::said(&e)));
     stream.write_all(request).await.map_err(io)?;
     stream.flush().await.map_err(io)?;
     let mut buf = Vec::with_capacity(1024);

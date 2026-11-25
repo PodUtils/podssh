@@ -48,7 +48,7 @@ them too, which is wrong. An unknown `%` token stays as text (`crates/podssh-cli
    (`crates/podssh-cli/src/ssh/keywords.rs`, lines 84-89 at `c0cdd2b`), but accept a `ProxyCommand` that runs
    podssh itself (`proxy %h %p`: the path of `podssh ssh` anyway). Honour `IgnoreUnknown`.
 6. Refuse a file that another user owns or can write, as OpenSSH does, on the opened file
-   (`crates/podssh-relay/src/cache/own.rs:22-59`, `Others::Read`, since T-163). An unknown `%`
+   (`crates/podssh-relay/src/cache/own.rs:22-60`, `Others::Read`, since T-163). An unknown `%`
    token is an error.
 7. In the same commit: the `-F` row (`crates/podssh-cli/src/flags.rs`, lines 143-144 at `c0cdd2b`), VARIABLES and
    FILES (`crates/podssh-cli/src/man/facts.rs`, lines 45-127 and 98-142 at `c0cdd2b`), the `ssh` notes,
@@ -698,7 +698,7 @@ configuration directory first; the operator corrected it on 2026-10-08 (`docs/de
    names relay hosts decides where tokens go.
 4. Refuse a file that is a symbolic link, or that another user owns or can write, with an error
    that names it. Check the opened file, as `read_own` does with `Others::Read`
-   (`crates/podssh-relay/src/cache/own.rs:22-59`, since T-163).
+   (`crates/podssh-relay/src/cache/own.rs:22-60`, since T-163).
 5. No keyword for a token: a token in a file is a stored credential (question Q5, T-034).
 6. podssh never writes the file: csshw creates one, but podssh changes nothing unasked.
 7. `doctor` and `status` (T-051) name the file in use. Change in the same commit: VARIABLES and

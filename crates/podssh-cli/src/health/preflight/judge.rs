@@ -109,7 +109,10 @@ pub fn sftp(got: &Result<SftpFacts, SftpError>) -> Verdict {
             ok(detail)
         }
         Err(SftpError::NoSftp) => ok("no SFTP subsystem: podssh cp copies by exec, with the tools of exec tools"),
-        Err(e) => fail(format!("{e}: podssh cp, mv, sftp and edit fail on this host as the probe did")),
+        Err(e) => fail(format!(
+            "{}: podssh cp, mv, sftp and edit fail on this host as the probe did",
+            podssh_ws::text::said(&e)
+        )),
     }
 }
 

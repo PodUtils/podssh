@@ -51,7 +51,7 @@ async fn session(service: &Service, proxy: &ProxyChoice, visitors: mpsc::Sender<
         let tcp = match podssh_ws::dial::dial(&at.host, port, proxy, CONNECT_LIMIT).await {
             Ok(tcp) => tcp,
             Err(e) => {
-                failed.push(format!("port {port}: {e}"));
+                failed.push(format!("port {port}: {}", podssh_ws::text::said(&e)));
                 continue;
             }
         };
@@ -111,7 +111,7 @@ pub(crate) async fn open(
             )),
             Err(e) => {
                 let _ = handle.disconnect(russh::Disconnect::ByApplication, "no alias", "en").await;
-                return Err(format!("{service} refused the alias's forward: {e}"));
+                return Err(format!("{service} refused the alias's forward: {}", podssh_ws::text::said(&e)));
             }
         }
     }

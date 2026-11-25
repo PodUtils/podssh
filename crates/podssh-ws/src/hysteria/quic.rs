@@ -76,7 +76,9 @@ pub async fn endpoint(addr: SocketAddr, obfs: Option<&[u8]>) -> Result<Endpoint,
         SocketAddr::V4(_) => (Ipv4Addr::UNSPECIFIED, 0).into(),
         SocketAddr::V6(_) => (Ipv6Addr::UNSPECIFIED, 0).into(),
     };
-    let socket = SystemDatagrams::bind(any).await.map_err(|e| HysteriaError::Quic(format!("no UDP socket: {e}")))?;
+    let socket = SystemDatagrams::bind(any)
+        .await
+        .map_err(|e| HysteriaError::Quic(format!("no UDP socket: {}", crate::text::said(&e))))?;
     let way = Arc::new(Salamander::new(socket, psk));
     pod_quic::endpoint::over(way, None).map_err(|e| HysteriaError::Quic(e.chain()))
 }
@@ -95,7 +97,7 @@ pub async fn authenticated(
         Ok(connection) => connection,
         Err(e) => match pinned.and_then(|p| p.refused()) {
             Some(seen) => return Err(HysteriaError::Pin { seen, pinned: pin_of(server) }),
-            None => return Err(HysteriaError::Quic(e.to_string())),
+            None => return Err(HysteriaError::Quic(crate::text::said(&e))),
         },
     };
     let mut control = connection.open_uni().await.map_err(http3)?;
@@ -159,7 +161,7 @@ pub async fn tcp(connection: &Connection, target: &str) -> Result<(SendStream, R
     let (mut send, mut recv) = connection.open_bi().await.map_err(http3)?;
     send.write_all(&tcp_request(target)).await.map_err(http3)?;
     let mut status = [0u8; 1];
-    recv.read_exact(&mut status).await.map_err(|e| HysteriaError::Ended(e.to_string()))?;
+    recv.read_exact(&mut status).await.map_err(|e| HysteriaError::Ended(crate::text::said(&e)))?;
     let len = varint(&mut recv).await?;
     if len > MOST_MESSAGE {
         return Err(http3(format!("the answer's message of {len} bytes")));

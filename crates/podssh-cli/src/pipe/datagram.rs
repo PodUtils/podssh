@@ -99,7 +99,7 @@ async fn carry(
                     sending = false;
                     wait.as_mut().reset(Instant::now() + REPLY_WAIT);
                 }
-                Err(e) => break Some((EX_DATAERR, vec![format!("{shown}: {e}")])),
+                Err(e) => break Some((EX_DATAERR, vec![format!("{shown}: {}", podssh_ws::text::said(&e))])),
             },
             got = from_node.read(&mut buf) => match got {
                 Ok(0) | Err(_) => {
@@ -141,7 +141,10 @@ impl Ending for Bridged {
             let _ = done.send(());
             let bridged = match task.await {
                 Ok(verdict) => verdict,
-                Err(e) => Some((EXIT_SOFTWARE, vec![format!("the task of the datagrams failed: {e}")])),
+                Err(e) => Some((
+                    EXIT_SOFTWARE,
+                    vec![format!("the task of the datagrams failed: {}", podssh_ws::text::said(&e))],
+                )),
             };
             let session = match inner {
                 Some(inner) => inner.finish().await,
@@ -168,15 +171,18 @@ pub fn exec(words: &[String], say: &mut dyn FnMut(&str)) -> Result<End, Unopened
         Ok(pairs) => pairs,
         Err(e) => {
             say(&format!(
-                "exec:{}: no datagram socketpair here ({e}): its stdin and stdout carry each datagram after its \
+                "exec:{}: no datagram socketpair here ({}): its stdin and stdout carry each datagram after its \
                  16-bit length",
-                words[0]
+                words[0],
+                podssh_ws::text::said(&e)
             ));
             return super::local::exec(words, &super::local::socketpair);
         }
     };
-    let failed =
-        |e: std::io::Error| Unopened { code: 126, why: format!("exec:{}: a datagram socketpair: {e}", words[0]) };
+    let failed = |e: std::io::Error| Unopened {
+        code: 126,
+        why: format!("exec:{}: a datagram socketpair: {}", words[0], podssh_ws::text::said(&e)),
+    };
     let mut cmd = tokio::process::Command::new(&words[0]);
     cmd.args(&words[1..]).stderr(Stdio::inherit());
     cmd.stdin(Stdio::from(OwnedFd::from(theirs))).stdout(Stdio::from(OwnedFd::from(theirs_out)));
@@ -364,7 +370,10 @@ impl Ending for Exited {
             match task.await {
                 Ok(0) => None,
                 Ok(code) => Some((code, Vec::new())),
-                Err(e) => Some((EXIT_SOFTWARE, vec![format!("the task of the program's datagrams failed: {e}")])),
+                Err(e) => Some((
+                    EXIT_SOFTWARE,
+                    vec![format!("the task of the program's datagrams failed: {}", podssh_ws::text::said(&e))],
+                )),
             }
         })
     }

@@ -39,7 +39,7 @@ pub enum FrpError {
 
 impl FrpError {
     pub fn io(e: std::io::Error) -> FrpError {
-        FrpError::Ended(e.to_string())
+        FrpError::Ended(crate::text::said(&e))
     }
 
     /// Whether frps refused the token: no try again helps.

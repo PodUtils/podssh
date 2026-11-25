@@ -109,8 +109,8 @@ pub async fn register(dial: &Dial, service: &Service, ports: &[u16]) -> Result<R
 async fn accept(dial: &Dial, service: &Service, uuid: &str, hello: &[u8]) -> Result<BoxIo, String> {
     let mut io = open(dial, service).await?;
     wire::send(&mut io, &ClientMessage::Accept(uuid.to_string())).await?;
-    io.write_all(hello).await.map_err(|e| format!("the hello to a visitor: {e}"))?;
-    io.flush().await.map_err(|e| format!("the hello to a visitor: {e}"))?;
+    io.write_all(hello).await.map_err(|e| format!("the hello to a visitor: {}", podssh_ws::text::said(&e)))?;
+    io.flush().await.map_err(|e| format!("the hello to a visitor: {}", podssh_ws::text::said(&e)))?;
     Ok(io)
 }
 

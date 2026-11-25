@@ -130,13 +130,13 @@ pub async fn connect(proxy: &ProxyChoice, edge: &Edge) -> Result<Box<dyn EdgeIo>
         let tcp = match podssh_ws::dial::dial(region, port, proxy, DIAL_LIMIT).await {
             Ok(tcp) => tcp,
             Err(e) => {
-                failed.push(format!("{region}:{port}: {e}"));
+                failed.push(format!("{region}:{port}: {}", podssh_ws::text::said(&e)));
                 continue;
             }
         };
         match podssh_ws::tls::connect_over(tcp, server_name(), &trust, DIAL_LIMIT).await {
             Ok(tls) => return Ok(Box::new(tls)),
-            Err(e) => failed.push(format!("{region}:{port}: {e}")),
+            Err(e) => failed.push(format!("{region}:{port}: {}", podssh_ws::text::said(&e))),
         }
     }
     Err(format!("no region of the edge answered: {}", failed.join("; ")))

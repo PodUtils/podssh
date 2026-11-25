@@ -44,7 +44,7 @@ where
         }
         sent += 1;
         if let Err(e) = session.send_ping(&sent.to_be_bytes()).await {
-            return format!("a ping to the node failed: {e}");
+            return format!("a ping to the node failed: {}", podssh_ws::text::said(&e));
         }
     }
 }

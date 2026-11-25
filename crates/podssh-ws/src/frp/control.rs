@@ -106,7 +106,7 @@ impl Session {
         let answer = tokio::time::timeout(ANSWER_LIMIT, msg::read(&mut stream))
             .await
             .map_err(|_| FrpError::Protocol(format!("no answer to the login within {} s", ANSWER_LIMIT.as_secs())))?
-            .map_err(|e| FrpError::Protocol(format!("the answer to the login: {e}")))?;
+            .map_err(|e| FrpError::Protocol(format!("the answer to the login: {}", crate::text::said(&e))))?;
         if answer.kind != msg::LOGIN_RESP {
             return Err(FrpError::Protocol(format!(
                 "a message {:?} in the place of the login's answer",
@@ -138,7 +138,9 @@ impl Session {
             .await
             .map_err(FrpError::io)?;
         // A work connection waits in frps's pool for its visitor: no bound.
-        let start = msg::read(&mut stream).await.map_err(|e| FrpError::Protocol(format!("a work connection: {e}")))?;
+        let start = msg::read(&mut stream)
+            .await
+            .map_err(|e| FrpError::Protocol(format!("a work connection: {}", crate::text::said(&e))))?;
         if start.kind != msg::START_WORK_CONN {
             return Err(FrpError::Protocol(format!(
                 "a message {:?} in the place of StartWorkConn",
@@ -201,7 +203,7 @@ pub async fn visit_at(
     let answer = tokio::time::timeout(ANSWER_LIMIT, msg::read(&mut stream))
         .await
         .map_err(|_| FrpError::Protocol(format!("no answer to the visit within {} s", ANSWER_LIMIT.as_secs())))?
-        .map_err(|e| FrpError::Protocol(format!("the answer to the visit: {e}")))?;
+        .map_err(|e| FrpError::Protocol(format!("the answer to the visit: {}", crate::text::said(&e))))?;
     if answer.kind != msg::NEW_VISITOR_CONN_RESP {
         return Err(FrpError::Protocol(format!(
             "a message {:?} in the place of the visit's answer",

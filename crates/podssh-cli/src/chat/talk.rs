@@ -217,7 +217,7 @@ impl Talk {
             let record = match decoder.next_record() {
                 Ok(Some(record)) => record,
                 Ok(None) => return None,
-                Err(e) => return Some(Ended::Failed(format!("the peer sent {e}"))),
+                Err(e) => return Some(Ended::Failed(format!("the peer sent {}", podssh_ws::text::said(&e)))),
             };
             let (events, replies) = match self.session.receive(record) {
                 Ok(done) => done,
@@ -269,7 +269,9 @@ impl Talk {
                 if self.session.left(id) > 0 {
                     match tokio::fs::File::open(&path).await {
                         Ok(file) => self.files.sending.push_back(Sending { id, file }),
-                        Err(e) => return Some(Ended::Failed(format!("{}: {e}", path.display()))),
+                        Err(e) => {
+                            return Some(Ended::Failed(format!("{}: {}", path.display(), podssh_ws::text::said(&e))))
+                        }
                     }
                 }
                 out.notice("taken", json!({ "id": id }), format!("{} takes file {id}", safe(&self.peer()))).await;

@@ -51,7 +51,7 @@ impl Incoming {
             .create_new(true)
             .open(&temp)
             .await
-            .map_err(|e| format!("{}: {e}", temp.display()))?;
+            .map_err(|e| format!("{}: {}", temp.display(), podssh_ws::text::said(&e)))?;
         Ok(Incoming { path, temp, file })
     }
 
@@ -60,7 +60,7 @@ impl Incoming {
     }
 
     pub async fn write(&mut self, data: &[u8]) -> Result<(), String> {
-        self.file.write_all(data).await.map_err(|e| format!("{}: {e}", self.temp.display()))
+        self.file.write_all(data).await.map_err(|e| format!("{}: {}", self.temp.display(), podssh_ws::text::said(&e)))
     }
 
     /// The end of the file: its name once whole, never over a file that came
@@ -74,7 +74,7 @@ impl Incoming {
         drop(self.file);
         if let Err(e) = written {
             let _ = std::fs::remove_file(&self.temp);
-            return Err(format!("{}: {e}", self.temp.display()));
+            return Err(format!("{}: {}", self.temp.display(), podssh_ws::text::said(&e)));
         }
         if !whole {
             let _ = std::fs::remove_file(&self.temp);
@@ -88,7 +88,7 @@ impl Incoming {
             Err(e) => Err(e),
         };
         let _ = std::fs::remove_file(&self.temp);
-        named.map(|()| self.path.clone()).map_err(|e| format!("{}: {e}", self.path.display()))
+        named.map(|()| self.path.clone()).map_err(|e| format!("{}: {}", self.path.display(), podssh_ws::text::said(&e)))
     }
 
     /// The conversation ended before the file: the temporary file goes.
@@ -100,10 +100,11 @@ impl Incoming {
 
 /// The size and SHA-256 of the file at `path`, read whole once.
 pub async fn digest(path: &Path) -> Result<(u64, [u8; 32]), String> {
-    let mut file = tokio::fs::File::open(path).await.map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut file =
+        tokio::fs::File::open(path).await.map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     let (mut hasher, mut size, mut buf) = (Sha256::new(), 0u64, vec![0u8; MAX_CHUNK]);
     loop {
-        let n = file.read(&mut buf).await.map_err(|e| format!("{}: {e}", path.display()))?;
+        let n = file.read(&mut buf).await.map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
         if n == 0 {
             return Ok((size, hasher.finalize().into()));
         }

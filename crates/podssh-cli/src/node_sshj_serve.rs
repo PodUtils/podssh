@@ -76,7 +76,7 @@ async fn hold(
 ) -> Result<Held, String> {
     let tcp = podssh_ws::dial::dial(&service.host, service.port, proxy, CONNECT_LIMIT)
         .await
-        .map_err(|e| format!("{service}: {e}"))?;
+        .map_err(|e| format!("{service}: {}", podssh_ws::text::said(&e)))?;
     let visitors = Visitors { address: name.address.clone(), queue };
     let opened = leg::open(tcp, service, &name.user, Some(visitors)).await?;
     let forward = opened.handle.tcpip_forward(name.address.as_str(), NAME_PORT);
@@ -86,8 +86,9 @@ async fn hold(
         // The server keeps a name for the session that holds it: a stranger
         // who took it first, or this node's last session, not yet ended there.
         Ok(Err(e)) => Err(format!(
-            "{service} refused the forward of {name} ({e}): another session holds the name, a stranger's or this \
-             node's last, which the server has not ended"
+            "{service} refused the forward of {name} ({}): another session holds the name, a stranger's or this \
+             node's last, which the server has not ended",
+            podssh_ws::text::said(&e)
         )),
         Err(_) => Err(format!("{service}: no answer to the forward within {} s", CONNECT_LIMIT.as_secs())),
     }

@@ -119,7 +119,8 @@ fn write(place: &Place, signed: &Signed) -> Result<(PathBuf, Option<String>), St
 fn replace(path: &Path, body: &[u8]) -> Result<(PathBuf, Option<String>), String> {
     // No write in place: a node reads the file for each session, and half
     // a document is no document; a bind-mounted one is replaced from its host.
-    let commit = cache::replace_private(path, body, 0o600, false).map_err(|e| format!("{}: {e}", path.display()))?;
+    let commit = cache::replace_private(path, body, 0o600, false)
+        .map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))?;
     Ok((path.to_path_buf(), cache::commit_note(path, &commit)))
 }
 

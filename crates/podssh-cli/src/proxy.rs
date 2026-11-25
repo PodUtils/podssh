@@ -302,7 +302,7 @@ fn proxy(args: &ProxyArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_NOT_IMPLEMENTED;
         }
     };
@@ -348,7 +348,7 @@ fn run_cloudflare(host: &str, args: &ProxyArgs, err: &mut dyn Write) -> i32 {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh proxy: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return EXIT_NOT_IMPLEMENTED;
         }
     };
@@ -462,7 +462,7 @@ async fn session(
         }
         Err(failure) => {
             for line in failure.lines(target) {
-                let _ = writeln!(err, "podssh: {line}");
+                let _ = writeln!(err, "podssh: {}", podssh_ws::text::plain(&line));
             }
             // The HTTP road at a host whose upgrade the way refused (T-319).
             let to = (host, port);

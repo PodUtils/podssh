@@ -56,9 +56,9 @@ fn unavailable(message: String) -> Refusal {
 fn connect_refusal(host: &str, e: ConnectError) -> Refusal {
     match e {
         ConnectError::Refused { status: 401 | 403, .. } => {
-            Refusal { message: format!("{host}: {e}"), code: Fault::Auth.code() }
+            Refusal { message: format!("{host}: {}", podssh_ws::text::said(&e)), code: Fault::Auth.code() }
         }
-        e => unavailable(format!("{host}: {e}")),
+        e => unavailable(format!("{host}: {}", podssh_ws::text::said(&e))),
     }
 }
 
@@ -90,7 +90,7 @@ pub fn status(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
             if !json {
                 let _ = match &result {
                     Ok(answer) => writeln!(out, "{}", answer.line(&relay.host)),
-                    Err(e) => writeln!(out, "{}: {e}", relay.host),
+                    Err(e) => writeln!(out, "{}: {}", relay.host, podssh_ws::text::said(&e)),
                 };
             }
             found.push((relay.clone(), result));
@@ -111,7 +111,9 @@ pub fn status(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
                     "paused": h.paused, "reverse": h.reverse, "ms": h.took.as_millis() as u64, "tls": h.tls,
                     "opened": h.opened,
                 }),
-                Err(e) => json!({ "host": relay.host, "port": relay.port, "ok": false, "error": e.to_string() }),
+                Err(e) => {
+                    json!({ "host": relay.host, "port": relay.port, "ok": false, "error": podssh_ws::text::said(&e) })
+                }
             })
             .collect();
         // Each deployment of the list, and whether its list was signed (T-346).
@@ -199,7 +201,9 @@ pub fn trace(args: &RelayArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         let ctx = MintContext { relay: &relay, trust: &trust, ctx: &podssh_relay::context::of(&proxy), timeout: STEP };
         let mut fresh = false;
         loop {
-            let token = token::obtain(&ctx, fresh).await.map_err(|e| unavailable(format!("the relay token: {e}")))?;
+            let token = token::obtain(&ctx, fresh)
+                .await
+                .map_err(|e| unavailable(format!("the relay token: {}", podssh_ws::text::said(&e))))?;
             let response = podssh_ws::client::https_with_token(
                 "GET",
                 &relay.host,

@@ -70,12 +70,24 @@ pub fn bind<F: FnMut(&str) + ?Sized>(path: &str, say: &mut F) -> Result<Bound, U
     let shown = format!("unix-listen:{path}");
     // SAFETY: the pseudo-handle of this process needs no closing.
     let ours = token_user(unsafe { GetCurrentProcess() }).map_err(|e| {
-        (EX_UNAVAILABLE, format!("{shown}: this process's user cannot be read, so no peer could be checked: {e}"))
+        (
+            EX_UNAVAILABLE,
+            format!(
+                "{shown}: this process's user cannot be read, so no peer could be checked: {}",
+                podssh_ws::text::said(&e)
+            ),
+        )
     })?;
     if super::unix::is_named_pipe(path) {
         let server = ServerOptions::new().first_pipe_instance(true).reject_remote_clients(true).create(path);
         let server = server.map_err(|e| {
-            (EX_UNAVAILABLE, format!("{shown}: a pipe of that name exists, or this user may not make it: {e}"))
+            (
+                EX_UNAVAILABLE,
+                format!(
+                    "{shown}: a pipe of that name exists, or this user may not make it: {}",
+                    podssh_ws::text::said(&e)
+                ),
+            )
         })?;
         say(&format!("listening on {shown}: for this user's programs only"));
         return Ok(Bound { kind: Kind::Pipe { name: path.to_string(), next: Some(server) }, ours });
@@ -103,7 +115,7 @@ fn stale(path: &str, file: &std::path::Path) -> Result<(), (i32, String)> {
     use std::os::windows::fs::MetadataExt;
     let meta = match std::fs::symlink_metadata(file) {
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(()),
-        Err(e) => return Err((code(&e), e.to_string())),
+        Err(e) => return Err((code(&e), podssh_ws::text::said(&e))),
         Ok(meta) => meta,
     };
     if meta.file_attributes() & REPARSE_POINT == 0 {
@@ -114,10 +126,9 @@ fn stale(path: &str, file: &std::path::Path) -> Result<(), (i32, String)> {
     }
     match super::unix::af_unix(path) {
         Ok(_) => Err((EX_UNAVAILABLE, "a program listens on it already".into())),
-        Err(e) if e.kind() == io::ErrorKind::ConnectionRefused => {
-            std::fs::remove_file(file).map_err(|e| (code(&e), format!("a socket that nobody serves: {e}")))
-        }
-        Err(e) => Err((code(&e), e.to_string())),
+        Err(e) if e.kind() == io::ErrorKind::ConnectionRefused => std::fs::remove_file(file)
+            .map_err(|e| (code(&e), format!("a socket that nobody serves: {}", podssh_ws::text::said(&e)))),
+        Err(e) => Err((code(&e), podssh_ws::text::said(&e))),
     }
 }
 
@@ -192,7 +203,9 @@ impl Bound {
                             return Ok(End::plain(Box::new(read), Box::new(write)));
                         }
                         Ok(false) => say("closed a client of another user: this socket is for this user"),
-                        Err(e) => say(&format!("closed a client whose user is not known: {e}")),
+                        Err(e) => {
+                            say(&format!("closed a client whose user is not known: {}", podssh_ws::text::said(&e)))
+                        }
                     }
                     // SAFETY: the accepted socket is closed once, unused.
                     unsafe { ws::closesocket(accepted) };
@@ -221,7 +234,9 @@ impl Bound {
                             ));
                         }
                         Ok(false) => say("closed a client of another user: this pipe is for this user"),
-                        Err(e) => say(&format!("closed a client whose user is not known: {e}")),
+                        Err(e) => {
+                            say(&format!("closed a client whose user is not known: {}", podssh_ws::text::said(&e)))
+                        }
                     }
                 }
             }

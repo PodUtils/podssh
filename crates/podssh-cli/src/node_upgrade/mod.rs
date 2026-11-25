@@ -298,7 +298,10 @@ async fn ready() -> bool {
             false
         }
         Err(e) => {
-            say(format!("an upgrade was asked, but its probe failed ({e}): the node goes on with this binary"));
+            say(format!(
+                "an upgrade was asked, but its probe failed ({}): the node goes on with this binary",
+                podssh_ws::text::said(&e)
+            ));
             false
         }
     }
@@ -423,8 +426,8 @@ where
 
 /// The connection of a target, back in this binary's runtime.
 fn connection(socket: std::net::TcpStream) -> Result<TcpStream, String> {
-    socket.set_nonblocking(true).map_err(|e| format!("its connection: {e}"))?;
-    TcpStream::from_std(socket).map_err(|e| format!("its connection: {e}"))
+    socket.set_nonblocking(true).map_err(|e| format!("its connection: {}", podssh_ws::text::said(&e)))?;
+    TcpStream::from_std(socket).map_err(|e| format!("its connection: {}", podssh_ws::text::said(&e)))
 }
 
 /// The keeper of a node whose sessions run the end-to-end channel.

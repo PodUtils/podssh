@@ -49,7 +49,10 @@ pub fn tcp(proxy: ProxyChoice) -> Connect {
             let tcp = podssh_ws::dial::dial(&host, port, &proxy, CONNECT_LIMIT).await;
             tcp.map(|tcp| Box::new(tcp) as BoxIo).map_err(|e| {
                 let shown = podssh_ws::dial::authority(&host, port);
-                format!("{shown}, the tunnel's port: {e} (the node's egress must reach that port)")
+                format!(
+                    "{shown}, the tunnel's port: {} (the node's egress must reach that port)",
+                    podssh_ws::text::said(&e)
+                )
             })
         })
     })
@@ -128,7 +131,7 @@ async fn hold(keep: &Keep, tunnel: Arc<Tunnel>, mut stop: watch::Receiver<bool>)
     let gone = tokio::select! {
         gone = set.join_next() => Some(match gone {
             Some(Ok(why)) => why,
-            Some(Err(e)) => format!("a connection of the tunnel failed: {e}"),
+            Some(Err(e)) => format!("a connection of the tunnel failed: {}", podssh_ws::text::said(&e)),
             None => "the tunnel has no connection".to_string(),
         }),
         _ = stop.wait_for(|stop| *stop) => None,

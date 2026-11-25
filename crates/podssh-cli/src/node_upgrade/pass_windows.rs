@@ -107,7 +107,7 @@ pub fn read(value: &str) -> Result<Taken, String> {
     // one alone and named in the variable; nothing else here owns it.
     let mut pipe = unsafe { File::from_raw_handle(handle) };
     let mut bytes = Vec::new();
-    pipe.read_to_end(&mut bytes).map_err(|e| format!("the handover's pipe: {e}"))?;
+    pipe.read_to_end(&mut bytes).map_err(|e| format!("the handover's pipe: {}", podssh_ws::text::said(&e)))?;
     drop(pipe);
     let (bytes, infos) = unframe(nonce, &bytes)?;
     startup();
@@ -258,7 +258,7 @@ pub fn hand_to_child(
         .env(ROOT_VARIABLE, super::root_pid().to_string());
     let mut child = match cmd.spawn() {
         Ok(child) => child,
-        Err(e) => return Err((handed, format!("it does not start here: {e}"))),
+        Err(e) => return Err((handed, format!("it does not start here: {}", podssh_ws::text::said(&e)))),
     };
     drop(read);
     tie(&child);
@@ -294,7 +294,7 @@ pub fn hand_to_child(
     if let Err(e) = sent {
         let _ = child.kill();
         let _ = child.wait();
-        return Err((handed, format!("its handover's pipe: {e}")));
+        return Err((handed, format!("its handover's pipe: {}", podssh_ws::text::said(&e))));
     }
     // The child holds each socket now: this process's copies close, which
     // leaves the connections open while the child's are, and ends each that
@@ -302,7 +302,7 @@ pub fn hand_to_child(
     drop(handed);
     match child.wait() {
         Ok(status) => Ok(status.code().unwrap_or(1)),
-        Err(e) => Err((Vec::new(), format!("its wait: {e}"))),
+        Err(e) => Err((Vec::new(), format!("its wait: {}", podssh_ws::text::said(&e)))),
     }
 }
 

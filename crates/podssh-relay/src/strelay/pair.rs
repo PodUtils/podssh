@@ -105,7 +105,7 @@ pub async fn serve(dial: Dial, relay: Relay, me: Identity, visitors: mpsc::Sende
     while !visitors.is_closed() {
         match joined(&dial, &relay, &me, &visitors, &say, &mut wait).await {
             Ok(()) => return,
-            Err(e) => say(format!("its connection to Syncthing's relay ended: {e}")),
+            Err(e) => say(format!("its connection to Syncthing's relay ended: {}", podssh_ws::text::said(&e))),
         }
         tokio::time::sleep(wait).await;
         wait = (wait * 2).min(Duration::from_secs(32));
@@ -138,7 +138,9 @@ async fn joined(
                         Ok(stream) => {
                             let _ = visitors.send(stream).await;
                         }
-                        Err(e) => say(format!("a session on Syncthing's relay did not start: {e}")),
+                        Err(e) => {
+                            say(format!("a session on Syncthing's relay did not start: {}", podssh_ws::text::said(&e)))
+                        }
                     }
                 });
             }

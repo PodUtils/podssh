@@ -215,7 +215,7 @@ impl fmt::Display for DelegatedError {
         match self {
             DelegatedError::NoExporter => f.write_str("the connection has no TLS exporter to bind a credential to"),
             DelegatedError::NoLeaf => f.write_str("the server presented no certificate"),
-            DelegatedError::Io(error) => write!(f, "the delegate request: {error}"),
+            DelegatedError::Io(error) => write!(f, "the delegate request: {}", crate::text::said(&error)),
             DelegatedError::Http(why) => write!(f, "the delegate answer: {why}"),
             DelegatedError::Refused { status, body } => {
                 write!(f, "the delegate request was refused with {status}: {body}")

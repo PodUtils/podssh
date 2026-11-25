@@ -79,7 +79,7 @@ pub fn run(args: &NodeArgs, err: &mut dyn Write) -> Option<i32> {
     let runtime = match tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh node: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh node: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Some(Fault::SessionFault.code());
         }
     };

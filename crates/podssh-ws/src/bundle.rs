@@ -27,7 +27,7 @@ pub const BUNDLE_FILE_NAME: &str = "podssh-ca.pem";
 /// resolves symlinks on Linux. Naming the file literally here would make this
 /// module a Linux-only one inside a multi-platform client.
 pub fn executable_path() -> Result<PathBuf, String> {
-    std::env::current_exe().map_err(|e| format!("cannot read this process's own path: {e}"))
+    std::env::current_exe().map_err(|e| format!("cannot read this process's own path: {}", crate::text::said(&e)))
 }
 
 /// The default bundle path: beside the executable, named [`BUNDLE_FILE_NAME`].

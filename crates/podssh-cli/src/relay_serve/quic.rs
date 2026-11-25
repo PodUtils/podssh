@@ -32,10 +32,11 @@ pub(super) fn bind(asked: bool, tcp: &TcpListener) -> Result<Option<UdpSocket>, 
     if !asked {
         return Ok(None);
     }
-    let at = tcp.local_addr().map_err(|e| Refusal::config(e.to_string()))?;
-    UdpSocket::bind(at)
-        .map(Some)
-        .map_err(|e| Refusal { message: format!("cannot take UDP {at} for QUIC: {e}"), code: EX_UNAVAILABLE })
+    let at = tcp.local_addr().map_err(|e| Refusal::config(podssh_ws::text::said(&e)))?;
+    UdpSocket::bind(at).map(Some).map_err(|e| Refusal {
+        message: format!("cannot take UDP {at} for QUIC: {}", podssh_ws::text::said(&e)),
+        code: EX_UNAVAILABLE,
+    })
 }
 
 /// `sessions` with the port of `socket` in their offer.

@@ -120,9 +120,11 @@ impl Files {
     /// so that the watch says a failure once.
     fn load(&self) -> Result<(Arc<rustls::sign::CertifiedKey>, Leaf), String> {
         *self.seen.lock().unwrap_or_else(PoisonError::into_inner) = Some(self.stamp());
-        let read = |p: &PathBuf| std::fs::read(p).map_err(|e| format!("{}: {e}{}", p.display(), after_drop(&e)));
+        let read = |p: &PathBuf| {
+            std::fs::read(p).map_err(|e| format!("{}: {}{}", p.display(), podssh_ws::text::said(&e), after_drop(&e)))
+        };
         let (cert, key) = (read(&self.cert)?, read(&self.key)?);
-        acme::certs::load(&cert, &key).map_err(|e| format!("{}: {e}", self.shown()))
+        acme::certs::load(&cert, &key).map_err(|e| format!("{}: {}", self.shown(), podssh_ws::text::said(&e)))
     }
 
     fn changed(&self) -> bool {
@@ -234,7 +236,7 @@ impl Certs {
                     Some(leaf) => format!("the certificate {} stays", acme::about(&leaf)),
                     None => "no certificate is served yet".to_string(),
                 };
-                format!("{why}: {e}; {before}")
+                format!("{why}: {}; {before}", podssh_ws::text::said(&e))
             }
         }
     }

@@ -128,7 +128,7 @@ impl Http {
             // tell, and the link ends there.
             Err(_) if reused => {
                 let (mut io, mut buf) = (self.connect().await?, Vec::new());
-                io.write_all(&request).await.map_err(|e| Failed::lost(e.to_string()))?;
+                io.write_all(&request).await.map_err(|e| Failed::lost(podssh_ws::text::said(&e)))?;
                 let answer = read_head(&mut io, &mut buf).await.map_err(Failed::lost)?;
                 (io, buf, answer)
             }
@@ -152,7 +152,7 @@ impl Http {
         let opening = async {
             let mut io = self.connect().await?;
             let request = request("GET", &self.server.authority(), &self.server.path(channel), None);
-            io.write_all(&request).await.map_err(|e| Failed::lost(e.to_string()))?;
+            io.write_all(&request).await.map_err(|e| Failed::lost(podssh_ws::text::said(&e)))?;
             let mut buf = Vec::new();
             let answer = read_head(&mut io, &mut buf).await.map_err(Failed::lost)?;
             if answer.status != 200 {

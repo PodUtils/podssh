@@ -168,7 +168,10 @@ impl Hangups {
             let mut hup = match signal(SignalKind::hangup()) {
                 Ok(hup) => hup,
                 Err(e) => {
-                    podssh_ssh::err_line!("podssh serve: SIGHUP cannot be caught here ({e}): the keys stay as read");
+                    podssh_ssh::err_line!(
+                        "podssh serve: SIGHUP cannot be caught here ({}): the keys stay as read",
+                        podssh_ws::text::said(&e)
+                    );
                     return Hangups(None);
                 }
             };

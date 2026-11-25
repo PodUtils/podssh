@@ -33,7 +33,7 @@ pub(super) fn submit(job: Job) -> Result<(), String> {
                 .name("podssh-relay-layer".into())
                 .stack_size(STACK)
                 .spawn(move || serve(receive, started))
-                .map_err(|e| format!("the resumable layer's thread did not start ({e})"))?;
+                .map_err(|e| format!("the resumable layer's thread did not start ({})", podssh_ws::text::said(&e)))?;
             ready.recv().map_err(|_| "the resumable layer's thread ended at its start".to_string())??;
             JOBS.get_or_init(|| Mutex::new(send))
         }
@@ -48,7 +48,8 @@ fn serve(jobs: mpsc::Receiver<Job>, started: mpsc::Sender<Result<(), String>>) {
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(runtime) => runtime,
         Err(e) => {
-            let _ = started.send(Err(format!("the resumable layer could not start its runtime ({e})")));
+            let _ = started
+                .send(Err(format!("the resumable layer could not start its runtime ({})", podssh_ws::text::said(&e))));
             return;
         }
     };

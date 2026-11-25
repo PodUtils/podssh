@@ -28,7 +28,7 @@ pub async fn open(path: &str, say: &mut dyn FnMut(&str)) -> Result<End, i32> {
     match connect(path).await {
         Ok(end) => Ok(end),
         Err(e) => {
-            say(&format!("unix-connect:{path}: {e}"));
+            say(&format!("unix-connect:{path}: {}", podssh_ws::text::said(&e)));
             Err(code(&e))
         }
     }

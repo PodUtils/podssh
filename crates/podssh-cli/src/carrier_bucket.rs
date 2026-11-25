@@ -83,9 +83,12 @@ fn config(file: &str, why: impl fmt::Display) -> Refusal {
 /// The bytes of `path`, at most [`FILE_MOST`]; `what` names it.
 fn bytes_of(path: &Path, what: &str) -> Result<Zeroizing<Vec<u8>>, String> {
     use std::io::Read as _;
-    let file = std::fs::File::open(path).map_err(|e| format!("{what} {}: {e}", path.display()))?;
+    let file =
+        std::fs::File::open(path).map_err(|e| format!("{what} {}: {}", path.display(), podssh_ws::text::said(&e)))?;
     let mut bytes = Zeroizing::new(Vec::new());
-    file.take(FILE_MOST + 1).read_to_end(&mut bytes).map_err(|e| format!("{what} {}: {e}", path.display()))?;
+    file.take(FILE_MOST + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|e| format!("{what} {}: {}", path.display(), podssh_ws::text::said(&e)))?;
     if bytes.len() as u64 > FILE_MOST {
         return Err(format!("{what} {} is over {FILE_MOST} bytes", path.display()));
     }

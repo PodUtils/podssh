@@ -109,7 +109,7 @@ impl AnswerError {
         match self {
             AnswerError::Ended => VlessError::Ended,
             AnswerError::NotVless(v) => VlessError::NotVless(v),
-            AnswerError::Io(e) => VlessError::Carry(format!("before VLESS's answer: {e}")),
+            AnswerError::Io(e) => VlessError::Carry(format!("before VLESS's answer: {}", crate::text::said(&e))),
         }
     }
 

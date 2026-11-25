@@ -111,7 +111,7 @@ impl Mux {
             while let Some(bytes) = queued.recv().await {
                 if let Err(e) = write.write_all(&bytes).await {
                     if let Some(shared) = writer.upgrade() {
-                        shared.end(format!("the connection to frps failed: {e}"));
+                        shared.end(format!("the connection to frps failed: {}", crate::text::said(&e)));
                     }
                     return;
                 }
@@ -169,7 +169,7 @@ async fn read_loop<R: AsyncRead + Unpin>(mut read: R, shared: Arc<Shared>) {
     let why = loop {
         let mut head = [0u8; frame::HEADER];
         if let Err(e) = read.read_exact(&mut head).await {
-            break format!("frps ended the connection ({e})");
+            break format!("frps ended the connection ({})", crate::text::said(&e));
         }
         let header = match Header::decode(&head) {
             Ok(header) => header,
@@ -179,7 +179,7 @@ async fn read_loop<R: AsyncRead + Unpin>(mut read: R, shared: Arc<Shared>) {
             frame::DATA => {
                 let mut payload = vec![0u8; header.length as usize];
                 if let Err(e) = read.read_exact(&mut payload).await {
-                    break format!("frps ended the connection inside a frame ({e})");
+                    break format!("frps ended the connection inside a frame ({})", crate::text::said(&e));
                 }
                 deliver(&shared, &header, Some(payload));
             }

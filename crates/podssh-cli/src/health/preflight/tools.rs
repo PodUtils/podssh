@@ -104,7 +104,7 @@ fn no_answer(got: &Captured) -> String {
 /// One exec of [`command`] on `handle`, within `limit`.
 pub async fn probe(handle: &Connection, limit: Duration) -> Probed {
     match exec::capture(handle, &command(), limit, CAP).await {
-        Err(e) => Probed::Failed(e.to_string()),
+        Err(e) => Probed::Failed(podssh_ws::text::said(&e)),
         Ok(got) => match parse(&got.stdout) {
             Some((tools, install)) => Probed::Ran { tools, install },
             None => Probed::Failed(no_answer(&got)),

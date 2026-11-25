@@ -389,7 +389,7 @@ impl Pairs {
         let body = serde_json::to_vec(&File { pairs: kept }).map_err(|e| e.to_string())?;
         // The table has no line of its own: a commit that is not proved on
         // disk is written, as the rename held (the role's file before T-805).
-        write_private(path, &body).map(drop).map_err(|e| format!("{}: {e}", path.display()))
+        write_private(path, &body).map(drop).map_err(|e| format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
     }
 }
 

@@ -52,7 +52,7 @@ impl Router {
     /// One packet to the end of key `to`; Ironwood looks for its path first,
     /// and drops what it cannot place, as a network of datagrams does.
     pub async fn send(&self, to: &[u8; 32], packet: &[u8]) -> Result<(), String> {
-        self.conn.write_to(packet, &Addr(*to)).await.map(|_| ()).map_err(|e| e.to_string())
+        self.conn.write_to(packet, &Addr(*to)).await.map(|_| ()).map_err(|e| podssh_ws::text::said(&e))
     }
 
     /// The next packet, and the key of the end that sent it; `None` once
@@ -72,10 +72,10 @@ impl Router {
                     wait = AGAIN_FIRST;
                     say(format!("linked to the peer {peer} of Yggdrasil's network"));
                     let ended = self.conn.handle_conn(Addr(meta.key), Box::new(stream), meta.priority).await;
-                    let why = ended.err().map(|e| format!(": {e}")).unwrap_or_default();
+                    let why = ended.err().map(|e| format!(": {}", podssh_ws::text::said(&e))).unwrap_or_default();
                     say(format!("the link to the peer {peer} ended{why}"));
                 }
-                Err(e) => say(format!("no link to the peer {peer}: {e}")),
+                Err(e) => say(format!("no link to the peer {peer}: {}", podssh_ws::text::said(&e))),
             }
             if self.conn.is_closed() {
                 return;

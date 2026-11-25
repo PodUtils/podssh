@@ -126,7 +126,7 @@ pub async fn run(serve: Serve<'_>, settings: &remote::Settings, err: &mut dyn Wr
     let client = match client {
         Ok(client) => client,
         Err(e) => {
-            let _ = writeln!(err, "podssh pipe: the listener failed: {e}");
+            let _ = writeln!(err, "podssh pipe: the listener failed: {}", podssh_ws::text::said(&e));
             return EX_UNAVAILABLE;
         }
     };
@@ -186,7 +186,7 @@ async fn keep_listening(
                         }
                         Err(e) => {
                             failed += 1;
-                            podssh_ssh::err_line!("podssh pipe: an accept failed: {e}");
+                            podssh_ssh::err_line!("podssh pipe: an accept failed: {}", podssh_ws::text::said(&e));
                             if failed >= FAILED_ACCEPTS {
                                 return EX_UNAVAILABLE;
                             }

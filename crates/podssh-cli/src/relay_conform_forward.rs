@@ -49,7 +49,12 @@ pub(crate) async fn documents(plan: &Plan, report: &mut Report) -> Offers {
             started,
         )),
         Err(e) => {
-            report.push(Check::fail("health", clause::DIAGNOSTICS, format!("no answer: {e}"), started));
+            report.push(Check::fail(
+                "health",
+                clause::DIAGNOSTICS,
+                format!("no answer: {}", podssh_ws::text::said(&e)),
+                started,
+            ));
             report.unreachable = true;
             return Offers::default();
         }
@@ -75,7 +80,7 @@ pub(crate) async fn documents(plan: &Plan, report: &mut Report) -> Offers {
             Offers::default()
         }
         Err(e) => {
-            report.push(Check::fail("relays-json", clause::DIAGNOSTICS, e.to_string(), started));
+            report.push(Check::fail("relays-json", clause::DIAGNOSTICS, podssh_ws::text::said(&e), started));
             Offers::default()
         }
     }
@@ -136,7 +141,7 @@ async fn mint(plan: &Plan, report: &mut Report) -> Option<Zeroizing<String>> {
     let r = match answer.await {
         Ok(r) => r,
         Err(e) => {
-            report.push(Check::fail("mint", clause::TOKENS, e.to_string(), started));
+            report.push(Check::fail("mint", clause::TOKENS, podssh_ws::text::said(&e), started));
             return None;
         }
     };
@@ -206,7 +211,7 @@ async fn refused(id: &'static str, plan: &Plan, path: &str, token: Option<&str>)
         Err(ConnectError::Refused { status: 403, body }) => {
             Check::pass(id, clause::TOKENS, format!("403: {body}"), started)
         }
-        Err(e) => Check::fail(id, clause::TOKENS, format!("not 403: {e}"), started),
+        Err(e) => Check::fail(id, clause::TOKENS, format!("not 403: {}", podssh_ws::text::said(&e)), started),
         Ok(session) => {
             let _ = session.send_close(1000, "").await;
             Check::fail(id, clause::TOKENS, "the relay upgraded it", started)
@@ -243,7 +248,9 @@ async fn token_in_query(plan: &Plan, lazy: &str) -> Check {
         Err(ConnectError::Refused { status: 401 | 403, body }) => {
             Check::pass(ID, clause::TOKENS, format!("refused in the query: {body}"), started)
         }
-        Err(e) => Check::fail(ID, clause::TOKENS, format!("not refused as a token: {e}"), started),
+        Err(e) => {
+            Check::fail(ID, clause::TOKENS, format!("not refused as a token: {}", podssh_ws::text::said(&e)), started)
+        }
         Ok(session) => {
             let _ = session.send_close(1000, "").await;
             Check::fail(ID, clause::TOKENS, "the relay took a token in the query string", started)
@@ -265,7 +272,7 @@ async fn lazy_session(plan: &Plan, lazy: &str, token: &str) -> Vec<Check> {
         Ok(session) => session,
         Err(e) => {
             return vec![
-                Check::fail("dial-lazy", clause::OPTIONS, e.to_string(), started),
+                Check::fail("dial-lazy", clause::OPTIONS, podssh_ws::text::said(&e), started),
                 Check::skip("ping", clause::FORWARD, "no session"),
                 Check::skip("close-before-dial", clause::CLOSES, "no session"),
             ];
@@ -290,7 +297,7 @@ async fn lazy_session(plan: &Plan, lazy: &str, token: &str) -> Vec<Check> {
 /// A Ping, and its Pong with the same payload.
 async fn ping(session: &RelaySession) -> Result<(), String> {
     const PAYLOAD: &[u8] = b"podssh-conform";
-    session.send_ping(PAYLOAD).await.map_err(|e| e.to_string())?;
+    session.send_ping(PAYLOAD).await.map_err(|e| podssh_ws::text::said(&e))?;
     let waited = tokio::time::timeout(STEP, async {
         loop {
             // The reader takes the Pong in; it returns data and the Close.
@@ -302,7 +309,7 @@ async fn ping(session: &RelaySession) -> Result<(), String> {
                         return Err(format!("the relay closed the session: {}", close_words(code, &reason)));
                     }
                     Ok(_) => {}
-                    Err(e) => return Err(e.to_string()),
+                    Err(e) => return Err(podssh_ws::text::said(&e)),
                 },
             }
         }
@@ -332,7 +339,7 @@ async fn private_target(plan: &Plan, token: &str) -> Check {
         Err(ConnectError::Refused { status, body }) => {
             Check::fail(ID, clause::LIMITS, format!("{status}, not a refusal before any dial: {body}"), started)
         }
-        Err(e) => Check::fail(ID, clause::LIMITS, e.to_string(), started),
+        Err(e) => Check::fail(ID, clause::LIMITS, podssh_ws::text::said(&e), started),
         Ok(session) => {
             let _ = session.send_close(1000, "").await;
             Check::fail(ID, clause::LIMITS, "the relay upgraded a session to the metadata address", started)
@@ -345,7 +352,7 @@ async fn private_target(plan: &Plan, token: &str) -> Check {
 async fn target_bytes(plan: &Plan, host: &str, port: u16, token: &str) -> Vec<Check> {
     let started = Instant::now();
     let session = match podssh_relay::relay::forward_path(host, port) {
-        Ok(path) => upgrade(plan, &path, Some(token)).await.map_err(|e| e.to_string()),
+        Ok(path) => upgrade(plan, &path, Some(token)).await.map_err(|e| podssh_ws::text::said(&e)),
         Err(why) => Err(why),
     };
     let session = match session {
@@ -358,7 +365,7 @@ async fn target_bytes(plan: &Plan, host: &str, port: u16, token: &str) -> Vec<Ch
         }
     };
     let mut checks = Vec::new();
-    let sent = session.send_binary(PROBE).await.map_err(|e| e.to_string());
+    let sent = session.send_binary(PROBE).await.map_err(|e| podssh_ws::text::said(&e));
     let back = match sent {
         Ok(()) => payload(&session, STEP).await,
         Err(why) => Err(why),
@@ -407,7 +414,7 @@ pub(crate) async fn upgrade(plan: &Plan, path: &str, token: Option<&str>) -> Res
 async fn payload(session: &RelaySession, limit: Duration) -> Result<Vec<u8>, String> {
     let read = async {
         loop {
-            let f = session.read_frame().await.map_err(|e| e.to_string())?;
+            let f = session.read_frame().await.map_err(|e| podssh_ws::text::said(&e))?;
             match f.opcode {
                 OPCODE_CLOSE => {
                     let (code, reason) = close_code_and_reason(&f.payload);
@@ -425,7 +432,7 @@ async fn payload(session: &RelaySession, limit: Duration) -> Result<Vec<u8>, Str
 async fn closed(session: &RelaySession, limit: Duration) -> Result<(Option<u16>, String), String> {
     let read = async {
         loop {
-            let f = session.read_frame().await.map_err(|e| e.to_string())?;
+            let f = session.read_frame().await.map_err(|e| podssh_ws::text::said(&e))?;
             if f.opcode == OPCODE_CLOSE {
                 return Ok(close_code_and_reason(&f.payload));
             }

@@ -66,7 +66,7 @@ fn kept_key(path: &Path) -> Result<(Key, bool), String> {
         }
         Err(e) => {
             let _ = std::fs::remove_file(path);
-            Err(format!("{}: {e}", path.display()))
+            Err(format!("{}: {}", path.display(), podssh_ws::text::said(&e)))
         }
     }
 }

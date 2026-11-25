@@ -68,7 +68,8 @@ pub(super) fn service_args(args: &NodeArgs, name: &str, env_file: &Path) -> Resu
     ];
     for (flag, value) in files {
         if let Some(value) = value {
-            let path = std::path::absolute(value).map_err(|e| Refusal::config(format!("{flag} {value}: {e}")))?;
+            let path = std::path::absolute(value)
+                .map_err(|e| Refusal::config(format!("{flag} {value}: {}", podssh_ws::text::said(&e))))?;
             words.extend([flag.to_string(), path.display().to_string()]);
         }
     }

@@ -237,11 +237,9 @@ fn watch(table: Arc<Table>, net: Arc<NetRoutes>) -> Result<(), Refusal> {
             }
         }
     };
-    std::thread::Builder::new()
-        .name("gateway-net".into())
-        .spawn(looking)
-        .map(drop)
-        .map_err(|e| Refusal::config(format!("could not start the look at the net's document: {e}")))
+    std::thread::Builder::new().name("gateway-net".into()).spawn(looking).map(drop).map_err(|e| {
+        Refusal::config(format!("could not start the look at the net's document: {}", podssh_ws::text::said(&e)))
+    })
 }
 
 // Unix's, as serve is: the modes of the files are Unix's.

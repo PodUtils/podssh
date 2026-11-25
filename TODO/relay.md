@@ -911,7 +911,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
    then the platform's temporary directory (`std::env::temp_dir`) with the user's tag; then the
    working directory. No path literal stays in `cache.rs`.
 3. Probe each as now: a missing directory is made with mode 0700
-   (`crates/podssh-relay/src/cache.rs:337-354`), and one that refuses a write is skipped. When the
+   (`crates/podssh-relay/src/cache.rs:341-358`), and one that refuses a write is skipped. When the
    directory of `PODSSH_CACHE_DIR` is skipped, say so once on stderr, with the reason.
 4. Take the environment as a parameter, as `dial::proxy_from_vars` does
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:109-123`), so that the tests can set it.
@@ -1644,10 +1644,10 @@ the user's own file is read. Planted: a check that returns `true`; a test fails.
 
 ## Done
 
-2026-10-11. On Windows `closed` (`crates/podssh-relay/src/cache.rs:372-398`) reads the owner and
-the access list of the opened file (`crates/podssh-relay/src/cache/closed_win.rs:45-49`) and judges
+2026-10-11. On Windows `closed` (`crates/podssh-relay/src/cache.rs:376-402`) reads the owner and
+the access list of the opened file (`crates/podssh-relay/src/cache/closed_win.rs:45-50`) and judges
 them by the rules of the Decision (`crates/podssh-relay/src/cache/closed.rs:45-65`); podssh's
-directories and files are made private (`crates/podssh-relay/src/cache/closed_win.rs:218-294`).
+directories and files are made private (`crates/podssh-relay/src/cache/closed_win.rs:219-295`).
 `SECURITY.md` and the manual's FILES say so.
 - `cargo test -p podssh-relay --lib -- closed`: the 4 tests of the rules passed, on Windows: an
   owner that is the user, SYSTEM or the Administrators; another owner, and no list, refused; a
@@ -2840,7 +2840,7 @@ session on 2026-11-03.
   stream that tells the record how its session ended once SSH lets it go, which
   `crates/podssh-cli/src/ssh/transport.rs:225` spawns. `podssh proxy`
   (`crates/podssh-cli/src/proxy.rs:430`) and the relay's end of `podssh pipe` (`carry_opened`)
-  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:221-223`).
+  tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:222-224`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:245-255`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
@@ -3168,8 +3168,8 @@ URL written into each result, and a download target that is no test target of `A
   (`crates/podssh-cli/src/doctor/relay_checks.rs:218-254`); `--quick` keeps the relay's sections and
   `--jobs 1` runs them one at a time (`crates/podssh-cli/src/flags/relay.rs:229-234`).
 - Read: `podssh relay trace` asks the relay to dial a target and gives its own times
-  (`crates/podssh-cli/src/relay_diag.rs:182-185`); `relay info` gives the pool
-  (`crates/podssh-cli/src/relay_diag.rs:133-135`).
+  (`crates/podssh-cli/src/relay_diag.rs:184-187`); `relay info` gives the pool
+  (`crates/podssh-cli/src/relay_diag.rs:135-137`).
 - Read: the archive's harness and its defects, each at its file
   (`docs/research/relay-measurement.md`, section 3); its license, 0BSD, as podssh's (`LICENSE`).
 - Read: a session's test targets are the live relay, GitHub's SSH endpoint and the operator's
@@ -3923,7 +3923,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
   not 443; a document that names no edge and scores no host above 0 reads "the relay gives no
   estimate of a round trip" (`crates/podssh-cli/src/relay_diag_text.rs:52-54`), and a document
   with an edge or a score keeps T-610's line. The text stays a function of what it is given.
-- `crates/podssh-cli/src/relay_diag.rs:167-172`: `relay info` reads the order before it prints,
+- `crates/podssh-cli/src/relay_diag.rs:169-174`: `relay info` reads the order before it prints,
   and `--json` adds `relay_order` and `relay_list` (each `host` and `port`) beside `info`,
   `pool_order` and `signed_list`, which stay as they were.
 - The manual's note of `relay info` (`crates/podssh-cli/src/man/notes_relay.rs:105-117`) and of the
@@ -4086,7 +4086,7 @@ Read at `2042200`:
 
 - `crates/podssh-cli/src/relay_serve.rs:238` says "let listener = std::net::TcpListener::bind(listen)",
   and `:150` reads its address; the runtime and its two workers come later, in
-  `crates/podssh-cli/src/relay_serve.rs:285`, which says "worker_threads(2)". Between the two the
+  `crates/podssh-cli/src/relay_serve.rs:287`, which says "worker_threads(2)". Between the two the
   process has one thread, so a drop there holds for each thread made after it. The issue's line
   numbers are of an older tree; the order is as it says.
 - The listener is the user's (Q1): `crates/podssh-cli/src/relay_serve.rs:121` says
@@ -4227,7 +4227,7 @@ whole of it to each holder of a token.
 Read at `2042200`:
 
 - `crates/podssh-relay/src/serve/policy.rs:19-20` holds the choice in one `bool`, `private`;
-  `crates/podssh-relay/src/serve/policy.rs:159` says "if self.private {" and returns each address
+  `crates/podssh-relay/src/serve/policy.rs:162` says "if self.private {" and returns each address
   unchecked; else `:111` refuses the first address that is not public.
 - `crates/podssh-relay/src/serve/policy.rs:124-126` hands a name to the host's proxy unresolved only with
   `private`, so a role without `--allow-private` checks each address that it dials.
@@ -4264,7 +4264,7 @@ Read at `2042200`:
 2026-11-04 (the drafting agent of the triage). One word for one idea: the role's ranges are named
 `--routes`, as an exit's, and take ranges and single addresses, not names. Lost: the issue's
 `--allow-target` with names, as a name admits what the resolver says at the dial, and the check of each
-address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:155-160`);
+address is what holds (the policy checks addresses already, `crates/podssh-relay/src/serve/policy.rs:158-163`);
 a second word for the exit's idea. A prefix with host bits is refused, as `ip route` refuses one,
 also for the exit, whose silent widening is the same fault.
 
@@ -4648,7 +4648,7 @@ Read at `2042200`:
 - The node's check of a standard sshd peeks for the version line in the same way
   (`PodUtils/podssh:crates/podssh-relay/src/reverse/sshd.rs:1-5`), each 20 ms (`:32`); the word is the node's
   (`crates/podssh-cli/src/flags/node.rs:134`).
-- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:157-160`), so an
+- The role's policy refuses a loopback target (`crates/podssh-relay/src/serve/policy.rs:160-163`), so an
   sshd of this host is no target of `/connect/`.
 - `TODO/serve.md:2294-2295` plans the same choice for `podssh serve --listen` (T-124, step 5).
 
@@ -4739,8 +4739,8 @@ listener given no sshd, and OpenSSH's login through the role's port fails.
 `2042200` as at this draft. The role's 30 s for a request's head is `HEAD_WAIT`:
 `crates/podssh-relay/src/serve/mod.rs:94` says "const HEAD_WAIT". The policy refuses the loopback
 as an address that is not public:
-`crates/podssh-relay/src/serve/policy.rs:162` says "self.unlisted(&wanted)", and
-`crates/podssh-relay/src/serve/policy.rs:211` says "ip.is_loopback()". What the Premise says of them
+`crates/podssh-relay/src/serve/policy.rs:165` says "self.unlisted(&wanted)", and
+`crates/podssh-relay/src/serve/policy.rs:214` says "ip.is_loopback()". What the Premise says of them
 holds. Its Approach, item 3, now follows the Decision of 2026-11-05.
 
 ## Done
@@ -5878,7 +5878,7 @@ all. One client can hold thousands of connections (30 s each before TLS begins);
 
 - The review: the accept loop of `crates/podssh-cli/src/relay_serve.rs` (`let Ok((tcp, peer)) = accepted else
   { continue };`, then a spawn), with no count and no pause (lines 448-454 at `4489df2`; the loop is at
-  `crates/podssh-cli/src/relay_serve.rs:403` since the change).
+  `crates/podssh-cli/src/relay_serve.rs:406` since the change).
 - The review: `crates/podssh-relay/src/serve/brake.rs:76-104` (`Who`) already groups an IPv4 address and an
   IPv6 /64; `crates/podssh-cli/src/relay_serve/limits.rs:1-11` has no bound of connections.
 

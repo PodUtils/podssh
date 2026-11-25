@@ -274,7 +274,7 @@ fn a_copy_to_a_member_whose_pair_is_refused_goes_over_the_derp_ticket_of_the_net
     assert_eq!(std::fs::read(&back).unwrap(), want, "the copy down");
     // With the DERP road off, the pair's road alone, which the relay refuses.
     let (rc, _, err) = copy(&here_text, "tester@lab:again.bin", &[("PODSSH_DERP", "no")]);
-    assert!(rc != 0 && err.contains("the relay refused the pair (403)"), "{rc} {err}");
+    assert!(rc != 0 && err.contains("the relay refused the pair (403"), "{rc} {err}");
     assert!(!err.contains("DERP road answered"), "a DERP road with PODSSH_DERP=no: {err}");
     assert!(!home.join("again.bin").exists(), "a copy that no road carried wrote its file");
     drop(relay);

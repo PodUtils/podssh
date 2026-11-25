@@ -56,7 +56,7 @@ async fn one(resolved: &Resolved, log: &Arc<Log>) -> Result<Duration, (i32, Stri
     let reached = super::feel::reach(resolved, log).await.map_err(|not| super::unreached(&not))?;
     let handles = match podssh_ssh::run::connect_hops(reached.stream, &resolved.options, log).await {
         Ok(handles) => handles,
-        Err(e) => return Err((EXIT_FAILURE, e.to_string())),
+        Err(e) => return Err((EXIT_FAILURE, podssh_ws::text::said(&e))),
     };
     let answered = match handles.last() {
         Some(handle) => first_command(handle).await,
@@ -79,7 +79,10 @@ async fn first_command(handle: &Handle<Client>) -> Result<Instant, (i32, String)
             return Err(broke(read.words("a session", false)));
         }
     };
-    channel.exec(true, COMMAND.as_bytes()).await.map_err(|e| broke(format!("not sent: {e}")))?;
+    channel
+        .exec(true, COMMAND.as_bytes())
+        .await
+        .map_err(|e| broke(format!("not sent: {}", podssh_ws::text::said(&e))))?;
     let (mut reader, _writer) = channel.split();
     let mut answered = None;
     loop {

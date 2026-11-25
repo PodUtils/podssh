@@ -162,8 +162,8 @@ fn add_line(path: &Path, key: &PublicKey) -> Result<bool, String> {
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let mut written = options.open(path).map_err(|e| e.to_string())?;
-    written.write_all(line.as_bytes()).and_then(|()| written.sync_all()).map_err(|e| e.to_string())?;
+    let mut written = options.open(path).map_err(|e| podssh_ws::text::said(&e))?;
+    written.write_all(line.as_bytes()).and_then(|()| written.sync_all()).map_err(|e| podssh_ws::text::said(&e))?;
     Ok(true)
 }
 
@@ -204,7 +204,8 @@ pub(crate) fn join(args: &RelayArgs, label: &str, out: &mut dyn Write, err: &mut
     drop(code);
     let taken = taken.map_err(|failed| refusal(failed, "ask the node's host for a new code"))?;
     let Some(part) = taken.offer.part.as_ref() else { return Err(Refusal::config("the node's host gave no pair")) };
-    pair::part::store(label, part).map_err(|e| Refusal::config(format!("the operator's part: {e}")))?;
+    pair::part::store(label, part)
+        .map_err(|e| Refusal::config(format!("the operator's part: {}", podssh_ws::text::said(&e))))?;
     match pinned {
         Some(Seen::Pinned(path)) => {
             let _ = writeln!(
@@ -274,7 +275,7 @@ pub(crate) fn read_code(err: &mut dyn Write, prompt: &str) -> Result<Code, Refus
     }
     let mut line = Zeroizing::new(String::new());
     let read = stdin.lock().take(TYPED_MOST as u64 + 1).read_line(&mut line);
-    read.map_err(|e| Refusal::usage(format!("the code could not be read: {e}")))?;
+    read.map_err(|e| Refusal::usage(format!("the code could not be read: {}", podssh_ws::text::said(&e))))?;
     Code::parse(&line).map_err(Refusal::usage)
 }
 

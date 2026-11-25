@@ -148,7 +148,7 @@ pub(crate) fn to_node(args: &OperatorArgs, verb: &'static str, err: &mut dyn Wri
     let runtime = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
         Ok(rt) => rt,
         Err(e) => {
-            let _ = writeln!(err, "podssh {verb}: could not start the async runtime: {e}");
+            let _ = writeln!(err, "podssh {verb}: could not start the async runtime: {}", podssh_ws::text::said(&e));
             return Fault::SessionFault.code();
         }
     };

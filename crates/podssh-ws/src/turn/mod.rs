@@ -222,7 +222,7 @@ impl std::fmt::Display for TurnError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TurnError::Target(why) | TurnError::Protocol(why) => f.write_str(why),
-            TurnError::Connect(e) => write!(f, "{e}"),
+            TurnError::Connect(e) => write!(f, "{}", crate::text::said(&e)),
             TurnError::NoTcp { code, reason } => {
                 write!(f, "it refused a TCP allocation ({code} {reason}): the server offers no RFC 6062")
             }

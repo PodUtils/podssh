@@ -99,7 +99,7 @@ pub fn verify_signed(signed: &[u8]) -> Result<Signed, String> {
 /// signature is `PATH.sig`, as `ssh-keygen -Y sign` writes it.
 pub fn read_file(path: &Path) -> Result<Signed, String> {
     let shown = path.display();
-    let text = std::fs::read(path).map_err(|e| format!("{shown}: {e}"))?;
+    let text = std::fs::read(path).map_err(|e| format!("{shown}: {}", podssh_ws::text::said(&e)))?;
     if text.len() > podssh_relay::cache::MAX_FILE as usize {
         return Err(format!("{shown} is larger than a net's document can be"));
     }
@@ -107,8 +107,9 @@ pub fn read_file(path: &Path) -> Result<Signed, String> {
         return verify_signed(&text).map_err(|why| format!("{shown}: {why}"));
     }
     let sig_path = PathBuf::from(format!("{}.sig", path.display()));
-    let signature =
-        std::fs::read(&sig_path).map_err(|e| format!("{shown} holds no signature, and {}: {e}", sig_path.display()))?;
+    let signature = std::fs::read(&sig_path).map_err(|e| {
+        format!("{shown} holds no signature, and {}: {}", sig_path.display(), podssh_ws::text::said(&e))
+    })?;
     verify(&text, &signature).map_err(|why| format!("{shown}: {why}"))
 }
 

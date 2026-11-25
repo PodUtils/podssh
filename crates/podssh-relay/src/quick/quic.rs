@@ -98,7 +98,7 @@ pub async fn connect_edge(found: &edge::Edge) -> Result<EdgeConnection, String> 
         let addrs = match podssh_ws::resolve::resolve(region, found.port, deadline).await {
             Ok(addrs) => addrs,
             Err(e) => {
-                failed.push(format!("{region}: {e}"));
+                failed.push(format!("{region}: {}", podssh_ws::text::said(&e)));
                 continue;
             }
         };
@@ -113,7 +113,7 @@ pub async fn connect_edge(found: &edge::Edge) -> Result<EdgeConnection, String> 
             };
             match connect(&endpoint, *addr, server_name(), tls.clone()).await {
                 Ok(connection) => return Ok(EdgeConnection { endpoint, connection }),
-                Err(e) => failed.push(format!("{region} {e}")),
+                Err(e) => failed.push(format!("{region} {}", podssh_ws::text::said(&e))),
             }
         }
     }
@@ -135,7 +135,7 @@ pub async fn handshake(found: &edge::Edge, tls: Arc<rustls::ClientConfig>) -> Re
                 let firsts = [resolved.iter().find(|a| a.is_ipv4()), resolved.iter().find(|a| a.is_ipv6())];
                 addrs.extend(firsts.into_iter().flatten().copied());
             }
-            Err(e) => failed.push(format!("{region}: {e}")),
+            Err(e) => failed.push(format!("{region}: {}", podssh_ws::text::said(&e))),
         }
     }
     if !addrs.is_empty() {
