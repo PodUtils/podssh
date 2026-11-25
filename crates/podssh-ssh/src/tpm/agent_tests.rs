@@ -7,20 +7,21 @@
 
 use std::sync::Mutex;
 
+use pod_tpm::soft::SoftTpm;
 use russh::keys::PublicKey;
 
-use super::super::flow;
-use super::super::soft::{shared, SoftTpm};
-use super::super::{check, Pcrs};
+use super::super::check;
+use super::super::tests::sealed;
 use super::*;
 
 /// A TPM whose PCR 7 measured a boot, the way to it, and a key sealed to it.
 fn made() -> (Arc<Mutex<SoftTpm>>, Opener, KeyFile, PublicKey) {
-    let mut tpm = SoftTpm::new();
-    tpm.extend(7, b"Secure Boot: on");
-    let (file, area) = flow::make(&mut tpm, Pcrs::parse("7").unwrap(), "me@lab", &[1; 32]).unwrap();
-    let (tpm, open) = shared(tpm);
-    (tpm, open, file, area.public_key().unwrap())
+    sealed("me@lab")
+}
+
+/// [`add_request`] of a file that pod-tpm writes.
+fn add_of(file: &KeyFile, lifetime: Option<u32>) -> Zeroizing<Vec<u8>> {
+    add_request(file, lifetime).unwrap()
 }
 
 /// russh's answer to a request for the keys: one key of its own.
@@ -52,7 +53,7 @@ fn a_key_of_a_tpm_is_added_listed_signed_with_and_removed() {
     let (tpm, open, file, public) = made();
     let held = Held::with(open);
     let blob = public.to_bytes().unwrap();
-    assert_eq!(code(run(held.answer(&add_request(&file, Some(600)), false))), Some(SUCCESS));
+    assert_eq!(code(run(held.answer(&add_of(&file, Some(600)), false))), Some(SUCCESS));
     assert_eq!(held.count(), 1);
 
     let list = held.after(&[REQUEST_IDENTITIES], russh_list(), false);
@@ -84,7 +85,7 @@ fn a_key_of_a_tpm_is_added_listed_signed_with_and_removed() {
     assert!(run(held.answer(&sign_request(&blob, b"a login"), false)).is_none());
 
     // A removal of each key, that russh's server did, removes these too.
-    run(held.answer(&add_request(&file, None), false));
+    run(held.answer(&add_of(&file, None), false));
     held.after(&[REMOVE_ALL_IDENTITIES], Zeroizing::new(vec![SUCCESS]), false);
     assert_eq!(held.count(), 0);
 }
@@ -96,20 +97,20 @@ fn a_key_of_a_tpm_is_added_listed_signed_with_and_removed() {
 fn a_changed_boot_state_fails_the_signature_and_the_add() {
     let (tpm, open, file, public) = made();
     let held = Held::with(open);
-    assert_eq!(code(run(held.answer(&add_request(&file, None), false))), Some(SUCCESS));
+    assert_eq!(code(run(held.answer(&add_of(&file, None), false))), Some(SUCCESS));
     tpm.lock().unwrap().extend(7, b"Secure Boot: off");
     let blob = public.to_bytes().unwrap();
     assert_eq!(code(run(held.answer(&sign_request(&blob, b"a login"), false))), Some(FAILURE));
     assert_eq!(tpm.lock().unwrap().loaded(), 0, "no handle left");
     held.after(&[REMOVE_ALL_IDENTITIES], Zeroizing::new(vec![SUCCESS]), false);
-    assert_eq!(code(run(held.answer(&add_request(&file, None), false))), Some(EXTENSION_FAILURE));
+    assert_eq!(code(run(held.answer(&add_of(&file, None), false))), Some(EXTENSION_FAILURE));
     assert_eq!(held.count(), 0);
 
     // A file of another TPM, and no TPM: refused at the add.
     let (_, other, _, _) = made();
-    assert_eq!(code(run(Held::with(other).answer(&add_request(&file, None), false))), Some(EXTENSION_FAILURE));
+    assert_eq!(code(run(Held::with(other).answer(&add_of(&file, None), false))), Some(EXTENSION_FAILURE));
     let none: Opener = Arc::new(|| Err("no TPM: none here".to_string()));
-    assert_eq!(code(run(Held::with(none).answer(&add_request(&file, None), false))), Some(EXTENSION_FAILURE));
+    assert_eq!(code(run(Held::with(none).answer(&add_of(&file, None), false))), Some(EXTENSION_FAILURE));
 }
 
 /// What the agent does not keep: a certificate, a confirmation of each
@@ -119,13 +120,13 @@ fn a_changed_boot_state_fails_the_signature_and_the_add() {
 fn what_the_agent_cannot_keep_is_refused() {
     let (_, open, file, _) = made();
     let held = Held::with(open);
-    let request = add_request(&file, None);
+    let request = add_of(&file, None);
     let with = |tail: &[u8], cert: &[u8]| {
         let mut body = vec![EXTENSION];
         put_string(&mut body, ADD_EXTENSION.as_bytes());
         body.push(ADD_ID_CONSTRAINED);
         put_string(&mut body, KEY_TYPE);
-        put_string(&mut body, file.to_pem().as_bytes());
+        put_string(&mut body, file.to_pem().unwrap().as_bytes());
         put_string(&mut body, cert);
         body.extend_from_slice(tail);
         body
@@ -155,7 +156,7 @@ fn what_the_agent_cannot_keep_is_refused() {
 fn a_key_leaves_at_the_end_of_its_lifetime() {
     let (_, open, file, _) = made();
     let held = Held::with(open);
-    assert_eq!(code(run(held.answer(&add_request(&file, Some(1)), false))), Some(SUCCESS));
+    assert_eq!(code(run(held.answer(&add_of(&file, Some(1)), false))), Some(SUCCESS));
     assert_eq!(held.count(), 1);
     std::thread::sleep(Duration::from_millis(1100));
     assert_eq!(held.count(), 0);

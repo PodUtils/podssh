@@ -793,9 +793,10 @@ The choice among the three paths is in the entry's `## Decision` (T-836); its dr
 A key file that is copied works anywhere its passphrase is known. A key in a
 TPM 2.0 cannot be copied, and one sealed to PCRs cannot sign after a boot
 that measured something else. podssh makes such a key and signs with it in
-its own code: a codec of TPM 2.0's commands (bytes in, bytes out), a probe of
+code of pure Rust: a codec of TPM 2.0's commands (bytes in, bytes out), a probe of
 `/dev/tpmrm0`, and the key file `TSS2 PRIVATE KEY` that openssl_tpm2_engine
-and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`).
+and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`, glue over
+PodUtils/podcrates' `pod-tpm` since `v0.84.0`).
 
 - **The seal.** The key's `authPolicy` is `H(0 || TPM_CC_PolicyPCR ||
   selection || H(values))` over the SHA-256 bank, and the key has no
@@ -811,7 +812,7 @@ and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`).
   draft's text names the TPM's order, digest first. podssh reads both, and
   writes the first, whose bytes are those that the policy digest hashes. A
   file of go-tpm-keyfiles' tests (SHA-384, PCR 16 and `PolicyAuthValue`) reads
-  to its key's `authPolicy` (`crates/podssh-ssh/src/tpm/codec_tests.rs`).
+  to its key's `authPolicy` (`tests/keyfile.rs` of PodUtils/podcrates' pod-tpm).
 - **The checks before a key is written.** The TPM's trial session must reach
   podssh's digest, the public area must carry it and the attributes asked,
   and the new key must sign a fresh challenge that ssh-key verifies.
@@ -830,8 +831,16 @@ and ssh-tpm-agent read (`crates/podssh-ssh/src/tpm/`).
   can sign a policy of any boot, a tampered one too; without it, that
   writer can only replace the key file with one the server does not know.
 - **The ways to the TPM.** Linux and FreeBSD through the kernel's resource
-  manager; a socket of a TPM in software that the user names. Windows' TBS
-  is not called (T-839).
+  manager; a socket of a TPM in software that the user names (both are
+  transports of PodUtils/podcrates' `pod-tpm`, which holds the codec, the key
+  file and the sequences since podssh took `v0.84.0`). Windows through its
+  TPM Base Services, podssh's own way (`crates/podssh-ssh/src/tpm/windows.rs`):
+  tbs.dll loaded at run time from System32, and each command bounded to
+  30 s, then `Tbsip_Cancel_Commands`; `pod-tpm`'s TBS transport imports
+  tbs.dll at the start of the process and bounds no command, so podssh does
+  not take it yet (T-839, T-684). Where the owner's hierarchy has a password,
+  as Windows leaves it, the key is made under the storage key kept at
+  `0x81000001`, and its file names that parent.
 
 ## 5. Reliability: jitter, latency, drops, reconnections, changed addresses
 

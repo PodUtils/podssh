@@ -258,7 +258,7 @@ fn each_fault_takes_pod_core_s_code_where_they_agree_and_the_manual_s_always() {
 fn each_sysexits_value_is_pod_core_s_where_a_class_has_it() {
     let rows: [(i32, Option<Class>); 9] = [
         (sysexits::EX_USAGE, Some(Class::Usage)),
-        (sysexits::EX_DATAERR, None),
+        (sysexits::EX_DATAERR, Some(Class::Data)),
         (sysexits::EX_NOINPUT, Some(Class::NotFound)),
         (sysexits::EX_UNAVAILABLE, Some(Class::Unavailable)),
         (sysexits::EX_SOFTWARE, Some(Class::Internal)),

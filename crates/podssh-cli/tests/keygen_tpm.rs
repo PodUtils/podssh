@@ -265,7 +265,7 @@ fn a_sealed_key_logs_in_to_openssh_and_again_after_a_signed_policy() {
     let refused = openssh_login(&dir, sshd.port, &key, &vars);
     let err = String::from_utf8_lossy(&refused.stderr);
     assert_eq!(refused.status.code(), Some(255), "{err}");
-    assert!(err.contains("hold other values than each signed policy"), "{err}");
+    assert!(err.contains("no signed policy for this boot state"), "{err}");
 
     let args = ["keygen", "-t", "ecdsa-tpm", "-O", "add-policy", "-O", with_policy.as_str(), "-f", key.as_str()];
     let signed = podssh_with(&args, &vars);

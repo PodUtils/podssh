@@ -1522,7 +1522,7 @@ warning, and the gate checks the format and the lints".
 # T-216: Advisories and licenses of the dependencies, checked in CI
 
 **Source:** the triage of GitHub #27 (2026-10-08); the advisories of iroh
-(`docs/design.md:1437-1439`) show that a dependency can get one.
+(`docs/design.md:1446-1448`) show that a dependency can get one.
 **Category:** chore
 **Milestone:** none
 **Priority:** P2
@@ -6039,6 +6039,55 @@ Run here (Rust 1.99.1): `cargo test --workspace --no-fail-fast`, 428 suites, 428
 at this container's `rm`, and `exitmap`'s guard, which named the new classes and is updated); rustfmt and the gate's
 clippy clean; `cargo check --locked --tests --target x86_64-pc-windows-gnu` clean.
 
+2026-11-25, the take of podcrates `v0.84.0` (`ca1d3e3`, COORD-155, PodUtils/podcrates#260), with its two trials of
+`adoption/podssh/`, both cut at podssh `3001570`, before `main` merged more of T-839: each `pod-*` dependency names
+`tag = "v0.84.0"`, and `issue-sync.yml` runs at `ca1d3e3`. (1) `pod-h2` (PodUtils/podcrates@T-1095, #340): podssh's vendored h2
+and its line of `[patch.crates-io]` are gone; the dependency `h2` of `podssh-ws` and `podssh-relay` is `pod-h2`, the h2
+of `pod-ws`; the patch applied clean. hyper's h2 of crates.io stays at 0.4.20 in the lock (`cargo update --precise`).
+(2) `pod-tpm` (#351): the codec, the key file, the sequences, the transports of a device and of swtpm's socket and the
+TPM in software leave `crates/podssh-ssh/src/tpm/`, which is glue over the crate (feature `device`). The patch did not
+apply whole: its four removed files had changed on `main`, and `Cargo.toml` of podssh-cli, `tpm/mod.rs` and
+`tpm/other.rs` conflicted. Kept from `main`, each with its test: `podssh agent`'s keys (`agent.rs`) and serve's host
+key (`host.rs`) over `pod-tpm`'s `Transport`, their tests on `pod-tpm`'s `SoftTpm` through a shared opener
+(`tpm/tests.rs`); the storage key kept at `0x81000001` where `TPM2_CreatePrimary` meets `TPM_RC_BAD_AUTH`
+(`pod-tpm`'s `flow::create_signing` takes the parent it is given; the choice is podssh's `create_signing`), tested with
+a transport that answers `TPM2_CreatePrimary` with `TPM_RC_BAD_AUTH`, and planted (the fallback removed, the check of
+the parent removed: each fails the test); the refusal of a parent that is neither `0x40000001` nor `0x81xxxxxx` before a
+command is sent; and the way to Windows' TBS (`windows.rs`, `tbs.rs`, over `pod-tpm`'s `Transport` now), as T-839's
+Decision asks for tbs.dll loaded at run time and a bound of 30 s with `Tbsip_Cancel_Commands`, where `pod-tpm`'s `Tbs`
+imports tbs.dll at the start of the process (raw-dylib) and bounds no command: its feature `tbs` is not turned on.
+The probe's line of a TPM that does not answer keeps its cause. User-visible: a selection of PCRs reads `sha256:7` in
+`keygen`'s lines and in a refusal, and a key under a policy key that no signed policy opens says "no signed policy for
+this boot state". (3) `Class::Data` (65): the Dev Tunnels road's `code_of` gives it `EX_DATAERR`, and its test holds each
+class of pod-core to a code of the manual's EXIT STATUS; `exitmap`'s row of `EX_DATAERR` names the class. (4) T-903:
+the gateway signs with `Mint::sign_with` (its entry). (5) T-900 and T-834 are open: `v0.84.0` carries what each waited
+for. T-877's DNS road already sets `handshake_quiet` and `hold` (`crates/podssh-cli/src/carrier_dns.rs:126`,
+`crates/podssh-cli/src/carrier_dns.rs:233`). T-831's codec version 2 is left to its own entry. No script or workflow
+names a moved file.
+
+Run here (Linux, Rust 1.99.1): `cargo build`; clippy (`-D warnings -A clippy::collapsible_if`, all targets) of the
+gate's packages, and with the features `ts`, `iroh-test`, `tor`, `warp`, `zerotier-test`, `gsr`, `devtunnel` (with
+`devtunnel-standin`), `tox,yggdrasil,hyperdht,strelay,filehost` together, of the relay role (`serve,plain-ws,quick,quic`
+and `serve,quick,piping,plain-ws`), and of `-p podssh-ssh -p podssh-cli --target x86_64-pc-windows-gnu`: clean;
+`cargo fmt -p podssh-ssh -p podssh-cli -p podssh-relay -p podssh-ws --check`, `python3 scripts/check-repo.py`,
+`cargo todo check`, and podcrates' `check-consumer-toolchains.py` and `check-consumer-tests.py`: pass.
+`cargo test --no-fail-fast`: `-p podssh-ssh` 45 suites, 766 passed, 7 ignored; `-p podssh-ws` 16 suites, 101 passed;
+`-p podssh-relay` 66 suites, 107 passed; `-p podssh-cli --lib` 1304 passed, and its 254 test targets in batches of 30
+(the disk of this container holds a few GB) 1296 passed, 3 failed (`job_far`, at this container's stand-in of `rm`, as
+before), 65 ignored. With swtpm 0.7 and OpenSSH 9.6p1: `-p podssh-ssh --test tpm_key -- --ignored` 4 passed, and
+`-p podssh-cli --test keygen_tpm` 5 passed and with `--ignored` 2 passed (a login to sshd, again after a signed policy).
+`podssh man --llms` gives `llms.txt` and `llms-full.txt` unchanged. Not run here: `cargo deny` (not installed), the
+static build with zig and `scripts/check-static.sh` (no zig), a Windows host (the TBS way is checked by clippy for
+Windows alone; the gate's `windows` job runs its test), and the doc tests of podssh-cli's batches.
+
+The asks of podcrates, for a COORD issue `(to podcrates)`: (a) `pod-tpm`'s `Tbs` with tbs.dll loaded at run time from
+System32, each command bounded by `Limits` with `Tbsip_Cancel_Commands` from another thread and the context broken
+after, and the probe of `Tbsi_GetDeviceInfo` for a TPM 2.0, so that podssh drops `windows.rs` and `tbs.rs`; (b) a knob
+of `SoftTpm` for an owner's hierarchy with a password (`TPM2_CreatePrimary` under `0x40000001` gives
+`TPM_RC_BAD_AUTH`), and, as podnet and podvm meet Windows too, the fallback to the storage key kept at `0x81000001` as a
+flow of the crate; (c) the trial `pod-tpm.run`'s list of `crates/podssh-ssh/src/tpm` no longer holds at podssh's
+`main` (it has `agent.rs`, `host.rs`, `windows.rs`, `tbs.rs` and their tests).
+
 # T-685: The checks of the retired rules: the gate's `CC=/nonexistent` and its steps at a minimum Rust, edition 2021
 
 **Source:** the operator, 2026-11-05: "we use whatever is necessary, including c, zig, modern rust,
@@ -7424,7 +7473,7 @@ the Tailscale fork bring it whatever podssh does. podssh-ssh's own two uses can 
 
 - `crates/podssh-ssh/src/sshsig.rs:16`: a signature's validity dates, read and written in the local time zone.
 - `crates/podssh-ssh/src/sftp/long.rs:10`: the long listing of sftp, a file's time in the local time zone.
-- `crates/podssh-ssh/Cargo.toml:71`: the dependency.
+- `crates/podssh-ssh/Cargo.toml:77`: the dependency.
 
 ## Approach
 

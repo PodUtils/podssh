@@ -975,7 +975,7 @@ the entry joins the work order by its priority.
 
 2026-11-13. The Premise, read again at `32bf8af`:
 
-- `Cargo.lock` has russh-sftp 3.0.1 since T-133 (`crates/podssh-ssh/Cargo.toml:36`), and podssh has
+- `Cargo.lock` has russh-sftp 3.0.1 since T-133 (`crates/podssh-ssh/Cargo.toml:42`), and podssh has
   an SFTP client (`crates/podssh-ssh/src/sftp/mod.rs`). So Approach item 1 adds no crate: the server
   takes the client's russh-sftp for its packets, and `bytes` (at the version that the tree builds for
   russh-sftp and russh) becomes a direct dependency for the codec's buffer type; the size cost is
@@ -2532,7 +2532,7 @@ default of russh refuses each `tcpip-forward` with no reason.
 - Read: the cage refuses `bind` (`docs/target-environment.md:25`; the box:
   `scripts/box/probe.sh:109-117`). The operator's ruling on Q1 (2026-10-08)
   allows a listener only when the user asks and a probe allows the bind.
-- Read: `docs/design.md:1415-1417` allows a listener on the far side. The relay
+- Read: `docs/design.md:1424-1426` allows a listener on the far side. The relay
   is a listener that podssh does not run: a node name takes operator
   sessions (`docs/relay.md:798-822`).
 - Read in the report of GitHub #18, not verified here: sandhole publishes
@@ -4247,7 +4247,7 @@ ok. `cargo test --release -p podssh-zerotier` 14 passed.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -4304,11 +4304,6 @@ export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of another session, expiry
 ```
 
-## Blocker
-
-PodUtils/podcrates: the answer to COORD-145 (PodUtils/podssh#355), a binding of the end-to-end channel given to the
-grant's check, and a bearer grant with its verifier.
-
 ## Correction
 
 2026-11-23, from the research of step 1 (`docs/design.md`, section 5, "A bearer in `OPEN`"):
@@ -4341,6 +4336,16 @@ source is not on the machine). The entry stays partial for step 2 onward.
 the handshake hash of `pod-e2e` given to the grant's check, and a bearer form of the grant with its verifier. The
 entry is blocked on that answer; podssh's part (serve's acceptance, the client's source of the token, the test
 `serve_bearer`) follows the tag that carries it.
+
+2026-11-25, the take of PodUtils/podcrates `v0.84.0` (T-684): the entry was blocked on "PodUtils/podcrates: the answer
+to COORD-145 (PodUtils/podssh#355), a binding of the end-to-end channel given to the grant's check, and a bearer grant
+with its verifier". `v0.84.0` carries both (its release notes, "pod-e2e" and "pod-relay", PodUtils/podcrates@T-1367 and
+PodUtils/podcrates@T-1368): `pod_e2e::Binding` (SHA-256 of `pod-e2e grant binding`, a zero byte and the Noise handshake hash after the
+node's message), `ends::binding()` inside `Node::redeem`, and `ends::operator_bound` for the client; `pod-relay`'s
+feature `grant` gives `grant::bearer` (221 bytes, `mint` for a key file, `Unsigned` for an agent, `is_bearer`) and
+`Bearers::verify` (`LIFE` 30 s, `SKEW` 10 s, `SEEN` 16384, one `Refused` variant for each check, a bearer with no
+binding refused); the wire of the relay is version 2. podssh takes the tag in the take; this entry wires it
+(`operator_bound` at the client, `Bearers::verify` in serve's `Redeem` with `is_bearer`), and is open.
 
 # T-836: A gateway role: a user name chooses the upstream, and the client's own key proves the second hop
 
@@ -5683,7 +5688,7 @@ extension
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** done
 
 ## Problem
 
@@ -5693,7 +5698,7 @@ gateway cannot use `Mint` today.
 
 ## Premise
 
-- Read: the gateway signs with `cert::certify` (`crates/podssh-ssh/src/server/gateway/upstream.rs:77`).
+- Read: the gateway signs with `cert::certify` (`crates/podssh-ssh/src/server/gateway/upstream.rs:128`).
 - Read: `Mint` signs with principals, a window and critical options, and no extension (PodUtils/podcrates:crates/pod-relay/src/grant/cert.rs
   at `v0.83.0`).
 
@@ -5701,6 +5706,15 @@ gateway cannot use `Mint` today.
 
 1. When podcrates' `Mint` takes extensions (COORD-146, PodUtils/podssh#356), take its tag and sign the gateway's
    certificates with it.
+
+## Decision
+
+- **An Ed25519 CA signs by `Mint::sign_with`; a CA of RSA or ECDSA keeps `cert::certify`** (2026-11-25, the take of
+  `v0.84.0`; the Correction says why). Lost: refusing a CA that is not Ed25519 (a route that works today would stop);
+  an ask of podcrates for other issuers first (the entry would stay blocked for a case that `cert::certify` already
+  serves).
+- **The extensions: `[PermitPty, PermitPortForwarding]`**, the two that `cert::certify` wrote after `clear`. Lost:
+  `OPENSSH_DEFAULT` (more than a login through the gateway needs).
 
 ## Prove
 
@@ -5710,7 +5724,28 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_gateway_openssh
 
 The gateway's tests pass with `Mint`'s certificate.
 
-## Blocker
+## Correction
 
-PodUtils/podcrates: `Mint` with extensions (COORD-146, PodUtils/podssh#356).
+2026-11-25, the take of PodUtils/podcrates `v0.84.0` (T-684): the entry was blocked on "PodUtils/podcrates: `Mint`
+with extensions (COORD-146, PodUtils/podssh#356)". `v0.84.0` carries it: `grant::Extension` (each extension of
+OpenSSH, `Other` for a custom one, `OPENSSH_DEFAULT` for the five permits of `ssh-keygen -s`) and
+`Mint::sign_with(&issuer, &[Extension])`, which writes them in the order of their names (PodUtils/podcrates@T-1371).
+
+Two facts the Approach did not name. `Mint` signs with an Ed25519 issuer alone (a `pod_identity::Identity`), where a
+route's CA is any key that `podssh ssh -i` reads (`crates/podssh-ssh/src/server/gateway/mod.rs:162`); and the
+gateway's certificate holds two permits, `permit-pty` and `permit-port-forwarding`, not `OPENSSH_DEFAULT`
+(which would add the agent, X11 and `~/.ssh/rc`, each a widening of what a login through the gateway may do).
+
+## Done
+
+2026-11-25, in the take of `v0.84.0` (T-684). `crates/podssh-ssh/src/server/gateway/upstream.rs`: `certificate`
+signs with `pod_relay::grant::Mint::sign_with(&Identity::from_seed(CA), &PERMITS)` for an Ed25519 CA (the principal,
+the window of `SKEW` before now to `LIFE` after it, the key id, a random serial and nonce, and `source-address` as a
+critical option whose data is a string of the list), and reads the bytes back as ssh-key's `Certificate`; a CA of
+RSA or ECDSA keeps `cert::certify` with the same fields. podssh-ssh names `pod-relay` (feature `grant`) and
+`pod-identity`, both in the tree already. Run here (Rust 1.99.1): `cargo test -p podssh-ssh --lib gateway`, 4 passed
+(the certificate's test is a table of an Ed25519, an ECDSA P-256 and an RSA 2048 CA: each field, the two permits
+alone, and ssh-key's check of the CA's signature); `cargo test -p podssh-cli --test serve_gateway_openssh`, 4 passed
+against OpenSSH 9.6p1's sshd with a CA that `ssh-keygen -t ed25519` made, so each login there ran on `Mint`'s
+certificate.
 

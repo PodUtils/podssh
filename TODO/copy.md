@@ -1177,7 +1177,7 @@ stream.
 - Read: `AGENTS.md` rule 2 allows one outbound connection. Several channels
   in one SSH connection keep the rule; several relay sessions at once do
   not. The operator accepted more than one outbound connection for the iroh
-  road (`docs/design.md:1690-1693`), and on 2026-10-08 for one copy when the
+  road (`docs/design.md:1699-1702`), and on 2026-10-08 for one copy when the
   user asks (`docs/decisions.md`).
 - Read: the cap of 64 MiB is for each session (`docs/relay.md:638`).
 - Not measured: whether one relay session, or the path itself, limits the
@@ -2102,7 +2102,7 @@ defect wait for T-251.
 **Source:** GitHub #18 (zuko's `files` server, `adonm/zuko:src/files.rs`)
 and GitHub #21 (parsync's internal helper,
 `AlpinDale/parsync:src/remote_helper.rs`), read in the issues;
-`docs/design.md:1695-1701`.
+`docs/design.md:1704-1710`.
 **Category:** feature
 **Milestone:** backlog
 **Priority:** P3
@@ -2123,7 +2123,7 @@ can do better.
   request; it names its own requests `NAME@openssh.com`.
 - Read: `podssh serve` will have an SFTP server in the process (T-112).
 - Read: both roads between podssh ends carry the same `cp`
-  (`docs/design.md:1695-1701`).
+  (`docs/design.md:1704-1710`).
 
 ## Approach
 
@@ -3017,7 +3017,7 @@ the names, with no word.
   `users-groups-by-id@openssh.com`, `0` for the owner and the group; the issue's line is the
   server's long name.
 - Read: `chrono`, with its local zone, is a dependency of `podssh-ssh` already
-  (`crates/podssh-ssh/Cargo.toml:71`, `crates/podssh-ssh/src/sshsig.rs:16`).
+  (`crates/podssh-ssh/Cargo.toml:77`, `crates/podssh-ssh/src/sshsig.rs:16`).
 
 ## Approach
 

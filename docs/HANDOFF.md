@@ -52,11 +52,14 @@ whom to act on.
 
 ## Each podcrates take
 
-podssh pins each podcrates crate at `tag = "v0.83.0"` (`5fd6fb7`, COORD-154 of podcrates, taken 2026-11-24). The crates in `Cargo.toml` at the tag: `pod-acme`, `pod-core`, `pod-cover`,
-`pod-derp`, `pod-devtunnel`, `pod-dns`, `pod-e2e`, `pod-egress`, `pod-gsr`, `pod-identity`, `pod-iroh`,
-`pod-link`, `pod-manual`, `pod-netstack`, `pod-opentunnel`, `pod-piping`, `pod-proxy`, `pod-quic`,
-`pod-relay`, `pod-release`, `pod-services`, `pod-session`, `pod-term`, `pod-testkit`, `pod-tls`,
-`pod-todo`, `pod-tor`, `pod-transit`, `pod-unit`, `pod-warp`, `pod-wormhole`, `pod-ws`.
+podssh pins each podcrates crate at `tag = "v0.84.0"` (`ca1d3e3`, COORD-155 of podcrates, PodUtils/podcrates#260,
+taken 2026-11-25), and `issue-sync.yml` at the same commit. The crates in `Cargo.toml` at the tag: `pod-acme`,
+`pod-core`, `pod-cover`, `pod-derp`, `pod-devtunnel`, `pod-dns`, `pod-e2e`, `pod-egress`, `pod-gsr`, `pod-h2` (as the
+dependency `h2` of `podssh-ws` and `podssh-relay`; `vendor/h2` is gone), `pod-identity`, `pod-iroh`, `pod-link`,
+`pod-manual`, `pod-netstack`, `pod-opentunnel`, `pod-piping`, `pod-proxy`, `pod-quic`, `pod-relay`, `pod-release`,
+`pod-services`, `pod-session`, `pod-term`, `pod-testkit`, `pod-tls`, `pod-todo`, `pod-tor`, `pod-tpm` (feature
+`device`; its `tbs` is not taken, `crates/podssh-ssh/src/tpm/windows.rs` stays), `pod-transit`, `pod-unit`,
+`pod-warp`, `pod-wormhole`, `pod-ws`; and the fork `iroh-relay` in `[patch.crates-io]`.
 
 Work on a crate that podssh took is done in PodUtils/podcrates (Rule Q3); podssh keeps the glue
 (`TODO/PROGRESS.md`, State item 7). Next, as podcrates names them: `pod-cloudflare` and `pod-ts`, then

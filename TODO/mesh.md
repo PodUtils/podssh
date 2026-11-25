@@ -16384,7 +16384,7 @@ the answer to "is it worth having" is not written down.
 
 - Read: the sandbox that podssh targets refuses port 53, and its proxy resolves the names that `CONNECT`
   gives (`docs/target-environment.md:24`). A DNS carrier does not help that host; it helps another one.
-- Read: `docs/design.md:1450` allows a UDP bind only after podssh's own probe; AGENTS.md rule 2 asks one
+- Read: `docs/design.md:1459` allows a UDP bind only after podssh's own probe; AGENTS.md rule 2 asks one
   outbound connection. A resolver query is one datagram to the user's own resolver, so the rule needs a
   ruling before any code.
 - Read: a carrier is a stream that exists already (`crates/podssh-cli/src/carrier.rs`,
@@ -16781,7 +16781,7 @@ at `v0.83.0` (podcrates' HANDOFF: a query of junk holds no handshake slot).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** blocked
+**Status:** open
 
 ## Problem
 
@@ -16812,6 +16812,13 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
 
 A session through a DoH front and a CONNECT proxy, both ends 0, with no UDP socket opened by the client.
 
-## Blocker
+## Correction
 
-PodUtils/podcrates: a `Datagrams` over DNS over HTTPS in pod-link (the fifth ask of COORD-139, PodUtils/podssh#349).
+2026-11-25, the take of PodUtils/podcrates `v0.84.0` (T-684): the entry was blocked on "PodUtils/podcrates: a
+`Datagrams` over DNS over HTTPS in pod-link (the fifth ask of COORD-139, PodUtils/podssh#349)". `v0.84.0` carries it,
+in another form than a `Datagrams`: the dialer's queries over DNS over HTTPS (RFC 8484), `Dns::over_https(
+DnsOverHttps::new(resolver, context))` with `Dns::with_way(proxy)`, `DOH_PAUSE` (1 s) and `DOH_PAUSE_MAX` (10 s), a 429
+pausing the next query for its `Retry-After` (PodUtils/podcrates@T-1168); the listener is unchanged; `pod-dns`'s new
+`Pipe` keeps the headers of an HTTP/2 answer (its release notes, "pod-link" and "pod-dns"). podssh takes the tag in the
+take; this entry wires it into the DNS road (Approach 2 and 3, with `over_https` in the place of a `Datagrams`), and
+is open.

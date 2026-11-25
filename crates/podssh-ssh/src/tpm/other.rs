@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::flow::Transport;
+use pod_tpm::Transport;
 
 // Never made here: `find` refuses first.
 #[allow(dead_code)]

@@ -44,7 +44,7 @@ fn held() -> MutexGuard<'static, Vec<(KeyData, Arc<HostTpm>)>> {
 
 /// Whether `text`, a file's, is a key file of a TPM.
 pub fn is_key_text(text: &str) -> bool {
-    super::keyfile::is_pem(text.as_bytes())
+    pod_tpm::keyfile::is_pem(text.as_bytes())
 }
 
 /// The stand-in of the host key in `text`, a key file of a TPM, on the TPM
@@ -62,7 +62,7 @@ pub fn stand_in_on(device: Device, text: &str) -> Result<PrivateKey, String> {
 
 /// [`stand_in`] on the TPM that `open` reaches.
 pub(crate) fn stand_in_with(open: Opener, text: &str) -> Result<PrivateKey, String> {
-    let file = KeyFile::from_pem(text)?;
+    let file = KeyFile::from_pem(text).map_err(|e| e.to_string())?;
     let public = super::public_key(&file)?;
     {
         let mut transport = open()?;

@@ -38,7 +38,7 @@ struct Options {
 
 fn options(list: &[String]) -> Result<Options, String> {
     let mut options = Options {
-        pcrs: Pcrs::parse(tpm::DEFAULT_PCRS)?,
+        pcrs: Pcrs::parse(tpm::DEFAULT_PCRS).map_err(|e| e.to_string())?,
         pcrs_given: false,
         device: None,
         policy_key: None,
@@ -106,21 +106,23 @@ pub(crate) fn make(args: &KeygenArgs, path: &Path, comment: &str, out: &mut dyn 
     };
     if !args.quiet {
         let _ = writeln!(out, "Generating public/private ecdsa-tpm key pair in {}.", device.describe());
-        let pcrs = options.pcrs.text();
+        let pcrs = options.pcrs.to_string();
         let _ = match &options.policy_key {
-            None => writeln!(out, "Sealed to the PCRs {pcrs} of the SHA-256 bank, as they are now."),
+            None => writeln!(out, "Sealed to the PCRs {pcrs}, as they are now."),
             Some(file) => {
                 let file = file.display();
                 writeln!(out, "Sealed to the boot states that {file} signs; first the PCRs {pcrs} as they are now.")
             }
         };
     }
-    let written = tpm::make_with(&device, options.pcrs, comment, policy_key.as_ref()).and_then(|(file, public)| {
-        let key = public.to_openssh().map_err(|e| format!("could not encode the public key: {e}"))?;
-        let line = if comment.is_empty() { key } else { format!("{key} {comment}") };
-        let public_path = podssh_ssh::keygen::write_texts(path, &file.to_pem(), &line, KEY_FILES)?;
-        Ok((public, public_path))
-    });
+    let written =
+        tpm::make_with(&device, options.pcrs.clone(), comment, policy_key.as_ref()).and_then(|(file, public)| {
+            let key = public.to_openssh().map_err(|e| format!("could not encode the public key: {e}"))?;
+            let line = if comment.is_empty() { key } else { format!("{key} {comment}") };
+            let pem = file.to_pem().map_err(|e| e.to_string())?;
+            let public_path = podssh_ssh::keygen::write_texts(path, &pem, &line, KEY_FILES)?;
+            Ok((public, public_path))
+        });
     match written {
         Ok((public, public_path)) => {
             if !args.quiet {
@@ -167,7 +169,7 @@ fn add_policy(args: &KeygenArgs, options: &Options, path: &Path, out: &mut dyn W
         Ok(key) => key,
         Err(why) => return failed(err, why),
     };
-    let pcrs = options.pcrs_given.then_some(options.pcrs);
+    let pcrs = options.pcrs_given.then(|| options.pcrs.clone());
     let new = match tpm::add_policy(&device, &file, pcrs, &key, args.comment.clone()) {
         Ok(new) => new,
         Err(why) => return failed(err, format!("{}: {why}", path.display())),
@@ -176,10 +178,10 @@ fn add_policy(args: &KeygenArgs, options: &Options, path: &Path, out: &mut dyn W
         return failed(err, why);
     }
     if !args.quiet {
-        let pcrs = tpm::signed_pcrs(&new).map(|p| p.text()).unwrap_or_default();
+        let pcrs = tpm::signed_pcrs(&new).map(|p| p.to_string()).unwrap_or_default();
         let shown = path.display();
         let _ = writeln!(out, "Signed the boot state of the PCRs {pcrs} for {shown}, and the key signs in it.");
-        let _ = writeln!(out, "The file holds {} signed policies; the newest is tried first.", new.auth_policies.len());
+        let _ = writeln!(out, "The file holds {} signed policies; the newest is tried first.", new.auth_policy.len());
     }
     0
 }
@@ -201,8 +203,9 @@ fn replace(path: &Path, new: &KeyFile) -> Result<(), String> {
         }
         Ok(())
     };
+    let pem = new.to_pem().map_err(|e| format!("{} is unchanged: {e}", path.display()))?;
     Replace::new(Mode::Private)
-        .write_checked(path, new.to_pem().as_bytes(), check)
+        .write_checked(path, pem.as_bytes(), check)
         .map(drop)
         .map_err(|e| format!("{} is unchanged: {e}", path.display()))
 }
@@ -227,7 +230,7 @@ mod tests {
         assert_eq!((none.pcrs, none.pcrs_given, &none.device), (Pcrs::parse("7").unwrap(), false, &None));
         assert!(none.policy_key.is_none() && !none.add_policy);
         let all = given(&["pcr=0,7,11", "device=/dev/tpmrm1", "policy-key=/media/key", "add-policy"]).unwrap();
-        assert_eq!(all.pcrs.numbers(), vec![0, 7, 11]);
+        assert_eq!(all.pcrs.to_string(), "sha256:0,7,11");
         assert!(all.pcrs_given && all.add_policy);
         assert_eq!(all.device, Some(PathBuf::from("/dev/tpmrm1")));
         assert_eq!(all.policy_key, Some(PathBuf::from("/media/key")));

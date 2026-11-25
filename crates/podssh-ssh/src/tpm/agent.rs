@@ -13,9 +13,9 @@ use std::time::{Duration, Instant};
 use tokio::io::{AsyncRead, AsyncWrite};
 use zeroize::Zeroizing;
 
-use super::flow::Transport;
 use super::{KeyFile, Opener};
 use crate::credential_store::{read_frame, write_frame};
+use pod_tpm::Transport;
 
 const FAILURE: u8 = 5;
 const SUCCESS: u8 = 6;
@@ -250,29 +250,31 @@ fn parse_add(contents: &[u8]) -> Result<(KeyFile, Option<Instant>), String> {
             other => return Err(format!("it has a constraint ({other}) that podssh agent does not know")),
         }
     }
-    if pem.len() > super::keyfile::MAX_FILE {
-        return Err(format!("its key file has more than {} bytes", super::keyfile::MAX_FILE));
+    if pem.len() > pod_tpm::keyfile::MAX_PEM {
+        return Err(format!("its key file has more than {} bytes", pod_tpm::keyfile::MAX_PEM));
     }
     let text = std::str::from_utf8(&pem).map_err(|_| "its key file is not text".to_string())?;
-    Ok((KeyFile::from_pem(text)?, until))
+    Ok((KeyFile::from_pem(text).map_err(|e| e.to_string())?, until))
 }
 
 /// The body of the request that gives an agent the key of `file`, as
-/// ssh-tpm-agent's `ssh-tpm-add` sends it, with a lifetime when given.
-pub fn add_request(file: &KeyFile, lifetime: Option<u32>) -> Zeroizing<Vec<u8>> {
+/// ssh-tpm-agent's `ssh-tpm-add` sends it, with a lifetime when given; else
+/// why the key file cannot be written (a part over the bounds of the file).
+pub fn add_request(file: &KeyFile, lifetime: Option<u32>) -> Result<Zeroizing<Vec<u8>>, String> {
+    let pem = Zeroizing::new(file.to_pem().map_err(|e| e.to_string())?);
     let mut body = Zeroizing::new(vec![EXTENSION]);
     put_string(&mut body, ADD_EXTENSION.as_bytes());
     // The message's own code: 17 with or without constraints, as Go's
     // ssh.Marshal writes the first of "17|25".
     body.push(ADD_IDENTITY);
     put_string(&mut body, KEY_TYPE);
-    put_string(&mut body, file.to_pem().as_bytes());
+    put_string(&mut body, pem.as_bytes());
     put_string(&mut body, &[]);
     if let Some(seconds) = lifetime {
         body.push(CONSTRAIN_LIFETIME);
         body.extend_from_slice(&seconds.to_be_bytes());
     }
-    body
+    Ok(body)
 }
 
 /// Give the agent at the other end of `stream` the key of `file`, for
@@ -282,8 +284,9 @@ pub async fn add<S: AsyncRead + AsyncWrite + Unpin>(
     file: &KeyFile,
     lifetime: Option<u32>,
 ) -> Result<(), String> {
+    let request = add_request(file, lifetime)?;
     let asked = async {
-        write_frame(stream, &add_request(file, lifetime)).await?;
+        write_frame(stream, &request).await?;
         read_frame(stream).await
     };
     let answer = match tokio::time::timeout(ADD_LIMIT, asked).await {

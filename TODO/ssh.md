@@ -537,7 +537,7 @@ Read:
   `crates/podssh-ssh/src/hostkey.rs:228-235` (no terminal). `accept-new`
   records the plain key (`crates/podssh-ssh/src/hostkey.rs:198`). GitHub #29
   cites line 91 at `22c3b88`, which builds the question about other key types.
-- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7387-7388`).
+- `ssh-key` 0.7.0-rc.11 is in the tree (`Cargo.lock:7425-7426`).
   `Certificate::validate_at` checks the signature, the SHA-256 fingerprint of
   the CA and the validity window. The caller must check the certificate type,
   the principals and the critical options (the crate's documentation).
@@ -1222,7 +1222,7 @@ and no player.
   resize branch (`crates/podssh-ssh/src/io.rs:378-383`). The size at the start
   is `terminal::size` (`crates/podssh-ssh/src/terminal/mod.rs:88`).
   `podssh-ssh` has no JSON dependency
-  (`crates/podssh-ssh/Cargo.toml:14-34`).
+  (`crates/podssh-ssh/Cargo.toml:14-40`).
 - Measured, offline: `podssh ssh --record /tmp/s.cast example.invalid` gives
   `unknown flag '--record'`, exit 64. `podssh replay /tmp/s.cast` gives
   `unknown subcommand 'replay'`, suggests `podssh relay`, and exits 64.
@@ -6074,7 +6074,7 @@ and tested (2026-11-24, Rust 1.99.1). The merge added two `type`s for clippy's `
   path (`flow.rs`). `cargo test -p podssh-ssh --lib tpm::codec_tests`: passed, in `--lib`'s 537 (byte vectors of
   part 3 written by hand, the codes, the PCRs, the digest of PCR 7 of zeros, the key file of
   go-tpm-keyfiles read, recomputed and written back byte for byte, cut and flipped files refused).
-- A TPM in software for the tests (`crates/podssh-ssh/src/tpm/soft.rs`): `cargo test -p podssh-ssh --lib tpm::flow_tests`,
+- A TPM in software for the tests (`soft.rs` of the module, now PodUtils/podcrates' `pod-tpm`): `cargo test -p podssh-ssh --lib tpm::flow_tests`,
   passed (a key signs and ssh-key verifies it; after PCR 7 changes the same file is refused in
   one line; a copy in another TPM does not load; the password signer and a policy of other PCRs are
   refused; a trial digest that differs makes no key; 12 PCRs in two reads; no handle left).
@@ -6128,18 +6128,18 @@ Drafted on 2026-11-24 (branch `d-t839b`, on `main` at `1c513c2`), items 1 and 4;
 on `main` after `dd1f9a9`, built and tested (2026-11-24, Rust 1.99.1). The merge cut the `-O` row's sentence of 35
 words that the manual's check found to 25 or fewer, and wrote `llms-full.txt` again:
 
-- The offline update in the codec (`crates/podssh-ssh/src/tpm/authorize.rs`): the policy key's
+- The offline update in the codec (`authorize.rs` of the module, now PodUtils/podcrates' `pod-tpm`): the policy key's
   public area and name, the body of `TPM2_PolicyAuthorize` in the file, its digest in
-  `crates/podssh-ssh/src/tpm/policy.rs` (it starts again from zeros), and the commands
+  `policy.rs` of the module, now PodUtils/podcrates' `pod-tpm` (it starts again from zeros), and the commands
   `TPM2_LoadExternal`, `TPM2_VerifySignature` (with its ticket) and `TPM2_PolicyAuthorize`; the
-  key file's `authPolicy` read and written (`crates/podssh-ssh/src/tpm/keyfile.rs`, `AuthPolicy`).
+  key file's `authPolicy` read and written (`keyfile.rs` of the module, now PodUtils/podcrates' `pod-tpm`, `AuthPolicy`).
   `cargo test -p podssh-ssh --lib tpm::codec_tests`: passed, in `--lib`'s 543 (byte vectors by hand from part 3,
   and the name and the digest of a key's `TPM2_PolicyAuthorize` computed with Python's hashlib:
   `000b5b68...`, `c35d02a6...`; the DER of a file with a named signed policy by hand).
-- The sequences (`crates/podssh-ssh/src/tpm/flow_signed.rs`): a key of a policy key, its trial
+- The sequences (`flow_signed.rs` of the module, now PodUtils/podcrates' `pod-tpm`): a key of a policy key, its trial
   of the policy with the ticket of nothing, and its first signed policy; a signature that tries each
   signed policy, the newest first, in a fresh session; a new signed policy for the PCRs of now. The
-  TPM in software (`crates/podssh-ssh/src/tpm/soft.rs`) checks ECDSA in `TPM2_VerifySignature`, makes
+  TPM in software (`soft.rs` of the module, now PodUtils/podcrates' `pod-tpm`) checks ECDSA in `TPM2_VerifySignature`, makes
   tickets of its own seed, and takes in `TPM2_PolicyAuthorize` only the session's digest and its own
   ticket. `cargo test -p podssh-ssh --lib tpm::signed_tests`: passed (signs; refused in one line
   after PCR 7 moved; signs again after a signed policy of the new value; another policy key, a
@@ -6200,9 +6200,9 @@ it now as `podssh agent` does (`russh::keys::agent::server::serve`). The whole s
 
 - The software TPM signs any digest that it is given (aws-lc-rs's `sign_digest`), as a TPM does, and
   can have an owner's password and a storage key kept at `0x81000001`
-  (`crates/podssh-ssh/src/tpm/soft.rs`). The flows make a key under that kept key when
+  (`soft.rs` of the module, removed by the take of `v0.84.0`). The flows make a key under that kept key when
   `TPM2_CreatePrimary` meets `TPM_RC_BAD_AUTH`, and load a key of a persistent parent
-  (`crates/podssh-ssh/src/tpm/flow.rs`). `cargo test -p podssh-ssh --lib tpm::flow_tests`:
+  (`flow.rs` of the module; podssh's glue in `crates/podssh-ssh/src/tpm/mod.rs` since `v0.84.0`). `cargo test -p podssh-ssh --lib tpm::flow_tests`:
   passed, in `--lib`'s 565 (the new test: no kept key, one line that names both; with it, the file names
   `0x81000001`, signs, and is refused after PCR 7 moved; a parent of neither kind is refused before a
   command is sent).
@@ -6251,3 +6251,13 @@ password; the entry stays partial until the gate's `windows` job runs its test o
 `on_windows_tbs_answers_or_says_there_is_no_tpm` passed, and the agent's tests said "no TPM: none here" there; the
 `macos`, `windows-arm` and `gate (ssh)` jobs passed too. The entry is done. Not measured, as above: a Windows whose
 TPM answers, and its `0x81000001` with an empty password (a tester's machine; the runner has no TPM).
+
+2026-11-25, the take of PodUtils/podcrates `v0.84.0` (T-684, its `## Done`): the codec, the key file, the sequences,
+the transports of a device and of a socket, and the TPM in software are `pod-tpm`'s, and `crates/podssh-ssh/src/tpm/`
+is glue over it. Kept in podssh, each with its test: the way to Windows' TBS (`windows.rs`, `tbs.rs`), as this
+entry's Decision on Windows asks for tbs.dll loaded at run time and a bound of 30 s with `Tbsip_Cancel_Commands`,
+which `pod-tpm`'s TBS transport (feature `tbs`, not turned on) lacks; the storage key kept at `0x81000001` where
+`TPM2_CreatePrimary` meets `TPM_RC_BAD_AUTH` (`mod.rs`, `create_signing`; `pod-tpm` takes the parent that it is given),
+tested in `tpm::tests` with a transport that answers `TPM2_CreatePrimary` with `TPM_RC_BAD_AUTH`, as `pod-tpm`'s
+`SoftTpm` has no owner's password; and the refusal of a key file's parent that is neither `0x40000001` nor
+`0x81xxxxxx` before a command is sent.

@@ -41,7 +41,7 @@ default-members = [
 # `vendor/ssh-key` for the keys that russh reads (T-609), which the
 # `[patch]` below puts in their places; excluded, they are no members, so
 # their tests and examples are not podssh's.
-exclude = ["vendor/tailscale-rs", "vendor/russh", "vendor/ssh-key", "vendor/h2", "fuzz"]
+exclude = ["vendor/tailscale-rs", "vendor/russh", "vendor/ssh-key", "fuzz"]
 
 # Versions below were resolved on 2026-10-01, not recalled.
 [workspace.package]
@@ -215,11 +215,7 @@ strip = true
 # cargo says so: podcrates carries the fork to that version first.
 [patch.crates-io]
 russh = { path = "vendor/russh" }
-iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0" }
+iroh-relay = { git = "https://github.com/PodUtils/podcrates", tag = "v0.84.0" }
 # ssh-key, whose release refuses an ECDSA key of OpenSSH whose scalar has a
 # leading zero byte (T-609).
 ssh-key = { path = "vendor/ssh-key" }
-# h2 0.4.20 with podssh's patch: the request's pseudo-fields go in Chrome's
-# order, `:method`, `:authority`, `:scheme`, `:path` (T-763). The lock must
-# build this copy; an update of h2 moves the patch first.
-h2 = { path = "vendor/h2" }

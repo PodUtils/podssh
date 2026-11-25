@@ -6,20 +6,18 @@
 
 use signature::Signer;
 
-use super::super::flow;
-use super::super::soft::{shared, SoftTpm};
-use super::super::{check, Pcrs};
+use pod_tpm::soft::SoftTpm;
+
+use super::super::check;
+use super::super::tests::sealed;
 use super::*;
 
 const HASH: &[u8] = b"an exchange hash";
 
 /// A TPM whose PCR 7 measured a boot, a key sealed to it, and the way to it.
 fn made() -> (Arc<std::sync::Mutex<SoftTpm>>, Opener, String, PublicKey) {
-    let mut tpm = SoftTpm::new();
-    tpm.extend(7, b"Secure Boot: on");
-    let (file, area) = flow::make(&mut tpm, Pcrs::parse("7").unwrap(), "host@lab", &[1; 32]).unwrap();
-    let (tpm, open) = shared(tpm);
-    (tpm, open, file.to_pem(), area.public_key().unwrap())
+    let (tpm, open, file, public) = sealed("host@lab");
+    (tpm, open, file.to_pem().unwrap(), public)
 }
 
 #[test]

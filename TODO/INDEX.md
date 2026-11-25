@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**837 entries: 4 open, 40 partial, 15 blocked, 778 done.**
+**837 entries: 6 open, 40 partial, 12 blocked, 779 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 4 | 7 | 10 | 373 | 394 |
-| **All** | 4 | 40 | 15 | 778 | 837 |
+| P3 | 6 | 7 | 7 | 374 | 394 |
+| **All** | 6 | 40 | 12 | 779 | 837 |
 
 ## Entries
 
@@ -864,7 +864,7 @@ repository and CI).
 | [T-831](copy.md) | P3 | M | backlog | research | partial | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | done | An attach ticket for a kept shell: who may attach, and replay or reset |
-| [T-834](serve.md) | P3 | M | backlog | research | blocked | A bearer identity in the session's OPEN, bound to the session and its carrier |
+| [T-834](serve.md) | P3 | M | backlog | research | open | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | done | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | done | A live shell shared by name: a read-only name, and one writer at a time |
@@ -908,8 +908,8 @@ repository and CI).
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
-| [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
+| [T-900](mesh.md) | P3 | S | backlog | feature | open | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
 | [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
 | [T-902](serve.md) | P3 | M | backlog | feature | done | The gateway's routes in the net's signed policy |
-| [T-903](serve.md) | P3 | S | backlog | chore | blocked | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
+| [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |

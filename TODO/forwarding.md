@@ -494,7 +494,7 @@ AF_UNIX.
 - Read: `AGENTS.md:398-426` (no bind, no listen),
   `docs/target-environment.md:99-103` (rule 3), `SECURITY.md:274-309` ("Nothing
   listens") and `README.md:47-56` state the rule from before the ruling.
-  `docs/design.md:1415-1417` already allows a local listener for `pipe` after
+  `docs/design.md:1424-1426` already allows a local listener for `pipe` after
   a probe.
 - Read: the Podman box refuses each `bind` (`scripts/box/seccomp.json:11-18`),
   so it tests the refusal.
@@ -1059,7 +1059,7 @@ Read: a drop ends the run with 255 (`crates/podssh-ssh/src/run.rs:66-87`,
 backs off with jitter, but only before a session exists
 (`PodUtils/podssh:crates/podssh-relay/src/open.rs:212-298`,
 `PodUtils/podssh:crates/podssh-relay/src/open.rs:421-435`). With `-N`, no command runs, so a
-new connection has no side effect on the server. `docs/design.md:848-855`
+new connection has no side effect on the server. `docs/design.md:857-864`
 puts a new connection with a new login in layer 3, for a standard sshd.
 T-153 (M6) resumes a session when both ends run podssh.
 

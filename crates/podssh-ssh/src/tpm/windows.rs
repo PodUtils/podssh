@@ -21,9 +21,11 @@ use windows_sys::Win32::System::TpmBaseServices::{
     TBS_CONTEXT_PARAMS2_0, TBS_CONTEXT_VERSION_TWO, TBS_SUCCESS, TPM_DEVICE_INFO, TPM_VERSION_20,
 };
 
-use super::flow::Transport;
+use pod_core::{Class, Failure, Stage};
+use pod_tpm::wire::{HEADER, MAX_COMMAND, MAX_RESPONSE};
+use pod_tpm::Transport;
+
 use super::tbs;
-use super::wire::{HEADER, MAX_MESSAGE};
 use super::COMMAND_LIMIT;
 
 /// The functions of tbs.dll that podssh calls, as the Windows SDK's tbs.h
@@ -152,8 +154,8 @@ unsafe impl Sync for Context {}
 
 impl Context {
     /// One command, and its whole response.
-    fn submit(&self, command: &[u8]) -> Result<Vec<u8>, String> {
-        let mut answer = vec![0u8; MAX_MESSAGE];
+    fn submit(&self, command: &[u8]) -> Result<Vec<u8>, Failure> {
+        let mut answer = vec![0u8; MAX_RESPONSE];
         let mut length = answer.len() as u32;
         // SAFETY: an open context; the command and the buffer live through
         // the call, and `length` is the buffer's size.
@@ -169,11 +171,13 @@ impl Context {
             )
         };
         if code != TBS_SUCCESS {
-            return Err(format!("the TPM Base Services did not pass the command: {}", tbs::words(code)));
+            let why = format!("the TPM Base Services did not pass the command: {}", tbs::words(code));
+            return Err(Failure::new(Stage::Host, Class::Unavailable, why));
         }
         let length = length as usize;
         if !(HEADER..=answer.len()).contains(&length) {
-            return Err(format!("the TPM's answer has {length} bytes, which no answer has"));
+            let why = format!("the TPM's answer has {length} bytes, which no answer has");
+            return Err(Failure::new(Stage::Host, Class::Protocol, why));
         }
         answer.truncate(length);
         Ok(answer)
@@ -201,12 +205,14 @@ struct Tbs {
 }
 
 impl Transport for Tbs {
-    fn transact(&mut self, command: &[u8]) -> Result<Vec<u8>, String> {
+    fn submit(&mut self, command: &[u8]) -> Result<Vec<u8>, Failure> {
         if self.broken {
-            return Err("the TPM's context ended with a command that did not answer".into());
+            let why = "the TPM's context ended with a command that did not answer";
+            return Err(Failure::new(Stage::Host, Class::Unavailable, why));
         }
-        if command.len() > MAX_MESSAGE {
-            return Err(format!("a command of {} bytes, more than a TPM takes", command.len()));
+        if !(HEADER..=MAX_COMMAND).contains(&command.len()) {
+            let why = format!("a command of {} bytes: a TPM takes {HEADER} to {MAX_COMMAND} bytes", command.len());
+            return Err(Failure::new(Stage::Host, Class::Usage, why));
         }
         let (context, cancelling) = (self.context.clone(), self.context.clone());
         let command = command.to_vec();
@@ -216,7 +222,7 @@ impl Transport for Tbs {
             Ok(answer) => answer,
             Err(why) => {
                 self.broken = true;
-                Err(why)
+                Err(Failure::new(Stage::Host, Class::Timeout, why))
             }
         }
     }

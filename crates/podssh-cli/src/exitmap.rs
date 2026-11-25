@@ -45,7 +45,8 @@ pub mod sysexits {
     /// The base every other `sysexits.h` value is offset from.
     pub const EX_USAGE: i32 = 64;
     /// The input was there and wrong: a passphrase that does not open its
-    /// key file (`podssh agent add-passphrase`, T-228).
+    /// key file (`podssh agent add-passphrase`, T-228). pod-core's `Class::Data`
+    /// (podcrates v0.84.0).
     pub const EX_DATAERR: i32 = 65;
     /// An input file did not exist or was not readable: a source of `cp`.
     pub const EX_NOINPUT: i32 = 66;

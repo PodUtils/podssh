@@ -32,15 +32,18 @@ Read on 2026-11-25.
    its own repository only, never by a direct message (the owner, 2026-11-12). The open COORD issues and what each waits
    for are in `docs/HANDOFF.md`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10 included
    (the owner's ruling "Priority").
-7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.83.0`
+7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.84.0`
    (`docs/HANDOFF.md` lists them). Taken, so worked on in PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`,
    `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`,
    `pod-session`, `pod-e2e`, `pod-relay`, `pod-warp`, `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`,
-   `pod-derp`, `pod-egress`, `pod-tor`, `pod-iroh`, `pod-release` (`podssh update` runs on it) and `pod-cover`. podssh
+   `pod-derp`, `pod-egress`, `pod-tor`, `pod-iroh`, `pod-release` (`podssh update` runs on it), `pod-cover`, `pod-h2`
+   (the fork of h2 that podssh vendored) and `pod-tpm` (the codec of `crates/podssh-ssh/src/tpm/`). podssh
    keeps glue over them: `resolve.rs`, and `via.rs`, `forwarder.rs`, `wstunnel.rs`, `wisp.rs`, `meek.rs`,
    `webtunnel.rs`, `pt.rs`, `cloudflare.rs`, `vless.rs`, `vmess.rs`, `trojan.rs`, `shadowsocks.rs`, `eice.rs` and
    `iap.rs` of `podssh-ws`; `code/`, `session/`, `src/e2e/`, `transit/mod.rs` and the relay client's modules over
-   `context.rs` of `podssh-relay`; `acme/mod.rs` of `podssh-cli`. Nothing is frozen. Next, as podcrates names them:
+   `context.rs` of `podssh-relay`; `acme/mod.rs` of `podssh-cli`; `tpm/` of `podssh-ssh` (the probe, the forms of SSH,
+   the policy key, the agent's and serve's keys, the storage key kept at `0x81000001`, and Windows' TBS with its bound
+   and cancel, which `pod-tpm`'s `tbs` lacks). Nothing is frozen. Next, as podcrates names them:
    `pod-cloudflare` and `pod-ts`; then `pod-relay-serve` last. The plan (Q101, settled 2026-11-05 with podnet's
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
@@ -77,7 +80,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 837 entries: 4 open, 40 partial, 15 blocked, 778 done.
+`TODO/INDEX.md` holds 837 entries: 6 open, 40 partial, 12 blocked, 779 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

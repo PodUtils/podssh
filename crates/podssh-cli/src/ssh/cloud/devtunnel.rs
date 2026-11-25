@@ -86,12 +86,13 @@ pub type Failed = (String, i32);
 pub type Say = Arc<dyn Fn(&str) + Send + Sync>;
 
 /// The exit code of a failure of the road, by its class, in podssh's table
-/// (`exitmap`): a refusal is 77, a timeout 75, a setting 78, the rest of
+/// (`exitmap`): a refusal is 77, a timeout 75, a setting 78, an input that
+/// is there and wrong 65 (pod-core's `Data`), the rest of
 /// what did not answer 69.
 #[cfg(feature = "devtunnel")]
 pub fn code_of(class: podssh_relay::devtunnel::Class) -> i32 {
     use crate::exitmap::sysexits::{
-        EX_CANTCREAT, EX_CONFIG, EX_NOPERM, EX_SOFTWARE, EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE,
+        EX_CANTCREAT, EX_CONFIG, EX_DATAERR, EX_NOPERM, EX_SOFTWARE, EX_TEMPFAIL, EX_UNAVAILABLE, EX_USAGE,
     };
     use podssh_relay::devtunnel::Class;
     match class {
@@ -101,6 +102,7 @@ pub fn code_of(class: podssh_relay::devtunnel::Class) -> i32 {
         Class::TempFail | Class::Timeout => EX_TEMPFAIL,
         Class::Unavailable | Class::NotFound | Class::Protocol | Class::Unsupported => EX_UNAVAILABLE,
         Class::CantCreate => EX_CANTCREAT,
+        Class::Data => EX_DATAERR,
         Class::Internal => EX_SOFTWARE,
     }
 }
@@ -173,11 +175,25 @@ mod tests {
     #[cfg(feature = "devtunnel")]
     #[test]
     fn devtunnel_each_class_has_a_code_of_podssh_s_table() {
+        use crate::man::data::Code;
         use podssh_relay::devtunnel::Class;
         assert_eq!(code_of(Class::Refused), 77);
         assert_eq!(code_of(Class::NotFound), 69);
         assert_eq!(code_of(Class::Timeout), 75);
         assert_eq!(code_of(Class::Config), 78);
+        assert_eq!(code_of(Class::Data), 65);
+        // Each class of pod-core, the new ones too, gives a code that the
+        // manual's EXIT STATUS documents.
+        let documented: Vec<i32> = crate::man::data::exit_codes()
+            .into_iter()
+            .filter_map(|(code, _)| match code {
+                Code::Value(n) => Some(n),
+                _ => None,
+            })
+            .collect();
+        for class in Class::ALL {
+            assert!(documented.contains(&code_of(class)), "{class}: {} is not documented", code_of(class));
+        }
         assert!(not_built("devtunnel://box").contains("--features devtunnel"));
     }
 }

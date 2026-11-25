@@ -831,7 +831,7 @@ The test target `properties` of `podssh-ws` moved to `pod-ws` of PodUtils/podcra
 
 # T-203: The fault-injection harness: latency, jitter, bandwidth, a new address
 
-**Source:** `docs/design.md:882-884` (layers 2 and 3 need the harness
+**Source:** `docs/design.md:891-893` (layers 2 and 3 need the harness
 extended), and the exit criteria of M6 (`docs/ROADMAP.md`, M6; T-156).
 **Category:** chore
 **Milestone:** M6
@@ -4736,7 +4736,7 @@ And the gate's `windows`, `windows-arm` and `macos` jobs.
 alone (its one user, `kept_run.rs`, is Unix's), and `UMASK_WINDOW` of `pipe/listen.rs`, which only the tests take on
 Windows, allows itself unused there (both were warnings of the Windows build). `start_job` reads `$!` before a space.
 Run here: `cargo check --locked --tests --target x86_64-pc-windows-gnu` (the default members, with
-`gcc-mingw-w64-x86-64`): clean, no warning but `vendor/h2`'s; `-p podssh-ssh -p podssh-cli --lib --tests` for Windows:
+`gcc-mingw-w64-x86-64`): clean, no warning but the vendored h2's; `-p podssh-ssh -p podssh-cli --lib --tests` for Windows:
 clean. On Linux: `-p podssh-ssh --test serve_keep` 4, `serve_attach_ticket` 3, `serve_predict_kept` 2 and `--lib` 537
 passed; rustfmt and the gate's clippy clean. An interactive bash 5.2 with `set -H` prints the pid with the new line;
 this container's bash does not reproduce the old failure (macOS's `/bin/sh` is bash 3.2), so the gate's `macos` job

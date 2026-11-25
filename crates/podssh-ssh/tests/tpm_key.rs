@@ -121,7 +121,7 @@ fn a_key_sealed_to_pcr_7_signs_until_the_boot_state_changes() {
     // The boot state changes: the same file is refused, in one line.
     testing::extend_pcr(&device, 7, &[0x5A; 32]).unwrap();
     let why = tpm::sign_on(&device, &file, b"a login").unwrap_err();
-    assert!(why.contains("the PCRs 7 hold other values"), "{why}");
+    assert!(why.contains("the PCRs sha256:7 hold other values"), "{why}");
     assert!(!why.contains('\n'), "{why}");
 }
 
@@ -138,13 +138,13 @@ fn after_a_signed_policy_for_the_new_boot_state_the_key_signs_again() {
     let key = policy_key();
     let (file, public) = tpm::make_with(&device, Pcrs::parse("7").unwrap(), "test@lab", Some(&key)).unwrap();
     assert!(tpm::takes_signed_policies(&file));
-    assert_eq!(file.auth_policies.len(), 1);
+    assert_eq!(file.auth_policy.len(), 1);
     tpm::check(&public, b"a login", &tpm::sign_on(&device, &file, b"a login").unwrap()).unwrap();
 
     // The boot state changes: no signed policy of the file is met.
     testing::extend_pcr(&device, 7, &[0x5A; 32]).unwrap();
     let why = tpm::sign_on(&device, &file, b"a login").unwrap_err();
-    assert!(why.contains("the PCRs 7 hold other values than each signed policy"), "{why}");
+    assert!(why.contains("no signed policy for this boot state"), "{why}");
     assert!(!why.contains('\n'), "{why}");
 
     // Another key cannot sign a policy for it; the policy key can, and the
@@ -152,7 +152,7 @@ fn after_a_signed_policy_for_the_new_boot_state_the_key_signs_again() {
     let why = tpm::add_policy(&device, &file, None, &policy_key(), None).unwrap_err();
     assert!(why.contains("not the one that the key file names"), "{why}");
     let new = tpm::add_policy(&device, &file, None, &key, Some("after the update".into())).unwrap();
-    assert_eq!(new.auth_policies.len(), 2);
+    assert_eq!(new.auth_policy.len(), 2);
     assert_eq!(tpm::signed_pcrs(&new), Some(Pcrs::parse("7").unwrap()));
     let prehash = podssh_ssh::sshsig::digest(&mut &b"a login"[..], HashAlg::Sha512).unwrap();
     let signed = SshSig::signed_data_for_prehash("file", HashAlg::Sha512, &prehash).unwrap();
@@ -166,9 +166,9 @@ fn after_a_signed_policy_for_the_new_boot_state_the_key_signs_again() {
     // The planted change: one bit of the policy's signature. The TPM's
     // check of it refuses the policy.
     let mut changed = new.clone();
-    let last = changed.auth_policies[0].policy.last_mut().unwrap();
-    let end = last.1.len() - 1;
-    last.1[end] ^= 1;
+    let last = changed.auth_policy[0].policy.statements.last_mut().unwrap();
+    let end = last.body.len() - 1;
+    last.body[end] ^= 1;
     let why = tpm::sign_on(&device, &changed, b"a login").unwrap_err();
     assert!(why.contains("not the policy key's"), "{why}");
 }
@@ -230,15 +230,15 @@ fn a_host_key_sealed_to_the_tpm_signs_the_key_exchange() {
     let swtpm = Swtpm::start("host");
     let device = tpm::probe(Some(&swtpm.socket())).unwrap();
     let (file, public) = tpm::make(&device, Pcrs::parse("7").unwrap(), "host@lab").unwrap();
-    let key = tpm::host::stand_in_on(device, &file.to_pem()).unwrap();
+    let key = tpm::host::stand_in_on(device, &file.to_pem().unwrap()).unwrap();
     assert!(tpm::host::is_stand_in(&key));
     let met = exchange(key).expect("russh's client took the exchange that the TPM signed");
     assert_eq!(met.key_data(), public.key_data());
 
     let device = tpm::probe(Some(&swtpm.socket())).unwrap();
     testing::extend_pcr(&device, 7, &[0x5A; 32]).unwrap();
-    let why = tpm::host::stand_in_on(device, &file.to_pem()).unwrap_err();
-    assert!(why.contains("the PCRs 7 hold other values") && !why.contains('\n'), "{why}");
+    let why = tpm::host::stand_in_on(device, &file.to_pem().unwrap()).unwrap_err();
+    assert!(why.contains("the PCRs sha256:7 hold other values") && !why.contains('\n'), "{why}");
 }
 
 /// `podssh agent`'s front holds a key sealed to swtpm: `tpm::agent::add`
