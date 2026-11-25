@@ -213,7 +213,10 @@ pub(crate) async fn open(
         .tcpip_forward(pinggy::FORWARD_ADDRESS, 0)
         .await
         .map_err(|e| format!("{service} refused the tunnel's forward: {e}"))?;
-    let session = handle.channel_open_session().await.map_err(|e| format!("{service}: a session: {e}"))?;
+    let session = handle
+        .channel_open_session()
+        .await
+        .map_err(|e| format!("{service}: a session: {}", podssh_ssh::run::describe(&e)))?;
     session.request_shell(false).await.map_err(|e| format!("{service}: a shell: {e}"))?;
     let (text, heard) = watch::channel(String::new());
     tokio::spawn(drain(session, text));

@@ -16106,7 +16106,7 @@ podcrates filed it as its T-186 (`services/sandhole.toml`, with `tunnel-zone`), 
 of T-565's live run as its T-185; both go out with podcrates `v0.20.0`.
 
 2026-11-11: podssh took `v0.20.0` (`0c40ed3e`): the service is in the lock, not read yet. What the wiring needs, read
-in the code: (1) the leg's login (`crates/podssh-cli/src/pinggy_leg.rs:241`) tries none, an empty password and
+in the code: (1) the leg's login (`crates/podssh-cli/src/pinggy_leg.rs:244`) tries none, an empty password and
 keyboard-interactive; Sandhole lets any key in but asks for one, so the login ends with a key made for the
 login alone, never the node's; (2) a `Word` `SANDHOLE` in `crates/podssh-relay/src/ssh_http/mod.rs`: its marker
 `starting https` (its line `Starting HTTPS on https://NAME.demo.sandhole.com.br for address localhost`), its

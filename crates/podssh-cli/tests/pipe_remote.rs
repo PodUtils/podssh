@@ -169,6 +169,14 @@ fn ssh_opens_the_target_from_the_server_and_passes_the_end_of_input_on() {
 ",
         "the target saw the end of its input: {err}"
     );
+    // A target that the server cannot reach (port 1, T-904) is said in
+    // OpenSSH's words, never by russh's name of the reason (T-914).
+    let mut refused = args.clone();
+    *refused.last_mut().unwrap() = format!("ssh:tester@127.0.0.1:{},127.0.0.1:1", session.port);
+    let (code, _, err) = run(without_proxy(session.command(&refused)), b"");
+    assert_eq!(code, 69, "{err}");
+    assert!(err.contains("could not open a connection to 127.0.0.1:1: open failed: connect failed"), "{err}");
+    assert!(!err.contains("ConnectFailed"), "{err}");
     // A keyword of a session is refused before anything connects.
     args.extend(["-o".to_string(), "RequestTTY=yes".into()]);
     let (code, _, err) = run(without_proxy(session.command(&args)), b"");

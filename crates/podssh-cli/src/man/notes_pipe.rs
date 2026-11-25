@@ -41,8 +41,9 @@ pub const PIPE: &[&str] = &[
      client hears 200 once its road is open, so that it learns whether its target was reached; 403 when \
      a policy refuses the target, with its words (the relay's, an upstream proxy's, or an SSH server's \
      administratively prohibited); 502 with the reason of a dial that failed; 504 for one past its limit.",
-    "A proxy takes CONNECT alone: another method gets 405, a request that is not HTTP/1.1 400 (505 for \
-     HTTP/2), and a head over 16 KiB 431; nothing is dialed for them. With --proxy-auth-file FILE, a \
+    "A proxy takes CONNECT alone, in HTTP/1.1 or HTTP/1.0, as many clients send it. Another method gets 405, \
+     another version of HTTP (HTTP/2) 505, and a request line with no version 400. A head over 16 KiB gets 431. \
+     Nothing is dialed for them. With --proxy-auth-file FILE, a \
      private file of lines USER:PASSWORD, each client gives one of them in Proxy-Authorization (Basic), \
      which podssh checks first, in constant time: a request with none, or with a wrong one, gets 407 and a \
      challenge, and nothing is dialed. A port on an ADDR that is not loopback needs the file (64): other \
@@ -102,7 +103,10 @@ pub const PIPE: &[&str] = &[
     "exec:CMD starts the program with no shell: its words split at blanks, with single and double \
      quotes, and no variables, globs or escapes; exec:sh -c 'CMD' names a shell. The program gets one \
      end of a socketpair as its stdin and stdout, or two pipes where a socketpair is refused and on \
-     Windows. Its stderr is podssh's.",
+     Windows. Its stderr is podssh's. In a pipe that does not listen, SIGINT, SIGTERM and SIGHUP end the pipe: the \
+     program gets the same signal, and 10 s to exit. A program still there then is killed (SIGKILL). podssh says so \
+     in one line and exits 128 + N: 130, 143 or 129. On Windows, Ctrl-C and Ctrl-Break reach the program from the \
+     console; podssh ends it after 10 s, and exits 130.",
     "udp:node:NAME carries UDP through the node of the pair under NAME, whose TARGET is udp:HOST:PORT \
      (see podssh node): the relay carries TCP only, and this host sends no UDP. Each datagram is its \
      length in two bytes, big-endian, then its bytes, 65,507 at most; the other side gives and takes \
@@ -130,10 +134,12 @@ pub const PIPE: &[&str] = &[
      carried before it, and the status is 69. Else the \
      status is the program's (B's when both are programs), or 128 + N for a signal. It is 127 for a program that is \
      not found and 126 for one that cannot run; with neither, 0. 65 for a stream of udp: that is not its framing.",
-    "serial:PATH[,BAUD] opens a serial device of this host, such as /dev/ttyUSB0, at BAUD (115200 when none is given; \
-     from 1200 to 4000000), with 8 data bits, no parity, 1 stop bit and no flow control, in raw mode; a PATH with a \
-     comma takes a BAUD after it. The path must be a character device that is a terminal (else 64), and one that this \
-     user may open: a refusal is 77 and says whose the device is, as podssh assumes no group; another failure is 69. \
+    "serial:PATH[,BAUD] opens a serial device of this host, such as /dev/ttyUSB0, at BAUD (115200 when none is \
+     given). The line has 8 data bits, no parity, 1 stop bit and no flow control, in raw mode. A PATH with a comma \
+     takes a BAUD after it. BAUD is one of the rates that Linux has a code for: 1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600, \
+     115200, 230400, 460800, 500000, 576000, 921600, 1000000, 1152000, 1500000, 2000000, 2500000, 3000000, 3500000 \
+     or 4000000. Another rate is refused (64). The path must be a character device that is a terminal (else 64), \
+     and one that this user may open: a refusal is 77 and says whose the device is, as podssh assumes no group; another failure is 69. \
      podssh holds the line alone while the pipe runs, and puts its settings back at the end. It does so at SIGINT and \
      SIGTERM too, which then exit 130 and 143. The line has no end: the end of the other side's input leaves it open. \
      The pipe ends when the other side ends it, at a signal, or when the device fails (69). On Windows, serial: is \

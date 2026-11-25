@@ -143,7 +143,7 @@ pub(crate) async fn hop(
                     say(format!("the Serveo road jumps to {alias}, the {} alias of the key {fingerprint}", nth(k)));
                     return Ok(Hop { stream: channel.into_stream(), _handle: handle });
                 }
-                Ok(Err(e)) => refused.push(format!("{alias}: {e}")),
+                Ok(Err(e)) => refused.push(format!("{alias}: {}", podssh_ssh::run::describe(&e))),
                 Err(_) => refused.push(format!("{alias}: no answer within {} s", OPEN_LIMIT.as_secs())),
             }
         }

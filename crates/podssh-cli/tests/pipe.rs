@@ -66,7 +66,9 @@ fn each_address_is_checked_before_anything_starts() {
         (&[][..], 64, "missing A and B"),
         (&["stdio", "sctp:example.org:80"][..], 64, "the kinds are"),
         (&["stdio", "udp:example.org:53"][..], 64, "udp:node:NAME"),
-        (&["stdio", "exec:sh -c 'exit"][..], 64, "does not close"),
+        (&["stdio", "exec:sh -c 'exit"][..], 64, "a quote ' that is not closed"),
+        (&["node:", "stdio"][..], 64, "node: needs a NAME: node:NAME"),
+        (&["stdio", "udp:node:"][..], 64, "udp:node: needs a NAME: udp:node:NAME"),
         (&["stdio", "serial:/dev/ttyS0,9601"][..], 64, if cfg!(windows) { "Unix only" } else { "BAUD is one of" }),
         (&["fd:x", "stdio"][..], 64, "fd:"),
     ] {

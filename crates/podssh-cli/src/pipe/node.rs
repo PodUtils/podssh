@@ -71,7 +71,12 @@ impl Legs {
 /// The session to the node of `label`: the end, or the exit code once `say`
 /// has the lines.
 pub async fn open(label: &str, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Result<End, i32> {
-    let shown = format!("node:{label}");
+    open_as(label, format!("node:{label}"), args, say).await
+}
+
+/// [`open`], its lines after `shown`, the address as the user wrote it:
+/// `udp:node:NAME` keeps its prefix.
+pub async fn open_as(label: &str, shown: String, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Result<End, i32> {
     let refused = |say: &mut dyn FnMut(&str), refusal: Refusal| {
         say(&format!("{shown}: {}", refusal.message));
         refusal.code
@@ -153,7 +158,7 @@ pub async fn open(label: &str, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Res
                 write: Box::new(write),
                 child: None,
                 last_word: true,
-                ending: Some(Box::new(Session { task, label: label.to_string(), carried })),
+                ending: Some(Box::new(Session { task, label: label.to_string(), shown: shown.clone(), carried })),
             })
         }
         Ok(Err(refusal)) => Err(refused(say, refusal)),
@@ -169,23 +174,25 @@ pub async fn open(label: &str, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Res
 struct Session {
     task: JoinHandle<Option<Carried>>,
     label: String,
+    /// The address as the user wrote it, which its lines name.
+    shown: String,
     carried: bool,
 }
 
 impl Ending for Session {
     fn finish(self: Box<Self>) -> Pin<Box<dyn Future<Output = Verdict> + Send>> {
         Box::pin(async move {
-            let Session { task, label, carried } = *self;
+            let Session { task, label, shown, carried } = *self;
             match task.await {
                 Ok(Some(ended)) => {
                     let verdict = match carried {
                         true => crate::carrier::judged(&ended),
                         false => crate::operator::judged(&label, &ended),
                     };
-                    verdict.map(|(code, why)| (code, vec![format!("node:{label}: {why}")]))
+                    verdict.map(|(code, why)| (code, vec![format!("{shown}: {why}")]))
                 }
                 Ok(None) => None,
-                Err(e) => Some((EXIT_SOFTWARE, vec![format!("node:{label}: the session's task failed: {e}")])),
+                Err(e) => Some((EXIT_SOFTWARE, vec![format!("{shown}: the session's task failed: {e}")])),
             }
         })
     }

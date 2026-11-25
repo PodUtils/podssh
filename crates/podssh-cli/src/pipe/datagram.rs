@@ -54,7 +54,9 @@ pub const CHILD_WAIT: Duration = Duration::from_secs(10);
 /// The session to the node of `label`, for datagrams: the end, or the exit
 /// code once `say` has the lines.
 pub async fn open_node(label: &str, args: &SshArgs, say: &mut dyn FnMut(&str)) -> Result<End, i32> {
-    let End { read, write, child, last_word, ending } = super::node::open(label, args, say).await?;
+    // Its lines name the address as the user wrote it.
+    let shown = format!("udp:node:{label}");
+    let End { read, write, child, last_word, ending } = super::node::open_as(label, shown, args, say).await?;
     let (ours, theirs) = tokio::io::duplex(PIPE);
     let (done, stop) = oneshot::channel();
     let task = tokio::spawn(carry(theirs, read, write, stop, format!("udp:node:{label}")));
@@ -179,6 +181,8 @@ pub fn exec(words: &[String], say: &mut dyn FnMut(&str)) -> Result<End, Unopened
     cmd.args(&words[1..]).stderr(Stdio::inherit());
     cmd.stdin(Stdio::from(OwnedFd::from(theirs))).stdout(Stdio::from(OwnedFd::from(theirs_out)));
     let child = cmd.spawn().map_err(|e| super::local::not_started(&words[0], e))?;
+    // A signal that ends the pipe goes on to it (T-913).
+    super::children::started(child.id());
     // The program's ends stay only in the program.
     drop(cmd);
     let ours = to_tokio(ours).map_err(failed)?;
@@ -251,6 +255,8 @@ async fn datagrams(sockets: Sockets, pump: DuplexStream, mut child: tokio::proce
     let (mut buf, mut answer) = (vec![0u8; RECEIVE], vec![0u8; RECEIVE]);
     let mut dropped = 0u64;
     let Sockets { to: socket, from } = sockets;
+    // Read before the wait, which forgets it.
+    let pid = child.id();
     let exited = loop {
         tokio::select! {
             got = from.recv(&mut answer) => match got {
@@ -285,6 +291,8 @@ async fn datagrams(sockets: Sockets, pump: DuplexStream, mut child: tokio::proce
             status = child.wait() => break Some(status),
         }
     };
+    // Waited for, or about to be: no signal of the pipe goes to its pid.
+    super::children::reaped(pid);
     let status = match exited {
         Some(status) => {
             drain(&from, &mut buf, &mut to_pump, &mut dropped).await;

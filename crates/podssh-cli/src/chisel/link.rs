@@ -270,8 +270,10 @@ pub async fn open(
                 line: format!("{peer} {shown} refused the tunnel to {to}: {}", podssh_ws::text::one_line(&reason)),
                 code: EX_UNAVAILABLE,
             },
+            // In OpenSSH's words, never russh's name of the reason.
             other => {
-                Failed { line: format!("{peer} {shown} refused the tunnel to {to}: {other:?}"), code: EX_UNAVAILABLE }
+                let why = podssh_ssh::unopened::reason_text(&other);
+                Failed { line: format!("{peer} {shown} refused the tunnel to {to}: {why}"), code: EX_UNAVAILABLE }
             }
         }),
         Ok(Err(e)) => {

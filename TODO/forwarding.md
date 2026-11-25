@@ -503,7 +503,7 @@ AF_UNIX.
   `crates/podssh-cli/src/doctor/unix.rs` lines 169-186 at `48a8744`). A seccomp filter can allow
   `bind` and refuse `listen`, so the probe for `-L` must also listen once.
 - Read: the remote end exists: `forward::open` opens `direct-tcpip`
-  (`crates/podssh-ssh/src/forward.rs:13-22`).
+  (`crates/podssh-ssh/src/forward.rs:13-21`).
 
 ## Approach
 
@@ -848,7 +848,7 @@ Read:
   no `:` as a host on port 22 (`crates/podssh-cli/src/ssh/hop.rs:50-63`).
 - russh 0.64.1 has `Handle::channel_open_direct_streamlocal` (the channel
   `direct-streamlocal@openssh.com`). podssh opens only `direct-tcpip`
-  (`crates/podssh-ssh/src/forward.rs:13-22`).
+  (`crates/podssh-ssh/src/forward.rs:13-21`).
 
 ## Approach
 
@@ -857,7 +857,7 @@ Read:
    to `Request::StdioForward` (`crates/podssh-ssh/src/options.rs`, lines 67-68 at `f6af943`).
 2. Open a socket with `channel_open_direct_streamlocal` in
    `crates/podssh-ssh/src/forward.rs`, and use the copy loop of `stdio`
-   (`crates/podssh-ssh/src/forward.rs:64-140`) for both kinds.
+   (`crates/podssh-ssh/src/forward.rs:65-141`) for both kinds.
 3. A server that refuses the channel (OpenSSH with
    `AllowStreamLocalForwarding no`) gives its reason, and 255, as for TCP.
 4. Change the help of the `-W` row (`crates/podssh-cli/src/flags.rs:143-144`)
@@ -898,7 +898,7 @@ as a TCP host again, and the gate's check fails with the server's error.
 
 2026-10-11. The target of `-W` is `StdioTarget`, TCP or a socket
 (`crates/podssh-ssh/src/options.rs:164-181`), opened by `open_target`
-(`crates/podssh-ssh/src/forward.rs:24-46`); through a control master
+(`crates/podssh-ssh/src/forward.rs:23-45`); through a control master
 (`crates/podssh-ssh/src/mux/client.rs:177-192`,
 `crates/podssh-ssh/src/mux/msession.rs:281-288`). The command line reads a
 path at `crates/podssh-cli/src/ssh/hop.rs:92-95`, and the row of `-W` says so
@@ -940,7 +940,7 @@ many bytes moved.
 
 ## Premise
 
-Read: today the only forward is `-W` (`crates/podssh-ssh/src/forward.rs:64-140`),
+Read: today the only forward is `-W` (`crates/podssh-ssh/src/forward.rs:65-141`),
 and it counts nothing. The escapes are `~.`, `~R`, `~?` and `~~`
 (`crates/podssh-ssh/src/escape.rs:1-25`); OpenSSH also has `~#`, which lists
 the forwarded connections. `podssh status` (T-051) runs in another process,
@@ -997,8 +997,8 @@ count each chunk twice, and the unit test fails.
 `crates/podssh-ssh/src/local.rs:287`, `-R` at
 `crates/podssh-ssh/src/remote.rs:180`, `crates/podssh-ssh/src/remote_join.rs:27`
 and `crates/podssh-ssh/src/remote_join.rs:48`, `-W` at
-`crates/podssh-ssh/src/forward.rs:42` and
-`crates/podssh-ssh/src/forward.rs:83`; `~#` at
+`crates/podssh-ssh/src/forward.rs:41` and
+`crates/podssh-ssh/src/forward.rs:84`; `~#` at
 `crates/podssh-ssh/src/escape.rs:98` and `crates/podssh-ssh/src/io.rs:314`,
 and the lines of `-v` at `crates/podssh-ssh/src/run.rs:244`.
 - `cargo test -p podssh-ssh -- forward_counts`: 3 passed: 262144 bytes up and
@@ -1224,7 +1224,7 @@ Read: `request` parses the value with `parse_hop`
 (`crates/podssh-cli/src/ssh/resolve.rs`, lines 472-482 at `97146aa`), which reads a value with no
 `:` as a host on port 22, and splits a value at its one `:`
 (`crates/podssh-cli/src/ssh/hop.rs:50-63`). `forward::open` opens
-`direct-tcpip` only (`crates/podssh-ssh/src/forward.rs:13-22`).
+`direct-tcpip` only (`crates/podssh-ssh/src/forward.rs:13-21`).
 
 ## Approach
 

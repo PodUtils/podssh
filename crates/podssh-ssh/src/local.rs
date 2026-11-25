@@ -307,13 +307,9 @@ async fn open(
 /// The server's reason, as RFC 4254 names it.
 pub(crate) fn open_failure(e: &russh::Error) -> String {
     match e {
-        russh::Error::ChannelOpenFailure(reason) => match reason {
-            ChannelOpenFailure::AdministrativelyProhibited => "administratively prohibited".into(),
-            ChannelOpenFailure::ConnectFailed => "connect failed".into(),
-            ChannelOpenFailure::UnknownChannelType => "unknown channel type".into(),
-            ChannelOpenFailure::ResourceShortage => "resource shortage".into(),
-            other => format!("{other:?}"),
-        },
+        // OpenSSH's words; a reason of the server's own is made safe, and
+        // never russh's name of it.
+        russh::Error::ChannelOpenFailure(reason) => crate::unopened::reason_text(reason),
         other => crate::run::describe(other),
     }
 }

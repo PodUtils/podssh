@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**849 entries: 4 open, 38 partial, 13 blocked, 794 done.**
+**854 entries: 4 open, 38 partial, 13 blocked, 799 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 96 | 109 |
-| P2 | 0 | 22 | 2 | 312 | 336 |
-| P3 | 4 | 6 | 8 | 385 | 403 |
-| **All** | 4 | 38 | 13 | 794 | 849 |
+| P2 | 0 | 22 | 2 | 314 | 338 |
+| P3 | 4 | 6 | 8 | 388 | 406 |
+| **All** | 4 | 38 | 13 | 799 | 854 |
 
 ## Entries
 
@@ -921,6 +921,11 @@ repository and CI).
 | [T-910](mesh.md) | P3 | S | backlog | defect | done | The lines of `--carrier dns:FILE`: words that mislead, no line number, a BOM, a NUL, a trailing comment |
 | [T-911](mesh.md) | P3 | S | backlog | defect | done | A setting of the other end in `--carrier dns:FILE` is accepted and ignored |
 | [T-912](mesh.md) | P3 | S | backlog | defect | done | The zone of `--carrier dns:FILE` takes one label and a label at `-`, and its refusals use pod-link's words |
+| [T-913](pipe.md) | P2 | S | backlog | defect | done | `podssh pipe` with an `exec:` side dies of SIGTERM, SIGINT or SIGHUP and leaves its program running |
+| [T-914](pipe.md) | P2 | S | backlog | defect | done | A channel that the server did not open is said by the name of russh's variant (`ConnectFailed`) |
+| [T-915](pipe.md) | P3 | S | backlog | defect | done | The manual says `http-listen:` refuses a request that is not HTTP/1.1, and it takes `CONNECT` in HTTP/1.0 |
+| [T-916](pipe.md) | P3 | S | backlog | defect | done | `podssh pipe --help` names no A and B, and its arguments list three kinds of address |
+| [T-917](pipe.md) | P3 | S | backlog | defect | done | Lines of `podssh pipe` that garble an empty `node:`, drop `udp:` and a quote's name, and a manual's range of BAUD that the parser refuses |
 | [T-919](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the manual names the rule of each end for a name that exists, and its usage shows one argument |
 | [T-920](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented |
 | [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |

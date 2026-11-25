@@ -958,7 +958,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
 the gate of `crates/podssh-cli/src/dispatch.rs:390-411` skips them; T-133's
-limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7217-7220`)
+limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7232-7235`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
 runs `scp` in a pipe would exit 64 under `podssh scp`.
@@ -4381,7 +4381,7 @@ Finding 15: `podssh tx --help` showed `[FILE | DIR]...` (repeatable), but a seco
 - The near end asks, and replaces only after `y`: `crates/podssh-ssh/src/zmodem/session/envelope.rs:283` says "exists. Replace it?
   [y/N]" in the question; the far end never replaces: `crates/podssh-ssh/src/zmodem/far.rs:237` says "exists, and was not
   replaced" and the end is `Failure::Stopped`, exit 75.
-- The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:242`, and `ask` in `crates/podssh-cli/src/tx.rs`
+- The positional of `tx` takes any number of words, `crates/podssh-cli/src/positionals.rs:243`, and `ask` in `crates/podssh-cli/src/tx.rs`
   refused a second one, so the help's "..." promised what the run refused.
 
 ## Approach

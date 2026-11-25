@@ -32,6 +32,9 @@ pub fn describe(e: &russh::Error) -> String {
         }
         // russh's words alone named no side (GitHub #83).
         Error::SshEncoding(inner) => format!("podssh could not read a message of the server: {inner}"),
+        // russh's own words name its enum's variant (`ConnectFailed`): the
+        // server's reason as OpenSSH says it, for each channel.
+        Error::ChannelOpenFailure(reason) => format!("open failed: {}", crate::unopened::reason_text(reason)),
         other => other.to_string(),
     }
 }

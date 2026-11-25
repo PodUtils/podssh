@@ -4424,7 +4424,7 @@ allows podssh as a client of Cloudflare (`docs/decisions.md:85`).
 - Read: the road of a run is chosen for the first hop's host
   (`crates/podssh-cli/src/ssh/resolve.rs:261`), and each later hop runs in a `direct-tcpip`
   channel of the session before it (`crates/podssh-ssh/src/run.rs:178-190`;
-  `crates/podssh-ssh/src/forward.rs:14-22`).
+  `crates/podssh-ssh/src/forward.rs:14-21`).
 - Read: the `cf://` road opens the WebSocket of `cloudflared access tcp` through `HTTPS_PROXY`,
   and a node behind it greets with the resumable layer first
   (`crates/podssh-cli/src/ssh/cloudflare.rs:1-12`); a roost is a node in front of a standard

@@ -38,7 +38,7 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 ## Approach
 
 1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:396-468`, two
-   required positionals (`crates/podssh-cli/src/positionals.rs:7-288`), a
+   required positionals (`crates/podssh-cli/src/positionals.rs:7-289`), a
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-269`), a
    dispatch arm, and `pipe` in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-147`). No `--timeout` row: the
@@ -162,7 +162,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   has no half-close (`docs/relay.md:530-536`), so a Close cuts a reply on its
   way. Measured live for proxy: the full reply after stdin closed
   (`docs/STATUS.md:441`).
-- Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-22`
+- Read: `-W` opens its stream with `crates/podssh-ssh/src/forward.rs:14-21`
   after the hops of `crates/podssh-ssh/src/run.rs:174-191`, but that code is
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
@@ -198,7 +198,7 @@ local program to a target, and `podssh proxy` stays a second pump.
 5. `node:NAME` after T-084, and `iroh:TICKET` after T-163: one adapter and
    one test each. If T-163 makes a ticket a credential, read it from a file
    (`iroh:@FILE`), never from argv.
-6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7227`): 69; 77 for a
+6. Exit codes: sysexits, as `podssh proxy` (`docs/cli.md:7242`): 69; 77 for a
    refusal (the relay, the proxy, a host key, the authentication); 78. Give
    `crates/podssh-ssh/src/run.rs:319-437` a typed error, so that 77 is not
    guessed from a message.
@@ -610,7 +610,7 @@ running on the server (`docs/design.md:860-864`).
    Keys typed meanwhile wait in a queue of 64 KiB, and go after the attach.
 6. Each attempt checks the host key with the same policy, and uses the
    cached token. A prompt with no terminal ends the loop
-   (`docs/cli.md:7354-7356`). After the attach, send the window size again.
+   (`docs/cli.md:7369-7371`). After the attach, send the window size again.
 7. In the same commit: `docs/cli.md`, the notes of ssh
    (`crates/podssh-cli/src/man/notes_ssh.rs:4-499` and `crates/podssh-cli/src/man/notes_ssh_more.rs:4-190`), `docs/design.md:860-864`,
    `docs/STATUS.md`, and tmux in the interop image
@@ -1611,8 +1611,8 @@ user who needs `websocat` must bring it, and a cage may not run it.
 - Read: the endpoint of the client is a host, a port and a path
   (`PodUtils/podssh:crates/podssh-ws/src/client.rs:48-55`); `validate` refuses a query other than the relay's
   knobs, as a query goes into the logs of proxies (`:74-113`); `connect` takes a token and sends it
-  in `X-Relay-Token` (`:181-205`); the name of the certificate has no bypass (`:63-65`); the upgrade
-  is generic over its stream (`:237-243`).
+  in `X-Relay-Token` (`:185-209`); the name of the certificate has no bypass (`:63-65`); the upgrade
+  is generic over its stream (`:241-247`).
 - Read: the token never goes in a URL, and the request has no query
   (`PodUtils/podssh:crates/podssh-ws/src/handshake.rs:1-8`); `accept_key` gives the server's value (`:82`), tested
   on the vector of RFC 6455 (`PodUtils/podssh:crates/podssh-ws/tests/rfc6455.rs:259`).
@@ -1924,7 +1924,7 @@ Read at `2042200`:
 - The check reads no path (`PodUtils/podssh:crates/podssh-ws/src/server.rs:52-107`), so a page is for a request that is
   no upgrade, whatever its path, as the issue corrects itself.
 - The flag's neighbours: `crates/podssh-cli/src/flags/pipe.rs:40` (`keep-listening`), refused with no
-  listening side in `crates/podssh-cli/src/pipe/mod.rs:83`; `crates/podssh-cli/src/pipe/serve.rs:34`.
+  listening side in `crates/podssh-cli/src/pipe/mod.rs:84`; `crates/podssh-cli/src/pipe/serve.rs:34`.
 
 ## Approach
 
@@ -2166,3 +2166,360 @@ checks `426`.
 2026-11-13 (T-771, a draft): `t645-version-before-key` is removed, as the server's side of the handshake is
 `pod-ws`'s: `a_request_with_no_key_opens_raw_bytes_where_its_caller_asks` (PodUtils/podcrates, crates/pod-ws/src/server.rs)
 holds it.
+
+# T-913: `podssh pipe` with an `exec:` side dies of SIGTERM, SIGINT or SIGHUP and leaves its program running
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only): `podssh pipe stdio 'exec:sleep
+60'`, either side, did not end at SIGTERM or SIGINT as a service's stop needs.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The tester sent SIGTERM and SIGINT to `podssh pipe stdio 'exec:sleep 60'` (and with the sides swapped): no line
+came, and a service of `--install` that its manager stops with SIGTERM did not end its program. The manual names
+signals only for a listening side, `node:` and `serial:`.
+
+## Premise
+
+- Measured (2026-11-25, the debug binary of `podssh 1.1.0-beta.3`): `podssh pipe stdio "exec:sleep 7.5"` with
+  stdin at `/dev/null` dies of SIGTERM at once (143, no line) and of SIGINT (130); `ps` then shows `sleep 7.5`
+  with parent 1. podssh takes no signal there, so the default action kills it, and the program is orphaned. The
+  tester's "runs on until the child ends" is not what this host showed; the program left running is the defect
+  either way.
+- Read (at `b981f5f`): `run` of `crates/podssh-cli/src/pipe/mod.rs` took signals for a `serial:` side alone
+  (`serve::Interrupt`, SIGINT and SIGTERM), and dropped the ends at once; `local::exec` starts the program with
+  no kill on drop (`crates/podssh-cli/src/pipe/local.rs:96`).
+- Read: a program beside `udp:node:` already gets `CHILD_WAIT` (10 s) after the other side's end, then SIGTERM
+  (`crates/podssh-cli/src/pipe/datagram.rs:52`), and the manual says so (`crates/podssh-cli/src/man/notes_pipe.rs:117`).
+
+## Approach
+
+1. A pipe that does not listen, with an `exec:` side, takes SIGINT, SIGTERM and SIGHUP (`Interrupt::with_hangup`,
+   `crates/podssh-cli/src/pipe/serve.rs:255`); on Windows Ctrl-C and Ctrl-Break.
+2. The pids of the pipe's programs are kept from their start until podssh waits for them
+   (`crates/podssh-cli/src/pipe/children.rs`); a pid is forgotten before its wait, so that no signal reaches a pid
+   that the system gave again.
+3. At a signal (`crates/podssh-cli/src/pipe/mod.rs:215`): each program gets the same signal; the pipe goes on
+   until its ends close, `CHILD_WAIT` at most; then SIGKILL, and 2 s more for the waits. One line says which;
+   the exit is 128 + N (130, 143, 129), as `serial:` gives.
+4. The manual's paragraph of `exec:` and `docs/cli.md` say it.
+
+## Decision
+
+- The same signal to the program, not SIGTERM: a shell's job gets the signal that its terminal or its manager
+  sent, and a program that handles SIGINT apart from SIGTERM keeps its meaning. Lost: SIGTERM for each.
+- After `CHILD_WAIT` the kill is SIGKILL, not SIGTERM then SIGKILL: the program already ignored one signal, and a
+  service manager stops a unit within its own bound (90 s by default); 10 s more of SIGTERM would only delay it.
+- The exit is 128 + N even when the program exits 0 at the signal: the pipe was ended by the signal, as `serial:`
+  gives 130 and 143. Lost: the program's status, which a shell would give for a job that exited by itself.
+- The program's pid, not its process group: the program is in podssh's group, and a signal to the group would
+  reach the shell's pipeline beside podssh.
+- Windows: the console gives Ctrl-C and Ctrl-Break to each process of the console, the program too, so podssh
+  sends nothing; it ends a program still there after 10 s with `TerminateProcess`, and exits 130.
+- A listening side keeps its own rule (`serve`: SIGINT and SIGTERM end the listener): its programs are one for
+  each client, and their end at a signal is other work. A pipe with no program and no `serial:` side takes no
+  signal: nothing of it would be left behind.
+- SIGHUP is taken only where a program is: `serial:` alone keeps SIGINT and SIGTERM, as its manual says.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test pipe_signal
+cargo test -p podssh-cli --lib pipe::children
+cargo test -p podssh-cli --test pipe --test pipe_udp
+```
+
+For each of SIGINT, SIGTERM and SIGHUP, and each side: podssh exits 130, 143 and 129 within 20 s, its line names
+the signal, and the program's pid is gone. A program that ignores SIGTERM is killed after 10 s, and the line says
+so. The tests of `serial:` and `udp:node:` pass as before.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- New: `crates/podssh-cli/src/pipe/children.rs` (the pids, the signal, the kill; unit tests);
+  `crates/podssh-cli/tests/pipe_signal.rs` (Unix: each signal on each side, and a program that ignores it).
+- Changed: `crates/podssh-cli/src/pipe/mod.rs` (`run`, `signalled`, the pid kept in `beside`, forgotten in
+  `in_turn` and `waited`); `crates/podssh-cli/src/pipe/serve.rs` (`Interrupt::with_hangup`, SIGHUP and
+  Ctrl-Break); `crates/podssh-cli/src/pipe/datagram.rs` (the program's pid kept and forgotten);
+  `crates/podssh-cli/src/man/notes_pipe.rs`; `docs/cli.md`.
+
+Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test -p podssh-cli --lib` 1331 passed
+(one repair: the manual's sentence of `serial:`, 34 words, split), `--test pipe` 10, `pipe_signal` 2, `pipe_remote`
+6, `pipe_udp` 4, `pipe_http` 7, `pipe_listen` 8, `pipe_ws` 12, `chisel` 3, `pinggy_road` 7, `serveo_road` 4,
+`serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
+`man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
+and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.
+
+# T-914: A channel that the server did not open is said by the name of russh's variant (`ConnectFailed`)
+
+**Source:** the black-box pass of 2026-11-25: `podssh pipe stdio ssh:podtest@127.0.0.1:2201,127.0.0.1:1 --direct`
+against an sshd that could not reach the target.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The line was `podssh pipe: the server could not open a connection to 127.0.0.1:1: Failed to open channel
+(ConnectFailed)`: a Debug form of Rust reaches the user, where OpenSSH says `open failed: connect failed`.
+
+## Premise
+
+- Read: russh's `Display` of `Error::ChannelOpenFailure` is `Failed to open channel ({0:?})`
+  (`vendor/russh/src/lib_inner.rs:149`), the Debug name of the reason.
+- Read (at `b981f5f`): `forward::open` and `refusal_words` put that `Display` after the target
+  (`crates/podssh-ssh/src/forward.rs:49`); `describe` had no case for it (`crates/podssh-ssh/src/run_words.rs:37`
+  is the new one); `open_failure` gave `{other:?}` for a reason of the server's own
+  (`crates/podssh-ssh/src/local.rs:312`).
+- Read: OpenSSH's words of each reason exist once already, `unopened::reason_text`
+  (`crates/podssh-ssh/src/unopened.rs:77`), with a reason of the server's own made one safe line.
+- Searched: the other lines that put a russh error of a channel's open into words with `{e}` or `{other:?}`:
+  the stdio forward of the control master (`crates/podssh-ssh/src/mux/msession.rs`), the chisel road
+  (`crates/podssh-cli/src/chisel/link.rs`), and the legs of Pinggy, Serveo, sshj and the SSH HTTP services
+  (`crates/podssh-cli/src/pinggy_leg.rs`, `serveo_leg.rs`, `sshj/client.rs`, `ssh_http_leg.rs`).
+- Read: the status of `http-listen:` for an `ssh:` road read russh's name `AdministrativelyProhibited` in the
+  line (`crates/podssh-cli/src/pipe/gateway.rs:138`).
+
+## Approach
+
+1. `describe` gives `open failed: REASON` in OpenSSH's words (`unopened::reason_text`) for each channel that did
+   not open; `refusal_words` and `forward::open` use it; `open_failure` takes `reason_text` for each reason.
+2. Each line of the search uses `describe` or `reason_text`.
+3. `ssh_status` reads `open failed: administratively prohibited` for 403, and still the old name.
+
+## Decision
+
+- OpenSSH's words (`open failed: connect failed`), not new words ("the server could not connect"): the session's
+  refusals say them already (T-464), an OpenSSH user knows them, and a search for them finds the cause. The
+  line keeps its first words, "the server could not open a connection to HOST:PORT", which say who failed.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib run::tests
+cargo test -p podssh-cli --lib pipe::gateway
+cargo test -p podssh-cli --test pipe_remote --test ssh_stdio_socket --test ssh_j_road
+```
+
+The table of `describe` gives `open failed: REASON` for each of the five reasons, and never `Failed to open
+channel`; `pipe stdio ssh:...,127.0.0.1:1` exits 69 with `open failed: connect failed` and no `ConnectFailed`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed (podssh-ssh, small): `crates/podssh-ssh/src/run_words.rs`, `forward.rs`, `local.rs`,
+  `mux/msession.rs`; the table test in `crates/podssh-ssh/src/run_tests.rs`.
+- Changed (podssh-cli): `crates/podssh-cli/src/pipe/gateway.rs` (and its test), `chisel/link.rs`,
+  `pinggy_leg.rs`, `serveo_leg.rs`, `sshj/client.rs`, `ssh_http_leg.rs`; the case of port 1 in
+  `crates/podssh-cli/tests/pipe_remote.rs`.
+
+Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test -p podssh-cli --lib` 1331 passed
+(one repair: the manual's sentence of `serial:`, 34 words, split), `--test pipe` 10, `pipe_signal` 2, `pipe_remote`
+6, `pipe_udp` 4, `pipe_http` 7, `pipe_listen` 8, `pipe_ws` 12, `chisel` 3, `pinggy_road` 7, `serveo_road` 4,
+`serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
+`man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
+and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.
+
+# T-915: The manual says `http-listen:` refuses a request that is not HTTP/1.1, and it takes `CONNECT` in HTTP/1.0
+
+**Source:** the black-box pass of 2026-11-25: `CONNECT 127.0.0.1:2201 HTTP/1.0` to `pipe http-listen:` got `200`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The manual said "a request that is not HTTP/1.1 400 (505 for HTTP/2)", and the proxy answered a `CONNECT` of
+HTTP/1.0 with `200`. The behaviour and the manual disagree.
+
+## Premise
+
+- Read: the parse of the request line takes `HTTP/1.1` and `HTTP/1.0`, gives 505 for another `HTTP/` version and
+  400 for a line with no version (`PodUtils/podcrates:crates/pod-core/src/http1/request.rs:144-151` at
+  `v0.84.0`), and its tests parse a `CONNECT ... HTTP/1.0`; `http-listen:` reads each request with it
+  (`crates/podssh-cli/src/pipe/http_listen.rs`, `read_head`).
+- Read: the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:44`).
+
+## Approach
+
+1. Keep the behaviour, and correct the manual and `docs/cli.md`: HTTP/1.1 or HTTP/1.0; 505 for another version;
+   400 for a line with no version.
+2. A table test of `http-listen:`'s answer to each version.
+
+## Decision
+
+- Take HTTP/1.0, as the code does: many clients send `CONNECT` in HTTP/1.0 (OpenSSH's `nc -X connect`, older
+  `corkscrew`, Java's), and a refusal would remove what works (the owner's rule: add, remove none). Nothing of
+  the tunnel depends on 1.1: the answer is `HTTP/1.1 200`, which an HTTP/1.0 client reads, and the bytes after
+  it are the tunnel's. Lost: a refusal of HTTP/1.0 with 400, as the old manual said.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib pipe::http_listen
+cargo test -p podssh-cli --lib man::
+```
+
+`HTTP/1.1` and `HTTP/1.0` reach the template's road; `HTTP/2` and `HTTP/1.2` get 505; `SSH/2.0` gets 400.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/man/notes_pipe.rs`, `docs/cli.md`; the table test
+  `each_version_of_a_connect_has_its_answer` in `crates/podssh-cli/src/pipe/http_listen.rs`.
+
+Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test -p podssh-cli --lib` 1331 passed
+(one repair: the manual's sentence of `serial:`, 34 words, split), `--test pipe` 10, `pipe_signal` 2, `pipe_remote`
+6, `pipe_udp` 4, `pipe_http` 7, `pipe_listen` 8, `pipe_ws` 12, `chisel` 3, `pinggy_road` 7, `serveo_road` 4,
+`serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
+`man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
+and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.
+
+# T-916: `podssh pipe --help` names no A and B, and its arguments list three kinds of address
+
+**Source:** the black-box pass of 2026-11-25: `podssh pipe --help`.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The help's usage was `Usage: podssh pipe [OPTIONS]`, with no A and B, and its arguments named only `-`/`stdio`,
+`fd:N` and `exec:CMD`; the manual and the refusal of an unknown kind name each kind (`tcp:`, `relay:`, `ssh:`,
+`node:`, `unix-connect:`, `serial:`, `ws://`, `http-listen:` and more). A user who reads `--help` alone does not
+learn them.
+
+## Premise
+
+- Read: `usage_tail` gives `[OPTIONS]` to each verb that it does not name, and named no `pipe`
+  (`crates/podssh-cli/src/help.rs:83` is the new row).
+- Read: the help of A was a sentence of three kinds (`crates/podssh-cli/src/positionals.rs:208`, at
+  `b981f5f`).
+- Read: the refusal of an unknown kind lists `KINDS` (`crates/podssh-cli/src/pipe/address.rs:76`), the table of
+  each kind.
+
+## Approach
+
+1. `usage_tail`: `pipe` is `[OPTIONS] A B`; the manual takes the same string.
+2. The help of A is made from `KINDS`, so that the help, the manual's arguments and the refusal name the same
+   kinds from one table.
+3. A test: the help has the usage, and each kind of `KINDS` is in the help and in the refusal.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib help::
+cargo test -p podssh-cli --test man_flag_parity --test pipe
+```
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/help.rs`, `crates/podssh-cli/src/positionals.rs` (the help of A as a
+  `String` from `KINDS`), `docs/cli.md`; the test `pipe_help_names_a_and_b_and_each_kind_that_the_refusal_names`
+  in `crates/podssh-cli/src/help/notes.rs`.
+
+Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test -p podssh-cli --lib` 1331 passed
+(one repair: the manual's sentence of `serial:`, 34 words, split), `--test pipe` 10, `pipe_signal` 2, `pipe_remote`
+6, `pipe_udp` 4, `pipe_http` 7, `pipe_listen` 8, `pipe_ws` 12, `chisel` 3, `pinggy_road` 7, `serveo_road` 4,
+`serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
+`man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
+and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.
+
+# T-917: Lines of `podssh pipe` that garble an empty `node:`, drop `udp:` and a quote's name, and a manual's range of BAUD that the parser refuses
+
+**Source:** the black-box pass of 2026-11-25: `podssh pipe node: stdio`, `udp:node:`, `udp:node:x`,
+`tcp:127.0.0.1:1`, `exec:sh -c 'unterminated`, and `serial:PATH,BAUD` against the manual.
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+1. `node:` and `udp:node:` with no NAME said "the label the pair name is empty": the words of the pair's file, not
+   of the address.
+2. `udp:node:x` with no pair said `node:x: no pair is stored ...`: the user's address lost its `udp:`.
+3. `tcp:127.0.0.1:1` said "could not connect to 127.0.0.1:1" with no side, A or B.
+4. `exec:sh -c 'unterminated` said "a ' that does not close".
+5. The manual said BAUD goes "from 1200 to 4000000", and the parser takes a fixed list of rates alone.
+
+## Premise
+
+- Read: `node_label` passes an empty label to `pairs::check_label`, whose words are `pod-relay`'s of a pair's file
+  (`crates/podssh-cli/src/pipe/address.rs:164`).
+- Read: `datagram::open_node` opened the node's session with `node::open`, whose lines are `node:{label}`
+  (`crates/podssh-cli/src/pipe/node.rs:79` is the new `open_as`).
+- Read: `words` gave `a {q} that does not close` (`crates/podssh-cli/src/pipe/address.rs:333` is the new line).
+- Read: `BAUDS` is the list of 22 rates that Linux has a code for (`crates/podssh-cli/src/pipe/address.rs:100`);
+  the manual's sentence (`crates/podssh-cli/src/man/notes_pipe.rs:137`).
+- Read: the lines of an end that did not open name its address (`node:x:`, `relay:HOST:PORT:`, `exec:PROG:`, and
+  "could not connect to HOST:PORT", `crates/podssh-cli/src/pipe/remote.rs:263`); only the pump's line of a read
+  that failed names A or B, after both opened (`crates/podssh-cli/src/pipe/pump.rs:126`).
+
+## Approach
+
+1. `node_label`: an empty NAME is "node: needs a NAME: node:NAME, the label of a stored pair" (`udp:node:` too).
+2. `node::open_as` takes the address as the user wrote it; `udp:node:NAME` passes its own, for each line of the
+   session, the refusal and the end.
+3. `words`: "a quote ' that is not closed".
+4. The manual lists each rate of `BAUDS`, and a test pins the list to the parser's.
+5. No change of item 3: see Decision.
+
+## Decision
+
+- Item 3, the side: the lines of an open name the address, as each other open does, and the address names the
+  side better than A or B, which the user must map back to the command line. A and B are named only by the pump,
+  where both ends are open and can be of one kind. Lost: "B: could not connect ...", one more word on each line
+  of each kind, for the rare pipe of two `tcp:` sides to one target.
+- Item 5, the rates: the manual lists the table, and the parser keeps it. Lost: any rate that the platform takes
+  (Linux's `BOTHER` with `termios2`, a macOS `IOSSIOSPEED`): a second way of setting the line, per platform, for a
+  rate no device of the tests uses; it is a feature for an entry of its own when a user asks for it.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test pipe --test pipe_udp
+cargo test -p podssh-cli --lib man::notes
+cargo test -p podssh-cli --lib pipe::
+```
+
+`node:` and `udp:node:` exit 64 with "needs a NAME"; an unclosed quote names the quote; `udp:node:` with no pair
+says `udp:node:NAME: no pair is stored`; the manual's rates and `BAUDS` are the same set.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent; UNVERIFIED (not built, not run).
+
+- Changed: `crates/podssh-cli/src/pipe/address.rs`, `crates/podssh-cli/src/pipe/node.rs` (`open_as`, the
+  `Session`'s `shown`), `crates/podssh-cli/src/pipe/datagram.rs`, `crates/podssh-cli/src/man/notes_pipe.rs`, `docs/cli.md`.
+- Tests: the table of `crates/podssh-cli/tests/pipe.rs` (two cases more, one changed), the case of a missing pair in
+  `crates/podssh-cli/tests/pipe_udp.rs`, `the_manual_lists_each_rate_of_serial_that_the_parser_takes` in
+  `crates/podssh-cli/src/man/notes_tests.rs`.
+
+Merged by the main session on 2026-11-25 (after `162e52d`) and run: `cargo test -p podssh-cli --lib` 1331 passed
+(one repair: the manual's sentence of `serial:`, 34 words, split), `--test pipe` 10, `pipe_signal` 2, `pipe_remote`
+6, `pipe_udp` 4, `pipe_http` 7, `pipe_listen` 8, `pipe_ws` 12, `chisel` 3, `pinggy_road` 7, `serveo_road` 4,
+`serve_gateway_openssh` 7, `ssh_control` 4, `ssh_local_forward` 5, `flag_table`, `man_flag_parity`, `man_json` and
+`man_page` passed; `-p podssh-ssh --lib` 557; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`)
+and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu -p podssh-ssh -p podssh-cli` clean.

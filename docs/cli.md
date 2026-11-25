@@ -5693,7 +5693,19 @@ once the edge registered the tunnel.
   HTTP CONNECT proxy (T-367), `http-listen:`, or a WebSocket server
   (T-368), `ws-listen:`; or a WebSocket by its URL (T-368), `ws://` or
   `wss://`. Both addresses are checked before anything starts; an unknown
-  kind is a usage error (64) that lists the kinds.
+  kind is a usage error (64) that lists the kinds, from the one table
+  (`KINDS` of `pipe/address.rs`) that `podssh pipe --help` lists under A,
+  with the usage `podssh pipe [OPTIONS] A B` (T-916).
+- **A signal ends a program's pipe, and the program with it** (T-913). In
+  a pipe that does not listen, with an `exec:` side, SIGINT, SIGTERM and
+  SIGHUP are taken: the program gets the same signal and 10 s to exit, the
+  wait of a program beside `udp:node:`; one still there is killed
+  (SIGKILL). One line says which, and podssh exits 128 + N. podssh died of
+  the signal before, and left its program running with no parent: a
+  service of `--install` that its manager stopped kept its program. On
+  Windows the console gives Ctrl-C and Ctrl-Break to the program itself;
+  podssh ends it (TerminateProcess) after 10 s, and exits 130. A listening
+  side keeps its own rule of signals.
 - **A listener only when asked, and only where a probe allows it** (the
   operator's ruling of 2026-10-08). `PODSSH_LISTEN=no` turns listening off:
   a listening address then exits 78 before any bind. The bind itself is
@@ -5732,7 +5744,9 @@ once the edge registered the tunnel.
   within 16 KiB and 30 s (431 and 408 past them), by the reader of requests
   of podssh-ws (`http::request`), which refuses a head that two readers
   could read two ways (400): a bare CR, a space before a header's colon, a
-  folded line. Then, in this order: the credentials, when
+  folded line. The request is HTTP/1.1 or HTTP/1.0, as many clients send
+  CONNECT in HTTP/1.0 (T-915); another version of HTTP is 505, and a line
+  with no version 400. Then, in this order: the credentials, when
   `--proxy-auth-file FILE` names some (407 with `Proxy-Authenticate:
   Basic`); the method, CONNECT alone (405 with `Allow: CONNECT`; a request
   in absolute form, `GET http://...`, too); and the target, `HOST:PORT` or
@@ -5892,8 +5906,9 @@ once the edge registered the tunnel.
   those sides refuses it (64).
 - **A serial line is a stream too** (the operator's ruling of 2026-10-08,
   T-181). `serial:PATH[,BAUD]` opens a device such as `/dev/ttyUSB0` at
-  BAUD, one of the speeds that Linux names from 1200 to 4000000 (115200 when
-  none is given), with 8 data bits, no parity, 1 stop bit and no flow
+  BAUD, one of the 22 speeds that Linux names from 1200 to 4000000 (115200
+  when none is given), each listed in the manual from the table `BAUDS`, which
+  a test holds to the manual's list (T-917), with 8 data bits, no parity, 1 stop bit and no flow
   control, in raw mode, with the modem's lines ignored; the text after the
   last comma is BAUD. The attempt is the probe: a path that is not a
   character device, or one that is no terminal (`/dev/null`), exits 64;

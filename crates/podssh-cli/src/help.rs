@@ -80,6 +80,7 @@ pub fn usage_tail(verb: &Verb) -> &'static str {
         "funnel" => "[OPTIONS] TARGET",
         "operator" => "[OPTIONS] NAME",
         "proxy" => "[OPTIONS] [--] HOST PORT | node://NAME[/ROUTE]",
+        "pipe" => "[OPTIONS] A B",
         "health" => "[OPTIONS] [user@]host",
         "play" => "[OPTIONS] FILE",
         "config" => "import FORMAT FILE",

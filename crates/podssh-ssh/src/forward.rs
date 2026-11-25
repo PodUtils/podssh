@@ -16,9 +16,8 @@ pub async fn open(
     host: &str,
     port: u16,
 ) -> Result<russh::ChannelStream<russh::client::Msg>, String> {
-    handle.channel_open_direct_tcpip(host, u32::from(port), "127.0.0.1", 0).await.map(|c| c.into_stream()).map_err(
-        |e| format!("the server could not open a connection to {}: {e}", podssh_ws::dial::authority(host, port)),
-    )
+    let opened = handle.channel_open_direct_tcpip(host, u32::from(port), "127.0.0.1", 0).await;
+    opened.map(|c| c.into_stream()).map_err(|e| refusal_words(&StdioTarget::Tcp { host: host.into(), port }, &e))
 }
 
 /// Open `target` from the server: a TCP connection, or a Unix socket on it.
@@ -45,13 +44,15 @@ async fn open_raw(
     }
 }
 
-/// The line of a target that the server did not open, as [`open`] says it.
+/// The line of a target that the server did not open, as [`open`] says it:
+/// the server's reason in words, never russh's name of it.
 fn refusal_words(target: &StdioTarget, e: &russh::Error) -> String {
+    let why = crate::run::describe(e);
     match target {
         StdioTarget::Tcp { host, port } => {
-            format!("the server could not open a connection to {}: {e}", podssh_ws::dial::authority(host, *port))
+            format!("the server could not open a connection to {}: {why}", podssh_ws::dial::authority(host, *port))
         }
-        StdioTarget::Socket(path) => format!("the server could not open a connection to the socket {path}: {e}"),
+        StdioTarget::Socket(path) => format!("the server could not open a connection to the socket {path}: {why}"),
     }
 }
 

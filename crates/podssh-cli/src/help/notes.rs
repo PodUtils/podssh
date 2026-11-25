@@ -121,6 +121,19 @@ mod tests {
         assert!(notes.contains("\n  curl --proxy http://127.0.0.1:3128 https://example.org/\n"), "{pipe}");
     }
 
+    /// `pipe --help` names A and B in its usage, and each kind of address of
+    /// the one table that the refusal of an unknown kind lists (T-916).
+    #[test]
+    fn pipe_help_names_a_and_b_and_each_kind_that_the_refusal_names() {
+        let help = squeeze(&verb_help(verb("pipe")));
+        assert!(help.contains("podssh pipe [OPTIONS] A B"), "{help}");
+        let refusal = crate::pipe::address::parse("sctp:example.org:80").unwrap_err().message;
+        for kind in crate::pipe::address::KINDS {
+            assert!(help.contains(kind), "the help names {kind}: {help}");
+            assert!(refusal.contains(kind), "the refusal names {kind}: {refusal}");
+        }
+    }
+
     /// `cp --help` says that a broken copy goes on from its side file, and
     /// where that file is.
     #[test]

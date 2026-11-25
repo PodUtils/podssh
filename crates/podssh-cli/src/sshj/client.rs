@@ -91,7 +91,8 @@ pub async fn link(
         Ok(Ok(channel)) => Ok(Link { stream: Box::new(channel.into_stream()), _leg: opened.handle }),
         // The server refuses a name that no forward of this user holds.
         Ok(Err(e)) => Err(format!(
-            "{service} has no node at {name} ({e}): the node is not there now, or its key is not the one expected"
+            "{service} has no node at {name} ({}): the node is not there now, or its key is not the one expected",
+            podssh_ssh::run::describe(&e)
         )),
         Err(_) => Err(format!("{service}: no channel to {name} within {} s", CONNECT_LIMIT.as_secs())),
     }

@@ -223,12 +223,17 @@ async fn session(n: u64, client: pump::End, other: Rc<Address>, settings: Rc<rem
 }
 
 /// SIGINT and SIGTERM, or Ctrl-C on Windows: 128 and the signal's number.
-/// A pipe with a serial line listens for them too (T-181).
+/// A pipe with a serial line listens for them too (T-181), and a pipe with a
+/// program, SIGHUP and Ctrl-Break too (T-913).
 pub(super) struct Interrupt {
     #[cfg(unix)]
     signals: Option<(tokio::signal::unix::Signal, tokio::signal::unix::Signal)>,
+    #[cfg(unix)]
+    hangup: Option<tokio::signal::unix::Signal>,
     #[cfg(windows)]
     ctrl_c: Option<tokio::signal::windows::CtrlC>,
+    #[cfg(windows)]
+    ctrl_break: Option<tokio::signal::windows::CtrlBreak>,
 }
 
 impl Interrupt {
@@ -236,29 +241,81 @@ impl Interrupt {
         #[cfg(unix)]
         {
             use tokio::signal::unix::{signal, SignalKind};
-            Interrupt { signals: signal(SignalKind::interrupt()).ok().zip(signal(SignalKind::terminate()).ok()) }
+            let signals = signal(SignalKind::interrupt()).ok().zip(signal(SignalKind::terminate()).ok());
+            Interrupt { signals, hangup: None }
         }
         #[cfg(windows)]
         {
-            Interrupt { ctrl_c: tokio::signal::windows::ctrl_c().ok() }
+            Interrupt { ctrl_c: tokio::signal::windows::ctrl_c().ok(), ctrl_break: None }
+        }
+    }
+
+    /// [`Interrupt::new`], and SIGHUP (129) or Ctrl-Break (130): each signal
+    /// that a parent ends a byte pipe with.
+    pub(super) fn with_hangup() -> Interrupt {
+        #[cfg(unix)]
+        {
+            use tokio::signal::unix::{signal, SignalKind};
+            Interrupt { hangup: signal(SignalKind::hangup()).ok(), ..Interrupt::new() }
+        }
+        #[cfg(windows)]
+        {
+            Interrupt { ctrl_break: tokio::signal::windows::ctrl_break().ok(), ..Interrupt::new() }
         }
     }
 
     pub(super) async fn next(&mut self) -> i32 {
         #[cfg(unix)]
-        if let Some((int, term)) = self.signals.as_mut() {
-            return tokio::select! {
-                Some(()) = int.recv() => 130,
-                Some(()) = term.recv() => 143,
-                else => std::future::pending().await,
+        {
+            let Interrupt { signals, hangup } = self;
+            let hangup = async {
+                if let Some(hangup) = hangup.as_mut() {
+                    if hangup.recv().await.is_some() {
+                        return 129;
+                    }
+                }
+                std::future::pending().await
             };
-        }
-        #[cfg(windows)]
-        if let Some(ctrl_c) = self.ctrl_c.as_mut() {
-            if ctrl_c.recv().await.is_some() {
-                return 130;
+            let rest = async {
+                if let Some((int, term)) = signals.as_mut() {
+                    return tokio::select! {
+                        Some(()) = int.recv() => 130,
+                        Some(()) = term.recv() => 143,
+                        else => std::future::pending().await,
+                    };
+                }
+                std::future::pending().await
+            };
+            tokio::select! {
+                code = hangup => code,
+                code = rest => code,
             }
         }
+        #[cfg(windows)]
+        {
+            let Interrupt { ctrl_c, ctrl_break } = self;
+            let ctrl_break = async {
+                if let Some(ctrl_break) = ctrl_break.as_mut() {
+                    if ctrl_break.recv().await.is_some() {
+                        return 130;
+                    }
+                }
+                std::future::pending().await
+            };
+            let ctrl_c = async {
+                if let Some(ctrl_c) = ctrl_c.as_mut() {
+                    if ctrl_c.recv().await.is_some() {
+                        return 130;
+                    }
+                }
+                std::future::pending().await
+            };
+            tokio::select! {
+                code = ctrl_c => code,
+                code = ctrl_break => code,
+            }
+        }
+        #[cfg(not(any(unix, windows)))]
         std::future::pending().await
     }
 }

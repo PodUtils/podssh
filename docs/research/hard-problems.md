@@ -244,7 +244,7 @@ build image.
 ### A3. T-465 (P1): `podssh pipe` with `unix-connect` loses an end of input on macOS and Windows
 
 `unix_connect_passes_the_end_of_input_and_the_answer_comes_back`
-(`crates/podssh-cli/tests/pipe.rs:101`): `podssh pipe stdio unix-connect:PATH` with 1,000,000 bytes
+(`crates/podssh-cli/tests/pipe.rs:103`): `podssh pipe stdio unix-connect:PATH` with 1,000,000 bytes
 on stdin; the test's server (`crates/podssh-cli/tests/pipe_seen/mod.rs`) answers a digest once its
 input ends. Failed once on macOS (2026-11-02), once on Windows (2026-11-04, gate run 41769967226),
 and again 5+ times: Windows runs 41783492970 (1 in 50), 41793576380 and 41795259467 (2 in 50 each,

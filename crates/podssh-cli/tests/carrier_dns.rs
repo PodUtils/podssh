@@ -343,15 +343,16 @@ fn a_file_over_the_bound_of_q107_is_78() {
     }
 }
 
+/// A case of a node that cannot start: its tag, `listen`, `key-file`,
+/// `PODSSH_LISTEN`, its code and the words of its line.
+#[cfg(unix)]
+type Refused<'a> = (&'a str, SocketAddr, &'a str, Option<&'a str>, i32, &'a str);
+
 /// A node that cannot serve ends before it says that it serves or waits:
 /// a `listen` in use (69), `PODSSH_LISTEN=no` (78), a `key-file` that is a
 /// directory (78), and a client's `resolver` in the node's file (78). On
 /// Unix, where a second bind of a UDP port is refused alike.
 #[cfg(unix)]
-/// A case of a node that cannot start: its tag, `listen`, `key-file`,
-/// `PODSSH_LISTEN`, its code and the words of its line.
-type Refused<'a> = (&'a str, SocketAddr, &'a str, Option<&'a str>, i32, &'a str);
-
 #[test]
 fn a_node_that_cannot_listen_ends_before_it_says_it_serves() {
     let home = scratch("dns-unready-node");

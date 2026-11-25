@@ -203,13 +203,14 @@ pub fn add(cmd: Command, name: &str) -> Command {
                     .num_args(0..)
                     .help("the TCP service that each session reaches: HOST:PORT, or [IPV6]:PORT; ROUTE=HOST:PORT offers one more under ROUTE, which an operator names as NAME/ROUTE; ROUTE=unix-connect:PATH, a Unix socket (@NAME, abstract, on Linux); udp:HOST:PORT, alone, a UDP service; with --sshd and none, 127.0.0.1:22; with --quick-tunnel --relay and none, the relay alone; with --exit, none is needed"),
             ),
+        // The kinds from the one table that the refusal of an unknown kind
+        // lists too, so that the help names each of them.
         "pipe" => cmd
-            .arg(
-                Arg::new("a")
-                    .value_name("A")
-                    .help("the first address: - or stdio, fd:N (Unix), or exec:CMD (a program, its words in one argument)"),
-            )
-            .arg(Arg::new("b").value_name("B").help("the second address, of the same kinds")),
+            .arg(Arg::new("a").value_name("A").help(format!(
+                "the first address, KIND:REST, one of: {}; exec:CMD takes the program's words in one argument",
+                crate::pipe::address::KINDS.join(", ")
+            )))
+            .arg(Arg::new("b").value_name("B").help("the second address, of the same kinds; one side at most listens")),
         "exit" => cmd.arg(
             Arg::new("name")
                 .value_name("NAME")

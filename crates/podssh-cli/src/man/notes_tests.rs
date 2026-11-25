@@ -190,3 +190,21 @@ fn a_planted_name_is_found() {
     assert!(problems_in("pipe", "curl's --unix-socket goes past its --proxy", &variables).is_empty());
     assert_eq!(problems_in("pipe", "a client's --unix-socket", &variables).len(), 1);
 }
+
+/// The rates of serial: in the manual are those that the parser takes, each
+/// of them and no other (T-917): the manual said "from 1200 to 4000000".
+#[test]
+fn the_manual_lists_each_rate_of_serial_that_the_parser_takes() {
+    let bauds = crate::pipe::address::BAUDS;
+    let note = super::super::notes_pipe::PIPE.iter().find(|n| n.starts_with("serial:PATH[,BAUD]")).expect("serial:");
+    // Each number of 1200 or more in the note is a rate: the others are bits,
+    // seconds and exit codes.
+    let listed: Vec<u32> =
+        note.split(|c: char| !c.is_ascii_digit()).filter_map(|w| w.parse().ok()).filter(|n| *n >= 1200).collect();
+    for baud in bauds {
+        assert!(listed.contains(baud), "the manual lists {baud}");
+    }
+    for n in &listed {
+        assert!(bauds.contains(n), "the manual lists {n}, which the parser refuses");
+    }
+}

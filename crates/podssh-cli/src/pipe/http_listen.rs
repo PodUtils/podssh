@@ -290,4 +290,29 @@ mod tests {
         let (_, said) = answer_to(&format!("CONNECT example.org:443 HTTP/1.1\r\n{wrong}\r\n"), &proxy).await;
         assert!(said.starts_with("HTTP/1.1 407 "), "{said}");
     }
+
+    /// The version of each request, as the manual says it (T-915): HTTP/1.1
+    /// and HTTP/1.0 are asked, another version is 505, and none is 400.
+    #[tokio::test]
+    async fn each_version_of_a_connect_has_its_answer() {
+        let proxy = Proxy { template: Template::Tcp, credentials: None, quiet: true };
+        let table = [
+            ("HTTP/1.1", None),
+            ("HTTP/1.0", None),
+            ("HTTP/2", Some("HTTP/1.1 505 ")),
+            ("HTTP/1.2", Some("HTTP/1.1 505 ")),
+            ("SSH/2.0", Some("HTTP/1.1 400 ")),
+        ];
+        for (version, refused) in table {
+            let head = format!("CONNECT a.test:22 {version}\r\nHost: a.test:22\r\n\r\n");
+            let (asked, said) = answer_to(&head, &proxy).await;
+            match refused {
+                None => {
+                    let (address, _, _) = asked.unwrap_or_else(|line| panic!("{version}: {line}"));
+                    assert_eq!(address, Address::Tcp { host: "a.test".into(), port: 22 }, "{version}");
+                }
+                Some(status) => assert!(asked.is_err() && said.starts_with(status), "{version}: {said}"),
+            }
+        }
+    }
 }

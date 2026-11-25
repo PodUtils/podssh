@@ -296,7 +296,10 @@ pub async fn stdio(
     let opened = tokio::time::timeout(OPEN_LIMIT, opening).await;
     let channel = match opened {
         Ok(Ok(channel)) => channel,
-        Ok(Err(e)) => return failure(stream, rid, format!("stdio forwarding failed: {e}")).await,
+        Ok(Err(e)) => {
+            let why = format!("stdio forwarding failed: {}", crate::run::describe(&e));
+            return failure(stream, rid, why).await;
+        }
         Err(_) => return failure(stream, rid, "stdio forwarding failed: no answer from the server".into()).await,
     };
     if wire::write(stream, &Message::SessionOpened { rid, sid }).await.is_err() {

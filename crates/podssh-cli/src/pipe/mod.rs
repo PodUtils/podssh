@@ -18,6 +18,7 @@
 use std::io::Write;
 
 pub mod address;
+pub mod children;
 pub mod cover;
 pub mod credentials;
 pub mod datagram;
@@ -212,13 +213,45 @@ fn hops_timeout(args: &PipeArgs) -> Option<String> {
 }
 
 async fn run(a: address::Address, b: address::Address, settings: &remote::Settings, err: &mut dyn Write) -> i32 {
+    use address::Address::{Exec, Serial};
     // With a serial line, SIGINT and SIGTERM drop the ends, so that its
     // settings go back, and podssh exits with 128 and the signal's number.
-    let serial = |x: &address::Address| matches!(x, address::Address::Serial { .. });
-    let mut stop = (serial(&a) || serial(&b)).then(serve::Interrupt::new);
-    tokio::select! {
-        code = joined(a, b, settings, err) => code,
+    // With a program, SIGHUP too, and the program gets the signal first
+    // (T-913): else podssh died by it and left the program running.
+    let program = matches!(a, Exec(_)) || matches!(b, Exec(_));
+    let serial = matches!(a, Serial { .. }) || matches!(b, Serial { .. });
+    let mut stop = match (program, serial) {
+        (true, _) => Some(serve::Interrupt::with_hangup()),
+        (false, true) => Some(serve::Interrupt::new()),
+        (false, false) => None,
+    };
+    let mut joined = Box::pin(joined(a, b, settings, err));
+    let code = tokio::select! {
+        code = &mut joined => return code,
         code = interrupted(&mut stop) => code,
+    };
+    if !children::any() {
+        return code;
+    }
+    let line = signalled(code, joined).await;
+    let _ = writeln!(err, "podssh pipe: {line}");
+    code
+}
+
+/// After the signal of `code`: each program gets it, and the pipe ends as
+/// its programs end, within [`children::CHILD_WAIT`]; a program still there
+/// then is killed. The line that says which; the exit code stays `code`, as
+/// a shell gives for a job that a signal ended.
+async fn signalled<F: std::future::Future<Output = i32>>(code: i32, mut joined: std::pin::Pin<Box<F>>) -> String {
+    let name = children::named(code);
+    children::signal_all(code - 128);
+    if tokio::time::timeout(children::CHILD_WAIT, &mut joined).await.is_ok() {
+        format!("{name} ended the pipe, and its program with it")
+    } else {
+        children::kill_all();
+        let _ = tokio::time::timeout(children::AFTER_KILL, &mut joined).await;
+        let wait = children::CHILD_WAIT.as_secs();
+        format!("{name} ended the pipe; its program had not exited {wait} s after it, and was killed")
     }
 }
 
@@ -271,6 +304,7 @@ async fn in_turn(
             drop((read, write));
             // A child would wait for input that never comes.
             if let Some(mut child) = child {
+                children::reaped(child.id());
                 let _ = child.kill().await;
             }
             if let Some(ending) = ending {
@@ -293,13 +327,20 @@ async fn beside(
         let mut say = |line: &str| {
             let _ = writeln!(err, "podssh pipe: {line}");
         };
-        let opened = datagram::exec(words, &mut say);
+        // A program of the stream's framing, where no datagram socketpair
+        // was given, is the pipe's child, as for exec: alone.
+        let opened = datagram::exec(words, &mut say).inspect(|end| {
+            children::started(end.child.as_ref().and_then(tokio::process::Child::id));
+        });
         return opened.map_err(|unopened| {
             let _ = writeln!(err, "podssh pipe: {}", unopened.why);
             unopened.code
         });
     }
-    open(address, settings, err).await
+    let end = open(address, settings, err).await?;
+    // A signal that ends the pipe goes on to its program (T-913).
+    children::started(end.child.as_ref().and_then(tokio::process::Child::id));
+    Ok(end)
 }
 
 /// Open one end: the end, or the exit code once its lines are written.
@@ -364,6 +405,8 @@ async fn finished(ending: Option<Box<dyn pump::Ending>>) -> pump::Verdict {
 /// The child's exit code, when there is a child.
 async fn waited(child: Option<tokio::process::Child>) -> Option<i32> {
     let mut child = child?;
+    // Waited for now: no signal of the pipe goes to its pid any more.
+    children::reaped(child.id());
     Some(match child.wait().await {
         Ok(status) => local::code_of(status),
         Err(_) => EXIT_SOFTWARE,

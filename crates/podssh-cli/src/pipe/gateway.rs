@@ -131,11 +131,12 @@ async fn ssh(
     })
 }
 
-/// The status of an SSH road that failed, by the last line: russh names a
-/// server's refusal of the channel by its reason, and OpenSSH gives this one
-/// for a target that its `PermitOpen` or `AllowTcpForwarding` refuses.
+/// The status of an SSH road that failed, by the last line: it names a
+/// server's refusal of the channel by its reason in OpenSSH's words, and
+/// OpenSSH gives this one for a target that its `PermitOpen` or
+/// `AllowTcpForwarding` refuses. russh's own name of it is still read.
 fn ssh_status(reason: &str) -> u16 {
-    if reason.contains("AdministrativelyProhibited") {
+    if reason.contains("open failed: administratively prohibited") || reason.contains("AdministrativelyProhibited") {
         403
     } else if reason.contains("timed out") {
         504
@@ -182,5 +183,8 @@ mod tests {
         assert_eq!(dial_status(None), 502, "PODSSH_OFFLINE");
         assert_eq!(ssh_status("could not open: Failed to open channel (AdministrativelyProhibited)"), 403);
         assert_eq!(ssh_status("could not open: Failed to open channel (ConnectFailed)"), 502);
+        // The words that the line gives now (T-914).
+        assert_eq!(ssh_status("to a:1: open failed: administratively prohibited"), 403);
+        assert_eq!(ssh_status("to a:1: open failed: connect failed"), 502);
     }
 }

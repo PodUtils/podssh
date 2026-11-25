@@ -114,7 +114,7 @@ async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), servic
     if service.word.session_first {
         match handle.channel_open_session().await {
             Ok(session) => first = Some(session),
-            Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
+            Err(e) => return give_up(handle, format!("{service}: a session: {}", podssh_ssh::run::describe(&e))).await,
         }
     }
     if let Err(e) = handle.tcpip_forward(address, port).await {
@@ -124,7 +124,7 @@ async fn forwarded(handle: client::Handle<Leg>, host_key: (String, bool), servic
         Some(session) => session,
         None => match handle.channel_open_session().await {
             Ok(session) => session,
-            Err(e) => return give_up(handle, format!("{service}: a session: {e}")).await,
+            Err(e) => return give_up(handle, format!("{service}: a session: {}", podssh_ssh::run::describe(&e))).await,
         },
     };
     let asked = match service.word.command {

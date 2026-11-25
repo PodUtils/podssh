@@ -124,6 +124,11 @@ fn a_target_of_udp_is_a_node_s_alone_and_this_host_sends_none() {
     let (code, err) = run(&["pipe", "stdio", "udp:example.org:53"]);
     assert_eq!(code, 64, "{err}");
     assert!(err.contains("udp:node:NAME"), "{err}");
+    // A pair that is not stored: the line names the address as it was
+    // written, with its udp: (T-917).
+    let (code, err) = run(&["pipe", "stdio", "udp:node:podssh-no-such-pair"]);
+    assert_ne!(code, 0, "{err}");
+    assert!(err.contains("podssh pipe: udp:node:podssh-no-such-pair: no pair is stored"), "{err}");
     // A UDP TARGET is the node's only one, with no route, on the pair's road.
     for args in [
         &["node", "lab", "udp:127.0.0.1:53", "127.0.0.1:22"][..],

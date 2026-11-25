@@ -611,8 +611,8 @@ at `crates/podssh-ssh/src/outcome.rs:281-292`, and the cause of a failure
 at `crates/podssh-ssh/src/outcome.rs:294-315`. The bytes are counted where
 they pass: stdin at `crates/podssh-ssh/src/io.rs:276`, stdout and stderr at
 `crates/podssh-ssh/src/io/msg.rs:105`, `-W` at
-`crates/podssh-ssh/src/forward.rs:96` and
-`crates/podssh-ssh/src/forward.rs:113`. The status and the signal at
+`crates/podssh-ssh/src/forward.rs:97` and
+`crates/podssh-ssh/src/forward.rs:114`. The status and the signal at
 `crates/podssh-ssh/src/io/msg.rs:48` and `crates/podssh-ssh/src/io/msg.rs:53`,
 the end at `crates/podssh-ssh/src/session.rs:38`; the class of a hop's
 failure at `crates/podssh-ssh/src/run.rs:152-163` and
@@ -674,7 +674,7 @@ stdin and stdout gives typed tools, with no shell quoting.
 
 Measured: `podssh mcp` exits 64 (unknown subcommand).
 
-Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7341-7371`),
+Read: a prompt goes to the controlling terminal or to `SSH_ASKPASS` (`docs/cli.md:7356-7386`),
 and the terminal of an agent can be the user's own. The session output goes straight to the
 process's stdout (`crates/podssh-ssh/src/io/msg.rs:90-107`), which an MCP server over stdio uses for
 its protocol. podssh never listens (`docs/architecture.md:284-301`), and stdio needs no listener.

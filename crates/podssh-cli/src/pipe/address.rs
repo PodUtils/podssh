@@ -162,6 +162,10 @@ pub fn parse(text: &str) -> Result<Address, Refusal> {
 
 /// The label of `node:NAME`, the pair of the node.
 fn node_label(kind: &str, rest: &str) -> Result<String, Refusal> {
+    // The check of a label says an empty one in the words of a pair.
+    if rest.is_empty() {
+        return Err(Refusal::usage(format!("{kind}: needs a NAME: {kind}:NAME, the label of a stored pair")));
+    }
     if rest.contains(',') {
         return Err(Refusal::usage(format!("{kind}:{rest}: a node serves one TARGET; name the node alone")));
     }
@@ -326,7 +330,7 @@ pub fn words(cmd: &str) -> Result<Vec<String>, String> {
         }
     }
     if let Some(q) = quote {
-        return Err(format!("a {q} that does not close"));
+        return Err(format!("a quote {q} that is not closed"));
     }
     if begun {
         words.push(word);

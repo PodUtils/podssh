@@ -162,3 +162,22 @@ async fn a_far_end_that_stops_after_its_version_line_is_named() {
          this side's KEXINIT"
     );
 }
+
+/// A channel that the server did not open is said in OpenSSH's words of its
+/// reason, never by the name of russh's variant (`ConnectFailed`).
+#[test]
+fn a_channel_that_did_not_open_names_its_reason_in_words() {
+    use russh::ChannelOpenFailure as F;
+    let table = [
+        (F::AdministrativelyProhibited, "open failed: administratively prohibited"),
+        (F::ConnectFailed, "open failed: connect failed"),
+        (F::UnknownChannelType, "open failed: unknown channel type"),
+        (F::ResourceShortage, "open failed: resource shortage"),
+        (F::Other { code: 9, reason: "busy".into() }, "open failed: unknown reason: busy"),
+    ];
+    for (reason, want) in table {
+        let words = describe(&russh::Error::ChannelOpenFailure(reason));
+        assert_eq!(words, want);
+        assert!(!words.contains("Failed to open channel"), "{words}");
+    }
+}
