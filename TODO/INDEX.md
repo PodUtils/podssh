@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**832 entries: 7 open, 45 partial, 12 blocked, 768 done.**
+**832 entries: 6 open, 46 partial, 12 blocked, 768 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 7 | 12 | 7 | 364 | 390 |
-| **All** | 7 | 45 | 12 | 768 | 832 |
+| P3 | 6 | 13 | 7 | 364 | 390 |
+| **All** | 6 | 46 | 12 | 768 | 832 |
 
 ## Entries
 
@@ -235,7 +235,7 @@ repository and CI).
 | [T-158](resume.md) | P3 | M | backlog | feature | done | Detach and attach again |
 | [T-159](resume.md) | P3 | M | backlog | feature | done | Sessions on the far end that outlive the client |
 | [T-160](resume.md) | P3 | L | backlog | feature | done | Local echo and prediction for high latency |
-| [T-161](resume.md) | P3 | L | backlog | research | open | Screen state and scrollback when a client attaches |
+| [T-161](resume.md) | P3 | L | backlog | research | partial | Screen state and scrollback when a client attaches |
 | [T-162](roads.md) | P2 | L | M6 | feature | done | The iroh road behind the cargo feature `iroh` |
 | [T-163](roads.md) | P2 | S | M6 | feature | done | iroh tickets and node keys |
 | [T-164](roads.md) | P2 | M | M6 | feature | done | Race the iroh road and the reverse road |

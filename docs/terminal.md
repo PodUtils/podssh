@@ -410,7 +410,7 @@ the client's host.
   kept shell's output with no client goes to a ring of 256 KiB, and an
   attach gets what came since the detach, from a boundary of the grammar
   where the ring dropped a part (said on stderr). The screen that a
-  client finds is T-161's. A lease's end hangs up the shell's process
+  client finds: "Screen on attach". A lease's end hangs up the shell's process
   group and kills it 10 s later; a restart of serve ends each kept shell,
   and the next start names them from its record (`serve-NAME.kept`).
   Against a standard sshd, `--persist` keeps the shell in tmux (T-178).
@@ -430,7 +430,7 @@ sends, and the next attach from the same cache gets that output back
 A far end that keeps a shell keeps a ring of its recent output (T-159:
 `podssh serve`'s ring of 256 KiB, `crates/podssh-ssh/src/server/kept.rs`),
 and a client that attaches gets what came since its detach, or what the
-ring holds where it dropped a part (T-161 decides the screen). A full ring
+ring holds where it dropped a part ("Screen on attach"). A full ring
 drops its oldest bytes, and its first byte could then be inside an escape
 sequence or a UTF-8 character: the terminal would show the end of the
 sequence as text, a full-screen program would draw wrongly, or a part of a
@@ -475,6 +475,85 @@ sequence or a character as output that goes on, until the tracker
 (`Tracker::open`) calls it broken. `capture` gives the screen of a model of
 a terminal (`vt100`, the model of the oracle of T-200), which reads each
 byte of the session's output from its first.
+
+## Screen on attach (T-161)
+
+A client that joins a kept shell from a new process starts with a terminal
+that holds none of the shell's screen: an empty one, or the user's own
+scrollback, maybe on another host. The bytes since the detach can be none
+at all, for a full-screen program that sat still while no client had it;
+and a replay that the ring cut (a reset, T-833) starts long after the
+program set the alternate screen, its keys and bracketed paste. `podssh
+serve` keeps no model of the screen. Such a client gets three things, in
+order (`crates/podssh-ssh/src/server/kept_screen.rs`, and the catch-up in
+`kept_catch.rs`):
+
+1. **The modes** in effect at the replay's first byte: the alternate
+   screen, the keys of the cursor and the keypad, bracketed paste, the
+   mouse reports, focus reports, the cursor shown or hidden, autowrap,
+   origin mode and the G0 set. `pod-term`'s ring reads them from each
+   byte of the output, those that it dropped among them
+   (`Ring::modes_at`), and `Modes::restore` writes each mode set or
+   reset, so that a terminal in any state ends in the program's. The
+   modes go before the replay, not after: `ESC [ ? 1049 h` on a terminal
+   that shows the alternate screen already clears it, and after the
+   replay it would erase what the replay drew. Before it, the clear costs
+   nothing, as the redraw follows. The alternate screen goes off as
+   `ESC [ ? 47 l`, which moves no cursor. After a reset, they follow
+   its line on stderr, which goes first (stdout and stderr go by queues
+   of their own) and names an offset that makes room for them: a client
+   that counts the offsets (T-895) starts at that line, so its count
+   after the modes is the far end's, with no change to the client.
+2. **The replay**: the bytes since the detach, or after a reset the ring
+   from its first boundary ("Where kept output may start").
+3. **A redraw**: once the channel has the shell, serve sets the pty one
+   row shorter, waits 100 ms, and puts its size back. The kernel signals
+   the pty's foreground group at each change, so a full-screen program
+   draws its screen again, and a line editor at its prompt draws its line
+   again. Rows, not columns: a new width can make a line editor wrap its
+   line anew. The pause lets a program that redraws only when its size
+   differs read the first change. A window change of the client during
+   the pause sets the size that stays.
+
+A client that gives its offset (`env count@podssh OFFSET`, an offset that
+the ring holds) gets the bytes, byte for byte, as T-833 serves them, and no
+modes, which it would count; it gets the redraw, which is the shell's own
+output and counted as such. podssh's own client gives an offset on each
+attach where it knows one (its cache, else the list's offset, T-895), so it
+gets the modes with `--reset`, or where it knows no offset; a client of
+another make that names the shell with `SetEnv` alone gets them on each
+attach. Each attach gets the redraw (the owner's rule "Decisions": the
+redraw adds a screen to a counted attach and takes nothing away).
+
+What this does not give. A new client's own scrollback holds the replay
+alone, not the shell's history before it. A program that draws only when
+a key comes, or ignores SIGWINCH (a `cat`, a shell's `read`), shows the
+replay alone. A title, the scroll region, the cursor's style and the
+colours that the ring dropped are not set again (they are no modes of
+`pod-term`'s). A ring that holds no boundary gives no modes; the redraw
+still comes.
+
+Three ways to give a new client its screen, compared (T-161, step 4). The
+cells are read from the designs; the measured row waits for the run of
+T-161.
+
+| | The modes, the replay and a redraw | A log with offsets, no model (ekzhang/sshx) | A snapshot of a model (mosh, rose) |
+| --- | --- | --- | --- |
+| A full-screen program that sat still | drawn again by the program | an empty screen | the screen |
+| A replay cut after the modes | the modes, then the bytes | the bytes, with no modes | the screen |
+| A shell at its prompt | the bytes, and the prompt drawn again | the bytes | the screen |
+| The new client's scrollback | the replay | the replay | the scrollback that the far end keeps, or none |
+| serve's memory for each shell | the ring (256 KiB) and the modes of the bytes that it dropped | the ring | the ring, and a grid of each cell with its scrollback |
+| serve's code | `pod-term`'s modes, and a change of size | none | a terminal model in each `podssh serve` |
+| Measured with vi, less, top and a shell | UNVERIFIED | UNVERIFIED | UNVERIFIED |
+
+`cargo test -p podssh-ssh --test attach_screen` checks it with the
+oracle's model (T-200) at both ends: a client runs a full-screen program
+in a kept shell and detaches; a new client attaches, and its model must
+show the rows, the cursor and the modes of the first one's. The cases: a
+stand-in program that sat still, joined with no count; the same after
+more output than the ring holds, joined with a reset; and `vi` where the
+host has it. UNVERIFIED.
 
 ## ZMODEM in a session
 

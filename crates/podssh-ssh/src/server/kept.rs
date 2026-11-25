@@ -7,9 +7,11 @@
 //! size, the child's process group, a ring of the recent output, and the one
 //! channel attached now, if any. The output goes to that channel and into
 //! the ring; with no channel, into the ring alone, and an attach gets what
-//! came since the detach. Each attach is a new generation: input that an
-//! older channel queued is dropped, and an older channel's close ends
-//! nothing (the rules of trzsz/tsshd that T-159 read).
+//! came since the detach; one whose terminal may be new gets the modes
+//! before it and a redraw after it (T-161, `kept_screen.rs`). Each attach
+//! is a new generation: input that an older channel queued is dropped, and
+//! an older channel's close ends nothing (the rules of trzsz/tsshd that
+//! T-159 read).
 //!
 //! A kept shell is found only by its key and its name (`kept_shelf.rs`).
 //! The limits: [`PER_KEY`] for each key, [`TOTAL`] in all, a ring of
@@ -29,13 +31,13 @@ use std::time::Duration;
 use pod_term::grammar::Ring;
 use russh::server::{Handle, Msg};
 use russh::{ChannelId, ChannelWriteHalf};
-use tokio::io::{AsyncWrite, AsyncWriteExt};
+use tokio::io::AsyncWrite;
 use tokio::sync::watch;
 
 use super::audit::Tally;
 use super::channel::Input;
 pub(super) use super::kept_ask::{Asked, Keeper};
-use super::kept_replay::{dropped_line, replay_from, since};
+use super::kept_replay::replay_from;
 use super::kept_shelf::Shelf;
 use crate::terminal::Size;
 
@@ -48,6 +50,9 @@ pub(super) use flow::{reports_for, watch_close};
 // The output's writer, for the Unix-only start of a kept shell (`kept_run.rs`).
 #[cfg(unix)]
 pub(super) use flow::Out;
+// An attach's catch-up, with the modes and the redraw of T-161.
+#[path = "kept_catch.rs"]
+mod catch;
 
 /// The most kept shells of one key.
 pub const PER_KEY: usize = 4;
@@ -65,10 +70,6 @@ pub const KILL_AFTER: Duration = Duration::from_secs(10);
 
 /// A channel's bytes that wait in serve for the pty.
 const PASTE: usize = 32 * 1024;
-
-/// How often an attach reads the ring again for the output that came while
-/// it sent the last part, before it gives up the rest as dropped.
-const CATCH_UP: usize = 8;
 
 /// The channel that a kept shell's output goes to now.
 pub(super) struct Attached {
@@ -127,14 +128,10 @@ pub(super) struct Joined {
     pub(super) from: u64,
     /// The replay is the ring from its first boundary, not from an offset.
     pub(super) reset: bool,
+    /// The client's terminal may hold none of the screen: it gets the
+    /// modes before the replay and a redraw after it (T-161).
+    pub(super) fresh: bool,
     pub(super) old: Option<Attached>,
-}
-
-/// What one turn of an attach's catch-up does.
-enum Turn {
-    Send(Vec<u8>, u64),
-    Joined(u64),
-    Ended(Option<u32>),
 }
 
 struct State {
@@ -149,6 +146,9 @@ struct State {
     detached_at: u64,
     /// The pump's, while the attached channel holds it back.
     waker: Option<Waker>,
+    /// The pty's size that serve set last, which a redraw nudges and puts
+    /// back (T-161).
+    size: Option<Size>,
     timer: Option<tokio::task::AbortHandle>,
     ended: bool,
     /// The program's exit status, once it ended.
@@ -192,6 +192,7 @@ impl Shell {
             ring: Ring::new(RING),
             detached_at: 0,
             waker: None,
+            size: None,
             timer: None,
             ended: false,
             status: None,
@@ -235,7 +236,11 @@ impl Shell {
         self.gone.subscribe()
     }
 
+    /// A window change: kept, and set under the lock, as a redraw puts
+    /// the size back under it (T-161), so neither undoes the other.
     pub(super) fn resize(&self, size: Size) {
+        let mut state = self.state();
+        state.size = Some(size);
         (self.resize)(size);
     }
 
@@ -314,6 +319,7 @@ impl Shell {
         // A client that had the shell saw its output: the new one starts now.
         let base = if old.is_some() { state.ring.end() } else { state.detached_at };
         let (from, reset) = replay_from(&state.ring, base, asked.count, asked.reset);
+        let fresh = super::kept_screen::fresh(asked.count.is_some(), reset);
         let_go(&mut state);
         if let Some(timer) = state.timer.take() {
             timer.abort();
@@ -323,74 +329,7 @@ impl Shell {
         }
         state.joining = true;
         let held = Held { shell: self.clone(), generation: state.generation };
-        Ok(Joined { held, from, reset, old })
-    }
-
-    /// Send the joined channel what came since `from`, then make it the
-    /// shell's. The output that comes meanwhile goes into the ring and out
-    /// in the next turn, so its order holds; past [`CATCH_UP`] turns, the
-    /// rest is dropped and said.
-    pub(super) async fn catch_up(self: Arc<Self>, joined: Joined, attached: Attached) {
-        let (generation, mut from) = (joined.held.generation, joined.from);
-        let (handle, id) = (attached.handle.clone(), attached.id);
-        if joined.reset {
-            let line = super::kept_replay::reset_line(&self.name().unwrap_or_default(), from);
-            let _ = handle.extended_data(id, 1, line.into_bytes()).await;
-        }
-        let mut slot = Some(attached);
-        for turn in 1..=CATCH_UP {
-            match self.turn(generation, &mut from, turn == CATCH_UP, &mut slot) {
-                Turn::Send(bytes, lost) => {
-                    if lost > 0 {
-                        let _ = handle.extended_data(id, 1, dropped_line(lost).into_bytes()).await;
-                    }
-                    let Some(attached) = slot.as_mut() else { return };
-                    if attached.out.write_all(&bytes).await.is_err() {
-                        // The channel is gone: its close lets the shell go.
-                        self.state().joining = false;
-                        return;
-                    }
-                }
-                Turn::Joined(dropped) => {
-                    if dropped > 0 {
-                        let _ = handle.extended_data(id, 1, dropped_line(dropped).into_bytes()).await;
-                    }
-                    return;
-                }
-                Turn::Ended(status) => {
-                    if let Some(attached) = slot.take() {
-                        attached.end(status).await;
-                    }
-                    return;
-                }
-            }
-        }
-    }
-
-    /// One turn of [`Shell::catch_up`], under the lock: the bytes to send,
-    /// or the channel made the shell's (on the `last` turn, with the bytes
-    /// that it did not get), or the end of a shell that ended meanwhile.
-    fn turn(&self, generation: u64, from: &mut u64, last: bool, slot: &mut Option<Attached>) -> Turn {
-        let mut state = self.state();
-        if state.ended || state.generation != generation {
-            let ended = state.ended;
-            return Turn::Ended(state.status.filter(|_| ended));
-        }
-        let (bytes, lost) = since(&state.ring, *from);
-        let caught = bytes.is_empty() && lost == 0;
-        if caught || last {
-            let dropped = if caught { 0 } else { state.ring.end().saturating_sub(*from) };
-            state.attached = slot.take();
-            state.joining = false;
-            if let Some(waker) = state.waker.take() {
-                waker.wake();
-            }
-            // The pump waits on the new channel's reports from now on.
-            self.tells.attached.notify_one();
-            return Turn::Joined(dropped);
-        }
-        *from = state.ring.end();
-        Turn::Send(bytes, lost)
+        Ok(Joined { held, from, reset, fresh, old })
     }
 
     /// The program ended with `status`: no client joins it from now on, it

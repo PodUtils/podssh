@@ -5,8 +5,9 @@ use std::time::{Duration, Instant};
 use pod_term::grammar::Ring;
 
 use super::super::kept_ask::with_id;
+use super::super::kept_replay::since;
 use super::super::kept_shelf::Shelf;
-use super::{since, Asked, Keeper, Shell};
+use super::{Asked, Keeper, Shell};
 
 /// Each `env` request of podssh's own and its values: one rule for the
 /// family, a good value taken and a bad one refused; another name is the
@@ -92,6 +93,7 @@ fn a_second_attach_while_one_catches_up_is_refused() {
     let shell = Shell::new(&keeper, "id".into(), Box::new(tokio::io::sink()), resize, Arc::new(AtomicI32::new(0)));
     let first = shell.join(&Asked::default()).expect("a shell with no client");
     assert_eq!((first.from, first.reset), (0, false));
+    assert!(first.fresh, "no count: the modes and a redraw (T-161)");
     let taking = Asked { take: true, ..Asked::default() };
     let second = shell.join(&taking).err().expect("refused while one attaches");
     assert!(second.contains("another client is attaching"), "{second}");
@@ -99,5 +101,27 @@ fn a_second_attach_while_one_catches_up_is_refused() {
     // The first one's channel left: the next attach is let in, a reset.
     shell.left(first.held.generation);
     let third = shell.join(&reset).expect("let in once the first one left");
-    assert!(third.reset);
+    assert!(third.reset && third.fresh);
+}
+
+/// Who gets the modes and a redraw (T-161), one rule through the join: an
+/// attach from a count that the ring holds gets the bytes alone; one with
+/// no count, one whose count the ring cannot serve, and a reset get both.
+#[test]
+fn only_an_attach_from_a_held_count_gets_the_bytes_alone() {
+    let keeper = Keeper::of(&Shelf::default(), "SHA256:key", Duration::from_secs(60), &Asked::default()).unwrap();
+    // (count, reset asked) -> (reset, fresh); the ring is empty, at 0.
+    let cases: &[(Option<u64>, bool, (bool, bool))] = &[
+        (Some(0), false, (false, false)),
+        (None, false, (false, true)),
+        (Some(9), false, (true, true)),
+        (Some(0), true, (true, true)),
+        (None, true, (true, true)),
+    ];
+    for (count, reset, want) in cases {
+        let resize: Box<dyn Fn(crate::terminal::Size) + Send + Sync> = Box::new(|_| {});
+        let shell = Shell::new(&keeper, "id".into(), Box::new(tokio::io::sink()), resize, Arc::new(AtomicI32::new(0)));
+        let joined = shell.join(&Asked { count: *count, reset: *reset, ..Asked::default() }).expect("no client");
+        assert_eq!((joined.reset, joined.fresh), *want, "{count:?} {reset}");
+    }
 }

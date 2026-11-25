@@ -45,9 +45,8 @@ Read on 2026-11-24.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** Three wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-839 (`d-t839c`: `podssh agent` and serve's host key in
-   a TPM, Windows TBS; not built), T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built),
-   and T-161 (`d-t161`: builds only once pod-term has COORD-140's `Modes`, #350). Each `draft/*`, `beta/*` and `release/*`
+8. **Drafts.** Two wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-839 (`d-t839c`: `podssh agent` and serve's host key in
+   a TPM, Windows TBS; not built), T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built). Each `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
@@ -74,7 +73,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 832 entries: 7 open, 45 partial, 12 blocked, 768 done.
+`TODO/INDEX.md` holds 832 entries: 6 open, 46 partial, 12 blocked, 768 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -131,7 +130,7 @@ These entries stay open in the index. The condition in each entry tells when it 
 
 | Entry | Start condition |
 | --- | --- |
-| T-161 | T-159 is done; its draft (`d-t161`, WIP) waits for COORD-140 (#350) |
+| T-161 | Started on 2026-11-25 from its draft (partial): the measures of steps 1 and 3, step 5, and the seats of `--share` are left |
 | T-303 | T-110 is done: `podssh serve` has a pty; and T-161 has a model of the far end's screen |
 | T-304 | T-303 is done: frames of the screen exist |
 | T-499 | draft-ietf-httpbis-connect-tcp is an RFC, and a server over HTTP/2 or HTTP/1.1 implements it |

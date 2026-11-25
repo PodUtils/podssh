@@ -11290,6 +11290,15 @@ podssh serve
   attach at a time: a second one while the first catches up is refused with a
   line.
 
+  An attach with no offset, or a reset, may come from a new terminal. serve
+  first sends it the program's modes where the replay starts: the alternate
+  screen, the keys, bracketed paste and the mouse. They come before the line of
+  a reset, so they never move a client's offset. Once the client has the shell,
+  serve sets the pty one row shorter for 100 ms, then its size again. The
+  program on it then draws its screen again. An offset that the ring holds gets
+  the bytes alone. A program that ignores a window change shows the replay
+  alone.
+
   A stop or a restart of serve, or of its host, ends each kept shell: a process
   does not outlive either. serve writes the names of its kept shells to
   serve-NAME.kept beside its host key, mode 0600. The next start says which

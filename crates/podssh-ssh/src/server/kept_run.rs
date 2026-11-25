@@ -49,6 +49,11 @@ pub(super) fn start(
     };
     let shell = Shell::new(keeper, id, Box::new(Master(master.clone())), Box::new(resize), group);
     shell.reports_from(master.clone());
+    // The size that the pty starts with, which a later attach's redraw
+    // nudges and puts back (T-161); setting it again sends no signal.
+    if let Some(size) = crate::terminal::size_of_fd(master.get_ref().as_raw_fd()) {
+        shell.resize(size);
+    }
     // Local echo's reports, where the first channel asked (T-896).
     let (told, count) = reports_for(&shell, open.predict, &write);
     let held = shell.first(Attached::new(write, handle, channel, tally).with_reports(told));

@@ -4472,7 +4472,7 @@ which of two writers' bytes reach the pty.
 
 - Read: `podssh serve` gives each session channel its own pty and child, and the login name selects
   nothing (`crates/podssh-ssh/src/server/handler/auth.rs:95-104`,
-  `crates/podssh-ssh/src/server/handler.rs:344-367`); `--listen` is T-124, still open.
+  `crates/podssh-ssh/src/server/handler.rs:348-371`); `--listen` is T-124, still open.
 - Read: the attach of T-158 refuses "a second client unless take" (`TODO/resume.md` T-158's Done); there
   is no viewer with a different right.
 - Read: per-key rules exist (`crates/podssh-ssh/src/server/rules.rs:115`, `pty_refusal`), so a right per
@@ -4629,8 +4629,8 @@ Approach item 4, the viewport, which waits for T-161.
 
 ## Premise
 
-- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:100-121`).
-- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:82`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
+- Read: the server's `config` sets `methods`, `keys`, `window_size`, the timeouts and nothing of the algorithm lists, then `..russh::server::Config::default()` (`crates/podssh-ssh/src/server/mod.rs:102-123`).
+- Read: the limits that the server states are named constants (`crates/podssh-ssh/src/server/mod.rs:84`, `DIAL_LIMIT`, `MAX_FORWARDS`, `KEEPALIVE`).
 - Read: the client has its own algorithm list and a table of the names it knows (`crates/podssh-ssh/src/algorithms/`).
 - T-631 is the listener's deadline and cap; this entry is about the content of the handshake, not about its time.
 

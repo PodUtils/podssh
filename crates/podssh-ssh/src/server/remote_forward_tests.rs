@@ -74,8 +74,7 @@ fn the_client_is_told_each_name_once() {
     assert_eq!(line, "podssh serve: -R localhost:2201 is published as r2201-abc; podssh operator r2201-abc\r\n");
     let bare = Published { reach: None, ..with };
     assert_eq!(told("", 40_022, &bare), "podssh serve: -R :40022 is published as r2201-abc\r\n");
-    let mut forwards = Forwards::default();
-    forwards.untold = vec![line.clone()];
+    let mut forwards = Forwards { untold: vec![line.clone()], ..Default::default() };
     assert_eq!(forwards.untold(), vec![line]);
     assert!(forwards.untold().is_empty(), "each line is shown once");
 }

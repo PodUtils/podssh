@@ -75,7 +75,8 @@ fn way() -> Result<&'static Way, String> {
     let found = WAY.get_or_init(|| {
         // The pins of PODSSH_RELAY_ADDR and the settings file, as a node's.
         crate::pins::apply(None).map_err(|r| r.message)?;
-        let relays = crate::relay_settings::relays(None, std::env::var(relay::RELAY_ENV).ok()).map_err(|r| r.message)?;
+        let relays =
+            crate::relay_settings::relays(None, std::env::var(relay::RELAY_ENV).ok()).map_err(|r| r.message)?;
         Ok(Way { control: relays.primary().clone(), trust: crate::pairs::trust(None) })
     });
     found.as_ref().map_err(Clone::clone)
@@ -96,7 +97,9 @@ async fn publish(asked: Asked, opener: Opener) -> Result<Published, String> {
         Ok(Ok(Ok(()))) => {}
         Ok(Ok(Err(why))) => return Err(why),
         Ok(Err(_)) => return Err("the forward's node ended before the relay took it".into()),
-        Err(_) => return Err(format!("the relay did not take the forward's node within {} s", PUBLISH_LIMIT.as_secs())),
+        Err(_) => {
+            return Err(format!("the relay did not take the forward's node within {} s", PUBLISH_LIMIT.as_secs()))
+        }
     }
     let reach = format!("podssh operator {label} reaches it on serve's host, which keeps its pair");
     let stop = Stop::new(move || {
