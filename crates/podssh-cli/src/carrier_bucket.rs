@@ -5,7 +5,7 @@
 //! `podssh_relay::bucket`: each end writes its way's sealed objects under
 //! one prefix and reads the other's, the file-host carrier's link above.
 //!
-//! FILE holds `NAME = VALUE` lines, `#` for a comment:
+//! FILE holds `NAME = VALUE` lines; a line that starts with `#` is a comment:
 //!
 //! - `endpoint`: `https://HOST[:PORT][/PATH]` of the S3 API (`http://` on
 //!   the loopback alone, for a test); `region` (`us-east-1` unless given);
@@ -92,10 +92,23 @@ fn bytes_of(path: &Path, what: &str) -> Result<Zeroizing<Vec<u8>>, String> {
     Ok(bytes)
 }
 
-/// The `NAME = VALUE` lines of `text`, a name twice refused.
-pub(crate) fn lines(text: &str) -> Result<Vec<(String, String)>, String> {
-    let mut out: Vec<(String, String)> = Vec::new();
+/// A `NAME = VALUE` line of a file, and its number from 1.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Line {
+    pub at: usize,
+    pub name: String,
+    pub value: String,
+}
+
+/// The `NAME = VALUE` lines of `text`, each with its number: a line that
+/// starts with `#` or `;` is a comment, a name twice and an empty name are
+/// refused. A byte-order mark that an editor put first is no byte of the
+/// first name. The S3 FILE, its credentials files and the DNS FILE share it.
+pub(crate) fn numbered(text: &str) -> Result<Vec<Line>, String> {
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
+    let mut out: Vec<Line> = Vec::new();
     for (at, line) in text.lines().enumerate() {
+        let at = at + 1;
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
             continue;
@@ -108,15 +121,40 @@ pub(crate) fn lines(text: &str) -> Result<Vec<(String, String)>, String> {
             break;
         }
         let Some((name, value)) = line.split_once('=') else {
-            return Err(format!("line {}: not NAME = VALUE", at + 1));
+            return Err(format!("line {at}: not NAME = VALUE"));
         };
         let name = name.trim().to_ascii_lowercase();
-        if out.iter().any(|(n, _)| *n == name) {
-            return Err(format!("line {}: {name} again", at + 1));
+        if name.is_empty() {
+            return Err(format!("line {at}: no name before ="));
         }
-        out.push((name, value.trim().to_string()));
+        if let Some(first) = out.iter().find(|l| l.name == name) {
+            return Err(format!("line {at}: {} is given twice (lines {} and {at})", visible(&name, 40), first.at));
+        }
+        out.push(Line { at, name, value: value.trim().to_string() });
     }
     Ok(out)
+}
+
+/// The `NAME = VALUE` lines of `text`, as [`numbered`] reads them.
+pub(crate) fn lines(text: &str) -> Result<Vec<(String, String)>, String> {
+    Ok(numbered(text)?.into_iter().map(|line| (line.name, line.value)).collect())
+}
+
+/// At most `most` characters of `text` for a line of podssh, each control
+/// or formatting character written as an escape, so that the line shows
+/// what the file holds (a NUL, a BOM) rather than dropping it.
+pub(crate) fn visible(text: &str, most: usize) -> String {
+    let mut out = String::new();
+    for c in text.chars().take(most) {
+        let hidden = c.is_control()
+            || matches!(c, '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2066}'..='\u{2069}' | '\u{feff}');
+        if hidden {
+            out.extend(c.escape_default());
+        } else {
+            out.push(c);
+        }
+    }
+    out
 }
 
 /// A key pair from a file of the AWS form. No word of the file is shown.
@@ -154,7 +192,7 @@ pub(crate) fn read(file: &str) -> Result<Spec, Refusal> {
         "secret-file",
     ];
     if let Some((name, _)) = found.iter().find(|(n, _)| !known.contains(&n.as_str())) {
-        let name = podssh_ws::text::one_line(&name.chars().take(40).collect::<String>());
+        let name = visible(name, 40);
         return Err(config(file, format!("{name} is no name of a bucket's file; a key goes in its own file")));
     }
     let get = |name: &str| found.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());

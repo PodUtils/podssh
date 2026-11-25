@@ -174,6 +174,15 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
     };
     let me = key.as_ref().map(|key| key.identity.public());
     let routes = routes_of(&targets, crate::net::admit::grant(allow.clone(), me), roost, me);
+    // The DNS road's listener is bound, and its key read, before the node
+    // says that it serves: a bind or a key that fails ends it first.
+    let dns_bound = match &found {
+        Found::Dns(spec) => match crate::carrier_dns::bind(spec).await {
+            Ok(bound) => Some(bound),
+            Err(refusal) => return refusal.report("node", err),
+        },
+        _ => None,
+    };
     let mode = if plain { "in plain mode, with no resumable layer".into() } else { crate::node_flags::layer_mode() };
     let _ = writeln!(err, "podssh node: {label}: serving {target} over the carrier {text} {mode}, until it ends");
     let channel = match key {
@@ -186,20 +195,20 @@ async fn serve(ready: Ready, err: &mut dyn Write) -> i32 {
             None
         }
     };
-    let opened = match &found {
+    let opened = match (&found, dns_bound) {
         // A bucket's stream starts once a client's hello comes: the node's
         // Pings before it would meet nobody.
-        Found::Bucket(spec) => {
+        (Found::Bucket(spec), _) => {
             let _ = writeln!(err, "podssh node: {label}: waiting at the bucket for a client's hello");
             crate::carrier_bucket::accept(spec).await.map(|link| (link, None))
         }
         // The DNS road's stream starts once a client of a pinned key
-        // finished its handshake (T-877).
-        Found::Dns(spec) => {
+        // finished its handshake (T-877) on the listener bound above.
+        (Found::Dns(spec), Some(bound)) => {
             let _ = writeln!(err, "podssh node: {label}: waiting for a client of the DNS road");
-            crate::carrier_dns::accept(spec).await.map(|link| (link, None))
+            crate::carrier_dns::accept(spec, bound).await.map(|link| (link, None))
         }
-        Found::Stream(_) => crate::carrier::open(&found, Side::Node),
+        _ => crate::carrier::open(&found, Side::Node),
     };
     let (link, child) = match opened {
         Ok(opened) => opened,

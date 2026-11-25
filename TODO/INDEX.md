@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**842 entries: 4 open, 38 partial, 13 blocked, 787 done.**
+**849 entries: 4 open, 38 partial, 13 blocked, 794 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 96 | 109 |
-| P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 4 | 6 | 8 | 381 | 399 |
-| **All** | 4 | 38 | 13 | 787 | 842 |
+| P2 | 0 | 22 | 2 | 312 | 336 |
+| P3 | 4 | 6 | 8 | 385 | 403 |
+| **All** | 4 | 38 | 13 | 794 | 849 |
 
 ## Entries
 
@@ -914,6 +914,13 @@ repository and CI).
 | [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |
 | [T-905](robustness.md) | P3 | S | backlog | defect | blocked | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
+| [T-906](mesh.md) | P2 | S | backlog | defect | done | A private key pasted as `key-file` of `--carrier dns:FILE` becomes the name of a new key file |
+| [T-907](mesh.md) | P2 | S | backlog | defect | done | A `--carrier dns:FILE` that others can change is read, though it lists the node's allowlist |
+| [T-908](mesh.md) | P2 | S | backlog | defect | done | A node of the DNS road says that it serves before its listener is bound, and its failed bind is undocumented |
+| [T-909](mesh.md) | P3 | S | backlog | defect | done | The bounds of `--carrier dns:FILE`'s numbers: undocumented, an internal id, and a number shown in another form |
+| [T-910](mesh.md) | P3 | S | backlog | defect | done | The lines of `--carrier dns:FILE`: words that mislead, no line number, a BOM, a NUL, a trailing comment |
+| [T-911](mesh.md) | P3 | S | backlog | defect | done | A setting of the other end in `--carrier dns:FILE` is accepted and ignored |
+| [T-912](mesh.md) | P3 | S | backlog | defect | done | The zone of `--carrier dns:FILE` takes one label and a label at `-`, and its refusals use pod-link's words |
 | [T-919](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the manual names the rule of each end for a name that exists, and its usage shows one argument |
 | [T-920](copy.md) | P3 | S | backlog | defect | done | `podssh tx`: the lines that a transfer the near end never took leaves on the screen are documented |
 | [T-921](copy.md) | P3 | S | backlog | defect | done | `podssh tx receive` into a directory that takes no file says that a file could not be created in it |

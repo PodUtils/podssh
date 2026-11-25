@@ -20,8 +20,10 @@ pub(super) const NODE: &str = "--carrier dns:FILE carries the node's stream in D
      resolver and nothing else. The client's bytes go up in names under a zone of your own; the node's come down \
      in TXT records. The road is pod-link's: an ARQ, and TLS 1.3 with each end's key pinned by the other. The node \
      needs a public address and UDP, and the zone delegated to it by an NS record. It answers at FILE's listen, a \
-     listener that you ask for; PODSSH_LISTEN=no refuses it (78). It takes the first client whose key is a peer of \
-     FILE, then serves that one stream. The client sends to its resolver: resolver of FILE, else the first \
+     listener that you ask for; PODSSH_LISTEN=no refuses it (78). A bind that the host refuses gives 77, as pipe's \
+     listeners do. An address in use, or not of this host, gives 69. The node says that it serves only once it is \
+     bound and its key is read. It takes the first client whose key is a peer of FILE, then serves that one \
+     stream. The client sends to its resolver: resolver of FILE, else the first \
      nameserver of /etc/resolv.conf. A UDP socket toward it, which sends nothing, comes first. Where the host \
      refuses UDP, the run ends with one line (69), and nothing is sent. A resolver of FILE that is \
      https://NAME[:PORT]/PATH takes the queries as DNS over HTTPS instead, through HTTPS_PROXY when it is set: \
@@ -34,14 +36,18 @@ pub(super) const NODE: &str = "--carrier dns:FILE carries the node's stream in D
 pub(super) fn file() -> (Vec<String>, String) {
     (
         vec!["the file of --carrier dns:FILE".to_string()],
-        "The DNS road of a carrier: NAME = VALUE lines, # for a comment. zone, the zone whose names carry the \
-         stream. resolver, the client's: system (the default), IP[:PORT], or https://NAME[:PORT]/PATH, a resolver \
-         of DNS over HTTPS whose certificate names NAME. listen, the node's IP:PORT of UDP. \
-         key-file, this end's key, made private when missing; a line then gives its key for the other end. peer, \
-         the other end's key: on a client the node's, on a node each client's, by spaces or commas. \
-         queries-per-second (20 at most), in-flight (8 at most), query-timeout and poll-max in seconds, and \
-         answer in bytes, 512 to 4096 (1232 by default). A relative path is read beside FILE. A name that is no \
-         setting, and a value out of its bound, are refused (78)."
+        "The DNS road of a carrier: NAME = VALUE lines. A line that starts with # is a comment; a # after a value \
+         is refused. zone, the zone whose names carry the stream: two labels at least, none that starts or ends \
+         with -. resolver, the client's: system (the default), IP[:PORT], or https://NAME[:PORT]/PATH, a resolver \
+         of DNS over HTTPS whose certificate names NAME. listen, the node's IP:PORT of UDP. Each end refuses a \
+         setting of the other end's (78). key-file, the path of this end's key file, which is required. podssh \
+         makes it, private, where it does not exist; a line then gives its key for the other end. A key in the \
+         place of the path is refused, and not shown. peer, the other end's key: on a client the node's, on a node \
+         each client's, by spaces or commas. queries-per-second, more than 0 and at most 20; a fraction is \
+         allowed. in-flight, 1 to 8. query-timeout and poll-max, in seconds, more than 0 and at most 60. answer, \
+         in bytes, 512 to 4096 (1232 by default). A relative path is read beside FILE. On Unix, FILE must be \
+         yours or root's, and nobody else may change it. A name that is no setting or is given twice, and a value \
+         out of its bound, are refused (78). A refusal of one line names that line."
             .to_string(),
     )
 }

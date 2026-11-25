@@ -15,9 +15,10 @@ pub(super) const NODE: &str = "--carrier s3:FILE carries the node's stream throu
 pub(super) fn file() -> (Vec<String>, String) {
     (
         vec!["the file of --carrier s3:FILE".to_string()],
-        "The bucket of the carrier: NAME = VALUE lines, # for a comment. endpoint, https://HOST[:PORT][/PATH] of \
-         the S3 API; region, us-east-1 unless given; bucket; style, path or virtual. up and down, the prefixes of \
-         the client's way and the node's, the same at both ends. credentials, a file of the AWS form \
+        "The bucket of the carrier: NAME = VALUE lines; a line that starts with # is a comment. endpoint, \
+         https://HOST[:PORT][/PATH] of the S3 API; region, us-east-1 unless given; bucket; style, path or \
+         virtual. up and down, the prefixes of the client's way and the node's, the same at both ends. \
+         credentials, a file of the AWS form \
          (aws_access_key_id, aws_secret_access_key, aws_session_token) for both ways. Or write-credentials and \
          read-credentials, two key pairs; read-credentials none reads a public prefix unsigned. secret-file, at \
          least 16 bytes that both ends hold. A relative path is read beside FILE. No key goes in FILE itself; \

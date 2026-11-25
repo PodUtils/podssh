@@ -150,10 +150,12 @@ LISTENERS = {
     # wrapper (T-580), as above. And the stand-in bucket (T-725), as above.
     # And the DNS road's lines in doctor and their tests (T-875), and the
     # road's node and its tests (T-877), as above. And serve's listener of
-    # -R (T-123, step 4), as above.
+    # -R (T-123, step 4), as above. And the node's call of the DNS road's
+    # bind before it says that it serves (T-908), the same listener.
     "bind(": [
         "crates/podssh-cli/src/serve_listen_forward.rs",
         "crates/podssh-cli/src/carrier_dns.rs",
+        "crates/podssh-cli/src/node_carrier.rs",
         "crates/podssh-cli/src/carrier_dns_tests.rs",
         "crates/podssh-cli/src/dns_road.rs",
         "crates/podssh-cli/src/doctor/dns_zone.rs",

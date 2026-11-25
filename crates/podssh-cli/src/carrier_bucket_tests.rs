@@ -86,7 +86,7 @@ fn each_fault_of_the_file_is_refused_with_78_and_shows_no_key() {
         ("nokeys", format!("{BASE}secret-file = secret\n"), "give credentials"),
         ("both", format!("{BASE}{tail}write-credentials = keys\n"), "give credentials"),
         ("nosecret", format!("{BASE}credentials = keys\n"), "no secret-file"),
-        ("twice", format!("{BASE}{tail}bucket = again\n"), "bucket again"),
+        ("twice", format!("{BASE}{tail}bucket = again\n"), "bucket is given twice (lines 2 and 7)"),
         ("style", format!("{BASE}{tail}style = sideways\n"), "path or virtual"),
         ("missing", format!("{BASE}credentials = elsewhere\nsecret-file = secret\n"), "the credentials"),
     ];
@@ -117,6 +117,31 @@ fn a_credentials_file_of_the_aws_form_and_its_faults() {
     assert!(credentials_of("aws_access_key_id = I D\naws_secret_access_key = S\n").is_err());
     let why = credentials_of("just the secret\n").unwrap_err();
     assert!(!why.contains("secret\n") && !why.contains("just"), "{why}");
+}
+
+/// The shared reader of `NAME = VALUE` lines (the S3 FILE, its credentials
+/// and the DNS FILE): one table of what each text gives.
+#[test]
+fn the_lines_of_a_file_from_one_table() {
+    let line = |at: usize, name: &str, value: &str| Line { at, name: name.into(), value: value.into() };
+    let cases: &[(&str, Result<Vec<Line>, &str>)] = &[
+        ("a = 1\n# note\n; note\n\nB = two words\n", Ok(vec![line(1, "a", "1"), line(5, "b", "two words")])),
+        ("\u{feff}a = 1\r\nb=\r\n", Ok(vec![line(1, "a", "1"), line(2, "b", "")])),
+        ("[default]\na = 1\n[next]\nb = 2\n", Ok(vec![line(2, "a", "1")])),
+        ("a = 1\nb = 2\nA = 3\n", Err("line 3: a is given twice (lines 1 and 3)")),
+        ("a = 1\n= 2\n", Err("line 2: no name before =")),
+        ("a = 1\njust words\n", Err("line 2: not NAME = VALUE")),
+        ("a\0b = 1\na\0b = 2\n", Err("line 2: a\\u{0}b is given twice")),
+    ];
+    for (text, want) in cases {
+        match (numbered(text), want) {
+            (Ok(got), Ok(want)) => assert_eq!(&got, want, "{text:?}"),
+            (Err(got), Err(want)) => assert!(got.contains(want), "{text:?}: {got}"),
+            (got, _) => panic!("{text:?}: {got:?}"),
+        }
+    }
+    assert_eq!(visible("a\u{202e}b\tc", 40), "a\\u{202e}b\\tc", "control and bidi bytes are shown escaped");
+    assert_eq!(visible("abcdef", 3), "abc");
 }
 
 #[test]

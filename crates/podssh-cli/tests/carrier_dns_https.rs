@@ -58,6 +58,17 @@ fn key_file(dir: &Path, name: &str, seed: [u8; 32]) -> String {
     Identity::from_seed(&seed).public().hex()
 }
 
+/// FILE at `path`, its owner's alone: podssh refuses one that others can
+/// change, and an umask of 002 would make it 664.
+fn write_conf(path: &Path, text: &str) {
+    std::fs::write(path, text).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+}
+
 /// The front of DNS over HTTPS: each `GET PATH?dns=B64` of a kept HTTP/1.1
 /// connection goes to `node` as one UDP query, and its answer comes back as
 /// `application/dns-message`. Its port, and the count of queries.
@@ -220,11 +231,11 @@ fn an_operator_reaches_a_node_over_dns_over_https_through_a_proxy_and_both_end_w
     let node_pub = Identity::from_seed(&NODE_SEED).public().hex();
     let node_conf = home.join("node.conf");
     let text = format!("zone = {ZONE}\nlisten = {listen}\nkey-file = node.key\npeer = {client_key}\n");
-    std::fs::write(&node_conf, text).unwrap();
+    write_conf(&node_conf, &text);
     let client_conf = home.join("client.conf");
     let text =
         format!("zone = {ZONE}\nresolver = https://{NAME}/dns-query\nkey-file = client.key\npeer = {node_pub}\n");
-    std::fs::write(&client_conf, text).unwrap();
+    write_conf(&client_conf, &text);
 
     let target = format!("127.0.0.1:{}", echo_server());
     let node_carrier = format!("dns:{}", node_conf.display());
@@ -283,10 +294,10 @@ fn a_resolver_url_with_no_path_is_78_before_anything_connects() {
     let _ = key_file(&home, "client.key", CLIENT_SEED);
     let conf = home.join("client.conf");
     let text = format!("zone = {ZONE}\nresolver = https://{NAME}\nkey-file = client.key\npeer = {node_pub}\n");
-    std::fs::write(&conf, text).unwrap();
+    write_conf(&conf, &text);
     let carrier = format!("dns:{}", conf.display());
     let operator = live_harness::command(&home, &["operator", "--carrier", &carrier, "box"]);
     let (code, _, err) = run_with(operator, Vec::new());
     assert_eq!(code, Some(78), "{err}");
-    assert!(err.contains("no path of the wire form"), "{err}");
+    assert!(err.contains("the path is missing"), "{err}");
 }

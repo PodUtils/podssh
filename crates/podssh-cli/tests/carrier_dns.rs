@@ -67,6 +67,17 @@ fn key_file(dir: &Path, name: &str, seed: [u8; 32]) -> String {
     Identity::from_seed(&seed).public().hex()
 }
 
+/// FILE at `path`, its owner's alone: podssh refuses one that others can
+/// change, and an umask of 002 would make it 664.
+fn write_conf(path: &Path, text: &str) {
+    std::fs::write(path, text).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+}
+
 /// A free UDP port of the loopback, for the node's `listen`.
 fn free_port() -> u16 {
     UdpSocket::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port()
@@ -78,11 +89,10 @@ fn files(dir: &Path, listen: SocketAddr, resolver: SocketAddr, pinned: &str, ext
     let _ = key_file(dir, "node.key", NODE_SEED);
     let client_key = key_file(dir, "client.key", CLIENT_SEED);
     let node = dir.join("node.conf");
-    std::fs::write(&node, format!("zone = {ZONE}\nlisten = {listen}\nkey-file = node.key\npeer = {client_key}\n"))
-        .unwrap();
+    write_conf(&node, &format!("zone = {ZONE}\nlisten = {listen}\nkey-file = node.key\npeer = {client_key}\n"));
     let client = dir.join("client.conf");
     let text = format!("zone = {ZONE}\nresolver = {resolver}\nkey-file = client.key\npeer = {pinned}\n{extra}");
-    std::fs::write(&client, text).unwrap();
+    write_conf(&client, &text);
     (format!("dns:{}", node.display()), format!("dns:{}", client.display()))
 }
 
@@ -319,7 +329,7 @@ fn a_file_over_the_bound_of_q107_is_78() {
     let (_, client) = files(&home, any, any, &zero, "queries-per-second = 21\n");
     let node = home.join("node.conf");
     let text = format!("zone = {ZONE}\nlisten = {any}\nkey-file = k\npeer = {zero}\nin-flight = 9\n");
-    std::fs::write(&node, text).unwrap();
+    write_conf(&node, &text);
     let node = format!("dns:{}", node.display());
     for (args, says) in [
         (vec!["operator", "--carrier", client.as_str(), "box"], "queries-per-second 21"),
@@ -328,7 +338,50 @@ fn a_file_over_the_bound_of_q107_is_78() {
         let (code, out, err) = run_with(live_harness::command(&home, &args), Vec::new(), Duration::from_secs(30));
         assert_eq!(code, Some(78), "{args:?}: {err}");
         assert!(out.is_empty(), "{args:?}: {out:?}");
-        assert!(err.contains(says) && err.contains("(Q107)"), "{args:?}: {err}");
+        // The line is the user's: no id of a ruling that a user cannot read.
+        assert!(err.contains(says) && !err.contains("(Q107)"), "{args:?}: {err}");
+    }
+}
+
+/// A node that cannot serve ends before it says that it serves or waits:
+/// a `listen` in use (69), `PODSSH_LISTEN=no` (78), a `key-file` that is a
+/// directory (78), and a client's `resolver` in the node's file (78). On
+/// Unix, where a second bind of a UDP port is refused alike.
+#[cfg(unix)]
+/// A case of a node that cannot start: its tag, `listen`, `key-file`,
+/// `PODSSH_LISTEN`, its code and the words of its line.
+type Refused<'a> = (&'a str, SocketAddr, &'a str, Option<&'a str>, i32, &'a str);
+
+#[test]
+fn a_node_that_cannot_listen_ends_before_it_says_it_serves() {
+    let home = scratch("dns-unready-node");
+    let _scratch = Scratch(home.clone());
+    let target = format!("127.0.0.1:{}", echo_server());
+    let held = UdpSocket::bind("127.0.0.1:0").unwrap();
+    let in_use = held.local_addr().unwrap();
+    let free: SocketAddr = format!("127.0.0.1:{}", free_port()).parse().unwrap();
+    let peer = Identity::from_seed(&CLIENT_SEED).public().hex();
+    let _ = key_file(&home, "node.key", NODE_SEED);
+    std::fs::create_dir_all(home.join("a-directory")).unwrap();
+    let cases: [Refused<'_>; 4] = [
+        ("in-use", in_use, "node.key", None, 69, "cannot listen on"),
+        ("off", free, "node.key", Some("no"), 78, "PODSSH_LISTEN=no"),
+        ("dir", free, "a-directory", None, 78, "key-file"),
+        ("side", free, "node.key\nresolver = system", None, 78, "resolver is the client's setting"),
+    ];
+    for (tag, listen, key, listening, code, says) in cases {
+        let conf = home.join(format!("{tag}.conf"));
+        write_conf(&conf, &format!("zone = {ZONE}\nlisten = {listen}\nkey-file = {key}\npeer = {peer}\n"));
+        let carrier = format!("dns:{}", conf.display());
+        let mut node = live_harness::command(&home, &["node", "box", &target, "--carrier", &carrier]);
+        node.env_remove("PODSSH_LISTEN");
+        if let Some(value) = listening {
+            node.env("PODSSH_LISTEN", value);
+        }
+        let (got, _, err) = run_with(node, Vec::new(), Duration::from_secs(30));
+        assert_eq!(got, Some(code), "{tag}: {err}");
+        assert!(err.contains(says), "{tag}: {err}");
+        assert!(!err.contains("serving") && !err.contains("waiting for a client"), "{tag}: said too soon: {err}");
     }
 }
 

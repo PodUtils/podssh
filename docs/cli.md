@@ -5255,9 +5255,19 @@ commands. The rules behind them:
   resolver and nothing else. The road is pod-link's of PodUtils/podcrates
   (feature `dns`): the client's datagrams in base32 names under FILE's
   `zone`, the node's in TXT records, an ARQ, and TLS 1.3 with each end's
-  Ed25519 key (`key-file`, made private when missing) pinned by the other
-  (`peer`). podssh keeps the glue (`crates/podssh-cli/src/carrier_dns.rs`):
-  FILE is read and checked first (78), a name that is no setting refused.
+  Ed25519 key (`key-file`, a path, its file made private when it does not
+  exist) pinned by the other (`peer`). podssh keeps the glue
+  (`crates/podssh-cli/src/carrier_dns.rs`, FILE in
+  `crates/podssh-cli/src/carrier_dns_file.rs`): FILE is read and checked
+  first (78), and each refusal names its line where it has one. Refused: a
+  FILE that others can change on Unix (it lists the node's allowlist, as the
+  settings file is checked); a name that is no setting, or given twice; a
+  `#` after a value (a comment takes a line of its own); a `key-file` of 64
+  or 128 hex digits that names no file (a pasted key, never shown); a zone
+  of one label, or with a label that is empty or starts or ends with `-`;
+  the other end's setting (`listen` in a client's FILE, `resolver` in a
+  node's). A BOM at the start is skipped, and a control byte is shown
+  escaped (T-906 to T-912).
   The client's `resolver` is an address or `system`, the first nameserver
   of `/etc/resolv.conf`; a UDP socket connected to it, which sends nothing,
   is the probe, and a host that refuses UDP ends with one line and 69, with
@@ -5273,8 +5283,10 @@ commands. The rules behind them:
   once, whose far end a task carries once the handshake is done; a handshake
   that fails (a cut answer each time, a key that is not the pin) says why
   and ends the stream (69). The node answers at FILE's `listen`, a listener
-  that the user asks for, after `PODSSH_LISTEN` (78), its bind the probe
-  (69); it takes the first client whose key is a `peer`, says each failed
+  that the user asks for, after `PODSSH_LISTEN` (78) and its key (78), its
+  bind the probe: 77 where the host refuses it (as `pipe`'s listeners), 69
+  for an address in use or not of this host. It says that it serves only
+  once it is bound. It takes the first client whose key is a `peer`, says each failed
   handshake (the first ten, then each 100th), and serves that one stream.
   `doctor --dns-zone` says whether a resolver passes the zone first.
 - **A link can drop.** The relay's side ends a socket of the reverse road

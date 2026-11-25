@@ -16792,7 +16792,7 @@ DNS road is no road there; DNS over HTTPS (RFC 8484) is one connection through `
 ## Premise
 
 - Read: the client opens `pod_link::dns::Dns::connect`, which binds a UDP socket of the system
-  (`crates/podssh-cli/src/carrier_dns.rs:303`); `connect_over` takes any `Datagrams`, so a `Datagrams` over DoH
+  (`crates/podssh-cli/src/carrier_dns.rs:145`); `connect_over` takes any `Datagrams`, so a `Datagrams` over DoH
   plugs in with no change of the road.
 - Read: pod-link has no `Datagrams` over DoH at podcrates `v0.83.0`; `pod-dns` has a DoH client of its own
   (PodUtils/podcrates:crates/pod-dns/src/doh.rs), for lookups, not for a stream of datagrams.
@@ -16847,3 +16847,409 @@ refused the session: HTTP 410").
 - The manual's note of the DNS road and its FILE, `docs/cli.md`, `docs/carriers.md`.
 - Not measured: a public resolver of DNS over HTTPS in front of a real delegated zone (the deployment of the
   research's section 6); a run of more than the test's 8 KiB.
+
+# T-906: A private key pasted as `key-file` of `--carrier dns:FILE` becomes the name of a new key file
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, finding 5
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+The tester wrote `key-file = ` and the 64 hex digits of a private key into FILE. podssh took it, made a new key file
+whose name is the pasted key beside FILE, and named that path in its line: a secret on disk as a file name, and in
+the output.
+
+## Premise
+
+- Read at `b981f5f`: `read` of `crates/podssh-cli/src/carrier_dns.rs` took `key-file` as a path relative to FILE
+  with no other check, and `key_of` made the file where it was missing and said its path.
+- Read: FILE is read now in `crates/podssh-cli/src/carrier_dns_file.rs:213`.
+
+## Approach
+
+A `key-file` of 64 or 128 hex digits (a seed, or a seed and its public half) that names no existing file is refused
+(78) with a line that says that key-file is a path, which names the line of FILE and never shows the value. A file
+of that name that exists is a path, and is taken.
+
+## Decision
+
+The value alone decides, not a guess at entropy: 64 or 128 hex digits is the form that podssh writes a key in, so
+it is the form a person pastes. A file of that exact name still works, so no valid setup is refused. Lost: refuse
+any value that parses as a key (`KeyName::parse`), which would refuse a file named like a fingerprint for no gain.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+```
+
+`a_pasted_key_as_key_file_is_78_and_not_shown`: 78, the line names line 2, the key is not in it, and no file of
+that name is made; a file of that name that exists is taken.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns_file.rs` (`looks_like_a_key` and its check in `read`),
+the unit test in `crates/podssh-cli/src/carrier_dns_tests.rs`, the manual's FILE note
+(`crates/podssh-cli/src/man/notes_dns.rs`) and `docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-907: A `--carrier dns:FILE` that others can change is read, though it lists the node's allowlist
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, finding 6
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+A FILE of mode 666, and one of mode 664, was read and used, though its `peer` is the node's allowlist: another user
+could add a key. The manual's row of 78 says that a settings file "that others can change" is refused; the DNS
+road's FILE was not.
+
+## Premise
+
+- Read: the settings file is refused when others can change it, by `crate::ssh::config::owner_alone_writes`
+  (`crates/podssh-cli/src/ssh/config.rs:342`), which `read_checked` calls (`crates/podssh-cli/src/settings.rs:209`).
+- Read at `b981f5f`: `read` of `crates/podssh-cli/src/carrier_dns.rs` opened FILE and read it with no check of its
+  owner or mode.
+
+## Approach
+
+`read` (`crates/podssh-cli/src/carrier_dns_file.rs:213`) checks the opened file with the same function on Unix
+(`owner_alone`, `crates/podssh-cli/src/carrier_dns_file.rs:190`): yours or root's, and no write bit for the group or
+others, else 78 with the settings file's words (`chmod go-w`). A FILE that is no regular file is refused too.
+
+## Decision
+
+Unix alone. On Windows `owner_alone_writes` checks that others cannot read the file, a rule for a file with a
+secret; FILE holds none (public keys and settings), and the tests write it with Windows' default access list. Lost:
+the Windows rule as well, which could refuse each FILE that a person writes there.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns --test carrier_dns_https
+```
+
+`a_file_that_others_can_change_is_78`: modes 666, 664 and 646 are 78, 644 and 600 are read. The tests' FILEs are
+written mode 0600, so that an umask of 002 does not refuse them.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns_file.rs`, the tests' FILEs made 0600
+(`crates/podssh-cli/src/carrier_dns_tests.rs`, `crates/podssh-cli/tests/carrier_dns.rs`,
+`crates/podssh-cli/tests/carrier_dns_https.rs`), the manual's FILE note and `docs/cli.md`. UNVERIFIED: not built, no
+test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-908: A node of the DNS road says that it serves before its listener is bound, and its failed bind is undocumented
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, findings 7 and 8
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh node box TARGET --carrier dns:FILE` printed "serving ... over the carrier dns:FILE" and "waiting for a client
+of the DNS road", then failed on `listen` (a port in use, an address not of this host, `PODSSH_LISTEN=no`) or on a
+bad `key-file`: two lines that were not true. A failed bind gave 69, which the manual's EXIT STATUS of `podssh node`
+does not name, while `pipe` says "The bind is the probe: a host that refuses it gives 77".
+
+## Premise
+
+- Read: `serve` of `crates/podssh-cli/src/node_carrier.rs:187` prints the serving line; at `b981f5f` the DNS road's
+  listener was bound later, in `accept` of `crates/podssh-cli/src/carrier_dns.rs`, after the waiting line.
+- Read: `pipe`'s listeners map a failed bind by `code` (`crates/podssh-cli/src/pipe/listen.rs:70`): PermissionDenied
+  is 77, each other error 69.
+
+## Approach
+
+1. Split the node's side in two: `bind` (`crates/podssh-cli/src/carrier_dns.rs:259`) checks FILE for its end,
+   `PODSSH_LISTEN` (78), reads the key (78) and binds; `accept` (`crates/podssh-cli/src/carrier_dns.rs:284`) waits
+   on that listener. `serve` calls `bind` before its serving line (`crates/podssh-cli/src/node_carrier.rs:179`).
+2. `bind_code` (`crates/podssh-cli/src/carrier_dns.rs:249`) maps as `pipe` does: a bind that the host refuses
+   (pod-link's `Refused`, or PermissionDenied) is 77 with "this host refuses the listener"; an address in use, or
+   not of this host, is 69.
+3. The manual's note of the node over the DNS road, and `docs/cli.md`, say both codes and that the node says it
+   serves only once it is bound.
+
+## Decision
+
+77 and 69 as `pipe` decides, not one code: a port under 1024 for a user, or a policy, is a refusal of this host,
+which another port or a privilege repairs; a port in use is the state of the moment. Lost: 69 for each, which
+the tester found undocumented and which hides the repair.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
+```
+
+`a_refused_bind_is_77_and_another_failure_69` (a table of pod-link's kinds), `a_listen_in_use_is_69_at_the_bind`,
+and through the binary `a_node_that_cannot_listen_ends_before_it_says_it_serves`: a port in use (69),
+`PODSSH_LISTEN=no` (78), a `key-file` that is a directory (78), a `resolver` in the node's FILE (78), and no
+"serving" or "waiting for a client" line in any.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns.rs`, `crates/podssh-cli/src/node_carrier.rs`, the tests
+above, `crates/podssh-cli/src/man/notes_dns.rs` and `docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-909: The bounds of `--carrier dns:FILE`'s numbers: undocumented, an internal id, and a number shown in another form
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, finding 9
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`query-timeout` and `poll-max` were refused above 60 s, but the manual said only "in seconds". `queries-per-second =
+1.5` was accepted, and the manual did not say whether a fraction is a value. The refusals ended with `(Q107)`, an id
+of a ruling that a user cannot read. `poll-max = 99999999999999999999` was shown as `100000000000000000000`, not as
+the user wrote it.
+
+## Premise
+
+- Read at `b981f5f`: `settings_of` and `seconds` of `crates/podssh-cli/src/carrier_dns.rs` formatted the parsed
+  `f64` into the line, and two refusals ended "(Q107)".
+- Read: they are now in `crates/podssh-cli/src/carrier_dns_file.rs:104`.
+
+## Approach
+
+Each refusal shows the user's own text (`visible`), says "give more than 0 and at most N" or "give A to B", and has
+no id. `in-flight` and `answer` are whole numbers (`whole`): digits past `u64` are out of the bound, not "not a
+number". The manual's FILE note gives each bound: queries-per-second more than 0 and at most 20, a fraction allowed;
+in-flight 1 to 8; query-timeout and poll-max more than 0 and at most 60 s; answer 512 to 4096.
+
+## Decision
+
+`queries-per-second` takes a fraction: pod-link's rate is an `f64`, and 0.5 (one query each 2 s) is a real use, a
+quieter road for a resolver that its operator watches. Lost: whole numbers only, which refuses that use for no
+safety.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
+```
+
+The table of `each_fault_of_the_file_is_78_with_its_own_words` (the user's text, the bounds, no id);
+`a_bom_crlf_and_a_fraction_are_read`; `a_file_over_the_bound_of_q107_is_78` through the binary, with no "(Q107)".
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns_file.rs`, the tests above, the manual's FILE note and
+`docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-910: The lines of `--carrier dns:FILE`: words that mislead, no line number, a BOM, a NUL, a trailing comment
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, findings 10 and 12
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+- A missing key-file said "no key-file: this end's key, made when missing", which reads as if it were made.
+- A setting given twice said "line 5: zone again".
+- `resolver = https://dns.example/` said "give https://NAME[:PORT]/PATH", and `https://dns.example` said "no path of
+  the wire form": one fault, two lines.
+- A UTF-8 BOM at the start gave a line with the BOM in the first name; `=` alone gave " is no name ...".
+- A NUL in a value gave a line that contradicted itself: `one_line` drops a control byte, so the value shown passed
+  the check that refused it.
+- An unknown name had no line number.
+- `peer = KEY # the other end` was refused as a bad key, though the manual says "# for a comment".
+
+## Premise
+
+- Read at `b981f5f`: `lines` of `crates/podssh-cli/src/carrier_bucket.rs` dropped line numbers, kept a BOM, took an
+  empty name, and said "NAME again"; the S3 FILE and its credentials files share it with the DNS FILE.
+- Read: `parse_url` of `crates/podssh-cli/src/carrier_dns_https.rs:55` now says one line for both.
+
+## Approach
+
+1. The shared reader becomes `numbered` (`crates/podssh-cli/src/carrier_bucket.rs:107`), with `lines` a wrapper of
+   it: it skips a BOM, refuses an empty name ("no name before ="), says "NAME is given twice (lines A and B)", and
+   keeps each line's number. `visible` (`crates/podssh-cli/src/carrier_bucket.rs:146`) shows a control or bidi
+   character escaped (`\u{0}`), where `one_line` dropped it. Both FILEs want each change; the S3 FILE's test of a
+   name twice moves to the new words.
+2. The DNS FILE names the line of an unknown name and of a value that holds ` #`; a missing key-file says it is
+   required, and that podssh makes the file where it does not exist.
+3. A resolver URL with no path, and one with `/` alone, both say "the path is missing".
+
+## Decision
+
+Comments stay whole-line in both FILEs, as the shared reader has them; the manuals now say "a line that starts with #
+is a comment". The DNS FILE refuses a value that holds whitespace then `#` (78, "a comment takes a line of its own"):
+no value of it holds that, and a key or path with a comment glued on would else be read wrong. The S3 FILE is left
+as it is: its values (a URL, a prefix, a path) are passed on, and its credentials files follow the AWS form, which
+has no inline comment. Lost: stripping ` #...` in the shared reader, which would cut an AWS secret or path that holds
+it.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns_https --test carrier_s3
+```
+
+`the_lines_of_a_file_from_one_table` (the shared reader), the table of
+`each_fault_of_the_file_is_78_with_its_own_words`, `a_bom_crlf_and_a_fraction_are_read`, and the table of
+`resolver`'s words in `carrier_dns_https.rs`.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_bucket.rs`, `crates/podssh-cli/src/carrier_bucket_tests.rs`,
+`crates/podssh-cli/src/carrier_dns_file.rs`, `crates/podssh-cli/src/carrier_dns_https.rs`, the tests,
+`crates/podssh-cli/src/man/notes_dns.rs`, `crates/podssh-cli/src/man/notes_bucket.rs` (its comment's words) and
+`docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-911: A setting of the other end in `--carrier dns:FILE` is accepted and ignored
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, finding 11
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`listen` in an operator's FILE and `resolver` in a node's FILE were accepted and did nothing: a person who gave the
+wrong FILE to an end, or thought the setting worked, was not told.
+
+## Premise
+
+- Read at `b981f5f`: `read` of `crates/podssh-cli/src/carrier_dns.rs` knew no side; the client's `open` read only
+  `resolver`, the node's `accept` only `listen`.
+
+## Approach
+
+`Spec` keeps the line of `resolver` and of `listen`. `for_side` (`crates/podssh-cli/src/carrier_dns_file.rs:294`)
+refuses the other end's setting (78): "line N: listen is the node's setting, which a client's file does not take;
+remove it", and the reverse. The client calls it first (`crates/podssh-cli/src/carrier_dns.rs:95`), the node in
+`bind`, before anything is sent or bound.
+
+## Decision
+
+A refusal, not a line on stderr: one FILE for both ends cannot work (each has its own `key-file` and `peer`), so
+the setting is a sign of the wrong file, and a warning is easy to miss on a node that runs unattended. Lost: a
+warning that goes on.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
+```
+
+`a_setting_of_the_other_end_is_78` (each end, its own end takes it), and the case `side` of
+`a_node_that_cannot_listen_ends_before_it_says_it_serves`.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns_file.rs`, `crates/podssh-cli/src/carrier_dns.rs`, the
+tests above, the manual's FILE note and `docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.
+
+# T-912: The zone of `--carrier dns:FILE` takes one label and a label at `-`, and its refusals use pod-link's words
+
+**Source:** a black-box pass of 2026-11-25 with the binary and the documents alone, finding 13 and the zone's part
+of finding 10
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`zone = a` and a zone with a label that starts with `-` were accepted. A zone with an empty label was refused in
+pod-link's words, "the dns carrier: the zone has the label \"\"", not in the words of FILE.
+
+## Premise
+
+- Read at `b981f5f`: `read` of `crates/podssh-cli/src/carrier_dns.rs` checked the zone's bytes only, then passed
+  pod-link's `Dns::address` error on.
+
+## Approach
+
+`zone_of` (`crates/podssh-cli/src/carrier_dns_file.rs:153`) checks each label in FILE's words: none empty, letters,
+digits, `-` and `_`, none that starts or ends with `-`, at most 63 bytes; at least two labels; then pod-link's
+check of room for the road's data, its error said as "too long to leave room for the road's data in a name".
+
+## Decision
+
+A single label is refused: the zone is delegated to the node by an NS record in a zone the user holds, so it is
+under a registered domain, and one label is a mistake (a top-level name). `_` stays allowed, as service labels use
+it. Lost: one label for a lab with a private root, which can use two labels as well.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib carrier_dns
+```
+
+The zone's rows of `each_fault_of_the_file_is_78_with_its_own_words` (one label, `-a`, `a-`, `a..`, `.a`, a NUL, a
+space, too long) and the zones that `a_bom_crlf_and_a_fraction_are_read` takes.
+
+## Done
+
+Drafted 2026-11-25 in `crates/podssh-cli/src/carrier_dns_file.rs`, the unit tests, the manual's FILE note and
+`docs/cli.md`. UNVERIFIED: not built, no test run.
+
+Merged by the main session on 2026-11-25 (after `da6a8a4`) and run: `cargo test -p podssh-cli --lib` 1326 passed,
+`--test carrier_dns` 6 (the new `a_node_that_cannot_listen_ends_before_it_says_it_serves` among them),
+`carrier_dns_https` 2, `carrier_s3` 3, `node_carrier` 15, `operator` 12, `flag_table`, `man_flag_parity`, `man_json`
+and `man_page` passed; `llms.txt` and `llms-full.txt` written again; clippy (`-D warnings`, one repair: a type alias
+for the test's table of cases) and rustfmt clean; `cargo check --tests --target x86_64-pc-windows-gnu` clean.

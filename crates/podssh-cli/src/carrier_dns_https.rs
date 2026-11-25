@@ -50,11 +50,17 @@ pub(crate) fn parse(text: &str) -> Option<Result<Https, String>> {
 fn parse_url(rest: &str) -> Result<Https, String> {
     let shown = || podssh_ws::text::one_line(&rest.chars().take(64).collect::<String>());
     let wanted = "give https://NAME[:PORT]/PATH, as https://dns.example/dns-query";
+    // With no path, or `/` alone, the path of the wire form is missing: both
+    // say so alike.
+    let missing = || format!("https://{}: the path is missing: {wanted}", shown());
     let Some((authority, path)) = rest.split_once('/').map(|(a, p)| (a, format!("/{p}"))) else {
-        return Err(format!("https://{}: no path of the wire form: {wanted}", shown()));
+        return Err(missing());
     };
+    if path == "/" {
+        return Err(missing());
+    }
     // The query is pod-link's (`?dns=`); a user name has no place here.
-    if path == "/" || path.contains(['?', '#']) || authority.contains('@') {
+    if path.contains(['?', '#']) || authority.contains('@') {
         return Err(format!("https://{}: {wanted}", shown()));
     }
     if path.bytes().any(|b| !b.is_ascii_graphic()) {
@@ -121,6 +127,11 @@ mod tests {
             "https://dns.example/a b",
         ] {
             assert!(matches!(parse(bad), Some(Err(_))), "{bad}");
+        }
+        // No path and `/` alone say the same thing.
+        for missing in ["https://dns.example", "https://dns.example/"] {
+            let why = parse(missing).and_then(Result::err).unwrap_or_default();
+            assert!(why.contains("the path is missing: give https://NAME[:PORT]/PATH"), "{missing}: {why}");
         }
     }
 
