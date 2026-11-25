@@ -241,7 +241,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
 #[rustfmt::skip]
 pub const NET_FLAGS: &[FlagRow] = &[
     row(None, "owner-key", Some("FILE"), FlagKind::Supported,
-        "init, add, rm, renew, invite, policy set and policy clear: the owner's key that signs, a private key or a public one that the agent holds (default: the agent's key or the key of ~/.ssh that owns the net; for init, ~/.ssh/id_ed25519)", None),
+        "init, add, rm, renew, invite, policy set, policy clear, gateway set and gateway rm: the owner's key that signs, a private key or a public one that the agent holds (default: the agent's key or the key of ~/.ssh that owns the net; for init, ~/.ssh/id_ed25519)", None),
     row(None, "roles", Some("LIST"), FlagKind::Supported,
         "add and invite: what the member offers the net, of node, exit, relay and share, separated by commas (default node)", None),
     row(None, "iroh-ticket", Some("TICKET"), FlagKind::Supported,
@@ -257,7 +257,7 @@ pub const NET_FLAGS: &[FlagRow] = &[
     row(None, "shares", Some("NAMES"), FlagKind::Supported,
         "add: the names of the member's shares, separated by commas, which podssh share ls --net lists and an operator reaches as node://NAME/SHARE; with the role share; the node serves what its own share file holds", None),
     row(None, "days", Some("N"), FlagKind::Supported,
-        "init, add, rm, renew, invite, policy set and policy clear: the days that the signed document lasts, 1 to 3650 (default 365); no end takes it after", None),
+        "init, add, rm, renew, invite, policy set, policy clear, gateway set and gateway rm: the days that the signed document lasts, 1 to 3650 (default 365); no end takes it after", None),
     row(None, "owner", Some("KEY"), FlagKind::Supported,
         "take and join: the owner that a first document must have, its fingerprint SHA256:... or its public key; later ones must have the owner held; join with its code on a pipe needs it, as no question can show the owner", None),
     row(None, "signature", None, FlagKind::Supported,

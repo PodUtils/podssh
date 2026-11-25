@@ -1,6 +1,7 @@
 //! The owner's commands of `podssh net` (T-429): `init NAME`, `add NAME
-//! KEY`, `rm NAME` and `renew`, and the policy's `set FILE` and `clear`
-//! (T-430, `super::policy_cmd`). Each signs a new document with the owner's
+//! KEY`, `rm NAME` and `renew`, the policy's `set FILE` and `clear`
+//! (T-430, `super::policy_cmd`), and a gateway's `set NAME FILE` and `rm
+//! NAME` (T-902, `super::gateway_cmd`). Each signs a new document with the owner's
 //! key, its serial one higher than the one held, and keeps it in place of
 //! that one; the owner then gives the file to the other ends, or lets the
 //! ends of the net pass it on. The invitation by a code (T-616,
@@ -39,6 +40,7 @@ pub(super) fn run(word: &str, args: &NetArgs, err: &mut dyn Write) -> Result<i32
         "add" => add(before, args, issued, expires)?,
         "rm" => rm(before, &args.args[0], issued, expires)?,
         "policy" => super::policy_cmd::change(before, args, issued, expires, err)?,
+        "gateway" => super::gateway_cmd::change(before, args, issued, expires, err)?,
         _ => (before.next(issued, expires, |_| {}).map_err(data)?, "renewed".to_string()),
     };
     // `--dry-run` (T-749): each check, the diff and the cases ran; nothing is signed.

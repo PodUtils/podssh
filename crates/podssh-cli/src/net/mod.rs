@@ -19,10 +19,16 @@
 //! `invitation`). stdout carries the answer (a list, a document, a verdict);
 //! podssh's words go to stderr. `podssh status --net` lists the members and
 //! the road that last reached each from this host (`state`, `reached`).
+//! A gateway's routes are a section of the document (T-902, `gateway`):
+//! the owner's `gateway set NAME FILE` and `gateway rm NAME`, each end's
+//! `gateway show NAME`.
 
 pub mod admit;
 pub mod doc;
 mod edit;
+// A gateway's routes in the document (T-902), and its commands.
+pub mod gateway;
+mod gateway_cmd;
 mod invitation;
 mod invite;
 mod join;
@@ -124,7 +130,7 @@ pub fn now() -> i64 {
 }
 
 /// The subcommands, as a refusal names them.
-const SUBCOMMANDS: &str = "init, add, rm, renew, invite, join, ls, show, take or policy";
+const SUBCOMMANDS: &str = "init, add, rm, renew, invite, join, ls, show, take, policy or gateway";
 
 /// Run the verb; returns the process exit code.
 pub fn run(args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -143,6 +149,8 @@ fn dispatch(word: &str, args: &NetArgs, out: &mut dyn Write, err: &mut dyn Write
         "init" | "add" | "rm" | "renew" => edit::run(word, args, err),
         "policy" if policy_cmd::signs(&args.args) => edit::run(word, args, err),
         "policy" => policy_cmd::run(args, out, err),
+        "gateway" if gateway_cmd::signs(&args.args) => edit::run(word, args, err),
+        "gateway" => gateway_cmd::run(args, out, err),
         "invite" => invite::run(args, out, err),
         "join" => join::run(args, out, err),
         "ls" => ls(out, err),
@@ -165,17 +173,20 @@ fn checked(args: &NetArgs) -> Result<&str, Refusal> {
         "invite" => (1, "invite NAME"),
         "renew" | "join" | "ls" | "show" => (0, word),
         "policy" => policy_cmd::shape(&args.args)?,
+        "gateway" => gateway_cmd::shape(&args.args)?,
         other => return Err(Refusal::usage(format!("{other:?} is not a subcommand: {SUBCOMMANDS}"))),
     };
     if args.args.len() != words {
         return Err(Refusal::usage(format!("podssh net {shape}: {} words given", args.args.len())));
     }
-    // Each flag goes with the subcommands that read it; `policy` by its verb.
+    // Each flag goes with the subcommands that read it; `policy` and
+    // `gateway` by their verb.
     let form = match (word, args.args.first()) {
-        ("policy", Some(verb)) => format!("policy {verb}"),
+        ("policy" | "gateway", Some(verb)) => format!("{word} {verb}"),
         _ => word.to_string(),
     };
-    let signing: &[&str] = &["init", "add", "rm", "renew", "invite", "policy set", "policy clear"];
+    let signing: &[&str] =
+        &["init", "add", "rm", "renew", "invite", "policy set", "policy clear", "gateway set", "gateway rm"];
     let flags: [(&str, bool, &[&str]); 15] = [
         ("--owner-key", args.owner_key.is_some(), signing),
         ("--days", args.days.is_some(), signing),

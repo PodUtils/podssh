@@ -12,7 +12,8 @@
 //! sessions; those that live go on. The record of the last fetch
 //! (`net-url.json` in the cache) gives the copy's age to the next start and to
 //! `podssh status --net`. The URL's path may hold a secret of its server: a
-//! line and the record name its host alone.
+//! line and the record name its host alone. `podssh serve --gateway
+//! net:NAME --net-url URL` reads its routes so (T-902, [`start_as`]).
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
@@ -339,6 +340,27 @@ pub fn door_closed() -> Option<String> {
 /// fails with no copy from the URL held stops the start (78). A detached
 /// node's first process checks the words alone: its child fetches.
 pub(crate) fn start(args: &NodeArgs) -> Result<(), Refusal> {
+    let label = args.name.clone().unwrap_or_default();
+    start_as(args, Reader { head: format!("podssh node: {label}"), fresh_enough: false })
+}
+
+/// Who reads the net of the URL: the head of its lines, and whether a copy
+/// from the URL younger than its TTL is read with no fetch at the start.
+pub(crate) struct Reader {
+    pub head: String,
+    /// `podssh serve --stdio --gateway net:NAME` (T-902) starts once for
+    /// each client, as a ProxyCommand: a fetch at each start would break
+    /// Q105's one GET each TTL.
+    pub fresh_enough: bool,
+}
+
+/// [`start`] for `reader`: `podssh serve` reads the net of `--net-url` so too.
+pub(crate) fn start_as(args: &NodeArgs, reader: Reader) -> Result<(), Refusal> {
+    // One reader of a URL for a process: `serve NAME --gateway net:NAME`
+    // started it before its node, whose own start finds it here.
+    if REMOTE.get().is_some() {
+        return Ok(());
+    }
     let Some(plan) = plan_with(args, crate::settings::here())? else { return Ok(()) };
     let place = match store::place() {
         Ok(Place::Off) => return Err(Refusal::config(format!("--net-url: {}=no turns the net off", store::ENV))),
@@ -363,16 +385,23 @@ pub(crate) fn start(args: &NodeArgs) -> Result<(), Refusal> {
         .enable_all()
         .build()
         .map_err(|e| Refusal::config(format!("could not start the async runtime: {e}")))?;
-    let first = runtime.block_on(remote.refresh());
+    let fresh = reader.fresh_enough && remote.age_s().is_some_and(|age| age < i64::try_from(ttl).unwrap_or(i64::MAX));
+    let first = if fresh { None } else { Some(runtime.block_on(remote.refresh())) };
     runtime.shutdown_timeout(Duration::from_secs(1));
-    let label = args.name.clone().unwrap_or_default();
-    let say: Say = Arc::new(move |line: String| podssh_ssh::err_line!("podssh node: {label}: {line}"));
+    let head = reader.head;
+    let say: Say = Arc::new(move |line: String| podssh_ssh::err_line!("{head}: {line}"));
     let shown = remote.shown();
     let read = format!("fetched again each {ttl} s, and read {stale} s more while its server fails");
     match (first, remote.age_s()) {
-        (Ok(got), _) => say(format!("the net from {shown}: {}; {read}", got.words())),
-        (Err(why), Some(age)) => say(format!("the net from {shown}: {why}; its copy of {age} s ago is read; {read}")),
-        (Err(why), None) => return Err(Refusal::config(format!("--net-url {shown}: {why}"))),
+        (Some(Ok(got)), _) => say(format!("the net from {shown}: {}; {read}", got.words())),
+        (None, Some(age)) => {
+            say(format!("the net from {shown}: its copy of {age} s ago is read, younger than {ttl} s"))
+        }
+        (Some(Err(why)), Some(age)) => {
+            say(format!("the net from {shown}: {why}; its copy of {age} s ago is read; {read}"))
+        }
+        (Some(Err(why)), None) => return Err(Refusal::config(format!("--net-url {shown}: {why}"))),
+        (None, None) => return Err(Refusal::config(format!("--net-url {shown}: no copy from it is held"))),
     }
     if let Some(why) = remote.closed() {
         say(why);

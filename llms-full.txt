@@ -6113,6 +6113,15 @@ podssh net
   it, so a podssh that cannot read the rules refuses the document and keeps the
   one before.
 
+  The document also holds the routes of a gateway, which podssh serve --gateway
+  net:NAME reads. podssh net gateway set NAME FILE signs them in: FILE is a
+  route file of podssh serve --gateway FILE. Each ca-key in it is the CA's
+  public key, TYPE BASE64, as the private key stays on the gateway's host. set
+  refuses FILE (65) as the gateway would refuse it, with its line. gateway show
+  NAME prints the routes, as a file that set takes again. gateway rm NAME
+  removes them, and the gateway then lets nobody in by them. A podssh that does
+  not run the gateway keeps them unread, so the document does not require them.
+
   podssh ssh [user@]tag:NAME names each member of the net held that the
   policy's tag NAME holds with the role node. They come in a shuffled order, a
   member that no road reached in the last 30 s put last: each is tried as
@@ -6162,21 +6171,22 @@ podssh net
 
   Arguments:
     [SUBCOMMAND]
-        init, add, rm, renew, invite and policy set or clear, the owner's, each
-        signing a new document; join, ls, show, take and policy check or show,
-        each end's.
+        init, add, rm, renew, invite, policy set or clear and gateway set or
+        rm, the owner's, each signing a new document; join, ls, show, take,
+        policy check or show and gateway show, each end's.
     [NAME|KEY|FILE]...
         init NAME, the net's; add NAME KEY, a member and its key or
         fingerprint; rm NAME; invite NAME, a code for a new device, which join
         takes; take FILE, a document that its owner signed; policy check FROM
-        TO, policy show, policy set FILE, policy clear.
+        TO, policy show, policy set FILE, policy clear; gateway set NAME FILE,
+        a gateway's routes; gateway show NAME; gateway rm NAME.
 
   Options:
     --owner-key FILE
-        init, add, rm, renew, invite, policy set and policy clear: the owner's
-        key that signs, a private key or a public one that the agent holds
-        (default: the agent's key or the key of ~/.ssh that owns the net; for
-        init, ~/.ssh/id_ed25519).
+        init, add, rm, renew, invite, policy set, policy clear, gateway set and
+        gateway rm: the owner's key that signs, a private key or a public one
+        that the agent holds (default: the agent's key or the key of ~/.ssh
+        that owns the net; for init, ~/.ssh/id_ed25519).
     --roles LIST
         add and invite: what the member offers the net, of node, exit, relay
         and share, separated by commas (default node).
@@ -6202,9 +6212,9 @@ podssh net
         node://NAME/SHARE; with the role share; the node serves what its own
         share file holds.
     --days N
-        init, add, rm, renew, invite, policy set and policy clear: the days
-        that the signed document lasts, 1 to 3650 (default 365); no end takes
-        it after.
+        init, add, rm, renew, invite, policy set, policy clear, gateway set and
+        gateway rm: the days that the signed document lasts, 1 to 3650 (default
+        365); no end takes it after.
     --owner KEY
         take and join: the owner that a first document must have, its
         fingerprint SHA256:... or its public key; later ones must have the
@@ -11458,6 +11468,26 @@ podssh serve
   --motd, --shell-integration, --share, --keep-lease, --totp, --publish-remote,
   --remote-listen, --revoke-ends-sessions) is a usage error (64).
 
+  --gateway net:NAME takes the routes of the gateway NAME from the net's signed
+  document that this host holds (see podssh net). Its owner signs them with
+  podssh net gateway set NAME FILE. FILE holds the blocks of a route file, but
+  each ca-key is the CA's public key, TYPE BASE64. The CA's private key never
+  leaves the gateway's host: name it with --gateway-ca FILE, repeated for each
+  CA. A route whose CA is none of them is refused, with one line; the other
+  routes are taken. With --net-url URL and --net-owner KEY, serve fetches the
+  document as podssh node does. It fetches nothing at the start while the copy
+  from URL is younger than --net-ttl. So a ProxyCommand's serve sends one GET
+  each TTL, however many clients come. A fetch or a document that fails, a bad
+  signature among them, keeps the routes in force, with one line. A newer
+  serial that reads takes their place at the next look, each 5 s, or at SIGHUP.
+  So does a section that the owner removed: nobody passes by it then. A section
+  that this podssh does not read lets nobody in by it either. A document past
+  its end, or a copy past --net-stale, refuses each login until a newer one
+  comes. These refuse the start: no --gateway-ca (64), or a --gateway-ca,
+  --net-url, --net-owner, --net-ttl or --net-stale with no net:NAME (64). So do
+  no document, no route taken, or a document past its end (78). A file whose
+  name begins with net: is given as ./net:NAME.
+
   serve NAME --print-unit prints a unit of systemd that runs serve NAME with
   these flags, each file by its absolute path, and writes nothing. It is a user
   unit; with --system --run-as USER, a system unit that runs as USER, with HOME
@@ -11582,7 +11612,27 @@ podssh serve
         serve as a gateway: the login name picks a route of FILE, whose keys
         may take it. serve logs in at the route's pinned upstream by a
         certificate of its CA, and carries each session and forward there;
-        nothing runs here.
+        nothing runs here. net:NAME takes the routes of the gateway NAME from
+        the net's signed document that this host holds.
+    --gateway-ca FILE
+        with --gateway net:NAME: a CA's private key, mode 0600 with no
+        passphrase, whose public half a route of the document names; may be
+        repeated; a route whose CA is none of them is refused.
+    --net-url URL
+        with --gateway net:NAME: take the net's document from URL, an https://
+        URL, as podssh node --net-url does: fetched at the start, unless the
+        copy from it is younger than --net-ttl, then again each --net-ttl
+        (default: NetUrl of the settings file).
+    --net-owner KEY
+        with --net-url: the owner that each document must have, its fingerprint
+        SHA256:... or its public key (default: NetOwner of the settings file).
+    --net-ttl SECONDS
+        with --net-url: fetch the document again each SECONDS, 60 to 86400
+        (default 300).
+    --net-stale SECONDS
+        with --net-url: read the copy for SECONDS more past --net-ttl while its
+        server fails, 0 to 604800 (default 3600); past that, the gateway lets
+        nobody in.
     --audit-verify FILE
         check the chain of the audit log FILE, print what it found and the last
         line's SHA-256, and exit: 0 when it holds, 65 when a line was changed,

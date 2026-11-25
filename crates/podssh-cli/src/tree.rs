@@ -43,9 +43,9 @@ fn appended(long: &str) -> bool {
     EACH.contains(&long)
 }
 /// Value flags that one verb alone keeps each value of: `serve --listen`
-/// binds each address (T-124), where another verb's `--listen` is one.
+/// binds each address (T-124), and `serve --gateway-ca` reads each CA (T-902).
 fn appended_in(verb: &str, long: &str) -> bool {
-    matches!((verb, long), ("serve", "listen"))
+    matches!((verb, long), ("serve", "listen" | "gateway-ca"))
 }
 
 /// Value flags whose value may start with `-`, as getopt takes the next
