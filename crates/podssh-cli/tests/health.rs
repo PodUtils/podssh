@@ -201,9 +201,9 @@ fn the_preflight_names_what_a_refusing_server_stops() {
 #[test]
 fn a_preflight_whose_login_fails_is_255_with_its_line() {
     let dir = scratch("preflight-fail");
-    let gone = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let closed = gone.local_addr().unwrap().port();
-    drop(gone);
+    // Port 1 of the loopback: a port freed here could be bound by a test
+    // that runs beside this one before the dial.
+    let closed: u16 = 1;
     let ran = health(&dir, closed, &["--preflight"]);
     assert_eq!(ran.code, Some(255), "{}", ran.err);
     let got = checks(&ran.out);
@@ -267,9 +267,9 @@ fn a_container_gives_its_cgroup_s_cpus_and_memory() {
 #[test]
 fn a_failure_is_255_and_no_host_is_64() {
     let dir = scratch("fail");
-    let gone = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let closed = gone.local_addr().unwrap().port();
-    drop(gone);
+    // Port 1 of the loopback: a port freed here could be bound by a test
+    // that runs beside this one before the dial.
+    let closed: u16 = 1;
     let ran = health(&dir, closed, &[]);
     assert_eq!(ran.code, Some(255), "{}", ran.err);
     assert!(ran.out.is_empty(), "stdout is for the facts: {}", ran.out);

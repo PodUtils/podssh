@@ -302,7 +302,8 @@ fn trace_sends_the_token_and_gives_the_targets_first_line() {
 fn a_target_that_the_relay_cannot_dial_is_69() {
     let s = Session::start("relay-trace-closed");
     let Some((mut args, host)) = stand_in(&s) else { return };
-    let closed = free_port();
+    // Port 1: a freed port could be bound by a test beside this one.
+    let closed: u16 = 1;
     args.extend(words(&["trace", "127.0.0.1", &closed.to_string(), "--relay-host", &host]));
     let out = ran(relay(&s, &args));
     let stdout = text(&out.stdout);

@@ -352,6 +352,8 @@ mod serve_end;
 mod serve_audit;
 // The one-time code of `podssh serve --totp`, and --totp-new (T-115).
 mod serve_totp;
+// `podssh serve --gateway FILE`: the route table read at the start (T-836).
+mod serve_gateway;
 // `podssh serve NAME`: a pair's node whose sessions serve answers (T-107).
 mod node_serve;
 // A client's `-R` under `podssh serve`, published as a pair's node (T-123).

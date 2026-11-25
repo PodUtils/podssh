@@ -5,7 +5,8 @@
 //! policy (T-838); a shell shared by name (T-837); a shell kept for a lease
 //! (T-159); a unit of systemd that runs it (T-709); the message of the day
 //! (T-119); the marks of a shell (T-120); listeners that the user asks for
-//! (T-124); an audit log (T-116); a one-time code (T-115).
+//! (T-124); an audit log (T-116); a one-time code (T-115); a gateway to
+//! private hosts by the login name (T-836).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -72,6 +73,9 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "after a key, ask for the one-time code of the secret in FILE (base32, mode 0600) by keyboard-interactive: RFC 6238, 30 s, six digits, each code taken once", None),
     row(None, "totp-new", Some("FILE"), FlagKind::Supported,
         "make a new secret in FILE, mode 0600, never over a file that is there, print its path alone, and exit", None),
+    // A gateway: the login name picks an upstream, logged in by a certificate (T-836).
+    row(None, "gateway", Some("FILE"), FlagKind::Supported,
+        "serve as a gateway: the login name picks a route of FILE, whose keys may take it. serve logs in at the route's pinned upstream by a certificate of its CA, and carries each session and forward there; nothing runs here", None),
     row(None, "audit-verify", Some("FILE"), FlagKind::Supported,
         "check the chain of the audit log FILE, print what it found and the last line's SHA-256, and exit: 0 when it holds, 65 when a line was changed, 66 when FILE cannot be read", None),
     // A unit of systemd that runs serve NAME, printed (T-709).

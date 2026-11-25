@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**834 entries: 4 open, 41 partial, 14 blocked, 775 done.**
+**837 entries: 5 open, 40 partial, 15 blocked, 777 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
-| P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 4 | 8 | 9 | 371 | 392 |
-| **All** | 4 | 41 | 14 | 775 | 834 |
+| P2 | 0 | 22 | 2 | 309 | 333 |
+| P3 | 5 | 7 | 10 | 372 | 394 |
+| **All** | 5 | 40 | 15 | 777 | 837 |
 
 ## Entries
 
@@ -866,7 +866,7 @@ repository and CI).
 | [T-833](resume.md) | P3 | M | backlog | feature | done | An attach ticket for a kept shell: who may attach, and replay or reset |
 | [T-834](serve.md) | P3 | M | backlog | research | blocked | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
-| [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
+| [T-836](serve.md) | P3 | M | backlog | research | done | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | done | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | done | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
@@ -910,3 +910,6 @@ repository and CI).
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
 | [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
 | [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
+| [T-902](serve.md) | P3 | M | backlog | feature | open | The gateway's routes in the net's signed policy |
+| [T-903](serve.md) | P3 | S | backlog | chore | blocked | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
+| [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |

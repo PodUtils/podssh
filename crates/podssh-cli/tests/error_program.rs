@@ -229,9 +229,9 @@ fn a_remote_status_starts_no_program() {
         assert_eq!(ran.code, Some(code), "{command:?}: {}", ran.err);
         assert!(ran.report.is_none(), "{command:?}: {:?}", ran.report);
     }
-    let gone = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let closed = gone.local_addr().unwrap().port();
-    drop(gone);
+    // Port 1 of the loopback: a port freed here could be bound by a test
+    // that runs beside this one before the dial.
+    let closed: u16 = 1;
     let ran = ssh(&dir, closed, &["true"]);
     assert_eq!(ran.code, Some(255), "{}", ran.err);
     let report = ran.report.unwrap_or_else(|| panic!("no report: {}", ran.err));

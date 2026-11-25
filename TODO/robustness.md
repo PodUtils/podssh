@@ -857,7 +857,7 @@ Read:
   names and answers a status (`scripts/fake-proxy.py:1-32`). Neither shapes
   the traffic.
 - `scripts/interop-faults.sh:35-44` starts one stand-in for each fault; its
-  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:833-853`, 14 of 14 since T-236).
+  checks are at lines 73-182 at `8d668b7` (`docs/STATUS.md:834-854`, 14 of 14 since T-236).
 - The time limits that latency meets today: the SSH handshake, 60 s
   (`crates/podssh-ssh/src/options.rs:396`, enforced at
   `crates/podssh-ssh/src/run.rs:385-388`); a reply, 30 s
@@ -991,9 +991,9 @@ Read, each claim of GitHub #34 at the lines as they are now:
 - `crates/podssh-ssh/src/io/msg.rs:47-54`, with `crates/podssh-ssh/src/io.rs:80-82`,
   maps an exit status that does not fit
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
-  (`docs/STATUS.md:256`, `docs/STATUS.md:262`).
+  (`docs/STATUS.md:257`, `docs/STATUS.md:263`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:7100-7101` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:7136-7137` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:7100-7101`). A difference that the table does not name fails,
+   `docs/cli.md:7136-7137`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7100-7101` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7136-7137` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -4742,4 +4742,42 @@ passed; rustfmt and the gate's clippy clean. An interactive bash 5.2 with `set -
 this container's bash does not reproduce the old failure (macOS's `/bin/sh` is bash 3.2), so the gate's `macos` job
 proves step 2. The gate at `dd1f9a9` (run 45413276289, 2026-11-24) passed each job: `windows`, `windows-arm` and
 `macos` among them, `-p podssh-ssh --test serve_keep` on macOS too.
+
+# T-904: A test that dials a port it freed can reach a server of a test beside it
+
+**Source:** the gate at `7c4442e` (2026-11-25, run 45540666145, `gate (ts)`): `health`'s
+`a_preflight_whose_login_fails_is_255_with_its_line` exited 1, not 255
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Five tests bound a loopback port, read its number, dropped the listener, and then dialed that port as one that
+nothing serves. Tests of the same binary run in parallel, and one of them may bind the freed port first: the dial
+then reaches its SSH server. In the gate, `podssh health --preflight` logged in at such a server ("Permanently added
+'[127.0.0.1]:45481'") and exited 1.
+
+## Premise
+
+- Read: the freed port in `crates/podssh-cli/tests/health.rs` (two tests), `ssh_result.rs`, `error_program.rs` and
+  `relay.rs`, each dropped before the dial.
+
+## Approach
+
+1. Dial port 1 of the loopback, which no test binds, as other tests do for a refused connect.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test health --test ssh_result --test error_program --test relay
+```
+
+## Done
+
+2026-11-25: each of the five dials port 1 now, with a comment that says why. `CARGO_BUILD_JOBS=4 cargo test -p
+podssh-cli --test health --test ssh_result --test error_program --test relay`: 7, 7, 17 and 7 passed. A port that a
+test binds for a listener of its own still comes from port 0, where a race makes a bind fail, never a wrong peer.
 

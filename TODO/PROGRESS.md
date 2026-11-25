@@ -21,7 +21,7 @@ Read on 2026-11-25.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
    failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
-   T-831, T-836. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
+   T-831. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
@@ -45,9 +45,8 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** One is being written (2026-11-25): T-836's steps 3 to 5 (the gateway's route table, the certificate and
-   the upstream's dial, the forwarding of each channel request), by a drafting agent in a worktree of
-   `.claude/worktrees/`, not built. `d-t877` (T-875 and T-877) is merged. Each `draft/*`, `beta/*` and `release/*`
+8. **Drafts.** None waits (2026-11-25): `d-t836` (T-836, the gateway) and `d-t877` (T-875, T-877) are merged. Each
+   `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
@@ -64,7 +63,8 @@ Read on 2026-11-25.
 Cloud sessions of 2026-11-24 and 2026-11-25. Done on 2026-11-25: T-839 done (TPM keys; Windows'
 TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-900, its form over DoH, waits for podcrates), T-123 done
 (`serve --remote-listen`), T-161 and T-901 done (a new client's
-screen, measured, and given to a shell at a still prompt and a seat of `--share`; GitHub #20 closed),
+screen, measured, and given to a shell at a still prompt and a seat of `--share`; GitHub #20 closed), T-836 done
+(`serve --gateway`; T-902 and T-903 filed), T-904 (a test's freed port, which turned `gate (ts)` red at `7c4442e`),
 podcrates `v0.83.0` taken. Open, in order: the gate of the last push (lint was red at `0c6e9c4` on the format of
 `attach_screen.rs` alone); T-831 (partial); podcrates' answers to the COORD issues of
 `docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
@@ -78,7 +78,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 834 entries: 4 open, 41 partial, 14 blocked, 775 done.
+`TODO/INDEX.md` holds 837 entries: 5 open, 40 partial, 15 blocked, 777 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

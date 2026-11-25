@@ -80,6 +80,8 @@ mod notes_serve_listen;
 mod notes_serve_audit;
 // The one-time code of `podssh serve --totp` (T-115).
 mod notes_serve_totp;
+// The gateway of `podssh serve --gateway` (T-836).
+mod notes_serve_gateway;
 // The Serveo road, a last fallback of Q78, before the ssh-j road (T-549).
 mod notes_serveo;
 // ssh's note on the public services that podssh tries last (T-533).

@@ -32,7 +32,10 @@
 //! published with no bind where the settings give a way (T-123,
 //! `remote_forward.rs`). `--audit-log FILE` records the logins, sessions
 //! and forwards as chained JSON lines (T-116, `audit/`); `--totp FILE` asks
-//! each key for a one-time code after it (T-115, `totp/`).
+//! each key for a one-time code after it (T-115, `totp/`). With
+//! `--gateway FILE` the login name picks an upstream, where serve logs in
+//! with a certificate of its own, and each channel is carried there
+//! (T-836, `gateway/`).
 
 pub mod algorithms;
 pub mod audit;
@@ -42,6 +45,7 @@ mod channel;
 mod child;
 mod direct;
 pub mod env;
+pub mod gateway;
 mod handler;
 pub mod host_key;
 mod host_sign;
@@ -223,6 +227,9 @@ pub struct Settings {
     /// `--totp FILE` (T-115): a key that passed must give a one-time code
     /// by keyboard-interactive. None asks for none.
     pub totp: Option<Arc<totp::Totp>>,
+    /// `--gateway FILE` (T-836): the route table; each login goes upstream,
+    /// and nothing runs here. None serves this host.
+    pub gateway: Option<Arc<gateway::Table>>,
 }
 
 /// `--pty`: what a pty request that no pty serves meets (T-111).
@@ -351,11 +358,11 @@ where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     // No key, no login: the caller refuses the start first, and this holds
-    // it for each other caller.
-    if keys.is_empty() {
+    // it for each other caller. A gateway's keys are its routes'.
+    if keys.is_empty() && settings.gateway.is_none() {
         return Err("no authorized key: nobody could log in".into());
     }
-    let mut stage = control.watch();
+    let stage = control.watch();
     if *stage.borrow() != Stage::Serving {
         return Ok(());
     }
@@ -363,12 +370,42 @@ where
     // In the server's table from the first byte: a reload that comes during
     // the login still finds the connection (T-842).
     let conn = control.live.join(settings.peer);
-    let mut revoked = conn.watch();
+    let revoked = conn.watch();
     // A client policy judges the client's KEXINIT as it passes (T-838); a
     // refusal ends the connection as a revoke does.
     let stream = policy_gate::Gated::new(stream, &conn, &settings);
-    let served = handler::Served::new(keys, settings, control.clone(), conn.clone());
-    let started = russh::server::run_stream(config, stream, served);
+    let watched = Watched { control: &control, conn: &conn, stage, revoked, login };
+    let (ctl, joined) = (control.clone(), conn.clone());
+    match settings.gateway.clone() {
+        Some(table) => drive(config, stream, gateway::Gateway::new(table, settings, ctl, joined), watched).await,
+        None => drive(config, stream, handler::Served::new(keys, settings, ctl, joined), watched).await,
+    }
+}
+
+/// What a connection's run watches beside the client: the server's stop,
+/// the end of this connection by a reload, and a listener's deadline.
+struct Watched<'a> {
+    control: &'a Control,
+    conn: &'a live::Conn,
+    stage: tokio::sync::watch::Receiver<Stage>,
+    revoked: tokio::sync::watch::Receiver<Option<String>>,
+    login: Option<listen::Login>,
+}
+
+/// Run `handler`'s connection over `stream` until the client leaves, a stop
+/// or a reload ends it, or a listener's deadline passes.
+async fn drive<S, H>(
+    config: Arc<russh::server::Config>,
+    stream: S,
+    handler: H,
+    watched: Watched<'_>,
+) -> Result<(), String>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    H: russh::server::Handler<Error = russh::Error> + Send + 'static,
+{
+    let Watched { control, conn, mut stage, mut revoked, login } = watched;
+    let started = russh::server::run_stream(config, stream, handler);
     // A listener's deadline holds from the accept: russh waits for the
     // client's version line with no bound of its own here (T-631).
     let started = match login.as_ref().map(|login| (login.at, login.silent())) {
@@ -381,19 +418,19 @@ where
     let result = tokio::select! {
         result = &mut running => result,
         () = stop::reached(&mut stage, Stage::Stopping) => {
-            stop::wind_down(handle, &control, &control.groups, stop::STOPPING, running).await;
+            stop::wind_down(handle, control, &control.groups, stop::STOPPING, running).await;
             return Ok(());
         }
         // The key was taken out by a reload, or expired: this connection
         // alone ends, as a stop ends each.
         told = live::ended(&mut revoked) => {
-            stop::wind_down(handle, &control, conn.groups(), &told, running).await;
+            stop::wind_down(handle, control, conn.groups(), &told, running).await;
             return Ok(());
         }
         // No login by the listener's deadline: the client hears the limit,
         // and serve's log gets the same line.
         told = reaped => {
-            stop::wind_down(handle, &control, conn.groups(), &told, running).await;
+            stop::wind_down(handle, control, conn.groups(), &told, running).await;
             return Err(format!("{}: closed", told.trim_start_matches("podssh serve: ")));
         }
     };

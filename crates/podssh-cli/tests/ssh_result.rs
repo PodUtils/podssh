@@ -121,9 +121,9 @@ fn a_failure_has_its_class() {
     assert_eq!(code, Some(255), "{err}");
     assert_eq!((&r["end"], &r["failure"], &r["status"]), (&json!("failed"), &json!("auth"), &Value::Null), "{r}");
     // A port where nothing listens.
-    let gone = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let closed = gone.local_addr().unwrap().port();
-    drop(gone);
+    // Port 1 of the loopback: a port freed here could be bound by a test
+    // that runs beside this one before the dial.
+    let closed: u16 = 1;
     let (code, _, err, r) = run(&dir, closed, &[], "u", &["true"], b"");
     assert_eq!(code, Some(255), "{err}");
     assert_eq!((&r["end"], &r["failure"]), (&json!("failed"), &json!("connect")), "{r}");
@@ -186,7 +186,8 @@ fn free_port() -> u16 {
 #[test]
 fn a_run_that_fails_before_its_link_lists_its_forwards() {
     let (dir, _port, _runtime) = server("unlinked");
-    let closed = free_port();
+    // Port 1: a freed port could be bound by a test beside this one.
+    let closed: u16 = 1;
     let local = format!("{}:127.0.0.1:9", free_port());
     let remote = "0:127.0.0.1:9";
     let (code, _, err, r) = run(&dir, closed, &["-N", "-L", &local, "-R", remote], "u", &[], b"");
