@@ -34,10 +34,10 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 | --- | --- |
 | #349 (COORD-139) | podcrates' run of the DNS carrier through unbound in its CI, and three small asks of T-875 and T-877; the findings and the DoH `Datagrams` are answered in `v0.83.0` and `v0.84.0` |
 | #357 (COORD-147) | podcrates' record of the take of `v0.84.0` (`806e0a4`), and four asks: `pod-tpm`'s TBS with a bound and a cancel, an owner password in `SoftTpm`, the list of `pod-tpm.run`, `Mint` with an issuer that is not Ed25519 |
+| #358 (COORD-148) | podcrates' answer to the ask of the pane's rows in `pod_term::transfer` (a frame taller than a tmux pane loses its head); it also answers COORD-153 with T-831's commit `97cebe6` |
 
 Closed on 2026-11-25, each answered or done: #351 to #356 (answered in `v0.84.0` and taken at `806e0a4`). Earlier:
-#248, #283, #311, #322, #340 to #343, #346, #347, #350. podcrates' COORD-153 (PodUtils/podcrates#258) waits for the
-commit of T-831 that wires the codec.
+#248, #283, #311, #322, #340 to #343, #346, #347, #350. podcrates' COORD-153 (PodUtils/podcrates#258) is answered by COORD-148 (#358).
 
 ## The sessions of PodUtils
 

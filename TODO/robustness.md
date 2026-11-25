@@ -1517,7 +1517,9 @@ platform's abort of a graceful close) from an early end. Measured: `cargo test -
 (the new `a_read_that_fails_is_said_and_the_other_way_still_carries`; 1305 passed, the manual's
 `llms-full.txt` written again), `--test pipe` (10 passed), `--test pipe_http`, `--test proxy`,
 `--test pipe_listen`, `--test pipe_ws`, `--test pipe_remote`, `--test pipe_udp`, `--test
-forwarder_cli`, each passed. It stays partial for the next failure's words.
+forwarder_cli`, each passed. Then `suite-repeat.yml` with `runner=windows-2025`, `package=podssh-cli`,
+`test=pipe`, `filter=unix_connect`, 50 runs at `c6fa76a` (run 45610356007): 50 of 50 passed. It stays
+partial for the next failure's words.
 
 # T-564: podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE`
 
