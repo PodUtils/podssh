@@ -477,7 +477,7 @@ fn late_echo(late: Duration) -> u16 {
                 let mut got = Vec::new();
                 let _ = reader.read_to_end(&mut got);
                 std::thread::sleep(late);
-                let _ = writer.write_all(&got);
+                let _ = writer.write_all(&got).and_then(|()| writer.shutdown(std::net::Shutdown::Write));
             });
         }
     });

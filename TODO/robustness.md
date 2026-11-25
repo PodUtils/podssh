@@ -2313,6 +2313,14 @@ bytes back, and whether its read, its write or its shutdown failed) in the failu
 failure is rare (once in the gate's runs since `a834dbed`); the test's echo now names what each connection saw,
 so the next failure on the gate's windows job says which side reset. Next: that failure's message.
 
+2026-11-25, the test's side: the two echoes that close with no `shutdown(Write)` were read for a close with bytes
+unread, the cause of a reset (T-465). `echo_server` (`crates/podssh-cli/tests/live_harness/mod.rs`, the copy ends at
+the peer's EOF) and `late_echo` (`crates/podssh-cli/tests/node_carrier.rs`, `read_to_end`, then the answer) each read
+to the peer's EOF before they close, so no byte is left unread and the close is a FIN, not a reset: neither is the cause
+of the 10054. For redundancy each now shuts its write half after its last bytes, so the FIN goes at once and not at the
+drop of both handles (the `try_clone`); `echo_logged` did so already. The product side (an operator that exits 0 on
+`Error::Cut`) is the lead's. Run by the main session (2026-11-25, on `1e44eb9`): `--test node_carrier` 15 passed, and each suite of the echo server (`carrier_dns` 5, `carrier_dns_https` 2, `carrier_s3` 3, `node_ask` 4, `persist_forwards` 3, `pipe_ws` 12) passed.
+
 
 # T-756: `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite
 
@@ -3043,6 +3051,26 @@ The gate's job `macos` passes it ten times in a row, or the cause is named and r
 
 Partial, 2026-11-15: not made here: `cargo test -p podssh-cli --test node_cut a_strict_relay` passed three runs in
 three on Linux. It passed each macOS gate before this one. It waits for its next failure.
+
+2026-11-25, the cause, from the failure's words (run 43657288233, job `macos`): the node said "the link to the
+relay ended with no Close (sending a ping to the relay failed: Broken pipe (os error 32)); connecting again at once".
+The stand-in sends Close 1003 for a frame of an id that it forgot and breaks out of its read at once
+(`scripts/fake_reverse.py:308-309` before this change); its handler then returns and the connection is closed
+(`scripts/fake-relay.py:200-203`) while the node still sends the other session's megabytes. A socket closed with
+bytes unread is reset: the node's next write fails (EPIPE) and the reset can drop the Close before the node reads it,
+so no 1003 is said. A real relay's graceful close reads on until its peer's Close. Fix (the stand-in): after its
+Close of a node's socket (the 1003 of an unknown id, a late close's 1003, a stop, an expiry), `drained` reads and drops
+the node's frames until the echo of its Close or EOF, at most 2 s, then the connection ends; the node must still say the
+1003 and connect again at once, as the test checks. `python3 -m py_compile scripts/fake_reverse.py` passes.
+Run by the main session (2026-11-25, on `1e44eb9`): `--test node_cut` 4 passed here; the proof is the macOS job and a repeat there.
+
+The node's side, for PodUtils/podcrates (a COORD issue `(to podcrates)` that the lead files): "pod-relay's
+`reverse::closes::pending` (`crates/pod-relay/src/reverse/closes.rs`, at `ca1d3e3`, lines 344-361) looks for the
+relay's Close behind a failed ping only 8 frames or 200 ms ahead. A relay that sends the node another session's data
+before its Close (64 KiB frames: 8 frames are 512 KiB) or a slow host puts the Close past that look, and the node
+says 'the link to the relay ended with no Close (sending a ping ... failed: Broken pipe)' where the relay gave 1003
+(podssh T-788, run 43657288233 on macOS). Ask: bound the look-ahead by time (about 1 s) and by bytes read (a few MiB),
+not by a count of frames; a read error still ends it with None."
 
 
 # T-796: The gate's OpenSSH and Dropbear interop hung past the job's 45 min, and left no line of where
@@ -4395,6 +4423,20 @@ process's signal lines (`SigPnd`, `ShdPnd`, `SigBlk`, `SigIgn`; a SIGHUP pending
 not act) and, after waiting 30 s more, whether `yes` ended late and when, or still ran: a late end means the close came
 late on a loaded host (the bound), a live one that the server never acted on it (its loop, the T-780 class on the
 server's side). `--test serve_pressure` 3 passed here; clippy clean.
+
+2026-11-25, step 2, the cause in the test's client (a reading of the code, not yet a run): the client holds 8 messages
+of a channel (`crates/podssh-ssh/tests/serve_pressure.rs:72`, `channel_buffer_size: 8`); after it reads 1 MiB it calls
+`channel.close()` and reads the channel no more. russh's `close()` only queues a message for the client's loop
+(`vendor/russh/src/channels/mod.rs:416-424`), and that loop delivers each CHANNEL_DATA with `chan.send(...).await` on
+the channel's bounded queue (`vendor/russh/src/client/encrypted.rs:657-659`): with `yes` flooding, the 8 slots fill and
+the loop waits there before it takes the close, so the close is sent late or never, and with it no window, which the
+second failure's `wait_woken` (a `yes` that waits for room in the pty) shows. The server's part, `finish`'s hangup on
+the close, is not in doubt. Fix (the test's client only): after `close()`, a task reads the channel until it ends, as a
+real client does, and is aborted at the end; the check of `podssh serve` (the child gone within 5 s of the close) is
+the same, and its failure says whether the client still read its channel. The other tests of `crates/podssh-ssh/tests/`
+that close a channel (`serve_forward.rs:267`, `serve_lifecycle.rs:250`, `signal_request.rs:157`) have russh's
+default queue of 100 and no flood: none has the shape. Run by the main session (2026-11-25, on `1e44eb9`):
+`cargo test -p podssh-ssh --test serve_pressure` 3 passed; a repeat on the runners follows.
 
 # T-849: `cp::resume`'s test of a copy that another runs: no side file after the lock was freed, once on macOS
 

@@ -138,7 +138,11 @@ pub fn echo_server() -> u16 {
             std::thread::spawn(move || {
                 let mut reader = stream.try_clone().unwrap();
                 let mut writer = stream;
+                // It reads to the peer's EOF before it closes, so no byte is
+                // left unread to turn the close into a reset; the FIN goes
+                // at once, not at the drop of both handles.
                 let _ = std::io::copy(&mut reader, &mut writer);
+                let _ = writer.shutdown(std::net::Shutdown::Write);
             });
         }
     });

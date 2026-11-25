@@ -152,6 +152,11 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
     assert!(more >= 1 << 20, "the session goes on after the stall: {more} bytes in {took:?}");
     channel.close().await.unwrap();
     let closed_at = Instant::now();
+    // The close only queues a message for the client's loop, and that loop
+    // waits on this channel's 8 slots for each CHANNEL_DATA of `yes`: a
+    // client that reads no more may never send the close (T-846). Read on
+    // until the channel ends, as a real client does.
+    let draining = tokio::spawn(async move { while channel.wait().await.is_some() {} });
     let deadline = closed_at + Duration::from_secs(5);
     while runs(pid) && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -176,8 +181,15 @@ async fn yes_with_a_stalled_client(on_pty: bool) {
             true => format!("and still ran {:.0} s after the close", closed_at.elapsed().as_secs_f32()),
             false => format!("and ended {:.1} s after the close", closed_at.elapsed().as_secs_f32()),
         };
-        panic!("yes runs on after its channel closed (pty: {on_pty}): stat {state:?}, wchan {wchan:?}, signals {signals:?}, {after}");
+        let drained = match draining.is_finished() {
+            true => "the client read its channel to its end",
+            false => "the client still read its channel",
+        };
+        draining.abort();
+        let seen = format!("stat {state:?}, wchan {wchan:?}, signals {signals:?}");
+        panic!("yes runs on after its channel closed (pty: {on_pty}): {seen}, {after}; {drained}");
     }
+    draining.abort();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

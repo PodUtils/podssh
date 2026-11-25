@@ -1224,7 +1224,7 @@ The Premise is stale in one sentence: the stand-in serves more than "the forward
 `/v1/mint` and `/health` only". At `scripts/fake-relay.py:180-184` it also serves `/relays.json`
 and `/trace`, and `scripts/fake-relay.py:175` hands the whole reverse road to
 `scripts/fake_reverse.py`, which is as strict as the live relay for an id that it forgot, and
-tells a frame in flight apart (`scripts/fake_reverse.py:293-305`). The rest holds; the ruling of
+tells a frame in flight apart (`scripts/fake_reverse.py:298-310`). The rest holds; the ruling of
 2026-10-08 that it cites is changed.
 
 By Q63 (2026-11-02, `docs/decisions.md`; the design is docs/mesh.md, section 4) the relay is a

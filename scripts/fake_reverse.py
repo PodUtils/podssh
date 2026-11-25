@@ -272,6 +272,11 @@ async def node(pair, socket):
         while True:
             opcode, data = await read_frame(socket.reader)
             note(f"node frame {opcode:#x}, {len(data)} bytes: {data[:48]!r}")
+            if socket.closed and opcode != 0x8:
+                # The relay's Close went (a late close's 1003, a fault): what
+                # the node still sends is dropped until its Close's echo.
+                await drained(socket)
+                break
             if opcode == 0x1:
                 message = json.loads(data)
                 session = pair.sessions.get(message.get("id"))
@@ -306,6 +311,7 @@ async def node(pair, socket):
                         print(f"reverse: a frame of the node for an unknown id {sid[:8]}: 1003", file=sys.stderr,
                               flush=True)
                     await socket.close(1003, "unknown session id")
+                    await drained(socket)
                     break
             elif opcode == 0x9:
                 await socket.send(frame(0xA, data))
@@ -319,6 +325,25 @@ async def node(pair, socket):
             pair.node = None
             for operator_socket, _ in list(pair.sessions.values()):
                 await operator_socket.close(1011, "node disconnected")
+
+
+async def drained(socket, limit=2.0):
+    """After the relay's Close of a node's socket: the node's frames read and
+    dropped until the echo of its Close, or its EOF, within `limit` seconds,
+    as a relay's graceful close reads on. A connection closed at once with
+    the node's bytes unread is reset: the node's writes then fail, and the
+    reset can drop the Close before the node reads it (T-788)."""
+
+    async def until_close():
+        while True:
+            opcode, _ = await read_frame(socket.reader)
+            if opcode == 0x8:
+                return
+
+    try:
+        await asyncio.wait_for(until_close(), limit)
+    except (asyncio.TimeoutError, asyncio.IncompleteReadError, ConnectionError, OSError, ValueError):
+        pass
 
 
 async def operator(pair, socket):
