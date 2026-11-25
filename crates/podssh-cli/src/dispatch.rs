@@ -217,6 +217,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Run(args) => crate::run_cmd::run_run(args, s.out, s.err),
         Parsed::Config(args) if refusals("config", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Config(args) => crate::config_import::run(args, s.out, s.err),
+        Parsed::Tx(args) if refusals("tx", &args.refused, s.err) => EXIT_USAGE,
+        // The frames are on the process's own terminal; the last line on stderr.
+        Parsed::Tx(args) => crate::tx::run(args, s.err),
         Parsed::Mcp(args) if refusals("mcp", &args.refused, s.err) => EXIT_USAGE,
         // The protocol is on the process's own stdin and stdout.
         Parsed::Mcp(args) => crate::mcp::run(args, s.err),

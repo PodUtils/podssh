@@ -238,6 +238,13 @@ pub fn add(cmd: Command, name: &str) -> Command {
                 .help("the host to read: [user@]host, host:PORT, [user@][IPV6]:PORT or ssh://[user@]host[:PORT]"),
         ),
         "play" => cmd.arg(Arg::new("file").value_name("FILE").help("the recording: an asciicast v2 file")),
+        // `tx send FILE` and `tx receive [DIR]`, at the far end of a session (T-831).
+        "tx" => cmd.arg(Arg::new("subcommand").value_name("SUBCOMMAND").help("send or receive")).arg(
+            Arg::new("args")
+                .value_name("FILE | DIR")
+                .num_args(0..)
+                .help("send: the file that the near end receives; receive: the directory that the file comes into, the current one with none"),
+        ),
         "config" => cmd.arg(Arg::new("subcommand").value_name("SUBCOMMAND").help("import")).arg(
             Arg::new("args")
                 .value_name("FORMAT FILE")

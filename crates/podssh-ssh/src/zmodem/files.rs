@@ -5,10 +5,11 @@
 //! it, made new with mode 0600; once its length is checked, it gets its
 //! time and its mode, and a rename gives it its name. A transfer that ends
 //! before that removes the temporary file, and a name that is taken is
-//! replaced only when the user said so.
+//! replaced only when the user said so. The 7-bit envelope (T-831) writes
+//! its copies the same way, and reads the file it sends here too.
 
 use std::fs::{File, OpenOptions};
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 
@@ -219,4 +220,41 @@ fn mode_of(meta: &std::fs::Metadata) -> u32 {
 #[cfg(not(unix))]
 fn mode_of(_meta: &std::fs::Metadata) -> u32 {
     0
+}
+
+/// The file at `path` that the 7-bit envelope sends (T-831): a regular file
+/// that opens, of any size below 2^63, as its offsets have 64 bits.
+pub fn open_whole(path: &Path) -> Result<(File, pod_term::transfer::FileInfo), String> {
+    let shown = path.display();
+    let file = File::open(path).map_err(|e| format!("{shown}: {e}"))?;
+    let meta = file.metadata().map_err(|e| format!("{shown}: {e}"))?;
+    if !meta.is_file() {
+        return Err(format!("{shown} is not a regular file"));
+    }
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .filter(|n| !n.is_empty())
+        .ok_or_else(|| format!("{shown} names no file"))?;
+    let mtime = meta.modified().ok().and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_secs());
+    // The permission bits alone: the type of the file is the codec's to say.
+    let mode = Some(mode_of(&meta) & 0o7777).filter(|&m| m != 0);
+    let info = pod_term::transfer::FileInfo { name, size: meta.len(), mode, mtime: mtime.filter(|&s| s > 0) };
+    Ok((file, info))
+}
+
+/// `buf.len()` bytes of `file` at `offset`, fewer only at its end: a short
+/// read is no end.
+pub fn read_at(file: &mut File, offset: u64, buf: &mut [u8]) -> std::io::Result<usize> {
+    file.seek(SeekFrom::Start(offset))?;
+    let mut n = 0;
+    while n < buf.len() {
+        match file.read(&mut buf[n..]) {
+            Ok(0) => break,
+            Ok(read) => n += read,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(n)
 }

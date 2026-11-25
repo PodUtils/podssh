@@ -371,7 +371,7 @@ Read:
    in the gate's container (installed with apk, as `scripts/interop-man.sh:22`
    installs groff) and through `vt100`. The two must give the same screens
    before the model judges podssh.
-6. docs/terminal.md, section "Tests" (`docs/terminal.md:1083`), names the
+6. docs/terminal.md, section "Tests" (`docs/terminal.md:1175`), names the
    oracle.
 
 ## Decision
@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:258`, `docs/STATUS.md:264`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:7171-7172` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:7199-7200` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:7171-7172`). A difference that the table does not name fails,
+   `docs/cli.md:7199-7200`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7171-7172` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7199-7200` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:6038-6039` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:6066-6067` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:6038-6039`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:6066-6067`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -4615,10 +4615,10 @@ second, with the file open at offset 851968. A user's terminal hangs, and the pr
   in a body. Lost: dropping the check (a `--direct` session whose far end reads nothing would never end); running the
   write `unconstrained` by tokio's budget (it hides the class at one place, and lets one stream starve the runtime).
 - The limit is that of a write: bytes of ZMODEM's that the channel has not taken within 40 s (`TRIES` waits of
-  `WAIT`, the spec's "40 seconds total") end the transfer (`crates/podssh-ssh/src/zmodem/session.rs:251`). A stream
+  `WAIT`, the spec's "40 seconds total") end the transfer (`crates/podssh-ssh/src/zmodem/session.rs:275`). A stream
   has no wait of the protocol (`crates/podssh-ssh/src/zmodem/send.rs:309` and `:255` clear it), so this is its only
   time. Lost: a deadline of the sans-IO sender while it streams, which cannot know when the channel took its bytes.
-- Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:212`), end a transfer as
+- Five CAN typed in a row, counted across reads (`crates/podssh-ssh/src/zmodem/session.rs:234`), end a transfer as
   five from the server do (7.2); fewer are dropped as each other key is.
 - The end of the local input while ZMODEM holds the keys ends the session (`crates/podssh-ssh/src/io.rs:332`,
   `crates/podssh-ssh/src/io/transfer.rs:62`): nobody is left to answer or to see, as with SIGHUP, so it exits 255 as

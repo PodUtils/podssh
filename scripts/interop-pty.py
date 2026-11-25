@@ -6,7 +6,8 @@ Checks raw mode, the window size and a resize, Ctrl-C, full-screen programs
 (T-291), the exit status, and that the local terminal is restored
 afterwards; the host picker of a run with no destination (T-188); then
 ZMODEM with sz and rz of lrzsz (T-148), or `env` lines when the host has no
-lrzsz.
+lrzsz; then the 7-bit envelope through tmux (T-831), with a copy of this
+binary as `podssh tx` at the far end.
 Prints one `ok` or `FAIL` line per check; exits 1 if any check failed.
 Called by scripts/interop.sh with: PODSSH KNOWN_HOSTS KEY.
 """
@@ -388,5 +389,65 @@ if SZ and RZ:
 else:
     for name in ZMODEM_IDS:
         unmet(name, "no sz and rz of lrzsz on this host")
+
+# The 7-bit envelope (T-831): `podssh tx` at the far end inside tmux, which
+# drops ZMODEM's ZDLE and draws the rest as a screen (T-831's step 1). The
+# far podssh is a copy of this binary that podtest may run; tmux's last
+# draw needs the pane alive a moment after the transfer.
+EFAR = "/tmp/podssh-envelope-far"
+ELOCAL = "/tmp/podssh-envelope-here"
+ENVELOPE_IDS = ["pty.envelope.send", "pty.envelope.temp", "pty.envelope.receive"]
+
+
+def envelope():
+    for d in (ELOCAL, EFAR):
+        shutil.rmtree(d, ignore_errors=True)
+    os.makedirs(f"{ELOCAL}/in")
+    os.makedirs(EFAR)
+    os.chmod(EFAR, 0o777)
+    far_bin = f"{EFAR}/podssh"
+    shutil.copy(BIN, far_bin)
+    os.chmod(far_bin, 0o755)
+    with open(f"{EFAR}/down.bin", "wb") as f:
+        f.write(os.urandom(200_000) + bytes(range(256)) * 4)
+    os.chmod(f"{EFAR}/down.bin", 0o644)
+    with open(f"{ELOCAL}/up.bin", "wb") as f:
+        f.write(bytes(range(256)) * 400 + os.urandom(33_333))
+    tmux = "tmux -L t831 -f /dev/null new -s t831"
+
+    t = Terminal(24, 120)
+    ready = marker(t, "EV", 1, 2)
+    mark = len(t.buf)
+    t.send(f"cd {EFAR} && {tmux} '{far_bin} tx send down.bin; sleep 1'\r".encode())
+    asked = t.expect(b"Receive into", 30, since=mark)
+    t.send(f"{ELOCAL}/in\r".encode())
+    came = t.expect(b"received ", 120, since=mark)
+    back = marker(t, "EVR", 2, 2)
+    same = digest(f"{ELOCAL}/in/down.bin") == digest(f"{EFAR}/down.bin")
+    check("pty.envelope.send", "podssh tx send in tmux: a question, then the file with an equal digest",
+          ready and asked and came and back and same, t.buf)
+    parts = [n for n in os.listdir(f"{ELOCAL}/in") if n.endswith(".part")]
+    check("pty.envelope.temp", "no temporary file is left after the rename", came and not parts, t.buf)
+
+    mark = len(t.buf)
+    t.send(f"cd {EFAR} && {tmux} '{far_bin} tx receive; sleep 1'\r".encode())
+    asked = t.expect(b"Send which file?", 30, since=mark)
+    t.send(f"{ELOCAL}/up.bin\r".encode())
+    sent = t.expect(b"sent up.bin", 120, since=mark)
+    # The far receiver keeps its verdict 25 s for a lost KEPT; Ctrl-C ends that wait.
+    t.send(b"\x03", 2.0)
+    back = marker(t, "EVS", 3, 4)
+    same = digest(f"{EFAR}/up.bin") == digest(f"{ELOCAL}/up.bin")
+    check("pty.envelope.receive", "podssh tx receive in tmux: a question, then the file with an equal digest",
+          asked and sent and back and same, t.buf)
+    t.send(b"exit\r")
+    t.finish()
+
+
+if shutil.which("tmux"):
+    envelope()
+else:
+    for name in ENVELOPE_IDS:
+        unmet(name, "no tmux on this host")
 
 sys.exit(1 if fails else 0)

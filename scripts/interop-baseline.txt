@@ -636,6 +636,9 @@ pty.zmodem.refuse env-allowed sz and rz of lrzsz, which Alpine does not package 
 pty.zmodem.send env-allowed sz and rz of lrzsz, which Alpine does not package now (T-148)
 pty.zmodem.escape env-allowed sz and rz of lrzsz, which Alpine does not package now (T-148)
 pty.zmodem.no_terminal env-allowed sz and rz of lrzsz, which Alpine does not package now (T-148)
+pty.envelope.send env-allowed tmux, which scripts/interop.sh installs (T-831)
+pty.envelope.temp env-allowed tmux, which scripts/interop.sh installs (T-831)
+pty.envelope.receive env-allowed tmux, which scripts/interop.sh installs (T-831)
 
 # scripts/interop-man.sh
 man.roff pass

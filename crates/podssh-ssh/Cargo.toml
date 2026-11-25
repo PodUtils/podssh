@@ -86,8 +86,9 @@ vt100 = { workspace = true }
 # serve's line discipline where no pty opens (T-111): the cooked mode of
 # PodUtils/podcrates' pod-term, the tag of every podcrates crate. On each
 # target: a kept shell's ring (T-159) is built on Windows too, and the crate
-# is bytes only.
-pod-term = { git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", features = ["transfer"] }
+# is bytes only. `transfer`: the 7-bit envelope's codec, whose near end the
+# session's watch runs and whose far end `podssh tx` runs (T-831).
+pod-term ={ git = "https://github.com/PodUtils/podcrates", tag = "v0.83.0", features = ["transfer"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = { workspace = true }

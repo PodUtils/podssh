@@ -26,6 +26,7 @@ use super::notes_run::RUN;
 use super::notes_serve::SERVE;
 use super::notes_session::SESSION;
 use super::notes_share::SHARE;
+use super::notes_tx::TX;
 // ssh's own notes, then those of its roads to a server of the user's (T-441).
 use super::notes_roads::SSH;
 use super::notes_update::UPDATE;
@@ -43,6 +44,7 @@ pub fn for_verb(name: &str) -> &'static [&'static str] {
         "scp" => SCP,
         "sftp" => SFTP,
         "edit" => EDIT,
+        "tx" => TX,
         "proxy" => PROXY,
         "pipe" => PIPE,
         "node" => NODE,

@@ -6,7 +6,8 @@
 //! gives it the output, the keys and the time, and takes what it has for
 //! the terminal and for the server; it says when each write of those bytes
 //! ends, so that a write that the server does not take ends the transfer at
-//! its limit.
+//! its limit. The 7-bit envelope (T-831) scans the output first and shares
+//! the question, the keys and the write limit (`session/envelope.rs`).
 
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -21,8 +22,10 @@ use super::wire::{self, Header};
 use super::{CANCEL, TRIES, WAIT};
 
 mod acts;
+mod envelope;
 
 use acts::{shown, yes, Gauge};
+use envelope::Envelope;
 
 /// What the session's pump takes: the bytes for the terminal, in order, and
 /// those for the server.
@@ -87,6 +90,8 @@ pub struct Zmodem {
     /// CAN typed in a row during a transfer: five end it, as five from the
     /// server do (7.2).
     cans: u8,
+    /// The 7-bit envelope (T-831), whose scan comes before ZMODEM's.
+    envelope: Envelope,
 }
 
 impl Default for Zmodem {
@@ -119,6 +124,7 @@ impl Zmodem {
             abandon: false,
             limit: WAIT * TRIES,
             cans: 0,
+            envelope: Envelope::new(),
         }
     }
 
@@ -132,7 +138,7 @@ impl Zmodem {
     /// Whether a transfer runs: its keys, its limit and its end then hold
     /// each wait of the pump.
     pub fn transferring(&self) -> bool {
-        matches!(self.mode, Mode::Receive(_) | Mode::Send(_))
+        matches!(self.mode, Mode::Receive(_) | Mode::Send(_)) || self.envelope.transferring()
     }
 
     /// The pump's write of the bytes of [`Zmodem::take`] ended, whole or
@@ -166,26 +172,37 @@ impl Zmodem {
 
     /// Whether a question is open, a transfer runs, or `rz` is awaited.
     pub fn busy(&self) -> bool {
-        self.question.is_some() || !matches!(self.mode, Mode::Idle)
+        self.question.is_some() || !matches!(self.mode, Mode::Idle) || self.envelope.busy()
     }
 
     /// The server's output: what shows on the terminal, in order with
     /// podssh's own words.
     pub fn output(&mut self, data: &[u8], now: Instant) -> Vec<u8> {
-        // While a question is open, the far side waits; what it sends again
-        // meanwhile (its start, once more) is dropped.
-        if self.question.is_none() {
-            let acts = match &mut self.mode {
-                Mode::Receive(r) => Some(r.proto.feed(data, now)),
-                Mode::Send(s) => Some(s.proto.feed(data, now)),
-                Mode::Idle | Mode::Armed { .. } => None,
-            };
-            match acts {
-                Some(acts) => self.run(acts, now),
-                None => self.scan(data, now),
-            }
+        // The envelope reads first while ZMODEM runs nothing (T-831).
+        if self.question.is_none() && matches!(self.mode, Mode::Idle | Mode::Armed { .. }) {
+            self.enveloped(data, now);
+        } else {
+            self.zmodem_output(data, now);
         }
         std::mem::take(&mut self.screen)
+    }
+
+    /// The server's output for ZMODEM: its transfer's, or its scan's.
+    fn zmodem_output(&mut self, data: &[u8], now: Instant) {
+        // While a question is open, the far side waits; what it sends again
+        // meanwhile (its start, once more) is dropped.
+        if self.question.is_some() {
+            return;
+        }
+        let acts = match &mut self.mode {
+            Mode::Receive(r) => Some(r.proto.feed(data, now)),
+            Mode::Send(s) => Some(s.proto.feed(data, now)),
+            Mode::Idle | Mode::Armed { .. } => None,
+        };
+        match acts {
+            Some(acts) => self.run(acts, now),
+            None => self.scan(data, now),
+        }
     }
 
     /// Keys: those that go on to the server. A question takes each key; a
@@ -198,6 +215,11 @@ impl Zmodem {
             if let (Some(answer), Some((_, about))) = (answer, taken) {
                 self.answered(about, answer, now);
             }
+            return Vec::new();
+        }
+        if self.envelope.busy() {
+            let pieces = self.envelope.keys(&keys, now, &mut self.dir);
+            self.pieces(pieces, now);
             return Vec::new();
         }
         if !self.transferring() {
@@ -222,7 +244,7 @@ impl Zmodem {
     /// `~Z`: ask for a file, then type `rz` on the server.
     pub fn escape(&mut self) {
         if self.busy() {
-            self.say("a ZMODEM transfer runs already");
+            self.say("a transfer runs already");
             return;
         }
         self.ask(ESCAPE_QUESTION.to_string(), About::Escape);
@@ -238,7 +260,7 @@ impl Zmodem {
             Mode::Idle => None,
         };
         let write = self.writing.map(|since| since + self.limit);
-        [protocol, self.detect.deadline(), write].into_iter().flatten().min()
+        [protocol, self.detect.deadline(), write, self.envelope.deadline()].into_iter().flatten().min()
     }
 
     /// The time: held bytes that were no start show, a wait of the protocol
@@ -246,6 +268,8 @@ impl Zmodem {
     pub fn tick(&mut self, now: Instant) {
         let held = self.detect.flush(now);
         self.screen.extend(held);
+        let pieces = self.envelope.tick(now, &mut self.dir);
+        self.pieces(pieces, now);
         // A write that the server does not take holds no wait of the
         // protocol: a far end that stops reading sends no answer to time.
         if self.writing.is_some_and(|since| now >= since + self.limit) {
@@ -291,6 +315,8 @@ impl Zmodem {
             };
             self.run(acts, now);
         }
+        // The envelope's frames, under the same write limit (T-831).
+        self.server.extend(self.envelope.poll(now));
         if !self.server.is_empty() {
             self.writing = Some(now);
             self.abandon = false;

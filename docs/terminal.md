@@ -728,7 +728,11 @@ to podssh's `received` or `sent` line.
 ### The 7-bit envelope (T-831, step 2): the design for pod-term
 
 podcrates writes the codec as `pod_term::transfer` (PodUtils/podcrates#258, COORD-153, answering
-COORD-137, #346); podssh wires it into the session as T-148's ZMODEM is wired. This is the design
+COORD-137, #346); podssh wires it into the session as T-148's ZMODEM is wired ("The envelope in
+podssh", below). This section gives version 2 of the wire, in the tag `v0.84.0` (COORD-155): the
+codec is the source of the frame table and the waits, and this section follows it. Version 2 adds
+the frame `HOLD`, the verdict that a receiver keeps after `KEPT`, and the end `Unconfirmed`; a
+version 1 end and a version 2 end do not pair. This is the design
 that #258 asked for: the trigger, the frames, the flow, the limits and the test vectors. Every byte
 that crosses is printable ASCII (0x20 to 0x7E) or CR or LF, so that a terminal emulator between the
 far shell and the pty (tmux, above) paints it, and the near side reads it back from the paint.
@@ -744,16 +748,16 @@ has the far end as sender, an upload the near end. One trigger moves one file.
 #PODSSH-TX<version>:<dir>:<id>:<crc>\r\n
 ```
 
-- `<version>` is `1`, decimal, 1 to 3 digits; `<dir>` is `S` (the far end sends) or `R` (the far
+- `<version>` is `2`, decimal, 1 to 3 digits; `<dir>` is `S` (the far end sends) or `R` (the far
   end receives); `<id>` is 16 lowercase hex digits, 64 random bits of the far end; `<crc>` is 8 hex
   digits (lowercase sent, either case read), CRC-32/ISO-HDLC (zlib's `crc32`) of the bytes from `#`
-  through `<id>`. The line is 39 bytes in version 1; the pane must be at least 48 columns wide, so
+  through `<id>`. The line is 39 bytes; the pane must be at least 48 columns wide, so
   that it never wraps.
 - The near side scans the output for `#PODSSH-TX` as `detect.rs` scans for ZPAD: each byte that
   cannot begin the trigger shows at once; a possible trigger that the end of a read cut waits for
   the next read, 100 ms at most (T-148's hold), then shows. The trigger must be contiguous: an
   escape sequence, CR or LF inside it makes it text.
-- A whole trigger starts a session only when the CRC holds, the version is 1, and the id was not
+- A whole trigger starts a session only when the CRC holds, the version is 2, and the id was not
   seen before in this session (the codec keeps the last 32 ids). Else its bytes show unchanged: a
   `cat` of a log that holds a trigger, or tmux painting its screen again after a resize, starts
   nothing. A trigger of another version with a CRC that holds also gives `Unsupported`, so that the
@@ -799,19 +803,22 @@ after the last field are a protocol error, except in `DATA`.
 
 | KIND | From | Fields | Meaning |
 | --- | --- | --- | --- |
-| `HELO` | near, then far | `u8` version (1), 8 bytes id, `u32` largest chunk | The near end accepts the trigger; the far end answers with the same id. The chunk cap is the smaller of the two |
+| `HELO` | near, then far | `u8` version (2), 8 bytes id, `u32` largest chunk | The near end accepts the trigger; the far end answers with the same id. The chunk cap is the smaller of the two |
 | `OFFR` | sender | `u64` size, `u32` mode (the low 12 bits; 0: none), `u64` mtime (seconds since 1970; 0: none), `str` name | One file |
-| `TAKE` | receiver | `u64` from (0 in version 1; a resume is for later) | The receiver takes the file |
+| `TAKE` | receiver | `u64` from (0 in version 2; a resume is for later) | The receiver takes the file |
 | `SKIP` | receiver | `str` reason | The receiver refuses the file; the session ends |
 | `DATA` | sender | `u64` offset, then 1 to chunk bytes | The file's bytes at offset |
 | `ACKN` | receiver | `u64` of (the offset of the `DATA` it answers), `u64` count (bytes received in order) | The echo of the received count |
 | `DONE` | sender | `u64` size, 32 bytes SHA-256 | Each byte was sent |
 | `KEPT` | receiver | `u64` size | SHA-256 matched and the file has its name; the session ends |
+| `HOLD` | receiver | none (an empty payload: `#HOLD:!464f8be9`) | The receiver is there and waits for its caller (a person who answers an offer, a rename): its answer to a frame of the sender that comes again meanwhile |
 | `STOP` | either | `u8` code, `str` reason | The session ends: 1 cancelled, 2 out of time, 3 the size or the SHA-256 differs, 4 protocol error, 5 a local error (a write, a rename), 6 refused, 7 unsupported |
 
 A well-formed frame of a kind that the role never takes in its state (an echo of its own frame, a
-`DATA` to a sender) is dropped as junk. A kind not in the table, a version other than 1, an id that
-differs from the trigger's, or a field out of range is a protocol error: `STOP` 4.
+`DATA` to a sender) is dropped as junk. A kind not in the table, an id that differs from the
+trigger's, or a field out of range is a protocol error: `STOP` 4. A `HELO` of another version stops
+the far end with `STOP` 7 ("HELO of version 1; this end takes version 2"); a peer of version 1 reads
+`HOLD` as a kind that it does not know.
 
 **The flow.**
 
@@ -819,7 +826,10 @@ differs from the trigger's, or a field out of range is a protocol error: `STOP` 
    question meanwhile). The near codec gives `Start`; its caller asks, as T-148 asks, and calls
    `accept` (then `HELO`) or `refuse` (then `STOP` 6). The far end answers `HELO`.
 2. The sender sends `OFFR`. A receiver near end gives `Offer`: the name is checked first (below),
-   then the caller asks about a name that is taken and calls `take` or `skip`.
+   then the caller asks about a name that is taken and calls `take` or `skip`. While the caller
+   asks, the receiver answers each `OFFR` that comes again with `HOLD`; the sender counts its 20 s
+   wait from the last frame of any kind, and after a `HOLD` sends its frame again `RESEND_MAX` (5 s)
+   later. The codec sets no limit on the time of the person.
 3. `DATA` and `ACKN`, one `DATA` in flight. The sender sends `DATA` at offset = the last count and
    waits. The receiver writes from its count on: a `DATA` with offset at or below its count takes
    only its bytes past the count (an overlap after a resend), and answers `ACKN { of: offset, count
@@ -836,12 +846,22 @@ differs from the trigger's, or a field out of range is a protocol error: `STOP` 
    frame sends nothing; the sender's timer covers it.
 6. `DONE`: the receiver compares the size with its count and the SHA-256 with its own hash of the
    bytes it wrote. Equal: it gives `Verified`, its caller fsyncs and renames the temporary file
-   (T-134's rule) and calls `kept`, which sends `KEPT`. Not equal: `STOP` 3 and `End`, and no
-   `Verified`. An empty file goes `OFFR`, `TAKE`, `DONE` with no `DATA`.
+   (T-134's rule) and calls `kept`, which sends `KEPT`; a `DONE` that comes again during the
+   rename gets `HOLD`. Not equal: `STOP` 3 and `End`, and no `Verified`. An empty file goes `OFFR`,
+   `TAKE`, `DONE` with no `DATA`.
 7. After `KEPT`, `SKIP` or `STOP` the session ends on both sides; the far end restores its tty, and
    may clear what it painted (in tmux: its screen keeps the frames until it does). The near codec
    gives the bytes after the last frame in the same read as `End`'s `rest`, for the display, and
    watches for a trigger again.
+8. **The verdict.** The pty can lose `KEPT`. So the receiver keeps the size and the SHA-256 of the
+   kept file for `LINGER`, 25 s (the 20 s wait and one `RESEND_MAX`), from the hand-over of `KEPT`
+   (`lingers()` is true meanwhile), and answers a `DONE` of that file that comes again with the
+   same `KEPT`; at the near end that `DONE` does not show, at the far end each other byte is
+   dropped. The far program that received a file reads its input and ticks until `active()` and
+   `lingers()` are both false; then it exits. A new trigger ends the verdict.
+9. **Unconfirmed.** A sender that gets no frame in 20 s after `DONE` ends with
+   `Ended::Unconfirmed`, and sends no `STOP`: the receiver can have kept the file. Its caller says
+   "sent; the receiver did not confirm", not a failure.
 
 **The name** (T-148's rule, for a name from the far end): the codec takes the last component after
 `/`; it refuses with `STOP` 6 a name of more than 1024 bytes on the wire, not UTF-8, or whose last
@@ -865,7 +885,10 @@ others. MD5 is not used.
 | A reason in `SKIP` or `STOP` | 200 bytes sent; a longer one read is cut | |
 | A size or offset | below 2^63 | `STOP` 4 |
 | Each wait for a valid frame from the peer | 20 s (the far end's first wait: 120 s) | `STOP` 2 |
-| The resend of the frame in flight | `max(1 s, 4 × ack time)`, at most 5 s | the 20 s wait ends it |
+| The resend of the frame in flight | `max(1 s, 4 × ack time)`, at most 5 s; 5 s after a `HOLD` | the 20 s wait ends it |
+| A person who answers an offer, a rename | no limit: `HOLD` keeps the sender | |
+| The verdict after `KEPT` | 25 s (`LINGER`) from its hand-over | a `DONE` shows as text |
+| The sender's wait after `DONE` | 20 s from the last frame | `Unconfirmed`, no `STOP` |
 
 A write of the near end's bytes that the server does not take stays the session's limit (T-859's
 40 s), not the codec's.
@@ -882,7 +905,7 @@ A write of the near end's bytes that the server does not take stays the session'
 - A `STOP` from the peer; a wait of 20 s; a protocol error; a local error the caller reports with
   `stop(5, reason)`.
 - A receiver's caller removes its temporary file at each `End` that is not `Done`. A sender's `End`
-  is `Done` only after `KEPT`.
+  is `Done` only after `KEPT`, and `Unconfirmed` when `KEPT` did not come in 20 s after `DONE`.
 
 **The interface** (sans-IO: bytes and the time in, bytes and events out; the shape of T-148's
 `Zmodem`):
@@ -896,6 +919,7 @@ fn deadline(&self) -> Option<Instant>;  // fn tick(&mut self, now) -> Vec<Event>
 fn accept(&mut self, now) / refuse(&mut self, reason) / send_file(&mut self, info, now)
 fn take(&mut self) / skip(&mut self, reason) / supply(&mut self, bytes) / kept(&mut self)
 fn stop(&mut self, code, reason) / hangup(&mut self)
+fn active(&self) -> bool / lingers(&self) -> bool  // a session runs / the verdict is kept
 
 enum Event {
     Show(Vec<u8>),                          // near: output for the terminal, in order
@@ -907,7 +931,7 @@ enum Event {
     Progress { done: u64, size: u64 },
     Damaged,                                // a frame was dropped (for a count, not a line)
     Verified { size: u64, sha256: [u8; 32] }, // receiver: rename, then kept() or stop(5, ..)
-    End { ended: Ended, rest: Vec<u8> },    // Done, or Stopped { code, by_peer, reason }
+    End { ended: Ended, rest: Vec<u8> },    // Done, Unconfirmed, or Stopped { code, by_peer, reason }
 }
 ```
 
@@ -920,16 +944,16 @@ exchanges. Each frame below was computed with Python's `base64` and
 
 | # | Input (bytes; "then" separates reads) | Events or output |
 | --- | --- | --- |
-| T1 | near idle: `ls\r\n#PODSSH-TX1:S:0123456789abcdef:56fd5108\r\n` | `Show("ls\r\n")`, `Start { S, id }`; nothing sent |
-| T2 | near idle: `#PODSSH-TX1:R:0123456789abcdef:b9afe7e9\r\n` | `Start { R, id }` |
-| T3 | `#PODSSH-TX1:S:0123` then `456789abcdef:56fd5108\r\n` | first read: no event; second: `Start` |
-| T4 | `#PODSSH-TX1:S:0123`, then 100 ms with nothing | `Show("#PODSSH-TX1:S:0123")` at the deadline |
-| T5 | `#PODSSH-TX1:S:0123456789abcdef:56fd5109\r\n` (CRC off by one) | `Show` of each byte; no `Start` |
-| T6 | `#PODSSH-TX2:S:0123456789abcdef:f9541cc2\r\n` | `Show` of each byte, `Unsupported { 2 }` |
+| T1 | near idle: `ls\r\n#PODSSH-TX2:S:0123456789abcdef:f9541cc2\r\n` | `Show("ls\r\n")`, `Start { S, id }`; nothing sent |
+| T2 | near idle: `#PODSSH-TX2:R:0123456789abcdef:1606aa23\r\n` | `Start { R, id }` |
+| T3 | `#PODSSH-TX2:S:0123` then `456789abcdef:f9541cc2\r\n` | first read: no event; second: `Start` |
+| T4 | `#PODSSH-TX2:S:0123`, then 100 ms with nothing | `Show("#PODSSH-TX2:S:0123")` at the deadline |
+| T5 | `#PODSSH-TX2:S:0123456789abcdef:f9541cc3\r\n` (CRC off by one) | `Show` of each byte; no `Start` |
+| T6 | `#PODSSH-TX1:S:0123456789abcdef:56fd5108\r\n`, and `#PODSSH-TX3:S:0123456789abcdef:9c332784\r\n` | `Show` of each byte, `Unsupported { 1 }`, `Unsupported { 3 }` |
 | T7 | T1's trigger again after that session ended | `Show` of each byte; no `Start` (id seen) |
-| T8 | `#PODSSH-TX1:S:fedcba9876543210:dac7206b` after T7 | `Start` (a new id) |
-| T9 | `#PODSSH-TX1:S:0123\x1b[K456789abcdef:56fd5108\r\n` (an escape inside) | `Show` of each byte (not contiguous) |
-| F1 | `#HELO:AQEjRWeJq83vAACAAA!21941b5b\r\n` | `HELO { 1, id, 32768 }` |
+| T8 | `#PODSSH-TX2:S:fedcba9876543210:756e6da1` after T7 | `Start` (a new id) |
+| T9 | `#PODSSH-TX2:S:0123\x1b[K456789abcdef:f9541cc2\r\n` (an escape inside) | `Show` of each byte (not contiguous) |
+| F1 | `#HELO:AgEjRWeJq83vAACAAA!9c5e7795\r\n` | `HELO { 2, id, 32768 }` |
 | F2 | F1 ending in `\n`, in `\r`, and in nothing | the same frame, each |
 | F3 | `#DATA:AAAAAA\r\nAAAABoZWxsbwo!beee1f4d\r\n` (wrapped) | `DATA { 0, "hello\n" }` |
 | F4 | `junk\x1b[K#DATA:AAAAAA\x1b[12;1HAAAABoZWxsbwo!beee1f4d` | `DATA { 0, "hello\n" }` (junk and escapes dropped) |
@@ -942,13 +966,14 @@ exchanges. Each frame below was computed with Python's `base64` and
 | F11 | `#DATA:` then 44,027 `A` with no `!` | `STOP` 4 sent, `End` |
 | F12 | 65,537 bytes of `x` in a session, no frame | `STOP` 4 sent, `End` |
 | F13 | `#ZZZZ:` frame with a CRC that holds | `STOP` 4 |
+| F14 | `#HOLD:!464f8be9\r\n`; and `#HOLD:AA!464f8be9` | `HOLD`; `Damaged` (a payload) |
 
 The exchanges; `>` is near to far, `<` far to near; near frames end in `\r`, far frames in `\r\n`:
 
 | # | Download (far `S`) | Upload (far `R`) |
 | --- | --- | --- |
 | 1 | `<` trigger T1; near `Start`, caller `accept` | `<` trigger T2; near `Start`, caller `send_file(a.txt)` |
-| 2 | `>` `#HELO:AQEjRWeJq83vAACAAA!21941b5b` | `>` the same `HELO` |
+| 2 | `>` `#HELO:AgEjRWeJq83vAACAAA!9c5e7795` | `>` the same `HELO` |
 | 3 | `<` the same `HELO` | `<` the same `HELO` |
 | 4 | `<` `#OFFR:AAAAAAAAAAYAAAGkAAAAAAAAAAAABWEudHh0!51054221`; `Offer { "a.txt", 6, 0644, None }`; caller `take` | `>` the same `OFFR` |
 | 5 | `>` `#TAKE:AAAAAAAAAAA!5b64f8f9` | `<` the same `TAKE`; near `NeedData { 0, 1024 }`, caller `supply("hello\n")` |
@@ -971,6 +996,73 @@ The exchanges; `>` is near to far, `<` far to near; near frames end in `\r`, far
 | X10 | a name that names no file | step 4: `#OFFR:AAAAAAAAAAYAAAGkAAAAAAAAAAAAAi4u!4533a1d9` (`..`) | no `Offer`; `STOP` 6; `End` |
 | X11 | silence | after step 5, nothing for 20 s | `STOP` 2; `End { Stopped(2) }` |
 | X12 | an echo of its own frame | download, after step 5: `<` step 5's `TAKE` | dropped as junk; no event |
+| X13 | a `KEPT` lost (download) | after step 9: `<` step 8's `DONE` again, also cut by a read or repainted | no event, nothing shows; `>` step 9's `KEPT` again; a line `$ #DONE: no frame` shows |
+| X14 | a `KEPT` lost (upload) | after step 9, the far end: `>` step 8's `DONE` again | `<` step 9's `KEPT` again; each other frame and byte dropped; after 25 s nothing; the near sender's `DONE` sent again ends `Done` at the second `KEPT` |
+| X15 | a `DONE` after the verdict | step 8's `DONE` 25 s after step 9 | `Show` of its bytes; no `KEPT` |
+| X16 | a `DONE` of another SHA-256 | X4's `DONE` after step 9 | `Show` of its bytes; no `KEPT`; a new trigger ends the verdict |
+| X17 | a person who answers an offer after 60 s | download, after step 4: `<` step 4's `OFFR` each 5 s | `>` `#HOLD:!464f8be9` each time, no second `Offer`; then `take`, `>` step 5's `TAKE`. Upload: `<` `HOLD` each 5 s, `>` `OFFR` again 5 s after each; then `TAKE` gives `NeedData { 0, 1024 }` |
+| X18 | a rename that takes 60 s | download, after `Verified`: `<` step 8's `DONE` each 5 s | `>` `HOLD` each time; then `kept`, `>` `KEPT` |
+| X19 | no frame after `DONE` (upload) | after step 8, nothing for 20 s | `DONE` again each resend, no `STOP`; `End { Unconfirmed }` |
+| X20 | a peer of version 1 | T6's version 1 trigger; a far sender given `#HELO:AQEjRWeJq83vAACAAA!21941b5b` | `Unsupported { 1 }`, nothing sent; the far end: `<` `#STOP:BwArSEVMTyBvZiB2ZXJzaW9uIDE7IHRoaXMgZW5kIHRha2VzIHZlcnNpb24gMg!cb0e9a21` (7) |
+
+### The envelope in podssh (T-831, step 2)
+
+podssh wires both ends of `pod_term::transfer` (version 2, podcrates `v0.84.0`, the feature
+`transfer`). It writes no frame and reads none itself: each byte of the protocol is the codec's.
+
+- **The far end is `podssh tx`** (`crates/podssh-ssh/src/zmodem/far.rs`, the command line in
+  `crates/podssh-cli/src/tx.rs`), as `sz` and `rz` are ZMODEM's: `podssh tx send FILE` (a
+  download) and `podssh tx receive [DIR]` (an upload), typed in the far shell, inside tmux or not.
+  It needs stdin and stdout on a terminal of 48 columns at least (else 64, before anything is
+  painted), sets it raw with no echo (`RawMode`, as lrzsz sets its tty), paints the trigger with 64
+  random bits of id, and breaks each frame at the terminal's width less one. stdin is read on a
+  thread of its own, so that each wait of the codec has its limit; its end (the session's pty went)
+  is the codec's `hangup`. A name that DIR has is never replaced: the far end answers `SKIP`
+  "NAME exists there". A file that comes is written as T-134 writes a copy (`files::Incoming`: the
+  temporary name, the codec's SHA-256 and size, then the time, the mode and the rename). The end is
+  one line on stderr once the terminal is restored, and an exit code (a receiver first keeps its
+  verdict for `LINGER`, 25 s, reading its input, so that a lost `KEPT` goes again; Ctrl-C or Ctrl-D
+  from the near end, whose keys pass once its session ended, ends that wait): 0 the file kept, 64 a usage
+  error or no terminal, 65 the size or the SHA-256 differs or the other end broke the protocol, 66
+  FILE or DIR cannot be read, 73 the file cannot be written or kept, 75 refused, skipped,
+  cancelled or no answer in time. A send whose `KEPT` did not come back (`Unconfirmed`) exits 0
+  and says that the other end did not confirm.
+- **The near end is the session's watch** (`crates/podssh-ssh/src/zmodem/session/envelope.rs`):
+  the watcher of ZMODEM, in each session with a pty and a local terminal and not through a control
+  master; `PODSSH_ZMODEM=off` turns off both. Its scan of the output comes first while ZMODEM runs
+  nothing, and what it shows goes on to ZMODEM's scan. A trigger asks as `sz` and `rz` ask: "the
+  server sends a file through the terminal (podssh tx send). Receive into DIR?" (the directory of
+  the last answer, shared with ZMODEM's), or "the server waits for a file through the terminal
+  (podssh tx receive). Send which file?". Nothing goes to the server before the answer, and Ctrl-C
+  refuses (`STOP` 6 "refused here").
+- **A download** takes the name that the codec checked (its last component, no control
+  character), then `files::check_name`'s rules of this platform (Windows' names); a directory of
+  that name is skipped, and a file of that name is replaced only after `y` (else `SKIP` "NAME exists
+  here"). The bytes go to `.NAME.podssh-RANDOM.part` (mode 0600); at `Verified` the copy is synced
+  and gets the far file's time, its mode without the write bits of the group and others, and its
+  name; only then does `KEPT` go. A copy that cannot be kept sends `STOP` 5 "the file could not be
+  kept here": the far end hears no path of this host.
+- **An upload** reads the file named at each offset that the codec asks (`NeedData`), any size
+  below 2^63 (ZMODEM's limit of 4 GiB is not the envelope's), with the low 12 bits of its mode and
+  its time.
+- **Keys, limits and ends.** While a question is open it takes the keys; while a transfer runs the
+  codec does (Ctrl-C, five CAN in a row) and drops each other key. The pump's write limit (T-859's
+  40 s) holds the envelope's frames as it holds ZMODEM's bytes, and ends a transfer with `STOP` 1
+  and the limit's words; SIGHUP, SIGTERM and the end of stdin send `STOP` 1 "the local terminal
+  went" and exit 255. Each end says one line, `podssh: tx: REASON`, with `podssh tx on the server:`
+  before a reason that the far end gave, and a file that did not end is removed. A whole transfer
+  says `received PATH (N bytes, SHA-256 checked)` or `sent NAME (N bytes, SHA-256 checked by the
+  server)`, with the count of frames that came damaged and went again; a send whose `KEPT` did not
+  come in 20 s says `sent NAME (N bytes); the server did not confirm that it kept it`. The codec
+  answers alone with `HOLD` while a question about a name that is taken is open, and with `KEPT`
+  again for 25 s after a download (the session's watch reads the output and ticks meanwhile).
+- **Tests.** `cargo test -p podssh-ssh --test pty_envelope` runs the vectors above against the
+  session's watch byte for byte (the rows T, the exchanges, X1, X2, X4 to X8, X10 to X13, X17,
+  X19 and X20), each end
+  of T-859 each way, and a file each way through a model of tmux that draws its own screen: rows
+  after a cursor move, a far end wider than its pane, a repaint of the screen and a status line in
+  the middle of a frame, and a lost write. The gate's `scripts/interop-pty.py` runs `podssh tx` in
+  tmux against OpenSSH (`pty.envelope.*`). UNVERIFIED: the draft of 2026-11-25 was not built.
 
 ## A notice while the far end is silent
 
