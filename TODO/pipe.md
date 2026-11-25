@@ -167,7 +167,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
   measured. Only exec is measured with digests (`docs/STATUS.md:259`); `-W`
-  was checked with a banner of 16 bytes (`scripts/interop.sh:357-359`).
+  was checked with a banner of 16 bytes (`scripts/interop.sh:346-348`).
 - Read: `node:` needs T-084 (M4) and `iroh:` needs T-163 (M6); both are done
   before M7 starts.
 
@@ -652,7 +652,7 @@ sh scripts/dev.sh check                               # interop-faults.sh: the d
 
 In `scripts/interop-faults.sh`, `--persist -tt` goes through two stand-in
 relays. The input sets `MARK=kept`; the harness kills the first stand-in, as
-`scripts/interop-faults.sh:273-283` does; the input then runs `echo M=$MARK`
+`scripts/interop-faults.sh:277-287` does; the input then runs `echo M=$MARK`
 and `tmux kill-session`. The output has `M=kept`, and the exit is 0. With
 tmux moved off `PATH`, the exit is 255 and names tmux. Plant: start tmux
 without `-A`; the second attach fails, and the check must fail.

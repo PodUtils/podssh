@@ -97,19 +97,8 @@ for port in (2201, 2202, 2203):
 EOF
 apk info -v openssh-server dropbear 2>/dev/null | sed 's/^/server: /'
 
-# p PORT [podssh ssh arguments...]: podssh with a fresh environment: no
-# agent, test keys only, this run's known_hosts, never a prompt on a terminal.
-# With as_job=exec, podssh takes the place of the shell that runs p: a
-# function run with & is a shell of its own, and kill would end that shell
-# alone and leave podssh running.
+# p, in scripts/interop-lib.sh (T-796), reads KH: this run's known_hosts.
 KH="$W/known_hosts"
-p() {
-    _port=$1
-    shift
-    ${as_job:-} env -u SSH_AUTH_SOCK HOME="$W" "$BIN" ssh --direct -p "$_port" \
-        -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new \
-        -o IdentityAgent=none -o IdentitiesOnly=yes "$@"
-}
 T=podtest@127.0.0.1
 K="-i $W/id_ed25519"
 
@@ -495,5 +484,6 @@ for f in "$W"/sshd-*.pid "$W/dropbear.pid"; do
     [ -f "$f" ] && kill "$(cat "$f")" 2>/dev/null
 done
 echo
+bound_report
 echo "interop: $pass passed, $fail failed, $skip skipped, $unmet env"
 [ "$fail" -eq 0 ]

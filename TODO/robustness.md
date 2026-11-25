@@ -979,10 +979,10 @@ nobody measures again.
 
 Read, each claim of GitHub #34 at the lines as they are now:
 
-- The matrix is at `scripts/interop.sh:117-127`. It expects 3, 0, 1, 127 and
+- The matrix is at `scripts/interop.sh:106-116`. It expects 3, 0, 1, 127 and
   143, against OpenSSH (port 2201) and Dropbear (port 2203). `grep -c` gives
   17 lines with `expect_rc`, each a call; the helper is
-  `scripts/interop-lib.sh:53-126` (T-199). `scripts/interop-keygen.sh` has 6
+  `scripts/interop-lib.sh:53-194` (T-199). `scripts/interop-keygen.sh` has 6
   more, for `podssh keygen`.
 - `scripts/interop.sh` (lines 31-32 at `5c7a1ad`) installed `openssh-server`,
   `openssh-keygen` and others, but no client package. No harness ran the stock `ssh`; only
@@ -3187,6 +3187,61 @@ time and under the job's 45 min with the build before it. In the build image (`r
 busybox's `timeout`), the gate's own `run` function: a step that said two checks and then slept ended at its bound with
 `exit=143` and both lines shown; planted, the same step with no bound, cut from outside, showed none. It waits for the
 next hang of the step, whose lines then name the check that held.
+
+Drafted 2026-11-25 (step 2 of the Approach, before the next hang), UNVERIFIED (the build image runs it, T-251). An
+advisor read the log of the hang: it ended at `== interop: OpenSSH and Dropbear` and was cancelled 35 min later, so
+the step's `timeout 1500` (`scripts/gate.sh`) ends the whole step and names only the last check said, and podssh's
+stderr is lost; the helpers that run podssh had no bound of their own. Now each has one: `p` and `direct_ref`
+(`scripts/interop-lib.sh`; `p` moved there from `scripts/interop.sh`, which the 500-line rule asked for) and `r`
+(`scripts/interop-faults.sh`) run podssh under `$BOUND_CMD`, `timeout -k 10 $P_LIMIT` with `P_LIMIT` 300 s (the
+longest call that I found, 5,000,000 bytes through the 64 KiB/s stand-in, takes about 80 s; set `P_LIMIT` in the
+environment of `interop.sh` to move it). A call that is stopped ends its check by its own id: the check's `expect_rc`
+or `[ "$rc" ... ] || bad` sees 124, 143 or 137 and `bad` shows `$W/err`, where the new `bound_note`
+(`scripts/interop-lib.sh`) has put the line `interop: BOUND podssh ran N s, past its bound of 300 s, and was stopped
+(exit RC): ssh -p PORT ARGS`. `bound_note` counts a stop only when the call's time reached the bound, because podssh
+itself exits 143 when the remote command was killed by TERM (the case `ssh.exit.*.143`). It also appends the line to
+`$W/bound.log`; `bound_report`, which `interop.sh` calls before its summary, prints each such line and counts one
+failure, so a check that did not mind the code (one that wants "any failure") cannot pass over a hang. Where `timeout`
+or its `-k` is not there, `BOUND_CMD` is empty and the call runs as before.
+
+Decision. The bound is in front of `env`, in the place that `${as_job:-}` was: `${as_job:-} $BOUND_CMD env ...`. With
+`as_job=exec` the shell becomes `timeout`; busybox's `timeout` (Alpine, the build image) then does what no other does:
+it forks a watcher that `kill`s the pid of the program it executes, and `exec`s the program itself (read in
+`coreutils/timeout.c`, busybox 1_36). So `$!` stays podssh's pid and `kill "$pid"` reaches podssh as before; on a stop
+it gives podssh's own status (TERM: 143, then after `-k 10` KILL: 137, never 124). Coreutils' `timeout` (a host that
+runs the harness by hand) is a parent of podssh and passes TERM on, and gives 124; the draft ran both ends of that on
+this host's coreutils only (a stopped call: 124 with the line; a job killed by `kill $!`: 143). The alternatives that
+lost: a `sh -c` wrapper with a watcher (a second process between `$!` and podssh, which is the reason for
+`as_job=exec` in the first place); `timeout -s KILL` alone (no TERM first, so podssh could not say where it was; I did
+not read whether podssh handles TERM, and `-k 10` covers one that ignores it); matching only the code 143 (ambiguous
+with `ssh.exit.*.143`; so the time decides). A stopped job (`as_job=exec`) gets no `bound_note`, since `exec` never
+returns: its stop is seen by its caller's checks (a banner that never came), and the step's own bound still holds.
+
+Also bounded, being simple: the bare `wait` of `scripts/interop-go-ssh.sh` now waits on the pids of its four `quiet`
+jobs (it waited on each job of the shell; those `p` are `timeout 200`'d there already, a `p` of that file's own), the
+two `pipe` listeners of `scripts/interop-pipe.sh` (`timeout 120`: a client that never came held `wait "$lpid"`), and
+the driver of `scripts/interop-ptyrun.sh` (`timeout "${PTY_LIMIT:-900}"`; a TERM ends python, and the ptys' podssh
+with it; its cases each have their own 15 s). Listed, not changed, each waiting on a process that has a bound of its
+own or that the caller ends first: `wait` in `interop-acme.sh` (the role, ended by `kill`), `interop-agent.sh`,
+`interop-broadcast.sh` (after `kill -9`), `interop-control.sh`, `interop-cp.sh:74,440,454` (`podssh cp --timeout
+120s`; a `grower` the caller kills), `interop-desktop.sh` (`timeout 60` on each listener), `interop-faults.sh:283,367`
+(an `r`, bounded now), `interop-frp.sh`, `interop-limits.sh` (a podssh that the check measures by its pid,
+`/proc/PID`, so that a `timeout` of coreutils in front would measure the wrong process; busybox's would not: bound it
+there when the lane is only busybox), `interop-local.sh`, `interop-mv.sh`, `interop-remote.sh`, `interop-result.sh`,
+`interop-resume.sh:97` (its Python ends the copier by its own deadline), `interop-session.sh`, `interop-socks.sh`,
+`interop-usbip.sh` (`timeout 60`); and the calls of podssh that are not `p`, `r` or `direct_ref` (`ro` of
+`interop-roost.sh`, the `env ... "$BIN"` lines of `interop-limits.sh`, `interop-cp.sh`, `interop-chisel.sh` and
+others, most with a `timeout N` of their own).
+
+Prove, still to do in the build image: a planted podssh stand-in that sleeps (`P_LIMIT=3`, `BIN` a script) must end
+its check with `FAIL ID` and the `BOUND` line in its output, the `interop: BOUND ...` line before the summary and the
+exit code 1; `INTEROP_ONLY=faults` with a stand-in relay that never answers must name `faults.*`, not the step; and
+`cargo todo interop` must show no new id (the helper adds none).
+
+Merged by the main session on 2026-11-25 (after the merge of T-627): `dash -n` of each changed script and
+`python3 scripts/check-scripts.py` pass; the gate's interop step at the push runs the bounded calls on their normal
+path. The planted hang (a stand-in podssh that sleeps, `P_LIMIT=3`) waits for the build image's run (T-251). It stays
+partial until the gate of the push passes and the planted run names a hang by its check.
 
 # T-797: The weekly fuzz run stopped before its first target, two weeks running, on a count of seeds that had moved
 

@@ -83,12 +83,16 @@ r() {
     # loopback would go around it (T-318).
     _pins=$PINS
     [ -n "$RP" ] && _pins=
+    _r_t0=$(date +%s)
+    # Within P_LIMIT (scripts/interop-lib.sh); as for p, what follows runs
+    # only where as_job is not exec.
     # shellcheck disable=SC2086
-    ${as_job:-} env -u SSH_AUTH_SOCK -u https_proxy -u HTTPS_PROXY -u all_proxy -u ALL_PROXY ${RP:+https_proxy=$RP} \
-        ${RC:+XDG_CACHE_HOME=$RC} \
+    ${as_job:-} $BOUND_CMD env -u SSH_AUTH_SOCK -u https_proxy -u HTTPS_PROXY -u all_proxy -u ALL_PROXY \
+        ${RP:+https_proxy=$RP} ${RC:+XDG_CACHE_HOME=$RC} \
         HOME="$W" "$BIN" ssh --relay-host "$_relays" ${_pins:+--relay-addr "$_pins"} --ca-file "$FK/ca.pem" -p 2201 \
         -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new \
         -o IdentityAgent=none -o IdentitiesOnly=yes $K -o BatchMode=yes "$@"
+    bound_note "$?" "$_r_t0" "ssh --relay-host $_relays $*"
 }
 
 # The control: without it, every failover below could pass for a wrong reason.
@@ -353,7 +357,7 @@ while time.time() < limit:
 print(line)
 EOF
 }
-# As one process, so that kill ends podssh (see p in scripts/interop.sh). An
+# As one process, so that kill ends podssh (see p in scripts/interop-lib.sh). An
 # empty record of its own, so that the killed host carries the forward (T-563).
 RC="$FK/cache-tunnel"
 (as_job=exec r "relay-tunnel.test:$(port tunnel),relay-a.test:$(port a)" --persist -N -R 127.0.0.1:2290:127.0.0.1:2203 \

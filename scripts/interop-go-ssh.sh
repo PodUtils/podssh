@@ -185,10 +185,14 @@ quiet() {
     p "$(port_of "$1")" $_opts u@127.0.0.1 'sleep 100; echo alive' </dev/null >"$W/quiet-$1.out" 2>"$W/quiet-$1.err"
     echo $? >"$W/quiet-$1.rc"
 }
+# Each job by its pid: a bare wait would also wait on each other job of the shell.
+qpids=
 for s in $SERVERS; do
     quiet "$s" &
+    qpids="$qpids $!"
 done
-wait
+# shellcheck disable=SC2086
+wait $qpids
 for mode in failure success; do
     for keep in default interval; do
         s=$mode-$keep

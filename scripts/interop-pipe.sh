@@ -105,7 +105,8 @@ got=$(cut -c1-64 <"$PD/out")
 
 # The listeners (T-177). A TCP port, one client, through a program: equal
 # digests, and the listener ends with the session.
-"$BIN" pipe tcp-listen:127.0.0.1:0 exec:cat 2>"$PD/listen.err" &
+# Within 120 s, so that a client that never comes does not hold the wait (T-796).
+timeout 120 "$BIN" pipe tcp-listen:127.0.0.1:0 exec:cat 2>"$PD/listen.err" &
 lpid=$!
 tries=0
 while ! grep -q "listening on" "$PD/listen.err" 2>/dev/null && [ "$tries" -lt 50 ]; do sleep 0.2; tries=$((tries + 1)); done
@@ -122,7 +123,7 @@ lrc=$?
 # guard it, so the peer check does; then this user's client is served.
 cp "$BIN" /tmp/podssh-other && chmod 755 /tmp/podssh-other
 name="@podssh-interop-$$"
-"$BIN" pipe "unix-listen:$name" exec:cat 2>"$PD/listen.err" &
+timeout 120 "$BIN" pipe "unix-listen:$name" exec:cat 2>"$PD/listen.err" &
 lpid=$!
 tries=0
 while ! grep -q "listening on" "$PD/listen.err" 2>/dev/null && [ "$tries" -lt 50 ]; do sleep 0.2; tries=$((tries + 1)); done

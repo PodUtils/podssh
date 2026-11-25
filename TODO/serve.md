@@ -628,7 +628,7 @@ opens, `ssh -tt` gets a terminal, 80x24 (OpenSSH sends a zero size with no local
 client's `TERM`, and Ctrl-C ends `sleep 25`; where none opens, the refusal and 255. The plant
 `t110-no-window-size` (no `TIOCSWINSZ` at the request) fails the size check. In the build image
 (T-251): `scripts/interop-pty.py` with a mode for `podssh serve --stdio` (resize, `vi`, `less`, `top`,
-`~.`) and the `-tt` cases of `scripts/interop.sh:424-452` against serve.
+`~.`) and the `-tt` cases of `scripts/interop.sh:413-441` against serve.
 
 ## Correction
 
@@ -778,7 +778,7 @@ sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh
 The test file crates/podssh-ssh/tests/serve_line.rs uses `--pty line`: Ctrl-C
 ends `sleep 30` within 5 s, the next line runs, and output lines end in CR
 LF. The gate runs the same through OpenSSH's `ssh -tt`, in the shape of
-`scripts/interop.sh:433-442`: `AFTER-5` and exit 9 within 15 s. In the box
+`scripts/interop.sh:422-431`: `AFTER-5` and exit 9 within 15 s. In the box
 (no `/dev/ptmx`), a new step drives `podssh serve --stdio` with
 `podman exec -i` from OpenSSH on the host. A planted serve that signals the
 shell's pid and not its group fails the 15 s check.
@@ -870,7 +870,7 @@ default since OpenSSH 9.0), need an SFTP subsystem on the server.
   `subsystem_request` must answer (`Eugeny/russh:russh/src/server/mod.rs`,
   lines 686-696 at `22c3b88`).
 - Read: the client reaches an SFTP subsystem already: `-s sftp` gets
-  `SSH_FXP_VERSION` from OpenSSH's `sftp-server` (`scripts/interop.sh:367-375`).
+  `SSH_FXP_VERSION` from OpenSSH's `sftp-server` (`scripts/interop.sh:356-364`).
 - Read in the report of GitHub #20, not verified here: tty7 issue #1126 is an
   SFTP wait that did not end; GitHub #15 is the same class in podssh.
 
@@ -988,7 +988,7 @@ the entry joins the work order by its priority.
   The task gives its data to a writer that a program or the SFTP server takes: a child's stdin, or one
   end of a pipe in the process whose other end the server reads; the replies go out through the
   channel's writing half, and the server sends EOF and close when the client's EOF ends its input.
-- The client side (`scripts/interop.sh:366-375`) holds as read: `-s sftp` gets `SSH_FXP_VERSION`
+- The client side (`scripts/interop.sh:355-364`) holds as read: `-s sftp` gets `SSH_FXP_VERSION`
   from OpenSSH's `sftp-server`.
 - russh-sftp reads each path as text: a request whose path is not UTF-8 is a bad message, and a name
   in a listing that is not UTF-8 has U+FFFD in place of each bad byte, as the client's module says.
