@@ -76,6 +76,12 @@ pub fn taken() -> Option<Hangup> {
 }
 
 impl Hangup {
+    /// Whether a signal came already: a session that it ended was ended by
+    /// the user, whatever its channel says (T-753).
+    pub fn has_come(&self) -> bool {
+        *self.came.borrow()
+    }
+
     /// When a signal comes; never, when none could be taken.
     pub async fn came(&self) {
         let mut came = self.came.clone();

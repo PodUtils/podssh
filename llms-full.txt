@@ -5857,8 +5857,9 @@ podssh operator
 
   Before the node takes the session, up to 1 MiB of stdin is kept, and sent
   then. The session ends when stdin ends or the node's TARGET closes; it exits
-  0 only when the node took the session. An error is one line on stderr; the
-  codes are in EXIT STATUS.
+  0 only when the node took the session. A session cut before its end, as when
+  the TARGET's connection was reset, exits 69: the last bytes can be missing.
+  An error is one line on stderr; the codes are in EXIT STATUS.
 
   SIGHUP, SIGTERM and SIGINT (on Windows, Ctrl-C, Ctrl-Break and the close of
   the console) end the session as the end of stdin does: OpenSSH ends its

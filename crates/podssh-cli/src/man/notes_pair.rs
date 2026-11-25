@@ -348,8 +348,9 @@ pub(super) const OPERATOR: &[&str] = &[
      node: ssh -o ProxyCommand='podssh operator NAME' user@NAME. podssh proxy node://NAME is the same pipe, with the \
      same flags and codes, by the form of a node that podssh ssh takes.",
     "Before the node takes the session, up to 1 MiB of stdin is kept, and sent then. The session ends \
-     when stdin ends or the node's TARGET closes; it exits 0 only when the node took the session. An \
-     error is one line on stderr; the codes are in EXIT STATUS.",
+     when stdin ends or the node's TARGET closes; it exits 0 only when the node took the session. A \
+     session cut before its end, as when the TARGET's connection was reset, exits 69: the last bytes can be \
+     missing. An error is one line on stderr; the codes are in EXIT STATUS.",
     "SIGHUP, SIGTERM and SIGINT (on Windows, Ctrl-C, Ctrl-Break and the close of the console) end the \
      session as the end of stdin does: OpenSSH ends its ProxyCommand with SIGHUP as it exits, and does \
      not wait for it. The node hears the session's end after the bytes on their way, and keeps nothing of \

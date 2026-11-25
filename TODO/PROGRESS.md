@@ -19,7 +19,7 @@ Read on 2026-11-25.
    T-738 is partial and T-740 blocked. M5's `podssh serve` is on `main` (Q92): commands, shells, a pty, direct-tcpip,
    SFTP, the options of a key line, `--listen`, kept shells, `--audit-log` and `--totp`.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
-   failure: T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
+   failure: T-627, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
    none. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
@@ -48,10 +48,9 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Running (2026-11-25): T-834's
-   draft (a worker in a worktree, no build); the fourth black-box pass of T-809 on a debug binary of `b981f5f` (a
-   tester with the binary and the documents alone); a read-only advisor on the random failures T-753, T-788, T-849 and
-   T-858 in light of T-465's cause. A draft that waits is merged first, in the order of this list. Each `draft/*`,
+8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). No draft waits (2026-11-25):
+   the drafts of T-834, T-846/T-788/T-753, T-906 to T-912, T-913 to T-917 and T-919 to T-922 were merged. A read-only
+   advisor on T-627, T-780 and T-796 stopped at a usage limit; its report goes into those entries. Each `draft/*`,
    `beta/*` and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy
    of a cloud session refuses deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
@@ -86,7 +85,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 854 entries: 4 open, 38 partial, 13 blocked, 799 done.
+`TODO/INDEX.md` holds 854 entries: 4 open, 37 partial, 13 blocked, 800 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -98,7 +97,7 @@ operator interrupts it.
 
 **The rules of the order**, first to last:
 
-1. A red gate, then a test that fails at random (T-627, T-753, T-756, T-780, T-796), before any other work.
+1. A red gate, then a test that fails at random (T-627, T-756, T-780, T-796), before any other work.
 2. A `partial` entry before a new one, and a draft's merge in the order of "Drafts" (State, item 8). Each partial
    entry's `## Done` says what it waits for (State, item 4).
 3. The migration's takes (T-684), as the podcrates session hands each crate over (Rule Q3 of `docs/decisions.md`:

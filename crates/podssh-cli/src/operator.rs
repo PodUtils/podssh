@@ -216,7 +216,8 @@ pub(crate) fn judged(label: &str, carried: &Carried) -> Option<(i32, String)> {
         // does (T-586).
         Carried { why: None, signalled: true, .. } => None,
         Carried { why: None, leg: Some(outcome), .. } => {
-            verdict(label, outcome).map(|(fault, why)| (fault.code(), why))
+            let clean = verdict(label, outcome).map(|(fault, why)| (fault.code(), why));
+            crate::layered::unless_cut(carried, clean)
         }
         Carried { why: None, leg: None, .. } => {
             Some((Fault::RelayUnreachable.code(), "the relay did not end the session in time".to_string()))

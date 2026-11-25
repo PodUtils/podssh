@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**854 entries: 4 open, 38 partial, 13 blocked, 799 done.**
+**854 entries: 4 open, 37 partial, 13 blocked, 800 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 96 | 109 |
-| P2 | 0 | 22 | 2 | 314 | 338 |
+| P2 | 0 | 21 | 2 | 315 | 338 |
 | P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 4 | 38 | 13 | 799 | 854 |
+| **All** | 4 | 37 | 13 | 800 | 854 |
 
 ## Entries
 
@@ -783,7 +783,7 @@ repository and CI).
 | [T-750](mesh.md) | P3 | M | M10 | feature | done | A destination `tag:NAME`: one live member of the tag, the next on a failure, and a line that names it |
 | [T-751](machine.md) | P3 | S | M10 | feature | done | `podssh mcp --client-config CLIENT`: the client's configuration for the flags typed, and a test that runs it |
 | [T-752](machine.md) | P3 | M | M10 | feature | done | The key exchange's guess, and a channel behind the auth: two round trips more off a cold connect |
-| [T-753](robustness.md) | P2 | M | M10 | defect | partial | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
+| [T-753](robustness.md) | P2 | M | M10 | defect | done | On Windows, an operator over a carrier loses the echo's last bytes at the end of its input |
 | [T-754](repo.md) | P3 | S | none | chore | done | Dependabot's updates of 2026-11-12: trufflehog, two actions, four crates of the minor and patch group, Arti's tor-rtcompat and tor-error 0.48, and num-bigint 0.5 |
 | [T-755](ws.md) | P3 | L | none | feature | done | A Dev Tunnels forward road: `direct-tcpip` to a port of a Microsoft Dev Tunnels host, through its relay on 443 |
 | [T-756](robustness.md) | P2 | S | M10 | defect | partial | `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite |

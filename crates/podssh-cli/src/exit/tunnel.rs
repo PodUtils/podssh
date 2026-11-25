@@ -120,7 +120,7 @@ where
         Ok(client) => client,
         Err(e) => {
             let why = format!("the far end greets with the resumable layer, but its handshake failed: {e}");
-            return Carried { why: Some(why), leg: None, channel: None, signalled: false };
+            return Carried { why: Some(why), leg: None, channel: None, cut: false, signalled: false };
         }
     };
     crate::no_resume::found_lines(client.found()).into_iter().for_each(|line| say(Line::Verbose(line)));
@@ -150,11 +150,11 @@ where
     };
     let joined = Box::pin(async { tokio::join!(run, channel_end, told) });
     let Some((outcome, failed, ())) = crate::hangup::bounded(hangup.as_ref(), joined).await else {
-        return Carried { why: None, leg: None, channel: None, signalled: true };
+        return Carried { why: None, leg: None, channel: None, cut: false, signalled: true };
     };
     // The channel says more than the layer: a refused key, a refused target.
     let channel = failed.as_ref().and_then(|e| crate::channel::judged(e, me.as_deref()));
-    Carried { why: layered::why_ended(outcome), leg: None, channel, signalled: false }
+    Carried { why: layered::why_ended(outcome), leg: None, channel, cut: false, signalled: false }
 }
 
 /// The code and the line of a session to an exit behind a quick tunnel that

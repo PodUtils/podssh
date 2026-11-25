@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:259`, `docs/STATUS.md:265`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:7240-7241` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:7246-7247` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:7240-7241`). A difference that the table does not name fails,
+   `docs/cli.md:7246-7247`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7240-7241` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7246-7247` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:6107-6108` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:6113-6114` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:6107-6108`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:6113-6114`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -2257,7 +2257,7 @@ kernel's queue itself (`recv` with `MSG_DONTWAIT`).
 **Milestone:** M10
 **Priority:** P2
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -2273,7 +2273,7 @@ the channel failed: An existing connection was forcibly closed by the remote hos
   podssh took `pod-relay` of PodUtils/podcrates at v0.27.0, that crate's `reverse::operator`) writes a frame's
   bytes to the local side only while not `draining`; `end_of_input` (lines 326 to 336 there) sets `draining`
   once the input ends when `node_ends` is set,
-  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:413`).
+  which each leg of the resumable layer sets (`crates/podssh-cli/src/layered.rs:428`).
 
 ## Approach
 
@@ -2321,6 +2321,22 @@ of the 10054. For redundancy each now shuts its write half after its last bytes,
 drop of both handles (the `try_clone`); `echo_logged` did so already. The product side (an operator that exits 0 on
 `Error::Cut`) is the lead's. Run by the main session (2026-11-25, on `1e44eb9`): `--test node_carrier` 15 passed, and each suite of the echo server (`carrier_dns` 5, `carrier_dns_https` 2, `carrier_s3` 3, `node_ask` 4, `persist_forwards` 3, `pipe_ws` 12) passed.
 
+2026-11-25, the product side (the main session): the failure's 288 bytes short were the echo of the last message
+(2^20 mod 65,518, pod-e2e's `MAX_DATA`): the node's read of its target failed (10054), its carry ended, the channel
+ended `Error::Cut` at the operator, and podssh took that as a clean end (`crates/podssh-cli/src/channel.rs`, `judged`
+gives `None` for `Cut`), so the operator exited 0 with its last bytes missing. Now `Carried` keeps `cut`
+(`crates/podssh-cli/src/layered.rs`), unless a signal of the user ended the session (`Hangup::has_come`, as a signal's
+end closes the channel early too), and `operator::judged` and `carrier::judged` give 69 with pod-e2e's words "the
+channel was cut before its end: the last bytes can be missing" where the end would read as clean
+(`crates/podssh-cli/src/layer_told.rs`, `unless_cut`). The test `crates/podssh-cli/tests/operator_cut.rs`: a target
+that answers 1,000 bytes and resets (SO_LINGER 0) behind `node --carrier stdio`, the operator's stdin left open: exit
+69 and the words. Planted, `cut` never set: the test fails with exit 0 and the 1,000 bytes; restored, it passes. Run:
+`cargo test -p podssh-cli --lib` 1331, `--test operator` 12 (`an_operator_that_its_parent_hangs_up_closes_the_session`
+found the signal's case, now 0 again), `operator_cut` 1, `node_carrier` 15, `carrier_dns` 6, `carrier_s3` 3,
+`exit_routes`, `node_routes`, `channel_cli`, `man_page`, `man_json`: each passed; clippy (`-D warnings`) and rustfmt
+clean; the Windows check clean. The manual's operator note and `docs/cli.md` say the 69. The words of the node's carry
+for its target's failure are asked of podcrates (COORD-150, PodUtils/podssh#360, ask 5). Closed: an operator no longer
+reads a cut channel as a clean end, and the echoes of the tests shut their write half.
 
 # T-756: `reverse_carrier`'s two sessions of 2 MiB were closed as stalled once, in the whole suite
 
@@ -2870,7 +2886,7 @@ spare took the session, the node replayed the same bytes into the same third par
 
 ## Premise
 
-- `crates/podssh-cli/src/layered.rs:89` says "let spare_links = !std::env::var(SPARE_LINKS_ENV)": a client
+- `crates/podssh-cli/src/layered.rs:92` says "let spare_links = !std::env::var(SPARE_LINKS_ENV)": a client
   opens spare links on each road but the iroh road's.
 
 ## Approach

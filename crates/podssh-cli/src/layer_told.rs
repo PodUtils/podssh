@@ -115,6 +115,28 @@ pub(crate) fn release(log: &podssh_ssh::Log) {
     }
 }
 
+/// The verdict of a session whose end otherwise reads as clean: a channel
+/// cut before its end is a failure (69), in pod-e2e's own words (T-753). A
+/// signal that ended the session is the user's end, not a cut.
+pub(crate) fn unless_cut(carried: &crate::layered::Carried, clean: Option<(i32, String)>) -> Option<(i32, String)> {
+    match clean {
+        None if carried.cut && !carried.signalled => {
+            Some((crate::exitmap::Fault::RelayUnreachable.code(), podssh_relay::e2e::Error::Cut.to_string()))
+        }
+        verdict => verdict,
+    }
+}
+
+/// A count of bytes in MiB, or in KiB under one MiB (a relay's small cap
+/// moves a link early, and "0 MiB" would say nothing).
+pub(crate) fn amount(bytes: u64) -> String {
+    if bytes >= 1 << 20 {
+        format!("{} MiB", bytes >> 20)
+    } else {
+        format!("{} KiB", bytes >> 10)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

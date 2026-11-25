@@ -391,7 +391,7 @@ pub(crate) fn judged(carried: &Carried) -> Option<(i32, String)> {
     match carried {
         Carried { why: Some(why), .. } => Some((Fault::SessionFault.code(), why.clone())),
         Carried { why: None, signalled: true, .. } => None,
-        Carried { why: None, leg: Some(outcome), .. } => ended(outcome),
+        Carried { why: None, leg: Some(outcome), .. } => crate::layered::unless_cut(carried, ended(outcome)),
         Carried { why: None, leg: None, .. } => {
             Some((Fault::RelayUnreachable.code(), "the carrier's node did not end the session in time".into()))
         }

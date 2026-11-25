@@ -47,9 +47,9 @@ fn a_resume_deadline_is_a_time_from_a_minute_to_72_h() {
 /// session that the node took (T-586).
 #[test]
 fn a_session_cut_after_a_signal_is_a_clean_end() {
-    let cut = Carried { why: None, leg: None, channel: None, signalled: true };
+    let cut = Carried { why: None, leg: None, channel: None, cut: false, signalled: true };
     assert_eq!(crate::operator::judged("lab", &cut), None);
-    let unended = Carried { why: None, leg: None, channel: None, signalled: false };
+    let unended = Carried { why: None, leg: None, channel: None, cut: false, signalled: false };
     assert!(crate::operator::judged("lab", &unended).is_some(), "with no signal, the relay did not end it in time");
 }
 

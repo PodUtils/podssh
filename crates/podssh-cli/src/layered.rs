@@ -55,6 +55,9 @@ pub struct Carried {
     /// key, a changed node key, a message that failed its check. It says
     /// more than the layer and the leg.
     pub channel: Option<(crate::exitmap::Fault, String)>,
+    /// The end-to-end channel ended cut, before its end (T-753): the last
+    /// bytes can be missing, so an end that reads as clean is no clean end.
+    pub cut: bool,
     /// A signal ended the session that the node took, and it did not end in
     /// the time after it (T-586): its `CLOSE` went, and no answer is waited
     /// for, as nobody reads its bytes any more.
@@ -233,11 +236,19 @@ where
     // session outgrew a worker thread's stack in a debug build (T-586).
     let Some(started) = crate::hangup::unless(hangup.as_ref(), Box::pin(begun)).await else {
         let why = "a signal ended the session before the node took it".to_string();
-        return Carried { why: Some(why), leg: None, channel: None, signalled: false };
+        return Carried { why: Some(why), leg: None, channel: None, cut: false, signalled: false };
     };
     let client = match started {
         Ok(client) => client,
-        Err(e) => return Carried { why: Some(e.to_string()), leg: last(&legs).await, channel: None, signalled: false },
+        Err(e) => {
+            return Carried {
+                why: Some(e.to_string()),
+                leg: last(&legs).await,
+                channel: None,
+                cut: false,
+                signalled: false,
+            }
+        }
     };
     // The layer is up, a step of --ConnectTimeout (T-589).
     crate::connect_bound::layer_up();
@@ -281,13 +292,13 @@ where
         }
     };
     let Some(outcome) = crate::hangup::bounded(hangup.as_ref(), Box::pin(run)).await else {
-        return Carried { why: None, leg: None, channel: None, signalled: true };
+        return Carried { why: None, leg: None, channel: None, cut: false, signalled: true };
     };
     // A loss that --no-resume did not carry over (T-612); the leg says how.
     if let Some(line) = crate::no_resume::ended(&outcome) {
         say(Line::Always(line));
     }
-    Carried { why: why_ended(outcome), leg: last(&legs).await, channel: None, signalled: false }
+    Carried { why: why_ended(outcome), leg: last(&legs).await, channel: None, cut: false, signalled: false }
 }
 
 /// [`carry`], with the end-to-end channel of T-088 around `app` (none with
@@ -347,6 +358,9 @@ where
         let carrying = carry(config, link, first, stream, expires_ms, say, shell);
         let (mut carried, outcome, ()) = tokio::join!(carrying, session, told);
         if let Err(e) = outcome {
+            // A signal's end closes the channel early too: that end is the user's.
+            let signalled = crate::hangup::taken().is_some_and(|hangup| hangup.has_come());
+            carried.cut = matches!(e, podssh_relay::e2e::Error::Cut) && !signalled;
             carried.channel = crate::channel::judged(&e, me.as_deref());
         }
         carried
@@ -354,7 +368,8 @@ where
     .await
 }
 
-pub(crate) use crate::layer_told::why_ended;
+use crate::layer_told::amount;
+pub(crate) use crate::layer_told::{unless_cut, why_ended};
 
 /// How long to wait before the warning of a pair that expires at
 /// `expires_ms`, at `now_ms`: none once the pair expired, as the relay then
@@ -471,16 +486,6 @@ pub(crate) fn line_of(note: Note) -> Line {
         // A wait of the link that held 20 s, with the offsets each way: what
         // a hang names at -v (T-780).
         Note::Stall { words } => Line::Verbose(words),
-    }
-}
-
-/// A count of bytes in MiB, or in KiB under one MiB (a relay's small cap
-/// moves a link early, and "0 MiB" would say nothing).
-fn amount(bytes: u64) -> String {
-    if bytes >= 1 << 20 {
-        format!("{} MiB", bytes >> 20)
-    } else {
-        format!("{} KiB", bytes >> 10)
     }
 }
 
