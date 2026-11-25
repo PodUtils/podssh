@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**834 entries: 4 open, 43 partial, 13 blocked, 774 done.**
+**834 entries: 4 open, 42 partial, 13 blocked, 775 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 4 | 10 | 8 | 370 | 392 |
-| **All** | 4 | 43 | 13 | 774 | 834 |
+| P3 | 4 | 9 | 8 | 371 | 392 |
+| **All** | 4 | 42 | 13 | 775 | 834 |
 
 ## Entries
 
@@ -867,7 +867,7 @@ repository and CI).
 | [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
-| [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
+| [T-837](serve.md) | P3 | M | backlog | feature | done | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
 | [T-839](ssh.md) | P3 | L | backlog | feature | done | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |

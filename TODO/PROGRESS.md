@@ -6,11 +6,11 @@ this page keeps no history (git does).
 
 ## State
 
-Read on 2026-11-24.
+Read on 2026-11-25.
 
-1. **The gate.** Green at `dd1f9a9` (2026-11-24, run 45413276289, each job). At `25ac08f` it was red on Windows and
-   macOS; T-897 repaired it. Commits after `dd1f9a9`: `1d5070b`, `59778bd`, `96a8897`. Read the gate of the last push
-   first: a push cancels the gate of the one before it. Earlier green runs are in `docs/STATUS.md`.
+1. **The gate.** At `0c6e9c4` (2026-11-25, run 45527696631) each job passed but `gate (lint)`, on the format of one
+   line of `attach_screen.rs`, which `a03768f` repaired. Later pushes each cancelled the gate of the one before; read
+   the gate of the last push first. Earlier green runs are in `docs/STATUS.md`.
 2. **Releases.** The newest beta is `v1.1.0-beta.3` (2026-11-05, at `6d30328`); the newest stable is `v1.0.1`
    (2026-11-03, at `6ece1f9`). The next beta waits until podssh is nearly complete and the black-box pass of T-809 is
    clean (the operator, 2026-11-11), under the rules of `AGENTS.md` ("Releases"); `v1.1.0` waits for the end of the
@@ -21,7 +21,7 @@ Read on 2026-11-24.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
    failure: T-465, T-627, T-753, T-756, T-779, T-780, T-788, T-796, T-846, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
-   T-831, T-834, T-836, T-837. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
+   T-831, T-834, T-836. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
@@ -32,7 +32,7 @@ Read on 2026-11-24.
    its own repository only, never by a direct message (the owner, 2026-11-12). The open COORD issues and what each waits
    for are in `docs/HANDOFF.md`. cfb's asks, T-708 to T-731 (#195), wait behind podssh's own work order, M10 included
    (the owner's ruling "Priority").
-7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.82.1`
+7. **The move to PodUtils/podcrates** (T-684, Q101, Rule Q3). podssh pins each podcrates crate at `v0.83.0`
    (`docs/HANDOFF.md` lists them). Taken, so worked on in PodUtils/podcrates: `pod-todo`, `pod-term`, `pod-identity`,
    `pod-core`, `pod-testkit`, `pod-tls`, `pod-proxy`, `pod-dns`, `pod-services`, `pod-ws`, `pod-quic`, `pod-wormhole`,
    `pod-session`, `pod-e2e`, `pod-relay`, `pod-warp`, `pod-transit`, `pod-acme`, `pod-piping`, `pod-opentunnel`,
@@ -76,7 +76,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 834 entries: 4 open, 43 partial, 13 blocked, 774 done.
+`TODO/INDEX.md` holds 834 entries: 4 open, 42 partial, 13 blocked, 775 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -133,12 +133,9 @@ These entries stay open in the index. The condition in each entry tells when it 
 
 | Entry | Start condition |
 | --- | --- |
-| T-161 | Started on 2026-11-25 from its draft (partial): the measures of steps 1 and 3, step 5, and the seats of `--share` are left |
-| T-303 | T-110 is done: `podssh serve` has a pty; and T-161 has a model of the far end's screen |
+| T-303 | A user asks for frames of the screen: T-161 measured a model of it on the far end (2.5 MB of scrollback a shell) and took none (`docs/design.md`, section 5) |
 | T-304 | T-303 is done: frames of the screen exist |
 | T-499 | draft-ietf-httpbis-connect-tcp is an RFC, and a server over HTTP/2 or HTTP/1.1 implements it |
-| T-875 | Q107 is settled (2026-11-24): it goes by its priority, beside M10 |
-| T-877 | Q107 is settled (2026-11-24): it goes after T-875 |
 
 ## Questions for the operator
 

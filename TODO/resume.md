@@ -2560,6 +2560,12 @@ far end's screen.
 `docs/decisions.md`) released the holds, and T-107 to T-112 go by their priority
 (`TODO/PROGRESS.md`, "The holds are released"). The Start condition is the list of entries alone.
 
+2026-11-25. T-110 and T-161 are done, and T-161 took no model of the screen on the far end: it would cost 60 KiB a
+screen and 2.5 MB for 1,000 lines of scrollback for each kept shell, and the modes, the replay and a redraw gave vi,
+less and top their screen (`docs/terminal.md`, "Screen on attach"; `docs/design.md`, section 5). Frames need that
+model, so this entry starts when a user asks for frames of the screen (a slow link where the bytes of a flood are too
+many), with the model's cost then named in its Decision.
+
 # T-304: Keys and screen frames as QUIC datagrams on the iroh road
 
 **Source:** T-171 (`docs/design.md:906-935`): each datagram of Mosh is an idempotent difference

@@ -4477,7 +4477,7 @@ tried at the first build). The entry stays partial for steps 3 to 5.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -4631,6 +4631,15 @@ by name").
 Filed at the merge: T-860 (the owner's command line to delete or rotate a name), T-861 (`--share` on serve's own
 tty, `--pty line` and `notify`), T-862 (a measure of `LEASE_IDLE` with two people typing). What stays of this entry:
 Approach item 4, the viewport, which waits for T-161.
+
+2026-11-25, item 4 closed in the main session. T-161 is done and keeps no model of the screen on the far end (60 KiB
+a screen, 2.5 MB of scrollback for each shell; `docs/design.md`, section 5), and a viewport of a bigger pty in a
+smaller window needs that model to choose its rows. The rule that holds instead is the Decision's: the pty's size is
+the least of each seat's window, so no seat's window is smaller than the pty and nothing is cropped. What item 4 was
+for, a seat that sees the screen, T-901 gave on 2026-11-25: a seat that joins gets the modes and its rows' last lines
+from a ring of 64 KiB of the owner's output (`crates/podssh-ssh/src/server/share.rs`, `subscribe_with_screen`;
+`CARGO_BUILD_JOBS=4 cargo test -p podssh-ssh --test serve_share`: 7 passed, the new case among them). The entry is
+done; its planted defect waits for the release checks (T-251).
 
 # T-841: `podssh serve` offers one stated set of algorithms, and a table test refuses the rest
 
