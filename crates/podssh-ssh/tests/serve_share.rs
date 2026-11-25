@@ -78,6 +78,23 @@ async fn watcher_on(tty: Tty) {
     owner.until("the owner's end", |seen| seen.closed).await;
 }
 
+/// A seat that joins after the owner wrote finds the screen so far: the
+/// owner's last lines, with no new output to bring them (T-901).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_seat_that_joins_finds_the_screen_so_far() {
+    for tty in Tty::here() {
+        let server = Server::on(tty);
+        let (owner, _, read) = owner(&server).await;
+        owner.send(b"echo BEFORE_$((3+4))\r").await;
+        owner.reads("BEFORE_7").await;
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        let viewer = Seat::shell(server.login(&read, &key()).await.expect("a watcher"), 80, 24).await;
+        viewer.reads("BEFORE_7").await;
+        owner.send(b"exit 0\r").await;
+        owner.until("the owner's end", |seen| seen.closed).await;
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn writers_take_turns_and_no_line_interleaves() {
     for tty in Tty::here() {

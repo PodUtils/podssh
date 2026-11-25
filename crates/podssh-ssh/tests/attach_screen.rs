@@ -7,7 +7,8 @@
 //!
 //! A replay with no redraw leaves the new screen empty, as nothing came
 //! since the detach; a replay cut after the program set its modes, with no
-//! modes sent again, leaves the alternate screen and the keys off. Each
+//! modes sent again, leaves the alternate screen and the keys off; a shell
+//! at a still prompt, joined with no count, shows its last lines. Each
 //! case needs a pty, and a host with none says so; `vi` runs where the host
 //! has it, and a line says where it does not.
 
@@ -121,15 +122,17 @@ fn found(program: &str) -> bool {
 }
 
 /// One case: the command typed in the first client's shell, the text that
-/// says its screen is drawn, the asks of the attach, and whether it is the
+/// says its screen is drawn, the asks of the attach, whether it is the
 /// stand-in, whose modes are known (a check of the case itself) and which
-/// quits on Ctrl-C.
+/// quits on Ctrl-C, and whether the screens are compared row for row (vi
+/// redraws in its own way).
 struct Case {
     name: &'static str,
     command: String,
     ready: &'static str,
     asks: &'static [(&'static str, &'static str)],
     stand_in: bool,
+    exact: bool,
 }
 
 fn cases(stand_in: &Path, text: &Path) -> Vec<Case> {
@@ -141,6 +144,7 @@ fn cases(stand_in: &Path, text: &Path) -> Vec<Case> {
             ready: "DRAWN 80x24",
             asks: &[],
             stand_in: true,
+            exact: true,
         },
         Case {
             name: "a full-screen program whose modes the ring dropped, joined with a reset",
@@ -148,6 +152,17 @@ fn cases(stand_in: &Path, text: &Path) -> Vec<Case> {
             ready: "DRAWN 80x24",
             asks: &[("reset@podssh", "yes")],
             stand_in: true,
+            exact: true,
+        },
+        // A shell at a still prompt draws nothing again at a change of size:
+        // the ring's last screenful gives it (T-901).
+        Case {
+            name: "a shell at a still prompt, joined with no count",
+            command: "echo \"the shell\" said \"this\"\r".to_string(),
+            ready: "the shell said this",
+            asks: &[],
+            stand_in: false,
+            exact: true,
         },
     ];
     if found("vi") {
@@ -157,6 +172,7 @@ fn cases(stand_in: &Path, text: &Path) -> Vec<Case> {
             ready: "the second line of the file",
             asks: &[],
             stand_in: false,
+            exact: false,
         });
     } else {
         eprintln!("did not run: vi: no vi on this host");
@@ -197,8 +213,8 @@ async fn a_new_client_finds_the_screen_and_the_modes_of_a_kept_full_screen_progr
         // its last line's message), and the first client detached before
         // the redraw: the new client must show the file's text and the far
         // end's modes, whatever vi's own redraw.
-        let want = if case.stand_in { want } else { text_and_modes(want) };
-        let seen = |bytes: &[u8]| if case.stand_in { shown(bytes) } else { text_and_modes(shown(bytes)) };
+        let want = if case.exact { want } else { text_and_modes(want) };
+        let seen = |bytes: &[u8]| if case.exact { shown(bytes) } else { text_and_modes(shown(bytes)) };
         let waited = tokio::time::timeout(share_harness::LIMIT, async {
             while seen(&back.seen.lock().unwrap().out) != want {
                 tokio::time::sleep(Duration::from_millis(50)).await;
@@ -213,7 +229,7 @@ async fn a_new_client_finds_the_screen_and_the_modes_of_a_kept_full_screen_progr
         // at once as the start of an escape sequence.
         if case.stand_in {
             back.send(b"\x03").await;
-        } else {
+        } else if !case.exact {
             back.send(b"\x1b").await;
             tokio::time::sleep(Duration::from_millis(300)).await;
             back.send(b":q!\r").await;

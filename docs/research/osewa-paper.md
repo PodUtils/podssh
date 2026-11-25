@@ -426,10 +426,10 @@ against 27.6 for ssh (RESULTS.md, not on the paper page).
    exceed about 5 MiB/s in one channel (INFERRED).
 4. **"podssh gets out of a cage better than each sibling project"** (`docs/design.md:18`) is
    ASSERTED. No side-by-side measurement backs it.
-5. **The iroh road in the target sandbox** "is not measured" (`docs/design.md:1441-1444`). The
+5. **The iroh road in the target sandbox** "is not measured" (`docs/design.md:1443-1446`). The
    Windows row of 34.6 MiB/s was a direct path on one host (T-335).
 6. **MPTCP** (T-172) is opt-in and not measured (`docs/design.md:768`).
-7. **The Mosh table** (`docs/design.md:906-933`) puts podssh's entries beside Mosh's functions.
+7. **The Mosh table** (`docs/design.md:906-935`) puts podssh's entries beside Mosh's functions.
    Three of them (T-160, T-303, T-304) are open and held behind `podssh serve` (Q32). The table
    says so, but a quick reader takes it as capability.
 

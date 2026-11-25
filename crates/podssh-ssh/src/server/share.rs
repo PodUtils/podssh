@@ -24,6 +24,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::time::Duration;
 
 use bytes::Bytes;
+use pod_term::grammar::Ring;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::broadcast;
 use tokio::time::Instant;
@@ -45,6 +46,9 @@ pub const BACKLOG: usize = 64;
 /// A writer's bytes that wait for the lease in serve, past which its
 /// channel's window holds the client.
 const PASTE: usize = 32 * 1024;
+/// The owner's output that a hub keeps for a seat that joins: more than a
+/// screen's worth of a full-screen program's repaint.
+const SCREEN_RING: usize = 64 * 1024;
 
 /// The prefix of each name, which tells a person its right; the table, not
 /// the prefix, decides it.
@@ -219,6 +223,9 @@ impl Lease {
 /// lease, and its size as the least of each seat's.
 pub(super) struct Hub {
     output: Mutex<Option<broadcast::Sender<Said>>>,
+    /// The owner's recent output, from which a seat that joins gets the
+    /// screen so far (T-901); fed under the output's lock.
+    screen: Mutex<Ring>,
     input: tokio::sync::Mutex<(Lease, Input)>,
     sizes: Mutex<BTreeMap<u64, Size>>,
     resize: Box<dyn Fn(Size) + Send + Sync>,
@@ -244,6 +251,7 @@ impl Hub {
         let (output, _) = broadcast::channel(BACKLOG);
         let hub = Arc::new(Hub {
             output: Mutex::new(Some(output)),
+            screen: Mutex::new(Ring::new(SCREEN_RING)),
             input: tokio::sync::Mutex::new((Lease::default(), pty)),
             sizes: Mutex::new(BTreeMap::new()),
             resize,
@@ -271,12 +279,31 @@ impl Hub {
         self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map(broadcast::Sender::subscribe)
     }
 
+    /// The output from now on, after the screen so far: the modes before
+    /// the ring's last `rows` lines and those lines, or the ring from its
+    /// first boundary where the program is on the alternate screen (T-901).
+    /// Both are taken under the output's lock, so that no byte is in the
+    /// screen and in the receiver, nor in neither. None once the shell ended.
+    pub(super) fn subscribe_with_screen(&self, rows: u32) -> Option<(Vec<u8>, broadcast::Receiver<Said>)> {
+        let output = self.output.lock().unwrap_or_else(|p| p.into_inner());
+        let from = output.as_ref()?.subscribe();
+        let ring = self.screen.lock().unwrap_or_else(|p| p.into_inner());
+        let start = super::kept_screen::tail_from(&ring, ring.end() + 1, rows).or_else(|| ring.start());
+        let mut screen = Vec::new();
+        if let Some(start) = start {
+            screen = super::kept_screen::modes_before(&ring, start);
+            screen.extend(super::kept_replay::since(&ring, start).0);
+        }
+        Some((screen, from))
+    }
+
     /// A copy of the owner's output for each watcher, and after it each
     /// asking seat's report (T-896); a watcher that lags skips, and none
     /// holds the owner. The reports are made under the output's lock, so
     /// that no item goes ahead of one made before it.
     pub(super) fn said(&self, bytes: &[u8]) {
         if let Some(output) = self.output.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            self.screen.lock().unwrap_or_else(|p| p.into_inner()).push(bytes, std::time::Instant::now());
             let told = self.tells.reports(true);
             let _ = output.send(Said { bytes: Bytes::copy_from_slice(bytes), told });
         }

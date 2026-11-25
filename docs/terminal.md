@@ -505,7 +505,12 @@ order (`crates/podssh-ssh/src/server/kept_screen.rs`, and the catch-up in
    that counts the offsets (T-895) starts at that line, so its count
    after the modes is the far end's, with no change to the client.
 2. **The replay**: the bytes since the detach, or after a reset the ring
-   from its first boundary ("Where kept output may start").
+   from its first boundary ("Where kept output may start"). An attach with
+   no count, while the program is off the alternate screen, gets the ring's
+   last screenful instead, from the first boundary of its last rows (the
+   pty's rows, else 24), as a reset with its line, so that a client that
+   counts stays right (T-901): a shell at a still prompt draws nothing again
+   at a change of size, and its fresh attach showed an empty screen.
 3. **A redraw**: once the channel has the shell, serve sets the pty one
    row shorter, waits 100 ms, and puts its size back. The kernel signals
    the pty's foreground group at each change, so a full-screen program
@@ -540,7 +545,7 @@ first column is measured (below); the others are read from their designs.
 | --- | --- | --- | --- |
 | A full-screen program that sat still | drawn again by the program | an empty screen | the screen |
 | A replay cut after the modes | the modes, then the bytes | the bytes, with no modes | the screen |
-| A shell at its prompt | the bytes since the detach: bash at a still prompt draws nothing again, so a fresh attach shows an empty screen; a reset shows it | the bytes | the screen |
+| A shell at its prompt | the ring's last screenful (T-901): bash at a still prompt draws nothing again | the bytes | the screen |
 | The new client's scrollback | the replay | the replay | the scrollback that the far end keeps, or none |
 | serve's memory for each shell | the ring (256 KiB) and the modes of the bytes that it dropped | the ring | the ring, and a grid of each cell with its scrollback |
 | serve's code | `pod-term`'s modes, and a change of size | none | a terminal model in each `podssh serve` |
@@ -555,7 +560,7 @@ rows of text that the two share.
 
 | Program | Joined | Rows shared | Its text shown | Modes | Bytes |
 | --- | --- | --- | --- | --- | --- |
-| bash at its prompt | fresh | 0 of 3 | no | the same | 101 |
+| bash at its prompt | fresh | 0 of 3 before T-901; 3 of 3 after | no; yes | the same | 101; 158 |
 | bash at its prompt | reset | 3 of 3 | yes | the same | 158 |
 | vi | fresh | 23 of 24 | yes | the same | 1,162 |
 | vi | reset | 23 of 24 | yes | the same | 2,067 |
@@ -567,8 +572,11 @@ rows of text that the two share.
 A full-screen program draws its screen again: each row but the last line's
 message for vi and less, and for top the rows that its next second did not
 change. The modes are the far end's in each case. A shell at a still prompt
-is the gap: its fresh attach shows nothing until the shell writes, as bash
-does not draw its line again at a change of size. A model on the far end
+was the gap: its fresh attach showed nothing until the shell wrote, as bash
+does not draw its line again at a change of size; T-901 gives it the ring's
+last screenful, and the measure gives 3 of 3 rows since. A seat of
+`--share` that joins gets the screen so far the same way, from a ring of
+64 KiB of the owner's output that the shared shell keeps. A model on the far end
 would cost a cell of 32 bytes in `vt100` (the oracle's model): 60 KiB for a
 screen of 80 by 24, and 2.5 MB for 1,000 lines of scrollback, for each kept
 shell, beside the ring of 256 KiB.

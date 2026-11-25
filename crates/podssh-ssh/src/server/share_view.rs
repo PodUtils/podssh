@@ -141,7 +141,10 @@ pub(super) fn attach(open: &mut Open, pass: &Pass) -> Result<(), String> {
     if open.started() {
         return Err("a program runs on this channel already".into());
     }
-    let Some(from) = pass.hub.subscribe() else { return Err(ENDED.into()) };
+    // The screen so far, for the seat's rows (a seat with no pty: a usual
+    // terminal's), then the output from that point on (T-901).
+    let rows = open.asked.map_or(super::kept_screen::TAIL_ROWS, |size| size.rows);
+    let Some((screen, from)) = pass.hub.subscribe_with_screen(rows) else { return Err(ENDED.into()) };
     let Some(write) = open.write.take() else { return Err(ENDED.into()) };
     let seat = pass.hub.seat(open.asked.take());
     // Local echo's reports of this seat's own bytes, where it asked; only a
@@ -157,7 +160,7 @@ pub(super) fn attach(open: &mut Open, pass: &Pass) -> Result<(), String> {
     };
     open.give_input(input);
     open.seat = Some(seat.clone());
-    tokio::spawn(view(from, write, open.closed.clone(), seat, told));
+    tokio::spawn(view(screen, from, write, open.closed.clone(), seat, told));
     Ok(())
 }
 
@@ -222,6 +225,7 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for Tee<W> {
 /// asked, follow the output of each item; one that cannot be written ends
 /// the reports, not the output.
 async fn view(
+    screen: Vec<u8>,
     mut from: broadcast::Receiver<Said>,
     write: ChannelWriteHalf<Msg>,
     mut closed: watch::Receiver<bool>,
@@ -229,6 +233,9 @@ async fn view(
     mut told: Option<SeatTold>,
 ) {
     let mut to = write.make_writer();
+    if !screen.is_empty() && to.write_all(&screen).await.is_err() {
+        return;
+    }
     loop {
         let next = tokio::select! {
             next = from.recv() => next,

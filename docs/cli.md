@@ -6849,8 +6849,12 @@ gives up each capability of the process (T-698), before it reads a file.
   serve, then in the client's window) until 400 ms passed with nothing
   from the holder (measured with two people typing, T-862 in
   `docs/terminal.md`); no two writers' bytes interleave. The pty's size is the
-  least of the owner's and each seat's window. A seat reads the output
-  from its attach on (there is no screen to replay before T-161); one that
+  least of the owner's and each seat's window. A seat first gets the
+  screen so far (T-901): the shared shell keeps 64 KiB of the owner's output
+  in a ring of `pod-term`, and a seat that joins gets the modes and the last
+  lines of its rows from it (on the alternate screen, the ring from its first
+  boundary), taken under the lock of the broadcast so that no byte comes twice
+  or not at all. Then it reads the output from its attach on; one that
   falls 64 chunks behind skips to the present, and none ever holds the
   owner's output. The names die when the shell's output ends; each seat
   then gets exit status 0, EOF and close. The owner leaving ends the

@@ -65,9 +65,9 @@ Line discipline and copy mode: `T-111`, T-125 to T-129, T-161. Backpressure:
 `T-118`. A handshake with version and role: T-151. An install with no
 privileges: T-121; an agent, a credential helper and hardware keys, inside
 podssh: T-034, T-228, T-229. The host key of each hop: T-030.
-A limit on each wait: `T-110`, `T-111`, `T-112`, T-133. Transient scopes: T-122. Kept open for the one ask that
-is not delivered, a new client's screen on attach: T-161 is done (2026-11-25: modes, replay and redraw, measured), and
-T-901 gives the screen to a shell at a still prompt and to a seat of `--share`. The rest is delivered: `podssh serve` is merged. Followed in the record, no longer mapped here:
+A limit on each wait: `T-110`, `T-111`, `T-112`, T-133. Transient scopes: T-122. Closed on 2026-11-25, when its
+last ask was delivered: a new client's screen on attach (T-161: modes, replay and redraw, measured; T-901: the screen
+of a shell at a still prompt and of a seat of `--share`). The rest is delivered: `podssh serve` is merged. Followed in the record, no longer mapped here:
 `T-107` to `T-113`, `T-117` and `T-118` (merged; each waits for its run in the build image, T-251, and `T-113` for
 the operator's run in a sealed sandbox).
 

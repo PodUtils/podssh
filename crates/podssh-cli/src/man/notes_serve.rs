@@ -235,8 +235,9 @@ pub const SERVE: &[&str] = &[
      random bits in hex, after rw- (it types) or ro- (it watches). ssh NAME@HOST, by the same road, attaches to the \
      shell with any key. A name that serve does not hold reads as a wrong key. A watcher's input never reaches the \
      pty: it may send only its window size. Writers, the owner among them, take turns: one writer's bytes reach the \
-     pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat sees the output \
-     from its attach on, and one that falls behind skips ahead. A name opens no forward and runs no command. The \
+     pty until 200 ms of its silence. The pty's size is the least of each attached window. A seat first gets the \
+     screen so far: the program's modes and its last lines, from a ring of 64 KiB. Then it sees the output from \
+     its attach on, and one that falls behind skips ahead. A name opens no forward and runs no command. The \
      names die with the shell, and each seat then exits 0. A shell on serve's own tty (--pty line or notify) is \
      shared the same way: each seat sees the screen that serve draws. There, the EOF of the owner's channel no longer \
      ends the shell's input: Ctrl-D or exit does.",
@@ -269,10 +270,11 @@ pub const SERVE: &[&str] = &[
      catches up is refused with a line.",
     // The screen that a client from a new terminal finds (T-161).
     "An attach with no offset, or a reset, may come from a new terminal. serve first sends it the program's modes \
-     where the replay starts: the alternate screen, the keys, bracketed paste and the mouse. They come before the \
-     line of a reset, so they never move a client's offset. Once the client has the shell, serve sets the pty one \
-     row shorter for 100 ms, then its size again. The program on it then draws its screen again. An offset that the \
-     ring holds gets the bytes alone. A program that ignores a window change shows the replay alone.",
+     where the replay starts: the alternate screen, the keys, bracketed paste and the mouse. A reset's line goes \
+     before them and names an offset after them, so they never move a client's offset. An attach with no offset to \
+     a shell off the alternate screen also gets the ring's last screenful, as a reset: a shell at a still prompt \
+     draws nothing again. Once the client has the shell, serve sets the pty one row shorter for 100 ms, then its \
+     size again. The program on it then draws its screen again. An offset that the ring holds gets the bytes alone.",
     "A stop or a restart of serve, or of its host, ends each kept shell: a process does not outlive either. serve \
      writes the names of its kept shells to serve-NAME.kept beside its host key, mode 0600. The next start says \
      which shells ended with the last run, and shells@podssh lists them as lost. Under --stdio no shell is kept: \

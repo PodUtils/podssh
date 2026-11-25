@@ -927,7 +927,9 @@ again: a fresh attach shows an empty screen until it writes. The
 recommendation, taken by the owner's rule "Decisions" as it adds and removes
 nothing: a fresh attach (no count) outside the alternate screen gets the
 ring's last screenful from a boundary, after a reset's line that names its
-offset, so a client that counts (T-895) stays right (T-901).
+offset, so a client that counts (T-895) stays right; and a seat of `--share`
+that joins gets the screen so far from a ring of the shared shell (T-901,
+done 2026-11-25).
 
 The fault-injection harness in the gate (`scripts/interop-faults.sh`) tests
 layer 1. Layers 2 and 3 need it extended: latency, jitter, limited

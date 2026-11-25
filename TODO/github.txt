@@ -25,7 +25,7 @@
 17 issue deleted
 18 issue closed
 19 issue closed
-20 issue open
+20 issue closed
 21 issue closed
 22 issue closed
 23 issue closed

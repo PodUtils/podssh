@@ -43,6 +43,50 @@ pub(super) fn modes_before(ring: &Ring, at: u64) -> Vec<u8> {
     ring.modes_at(at.min(ring.end())).map(|modes| modes.restore()).unwrap_or_default()
 }
 
+/// The rows that a fresh attach's tail gives where the pty's size is not
+/// known: a terminal's usual height.
+pub(super) const TAIL_ROWS: u32 = 24;
+
+/// Where a fresh attach (no count, no reset) starts, where that gives more
+/// than the bytes since the detach (`base`): at the first boundary of the
+/// grammar on or after the start of the ring's last `rows` lines, so that a
+/// shell at a still prompt, which draws nothing again at a change of size
+/// (T-161's measure), shows its screen (T-901). None where the program is
+/// on the alternate screen (its redraw gives the screen), where the ring
+/// holds no boundary, or where the tail starts at the detach or after it.
+pub(super) fn tail_from(ring: &Ring, base: u64, rows: u32) -> Option<u64> {
+    let start = ring.start()?;
+    if ring.modes_at(ring.end()).is_none_or(|modes| modes.alternate()) {
+        return None;
+    }
+    let kept = ring.kept();
+    // The byte after the newline that ends the line before the last `rows`:
+    // the screen holds `rows` lines, the last of them the prompt.
+    let rows = usize::try_from(rows.max(1)).unwrap_or(usize::MAX);
+    let mut seen = 0;
+    let mut line_start = 0;
+    for (at, byte) in kept.iter().enumerate().rev() {
+        if *byte == b'\n' && at + 1 < kept.len() {
+            seen += 1;
+            if seen == rows {
+                line_start = at + 1;
+                break;
+            }
+        }
+    }
+    let mut tracker = pod_term::grammar::Tracker::new();
+    let mut first = None;
+    let target = line_start as u64;
+    tracker.feed(&kept, std::time::Instant::now(), |boundary| {
+        if first.is_none() && boundary.at >= target {
+            first = Some(boundary.at);
+        }
+    });
+    // A tail that ends in the middle of a sequence starts nowhere clean.
+    let tail = start + if line_start == 0 { 0 } else { first? };
+    (tail < base).then_some(tail)
+}
+
 /// The size of the redraw's first half: a row less, or one more on a pty
 /// of one row. Rows, not columns: a line editor at its prompt redraws its
 /// line in place, where a new width can make it wrap the line again. The
@@ -60,6 +104,42 @@ mod tests {
     use std::time::Instant;
 
     use super::*;
+
+    /// The tail of a fresh attach, one rule: the start of the last `rows`
+    /// lines at a boundary, only before the detach, never on the alternate
+    /// screen; the whole ring where it holds fewer lines.
+    #[test]
+    fn a_fresh_attach_gets_the_last_rows_before_the_detach_outside_the_alternate_screen() {
+        let lines = b"one\r\ntwo\r\nthree\r\n$ ";
+        let at = |text: &[u8], needle: &[u8]| text.windows(needle.len()).position(|w| w == needle).unwrap() as u64;
+        let ring_of = |parts: &[&[u8]]| {
+            let mut ring = Ring::new(4096);
+            for part in parts {
+                ring.push(part, Instant::now());
+            }
+            ring
+        };
+        let plain = ring_of(&[lines]);
+        let end = plain.end();
+        let cases: &[(&Ring, u64, u32, Option<u64>)] = &[
+            (&plain, end, 2, Some(at(lines, b"three"))),
+            (&plain, end, 3, Some(at(lines, b"two"))),
+            (&plain, end, 24, Some(0)),
+            // Output came since the detach: the tail still starts before it.
+            (&plain, at(lines, b"$ "), 2, Some(at(lines, b"three"))),
+            // The tail starts at the detach or after it: the replay holds it.
+            (&plain, at(lines, b"three"), 2, None),
+            (&plain, 0, 24, None),
+        ];
+        for (ring, base, rows, want) in cases {
+            assert_eq!(tail_from(ring, *base, *rows), *want, "base {base}, rows {rows}");
+        }
+        let alternate = ring_of(&[lines, b"\x1b[?1049h", b"a screen"]);
+        assert_eq!(tail_from(&alternate, alternate.end(), 2), None, "on the alternate screen");
+        let left = ring_of(&[b"\x1b[?1049h", b"a screen", b"\x1b[?1049l", lines]);
+        assert!(tail_from(&left, left.end(), 2).is_some(), "the alternate screen left");
+        assert_eq!(tail_from(&Ring::new(64), 0, 24), None, "an empty ring");
+    }
 
     /// The nudge changes the rows alone, by one, as the kernel holds them.
     #[test]

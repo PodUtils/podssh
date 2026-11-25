@@ -319,6 +319,14 @@ impl Shell {
         // A client that had the shell saw its output: the new one starts now.
         let base = if old.is_some() { state.ring.end() } else { state.detached_at };
         let (from, reset) = replay_from(&state.ring, base, asked.count, asked.reset);
+        // A fresh attach also gets the ring's last screenful, as a reset whose
+        // line names its offset, so that a client that counts stays right.
+        let rows = state.size.map_or(super::kept_screen::TAIL_ROWS, |size| size.rows);
+        let tail = (asked.count.is_none() && !reset).then(|| super::kept_screen::tail_from(&state.ring, base, rows));
+        let (from, reset) = match tail.flatten() {
+            Some(tail) => (tail, true),
+            None => (from, reset),
+        };
         let fresh = super::kept_screen::fresh(asked.count.is_some(), reset);
         let_go(&mut state);
         if let Some(timer) = state.timer.take() {

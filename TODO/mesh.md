@@ -16384,7 +16384,7 @@ the answer to "is it worth having" is not written down.
 
 - Read: the sandbox that podssh targets refuses port 53, and its proxy resolves the names that `CONNECT`
   gives (`docs/target-environment.md:24`). A DNS carrier does not help that host; it helps another one.
-- Read: `docs/design.md:1448` allows a UDP bind only after podssh's own probe; AGENTS.md rule 2 asks one
+- Read: `docs/design.md:1450` allows a UDP bind only after podssh's own probe; AGENTS.md rule 2 asks one
   outbound connection. A resolver query is one datagram to the user's own resolver, so the rule needs a
   ruling before any code.
 - Read: a carrier is a stream that exists already (`crates/podssh-cli/src/carrier.rs`,

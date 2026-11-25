@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**834 entries: 5 open, 43 partial, 13 blocked, 773 done.**
+**834 entries: 4 open, 43 partial, 13 blocked, 774 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 5 | 10 | 8 | 369 | 392 |
-| **All** | 5 | 43 | 13 | 773 | 834 |
+| P3 | 4 | 10 | 8 | 370 | 392 |
+| **All** | 4 | 43 | 13 | 774 | 834 |
 
 ## Entries
 
@@ -909,4 +909,4 @@ repository and CI).
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
 | [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
-| [T-901](resume.md) | P3 | M | backlog | feature | open | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
+| [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
