@@ -4,7 +4,9 @@
 //! names the file and its line; and the flags of serve's own sessions,
 //! which a gateway refuses (64): it runs nothing here, and lets in the keys
 //! of its routes alone, so a flag that would rule a local session or add a
-//! key would be a promise that nothing keeps.
+//! key would be a promise that nothing keeps. `--gateway net:NAME` takes
+//! the routes of the net's signed document instead (T-902,
+//! `serve_gateway_net.rs`).
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -19,11 +21,23 @@ use crate::serve_keys::Sources;
 /// authorized keys as before.
 pub fn sources(args: &ServeArgs, default: Option<PathBuf>) -> Result<Sources, Refusal> {
     let Some(path) = args.gateway.as_deref() else {
+        if let Some(flag) = args.net.given() {
+            return Err(Refusal::usage(format!("{flag} goes with --gateway net:NAME, a gateway of the net")));
+        }
         return Sources::of(&args.authorized_key, &args.authorized_keys, default);
     };
     if let Some(flag) = refused_with(args) {
         return Err(Refusal::usage(format!(
             "--gateway and {flag}: a gateway runs nothing on this host and lets in the keys of its routes alone"
+        )));
+    }
+    // The routes of the net's signed document (T-902).
+    if let Some(name) = crate::serve_gateway_net::name_of(path) {
+        return crate::serve_gateway_net::open(name, args).map(Sources::gateway);
+    }
+    if let Some(flag) = args.net.given() {
+        return Err(Refusal::usage(format!(
+            "--gateway FILE and {flag}: a route file names its own ca-key FILE; {flag} goes with --gateway net:NAME"
         )));
     }
     let table = Table::open(Path::new(path)).map_err(|why| Refusal::config(format!("--gateway {why}")))?;
@@ -88,8 +102,10 @@ mod tests {
 
     /// Each refusal at the start, by its code and its words: a flag of a
     /// local session (64); a table that is missing, open to others' writes,
-    /// broken, empty, or whose CA key others may read (78). A good table
-    /// gives the gateway's sources, which read no authorized key.
+    /// broken, empty, or whose CA key others may read (78); a flag of a
+    /// gateway of the net where none is, or a net gateway with no CA, a bad
+    /// name or an open CA (T-902). A good table gives the gateway's
+    /// sources, which read no authorized key.
     #[test]
     fn a_table_is_refused_at_the_start_with_its_code_and_one_true_line() {
         let s = scratch();
@@ -120,6 +136,25 @@ mod tests {
             ("a broken line", args(&write(&s.0, "broken", "route a\nbogus x\n", 0o644), |_| ()), EX_CONFIG, "line 2"),
             ("no route", args(&write(&s.0, "empty", "# none\n", 0o644), |_| ()), EX_CONFIG, "holds no route"),
             ("an open CA", args(&write(&s.0, "open_ca_route", &route("open_ca"), 0o644), |_| ()), EX_CONFIG, "ca-key"),
+            // The flags of a gateway of the net (T-902), refused before any
+            // document is read.
+            ("a CA with no gateway", no_gateway(|a| a.net.ca = vec!["ca".into()]), EX_USAGE, "--gateway-ca goes with"),
+            ("an owner with no gateway", no_gateway(|a| a.net.owner = Some("k".into())), EX_USAGE, "--net-owner goes"),
+            (
+                "a URL beside a route file",
+                args(&good, |a| a.net.url = Some("https://h/".into())),
+                EX_USAGE,
+                "--net-url",
+            ),
+            ("a CA beside a route file", args(&good, |a| a.net.ca = vec!["ca".into()]), EX_USAGE, "own ca-key FILE"),
+            ("a net gateway with no CA", args(Path::new("net:gw"), |_| ()), EX_USAGE, "needs --gateway-ca FILE"),
+            ("a net gateway's bad name", args(Path::new("net:a.b"), |a| a.net.ca = vec!["c".into()]), EX_USAGE, "name"),
+            (
+                "an open CA of the net",
+                args(Path::new("net:gw"), |a| a.net.ca = vec![s.0.join("open_ca").display().to_string()]),
+                EX_CONFIG,
+                "--gateway-ca",
+            ),
         ];
         for (what, given, code, words) in cases {
             let refusal = sources(&given, None).expect_err(what);
@@ -135,6 +170,13 @@ mod tests {
 
     fn args(table: &Path, change: impl FnOnce(&mut ServeArgs)) -> ServeArgs {
         let mut args = ServeArgs { stdio: true, gateway: Some(table.display().to_string()), ..ServeArgs::default() };
+        change(&mut args);
+        args
+    }
+
+    /// Serve's own keys, with no gateway.
+    fn no_gateway(change: impl FnOnce(&mut ServeArgs)) -> ServeArgs {
+        let mut args = ServeArgs { stdio: true, authorized_key: vec![key_line()], ..ServeArgs::default() };
         change(&mut args);
         args
     }

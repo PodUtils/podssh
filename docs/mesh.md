@@ -91,6 +91,8 @@ there is no server to trust and nothing to hold up (T-429).
   the same way.
 - **Policy.** Who may reach which node, which share and which exit, as
   Tailscale's ACLs; checked by the node that is reached, never by a relay.
+  The routes of a gateway in front of private hosts are signed in the same
+  document (T-902, below).
 - **A person at the node.** `podssh node --ask` asks a person at the node's
   terminal of each key that the policy, `--allow` or a grant lets through,
   and a yes covers the device while one of its sessions is open and 120 s
@@ -261,6 +263,28 @@ What T-715 drafted (2026-11-17, unverified; cfb's ask A-S-08, Q105):
 - `podssh status --net` shows the URL by its host alone, the serial, the
   copy's age, and whether it is stale or closed (`net-url.json` in the
   cache).
+
+What T-902 drafted (2026-11-25, unverified; the routes of T-836's gateway
+signed in one place):
+
+- A gateway's routes are a section of the document: `gateways`, keyed by
+  the gateway's name, each `{"routes": TEXT}`, TEXT the blocks of a route
+  file of `podssh serve --gateway FILE` with each `ca-key` the CA's public
+  key. The owner signs them with `podssh net gateway set NAME FILE`, and
+  removes them with `gateway rm NAME`; `gateway show NAME` gives them back
+  (`crates/podssh-cli/src/net/gateway.rs`). Only the gateway that a section
+  names reads it, so `requires` does not name it.
+- `podssh serve --gateway net:NAME --gateway-ca FILE` takes the routes of
+  NAME from the document that its host holds, each CA's private key in a
+  file of its own host, never in the document; a route whose CA is none of
+  them is left out with one line. With `--net-url` it fetches the document
+  as a node does, and fetches nothing at the start while the copy is
+  younger than its TTL, so a gateway behind a ProxyCommand keeps Q105's one
+  GET each TTL (`crates/podssh-cli/src/serve_gateway_net.rs`).
+- A read that fails keeps the routes in force with one line; a newer serial
+  that verifies is swapped in whatever it holds, so the owner's removal of a
+  route takes effect at the gateway's next look (5 s) and is never kept
+  past. A document past its end lets nobody in by the gateway.
 
 ## 4. The relay as a role of podssh
 

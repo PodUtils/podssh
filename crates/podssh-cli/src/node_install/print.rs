@@ -108,6 +108,29 @@ pub(super) fn serve_words(args: &ServeArgs, name: &str) -> Result<Vec<String>, R
     if let Some(file) = &args.totp {
         words.extend(["--totp".to_string(), absolute("--totp", file)?]);
     }
+    // A gateway's table (T-836): a file by its path, net:NAME as it is, and
+    // the CA keys and the document's URL of a gateway of the net (T-902).
+    if let Some(value) = &args.gateway {
+        let table = match crate::serve_gateway_net::name_of(value) {
+            Some(_) => value.clone(),
+            None => absolute("--gateway", value)?,
+        };
+        words.extend(["--gateway".to_string(), table]);
+    }
+    for file in &args.net.ca {
+        words.extend(["--gateway-ca".to_string(), absolute("--gateway-ca", file)?]);
+    }
+    let net = [
+        ("--net-url", &args.net.url),
+        ("--net-owner", &args.net.owner),
+        ("--net-ttl", &args.net.ttl),
+        ("--net-stale", &args.net.stale),
+    ];
+    for (flag, value) in net {
+        if let Some(value) = value {
+            words.extend([flag.to_string(), value.clone()]);
+        }
+    }
     for pattern in &args.accept_env {
         words.extend(["--accept-env".to_string(), pattern.clone()]);
     }

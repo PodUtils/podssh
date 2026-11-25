@@ -6,7 +6,7 @@
 //! (T-159); a unit of systemd that runs it (T-709); the message of the day
 //! (T-119); the marks of a shell (T-120); listeners that the user asks for
 //! (T-124); an audit log (T-116); a one-time code (T-115); a gateway to
-//! private hosts by the login name (T-836).
+//! private hosts by the login name (T-836), its routes from the net (T-902).
 
 use super::{row, FlagKind, FlagRow};
 
@@ -75,7 +75,18 @@ pub const SERVE_FLAGS: &[FlagRow] = &[
         "make a new secret in FILE, mode 0600, never over a file that is there, print its path alone, and exit", None),
     // A gateway: the login name picks an upstream, logged in by a certificate (T-836).
     row(None, "gateway", Some("FILE"), FlagKind::Supported,
-        "serve as a gateway: the login name picks a route of FILE, whose keys may take it. serve logs in at the route's pinned upstream by a certificate of its CA, and carries each session and forward there; nothing runs here", None),
+        "serve as a gateway: the login name picks a route of FILE, whose keys may take it. serve logs in at the route's pinned upstream by a certificate of its CA, and carries each session and forward there; nothing runs here. net:NAME takes the routes of the gateway NAME from the net's signed document that this host holds", None),
+    // The routes of a gateway in the net's signed document (T-902).
+    row(None, "gateway-ca", Some("FILE"), FlagKind::Supported,
+        "with --gateway net:NAME: a CA's private key, mode 0600 with no passphrase, whose public half a route of the document names; may be repeated; a route whose CA is none of them is refused", None),
+    row(None, "net-url", Some("URL"), FlagKind::Supported,
+        "with --gateway net:NAME: take the net's document from URL, an https:// URL, as podssh node --net-url does: fetched at the start, unless the copy from it is younger than --net-ttl, then again each --net-ttl (default: NetUrl of the settings file)", None),
+    row(None, "net-owner", Some("KEY"), FlagKind::Supported,
+        "with --net-url: the owner that each document must have, its fingerprint SHA256:... or its public key (default: NetOwner of the settings file)", None),
+    row(None, "net-ttl", Some("SECONDS"), FlagKind::Supported,
+        "with --net-url: fetch the document again each SECONDS, 60 to 86400 (default 300)", None),
+    row(None, "net-stale", Some("SECONDS"), FlagKind::Supported,
+        "with --net-url: read the copy for SECONDS more past --net-ttl while its server fails, 0 to 604800 (default 3600); past that, the gateway lets nobody in", None),
     row(None, "audit-verify", Some("FILE"), FlagKind::Supported,
         "check the chain of the audit log FILE, print what it found and the last line's SHA-256, and exit: 0 when it holds, 65 when a line was changed, 66 when FILE cannot be read", None),
     // A unit of systemd that runs serve NAME, printed (T-709).

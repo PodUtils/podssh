@@ -354,6 +354,8 @@ mod serve_audit;
 mod serve_totp;
 // `podssh serve --gateway FILE`: the route table read at the start (T-836).
 mod serve_gateway;
+// `podssh serve --gateway net:NAME`: the routes of the net's signed document (T-902).
+mod serve_gateway_net;
 // `podssh serve NAME`: a pair's node whose sessions serve answers (T-107).
 mod node_serve;
 // A client's `-R` under `podssh serve`, published as a pair's node (T-123).

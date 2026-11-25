@@ -288,6 +288,8 @@ pub const SERVE: &[&str] = &[
     super::notes_serve_totp::TOTP,
     // A gateway to private hosts by the login name (T-836).
     super::notes_serve_gateway::GATEWAY,
+    // Its routes in the net's signed document (T-902).
+    super::notes_serve_gateway::GATEWAY_NET,
     // A unit of systemd that runs serve NAME (T-709).
     super::notes_unit::SERVE,
     "The connection ends when the client leaves: exit 0, else 255 when it failed; a stop exits 0, as does a session \

@@ -79,6 +79,12 @@ pub const NET: &[&str] = &[
      pair 65. policy set FILE prints the same before it signs; --expect FILE signs nothing (65) when a case is false \
      under the new policy, and --dry-run signs nothing at all. A document with a policy requires it, so a podssh that \
      cannot read the rules refuses the document and keeps the one before.",
+    "The document also holds the routes of a gateway, which podssh serve --gateway net:NAME reads. podssh net \
+     gateway set NAME FILE signs them in: FILE is a route file of podssh serve --gateway FILE. Each ca-key in it is the \
+     CA's public key, TYPE BASE64, as the private key stays on the gateway's host. set refuses FILE (65) as the \
+     gateway would refuse it, with its line. gateway show NAME prints the routes, as a file that set takes again. \
+     gateway rm NAME removes them, and the gateway then lets nobody in by them. A podssh that does not run the \
+     gateway keeps them unread, so the document does not require them.",
     "podssh ssh [user@]tag:NAME names each member of the net held that the policy's tag NAME holds with the role node. \
      They come in a shuffled order, a member that no road reached in the last 30 s put last: each is tried as \
      node://[user@]MEMBER until a race reaches one, and a line names each tried and the one used; the run ends at the \

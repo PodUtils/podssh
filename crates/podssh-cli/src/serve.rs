@@ -21,7 +21,8 @@
 //! `--totp FILE` asks each key for a one-time code (T-115, `serve_totp.rs`).
 //! A client's `-R` is a pair of the relay, whose node runs here, with no
 //! bind (T-123, `serve_forward.rs`). `--gateway FILE` sends each login to
-//! the upstream of its route (T-836, `serve_gateway.rs`).
+//! the upstream of its route (T-836, `serve_gateway.rs`); `--gateway net:NAME`
+//! takes the routes of the net's signed document (T-902).
 
 use std::io::{IsTerminal, Write};
 use std::path::{Path, PathBuf};
@@ -73,8 +74,10 @@ pub struct ServeArgs {
     /// `--totp FILE` and `--totp-new FILE` (T-115).
     pub totp: Option<String>,
     pub totp_new: Option<String>,
-    /// `--gateway FILE`: the route table of a gateway (T-836).
+    /// `--gateway FILE`: the route table of a gateway (T-836); `net:NAME`,
+    /// the routes of the net's document, with its flags (T-902).
     pub gateway: Option<String>,
+    pub net: crate::serve_gateway_net::NetFlags,
     pub pty: Option<String>,
     /// `--motd FILE`: the message of the day (T-119).
     pub motd: Option<String>,
@@ -120,6 +123,7 @@ impl ServeArgs {
             totp: matches.get_one::<String>("totp").cloned(),
             totp_new: matches.get_one::<String>("totp-new").cloned(),
             gateway: matches.get_one::<String>("gateway").cloned(),
+            net: crate::serve_gateway_net::NetFlags::of(matches),
             pty: matches.get_one::<String>("pty").cloned(),
             motd: matches.get_one::<String>("motd").cloned(),
             shell_integration: matches.get_flag("shell-integration"),
