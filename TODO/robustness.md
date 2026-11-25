@@ -5154,3 +5154,38 @@ passed (`beside`'s tests and `a_write_of_exec_goes_beside_the_command_output` am
 alone again: `each_wait_of_a_pump_on_the_session_goes_beside_the_channel` fails and names it; restored, it passes.
 Clippy (`-D warnings`, one repair in the guard's test: `contains` for `iter().any`) and rustfmt clean; the Windows check
 clean.
+
+# T-952: `(os error N)` leaves each user line, not only the file commands'
+
+**Source:** the fifth black-box pass (2026-11-25): T-929 removed the suffix from the lines of `cp`, `mv`, `scp`, `sftp`
+and `edit` with a helper of their own; other lines keep it (for example `pipe`'s "B's input failed after 64 bytes: An
+existing connection was forcibly closed by the remote host. (os error 10054)").
+**Category:** defect
+**Milestone:** none
+**Priority:** P3
+**Effort:** M
+**Status:** open
+
+## Problem
+
+A user line that shows an `std::io::Error` by its `Display` ends with Rust's "(os error N)". The rule of `AGENTS.md`
+("Quality first") asks for one true sentence; the suffix is the runtime's, not the user's words.
+
+## Premise
+
+- Read: `crates/podssh-cli/src/cp/words.rs` has `plain` and `said`, used by the file commands alone (T-929).
+- Read: `crates/podssh-cli/src/pipe/pump.rs` writes the error of a failed read with `{e}`.
+
+## Approach
+
+1. Move `plain` and `said` where each crate of podssh can take them (`podssh-ws`'s `text` module, beside `one_line`),
+   or ask podcrates for them in `pod-core` first (`AGENTS.md`, "Shared code first"), and use them at each place that
+   shows an I/O error to a user: a table-driven test of the helper, and a test that scans the manual's example lines.
+2. Keep the system's own words; only the suffix goes.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --lib words
+```
+
