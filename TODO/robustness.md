@@ -3065,7 +3065,7 @@ the node's frames until the echo of its Close or EOF, at most 2 s, then the conn
 Run by the main session (2026-11-25, on `1e44eb9`): `--test node_cut` 4 passed here; the proof is the macOS job and a repeat there.
 
 The node's side, for PodUtils/podcrates (a COORD issue `(to podcrates)` that the lead files): "pod-relay's
-`reverse::closes::pending` (`crates/pod-relay/src/reverse/closes.rs`, at `ca1d3e3`, lines 344-361) looks for the
+`reverse::closes::pending` (`PodUtils/podcrates:crates/pod-relay/src/reverse/closes.rs` at `ca1d3e3`, lines 344-361; asked in COORD-150, #360) looks for the
 relay's Close behind a failed ping only 8 frames or 200 ms ahead. A relay that sends the node another session's data
 before its Close (64 KiB frames: 8 frames are 512 KiB) or a slow host puts the Close past that look, and the node
 says 'the link to the relay ended with no Close (sending a ping ... failed: Broken pipe)' where the relay gave 1003
