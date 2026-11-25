@@ -45,7 +45,7 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** None waits (2026-11-25): `d-t836` (T-836, the gateway) and `d-t877` (T-875, T-877) are merged. Each
+8. **Drafts.** None waits (2026-11-25): `d-t902` (T-902), `d-t836` (T-836, the gateway) and `d-t877` (T-875, T-877) are merged. Each
    `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
@@ -64,7 +64,7 @@ Cloud sessions of 2026-11-24 and 2026-11-25. Done on 2026-11-25: T-839 done (TPM
 TBS case passed in the gate), T-896 done, T-875 and T-877 done (the DNS road; T-900, its form over DoH, waits for podcrates), T-123 done
 (`serve --remote-listen`), T-161 and T-901 done (a new client's
 screen, measured, and given to a shell at a still prompt and a seat of `--share`; GitHub #20 closed), T-836 done
-(`serve --gateway`; T-902 and T-903 filed), T-904 (a test's freed port, which turned `gate (ts)` red at `7c4442e`),
+(`serve --gateway`; T-903 filed), T-902 done (its routes in the net's signed document), T-904 (a test's freed port, which turned `gate (ts)` red at `7c4442e`),
 podcrates `v0.83.0` taken. Open, in order: the gate of the last push (lint was red at `0c6e9c4` on the format of
 `attach_screen.rs` alone); T-831 (partial); podcrates' answers to the COORD issues of
 `docs/HANDOFF.md`; T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
@@ -78,7 +78,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 837 entries: 5 open, 40 partial, 15 blocked, 777 done.
+`TODO/INDEX.md` holds 837 entries: 4 open, 40 partial, 15 blocked, 778 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

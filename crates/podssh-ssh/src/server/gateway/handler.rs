@@ -158,10 +158,12 @@ impl russh::server::Handler for Gateway {
         if self.conn.ended().is_some() {
             return Ok(Auth::reject());
         }
-        let why = match self.table.now().route(user) {
-            Some(route) if route.admits(offer.public_key) => return Ok(Auth::Accept),
-            Some(route) => format!("not a key of the route {} (line {})", route.pattern, route.line),
-            None => "no route of --gateway matches the login name".to_string(),
+        // A net's document past its end lets no route in (T-902).
+        let why = match (self.table.closed(), self.table.now().route(user)) {
+            (Some(why), _) => why,
+            (None, Some(route)) if route.admits(offer.public_key) => return Ok(Auth::Accept),
+            (None, Some(route)) => format!("not a key of the route {} (line {})", route.pattern, route.line),
+            (None, None) => "no route of --gateway matches the login name".to_string(),
         };
         // A refused offer is never signed, so its line is said here, once.
         if std::mem::replace(&mut self.told_offer, true) {
@@ -176,6 +178,9 @@ impl russh::server::Handler for Gateway {
         let who = fingerprint(key.public_key);
         if self.conn.ended().is_some() {
             return Ok(self.refuse(user, &who, "the connection was ended"));
+        }
+        if let Some(why) = self.table.closed() {
+            return Ok(self.refuse(user, &who, &why));
         }
         let Some(route) = self.table.now().route(user) else {
             return Ok(self.refuse(user, &who, "no route of --gateway matches the login name"));

@@ -19,6 +19,10 @@
 //! an unknown word, or a value that does not read refuses the whole file,
 //! with its line, so that a typing mistake never opens or closes a route
 //! in silence.
+//!
+//! A net's signed document holds the same blocks for a gateway (T-902),
+//! each `ca-key` the CA's public half, as its owner has no CA key at hand:
+//! [`plan`] reads them for both, and the gateway finds each CA key apart.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -92,44 +96,109 @@ impl Routes {
         dir: &Path,
         ca: &mut dyn FnMut(&Path) -> Result<PrivateKey, String>,
     ) -> Result<Routes, String> {
+        let mut read: HashMap<PathBuf, Arc<PrivateKey>> = HashMap::new();
         let mut routes = Vec::new();
-        let mut open: Option<Draft> = None;
-        let mut keys_read: HashMap<PathBuf, Arc<PrivateKey>> = HashMap::new();
-        for (n, raw) in text.lines().enumerate() {
-            let n = n + 1;
-            let line = raw.trim();
-            if line.is_empty() || line.starts_with('#') {
-                continue;
-            }
-            let at = |why: String| format!("line {n}: {why}");
-            if line.chars().any(|c| c.is_control() && c != '\t') {
-                return Err(at("a control character".into()));
-            }
-            let (word, rest) = line.split_once(char::is_whitespace).map_or((line, ""), |(w, r)| (w, r.trim()));
-            if word == "route" {
-                if let Some(draft) = open.take() {
-                    routes.push(Arc::new(draft.close(dir, &mut keys_read, ca)?));
+        for planned in plan(text)? {
+            let given = PathBuf::from(&planned.ca);
+            let path = if given.is_absolute() { given } else { dir.join(given) };
+            let key = match read.get(&path) {
+                Some(key) => key.clone(),
+                None => {
+                    let key = Arc::new(ca(&path).map_err(|why| format!("line {}: ca-key {why}", planned.line))?);
+                    read.insert(path.clone(), key.clone());
+                    key
                 }
-                if routes.len() >= MOST_ROUTES {
-                    return Err(at(format!("more than {MOST_ROUTES} routes")));
-                }
-                let pattern = pattern(rest).map_err(at)?;
-                if routes.iter().any(|r: &Arc<Route>| r.pattern == pattern) {
-                    return Err(at(format!("route {pattern} twice: the second could never match")));
-                }
-                open = Some(Draft { pattern, line: n, ..Draft::default() });
-                continue;
-            }
-            let Some(draft) = open.as_mut() else {
-                return Err(at(format!("{word} before any route: begin with route PATTERN")));
             };
-            draft.take(word, rest).map_err(at)?;
-        }
-        if let Some(draft) = open.take() {
-            routes.push(Arc::new(draft.close(dir, &mut keys_read, ca)?));
+            routes.push(Arc::new(planned.with_ca(path, key)));
         }
         Ok(Routes { routes })
     }
+
+    /// The routes of a table whose CA keys were found apart: a net's
+    /// document names each CA by its public half alone (T-902).
+    pub fn of(routes: Vec<Route>) -> Routes {
+        Routes { routes: routes.into_iter().map(Arc::new).collect() }
+    }
+}
+
+/// A route as its lines give it, before its CA key is found: what a net's
+/// document holds (T-902), whose owner has no CA key at hand. No Debug, as
+/// a [`Route`] has none.
+#[derive(Clone)]
+pub struct Planned {
+    pub pattern: String,
+    /// The line of `route`.
+    pub line: usize,
+    /// The word of `ca-key`: a file in a route file; the CA's public key,
+    /// `TYPE BASE64`, in a net's document.
+    pub ca: String,
+    host: String,
+    port: u16,
+    host_key: PublicKey,
+    keys: Vec<PublicKey>,
+    principal: String,
+    source_address: Option<String>,
+}
+
+impl Planned {
+    /// The route, with the CA key that signs its certificates.
+    pub fn with_ca(self, ca_path: PathBuf, ca: Arc<PrivateKey>) -> Route {
+        Route {
+            pattern: self.pattern,
+            host: self.host,
+            port: self.port,
+            host_key: self.host_key,
+            keys: self.keys,
+            principal: self.principal,
+            ca,
+            ca_path,
+            source_address: self.source_address,
+            line: self.line,
+        }
+    }
+}
+
+/// Each route of `text` in its order, each part read and checked, its CA
+/// key not read yet: the one reader of the blocks, for a route file and a
+/// net's document alike. A route that lacks a part, a part twice, an unknown
+/// word or a value that does not read refuses the whole text, with its line.
+pub fn plan(text: &str) -> Result<Vec<Planned>, String> {
+    let mut routes: Vec<Planned> = Vec::new();
+    let mut open: Option<Draft> = None;
+    for (n, raw) in text.lines().enumerate() {
+        let n = n + 1;
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let at = |why: String| format!("line {n}: {why}");
+        if line.chars().any(|c| c.is_control() && c != '\t') {
+            return Err(at("a control character".into()));
+        }
+        let (word, rest) = line.split_once(char::is_whitespace).map_or((line, ""), |(w, r)| (w, r.trim()));
+        if word == "route" {
+            if let Some(draft) = open.take() {
+                routes.push(draft.close()?);
+            }
+            if routes.len() >= MOST_ROUTES {
+                return Err(at(format!("more than {MOST_ROUTES} routes")));
+            }
+            let pattern = pattern(rest).map_err(at)?;
+            if routes.iter().any(|r| r.pattern == pattern) {
+                return Err(at(format!("route {pattern} twice: the second could never match")));
+            }
+            open = Some(Draft { pattern, line: n, ..Draft::default() });
+            continue;
+        }
+        let Some(draft) = open.as_mut() else {
+            return Err(at(format!("{word} before any route: begin with route PATTERN")));
+        };
+        draft.take(word, rest).map_err(at)?;
+    }
+    if let Some(draft) = open.take() {
+        routes.push(draft.close()?);
+    }
+    Ok(routes)
 }
 
 /// A route as its lines come.
@@ -141,7 +210,7 @@ struct Draft {
     host_key: Option<PublicKey>,
     keys: Vec<PublicKey>,
     principal: Option<String>,
-    ca_path: Option<PathBuf>,
+    ca: Option<String>,
     source_address: Option<String>,
 }
 
@@ -171,8 +240,8 @@ impl Draft {
                 self.principal = Some(principal(rest)?);
             }
             "ca-key" => {
-                twice(self.ca_path.is_some())?;
-                self.ca_path = Some(PathBuf::from(rest));
+                twice(self.ca.is_some())?;
+                self.ca = Some(rest.to_string());
             }
             "source-address" => {
                 twice(self.source_address.is_some())?;
@@ -190,41 +259,26 @@ impl Draft {
         Ok(())
     }
 
-    /// The route, once each part that it needs is there; its CA key read.
-    fn close(
-        self,
-        dir: &Path,
-        read: &mut HashMap<PathBuf, Arc<PrivateKey>>,
-        ca: &mut dyn FnMut(&Path) -> Result<PrivateKey, String>,
-    ) -> Result<Route, String> {
+    /// The route, once each part that it needs is there.
+    fn close(self) -> Result<Planned, String> {
         let at = |why: &str| format!("line {}: route {} has no {why}", self.line, self.pattern);
         let (host, port) = self.upstream.ok_or_else(|| at("upstream HOST:PORT"))?;
         let host_key = self.host_key.ok_or_else(|| at("host-key: each route pins its upstream's key"))?;
         let principal = self.principal.ok_or_else(|| at("principal"))?;
-        let given = self.ca_path.ok_or_else(|| at("ca-key FILE"))?;
+        let ca = self.ca.ok_or_else(|| at("ca-key FILE"))?;
         if self.keys.is_empty() {
             return Err(at("key: a route that no key may take refuses each login"));
         }
-        let ca_path = if given.is_absolute() { given } else { dir.join(given) };
-        let key = match read.get(&ca_path) {
-            Some(key) => key.clone(),
-            None => {
-                let key = Arc::new(ca(&ca_path).map_err(|why| format!("line {}: ca-key {why}", self.line))?);
-                read.insert(ca_path.clone(), key.clone());
-                key
-            }
-        };
-        Ok(Route {
+        Ok(Planned {
             pattern: self.pattern,
+            line: self.line,
+            ca,
             host,
             port,
             host_key,
             keys: self.keys,
             principal,
-            ca: key,
-            ca_path,
             source_address: self.source_address,
-            line: self.line,
         })
     }
 }

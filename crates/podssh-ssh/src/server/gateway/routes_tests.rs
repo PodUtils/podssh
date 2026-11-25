@@ -131,3 +131,23 @@ fn the_first_match_decides_and_lists_its_own_keys() {
         assert!(routes.route(unmatched).is_none(), "{unmatched:?} has a route");
     }
 }
+
+/// The reader of a net's document (T-902): `plan` keeps each `ca-key` word
+/// whole, a public key with its comment as a file, reads no CA, and gives
+/// the same refusals as a file; `with_ca` and `Routes::of` make the routes.
+#[test]
+fn plan_keeps_the_ca_word_whole_and_reads_no_ca() {
+    let k = keys();
+    let ca = generate(KeyKind::Ed25519, "").expect("a CA");
+    let public = format!("{} the gateway's CA", line_of(&ca));
+    let text =
+        format!("route alice\nupstream h\nhost-key {}\nprincipal alice\nca-key {public}\nkey {}\n", k.host, k.alice);
+    let planned = plan(&text).expect("the blocks read");
+    assert_eq!(planned.len(), 1);
+    assert_eq!((planned[0].pattern.as_str(), planned[0].line, planned[0].ca.as_str()), ("alice", 1, public.as_str()));
+    let route = planned[0].clone().with_ca(PathBuf::from("/etc/podssh/gateway_ca"), Arc::new(ca));
+    let routes = Routes::of(vec![route]);
+    assert_eq!(routes.route("alice").map(|r| (r.host.clone(), r.port)), Some(("h".to_string(), 22)));
+    let why = plan(&text.replace("principal alice\n", "")).err().expect("no principal");
+    assert!(why.contains("line 1: route alice has no principal"), "{why}");
+}

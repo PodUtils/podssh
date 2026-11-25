@@ -5354,6 +5354,19 @@ that the owner's key signs, and that each end keeps.
   prints the same (20 lines at most) before it signs; with `--expect FILE`
   it signs nothing (65) when a case is false under the new policy, and with
   `--dry-run` it signs nothing at all: `net.doc` and its serial stay.
+- **A gateway's routes** (T-902, drafted 2026-11-25, unreleased): the field
+  `gateways`, an object keyed by the gateway's name, each `{"routes":
+  TEXT}`, TEXT the blocks of a route file of `podssh serve --gateway FILE`
+  whose each `ca-key` is the CA's public key, `TYPE BASE64`; the private
+  key stays on the gateway's host (`serve --gateway-ca FILE`). The owner's
+  `gateway set NAME FILE` reads FILE with the route file's own reader and
+  its refusals, and refuses (65) a `ca-key` that is no public key and a FILE
+  with no route; `gateway rm NAME` removes the section (64 when there is
+  none); each end's `gateway show NAME` prints TEXT, as a file that `set`
+  takes again. Only the gateway that a section names reads it, so
+  `requires` does not name it and a podssh of before takes the document as
+  before (`crates/podssh-cli/src/net/gateway.rs`,
+  `crates/podssh-cli/src/net/gateway_cmd.rs`).
 - **`podssh ssh [user@]tag:NAME`** (T-750, the block "agentanycast 4" of
   PodUtils/podnet#438) is each member of the net held that the policy's tag
   NAME holds with the role `node`, shuffled, each member that no road
@@ -7042,6 +7055,28 @@ gives up each capability of the process (T-698), before it reads a file.
   usage error with it (64). A compromised gateway holds each route's CA:
   it can mint a login for that principal until the upstream drops the CA,
   and holds no key of a user (T-836's Decision).
+- **A gateway of the net (T-902, drafted 2026-11-25, unreleased).**
+  `--gateway net:NAME` takes the routes of the section NAME of the net's
+  document that this host holds (`podssh net gateway set`, above), read by
+  the route file's one reader (`routes::plan`), and each CA key from the
+  files of `--gateway-ca FILE` (repeatable; read as `ca-key FILE` is): a
+  route whose CA public key is none of them is left out with one line,
+  and the others are taken. `--net-url URL --net-owner KEY` (with
+  `--net-ttl` and `--net-stale`) fetch the document as `podssh node` does
+  (T-715, Q105), with no fetch at the start while the copy from the URL is
+  younger than its TTL, so that `--stdio`, which starts once for each
+  client, sends one GET each TTL. A read that fails (no document, a
+  signature that fails, a fetch that fails) keeps the routes in force with
+  one line; a newer serial that verifies is swapped in at the next look
+  (each 5 s, NAME and `--listen`) or at SIGHUP, whatever it holds: a route
+  or a section that the owner removed lets nobody in by it, and a section
+  that this podssh does not read lets nobody in either. A document past its
+  end, or a copy of `--net-url` past its stale window, refuses each login
+  until a newer one comes. At the start: no `--gateway-ca`, a bad NAME, or
+  `--gateway-ca` and the `--net-*` flags without `net:NAME` are 64; no
+  document, no route taken, a document past its end and a CA key that
+  others may read are 78 (`crates/podssh-cli/src/serve_gateway_net.rs`).
+  `--print-unit` writes `--gateway` and these flags into the unit.
 - **Exit codes.** 0 when the client left, after a stop, and after a reload
   that ended the session (T-842); 255 when the
   connection failed; 64 without `--stdio`, with a terminal on stdin, or

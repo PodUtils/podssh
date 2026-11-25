@@ -7,12 +7,16 @@
 //! refused (255, one line that says why); an upstream whose host key the
 //! route does not pin is refused before the login; and a client that offers
 //! 20 keys of the route and signs with none causes no login upstream.
-//! Unix's; a host with no OpenSSH client or no sshd says the test did not
-//! run.
+//! With `--gateway net:NAME` (T-902) the routes come from the net's
+//! document that its owner signed, served by the test over TLS
+//! (`net_doc_kit`), and a document whose signature fails leaves the routes
+//! in force. Unix's; a host with no OpenSSH client or no sshd says the test
+//! did not run.
 
 #![cfg(unix)]
 
 mod live_harness;
+mod net_doc_kit;
 mod serve_kit;
 
 use std::os::unix::fs::PermissionsExt;
@@ -20,6 +24,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use live_harness::sshd::{self, Sshd};
+use net_doc_kit::{Server, NAME};
 use serve_kit::{finish, have_openssh, keygen, podssh_env, run, scratch, Scratch, BIN};
 
 /// This user's name: each upstream runs as it, and the certificate's
@@ -83,8 +88,14 @@ impl Lab {
     /// A route block for `pattern` to `sshd` of `dir`, pinning `host_key`,
     /// and taking each key line of `keys`.
     fn route(&self, pattern: &str, sshd: &Sshd, host_key: &str, keys: &[String]) -> String {
+        self.route_by(pattern, sshd, host_key, keys, "ca")
+    }
+
+    /// [`Lab::route`] with `ca` as the word of `ca-key`: a file, or in a
+    /// net's document the CA's public key (T-902).
+    fn route_by(&self, pattern: &str, sshd: &Sshd, host_key: &str, keys: &[String], ca: &str) -> String {
         let mut text = format!(
-            "route {pattern}\n    upstream 127.0.0.1:{}\n    host-key {host_key}\n    principal {}\n    ca-key ca\n",
+            "route {pattern}\n    upstream 127.0.0.1:{}\n    host-key {host_key}\n    principal {}\n    ca-key {ca}\n",
             sshd.port, self.user
         );
         for key in keys {
@@ -110,11 +121,13 @@ impl Lab {
     /// OpenSSH's client as `user@box`, with the gateway as its ProxyCommand,
     /// logging in with each identity of `keys`, running `remote`.
     fn ssh(&self, user: &str, keys: &[PathBuf], remote: &[&str]) -> Command {
-        let proxy = format!(
-            "'{BIN}' serve --stdio --gateway '{}' --host-key '{}'",
-            self.dir().join("routes").display(),
-            self.dir().join("gateway_host_key").display()
-        );
+        self.ssh_by(&format!("--gateway '{}'", self.dir().join("routes").display()), user, keys, remote)
+    }
+
+    /// [`Lab::ssh`] with `gateway` as serve's flags of its routes.
+    fn ssh_by(&self, gateway: &str, user: &str, keys: &[PathBuf], remote: &[&str]) -> Command {
+        let proxy =
+            format!("'{BIN}' serve --stdio {gateway} --host-key '{}'", self.dir().join("gateway_host_key").display());
         let mut cmd = Command::new("ssh");
         cmd.args(["-F", "/dev/null", "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "LogLevel=DEBUG1"])
             .arg("-o")
@@ -219,4 +232,117 @@ fn a_client_that_offers_twenty_keys_and_signs_none_causes_no_upstream_login() {
     // A gateway that dialed on an offer would have logged in by certificate.
     assert_eq!(lab.logged("a", "ID podssh-gateway"), 0, "a key offered and never signed went upstream");
     assert!(!err.contains("logged in as"), "{err}");
+}
+
+/// Where the armoured signature of a signed net's document starts.
+fn armour_at(signed: &[u8]) -> usize {
+    let mark = b"-----BEGIN SSH SIGNATURE-----";
+    signed.windows(mark.len()).position(|w| w == mark).expect("a signed document")
+}
+
+/// The record of the last fetch of `--net-url` made older than its TTL, as
+/// if 400 s had passed: the next start of serve fetches again.
+fn age_the_copy(lab: &Lab) {
+    let path = lab.dir().join("cache").join("net-url.json");
+    let mut record: serde_json::Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    let fetched = record["fetched_ms"].as_i64().expect("a fetch was recorded");
+    record["fetched_ms"] = serde_json::json!(fetched - 400_000);
+    std::fs::write(&path, record.to_string()).unwrap();
+}
+
+/// T-902: the gateway takes its routes from the net's document that its
+/// owner signed, served by the test at an https:// URL, and routes user-a@
+/// as the route file did; within the TTL it fetches nothing; a document
+/// whose signature fails leaves the routes in force, with one line; the
+/// newer serial, once it reads, moves user-a@ to the other upstream.
+#[test]
+fn a_gateway_of_the_net_routes_by_the_owner_s_signed_document() {
+    let Some(lab) = Lab::start("gateway-net") else { return };
+    let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let (tls_ca, cert, key) = net_doc_kit::ca_and_leaf();
+    let tls_ca_file = lab.dir().join("tls-ca.pem");
+    std::fs::write(&tls_ca_file, tls_ca).unwrap();
+    let server = Server::start(&rt, &cert, &key);
+    let url = format!("https://{NAME}:{}/fleet.doc", server.port);
+    let cache = lab.dir().join("cache");
+    std::fs::create_dir_all(&cache).unwrap();
+    std::fs::set_permissions(&cache, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+    // The owner's net, on the owner's own document; its CA's public half.
+    keygen(lab.dir(), &lab.dir().join("owner"));
+    let owner = line_of(&lab.dir().join("owner.pub")).split_whitespace().take(2).collect::<Vec<_>>().join(" ");
+    let doc = lab.dir().join("owner.doc");
+    let owner_net = |args: &[&str]| {
+        let mut cmd = Command::new(BIN);
+        cmd.arg("net").args(args).arg("--owner-key").arg(lab.dir().join("owner")).stdin(Stdio::null());
+        podssh_env(&mut cmd, lab.dir());
+        cmd.env("PODSSH_NET", &doc).env("PODSSH_SETTINGS", "none");
+        let out = cmd.output().expect("podssh net runs");
+        assert!(out.status.success(), "podssh net {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    };
+    owner_net(&["init", "fleet"]);
+    let (me, ca) = (line_of(&lab.dir().join("id.pub")), line_of(&lab.dir().join("ca.pub")));
+    let routes = lab.dir().join("net-routes");
+    let set = |upstream: &Sshd, name: &str| {
+        let text = lab.route_by("user-a", upstream, &lab.host_key(name), std::slice::from_ref(&me), &ca);
+        std::fs::write(&routes, text).unwrap();
+        owner_net(&["gateway", "set", "gw", &routes.display().to_string()]);
+        std::fs::read(&doc).unwrap()
+    };
+    let two = set(&lab.a, "a");
+
+    // The gateway: its CA's private key here, the document from the URL.
+    let gateway = format!(
+        "--gateway net:gw --gateway-ca '{}' --net-url '{url}' --net-owner '{owner}'",
+        lab.dir().join("ca").display()
+    );
+    let ssh = |user: &str| {
+        let mut cmd = lab.ssh_by(&gateway, user, &[lab.dir().join("id")], &["echo $SSH_CONNECTION"]);
+        for name in ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy", "PODSSH_RELAY", "PODSSH_NET"] {
+            cmd.env_remove(name);
+        }
+        cmd.env("SSL_CERT_FILE", &tls_ca_file).env("PODSSH_SETTINGS", "none");
+        cmd.env("PODSSH_RELAY_ADDR", format!("{NAME}=127.0.0.1"));
+        run(cmd, None)
+    };
+    let shown = format!("the net from https://{NAME}:{}/...", server.port);
+
+    // Serial 2, fetched: user-a reaches a, as the route file routed it.
+    server.answer(200, &two);
+    let (code, out, err) = ssh("user-a");
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(server_port(&out), Some(lab.a.port), "{err}");
+    assert!(err.contains(&format!("{shown}: serial 2, the first held here")), "{err}");
+    assert!(err.contains("net:gw: the routes of serial 2, 1 in all"), "{err}");
+    assert!(err.contains("logged in as user-a by the route user-a"), "{err}");
+    assert_eq!(lab.logged("a", "ID podssh-gateway route=user-a user=user-a"), 1, "upstream a's log");
+
+    // Within the TTL a new client meets the copy held: no GET (Q105).
+    let (code, out, err) = ssh("user-a");
+    assert_eq!((code, server_port(&out)), (Some(0), Some(lab.a.port)), "{err}");
+    assert!(err.contains("its copy of") && err.contains("younger than 300 s"), "{err}");
+    assert_eq!(server.asked(), 1, "one fetch for two clients within the TTL");
+
+    // The owner moves user-a to b; the server gives that document under
+    // serial 2's signature. The routes in force stay, with one line.
+    let three = set(&lab.b, "b");
+    let forged = [&three[..armour_at(&three)], &two[armour_at(&two)..]].concat();
+    server.answer(200, &forged);
+    age_the_copy(&lab);
+    let (code, out, err) = ssh("user-a");
+    assert_eq!((code, server_port(&out)), (Some(0), Some(lab.a.port)), "the routes before: {err}");
+    let said: Vec<&str> = err.lines().filter(|l| l.contains("the net from")).collect();
+    assert_eq!(said.len(), 1, "one line: {err}");
+    assert!(said[0].contains("signature") && said[0].contains("its copy of"), "{}", said[0]);
+    assert_eq!(server.asked(), 2);
+    assert_eq!(lab.logged("b", "ID podssh-gateway"), 0, "the forged routes reached b");
+
+    // Serial 3 itself: taken, and user-a reaches b.
+    server.answer(200, &three);
+    age_the_copy(&lab);
+    let (code, out, err) = ssh("user-a");
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(server_port(&out), Some(lab.b.port), "{err}");
+    assert!(err.contains(&format!("{shown}: serial 3, in place of 2")), "{err}");
+    assert_eq!(lab.logged("b", "ID podssh-gateway route=user-a user=user-a"), 1, "upstream b's log");
 }

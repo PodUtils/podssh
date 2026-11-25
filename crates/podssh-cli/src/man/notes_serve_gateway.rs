@@ -1,5 +1,21 @@
 //! The note of `podssh serve --gateway` (T-836): the route table, the login
-//! upstream by a certificate of the route's CA, and what is carried.
+//! upstream by a certificate of the route's CA, and what is carried; and
+//! the routes of the net's signed document, `--gateway net:NAME` (T-902).
+
+pub const GATEWAY_NET: &str = "--gateway net:NAME takes the routes of the gateway NAME from the net's signed \
+     document that this host holds (see podssh net). Its owner signs them with podssh net gateway set NAME FILE. \
+     FILE holds the blocks of a route file, but each ca-key is the CA's public key, TYPE BASE64. The CA's private key \
+     never leaves the gateway's host: name it with --gateway-ca FILE, repeated for each CA. A route whose CA is none \
+     of them is refused, with one line; the other routes are taken. With --net-url URL and --net-owner KEY, serve \
+     fetches the document as podssh node does. It fetches nothing at the start while the copy from URL is younger \
+     than --net-ttl. So a ProxyCommand's serve sends one GET each TTL, however many clients come. A fetch or a \
+     document that fails, a bad signature among them, keeps the routes in force, with one line. A newer serial that \
+     reads takes their place at the next look, each 5 s, or at SIGHUP. So does a section that the owner removed: \
+     nobody passes by it then. A section that this podssh does not read lets nobody in by it either. A document past \
+     its end, or a copy past --net-stale, refuses each login until a newer one comes. These refuse the start: no \
+     --gateway-ca (64), or a --gateway-ca, --net-url, --net-owner, --net-ttl or --net-stale with no net:NAME (64). \
+     So do no document, no route taken, or a document past its end (78). A file whose name begins with net: is \
+     given as ./net:NAME.";
 
 pub const GATEWAY: &str = "--gateway FILE makes serve a gateway in front of private hosts. The login name picks a \
      route of FILE, a block that starts with route PATTERN (* and ?, case-sensitive) and gives on its own lines: \

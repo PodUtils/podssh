@@ -1062,10 +1062,10 @@ out with matching digests.
   T-079), and the operator connects through the relay (T-084).
 - Read: `vi`, `less` and `top` need a real pty (`docs/terminal.md:257-261`).
   The measured sandboxes have no `/dev/ptmx` (`docs/target-environment.md:26`,
-  `docs/STATUS.md:535`). With no pty device, no podssh code can give the child
+  `docs/STATUS.md:536`). With no pty device, no podssh code can give the child
   a tty: shims are excluded (`docs/decisions.md:114`).
 - Read: one relay session carries 64 MiB, both directions together
-  (`docs/relay.md:720`; measured: `docs/STATUS.md:543`). 200 MiB each way
+  (`docs/relay.md:720`; measured: `docs/STATUS.md:544`). 200 MiB each way
   needs the new sessions of T-137.
 - Read: the box matches the sandbox, except the `EACCES` on loopback
   `connect()` (`scripts/test_in_box.sh:67-74`).
@@ -2953,7 +2953,7 @@ no reason (`docs/target-environment.md:88-89`).
   the report are older; the content is at the lines given here.
 - Read: the report says that `docs/cli.md` records why podssh does not call
   `getpwuid`. It does not; that record is `docs/target-environment.md:37-44`.
-- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:535`):
+- Read: a sandbox mounts `/tmp` and `$HOME` noexec (`docs/STATUS.md:536`):
   the mode bits pass there, the exec fails, and `access(X_OK)` fails. doctor
   runs a real copy, as "only a real attempt tells them apart"
   (`crates/podssh-cli/src/doctor/host.rs:243-245`).
@@ -3009,7 +3009,7 @@ a data file `dash` (mode 0644), a data file with mode 0755 (the spawn or its
 run fails), a link to a missing file and a good shell: each failure is
 named, and the good shell wins. A planted `exists()` test fails the
 directory case (`t222-exists-test`). A copy of `/bin/sh` in `/dev/shm`
-(noexec: `docs/STATUS.md:482`) is refused as `--shell`, in serve_shell.rs
+(noexec: `docs/STATUS.md:483`) is refused as `--shell`, in serve_shell.rs
 and through the binary in crates/podssh-cli/tests/serve_openssh.rs, each
 "did not run" where `/dev/shm` is not noexec. The binary refuses a missing
 named shell with 78, and OpenSSH's client meets the same line. The static
@@ -3027,10 +3027,10 @@ the entry joins the work order by its priority.
   `/bin/sh` after it. That choice is the client's, and stays apart; the server's search is
   crates/podssh-ssh/src/server/shell.rs. `serve` is a verb since T-107, with its flags in
   `crates/podssh-cli/src/flags/serve.rs` (Approach item 6's `flags.rs` is that file).
-- `docs/STATUS.md:534` is now the head of a table of two sandboxes and says nothing of noexec. The
-  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:482`, `docs/STATUS.md:509`),
+- `docs/STATUS.md:535` is now the head of a table of two sandboxes and says nothing of noexec. The
+  noexec mount that the record measured is `/dev/shm` (`docs/STATUS.md:483`, `docs/STATUS.md:510`),
   and a home that runs no program is podvm's `/state/home` (`docs/target-environment.md:37-44`).
-  The Prove's `docs/STATUS.md:480` is `docs/STATUS.md:482`.
+  The Prove's `docs/STATUS.md:481` is `docs/STATUS.md:483`.
 - doctor's "only a real attempt tells them apart" moved to `crates/podssh-cli/src/doctor/host.rs:229`.
 - Approach item 2's spawn that fails: glibc's `execvp`, which Rust's `Command` calls with a
   `pre_exec`, hands a file that the kernel refuses with ENOEXEC to `/bin/sh` as a script, so the
@@ -3089,10 +3089,10 @@ criterion of M5 (T-113) needs them.
 
 - Read: `podssh doctor` asks for a pty with `posix_openpt`
   (`crates/podssh-cli/src/doctor/unix.rs:95-153`). Both real sandboxes have no
-  `/dev/ptmx` (`docs/STATUS.md:535`), and the target has no `/dev/pts`
+  `/dev/ptmx` (`docs/STATUS.md:536`), and the target has no `/dev/pts`
   (`docs/target-environment.md:26`).
 - Read: the box and the sandboxes run with `NoNewPrivs=1` and a seccomp
-  filter (`docs/STATUS.md:498`). With `NoNewPrivs=1`, a process can add a
+  filter (`docs/STATUS.md:499`). With `NoNewPrivs=1`, a process can add a
   filter of its own; a filter is inherited by each child.
 - Read, not measured here: for a program, a tty is the success of the tty
   `ioctl` calls on its descriptors. musl's `isatty` calls `TIOCGWINSZ`;
@@ -3176,8 +3176,8 @@ instance can be one more path of that list, and serve grants a `pty-req` on what
 
 2026-11-13 (T-248's draft; the measurements are [docs/research/serve-tty.md](../docs/research/serve-tty.md)).
 
-- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:534`, the
-  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:497`, and the refusals of `unshare`, `mount` and
+- The citations of the Premise moved: the sandboxes' "no `/dev/ptmx`" is `docs/STATUS.md:535`, the
+  box's `NoNewPrivs=1` and seccomp `docs/STATUS.md:498`, and the refusals of `unshare`, `mount` and
   `chroot` `docs/target-environment.md:19`.
 - The third Premise holds, measured: a static glibc 2.39 `isatty` asks `TCGETS` and a static musl one
   `TIOCGWINSZ`.
@@ -5534,7 +5534,7 @@ removed) and fmt clean; `llms-full.txt` written again.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -5556,14 +5556,124 @@ removed) and fmt clean; `llms-full.txt` written again.
    gateway's own (the private key stays on the gateway's host; the document names its public half).
 3. `docs/cli.md`, `docs/mesh.md`, the manual's note.
 
+## Decision
+
+2026-11-25, the draft's calls, each with what lost:
+
+- **The section is text of the route file's blocks, in a field `gateways` keyed by the gateway's name**: `{"gw":
+  {"routes": TEXT}}`, read by the route file's one reader (`routes::plan`, split out of `Routes::parse`), so the
+  refusals of the file and of the document are one code, and `net gateway show NAME` gives back a file that `set`
+  takes. Lost: a JSON form of each route (a second parser of the same parts, and a second set of words); the routes
+  as a list of lines (no gain over one text, and a split that the reader does anyway); a section inside `policy`
+  (whose form T-430 checks strictly, and which each node reads).
+- **`ca-key` in the document is the CA's public key; the private key is a file of `serve --gateway-ca FILE`**
+  (repeatable, read as a route file's `ca-key FILE` is: this user's, mode 0600, no passphrase, no security key). A
+  route whose public key is none of them is left out with one line, and the other routes are taken. Lost: the private
+  key in the document (a secret signed out to each end); a file on the gateway that maps each route to its CA (a
+  second table to keep in step, which the owner's signature does not cover); refusing the whole section for one CA
+  (one gateway's missing CA would close each route of the section).
+- **`requires` does not name the section**: only the gateway that a section names reads it, and an end that does
+  not read it lets in nothing more by skipping it. Lost: a part in `requires`, with which each end of before T-902
+  would refuse the whole document and keep an older net for a field that it never uses.
+- **What keeps the routes in force, and what replaces them.** A read that fails keeps them, with one line: no
+  document, a document whose signature fails (held, or fetched by `--net-url`), a fetch that fails. A newer serial
+  that verifies replaces them whatever it holds: a route that the owner removed, or the whole section (`gateway rm`),
+  lets nobody in by it at the next look, and a section that this podssh does not read (a later field, a wrong form, a
+  block that does not read) lets nobody in by it. Lost: keeping the routes before on any fault of a newer document,
+  which would keep a revoked key's route open for as long as a later podssh's word or a typing mistake stands; and
+  refusing a section's routes one by one for a fault of its form, which the owner's `set` refuses before it signs.
+- **A document past its end, or a copy of `--net-url` past its stale window, closes the gateway** (each login
+  refused with that line; the routes stay held for a newer document), as a node's door refuses by its end. Lost:
+  serving an ended document's routes, which a node would refuse.
+- **`--net-url` on `serve` reuses `net::remote` whole** (`start_as`, the same plan, fetch, record and keeper as
+  `podssh node`, its lines headed `podssh serve`). `--stdio` starts once for each client as a ProxyCommand, so a
+  start whose copy from the URL is younger than its TTL fetches nothing: Q105's one GET each TTL holds however many
+  clients come. Lost: no `--net-url` on serve (a gateway host would need a node beside it to keep its document); a
+  fetch at each start (one GET for each client); a fetch by `--stdio` and none at the start of NAME or `--listen`.
+- **A long-lived serve (NAME, `--listen`) looks at the document held each 5 s** (one local file of 60 KiB at most and
+  its signature), and on SIGHUP, so that a document that the channel, `net take` or `--net-url` brings is in force
+  within 5 s. Lost: a hook in `net::store`'s writers (three writers, one of them in another process); the file's time
+  alone (a replace within one second of the last is missed).
+- **`--gateway net:NAME` is the form**, beside `--gateway FILE`; a file whose name begins with `net:` is given as
+  `./net:...`. Lost: a flag of its own (`--gateway-net NAME`), which would need a refusal of the two together.
+- **Outside the entry, repaired here** (`AGENTS.md` rule 8): `serve NAME --print-unit` dropped `--gateway` from the
+  unit (T-836); it writes `--gateway`, `--gateway-ca` and the `--net-*` flags now.
+
 ## Prove
 
 ```sh
-CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test serve_gateway_openssh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib server::gateway
+cargo test -p podssh-cli --lib net::gateway
+cargo test -p podssh-cli --lib serve_gateway
+cargo test -p podssh-cli --lib net::remote
+cargo test -p podssh-cli --test serve_gateway_openssh
+cargo test -p podssh-cli --test node_net_url
+cargo test -p podssh-cli --test net
 ```
 
 A gateway that takes its routes from a signed net document routes `user-a@` as the file did; a document whose
 signature fails leaves the last routes in place, with one line.
+
+## Correction
+
+2026-11-25, read in the code at the draft:
+
+- The Premise's "read again each TTL with `--net-url`" holds for `podssh node` alone: `serve` had no `--net-url`,
+  and its gateway reads no net. The draft gives `serve` the same four flags over `net::remote` (Decision).
+- The Approach's "the node that serves `--gateway net:NAME`": the gateway is any `serve` (`--stdio`, `--listen` or
+  NAME), and reads the document that its host holds (`net::store`), whoever brought it.
+- The Prove's one test is joined by the unit tests of the section, of the source and of the start's refusals, and
+  by the tests whose code moved (`net::remote`'s start, `node_net_url`, the net's commands).
+
+## Done
+
+2026-11-25: drafted by a drafting agent (`draft/d-t902`, `89b7f3c`), merged by the main session the same day, built and
+run (the results are the paragraph after the list):
+
+- The reader of the blocks, `crates/podssh-ssh/src/server/gateway/routes.rs`: `plan` reads each route with its parts
+  and refusals, its `ca-key` a word; `Routes::parse` finds each CA file from it as before; `Planned::with_ca` and
+  `Routes::of` make the routes whose CA was found apart. `crates/podssh-ssh/src/server/gateway/mod.rs`: a table reads
+  a `Source` (the file of T-836, or another), `reload` gives the count and a line for each route left out, `closed`
+  refuses each login while the source says so (`handler.rs`, both callbacks), and `read_ca` is public for
+  `--gateway-ca`. Unit tests: `routes_tests.rs`, the table of T-836 unchanged and one test of `plan`
+  (the `ca-key` word kept whole, no CA read, `with_ca` and `Routes::of`).
+- The section, `crates/podssh-cli/src/net/gateway.rs`: `section`, `check` (the owner's), `routes_of` (the
+  gateway's). Its commands, `crates/podssh-cli/src/net/gateway_cmd.rs`: `podssh net gateway set NAME FILE`, `show
+  NAME`, `rm NAME`, signed as each change of the owner (`net/edit.rs`, `net/mod.rs`; the flag rows of `--owner-key`
+  and `--days`, the positionals' help). Table-driven tests: `crates/podssh-cli/src/net/gateway_tests.rs`, three
+  (thirteen forms of a section, the CA found by its public half, eight files of the owner).
+- The gateway, `crates/podssh-cli/src/serve_gateway_net.rs`: `NetRoutes` (the source over `net::store`), its look
+  each 5 s, and `open`, which reads the CA keys, starts `net::remote::start_as` (`crates/podssh-cli/src/net/remote.rs`:
+  the head of its lines and the fresh copy of `--stdio`; one reader for a process), and refuses an empty or ended
+  start (78). `serve_gateway.rs` takes `net:NAME`, and refuses the new flags where they do not belong (64);
+  `serve.rs` holds them (`NetFlags`); `flags/serve.rs` has their rows, and `tree.rs` keeps each `--gateway-ca`.
+  `serve_keys.rs`'s SIGHUP says each route left out. Tests: `crates/podssh-cli/src/serve_gateway_net_tests.rs` (2: a
+  bad signature keeps the routes with one line said once, a newer serial swapped in, a route of a CA not held left
+  out, a removed section empties the table, an ended document closes it; no document and a broken one do not read)
+  and seven rows more in `serve_gateway.rs`'s table of refusals.
+- Against OpenSSH and two stock sshd, `crates/podssh-cli/tests/serve_gateway_openssh.rs`,
+  `a_gateway_of_the_net_routes_by_the_owner_s_signed_document`: the owner's `net init` and `net gateway set`, the
+  document served over TLS of the test's CA (`crates/podssh-cli/tests/net_doc_kit/mod.rs`), `user-a@` reaches
+  upstream a, a second client within the TTL causes no GET, serial 3's bytes under serial 2's signature leave
+  `user-a@` at a with one line, and serial 3 itself moves it to b.
+- The manual (`man/notes_serve_gateway.rs`'s `GATEWAY_NET`, `man/notes_net.rs`, the flag rows), `docs/cli.md`
+  (`podssh net` and `podssh serve`), `docs/mesh.md` (section 3), and a row of `docs/STATUS.md` (`unreleased`).
+- At the merge, for the main session: `cargo todo remap docs/cli.md crates/podssh-cli/src/serve.rs
+  crates/podssh-cli/src/tree.rs` (entries cite `docs/cli.md` past the two insertions, `serve.rs` in
+  `docs/design.md`, and a range of `tree.rs` around the changed line); `llms-full.txt` written again; then `cargo
+  todo set T-902 done`. Nothing is asked of podcrates: the net's document, its store and its fetch are podssh's own
+  (`crates/podssh-cli/src/net/`), and the gateway's table is podssh-ssh's.
+
+The merge (2026-11-25, Rust 1.99.1, OpenSSH 9.6p1): the draft built at once. `CARGO_BUILD_JOBS=4 cargo test -p
+podssh-ssh --lib server::gateway`: 4 passed; `-p podssh-cli --lib -- net::gateway serve_gateway`: 6 passed; `--test
+serve_gateway_openssh`: 4 passed, the net's case among them; `--test node_net_url` 1 and `--test net` 12 passed (the
+fetch moved into `start_as`). Planted: a gateway that keeps the routes in force when a newer serial reads fails
+`serve_gateway_net`'s unit test (the routes stay `[]`); the OpenSSH case runs serve under `--stdio`, a process for
+each connection, so it reads each document anew and does not meet that plant. Clippy with the gate's lints (one type
+alias for the section's table), also for `x86_64-pc-windows-gnu`, and rustfmt: clean. The suites: `cargo test -p
+podssh-ssh --no-fail-fast`, 45 suites, 784 passed; `-p podssh-cli --no-fail-fast`, 257 suites, 2600 passed, the three of
+`job_far` (this container's stand-in of `rm`) failed. The entry is done.
 
 # T-903: The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions
 

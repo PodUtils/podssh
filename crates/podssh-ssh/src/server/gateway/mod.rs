@@ -16,6 +16,10 @@
 //! The choice of a certificate over a relayed agent signature, and what a
 //! compromised gateway can do, are in T-836's Decision and `docs/design.md`
 //! ("A gateway in front of private hosts").
+//!
+//! The table comes from a [`Source`]: the file of `--gateway FILE`, or the
+//! gateway's section of the net's signed document (`--gateway net:NAME`,
+//! T-902), which podssh-cli reads and whose CA keys stay in files here.
 
 mod handler;
 mod pump;
@@ -30,19 +34,63 @@ use russh::keys::{Algorithm, PrivateKey};
 use zeroize::Zeroizing;
 
 pub(super) use handler::Gateway;
-pub use routes::{Route, Routes};
+pub use routes::{Planned, Route, Routes};
+
+/// Where a gateway's routes come from: a file of the gateway's host
+/// (T-836), or the gateway's section of a net's signed document, which the
+/// binary reads (T-902).
+pub trait Source: Send + Sync {
+    /// The routes now, and a line for each route left out; `Err` keeps the
+    /// routes before, as a read that failed decides nothing.
+    fn read(&self) -> Result<(Routes, Vec<String>), String>;
+    /// Where they come from, for a line: the file, or `net:NAME`.
+    fn shown(&self) -> String;
+    /// Why no route lets anyone in now, while the routes stay held: a
+    /// document past its end. None by default.
+    fn closed(&self) -> Option<String> {
+        None
+    }
+}
+
+/// A source shared with whoever watches it for a change (T-902).
+impl<T: Source + ?Sized> Source for Arc<T> {
+    fn read(&self) -> Result<(Routes, Vec<String>), String> {
+        (**self).read()
+    }
+
+    fn shown(&self) -> String {
+        (**self).shown()
+    }
+
+    fn closed(&self) -> Option<String> {
+        (**self).closed()
+    }
+}
+
+/// The routes of a file.
+struct File(PathBuf);
+
+impl Source for File {
+    fn read(&self) -> Result<(Routes, Vec<String>), String> {
+        read(&self.0).map(|routes| (routes, Vec::new()))
+    }
+
+    fn shown(&self) -> String {
+        self.0.display().to_string()
+    }
+}
 
 /// The route table that a gateway serves, read again on a reload: a login
 /// meets the table of its moment, and keeps the route it logged in by.
 pub struct Table {
-    path: PathBuf,
+    source: Box<dyn Source>,
     routes: RwLock<Arc<Routes>>,
 }
 
 impl std::fmt::Debug for Table {
     // Never the routes: each holds a CA key.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Table({}, {} routes)", self.path.display(), self.now().len())
+        write!(f, "Table({}, {} routes)", self.source.shown(), self.now().len())
     }
 }
 
@@ -51,8 +99,14 @@ impl Table {
     /// does not read, or that holds no route refuses: a gateway that
     /// nobody can pass is a setup that went wrong.
     pub fn open(path: &Path) -> Result<Table, String> {
-        let routes = read(path)?;
-        Ok(Table { path: path.to_path_buf(), routes: RwLock::new(Arc::new(routes)) })
+        Table::from_source(Box::new(File(path.to_path_buf()))).map(|(table, _)| table)
+    }
+
+    /// The table of `source`, read now, and the lines of its read; `Err`
+    /// when it does not read. An empty table is the caller's to refuse.
+    pub fn from_source(source: Box<dyn Source>) -> Result<(Table, Vec<String>), String> {
+        let (routes, notes) = source.read()?;
+        Ok((Table { source, routes: RwLock::new(Arc::new(routes)) }, notes))
     }
 
     /// The table of this moment.
@@ -63,21 +117,29 @@ impl Table {
         }
     }
 
-    /// Read the file again (SIGHUP): the count of its routes; else why not,
-    /// and the table before stays whole, so that no reload locks each user
+    /// Why no login passes now, whatever its route; never for a file.
+    pub fn closed(&self) -> Option<String> {
+        self.source.closed()
+    }
+
+    /// Read the source again (SIGHUP, or a newer document): the count of
+    /// its routes and a line for each route left out; else why not, and
+    /// the table before stays whole, so that no failed read locks each user
     /// out. A login that passed keeps its upstream.
-    pub fn reload(&self) -> Result<usize, String> {
-        let routes = Arc::new(read(&self.path)?);
+    pub fn reload(&self) -> Result<(usize, Vec<String>), String> {
+        let (routes, notes) = self.source.read()?;
+        let routes = Arc::new(routes);
         let count = routes.len();
         match self.routes.write() {
             Ok(mut now) => *now = routes,
             Err(poisoned) => *poisoned.into_inner() = routes,
         }
-        Ok(count)
+        Ok((count, notes))
     }
 
-    pub fn path(&self) -> &Path {
-        &self.path
+    /// Where the routes come from: the file, or `net:NAME`.
+    pub fn shown(&self) -> String {
+        self.source.shown()
     }
 }
 
@@ -95,8 +157,9 @@ fn read(path: &Path) -> Result<Routes, String> {
 }
 
 /// A route's CA key: this user's, closed to others, with no passphrase
-/// (serve has nobody to ask), and one that signs in the process.
-fn read_ca(path: &Path) -> Result<PrivateKey, String> {
+/// (serve has nobody to ask), and one that signs in the process: a route
+/// file's `ca-key`, and each `--gateway-ca` of a gateway of a net (T-902).
+pub fn read_ca(path: &Path) -> Result<PrivateKey, String> {
     let shown = path.display();
     let text = Zeroizing::new(read_own(path, Others::NoAccess)?.ok_or_else(|| format!("{shown}: no such file"))?);
     let key = match crate::key_file::decode(&text, None) {

@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**837 entries: 5 open, 40 partial, 15 blocked, 777 done.**
+**837 entries: 4 open, 40 partial, 15 blocked, 778 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 5 | 7 | 10 | 372 | 394 |
-| **All** | 5 | 40 | 15 | 777 | 837 |
+| P3 | 4 | 7 | 10 | 373 | 394 |
+| **All** | 4 | 40 | 15 | 778 | 837 |
 
 ## Entries
 
@@ -910,6 +910,6 @@ repository and CI).
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
 | [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
 | [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
-| [T-902](serve.md) | P3 | M | backlog | feature | open | The gateway's routes in the net's signed policy |
+| [T-902](serve.md) | P3 | M | backlog | feature | done | The gateway's routes in the net's signed policy |
 | [T-903](serve.md) | P3 | S | backlog | chore | blocked | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |

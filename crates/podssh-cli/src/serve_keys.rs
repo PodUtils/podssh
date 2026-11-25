@@ -115,10 +115,15 @@ impl Sources {
 /// whose key the new set takes out ends, and one more line names each key.
 pub fn reload(sources: &Sources, keys: &Keys, control: &Control, ends: bool, err: &mut dyn Write) {
     // A gateway reads its routes again; a table that does not read keeps
-    // the one before (T-836).
+    // the one before (T-836), and a net's says each route it left out (T-902).
     if let Some(table) = &sources.gateway {
         let line = match table.reload() {
-            Ok(count) => format!("SIGHUP: the routes of {} read again, {count} in all", table.path().display()),
+            Ok((count, notes)) => {
+                for note in notes {
+                    let _ = writeln!(err, "podssh serve: SIGHUP: {note}");
+                }
+                format!("SIGHUP: the routes of {} read again, {count} in all", table.shown())
+            }
             Err(why) => format!("SIGHUP: {why}; the routes before stay, {}", table.now().len()),
         };
         let _ = writeln!(err, "podssh serve: {line}");
