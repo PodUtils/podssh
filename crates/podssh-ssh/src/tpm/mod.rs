@@ -16,7 +16,10 @@
 //! Each use probes first (AGENTS.md, section 5, rule 1): with no TPM that
 //! podssh may reach, it says why, before it writes or sends anything. The
 //! commands are bytes in and bytes out ([`Transport`]), tested
-//! against a TPM in software that the tests script.
+//! against a TPM in software that the tests script. The way to the TPM is
+//! the kernel's device on Unix and the TPM Base Services on Windows. Beside
+//! a login, `podssh agent` holds such keys ([`agent`]) and `podssh serve`
+//! takes one as its host key ([`host`]).
 
 mod authorize;
 mod cmd;
@@ -26,18 +29,28 @@ mod keyfile;
 #[cfg(unix)]
 #[path = "unix.rs"]
 mod platform;
-#[cfg(not(unix))]
+#[cfg(windows)]
+#[path = "windows.rs"]
+mod platform;
+#[cfg(not(any(unix, windows)))]
 #[path = "other.rs"]
 mod platform;
 mod policy;
 mod public;
 mod rc;
+// Windows' codes and the bound of a command, built on each system so
+// that each system's tests check them.
+#[cfg_attr(not(windows), allow(dead_code))]
+mod tbs;
 mod wire;
 
+pub mod agent;
+pub mod host;
 pub(crate) mod signer;
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 
 use russh::keys::ssh_key::Signature;
@@ -78,6 +91,21 @@ impl Device {
     fn open(&self) -> Result<Box<dyn Transport>, String> {
         platform::open(&self.place)
     }
+}
+
+/// A way to the TPM for one operation, opened where it runs (a thread that
+/// may wait): the probe's, or a test's TPM in software.
+pub(crate) type Opener = Arc<dyn Fn() -> Result<Box<dyn Transport>, String> + Send + Sync>;
+
+/// The TPM that the probe finds at each use, as [`sign_blob`] reaches it.
+pub(crate) fn probing() -> Opener {
+    Arc::new(|| probe(None)?.open())
+}
+
+/// The TPM of `device`, which a probe found.
+pub(crate) fn opener_of(device: Device) -> Opener {
+    let device = Arc::new(device);
+    Arc::new(move || device.open())
 }
 
 /// The TPM here, or why there is none: a message that starts "no TPM: ".

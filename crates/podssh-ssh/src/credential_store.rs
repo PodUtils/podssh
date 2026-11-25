@@ -105,13 +105,14 @@ struct Entry {
 }
 
 /// The credentials of an agent, in its memory, and its keys of security
-/// keys (T-229), which russh's server cannot sign with.
+/// keys (T-229) and of a TPM (T-839), which russh's server cannot sign with.
 #[derive(Default)]
 pub struct Store {
     entries: Mutex<HashMap<(Kind, String), Entry>>,
     /// The agent is locked: nothing is told until it is unlocked.
     locked: AtomicBool,
     pub security_keys: crate::sk::agent::Held,
+    pub tpm_keys: crate::tpm::agent::Held,
 }
 
 impl Store {
@@ -150,6 +151,12 @@ impl Store {
                 _ => {}
             }
         }
+    }
+
+    /// A store whose keys of a TPM are `tpm_keys`: a test's TPM.
+    #[cfg(test)]
+    pub(crate) fn with_tpm_keys(tpm_keys: crate::tpm::agent::Held) -> Store {
+        Store { tpm_keys, ..Store::default() }
     }
 
     fn is_locked(&self) -> bool {
@@ -210,7 +217,8 @@ impl Store {
 /// gets FAILURE here: russh's server would sign with it through the `rsa`
 /// crate, which is not constant-time (T-257). So does a request to add a key
 /// for a confirmation of each use, which russh's server would use unasked
-/// (T-284). A key of a security key is kept, listed and used here (T-229).
+/// (T-284). A key of a security key is kept, listed and used here (T-229),
+/// and so is a key of a TPM (T-839).
 pub async fn serve_client<C, A>(mut client: C, mut agent: A, store: &Store) -> io::Result<()>
 where
     C: AsyncRead + AsyncWrite + Unpin,
@@ -220,7 +228,10 @@ where
         let Some(request) = read_frame(&mut client).await? else { return Ok(()) };
         let held = match store.answer(&request) {
             Some(answer) => Some(answer),
-            None => store.security_keys.answer(&request, store.is_locked()).await,
+            None => match store.security_keys.answer(&request, store.is_locked()).await {
+                Some(answer) => Some(answer),
+                None => store.tpm_keys.answer(&request, store.is_locked()).await,
+            },
         };
         let answer = match held {
             Some(answer) => answer,
@@ -233,7 +244,8 @@ where
                     .await?
                     .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "the agent's server went"))?;
                 store.observe(&request, &answer);
-                store.security_keys.after(&request, answer, store.is_locked())
+                let answer = store.security_keys.after(&request, answer, store.is_locked());
+                store.tpm_keys.after(&request, answer, store.is_locked())
             }
         };
         write_frame(&mut client, &answer).await?;
@@ -418,7 +430,7 @@ fn request(name: &str, target: &Target) -> Zeroizing<Vec<u8>> {
 }
 
 /// One frame's body: `None` at the end of the stream before a frame.
-async fn read_frame<S: AsyncRead + Unpin>(stream: &mut S) -> io::Result<Option<Zeroizing<Vec<u8>>>> {
+pub(crate) async fn read_frame<S: AsyncRead + Unpin>(stream: &mut S) -> io::Result<Option<Zeroizing<Vec<u8>>>> {
     let mut length = [0u8; 4];
     match stream.read_exact(&mut length).await {
         Ok(_) => {}
@@ -434,7 +446,7 @@ async fn read_frame<S: AsyncRead + Unpin>(stream: &mut S) -> io::Result<Option<Z
     Ok(Some(body))
 }
 
-async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, body: &[u8]) -> io::Result<()> {
+pub(crate) async fn write_frame<S: AsyncWrite + Unpin>(stream: &mut S, body: &[u8]) -> io::Result<()> {
     let mut frame = Zeroizing::new(Vec::with_capacity(4 + body.len()));
     frame.extend_from_slice(&(body.len() as u32).to_be_bytes());
     frame.extend_from_slice(body);

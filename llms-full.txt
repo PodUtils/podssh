@@ -9758,10 +9758,13 @@ podssh keygen
   podssh ssh -i says so and tries the next key. The key has no passphrase: the
   TPM takes its policy and no password. The file is a TSS2 PRIVATE KEY, as
   openssl_tpm2_engine and ssh-tpm-agent read it. podssh reaches the TPM through
-  /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). With no TPM
-  that podssh may reach, as in a container or a sandbox, it says why and writes
-  nothing (exit 69). Before the file is written, the new key signs once and the
-  signature is checked. -y and -l read the public key from the file.
+  /dev/tpmrm0 (-O device=PATH or PODSSH_TPM_DEVICE names another). On Windows
+  it reaches the TPM through the TPM Base Services. Where the owner's hierarchy
+  has a password, as Windows sets it, the key is made under the storage key
+  that the TPM keeps (0x81000001). With no TPM that podssh may reach, as in a
+  container or a sandbox, it says why and writes nothing (exit 69). Before the
+  file is written, the new key signs once and the signature is checked. -y and
+  -l read the public key from the file.
 
   podssh asks for the passphrase two times, on the terminal or through
   SSH_ASKPASS. -N '' makes a key with no passphrase. A passphrase given with -N
@@ -9956,6 +9959,13 @@ podssh agent
   touch on its own stderr. It asks a PIN only through SSH_ASKPASS with
   SSH_ASKPASS_REQUIRE set to force, as it runs in the background. With no
   device, it refuses the signature and says why.
+
+  The agent holds a key sealed to a TPM (podssh keygen -t ecdsa-tpm) that add
+  gives it. add sends it as ssh-tpm-agent's ssh-tpm-add does, so only podssh
+  agent and ssh-tpm-agent keep it. The agent keeps the key file, never a
+  private key, and keeps it only once the key signed in the TPM. It signs in
+  the TPM. With no TPM, or after the boot state changed, it refuses and says
+  why on its stderr.
 
   add-password [USER@]HOST[:PORT] and add-passphrase FILE (with -t SECONDS for
   a lifetime) give podssh's agent a server's password or a key file's
@@ -11018,7 +11028,10 @@ podssh serve
   refused (78). An RSA key signs through aws-lc-rs, whose RSA is constant-time,
   with SHA-2 alone (rsa-sha2-512, rsa-sha2-256), never through russh's rsa
   crate. An RSA key outside 2048 to 8192 bits, or a key that is not Ed25519,
-  ECDSA or RSA, is refused (78).
+  ECDSA or RSA, is refused (78). --host-key also takes a key file of a TPM
+  (podssh keygen -t ecdsa-tpm): the TPM signs each key exchange, and serve
+  holds no private key. Such a key must sign at the start: with no TPM, or
+  after the boot state changed, serve does not start (78).
 
   A command (exec) runs as SHELL -c COMMAND. A shell request runs the shell as
   a login shell (its argv[0] the shell's name after a dash). Each runs as the
@@ -12826,7 +12839,8 @@ ENVIRONMENT
       The TPM 2.0 that podssh keygen -t ecdsa-tpm and podssh ssh use: a device,
       or the socket of a TPM in software (swtpm socket --server type=unixio).
       none: podssh uses no TPM, and each use says so. Unset: /dev/tpmrm0, the
-      kernel's resource manager.
+      kernel's resource manager. On Windows: the TPM Base Services, and a
+      device or a socket is refused.
   PODSSH_NET
       The net's document of podssh net: the absolute path of its file, in place
       of net.doc in the cache's directory. no: the net is off; this way, no

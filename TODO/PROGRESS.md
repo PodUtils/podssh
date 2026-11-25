@@ -45,8 +45,7 @@ Read on 2026-11-24.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** Two wait (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-839 (`d-t839c`: `podssh agent` and serve's host key in
-   a TPM, Windows TBS; not built), T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built). Each `draft/*`, `beta/*` and `release/*`
+8. **Drafts.** One waits (2026-11-24), in this order, each on GitHub as `draft/<branch>`: T-875 and T-877 (`d-t877`: `doctor --dns-zone` and `--carrier dns:FILE`; not built). Each `draft/*`, `beta/*` and `release/*`
    branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud session refuses
    deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while

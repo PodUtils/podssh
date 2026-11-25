@@ -379,6 +379,10 @@ const AGENT: &[&str] = &[
      signs with it in the device: it asks for the touch on its own stderr. It asks a PIN only through SSH_ASKPASS \
      with SSH_ASKPASS_REQUIRE set to force, as it runs in the background. With no device, it refuses the signature \
      and says why.",
+    "The agent holds a key sealed to a TPM (podssh keygen -t ecdsa-tpm) that add gives it. add sends it as \
+     ssh-tpm-agent's ssh-tpm-add does, so only podssh agent and ssh-tpm-agent keep it. The agent keeps the key \
+     file, never a private key, and keeps it only once the key signed in the TPM. It signs in the TPM. With no \
+     TPM, or after the boot state changed, it refuses and says why on its stderr.",
     "add-password [USER@]HOST[:PORT] and add-passphrase FILE (with -t SECONDS for a lifetime) give podssh's agent a \
      server's password or a key file's passphrase. It comes from stdin when stdin is no terminal, else from the \
      terminal or SSH_ASKPASS, never from the command line; a passphrase must open its file. The agent keeps each in \

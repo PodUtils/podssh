@@ -81,6 +81,33 @@ fn a_signer_that_ignores_the_policy_is_refused() {
     assert!(sign(&mut tpm, &other, b"a login").unwrap_err().contains("no policy"));
 }
 
+/// Where the owner's hierarchy has a password, as Windows leaves it, a key
+/// is made under the storage key that the TPM keeps, and its file names
+/// that parent; with no such key, one line names both reasons. The key
+/// still signs only while its PCRs hold their values.
+#[test]
+fn an_owner_with_a_password_makes_the_key_under_the_kept_storage_key() {
+    let mut tpm = SoftTpm::new();
+    tpm.owner_password = true;
+    let why = flow::make(&mut tpm, Pcrs::parse("7").unwrap(), "", &[1; 32]).unwrap_err();
+    assert!(why.contains("has a password") && why.contains("0x81000001"), "{why}");
+    assert!(!why.contains('\n'), "{why}");
+    tpm.persistent_srk = true;
+    let (file, area) = flow::make(&mut tpm, Pcrs::parse("7").unwrap(), "", &[1; 32]).unwrap();
+    assert_eq!(file.parent, flow::PERSISTENT_SRK);
+    let again = super::KeyFile::from_pem(&file.to_pem()).unwrap();
+    assert_eq!(again.parent, flow::PERSISTENT_SRK, "the parent is written and read");
+    check(&area.public_key().unwrap(), b"a login", &sign(&mut tpm, &again, b"a login").unwrap()).unwrap();
+    tpm.extend(7, b"Secure Boot: off");
+    assert!(sign(&mut tpm, &again, b"a login").unwrap_err().contains("hold other values"));
+    // A parent that is neither is refused before anything is sent.
+    let mut odd = again.clone();
+    odd.parent = 0x4000_000B;
+    tpm.sent.clear();
+    assert!(sign(&mut tpm, &odd, b"a login").unwrap_err().contains("parent is 0x4000000b"));
+    assert!(tpm.sent.is_empty());
+}
+
 /// A TPM whose trial reaches another digest than podssh's: no key is made.
 #[test]
 fn a_policy_that_the_tpm_reads_otherwise_makes_no_key() {

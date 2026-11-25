@@ -57,11 +57,10 @@ struct Shown {
     paste: bool,
 }
 
-/// `shown` with its last row blank: the line of a program's passing message.
-fn without_last_row(mut shown: Shown) -> Shown {
-    if let Some(last) = shown.rows.last_mut() {
-        last.clear();
-    }
+/// `shown` cut to what each vi shows of the file: the rows that hold text
+/// of it (trimmed of the padding that a redraw may write), and the modes.
+fn text_and_modes(mut shown: Shown) -> Shown {
+    shown.rows = shown.rows.iter().map(|row| row.trim_end().to_string()).filter(|row| row.contains("of the file")).collect();
     shown
 }
 
@@ -191,10 +190,14 @@ async fn a_new_client_finds_the_screen_and_the_modes_of_a_kept_full_screen_progr
         let mut asks = case.asks.to_vec();
         asks.push(("attach@podssh", "work"));
         let back = shell_with(&server, &owner, &asks).await;
-        // vi draws its last line's message once: its redraw on the size's
-        // change leaves that line out, on the far end too.
-        let want = if case.stand_in { want } else { without_last_row(want) };
-        let seen = |bytes: &[u8]| if case.stand_in { shown(bytes) } else { without_last_row(shown(bytes)) };
+        // The stand-in draws the same screen at each size change, so the new
+        // client's screen is the far end's, row for row. A vi redraws as it
+        // likes (BusyBox's pads its lines and draws no `~`, and each drops
+        // its last line's message), and the first client detached before
+        // the redraw: the new client must show the file's text and the far
+        // end's modes, whatever vi's own redraw.
+        let want = if case.stand_in { want } else { text_and_modes(want) };
+        let seen = |bytes: &[u8]| if case.stand_in { shown(bytes) } else { text_and_modes(shown(bytes)) };
         let waited = tokio::time::timeout(share_harness::LIMIT, async {
             while seen(&back.seen.lock().unwrap().out) != want {
                 tokio::time::sleep(Duration::from_millis(50)).await;
@@ -205,8 +208,15 @@ async fn a_new_client_finds_the_screen_and_the_modes_of_a_kept_full_screen_progr
         assert!(waited.is_ok(), "{}: the new client's screen\n{got:#?}\nis not the far end's\n{want:#?}", case.name);
 
         // Out of the program, then out of the shell.
-        let quit: &[u8] = if case.stand_in { b"\x03" } else { b"\x1b:q!\r" };
-        back.send(quit).await;
+        // ESC apart from `:q!`: BusyBox's vi reads an ESC that a key follows
+        // at once as the start of an escape sequence.
+        if case.stand_in {
+            back.send(b"\x03").await;
+        } else {
+            back.send(b"\x1b").await;
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            back.send(b":q!\r").await;
+        }
         tokio::time::sleep(Duration::from_millis(300)).await;
         back.send(b"exit 0\r").await;
         back.until("the shell's end", |seen| seen.closed).await;

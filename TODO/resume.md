@@ -2114,6 +2114,15 @@ output, so it moves no count of T-895's client, where modes on stdout would; it 
 count a screen, and takes nothing from the byte-for-byte replay before it. `kept_catch.rs` redraws after each join;
 `kept_screen::fresh` names the modes alone.
 
+2026-11-25, the gate at `3fc930f` failed `gate (ssh)` on `attach_screen`'s case of `vi`: the build image's `vi` is
+BusyBox's, whose redraw on a size change pads its lines and draws no `~`, unlike its first draw; the first client
+detached before the redraw, so its model is no oracle of a `vi` after one. podssh's bytes were right (the text and the
+modes were the far end's). The case of `vi` now compares the file's text and the modes; the stand-in, which draws the
+same screen at each change, keeps the comparison row for row, and a plant with no redraw still fails the test. BusyBox's
+`vi` also read the quit's `ESC :` as one sequence: the ESC goes apart. Run here (2026-11-25): `cargo test -p podssh-ssh
+--test attach_screen`, passed twice with this container's `vi` and three times with BusyBox's (`busybox vi` first on
+`PATH`).
+
 # T-221: Replayed output after dropped bytes starts at a boundary of the terminal grammar (GitHub #31)
 
 **Source:** GitHub #31 (2026-10-08: a rule for where a kept window may start),

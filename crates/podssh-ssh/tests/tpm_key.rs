@@ -7,6 +7,9 @@
 //! of a policy key, refused after PCR 7 moved, signs again after a signed
 //! policy of the new value; a policy signature that the file's writer
 //! changed is refused by the TPM's own check (`TPM2_VerifySignature`).
+//! serve's host key sealed to swtpm signs the key exchange that russh's
+//! client takes, and `podssh agent`'s front signs with a key sealed to it.
+//! On Windows, the TPM Base Services answer, or say "no TPM: " in one line.
 //!
 //! Ignored: it needs `swtpm` on the PATH (Debian's and Alpine's package
 //! `swtpm`), and `ssh-keygen` for the check of OpenSSH.
@@ -168,4 +171,133 @@ fn after_a_signed_policy_for_the_new_boot_state_the_key_signs_again() {
     last.1[end] ^= 1;
     let why = tpm::sign_on(&device, &changed, b"a login").unwrap_err();
     assert!(why.contains("not the policy key's"), "{why}");
+}
+
+/// A server that lets nobody in: the exchange needs the key exchange alone.
+struct Nobody;
+
+impl russh::server::Handler for Nobody {
+    type Error = russh::Error;
+}
+
+/// A client that keeps the host key that the server showed.
+struct Seen(std::sync::Arc<std::sync::Mutex<Option<russh::keys::PublicKey>>>);
+
+impl russh::client::Handler for Seen {
+    type Error = russh::Error;
+
+    async fn check_server_key(&mut self, key: &russh::keys::PublicKeyOrCertificate) -> Result<bool, Self::Error> {
+        if let russh::keys::PublicKeyOrCertificate::PublicKey { key, .. } = key {
+            *self.0.lock().unwrap() = Some(key.clone());
+        }
+        Ok(true)
+    }
+}
+
+/// The host key that russh's client met in an exchange with serve's config
+/// of `host_key`, or `None` when the exchange failed.
+fn exchange(host_key: russh::keys::PrivateKey) -> Option<russh::keys::PublicKey> {
+    use std::sync::{Arc, Mutex};
+    let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    runtime.block_on(async {
+        let config = Arc::new(podssh_ssh::server::config(host_key));
+        let (near, far) = tokio::io::duplex(1 << 20);
+        let served = tokio::spawn(async move {
+            match russh::server::run_stream(config, far, Nobody).await {
+                Ok(running) => running.await,
+                Err(e) => Err(e),
+            }
+        });
+        let seen = Arc::new(Mutex::new(None));
+        let client = russh::client::connect_stream(Arc::new(Default::default()), near, Seen(seen.clone()));
+        let took = tokio::time::timeout(Duration::from_secs(60), client).await;
+        served.abort();
+        let key = seen.lock().unwrap().take();
+        if matches!(took, Ok(Ok(_))) {
+            key
+        } else {
+            None
+        }
+    })
+}
+
+/// serve's host key sealed to swtpm: russh's client meets the TPM's public
+/// key, and takes the exchange that the TPM signed. After PCR 7 moved, the
+/// key is refused at the start, in one line.
+#[test]
+#[ignore = "needs swtpm"]
+fn a_host_key_sealed_to_the_tpm_signs_the_key_exchange() {
+    let swtpm = Swtpm::start("host");
+    let device = tpm::probe(Some(&swtpm.socket())).unwrap();
+    let (file, public) = tpm::make(&device, Pcrs::parse("7").unwrap(), "host@lab").unwrap();
+    let key = tpm::host::stand_in_on(device, &file.to_pem()).unwrap();
+    assert!(tpm::host::is_stand_in(&key));
+    let met = exchange(key).expect("russh's client took the exchange that the TPM signed");
+    assert_eq!(met.key_data(), public.key_data());
+
+    let device = tpm::probe(Some(&swtpm.socket())).unwrap();
+    testing::extend_pcr(&device, 7, &[0x5A; 32]).unwrap();
+    let why = tpm::host::stand_in_on(device, &file.to_pem()).unwrap_err();
+    assert!(why.contains("the PCRs 7 hold other values") && !why.contains('\n'), "{why}");
+}
+
+/// `podssh agent`'s front holds a key sealed to swtpm: `tpm::agent::add`
+/// gives it, and russh's agent client gets a signature that ssh-key and
+/// OpenSSH's `ssh-keygen` verify.
+#[test]
+#[ignore = "needs swtpm"]
+fn the_agent_signs_with_a_key_sealed_to_the_tpm() {
+    let swtpm = Swtpm::start("agent");
+    let device = tpm::probe(Some(&swtpm.socket())).unwrap();
+    let (file, public) = tpm::make(&device, Pcrs::parse("7").unwrap(), "agent@lab").unwrap();
+    drop(device);
+    // The agent reaches the TPM as each use does, through PODSSH_TPM_DEVICE.
+    // SAFETY: the other tests of this file read the environment through
+    // std alone, which takes the lock that this write takes; no C code of
+    // these tests reads it. The other tests name their device.
+    unsafe { std::env::set_var(tpm::DEVICE_VARIABLE, swtpm.socket()) };
+    let runtime = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let (signed, blob) = runtime.block_on(async {
+        let store = std::sync::Arc::new(podssh_ssh::credential_store::Store::default());
+        let (mut near, far) = tokio::io::duplex(podssh_ssh::credential_store::MAX_FRAME);
+        let (russh_end, russh_far) = tokio::io::duplex(podssh_ssh::credential_store::MAX_FRAME);
+        // russh's agent server answers what the front passes on (its own
+        // keys, listed before the TPM's), as `podssh agent` runs it.
+        let one = futures_util::stream::iter([Ok::<_, std::io::Error>(russh_far)]);
+        tokio::spawn(russh::keys::agent::server::serve(one, ()));
+        let front = store.clone();
+        tokio::spawn(async move { podssh_ssh::credential_store::serve_client(far, russh_end, &front).await });
+        tpm::agent::add(&mut near, &file, None).await.unwrap();
+        assert_eq!(store.tpm_keys.count(), 1);
+        let prehash = podssh_ssh::sshsig::digest(&mut &b"a login"[..], HashAlg::Sha512).unwrap();
+        let signed = SshSig::signed_data_for_prehash("file", HashAlg::Sha512, &prehash).unwrap();
+        let mut agent = russh::keys::agent::client::AgentClient::connect(near);
+        let identities = agent.request_identities().await.unwrap();
+        assert!(identities.iter().any(|i| i.public_key().key_data() == public.key_data()));
+        let signature = agent.sign_request_signature(&public, None, &signed).await.unwrap();
+        (signed, russh::keys::ssh_encoding::Encode::encode_vec(&signature).unwrap())
+    });
+    tpm::check(&public, &signed, &blob).unwrap();
+    match openssh_verifies(&swtpm.dir, &public, b"a login", &blob) {
+        Some(good) => assert!(good, "OpenSSH refused the agent's signature"),
+        None => eprintln!("no ssh-keygen here: OpenSSH's check is not run"),
+    }
+}
+
+/// Windows' TPM Base Services: a TPM 2.0 answers, or the probe says why in
+/// one line that starts "no TPM: " (a runner of CI may have none). A device
+/// named on Windows is refused the same way. It runs in the gate's windows
+/// job.
+#[cfg(windows)]
+#[test]
+fn on_windows_tbs_answers_or_says_there_is_no_tpm() {
+    match tpm::probe(None) {
+        Ok(device) => assert!(device.describe().contains("TPM Base Services"), "{}", device.describe()),
+        Err(why) => {
+            assert!(why.starts_with("no TPM: "), "{why}");
+            assert!(!why.contains('\n'), "{why}");
+        }
+    }
+    let why = tpm::probe(Some(Path::new(r"C:\tpm0"))).err().expect("a device is refused on Windows");
+    assert!(why.starts_with("no TPM: ") && !why.contains('\n'), "{why}");
 }

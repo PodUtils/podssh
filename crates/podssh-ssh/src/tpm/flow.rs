@@ -80,16 +80,64 @@ pub(super) fn read_pcrs<T: Transport + ?Sized>(t: &mut T, pcrs: Pcrs) -> Result<
     Err(format!("the PCRs {} changed three times while podssh read them", pcrs.text()))
 }
 
-/// The storage key, made again from its template: a handle to flush.
-fn storage_key<T: Transport + ?Sized>(t: &mut T) -> Result<u32, String> {
-    let command = cmd::create_primary(&public::storage_template()?)?;
-    let (handles, _) = run(t, &command, 1).map_err(|e| match e {
-        Fault::Tpm(code) if matches!(rc::base(code), rc::BAD_AUTH | rc::AUTH_FAIL) => {
-            "the TPM's owner hierarchy has a password, and podssh uses the empty one, the default".to_string()
+/// The storage key that a TPM keeps, at the handle that the TCG's
+/// provisioning guidance gives it. Windows makes one, and keeps no password
+/// of the owner's hierarchy (Windows 10 1607 and later), so the owner's
+/// storage key cannot be made there.
+pub(super) const PERSISTENT_SRK: u32 = 0x8100_0001;
+
+/// The line of an owner's hierarchy with a password.
+const OWNER_PASSWORD: &str = "the TPM's owner hierarchy has a password, and podssh uses the empty one, the default";
+
+/// Why the owner's storage key was not made.
+enum NoStorage {
+    Password,
+    Other(String),
+}
+
+impl NoStorage {
+    fn line(self) -> String {
+        match self {
+            NoStorage::Password => OWNER_PASSWORD.to_string(),
+            NoStorage::Other(why) => why,
         }
-        other => format!("the TPM did not make its storage key: {other}"),
+    }
+}
+
+/// The storage key, made again from its template: a handle to flush.
+fn storage_key<T: Transport + ?Sized>(t: &mut T) -> Result<u32, NoStorage> {
+    let template = public::storage_template().map_err(NoStorage::Other)?;
+    let command = cmd::create_primary(&template).map_err(NoStorage::Other)?;
+    let (handles, _) = run(t, &command, 1).map_err(|e| match e {
+        Fault::Tpm(code) if matches!(rc::base(code), rc::BAD_AUTH | rc::AUTH_FAIL) => NoStorage::Password,
+        other => NoStorage::Other(format!("the TPM did not make its storage key: {other}")),
     })?;
-    handles.first().copied().ok_or_else(|| "the TPM gave no handle of its storage key".into())
+    handles.first().copied().ok_or_else(|| NoStorage::Other("the TPM gave no handle of its storage key".into()))
+}
+
+/// The parent of a key: its handle, and whether podssh made it (and
+/// flushes it). The owner's storage key, made again; else, where the owner's
+/// hierarchy has a password, the one kept at [`PERSISTENT_SRK`].
+fn parent_for_new<T: Transport + ?Sized>(t: &mut T) -> Result<(u32, bool), String> {
+    match storage_key(t) {
+        Ok(handle) => Ok((handle, true)),
+        Err(NoStorage::Password) => Ok((PERSISTENT_SRK, false)),
+        Err(other) => Err(other.line()),
+    }
+}
+
+/// The parent of `file`'s key, as [`parent_for_new`] gives it: the owner's
+/// storage key, made again, or a storage key that the TPM keeps.
+fn parent_of<T: Transport + ?Sized>(t: &mut T, file: &KeyFile) -> Result<(u32, bool), String> {
+    match file.parent {
+        RH_OWNER if !file.rsa_parent => storage_key(t).map(|handle| (handle, true)).map_err(NoStorage::line),
+        handle if handle >> 24 == 0x81 => Ok((handle, false)),
+        other => Err(format!(
+            "the key file's parent is {other:#010x}{}; podssh loads keys under the owner's P-256 storage key \
+             (0x40000001) or a storage key that the TPM keeps (0x81000000 to 0x81FFFFFF)",
+            if file.rsa_parent { " of RSA" } else { "" }
+        )),
+    }
 }
 
 /// A new key, sealed to `pcrs` as they are now: its file, and its public
@@ -111,16 +159,17 @@ pub(super) fn make<T: Transport + ?Sized>(
     if trial != wanted {
         return Err("the TPM's digest of the policy is not podssh's: no key is made".into());
     }
-    let (private, public_area, area) = create_sealed(t, &wanted)?;
-    Ok((sealed_file(steps, description, public_area, private), area))
+    let (private, public_area, area, parent) = create_sealed(t, &wanted)?;
+    Ok((sealed_file(steps, description, public_area, private, parent), area))
 }
 
-/// The key file of a key that podssh made under the owner's storage key.
+/// The key file of a key that podssh made under `parent`.
 pub(super) fn sealed_file(
     policy: Vec<(u32, Vec<u8>)>,
     description: &str,
     public: Vec<u8>,
     private: Vec<u8>,
+    parent: u32,
 ) -> KeyFile {
     KeyFile {
         empty_auth: true,
@@ -128,31 +177,38 @@ pub(super) fn sealed_file(
         auth_policies: Vec::new(),
         rsa_parent: false,
         description: (!description.is_empty()).then(|| description.to_string()),
-        parent: RH_OWNER,
+        parent,
         public,
         private,
     }
 }
 
 /// A new sealed key of the policy digest `wanted`: its private and public
-/// parts as a key file keeps them, and its public area as read, which must
-/// carry that digest and the attributes asked.
+/// parts as a key file keeps them, its public area as read, which must
+/// carry that digest and the attributes asked, and the parent that the file
+/// names.
 pub(super) fn create_sealed<T: Transport + ?Sized>(
     t: &mut T,
     wanted: &[u8],
-) -> Result<(Vec<u8>, Vec<u8>, EccPublic), String> {
+) -> Result<(Vec<u8>, Vec<u8>, EccPublic, u32), String> {
     let template = public::sealed_template(wanted)?;
-    let storage = storage_key(t)?;
+    let (storage, made_here) = parent_for_new(t)?;
     let made = cmd::create(storage, &template).map_err(Fault::Malformed).and_then(|command| run(t, &command, 0));
-    flush(t, storage);
-    let (_, params) = made.map_err(|e| format!("the TPM did not make the key: {e}"))?;
+    if made_here {
+        flush(t, storage);
+    }
+    let (_, params) = made.map_err(|e| match made_here {
+        true => format!("the TPM did not make the key: {e}"),
+        false => format!("{OWNER_PASSWORD}, and no storage key kept at {PERSISTENT_SRK:#010x} takes the key: {e}"),
+    })?;
     let (private, public_area) =
         cmd::created(&mut In::new(&params)).map_err(|e| format!("the TPM's new key cannot be read: {e}"))?;
     let area = EccPublic::parse(&public_area)?;
     if area.auth_policy != wanted || area.attributes != public::SEALED {
         return Err("the TPM made a key of another policy or other attributes than asked".into());
     }
-    Ok((private, public_area, area))
+    let parent = if made_here { RH_OWNER } else { PERSISTENT_SRK };
+    Ok((private, public_area, area, parent))
 }
 
 /// The digest that the TPM reaches in a trial session for the one policy
@@ -180,20 +236,15 @@ pub(super) fn start_session<T: Transport + ?Sized>(t: &mut T, kind: u8, nonce: &
     handles.first().copied().ok_or_else(|| "the TPM gave no handle of its session".into())
 }
 
-/// Load `file` under the storage key: the key's handle, to flush.
+/// Load `file` under its parent: the key's handle, to flush.
 pub(super) fn load<T: Transport + ?Sized>(t: &mut T, file: &KeyFile) -> Result<u32, String> {
-    if file.rsa_parent || file.parent != RH_OWNER {
-        return Err(format!(
-            "the key file's parent is {:#010x}{}; podssh makes the owner's P-256 storage key (0x40000001) only",
-            file.parent,
-            if file.rsa_parent { " of RSA" } else { "" }
-        ));
-    }
-    let storage = storage_key(t)?;
+    let (storage, made_here) = parent_of(t, file)?;
     let loaded = cmd::load(storage, &file.private, &file.public)
         .map_err(Fault::Malformed)
         .and_then(|command| run(t, &command, 1));
-    flush(t, storage);
+    if made_here {
+        flush(t, storage);
+    }
     let (handles, _) = loaded.map_err(|e| match e {
         Fault::Tpm(code) if rc::base(code) == rc::INTEGRITY => {
             "this TPM cannot load the key: it was made in another TPM, or its owner's seed changed (a clear of the TPM)"

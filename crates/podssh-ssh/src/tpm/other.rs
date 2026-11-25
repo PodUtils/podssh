@@ -1,6 +1,6 @@
-//! The way to a TPM where podssh has none: Windows reaches its TPM through
-//! TBS (`Tbsip_Submit_Command`), which podssh does not call (T-839). Each
-//! use says so before anything is written.
+//! The way to a TPM where podssh has none: a system that is neither Unix
+//! (the kernel's device) nor Windows (the TPM Base Services). Each use says
+//! so before anything is written.
 
 use std::path::{Path, PathBuf};
 
@@ -20,7 +20,8 @@ impl Place {
 }
 
 pub(super) fn find(_named: Option<&Path>) -> Result<Place, String> {
-    Err("no TPM: podssh reaches a TPM through the device of a Unix kernel (/dev/tpmrm0), and this system has none"
+    Err("no TPM: podssh reaches a TPM through a Unix kernel's device (/dev/tpmrm0) or Windows' TPM Base Services, \
+         and this system has neither"
         .into())
 }
 
