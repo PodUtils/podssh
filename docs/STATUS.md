@@ -1625,3 +1625,25 @@ ssh -o ProxyCommand='target/debug/podssh proxy %h %p' -T git@github.com
 sh scripts/dev.sh check                                   # the Linux gate and the static binary
 sh scripts/release-check.sh --list                        # the release check (T-251): each row
 ```
+
+## Hosted development
+
+On 2026-11-25, Codex Cloud ran `sh scripts/cloud-setup.sh --native` with an
+empty cache, then again with the populated cache. The pinned Rust 1.99.0
+toolchain and locked native dependencies passed an offline build.
+`sh scripts/session-start.sh` started both checksum-verified watchers and
+the warm run reused them. Local Git tests verified fast-forward startup
+and preservation of dirty, ahead and diverged checkouts. The Claude hook
+was exercised in the Codex host with Claude's hook variables. Its exported
+environment worked in a fresh shell.
+
+`sh scripts/qa-bundle.sh target/debug/podssh OUTPUT_DIR` produced a binary
+and manual that passed `sha256sum -c SHA256SUMS`. It refused an existing
+output directory and a candidate that produced no manual. The CLI also
+passed a local `podssh pipe stdio exec:/usr/bin/cat` round trip.
+
+The hosted test instructions use an owned temporary directory and scope
+the SSH configuration override to the test command. The cache-directory
+test rejected the owner of the Codex sandbox root and passed in the
+digest-pinned Debian container. Two detach cases saw zombie children on
+the host and passed when rerun under `docker-init -sg --`.

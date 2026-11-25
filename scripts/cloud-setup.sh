@@ -7,6 +7,7 @@
 #   sh scripts/cloud-setup.sh            each step, then the report
 #   sh scripts/cloud-setup.sh --check    the report only; changes nothing
 #   sh scripts/dev.sh setup              the same as the first
+#   sh scripts/cloud-setup.sh --native   prepare hosted Rust and locked crates
 #
 # The steps: the packages of the tests and of the interop checks (apt), a
 # Docker daemon that is installed but not running, Podman's settings for a
@@ -32,6 +33,7 @@ fail() { printf 'setup: FAIL %s\n' "$*" >&2; failed=1; }
 CHECK_ONLY=0
 case ${1:-} in
     --check) CHECK_ONLY=1 ;;
+    --native) exec sh "$SCRIPT_DIR/cloud-native.sh" ;;
     "") ;;
     -h | --help)
         sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'

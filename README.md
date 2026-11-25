@@ -362,6 +362,7 @@ container. See [docs/development.md](docs/development.md).
 | [docs/HANDOFF.md](docs/HANDOFF.md) | The facts that change from day to day: the gate, the podcrates takes, the next step of each partial entry |
 | [TODO/INDEX.md](TODO/INDEX.md) | Each open and done item of work (defects, features, measurements), with its entry |
 | [docs/development.md](docs/development.md) | Build, test, checks, the sandbox box, releases |
+| [docs/hosted-sessions.md](docs/hosted-sessions.md) | Start development in Claude Code Cloud or Codex Cloud |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability; what podssh guarantees |
 
 ## License

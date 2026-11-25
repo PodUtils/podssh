@@ -431,6 +431,10 @@ Each such issue is mapped in `TODO/issues.md` and `TODO/github.txt` as any issue
 
 ## A Linux host, or a cloud session
 
+For everyday native work in Claude Code Cloud or Codex Cloud, use
+[hosted sessions](hosted-sessions.md). The full host setup below is for
+container, interoperability and release work.
+
 `sh scripts/cloud-setup.sh` (also `sh scripts/dev.sh setup`) makes a Linux
 host with root ready for this work: a Claude Code cloud container, a new VM.
 Each step probes first and changes nothing that is ready, so a second run
@@ -468,10 +472,8 @@ In a Claude Code cloud session:
 - The committed `.claude/settings.json` allows each tool with no prompt (a
   cloud session cannot bypass permissions), sets `CARGO_BUILD_JOBS=4`, and
   adds no line of attribution to a commit.
-- The environment's setup script (the cloud environment's settings) can run
-  the setup at the start of each session: `cd podssh && sh
-  scripts/cloud-setup.sh`. That script starts one directory above the
-  repository.
+- The SessionStart hook runs the shared native setup when needed. For the
+  full host setup, enter the checkout and run `sh scripts/cloud-setup.sh`.
 - The way out is the session's agent proxy (`HTTPS_PROXY` on the loopback),
   which re-terminates TLS for some names with a CA of its own, and passes
   the relay's own chain; direct TLS on port 443 meets an egress that
@@ -479,10 +481,8 @@ In a Claude Code cloud session:
   use the stand-in relay (T-313), and the live handshakes go through the
   proxy (T-315).
 - The session's disk is an allowance of about 40 GB, and `df` reads it
-  wrong: on 2026-10-30, clippy and the tests of the workspace with full
-  debug information filled it, `target/debug` at 15 GB. Build with less:
-  `CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=line-tables-only
-  CARGO_PROFILE_TEST_DEBUG=line-tables-only`; `cargo clean` frees it.
+  wrong. The shared environment uses line tables and disables incremental
+  compilation to save space. `cargo clean` frees the build output.
 
 ## A box like the target sandbox
 
