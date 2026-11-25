@@ -68,10 +68,9 @@ The session of 2026-11-25 (afternoon and evening), a lead with workers (the ruli
 gates of `13623b3` and `c6fa76a` (T-465), T-831, T-900, podcrates `v0.85.0` taken (T-684), T-834 (the bearer), T-753
 (a cut channel is 69), T-923 (six more waits beside the channel), T-627, T-780, T-756, T-788 and T-846 closed with their
 causes; the fourth black-box pass's 18 findings (T-906 to T-922) fixed; T-796's bounds merged; COORD-148 to COORD-151
-(#358 to #361) to podcrates. Running: a worker on the fifth pass's file-command findings, one on its reverse-road and net
-findings (their entries come with their drafts); a repeat of `exit` on Windows; T-779's harness again. The next session,
-in order: the gate of the last push; the drafts of those two workers (merge in id order); T-796's planted run (T-251);
-podcrates' answers to COORD-147 to COORD-151; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass
+(#358 to #361) to podcrates. The fifth black-box pass's findings were fixed too: the file commands (T-924 to T-937) and the reverse road, the relay
+and the net (T-938 to T-951); COORD-152 (#362) carries their asks of podcrates. The next session, in order: the gate of
+the last push; T-796's planted run (T-251); podcrates' answers to COORD-147 to COORD-152; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass
 is clean**, and none before T-684 ends).
 
 ## Baseline
