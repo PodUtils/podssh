@@ -161,7 +161,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
 (`crates/podssh-cli/src/flags/relay.rs:9-147`), and bound each request in the code, as `doctor`
-does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:385-406` stops
+does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:387-408` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
 
@@ -921,7 +921,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
 6. Change in the same commit: VARIABLES and FILES (`crates/podssh-cli/src/man/facts.rs:224-238`,
    `crates/podssh-cli/src/man/data_files.rs:20-28`), the test of lines 365-377 at `22c3b88`, the comment
    of `cache.rs`, and the `doctor`
-   notes (`crates/podssh-cli/src/man/notes.rs:250-337`).
+   notes (`crates/podssh-cli/src/man/notes.rs:250-338`).
 
 ## Decision
 
@@ -2844,7 +2844,7 @@ session on 2026-11-03.
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
   lately (`crates/podssh-cli/src/status.rs:245-255`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:351-379`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:362-390`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-27`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -3835,7 +3835,7 @@ changes with the edge", which is not true of the role: it has no edge and gives 
   did not change.
 - Read: the manual's note of `relay info` names `relay status` and `ping` alone
   (`crates/podssh-cli/src/man/notes_relay.rs`, lines 72-78 at `366f511`), and so does
-  `docs/cli.md:3791-3797`.
+  `docs/cli.md:3807-3813`.
 - Read: `relay status` and `ping` time the hosts of the run's list, the default host and three
   others at most (`PodUtils/podssh:crates/podssh-relay/src/relay.rs:105` says "pub const MAX_ALTERNATES: usize =
   3;"; `crates/podssh-cli/src/relay_diag.rs:88-97`, `crates/podssh-cli/src/ping/mod.rs:180-185`),
@@ -3899,7 +3899,7 @@ info` with `--relay-host` reads the order named, and `--json` has `relay_order` 
 
 - 2026-11-04: the Premise cites the note of `relay info` in `docs/cli.md` at lines 3241-3247 at
   `366f511`, which hold `relay join` and `relay spec`; the note was at lines 3281-3287 at
-  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3928`. Each
+  `366f511`, where its words were as the Premise says, and it begins at `docs/cli.md:3944`. Each
   other citation of the Premise holds. The Premise's citations of the lines that this change
   rewrote read at `366f511` now, as they no longer name those words.
 - The approach's test of the role's document (`serve::docs::relays`) needs a `Config` of the role,
@@ -4098,7 +4098,7 @@ Read at `2042200`:
   (`crates/podssh-relay/src/serve/reverse/pairs.rs:296`), and ACME's cache at each renewal. A root
   that dropped `CAP_DAC_OVERRIDE` reads a file of another owner only as its mode lets uid 0
   (Inferred from capabilities(7); not measured here).
-- `crates/podssh-cli/Cargo.toml:232` says "[target.'cfg(unix)'.dependencies]" above the binary's
+- `crates/podssh-cli/Cargo.toml:243` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
 - `crates/podssh-cli/src/exitmap.rs:173` says "Fault::Capability => own(sysexits::EX_CONFIG, Some(Class::Unsupported))":
   78 is this host not set up for the mode.

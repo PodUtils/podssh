@@ -368,5 +368,6 @@ pub fn files() -> Vec<(Vec<String>, String)> {
     rows.push(super::super::notes_serve::kept_file());
     rows.push(super::super::notes_gsr::file());
     rows.push(super::super::notes_bucket::file());
+    rows.push(super::super::notes_dns::file());
     rows
 }

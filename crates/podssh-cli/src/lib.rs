@@ -36,6 +36,8 @@ pub mod agent;
 pub mod carrier;
 // `--carrier s3:FILE`: a bucket of the S3 API as that stream (T-725).
 pub mod carrier_bucket;
+// `--carrier dns:FILE`: names and TXT answers of DNS as that stream (T-877).
+pub mod carrier_dns;
 pub mod channel;
 pub mod chat;
 // `--chisel URL`: a chisel server in place of the relay (T-490).
@@ -49,6 +51,8 @@ pub mod containers;
 pub mod cp;
 pub mod detach;
 pub mod dispatch;
+// The resolver, the probe of UDP and the bound of the DNS road (T-875, T-877).
+pub mod dns_road;
 pub mod doctor;
 // `podssh each`: one command on many hosts at once (T-183).
 pub mod each;

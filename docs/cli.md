@@ -3334,6 +3334,22 @@ on a terminal no `--timeout`: a person decides how long an edit takes.
   of `--full` so lasts its hold at least, and its other sections' lines come
   first. With `--json`, each probe's line gives its numbers in `samples`,
   which the HTTP road of T-319 is to read.
+- **A resolver and the user's zone** (T-875, the owner's ruling Q107).
+  `--dns-zone ZONE` asks whether a resolver passes a TXT query for a zone of
+  the user's own, as the DNS road of `--carrier dns:FILE` needs. The resolver
+  is `--dns-server ADDR` (`IP`, `IP:PORT` or `[IPv6]:PORT`), else the first
+  nameserver of `/etc/resolv.conf`; a name is refused, as it would need the
+  resolver that it names. The line `dns resolver` opens a UDP socket toward
+  it, which sends nothing: a host that refuses UDP gets `FAIL` and nothing is
+  sent. Then `dns edns0` and `dns no edns0`, one query each for a random name
+  under ZONE (so no cache answers), with an OPT record of 1232 bytes and with
+  none, 3 s each: the RCODE, the time, the size, TC, what became of the OPT
+  record, and the records of another type in the answer. NOERROR and NXDOMAIN
+  are `ok`; SERVFAIL, REFUSED, silence and an address (a portal that answers
+  each name itself) are `FAIL`. A datagram that answers another query is not
+  taken, and is counted. `--dns-server` with no `--dns-zone`, a zone that
+  leaves no room for the probe's label, and a resolver that is not an
+  address are 64. Nothing is sent without `--dns-zone`, and offline nothing.
 
 ## `podssh status`
 
@@ -5174,6 +5190,26 @@ commands. The rules behind them:
   nobody and end). The client's role pings the node from the start, and
   the node polls its door 10 s apart at most, within the role's 60 s. The
   bucket has one life, as `stdio`: the node serves one stream.
+- **The DNS road as the carrier's stream (T-877, the owner's ruling Q107).**
+  `--carrier dns:FILE`, at each end, for a host that reaches a recursive
+  resolver and nothing else. The road is pod-link's of PodUtils/podcrates
+  (feature `dns`): the client's datagrams in base32 names under FILE's
+  `zone`, the node's in TXT records, an ARQ, and TLS 1.3 with each end's
+  Ed25519 key (`key-file`, made private when missing) pinned by the other
+  (`peer`). podssh keeps the glue (`crates/podssh-cli/src/carrier_dns.rs`):
+  FILE is read and checked first (78), a name that is no setting refused.
+  The client's `resolver` is an address or `system`, the first nameserver
+  of `/etc/resolv.conf`; a UDP socket connected to it, which sends nothing,
+  is the probe, and a host that refuses UDP ends with one line and 69, with
+  nothing sent. Q107's bound holds: FILE may lower pod-link's 20 queries a
+  second and 8 in flight, never raise them (78). The stream is a pipe at
+  once, whose far end a task carries once the handshake is done; a handshake
+  that fails (a cut answer each time, a key that is not the pin) says why
+  and ends the stream (69). The node answers at FILE's `listen`, a listener
+  that the user asks for, after `PODSSH_LISTEN` (78), its bind the probe
+  (69); it takes the first client whose key is a `peer`, says each failed
+  handshake (the first ten, then each 100th), and serves that one stream.
+  `doctor --dns-zone` says whether a resolver passes the zone first.
 - **A link can drop.** The relay's side ends a socket of the reverse road
   at random, with no Close (T-255). `operator` and `ssh node://NAME` then
   say that the link ended with no Close, or that the node's link ended

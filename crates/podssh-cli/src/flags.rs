@@ -308,6 +308,8 @@ mod containers;
 mod copy;
 mod derp;
 mod detach;
+// The DNS road's lines in doctor (T-875).
+mod dns;
 mod each;
 mod edit;
 mod expect;

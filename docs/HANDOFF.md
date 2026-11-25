@@ -21,7 +21,7 @@ This page keeps no history: git does.
 
 | Branch on GitHub | Entry | State |
 | --- | --- | --- |
-| `draft/d-t877` | T-875, T-877 | `doctor --dns-zone` and `--carrier dns:FILE` over `pod-link`; not built |
+| none | | `d-t877` (T-875, T-877) was merged on 2026-11-25 |
 
 `TODO/PROGRESS.md`, "Drafts", is the record. A draft lives on one machine until its branch is on
 GitHub as `draft/<branch>`.
@@ -33,14 +33,14 @@ never used (the owner, 2026-11-12); the watcher of `AGENTS.md` finds the answers
 
 | Issue | Waits for |
 | --- | --- |
-| #347 (COORD-138) | podcrates' answer to the ask of a unit name past 64 in `pod-unit` (T-820) |
-| #349 (COORD-139) | podcrates' answer to T-876's four findings in `pod-link`'s DNS responder, and a DoH `Datagrams` |
-| #350 (COORD-140) | podcrates' `pod_term::modes::Modes` and `Ring::modes_at` (T-161) |
+| #349 (COORD-139) | podcrates' finding 4 (an ARQ with no TLS), a DoH `Datagrams` (T-900), a run through unbound in its CI, three small asks of T-875 and T-877; findings 1 to 3 answered in `v0.83.0` |
 | #351 (COORD-141) | podcrates' answer on a crate `pod-tpm` (T-839) |
 | #352 (COORD-142) | podcrates' answers to asks (a) and (b) on `pod_core::failure` (T-820) |
+| #353 (COORD-143) | podcrates' reading of podssh's two answers to COORD-154 (T-831, T-839) |
+| #354 (COORD-144) | podcrates' record of podssh's take of `v0.83.0` (T-684) |
 
 Closed on 2026-11-24, each answered or done: #248, #283, #311, #322, #340 to #343, #346 (podcrates' COORD-153 answered
-it: the 7-bit codec comes in `pod-term`'s next tag, T-831 takes it then).
+it: the 7-bit codec comes in `pod-term`'s next tag, T-831 takes it then), #347 and #350 (answered in `v0.83.0`).
 
 ## The sessions of PodUtils
 

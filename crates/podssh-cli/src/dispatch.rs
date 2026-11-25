@@ -284,6 +284,7 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
             stream,
             stream_idle,
             exit,
+            dns,
             refused,
         } => {
             if refusals("doctor", refused, s.err) {
@@ -317,6 +318,7 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
                     stream: stream.clone(),
                     stream_idle: stream_idle.clone(),
                     exit: exit.clone(),
+                    dns: dns.clone(),
                 },
                 s.out,
                 s.err,

@@ -27,7 +27,7 @@ of [relay-measurement.md](relay-measurement.md):
    moot, and the entry gets a `## Correction`. What podssh lacks is glue (as
    `--carrier s3:FILE` is glue over `pod-link`'s S3 carrier), a probe, and the
    rulings below.
-2. **It is worth having as a last resort, and not worth building yet.** It reaches
+2. **It is worth having as a last resort.** It reaches
    a class of hosts that no other road reaches: a host with a resolver and nothing
    else. No user of podssh has asked for it. The record holds no report of such a
    host (the issues and the notes of `TODO/issues.md` name none), the target sandbox
@@ -35,7 +35,8 @@ of [relay-measurement.md](relay-measurement.md):
    mechanisms, not of users. The cost is small now (glue), but the road adds a UDP
    path to a binary whose rule 2 forbids it. So the build waits for a host: a
    user's report, or a measurement of step 1 on a real network. The measurement
-   comes first, as a probe (T-875).
+   comes first, as a probe (T-875). That was the verdict of 2026-11-24; the owner's
+   rule "Decisions" and Q107 then had the road built behind its opt-in (T-877).
 3. **A tenth exception of rule 2 is needed, and only the operator can give it.**
    The responder is a listener that the user starts, which exception 1 already
    covers when a probe allows the bind. The client's datagrams to a resolver are not

@@ -226,6 +226,8 @@ pub enum Parsed {
         stream_idle: Option<String>,
         /// `--exit NAME`, `--exit-target` and `--client-key` (T-458).
         exit: crate::doctor::ExitFlags,
+        /// `--dns-zone ZONE` and `--dns-server ADDR` (T-875).
+        dns: crate::doctor::DnsFlags,
         refused: Vec<(String, &'static str, &'static str)>,
     },
     /// **`podssh ts`, and it is its own variant because it carries behaviour

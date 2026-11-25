@@ -60,7 +60,8 @@ struct Shown {
 /// `shown` cut to what each vi shows of the file: the rows that hold text
 /// of it (trimmed of the padding that a redraw may write), and the modes.
 fn text_and_modes(mut shown: Shown) -> Shown {
-    shown.rows = shown.rows.iter().map(|row| row.trim_end().to_string()).filter(|row| row.contains("of the file")).collect();
+    shown.rows =
+        shown.rows.iter().map(|row| row.trim_end().to_string()).filter(|row| row.contains("of the file")).collect();
     shown
 }
 

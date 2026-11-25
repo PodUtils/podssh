@@ -110,7 +110,7 @@ pub const EXIT_FLAGS: &[FlagRow] = &[
         "trust only the CA certificates in FILE for the relay (default: env SSL_CERT_FILE, else system and built-in roots)", None),
     // The exit at the other end of a stream that exists already (T-596).
     row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-        "the exit is the node at the other end of ADDR, a stream that exists already; with no relay and no pair (podssh node NAME --exit --carrier): stdio (or -), as the exec channel of a platform's own SSH gives it, fd:N (Unix), or exec:CMD, a program started with no shell; or s3:FILE, a bucket of the S3 API (see FILES); each connection is a session of the one stream; a stream of stdio or fd:N ends the proxy when its node leaves; stdin may not be a terminal", None),
+        "the exit is the node at the other end of ADDR, a stream that exists already; with no relay and no pair (podssh node NAME --exit --carrier): stdio (or -), as the exec channel of a platform's own SSH gives it, fd:N (Unix), or exec:CMD, a program started with no shell; or s3:FILE, a bucket of the S3 API (see FILES); or dns:FILE, names and TXT answers of DNS under a zone of your own (see FILES); each connection is a session of the one stream; a stream of stdio or fd:N ends the proxy when its node leaves; stdin may not be a terminal", None),
     row(Some('q'), "quiet", None, FlagKind::Supported,
         "no line for each connection; errors still go to stderr", None),
 ];
@@ -149,7 +149,7 @@ pub const NODE_FLAGS: &[FlagRow] = &[
         "with --exit: the private ranges that the exit dials too, ADDR/BITS or one address, separated by commas; each for the members that the net's policy lets reach the address; a loopback address or one of this host's own is dialled only when a range names it alone (ADDR, or ADDR/32 and ADDR/128); with --relay: the private ranges that the relay role dials too, as podssh relay serve --routes; a prefix that sets bits past it is refused", None),
     // A stream that exists already as the node's one road (T-595).
     row(None, "carrier", Some("ADDR"), FlagKind::Supported,
-        "serve TARGET over ADDR, a stream that exists already, with no relay and no pair: stdio (or -), as the exec channel of a platform's own SSH gives it, fd:N (Unix), or exec:CMD, a program started with no shell; or s3:FILE, a bucket of the S3 API that FILE describes (see FILES); the other end runs podssh operator --carrier, or proxy, ssh, cp, scp or sftp --carrier to node://NAME; or for --exit, podssh exit NAME --listen ADDR:PORT --carrier, or ssh, proxy or pipe with --exit NAME --carrier; stdin may not be a terminal", None),
+        "serve TARGET over ADDR, a stream that exists already, with no relay and no pair: stdio (or -), as the exec channel of a platform's own SSH gives it, fd:N (Unix), or exec:CMD, a program started with no shell; or s3:FILE, a bucket of the S3 API that FILE describes (see FILES); or dns:FILE, names and TXT answers of DNS under a zone of your own (see FILES); the other end runs podssh operator --carrier, or proxy, ssh, cp, scp or sftp --carrier to node://NAME; or for --exit, podssh exit NAME --listen ADDR:PORT --carrier, or ssh, proxy or pipe with --exit NAME --carrier; stdin may not be a terminal", None),
     row(None, "iroh", None, FlagKind::Supported,
         "serve TARGET over the iroh road, with no pair: a client dials the ticket that the node prints; a build with the feature iroh", None),
     super::derp::NODE_DERP, super::opentunnel::NODE_OPENTUNNEL, super::opentunnel::NODE_PINGGY, super::frp::NODE_FRP,

@@ -31,7 +31,7 @@ the rest is read. `bound` wraps only `TsNode::start` and `tcp_connect`
 (`crates/podssh-cli/src/ts.rs`, lines 207-221 at `4c3b456`, `crates/podssh-cli/src/ts.rs`, lines 353-363 at `4c3b456`), not `node.status()`
 or `node.peer_ip()` (`crates/podssh-cli/src/ts.rs`, line 289 at `4c3b456`, `crates/podssh-cli/src/ts.rs`, line 344 at `4c3b456`). The
 module comment says that the bound caps the whole operation (`crates/podssh-cli/src/ts.rs`, lines 9-14 at `4c3b456`),
-and `docs/cli.md:7219-7221` makes that a rule.
+and `docs/cli.md:7255-7257` makes that a rule.
 
 Read: `status()` calls `Device::self_node()` (`crates/podssh-ts/src/node.rs`, lines 76-79 at `4c3b456`), whose reply
 waits in a queue until a map with the self node arrives
@@ -399,7 +399,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
    print its credentials. The fork has one proxy for each process
    (`vendor/tailscale-rs/ts_http_util/src/proxy.rs:224-239`), so apply `NO_PROXY` for each host in
    the new function.
-4. Update `crates/podssh-cli/src/flags.rs:380-381`, `docs/tailscale.md:172-173` and
+4. Update `crates/podssh-cli/src/flags.rs:382-383`, `docs/tailscale.md:172-173` and
    `docs/STATUS.md:922` in the same commit.
 
 Added by T-102 (2026-10-10): the checks of each mode before the start already take `--ts-proxy`,
@@ -549,7 +549,7 @@ checks allowed (`crates/podssh-ws/src/client.rs:42-43`, `docs/relay.md:550-552`)
 4. Ping every 10 s; three silent intervals mean a dead link, after the relay answered one ping.
 5. Restart `ControlRunner` with the same backoff and no count limit. podssh-cli prints one stderr
    line for each drop and each new connection. Add the patch and its row, and update
-   `docs/tailscale.md`, `docs/STATUS.md:922` and `crates/podssh-cli/src/man/notes.rs:407-439`.
+   `docs/tailscale.md`, `docs/STATUS.md:922` and `crates/podssh-cli/src/man/notes.rs:408-440`.
 
 ## Decision
 
@@ -801,7 +801,7 @@ Not measured: whether the proxy of a sandbox allows `tcp.ts.relay.ajam.dev:443` 
 5. Repair the ignored test: the key and state paths come from variables that only the test reads,
    and the state stays. Name M8 in its reason.
 6. Record each result with its date in `docs/STATUS.md:246`, `docs/tailscale.md:8-24` and
-   `crates/podssh-cli/src/man/notes.rs:407-439`.
+   `crates/podssh-cli/src/man/notes.rs:408-440`.
 
 ## Decision
 
@@ -1014,7 +1014,7 @@ Read: the row is at `crates/podssh-cli/src/flags.rs`, lines 293-294 at `efee2fc`
 (`crates/podssh-cli/src/ts.rs`, lines 314-316 at `efee2fc`, `crates/podssh-ts/src/status.rs:17-21`), and `-W` writes the
 stream (`crates/podssh-cli/src/ts.rs`, lines 391-393 at `efee2fc`). `proxy --jsonl` is refused at parse, with the reason
 (`crates/podssh-cli/src/tree.rs`, lines 179-187 at `efee2fc`, `crates/podssh-cli/src/non_interactive.rs`, lines 309-320 at `efee2fc`).
-`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:179`).
+`serde_json` is already a dependency of the binary (`crates/podssh-cli/Cargo.toml:190`).
 
 ## Approach
 

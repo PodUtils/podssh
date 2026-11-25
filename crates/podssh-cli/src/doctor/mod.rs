@@ -51,6 +51,8 @@ mod host;
 mod http2;
 // The servers of --hysteria, where UDP passes (T-580).
 mod hysteria;
+// Whether a resolver passes a TXT query for the user's own zone (T-875).
+mod dns_zone;
 // The servers of --tuic, where UDP passes (T-581).
 mod ipv6;
 #[cfg(feature = "iroh")]
@@ -104,6 +106,7 @@ mod trojan;
 // What doctor was given, and its parse (split from here to keep this file short).
 mod args;
 pub use args::{parsed, DoctorArgs};
+pub use dns_zone::Flags as DnsFlags;
 pub use exit::Flags as ExitFlags;
 pub(crate) use report::Report;
 
@@ -200,6 +203,10 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
     };
     let exit = match exit::asked(&args.exit, args.ca_file.as_deref()) {
         Ok(exit) => exit,
+        Err(refusal) => return refusal.report("doctor", err),
+    };
+    let dns = match dns_zone::asked(&args.dns) {
+        Ok(dns) => dns,
         Err(refusal) => return refusal.report("doctor", err),
     };
     let cert_env = std::env::var("SSL_CERT_FILE").ok().filter(|v| !v.trim().is_empty());
@@ -300,6 +307,9 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         if exit.is_some() {
             report.unknown("exit", "not attempted: PODSSH_OFFLINE is set");
         }
+        if dns.is_some() {
+            dns_zone::offline(&mut report);
+        }
         if !args.quick {
             nat::offline(&mut report, &stun);
         }
@@ -330,6 +340,7 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
                 devtunnel: tunnel.as_ref(),
                 cover: args.cover.as_deref(),
                 exit: exit.as_ref(),
+                dns: dns.as_ref(),
                 quick: args.quick,
                 jobs,
                 stream: stream.section(),

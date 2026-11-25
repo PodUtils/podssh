@@ -264,6 +264,8 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
     super::vless::DOCTOR_TROJAN,
     super::vless::DOCTOR_HYSTERIA,
     super::vless::DOCTOR_TUIC,
+    // A resolver's TXT query for a zone of the user's own (T-875).
+    super::dns::DOCTOR_DNS_ZONE, super::dns::DOCTOR_DNS_SERVER,
     super::via::DOCTOR_VIA, super::via::VIA_AUTH_FILE, super::via::DOCTOR_TURN, super::via::TURN_AUTH_FILE,
     // The Dev Tunnels road (T-755).
     row(None, "devtunnel", Some("TUNNEL"), FlagKind::Supported,

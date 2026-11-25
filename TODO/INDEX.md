@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**832 entries: 6 open, 46 partial, 12 blocked, 768 done.**
+**833 entries: 4 open, 45 partial, 13 blocked, 771 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 6 | 13 | 7 | 364 | 390 |
-| **All** | 6 | 46 | 12 | 768 | 832 |
+| P3 | 4 | 12 | 8 | 367 | 391 |
+| **All** | 4 | 45 | 13 | 771 | 833 |
 
 ## Entries
 
@@ -869,7 +869,7 @@ repository and CI).
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | partial | A live shell shared by name: a read-only name, and one writer at a time |
 | [T-838](ssh.md) | P3 | M | backlog | feature | done | An algorithm policy as a pure verdict: the same check on a server's KEXINIT and on a client's, with a named policy file |
-| [T-839](ssh.md) | P3 | L | backlog | feature | partial | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
+| [T-839](ssh.md) | P3 | L | backlog | feature | done | A key sealed to the machine: a TPM 2.0 key that signs only while the measured boot state is the recorded one |
 | [T-840](forwarding.md) | P3 | S | backlog | feature | done | A state word for each forward: bound, waiting for the link, up, refused |
 | [T-841](serve.md) | P3 | S | backlog | feature | done | `podssh serve` offers one stated set of algorithms, and a table test refuses the rest |
 | [T-842](serve.md) | P3 | S | backlog | feature | done | `podssh serve`: a key that a reload removes ends its open sessions when asked |
@@ -900,11 +900,12 @@ repository and CI).
 | [T-867](cli.md) | P3 | S | M10 | defect | done | `--list-hosts`: an `-F` file that others may change is not refused, and one bad line stops the whole list |
 | [T-868](cli.md) | P3 | M | M10 | defect | done | Words of the black-box pass: lines that are not true or not clear, and gaps in the manual |
 | [T-869](serve.md) | P3 | S | M10 | defect | done | `podssh serve`'s lines at a client's normal end, a host key file of text, `serve NAME`'s warning, and the policy's line |
-| [T-875](mesh.md) | P3 | S | backlog | measurement | open | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
+| [T-875](mesh.md) | P3 | S | backlog | measurement | done | `podssh doctor` asks a resolver whether a TXT query for the user's own zone gets through |
 | [T-876](mesh.md) | P3 | S | backlog | chore | partial | Four findings on pod-link's DNS carrier, written to podcrates |
-| [T-877](mesh.md) | P3 | M | backlog | feature | open | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
+| [T-877](mesh.md) | P3 | M | backlog | feature | done | The DNS road: `--carrier dns:FILE` over pod-link, and the node that answers it |
 | [T-895](resume.md) | P3 | S | backlog | feature | done | `podssh ssh --attach` gives the offset that it has after a lost link |
 | [T-896](resume.md) | P3 | M | backlog | feature | done | Local echo from end to end, for kept and shared shells, and on the Windows console |
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
+| [T-900](mesh.md) | P3 | S | backlog | feature | blocked | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
