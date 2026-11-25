@@ -64,18 +64,15 @@ Read on 2026-11-25.
 
 ## Tonight
 
-The session of 2026-11-25 (afternoon), after the one of 2026-11-24 and 2026-11-25. Done: the red gate of `13623b3`
-(T-465's test on Windows) read and repaired in two steps: a failed read of `podssh pipe` is no clean end any more
-(`c6fa76a`, one line and 69), and its words named the cause, a reset of Windows' AF_UNIX at the test server's close
-with no shutdown (`1d39c43`, a graceful close in the test's server); `draft/d-t831` merged and T-831 closed
-(`97cebe6`: the far end paces a frame by half its pane, as tmux skips what scrolls off; `pty.envelope.*` 3 of 3
-against OpenSSH through tmux), COORD-148 (#358) to podcrates for the pane's rows of the codec; T-900 done (the DNS
-road over DNS over HTTPS through `HTTPS_PROXY`; a carrier of `operator` reads the pins); T-905 filed. The gate is
-green at `1d39c43` and T-465 is closed (50 of 50 on Windows). The next session, in order: the gate of the last push;
-T-834 (the bearer, open on `v0.84.0`: who mints a bearer at connect time,
-as its binding exists only in the handshake); T-905; podcrates' answers to COORD-147 (#357), COORD-148 (#358) and
-COORD-139 (#349); T-684's next takes; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass is
-clean**).
+The session of 2026-11-25 (afternoon and evening), a lead with workers (the ruling "Lead and workers"). Done: the red
+gates of `13623b3` and `c6fa76a` (T-465), T-831, T-900, podcrates `v0.85.0` taken (T-684), T-834 (the bearer), T-753
+(a cut channel is 69), T-923 (six more waits beside the channel), T-627, T-780, T-756, T-788 and T-846 closed with their
+causes; the fourth black-box pass's 18 findings (T-906 to T-922) fixed; T-796's bounds merged; COORD-148 to COORD-151
+(#358 to #361) to podcrates. Running: a worker on the fifth pass's file-command findings, one on its reverse-road and net
+findings (their entries come with their drafts); a repeat of `exit` on Windows; T-779's harness again. The next session,
+in order: the gate of the last push; the drafts of those two workers (merge in id order); T-796's planted run (T-251);
+podcrates' answers to COORD-147 to COORD-151; T-791, T-793 and T-809 before T-446 (**no beta until the black-box pass
+is clean**, and none before T-684 ends).
 
 ## Baseline
 
