@@ -1674,6 +1674,11 @@ the run that it was. `docs/development.md` ("What a user feels") tells both ways
   link). The fake links of the loopback, the same build: cellular 122 ms by `--direct`, OpenSSH
   1,629 ms.
 
+2026-11-25, the matrix at `1d39c43` (`feel-netem.yml`, run 45637970311, `roads=openssh,direct`,
+`shapes=far,cellular,slow`, 3 runs): the echo beside a download stays near the idle echo by `--direct` on each link
+(far 120.5 ms, cellular 84.3, slow 486.1, against OpenSSH's 339.6, 1,680.2 and 2,226.0); the download while typing on
+the far link is 3.1 MiB/s against OpenSSH's 5.7 (T-670).
+
 # T-680: A cold connect on a long path takes nine round trips, where osewa's takes three
 
 **Source:** T-660's run of `feel-netem.yml`, 2026-11-05.

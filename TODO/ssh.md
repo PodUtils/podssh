@@ -5200,6 +5200,13 @@ link's rate is T-673).
 - Waits, so the entry is partial: the download while typing on the far link, and the node's road on
   the slow link.
 
+2026-11-25, a measurement at `1d39c43` (the gate's static binary, run 45626673455): `feel-netem.yml` with
+`shapes=far,cellular,slow`, `roads=openssh,direct`, 3 runs (run 45637970311). A key's echo beside a download (p50):
+far 120.5 ms by `--direct` (idle 120.9), OpenSSH 339.6; cellular 84.3 (idle 61.1), OpenSSH 1,680.2; slow 486.1 (idle
+102.2), OpenSSH 2,226.0. The download while typing: far 3.1 MiB/s by `--direct`, OpenSSH 5.7; cellular 1.1 each; slow
+0.1 each. The gap that stays is the far link's download while typing; the node's road on the slow link was not in
+this run.
+
 # T-672: TLS tickets kept across runs, once a release of rustls lets a client write one
 
 **Source:** T-664's draft, 2026-11-04 (the study of osewa, Q99; `docs/research/osewa-paper.md`, G4).
