@@ -4247,7 +4247,7 @@ ok. `cargo test --release -p podssh-zerotier` 14 passed.
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** M
-**Status:** partial
+**Status:** blocked
 
 ## Problem
 
@@ -4287,12 +4287,27 @@ can be copied.
 6. The decision about scope is the operator's: write a question in `TODO/PROGRESS.md` if step 1 finds a
    road with no exporter and no nonce.
 
+## Decision
+
+2026-11-25, the main session, by the owner's rule "Decisions" (add the feature behind an opt-in, remove nothing):
+a bearer is built. It rides where the grant of T-226 rides, inside the end-to-end channel, bound to the channel's
+handshake hash; a token of at most 30 s, signed by a key of the user's identity file, with a `jti` of
+`HMAC-SHA256(binding, client nonce)` and a replay cache for its life. Lost: a token in `OPEN` (no field, and no
+session id there yet); a TLS exporter as the binding (a hop's on the reverse road, none on the cleartext road); an
+OIDC token first (it has no binding without a proof of possession). The binding and the verifier are shared code:
+asked of podcrates by COORD-145 (PodUtils/podssh#355).
+
 ## Prove
 
 ```sh
 export CARGO_BUILD_JOBS=4
 cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of another session, expiry
 ```
+
+## Blocker
+
+PodUtils/podcrates: the answer to COORD-145 (PodUtils/podssh#355), a binding of the end-to-end channel given to the
+grant's check, and a bearer grant with its verifier.
 
 ## Correction
 
@@ -4308,9 +4323,7 @@ cargo test -p podssh-ssh --test serve_bearer   # a replayed token, a token of an
   exporter is a hop's, not the far end's (`crates/podssh-relay/src/serve/reverse/node.rs:1-5`). Step 2
   is changed above.
 
-## Done
-
-Research step, 2026-11-23: wrote the table of roads in `docs/design.md`, section 5 ("A bearer in
+Research step, 2026-11-23 (the entry's earlier `## Done`): wrote the table of roads in `docs/design.md`, section 5 ("A bearer in
 `OPEN`: where a binding exists"): what rustls and noq give, which roads have a TLS exporter at the far
 end (the forward road to the role's layer over TLS 1.3, HTTP/2 and QUIC with a per-session value;
 the node's own TLS behind a passthrough tunnel), which have none (the reverse road, the cleartext road,
@@ -4323,6 +4336,11 @@ handshake hash or exporter given to the grant's callback) is for the main sessio
 Nothing was built or run; the cited lines were read in the worktree, in pod-session, pod-e2e, pod-relay
 and pod-ws at v0.82.0, and in rustls 0.23.46 and noq 1.4.0. Not read: iroh 1.4.1's `Connection` (its
 source is not on the machine). The entry stays partial for step 2 onward.
+
+2026-11-25: step 2's Decision is above; its shared parts are asked of podcrates by COORD-145 (PodUtils/podssh#355):
+the handshake hash of `pod-e2e` given to the grant's check, and a bearer form of the grant with its verifier. The
+entry is blocked on that answer; podssh's part (serve's acceptance, the client's source of the token, the test
+`serve_bearer`) follows the tag that carries it.
 
 # T-836: A gateway role: a user name chooses the upstream, and the client's own key proves the second hop
 

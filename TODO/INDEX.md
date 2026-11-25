@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**834 entries: 4 open, 42 partial, 13 blocked, 775 done.**
+**834 entries: 4 open, 41 partial, 14 blocked, 775 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 308 | 332 |
-| P3 | 4 | 9 | 8 | 371 | 392 |
-| **All** | 4 | 42 | 13 | 775 | 834 |
+| P3 | 4 | 8 | 9 | 371 | 392 |
+| **All** | 4 | 41 | 14 | 775 | 834 |
 
 ## Entries
 
@@ -864,7 +864,7 @@ repository and CI).
 | [T-831](copy.md) | P3 | M | backlog | research | partial | A 7-bit transfer envelope for a session whose pty damages ZMODEM |
 | [T-832](multi.md) | P3 | M | backlog | feature | done | `podssh ssh --list-hosts`: one record for each Host alias, and the picker over it |
 | [T-833](resume.md) | P3 | M | backlog | feature | done | An attach ticket for a kept shell: who may attach, and replay or reset |
-| [T-834](serve.md) | P3 | M | backlog | research | partial | A bearer identity in the session's OPEN, bound to the session and its carrier |
+| [T-834](serve.md) | P3 | M | backlog | research | blocked | A bearer identity in the session's OPEN, bound to the session and its carrier |
 | [T-835](mesh.md) | P3 | M | backlog | research | done | A carrier in DNS: whether a poll-driven TXT road is worth its deployment, for a host that reaches a resolver and nothing else |
 | [T-836](serve.md) | P3 | M | backlog | research | partial | A gateway role: a user name chooses the upstream, and the client's own key proves the second hop |
 | [T-837](serve.md) | P3 | M | backlog | feature | done | A live shell shared by name: a read-only name, and one writer at a time |
