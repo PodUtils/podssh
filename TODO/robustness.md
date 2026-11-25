@@ -1663,7 +1663,7 @@ Drafted 2026-11-02 by a drafting agent, not built; merged and run by the main se
 **Milestone:** M10
 **Priority:** P1
 **Effort:** S
-**Status:** partial
+**Status:** done
 
 ## Problem
 
@@ -1677,7 +1677,7 @@ teaches the reader to rerun.
 
 - The test cuts the operator's leg after the first echo, and the session resumes on a new leg
   by the next connect token of one leg that the node's verdict gave (T-615); the echo after the
-  cut waits [`LIMIT`] of the role's harness, 20 s (`crates/podssh-relay/tests/role_harness/mod.rs:28`).
+  cut waits [`LIMIT`] of the role's harness, 20 s (`crates/podssh-relay/tests/role_harness/mod.rs:30`).
 
 ## Approach
 
@@ -1716,6 +1716,42 @@ next failure's words.
 2026-11-06, at `ebcdb9d` on Rust 1.99.1: the crate's whole suite with
 `serve,plain-ws,quick,pair,grant,piping,code`, 6 runs in a row: each passed, 962 tests a run. Not
 reproduced; it stays partial for the next failure's words.
+
+Drafted 2026-11-25, UNVERIFIED (not built, not run). A cause read in the code: the test's cut did
+not cut. `Opener::cut` aborted the leg's outer task, but pod-relay's `exchange`
+(`pod-relay/src/reverse/operator.rs` of podcrates v0.85.0, `frames_of` and `input_of`) spawns two
+tasks of its own and aborts them only at its own end; the abort detaches them, so the WebSocket
+stays open (its reader answers the role's pings) and the leg's duplex stays open (`input_of` holds
+its read half). The link died only at the layer's next write after the cut, its `PING` after 10 s of
+quiet (`pod-session/src/pump.rs`, `PING_EVERY`), which leaves the resume about 10 s of the echo's
+20 s; a slow run spends the rest. The change, test-side only:
+
+- `crates/podssh-relay/tests/role_harness/cutter.rs` (new): `Cutter`, a TCP forwarder of the test's
+  on a free port of the loopback to the role's port (`copy_bidirectional` for each connection, each
+  in a task that it keeps); `cut()` aborts each task so far, which drops both sockets of each
+  connection, and says how many were open. The role and the leg each see an end with no Close, and
+  the leg's `exchange` ends by its own path, which shuts the leg's duplex at once.
+- `crates/podssh-relay/tests/relay_serve_once.rs`: the operator's legs go through the forwarder (the
+  `Opener`'s relay is the forwarder's port; the node reaches the role directly); `Opener::cut` cuts
+  at the transport and the test asserts that it dropped a connection. The words for the next
+  failure: the client's `note` keeps each `Note` (`Lost`, `Retry`, `Resumed`, ...) at its time since
+  the start, beside the opener's own lines (the next leg opened, or the `Err` of `legs::start`, and
+  the cut); `echoed` prints them beside the role's events at its limit, and the time of the echo
+  after the cut is printed on success too.
+
+The ask of PodUtils/podcrates (the lead files it as a COORD issue `(to podcrates)`): `exchange` of
+`pod-relay/src/reverse/operator.rs` should hold its two tasks (`frames_of`, `input_of`) in a guard
+that aborts them on drop, so that an aborted or dropped leg closes its socket and its local stream
+at once, not at the far end's next write. A read of podssh's callers of `operator::start` and
+`legs::start` (`crates/podssh-cli/src/`) found none that aborts a leg's handle, so the defect is
+the test's today; the guard keeps the next caller from it.
+
+Merged by the main session on 2026-11-25 (after `f32c190`) and run: `cargo test -p podssh-relay --features
+serve,plain-ws --test relay_serve_once -- --nocapture`: 6 passed; the echo after the cut came in 89 ms ("the cut: 1
+connection(s) dropped", `Lost`, the next leg, `Resumed { resent: 32 }`), where the old cut left the link open until the
+layer's PING, about 10 s; 30 runs in a row here, 0 failed. Clippy of podssh-relay with `serve,plain-ws,quick,quic` and
+rustfmt clean. Closed: the test's cut is a lost link at the transport, and its next failure keeps its words. The ask of
+`pod-relay` (`exchange`'s tasks aborted on drop) goes to podcrates in a COORD issue.
 
 # T-640: A service's lines reach the journal at one priority, so `journalctl -p warning` shows none of them
 

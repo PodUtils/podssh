@@ -25,10 +25,11 @@ use podssh_relay::relay::Relay;
 use podssh_relay::reverse::{self, operator, E2e, Exit, Handler, Layered, NodeConfig, Opening, OperatorConfig};
 use podssh_relay::reverse::{OperatorLimits, Outcome as LegOutcome, SessionId, Wire};
 use podssh_relay::session::client::{self, Outcome};
-use podssh_relay::session::resume::{self, Next};
+use podssh_relay::session::resume::{self, Next, Note};
 use podssh_relay::session::{Ask, End, Ended, OsEntropy, Settings};
 use podssh_relay::{context::Context, pair::Pair};
 use podssh_ws::{ConnectError, ProxyChoice, Trust};
+use role_harness::cutter::Cutter;
 use role_harness::{next_text, Role, LIMIT};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -245,7 +246,8 @@ async fn layered_node(pair: Pair, stop: oneshot::Receiver<()>) -> Exit {
 }
 
 /// The legs of one session, as `podssh operator` opens them: the first with
-/// the pair's connect token, each next one by [`reverse::legs::start`].
+/// the pair's connect token, each next one by [`reverse::legs::start`]; each
+/// through the test's forwarder, whose cut loses the link (T-627).
 struct Opener {
     relay: Relay,
     name: String,
@@ -253,9 +255,25 @@ struct Opener {
     trust: Trust,
     ctx: Context,
     current: Mutex<Option<JoinHandle<LegOutcome>>>,
+    cutter: Cutter,
+    /// What the session's client and its legs said, each at its time since
+    /// the start: the words of a failure (T-627).
+    said: Mutex<Vec<String>>,
+    started: Instant,
 }
 
 impl Opener {
+    /// Keep `line` at its time since the start.
+    fn say(&self, line: String) {
+        let ms = self.started.elapsed().as_millis();
+        self.said.lock().unwrap().push(format!("{ms} ms: {line}"));
+    }
+
+    /// Each step of the client's session that its user hears of.
+    fn note(&self, note: Note) {
+        self.say(format!("{note:?}"));
+    }
+
     fn config(&self) -> OperatorConfig<'_> {
         OperatorConfig {
             relay: &self.relay,
@@ -286,51 +304,70 @@ impl Opener {
         let (link, leg) = tokio::io::duplex(PIPE);
         match reverse::legs::start(&self.config(), leg).await {
             Ok(handle) => {
+                self.say("the next leg opened".into());
                 *self.current.lock().unwrap() = Some(handle);
                 Next::Link(link)
             }
-            Err(e) => Next::Retry(e.to_string()),
+            Err(e) => {
+                self.say(format!("the next leg: {e}"));
+                Next::Retry(e.to_string())
+            }
         }
     }
 
-    /// The leg that carries the session ends with no Close: a lost link.
-    fn cut(&self) {
-        if let Some(handle) = self.current.lock().unwrap().as_ref() {
-            handle.abort();
-        }
+    /// The leg that carries the session ends with no Close: a lost link. Its
+    /// sockets go at the transport, so the role and the leg each see the end
+    /// by their own path; an abort of the leg's task would leave its socket
+    /// open, as tasks that the leg spawned hold it (T-627).
+    fn cut(&self) -> usize {
+        let open = self.cutter.cut();
+        self.say(format!("the cut: {open} connection(s) dropped"));
+        open
     }
 }
 
-/// `bytes` up, and the same bytes back; past [`LIMIT`], the role's events so
-/// far say where the session stopped (T-627).
+/// `bytes` up, and the same bytes back, and how long that took; past
+/// [`LIMIT`], the role's events and what the client and its legs said say
+/// where the session stopped (T-627).
 async fn echoed(
     r: &mut tokio::io::ReadHalf<DuplexStream>,
     w: &mut tokio::io::WriteHalf<DuplexStream>,
     bytes: &[u8],
     role: &Role,
-) {
+    opener: &Opener,
+) -> Duration {
+    let start = Instant::now();
     w.write_all(bytes).await.expect("the bytes up");
     let mut back = vec![0u8; bytes.len()];
     match tokio::time::timeout(LIMIT, r.read_exact(&mut back)).await {
         Ok(read) => read.expect("the echo"),
-        Err(_) => panic!("no echo within {LIMIT:?}; the role's events: {:?}", role.events.lock().unwrap()),
+        Err(_) => panic!(
+            "no echo within {LIMIT:?}; the role's events: {:?}; the client and its legs: {:?}",
+            role.events.lock().unwrap(),
+            opener.said.lock().unwrap()
+        ),
     };
     assert_eq!(back, bytes);
+    start.elapsed()
 }
 
 /// T-615, through podssh's own node and operator: a session of a pair of
 /// `once` opens by the pair's token, its leg is cut, and it resumes on the
 /// next token that the node gave in its verdict, as the pair's own is spent;
-/// the token that the resume took is refused after, as is the pair's.
+/// the token that the resume took is refused after, as is the pair's. The
+/// operator's legs go through the test's forwarder, whose cut loses the link
+/// at the transport (T-627); the node reaches the role directly.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_resume_takes_the_next_token_that_the_node_gave_and_a_replayed_one_is_refused() {
     let role = Role::start().await;
     let made = pair(&role, "/v1/pair?once=1").await;
     let client_pair = podssh_relay::pair::parse(&role.relay, made.to_string().as_bytes(), now_ms() as i64).unwrap();
     let (name, connect) = (field(&made, "name").to_string(), field(&made, "connect_token").to_string());
-    let (relay, token, current) = (role.relay.clone(), connect.clone(), Mutex::new(None));
+    let cutter = Cutter::to(&role.relay).await;
+    let (relay, token, current) = (cutter.relay.clone(), connect.clone(), Mutex::new(None));
     let (trust, ctx) = (Trust::Default, podssh_relay::context::of(&ProxyChoice::Direct));
-    let opener = Opener { relay, name: name.clone(), token, trust, ctx, current };
+    let (said, started) = (Mutex::new(Vec::new()), Instant::now());
+    let opener = Opener { relay, name: name.clone(), token, trust, ctx, current, cutter, said, started };
     let (stop_node, node_stops) = oneshot::channel();
     let test = async {
         role.until_said("reverse node").await;
@@ -342,14 +379,17 @@ async fn a_resume_takes_the_next_token_that_the_node_gave_and_a_replayed_one_is_
             let (app, app_end) = tokio::io::duplex(PIPE);
             let (cipher, channel) = ends::operator(app_end, Arc::new(Identity::from_seed(&[1; 32])), |_| Ok(()));
             let connect = |ended: &Ended| opener.next(matches!(ended.end, End::Moving));
-            let session = Box::pin(resume::run(client, cipher, connect, |_| {}, &mut entropy));
+            let note = |note: Note| opener.note(note);
+            let session = Box::pin(resume::run(client, cipher, connect, note, &mut entropy));
             let steps = Box::pin(async {
                 let (mut r, mut w) = tokio::io::split(app);
-                echoed(&mut r, &mut w, b"before the cut", &role).await;
+                echoed(&mut r, &mut w, b"before the cut", &role, &opener).await;
                 let taker = legs::current().expect("a taker of the session");
                 assert!(taker.holds(), "the node's verdict gave the seed of the session's tokens");
-                opener.cut();
-                echoed(&mut r, &mut w, b"after the cut", &role).await;
+                assert!(opener.cut() >= 1, "the cut dropped the leg's connection: {:?}", opener.said.lock().unwrap());
+                let took = echoed(&mut r, &mut w, b"after the cut", &role, &opener).await;
+                // Its time on success too: a slow resume shows before it fails.
+                eprintln!("the echo after the cut: {} ms; {:?}", took.as_millis(), opener.said.lock().unwrap());
                 w.shutdown().await.expect("the end of the input");
                 let mut rest = Vec::new();
                 let _ = tokio::time::timeout(LIMIT, r.read_to_end(&mut rest)).await;

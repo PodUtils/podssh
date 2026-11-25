@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**855 entries: 4 open, 33 partial, 13 blocked, 805 done.**
+**855 entries: 4 open, 32 partial, 13 blocked, 806 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 7 | 3 | 99 | 109 |
+| P1 | 0 | 6 | 3 | 100 | 109 |
 | P2 | 0 | 20 | 2 | 317 | 339 |
 | P3 | 4 | 6 | 8 | 388 | 406 |
-| **All** | 4 | 33 | 13 | 805 | 855 |
+| **All** | 4 | 32 | 13 | 806 | 855 |
 
 ## Entries
 
@@ -666,7 +666,7 @@ repository and CI).
 | [T-624](mesh.md) | P3 | S | M10 | research | done | hostc, Tunnelmole and Sandhole's public server as last fallbacks of the reverse road: the research |
 | [T-625](mesh.md) | P3 | S | M10 | measurement | done | The rates of the Piping Server road through `ppng.io` and of the Wisp demo server, measured through podssh |
 | [T-626](mesh.md) | P3 | S | M10 | research | done | I2P, Nym and cjdns: whether an overlay of peer addresses carries a podssh pair: the research |
-| [T-627](robustness.md) | P1 | S | M10 | defect | partial | The relay role's test of a resume by the next token of one leg timed out once in the relay crate's suite |
+| [T-627](robustness.md) | P1 | S | M10 | defect | done | The relay role's test of a resume by the next token of one leg timed out once in the relay crate's suite |
 | [T-628](mesh.md) | P1 | S | M10 | defect | done | The relay role's refusal of a target names the address that its name resolved to, so a holder of a token maps the role's network |
 | [T-629](relay.md) | P2 | S | M10 | feature | done | `podssh relay serve` keeps each capability of its start after the bind, while it serves each client |
 | [T-630](reverse.md) | P2 | S | M10 | feature | done | The relay role's table of 4096 pairs keeps no share for each key, so one key of a list can take each place |

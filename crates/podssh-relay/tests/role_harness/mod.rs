@@ -3,11 +3,13 @@
 //! `podssh relay serve` runs behind TLS, and a pair of the role's as podssh's
 //! client reads one. The clients reach it with the plain `ws://` of the
 //! feature `plain-ws`; each event of the role is kept for a test to read. A
-//! stand-in proxy of the test's is the host's proxy of T-457 (`proxy`).
+//! stand-in proxy of the test's is the host's proxy of T-457 (`proxy`); a
+//! forwarder of the test's cuts a client's link at the transport (`cutter`).
 
 // Each test binary uses a part of it.
 #![allow(dead_code)]
 
+pub mod cutter;
 pub mod proxy;
 
 use std::sync::{Arc, Mutex};

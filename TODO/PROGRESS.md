@@ -19,7 +19,7 @@ Read on 2026-11-25.
    T-738 is partial and T-740 blocked. M5's `podssh serve` is on `main` (Q92): commands, shells, a pty, direct-tcpip,
    SFTP, the options of a key line, `--listen`, kept shells, `--audit-log` and `--totp`.
 4. **Partial entries** (each `## Done` names its next step). Tests that failed at random, each waiting for its next
-   failure: T-627, T-779, T-796, T-849, T-858. M5's server, each waiting for
+   failure: T-779, T-796, T-849, T-858. M5's server, each waiting for
    its run in the build image (T-251): T-107 to T-112, T-114, T-117, T-118, T-222, T-248. Serve and sessions:
    none. The migration and the release: T-684, T-446, T-847 (the push to ghcr.io, the comparison and the
    attestation run at the next release tag). Roads and the mesh: T-106 (the operator's tailnet), T-598, T-660, T-666, T-670 (their rows of the matrix), T-710, T-718, T-720, T-738 (the run against
@@ -85,7 +85,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 855 entries: 4 open, 33 partial, 13 blocked, 805 done.
+`TODO/INDEX.md` holds 855 entries: 4 open, 32 partial, 13 blocked, 806 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -97,7 +97,7 @@ operator interrupts it.
 
 **The rules of the order**, first to last:
 
-1. A red gate, then a test that fails at random (T-627, T-796), before any other work.
+1. A red gate, then a test that fails at random (T-796), before any other work.
 2. A `partial` entry before a new one, and a draft's merge in the order of "Drafts" (State, item 8). Each partial
    entry's `## Done` says what it waits for (State, item 4).
 3. The migration's takes (T-684), as the podcrates session hands each crate over (Rule Q3 of `docs/decisions.md`:
