@@ -26,7 +26,7 @@ Read on 2026-11-25.
    `mia/0x0`), T-876 (COORD-139). Chores: T-791, T-793, T-809, T-820.
 5. **Blocked entries** (each `## Blocker` names who must act): T-113 (M5's exit in the operator's real sandbox), T-328
    and T-376 (the operator's inputs), T-672 (a release of rustls), T-687 (the owner: stable first), T-899 (a tester's Dev Tunnel, #215), T-740 (a working Bare
-   node, podcrates T-200), and cfb's T-711, T-719, T-722, T-727 and T-729.
+   node, podcrates T-200), T-905 (a `ConnectError` of `pod-ws`, COORD-149), and cfb's T-711, T-719, T-722, T-727 and T-729.
 6. **Issues and the sessions of PodUtils.** An issue from outside the team is changed by the sync only once it has the
    label `confirmed` (the owner's rulings "Strangers" and "Issues"). Each session writes to another by a COORD issue in
    its own repository only, never by a direct message (the owner, 2026-11-12). The open COORD issues and what each waits
@@ -48,9 +48,12 @@ Read on 2026-11-25.
    session): each crate may link C and declares Rust 1.97 and edition 2024; podssh takes it by a git tag, not from
    crates.io; podssh's pure-Rust TLS provider and the RSA verifier stay behind a feature of `pod-tls`; `pod-relay`
    keeps the `blocking` facade for podvm; neither podssh's session nor podnet's edits podcrates.
-8. **Drafts.** None waits (2026-11-25): `draft/d-t831` was merged and T-831 closed. Each `draft/*`, `beta/*` and
-   `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy of a cloud
-   session refuses deletes).
+8. **Drafts and workers** (the ruling "Lead and workers", `docs/hosted-sessions.md`). Running (2026-11-25): T-834's
+   draft (a worker in a worktree, no build); the fourth black-box pass of T-809 on a debug binary of `b981f5f` (a
+   tester with the binary and the documents alone); a read-only advisor on the random failures T-753, T-788, T-849 and
+   T-858 in light of T-465's cause. A draft that waits is merged first, in the order of this list. Each `draft/*`,
+   `beta/*` and `release/*` branch on GitHub that is already in `main` is deleted by the owner by hand (the git proxy
+   of a cloud session refuses deletes).
 9. **Lessons that still hold.** Read each failed job's log before calling a red gate the place's. Never commit while
    `scripts/plant-each.sh` runs (a plant is applied in the tree then). When the disk fills, remove `target/` whole,
    never files under it (it reached 46 GB on 2026-11-25). Never amend a commit that was pushed, not even on a draft
@@ -83,7 +86,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 838 entries: 6 open, 38 partial, 12 blocked, 782 done.
+`TODO/INDEX.md` holds 838 entries: 5 open, 38 partial, 13 blocked, 782 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 

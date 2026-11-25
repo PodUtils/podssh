@@ -4829,7 +4829,7 @@ stream that this end did not start has one life"
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** blocked
 
 ## Problem
 
@@ -4854,3 +4854,13 @@ t.example:53 took more than 20s") is the cause; the second line repeats the end 
 ```sh
 CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
 ```
+
+## Blocker
+
+PodUtils/podcrates: a `ConnectError` of `pod-ws` that is final, keeps the exit code 69 and displays its own words
+alone (COORD-149, PodUtils/podssh#359).
+
+## Correction
+
+2026-11-25: the variant asked of podcrates by COORD-149 (PodUtils/podssh#359); podssh's part (the carrier's
+`start_again` and the test's check of the line) follows the tag that carries it.

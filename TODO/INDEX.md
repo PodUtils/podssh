@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**838 entries: 6 open, 38 partial, 12 blocked, 782 done.**
+**838 entries: 5 open, 38 partial, 13 blocked, 782 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 10 | 3 | 96 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 6 | 6 | 7 | 376 | 395 |
-| **All** | 6 | 38 | 12 | 782 | 838 |
+| P3 | 5 | 6 | 8 | 376 | 395 |
+| **All** | 5 | 38 | 13 | 782 | 838 |
 
 ## Entries
 
@@ -913,4 +913,4 @@ repository and CI).
 | [T-902](serve.md) | P3 | M | backlog | feature | done | The gateway's routes in the net's signed policy |
 | [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |
-| [T-905](robustness.md) | P3 | S | backlog | defect | open | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
+| [T-905](robustness.md) | P3 | S | backlog | defect | blocked | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |
