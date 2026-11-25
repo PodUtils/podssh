@@ -4191,6 +4191,11 @@ Partial, 2026-11-14: three more runs of `sh scripts/m5-in-sandbox.sh target/x86_
 from this cloud container, with the logs kept on a failure, each passed (200 MiB up in 40, 48 and 44 s, down in 37
 s each, SHA-256 equal). The entry waits for the next failure of the script, whose logs it keeps.
 
+2026-11-25: one run of `sh scripts/m5-in-sandbox.sh target/debug/podssh` from a cloud container failed on this host's
+full disk, not on the fault of this entry: `write at 195317760: ... No space left on device` (73), then the copy down
+found no file (66). A black-box tester's files of 200 MiB beside it had filled the disk. The run does not count; the
+entry still waits for a run that fails with free space, whose logs the script keeps.
+
 # T-831: A 7-bit transfer envelope for a session whose pty damages ZMODEM
 
 **Source:** the donor study of 2026-11-18, report 01 (trzsz/trzsz at f73b234); the tracker issue is PodUtils/podssh#317.
