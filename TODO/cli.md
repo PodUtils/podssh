@@ -178,7 +178,7 @@ done." `podssh status`, `node` and `operator x` (no `--timeout` row) exit 70.
 
 Read: dispatch runs the `--timeout` gate (`crates/podssh-cli/src/dispatch.rs` lines 186-196 at `37ace00`)
 before the refusal of a verb that is not implemented
-(`crates/podssh-cli/src/dispatch.rs:434-442`). `require_timeout` writes the
+(`crates/podssh-cli/src/dispatch.rs:440-453`). `require_timeout` writes the
 fixed text and has no verb to name (`crates/podssh-cli/src/non_interactive.rs` lines 194-201 at `37ace00`).
 `podssh ts` uses the same function (`crates/podssh-cli/src/ts.rs:56-65`), so a
 build with the `ts` feature shows the chat example for `ts` too (read, not
@@ -306,7 +306,7 @@ flag-shaped (`crates/podssh-cli/src/clap_error.rs:134-136`), so the arm calls
    when the user typed `-p`, so print both spellings.
 4. A `Refused` row with no value gets its own refusal: a value would not change
    the answer. Move the refusal text of `refusals`
-   (`crates/podssh-cli/src/dispatch.rs:400-408`) to `refuse.rs`, so the two
+   (`crates/podssh-cli/src/dispatch.rs:406-414`) to `refuse.rs`, so the two
    cannot differ.
 5. A long name with no row keeps today's message, as a fallback.
 6. Same commit: `docs/cli.md:74-80` (a flag with no value names the flag and
@@ -595,7 +595,7 @@ variable matters when `cp`, `mv` and `relay` exist. `ssh` and `proxy` have no
    lookup passed in, as `proxy_from_vars` does
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:109-123`): the flag, else a `PODSSH_TIMEOUT`
    that is not empty, else nothing. It returns the text and its source.
-2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:392-413` and
+2. Call it at both gate sites: `crates/podssh-cli/src/dispatch.rs:398-419` and
    `crates/podssh-cli/src/ts.rs:56-65`. Parse with `parse_timeout`
    (`crates/podssh-cli/src/non_interactive.rs:136-182`): a whole duration,
    never zero.
@@ -927,7 +927,7 @@ the same for the other fifteen.
    `-k` is supported and `-g` is accepted with no effect
    (`crates/podssh-cli/src/flags.rs`, lines 205-209 at `97146aa`).
 2. A refusal with nothing to use instead says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:400-408`), and `--help` shows
+   (`crates/podssh-cli/src/dispatch.rs:406-414`), and `--help` shows
    "(refused)" (`crates/podssh-cli/src/help.rs:124-127`).
 3. A test holds the reviewed set (`crates/podssh-cli/tests/flag_table.rs:15-30`).
    `docs/cli.md:1023-1027` states the rule.
@@ -1053,7 +1053,7 @@ Read: `KEYGEN_FLAGS` has generation, `-y` and `-l`
 (`crates/podssh-cli/src/flags/keygen.rs:8-71`). The parts exist: decryption with a
 prompt (`crates/podssh-cli/src/keygen.rs`, lines 342-373 at `8290fe1`), a new passphrase asked
 twice (`crates/podssh-cli/src/keygen.rs:384-403`), encryption as OpenSSH does
-it (`crates/podssh-ssh/src/keygen.rs:96-109`), and the refusal of a passphrase
+it (`crates/podssh-ssh/src/keygen.rs:95-108`), and the refusal of a passphrase
 on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
 
 ## Approach
@@ -1065,10 +1065,10 @@ on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
    `russh::keys::decode_secret_key`, the reader behind `load_secret_key`
    (`crates/podssh-ssh/src/keys.rs`, line 231 at `fe19445`). Ask for the old passphrase on the
    terminal or through `SSH_ASKPASS`, as `-y` does. With neither, refuse at
-   once and name `-P ''` and `-N ''` (as `crates/podssh-cli/src/keygen.rs:386-390`).
+   once and name `-P ''` and `-N ''` (as `crates/podssh-cli/src/keygen.rs:407-409`).
 3. `-p`: ask for the new passphrase twice (or take `-N ''`), and encrypt with
    `keygen::protect`. `-c`: take `-C` or ask; refuse a control character, as
-   `crates/podssh-cli/src/keygen.rs:290-293` does. Write the OpenSSH format.
+   `crates/podssh-cli/src/keygen.rs:295-298` does. Write the OpenSSH format.
 4. A new invariant beside "never over an existing file" (`docs/cli.md:3619`):
    write a new file in the same directory (`create_new`, mode 0600), read it
    back, decrypt it with the new passphrase, compare its public key with the
@@ -1076,7 +1076,7 @@ on argv (`crates/podssh-cli/src/keygen.rs:129-136`).
    over the file. For `-c`, write `FILE.pub` again.
 5. Same commit: the PEM message at `crates/podssh-ssh/src/keygen.rs` (lines 184-187 at `8290fe1`)
    names `podssh keygen -p`; `docs/cli.md:3612-3799`, the notes of `keygen`
-   (`crates/podssh-cli/src/man/notes_keygen.rs:4-69`), `docs/STATUS.md`.
+   (`crates/podssh-cli/src/man/notes_keygen.rs:4-72`), `docs/STATUS.md`.
 
 ## Decision
 
@@ -1114,10 +1114,10 @@ the compare of step 4 and write a fresh key; the public-key test fails.
 
 ## Done
 
-2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-89`, their
+2026-10-11. `podssh keygen -p` and `-c` in `crates/podssh-cli/src/keygen_change.rs:22-90`, their
 flags at `crates/podssh-cli/src/flags/keygen.rs:21-26` and their refusals at
-`crates/podssh-cli/src/keygen.rs:137-144` and `:246-265`; `keygen::protect` keeps the comment
-(`crates/podssh-ssh/src/keygen.rs:96-109`).
+`crates/podssh-cli/src/keygen.rs:137-144` and `:251-270`; `keygen::protect` keeps the comment
+(`crates/podssh-ssh/src/keygen.rs:95-108`).
 - `cargo test -p podssh-cli --test keygen -- change`: 3 passed; `cargo test -p podssh-cli --lib --
   keygen_change`: 1 passed; `cargo test -p podssh-ssh --lib -- keygen`: 5 passed. Planted, each
   restored: a fresh key written over the file with the compare skipped (the Prove's plant) failed
@@ -1245,7 +1245,7 @@ Plant: drop the comment lines in the rewrite; the byte test fails.
 `append` opens the file again when a rewrite took its place
 (`crates/podssh-ssh/src/known_hosts.rs:342-410`); the flags at
 `crates/podssh-cli/src/flags/keygen.rs:35-40`, and the command in
-`crates/podssh-cli/src/keygen_hosts.rs:23-180`.
+`crates/podssh-cli/src/keygen_hosts.rs:23-183`.
 - `cargo test -p podssh-ssh --lib -- known_hosts`: 8 passed on Windows (9 in the build image, with
   the link): the lines found are those that `ssh-keygen -F` printed; `-R` keeps every other line
   byte for byte (a comment, a blank line, a CRLF line, spacing, a line that is not UTF-8, the
@@ -1366,8 +1366,8 @@ OpenSSH's verify with `-n git` then fails.
 
 2026-10-11. Signatures and allowed signers in `crates/podssh-ssh/src/sshsig.rs:1-388`; an RSA key
 signs through `RsaSigner::sign_sha512` (`crates/podssh-ssh/src/rsa_key.rs:81-88`), and the keys of
-the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:415-421`). The command is
-`crates/podssh-cli/src/keygen_sign.rs:1-479`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
+the agent come from `agent_keys` (`crates/podssh-ssh/src/keys.rs:415-427`). The command is
+`crates/podssh-cli/src/keygen_sign.rs:1-369`, its flags at `crates/podssh-cli/src/flags/keygen.rs:41-52` and `:69-70`.
 - `cargo test -p podssh-ssh --lib -- sshsig`: 6 passed: the signatures of OpenSSH's (Ed25519 in
   `git`; RSA in `file` with SHA-256) verify, and refuse another namespace and changed data with
   OpenSSH's words; each kind of key signs with each hash, an RSA key with `rsa-sha2-512`; the lines
@@ -1615,14 +1615,14 @@ the last check fails.
 Read after T-018 (2026-10-11): the message of `read_key_file` names `podssh keygen -p -f FILE`
 (`crates/podssh-ssh/src/keygen.rs`, lines 184-187 at `8290fe1`), which writes a key of PEM, PKCS#8 or PuTTY in the
 format of OpenSSH; `-y` and `-l` still refuse such a file. Since T-287 (2026-10-11), each key
-file is read through `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-42`), which asks
+file is read through `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-43`), which asks
 for the passphrase of an encrypted key of each format and opens an encrypted PEM key of RSA or
 ECDSA; `-y` can read through it.
 
 ## Done
 
 2026-10-11. The forms of other systems in `crates/podssh-ssh/src/convert.rs:1-318`, an encrypted
-PEM key written by `encrypt_pem` (`crates/podssh-ssh/src/key_file.rs:211-235`); the command in
+PEM key written by `encrypt_pem` (`crates/podssh-ssh/src/key_file.rs:212-236`); the command in
 `crates/podssh-cli/src/keygen_convert.rs:1-72`, the key loader and the text of `-m` at
 `crates/podssh-cli/src/keygen_convert.rs:74-157`, and the flags at `crates/podssh-cli/src/flags/keygen.rs:61-66`.
 - `cargo test -p podssh-ssh --lib -- convert`: 3 passed: `-e` writes, byte for byte, what OpenSSH's
@@ -1648,7 +1648,7 @@ PEM key written by `encrypt_pem` (`crates/podssh-ssh/src/key_file.rs:211-235`); 
   `cert`, each `keygen_*` test file, `flag_table` and the manual passed.
 - `flags.rs`, `keygen.rs` and `man/notes.rs` of the CLI had gone over 500 lines: the flags and
   the notes of `keygen` moved to `crates/podssh-cli/src/flags/keygen.rs:1-71` and
-  `crates/podssh-cli/src/man/notes_keygen.rs:1-69`, as those of the other commands are, and the
+  `crates/podssh-cli/src/man/notes_keygen.rs:1-72`, as those of the other commands are, and the
   key loader to `keygen_convert.rs`; the manual did not change.
 
 # T-230: The help and the manual say that `-R` is refused because podssh never binds
@@ -1695,7 +1695,7 @@ that `forward-remote` names `-W HOST:PORT`
 1. The `-R` row (`crates/podssh-cli/src/flags.rs`, lines 206-207 at `a9299c4`): the help "remote
    forwarding is not implemented yet", the words of `-o RemoteForward`; the
    replacement `no flag`, so the refusal says "Leave it out."
-   (`crates/podssh-cli/src/dispatch.rs:400-408`).
+   (`crates/podssh-cli/src/dispatch.rs:406-414`).
 2. `crates/podssh-cli/src/help.rs`, lines 213-215 at `a9299c4` and
    `crates/podssh-cli/src/man/notes.rs`, lines 70-72 at `a9299c4`: `-L` and `-D` need a local
    listener and are refused, and `-W HOST:PORT` carries one connection; `-R`
@@ -1786,7 +1786,7 @@ one error for the flag and for the variable. Each caller maps it to 64, at
 `crates/podssh-cli/src/ssh/mod.rs` lines 33-43 (through
 `crates/podssh-cli/src/ssh/resolve.rs` line 183), and
 `crates/podssh-cli/src/doctor/mod.rs` lines 47-56 (read, not run). The code 78
-exists (`crates/podssh-cli/src/exitmap.rs:64`), and `podssh proxy` gives it for
+exists (`crates/podssh-cli/src/exitmap.rs:67`), and `podssh proxy` gives it for
 a bad proxy URL or token (`crates/podssh-cli/src/proxy.rs:485-500`).
 
 ## Approach
@@ -1878,10 +1878,10 @@ flag (`crates/podssh-cli/tests/non_interactive.rs`, line 185 at `8c05b5e`).
 
 The real gate is `can_ask` (`crates/podssh-ssh/src/prompt.rs:85`), called at
 `crates/podssh-ssh/src/auth.rs:251`, `crates/podssh-ssh/src/auth.rs:369`,
-`crates/podssh-ssh/src/keys.rs:367` and `crates/podssh-cli/src/keygen.rs:386`.
+`crates/podssh-ssh/src/keys.rs:367` and `crates/podssh-cli/src/keygen.rs:407`.
 Its refusals name the real remedies (`docs/cli.md:7460-7462`). Commands use
 these parts of the module, which stay: `Attachment`, `resolve`, `resolve_tty`,
-`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:392-413`,
+`parse_timeout`, `require_timeout` (`crates/podssh-cli/src/dispatch.rs:398-419`,
 `crates/podssh-cli/src/ts.rs:56-65`) and `refuse_jsonl_in_proxy`
 (`crates/podssh-cli/src/tree.rs:224-227`).
 
@@ -2265,10 +2265,10 @@ write the key with `OpenOptions`, as now; the test fails.
 ## Done
 
 2026-10-11. `write_pair` makes the files of a key pair with the makers that its caller passes,
-`KeyFiles` (`crates/podssh-ssh/src/keygen.rs:118-179`), and the CLI passes podssh-relay's
-(`crates/podssh-cli/src/keygen.rs:375-382`): the private key by `create_new_private`, a missing
+`KeyFiles` (`crates/podssh-ssh/src/keygen.rs:117-178`), and the CLI passes podssh-relay's
+(`crates/podssh-cli/src/keygen.rs:388-395`): the private key by `create_new_private`, a missing
 directory by `private_dir`, and `FILE.pub` by the new `create_new_public`
-(`crates/podssh-relay/src/cache.rs:296-315`), on Windows with an access list of its own that lets
+(`crates/podssh-relay/src/cache.rs:296-324`), on Windows with an access list of its own that lets
 Everyone read it, as OpenSSH's `ssh-keygen` makes it. `FILE.pub` is removed and made again, so
 that it never keeps a list that lets others change it, also after `-c`.
 - `cargo test -p podssh-cli --test keygen -- private`: 2 passed. On Windows the test opened the
@@ -2391,8 +2391,8 @@ checks of a line (`not_authorized`, `:145`) and the principals of `find-principa
 (`crates/podssh-ssh/src/sshsig.rs:26-32`, `:139-145`); `names_key` names a CA's certificate
 (`:383-388`); an agent that holds a key only in a certificate signs by it (`:111-124`). The
 command: `-f KEY-cert.pub` in `crates/podssh-cli/src/keygen_sign.rs:183-237`, the lines of `verify`
-and `check-novalidate` (`:340-398`) and `find-principals` (`:415-455`). The manual's note
-(`crates/podssh-cli/src/man/notes_keygen.rs:24-28`), the help of `-f`
+and `check-novalidate` (`:230-288`) and `find-principals` (`:305-345`). The manual's note
+(`crates/podssh-cli/src/man/notes_keygen.rs:27-31`), the help of `-f`
 (`crates/podssh-cli/src/flags/keygen.rs:17-18`), `docs/cli.md` (section of `keygen`) and
 `docs/STATUS.md` say it.
 
@@ -3597,7 +3597,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and in the notes (`crates/podssh-cli/src/man/notes.rs:185`), and in no row of `cp --help`
   (`crates/podssh-cli/src/flags/copy.rs:20-64`).
 - Read (L-17): `job fetch` of a job that runs exits 75, as EXIT STATUS says
-  (`crates/podssh-cli/src/man/data.rs:95-97`); the rows of `job --help` do not
+  (`crates/podssh-cli/src/man/data.rs:104-106`); the rows of `job --help` do not
   (`crates/podssh-cli/src/flags/job.rs:12-24`).
 - Read (L-22): a job's ID is 8 hex digits (`crates/podssh-cli/src/job/args.rs:121-126`), which the
   about of `job` does not say (`crates/podssh-cli/src/flags.rs:405-406`).
@@ -3610,7 +3610,7 @@ of `job fetch`; why a file given by process substitution is refused; the direct 
   and the notes of `proxy` do not name it (`crates/podssh-cli/src/man/notes.rs:266`).
 - Read (L-29): a bad line of the settings file or of an `ssh_config` file is 78, and the same
   keyword with `-o` is 64, by the decision of 2026-10-05; the row of 78 names the settings of the
-  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:113-128`), not the files.
+  environment and the flag's 64 (`crates/podssh-cli/src/man/data.rs:123-139`), not the files.
 - Read (L-36): the README's `keygen -l` names the public file alone (`README.md`, line 114 at
   `38f424c`).
 
@@ -3722,7 +3722,7 @@ Read at `2042200`:
   documented). The issue says the second does not exist; it does, and a retired name written in the
   source would trip it, so the table needs its own place in the manual.
 - The run's funnel `crates/podssh-cli/src/dispatch.rs` is 439 lines; `main_with_args` is at
-  `crates/podssh-cli/src/dispatch.rs:413`.
+  `crates/podssh-cli/src/dispatch.rs:419`.
 
 ## Approach
 
@@ -4356,3 +4356,595 @@ Draft, 2026-11-24 (not built; the main session builds and tests):
 Merged and run here (2026-11-24, Linux, Rust 1.100): podssh-cli `--lib` 1261 (the unit tables of `refuse`, `suggest`,
 `keygen_convert` and the manual among them); `--test words` 2, `tree` 14, `upgrade` 6, `each` 4, `detach` 9, `man_flag_parity`
 and `man_json`; `llms-full.txt` written again; clippy and fmt clean. With T-865's ping item, each item of this entry is done.
+
+# T-965: A write of the output that fails is passed over with exit 0
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`keygen -y > /dev/full`, `keygen -Y sign ... > /dev/full`, `man doctor > /dev/full`, `status > /dev/full`, `doctor
+--tier [--json] > /dev/full`, `config import ... > /dev/full` and `keygen -l >&-` each lost their output and exited
+0, with no line.
+
+## Premise
+
+- Read, at `07d7d9b`: each of these commands writes its answer with `let _ = writeln!(out, ...)`, so a write's error
+  is dropped; `crates/podssh-cli/src/dispatch.rs:451` hands them the process's stdout.
+- Read: Rust's runtime opens /dev/null on a stdout that was closed before `main` (`sanitize_standard_fds` of the
+  standard library on Unix), for reading and writing, so a write to a closed stdout succeeds and nothing is lost in
+  the program's sight.
+- Read: podssh had no exit code for an output that could not be written; `node --print-unit` used 73
+  (`crates/podssh-cli/src/node_install/print.rs:36`, its line before it), and a closed pipe (`| head`) is no failure
+  there and in `job follow`.
+
+## Approach
+
+1. One helper, `crate::output::deliver` (`crates/podssh-cli/src/output.rs:59`): the command writes to a checked
+   stdout, whose first failure is kept and fails each later write at once; at the end it flushes, and a failure is
+   one line, `podssh VERB: the output could not be written: WHY`, with 74 (`EX_IOERR`) where the command would exit
+   0; a command that failed first keeps its code; a broken pipe is no failure. Dispatch runs `keygen`, `doctor`,
+   `man`, `status`, `config`, `agent` and `update` through it.
+2. A stdout closed at the start is not told apart: see the Decision.
+3. EXIT STATUS gets a row of 74, and `docs/cli.md` ("Exit codes") its rule.
+
+## Decision
+
+74, sysexits' `EX_IOERR`, which no class of pod-core gives (`each_sysexits_value_is_pod_core_s_where_a_class_has_it`
+holds that): an output that cannot be written is neither a destination that cannot be made (73) nor a fault of
+podssh (70). Lost: 73, which `node --print-unit` keeps for now (that file is of the node's area; one line moves it
+to `deliver` later). A stdout closed at the start (`>&-`) is not told apart. The draft read it by its mode (descriptor 1 is /dev/null
+opened for reading and writing, as Rust's runtime opens it there) and failed each write of every command; the merge
+dropped that, because a daemon, systemd's `StandardOutput=null` and `--detach`'s own child
+(`crates/podssh-cli/src/detach/child.rs:242`) each open /dev/null so for a stdout meant to be thrown away, and a
+detached node's run then hung in `node_detach`'s heartbeat test. Lost: that check; `keygen -l >&-` stays exit 0 with
+its output lost, as in OpenSSH's `ssh-keygen`.
+Asked of podcrates (a COORD issue for the lead): a class of pod-core for an output that could not be written.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib output::
+cargo test -p podssh-cli --lib exitmap
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test output_full
+```
+
+The table of `output::tests`: each failure kind and the command's code, the line said once with no `(os error N)`;
+on Linux, `man doctor`, `keygen -l` and `keygen -y` to /dev/full give 74 and the line, and a reader that takes one byte of `man` leaves 0 and no line.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: new `crates/podssh-cli/src/output.rs`, `crates/podssh-cli/src/lib.rs`, `crates/podssh-cli/src/dispatch.rs`,
+  `crates/podssh-cli/src/dispatch/command.rs`, `crates/podssh-cli/src/exitmap.rs`, `crates/podssh-cli/src/exitmap_tests.rs`,
+  `crates/podssh-cli/src/man/data.rs`, new `crates/podssh-cli/tests/output_full.rs`, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The merge dropped the draft's reading of a stdout closed at the start (see the Decision): a detached node's run hung in `node_detach`'s heartbeat test with it, and passed without it. `cargo test -p podssh-cli --test output_full`: 1 passed.
+
+
+# T-966: A key, a certificate or a signature file is read with no bound
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`keygen -l -f /dev/zero` (and `-L`, `-s /dev/zero`, `-Y verify -s /dev/zero`) grew to gigabytes of memory.
+
+## Premise
+
+- Read, at `07d7d9b`: each reader of `keygen` (`keygen_convert`, `keygen_cert`, `keygen_change`, `keygen_sign`,
+  `keygen_tpm`) and `podssh_ssh::key_file::load` and `keygen::read_key_file` read the whole file with
+  `std::fs::read_to_string` or `std::fs::read`.
+- Read: the reader of `known_hosts` takes 16 MiB at most (`crates/podssh-ssh/src/known_hosts.rs:25`).
+
+## Approach
+
+`podssh_ssh::key_text` (`crates/podssh-ssh/src/key_text.rs:14`): 1 MiB at most, read with `take`, and a larger file
+refused ("it is larger than 1 MiB, which no key, certificate or signature is"); text that is not UTF-8 refused as no
+key file. Each reader of a key, a certificate or a signature takes it (`read`, `read_text`, `text_of`,
+`bytes_of`), and so do `key_file::load` and `keygen::read_key_file`. The file of allowed signers and the data that
+`-Y sign` signs keep their readers: neither is a key.
+
+## Decision
+
+1 MiB: an RSA key of 16384 bits is under 13 KiB, a certificate with many principals a few KiB, so the bound refuses
+no real file and stops a device or a wrong file at once. Lost: nothing a user has.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib key_text
+cargo test -p podssh-cli --test keygen
+```
+
+`key_text`'s table: a small file, one of 1 MiB exactly, one past it and bytes that are not text; /dev/zero is
+refused at the bound. The binary: `-l`, `-y` and `-L` of a file of 1 MiB and a byte exit 1 with the line.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: new `crates/podssh-ssh/src/key_text.rs`, `crates/podssh-ssh/src/lib.rs`, `crates/podssh-ssh/src/key_file.rs`,
+  `crates/podssh-ssh/src/keygen.rs`, `crates/podssh-cli/src/keygen_convert.rs`, `crates/podssh-cli/src/keygen_cert.rs`,
+  `crates/podssh-cli/src/keygen_change.rs`, `crates/podssh-cli/src/keygen_tpm.rs`, `crates/podssh-cli/src/keygen_sign.rs`
+  and new `crates/podssh-cli/src/keygen_signer.rs` (the key that signs, moved out of `keygen_sign.rs` at its 500
+  lines), `crates/podssh-cli/tests/keygen.rs`, the manual's notes of keygen, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-967: `update --version` of a release before the move fails with the hint of Sigstore's roots
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`podssh update --version TAG` installs no older release: the check wants the leaf of PodUtils/podssh's workflow at
+the tag, and each release through `v1.1.0-beta.3` was signed under the repository's old name. The failure ends with
+"If Sigstore changed its roots, download the release by hand", which is not the cause.
+
+## Premise
+
+- Read: `crates/podssh-cli/src/update/mod.rs:268` (the last release before the move) and T-683's Decision: "No
+  bridge release and no second signer" (the operator, 2026-11-05).
+- Read: pod-release (PodUtils/podcrates:crates/pod-release/src/update.rs at `v0.85.0`) makes the identity from the
+  repository that it downloads from (`Source::identity`), and adds the hint of Sigstore's roots to each refusal of
+  the signature.
+
+## Approach
+
+1. podssh's part, now: a refusal of a release through `v1.1.0-beta.3` whose cause names this build's identity is
+   said as it is (`moved`, `crates/podssh-cli/src/update/mod.rs:273`): the release was signed under the repository's
+   old name, before it moved, this build takes only PodUtils/podssh's signature, and its page; with no hint of the
+   roots. 65 as before.
+2. The operator's question (a change of T-683's ruling): should this build take the old signer for the tags through
+   `v1.1.0-beta.3`, and only those? If yes, the ask of podcrates below, then a table of accepted identities here.
+3. Asked of podcrates (a COORD issue `(to podcrates)` for the lead): `Source` of pod-release with a list of former
+   signers, each a repository and the last tag that it signed, which `signed` accepts for those tags while the files
+   still come from the current repository; and the hint of Sigstore's roots only when the chain fails, not when the
+   identity differs.
+
+## Decision
+
+podssh does not take the old signer on its own: T-683's Decision is a ruling of the operator (no second signer), so
+the change is the operator's (AGENTS.md, "When you need a decision"). Recommendation for the operator: take it, for
+the tags through `v1.1.0-beta.3` alone, from the files of PodUtils/podssh, never through the old name's URLs (a
+repository that took the old name could serve its own files). Lost meanwhile: an update to a release before the
+move; the line says how to download one by hand. Considered and lost: the old repository's URLs in place of the new
+(GitHub's redirect is a time's; the files would come from whoever holds the name next).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test update
+```
+
+`this_build_takes_the_leaf_of_podutils_alone`: a leaf of the old name at `v1.0.0-beta.3` is still refused, and its
+line says the release was signed under the repository's old name, with its page and no hint of Sigstore's roots.
+
+## Blocker
+
+The owner: whether this build accepts the release workflow under the repository's former name for the tags through `v1.1.0-beta.3` (the question of `TODO/PROGRESS.md`, against T-683's ruling of one signer); and podcrates: pod-release's list of former signers (COORD-153, #363).
+
+## Correction
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/update/mod.rs`, `crates/podssh-cli/tests/update.rs`, the manual's notes of update,
+  `docs/cli.md`.
+- Waits: the operator's answer to the question of the Approach, and pod-release's list of former signers.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The true line for a release signed under the former name is in; accepting that signer waits for the owner's ruling (`TODO/PROGRESS.md`, "Questions for the operator") and pod-release's list of former signers (COORD-153, #363).
+
+
+# T-968: `update` takes a stray word
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh update extra --check` ran the check and exited 0; the help listed `[ARGS]...`.
+
+## Premise
+
+- Read, at `07d7d9b`: `positionals::add` gave each verb with no row of its own the positional `args` of any number
+  (its last arm, `crates/podssh-cli/src/positionals.rs` at that commit); `update` had none, and `UpdateArgs` read no
+  `args`.
+
+## Approach
+
+`update` takes no positional (`crates/podssh-cli/src/positionals.rs:270`), as `doctor`: clap refuses a stray word,
+which dispatch makes a usage error (64), and the help lists no `[ARGS]`.
+
+## Decision
+
+A refusal, as each verb that takes no word refuses one. Lost: nothing; `update` reads no word.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test update_offline
+cargo test -p podssh-cli --test man_flag_parity --test man_page
+```
+
+`update extra --check` and `update --check extra` exit 64 and name the word, with nothing on stdout.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/positionals.rs`, `crates/podssh-cli/tests/update_offline.rs`, the manual's notes of
+  update, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-970: `keygen`'s files: an empty `-f`, a lone `FILE.pub` replaced, and `.pub` under a umask
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`keygen -f ''` printed "Generating..." and then failed. `keygen -f only -N ''` replaced an existing `only.pub` where
+`only` did not exist, though "a new key never replaces a file that exists". Under umask 077 `keygen` wrote
+`FILE.pub` as 0600, though the manual says that others may read it; `-s` wrote its certificate 0644.
+
+## Premise
+
+- Read, at `07d7d9b`: `generate` checked that `path` exists, not `FILE.pub`; `write_public`
+  (`crates/podssh-ssh/src/keygen.rs`) removes a `FILE.pub` before it writes one, for `-c`'s sake.
+- Read: `create_new_public` (`crates/podssh-relay/src/cache.rs:297`) opens with mode 0644, which the umask masks.
+
+## Approach
+
+1. An empty `-f` is a usage error (64) before any line (`crates/podssh-cli/src/keygen.rs:147`).
+2. A new key is refused when `FILE` or `FILE.pub` exists, a link too, before any question
+   (`crates/podssh-cli/src/keygen.rs:313`).
+3. `create_new_public` sets the mode 0644 again once the file is open, so the umask leaves it as the manual says.
+   `FILE.old` of `-R` and `-H` keeps the original's mode, as the manual says already.
+
+## Decision
+
+The mode is set, not the umask documented: the manual and OpenSSH's own `.pub` (0644) agree, and `-s` already writes
+its certificate 0644 under any umask. Lost: a user's umask that wants `.pub` closed; `chmod` does it after.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test keygen
+```
+
+`a_lone_public_file_blocks_a_new_key_and_an_empty_file_is_refused`: a lone `only.pub` stays and no key is made (1);
+`-f ''` is 64 with nothing on stdout; under `umask 077` the new key is 0600 and its `.pub` 0644.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/keygen.rs`, `crates/podssh-relay/src/cache.rs`, `crates/podssh-cli/tests/keygen.rs`,
+  the manual's notes of keygen, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-971: `keygen`'s lines: `-U` with no agent, `-p`'s hint, and `-q` with `-R` and `-H`
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`keygen -U -f k1 -Y sign ...` with no agent said "the agent does not hold the key of -f", where `-s -U` says that no
+agent runs. `keygen -p` with no terminal and no `SSH_ASKPASS` hinted "use -N ''" alone, for a new key. `keygen -q
+-R` and `-q -H` still printed "kh updated." and "Original contents retained as kh.old".
+
+## Premise
+
+- Read, at `07d7d9b`: `agent_has` of `keygen_sign.rs` read "no agent" and "an agent without the key" as one false;
+  `podssh_ssh::keys::agent_keys` gives an empty list when no agent runs.
+- Read, at `07d7d9b`: `ask_new_passphrase` named `-N ''` for a key without one, for `-p` too.
+- Read, at `07d7d9b`: `remove` and `hash` of `keygen_hosts.rs` printed both lines whatever `-q` said.
+
+## Approach
+
+1. `podssh_ssh::keys::held_keys` (`crates/podssh-ssh/src/keys.rs:432`): the agent's keys, `None` when none runs;
+   `agent_holds` and `not_held` (`crates/podssh-cli/src/keygen_signer.rs:120`) say "-U signs with the agent alone,
+   and no agent runs: SSH_AUTH_SOCK names none", as `-s -U`.
+2. `ask_new_passphrase` takes the hint of its caller: `-p`'s names `-N ''` and `-P ''`
+   (`crates/podssh-cli/src/keygen.rs:402`).
+3. `-q` prints nothing but a failure for `-R` and `-H`; `-H`'s warning that `FILE.old` holds the names stays, on
+   stderr (`crates/podssh-cli/src/keygen_hosts.rs:121`).
+
+## Decision
+
+`-H`'s warning stays under `-q`: it says that a file now holds the names that the user asked to hide, a fact that a
+quiet run must not lose. Lost: a fully silent `-q -H`.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test keygen --test keygen_known_hosts
+cargo test -p podssh-cli --test agent_cli
+```
+
+`-q -R` prints nothing and changes the file; `-q -H` prints nothing on stdout and no "updated."; `-p` with nothing to
+ask on names `-N ''` and `-P ''`; `-Y sign -U` with no `SSH_AUTH_SOCK` says that no agent runs.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-ssh/src/keys.rs`, `crates/podssh-cli/src/keygen_signer.rs`, `crates/podssh-cli/src/keygen.rs`,
+  `crates/podssh-cli/src/keygen_sk.rs`, `crates/podssh-cli/src/keygen_change.rs`, `crates/podssh-cli/src/keygen_hosts.rs`,
+  `crates/podssh-cli/tests/keygen.rs`, `crates/podssh-cli/tests/keygen_known_hosts.rs`,
+  `crates/podssh-cli/tests/agent_cli.rs`, the manual's notes of keygen, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. `-U` whose agent does not answer says "no agent answers at SSH_AUTH_SOCK (PATH)", not the client library's words; `tests/keygen_sign.rs` holds that for whatever agent the environment names.
+
+
+# T-972: `doctor`'s flags: `--tier` passes others over, `--h2-shape` names the variable, a bad `--hop` runs
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`doctor --tier` passed over `--hop`, `--policy` and `--dns-zone` in silence. `doctor --h2-shape bogus` named the
+variable `PODSSH_H2_SHAPE` for the flag, and a bad word of the variable was 64 where the manual's table gives 78 for
+a variable. `doctor --hop 'bad host!:22'` ran nine tries and failed, where a bad port is a usage error.
+
+## Premise
+
+- Read: `crates/podssh-cli/src/doctor/mod.rs:259` returns the tier before the hop's section.
+- Read: `podssh_ws::h2_road::choose` words its refusal with `SHAPE_ENV` for both; `crates/podssh-cli/src/h2_choice.rs:46`
+  (64 at `07d7d9b`).
+- Read, at `07d7d9b`: doctor checked a hop with `parse_hop` alone, whose host rule refuses only an empty name and a
+  leading `-`.
+
+## Approach
+
+1. `--tier` with `--hop`, `--policy`, `--dns-zone` or `--dns-server` is a usage error (64), before any probe
+   (`crates/podssh-cli/src/doctor/mod.rs:154`).
+2. A word of `--h2-shape` is 64 and its line names the flag (`crates/podssh-cli/src/h2_choice.rs:27`); a word of
+   `PODSSH_H2_SHAPE` is 78 and names the variable.
+3. A hop whose host no direct dial takes (`podssh_ws::names::check_direct_target`, as `podssh ssh --direct` checks it)
+   is 64 (`crates/podssh-cli/src/doctor/mod.rs:145`).
+
+## Decision
+
+Refused, not documented: a flag that changes nothing is the kind of silent drop that the exit codes forbid (a usage
+error is 64, `docs/cli.md`, "Exit codes"). The same fault of `--early-data` (its line names
+`PODSSH_VLESS_EARLY_DATA`, `crates/podssh-cli/src/vless/mod.rs:164`) is of the VLESS road, another area; it is left
+for that area's next entry and named here so that nobody finds it again.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test doctor_hop
+cargo test -p podssh-cli --lib dispatch::
+```
+
+`a_flag_that_cannot_be_used_is_refused_before_any_probe`: each case 64 with its line and nothing on stdout, no
+`PODSSH_H2_SHAPE` in a line of the flag; `PODSSH_H2_SHAPE=bogus doctor --tier` is 78 with the variable named.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/doctor/mod.rs`, `crates/podssh-cli/src/h2_choice.rs`,
+  `crates/podssh-cli/src/dispatch/tests.rs` (its assertion of the variable's name for the flag, which pinned the
+  defect), `crates/podssh-cli/src/flags/relay.rs` (the help of `--hop` and `--tier`),
+  `crates/podssh-cli/src/man/notes_doctor.rs`, `crates/podssh-cli/tests/doctor_hop.rs`, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-973: `config import`'s formats: the help names one, and MobaXterm's reader takes any file
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`config import --help` listed only `ansible` as FORMAT. `config import mobaxterm` of a file that is not MobaXterm's
+exited 0 with 0 hosts, where the readers of Remmina and mRemoteNG exit 65.
+
+## Premise
+
+- Read, at `07d7d9b`: the positional's help of `config` said "the format, ansible (an INI inventory)", and the
+  refusal of another word named the five in its own text.
+- Read, at `07d7d9b`: MobaXterm's reader read sections and passed over a file with none; PuTTY's reader of a Unix
+  session file took any text as a session.
+
+## Approach
+
+1. One table, `config_import::FORMATS` (`crates/podssh-cli/src/config_import/mod.rs:48`), each format with what it
+   reads: the help (`formats_help`, `crates/podssh-cli/src/positionals.rs:253`) and the refusal of another word
+   (`format_names`) take it.
+2. MobaXterm's reader refuses a file with no `[Bookmarks]` section (65,
+   `crates/podssh-cli/src/config_import/mobaxterm.rs:71`); PuTTY's a session file with no `key=value` line.
+
+## Decision
+
+PuTTY's reader is held to the same rule, as the finding's class is "a file of another program is taken": a session
+file of PuTTY on Unix always has many `key=value` lines. Lost: nothing real.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --test config_import
+cargo test -p podssh-cli --test man_flag_parity --test man_page
+```
+
+The help names each format of the table; each reader but Ansible's refuses a line of words on stdin (65) with
+nothing on stdout; the real exports still read.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/config_import/mod.rs`, `crates/podssh-cli/src/config_import/mobaxterm.rs`,
+  `crates/podssh-cli/src/config_import/putty.rs`, `crates/podssh-cli/src/positionals.rs`,
+  `crates/podssh-cli/tests/config_import.rs`, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. The help of `import` is one sentence for each format, as the manual's sentences hold 25 words at most.
+
+
+# T-974: A library's words in a line of `keygen`, `agent` and `status`
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+Lines carried a library's text: "Base64 decoding error: invalid length at 160" (`keygen -y` of a cut key),
+"SshKey: length invalid", "stream did not contain valid UTF-8"; and `podssh status ''` said `podssh status: : "": no
+host`, with two colons.
+
+## Premise
+
+- Read: russh's errors say the library's name first (`vendor/russh/src/keys/mod.rs:150`, "Base64 decoding error",
+  and "SshKey: ..."); `keygen`'s readers printed them as they came.
+- Read, at `07d7d9b`: `destination` of `status.rs` put `TEXT: ` before the refusal of `parse_hop`, which names the
+  word itself (`crates/podssh-cli/src/ssh/hop.rs:78`).
+
+## Approach
+
+1. `podssh_ssh::key_text::why` (`crates/podssh-ssh/src/key_text.rs:66`): one table of a library's marks and
+   podssh's words ("its base64 text is cut or damaged", "a length inside it is wrong: the file is cut or damaged",
+   "it is not text, as a key file is"), else the text without the library's name. `keygen`'s readers of a key
+   take it; a file that is not UTF-8 is refused by `key_text` itself (T-966).
+2. `status` takes `parse_hop`'s refusal as it is (`crates/podssh-cli/src/status.rs:234`).
+3. "SshKey: length invalid" of `agent list` was T-963's malformed blob; its line now names the lock or the error.
+
+## Decision
+
+A table of marks, not a match of each error's type: russh wraps the errors of five crates, and their texts are what
+a user saw. A row's mark that a library changes falls back to the text without the library's name.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-ssh --lib key_text
+cargo test -p podssh-cli --test keygen --test status
+```
+
+`a_library_s_error_is_said_in_podssh_s_words`: each row; `-y` of a cut key names no library and no `(os error N)`;
+`status ''` says `podssh status: "": no host`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-ssh/src/key_text.rs`, `crates/podssh-ssh/src/keygen.rs`, `crates/podssh-cli/src/keygen_convert.rs`,
+  `crates/podssh-cli/src/keygen_change.rs`, `crates/podssh-cli/src/keygen_signer.rs`, `crates/podssh-cli/src/status.rs`,
+  `crates/podssh-cli/tests/keygen.rs`, `crates/podssh-cli/tests/status.rs`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-975: A pager that fails leaves `podssh man` with no output and exit 0
+
+**Source:** the black-box pass of 2026-11-25 (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** blocked
+
+## Problem
+
+`PAGER=false podssh man man` on a terminal printed nothing and exited 0.
+
+## Premise
+
+- Read: `crates/podssh-cli/src/pager.rs:13` hands the text to `pod_manual::pager::show_with` (PodUtils/podcrates:crates/pod-manual/src/pager.rs
+  at `v0.85.0`): its `run_program` returns `Ok` once the program started, whatever
+  its exit, and `show_with` falls back to its own pager only when the program did not start.
+
+## Approach
+
+1. Asked of podcrates (a COORD issue `(to podcrates)` for the lead): `run_program` gives the program's exit status,
+   and `show_with` reports a program that ended not 0 before it read the whole text, and writes the text with no
+   pager then, saying so on stderr.
+2. podssh's part once the crate has it: `podssh man` says "the pager PAGER failed (exit N); the manual follows
+   without it" and writes the manual; its exit stays 0, as the manual was shown.
+
+## Decision
+
+The manual is printed with no pager and a line, not a failure: the user asked for the manual, and a pager that a
+setting names wrongly should not hide it. A copy of the crate's `run_program` here, to read the status now, would be
+a second copy beside the crate (AGENTS.md, "Shared code first"), so podssh waits for the crate. Lost meanwhile:
+nothing new; the defect stays until podcrates' release.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib man::
+```
+
+Once the crate has it: with `PAGER=false` and a terminal (`scripts/interop-pty.py`), the manual is written and the
+line names the pager; with a pager that reads it all and ends 0, nothing is said.
+
+## Blocker
+
+podcrates: pod-manual's `run_program` returns the pager's status and `show_with` prints the text with no pager after a line when the pager fails (COORD-153, #363).
+
+## Correction
+
+Drafted 2026-11-25 by a drafting agent; no code: the change is pod-manual's (the ask above), asked as COORD-153 (#363).
+
+Blocked on pod-manual's answer to COORD-153 (#363); podssh's part is the take of that tag and a test of `PAGER=false`.

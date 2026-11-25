@@ -287,3 +287,62 @@ fn encrypted_formats_are_asked_for_and_converted() {
     assert_eq!(run.code, 1, "{}", run.err);
     assert!(run.err.contains("PKCS#12") && !run.err.contains("terminal"), "asked, or no name: {}", run.err);
 }
+
+/// A new key replaces no file (T-970): a `FILE.pub` alone blocks `-f FILE`,
+/// and an empty `-f` is a usage error before any line; with a umask of 077
+/// the `.pub` is still 0644, as the manual says others may read it.
+#[test]
+fn a_lone_public_file_blocks_a_new_key_and_an_empty_file_is_refused() {
+    let dir = scratch();
+    let key = file(&dir, "only");
+    std::fs::write(format!("{key}.pub"), "theirs\n").unwrap();
+    let run = podssh(&["keygen", "-N", "", "-f", &key]);
+    assert_eq!(run.code, 1, "{}{}", run.out, run.err);
+    assert!(run.err.contains(&format!("{key}.pub already exists")) && run.out.is_empty(), "{}{}", run.out, run.err);
+    assert_eq!(std::fs::read_to_string(format!("{key}.pub")).unwrap(), "theirs\n");
+    assert!(!Path::new(&key).exists());
+    let run = podssh(&["keygen", "-N", "", "-f", ""]);
+    assert_eq!(run.code, 64, "{}{}", run.out, run.err);
+    assert!(run.out.is_empty() && run.err.contains("-f needs a file"), "{}{}", run.out, run.err);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let key = file(&dir, "masked");
+        let shell = format!("umask 077; exec '{}' keygen -q -N '' -f '{key}'", env!("CARGO_BIN_EXE_podssh"));
+        let made = std::process::Command::new("sh").args(["-c", &shell]).output().unwrap();
+        assert!(made.status.success(), "{}", String::from_utf8_lossy(&made.stderr));
+        let mode = |path: &str| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        assert_eq!((mode(&key), mode(&format!("{key}.pub"))), (0o600, 0o644));
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+/// A key file is read within 1 MiB (T-966), and a damaged one is refused
+/// in podssh's words, not a library's (T-974); `-p` with nothing to ask on
+/// names the flags that stand in for both passphrases (T-971).
+#[test]
+fn a_file_too_large_or_damaged_is_refused_in_podssh_s_words() {
+    let dir = scratch();
+    let big = file(&dir, "big");
+    std::fs::write(&big, vec![b'a'; (1 << 20) + 1]).unwrap();
+    for flag in ["-l", "-y", "-L"] {
+        let run = podssh(&["keygen", flag, "-f", &big]);
+        assert_eq!(run.code, 1, "{flag}: {}", run.err);
+        assert!(run.err.contains("larger than 1 MiB"), "{flag}: {}", run.err);
+    }
+    let key = file(&dir, "k");
+    assert_eq!(podssh(&["keygen", "-q", "-N", "", "-f", &key]).code, 0);
+    let text = std::fs::read_to_string(&key).unwrap();
+    let cut = file(&dir, "cut");
+    std::fs::write(&cut, &text[..text.len() / 2]).unwrap();
+    let run = podssh(&["keygen", "-y", "-f", &cut]);
+    assert_eq!(run.code, 1, "{}", run.err);
+    assert!(run.err.contains("not a key that podssh reads"), "{}", run.err);
+    for library in ["Base64 decoding", "SshKey:", "os error", "stream did not contain"] {
+        assert!(!run.err.contains(library), "{library}: {}", run.err);
+    }
+    let run = podssh(&["keygen", "-p", "-f", &key]);
+    assert_eq!(run.code, 1, "{}", run.err);
+    assert!(run.err.contains("-N ''") && run.err.contains("-P ''"), "{}", run.err);
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -295,10 +295,19 @@ pub fn create_new_private(path: &Path) -> std::io::Result<std::fs::File> {
 
 #[cfg(unix)]
 /// A new file that each may read and only its owner may change (mode 0644),
-/// never one that exists and never through a symlink (T-288).
+/// never one that exists and never through a symlink (T-288). The mode is
+/// set again once it is open: a umask of 077 would leave 0600, which the
+/// manual's "others may read it" is not (T-970).
 pub fn create_new_public(path: &Path) -> std::io::Result<std::fs::File> {
-    use std::os::unix::fs::OpenOptionsExt;
-    std::fs::OpenOptions::new().write(true).create_new(true).mode(0o644).custom_flags(libc::O_NOFOLLOW).open(path)
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o644)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)?;
+    file.set_permissions(std::fs::Permissions::from_mode(0o644))?;
+    Ok(file)
 }
 
 /// A new file that each may read and only its owner, SYSTEM and the

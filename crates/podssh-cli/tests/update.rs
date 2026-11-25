@@ -403,5 +403,10 @@ async fn this_build_takes_the_leaf_of_podutils_alone() {
         why.contains("not https://github.com/PodUtils/podssh/.github/workflows/release.yml@refs/tags/v1.0.0-beta.3"),
         "{why}"
     );
+    // A release made before the move is said as one (T-967), with no hint
+    // of Sigstore's roots, which are not the cause.
+    assert!(why.contains("v1.0.0-beta.3 was signed under the repository's old name, before it moved"), "{why}");
+    assert!(why.contains("/PodUtils/podssh/releases/tag/v1.0.0-beta.3"), "{why}");
+    assert!(!why.contains("Sigstore changed its roots"), "{why}");
     stand.assert_untouched();
 }

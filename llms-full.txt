@@ -9449,7 +9449,8 @@ podssh doctor
   resolver (ssh, proxy and pipe, which need the relay's name). The line verdict
   counts them. The memfd and execveat route is not probed: the rung of exec is
   the path probe alone. --tier ends the run before the egress, with --hop and
-  --stream. The MCP tool doctor takes it as tier.
+  --stream. The MCP tool doctor takes it as tier. --tier with --hop, --policy,
+  --dns-zone or --dns-server is a usage error (64), as it would pass them over.
 
   The line TLS reference makes TLS with github.com on port 443 by its name, its
   certificate checked. It goes straight out with no proxy, else over the
@@ -9536,14 +9537,16 @@ podssh doctor
   PODSSH_H2_SHAPE, else existing), a line http2 shape names the shape's
   SETTINGS and window, which podssh-ws's h2 road sends. It says that its
   PRIORITY frames and padded DATA are recorded and not sent through h2 0.4. No
-  session of the run takes that road, whose default is the WebSocket upgrade.
-  With --early-data 0rtt|1rtt|off (default: PODSSH_VLESS_EARLY_DATA), the
-  session of each VLESS server offers that early data, and its line names the
-  first write. With --trojan, the section trojan states Trojan's controls by
-  name from trojan::capability(): a TCP stream is carried, and UDP associate
-  (command 0x03) is refused with why; it makes no connection. With --forwarder,
-  the section of the forwarders has the line for each wss:// one, whose road
-  keeps the upgrade of HTTP/1.1.
+  session of the run takes that road, whose default is the WebSocket upgrade. A
+  word of --h2-shape that is no shape is a usage error (64); one of
+  PODSSH_H2_SHAPE is a configuration error (78). With --early-data
+  0rtt|1rtt|off (default: PODSSH_VLESS_EARLY_DATA), the session of each VLESS
+  server offers that early data, and its line names the first write. With
+  --trojan, the section trojan states Trojan's controls by name from
+  trojan::capability(): a TCP stream is carried, and UDP associate (command
+  0x03) is refused with why; it makes no connection. With --forwarder, the
+  section of the forwarders has the line for each wss:// one, whose road keeps
+  the upgrade of HTTP/1.1.
 
   The line ech, in the section relay, after http2, says what Encrypted Client
   Hello did for the same host. It reads the connection of its /health, with no
@@ -9811,7 +9814,8 @@ podssh doctor
     --hop [USER@]HOST[:PORT]
         check only this host and a first hop of -J as --direct reaches it: the
         connection through HTTPS_PROXY with the server's banner, its host key,
-        and the methods that it offers to a key made for the check.
+        and the methods that it offers to a key made for the check; a host that
+        a dial cannot take is refused before any probe.
     --policy FILE
         with --hop, judge the hop's KEXINIT by the algorithm policy in FILE,
         with no login; the line hop policy gives the verdict.
@@ -9828,7 +9832,8 @@ podssh doctor
         that keeps files); and resolver (how names resolve); each ok, closed or
         ????; and for each closed one the features that it closes; reads the
         capability sets and drops nothing; connects nowhere but for one lookup
-        of the relay's name.
+        of the relay's name; refused with --hop, --policy, --dns-zone or
+        --dns-server.
     --jobs N
         run at most N sections at once, 1 to 64, in the order of the report
         (default: each at once; also DoctorJobs of the settings file); --jobs 1
@@ -9936,6 +9941,12 @@ podssh keygen
   in only the user, SYSTEM and the Administrators, as OpenSSH's keys do; a new
   key never replaces a file that exists. The public key goes to FILE.pub, which
   others may read and not change. podssh prints the SHA-256 fingerprint.
+
+  A new key is refused when FILE or FILE.pub exists, before any question.
+  FILE.pub has mode 0644 under any umask. An empty -f is a usage error (64).
+  podssh reads a key, a certificate or a signature file of 1 MiB at most; a
+  larger file is refused. With -q, -R and -H print nothing but a failure and
+  the warning of FILE.old.
 
   podssh keygen -p -f FILE changes the passphrase of a key: podssh asks for the
   old one, then for the new one two times. podssh keygen -c -f FILE changes its
@@ -10199,6 +10210,14 @@ podssh agent
   through SSH_ASKPASS. Keys live in the agent's memory only. A key that asks
   for a confirmation of each use is never used. list writes the size, the
   fingerprint and the type of each key, and exits 1 when there is none.
+
+  The agent keeps a certificate that ssh-add gives with its key, and lists it
+  apart, as ECDSA-CERT or ED25519-CERT. A locked podssh agent refuses list, add
+  and remove: each says the agent may be locked, and exits 69. OpenSSH's locked
+  agent lists no key instead. remove --all sends one request, which a locked
+  agent refuses. podssh agent keeps no RSA key, as its RSA signing is not
+  constant-time: use an Ed25519 key, or OpenSSH's ssh-agent. An empty --socket
+  is a usage error (64).
 
   The agent holds a key of a security key (ED25519-SK, ECDSA-SK) that add gives
   it, as ssh-add gives one. It signs with it in the device: it asks for the
@@ -10768,8 +10787,12 @@ podssh config
     [SUBCOMMAND]
         import.
     [FORMAT FILE]...
-        import: the format, ansible (an INI inventory), and the file, - for
-        stdin.
+        import: the format, then the file, - for stdin. The format is ansible,
+        putty, mobaxterm, remmina or mremoteng. ansible reads an Ansible
+        inventory, INI. putty reads PuTTY's sessions, a .reg export or its
+        session files. mobaxterm reads MobaXterm's sessions, .mxtsessions or
+        MobaXterm.ini. remmina reads Remmina's profiles, .remmina files or
+        their directory. mremoteng reads mRemoteNG's connections, confCons.xml.
 
   Options:
     --help
@@ -11971,10 +11994,13 @@ podssh update
   roots, a binary of before refuses the new releases: download the release by
   hand, as its message says.
 
-  Usage: podssh update [OPTIONS]
+  The releases through 1.1.0-beta.3 were signed under the repository's old
+  name, before it moved to PodUtils/podssh. This build takes only
+  PodUtils/podssh's signature, so --version refuses such a release (65). Its
+  line says so, with the page to download it from by hand. A word after update
+  is a usage error (64).
 
-  Arguments:
-    [ARGS]...
+  Usage: podssh update [OPTIONS]
 
   Options:
     --check
@@ -13717,14 +13743,16 @@ EXIT STATUS
       UTF-8, not JSON, too large, a policy or a gateway that is not valid, or a
       signature that fails; add of a key that another member has; take of a
       document that the rule of the store refuses; policy test: a case is
-      false; policy diff --exit-code: the new policy widens the old.
+      false; policy diff --exit-code: the new policy widens the old. podssh
+      agent: a key file that is no key, or lock passwords that differ.
   66
       podssh cp and mv: a source is missing or cannot be read. podssh mv: a
       source that changed during the move, which stays. podssh chat: the file
       of --file or --sendfile cannot be read. podssh edit: the file is not on
       the host. podssh sftp: the file of -b cannot be read. podssh net: the
       FILE of take, policy set, test or diff, or gateway set is missing or
-      cannot be read.
+      cannot be read. podssh agent: a key file is missing or cannot be read, or
+      no passphrase or password came.
   69
       podssh proxy: no relay host could be reached, or the relay ended the
       session abnormally. podssh node, operator and relay: the relay or TARGET
@@ -13738,16 +13766,18 @@ EXIT STATUS
       said. podssh ping: no relay host answered, the relay refused its default
       target, or PODSSH_OFFLINE is set. podssh relay status: no relay host
       answered; podssh relay trace: the relay would not dial the target. podssh
-      agent: no agent answers at SSH_AUTH_SOCK, or the agent keeps no
-      passwords. podssh containers: the host has none of docker, podman and
-      kubectl, one of them failed, or --exec names no container that a list
-      has. podssh session: no session of that name answers, or its session
-      ended (and the status that it ended with is said). podssh detached status
-      and stop: no run of that name runs. podssh relay serve: the port of
-      --listen is in use. podssh keygen -t ecdsa-tpm: no TPM that podssh may
-      reach. podssh ssh and health with --policy: a KEXINIT that does not read
-      gives no verdict. podssh health --policy also gives none with no
-      connection, or with a size that one exchange cannot measure.
+      agent: no agent answers at SSH_AUTH_SOCK, or it keeps no passwords.
+      podssh agent: the agent refused a key, a list, a removal or a lock; a
+      locked agent refuses each. podssh containers: the host has none of
+      docker, podman and kubectl, one of them failed, or --exec names no
+      container that a list has. podssh session: no session of that name
+      answers, or its session ended (and the status that it ended with is
+      said). podssh detached status and stop: no run of that name runs. podssh
+      relay serve: the port of --listen is in use. podssh keygen -t ecdsa-tpm:
+      no TPM that podssh may reach. podssh ssh and health with --policy: a
+      KEXINIT that does not read gives no verdict. podssh health --policy also
+      gives none with no connection, or with a size that one exchange cannot
+      measure.
   70
       The command is not implemented yet, or podssh failed inside. podssh node
       and operator: the relay closed the node or the session for a fault (1003,
@@ -13763,6 +13793,11 @@ EXIT STATUS
       stays, or no cache directory takes the copy. podssh chat: the directory
       of --accept-dir is not there. podssh each: a file of --output-dir cannot
       be made; no host has run.
+  74
+      podssh keygen, doctor, man, status, config, agent and update: the output
+      could not be written, as to a full disk or a device that refuses it. The
+      line says so, and the command's own code stays when it failed first. A
+      reader that went away, as head does, is no failure.
   75
       podssh cp and mv: the --timeout passed before the copy ended; a later try
       can work. podssh chat: the --timeout passed, or the peer talks with
@@ -13786,6 +13821,7 @@ EXIT STATUS
       the same of the pair and of the keys, or the peer declined the file of
       --file. podssh session start: this host refuses the bind of the session's
       socket. podssh net policy check: the policy does not let FROM reach TO.
+      podssh agent: a wrong passphrase, or a wrong lock password.
   78
       A setting of the environment cannot be used: PODSSH_RELAY or
       PODSSH_RELAY_ADDR (podssh ssh, cp, proxy and doctor). For podssh proxy
@@ -13807,10 +13843,12 @@ EXIT STATUS
       --interactive: the emergency stop cannot be armed. podssh session start
       and serve: PODSSH_LISTEN is no, or no directory takes the session's
       socket. podssh serve: no authorized key, or a key file or the host key
-      that cannot be used, or no shell that runs. podssh ssh and health: the
-      file of --policy cannot be read or used, or the server's algorithms do
-      not meet it. podssh serve: the file of --policy cannot be used, or judges
-      no client. podssh doctor: the file of --policy cannot be used.
+      that cannot be used, or no shell that runs. podssh agent: no terminal and
+      no SSH_ASKPASS that runs, to ask a passphrase or a password. podssh ssh
+      and health: the file of --policy cannot be read or used, or the server's
+      algorithms do not meet it. podssh serve: the file of --policy cannot be
+      used, or judges no client. podssh doctor: the file of --policy cannot be
+      used.
   255
       podssh ssh: the connection, the host key, a node's key or the
       authentication failed; or the server refused a session or ended the

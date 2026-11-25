@@ -282,19 +282,29 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync 
         }
     }
 
-    async fn add_key<R: Reader>(
+    async fn add_key(
         &self,
-        r: &mut R,
+        r: &mut &[u8],
         constrained: bool,
         writebuf: &mut Vec<u8>,
     ) -> Result<bool, Error> {
         let (blob, key_pair) = {
-            let data = ssh_key::private::KeypairData::decode(r)?;
+            // A key with its certificate is kept under the certificate's
+            // blob, which is what the identities answer lists and what a
+            // sign request names (podssh's patch, T-963).
+            let (data, certificate) = match certified_keypair(r)? {
+                Some((data, blob)) => (data, Some(blob)),
+                None => (ssh_key::private::KeypairData::decode(r)?, None),
+            };
             // The comment is kept with the key, as ssh-agent keeps it (podssh's patch, T-818).
             let comment = String::decode(r)?;
             let private_key = ssh_key::private::PrivateKey::new(data, comment)?;
+            let blob = match certificate {
+                Some(blob) => blob,
+                None => private_key.public_key().key_data().encoded()?,
+            };
 
-            (private_key.public_key().key_data().encoded()?, private_key)
+            (blob, private_key)
         };
 
         let mut c = Vec::new();
@@ -389,6 +399,64 @@ impl<S: AsyncRead + AsyncWrite + Send + Unpin + 'static, A: Agent + Send + Sync 
 
         Ok((agent, true))
     }
+}
+
+/// The type names of OpenSSH's certificates end so.
+const CERT_SUFFIX: &str = "-cert-v01@openssh.com";
+
+/// A key that comes with its certificate, as `ssh-add` sends one
+/// (draft-miller-ssh-agent, section 4.2.3; OpenSSH's PROTOCOL.agent): the
+/// certificate's type, the certificate, then only the private fields of its
+/// key, which follow the certificate as they follow the public fields of a
+/// plain key. The key's data and the certificate's blob, with `r` past the
+/// private fields; `None`, with `r` untouched, for a plain key. ssh-key read
+/// such a message as an opaque key of an unknown algorithm, whose blob was
+/// the certificate wrapped in a second string, and each listing that held it
+/// failed (podssh's patch, T-963).
+fn certified_keypair(
+    r: &mut &[u8],
+) -> Result<Option<(ssh_key::private::KeypairData, Vec<u8>)>, Error> {
+    use ssh_key::public::KeyData;
+
+    let mut rest = *r;
+    let kind = String::decode(&mut rest)?;
+    if !kind.ends_with(CERT_SUFFIX) {
+        return Ok(None);
+    }
+    let blob = Vec::<u8>::decode(&mut rest)?;
+    let certificate = ssh_key::Certificate::from_bytes(&blob)?;
+    if certificate.algorithm().to_certificate_type() != kind {
+        return Err(Error::AgentProtocolError);
+    }
+    // The plain key's public part, in the order of its private encoding.
+    let public = certificate.public_key();
+    let mut plain = Vec::new();
+    match public {
+        // Ed25519's private fields repeat the public key (PROTOCOL.key).
+        KeyData::Ed25519(_) => public.algorithm().as_str().encode(&mut plain)?,
+        // RSA's private encoding has n before e, its public blob e first.
+        KeyData::Rsa(rsa) => {
+            public.algorithm().as_str().encode(&mut plain)?;
+            rsa.n().encode(&mut plain)?;
+            rsa.e().encode(&mut plain)?;
+        }
+        _ => public.encode(&mut plain)?,
+    }
+    let before = plain.len();
+    plain.extend_from_slice(rest);
+    let mut reader = &plain[..];
+    let data = ssh_key::private::KeypairData::decode(&mut reader)?;
+    if KeyData::try_from(&data)? != *public {
+        // A private key of another key than the certificate's.
+        return Err(Error::AgentProtocolError);
+    }
+    // The bytes of `rest` that the private fields took; a decode that took
+    // less than the public part is refused, never an underflow.
+    let used = (plain.len() - reader.len())
+        .checked_sub(before)
+        .ok_or(Error::AgentProtocolError)?;
+    *r = rest.get(used..).ok_or(Error::AgentProtocolError)?;
+    Ok(Some((data, blob)))
 }
 
 #[cfg(test)]

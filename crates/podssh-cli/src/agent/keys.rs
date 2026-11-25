@@ -3,21 +3,28 @@
 //! OpenSSH's, with the words of `ssh-add`. A passphrase or a lock password
 //! is asked on the terminal or through `SSH_ASKPASS`, and lives in memory
 //! that is wiped. A key file of a TPM goes to the agent whole: its private
-//! part is of use only in that TPM (T-839).
+//! part is of use only in that TPM (T-839). Each failure has the code of
+//! its kind (T-969): 65 data that is no key, 66 a file or an answer that did
+//! not come, 69 an agent that refused or did not answer, 77 a wrong
+//! passphrase or password, 78 no terminal and no `SSH_ASKPASS` to ask on.
 
 use std::io::Write;
 use std::path::Path;
 
 use podssh_ssh::prompt::{self, PromptError};
 use podssh_ssh::russh::keys::agent::client::{AgentClient, AgentStream};
-use podssh_ssh::russh::keys::agent::Constraint;
+use podssh_ssh::russh::keys::agent::{AgentIdentity, Constraint};
 use podssh_ssh::russh::keys::{HashAlg, PrivateKey, PublicKey};
 use zeroize::Zeroizing;
 
 use super::AgentArgs;
-use crate::exitmap::sysexits::{EX_NOINPUT, EX_NOPERM, EX_SOFTWARE, EX_UNAVAILABLE};
+use crate::exitmap::sysexits::{EX_CONFIG, EX_DATAERR, EX_NOINPUT, EX_NOPERM, EX_UNAVAILABLE};
 
 type Agent = AgentClient<Box<dyn AgentStream + Send + Unpin + 'static>>;
+
+/// What a refused list, removal or lock can mean: russh's agent, podssh's,
+/// refuses each while it is locked; OpenSSH's lists no key then.
+const MAYBE_LOCKED: &str = "it may be locked (podssh agent unlock)";
 
 /// The agent of `SSH_AUTH_SOCK`; on Windows, else OpenSSH's named pipe.
 pub(super) async fn connect(err: &mut dyn Write) -> Result<Agent, i32> {
@@ -35,7 +42,7 @@ pub(super) async fn connect(err: &mut dyn Write) -> Result<Agent, i32> {
     #[cfg(windows)]
     let reached = AgentClient::connect_named_pipe(&place).await.map(|agent| agent.dynamic());
     reached.map_err(|e| {
-        let _ = writeln!(err, "podssh agent: no agent answers at {place}: {e}");
+        let _ = writeln!(err, "podssh agent: no agent answers at {place}: {}", podssh_ws::text::said(&e));
         EX_UNAVAILABLE
     })
 }
@@ -71,16 +78,17 @@ pub async fn add(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write) ->
                 details: b"internal".to_vec(),
             });
         }
-        if let Err(e) = agent.add_identity(&key, &constraints).await {
-            // podssh agent keeps no RSA key (T-257); another agent may.
-            let why = if key.algorithm().is_rsa() {
-                "; podssh agent keeps no RSA key, as russh's agent server would sign with it through the rsa \
-                 crate, which is not constant-time: use an Ed25519 key, or OpenSSH's ssh-agent"
-            } else {
-                ""
-            };
-            let _ = writeln!(err, "podssh agent: the agent refused {file}: {e}{why}");
-            return EX_SOFTWARE;
+        match agent.add_identity(&key, &constraints).await {
+            Ok(()) => {}
+            Err(podssh_ssh::russh::keys::Error::AgentFailure) => {
+                let why = refused_why(key.algorithm().is_rsa());
+                let _ = writeln!(err, "podssh agent: the agent refused {file}{why}");
+                return EX_UNAVAILABLE;
+            }
+            Err(e) => {
+                let _ = writeln!(err, "podssh agent: {file} did not reach the agent: {}", podssh_ws::text::said(&e));
+                return EX_UNAVAILABLE;
+            }
         }
         let _ = writeln!(err, "Identity added: {file} ({})", key.comment());
         if let Some(seconds) = lifetime {
@@ -88,6 +96,18 @@ pub async fn add(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write) ->
         }
     }
     0
+}
+
+/// Why an agent may refuse a key: podssh's keeps no RSA key (T-257), as its
+/// signer of RSA is not constant-time; another agent may keep one.
+fn refused_why(rsa: bool) -> String {
+    if rsa {
+        "; podssh agent keeps no RSA key, as its RSA signing is not constant-time: use an Ed25519 key, or OpenSSH's \
+         ssh-agent"
+            .into()
+    } else {
+        format!("; {MAYBE_LOCKED}")
+    }
 }
 
 /// The key file of a TPM at `path`, to the agent of `SSH_AUTH_SOCK` on a
@@ -107,7 +127,7 @@ async fn add_tpm(path: &Path, lifetime: Option<u32>, err: &mut dyn Write) -> i32
     };
     if let Err(why) = podssh_ssh::tpm::agent::add(&mut stream, &file, lifetime).await {
         let _ = writeln!(err, "podssh agent: the agent refused {}: {why}", path.display());
-        return EX_SOFTWARE;
+        return EX_UNAVAILABLE;
     }
     let comment = file.description.as_deref().unwrap_or("sealed to the TPM");
     let _ = writeln!(err, "Identity added: {} ({comment})", path.display());
@@ -117,6 +137,18 @@ async fn add_tpm(path: &Path, lifetime: Option<u32>, err: &mut dyn Write) -> i32
     0
 }
 
+/// The agent's keys, or the line of a refusal and its code.
+async fn identities(agent: &mut Agent, err: &mut dyn Write) -> Result<Vec<AgentIdentity>, i32> {
+    agent.request_identities().await.map_err(|e| {
+        let why = match e {
+            podssh_ssh::russh::keys::Error::AgentFailure => MAYBE_LOCKED.to_string(),
+            other => podssh_ws::text::said(&other),
+        };
+        let _ = writeln!(err, "podssh agent: the agent did not list its keys: {why}");
+        EX_UNAVAILABLE
+    })
+}
+
 /// `list`: a line for each key, as `ssh-add -l` writes it; 1, as there,
 /// when the agent holds none.
 pub async fn list(out: &mut dyn Write, err: &mut dyn Write) -> i32 {
@@ -124,29 +156,29 @@ pub async fn list(out: &mut dyn Write, err: &mut dyn Write) -> i32 {
         Ok(agent) => agent,
         Err(code) => return code,
     };
-    let identities = match agent.request_identities().await {
+    let identities = match identities(&mut agent, err).await {
         Ok(identities) => identities,
-        Err(e) => {
-            let _ = writeln!(err, "podssh agent: the agent did not list its keys: {e}");
-            return EX_SOFTWARE;
-        }
+        Err(code) => return code,
     };
     if identities.is_empty() {
         let _ = writeln!(out, "The agent has no identities.");
         return 1;
     }
     for identity in &identities {
-        let key = identity.public_key();
-        let _ = writeln!(
-            out,
-            "{} {} {} ({})",
-            bits(&key),
-            key.fingerprint(HashAlg::Sha256),
-            identity.comment(),
-            podssh_ssh::known_hosts::key_type(&key)
-        );
+        let _ = writeln!(out, "{}", line(identity));
     }
     0
+}
+
+/// One line of `list`: the size, the fingerprint, the comment and the type,
+/// `-CERT` after the type of a certificate, as `ssh-add -l` writes it.
+fn line(identity: &AgentIdentity) -> String {
+    let key = identity.public_key();
+    let mut kind = podssh_ssh::known_hosts::key_type(&key);
+    if matches!(identity, AgentIdentity::Certificate { .. }) {
+        kind.push_str("-CERT");
+    }
+    format!("{} {} {} ({kind})", bits(&key), key.fingerprint(HashAlg::Sha256), identity.comment())
 }
 
 /// `remove FILE...` or `remove --all`.
@@ -156,20 +188,11 @@ pub async fn remove(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write)
         Err(code) => return code,
     };
     if args.all {
-        // Each key in turn: russh's own request for all of them goes out with
-        // no length, in 0.64.1 and 0.65.0, and no agent understands it.
-        let identities = match agent.request_identities().await {
-            Ok(identities) => identities,
-            Err(e) => {
-                let _ = writeln!(err, "podssh agent: the agent did not list its keys: {e}");
-                return EX_SOFTWARE;
-            }
-        };
-        for identity in &identities {
-            if let Err(e) = agent.remove_identity(&identity.public_key()).await {
-                let _ = writeln!(err, "podssh agent: the agent did not remove a key: {e}");
-                return EX_SOFTWARE;
-            }
+        // One request, as ssh-add -D sends it: an agent that is locked
+        // refuses it, where a list of no keys would read as done.
+        if agent.remove_all_identities().await.is_err() {
+            let _ = writeln!(err, "podssh agent: the agent did not remove its keys: {MAYBE_LOCKED}");
+            return EX_UNAVAILABLE;
         }
         let _ = writeln!(err, "All identities removed.");
         return 0;
@@ -179,9 +202,10 @@ pub async fn remove(args: &AgentArgs, _out: &mut dyn Write, err: &mut dyn Write)
             Ok(public) => public,
             Err(code) => return code,
         };
-        if let Err(e) = agent.remove_identity(&public).await {
-            let _ = writeln!(err, "podssh agent: the agent did not remove {file}: {e}");
-            return EX_SOFTWARE;
+        if agent.remove_identity(&public).await.is_err() {
+            let why = format!("it does not hold it, or {MAYBE_LOCKED}");
+            let _ = writeln!(err, "podssh agent: the agent did not remove {file}: {why}");
+            return EX_UNAVAILABLE;
         }
         let _ = writeln!(err, "Identity removed: {file}");
     }
@@ -196,22 +220,16 @@ pub async fn lock(locking: bool, _out: &mut dyn Write, err: &mut dyn Write) -> i
     };
     let password = match ask("Enter lock password: ".into()).await {
         Ok(password) => password,
-        Err(e) => {
-            let _ = writeln!(err, "podssh agent: no password: {e}");
-            return EX_NOPERM;
-        }
+        Err(e) => return no_answer("no password", &e, err),
     };
     if locking {
         match ask("Again: ".into()).await {
             Ok(again) if again.as_str() == password.as_str() => {}
             Ok(_) => {
                 let _ = writeln!(err, "podssh agent: the passwords do not match");
-                return EX_NOPERM;
+                return EX_DATAERR;
             }
-            Err(e) => {
-                let _ = writeln!(err, "podssh agent: no password: {e}");
-                return EX_NOPERM;
-            }
+            Err(e) => return no_answer("no password", &e, err),
         }
     }
     let done = if locking { agent.lock(password.as_bytes()).await } else { agent.unlock(password.as_bytes()).await };
@@ -224,33 +242,51 @@ pub async fn lock(locking: bool, _out: &mut dyn Write, err: &mut dyn Write) -> i
             let _ = writeln!(err, "Agent unlocked.");
             0
         }
-        (Err(e), _) => {
-            let _ = writeln!(err, "podssh agent: the agent refused: {e}");
+        (Err(_), true) => {
+            let _ = writeln!(err, "podssh agent: the agent refused to lock: it may be locked already");
+            EX_UNAVAILABLE
+        }
+        (Err(_), false) => {
+            let _ = writeln!(err, "podssh agent: the agent refused to unlock: a wrong password, or it is not locked");
             EX_NOPERM
         }
     }
 }
 
+/// A prompt that gave nothing: 78 where nothing can ask (no terminal and no
+/// `SSH_ASKPASS` that runs), else 66, as no answer came.
+fn no_answer(what: &str, e: &PromptError, err: &mut dyn Write) -> i32 {
+    let _ = writeln!(err, "podssh agent: {what}: {e}");
+    match e {
+        PromptError::NoTerminal | PromptError::Failed(_) => EX_CONFIG,
+        _ => EX_NOINPUT,
+    }
+}
+
 /// A key file, opened with its passphrase when it asks for one.
 async fn load(path: &Path, err: &mut dyn Write) -> Result<PrivateKey, i32> {
+    let shown = path.display();
     match podssh_ssh::key_file::load(path, None) {
         Ok(key) => Ok(key),
         Err(podssh_ssh::russh::keys::Error::KeyIsEncrypted) => {
-            let passphrase = match ask(format!("Enter passphrase for {}: ", path.display())).await {
+            let passphrase = match ask(format!("Enter passphrase for {shown}: ")).await {
                 Ok(passphrase) => passphrase,
-                Err(e) => {
-                    let _ = writeln!(err, "podssh agent: {} is encrypted, and no passphrase came: {e}", path.display());
-                    return Err(EX_NOPERM);
-                }
+                Err(e) => return Err(no_answer(&format!("{shown} is encrypted, and no passphrase came"), &e, err)),
             };
             podssh_ssh::key_file::load(path, Some(passphrase.as_str())).map_err(|_| {
-                let _ = writeln!(err, "podssh agent: bad passphrase for {}", path.display());
+                let _ = writeln!(err, "podssh agent: bad passphrase for {shown}");
                 EX_NOPERM
             })
         }
-        Err(e) => {
-            let _ = writeln!(err, "podssh agent: {}: {e}", path.display());
+        // A file that is not there or cannot be read: 66; one that is no key
+        // (too large, not text, another format): 65.
+        Err(podssh_ssh::russh::keys::Error::IO(e)) if e.kind() != std::io::ErrorKind::InvalidData => {
+            let _ = writeln!(err, "podssh agent: {shown}: {}", podssh_ws::text::said(&e));
             Err(EX_NOINPUT)
+        }
+        Err(e) => {
+            let _ = writeln!(err, "podssh agent: {shown}: not a key that podssh reads: {}", podssh_ws::text::said(&e));
+            Err(EX_DATAERR)
         }
     }
 }
@@ -297,5 +333,46 @@ fn bits(key: &PublicKey) -> usize {
         },
         KeyData::Rsa(rsa) => rsa.n().as_positive_bytes().map_or(0, |n| n.len() * 8),
         _ => 0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use podssh_ssh::russh::keys::ssh_key::{certificate, Algorithm};
+
+    /// A certificate's line names its type with `-CERT`, as `ssh-add -l`
+    /// writes `(ECDSA-CERT)`; the key's line names the type alone (T-963).
+    #[test]
+    fn a_certificate_is_listed_with_its_type_and_cert() {
+        let mut rng = rand::rng();
+        for (algorithm, kind) in [
+            (Algorithm::Ecdsa { curve: podssh_ssh::russh::keys::EcdsaCurve::NistP256 }, "ECDSA"),
+            (Algorithm::Ed25519, "ED25519"),
+        ] {
+            let key = PrivateKey::random(&mut rng, algorithm).unwrap();
+            let ca = PrivateKey::random(&mut rng, Algorithm::Ed25519).unwrap();
+            let mut builder =
+                certificate::Builder::new_with_random_nonce(&mut rng, key.public_key(), 0, u64::MAX).unwrap();
+            builder.key_id("k").unwrap();
+            builder.valid_principal("someone").unwrap();
+            let cert = builder.sign(&ca).unwrap();
+            let plain = AgentIdentity::PublicKey { key: key.public_key().clone(), comment: "k_ecdsa".into() };
+            let certified = AgentIdentity::Certificate { certificate: cert, comment: "k_ecdsa".into() };
+            assert!(line(&plain).ends_with(&format!(" k_ecdsa ({kind})")), "{}", line(&plain));
+            assert!(line(&certified).ends_with(&format!(" k_ecdsa ({kind}-CERT)")), "{}", line(&certified));
+            let fingerprint = key.public_key().fingerprint(HashAlg::Sha256).to_string();
+            assert!(line(&certified).starts_with(&format!("256 {fingerprint} ")), "{}", line(&certified));
+        }
+    }
+
+    /// An RSA key's refusal is a sentence of the user's, with what to use,
+    /// and names no library (T-969); another key's names the lock.
+    #[test]
+    fn the_refusal_of_an_rsa_key_names_no_library() {
+        let rsa = refused_why(true);
+        assert!(rsa.contains("keeps no RSA key") && rsa.contains("Ed25519"), "{rsa}");
+        assert!(!rsa.contains("russh") && !rsa.contains("crate"), "{rsa}");
+        assert!(refused_why(false).contains(MAYBE_LOCKED));
     }
 }

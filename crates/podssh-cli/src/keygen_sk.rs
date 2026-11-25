@@ -13,7 +13,7 @@ use podssh_ssh::sk::{self, Alg, Ask, Enroll};
 use zeroize::Zeroizing;
 
 use crate::exit_codes::EXIT_USAGE;
-use crate::keygen::{ask_new_passphrase, tell_saved, KeygenArgs, NewPassphrase, EXIT_FAILED, KEY_FILES};
+use crate::keygen::{ask_new_passphrase, tell_saved, KeygenArgs, NewPassphrase, EXIT_FAILED, KEY_FILES, NEW_KEY};
 
 /// What `-O` asks of a new key.
 #[derive(Debug, PartialEq, Eq)]
@@ -99,7 +99,7 @@ pub(crate) fn make(
     };
     // Before the touch, so that a run with nobody to ask stops before it.
     let passphrase = match args.passphrase {
-        NewPassphrase::Absent => match ask_new_passphrase("Enter passphrase (empty for no passphrase): ") {
+        NewPassphrase::Absent => match ask_new_passphrase("Enter passphrase (empty for no passphrase): ", NEW_KEY) {
             Ok(passphrase) => passphrase,
             Err(why) => {
                 let _ = writeln!(err, "podssh keygen: {why}");

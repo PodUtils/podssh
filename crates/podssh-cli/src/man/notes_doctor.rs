@@ -46,7 +46,7 @@ pub(super) const DOCTOR_TIER: &str = "--tier checks this host alone, with the li
      (session, podssh node --sshd); state (session, detached); and resolver (ssh, proxy and pipe, which need the \
      relay's name). The line verdict counts them. The memfd and execveat route is not probed: the rung of exec is the \
      path probe alone. --tier ends the run before the egress, with --hop and --stream. The MCP tool doctor takes it as \
-     tier.";
+     tier. --tier with --hop, --policy, --dns-zone or --dns-server is a usage error (64), as it would pass them over.";
 
 pub(super) const DOCTOR_DIAGNOSIS: &str = "The line TLS reference makes TLS with github.com on port 443 by its name, \
      its certificate checked. It goes straight out with no proxy, else over the CONNECT that the proxy took for it. It \
@@ -111,6 +111,8 @@ pub(super) const DOCTOR_HTTP2: &str = "The line http2, in the section relay, aft
      With --h2-shape WORD (default: PODSSH_H2_SHAPE, else existing), a line http2 shape names the shape's SETTINGS \
      and window, which podssh-ws's h2 road sends. It says that its PRIORITY frames and padded DATA are recorded \
      and not sent through h2 0.4. No session of the run takes that road, whose default is the WebSocket upgrade. \
+     A word of --h2-shape that is no shape is a usage error (64); one of PODSSH_H2_SHAPE is a configuration error \
+     (78). \
      With --early-data 0rtt|1rtt|off (default: PODSSH_VLESS_EARLY_DATA), the \
      session of each VLESS server offers that early data, and its line names the first write. With \
      --trojan, the section trojan states Trojan's controls by name from trojan::capability(): a TCP stream is \

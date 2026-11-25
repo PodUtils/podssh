@@ -41,10 +41,14 @@ pub fn read(inputs: &[Input]) -> Result<Read, String> {
         let text = decode(&input.bytes);
         let mut section = String::new();
         let mut folder: Option<String> = None;
+        // A file with no section of bookmarks is not MobaXterm's: refused,
+        // as each other reader refuses a file of another program (T-973).
+        let mut bookmarks = false;
         for raw in text.lines() {
             let line = raw.trim_end_matches('\r');
             if let Some(name) = line.trim().strip_prefix('[').and_then(|l| l.strip_suffix(']')) {
                 section = name.to_ascii_lowercase();
+                bookmarks |= section == "bookmarks" || section.starts_with("bookmarks_");
                 folder = None;
                 continue;
             }
@@ -63,6 +67,9 @@ pub fn read(inputs: &[Input]) -> Result<Read, String> {
                 },
                 _ => {}
             }
+        }
+        if !bookmarks {
+            return Err(format!("{}: no [Bookmarks] section, so no sessions of MobaXterm", input.name));
         }
     }
     Ok(read)

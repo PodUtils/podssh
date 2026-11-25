@@ -233,7 +233,8 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
          probes do not run", None),
     row(None, "hop", Some("[USER@]HOST[:PORT]"), FlagKind::Supported,
         "check only this host and a first hop of -J as --direct reaches it: the connection through HTTPS_PROXY with the \
-         server's banner, its host key, and the methods that it offers to a key made for the check", None),
+         server's banner, its host key, and the methods that it offers to a key made for the check; a host that a dial \
+         cannot take is refused before any probe", None),
     // The hop's algorithms judged by a policy (T-838).
     super::policy::DOCTOR_POLICY,
     // The time of a run (T-511): fewer sections, or fewer at once.
@@ -243,7 +244,7 @@ pub const DOCTOR_FLAGS: &[FlagRow] = &[
          github.com: the QUIC handshake and the stream probes", None),
     // What this host allows, as one verdict (T-706).
     row(None, "tier", None, FlagKind::Supported,
-        "check this host alone and give one verdict of its capabilities: identity (a user name, the capability to bind a low port); exec (a directory that runs a program); terminal (a pty); state (a directory that keeps files); and resolver (how names resolve); each ok, closed or ????; and for each closed one the features that it closes; reads the capability sets and drops nothing; connects nowhere but for one lookup of the relay's name", None),
+        "check this host alone and give one verdict of its capabilities: identity (a user name, the capability to bind a low port); exec (a directory that runs a program); terminal (a pty); state (a directory that keeps files); and resolver (how names resolve); each ok, closed or ????; and for each closed one the features that it closes; reads the capability sets and drops nothing; connects nowhere but for one lookup of the relay's name; refused with --hop, --policy, --dns-zone or --dns-server", None),
     row(None, "jobs", Some("N"), FlagKind::Supported,
         "run at most N sections at once, 1 to 64, in the order of the report (default: each at once; also DoctorJobs \
          of the settings file); --jobs 1 runs one after another", None),

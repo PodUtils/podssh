@@ -43,6 +43,32 @@ const NOT_YET: &[&str] = &["finalshell", "termius", "ansible-yaml"];
 /// The largest file read: far above any host list.
 const MAX_FILE: u64 = 16 << 20;
 
+/// The formats of `import`, each with what it reads: the help, the refusal
+/// of another word and the readers take this one table (T-973).
+pub const FORMATS: &[(&str, &str)] = &[
+    ("ansible", "an Ansible inventory, INI"),
+    ("putty", "PuTTY's sessions, a .reg export or its session files"),
+    ("mobaxterm", "MobaXterm's sessions, .mxtsessions or MobaXterm.ini"),
+    ("remmina", "Remmina's profiles, .remmina files or their directory"),
+    ("mremoteng", "mRemoteNG's connections, confCons.xml"),
+];
+
+/// The names of [`FORMATS`] as a line says them: `a, b or c`.
+pub fn format_names() -> String {
+    let names: Vec<&str> = FORMATS.iter().map(|(name, _)| *name).collect();
+    match names.split_last() {
+        Some((last, rest)) if !rest.is_empty() => format!("{} or {last}", rest.join(", ")),
+        _ => names.join(""),
+    }
+}
+
+/// The help of `import`'s arguments: each format, with what it reads.
+pub fn formats_help() -> String {
+    // One sentence for each format, as a sentence of the manual holds 25 words at most.
+    let each: Vec<String> = FORMATS.iter().map(|(name, what)| format!("{name} reads {what}.")).collect();
+    format!("import: the format, then the file, - for stdin. The format is {}. {}", format_names(), each.join(" "))
+}
+
 pub fn run(args: &ConfigArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     match (args.subcommand.as_deref(), args.args.as_slice()) {
         (Some("import"), [format, file]) => import(format, file, out, err),
@@ -72,7 +98,7 @@ fn import(format: &str, file: &str, out: &mut dyn Write, err: &mut dyn Write) ->
         "remmina" => (remmina::read, "Remmina"),
         "mremoteng" => (mremoteng::read, "mRemoteNG"),
         _ => {
-            let why = format!("import {format}: not a format; give ansible, putty, mobaxterm, remmina or mremoteng");
+            let why = format!("import {format}: not a format; give {}", format_names());
             return usage(err, &why);
         }
     };

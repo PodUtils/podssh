@@ -889,7 +889,7 @@ Read: each hop gets its own name for the check, its host and its port, as
 destination only (`crates/podssh-ssh/src/run.rs`, lines 270-273 at `e85e6d2`). The order of
 host-key algorithms comes from the keys recorded for that hop
 (`crates/podssh-ssh/src/run.rs:440-462`). The gate's check "-J through
-OpenSSH to Dropbear" (`scripts/interop.sh:351-352`) passes only when this
+OpenSSH to Dropbear" (`scripts/interop.sh:355-356`) passes only when this
 holds: both hops are 127.0.0.1, both keys are Ed25519 and differ, and each
 is recorded under its own port.
 
@@ -954,7 +954,7 @@ filed as it is, with no port, as OpenSSH files it (the Correction).
   10.3p1 did, and under `StrictHostKeyChecking=yes` each tool took the key that
   the other had filed and went on to the login.
 - A new harness, `scripts/interop-hostkeys.sh:1-58`, sourced after the check of
-  `-J` (`scripts/interop.sh:353-354`), has four checks (its floor is 4):
+  `-J` (`scripts/interop.sh:357-358`), has four checks (its floor is 4):
   `hostkeys.jump_names`, from an empty file under accept-new, `-J` through
   OpenSSH to Dropbear files `[127.0.0.1]:2201` and `[127.0.0.1]:2203`;
   `hostkeys.jump_changed`, with the jump's key changed, exits 255 with a
@@ -1338,7 +1338,7 @@ runs: with no user database entry, OpenSSH's programs stop at once
 - Read: podssh uses an agent that `SSH_AUTH_SOCK` names, today. On Unix it
   connects to that socket, or to `IdentityAgent PATH`; on Windows it tries
   the named pipe of `SSH_AUTH_SOCK`, then the pipe of the OpenSSH agent, then
-  Pageant (`crates/podssh-ssh/src/keys.rs:423-460`, `connect_agent`). It offers the agent's
+  Pageant (`crates/podssh-ssh/src/keys.rs:429-466`, `connect_agent`). It offers the agent's
   keys first (`crates/podssh-ssh/src/keys.rs:234-303`), and skips the agent's
   certificates (`crates/podssh-ssh/src/keys.rs:242-245`).
 - Read: russh 0.64.1, which the binary links, has an agent server
@@ -1733,7 +1733,7 @@ gives the extension messages and the exit codes; the manual's EXIT STATUS has 65
   source; the tests of the password and of keyboard-interactive failed.
 - The doctor's tests failed in their first run on this host, where no agent runs: russh's stream
   to Pageant opens when no Pageant runs, and closes at the first request, so the line said FAIL.
-  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:445-449`), which also
+  podssh now asks for Pageant's window first (`crates/podssh-ssh/src/keys.rs:451-455`), which also
   spares `podssh ssh` that stream, and reads an agent that closes the connection at the store's
   question as one with no store (`crates/podssh-ssh/src/credential_store.rs:366-373`). The
   doctor's tests: 10 passed, on Windows and in the build image.
@@ -2344,7 +2344,7 @@ makes its keys with the same crate.
 Read: `rsa` 0.10.0-rc.18 comes into `podssh-ssh` through russh 0.64.1 and
 ssh-key 0.7.0-rc.11 (`cargo tree -i rsa@0.10.0-rc.18`); `podssh keygen` makes
 an RSA key with `RsaKeypair::random` (`crates/podssh-ssh/src/keygen.rs`, line 67 at `ff75425`),
-and its default is Ed25519 (`crates/podssh-ssh/src/keygen.rs:37`). `rsa`
+and its default is Ed25519 (`crates/podssh-ssh/src/keygen.rs:36`). `rsa`
 0.9.10 comes into `podssh-ws`, which only verifies signatures with public keys
 (`PodUtils/podssh:crates/podssh-ws/src/crypto/rsa_sig.rs:10-12`): the attack needs the private
 key. The binary already links aws-lc-rs, whose RSA is constant-time, for the
@@ -2668,7 +2668,7 @@ Plant: answer as russh does, with no look at the text; the tests of the question
 
 ## Done
 
-2026-10-11. `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-42`) reads each key
+2026-10-11. `podssh_ssh::key_file` (`crates/podssh-ssh/src/key_file.rs:25-43`) reads each key
 file: `podssh ssh -i` (`crates/podssh-ssh/src/keys.rs:335-380`), `podssh agent add` and
 `add-passphrase`, and `podssh keygen -p` and `-c`. It finds an encrypted key by its text (a PEM key
 with `Proc-Type: 4,ENCRYPTED`, `BEGIN ENCRYPTED PRIVATE KEY`, a PuTTY key whose `Encryption` is
@@ -2961,7 +2961,7 @@ registers none (`openssh/openssh-portable:clientloop.c`, `client_global_request_
   after the login, as the failure's decode ends it. #83's 15 bytes are a failure's too, then: a
   Go server that knows no `keepalive@openssh.com` refuses it.
 - Read: the project carries a patched crate in `vendor/` through `[patch.crates-io]`, iroh-relay's
-  (`vendor/README.md:205-224`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
+  (`vendor/README.md:209-228`, `Cargo.toml:217-219`), and watches its upstream (T-341); russh's
   copy went with T-356, as 0.65.0 gave what its patch had added.
 
 ## Approach
@@ -3754,7 +3754,7 @@ name to give. OpenSSH on the same host connects.
   `docs/decisions.md`; T-222 (on hold) says the same of the shell of `podssh serve`.
 - Read: the same name is `%u`, `Match localuser` (`crates/podssh-cli/src/ssh/config/matching.rs:110`),
   the nick of `chat`, and the default comment of `keygen`, "never from the user database"
-  (`crates/podssh-cli/src/man/notes_keygen.rs:59-60`).
+  (`crates/podssh-cli/src/man/notes_keygen.rs:62-63`).
 - Read, against the report: the README of this repository holds no prompt with `ssh railway.new`
   (no line of `README.md` names Railway, at `01e371e` and at `35a0d19`); that one-liner is
   Railway's own page. Its L-02, Railway's refusal of each login of the day, is the service's state,
@@ -4524,7 +4524,7 @@ gate's interop test fails at random with it.
 - Read: ssh-key 0.7.0-rc.11, `src/private/ecdsa.rs`, `EcdsaPrivateKey::decode`, refuses a scalar
   under 32 bytes (`MIN_SIZE`); an `mpint` (RFC 4251, section 5) has no leading zero bytes, so
   OpenSSH writes a scalar whose first byte is zero, and whose second byte has no high bit, in 31
-  bytes or fewer. russh's `decode_secret_key`, which `crates/podssh-ssh/src/key_file.rs:35` calls,
+  bytes or fewer. russh's `decode_secret_key`, which `crates/podssh-ssh/src/key_file.rs:36` calls,
   reads every key through it.
 - Read: crates.io's newest ssh-key is 0.7.0-rc.11 (2026-11-03): no release reads such a key.
 
@@ -6792,3 +6792,201 @@ Drafted 2026-11-25 (`options.rs`, `keywords.rs`, `resolve.rs`, `local_bind.rs` w
 `docs/cli.md`, "Options of `podssh ssh`").
 
 Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-cli --no-fail-fast` 308 binaries passed (the lib 1362 once `llms-full.txt` was made again); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`. Live, against this host's sshd: `-N -L SOCK:...` with a socket already at SOCK is refused with its line (255); with `-o StreamLocalBindUnlink=yes` the run listens. The planted run waits for T-251.
+
+# T-963: A key added with its certificate breaks each listing of podssh's agent
+
+**Source:** the black-box pass of 2026-11-25 against `podssh agent` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P1
+**Effort:** S
+**Status:** done
+
+## Problem
+
+After `ssh-add k_ecdsa` added the key and its certificate `k_ecdsa-cert.pub` to `podssh agent`, each listing
+failed: `ssh-add -l` said "error fetching identities: incomplete message", `podssh agent list` "the agent did not
+list its keys: SshKey: length invalid" (70), and `agent remove --all` the same, until `ssh-add -D`. And `podssh agent
+list` against OpenSSH's agent named a certificate's identity "(ECDSA)" where `ssh-add -l` names it "(ECDSA-CERT)".
+
+## Premise
+
+- Read, at `07d7d9b`: russh's agent server (`vendor/russh/src/keys/agent/server.rs`, its `add_key`) read the key
+  with `KeypairData::decode`. A certificate's type (`ecdsa-sha2-nistp256-cert-v01@openssh.com`) parses in ssh-key as
+  `Algorithm::Other`, so the request read as an opaque key: the certificate as its public bytes, the private scalar
+  as its private bytes. Its blob, `KeyData::encoded`, is the type, then the certificate as a second string; OpenSSH's
+  client reads the certificate's nonce from that string and finds nothing after it ("incomplete message").
+- Read: OpenSSH's PROTOCOL.agent and draft-miller-ssh-agent, section 4.2.3: a key with its certificate goes as the
+  certificate's type, the certificate, then only the key's private fields (ECDSA: the scalar; Ed25519: the public
+  key and the seed with it; RSA: d, iqmp, p, q), and the agent lists the certificate's blob.
+- Read: `crates/podssh-cli/src/agent/keys.rs:175` (the line of `list`) named the type of the key alone.
+
+## Approach
+
+1. russh's patch `vendor/patches/russh/0016-agent-certificates.patch` (`vendor/russh/src/keys/agent/server.rs:416`,
+   `certified_keypair`): a request whose type ends `-cert-v01@openssh.com` is read as OpenSSH's agent reads it. The
+   plain key is the certificate's public key with the private fields after it (Ed25519's repeat its public key, so
+   its type alone goes first; RSA's private encoding has n before e). A private key that is not the certificate's
+   key is refused. The key is kept under the certificate's blob, which the answer lists, a sign request names and a
+   remove removes.
+2. `list` writes `-CERT` after the type of a certificate (`AgentIdentity::Certificate`), as `ssh-add -l` does.
+3. `podssh agent add` still sends the key alone, as before: sending `FILE-cert.pub` beside it, as `ssh-add` does,
+   needs a request that russh's client does not build; it is a feature, not this defect.
+
+## Decision
+
+The fix is in russh's server, as a patch of `vendor/patches/russh/` (AGENTS.md, the map of `vendor/russh`), not a
+front of podssh's that rewrites the request: the front would have to parse each key type's private fields, which is
+what the server reads anyway. Lost: none; upstream gets the patch, as each other one (the operator's to send).
+Considered and lost: refusing a certificate at `add` (the agent then holds less than `ssh-add` asked for, and an SSH
+login with a certificate needs it).
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib keys::agent
+cargo test -p podssh-cli --lib agent::
+cargo test -p podssh-cli --test agent_cli
+```
+
+The server's tests build each request from the protocol's fields: an Ed25519 and an ECDSA key with a certificate
+are listed as the certificate whole, a sign request by it is verified by the certificate's key, and a remove by it
+removes it; the key and its certificate are two identities; another key's private part and cut fields are refused.
+`line` names `(ECDSA-CERT)` and `(ED25519-CERT)`. Planted: the old `KeypairData::decode` of a certificate fails
+the listing test. Against OpenSSH: `ssh-add k_ecdsa` with `k_ecdsa-cert.pub` beside it, then `ssh-add -l` and
+`podssh agent list`, each two lines, one `-CERT`.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `vendor/russh/src/keys/agent/server.rs` (`add_key` and `certified_keypair`), a test of russh's own
+  (dropped at the merge: see below), the patch `vendor/patches/russh/0016-agent-certificates.patch`
+  (written as the diff of the tree of the fifteen, and applied by `patch -p1` to a copy of it, which gave the tree
+  byte for byte), `vendor/README.md`, `AGENTS.md` and `Cargo.toml` (sixteen patches); `crates/podssh-cli/src/agent/keys.rs`
+  (`line`); the manual's notes of the agent and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again. Against OpenSSH: `crates/podssh-cli/tests/agent_cli.rs` `a_key_added_by_ssh_add_with_its_certificate_is_listed_and_signs` adds an ECDSA and an Ed25519 key with its certificate by OpenSSH's `ssh-add`, lists them by `ssh-add -l` and `podssh agent list` (each `-CERT`), and signs by `ssh-add -T`; planted, russh's server before patch 0016 fails it with "error fetching identities: incomplete message". The draft's test inside russh (`server_cert_tests.rs`) was dropped from the patch: russh's own tests do not build here, as their dev-dependencies are not vendored. The planted run in the build image waits for T-251.
+
+
+# T-964: A locked agent lists no key and says that all keys were removed
+
+**Source:** the black-box pass of 2026-11-25 against `podssh agent` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P2
+**Effort:** S
+**Status:** done
+
+## Problem
+
+On a locked `podssh agent`, `podssh agent list` said "The agent has no identities." (exit 1), and `agent remove
+--all` said "All identities removed." (exit 0) and removed nothing.
+
+## Premise
+
+- Read, at `07d7d9b`: russh's agent server answers FAILURE to each request but UNLOCK while it is locked; its
+  client's `request_identities` read any answer but IDENTITIES_ANSWER as a list of no keys.
+- Read, at `07d7d9b`: `remove --all` listed the keys and removed each, as russh's `remove_all_identities` sent a frame
+  of length 0 and four stray bytes (`vendor/russh/src/keys/agent/client.rs:578`, before the patch): a locked agent's
+  list was empty, so nothing was removed and success was said.
+- Read: OpenSSH's `ssh-agent` answers a locked list with no identities, and refuses REMOVE_ALL_IDENTITIES while
+  locked (`ssh-add -D`: "Failed to remove all identities.").
+
+## Approach
+
+1. russh's patch 0016 (`vendor/russh/src/keys/agent/client.rs:291`): a FAILURE to `REQUEST_IDENTITIES` is
+   `Error::AgentFailure`, and `remove_all_identities` sends one frame of the request alone.
+2. `list` says that the agent did not list its keys and may be locked (69); `remove --all` sends the one request of
+   `ssh-add -D`, and a refusal says the same (69) (`crates/podssh-cli/src/agent/keys.rs:185`).
+
+## Decision
+
+Against OpenSSH's locked agent, `list` still says that the agent has no identities, as `ssh-add -l` says: that agent
+answers so, and nothing tells it from an agent with no key; the manual says so. The callers of `request_identities`
+in `podssh ssh` already read an error as "no keys from the agent" (a verbose line), so the login is unchanged.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test --manifest-path vendor/russh/Cargo.toml --target-dir .work/russh-target --lib keys::agent::client
+cargo test -p podssh-cli --test agent_cli
+```
+
+A locked podssh agent: `list` 69 with "may be locked" and nothing on stdout; `remove --all` 69 with no "All
+identities removed."; the client's test sees a refused list as an error and the remove-all frame as the one byte.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `vendor/russh/src/keys/agent/client.rs` (in patch 0016), `crates/podssh-cli/src/agent/keys.rs`,
+  `crates/podssh-cli/tests/agent_cli.rs`, the manual and `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.
+
+
+# T-969: `podssh agent`'s exit codes, its refusal of RSA, and an empty `--socket`
+
+**Source:** the black-box pass of 2026-11-25 against `podssh agent` (the binary and the documents only).
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** done
+
+## Problem
+
+`podssh agent`'s codes were not in EXIT STATUS, and 70 and 77 stood for "the agent refused", "the key is not held"
+and "no password source". `agent add k_rsa` refused RSA with a line that named russh and the `rsa` crate. `agent
+--socket ''` was accepted.
+
+## Premise
+
+- Read, at `07d7d9b`: the agent's commands returned `EX_SOFTWARE` (70) for a refused key, list or removal, and
+  `EX_NOPERM` (77) for a prompt that gave nothing, two passwords that differ and a refused lock.
+- Read: `crates/podssh-cli/src/agent/keys.rs:103` (the refusal of an RSA key, now in the user's words) and
+  `crates/podssh-cli/src/agent/mod.rs:82` (the check of `--socket`).
+
+## Approach
+
+1. One code for each kind, from sysexits: 65 a key file that is no key, or lock passwords that differ; 66 a key
+   file missing or unreadable, or no passphrase or password came; 69 no agent answers, or it refused a key, a
+   list, a removal or a lock; 77 a wrong passphrase or lock password; 78 no terminal and no `SSH_ASKPASS` that runs
+   (`no_answer`, `crates/podssh-cli/src/agent/keys.rs:258`). `credentials.rs` takes the same rule. The EXIT STATUS
+   rows name `podssh agent` in each.
+2. The RSA line: "podssh agent keeps no RSA key, as its RSA signing is not constant-time: use an Ed25519 key, or
+   OpenSSH's ssh-agent"; the manual says that the agent keeps no RSA key.
+3. An empty `--socket` is a usage error (64) before anything.
+
+## Decision
+
+69 for each refusal of the agent, also "the key is not held": the agent's FAILURE does not say why, and 69 is
+podssh's "nothing could answer" of a peer. 78 for no terminal and no `SSH_ASKPASS`: the host is not set up to ask,
+which is 78's meaning; a cancelled prompt is 66, as no input came. Lost: 70 for the refusals, which the manual
+keeps for podssh's own faults.
+
+## Prove
+
+```sh
+export CARGO_BUILD_JOBS=4
+cargo test -p podssh-cli --lib agent::
+cargo test -p podssh-cli --lib man::
+cargo test -p podssh-cli --test agent_cli
+```
+
+`check` refuses an empty `--socket`; the RSA refusal names no library; EXIT STATUS names each code of the agent
+(`exit_status_names_the_codes_of_agent_and_of_an_output_that_failed`); the binary refuses `--socket ''` (64) and
+removing a key that the agent does not hold gives 69.
+
+## Done
+
+Drafted 2026-11-25 by a drafting agent.
+
+- Changed: `crates/podssh-cli/src/agent/keys.rs`, `crates/podssh-cli/src/agent/mod.rs`,
+  `crates/podssh-cli/src/agent/credentials.rs`, `crates/podssh-cli/src/man/data.rs`, `crates/podssh-cli/src/man/notes.rs`,
+  `crates/podssh-cli/src/man/notes_tests.rs`, `crates/podssh-cli/tests/agent_cli.rs`, `docs/cli.md`.
+
+Merged 2026-11-25 from the worker's draft and built: `cargo test --locked -p podssh-ssh -p podssh-relay -p podssh-cli --no-fail-fast` 374 binaries passed after the merge's repairs (below); `cargo clippy --locked --all-targets -- -D warnings` clean, also for `x86_64-pc-windows-gnu`; `llms.txt` and `llms-full.txt` made again.

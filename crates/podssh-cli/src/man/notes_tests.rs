@@ -229,3 +229,25 @@ fn exit_status_names_the_codes_of_net_and_ping_nodes() {
         assert!(words_of(code).contains(said), "{code}: {said}");
     }
 }
+
+/// EXIT STATUS names each code of podssh agent (T-969) and 74, an output
+/// that could not be written (T-965): one row of the table for each code.
+#[test]
+fn exit_status_names_the_codes_of_agent_and_of_an_output_that_failed() {
+    use super::super::data::{exit_codes, Code};
+    use crate::exitmap::sysexits::{EX_CONFIG, EX_DATAERR, EX_IOERR, EX_NOINPUT, EX_NOPERM, EX_UNAVAILABLE};
+    let rows = exit_codes();
+    let words_of = |code: i32| {
+        rows.iter().find(|(c, _)| matches!(c, Code::Value(n) if *n == code)).map(|(_, w)| w.clone()).unwrap_or_default()
+    };
+    for (code, said) in [
+        (EX_DATAERR, "podssh agent: a key file that is no key"),
+        (EX_NOINPUT, "podssh agent: a key file is missing or cannot be read"),
+        (EX_UNAVAILABLE, "a locked agent refuses each"),
+        (EX_IOERR, "the output could not be written"),
+        (EX_NOPERM, "podssh agent: a wrong passphrase"),
+        (EX_CONFIG, "podssh agent: no terminal and no SSH_ASKPASS"),
+    ] {
+        assert!(words_of(code).contains(said), "{code}: {said}");
+    }
+}

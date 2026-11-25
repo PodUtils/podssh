@@ -415,9 +415,15 @@ impl PublicKeys {
 /// The keys that the agent of `choice` holds: none when no agent runs (for
 /// `podssh keygen -Y sign`, T-020).
 pub async fn agent_keys(choice: &Agent) -> Result<Vec<PublicKey>, String> {
-    let Some(mut agent) = connect_agent(choice).await? else { return Ok(Vec::new()) };
+    held_keys(choice).await.map(Option::unwrap_or_default)
+}
+
+/// The keys that the agent of `choice` holds, `None` when no agent runs:
+/// a line can then say that none runs, not that it lacks a key (T-971).
+pub async fn held_keys(choice: &Agent) -> Result<Option<Vec<PublicKey>>, String> {
+    let Some(mut agent) = connect_agent(choice).await? else { return Ok(None) };
     let held = agent.request_identities().await.map_err(|e| e.to_string())?;
-    Ok(held.iter().map(|id| id.public_key().into_owned()).collect())
+    Ok(Some(held.iter().map(|id| id.public_key().into_owned()).collect()))
 }
 
 /// The agent of `choice`, or `None` when none runs: for the login, and

@@ -52,10 +52,10 @@ pub fn import(args: &KeygenArgs, format: Option<Format>, out: &mut dyn Write, er
         let _ = writeln!(err, "podssh keygen: -i imports the key in -f FILE");
         return EXIT_USAGE;
     };
-    let text = match std::fs::read(file) {
+    let text = match podssh_ssh::key_text::bytes_of(Path::new(file)) {
         Ok(raw) => String::from_utf8_lossy(&raw).into_owned(),
-        Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {file}: {e}");
+        Err(why) => {
+            let _ = writeln!(err, "podssh keygen: {why}");
             return EXIT_FAILED;
         }
     };
@@ -118,7 +118,7 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
         let file = podssh_ssh::tpm::read_key_file(path)?;
         return podssh_ssh::tpm::public_key(&file).map(KeyFile::Public);
     }
-    let text = Zeroizing::new(std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?);
+    let text = podssh_ssh::key_text::text_of(path)?;
     if let Some(public) = crate::keygen_sign::public_line(&text) {
         if private {
             return Err(format!("{shown} holds a public key; -y reads a private key"));
@@ -126,8 +126,8 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
         return Ok(KeyFile::Public(public));
     }
     if !private {
-        let beside = std::fs::read_to_string(keygen::public_path(path)).unwrap_or_default();
-        let beside = crate::keygen_sign::public_line(&beside);
+        let beside = podssh_ssh::key_text::read_text(&keygen::public_path(path)).ok();
+        let beside = beside.as_deref().and_then(|text| crate::keygen_sign::public_line(text));
         if let Ok(key) = PrivateKey::from_openssh(text.trim_start()) {
             return Ok(KeyFile::Public(half_or_beside(key.public_key(), beside)));
         }
@@ -152,7 +152,7 @@ pub(crate) fn load_key(path: &Path, private: bool) -> Result<KeyFile, String> {
             let pair = podssh_ssh::russh::keys::ssh_key::private::Ed25519Keypair::from_seed(&seed);
             Ok(KeyFile::Private(PrivateKey::from(pair)))
         }
-        Err(e) => Err(format!("{shown}: not a key that podssh reads: {e}")),
+        Err(e) => Err(format!("{shown}: not a key that podssh reads: {}", podssh_ssh::key_text::why(&e))),
     }
 }
 

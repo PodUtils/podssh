@@ -46,7 +46,7 @@ pub fn run(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     } else if let Some(host) = &args.remove_host {
         remove(&path, &shown, host, args.quiet, out, err)
     } else {
-        hash(&path, &shown, out, err)
+        hash(&path, &shown, args.quiet, out, err)
     }
 }
 
@@ -118,19 +118,20 @@ fn remove(path: &Path, shown: &str, host: &str, quiet: bool, out: &mut dyn Write
         }
         return 0;
     };
+    // -q says nothing but a failure (T-971).
     if !quiet {
         for line in &removed.removed {
             let _ = writeln!(out, "# Host {host} found: line {line}");
         }
+        let _ = writeln!(out, "{shown} updated.");
+        let _ = writeln!(out, "Original contents retained as {}", rewritten.old.display());
     }
-    let _ = writeln!(out, "{shown} updated.");
-    let _ = writeln!(out, "Original contents retained as {}", rewritten.old.display());
     0
 }
 
 /// `-H`: each host name hashed, its old text in `FILE.old`, which still
-/// holds the names.
-fn hash(path: &Path, shown: &str, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+/// holds the names; with `-q`, only the warning of that copy is said.
+fn hash(path: &Path, shown: &str, quiet: bool, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let done = edit::rewrite(path, podssh_relay::cache::create_new_private, |raw| {
         let hashed = edit::hash(raw, &mut rand::random::<[u8; 20]>);
         (hashed.text.clone(), hashed)
@@ -153,8 +154,10 @@ fn hash(path: &Path, shown: &str, out: &mut dyn Write, err: &mut dyn Write) -> i
         return 0;
     };
     let old = rewritten.old.display();
-    let _ = writeln!(out, "{shown} updated.");
-    let _ = writeln!(out, "Original contents retained as {old}");
+    if !quiet {
+        let _ = writeln!(out, "{shown} updated.");
+        let _ = writeln!(out, "Original contents retained as {old}");
+    }
     let _ = writeln!(err, "WARNING: {old} contains unhashed entries");
     let _ = writeln!(err, "Delete this file to ensure privacy of hostnames");
     0

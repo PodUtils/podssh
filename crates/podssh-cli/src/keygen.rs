@@ -142,6 +142,11 @@ pub fn run_keygen(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -
         );
         return EXIT_USAGE;
     }
+    // An empty -f names no file: refused before anything is said (T-970).
+    if args.file.as_deref().is_some_and(|file| file.trim().is_empty()) {
+        let _ = writeln!(err, "podssh keygen: -f needs a file: an empty one names none");
+        return EXIT_USAGE;
+    }
     if args.signature_op.is_some() {
         if args.find_host.is_some() || args.remove_host.is_some() || args.hash_hosts {
             let _ = writeln!(err, "podssh keygen: -Y cannot go with -F, -R or -H");
@@ -302,12 +307,20 @@ fn generate(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
             }
         },
     };
-    // Before asking for a passphrase that would be thrown away; add-policy changes a TPM's key file.
-    if path.exists() && !crate::keygen_tpm::adds_policy(kind, &args.options) {
+    // Before asking for a passphrase that would be thrown away; add-policy
+    // changes a TPM's key file. FILE.pub counts too, a link as well: a new
+    // key replaces neither file (T-970).
+    let public = keygen::public_path(&path);
+    let taken = if crate::keygen_tpm::adds_policy(kind, &args.options) {
+        None
+    } else {
+        [path.as_path(), public.as_path()].into_iter().find(|p| std::fs::symlink_metadata(p).is_ok())
+    };
+    if let Some(taken) = taken {
         let _ = writeln!(
             err,
             "podssh keygen: {} already exists; podssh keygen never overwrites a key (remove it, or choose another -f)",
-            path.display()
+            taken.display()
         );
         return EXIT_FAILED;
     }
@@ -318,7 +331,7 @@ fn generate(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32 
         return crate::keygen_tpm::make(args, &path, &comment, out, err);
     }
     let passphrase = match args.passphrase {
-        NewPassphrase::Absent => match ask_new_passphrase("Enter passphrase (empty for no passphrase): ") {
+        NewPassphrase::Absent => match ask_new_passphrase("Enter passphrase (empty for no passphrase): ", NEW_KEY) {
             Ok(p) => p,
             Err(why) => {
                 let _ = writeln!(err, "podssh keygen: {why}");
@@ -381,17 +394,21 @@ pub(crate) const KEY_FILES: keygen::KeyFiles = keygen::KeyFiles {
     dir: podssh_relay::cache::private_dir,
 };
 
-/// A new passphrase, asked twice. Empty means none.
-pub(crate) fn ask_new_passphrase(first: &str) -> Result<Zeroizing<String>, String> {
+/// What a new key takes where nothing can ask its passphrase.
+pub(crate) const NEW_KEY: &str = "use -N '' for a key without one";
+
+/// What `-p` takes where nothing can ask (T-971): `-N ''` for the new
+/// passphrase, none, and `-P ''` for the old, none.
+pub(crate) const CHANGED_KEY: &str = "-N '' leaves the key with no passphrase, and -P '' says it has none now";
+
+/// A new passphrase, asked twice. Empty means none. `hint` names the flags
+/// that stand in where nothing can ask.
+pub(crate) fn ask_new_passphrase(first: &str, hint: &str) -> Result<Zeroizing<String>, String> {
     if !prompt::can_ask() {
-        return Err(
-            "there is no terminal and no SSH_ASKPASS to ask for a passphrase; use -N '' for a key without one".into()
-        );
+        return Err(format!("there is no terminal and no SSH_ASKPASS to ask for a passphrase; {hint}"));
     }
     let why = |e: prompt::PromptError| match e {
-        prompt::PromptError::NoTerminal | prompt::PromptError::NoAnswer => {
-            format!("the passphrase: {e}; use -N '' for a key without one")
-        }
+        prompt::PromptError::NoTerminal | prompt::PromptError::NoAnswer => format!("the passphrase: {e}; {hint}"),
         _ => format!("the passphrase: {e}"),
     };
     let first = prompt::ask(first, false).map_err(why)?;

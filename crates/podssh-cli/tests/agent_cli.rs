@@ -186,6 +186,30 @@ fn agent_subcommands_with_no_agent_say_so() {
     }
     let usage = ran(podssh(&home, None, &["agent", "frob"]));
     assert_eq!(usage.status.code(), Some(64), "{}", String::from_utf8_lossy(&usage.stderr));
+    // An empty --socket names no socket: a usage error before anything (T-969).
+    let empty = ran(podssh(&home, None, &["agent", "--socket", ""]));
+    let err = String::from_utf8_lossy(&empty.stderr);
+    assert_eq!(empty.status.code(), Some(64), "{err}");
+    assert!(err.contains("--socket needs a path") && empty.stdout.is_empty(), "{err}");
+    // -U with no agent says that none runs, not that it lacks the key (T-971).
+    let key = home.join("id_none");
+    let made = ran({
+        let mut cmd = podssh(&home, None, &["keygen", "-q", "-t", "ed25519", "-N", "", "-f"]);
+        cmd.arg(&key);
+        cmd
+    });
+    assert_eq!(made.status.code(), Some(0), "{}", String::from_utf8_lossy(&made.stderr));
+    let data = home.join("data");
+    std::fs::write(&data, b"x\n").unwrap();
+    let public = format!("{}.pub", key.display());
+    let mut sign = podssh(&home, None, &["keygen", "-q", "-Y", "sign", "-U", "-f", &public, "-n", "git"]);
+    sign.arg(&data);
+    let refused = ran(sign);
+    let err = String::from_utf8_lossy(&refused.stderr);
+    assert_eq!(refused.status.code(), Some(1), "{err}");
+    if cfg!(unix) {
+        assert!(err.contains("no agent runs") && !err.contains("does not hold"), "{err}");
+    }
 }
 
 #[test]
@@ -339,6 +363,16 @@ fn agent_failures_of_unlock_and_remove_are_refusals() {
     };
     let locked = with_password(&["agent", "lock"], "right-one");
     assert_eq!(locked.status.code(), Some(0), "{}", String::from_utf8_lossy(&locked.stderr));
+    // A locked agent says so: no list of no keys, and no removal said done
+    // that removed nothing (T-964).
+    let listed = ran(podssh(&home, Some(&sock), &["agent", "list"]));
+    let err = String::from_utf8_lossy(&listed.stderr);
+    assert_eq!(listed.status.code(), Some(69), "{err}");
+    assert!(err.contains("may be locked") && listed.stdout.is_empty(), "{err}");
+    let all = ran(podssh(&home, Some(&sock), &["agent", "remove", "--all"]));
+    let err = String::from_utf8_lossy(&all.stderr);
+    assert_eq!(all.status.code(), Some(69), "{err}");
+    assert!(err.contains("may be locked") && !err.contains("All identities removed."), "{err}");
     let wrong = with_password(&["agent", "unlock"], "wrong-one");
     let err = String::from_utf8_lossy(&wrong.stderr);
     assert_eq!(wrong.status.code(), Some(77), "a wrong password is refused: {err}");
@@ -348,6 +382,55 @@ fn agent_failures_of_unlock_and_remove_are_refusals() {
 
     let removed = ran(podssh(&home, Some(&sock), &["agent", "remove", key.to_str().unwrap()]));
     let err = String::from_utf8_lossy(&removed.stderr);
-    assert_ne!(removed.status.code(), Some(0), "a key that the agent does not hold: {err}");
+    assert_eq!(removed.status.code(), Some(69), "a key that the agent does not hold: {err}");
     assert!(!err.contains("Identity removed"), "{err}");
+}
+
+/// OpenSSH's `ssh-add KEY` sends KEY-cert.pub beside it: the agent keeps
+/// both, and each listing, OpenSSH's and podssh's, reads the answer; the
+/// certificate signs (T-963). Each of OpenSSH's key types that the agent
+/// keeps, one table. On a host with no `ssh-add` or `ssh-keygen`, said and
+/// passed over.
+#[cfg(unix)]
+#[test]
+fn a_key_added_by_ssh_add_with_its_certificate_is_listed_and_signs() {
+    let tool = |name: &str| Command::new(name).arg("-?").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok();
+    if !tool("ssh-add") || !tool("ssh-keygen") {
+        eprintln!("no ssh-add or ssh-keygen on this host: the test of OpenSSH's add with a certificate is passed over");
+        return;
+    }
+    let home = scratch("ssh-add-cert");
+    let keygen = |args: &[&str]| {
+        let made = Command::new("ssh-keygen").args(args).stdout(Stdio::null()).status().unwrap();
+        assert!(made.success(), "ssh-keygen {args:?}");
+    };
+    let ca = home.join("ca").display().to_string();
+    keygen(&["-q", "-t", "ed25519", "-N", "", "-C", "ca", "-f", &ca]);
+    let (_running, sock) = agent(&home, &[]);
+    // (the key type, the type that a listing names for its certificate)
+    for (kind, cert_type) in [("ecdsa", "ECDSA-CERT"), ("ed25519", "ED25519-CERT")] {
+        let key = home.join(format!("k_{kind}")).display().to_string();
+        keygen(&["-q", "-t", kind, "-N", "", "-C", kind, "-f", &key]);
+        keygen(&["-q", "-s", &ca, "-I", kind, "-n", "tester", &format!("{key}.pub")]);
+        let openssh = |args: &[&str]| {
+            let mut cmd = Command::new("ssh-add");
+            cmd.args(args).env("SSH_AUTH_SOCK", &sock).env_remove("SSH_ASKPASS");
+            ran(cmd)
+        };
+        let added = openssh(&[&key]);
+        let err = String::from_utf8_lossy(&added.stderr).into_owned();
+        assert_eq!(added.status.code(), Some(0), "{kind}: {err}");
+        assert!(err.contains("Certificate added"), "{kind}: ssh-add sent no certificate: {err}");
+        let listed = openssh(&["-l"]);
+        let out = String::from_utf8_lossy(&listed.stdout).into_owned();
+        assert_eq!(listed.status.code(), Some(0), "{kind}: {out} {}", String::from_utf8_lossy(&listed.stderr));
+        assert!(out.contains(&format!("({cert_type})")), "{kind}: ssh-add -l: {out}");
+        let ours = ran(podssh(&home, Some(&sock), &["agent", "list"]));
+        let out = String::from_utf8_lossy(&ours.stdout).into_owned();
+        assert_eq!(ours.status.code(), Some(0), "{kind}: {}", String::from_utf8_lossy(&ours.stderr));
+        assert!(out.contains(&format!("({cert_type})")), "{kind}: podssh agent list: {out}");
+        // -T signs with the agent's key of the certificate and checks it.
+        let signed = openssh(&["-T", &format!("{key}-cert.pub")]);
+        assert_eq!(signed.status.code(), Some(0), "{kind}: {}", String::from_utf8_lossy(&signed.stderr));
+    }
 }

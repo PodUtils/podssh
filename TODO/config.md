@@ -618,12 +618,12 @@ output. Planted defect: copy the password field into a comment; the secret test 
 ## Done
 
 2026-10-12. `podssh config import ansible FILE`: the verb at
-`crates/podssh-cli/src/config_import/mod.rs:46-169`, the inventory at
+`crates/podssh-cli/src/config_import/mod.rs:72-195`, the inventory at
 `crates/podssh-cli/src/config_import/ansible.rs:1-285`, the blocks at
-`crates/podssh-cli/src/config_import/mod.rs:281-325`, with the secrets at
-`crates/podssh-cli/src/config_import/mod.rs:171-175` and the options of
+`crates/podssh-cli/src/config_import/mod.rs:307-351`, with the secrets at
+`crates/podssh-cli/src/config_import/mod.rs:197-201` and the options of
 `ansible_ssh_common_args` at
-`crates/podssh-cli/src/config_import/mod.rs:177-230`; the verb in the
+`crates/podssh-cli/src/config_import/mod.rs:203-256`; the verb in the
 tables at `crates/podssh-cli/src/flags.rs:458-459`,
 `crates/podssh-cli/src/positionals.rs:249-254`,
 `crates/podssh-cli/src/tree.rs:368-374` and
@@ -673,9 +673,9 @@ command, or edits a shell profile. No file states them once.
 Read: each command resolves the same settings in its own copy. Relay hosts (`--relay-host`,
 then `PODSSH_RELAY`, then the default and the pool: `PodUtils/podssh:crates/podssh-relay/src/relay.rs:134-152`)
 go through one function since T-231 (`crates/podssh-cli/src/relay_settings.rs:67-92`), called in
-`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:161-164` and
+`crates/podssh-cli/src/ssh/resolve.rs`, line 314 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:179-182` and
 `crates/podssh-cli/src/proxy.rs:279-282`. Trust (`--ca-file`, then `SSL_CERT_FILE`) in
-`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:212-231` and
+`crates/podssh-cli/src/ssh/resolve.rs`, lines 328-331 at `99743e6`, `crates/podssh-cli/src/doctor/mod.rs:230-249` and
 `crates/podssh-cli/src/proxy.rs`, lines 100-104 at `99743e6`. The pins of the flag and of the variable add up
 (`crates/podssh-cli/src/pins.rs:15-42`). The token cache uses the user's
 cache directory first, after the directory of `PODSSH_CACHE_DIR` (T-243;
@@ -765,8 +765,8 @@ of a bad file at `crates/podssh-cli/src/pins.rs:13-42`, the CA file at
 `crates/podssh-cli/src/ssh/resolve.rs:98-102`; `status` at
 `crates/podssh-cli/src/status.rs:76` and
 `crates/podssh-cli/src/status.rs:92`, `doctor` at
-`crates/podssh-cli/src/doctor/mod.rs:229` and
-`crates/podssh-cli/src/doctor/mod.rs:252`.
+`crates/podssh-cli/src/doctor/mod.rs:247` and
+`crates/podssh-cli/src/doctor/mod.rs:270`.
 - `cargo test -p podssh-cli --test settings`: 4 passed here, and 5 in the
   build image (`sh scripts/dev.sh run`), with the test of Unix: `status`
   takes the file's relay hosts, `PODSSH_RELAY` beats it and
@@ -943,7 +943,7 @@ try after the first reaches each hop (`crates/podssh-ssh/src/options.rs:356-364`
   hop that reads no block (the Prove's plant): both tests failed; restored.
 - `cargo test -p podssh-ssh --lib -- run::`: 3 passed, among them a hop's own options with the
   run's memory, else the connection's, its own `HostKeyAlias`, and `set_batch_mode` for each hop.
-- `scripts/interop.sh:317-327`: `ssh.config.jump_alias`, `-F FILE -J openssh-alias dropbear-alias`
+- `scripts/interop.sh:321-331`: `ssh.config.jump_alias`, `-F FILE -J openssh-alias dropbear-alias`
   with podssh and with OpenSSH's `ssh`, each to exit 6 (the floor of ssh is 72). The gate runs it
   at this push.
 - `docs/cli.md:166-172` and `docs/cli.md:7590-7602`, and the manual's file `~/.ssh/config`, say what

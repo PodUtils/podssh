@@ -45,13 +45,15 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              podssh net: a file or a document that cannot be used, nothing kept. Such a file is not UTF-8, not \
              JSON, too large, a policy or a gateway that is not valid, or a signature that fails; add of a key that another member \
              has; take of a document that the rule of the store refuses; policy test: a case is false; policy diff \
-             --exit-code: the new policy widens the old.",
+             --exit-code: the new policy widens the old. podssh agent: a key file that is no key, or lock \
+             passwords that differ.",
         ),
         row(
             sysexits::EX_NOINPUT,
             "podssh cp and mv: a source is missing or cannot be read. podssh mv: a source that changed \
              during the move, which stays. podssh chat: the file of --file or --sendfile cannot be read. podssh edit: the file is not on the host. podssh sftp: the file of -b cannot be read. \
-             podssh net: the FILE of take, policy set, test or diff, or gateway set is missing or cannot be read.",
+             podssh net: the FILE of take, policy set, test or diff, or gateway set is missing or cannot be read. \
+             podssh agent: a key file is missing or cannot be read, or no passphrase or password came.",
         ),
         row(
             sysexits::EX_UNAVAILABLE,
@@ -64,7 +66,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              the same of the relay and the pair, or a message went with no acknowledgement; each is said. \
              podssh ping: no relay host answered, the relay refused its default target, or PODSSH_OFFLINE is set. podssh relay status: no relay \
              host answered; podssh relay trace: the relay would not dial the target. podssh agent: no agent \
-             answers at SSH_AUTH_SOCK, or the agent keeps no passwords. podssh containers: the host has \
+             answers at SSH_AUTH_SOCK, or it keeps no passwords. podssh agent: the agent refused a key, a list, a \
+             removal or a lock; a locked agent refuses each. podssh containers: the host has \
              none of docker, podman and kubectl, one of them failed, or --exec names no container that a \
              list has. podssh session: no session of that name answers, or its session ended (and the \
              status that it ended with is said). podssh detached status and stop: no run of that name \
@@ -89,6 +92,12 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              cannot be made; no host has run.",
         ),
         row(
+            sysexits::EX_IOERR,
+            "podssh keygen, doctor, man, status, config, agent and update: the output could not be written, as to \
+             a full disk or a device that refuses it. The line says so, and the command's own code stays when it failed \
+             first. A reader that went away, as head does, is no failure.",
+        ),
+        row(
             sysexits::EX_TEMPFAIL,
             "podssh cp and mv: the --timeout passed before the copy ended; a later try can work. podssh \
              chat: the --timeout passed, or the peer talks with another peer; a later try can work. podssh \
@@ -107,7 +116,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              --node-key; or the node's allowlist refused this client's key, its grant, or its route. podssh cp \
              and mv: the server refused the login, or podssh did not accept its host key. podssh chat: the same of the pair \
              and of the keys, or the peer declined the file of --file. podssh session start: this host refuses \
-             the bind of the session's socket. podssh net policy check: the policy does not let FROM reach TO.",
+             the bind of the session's socket. podssh net policy check: the policy does not let FROM reach TO. \
+             podssh agent: a wrong passphrase, or a wrong lock password.",
         ),
         row(
             sysexits::EX_CONFIG,
@@ -124,7 +134,8 @@ pub fn exit_codes() -> Vec<(Code, String)> {
              --sshd: a TARGET that sends lines and no version line of SSH 2, which is another service. podssh node: \
              this host refuses UDP for a udp: TARGET. podssh each --interactive: the emergency stop cannot be armed. \
              podssh session start and serve: PODSSH_LISTEN is no, or no directory takes the session's socket. podssh \
-             serve: no authorized key, or a key file or the host key that cannot be used, or no shell that runs.",
+             serve: no authorized key, or a key file or the host key that cannot be used, or no shell that runs. \
+             podssh agent: no terminal and no SSH_ASKPASS that runs, to ask a passphrase or a password.",
         ),
         row(
             podssh_ssh::EXIT_FAILURE,

@@ -140,10 +140,28 @@ pub fn run_doctor(args: &DoctorArgs, out: &mut dyn Write, err: &mut dyn Write) -
         let _ = writeln!(err, "podssh doctor: {why}");
         return crate::exitmap::sysexits::EX_CONFIG;
     }
-    // A hop that does not read is a usage error, before any probe.
-    if let Some(Err(why)) = args.hop.as_deref().map(crate::ssh::hop::parse_hop) {
+    // A hop that does not read, or names no host that a dial can take, is a
+    // usage error before any probe, as a bad port is (T-972).
+    let hop_read = args
+        .hop
+        .as_deref()
+        .map(|text| crate::ssh::hop::parse_hop(text).and_then(|hop| podssh_ws::names::check_direct_target(&hop.host)));
+    if let Some(Err(why)) = hop_read {
         let _ = writeln!(err, "podssh doctor: --hop {why}");
         return crate::exit_codes::EXIT_USAGE;
+    }
+    // --tier gives the tier alone, from this host's facts: a flag of another
+    // section would be passed over in silence, so it is refused (T-972).
+    if args.tier {
+        let others = [
+            (args.hop.is_some(), "--hop"),
+            (args.policy.is_some(), "--policy"),
+            (args.dns.zone.is_some() || args.dns.server.is_some(), "--dns-zone and --dns-server"),
+        ];
+        if let Some((_, flag)) = others.iter().find(|(given, _)| *given) {
+            let why = format!("--tier gives this host's tier alone; {flag} cannot go with it");
+            return crate::relay_settings::Refusal::usage(why).report("doctor", err);
+        }
     }
     // A policy judges the hop alone, and a file that does not load is a
     // fault of the setup (78); both before any probe.

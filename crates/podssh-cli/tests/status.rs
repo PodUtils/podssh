@@ -107,6 +107,10 @@ fn the_line_names_the_relays_and_where_they_came_from() {
     let (rc, out, err) = status(&home, &["bad host!"], &[]);
     assert_eq!(rc, 64, "{out}{err}");
     assert!(out.is_empty());
+    // The word is named once, with no empty prefix before it (T-974).
+    let (rc, out, err) = status(&home, &[""], &[]);
+    assert_eq!(rc, 64, "{out}{err}");
+    assert_eq!(err.trim_end(), "podssh status: \"\": no host", "{err}");
     let _ = std::fs::remove_dir_all(&home);
 }
 

@@ -250,7 +250,7 @@ pub fn add(cmd: Command, name: &str) -> Command {
             Arg::new("args")
                 .value_name("FORMAT FILE")
                 .num_args(0..)
-                .help("import: the format, ansible (an INI inventory), and the file, - for stdin"),
+                .help(crate::config_import::formats_help()),
         ),
         "status" => cmd.arg(
             Arg::new("destination")
@@ -265,6 +265,9 @@ pub fn add(cmd: Command, name: &str) -> Command {
                 .help("with -Y sign: the files to sign, each to FILE.sig; with none, standard input to standard output"),
         ),
         "doctor" => cmd,
+        // `update` takes flags alone: a stray word is a usage error, never
+        // passed over (T-968).
+        "update" => cmd,
         // `mcp` reads its messages on stdin, and takes no word.
         "mcp" => cmd,
         // `serve --stdio` speaks SSH on stdin; `serve NAME` serves a pair's node.

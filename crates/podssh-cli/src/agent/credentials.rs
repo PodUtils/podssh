@@ -14,7 +14,7 @@ use zeroize::Zeroizing;
 
 use super::AgentArgs;
 use crate::exit_codes::EXIT_USAGE;
-use crate::exitmap::sysexits::{EX_DATAERR, EX_NOINPUT, EX_SOFTWARE, EX_UNAVAILABLE};
+use crate::exitmap::sysexits::{EX_CONFIG, EX_DATAERR, EX_NOINPUT, EX_UNAVAILABLE};
 use crate::ssh::args::SshArgs;
 use crate::ssh::resolve::{self, Env};
 
@@ -73,7 +73,11 @@ fn read_secret(question: &str, err: &mut dyn Write) -> Result<Zeroizing<String>,
     let secret = if podssh_ssh::terminal::stdin_is_terminal() {
         prompt::ask(question, false).map_err(|e| {
             let _ = writeln!(err, "podssh agent: {e}");
-            EX_NOINPUT
+            // Nothing can ask here (78), or nobody answered (66): T-969.
+            match e {
+                prompt::PromptError::NoTerminal | prompt::PromptError::Failed(_) => EX_CONFIG,
+                _ => EX_NOINPUT,
+            }
         })?
     } else {
         let mut line = Zeroizing::new(String::new());
@@ -85,7 +89,7 @@ fn read_secret(question: &str, err: &mut dyn Write) -> Result<Zeroizing<String>,
                 line
             }
             Err(e) => {
-                let _ = writeln!(err, "podssh agent: stdin could not be read: {e}");
+                let _ = writeln!(err, "podssh agent: stdin could not be read: {}", podssh_ws::text::said(&e));
                 return Err(EX_NOINPUT);
             }
         }
@@ -116,9 +120,10 @@ async fn keep(args: &AgentArgs, target: &Target, secret: &str, err: &mut dyn Wri
             );
             EX_UNAVAILABLE
         }
+        // The agent answered wrong, or not at all: it refused (T-969).
         Err(e) => {
             let _ = writeln!(err, "podssh agent: {e}");
-            EX_SOFTWARE
+            EX_UNAVAILABLE
         }
     }
 }

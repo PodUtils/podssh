@@ -161,7 +161,7 @@ token header (`PodUtils/podssh:crates/podssh-ws/src/client.rs:294-305`); `https_
 
 Recommendation: remove the `--timeout` and `--jsonl` rows of `relay`
 (`crates/podssh-cli/src/flags/relay.rs:9-147`), and bound each request in the code, as `doctor`
-does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:390-411` stops
+does. With the row, the gate of `crates/podssh-cli/src/dispatch.rs:396-417` stops
 `podssh relay status` in each script that leaves `--timeout` out. Keeping the gate lost for that
 reason: the command is bounded anyway.
 
@@ -911,7 +911,7 @@ the module comment repeats it (`crates/podssh-relay/src/cache.rs`, lines 4-8 at 
    then the platform's temporary directory (`std::env::temp_dir`) with the user's tag; then the
    working directory. No path literal stays in `cache.rs`.
 3. Probe each as now: a missing directory is made with mode 0700
-   (`crates/podssh-relay/src/cache.rs:341-358`), and one that refuses a write is skipped. When the
+   (`crates/podssh-relay/src/cache.rs:350-367`), and one that refuses a write is skipped. When the
    directory of `PODSSH_CACHE_DIR` is skipped, say so once on stderr, with the reason.
 4. Take the environment as a parameter, as `dial::proxy_from_vars` does
    (`PodUtils/podssh:crates/podssh-ws/src/dial.rs:109-123`), so that the tests can set it.
@@ -1644,7 +1644,7 @@ the user's own file is read. Planted: a check that returns `true`; a test fails.
 
 ## Done
 
-2026-10-11. On Windows `closed` (`crates/podssh-relay/src/cache.rs:376-402`) reads the owner and
+2026-10-11. On Windows `closed` (`crates/podssh-relay/src/cache.rs:385-411`) reads the owner and
 the access list of the opened file (`crates/podssh-relay/src/cache/closed_win.rs:45-50`) and judges
 them by the rules of the Decision (`crates/podssh-relay/src/cache/closed.rs:45-65`); podssh's
 directories and files are made private (`crates/podssh-relay/src/cache/closed_win.rs:219-295`).
@@ -2398,7 +2398,7 @@ podssh's release already trusts:
   token goes only to the deployment that minted it (Q49).
 - For the public default: a `relays.json` of deployments, signed by a workflow of this
   repository with `cosign sign-blob --bundle`, and checked by the Sigstore verifier that
-  `podssh update` already runs on `SHA256SUMS` (`crates/podssh-cli/src/update/mod.rs:278-290`,
+  `podssh update` already runs on `SHA256SUMS` (`crates/podssh-cli/src/update/mod.rs:303-315`,
   update/sigstore.rs (in `pod-release` of podcrates since `v0.77.0`)), its identity widened from the release workflow to
   that workflow and its ref. No private key to keep offline, no new cryptography, and an
   unattended session can publish a new list. The document holds a `serial`, a `not_after` and a
@@ -2842,9 +2842,9 @@ session on 2026-11-03.
   (`crates/podssh-cli/src/proxy.rs:430`) and the relay's end of `podssh pipe` (`carry_opened`)
   tell it at their end (`crates/podssh-cli/src/pipe/relay.rs:222-224`).
 - `podssh status`: `relay_failures` names the road, and `relay_opened` gives the hosts that opened
-  lately (`crates/podssh-cli/src/status.rs:245-255`); `podssh doctor`'s line `failed relays` says
+  lately (`crates/podssh-cli/src/status.rs:246-256`); `podssh doctor`'s line `failed relays` says
   each host tried last, and a line `opened relays` those tried first
-  (`crates/podssh-cli/src/doctor/mod.rs:362-390`). THE RELAY in the manual
+  (`crates/podssh-cli/src/doctor/mod.rs:380-408`). THE RELAY in the manual
   (`crates/podssh-cli/src/man/facts/failed.rs:11-27`), `docs/relay.md` (step 5 of the selection) and
   `docs/cli.md` (`podssh status`).
 - Tests: in `PodUtils/podssh:crates/podssh-relay/src/failures_tests.rs`, the five of T-059 on the road, the round
@@ -4100,7 +4100,7 @@ Read at `2042200`:
   (Inferred from capabilities(7); not measured here).
 - `crates/podssh-cli/Cargo.toml:243` says "[target.'cfg(unix)'.dependencies]" above the binary's
   `libc` row, so the calls need no new crate and no C of a library crate (rule 4 of `AGENTS.md`).
-- `crates/podssh-cli/src/exitmap.rs:174` says "Fault::Capability => own(sysexits::EX_CONFIG, Some(Class::Unsupported))":
+- `crates/podssh-cli/src/exitmap.rs:177` says "Fault::Capability => own(sysexits::EX_CONFIG, Some(Class::Unsupported))":
   78 is this host not set up for the mode.
 - The role behind a quick tunnel binds nothing (`crates/podssh-cli/src/node_quick_relay.rs`), so
   this is for `relay serve` alone.

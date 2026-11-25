@@ -71,6 +71,8 @@ pub mod keep;
 pub mod keep_count;
 pub mod keep_record;
 pub mod key_file;
+// A key, certificate or signature file, read within 1 MiB (T-966).
+pub mod key_text;
 pub mod keygen;
 pub mod keys;
 pub mod known_hosts;

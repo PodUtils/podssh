@@ -56,6 +56,9 @@ pub mod sysexits {
     pub const EX_SOFTWARE: i32 = 70;
     /// An output file cannot be created: a destination of `cp`.
     pub const EX_CANTCREAT: i32 = 73;
+    /// The output could not be written: a stdout that is full or closed
+    /// (T-965). No class of pod-core gives it.
+    pub const EX_IOERR: i32 = 74;
     /// A temporary failure: the `--timeout` passed, and a later try can work.
     pub const EX_TEMPFAIL: i32 = 75;
     /// The peer refused podssh's credentials, or the pair expired.

@@ -78,6 +78,9 @@ fn check(args: &AgentArgs) -> Result<(), String> {
     if args.socket.is_some() && sub.is_some() {
         return Err("--socket is for the agent that serves; the subcommands use SSH_AUTH_SOCK".into());
     }
+    if args.socket.as_deref().is_some_and(|path| path.trim().is_empty()) {
+        return Err("--socket needs a path: an empty one names no socket".into());
+    }
     if args.lifetime.is_some() && !matches!(sub, Some("add" | "add-password" | "add-passphrase")) {
         return Err("--lifetime is for add, add-password and add-passphrase".into());
     }
@@ -143,5 +146,8 @@ mod tests {
         let mut s = args(Some("list"), &[]);
         s.socket = Some("/tmp/x".into());
         assert!(check(&s).unwrap_err().contains("--socket is for the agent that serves"));
+        let mut empty = args(None, &[]);
+        empty.socket = Some(String::new());
+        assert!(check(&empty).unwrap_err().contains("--socket needs a path"));
     }
 }

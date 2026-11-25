@@ -230,7 +230,8 @@ fn proxy_state(relays: &RelayList) -> Value {
 /// The destination's name in `known_hosts`, and whether a key is recorded
 /// for it, from the files that `podssh ssh` reads by default.
 fn destination(text: &str) -> Result<Value, String> {
-    let hop = crate::ssh::resolve::parse_hop(text).map_err(|why| format!("{text}: {why}"))?;
+    // The reader's refusal names the word itself (`"": no host`, T-974).
+    let hop = crate::ssh::resolve::parse_hop(text)?;
     // The rule that `podssh ssh` applies before it connects.
     podssh_relay::relay::check_target(&hop.host).map_err(|why| format!("{text}: {why}"))?;
     let name = podssh_ssh::known_hosts::host_name(&hop.host, hop.port);

@@ -153,3 +153,28 @@ fn a_hop_that_does_not_read_is_a_usage_error_and_offline_asks_nothing() {
     assert_eq!(code, 0, "{out}{err}");
     assert!(line(&out, "hop").contains("not attempted: PODSSH_OFFLINE is set"), "{out}");
 }
+
+/// Each flag that cannot be used is refused before any probe (T-972): a
+/// hop with no host that a dial takes, a flag that --tier would pass over,
+/// a word of --h2-shape (named as the flag); a word of PODSSH_H2_SHAPE is a
+/// fault of the environment (78), named as the variable.
+#[test]
+fn a_flag_that_cannot_be_used_is_refused_before_any_probe() {
+    let home = Scratch::new("refused");
+    let offline = [("PODSSH_OFFLINE", "1")];
+    for (args, said) in [
+        (vec!["--hop", "bad host!:22"], "is not a host name"),
+        (vec!["--tier", "--hop", "git@github.com"], "--hop cannot go with it"),
+        (vec!["--tier", "--hop", "a.example", "--policy", "p.toml"], "--hop cannot go with it"),
+        (vec!["--tier", "--dns-zone", "t.example"], "--dns-zone and --dns-server cannot go with it"),
+        (vec!["--h2-shape", "bogus"], "--h2-shape: existing, browser or firefox, not bogus"),
+    ] {
+        let (code, out, err) = doctor(&home, &args, &offline);
+        assert_eq!(code, 64, "{args:?}: {out}{err}");
+        assert!(err.contains(said) && out.is_empty(), "{args:?}: {err}");
+        assert!(!err.contains("PODSSH_H2_SHAPE"), "{args:?}: {err}");
+    }
+    let (code, out, err) = doctor(&home, &["--tier"], &[("PODSSH_OFFLINE", "1"), ("PODSSH_H2_SHAPE", "bogus")]);
+    assert_eq!(code, 78, "{out}{err}");
+    assert!(err.contains("PODSSH_H2_SHAPE: existing, browser or firefox, not bogus") && out.is_empty(), "{err}");
+}

@@ -2907,7 +2907,7 @@ met.
 ## Decision
 
 - After the counts, not above the failures: each line goes out as its check ends
-  (`crates/podssh-cli/src/doctor/mod.rs:412-416`), so a line about them all comes once they are
+  (`crates/podssh-cli/src/doctor/mod.rs:430-434`), so a line about them all comes once they are
   known. Holding each line back until the end lost: a check of a minute would look like a hang.
 - One reference name, `github.com`, which `doctor` uses already
   (`crates/podssh-cli/src/doctor/net.rs:20-23`). A list of names that an allowlist often holds
@@ -3312,7 +3312,7 @@ and a local Unix socket of frames. podssh has the roads and the layer, and no co
 
 ## Premise
 
-- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:185-246` lists them, and
+- Read: the commands do not include `link` (`crates/podssh-cli/src/dispatch.rs:188-253` lists them, and
   AGENTS.md section 1 names none).
 - Read: the layer is podssh's own wire with a relay's resume (`crates/podssh-relay/src/session/`); the
   contract of the held link is podcrates T-110 (`pod-session`) and the wire document T-120.

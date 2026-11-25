@@ -267,7 +267,10 @@ fn the_vless_early_and_h2_shape_flags_parse_and_a_bad_shape_refuses() {
     let rc = run(&bad, &mut Streams { out: &mut out, err: &mut err });
     assert_eq!(rc, EXIT_USAGE);
     let text = String::from_utf8(err).unwrap();
-    assert!(text.contains("PODSSH_H2_SHAPE: existing, browser or firefox"), "{text}");
+    // The flag is named as the flag (T-972); the variable's own word is a
+    // fault of the environment, 78, which the binary's tests hold.
+    assert!(text.contains("--h2-shape: existing, browser or firefox, not safari"), "{text}");
+    assert!(!text.contains("PODSSH_H2_SHAPE"), "{text}");
     assert!(out.is_empty());
 }
 

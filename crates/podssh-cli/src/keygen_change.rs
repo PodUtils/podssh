@@ -39,14 +39,15 @@ fn run(args: &KeygenArgs, path: &Path, out: &mut dyn Write, err: &mut dyn Write)
     if let Some(comment) = &args.comment {
         check_comment(comment)?;
     }
-    let text = std::fs::read_to_string(path).map(Zeroizing::new).map_err(|e| failed(format!("{shown}: {e}")))?;
+    let text = podssh_ssh::key_text::text_of(path).map_err(failed)?;
     let (key, old) = open(path, &text, args.old_passphrase)?;
     let original = key.public_key().clone();
     let (mut key, passphrase) = (key, old);
     let passphrase = if args.change_passphrase {
         match args.passphrase {
             NewPassphrase::Absent => {
-                crate::keygen::ask_new_passphrase("Enter new passphrase (empty for no passphrase): ").map_err(failed)?
+                let question = "Enter new passphrase (empty for no passphrase): ";
+                crate::keygen::ask_new_passphrase(question, crate::keygen::CHANGED_KEY).map_err(failed)?
             }
             NewPassphrase::Empty | NewPassphrase::Given => Zeroizing::new(String::new()),
         }
@@ -104,7 +105,10 @@ fn open(path: &Path, text: &str, given: NewPassphrase) -> Result<(PrivateKey, Ze
     match podssh_ssh::key_file::decode(text, None) {
         Ok(key) => return Ok((key, Zeroizing::new(String::new()))),
         Err(podssh_ssh::russh::keys::Error::KeyIsEncrypted) => {}
-        Err(e) => return Err((EXIT_FAILED, format!("{shown}: not a private key that podssh reads: {e}"))),
+        Err(e) => {
+            let why = podssh_ssh::key_text::why(&e);
+            return Err((EXIT_FAILED, format!("{shown}: not a private key that podssh reads: {why}")));
+        }
     }
     let old = match given {
         NewPassphrase::Empty => Zeroizing::new(String::new()),
@@ -150,7 +154,8 @@ fn replace(path: &Path, text: &str, original: &PublicKey, passphrase: &str) -> R
 /// Whether the file at `new` holds the key of `original`, opened with
 /// `passphrase`.
 fn same_key(new: &Path, original: &PublicKey, passphrase: &str) -> Result<(), String> {
-    let text = Zeroizing::new(std::fs::read_to_string(new).map_err(|e| format!("the new file cannot be read: {e}"))?);
+    let text = podssh_ssh::key_text::read_text(new)
+        .map_err(|e| format!("the new file cannot be read: {}", podssh_ws::text::said(&e)))?;
     let key = match podssh_ssh::key_file::decode(&text, (!passphrase.is_empty()).then_some(passphrase)) {
         Ok(key) => key,
         Err(podssh_ssh::russh::keys::Error::KeyIsEncrypted) => {

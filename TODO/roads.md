@@ -5858,7 +5858,7 @@ code that no command of the default build uses is P2 at most".
 - Read: doctor's two answers are `ok`: "the iroh road may go direct" after a bind, and "the iroh
   road then uses its relay alone" after a refusal (`crates/podssh-cli/src/doctor/iroh.rs` lines
   12-18 at `925c94b`), in a build with the feature only
-  (`crates/podssh-cli/src/doctor/mod.rs:262-267`). The refusal's
+  (`crates/podssh-cli/src/doctor/mod.rs:280-285`). The refusal's
   `ok` is doctor's rule, as the relay alone is a road that works; the bind's "may go direct" is
   not measured.
 - Read, in iroh 1.4.1 (the local cargo registry, `src/net_report/report.rs`): iroh's report of
@@ -9849,7 +9849,7 @@ that is closed.
 
 Read at `2042200`:
 
-- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:269`; its network part is
+- The section is opened at `crates/podssh-cli/src/doctor/mod.rs:287`; its network part is
   `crates/podssh-cli/src/doctor/net.rs:165`.
 - The two lines of UDP that exist each ask one server: `crates/podssh-cli/src/doctor/quick.rs:55`
   (`UDP out`, the quick tunnel's edge) and `crates/podssh-cli/src/doctor/iroh.rs:33` (`iroh UDP out`); a bind

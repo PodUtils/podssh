@@ -131,7 +131,10 @@ fn sign_refusals() {
     }
     let no_agent = podssh_input(&["keygen", "-Y", "sign", "-U", "-f", &key, "-n", "git", &data], b"", &dir);
     assert_eq!(no_agent.code, 1, "{}", no_agent.err);
-    assert!(no_agent.err.contains("the agent does not hold the key"), "{}", no_agent.err);
+    // Whatever agent the environment names: none, one that does not answer,
+    // or one that does not hold the key, each a refusal of -U.
+    assert!(no_agent.err.contains("-U signs with the agent alone"), "{}", no_agent.err);
+    assert!(!no_agent.err.contains("Unable to connect"), "the client library's words: {}", no_agent.err);
 }
 
 /// A CA key in `dir`: its file, and the key part of its public line.

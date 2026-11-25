@@ -29,7 +29,7 @@ core: the handshake, a host key that does not change, and key authentication.
   (`Eugeny/russh:russh/src/lib_inner.rs`, lines 69-70 at `22c3b88`), so
   `crates/podssh-ssh/Cargo.toml:15` has it. `run_stream` serves one
   connection over any stream, as `crates/podssh-ssh/src/run.rs:36-41` does.
-  To reuse: `crates/podssh-ssh/src/keygen.rs:79-164` (a key, mode 0600, never
+  To reuse: `crates/podssh-ssh/src/keygen.rs:78-163` (a key, mode 0600, never
   over a file), `crates/podssh-ssh/src/known_hosts.rs:266-271` (a key line),
   `crates/podssh-relay/src/cache/dirs.rs:136-241` (the directories).
 
@@ -51,8 +51,8 @@ core: the handshake, a host key that does not change, and key authentication.
    key: exit 78. Invariant: no setting accepts each key. `auth_publickey`
    compares `key_data()`; the login name selects nothing.
 5. The verb: rows in `crates/podssh-cli/src/flags.rs:392-468` and
-   `crates/podssh-cli/src/positionals.rs:8-289`, an arm beside
-   `crates/podssh-cli/src/dispatch.rs:390-392`, the manual, `docs/cli.md`,
+   `crates/podssh-cli/src/positionals.rs:8-292`, an arm beside
+   `crates/podssh-cli/src/dispatch.rs:396-398`, the manual, `docs/cli.md`,
    `docs/STATUS.md`. The first source is `--stdio`, as `sshd -i`: OpenSSH
    then tests serve in the gate through `ProxyCommand`, with no listener.
    `podssh serve NAME` follows on the node runner of T-079. Windows: exit 70.
@@ -118,7 +118,7 @@ on T-698.
 - "No source in `crates/` uses `russh::server`" holds for the code of the binary; the stand-ins of
   the tests do (`crates/podssh-cli/tests/pinggy_stand_in/mod.rs:26`,
   `crates/podssh-relay/tests/devtunnel.rs:19`).
-- The lines moved: `keygen::generate` is at `crates/podssh-ssh/src/keygen.rs:81`. The verbs'
+- The lines moved: `keygen::generate` is at `crates/podssh-ssh/src/keygen.rs:80`. The verbs'
   table, `crates/podssh-cli/src/flags.rs`, was one file of 500 lines, so `Availability` and
   `VERB_OWNER` moved to `crates/podssh-cli/src/flags/availability.rs` beside it.
 - `keygen::write_pair` does not keep Approach item 3's invariant: it writes `FILE.pub` too, and a
@@ -628,7 +628,7 @@ opens, `ssh -tt` gets a terminal, 80x24 (OpenSSH sends a zero size with no local
 client's `TERM`, and Ctrl-C ends `sleep 25`; where none opens, the refusal and 255. The plant
 `t110-no-window-size` (no `TIOCSWINSZ` at the request) fails the size check. In the build image
 (T-251): `scripts/interop-pty.py` with a mode for `podssh serve --stdio` (resize, `vi`, `less`, `top`,
-`~.`) and the `-tt` cases of `scripts/interop.sh:414-442` against serve.
+`~.`) and the `-tt` cases of `scripts/interop.sh:418-446` against serve.
 
 ## Correction
 
@@ -778,7 +778,7 @@ sh scripts/test_in_box.sh target/x86_64-unknown-linux-musl/release/podssh
 The test file crates/podssh-ssh/tests/serve_line.rs uses `--pty line`: Ctrl-C
 ends `sleep 30` within 5 s, the next line runs, and output lines end in CR
 LF. The gate runs the same through OpenSSH's `ssh -tt`, in the shape of
-`scripts/interop.sh:423-432`: `AFTER-5` and exit 9 within 15 s. In the box
+`scripts/interop.sh:427-436`: `AFTER-5` and exit 9 within 15 s. In the box
 (no `/dev/ptmx`), a new step drives `podssh serve --stdio` with
 `podman exec -i` from OpenSSH on the host. A planted serve that signals the
 shell's pid and not its group fails the 15 s check.
@@ -870,7 +870,7 @@ default since OpenSSH 9.0), need an SFTP subsystem on the server.
   `subsystem_request` must answer (`Eugeny/russh:russh/src/server/mod.rs`,
   lines 686-696 at `22c3b88`).
 - Read: the client reaches an SFTP subsystem already: `-s sftp` gets
-  `SSH_FXP_VERSION` from OpenSSH's `sftp-server` (`scripts/interop.sh:357-365`).
+  `SSH_FXP_VERSION` from OpenSSH's `sftp-server` (`scripts/interop.sh:361-369`).
 - Read in the report of GitHub #20, not verified here: tty7 issue #1126 is an
   SFTP wait that did not end; GitHub #15 is the same class in podssh.
 
@@ -988,7 +988,7 @@ the entry joins the work order by its priority.
   The task gives its data to a writer that a program or the SFTP server takes: a child's stdin, or one
   end of a pipe in the process whose other end the server reads; the replies go out through the
   channel's writing half, and the server sends EOF and close when the client's EOF ends its input.
-- The client side (`scripts/interop.sh:356-365`) holds as read: `-s sftp` gets `SSH_FXP_VERSION`
+- The client side (`scripts/interop.sh:360-369`) holds as read: `-s sftp` gets `SSH_FXP_VERSION`
   from OpenSSH's `sftp-server`.
 - russh-sftp reads each path as text: a request whose path is not UTF-8 is a bad message, and a name
   in a listing that is not UTF-8 has U+FFFD in place of each bad byte, as the client's module says.

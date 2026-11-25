@@ -59,3 +59,20 @@ fn update_check_connects_to_nothing_when_offline() {
     assert_eq!(err.lines().count(), 1, "one line: {err}");
     assert_eq!(reached.load(Ordering::SeqCst), 0, "a connection went out: {err}");
 }
+
+/// A stray word is a usage error (64) before anything runs, as for each
+/// verb that takes no word (T-968); offline, nothing could connect anyway.
+#[test]
+fn update_refuses_a_stray_word() {
+    for args in [["update", "extra", "--check"], ["update", "--check", "extra"]] {
+        let out = Command::new(env!("CARGO_BIN_EXE_podssh"))
+            .args(args)
+            .env("PODSSH_OFFLINE", "1")
+            .stdin(Stdio::null())
+            .output()
+            .expect("podssh runs");
+        let err = String::from_utf8_lossy(&out.stderr);
+        assert_eq!(out.status.code(), Some(64), "{args:?}: {err}");
+        assert!(err.contains("extra") && out.stdout.is_empty(), "{args:?}: {err}");
+    }
+}

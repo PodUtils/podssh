@@ -328,6 +328,10 @@ impl<S: AgentStream + Unpin> AgentClient<S> {
                 };
                 identities.push(identity);
             }
+        } else if self.buf.first() == Some(&msg::FAILURE) {
+            // An agent that refuses the list, as a locked russh agent does,
+            // is no agent with no keys (podssh's patch, T-964).
+            return Err(Error::AgentFailure);
         }
 
         Ok(identities)
@@ -575,7 +579,11 @@ impl<S: AgentStream + Unpin> AgentClient<S> {
         self.buf.clear();
         self.buf.resize(4, 0);
         msg::REMOVE_ALL_IDENTITIES.encode(&mut self.buf)?;
-        1u32.encode(&mut self.buf)?;
+        // The frame's length, and nothing after the message's number: the
+        // request went with a length of 0 and four stray bytes, which no
+        // agent read (podssh's patch, T-964).
+        let len = self.buf.len() - 4;
+        BigEndian::write_u32(&mut self.buf[..], len as u32);
         self.read_success().await
     }
 
@@ -661,6 +669,33 @@ mod tests {
         assert!(matches!(err, Error::AgentFailure));
         let err = with_reply(&[msg::FAILURE], |c| Box::pin(c.extension(b"x", b""))).unwrap_err();
         assert!(matches!(err, Error::AgentFailure));
+    }
+
+    /// A refused list is an error, not a list of no keys; remove-all goes as
+    /// one frame of its number alone (podssh's patch, T-964).
+    #[test]
+    fn a_refused_list_fails_and_remove_all_is_one_whole_frame() {
+        let err = with_reply(&[msg::FAILURE], |c| Box::pin(c.request_identities())).unwrap_err();
+        assert!(matches!(err, Error::AgentFailure));
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let body = runtime.block_on(async {
+            let (mut writer, reader) = tokio::io::duplex(64);
+            let agent = tokio::spawn(async move {
+                let mut frame = [0u8; 4];
+                writer.read_exact(&mut frame).await?;
+                let mut body = vec![0; BigEndian::read_u32(&frame) as usize];
+                writer.read_exact(&mut body).await?;
+                writer.write_all(&[0, 0, 0, 1, msg::SUCCESS]).await?;
+                Ok::<Vec<u8>, std::io::Error>(body)
+            });
+            let mut client = AgentClient::connect(reader);
+            client.remove_all_identities().await.unwrap();
+            agent.await.unwrap().unwrap()
+        });
+        assert_eq!(body, [msg::REMOVE_ALL_IDENTITIES]);
     }
 
     #[test]

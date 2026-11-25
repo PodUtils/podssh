@@ -11,6 +11,7 @@
 use std::io::Write;
 
 use crate::exit_codes::EXIT_USAGE;
+use crate::exitmap::sysexits::EX_CONFIG;
 use crate::tree::Parsed;
 
 /// Apply the flag's shape to this process, or return the exit code of a
@@ -21,6 +22,9 @@ pub fn apply(p: &Parsed, err: &mut dyn Write) -> Option<i32> {
         match podssh_ws::h2_road::choose(word) {
             Ok(()) => {}
             Err(why) => {
+                // The word came from the flag, so the line names the flag,
+                // never the variable (T-972).
+                let why = why.replacen(podssh_ws::h2_road::SHAPE_ENV, "--h2-shape", 1);
                 let _ = writeln!(err, "podssh: {why}");
                 return Some(EXIT_USAGE);
             }
@@ -33,11 +37,13 @@ pub fn apply(p: &Parsed, err: &mut dyn Write) -> Option<i32> {
     if podssh_ws::h2_road::chosen().is_some() {
         return None;
     }
+    // A word of the variable is a fault of the environment: 78, as for
+    // each other variable that cannot be used (T-972).
     match podssh_ws::h2_road::shape_from_env() {
         Ok(_) => None,
         Err(why) => {
             let _ = writeln!(err, "podssh: {why}");
-            Some(EXIT_USAGE)
+            Some(EX_CONFIG)
         }
     }
 }

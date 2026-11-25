@@ -230,7 +230,7 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
         let _ = writeln!(out, "{} is older than this build, as --version asked", version.tag());
     }
     let tag = version.tag();
-    let signed = steps::signed(&opts.fetcher, &opts.source, &version).await?;
+    let signed = steps::signed(&opts.fetcher, &opts.source, &version).await.map_err(|e| moved(e, &version, opts))?;
     let logged = signed.verified.logged;
     let at = crate::doctor::clock::format_utc(logged.time);
     let _ = writeln!(
@@ -260,6 +260,31 @@ pub async fn update(opts: &Options, check: bool, asked: Option<&Version>, out: &
         Err(why) => writeln!(out, "the binary before it is not kept ({why}): there is none to put back"),
     };
     Ok(())
+}
+
+/// The last release made before the repository moved (2026-11-05): each
+/// release through it names the workflow of the repository's old name, which
+/// this build does not take (T-683's ruling, no second signer).
+const LAST_BEFORE_THE_MOVE: &str = "1.1.0-beta.3";
+
+/// A refused signature of a release made before the move, said as it is
+/// (T-967): the release is genuine, signed by the repository's old name,
+/// and the hint of Sigstore's roots, which pod-release adds, is no cause.
+fn moved(failure: Error, version: &Version, opts: &Options) -> Error {
+    let Error::Refused(why) = &failure else { return failure };
+    let tag = version.tag();
+    let ours = opts.source.identity(&tag).uri;
+    let before = Version::parse(LAST_BEFORE_THE_MOVE).is_some_and(|last| *version <= last);
+    if !before || !why.contains(&ours) {
+        return failure;
+    }
+    let cause = why.split_once("; nothing was replaced").map_or(why.as_str(), |(cause, _)| cause);
+    let repo = &opts.source.repo;
+    Error::Refused(format!(
+        "{cause}; nothing was replaced. {tag} was signed under the repository's old name, before it moved to {repo}, \
+         and this build takes only {repo}'s signature: download {tag} by hand from {}/{repo}/releases/tag/{tag}",
+        opts.source.web
+    ))
 }
 
 /// The trust of TLS to GitHub: `--ca-file`, else `SSL_CERT_FILE`, else the

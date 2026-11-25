@@ -402,6 +402,11 @@ const AGENT: &[&str] = &[
      terminal or through SSH_ASKPASS. Keys live in the agent's memory only. A key that asks for a confirmation of \
      each use is never used. list writes the size, the fingerprint and the type of each key, and exits 1 when there \
      is none.",
+    "The agent keeps a certificate that ssh-add gives with its key, and lists it apart, as ECDSA-CERT or ED25519-CERT. A \
+     locked podssh agent refuses list, add and remove: each says the agent may be locked, and exits 69. OpenSSH's \
+     locked agent lists no key instead. remove --all sends one request, which a locked agent refuses. podssh agent \
+     keeps no RSA key, as its RSA signing is not constant-time: use an Ed25519 key, or OpenSSH's ssh-agent. An \
+     empty --socket is a usage error (64).",
     "The agent holds a key of a security key (ED25519-SK, ECDSA-SK) that add gives it, as ssh-add gives one. It \
      signs with it in the device: it asks for the touch on its own stderr. It asks a PIN only through SSH_ASKPASS \
      with SSH_ASKPASS_REQUIRE set to force, as it runs in the background. With no device, it refuses the signature \

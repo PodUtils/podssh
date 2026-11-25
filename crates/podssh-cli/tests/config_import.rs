@@ -178,6 +178,19 @@ fn stdin_a_bad_line_a_bad_name_and_the_other_formats() {
         assert_eq!(code, Some(64), "{words:?}: {err}");
         assert!(err.contains(says), "{words:?}: {err}");
     }
+    // The help names each format of the one table (T-973), and a file of
+    // another program is refused by each reader (65), MobaXterm's too.
+    let (code, help, _) = podssh(&["config", "--help"], "");
+    assert_eq!(code, Some(0));
+    for &(format, _) in podssh_cli::config_import::FORMATS {
+        assert!(help.contains(format), "{format}: {help}");
+        if format == "ansible" {
+            continue;
+        }
+        let (code, out, err) = podssh(&["config", "import", format, "-"], "just some words\n");
+        assert_eq!(code, Some(65), "{format}: {out}{err}");
+        assert!(out.is_empty(), "{format}: {out}");
+    }
 }
 
 /// The exports of other programs (T-292), each as its program wrote it and

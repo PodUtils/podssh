@@ -105,7 +105,7 @@ pub fn sign(args: &KeygenArgs, err: &mut dyn Write) -> i32 {
 /// public key, for the agent that holds it.
 fn ca(path: &Path, agent: bool) -> Result<Ca, String> {
     let shown = path.display();
-    let text = std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?;
+    let text = podssh_ssh::key_text::text_of(path)?;
     if agent {
         return public_key(path, &text)
             .map(Ca::Agent)
@@ -117,7 +117,7 @@ fn ca(path: &Path, agent: bool) -> Result<Ca, String> {
 /// FILE, a public key, certified and written to `FILE-cert.pub` (FILE
 /// without `.pub`): the path and the certificate.
 fn certify_one(file: &str, ca: &Ca, request: &Request, rsa_hash: HashAlg) -> Result<(String, Certificate), String> {
-    let text = std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}"))?;
+    let text = podssh_ssh::key_text::text_of(Path::new(file))?;
     let line = text.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with('#')).unwrap_or_default();
     let public = PublicKey::from_openssh(line).map_err(|_| format!("{file}: not a public key"))?;
     let certificate = match ca {
@@ -156,10 +156,10 @@ pub fn print(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> i32
         let _ = writeln!(err, "podssh keygen: -L prints the certificate in -f FILE");
         return EXIT_USAGE;
     };
-    let text = match std::fs::read(path) {
+    let text = match podssh_ssh::key_text::bytes_of(Path::new(path)) {
         Ok(raw) => String::from_utf8_lossy(&raw).into_owned(),
-        Err(e) => {
-            let _ = writeln!(err, "podssh keygen: {path}: {e}");
+        Err(why) => {
+            let _ = writeln!(err, "podssh keygen: {why}");
             return EXIT_FAILED;
         }
     };

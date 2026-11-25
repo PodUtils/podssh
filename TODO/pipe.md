@@ -38,11 +38,11 @@ the verb, the address grammar, the copy loop, and the local addresses `-`,
 ## Approach
 
 1. The verb: a `pipe` row in `crates/podssh-cli/src/flags.rs:396-468`, two
-   required positionals (`crates/podssh-cli/src/positionals.rs:7-289`), a
+   required positionals (`crates/podssh-cli/src/positionals.rs:7-292`), a
    `Parsed::Pipe` variant (`crates/podssh-cli/src/parsed.rs:10-269`), a
    dispatch arm, and `pipe` in `DISPATCHED`
    (`crates/podssh-cli/tests/flag_table.rs:110-147`). No `--timeout` row: the
-   gate at `crates/podssh-cli/src/dispatch.rs:392-413` would require it.
+   gate at `crates/podssh-cli/src/dispatch.rs:398-419` would require it.
 2. The grammar, in a new crates/podssh-cli/src/pipe/address.rs: `KIND:REST`.
    An unknown kind exits 64 and lists the kinds. `-` is `stdio`; `stdio` on
    both sides exits 64. Invariant: both addresses are valid before anything
@@ -167,7 +167,7 @@ local program to a target, and `podssh proxy` stays a second pump.
   private and gives only an exit code.
 - Read: `TODO/issues.md` (#26) says that a binary protocol through `-W` is
   measured. Only exec is measured with digests (`docs/STATUS.md:259`); `-W`
-  was checked with a banner of 16 bytes (`scripts/interop.sh:347-349`).
+  was checked with a banner of 16 bytes (`scripts/interop.sh:351-353`).
 - Read: `node:` needs T-084 (M4) and `iroh:` needs T-163 (M6); both are done
   before M7 starts.
 
@@ -310,8 +310,8 @@ not a listener, so `docs/target-environment.md:99-103` allows it.
 - Measured: `podssh proxy unix-connect:/tmp/x.sock 1` exits 64
   (`':' is not allowed`): no command takes a socket path.
 - Read: podssh connects to a Unix socket only for the agent
-  (`crates/podssh-ssh/src/keys.rs:423-436`, `connect_agent`); on Windows the agent is a
-  named pipe (`crates/podssh-ssh/src/keys.rs:437-458`).
+  (`crates/podssh-ssh/src/keys.rs:429-442`, `connect_agent`); on Windows the agent is a
+  named pipe (`crates/podssh-ssh/src/keys.rs:443-464`).
 - Read: `sun_path` holds 104 to 108 bytes, and doctor refuses a longer name
   before the call (`crates/podssh-cli/src/doctor/unix.rs:212-221`,
   `crates/podssh-cli/src/doctor/unix.rs:235-240`).

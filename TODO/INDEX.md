@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**894 entries: 4 open, 33 partial, 13 blocked, 844 done.**
+**907 entries: 4 open, 33 partial, 15 blocked, 855 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
-| P1 | 0 | 6 | 3 | 101 | 110 |
-| P2 | 0 | 20 | 2 | 334 | 356 |
-| P3 | 4 | 7 | 8 | 408 | 427 |
-| **All** | 4 | 33 | 13 | 844 | 894 |
+| P1 | 0 | 6 | 3 | 102 | 111 |
+| P2 | 0 | 20 | 3 | 337 | 360 |
+| P3 | 4 | 7 | 9 | 415 | 435 |
+| **All** | 4 | 33 | 15 | 855 | 907 |
 
 ## Entries
 
@@ -970,3 +970,16 @@ repository and CI).
 | [T-960](ssh.md) | P3 | S | backlog | defect | done | A refusal of a file's value names `-o` with 64; `HostName` quotes the option text; a bad `Host` or `Include` line passes |
 | [T-961](ssh.md) | P3 | S | backlog | defect | done | `podssh ssh --result-file` in a missing directory runs, then says the file could not be written |
 | [T-962](ssh.md) | P3 | S | backlog | defect | done | A stale socket of `-L PATH` is replaced, though StreamLocalBindUnlink is said to have no effect |
+| [T-963](ssh.md) | P1 | S | backlog | defect | done | A key added with its certificate breaks each listing of podssh's agent |
+| [T-964](ssh.md) | P2 | S | backlog | defect | done | A locked agent lists no key and says that all keys were removed |
+| [T-965](cli.md) | P2 | S | backlog | defect | done | A write of the output that fails is passed over with exit 0 |
+| [T-966](cli.md) | P2 | S | backlog | defect | done | A key, a certificate or a signature file is read with no bound |
+| [T-967](cli.md) | P2 | S | backlog | defect | blocked | `update --version` of a release before the move fails with the hint of Sigstore's roots |
+| [T-968](cli.md) | P3 | S | backlog | defect | done | `update` takes a stray word |
+| [T-969](ssh.md) | P3 | S | backlog | defect | done | `podssh agent`'s exit codes, its refusal of RSA, and an empty `--socket` |
+| [T-970](cli.md) | P3 | S | backlog | defect | done | `keygen`'s files: an empty `-f`, a lone `FILE.pub` replaced, and `.pub` under a umask |
+| [T-971](cli.md) | P3 | S | backlog | defect | done | `keygen`'s lines: `-U` with no agent, `-p`'s hint, and `-q` with `-R` and `-H` |
+| [T-972](cli.md) | P3 | S | backlog | defect | done | `doctor`'s flags: `--tier` passes others over, `--h2-shape` names the variable, a bad `--hop` runs |
+| [T-973](cli.md) | P3 | S | backlog | defect | done | `config import`'s formats: the help names one, and MobaXterm's reader takes any file |
+| [T-974](cli.md) | P3 | S | backlog | defect | done | A library's words in a line of `keygen`, `agent` and `status` |
+| [T-975](cli.md) | P3 | S | backlog | defect | blocked | A pager that fails leaves `podssh man` with no output and exit 0 |

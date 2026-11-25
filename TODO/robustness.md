@@ -3782,7 +3782,7 @@ home; a number that overflows or an argument that is not UTF-8 can panic a parse
 
 - `crates/podssh-cli/src/ssh/x11.rs:136`: `podssh-x11-PID` in the temporary directory, made with `private_dir`, which
   takes a directory that exists, and removed at the end of the run.
-- `crates/podssh-cli/src/keygen_cert.rs:140`, `crates/podssh-cli/src/keygen_change.rs:152` and
+- `crates/podssh-cli/src/keygen_cert.rs:140`, `crates/podssh-cli/src/keygen_change.rs:156` and
   `crates/podssh-ssh/src/known_hosts/edit.rs:281`: `.NAME.podssh-new-PID` beside a key or `known_hosts`, made with
   `create_new`.
 

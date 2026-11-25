@@ -3151,7 +3151,13 @@ session's own watch, which asks where a file goes, or which file goes, as it ask
   alone: no `memfd_create` and `execveat` probe, as no feature reads that rung yet.
   The serve side's tty routes (T-248) join the `terminal` rung when they exist. It
   ends the run before the egress, as `--hop` and `--stream` do. The MCP tool
-  `doctor` takes it as `tier`.
+  `doctor` takes it as `tier`. With `--hop`, `--policy`, `--dns-zone` or
+  `--dns-server` it is a usage error (64), which it once passed over in
+  silence (T-972).
+- A flag of doctor that cannot be used is refused before any probe
+  (T-972): a `--hop` whose host no dial takes (`bad host!:22`) is 64, as a
+  bad port is; a word of `--h2-shape` is 64 and its line names the flag; a
+  word of `PODSSH_H2_SHAPE` is 78 and its line names the variable.
 - `ok`: the check ran and podssh can work with the result. A condition that
   podssh is made for (no listener, no pty, no user database entry, no DNS)
   is a fact and gives `ok`.
@@ -3803,13 +3809,24 @@ judges what the peer offers.
 
 - The `ssh-keygen` of OpenSSH does not run without a user database entry,
   so podssh makes keys itself, in the formats of OpenSSH.
-- A new key is never written over an existing file.
+- A new key is never written over an existing file: `FILE` and `FILE.pub`
+  (a link too) each refuse a new key, before any question (T-970). An
+  empty `-f` is a usage error (64) before any line.
+- A key, a certificate and a signature file are read within 1 MiB
+  (`podssh_ssh::key_text`, T-966): `-l -f /dev/zero` is refused at once,
+  where it once read until the memory ran out. A file that is not text, or
+  that a library cannot read, is said in podssh's words ("its base64 text
+  is cut or damaged"), not the library's (T-974).
+- `-q` prints nothing but a failure, for `-R` and `-H` too; `-H` still
+  warns of the names that `FILE.old` holds (T-971). `-U` with no agent says
+  that no agent runs, as `-s -U` does, not that the agent lacks the key.
 - Only its owner may open the private key: mode 0600, and on Windows an
   access list of its own for the user, SYSTEM and the Administrators, with
   nothing from the directory above, as OpenSSH's `ssh-keygen` makes it;
   OpenSSH for Windows refuses a key that others may open. Each may read
-  `FILE.pub`, and only its owner may change it (mode 0644; on Windows,
-  Everyone reads it). A missing directory is made private (T-288).
+  `FILE.pub`, and only its owner may change it (mode 0644 under any umask,
+  set again once the file is open, T-970; on Windows, Everyone reads it).
+  A missing directory is made private (T-288).
 - `-p` changes the passphrase of the key in `-f FILE`, and `-c` its comment,
   in the key and in `FILE.pub` (T-018). The file is replaced only with the
   same key: the new text goes to a new private file beside it, which is
@@ -3824,7 +3841,8 @@ judges what the peer offers.
 - A passphrase given with `-N` or `-P` is refused (exit 64), because each
   process on the host can read a command line. `-N ''` and `-P ''` are
   accepted. With no terminal and no `SSH_ASKPASS`, podssh refuses at once
-  and names `-N ''` (and `-P ''` for `-p` and `-c`); it does not wait.
+  and names `-N ''` (and `-P ''` for `-p` and `-c`, also when the old key
+  needs no passphrase and the new one is asked, T-971); it does not wait.
 - `-F HOST`, `-R HOST` and `-H` find, remove and hash the lines of a
   `known_hosts` file (`-f FILE`, else `~/.ssh/known_hosts`), with the lines
   and the messages of OpenSSH's `ssh-keygen` (T-019); a host on another port
@@ -6091,7 +6109,27 @@ OpenSSH program that runs; one binary, as the operator ruled (Q5).
   fingerprint and the type. podssh agent keeps no RSA key (T-257): russh's
   agent server would sign with it through the `rsa` crate, which is not
   constant-time, so `podssh agent add` of an RSA key fails with the reason
-  (exit 70); OpenSSH's `ssh-agent` keeps one.
+  in the user's words ("its RSA signing is not constant-time: use an Ed25519
+  key, or OpenSSH's ssh-agent", exit 69, T-969); OpenSSH's `ssh-agent`
+  keeps one.
+- A certificate that `ssh-add KEY` gives with `KEY-cert.pub` (T-963) is
+  kept under the certificate's blob, as OpenSSH's agent keeps it: the
+  identities answer lists the certificate whole, a sign request that names
+  it signs with its key, and `remove` by it removes it. russh's agent
+  server read such a request as an opaque key whose blob wrapped the
+  certificate in a second string, and each listing failed until
+  `ssh-add -D` (russh's patch `0016-agent-certificates.patch`). `list`
+  names its type with `-CERT`, as `ssh-add -l` writes `(ECDSA-CERT)`.
+- A locked agent (T-964): podssh's refuses the list, and `list` says that
+  it may be locked (69), never that it holds no key; `remove --all` sends
+  the one request of `ssh-add -D`, which a locked agent refuses (69).
+  OpenSSH's locked agent lists no key, as `ssh-add -l` shows.
+- The codes of `podssh agent` (T-969): 65 a key file that is no key, or
+  lock passwords that differ; 66 a key file missing or unreadable, or no
+  passphrase or password came; 69 no agent answers, or it refused a key, a
+  list, a removal or a lock; 77 a wrong passphrase or lock password; 78
+  nothing to ask on (no terminal and no `SSH_ASKPASS` that runs). An empty
+  `--socket` is a usage error (64).
 - A key of a security key (T-229) is kept by the front of the agent, as
   russh's agent server cannot sign with one: `podssh agent add` and
   OpenSSH's `ssh-add` give it (with the constraint
@@ -6201,6 +6239,12 @@ command. A recording sends its control sequences to the terminal again:
 play only a file that you trust.
 
 ## `podssh config`
+
+The formats of `import` are one table (`config_import::FORMATS`, T-973):
+`ansible`, `putty`, `mobaxterm`, `remmina` and `mremoteng`; the help, the
+refusal of another word and the readers take it. A file of another program
+is refused (65) by each reader: MobaXterm's needs a `[Bookmarks]` section,
+and a session file of PuTTY on Unix a `key=value` line.
 
 `podssh config import ansible FILE` (T-047) prints a `Host` block of
 `ssh_config` for each host of an Ansible inventory in its INI form (FILE,
@@ -7461,6 +7505,15 @@ asked: no other command looks for a release. `podssh update --rollback`
   move to Rekor v2, makes a binary of before refuse the releases after it;
   its message says to download the release by hand. Each release's proofs
   (`release-proofs.yml`) run podssh update on it, so the day it comes shows.
+- **A release before the move (T-967).** The releases through
+  `v1.1.0-beta.3` (2026-11-05) were signed by the workflow of the
+  repository's old name, which this build does not take (T-683: no second
+  signer). `--version` of one is refused (65) with a line that says so and
+  names the release's page, not the hint of Sigstore's roots, which is no
+  cause there. Whether this build should take the old signer for those
+  tags is the operator's question (T-967).
+- **A stray word** after `update` is a usage error (64), as for each verb
+  that takes no word (T-968).
 
 ## podssh's settings file
 
@@ -7658,6 +7711,16 @@ nothing did), and why.
   that failed, as `podssh ssh` does.
 - `podssh run` gives the status of its command, as `podssh ssh` gives it,
   and 255 when the copy failed, which runs nothing.
+- An output that could not be written is 74 (`EX_IOERR`, T-965), for each
+  command whose answer is its stdout: `keygen`, `doctor`, `man`, `status`,
+  `config`, `agent` and `update`. One line says so ("the output could not
+  be written: No space left on device"), where the command would exit 0;
+  a command that failed first keeps its own code. A stdout closed at the
+  start counts, which Rust's runtime fills with `/dev/null` before `main`:
+  podssh finds it by `/dev/null` opened for reading and writing on
+  descriptor 1. A reader that went away (`| head`) is no failure.
+- `podssh agent` uses sysexits: 65, 66, 69, 77 and 78, as its section says
+  (T-969).
 - `podssh tx` uses sysexits: 0 the file kept, 64, 65 a size or a SHA-256
   that differs, 66, 73, and 75 a transfer refused, cancelled or out of time.
 - `podssh job` uses the codes of `podssh ssh`: 255 for a failure of podssh,

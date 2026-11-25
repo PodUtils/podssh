@@ -1278,7 +1278,7 @@ Read:
   `stty`, `vi`, `less`, `top`, `seq`, `sed` and `/tmp`.
 - The code for Windows: `crates/podssh-ssh/src/terminal/windows.rs`,
   `crates/podssh-ssh/src/prompt.rs:132`, and the `cfg(not(unix))` branches of
-  `crates/podssh-relay/src/cache.rs:268-402`.
+  `crates/podssh-relay/src/cache.rs:268-411`.
 
 ## Approach
 
@@ -4422,7 +4422,7 @@ would get no pull request, and maybe no red job.
   checksum, as a path package has none (`vendor/README.md` lines 133-134 at `80e26fc`); Dependabot's file says that
   an update of russh moves the patch by hand (`.github/dependabot.yml` lines 7-9 at `80e26fc`).
 - Read: the copy of russh is the release 0.64.1 (`vendor/README.md` lines 90-92 at `80e26fc`), iroh-relay is 1.4.1
-  (`vendor/README.md:202-206`), and the Tailscale fork is upstream's commit `f4781c4` of
+  (`vendor/README.md:206-210`), and the Tailscale fork is upstream's commit `f4781c4` of
   2026-09-29 with podssh's patch set (`vendor/README.md:12-24`).
 - Read, through fetch.web.pkgforge.dev on 2026-10-31
   (https://github.com/rustsec/advisory-db/blob/main/crates/russh/RUSTSEC-2026-0154.md):
@@ -7377,7 +7377,7 @@ hold (`Commit::Durable`, `InstalledUnconfirmed`, `InPlace`), and changes nothing
     written.is_err() || std::fs::rename(&part, path).is_err()` (line 333), with no sync at all.
   None of the five syncs the directory after the rename.
 - The others that write through a new file, or sync a directory, are not such a replace (see `## Decision`):
-  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:133`,
+  `crates/podssh-cli/src/keygen_cert.rs:142`, `crates/podssh-cli/src/keygen_change.rs:137`,
   `crates/podssh-cli/src/node_install/system_install.rs:98` and `:134`, update/replace.rs:116 (in `pod-release` of podcrates since `v0.77.0`)
   with update/keep.rs:149 (in `pod-release` of podcrates since `v0.77.0`) (`pub fn sync_dir`), `crates/podssh-cli/src/chat/files.rs:68`,
   `crates/podssh-cli/src/cp/clobber.rs:322`, `crates/podssh-ssh/src/known_hosts/edit.rs:254`,

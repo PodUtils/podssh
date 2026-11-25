@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use russh::keys::ssh_key::public::KeyData;
 use russh::keys::ssh_key::LineEnding;
 use russh::keys::{Algorithm, EcdsaCurve, HashAlg, PrivateKey, PublicKey};
-use zeroize::Zeroizing;
 
 /// A key podssh can make, with its size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -202,12 +201,12 @@ impl KeyFile {
 /// Read a key file: an OpenSSH private key, or a public key line.
 pub fn read_key_file(path: &Path) -> Result<KeyFile, String> {
     let shown = path.display();
-    let text = Zeroizing::new(std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?);
+    let text = crate::key_text::text_of(path)?;
     let start = text.trim_start();
     if start.starts_with("-----BEGIN OPENSSH PRIVATE KEY-----") {
         return PrivateKey::from_openssh(start.as_bytes())
             .map(KeyFile::Private)
-            .map_err(|e| format!("{shown}: not a usable OpenSSH private key: {e}"));
+            .map_err(|e| format!("{shown}: not a usable OpenSSH private key: {}", crate::key_text::why(&e)));
     }
     if start.starts_with("-----BEGIN") || start.starts_with("PuTTY-User-Key-File-") {
         // Each other format that `podssh ssh -i` reads (T-022).

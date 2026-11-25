@@ -34,4 +34,7 @@ pub const UPDATE: &[&str] = &[
      not be replaced, as in a directory that this user cannot write; 78 when no release has a binary for this \
      system; 64 for a TAG that is no version. When Sigstore changes its roots, a binary of before refuses the \
      new releases: download the release by hand, as its message says.",
+    "The releases through 1.1.0-beta.3 were signed under the repository's old name, before it moved to \
+     PodUtils/podssh. This build takes only PodUtils/podssh's signature, so --version refuses such a release (65). \
+     Its line says so, with the page to download it from by hand. A word after update is a usage error (64).",
 ];

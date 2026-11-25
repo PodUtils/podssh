@@ -25,7 +25,8 @@ use zeroize::Zeroizing;
 /// The key in the file at `path`, opened with `passphrase` when it is
 /// encrypted.
 pub fn load(path: &Path, passphrase: Option<&str>) -> Result<PrivateKey, Error> {
-    let text = Zeroizing::new(std::fs::read_to_string(path)?);
+    // Within its bound, and text (T-966).
+    let text = crate::key_text::read_text(path)?;
     decode(&text, passphrase)
 }
 

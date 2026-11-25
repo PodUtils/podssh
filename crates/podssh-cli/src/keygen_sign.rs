@@ -18,14 +18,15 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 use podssh_ssh::known_hosts::{fingerprint, key_type};
-use podssh_ssh::options::Agent;
-use podssh_ssh::russh::keys::ssh_key::{Certificate, HashAlg, SshSig};
+use podssh_ssh::russh::keys::ssh_key::HashAlg;
 use podssh_ssh::russh::keys::{PrivateKey, PublicKey};
 use podssh_ssh::sshsig::{self, Line, Signed};
 use podssh_ssh::sshsig_cert;
 
 use crate::exit_codes::EXIT_USAGE;
 use crate::keygen::{KeygenArgs, EXIT_FAILED};
+// The key that signs, of a file or of the agent, in a file of its own.
+pub(crate) use crate::keygen_signer::{agent_has, block_on, open_private, public_key, public_line, signer, with_agent};
 
 /// What `-O` set.
 struct Options {
@@ -177,123 +178,12 @@ fn sign(args: &KeygenArgs, options: &Options, out: &mut dyn Write, err: &mut dyn
     code
 }
 
-/// The key that signs for `-f KEY`: the agent when it holds the public key
-/// of KEY (and only the agent with `-U`), else the private key in KEY. A
-/// certificate in `-f` is the key of the signature (T-289).
-pub(crate) fn signer(path: &Path, agent_only: bool) -> Result<(Signing, Option<Certificate>), String> {
-    let shown = path.display();
-    let text = std::fs::read_to_string(path).map_err(|e| format!("{shown}: {e}"))?;
-    if let Some(certificate) = certificate_line(&text) {
-        return certified(path, &certificate, agent_only).map(|signing| (signing, Some(certificate)));
-    }
-    let public = public_key(path, &text);
-    if let Some(public) = &public {
-        if agent_has(public) {
-            return Ok((Signing::Agent(public.clone()), None));
-        }
-    }
-    if agent_only {
-        return Err(match public {
-            Some(_) => "the agent does not hold the key of -f (-U signs with the agent alone)".into(),
-            None => format!("{shown} holds no public key for the agent to sign with"),
-        });
-    }
-    if public.is_some() && public_line(&text).is_some() {
-        return Err(format!("{shown} is a public key, and no agent holds its private key"));
-    }
-    open_private(path, &text).map(|key| (Signing::Key(Box::new(key)), None))
-}
-
-/// The certificate in `-f`, when its first line is one.
-fn certificate_line(text: &str) -> Option<Certificate> {
-    let line = text.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with('#'))?;
-    Certificate::from_openssh(line).ok()
-}
-
-/// The key that signs for `-f KEY-cert.pub`, as OpenSSH's `load_sign_key`
-/// finds it: the agent when it holds the certificate's key, else the
-/// private key at the path without `-cert.pub` (or `.pub`), which must be
-/// the certificate's key.
-fn certified(path: &Path, certificate: &Certificate, agent_only: bool) -> Result<Signing, String> {
-    let public = PublicKey::new(certificate.public_key().clone(), "");
-    if agent_has(&public) {
-        return Ok(Signing::Agent(public));
-    }
-    if agent_only {
-        return Err("the agent does not hold the key of -f (-U signs with the agent alone)".into());
-    }
-    let shown = path.to_string_lossy();
-    let private = ["-cert.pub", ".pub"].iter().find_map(|suffix| shown.strip_suffix(suffix)).unwrap_or(&shown);
-    let private = Path::new(private);
-    if !private.exists() {
-        return Err(format!("No private key found for public key \"{shown}\""));
-    }
-    let text = std::fs::read_to_string(private).map_err(|e| format!("{}: {e}", private.display()))?;
-    let key = open_private(private, &text)?;
-    if key.public_key().key_data() != certificate.public_key() {
-        return Err(format!("Public key {shown} doesn't match private {}", private.display()));
-    }
-    Ok(Signing::Key(Box::new(key)))
-}
-
-/// The public key of `-f`: the file's when it is one, else `FILE.pub`, else
-/// the half of a private key that needs no passphrase to read.
-pub(crate) fn public_key(path: &Path, text: &str) -> Option<PublicKey> {
-    if let Some(key) = public_line(text) {
-        return Some(key);
-    }
-    let pub_path = podssh_ssh::keygen::public_path(path);
-    if let Some(key) = std::fs::read_to_string(pub_path).ok().as_deref().and_then(public_line) {
-        return Some(key);
-    }
-    PrivateKey::from_openssh(text.trim_start()).ok().map(|key| PublicKey::new(key.public_key().key_data().clone(), ""))
-}
-
-pub(crate) fn public_line(text: &str) -> Option<PublicKey> {
-    let line = text.lines().map(str::trim).find(|l| !l.is_empty() && !l.starts_with('#'))?;
-    PublicKey::from_openssh(line).ok()
-}
-
-/// The private key of `-f`, its passphrase asked when it has one.
-pub(crate) fn open_private(path: &Path, text: &str) -> Result<PrivateKey, String> {
-    let shown = path.display();
-    match podssh_ssh::key_file::decode(text, None) {
-        Ok(key) => return Ok(key),
-        Err(podssh_ssh::russh::keys::Error::KeyIsEncrypted) => {}
-        Err(e) => return Err(format!("{shown}: not a private key that podssh reads: {e}")),
-    }
-    if !podssh_ssh::prompt::can_ask() {
-        return Err(format!(
-            "{shown} is encrypted, and there is no terminal and no SSH_ASKPASS to ask for its passphrase"
-        ));
-    }
-    let question = format!("Enter passphrase for \"{shown}\": ");
-    let passphrase = podssh_ssh::prompt::ask(&question, false).map_err(|e| format!("{shown}: {e}"))?;
-    podssh_ssh::key_file::decode(text, Some(passphrase.as_str())).map_err(|_| format!("{shown}: incorrect passphrase"))
-}
-
-/// Whether the agent of the environment holds `public`.
-pub(crate) fn agent_has(public: &PublicKey) -> bool {
-    block_on(async {
-        match podssh_ssh::keys::agent_keys(&Agent::FromEnvironment).await {
-            Ok(keys) => keys.iter().any(|k| k.key_data() == public.key_data()),
-            Err(_) => false,
-        }
-    })
-}
-
-pub(crate) fn with_agent(public: &PublicKey, namespace: &str, hash: HashAlg, prehash: &[u8]) -> Result<SshSig, String> {
-    block_on(sshsig::sign_with_agent(&Agent::FromEnvironment, public, namespace, hash, prehash))
-}
-
-pub(crate) fn block_on<F: std::future::Future>(future: F) -> F::Output {
-    tokio::runtime::Builder::new_current_thread().enable_all().build().expect("a runtime").block_on(future)
-}
-
 /// The signature of `-s FILE`, or what `ssh-keygen` says when there is none.
 fn signature_file(args: &KeygenArgs, out: &mut dyn Write, err: &mut dyn Write) -> Option<Signed> {
     let path = args.signature_file.as_deref().unwrap_or_default();
-    let read = std::fs::read(path).map_err(|e| format!("Couldn't read signature file: {path}: {e}"));
+    let read = podssh_ssh::key_text::read(Path::new(path))
+        .map(|bytes| bytes.to_vec())
+        .map_err(|e| format!("Couldn't read signature file: {path}: {}", podssh_ws::text::said(&e)));
     match read.and_then(|text| sshsig::read_signature(&text)) {
         Ok(signed) => Some(signed),
         Err(why) => {

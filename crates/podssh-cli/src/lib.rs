@@ -120,6 +120,7 @@ pub mod keygen_change;
 pub mod keygen_convert;
 pub mod keygen_hosts;
 pub mod keygen_sign;
+mod keygen_signer;
 pub mod keygen_sk;
 // A key sealed to a TPM (T-839).
 pub mod keygen_tpm;
@@ -284,6 +285,8 @@ pub mod nofile;
 pub mod no_resume;
 pub mod non_interactive;
 pub mod operator;
+// A command's stdout, each write checked: 74 when it fails (T-965).
+pub mod output;
 pub mod pager;
 mod pairs;
 pub mod parsed;

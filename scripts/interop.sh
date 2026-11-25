@@ -282,6 +282,10 @@ got=$(ls -d "$TOK"/* 2>/dev/null)
 # path, and Debian's patch makes ForwardX11Trusted yes, upstream's no.
 LISTS='ciphers|macs|kexalgorithms|hostkeyalgorithms|pubkeyacceptedalgorithms|casignaturealgorithms'
 home=$(awk -F: -v u="$(id -un)" '$1 == u {print $6}' /etc/passwd)
+# The X11 lines that differ on purpose in each -G comparison: podssh's
+# xauthlocation is xauth, found on PATH; Debian's patch makes OpenSSH's
+# forwardx11trusted yes.
+X11_OWN="xauthlocation|forwardx11trusted"
 for spec in "short:-p 2222 -l alice example.org" \
         "long:-l alice -o ServerAliveInterval=30 -o ConnectTimeout=7 -o StrictHostKeyChecking=accept-new -o SendEnv=LANG -o LogLevel=VERBOSE -e % -4 -J u@b:2200,c -o RemoteCommand=uptime -o IdentityAgent=none EXAMPLE.org"; do
     args=${spec#*:}
@@ -290,7 +294,7 @@ for spec in "short:-p 2222 -l alice example.org" \
     # shellcheck disable=SC2086
     env HOME="$home" PODSSH_OFFLINE=1 "$BIN" ssh -F none -G $args </dev/null >"$W/podssh-G" 2>"$W/err"
     rc=$?
-    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|xauthlocation|forwardx11trusted|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
+    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|$X11_OWN|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
     [ "$rc" = 0 ] && [ -s "$W/podssh-G" ] && [ -z "$extra" ] && [ ! -s "$W/err" ] \
         && ok "ssh.config.g.${spec%%:*}" "ssh -G: each line that podssh prints is OpenSSH's ($args)" \
         || bad "ssh.config.g.${spec%%:*}" "ssh -G ($args): exit $rc; not OpenSSH's: ${extra:-nothing}" "$W/err"
@@ -309,7 +313,7 @@ for alias in openssh-alias dropbear-alias; do
     ssh -F "$W/ssh_config" -G "$alias" </dev/null >"$W/ssh-G" 2>/dev/null
     env HOME="$home" PODSSH_OFFLINE=1 "$BIN" ssh -F "$W/ssh_config" -G "$alias" </dev/null >"$W/podssh-G" 2>"$W/err"
     rc=$?
-    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
+    extra=$(grep -v -E "^(serveraliveinterval|connecttimeout|$X11_OWN|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
     [ "$rc" = 0 ] && [ -s "$W/podssh-G" ] && [ -z "$extra" ] \
         && ok "ssh.config.g_file.${alias}" "ssh -G -F FILE: each line that podssh prints is OpenSSH's ($alias)" \
         || bad "ssh.config.g_file.${alias}" "ssh -G -F FILE ($alias): exit $rc; not OpenSSH's: ${extra:-nothing}" "$W/err"
@@ -335,7 +339,7 @@ printf 'Include %s/inc/d*/a.conf\nMatch final all\n  ConnectTimeout 9\n  User no
 ssh -F "$W/inc/main" -G inc-alias </dev/null >"$W/ssh-G" 2>/dev/null
 env HOME="$home" PODSSH_OFFLINE=1 "$BIN" ssh -F "$W/inc/main" -G inc-alias </dev/null >"$W/podssh-G" 2>"$W/err"
 rc=$?
-extra=$(grep -v -E "^(serveraliveinterval|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
+extra=$(grep -v -E "^(serveraliveinterval|$X11_OWN|$LISTS) " "$W/podssh-G" | grep -vxF -f "$W/ssh-G" | tr '\n' ';')
 [ "$rc" = 0 ] && [ -z "$extra" ] && grep -qx 'port 2401' "$W/podssh-G" && grep -qx 'user podtest' "$W/podssh-G" \
     && grep -qx 'connecttimeout 9' "$W/podssh-G" \
     && ok ssh.config.include "ssh -G with Include and Match final all: each line that podssh prints is OpenSSH's" \

@@ -120,3 +120,19 @@ fn known_hosts_refusals() {
     assert_eq!(run.code, 1);
     assert!(run.err.contains("no such file"), "{}", run.err);
 }
+
+/// `-q` says nothing but a failure (T-971): `-R` and `-H` change the file
+/// and print no line of it; `-H` still warns of the names in `FILE.old`.
+#[test]
+fn quiet_remove_and_hash_print_nothing() {
+    let dir = scratch();
+    let (kh, _, _) = known_hosts_file(&dir);
+    let run = podssh(&["keygen", "-q", "-R", "one.example", "-f", &kh]);
+    assert_eq!((run.code, run.out.as_str(), run.err.as_str()), (0, "", ""), "{}", run.err);
+    assert!(!std::fs::read_to_string(&kh).unwrap().contains("\none.example "));
+    let _ = std::fs::remove_file(format!("{kh}.old"));
+    let run = podssh(&["keygen", "-q", "-H", "-f", &kh]);
+    assert_eq!((run.code, run.out.as_str()), (0, ""), "{}", run.err);
+    assert!(!run.err.contains("updated.") && !run.err.contains("retained"), "{}", run.err);
+    assert!(!std::fs::read_to_string(&kh).unwrap().contains("two.example"));
+}

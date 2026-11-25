@@ -77,7 +77,8 @@ pub(super) fn run(
         return crate::ssh::run_ssh(args, tty, s.err);
     }
     if let Some(args) = keygen {
-        return crate::keygen::run_keygen(args, s.out, s.err);
+        // Each write of the answer is checked: 74 when it fails (T-965).
+        return crate::output::deliver("keygen", s.out, s.err, |out, err| crate::keygen::run_keygen(args, out, err));
     }
     if let Some(args) = cp {
         return crate::cp::run_cp(args, deadline, jsonl, s.out, s.err);

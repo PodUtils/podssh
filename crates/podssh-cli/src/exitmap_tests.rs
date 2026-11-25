@@ -256,13 +256,14 @@ fn each_fault_takes_pod_core_s_code_where_they_agree_and_the_manual_s_always() {
 /// and `Class::exit_code` is no `const fn`), so this holds them to the crate.
 #[test]
 fn each_sysexits_value_is_pod_core_s_where_a_class_has_it() {
-    let rows: [(i32, Option<Class>); 9] = [
+    let rows: [(i32, Option<Class>); 10] = [
         (sysexits::EX_USAGE, Some(Class::Usage)),
         (sysexits::EX_DATAERR, Some(Class::Data)),
         (sysexits::EX_NOINPUT, Some(Class::NotFound)),
         (sysexits::EX_UNAVAILABLE, Some(Class::Unavailable)),
         (sysexits::EX_SOFTWARE, Some(Class::Internal)),
         (sysexits::EX_CANTCREAT, Some(Class::CantCreate)),
+        (sysexits::EX_IOERR, None),
         (sysexits::EX_TEMPFAIL, Some(Class::TempFail)),
         (sysexits::EX_NOPERM, Some(Class::Refused)),
         (sysexits::EX_CONFIG, Some(Class::Config)),

@@ -41,7 +41,7 @@ ever (tty7's issue 1126, read in GitHub #20; GitHub #15 was this class).
   reads and writes of 261120 bytes, 3195 handles. No extension gives a
   digest.
 - Read: that server exits at the end of its input without its last reply
-  (`scripts/interop.sh:358-360`).
+  (`scripts/interop.sh:362-364`).
 
 ## Approach
 
@@ -957,7 +957,7 @@ Where podssh must replace them, OpenSSH's own `scp` and `sftp` cannot run
 ## Decision
 
 Recommendation: `scp` and `sftp` get no `--timeout` row, as in OpenSSH, so
-the gate of `crates/podssh-cli/src/dispatch.rs:390-411` skips them; T-133's
+the gate of `crates/podssh-cli/src/dispatch.rs:396-417` skips them; T-133's
 limits keep each wait finite. Usage errors stay 64 (`docs/cli.md:7323-7326`)
 where OpenSSH gives 1; a script that tests for "not zero" works with both.
 `--timeout` required with no terminal, as for `cp`, lost: each script that
@@ -3819,7 +3819,7 @@ to the other two; no manual says that the split is a choice, or why.
 ## Premise
 
 - Read: the gate asks for `--timeout` with no terminal of each verb whose table has the flag
-  (`crates/podssh-cli/src/dispatch.rs:368-392`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
+  (`crates/podssh-cli/src/dispatch.rs:374-398`, `crates/podssh-cli/src/non_interactive.rs:191-215`);
   `cp` and `mv` have it (`crates/podssh-cli/src/flags/copy.rs:63-64`), and `scp` and `sftp` have
   none, by T-139's Decision: as in OpenSSH, so that a script that runs `scp` in a pipe does not exit
   64, with ConnectTimeout and T-133's limits on each wait.
@@ -3829,7 +3829,7 @@ to the other two; no manual says that the split is a choice, or why.
 - Read (L-30): `PODSSH_TIMEOUT` is the default of `--timeout` "for each command that has the flag"
   (`crates/podssh-cli/src/man/facts.rs:113-116`), as the report found; met.
 - Read (L-13): the gate runs at the dispatch, before a verb reads its operands
-  (`crates/podssh-cli/src/dispatch.rs:368-392`), so with no terminal `cp DIR HOST:` with no `-r`
+  (`crates/podssh-cli/src/dispatch.rs:374-398`), so with no terminal `cp DIR HOST:` with no `-r`
   gets 64 for the missing `--timeout` first, and on a terminal 66.
 
 ## Approach

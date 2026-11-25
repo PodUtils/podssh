@@ -42,7 +42,12 @@ pub fn read(inputs: &[Input]) -> Result<Read, String> {
             registry(&text).map_err(|why| format!("{}:{why}", input.name))?
         } else {
             let label = input.name.rsplit(['/', '\\']).next().unwrap_or(&input.name);
-            vec![(unescape_percent(label), unix(&text))]
+            let values = unix(&text);
+            // A file with no line of a value is not PuTTY's (T-973).
+            if values.is_empty() {
+                return Err(format!("{}: no key=value line, so no session of PuTTY", input.name));
+            }
+            vec![(unescape_percent(label), values)]
         };
         for (label, values) in sessions {
             read.sessions.push(session(label, &values, &mut read.secrets));

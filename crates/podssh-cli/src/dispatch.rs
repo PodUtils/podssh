@@ -110,14 +110,17 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
             if refusals("man", refused, s.err) {
                 return EXIT_USAGE;
             }
-            if let Some(which) = llms {
-                return crate::man::llms::run(which, section.is_some() || *roff || *json, s.out, s.err);
-            }
-            let stdin = std::io::stdin();
-            let mut keys = stdin.lock();
-            let request =
-                crate::man::Request { section: section.as_deref(), no_pager: *no_pager, roff: *roff, json: *json };
-            crate::man::run(&request, tty, &mut keys, s.out, s.err)
+            // Each write of the answer is checked: 74 when it fails (T-965).
+            crate::output::deliver("man", s.out, s.err, |out, err| {
+                if let Some(which) = llms {
+                    return crate::man::llms::run(which, section.is_some() || *roff || *json, out, err);
+                }
+                let stdin = std::io::stdin();
+                let mut keys = stdin.lock();
+                let request =
+                    crate::man::Request { section: section.as_deref(), no_pager: *no_pager, roff: *roff, json: *json };
+                crate::man::run(&request, tty, &mut keys, out, err)
+            })
         }
         Parsed::Proxy {
             target,
@@ -193,7 +196,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         Parsed::Play(args) if refusals("play", &args.refused, s.err) => EXIT_USAGE,
         Parsed::Play(args) => crate::play::run(args, s.out, s.err),
         Parsed::Update(args) if refusals("update", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Update(args) => crate::update::run(args, s.out, s.err),
+        Parsed::Update(args) => {
+            crate::output::deliver("update", s.out, s.err, |out, err| crate::update::run(args, out, err))
+        }
         Parsed::Edit(args) if refusals("edit", &args.refused, s.err) => EXIT_USAGE,
         // The editor is on the process's own terminal.
         Parsed::Edit(args) => crate::edit::run_edit(args, tty, s.err),
@@ -216,7 +221,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         // plan on stdout (T-475).
         Parsed::Run(args) => crate::run_cmd::run_run(args, s.out, s.err),
         Parsed::Config(args) if refusals("config", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Config(args) => crate::config_import::run(args, s.out, s.err),
+        Parsed::Config(args) => {
+            crate::output::deliver("config", s.out, s.err, |out, err| crate::config_import::run(args, out, err))
+        }
         Parsed::Tx(args) if refusals("tx", &args.refused, s.err) => EXIT_USAGE,
         // The frames are on the process's own terminal; the last line on stderr.
         Parsed::Tx(args) => crate::tx::run(args, s.err),
@@ -247,7 +254,9 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
         // The URL on stdout; each line on stderr.
         Parsed::Funnel(args) => crate::funnel::run(args, s.out, s.err),
         Parsed::Agent(args) if refusals("agent", &args.refused, s.err) => EXIT_USAGE,
-        Parsed::Agent(args) => crate::agent::run(args, s.out, s.err),
+        Parsed::Agent(args) => {
+            crate::output::deliver("agent", s.out, s.err, |out, err| crate::agent::run(args, out, err))
+        }
         Parsed::Status { refused, .. } if refusals("status", refused, s.err) => EXIT_USAGE,
         Parsed::Status { relay_host, relay_addr, destination, net, keys, .. } => {
             let args = crate::status::StatusArgs {
@@ -258,7 +267,7 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
                 net: *net,
                 keys: *keys,
             };
-            crate::status::run_status(&args, tty, s.out, s.err)
+            crate::output::deliver("status", s.out, s.err, |out, err| crate::status::run_status(&args, tty, out, err))
         }
         Parsed::Doctor {
             relay_host,
@@ -293,39 +302,36 @@ pub fn run_with(p: &Parsed, s: &mut Streams<'_>, tty: Tty) -> i32 {
             if refusals("doctor", refused, s.err) {
                 return EXIT_USAGE;
             }
-            crate::doctor::run_doctor(
-                &crate::doctor::DoctorArgs {
-                    relay_host: relay_host.clone(),
-                    relay_failover: relay_failover.clone(),
-                    relay_addr: relay_addr.clone(),
-                    ca_file: ca_file.clone(),
-                    json: *json,
-                    full: *full,
-                    hop: hop.clone(),
-                    policy: policy.clone(),
-                    forwarder: forwarder.clone(),
-                    shadowsocks: shadowsocks.clone(),
-                    via: via.clone(),
-                    vless: vless.clone(),
-                    early_data: early_data.clone(),
-                    h2_shape: h2_shape.clone(),
-                    trojan: *trojan,
-                    hysteria: hysteria.clone(),
-                    tuic: tuic.clone(),
-                    turn: turn.clone(),
-                    devtunnel: devtunnel.clone(),
-                    cover: cover.clone(),
-                    quick: *quick,
-                    tier: *tier,
-                    jobs: jobs.clone(),
-                    stream: stream.clone(),
-                    stream_idle: stream_idle.clone(),
-                    exit: exit.clone(),
-                    dns: dns.clone(),
-                },
-                s.out,
-                s.err,
-            )
+            let args = crate::doctor::DoctorArgs {
+                relay_host: relay_host.clone(),
+                relay_failover: relay_failover.clone(),
+                relay_addr: relay_addr.clone(),
+                ca_file: ca_file.clone(),
+                json: *json,
+                full: *full,
+                hop: hop.clone(),
+                policy: policy.clone(),
+                forwarder: forwarder.clone(),
+                shadowsocks: shadowsocks.clone(),
+                via: via.clone(),
+                vless: vless.clone(),
+                early_data: early_data.clone(),
+                h2_shape: h2_shape.clone(),
+                trojan: *trojan,
+                hysteria: hysteria.clone(),
+                tuic: tuic.clone(),
+                turn: turn.clone(),
+                devtunnel: devtunnel.clone(),
+                cover: cover.clone(),
+                quick: *quick,
+                tier: *tier,
+                jobs: jobs.clone(),
+                stream: stream.clone(),
+                stream_idle: stream_idle.clone(),
+                exit: exit.clone(),
+                dns: dns.clone(),
+            };
+            crate::output::deliver("doctor", s.out, s.err, |out, err| crate::doctor::run_doctor(&args, out, err))
         }
         // A build without the `ts` feature still parses `ts` (so help and the
         // man page stay complete) but refuses it, naming the feature.
@@ -438,15 +444,20 @@ where
     // Unlocked handles: each write takes the lock briefly. Holding the lock
     // for the whole run would deadlock any verb that writes through
     // tokio's stdout, which locks from a helper thread.
-    let mut out = std::io::stdout();
+    let mut stdout = std::io::stdout();
+    // A stdout closed at the start is not told apart (T-965's Decision):
+    // Rust's runtime puts /dev/null there, opened for reading and writing,
+    // as a daemon, systemd's StandardOutput=null and --detach's own child
+    // each do for a stdout meant to be thrown away.
+    let out: &mut dyn Write = &mut stdout;
     let mut err = std::io::stderr();
     let rc = if hook.is_some() {
         let mut tee = crate::error_program::Tee::new(&mut err);
-        let rc = run(&mut Streams { out: &mut out, err: &mut tee });
+        let rc = run(&mut Streams { out: &mut *out, err: &mut tee });
         tee.finish();
         rc
     } else {
-        run(&mut Streams { out: &mut out, err: &mut err })
+        run(&mut Streams { out: &mut *out, err: &mut err })
     };
     let _ = out.flush();
     let _ = err.flush();

@@ -140,7 +140,7 @@ pub(crate) fn make(args: &KeygenArgs, path: &Path, comment: &str, out: &mut dyn 
 /// The policy key of `-O policy-key=FILE`, its passphrase asked when it
 /// has one.
 fn open_policy_key(path: &Path) -> Result<PolicyKey, String> {
-    let text = zeroize::Zeroizing::new(std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?);
+    let text = podssh_ssh::key_text::text_of(path)?;
     let key = crate::keygen_sign::open_private(path, &text)?;
     PolicyKey::new(key).map_err(|e| format!("{}: {e}", path.display()))
 }
