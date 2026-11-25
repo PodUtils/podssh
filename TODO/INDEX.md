@@ -62,15 +62,15 @@ repository and CI).
 
 ## Counts
 
-**837 entries: 6 open, 39 partial, 12 blocked, 780 done.**
+**838 entries: 6 open, 39 partial, 12 blocked, 781 done.**
 
 | Priority | open | partial | blocked | done | total |
 | --- | --- | --- | --- | --- | --- |
 | P0 | 0 | 0 | 0 | 1 | 1 |
 | P1 | 0 | 11 | 3 | 95 | 109 |
 | P2 | 0 | 22 | 2 | 309 | 333 |
-| P3 | 6 | 6 | 7 | 375 | 394 |
-| **All** | 6 | 39 | 12 | 780 | 837 |
+| P3 | 6 | 6 | 7 | 376 | 395 |
+| **All** | 6 | 39 | 12 | 781 | 838 |
 
 ## Entries
 
@@ -908,8 +908,9 @@ repository and CI).
 | [T-897](robustness.md) | P1 | S | M10 | defect | done | The gate at `25ac08f`: the kept shells built for Windows without `pod-term`, and macOS's bash read `!_END` |
 | [T-898](roads.md) | P3 | M | M10 | measurement | open | The live runs of the HTTP road and the HTTP/2 road: a real proxy's path, and Apache's `H2WebSockets` |
 | [T-899](ws.md) | P3 | S | M10 | measurement | blocked | The live run of the Dev Tunnels road through a tester's tunnel |
-| [T-900](mesh.md) | P3 | S | backlog | feature | open | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
+| [T-900](mesh.md) | P3 | S | backlog | feature | done | The DNS road over DNS over HTTPS, through `HTTPS_PROXY` |
 | [T-901](resume.md) | P3 | M | backlog | feature | done | A fresh attach to a shell at a still prompt, and a seat of `--share`, find their screen |
 | [T-902](serve.md) | P3 | M | backlog | feature | done | The gateway's routes in the net's signed policy |
 | [T-903](serve.md) | P3 | S | backlog | chore | done | The gateway's certificate by `pod-relay`'s `Mint`, once it takes extensions |
 | [T-904](robustness.md) | P2 | S | backlog | defect | done | A test that dials a port it freed can reach a server of a test beside it |
+| [T-905](robustness.md) | P3 | S | backlog | defect | open | A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is |

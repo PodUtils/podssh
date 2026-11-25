@@ -16781,7 +16781,7 @@ at `v0.83.0` (podcrates' HANDOFF: a query of junk holds no handshake slot).
 **Milestone:** backlog
 **Priority:** P3
 **Effort:** S
-**Status:** open
+**Status:** done
 
 ## Problem
 
@@ -16792,7 +16792,7 @@ DNS road is no road there; DNS over HTTPS (RFC 8484) is one connection through `
 ## Premise
 
 - Read: the client opens `pod_link::dns::Dns::connect`, which binds a UDP socket of the system
-  (`crates/podssh-cli/src/carrier_dns.rs:273`); `connect_over` takes any `Datagrams`, so a `Datagrams` over DoH
+  (`crates/podssh-cli/src/carrier_dns.rs:303`); `connect_over` takes any `Datagrams`, so a `Datagrams` over DoH
   plugs in with no change of the road.
 - Read: pod-link has no `Datagrams` over DoH at podcrates `v0.83.0`; `pod-dns` has a DoH client of its own
   (PodUtils/podcrates:crates/pod-dns/src/doh.rs), for lookups, not for a stream of datagrams.
@@ -16822,3 +16822,28 @@ pausing the next query for its `Retry-After` (PodUtils/podcrates@T-1168); the li
 `Pipe` keeps the headers of an HTTP/2 answer (its release notes, "pod-link" and "pod-dns"). podssh takes the tag in the
 take; this entry wires it into the DNS road (Approach 2 and 3, with `over_https` in the place of a `Datagrams`), and
 is open.
+
+## Done
+
+2026-11-25: FILE's `resolver` takes `https://NAME[:PORT]/PATH` (`crates/podssh-cli/src/carrier_dns_https.rs`): the
+client's queries go as DNS over HTTPS through `pod-link`'s `Dns::over_https` (`v0.84.0`), with podssh's way out
+(`ProxyChoice::FromEnvironment`, so `HTTPS_PROXY`), podssh's TLS and trust (`SSL_CERT_FILE` or the settings file's
+`CaFile` replaces the roots), and NAME's address from podssh's resolver; no UDP, so no probe of UDP. Found on the way
+and repaired: a carrier of `podssh operator` did not read `--relay-addr` or `PODSSH_RELAY_ADDR` (its path returned
+before `pins::apply`), so a carrier that dials a name could not be pinned; `crate::carrier::operator` now applies the
+pins first. And `pod-dns`'s default trust ignores `SSL_CERT_FILE`: the first run of the test failed with `UnknownCA`
+at the front and no query; with podssh's trust it passes. Filed beside it: T-905 (a carrier's end says "the relay
+refused the session: HTTP 410").
+
+- The test `crates/podssh-cli/tests/carrier_dns_https.rs`: NAME pinned to 192.0.2.10 (TEST-NET-1), a stand-in proxy
+  that answers each CONNECT and carries it to a front of the test, the front's TLS of a CA of the test
+  (`SSL_CERT_FILE`) and RFC 8484's GET of the wire form, each query passed to the node's responder (pod-link's) as
+  UDP: 8 KiB through an echo server came back whole, the operator and the node both exited 0, the proxy saw only
+  `CONNECT net-a.test:443`, and the front counted the queries; about 9 s. A URL with no path is 78 before anything
+  connects. Unit tests: the table of the words of `resolver` (`carrier_dns_https.rs`).
+- `cargo test -p podssh-cli --test carrier_dns_https` (2 passed), `--test carrier_dns` (5), `--test carrier_s3` (3),
+  `--test node_carrier` (15), `--test operator` (12), `--lib carrier_dns` and `man::` (72, `llms.txt` and
+  `llms-full.txt` written again); clippy (`-D warnings`) and rustfmt clean.
+- The manual's note of the DNS road and its FILE, `docs/cli.md`, `docs/carriers.md`.
+- Not measured: a public resolver of DNS over HTTPS in front of a real delegated zone (the deployment of the
+  research's section 6); a run of more than the test's 8 KiB.

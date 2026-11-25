@@ -177,11 +177,16 @@ pub fn through_seen(address: &str, input: Vec<u8>, seen: &Arc<Seen>) -> (i32, St
 /// (T-465) still gives the end to the next read, and the test counts it.
 pub trait Timed {
     fn wait_at_most(&self, limit: Duration) -> std::io::Result<()>;
+    /// Shut the write half down: the end of the answer, before the close.
+    fn end_writes(&self) -> std::io::Result<()>;
 }
 
 impl Timed for std::net::TcpStream {
     fn wait_at_most(&self, limit: Duration) -> std::io::Result<()> {
         self.set_read_timeout(Some(limit))
+    }
+    fn end_writes(&self) -> std::io::Result<()> {
+        self.shutdown(std::net::Shutdown::Write)
     }
 }
 
@@ -190,7 +195,13 @@ impl Timed for std::os::unix::net::UnixStream {
     fn wait_at_most(&self, limit: Duration) -> std::io::Result<()> {
         self.set_read_timeout(Some(limit))
     }
+    fn end_writes(&self) -> std::io::Result<()> {
+        self.shutdown(std::net::Shutdown::Write)
+    }
 }
+
+/// How long the server waits for podssh's close after its answer.
+const CLOSE_WAIT: Duration = Duration::from_secs(5);
 
 /// How long one read of a server waits before it reads again.
 const READ_WAIT: Duration = Duration::from_millis(250);
@@ -228,6 +239,20 @@ pub fn answer(mut stream: impl Read + Write + Timed, seen: &Seen) {
     let _ = stream.write_all(digest(&got).as_bytes());
     seen.answered.store(true, Ordering::SeqCst);
     seen.mark(&seen.answered_ms);
+    // A graceful close: the end of the answer, then podssh's close. Windows'
+    // AF_UNIX gives a close with no shutdown to its peer as a reset
+    // (WSAECONNRESET), sometimes before the answer is read; podssh says a
+    // reset and exits 69 (T-465), as it must.
+    let _ = stream.end_writes();
+    let until = Instant::now() + CLOSE_WAIT;
+    while Instant::now() < until {
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(_) => {}
+            Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {}
+            Err(_) => break,
+        }
+    }
 }
 
 /// A server on `path` for one connection, that answers.

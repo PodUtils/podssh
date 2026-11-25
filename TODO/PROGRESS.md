@@ -79,7 +79,7 @@ stand-in of `rm`. `cargo todo check` and `python scripts/check-repo.py`: ok.
 
 ## Counts
 
-`TODO/INDEX.md` holds 837 entries: 6 open, 39 partial, 12 blocked, 780 done.
+`TODO/INDEX.md` holds 838 entries: 6 open, 39 partial, 12 blocked, 781 done.
 
 Open includes parked work. `cargo todo check` verifies this line.
 
@@ -125,8 +125,8 @@ operator interrupts it.
 2. The net: T-106 (the live test of `podssh ts` with two nodes, on the operator's tailnet).
 3. Exit, routes, share and funnel: done.
 4. The public carriers of Q65 to Q78 and what their research filed: done but for T-738 (file hosts as the last carrier,
-   partial), T-740 (Bare servers as a hop, blocked) and T-499 (parked). The DNS carrier (Q107) is done (2026-11-25); its form
-   over DoH, T-900, waits for podcrates.
+   partial), T-740 (Bare servers as a hop, blocked) and T-499 (parked). The DNS carrier (Q107) and its form over DNS over HTTPS
+   are done (2026-11-25).
 5. T-446: the next beta `v1.1.0-beta.N` when podssh is nearly complete, and `v1.1.0` at the end, once the migration is
    done.
 

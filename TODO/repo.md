@@ -6061,8 +6061,8 @@ The probe's line of a TPM that does not answer keeps its cause. User-visible: a 
 this boot state". (3) `Class::Data` (65): the Dev Tunnels road's `code_of` gives it `EX_DATAERR`, and its test holds each
 class of pod-core to a code of the manual's EXIT STATUS; `exitmap`'s row of `EX_DATAERR` names the class. (4) T-903:
 the gateway signs with `Mint::sign_with` (its entry). (5) T-900 and T-834 are open: `v0.84.0` carries what each waited
-for. T-877's DNS road already sets `handshake_quiet` and `hold` (`crates/podssh-cli/src/carrier_dns.rs:126`,
-`crates/podssh-cli/src/carrier_dns.rs:233`). T-831's codec version 2 is left to its own entry. No script or workflow
+for. T-877's DNS road already sets `handshake_quiet` and `hold` (`crates/podssh-cli/src/carrier_dns.rs:131`,
+`crates/podssh-cli/src/carrier_dns.rs:241`). T-831's codec version 2 is left to its own entry. No script or workflow
 names a moved file.
 
 Run here (Linux, Rust 1.99.1): `cargo build`; clippy (`-D warnings -A clippy::collapsible_if`, all targets) of the

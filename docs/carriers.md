@@ -2141,8 +2141,8 @@ is [research/dns-carrier.md](research/dns-carrier.md). Its verdict:
 - **The owner allowed UDP to a resolver** on 2026-11-24 (Q107, exception 11 of
   rule 2): only with `--carrier dns:FILE` or `doctor --dns-zone ZONE`, after a
   probe found UDP out, at most 20 queries a second and 8 in flight. A form over
-  DNS over HTTPS stays inside rule 2 (one CONNECT to a resolver's name on 443)
-  and needs a `Datagrams` over DoH in podcrates. T-875 (the probe), T-876 (four
+  DNS over HTTPS stays inside rule 2 (one CONNECT to a resolver's name on 443):
+  podcrates `v0.84.0` gave it (`Dns::over_https`), and T-900 wired it. T-875 (the probe), T-876 (four
   findings for podcrates) and T-877 (the road) hold the work.
 - **The probe** (T-875, 2026-11-25): `podssh doctor --dns-zone ZONE
   [--dns-server ADDR]` opens a UDP socket toward the resolver (the one named,

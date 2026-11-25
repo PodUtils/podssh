@@ -12,7 +12,9 @@
 //!
 //! - `zone`: the zone whose names carry the stream, delegated to the node;
 //! - `resolver` (the client's): `system` (the first nameserver of
-//!   `/etc/resolv.conf`, the default) or `IP[:PORT]`;
+//!   `/etc/resolv.conf`, the default), `IP[:PORT]`, or
+//!   `https://NAME[:PORT]/PATH`, a resolver of DNS over HTTPS reached through
+//!   `HTTPS_PROXY` with no UDP (`carrier_dns_https`);
 //! - `listen` (the node's): `IP:PORT` of UDP, as `0.0.0.0:53`;
 //! - `key-file`: this end's key, made when it is missing (private);
 //! - `peer`: the other end's key: on a client, the node's; on a node, each
@@ -36,6 +38,7 @@ use podssh_relay::serve::reverse::carrier::Link;
 use podssh_relay::session::OsEntropy;
 
 use crate::carrier_bucket::Side;
+use crate::carrier_dns_https::{self as https, Https};
 use crate::dns_road::{self, Resolver};
 use crate::exitmap::Fault;
 use crate::relay_settings::Refusal;
@@ -75,6 +78,8 @@ pub(crate) struct Spec {
     /// The zone, in lower case with no final dot.
     pub zone: String,
     pub resolver: Resolver,
+    /// A resolver of DNS over HTTPS in the place of `resolver`.
+    pub https: Option<Https>,
     pub listen: Option<SocketAddr>,
     /// This end's key file, read or made when the road starts.
     pub key_file: PathBuf,
@@ -185,9 +190,12 @@ pub(crate) fn read(file: &str) -> Result<Spec, Refusal> {
     // pod-link's own check of a dial address: the zone leaves room for a
     // datagram in a name. Any key stands in for the peer's here.
     Dns::address(&format!("{}@{zone}", "0".repeat(64))).map_err(|e| config(file, format!("zone: {e}")))?;
-    let resolver = match get("resolver") {
-        Some(text) => Resolver::parse(&text).map_err(|why| config(file, format!("resolver: {why}")))?,
-        None => Resolver::System,
+    let (resolver, https) = match get("resolver") {
+        Some(text) => match https::parse(&text) {
+            Some(url) => (Resolver::System, Some(url.map_err(|why| config(file, format!("resolver: {why}")))?)),
+            None => (Resolver::parse(&text).map_err(|why| config(file, format!("resolver: {why}")))?, None),
+        },
+        None => (Resolver::System, None),
     };
     let listen = match get("listen") {
         Some(text) => Some(text.trim().parse::<SocketAddr>().map_err(|_| {
@@ -207,7 +215,7 @@ pub(crate) fn read(file: &str) -> Result<Spec, Refusal> {
     let peers = peers_of(&get("peer").ok_or_else(|| config(file, "no peer: the other end's key"))?)
         .map_err(|why| config(file, why))?;
     let settings = settings_of(&get).map_err(|why| config(file, why))?;
-    Ok(Spec { file: file.to_string(), zone, resolver, listen, key_file, peers, settings })
+    Ok(Spec { file: file.to_string(), zone, resolver, https, listen, key_file, peers, settings })
 }
 
 /// This end's key, read or made; a line names a key that was made, for the
@@ -241,14 +249,19 @@ fn say() -> podssh_relay::filehost::Say {
     })
 }
 
+/// The one peer of a client: the node's key, which it pins.
+fn client_peer(spec: &Spec) -> Result<KeyName, Refusal> {
+    match spec.peers.as_slice() {
+        [one] => Ok(one.clone()),
+        _ => Err(config(&spec.file, "peer: one key on a client's side, the node's, which it pins")),
+    }
+}
+
 /// The client's checks before any datagram: one peer, the resolver, and the
 /// probe of UDP toward it (Q107). A host that refuses UDP is 69, with
 /// nothing sent.
 fn client_ready(spec: &Spec) -> Result<(SocketAddr, KeyName), Refusal> {
-    let peer = match spec.peers.as_slice() {
-        [one] => one.clone(),
-        _ => return Err(config(&spec.file, "peer: one key on a client's side, the node's, which it pins")),
-    };
+    let peer = client_peer(spec)?;
     let (server, _) = spec.resolver.resolve("resolver").map_err(|why| config(&spec.file, why))?;
     let unavailable = Fault::RelayUnreachable.code();
     dns_road::udp_out(server)
@@ -265,6 +278,23 @@ pub(crate) fn open(spec: Arc<Spec>, side: Side) -> Result<Link, Refusal> {
     let say = say();
     let (ours, mut far) = tokio::io::duplex(PIPE);
     match side {
+        Side::Client if spec.https.is_some() => {
+            // Over DNS over HTTPS: no UDP, so no probe of it.
+            let peer = client_peer(&spec)?;
+            let identity = key_of(&spec, &say)?;
+            let dns = carrier(&spec, identity);
+            tokio::spawn(async move {
+                let Some(url) = spec.https.as_ref() else { return };
+                let dns = match https::carrier(dns, url).await {
+                    Ok(dns) => dns,
+                    Err(why) => return say(format!("{}: {why}", spec.file)),
+                };
+                match dns.connect(&spec.zone, &peer).await {
+                    Ok((link, _)) => carry_until_settled(far, link).await,
+                    Err(e) => say(format!("{}: {e}", spec.file)),
+                }
+            });
+        }
         Side::Client => {
             let (server, peer) = client_ready(&spec)?;
             let identity = key_of(&spec, &say)?;

@@ -23,7 +23,9 @@ pub(super) const NODE: &str = "--carrier dns:FILE carries the node's stream in D
      listener that you ask for; PODSSH_LISTEN=no refuses it (78). It takes the first client whose key is a peer of \
      FILE, then serves that one stream. The client sends to its resolver: resolver of FILE, else the first \
      nameserver of /etc/resolv.conf. A UDP socket toward it, which sends nothing, comes first. Where the host \
-     refuses UDP, the run ends with one line (69), and nothing is sent. At most 20 queries a second and 8 in \
+     refuses UDP, the run ends with one line (69), and nothing is sent. A resolver of FILE that is \
+     https://NAME[:PORT]/PATH takes the queries as DNS over HTTPS instead, through HTTPS_PROXY when it is set: \
+     no UDP, so no probe, and a 429 pauses the next query. At most 20 queries a second and 8 in \
      flight; FILE may lower them, never raise them (78). The road is slow: about 2.6 KB/s up and 18 KB/s down at \
      best. A resolver's operator sees about 2,000 queries an hour while it is idle, and can block the zone. It is \
      a last resort; podssh doctor --dns-zone says whether a resolver passes the zone.";
@@ -33,7 +35,8 @@ pub(super) fn file() -> (Vec<String>, String) {
     (
         vec!["the file of --carrier dns:FILE".to_string()],
         "The DNS road of a carrier: NAME = VALUE lines, # for a comment. zone, the zone whose names carry the \
-         stream. resolver, the client's: system (the default) or IP[:PORT]. listen, the node's IP:PORT of UDP. \
+         stream. resolver, the client's: system (the default), IP[:PORT], or https://NAME[:PORT]/PATH, a resolver \
+         of DNS over HTTPS whose certificate names NAME. listen, the node's IP:PORT of UDP. \
          key-file, this end's key, made private when missing; a line then gives its key for the other end. peer, \
          the other end's key: on a client the node's, on a node each client's, by spaces or commas. \
          queries-per-second (20 at most), in-flight (8 at most), query-timeout and poll-max in seconds, and \

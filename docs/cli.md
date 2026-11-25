@@ -5229,7 +5229,14 @@ commands. The rules behind them:
   The client's `resolver` is an address or `system`, the first nameserver
   of `/etc/resolv.conf`; a UDP socket connected to it, which sends nothing,
   is the probe, and a host that refuses UDP ends with one line and 69, with
-  nothing sent. Q107's bound holds: FILE may lower pod-link's 20 queries a
+  nothing sent.
+  A `resolver` of `https://NAME[:PORT]/PATH` (T-900) sends the queries as
+  DNS over HTTPS (RFC 8484's GET of the wire form) through `HTTPS_PROXY`
+  when it is set, one connection to NAME under podssh's trust
+  (`SSL_CERT_FILE`, the settings file's `CaFile`): no UDP, so no probe; a
+  `429` pauses the next query for its `Retry-After`. NAME's address comes
+  from podssh's resolver, and `--relay-addr` or `PODSSH_RELAY_ADDR` pins it,
+  as each carrier of `podssh operator` now reads them. Q107's bound holds: FILE may lower pod-link's 20 queries a
   second and 8 in flight, never raise them (78). The stream is a pipe at
   once, whose far end a task carries once the handshake is done; a handshake
   that fails (a cut answer each time, a key that is not the pin) says why

@@ -259,6 +259,12 @@ pub(crate) async fn end_shared() {
 /// end of the stream, and its bytes to stdout, as on the pair's road, with
 /// the layer and the end-to-end channel; each line names `verb`.
 pub(crate) fn operator(args: &OperatorArgs, verb: &'static str, err: &mut dyn Write) -> i32 {
+    // A carrier that dials a name (a bucket, a resolver of DNS over HTTPS)
+    // takes the pins of --relay-addr and PODSSH_RELAY_ADDR, as the relay's
+    // road does (T-900).
+    if let Err(refusal) = crate::pins::apply(args.relay_addr.as_deref()) {
+        return refusal.report(verb, err);
+    }
     let (label, text, found, ask, bound) = match prepare(args) {
         Ok(ready) => ready,
         Err(refusal) => return refusal.report(verb, err),

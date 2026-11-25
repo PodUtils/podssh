@@ -993,7 +993,7 @@ Read, each claim of GitHub #34 at the lines as they are now:
   (the -1 of `railway.new`) to 255, and an exit signal to 128 plus its number
   (`docs/STATUS.md:258`, `docs/STATUS.md:264`).
 - A correction to the framing of #34: for a signal, podssh differs from
-  OpenSSH on purpose. `docs/cli.md:7174-7175` says 128 plus the signal's number,
+  OpenSSH on purpose. `docs/cli.md:7181-7182` says 128 plus the signal's number,
   and that OpenSSH gives 255. `crates/podssh-ssh/src/lib.rs:16` says that the
   codes follow OpenSSH, with 128 plus a signal. The two texts disagree, and no
   record measures the code of OpenSSH.
@@ -1010,14 +1010,14 @@ Read, each claim of GitHub #34 at the lines as they are now:
    code. Then run podssh and compare.
 3. A table of the intended differences, each with its reason. Today one row:
    a signal (OpenSSH's code, against 128 plus the number;
-   `docs/cli.md:7174-7175`). A difference that the table does not name fails,
+   `docs/cli.md:7181-7182`). A difference that the table does not name fails,
    with both codes and the command.
 4. Keep each literal as a second check with its own name, so that a change
    gives two named failures: "differs from OpenSSH" and "differs from the
    promise".
 5. Refuse a reference of 0 for a case that must fail, so that a broken
    reference cannot pass.
-6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7174-7175` agree with
+6. Make `crates/podssh-ssh/src/lib.rs:16` and `docs/cli.md:7181-7182` agree with
    the measurement, and record the codes of OpenSSH in docs/STATUS.md.
 
 Relation: T-199 (GitHub #25) scores the harness against a committed
@@ -1054,7 +1054,7 @@ for `podssh ssh`.
 (openssh-portable at its default branch, 2026-10-12; read, not run):
 `client_input_channel_req` in `clientloop.c` takes `exit-status` and no
 `exit-signal`, and `client_loop` starts its status at -1, so a signal gives
-255, as `docs/cli.md:6041-6042` says. `check_host_key` in `sshconnect.c`
+255, as `docs/cli.md:6048-6049` says. `check_host_key` in `sshconnect.c`
 goes on past a changed key under `StrictHostKeyChecking=no`: it turns off
 password and keyboard-interactive login and the forwardings, then accepts
 the key, so `ssh.hostkey.changed_refused` gives 0 with OpenSSH. In
@@ -1095,7 +1095,7 @@ has three rows.
   podssh 143), `changed_key` (OpenSSH 0, podssh 255) and
   `unreadable_known_hosts` (OpenSSH 0, podssh 255).
 - `crates/podssh-ssh/src/lib.rs:16` now agrees with
-  `docs/cli.md:6041-6042`: 128 plus the signal's number, where OpenSSH
+  `docs/cli.md:6048-6049`: 128 plus the signal's number, where OpenSSH
   gives 255. `docs/cli.md` names the two differences of the host keys
   beside their rules; `docs/development.md` (item 7 of the gate) says that
   each code is checked twice; `docs/STATUS.md` has a row for OpenSSH's
@@ -1404,6 +1404,13 @@ that fails at random hides a defect, or teaches the reader to rerun.
 2. Name the cause (the end of stdin lost, a half-close that macOS does not pass on, or a pump
    that waits) and repair it, not the limit.
 
+## Decision
+
+2026-11-25: podssh keeps a reset as a failure (one line, 69), on Windows' AF_UNIX too. Lost: taking `WSAECONNRESET`
+of an AF_UNIX socket on Windows as its end, which would pass a server that closes with no shutdown, but would exit 0
+where the reset took the answer with it, as at `13623b3`; podssh cannot tell the two apart, and a lost answer with 0
+is the worse fault. A server that ends with a shutdown, as a stream's protocol does, passes on each system.
+
 ## Prove
 
 ```sh
@@ -1520,6 +1527,17 @@ platform's abort of a graceful close) from an early end. Measured: `cargo test -
 forwarder_cli`, each passed. Then `suite-repeat.yml` with `runner=windows-2025`, `package=podssh-cli`,
 `test=pipe`, `filter=unix_connect`, 50 runs at `c6fa76a` (run 45610356007): 50 of 50 passed. It stays
 partial for the next failure's words.
+
+2026-11-25, the words: the gate of `c6fa76a` (run 45610338752, job `windows`) failed the test with 69, and podssh
+said "B's input failed (An existing connection was forcibly closed by the remote host. (os error 10054)) after 64
+bytes"; the server had read each byte, its input ended and it answered at 114 ms. So the cause is named: the test's
+server closed its AF_UNIX socket with no shutdown, and Windows' AF_UNIX gives that close to the peer as a reset
+(`WSAECONNRESET`), after the answer here (64 bytes came) and before it at `13623b3` (the answer lost, and podssh,
+taking the reset as an end then, exited 0 with nothing). The macOS and Windows failures of "no end within 10 s"
+before are the same lost end seen from the other side. Repaired in the test's server
+(`crates/podssh-cli/tests/pipe_seen/mod.rs`, `answer`): a graceful close, its write half shut down after the answer,
+then a wait of 5 s at most for podssh's close. `cargo test -p podssh-cli --test pipe`: 10 passed here; the gate's
+`windows` job and a repeat there follow.
 
 # T-564: podssh never raises its soft limit of open files, so a wide `cp --parallel` or `each` meets `EMFILE`
 
@@ -4799,3 +4817,38 @@ CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test health --test ssh_result --te
 podssh-cli --test health --test ssh_result --test error_program --test relay`: 7, 7, 17 and 7 passed. A port that a
 test binds for a listener of its own still comes from port 0, where a race makes a bind fail, never a wrong peer.
 
+
+# T-905: A carrier's stream that ended says "the relay refused the session: HTTP 410" where no relay is
+
+**Source:** the session of 2026-11-25, T-900's test of `--carrier dns:FILE` over DNS over HTTPS: a handshake that
+timed out ended `podssh operator` with "the relay refused the session: HTTP 410: the carrier dns:FILE ended, and a
+stream that this end did not start has one life"
+**Category:** defect
+**Milestone:** backlog
+**Priority:** P3
+**Effort:** S
+**Status:** open
+
+## Problem
+
+On a carrier there is no relay, and nothing answered HTTP 410: the line is not true ("Quality first" of
+`AGENTS.md`: each failure gives one line that is true). The carrier's own line before it ("the handshake with
+t.example:53 took more than 20s") is the cause; the second line repeats the end in the words of another road.
+
+## Premise
+
+- Read: podssh's glue gives the end of a carrier's stream as `ConnectError::Refused { status: 410, body }`
+  (`crates/podssh-relay/src/serve/reverse/carrier.rs:181-182`); `pod-ws`'s `Display` of `Refused` is "the relay
+  refused the session: HTTP {status}: {body}" (`PodUtils/podcrates:crates/pod-ws/src/client.rs:163` at `v0.84.0`).
+
+## Approach
+
+1. Give the end of a carrier's stream in a form whose words are the carrier's own (a variant of `ConnectError`
+   with no relay in it, asked of podcrates by a COORD issue if `pod-ws` has none), keeping its exit code (69).
+2. A test of the carrier's failed handshake checks the line: no word of a relay or of HTTP.
+
+## Prove
+
+```sh
+CARGO_BUILD_JOBS=4 cargo test -p podssh-cli --test carrier_dns
+```

@@ -38,6 +38,8 @@ pub mod carrier;
 pub mod carrier_bucket;
 // `--carrier dns:FILE`: names and TXT answers of DNS as that stream (T-877).
 pub mod carrier_dns;
+// Its `resolver` of DNS over HTTPS, through HTTPS_PROXY (T-900).
+pub(crate) mod carrier_dns_https;
 pub mod channel;
 pub mod chat;
 // `--chisel URL`: a chisel server in place of the relay (T-490).
